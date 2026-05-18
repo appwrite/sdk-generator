@@ -58,12 +58,10 @@ namespace {{ spec.title | caseUcfirst }}
             }
         };
 
-        public Client(
-            string endpoint = "{{spec.endpoint}}",
-            bool selfSigned = false)
+        private Client()
         {
-            _endpoint = endpoint;
-            _selfSigned = selfSigned;
+            _endpoint = "{{spec.endpoint}}";
+            _selfSigned = false;
             _cookieContainer = new CookieContainer();
 
             _headers = new Dictionary<string, string>()
@@ -86,20 +84,125 @@ namespace {{ spec.title | caseUcfirst }}
             // Note: CookieContainer handles its own loading in constructor based on platform
         }
 
-        public Client SetSelfSigned(bool selfSigned)
+        public static Client From(
+            string projectId,
+            string endpoint = "{{spec.endpoint}}",
+            string? endpointRealtime = null,
+            string? locale = null,
+            bool selfSigned = false)
         {
-            _selfSigned = selfSigned;
-            return this;
+            var client = new Client();
+            Configure(client, endpoint, projectId, endpointRealtime, locale, selfSigned);
+            return client;
         }
 
-        public Client SetEndpoint(string endpoint)
+        public static Client FromSession(
+            string projectId,
+            string session,
+            string endpoint = "{{spec.endpoint}}",
+            string? endpointRealtime = null,
+            string? locale = null,
+            bool selfSigned = false)
+        {
+            var client = From(projectId, endpoint, endpointRealtime, locale, selfSigned);
+            client.SetHeader("session", "X-{{ spec.title | caseUcfirst }}-Session", session, persist: true);
+            return client;
+        }
+
+        public static Client FromDevKey(
+            string projectId,
+            string devKey,
+            string endpoint = "{{spec.endpoint}}",
+            string? endpointRealtime = null,
+            string? locale = null,
+            bool selfSigned = false)
+        {
+            var client = From(projectId, endpoint, endpointRealtime, locale, selfSigned);
+            client.SetHeader("devKey", "X-{{ spec.title | caseUcfirst }}-Dev-Key", devKey);
+            return client;
+        }
+
+        public static Client FromImpersonation(
+            string projectId,
+            string session,
+            string? userId = null,
+            string? userEmail = null,
+            string? userPhone = null,
+            string endpoint = "{{spec.endpoint}}",
+            string? endpointRealtime = null,
+            string? locale = null,
+            bool selfSigned = false)
+        {
+            var targetCount = new[] { userId, userEmail, userPhone }.Count(value => !string.IsNullOrEmpty(value));
+            if (targetCount != 1)
+            {
+                throw new {{ spec.title | caseUcfirst }}Exception("Exactly one impersonation target must be provided.");
+            }
+
+            var client = FromSession(projectId, session, endpoint, endpointRealtime, locale, selfSigned);
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                client.SetHeader("impersonateUserId", "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id", userId);
+            }
+
+            if (!string.IsNullOrEmpty(userEmail))
+            {
+                client.SetHeader("impersonateUserEmail", "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email", userEmail);
+            }
+
+            if (!string.IsNullOrEmpty(userPhone))
+            {
+                client.SetHeader("impersonateUserPhone", "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone", userPhone);
+            }
+
+            return client;
+        }
+
+        private static void Configure(
+            Client client,
+            string endpoint,
+            string projectId,
+            string? endpointRealtime,
+            string? locale,
+            bool selfSigned)
+        {
+            client.ConfigureEndpoint(endpoint);
+            client.SetHeader("project", "X-{{ spec.title | caseUcfirst }}-Project", projectId);
+            client._config["endpointRealtime"] = string.IsNullOrEmpty(endpointRealtime)
+                ? ToRealtimeEndpoint(endpoint)
+                : ValidateRealtimeEndpoint(endpointRealtime);
+            client._selfSigned = selfSigned;
+
+            if (!string.IsNullOrEmpty(locale))
+            {
+                client.SetHeader("locale", "X-{{ spec.title | caseUcfirst }}-Locale", locale);
+            }
+        }
+
+        private void ConfigureEndpoint(string endpoint)
         {
             if (!endpoint.StartsWith("http://") && !endpoint.StartsWith("https://")) {
                 throw new {{ spec.title | caseUcfirst }}Exception("Invalid endpoint URL: " + endpoint);
             }
 
             _endpoint = endpoint;
-            return this;
+        }
+
+        private static string ValidateRealtimeEndpoint(string endpointRealtime)
+        {
+            if (!endpointRealtime.StartsWith("ws://") && !endpointRealtime.StartsWith("wss://")) {
+                throw new {{ spec.title | caseUcfirst }}Exception("Invalid realtime endpoint URL: " + endpointRealtime);
+            }
+
+            return endpointRealtime;
+        }
+
+        private static string ToRealtimeEndpoint(string endpoint)
+        {
+            return endpoint
+                .Replace("http://", "ws://")
+                .Replace("https://", "wss://");
         }
 #if UNI_TASK
         /// <summary>
@@ -119,36 +222,17 @@ namespace {{ spec.title | caseUcfirst }}
                 response => (response.TryGetValue("result", out var result) ? result?.ToString() : null) ?? string.Empty);
         }
 #endif
-        /// <summary>
-        /// Set realtime endpoint for WebSocket connections
-        /// </summary>
-        /// <param name="endpointRealtime">Realtime endpoint URL</param>
-        /// <returns>Client instance for method chaining</returns>
-        public Client SetEndPointRealtime(string endpointRealtime)
+        private void SetHeader(string configKey, string header, string value, bool persist = false)
         {
-            if (!endpointRealtime.StartsWith("ws://") && !endpointRealtime.StartsWith("wss://")) {
-                throw new {{ spec.title | caseUcfirst }}Exception("Invalid realtime endpoint URL: " + endpointRealtime);
+            _config[configKey] = value;
+            _headers[header] = value;
+
+            if (persist)
+            {
+                SaveSession();
             }
-
-            _config["endpointRealtime"] = endpointRealtime;
-            return this;
         }
 
-        {%~ for header in spec.global.headers %}
-        {%~ if header.description %}
-        /// <summary>{{header.description}}</summary>
-        {%~ endif %}
-        public Client Set{{header.key | caseUcfirst}}(string value) {
-            _config["{{ header.key | caseCamel }}"] = value;
-            AddHeader("{{header.name}}", value);
-            {%~ if header.key | caseCamel == "session" or header.key | caseCamel == "jWT" %}
-            SaveSession();
-            {%~ endif %}
-            
-            return this;
-        }
-
-        {%~ endfor %}
         /// <summary>
         /// Get the current session from config
         /// </summary>
@@ -736,7 +820,7 @@ namespace {{ spec.title | caseUcfirst }}
                     onProgress?.Invoke(
                         new UploadProgress(
                             id: id,
-                            progress: Math.Min(offset, size) / size * 100,
+                            progress: size == 0 ? 100 : (double)Math.Min(offset, size) / size * 100,
                             sizeUploaded: Math.Min(offset, size),
                             chunksTotal: chunksTotal,
                             chunksUploaded: chunksUploaded));

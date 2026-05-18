@@ -51,7 +51,13 @@ namespace {{ spec.title | caseUcfirst }}.Models
                                 map["{{ property.name }}"].ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
                             {%- endif %}
                         {%- else -%}
-                            {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
+                            {%- if not property.required -%}
+                                map.TryGetValue("{{ property.name }}", out var objectRaw{{ loop.index }}) && objectRaw{{ loop.index }} != null
+                                    ? {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: objectRaw{{ loop.index }} is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)objectRaw{{ loop.index }})
+                                    : null
+                            {%- else -%}
+                                {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
+                            {%- endif %}
                         {%- endif %}
                 {%- elseif property.enum %}
                     {%- set enumName = property['enumName'] ?? property.name -%}

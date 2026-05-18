@@ -96,8 +96,7 @@ namespace {{ spec.title | caseUcfirst }}
             
             try
             {
-                _client = new Client();
-                config.ApplyTo(_client);
+                _client = config.CreateClient();
                 
                 InitializeSelectedServices();
                 

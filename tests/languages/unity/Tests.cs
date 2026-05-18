@@ -45,10 +45,11 @@ namespace AppwriteTests
         }
         private async Task RunAsyncTest()
         {
-            var client = new Client()
-                .SetProject("123456")
-                .AddHeader("Origin", "http://localhost")
-                .SetSelfSigned(true);
+            var client = Client.From(
+                projectId: "console",
+                endpointRealtime: "ws://mockapi/v1",
+                selfSigned: true)
+                .AddHeader("Origin", "http://localhost");
             var sdkHeaders = client.GetHeaders();
             LogResult($"x-sdk-name: {sdkHeaders["x-sdk-name"]}; x-sdk-platform: {sdkHeaders["x-sdk-platform"]}; x-sdk-language: {sdkHeaders["x-sdk-language"]}; x-sdk-version: {sdkHeaders["x-sdk-version"]}");
 
@@ -56,9 +57,6 @@ namespace AppwriteTests
             var bar = new Bar(client);
             var general = new General(client);
 
-            client.SetProject("console");
-            client.SetEndPointRealtime("ws://mockapi/v1");
-            
             // Create GameObject for Realtime MonoBehaviour
             var realtimeObject = new GameObject("RealtimeTest");
             var realtime = realtimeObject.AddComponent<Realtime>();
@@ -98,12 +96,12 @@ namespace AppwriteTests
             await Task.Delay(5000);
 
             // Ping test
-            client.SetProject("123456");
-            var ping = await client.Ping();
+            var pingClient = Client.From(
+                projectId: "123456",
+                selfSigned: true)
+                .AddHeader("Origin", "http://localhost");
+            var ping = await pingClient.Ping();
             LogResult(ping);
-
-            // Reset a project for other tests
-            client.SetProject("console");
 
             Mock mock;
             // Foo Tests
@@ -209,7 +207,9 @@ namespace AppwriteTests
 
             try
             {
-                client.SetEndpoint("htp://cloud.appwrite.io/v1");
+                Client.From(
+                    projectId: "123456",
+                    endpoint: "htp://cloud.appwrite.io/v1");
             }
             catch (AppwriteException e)
             {

@@ -66,7 +66,11 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
                     new[] { "databases.*.collections.*.documents" },
                     response =>
                     {
-                        Debug.Log($"Realtime event: {response.Events[0]}");
+                        var eventName = response.Events != null && response.Events.Length > 0
+                            ? response.Events[0]
+                            : "unknown";
+
+                        Debug.Log($"Realtime event: {eventName}");
                     }
                 );
                 
@@ -88,15 +92,7 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
             try
             {
                 // Create and configure client
-                var client = new Client()
-                    .SetEndpoint(config.Endpoint)
-                    .SetProject(config.ProjectId);
-
-                if (!string.IsNullOrEmpty(config.DevKey))
-                    client.SetDevKey(config.DevKey);
-
-                if (!string.IsNullOrEmpty(config.RealtimeEndpoint))
-                    client.SetEndPointRealtime(config.RealtimeEndpoint);
+                var client = config.CreateClient();
 
                 // Test connection
                 var pingResult = await client.Ping();
@@ -113,7 +109,11 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
                 //     new[] { "databases.*.collections.*.documents" },
                 //     response =>
                 //     {
-                //         Debug.Log($"Realtime event: {response.Events[0]}");
+                //         var eventName = response.Events != null && response.Events.Length > 0
+                //             ? response.Events[0]
+                //             : "unknown";
+                //
+                //         Debug.Log($"Realtime event: {eventName}");
                 //     }
                 // );
 

@@ -83,20 +83,22 @@ namespace {{ spec.title | caseUcfirst }}
         
         
         /// <summary>
-        /// Apply this configuration to a client
+        /// Create a client using this configuration.
         /// </summary>
-        public void ApplyTo(Client client)
+        public Client CreateClient()
         {
-            client.SetEndpoint(endpoint);
-            client.SetProject(projectId);
-
-            if (!string.IsNullOrEmpty(realtimeEndpoint))
-                client.SetEndPointRealtime(realtimeEndpoint);
-                
-            client.SetSelfSigned(selfSigned);
-            
-            if (!string.IsNullOrEmpty(devKey))
-                client.SetDevKey(devKey);
+            return string.IsNullOrEmpty(devKey)
+                ? Client.From(
+                    projectId: projectId,
+                    endpoint: endpoint,
+                    endpointRealtime: string.IsNullOrEmpty(realtimeEndpoint) ? null : realtimeEndpoint,
+                    selfSigned: selfSigned)
+                : Client.FromDevKey(
+                    projectId: projectId,
+                    devKey: devKey,
+                    endpoint: endpoint,
+                    endpointRealtime: string.IsNullOrEmpty(realtimeEndpoint) ? null : realtimeEndpoint,
+                    selfSigned: selfSigned);
         }
 
         #if UNITY_EDITOR
