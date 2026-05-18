@@ -11,9 +11,10 @@ interface Func { _fn: any }
 interface Execution { _exec: any }
 interface Team { _team: any }
 interface Membership { _mem: any }
+interface Presence { _presence: any }
 interface Resolved { _res: any }
 
-type Actionable = Document | Row | File | Team | Membership;
+type Actionable = Document | Row | File | Team | Membership | Presence;
 
 function normalize(id: string): string {
   if (id === undefined || id === null) {
@@ -82,7 +83,7 @@ export class Channel<T> {
     return this.resolve("create");
   }
 
-  upsert(this: Channel<Document | Row>): Channel<Resolved> {
+  upsert(this: Channel<Document | Row | Presence>): Channel<Resolved> {
     return this.resolve("upsert");
   }
 
@@ -123,6 +124,10 @@ export class Channel<T> {
     return new Channel<Membership>(["memberships", normalize(id)]);
   }
 
+  static presence(id: string) {
+    return new Channel<Presence>(["presences", normalize(id)]);
+  }
+
   static account(): string {
     return "account";
   }
@@ -151,8 +156,12 @@ export class Channel<T> {
   static memberships(): string {
     return "memberships";
   }
+
+  static presences(): string {
+    return "presences";
+  }
 }
 
 // Export types for backward compatibility with realtime
-export type ActionableChannel = Channel<Document> | Channel<Row> | Channel<File> | Channel<Execution> | Channel<Team> | Channel<Membership>;
+export type ActionableChannel = Channel<Document> | Channel<Row> | Channel<File> | Channel<Execution> | Channel<Team> | Channel<Membership> | Channel<Presence>;
 export type ResolvedChannel = Channel<Resolved>;

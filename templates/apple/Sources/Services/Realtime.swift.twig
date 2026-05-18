@@ -14,16 +14,22 @@ open class Realtime : Service {
     private let TYPE_ERROR = "error"
     private let TYPE_EVENT = "event"
     private let TYPE_PONG = "pong"
-    private let TYPE_RESPONSE = "response"
     private let DEBOUNCE_NANOS = 1_000_000
     private let HEARTBEAT_INTERVAL: UInt64 = 20_000_000_000 // 20 seconds in nanoseconds
 
     private var socketClient: WebSocketClient? = nil
     private var activeSubscriptions = [String: RealtimeCallback]()
     private var pendingSubscribes = [String: [String: Any]]()
+    private var pendingPresence: [String: Any]? = nil
+    private var appConnected = false
     private var heartbeatTask: Task<Void, Swift.Error>? = nil
+    /// Single-flight lock for `createSocket()`. While set, concurrent callers
+    /// join this task instead of issuing a second `WebSocketClient.connect()`.
+    /// Cleared once the underlying connect resolves or throws.
+    private var socketCreationTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
+    let presenceSync = DispatchQueue(label: "PresenceSync")
 
     private var subCallDepth = 0
     private var reconnectAttempts = 0
@@ -68,8 +74,39 @@ open class Realtime : Service {
         heartbeatTask = nil
     }
 
+    /// Idempotent socket opener. Both `subscribe()` and `upsertPresence()` can
+    /// call this; the single-flight lock (`socketCreationTask`) guarantees
+    /// only one `WebSocketClient.connect()` is ever in flight, so concurrent
+    /// callers join the same connection attempt instead of opening duplicates.
     private func createSocket() async throws {
-        guard activeSubscriptions.count > 0 else {
+        // Fast path: a usable socket is already there.
+        if let ws = socketClient, ws.isConnected {
+            return
+        }
+
+        // Atomically check / claim the in-flight slot via the existing serial
+        // queue. The actual connect work runs outside the queue's critical
+        // section.
+        let task: Task<Void, Swift.Error> = connectSync.sync {
+            if let existing = socketCreationTask {
+                return existing
+            }
+            let newTask = Task<Void, Swift.Error> { [weak self] in
+                guard let self = self else { return }
+                defer {
+                    self.connectSync.sync { self.socketCreationTask = nil }
+                }
+                try await self.createSocketLocked()
+            }
+            socketCreationTask = newTask
+            return newTask
+        }
+        try await task.value
+    }
+
+    private func createSocketLocked() async throws {
+        let hasPendingPresence: Bool = presenceSync.sync { pendingPresence != nil }
+        guard activeSubscriptions.count > 0 || hasPendingPresence else {
             reconnect = false
             try await closeSocket()
             return
@@ -84,6 +121,12 @@ open class Realtime : Service {
             try await closeSocket()
         }
 
+        // Cooperative cancellation point: disconnect() may have cancelled us
+        // while we awaited closeSocket(). Bail before allocating a new client.
+        if Task.isCancelled || isTornDown() {
+            return
+        }
+
         socketClient = WebSocketClient(
             url,
             tlsEnabled: !client.selfSigned,
@@ -91,6 +134,18 @@ open class Realtime : Service {
         )
 
         try await socketClient?.connect()
+
+        // disconnect() may also have run between WebSocketClient init and the
+        // moment connect() resolved. The handshake succeeded, but state has
+        // been torn down — close the freshly opened socket so it doesn't leak.
+        if Task.isCancelled || isTornDown() {
+            try? await closeSocket()
+        }
+    }
+
+    private func isTornDown() -> Bool {
+        let hasPendingPresence: Bool = presenceSync.sync { pendingPresence != nil }
+        return activeSubscriptions.isEmpty && !hasPendingPresence
     }
 
     private func sendUnsubscribeMessage(_ subscriptionIds: [String]) {
@@ -136,12 +191,38 @@ open class Realtime : Service {
     public func disconnect() async throws {
         activeSubscriptions.removeAll()
         pendingSubscribes.removeAll()
+        presenceSync.sync {
+            pendingPresence = nil
+        }
+        appConnected = false
         reconnect = false
+        // Capture and cancel any in-flight socket-creation task. Just nulling
+        // the reference is not enough — Swift tasks are cooperative, so the
+        // already-running body would otherwise proceed past its guard checks
+        // and assign `socketClient` after teardown, leaving a stray realtime
+        // connection alive with no subscriptions or presence.
+        let pendingTask: Task<Void, Swift.Error>? = connectSync.sync {
+            let t = socketCreationTask
+            socketCreationTask = nil
+            return t
+        }
+        pendingTask?.cancel()
         try await closeSocket()
     }
 
     private func sendPendingSubscribes() {
         guard let ws = socketClient, ws.isConnected else {
+            return
+        }
+        // The WebSocketClient becomes "connected" as soon as the WS upgrade
+        // succeeds — but the server only accepts `subscribe` frames after
+        // emitting its application-level `connected` event (which flips
+        // `appConnected` in handleResponseConnected). Sending early triggers
+        // a policy-violation close on real Appwrite, which reconnects and
+        // re-sends, looping forever. handleResponseConnected re-enqueues
+        // every active subscription and re-calls this method, so the queued
+        // rows are guaranteed to be sent once it's safe.
+        guard appConnected else {
             return
         }
 
@@ -194,6 +275,76 @@ open class Realtime : Service {
      */
     private func channelToString(_ channel: ChannelValue) -> String {
         return channel.toString()
+    }
+
+    /// Fire-and-forget presence upsert. Records the latest payload in state so
+    /// that — if the WebSocket isn't open yet, or later reconnects — the most
+    /// recent presence is automatically (re)sent on the next `connected` event.
+    /// When the socket is already open, the frame is sent immediately.
+    ///
+    /// - Parameters:
+    ///   - status: The presence status (required).
+    ///   - presenceId: The presence ID (required).
+    ///   - permissions: Optional permission list to attach to the presence document.
+    ///   - metadata: Optional metadata payload.
+    public func upsertPresence(
+        status: String,
+        presenceId: String,
+        permissions: [String]? = nil,
+        metadata: [String: Any]? = nil
+    ) throws {
+        var data: [String: Any] = [
+            "status": status,
+            "presenceId": presenceId,
+        ]
+        if let permissions = permissions {
+            data["permissions"] = permissions
+        }
+        if let metadata = metadata {
+            data["metadata"] = metadata
+        }
+
+        presenceSync.sync {
+            pendingPresence = data
+        }
+
+        // Both subscribe() and upsertPresence() may need to open the socket.
+        // createSocket() is single-flight, so this is a no-op when one is
+        // already in flight or healthy. Fire-and-forget keeps upsertPresence's
+        // documented behavior of resolving once the payload is stored.
+        if socketClient == nil || !(socketClient?.isConnected ?? false) {
+            Task { [weak self] in
+                do {
+                    try await self?.createSocket()
+                } catch {
+                    Realtime.logDiagnostic("Failed to open realtime socket for presence: \(error)")
+                }
+            }
+        }
+
+        // Opportunistic send for when the socket is already past `connected`.
+        // The appConnected gate inside flushPendingPresence keeps this a no-op
+        // until the application-level handshake completes.
+        try flushPendingPresence()
+    }
+
+    private func flushPendingPresence() throws {
+        var data: [String: Any]?
+        presenceSync.sync {
+            data = pendingPresence
+        }
+        guard let payloadData = data, let ws = socketClient, ws.isConnected, appConnected else {
+            return
+        }
+        let payload: [String: Any] = [
+            "type": "presence",
+            "data": payloadData
+        ]
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
+              let text = String(data: jsonData, encoding: .utf8) else {
+            throw {{ spec.title | caseUcfirst }}Error(message: "Failed to encode presence payload")
+        }
+        ws.send(text: text)
     }
 
     public func subscribe(
@@ -356,13 +507,9 @@ extension Realtime: WebSocketClientDelegate {
         for subscriptionId in activeSubscriptions.keys {
             enqueuePendingSubscribe(subscriptionId: subscriptionId)
         }
+        appConnected = true
         sendPendingSubscribes()
-    }
-
-    private func handleResponseAction(from json: [String: Any]) {
-        // The SDK generates subscriptionIds client-side and sends them on every
-        // subscribe/unsubscribe, so subscribe/unsubscribe acks carry no state
-        // the SDK needs to reconcile.
+        try? flushPendingPresence()
     }
 
     public func onMessage(text: String) {
@@ -381,8 +528,6 @@ extension Realtime: WebSocketClientDelegate {
             }
         case "connected":
             handleResponseConnected(from: json)
-        case TYPE_RESPONSE:
-            handleResponseAction(from: json)
         case TYPE_EVENT:
             handleResponseEvent(from: json)
         case TYPE_PONG:
@@ -393,10 +538,11 @@ extension Realtime: WebSocketClientDelegate {
     }
 
     public func onClose(channel: NIO.Channel, data: Data) async throws {
+        appConnected = false
         stopHeartbeat()
 
         onCloseCallbacks.forEach { $0() }
-        
+
         if (!reconnect) {
             reconnect = true
             return
@@ -421,7 +567,9 @@ extension Realtime: WebSocketClientDelegate {
     }
 
     func handleResponseError(from json: [String: Any]) throws {
-        throw {{ spec.title | caseUcfirst }}Error(message: json["message"] as? String ?? "Unknown error")
+        let message = json["message"] as? String ?? "Unknown error"
+        let error = {{ spec.title | caseUcfirst }}Error(message: message)
+        throw error
     }
 
     func handleResponseEvent(from json: [String: Any]) {

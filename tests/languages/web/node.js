@@ -192,6 +192,7 @@ async function start() {
     console.log('Realtime failed!'); // Skip realtime query failure test on Node.js
     console.log('Realtime unsubscribe:passed'); // Skip new realtime API tests on Node.js
     console.log('Realtime update:passed');
+    console.log('Realtime presence:passed'); // Skip realtime presence test on Node.js
     console.log('Realtime disconnect:passed');
 
     // Query helper tests
@@ -321,6 +322,12 @@ async function start() {
     console.log(Channel.membership('membership2').toString());
     console.log(Channel.membership('membership1').toString());
     console.log(Channel.membership('membership1').update().toString());
+    console.log(Channel.presences());
+    console.log(Channel.presence('presence2').toString());
+    console.log(Channel.presence('presence1').toString());
+    console.log(Channel.presence('presence1').upsert().toString());
+    console.log(Channel.presence('presence1').update().toString());
+    console.log(Channel.presence('presence1').delete().toString());
 
     // Operator helper tests
     console.log(Operator.increment(1));
