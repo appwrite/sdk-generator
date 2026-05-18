@@ -79,6 +79,11 @@ class Unity extends DotNet
                 'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}.asmdef',
                 'template'      => 'unity/Assets/Runtime/Appwrite.asmdef.twig',
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}.asmdef.meta',
+                'template'      => 'unity/Assets/Runtime/Appwrite.asmdef.meta.twig',
+            ],
             // Runtime
             [
                 'scope'         => 'default',
@@ -115,6 +120,11 @@ class Unity extends DotNet
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/{{ spec.title | caseUcfirst }}.Core.asmdef',
                 'template'      => 'unity/Assets/Runtime/Core/Appwrite.Core.asmdef.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/{{ spec.title | caseUcfirst }}.Core.asmdef.meta',
+                'template'      => 'unity/Assets/Runtime/Core/Appwrite.Core.asmdef.meta.twig',
             ],
             [
                 'scope'         => 'default',
@@ -229,8 +239,18 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/Microsoft.Bcl.AsyncInterfaces.dll.meta',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/Microsoft.Bcl.AsyncInterfaces.dll.meta',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'Assets/Runtime/Core/Plugins/System.IO.Pipelines.dll',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/System.IO.Pipelines.dll',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/System.IO.Pipelines.dll.meta',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/System.IO.Pipelines.dll.meta',
             ],
             [
                 'scope'         => 'copy',
@@ -239,8 +259,18 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/System.Runtime.CompilerServices.Unsafe.dll.meta',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Runtime.CompilerServices.Unsafe.dll.meta',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'Assets/Runtime/Core/Plugins/System.Text.Encodings.Web.dll',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Text.Encodings.Web.dll',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/System.Text.Encodings.Web.dll.meta',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Text.Encodings.Web.dll.meta',
             ],
             [
                 'scope'         => 'default',
@@ -259,6 +289,11 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/System.Text.Json.dll.meta',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Text.Json.dll.meta',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'Assets/Runtime/Core/Plugins/THIRD_PARTY_NOTICES.md',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/THIRD_PARTY_NOTICES.md',
             ],
@@ -272,6 +307,11 @@ class Unity extends DotNet
                 'scope'         => 'default',
                 'destination'   => 'Assets/Editor/{{ spec.title | caseUcfirst }}.Editor.asmdef',
                 'template'      => 'unity/Assets/Editor/Appwrite.Editor.asmdef.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Editor/{{ spec.title | caseUcfirst }}.Editor.asmdef.meta',
+                'template'      => 'unity/Assets/Editor/Appwrite.Editor.asmdef.meta.twig',
             ],
             [
                 'scope'         => 'default',

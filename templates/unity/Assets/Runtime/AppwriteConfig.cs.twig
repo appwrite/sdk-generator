@@ -8,22 +8,12 @@ namespace {{ spec.title | caseUcfirst }}
     public enum {{ spec.title | caseUcfirst }}Service
     {
         None = 0,
-        [Tooltip("Selects all main services: Account, Databases, Functions, Storage")]
-        Main = (1 << 4) - 1, // 0-3
-        [Tooltip("Selects all other services: Avatars, GraphQL, Locale, Messaging, Teams")]
-        Others = (1 << 9) - 1 ^ (1 << 4) - 1, // 4-8
-        Account = 1 << 0,
-        Databases = 1 << 1,
-        Functions = 1 << 2,
-        Storage = 1 << 3,
-        Avatars = 1 << 4,
-        Graphql = 1 << 5,
-        Locale = 1 << 6,
-        Messaging = 1 << 7,
-        Teams = 1 << 8,
+{% for service in spec.services %}
+        {{ service.name | caseUcfirst }} = 1 << {{ loop.index0 }},
+{% endfor %}
 
         [Tooltip("Selects all available services.")]
-        All = ~0
+        All = {% for service in spec.services %}{{ service.name | caseUcfirst }}{% if not loop.last %} | {% endif %}{% endfor %}
 
     }
 

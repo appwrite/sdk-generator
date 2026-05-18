@@ -151,6 +151,15 @@ class DotNet extends Language
         return '.';
     }
 
+    public function escapeKeyword(string $value): string
+    {
+        if (in_array($value, $this->getKeywords())) {
+            return '@' . $value;
+        }
+
+        return $value;
+    }
+
     public function getStringQuote(): string
     {
         return '"';

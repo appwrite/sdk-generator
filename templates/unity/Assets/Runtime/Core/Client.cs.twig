@@ -109,6 +109,19 @@ namespace {{ spec.title | caseUcfirst }}
             return client;
         }
 
+        public static Client FromJWT(
+            string projectId,
+            string jwt,
+            string endpoint = "{{spec.endpoint}}",
+            string? endpointRealtime = null,
+            string? locale = null,
+            bool selfSigned = false)
+        {
+            var client = From(projectId, endpoint, endpointRealtime, locale, selfSigned);
+            client.SetJWT(jwt);
+            return client;
+        }
+
         public static Client FromDevKey(
             string projectId,
             string devKey,
@@ -248,7 +261,19 @@ namespace {{ spec.title | caseUcfirst }}
         /// <returns>Current JWT token or null</returns>
         public string GetJWT()
         {
-            return _config.GetValueOrDefault("jWT");
+            return _config.GetValueOrDefault("jwt") ?? _config.GetValueOrDefault("jWT");
+        }
+
+        /// <summary>
+        /// Set the current JWT and persist it for future requests
+        /// </summary>
+        /// <param name="jwt">JWT token returned by Account.CreateJWT()</param>
+        /// <returns>Client instance for method chaining</returns>
+        public Client SetJWT(string jwt)
+        {
+            SetHeader("jwt", "X-{{ spec.title | caseUcfirst }}-JWT", jwt, persist: true);
+            _config.Remove("jWT");
+            return this;
         }
 
         /// <summary>
@@ -258,6 +283,7 @@ namespace {{ spec.title | caseUcfirst }}
         public Client ClearSession()
         {
             _config.Remove("session");
+            _config.Remove("jwt");
             _config.Remove("jWT");
             _headers.Remove("X-{{ spec.title | caseUcfirst }}-Session");
             _headers.Remove("X-{{ spec.title | caseUcfirst }}-JWT");
@@ -283,7 +309,7 @@ namespace {{ spec.title | caseUcfirst }}
         {
             try {
                 LoadPref(SESSION_PREF, "session", "X-{{ spec.title | caseUcfirst }}-Session");
-                LoadPref(JWT_PREF, "jWT", "X-{{ spec.title | caseUcfirst }}-JWT");
+                LoadPref(JWT_PREF, "jwt", "X-{{ spec.title | caseUcfirst }}-JWT");
             } catch (Exception ex) {
                 Debug.LogWarning($"Failed to load session: {ex.Message}");
             }
@@ -305,7 +331,7 @@ namespace {{ spec.title | caseUcfirst }}
         {
             try {
                 SavePref("session", SESSION_PREF);
-                SavePref("jWT", JWT_PREF);
+                SavePref("jwt", JWT_PREF);
                 PlayerPrefs.Save();
             } catch (Exception ex) {
                 Debug.LogWarning($"Failed to save session: {ex.Message}");
@@ -553,11 +579,16 @@ namespace {{ spec.title | caseUcfirst }}
             // Handle cookies after response
 #if !(UNITY_WEBGL && !UNITY_EDITOR)
             // Handle Set-Cookie headers (non-WebGL)
-            var setCookieHeader = request.GetResponseHeader("Set-Cookie");
-            if (!string.IsNullOrEmpty(setCookieHeader))
+            var responseHeaders = request.GetResponseHeaders();
+            if (responseHeaders != null)
             {
+                var setCookieHeaders = responseHeaders
+                    .Where(header => header.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase))
+                    .Select(header => header.Value)
+                    .Where(value => !string.IsNullOrEmpty(value));
+
                 var uri = new Uri(request.url);
-                _cookieContainer.ParseSetCookieHeader(setCookieHeader, uri.Host);
+                _cookieContainer.ParseSetCookieHeaders(setCookieHeaders, uri.Host);
             }
 #endif
 
@@ -627,6 +658,23 @@ namespace {{ spec.title | caseUcfirst }}
             }
         }
 
+        private static async UniTask<int> ReadExactlyAsync(Stream stream, byte[] buffer, int count)
+        {
+            var totalRead = 0;
+            while (totalRead < count)
+            {
+                var read = await stream.ReadAsync(buffer, totalRead, count - totalRead);
+                if (read <= 0)
+                {
+                    break;
+                }
+
+                totalRead += read;
+            }
+
+            return totalRead;
+        }
+
         public async UniTask<T> ChunkedUpload<T>(
             string path,
             Dictionary<string, string> headers,
@@ -685,13 +733,9 @@ namespace {{ spec.title | caseUcfirst }}
                             var dataStream = input.Data as Stream;
                             if (dataStream == null)
                                 throw new InvalidOperationException("Stream data is null");
-                            var bytesReadSmall = await dataStream.ReadAsync(buffer, 0, (int)size);
-                            if (bytesReadSmall < buffer.Length)
-                            {
-                                var trimmed = new byte[bytesReadSmall];
-                                Array.Copy(buffer, trimmed, bytesReadSmall);
-                                buffer = trimmed;
-                            }
+                            var bytesReadSmall = await ReadExactlyAsync(dataStream, buffer, (int)size);
+                            if (bytesReadSmall != size)
+                                throw new EndOfStreamException("Unexpected end of stream during upload");
                             break;
                         case "bytes":
                             var dataBytes = input.Data as byte[];
@@ -758,8 +802,9 @@ namespace {{ spec.title | caseUcfirst }}
                             if (stream == null)
                                 throw new InvalidOperationException("Stream data is null");
                             stream.Seek(offset, SeekOrigin.Begin);
-                            var bytesRead = await stream.ReadAsync(buffer, 0, (int)Math.Min(size - offset, ChunkSize));
-                            if (bytesRead <= 0)
+                            var requestedBytes = (int)Math.Min(size - offset, ChunkSize);
+                            var bytesRead = await ReadExactlyAsync(stream, buffer, requestedBytes);
+                            if (bytesRead != requestedBytes)
                                 throw new EndOfStreamException("Unexpected end of stream during chunked upload");
                             if (bytesRead == buffer.Length)
                             {
@@ -768,14 +813,14 @@ namespace {{ spec.title | caseUcfirst }}
                             else
                             {
                                 chunkData = new byte[bytesRead];
-                                Array.Copy(buffer, chunkData, bytesRead);
+                                Buffer.BlockCopy(buffer, 0, chunkData, 0, bytesRead);
                             }
                             break;
                         case "bytes":
-                            chunkData = ((byte[])input.Data)
-                                .Skip((int)offset)
-                                .Take((int)Math.Min(size - offset, ChunkSize))
-                                .ToArray();
+                            var sourceBytes = (byte[])input.Data;
+                            var chunkLength = (int)Math.Min(size - offset, ChunkSize);
+                            chunkData = new byte[chunkLength];
+                            Buffer.BlockCopy(sourceBytes, (int)offset, chunkData, 0, chunkLength);
                             break;
                         default:
                             throw new InvalidOperationException($"Unsupported source type: {input.SourceType}");

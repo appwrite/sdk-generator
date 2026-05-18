@@ -126,15 +126,8 @@ namespace {{ spec.title | caseUcfirst }}
 
         private readonly Dictionary<Type, ({{ spec.title | caseUcfirst }}Service flag, Func<Client, Service> factory)> _serviceDefinitions = new()
         {
-            { typeof(Account), ({{ spec.title | caseUcfirst }}Service.Account, client => new Account(client)) },
-            { typeof(Databases), ({{ spec.title | caseUcfirst }}Service.Databases, client => new Databases(client)) },
-            { typeof(Functions), ({{ spec.title | caseUcfirst }}Service.Functions, client => new Functions(client)) },
-            { typeof(Storage), ({{ spec.title | caseUcfirst }}Service.Storage, client => new Storage(client)) },
-            { typeof(Avatars), ({{ spec.title | caseUcfirst }}Service.Avatars, client => new Avatars(client)) },
-            { typeof(Graphql), ({{ spec.title | caseUcfirst }}Service.Graphql, client => new Graphql(client)) },
-            { typeof(Locale), ({{ spec.title | caseUcfirst }}Service.Locale, client => new Locale(client)) },
-            { typeof(Messaging), ({{ spec.title | caseUcfirst }}Service.Messaging, client => new Messaging(client)) },
-            { typeof(Teams), ({{ spec.title | caseUcfirst }}Service.Teams, client => new Teams(client)) },
+{% for service in spec.services %}
+            { typeof({{ spec.title | caseUcfirst }}.Services.{{ service.name | caseUcfirst }}), ({{ spec.title | caseUcfirst }}Service.{{ service.name | caseUcfirst }}, client => new {{ spec.title | caseUcfirst }}.Services.{{ service.name | caseUcfirst }}(client)) },{{ "\n" }}{% endfor %}
         };
         
         /// <summary>

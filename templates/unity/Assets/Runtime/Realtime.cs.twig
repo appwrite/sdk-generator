@@ -635,16 +635,17 @@ namespace {{ spec.title | caseUcfirst }}
         {
             StopHeartbeat();
             _heartbeatTokenSource = new CancellationTokenSource();
+            var heartbeatToken = _heartbeatTokenSource.Token;
             
             UniTask.Create(async () =>
             {
                 try
                 {
-                    while (!_heartbeatTokenSource.Token.IsCancellationRequested && _webSocket?.State == WebSocketState.Open)
+                    while (!heartbeatToken.IsCancellationRequested && _webSocket?.State == WebSocketState.Open)
                     {
-                        await UniTask.Delay(TimeSpan.FromSeconds(20), cancellationToken: _heartbeatTokenSource.Token);
+                        await UniTask.Delay(TimeSpan.FromSeconds(20), cancellationToken: heartbeatToken);
                         
-                        if (_webSocket?.State == WebSocketState.Open && !_heartbeatTokenSource.Token.IsCancellationRequested)
+                        if (_webSocket?.State == WebSocketState.Open && !heartbeatToken.IsCancellationRequested)
                         {
                             var pingMessage = new { type = "ping" };
                             var json = JsonSerializer.Serialize(pingMessage, Client.SerializerOptions);
@@ -665,9 +666,12 @@ namespace {{ spec.title | caseUcfirst }}
 
         private void StopHeartbeat()
         {
-            _heartbeatTokenSource?.Cancel();
-            _heartbeatTokenSource?.Dispose();
+            var tokenSource = _heartbeatTokenSource;
             _heartbeatTokenSource = null;
+            if (tokenSource == null) return;
+
+            tokenSource.Cancel();
+            tokenSource.Dispose();
         }
 
         private void Retry()
@@ -682,8 +686,9 @@ namespace {{ spec.title | caseUcfirst }}
             // Ensure we have a cancellation token source
             if (_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested)
             {
-                _cancellationTokenSource?.Dispose();
+                var oldTokenSource = _cancellationTokenSource;
                 _cancellationTokenSource = new CancellationTokenSource();
+                oldTokenSource?.Dispose();
             }
             
             var token = _cancellationTokenSource.Token;
@@ -759,9 +764,13 @@ namespace {{ spec.title | caseUcfirst }}
             StopHeartbeat();
             
             // Cancel any pending retry operations
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            var tokenSource = _cancellationTokenSource;
             _cancellationTokenSource = null;
+            if (tokenSource != null)
+            {
+                tokenSource.Cancel();
+                tokenSource.Dispose();
+            }
             
             if (_webSocket != null)
             {

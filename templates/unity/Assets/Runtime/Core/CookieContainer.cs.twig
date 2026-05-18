@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using UnityEngine;
@@ -21,7 +22,7 @@ namespace {{ spec.title | caseUcfirst }}
         public string Path { get; set; } = "/";
         public DateTime Expires { get; set; } = DateTime.MaxValue;
         public int? MaxAge { get; set; } // null means didn't set, 0+ means seconds from creation
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool HttpOnly { get; set; }
         public bool Secure { get; set; }
         public string SameSite { get; set; } = string.Empty;
@@ -29,8 +30,8 @@ namespace {{ spec.title | caseUcfirst }}
         // Max-Age priority over Expires
         public bool IsExpired =>
             MaxAge.HasValue
-                ? MaxAge <= 0 || DateTime.Now > CreatedAt.AddSeconds(MaxAge.Value)
-                : DateTime.Now > Expires;
+                ? MaxAge <= 0 || DateTime.UtcNow > CreatedAt.ToUniversalTime().AddSeconds(MaxAge.Value)
+                : Expires != DateTime.MaxValue && DateTime.UtcNow > Expires.ToUniversalTime();
 
         public bool MatchesDomain(string requestDomain)
         {
@@ -141,11 +142,20 @@ namespace {{ spec.title | caseUcfirst }}
         /// <summary>
         /// Parse Set-Cookie header and add to container
         /// </summary>
+        public void ParseSetCookieHeaders(IEnumerable<string> setCookieHeaders, string domain)
+        {
+            if (setCookieHeaders == null || string.IsNullOrWhiteSpace(domain)) return;
+
+            foreach (var setCookieHeader in setCookieHeaders)
+            {
+                ParseSetCookieHeader(setCookieHeader, domain);
+            }
+        }
+
         public void ParseSetCookieHeader(string setCookieHeader, string domain)
         {
             if (string.IsNullOrWhiteSpace(setCookieHeader) || string.IsNullOrWhiteSpace(domain)) return;
-            foreach (var c in setCookieHeader.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
-                ParseCookie(c.Trim(), domain);
+            ParseCookie(setCookieHeader.Trim(), domain);
         }
         
         /// <summary>
@@ -168,7 +178,11 @@ namespace {{ spec.title | caseUcfirst }}
                     case "domain": c.Domain = val?.ToLowerInvariant() ?? string.Empty; break;
                     case "path": c.Path = val ?? string.Empty; break;
                     case "expires":
-                        if (DateTime.TryParse(val, out var e)) c.Expires = e;
+                        if (DateTime.TryParse(
+                                val,
+                                CultureInfo.InvariantCulture,
+                                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                                out var e)) c.Expires = e;
                         break;
                     case "max-age":
                         if (int.TryParse(val, out var m)) c.MaxAge = m;
