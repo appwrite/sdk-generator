@@ -151,6 +151,15 @@ class DotNet extends Language
         return '.';
     }
 
+    public function escapeKeyword(string $value): string
+    {
+        if (in_array($value, $this->getKeywords())) {
+            return '@' . $value;
+        }
+
+        return $value;
+    }
+
     public function getStringQuote(): string
     {
         return '"';
@@ -204,10 +213,10 @@ class DotNet extends Language
             return 'Appwrite.Enums.' . \ucfirst($parameter['name']);
         }
         if (!empty($parameter['array']['model'])) {
-            return 'List<Appwrite.Models.' . $this->toPascalCase($parameter['array']['model']) . '>';
+            return 'List<Appwrite.Models.' . $this->getTypeIdentifier($parameter['array']['model']) . '>';
         }
         if (!empty($parameter['model'])) {
-            $modelType = 'Appwrite.Models.' . $this->toPascalCase($parameter['model']);
+            $modelType = 'Appwrite.Models.' . $this->getTypeIdentifier($parameter['model']);
             return $parameter['type'] === self::TYPE_ARRAY ? 'List<' . $modelType . '>' : $modelType;
         }
         if (isset($parameter['items'])) {
@@ -591,7 +600,7 @@ class DotNet extends Language
     protected function getPropertyType(array $property, array $spec = [], bool $fullyQualified = true): string
     {
         if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
-            $type = $this->toPascalCase($property['sub_schema']);
+            $type = $this->getTypeIdentifier($property['sub_schema']);
 
             if ($property['type'] === 'array') {
                 return 'List<' . $type . '>';
@@ -625,7 +634,7 @@ class DotNet extends Language
                 return $result;
             }, ['is_safe' => ['html']]),
             new TwigFunction('property_name', function (array $definition, array $property) {
-                return $this->getPropertyName($property);
+                return $this->getPropertyName($definition, $property);
             }),
         ];
     }
@@ -636,15 +645,30 @@ class DotNet extends Language
      * @param array $property
      * @return string
      */
-    protected function getPropertyName(array $property): string
+    protected function getPropertyName(array $definition, array $property): string
     {
         $name = $property['name'];
         $name = \str_replace('$', '', $name);
         $name = $this->toPascalCase($name);
+
+        // Generated models expose a static From(...) factory. A property named
+        // From would collide with that member; JsonPropertyName still preserves
+        // the original JSON key.
+        if ($name === $this->getTypeIdentifier($definition['name']) || $name === 'From') {
+            $name = 'X' . $name;
+        }
+
         if (\in_array($name, $this->getKeywords())) {
             $name = '@' . $name;
         }
         return $name;
+    }
+
+    protected function getTypeIdentifier(string $value): string
+    {
+        $value = $this->toPascalCase($value);
+
+        return $this->getIdentifierOverrides()[$value] ?? $value;
     }
 
     /**

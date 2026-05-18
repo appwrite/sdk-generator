@@ -41,12 +41,24 @@ namespace {{ spec.title | caseUcfirst }}.Models
         public static {{ definition.name | caseUcfirst | overrideIdentifier }} From(Dictionary<string, object> map) => new {{ definition.name | caseUcfirst | overrideIdentifier }}(
             {%~ for property in definition.properties %}
             {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
-                {%- if property.sub_schema %}
-                    {%- if property.type == 'array' -%}
-                        map["{{ property.name }}"].ConvertToList<Dictionary<string, object>>().Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
-                    {%- else -%}
-                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
-                    {%- endif %}
+                    {%- if property.sub_schema %}
+                        {%- if property.type == 'array' -%}
+                            {%- if not property.required -%}
+                                map.TryGetValue("{{ property.name }}", out var arrayRaw{{ loop.index }}) && arrayRaw{{ loop.index }} != null
+                                    ? arrayRaw{{ loop.index }}.ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                                    : null
+                            {%- else -%}
+                                map["{{ property.name }}"].ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                            {%- endif %}
+                        {%- else -%}
+                            {%- if not property.required -%}
+                                map.TryGetValue("{{ property.name }}", out var objectRaw{{ loop.index }}) && objectRaw{{ loop.index }} != null
+                                    ? {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: objectRaw{{ loop.index }} is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)objectRaw{{ loop.index }})
+                                    : null
+                            {%- else -%}
+                                {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
+                            {%- endif %}
+                        {%- endif %}
                 {%- elseif property.enum %}
                     {%- set enumName = property['enumName'] ?? property.name -%}
                     {%- if not property.required -%}
@@ -60,13 +72,31 @@ namespace {{ spec.title | caseUcfirst }}.Models
                     {%- endif %}
                 {%- else %}
                     {%- if property.type == 'array' -%}
-                        map["{{ property.name }}"].ConvertToList<{{ property | typeName | replace({'List<': '', '>': ''}) }}>()
+                        {%- if not property.required -%}
+                            map.TryGetValue("{{ property.name }}", out var arrayRaw{{ loop.index }}) && arrayRaw{{ loop.index }} != null
+                                ? arrayRaw{{ loop.index }}.ConvertToList<{{ property | typeName | replace({'List<': '', '>': ''}) }}>()
+                                : null
+                        {%- else -%}
+                            map["{{ property.name }}"].ConvertToList<{{ property | typeName | replace({'List<': '', '>': ''}) }}>()
+                        {%- endif %}
                     {%- else %}
                         {%- if property.type == "integer" or property.type == "number" %}
-                            {%- if not property.required -%}map["{{ property.name }}"] == null ? null : {% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
+                            {%- if not property.required -%}
+                                map.TryGetValue("{{ property.name }}", out var numberRaw{{ loop.index }}) && numberRaw{{ loop.index }} != null
+                                    ? Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(numberRaw{{ loop.index }})
+                                    : null
+                            {%- else -%}
+                                Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
+                            {%- endif %}
                         {%- else %}
                             {%- if property.type == "boolean" -%}
-                                ({{ property | typeName }}{% if not property.required %}?{% endif %})map["{{ property.name }}"]
+                                {%- if not property.required -%}
+                                    map.TryGetValue("{{ property.name }}", out var boolRaw{{ loop.index }}) && boolRaw{{ loop.index }} != null
+                                        ? ({{ property | typeName }}?)boolRaw{{ loop.index }}
+                                        : null
+                                {%- else -%}
+                                    ({{ property | typeName }})map["{{ property.name }}"]
+                                {%- endif %}
                             {%- else %}
                                 {%- if not property.required -%}
                                     map.TryGetValue("{{ property.name }}", out var {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}) ? {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null

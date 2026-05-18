@@ -45,6 +45,7 @@ jobs:
           Rust183,
           AppleSwift60,
           Swift60,
+          Unity2021,
           WebChromium,
           WebNode
         ]
@@ -81,6 +82,8 @@ jobs:
           composer lint
 
       - name: Run Tests
+        env:
+          UNITY_LICENSE: ${{ matrix.sdk == 'Unity2021' && secrets.UNITY_LICENSE || '' }}
         run: |
           composer test tests/${{ matrix.sdk }}Test.php
 
