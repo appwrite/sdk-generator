@@ -67,8 +67,12 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
     def with_data(cls, data: Dict[str, Any], model_type: Type[T] = dict) -> '{{ definition.name | caseUcfirst }}[T]':
         """Create {{ definition.name | caseUcfirst }} instance with typed data."""
 {% if definition.additionalProperties %}
-        internal_fields = {k: v for k, v in data.items() if k.startswith('$')}
-        user_data = {k: v for k, v in data.items() if not k.startswith('$')}
+        internal_aliases = {{ '{' }}{% for property in definition.properties %}'{{ property.name }}'{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}
+        internal_fields = {k: v for k, v in data.items() if k in internal_aliases}
+        user_data = {k: v for k, v in data.items() if k not in internal_aliases and k != '{{ definition.additionalPropertiesKey | default('data') }}'}
+        nested = data.get('{{ definition.additionalPropertiesKey | default('data') }}')
+        if isinstance(nested, dict):
+            user_data = {**nested, **user_data}
         instance = cls.model_validate(internal_fields)
         instance._{{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }} = model_type(**user_data) if model_type is not dict else user_data
         return instance

@@ -17,7 +17,9 @@ import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
      * {{ property.description | replace({"\n": "\n     * "}) | raw }}
      */
     @SerializedName("{{ property.name | escapeKeyword | escapeDollarSign}}")
-    val {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }},
+    {% if property.required -%} val
+    {%- else -%} var
+    {%- endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }},
 
     {%~ endfor %}
     {%~ if definition.additionalProperties %}
