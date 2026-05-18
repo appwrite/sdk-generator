@@ -498,7 +498,7 @@ function whitelistKeys<T = any>(
 }
 
 class Config<T extends ConfigData = ConfigData> {
-  readonly path: string;
+  path: string;
   protected data: T;
 
   constructor(path: string, autoRead = true) {
@@ -507,10 +507,6 @@ class Config<T extends ConfigData = ConfigData> {
     if (autoRead) {
       this.read();
     }
-  }
-
-  protected usePath(path: string): void {
-    (this as { path: string }).path = path;
   }
 
   read(): void {
@@ -655,7 +651,7 @@ class Local extends Config<ConfigType> {
       Local.findConfigFileInCwd(legacyPath) ||
       _path.join(process.cwd(), path);
 
-    this.usePath(absolutePath);
+    this.path = absolutePath;
     this.configDirectoryPath = _path.dirname(absolutePath);
     this.rootData = {};
     this.includePaths = {};
