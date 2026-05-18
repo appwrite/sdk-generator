@@ -98,7 +98,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
-            "{{ definition.additionalPropertiesKey | default('data') }}": (try? JSONSerialization.jsonObject(with: JSONEncoder().encode({{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }}))) ?? [:]
+            "{{ definition.additionalPropertiesKey | default('data') }}": (try! JSONSerialization.jsonObject(with: JSONEncoder().encode({{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }}))) as? [String: Any] ?? [:]
             {%~ endif %}
         ]
     }
@@ -116,6 +116,8 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
             {%- else -%}
                 {%- if property | isAnyCodableArray(spec) -%}
                     (map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [Any]{% if isDocument or not property.required %} ?? []{% endif %}).map { AnyCodable($0) }
+                {%- elseif property | isAnyCodableObject(spec) -%}
+                    (map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [String: Any]{% if isDocument or not property.required %} ?? [:]{% endif %}).mapValues { AnyCodable($0) }
                 {%- elseif property.enum -%}
                     {%- set enumName = property['enumName'] ?? property.name -%}
                     {% if property.required %}{{ enumName | caseUcfirst }}(rawValue: map["{{property.name }}"] as{% if isDocument %}?{% else %}!{% endif %} String{% if isDocument %} ?? ""{% endif %})!{% else %}map["{{property.name }}"] as? String != nil ? {{ enumName | caseUcfirst }}(rawValue: map["{{property.name }}"] as! String) : nil{% endif %}
