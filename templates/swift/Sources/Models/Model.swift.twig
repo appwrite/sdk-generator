@@ -98,7 +98,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
-            "{{ definition.additionalPropertiesKey | default('data') }}": try! JSONEncoder().encode({{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }})
+            "{{ definition.additionalPropertiesKey | default('data') }}": (try? JSONSerialization.jsonObject(with: JSONEncoder().encode({{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }}))) ?? [:]
             {%~ endif %}
         ]
     }
@@ -129,7 +129,11 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
+            {%~ if definition.properties | length > 0 %}
+            {{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }}: try! JSONDecoder().decode(T.self, from: JSONSerialization.data(withJSONObject: map["{{ definition.additionalPropertiesKey | default('data') }}"] as? [String: Any] ?? [:], options: []))
+            {%~ else %}
             {{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }}: try! JSONDecoder().decode(T.self, from: JSONSerialization.data(withJSONObject: map["{{ definition.additionalPropertiesKey | default('data') }}"] as? [String: Any] ?? map, options: []))
+            {%~ endif %}
             {%~ endif %}
         )
     }
