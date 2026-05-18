@@ -14,6 +14,7 @@ public struct _Func {}
 public struct _Execution {}
 public struct _Team {}
 public struct _Membership {}
+public struct _Presence {}
 public struct _Resolved {}
 
 public enum ChannelValidationError: Swift.Error {
@@ -89,11 +90,15 @@ public enum Channel {
     public static func membership(_ id: String) throws -> RealtimeChannel<_Membership> {
         return RealtimeChannel<_Membership>(["memberships", try normalize(id)])
     }
-    
+
+    public static func presence(_ id: String) throws -> RealtimeChannel<_Presence> {
+        return RealtimeChannel<_Presence>(["presences", try normalize(id)])
+    }
+
     public static func account() -> String {
         return "account"
     }
-    
+
     // Global events
     public static func documents() -> String { "documents" }
     public static func rows() -> String { "rows" }
@@ -101,6 +106,7 @@ public enum Channel {
     public static func executions() -> String { "executions" }
     public static func teams() -> String { "teams" }
     public static func memberships() -> String { "memberships" }
+    public static func presences() -> String { "presences" }
 }
 
 // MARK: - DATABASE ROUTE
@@ -221,11 +227,30 @@ extension RealtimeChannel where T == _Membership {
     public func create() -> RealtimeChannel<_Resolved> {
         return self.resolve("create")
     }
-    
+
     public func update() -> RealtimeChannel<_Resolved> {
         return self.resolve("update")
     }
-    
+
+    public func delete() -> RealtimeChannel<_Resolved> {
+        return self.resolve("delete")
+    }
+}
+
+/// Only available on RealtimeChannel<_Presence>
+extension RealtimeChannel where T == _Presence {
+    public func create() -> RealtimeChannel<_Resolved> {
+        return self.resolve("create")
+    }
+
+    public func upsert() -> RealtimeChannel<_Resolved> {
+        return self.resolve("upsert")
+    }
+
+    public func update() -> RealtimeChannel<_Resolved> {
+        return self.resolve("update")
+    }
+
     public func delete() -> RealtimeChannel<_Resolved> {
         return self.resolve("delete")
     }
