@@ -277,6 +277,13 @@ const initProject = async ({
   projectName,
 }: InitProjectOptions = {}): Promise<void> => {
   try {
+    localConfig.useCwdConfig();
+  } catch (e) {
+    error(e instanceof Error ? e.message : String(e));
+    process.exit(1);
+  }
+
+  try {
     if (globalConfig.getEndpoint() === "" || globalConfig.getCookie() === "") {
       throw new Error(
         `Missing endpoint or cookie configuration. Please run '${EXECUTABLE_NAME} login' first.`,

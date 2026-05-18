@@ -56,6 +56,7 @@ class SDK
         'gitRepo' => '',
         'gitRepoName' => '',
         'gitUserName' => '',
+        'coverImage' => '',
         'logo' => '',
         'url' => '',
         'shareText' => '',
@@ -432,6 +433,17 @@ class SDK
     public function setLogo(string $url): SDK
     {
         $this->setParam('logo', $url);
+
+        return $this;
+    }
+
+    /**
+     * @param string $url
+     * @return $this
+     */
+    public function setCoverImage(string $url): SDK
+    {
+        $this->setParam('coverImage', $url);
 
         return $this;
     }
@@ -1033,7 +1045,7 @@ class SDK
                 continue;
             }
 
-            if ($file['scope'] != 'copy') {
+            if (!\in_array($file['scope'], ['copy', 'download'], true)) {
                 $template = $this->twig->load($file['template']); /* @var $template TemplateWrapper */
             }
             $destination    = $target . '/' . $file['destination'];
@@ -1049,6 +1061,9 @@ class SDK
                         mkdir(dirname($destination), 0777, true);
                     }
                     copy(realpath(__DIR__ . '/../../templates/' . $file['template']), $destination);
+                    break;
+                case 'download':
+                    $this->download($file['template'], $destination, $params);
                     break;
                 case 'service':
                     foreach ($filteredServices as $key => $service) {
@@ -1446,6 +1461,34 @@ class SDK
                 default:
                     throw new Exception('No minifier found for ' . $ext . ' file');
             }
+        }
+    }
+
+    /**
+     * @param string $url
+     * @param string $destination
+     * @param array $params
+     *
+     * @throws Exception
+     */
+    protected function download(string $url, string $destination, array $params = []): void
+    {
+        $destination = $this->twig->createTemplate($destination)->render($params);
+
+        if (!file_exists(dirname($destination))) {
+            mkdir(dirname($destination), 0777, true);
+        }
+
+        $output = @file_get_contents($url);
+
+        if ($output === false) {
+            throw new Exception('Can\'t download file: ' . $url);
+        }
+
+        $result = file_put_contents($destination, $output);
+
+        if ($result === false) {
+            throw new Exception('Can\'t save file: ' . $destination);
         }
     }
 

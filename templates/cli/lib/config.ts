@@ -498,7 +498,7 @@ function whitelistKeys<T = any>(
 }
 
 class Config<T extends ConfigData = ConfigData> {
-  readonly path: string;
+  path: string;
   protected data: T;
 
   constructor(path: string, autoRead = true) {
@@ -642,6 +642,23 @@ class Local extends Config<ConfigType> {
     this.read();
   }
 
+  useCwdConfig(
+    path: string = Local.CONFIG_FILE_PATH,
+    legacyPath: string = Local.CONFIG_FILE_PATH_LEGACY,
+  ): void {
+    const absolutePath =
+      Local.findConfigFileInCwd(path) ||
+      Local.findConfigFileInCwd(legacyPath) ||
+      _path.join(process.cwd(), path);
+
+    this.path = absolutePath;
+    this.configDirectoryPath = _path.dirname(absolutePath);
+    this.rootData = {};
+    this.includePaths = {};
+    this.includePathHints = {};
+    this.read();
+  }
+
   read(): void {
     if (!fs.existsSync(this.path)) {
       this.rootData = {};
@@ -700,9 +717,14 @@ class Local extends Config<ConfigType> {
 
   static findConfigFile(filename: string): string | null {
     let currentPath = process.cwd();
+    const homeDir = os.homedir();
 
     while (true) {
-      const filePath = `${currentPath}/${filename}`;
+      if (currentPath === homeDir && process.cwd() !== homeDir) {
+        break;
+      }
+
+      const filePath = _path.join(currentPath, filename);
 
       if (fs.existsSync(filePath)) {
         return filePath;
@@ -716,6 +738,12 @@ class Local extends Config<ConfigType> {
     }
 
     return null;
+  }
+
+  static findConfigFileInCwd(filename: string): string | null {
+    const filePath = _path.join(process.cwd(), filename);
+
+    return fs.existsSync(filePath) ? filePath : null;
   }
 
   getDirname(): string {
