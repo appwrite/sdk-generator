@@ -77,12 +77,17 @@ namespace {{ spec.title | caseUcfirst }}
 
     public interface IExecution : IActionable { }
 
+    public interface IPresence : IActionable
+    {
+        ResolvedChannel Upsert();
+    }
+
     // Builder implementation
     internal class ChannelBuilder :
         IDatabase, ICollection, IDocument,
         ITablesDB, ITable, IRow,
         IBucket, IFile,
-        IFunction, IExecution, IActionable
+        IFunction, IExecution, IPresence, IActionable
     {
         private readonly List<string> _segments;
 
@@ -153,6 +158,9 @@ namespace {{ spec.title | caseUcfirst }}
         public static IActionable Membership(string id = null) =>
             new ChannelBuilder(new List<string> { "memberships", ChannelHelper.Normalize(id) });
 
+        public static IPresence Presence(string id = null) =>
+            new ChannelBuilder(new List<string> { "presences", ChannelHelper.Normalize(id) });
+
         // Global events (without ID)
         public static string Account() => "account";
         public static string Documents() => "documents";
@@ -161,5 +169,6 @@ namespace {{ spec.title | caseUcfirst }}
         public static string Executions() => "executions";
         public static string Teams() => "teams";
         public static string Memberships() => "memberships";
+        public static string Presences() => "presences";
     }
 }

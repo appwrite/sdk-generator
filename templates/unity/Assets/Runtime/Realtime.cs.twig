@@ -67,6 +67,18 @@ namespace {{ spec.title | caseUcfirst }}
         [JsonPropertyName("subscriptionId")]
         public string SubscriptionId { get; set; }
     }
+
+    internal class RealtimePresenceRequest
+    {
+        [JsonPropertyName("status")]
+        public string Status { get; set; }
+        [JsonPropertyName("presenceId")]
+        public string PresenceId { get; set; }
+        [JsonPropertyName("permissions")]
+        public List<string> Permissions { get; set; }
+        [JsonPropertyName("metadata")]
+        public Dictionary<string, object> Metadata { get; set; }
+    }
     
     /// <summary>
     /// Realtime response event structure
@@ -132,6 +144,7 @@ namespace {{ spec.title | caseUcfirst }}
         private string _lastUrl;
         private CancellationTokenSource _heartbeatTokenSource;
         private string _lastSession;
+        private RealtimePresenceRequest _pendingPresence;
         public HashSet<string> Channels => _channels;
 
         public bool IsConnected => _webSocket?.State == WebSocketState.Open;
@@ -234,6 +247,36 @@ namespace {{ spec.title | caseUcfirst }}
         public RealtimeSubscription Subscribe(string channel, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
         {
             return Subscribe(new[] { channel }, callback, queries);
+        }
+
+        public void UpsertPresence(
+            string status,
+            string presenceId = null,
+            List<string> permissions = null,
+            Dictionary<string, object> metadata = null)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+            {
+                throw new ArgumentException("Status cannot be null or empty", nameof(status));
+            }
+
+            _pendingPresence = new RealtimePresenceRequest
+            {
+                Status = status,
+                PresenceId = presenceId,
+                Permissions = permissions,
+                Metadata = metadata
+            };
+
+            if (_webSocket?.State == WebSocketState.Open)
+            {
+                SendPendingPresence().Forget();
+            }
+            else
+            {
+                _reconnect = true;
+                CreateSocket().Forget();
+            }
         }
 
         private void UpdateSubscription(string subscriptionId, string[] channels, List<string> queries)
@@ -368,6 +411,23 @@ namespace {{ spec.title | caseUcfirst }}
             {
                 Type = "unsubscribe",
                 Data = rows
+            };
+            var json = JsonSerializer.Serialize(message, Client.SerializerOptions);
+
+            await _webSocket.SendText(json);
+        }
+
+        private async UniTask SendPendingPresence()
+        {
+            if (_webSocket?.State != WebSocketState.Open || _pendingPresence == null)
+            {
+                return;
+            }
+
+            var message = new RealtimeMessage<RealtimePresenceRequest>
+            {
+                Type = "presence",
+                Data = _pendingPresence
             };
             var json = JsonSerializer.Serialize(message, Client.SerializerOptions);
 
@@ -543,6 +603,8 @@ namespace {{ spec.title | caseUcfirst }}
                 Debug.Log("[Realtime] No user found, sending fallback authentication");
                 SendFallbackAuthentication().Forget();
             }
+
+            SendPendingPresence().Forget();
         }
 
         private async UniTask SendFallbackAuthentication()

@@ -93,6 +93,17 @@ namespace AppwriteTests
                 realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed";
             }, new List<string> { Query.Equal("response", new List<string> { "failed" }) });
 
+            realtime.Subscribe(new[] { "presences" }, (eventData) =>
+            {
+                if (eventData.Payload != null
+                    && eventData.Payload.TryGetValue("$id", out var value)
+                    && value != null
+                    && value.ToString() == "p-test")
+                {
+                    LogResult("Realtime presence:passed");
+                }
+            });
+
             await Task.Delay(5000);
 
             // Ping test
@@ -251,6 +262,14 @@ namespace AppwriteTests
                 LogResult("Realtime update:failed");
             }
 
+            realtime.UpsertPresence(
+                status: "online",
+                presenceId: "p-test",
+                metadata: new Dictionary<string, object> { { "page", "/home" } }
+            );
+
+            await Task.Delay(2000);
+
             try
             {
                 await realtime.Disconnect();
@@ -387,6 +406,12 @@ namespace AppwriteTests
             LogResult(Channel.Membership("membership2").ToString());
             LogResult(Channel.Membership("membership1").ToString());
             LogResult(Channel.Membership("membership1").Update().ToString());
+            LogResult(Channel.Presences());
+            LogResult(Channel.Presence("presence2").ToString());
+            LogResult(Channel.Presence("presence1").ToString());
+            LogResult(Channel.Presence("presence1").Upsert().ToString());
+            LogResult(Channel.Presence("presence1").Update().ToString());
+            LogResult(Channel.Presence("presence1").Delete().ToString());
 
             // Operator helper tests
             LogResult(Operator.Increment(1));
