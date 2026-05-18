@@ -207,7 +207,7 @@ open class Realtime : Service {
         presenceSync.sync {
             pendingPresence = nil
         }
-        appConnected = false
+        connectSync.sync { appConnected = false }
         reconnect = false
         // Capture and cancel any in-flight socket-creation task. Just nulling
         // the reference is not enough — Swift tasks are cooperative, so the
@@ -235,7 +235,8 @@ open class Realtime : Service {
         // re-sends, looping forever. handleResponseConnected re-enqueues
         // every active subscription and re-calls this method, so the queued
         // rows are guaranteed to be sent once it's safe.
-        guard appConnected else {
+        let isAppConnected: Bool = connectSync.sync { appConnected }
+        guard isAppConnected else {
             return
         }
 
@@ -357,7 +358,8 @@ open class Realtime : Service {
         presenceSync.sync {
             data = pendingPresence
         }
-        guard let payloadData = data, let ws = socketClient, ws.isConnected, appConnected else {
+        let isAppConnected: Bool = connectSync.sync { appConnected }
+        guard let payloadData = data, let ws = socketClient, ws.isConnected, isAppConnected else {
             return
         }
         let payload: [String: Any] = [
@@ -550,7 +552,7 @@ extension Realtime: WebSocketClientDelegate {
                 enqueuePendingSubscribeLocked(subscriptionId: subscriptionId)
             }
         }
-        appConnected = true
+        connectSync.sync { appConnected = true }
         sendPendingSubscribes()
         try? flushPendingPresence()
     }
@@ -581,7 +583,7 @@ extension Realtime: WebSocketClientDelegate {
     }
 
     public func onClose(channel: NIO.Channel, data: Data) async throws {
-        appConnected = false
+        connectSync.sync { appConnected = false }
         stopHeartbeat()
 
         onCloseCallbacks.forEach { $0() }
