@@ -81,10 +81,22 @@ namespace {{ spec.title | caseUcfirst }}.Models
                         {%- endif %}
                     {%- else %}
                         {%- if property.type == "integer" or property.type == "number" %}
-                            {%- if not property.required -%}map["{{ property.name }}"] == null ? null : {% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
+                            {%- if not property.required -%}
+                                map.TryGetValue("{{ property.name }}", out var numberRaw{{ loop.index }}) && numberRaw{{ loop.index }} != null
+                                    ? Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(numberRaw{{ loop.index }})
+                                    : null
+                            {%- else -%}
+                                Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
+                            {%- endif %}
                         {%- else %}
                             {%- if property.type == "boolean" -%}
-                                ({{ property | typeName }}{% if not property.required %}?{% endif %})map["{{ property.name }}"]
+                                {%- if not property.required -%}
+                                    map.TryGetValue("{{ property.name }}", out var boolRaw{{ loop.index }}) && boolRaw{{ loop.index }} != null
+                                        ? ({{ property | typeName }}?)boolRaw{{ loop.index }}
+                                        : null
+                                {%- else -%}
+                                    ({{ property | typeName }})map["{{ property.name }}"]
+                                {%- endif %}
                             {%- else %}
                                 {%- if not property.required -%}
                                     map.TryGetValue("{{ property.name }}", out var {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}) ? {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null
