@@ -489,6 +489,11 @@ namespace {{ spec.title | caseUcfirst }}
             _reconnectAttempts = 0;
             OnConnected?.Invoke();
             StartHeartbeat();
+
+            foreach (var subscriptionId in _subscriptions.Keys)
+            {
+                _pendingSubscribes.Add(subscriptionId);
+            }
             SendPendingSubscribes().Forget();
             Debug.Log("[Realtime] WebSocket opened successfully.");
         }
@@ -532,12 +537,6 @@ namespace {{ spec.title | caseUcfirst }}
         private void HandleConnectedMessage(RealtimeConnectedData data)
         {
             Debug.Log("[Realtime] Received 'connected' message");
-
-            foreach (var subscriptionId in _subscriptions.Keys)
-            {
-                _pendingSubscribes.Add(subscriptionId);
-            }
-            SendPendingSubscribes().Forget();
             
             if (data?.User == null || data.User.Count == 0)
             {
