@@ -2,7 +2,7 @@ extends Node
 
 signal oauth_result(res)
 
-const PORT := 51419
+const PORT := 8888
 var server := TCPServer.new()
 var _connection: StreamPeerTCP = null
 var _waiting := false
@@ -48,9 +48,9 @@ func _process(_delta):
 
 	var parsed := extract_callback_url(_request_buffer)
 
-	if parsed.is_empty():
+	if parsed.is_empty() or parsed["body"].contains("failure"):
 		_connection.put_data(
-			failure_html("No authorization code received")
+			failure_html("Something went wrong. Please try again")
 			.to_utf8_buffer()
 		)
 	else:
@@ -66,7 +66,7 @@ func load_svg() -> String:
 	if file == null:
 		return ""
 	var svg := file.get_as_text()
-	svg = svg.replace("<svg", "<svg width='25' height='25'")
+	svg = svg.replace("<svg", "<svg width=\"60\" height=\"60\"")
 	return svg
 
 func success_html() -> String:
@@ -77,7 +77,7 @@ Content-Type: text/html
 Connection: close
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Authentication Success</title>
@@ -158,7 +158,7 @@ Content-Type: text/html
 Connection: close
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Authentication Failed</title>
