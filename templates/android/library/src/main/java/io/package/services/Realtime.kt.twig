@@ -34,12 +34,13 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private const val TYPE_ERROR = "error"
         private const val TYPE_EVENT = "event"
         private const val TYPE_PONG = "pong"
-        private const val TYPE_RESPONSE = "response"
         private const val HEARTBEAT_INTERVAL = 20_000L // 20 seconds
 
         private var socket: WebSocket? = null
         private val activeSubscriptions = ConcurrentHashMap<String, RealtimeCallback>()
         private val pendingSubscribes = LinkedHashMap<String, Map<String, Any>>()
+        private var pendingPresence: Map<String, Any>? = null
+        @Volatile private var appConnected = false
 
         private var reconnectAttempts = 0
         private val socketGeneration = AtomicInteger(0)
@@ -47,15 +48,25 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private var heartbeatJob: Job? = null
 
         private val subscriptionLock = Any()
+        private val presenceLock = Any()
     }
 
     private fun createSocket() {
-        // Serialize socket recreation so subscribe(A), subscribe(B), subscribe(C)
-        // deterministically results in A -> A+B -> A+B+C (sequential updates).
+        // Serialize socket recreation. With the subscriptionLock held, both
+        // subscribe() and upsertPresence() can call into createSocket()
+        // without producing duplicate sockets — the first call wins, the
+        // second sees `socket != null` and bails.
         synchronized(subscriptionLock) {
-            if (activeSubscriptions.isEmpty()) {
+            val hasPendingPresence = synchronized(presenceLock) { pendingPresence != null }
+            if (activeSubscriptions.isEmpty() && !hasPendingPresence) {
                 reconnect = false
                 closeSocket()
+                return
+            }
+
+            // Single-flight guard: a socket is already open (or in flight via
+            // OkHttp's newWebSocket). Don't tear it down and rebuild.
+            if (socket != null) {
                 return
             }
 
@@ -63,13 +74,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             val queryParams = "project=$encodedProject"
             val url = "${client.endpointRealtime}/realtime?$queryParams"
             val request = Request.Builder().url(url).build()
-
-            if (socket != null) {
-                reconnect = false
-                closeSocket()
-                // Don't rely on old socket callbacks to flip reconnect back.
-                reconnect = true
-            }
 
             val generation = socketGeneration.incrementAndGet()
             socket = client.http.newWebSocket(request, {{ spec.title | caseUcfirst }}WebSocketListener(generation))
@@ -79,6 +83,11 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     private fun closeSocket() {
         stopHeartbeat()
         socket?.close(RealtimeCode.POLICY_VIOLATION.value, null)
+        // Drop the reference so the single-flight guard in createSocket()
+        // doesn't keep bailing out on a dead socket — a subsequent subscribe()
+        // or scheduled reconnect needs to be able to open a fresh one. Callers
+        // hold `subscriptionLock` whenever closeSocket() runs.
+        socket = null
     }
 
     private fun sendUnsubscribeMessage(subscriptionIds: List<String>) {
@@ -126,10 +135,22 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             reconnect = false
             closeSocket()
         }
+        synchronized(presenceLock) {
+            pendingPresence = null
+        }
+        appConnected = false
     }
 
     private fun sendPendingSubscribes() {
         val ws = socket ?: return
+        // The OkHttp socket transitions to "open" before the server has
+        // emitted its application-level `connected` event. Sending a
+        // subscribe frame in that window triggers a policy-violation close
+        // on real Appwrite, which reconnects and re-sends, looping forever.
+        // handleResponseConnected re-enqueues every active subscription and
+        // calls this method again once it's safe, so queued rows are never
+        // lost — just deferred.
+        if (!appConnected) return
         val rows: List<Map<String, Any>>
         synchronized(subscriptionLock) {
             if (pendingSubscribes.isEmpty()) {
@@ -173,6 +194,58 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             channel is Channel<*> -> channel.toString()
             else -> channel.toString()
         }
+    }
+
+    /**
+     * Fire-and-forget presence upsert. Records the latest payload in state so
+     * that — if the WebSocket isn't open yet, or later reconnects — the most
+     * recent presence is automatically (re)sent on the next `connected` event.
+     * When the socket is already open, the frame is sent immediately.
+     *
+     * @param status Presence status (required).
+     * @param presenceId Presence ID (required).
+     * @param permissions Optional permission list to attach to the presence document.
+     * @param metadata Optional metadata payload.
+     */
+    fun upsertPresence(
+        status: String,
+        presenceId: String,
+        permissions: List<String>? = null,
+        metadata: Map<String, Any>? = null,
+    ) {
+        val data = mutableMapOf<String, Any>(
+            "status" to status,
+            "presenceId" to presenceId,
+        )
+        permissions?.let { data["permissions"] = it }
+        metadata?.let { data["metadata"] = it }
+
+        synchronized(presenceLock) {
+            pendingPresence = data
+        }
+
+        // Both subscribe() and upsertPresence() may need to open the socket.
+        // createSocket() is single-flight (guarded by subscriptionLock + the
+        // `socket != null` check), so calling it from presence is safe.
+        val shouldCreateSocket: Boolean
+        synchronized(subscriptionLock) {
+            shouldCreateSocket = (socket == null)
+        }
+        if (shouldCreateSocket) {
+            createSocket()
+        }
+
+        // Opportunistic send for when the socket is already past `connected`.
+        // The appConnected gate inside flushPendingPresence keeps this a no-op
+        // until the application-level handshake completes.
+        flushPendingPresence()
+    }
+
+    private fun flushPendingPresence() {
+        if (!appConnected) return
+        val data = synchronized(presenceLock) { pendingPresence } ?: return
+        val ws = socket ?: return
+        ws.send(mapOf("type" to "presence", "data" to data).toJson())
     }
 
     fun subscribe(
@@ -324,7 +397,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 when (message.type) {
                     TYPE_ERROR -> handleResponseError(message)
                     TYPE_CONNECTED -> handleResponseConnected(message)
-                    TYPE_RESPONSE -> handleResponseAction(message)
                     TYPE_EVENT -> handleResponseEvent(message)
                     TYPE_PONG -> {}
                 }
@@ -337,17 +409,14 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             synchronized(subscriptionLock) {
                 activeSubscriptions.keys.forEach { enqueuePendingSubscribeLocked(it) }
             }
+            appConnected = true
             sendPendingSubscribes()
-        }
-
-        private fun handleResponseAction(message: RealtimeResponse) {
-            // The SDK generates subscriptionIds client-side and sends them on every
-            // subscribe/unsubscribe, so subscribe/unsubscribe acks carry no state
-            // the SDK needs to reconcile.
+            flushPendingPresence()
         }
 
         private fun handleResponseError(message: RealtimeResponse) {
-            throw message.data?.jsonCast<{{ spec.title | caseUcfirst }}Exception>() ?: RuntimeException("Data is not present")
+            val ex = message.data?.jsonCast<{{ spec.title | caseUcfirst }}Exception>() ?: RuntimeException("Data is not present")
+            throw ex
         }
 
         private suspend fun handleResponseEvent(message: RealtimeResponse) {
@@ -378,7 +447,13 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosing(webSocket, code, reason)
             if (isStale(webSocket)) return
+            appConnected = false
             stopHeartbeat()
+            // Release the companion ref so createSocket() (called below or by
+            // a concurrent subscribe()/upsertPresence()) can open a new one.
+            synchronized(subscriptionLock) {
+                if (socket === webSocket) socket = null
+            }
             if (!reconnect || code == RealtimeCode.POLICY_VIOLATION.value) {
                 reconnect = true
                 return
@@ -402,7 +477,14 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             super.onFailure(webSocket, t, response)
             if (isStale(webSocket)) return
+            appConnected = false
             stopHeartbeat()
+            // Same cleanup as onClosing — without this, the next subscribe()
+            // or upsertPresence() would hit the `socket != null` guard in
+            // createSocket() and silently refuse to reconnect.
+            synchronized(subscriptionLock) {
+                if (socket === webSocket) socket = null
+            }
             t.printStackTrace()
         }
     }

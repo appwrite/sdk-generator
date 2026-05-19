@@ -168,7 +168,7 @@ class ServiceTest {
 
         // reset configs
         client.setProject("console")
-            .setEndpointRealtime("wss://cloud.appwrite.io/v1")
+            .setEndpointRealtime("ws://mockapi/v1")
 
         val foo = Foo(client)
         val bar = Bar(client)
@@ -209,6 +209,17 @@ class ServiceTest {
         ) {
             if (rtsubFailureUnsubscribed) rtsubFailureFiredAfterUnsubscribe = true
             realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed"
+        }
+
+        val rtPresenceSub = realtime.subscribe(
+            "presences",
+            payloadType = Any::class.java
+        ) { event ->
+            @Suppress("UNCHECKED_CAST")
+            val payload = event.payload as? Map<String, Any> ?: return@subscribe
+            if (payload["\$id"] == "p-test") {
+                writeToFile("Realtime presence:passed")
+            }
         }
 
         runBlocking {
@@ -349,6 +360,19 @@ class ServiceTest {
                 writeToFile("Realtime update:failed")
             }
 
+            // Fires the upsert. The "Realtime presence:passed" line is
+            // printed by rtPresenceSub's callback when the fan-out event
+            // for this presence document arrives — verifying the full
+            // round-trip rather than just "no exception thrown".
+            realtime.upsertPresence(
+                status = "online",
+                presenceId = "p-test",
+                metadata = mapOf("page" to "/home"),
+            )
+            // Give the server time to fan out and the cb to fire before
+            // we tear the socket down with disconnect() below.
+            delay(1000)
+
             try {
                 realtime.disconnect()
                 writeToFile("Realtime disconnect:passed")
@@ -484,6 +508,12 @@ class ServiceTest {
             writeToFile(Channel.membership("membership2").toString())
             writeToFile(Channel.membership("membership1").toString())
             writeToFile(Channel.membership("membership1").update().toString())
+            writeToFile(Channel.presences())
+            writeToFile(Channel.presence("presence2").toString())
+            writeToFile(Channel.presence("presence1").toString())
+            writeToFile(Channel.presence("presence1").upsert().toString())
+            writeToFile(Channel.presence("presence1").update().toString())
+            writeToFile(Channel.presence("presence1").delete().toString())
 
             // Operator helper tests
             writeToFile(Operator.increment(1))

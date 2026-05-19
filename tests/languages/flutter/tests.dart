@@ -24,8 +24,7 @@ void main() async {
   PathProviderPlatform.instance = FakePathProvider();
   Client client = Client()
       .setProject('123456')
-      .addHeader("Origin", "http://localhost")
-      .setSelfSigned();
+      .addHeader("Origin", "http://localhost");
 
   Foo foo = Foo(client);
   Bar bar = Bar(client);
@@ -33,7 +32,7 @@ void main() async {
 
   client.setSelfSigned();
   client.setProject('console');
-  client.setEndPointRealtime("wss://cloud.appwrite.io/v1");
+  client.setEndPointRealtime("ws://mockapi/v1");
 
   Realtime realtime = Realtime(client);
   // Subscribe without queries
@@ -132,6 +131,31 @@ void main() async {
   } on AppwriteException catch (e) {
     authFactoryOutputs.add(e.message);
   }
+
+  // Attach listeners immediately so the broadcast streams don't drop the
+  // synthetic event the mock emits right after subscribe() (broadcast
+  // streams don't buffer events while there's no listener attached).
+  final rtsubFirst = Completer<RealtimeMessage>();
+  rtsub.stream.listen((m) {
+    if (!rtsubFirst.isCompleted) rtsubFirst.complete(m);
+  });
+
+  final rtsubWithQueriesFirst = Completer<RealtimeMessage>();
+  rtsubWithQueries.stream.listen((m) {
+    if (!rtsubWithQueriesFirst.isCompleted) rtsubWithQueriesFirst.complete(m);
+  });
+
+  final rtsubWithQueriesFailureFirst = Completer<RealtimeMessage>();
+  rtsubWithQueriesFailure.stream.listen((m) {
+    if (!rtsubWithQueriesFailureFirst.isCompleted) rtsubWithQueriesFailureFirst.complete(m);
+  });
+
+  final rtPresenceSub = realtime.subscribe(["presences"]);
+  rtPresenceSub.stream.listen((m) {
+    if (m.payload[r"$id"] == "p-test") {
+      print("Realtime presence:passed");
+    }
+  });
 
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
@@ -256,15 +280,17 @@ void main() async {
     print(e.message);
   }
 
-  // Assert realtime outputs in a deterministic order (no-query then with-query)
-  final message1 = await rtsub.stream.first.timeout(Duration(seconds: 10));
+  // Assert realtime outputs in a deterministic order (no-query then with-query).
+  // Listeners were attached right after subscribe() above, so messages that
+  // arrived during the HTTP-test block have already been captured.
+  final message1 = await rtsubFirst.future.timeout(Duration(seconds: 10));
   print(message1.payload["response"]);
 
-  final message2 = await rtsubWithQueries.stream.first.timeout(Duration(seconds: 10));
+  final message2 = await rtsubWithQueriesFirst.future.timeout(Duration(seconds: 10));
   print(message2.payload["response"]);
 
   try {
-    final message3 = await rtsubWithQueriesFailure.stream.first.timeout(Duration(seconds: 10));
+    final message3 = await rtsubWithQueriesFailureFirst.future.timeout(Duration(seconds: 10));
     // If we receive a message, it means the query filtering failed, so realtime failed
     print("Realtime failed!");
   } on TimeoutException {
@@ -295,6 +321,19 @@ void main() async {
   } catch (e) {
     print("Realtime update:failed");
   }
+
+  // Fires the upsert. The "Realtime presence:passed" line is printed
+  // by rtPresenceSub's listener when the fan-out event for this presence
+  // document arrives — verifying the full round-trip rather than just
+  // "no exception thrown".
+  realtime.upsertPresence(
+    status: 'online',
+    presenceId: 'p-test',
+    metadata: {'page': '/home'},
+  );
+  // Give the server time to fan out and the listener to fire before
+  // we tear the socket down with disconnect() below.
+  await Future.delayed(Duration(seconds: 1));
 
   try {
     await realtime.disconnect();
@@ -437,6 +476,12 @@ void main() async {
   print(Channel.membership('membership2').toString());
   print(Channel.membership('membership1').toString());
   print(Channel.membership('membership1').update().toString());
+  print(Channel.presences());
+  print(Channel.presence('presence2').toString());
+  print(Channel.presence('presence1').toString());
+  print(Channel.presence('presence1').upsert().toString());
+  print(Channel.presence('presence1').update().toString());
+  print(Channel.presence('presence1').delete().toString());
 
   // Operator helper tests
   print(Operator.increment(1));

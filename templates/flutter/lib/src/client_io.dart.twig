@@ -191,7 +191,6 @@ class ClientIO extends ClientBase with ClientMixin {
         '${packageInfo.packageName}/${packageInfo.version} $device',
       );
     } catch (e) {
-      debugPrint('Error getting device info: $e');
       device = Platform.operatingSystem;
       addHeader('user-agent', device);
     }
