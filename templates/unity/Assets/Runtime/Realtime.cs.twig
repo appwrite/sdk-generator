@@ -40,7 +40,7 @@ namespace {{ spec.title | caseUcfirst }}
     internal class RealtimeConnectedData
     {
         [JsonPropertyName("user")]
-        public Dictionary<string, object> User { get; set; }
+        public JsonElement User { get; set; }
 
         [JsonPropertyName("subscriptions")]
         public Dictionary<string, string> Subscriptions { get; set; }
@@ -141,10 +141,12 @@ namespace {{ spec.title | caseUcfirst }}
         private CancellationTokenSource _cancellationTokenSource;
         private bool _creatingSocket;
         private bool _pendingSocketRebuild;
+        private bool _appConnected;
         private string _lastUrl;
         private CancellationTokenSource _heartbeatTokenSource;
         private string _lastSession;
         private RealtimePresenceRequest _pendingPresence;
+        private readonly SemaphoreSlim _sendLock = new(1, 1);
         public HashSet<string> Channels => _channels;
 
         public bool IsConnected => _webSocket?.State == WebSocketState.Open;
@@ -417,9 +419,9 @@ namespace {{ spec.title | caseUcfirst }}
             await _webSocket.SendText(json);
         }
 
-        private async UniTask SendPendingPresence()
+        private async UniTask SendPendingPresenceUnsafe()
         {
-            if (_webSocket?.State != WebSocketState.Open || _pendingPresence == null)
+            if (_pendingPresence == null)
             {
                 return;
             }
@@ -434,9 +436,9 @@ namespace {{ spec.title | caseUcfirst }}
             await _webSocket.SendText(json);
         }
 
-        private async UniTask SendPendingSubscribes()
+        private async UniTask SendPendingSubscribesUnsafe()
         {
-            if (_webSocket?.State != WebSocketState.Open || _pendingSubscribes.Count == 0)
+            if (_pendingSubscribes.Count == 0)
             {
                 return;
             }
@@ -473,6 +475,35 @@ namespace {{ spec.title | caseUcfirst }}
 
             await _webSocket.SendText(json);
         }
+
+        private async UniTask SendPendingMessages()
+        {
+            if (_webSocket?.State != WebSocketState.Open || !_appConnected)
+            {
+                return;
+            }
+
+            await _sendLock.WaitAsync();
+            try
+            {
+                await SendPendingSubscribesUnsafe();
+                await SendPendingPresenceUnsafe();
+            }
+            finally
+            {
+                _sendLock.Release();
+            }
+        }
+
+        private UniTask SendPendingSubscribes()
+        {
+            return SendPendingMessages();
+        }
+
+        private UniTask SendPendingPresence()
+        {
+            return SendPendingMessages();
+        }
         
         private async UniTask CreateSocket()
         {
@@ -482,7 +513,7 @@ namespace {{ spec.title | caseUcfirst }}
                 return;
             }
 
-            if (_channels.Count == 0) return;
+            if (_channels.Count == 0 && _pendingPresence == null) return;
 
             _creatingSocket = true;
             
@@ -547,14 +578,9 @@ namespace {{ spec.title | caseUcfirst }}
         private void OnWebSocketOpen()
         {
             _reconnectAttempts = 0;
+            _appConnected = false;
             OnConnected?.Invoke();
             StartHeartbeat();
-
-            foreach (var subscriptionId in _subscriptions.Keys)
-            {
-                _pendingSubscribes.Add(subscriptionId);
-            }
-            SendPendingSubscribes().Forget();
             Debug.Log("[Realtime] WebSocket opened successfully.");
         }
 
@@ -597,14 +623,20 @@ namespace {{ spec.title | caseUcfirst }}
         private void HandleConnectedMessage(RealtimeConnectedData data)
         {
             Debug.Log("[Realtime] Received 'connected' message");
-            
-            if (data?.User == null || data.User.Count == 0)
+
+            _appConnected = true;
+            foreach (var subscriptionId in _subscriptions.Keys)
+            {
+                _pendingSubscribes.Add(subscriptionId);
+            }
+
+            if (data == null || data.User.ValueKind == JsonValueKind.Undefined || (data.User.ValueKind == JsonValueKind.Object && !data.User.EnumerateObject().Any()))
             {
                 Debug.Log("[Realtime] No user found, sending fallback authentication");
                 SendFallbackAuthentication().Forget();
             }
 
-            SendPendingPresence().Forget();
+            SendPendingMessages().Forget();
         }
 
         private async UniTask SendFallbackAuthentication()
@@ -677,6 +709,7 @@ namespace {{ spec.title | caseUcfirst }}
         private void OnWebSocketError(string error)
         {
             Debug.LogError($"[Realtime] WebSocket error: {error}");
+            _appConnected = false;
             OnError?.Invoke(new {{ spec.title | caseUcfirst }}Exception($"WebSocket error: {error}"));
             Retry();
 
@@ -685,6 +718,7 @@ namespace {{ spec.title | caseUcfirst }}
         private void OnWebSocketClose(WebSocketCloseCode closeCode)
         {
             Debug.Log($"[Realtime] WebSocket closed with code: {closeCode}");
+            _appConnected = false;
             StopHeartbeat();
             OnDisconnected?.Invoke();
             if (_reconnect && closeCode != WebSocketCloseCode.PolicyViolation)
@@ -846,6 +880,7 @@ namespace {{ spec.title | caseUcfirst }}
                 }
                 finally
                 {
+                    _appConnected = false;
                     _webSocket = null;
                     _lastUrl = null;
                 }
