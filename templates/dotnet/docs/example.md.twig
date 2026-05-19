@@ -26,5 +26,7 @@ Client client = new Client()
     {{ parameter.name }}: {% if parameter.enumValues | length > 0%}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
     {%~ endfor %}
 
-{% if method.parameters.all | length > 0 %});{% endif %}
+{% if method.parameters.all | length > 0 %}
+);
+{% endif %}
 ```
