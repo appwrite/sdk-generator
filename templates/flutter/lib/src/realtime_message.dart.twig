@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// Realtime Message
 class RealtimeMessage {
   /// All permutations of the system event that triggered this message
-  /// 
+  ///
   /// The first event in the list is the most specfic event without wildcards.
   final List<String> events;
 
@@ -54,11 +54,43 @@ class RealtimeMessage {
   /// Initializes a [RealtimeMessage] from a [Map<String, dynamic>].
   factory RealtimeMessage.fromMap(Map<String, dynamic> map) {
     return RealtimeMessage(
-      events: List<String>.from(map['events'] ?? []),
+      events: _stringListFrom(map['events']),
       payload: Map<String, dynamic>.from(map['payload'] ?? <String, dynamic>{}),
-      channels: List<String>.from(map['channels'] ?? []),
+      channels: _stringListFrom(map['channels']),
       timestamp: map['timestamp'],
     );
+  }
+
+  static List<String> _stringListFrom(dynamic value) {
+    if (value == null) {
+      return [];
+    }
+
+    if (value is Iterable) {
+      return List<String>.from(value);
+    }
+
+    if (value is Map) {
+      if (value.keys.every(_isArrayIndexKey)) {
+        return List<String>.from(value.values);
+      }
+
+      return List<String>.from(value.keys);
+    }
+
+    return [];
+  }
+
+  static bool _isArrayIndexKey(dynamic key) {
+    if (key is int) {
+      return key >= 0;
+    }
+
+    if (key is String) {
+      return int.tryParse(key) != null;
+    }
+
+    return false;
   }
 
   /// Converts a [RealtimeMessage] to a JSON [String].

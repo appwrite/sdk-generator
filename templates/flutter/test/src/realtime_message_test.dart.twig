@@ -1,0 +1,157 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:{{language.params.packageName}}/src/realtime_message.dart';
+
+void main() {
+  group('RealtimeMessage', () {
+    final events = ['databases.*.collections.*.documents.*.create'];
+    final payload = {'\$id': 'message-id'};
+    final channels = ['databases.default.collections.messages.documents'];
+    final timestamp = '2026-02-26T12:00:00.000+00:00';
+    final message = RealtimeMessage(
+      events: events,
+      payload: payload,
+      channels: channels,
+      timestamp: timestamp,
+    );
+
+    test('toMap should return a map representation of the message', () {
+      final messageMap = message.toMap();
+
+      expect(messageMap['events'], equals(events));
+      expect(messageMap['payload'], equals(payload));
+      expect(messageMap['channels'], equals(channels));
+      expect(messageMap['timestamp'], equals(timestamp));
+    });
+
+    test('fromMap should create an instance from lists', () {
+      final messageMap = {
+        'events': events,
+        'payload': payload,
+        'channels': channels,
+        'timestamp': timestamp,
+      };
+
+      final result = RealtimeMessage.fromMap(messageMap);
+
+      expect(result.events, equals(events));
+      expect(result.payload, equals(payload));
+      expect(result.channels, equals(channels));
+      expect(result.timestamp, equals(timestamp));
+    });
+
+    test('fromMap should create an instance from maps', () {
+      final messageMap = {
+        'events': {'0': events.first},
+        'payload': payload,
+        'channels': {'0': channels.first},
+        'timestamp': timestamp,
+      };
+
+      final result = RealtimeMessage.fromMap(messageMap);
+
+      expect(result.events, equals(events));
+      expect(result.payload, equals(payload));
+      expect(result.channels, equals(channels));
+      expect(result.timestamp, equals(timestamp));
+    });
+
+    test('fromMap should use map values when map keys are integers', () {
+      final messageMap = {
+        'events': {0: events.first},
+        'payload': payload,
+        'channels': {0: channels.first},
+        'timestamp': timestamp,
+      };
+
+      final result = RealtimeMessage.fromMap(messageMap);
+
+      expect(result.events, equals(events));
+      expect(result.channels, equals(channels));
+    });
+
+    test('fromMap should use map keys when map values are not strings', () {
+      final messageMap = {
+        'events': {events.first: true},
+        'payload': payload,
+        'channels': {channels.first: true},
+        'timestamp': timestamp,
+      };
+
+      final result = RealtimeMessage.fromMap(messageMap);
+
+      expect(result.events, equals(events));
+      expect(result.channels, equals(channels));
+    });
+
+    test('fromMap should use map keys for mixed-value maps', () {
+      final messageMap = {
+        'events': {
+          events.first: 'someDesc',
+          'databases.*.collections.*.documents.*.update': null,
+        },
+        'payload': payload,
+        'channels': {channels.first: 'someDesc'},
+        'timestamp': timestamp,
+      };
+
+      final result = RealtimeMessage.fromMap(messageMap);
+
+      expect(
+        result.events,
+        equals([events.first, 'databases.*.collections.*.documents.*.update']),
+      );
+      expect(result.channels, equals(channels));
+    });
+
+    test(
+      'fromMap should use empty lists when events and channels are null',
+      () {
+        final messageMap = {
+          'events': null,
+          'payload': payload,
+          'channels': null,
+          'timestamp': timestamp,
+        };
+
+        final result = RealtimeMessage.fromMap(messageMap);
+
+        expect(result.events, isEmpty);
+        expect(result.channels, isEmpty);
+      },
+    );
+
+    test(
+      'fromMap should use empty lists when events and channels are absent',
+      () {
+        final messageMap = {'payload': payload, 'timestamp': timestamp};
+
+        final result = RealtimeMessage.fromMap(messageMap);
+
+        expect(result.events, isEmpty);
+        expect(result.channels, isEmpty);
+      },
+    );
+
+    test('fromMap should throw when list items are not strings', () {
+      final messageMap = {
+        'events': [true],
+        'payload': payload,
+        'channels': channels,
+        'timestamp': timestamp,
+      };
+
+      expect(
+        () => RealtimeMessage.fromMap(messageMap),
+        throwsA(isA<TypeError>()),
+      );
+    });
+
+    test('toJson and fromJson should convert to/from JSON', () {
+      final jsonString = message.toJson();
+
+      final result = RealtimeMessage.fromJson(jsonString);
+
+      expect(result, equals(message));
+    });
+  });
+}
