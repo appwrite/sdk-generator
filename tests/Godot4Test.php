@@ -11,14 +11,24 @@ class Godot4Test extends Base
 
     protected string $language = 'godot';
     protected string $class = 'Appwrite\SDK\Language\Godot';
+
     protected array $build = [
-        'mkdir -p tests/sdks/godot/tests',
         'cp tests/languages/godot/test.gd tests/sdks/godot/tests/test.gd',
-        'mkdir tests/sdks/godot/tests/resources/',
-        'cp -r tests/resources/ tests/sdks/godot/tests/',
-        'cd tests/sdks/godot && godot --headless --import --quit',
+        'docker run --rm \
+        -v $(pwd)/tests/sdks/godot:/app \
+        -v $(pwd)/tests/resources:/app/tests/resources:ro \
+        -w /app \
+        barichello/godot-ci:4.6 \
+        godot --headless --import --quit'
     ];
-    protected string $command = 'cd tests/sdks/godot && godot --headless --script tests/test.gd';
+
+    protected string $command =
+        'docker run --network="mockapi" --rm \
+        -v $(pwd)/tests/sdks/godot:/app \
+        -v $(pwd)/tests/resources:/app/tests/resources:ro \
+        -w /app \
+        barichello/godot-ci:4.6 \
+        godot --headless --script tests/test.gd';
 
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,

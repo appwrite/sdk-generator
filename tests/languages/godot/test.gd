@@ -12,10 +12,9 @@ func start() -> void:
     quit()
 
 func run_tests() -> void:
-    Appwrite.add_header("Origin", "http://localhost:8080") \
+    Appwrite.add_header("Origin", "http://localhost") \
         .set_project("123456") \
-        .set_self_signed(true) \
-        .set_endpoint("http://localhost:8080/v1")
+        .set_self_signed(true)
 
     print("\nTest Started")
 
@@ -165,16 +164,6 @@ func run_general_tests() -> void:
     await test_errors()
 
     await Appwrite.general.empty()
-
-#    response = await Appwrite.general.oauth2(
-#        "clientId",
-#        ["test"],
-#        "123456",
-#        "https://localhost:8080",
-#        "https://localhost:8080"
-#    )
-
-#    print_response(response)
 
 func test_errors() -> void:
     var response
@@ -422,20 +411,15 @@ func run_query_tests() -> void:
 
 func run_permission_tests() -> void:
     print(AppwritePermission.read(AppwriteRole.any()))
-
-    print(
-        AppwritePermission.write(
-            AppwriteRole.user(AppwriteID.custom("userid"))
-        )
-    )
-
+    print(AppwritePermission.write(AppwriteRole.user(AppwriteID.custom("userid"))))
     print(AppwritePermission.create(AppwriteRole.users()))
-
-    print(
-        AppwritePermission.delete(
-            AppwriteRole.team("teamId", "owner")
-        )
-    )
+    print(AppwritePermission.update(AppwriteRole.guests()))
+    print(AppwritePermission.delete(AppwriteRole.team("teamId", "owner")))
+    print(AppwritePermission.delete(AppwriteRole.team("teamId")))
+    print(AppwritePermission.create(AppwriteRole.member("memberId")))
+    print(AppwritePermission.update(AppwriteRole.users("verified")))
+    print(AppwritePermission.update(AppwriteRole.user(AppwriteID.custom("userid"), "unverified")))
+    print(AppwritePermission.create(AppwriteRole.label("admin")))
 
 func run_id_tests() -> void:
     print(AppwriteID.unique())

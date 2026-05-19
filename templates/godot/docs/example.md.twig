@@ -21,11 +21,7 @@ func _ready():
 {% endfor %}
 {% endif %}
 
-{% if method.type != 'webAuth' %}
     var result = await {{prefix}}.{{ service.name | caseCamel }}.{{ method.name | caseSnake | escapeKeyword }}(
-{% else %}
-    var result = {{prefix}}.{{ service.name | caseCamel }}.{{ method.name | caseSnake | escapeKeyword }}(
-{% endif %}
 {% for parameter in method.parameters.all %}
         {{ parameter | paramExample }}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
 
