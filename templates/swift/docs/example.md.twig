@@ -8,26 +8,39 @@ import {{ spec.title | caseUcfirst }}Enums
 {% endif %}
 {% endfor %}
 
-let client = Client()
-{% if method.auth|length > 0 %}
-    .setEndpoint("{{ spec.endpointDocs | raw }}") // Your API Endpoint
+{% set authNode = {} %}
 {% for node in method.auth %}
-{% for key,header in node|keys %}
-    .set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo'] | raw }}") // {{node[header].description}}
+{% set authNode = authNode|merge(node) %}
 {% endfor %}
+{% set authHeaders = [] %}
+{% for header in authNode|keys %}
+{% if not (header == 'Session' and 'client' in method.platforms) %}
+{% set authHeaders = authHeaders|merge([header]) %}
+{% endif %}
 {% endfor %}
+{% set factory = 'from' %}
+{% if 'ImpersonateUserId' in authHeaders or 'ImpersonateUserEmail' in authHeaders or 'ImpersonateUserPhone' in authHeaders %}{% set factory = 'fromImpersonation' %}{% elseif 'Key' in authHeaders %}{% set factory = 'fromAPIKey' %}{% elseif 'Cookie' in authHeaders %}{% set factory = 'fromCookie' %}{% elseif 'JWT' in authHeaders %}{% set factory = 'fromJWT' %}{% elseif 'DevKey' in authHeaders %}{% set factory = 'fromDevKey' %}{% elseif 'Session' in authHeaders %}{% set factory = 'fromSession' %}{% endif %}
+{% if method.auth|length > 0 %}
+let client = try Client.{{ factory }}(
+    endpoint: "{{ spec.endpointDocs | raw }}", // Your API Endpoint
+    projectId: "{{ authNode.Project['x-appwrite']['demo'] | raw }}"{% if authHeaders|length > 1 %},{% endif %} // Your project ID
+{% for header in authHeaders %}
+{% if header != 'Project' %}
+    {% if header == 'Key' %}apiKey{% elseif header == 'JWT' %}jwt{% elseif header == 'Cookie' %}cookie{% elseif header == 'Session' %}session{% elseif header == 'DevKey' %}devKey{% elseif header == 'ImpersonateUserId' %}userId{% elseif header == 'ImpersonateUserEmail' %}userEmail{% elseif header == 'ImpersonateUserPhone' %}userPhone{% else %}{{ header | caseCamel }}{% endif %}: "{{ authNode[header]['x-appwrite']['demo'] | raw }}"{% if not loop.last %},{% endif %} // {{ authNode[header].description }}
+{% endif %}
+{% endfor %}
+)
+{% else %}
+let client = Client()
 {% endif %}
 
 let {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %})
 
-let {% if method.type == 'webAuth' %}success{% elseif method.type == 'location' %}bytes{% elseif (method | getValidResponseModels)|length > 1 or method.responseModel | length == 0 %}result{% else %}{{ method.responseModel | caseCamel | escapeSwiftKeyword }}{% endif %} = try await {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %}){{ '\n' }}{% endif %}
+let {% if method.type == 'webAuth' %}success{% elseif method.type == 'location' %}bytes{% elseif (method | getValidResponseModels)|length > 1 or method.responseModel | length == 0 %}result{% else %}{{ method.responseModel | caseCamel | escapeSwiftKeyword }}{% endif %} = try await {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %}){% else %}
 
-    {%~ for parameter in method.parameters.all %}
+{% for parameter in method.parameters.all %}
     {{ parameter.name }}: {% if parameter.enumValues | length > 0 %}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
-    {%~ if loop.last %}
-
+{% endfor %}
 )
 {% endif %}
-
-{% endfor %}
 ```

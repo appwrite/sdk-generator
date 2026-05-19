@@ -19,15 +19,37 @@ import {{ sdk.namespace | caseDot }}.enums.{{ parameter.enumName | caseUcfirst }
 {% endif %}
 {% endfor %}
 
-Client client = new Client(context)
-    {%~ if method.auth|length > 0 %}
-    .setEndpoint("{{ spec.endpointDocs | raw }}") // Your API Endpoint
-    {%~ for node in method.auth %}
-    {%~ for key,header in node|keys %}
-    .set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo'] | raw }}"){% if loop.last %};{% endif %} // {{ node[header].description }}
-    {%~ endfor %}
-    {%~ endfor %}
-    {%~ endif %}
+{% set authNode = {} %}
+{% for node in method.auth %}
+{% set authNode = authNode|merge(node) %}
+{% endfor %}
+{% set authHeaders = [] %}
+{% for header in authNode|keys %}
+{% if not (header == 'Session' and 'client' in method.platforms) %}
+{% set authHeaders = authHeaders|merge([header]) %}
+{% endif %}
+{% endfor %}
+{% set factory = 'from' %}
+{% if 'ImpersonateUserId' in authHeaders or 'ImpersonateUserEmail' in authHeaders or 'ImpersonateUserPhone' in authHeaders %}{% set factory = 'fromImpersonation' %}{% elseif 'DevKey' in authHeaders %}{% set factory = 'fromDevKey' %}{% elseif 'Session' in authHeaders %}{% set factory = 'fromSession' %}{% endif %}
+{% if method.auth|length > 0 %}
+Client client = Client.{{ factory }}(
+    context,
+    "{{ authNode.Project['x-appwrite']['demo'] | raw }}", // Your project ID
+{% if factory == 'fromSession' or factory == 'fromImpersonation' %}
+    "{{ authNode.Session['x-appwrite']['demo'] | raw }}", // {{ authNode.Session.description }}
+{% elseif factory == 'fromDevKey' %}
+    "{{ authNode.DevKey['x-appwrite']['demo'] | raw }}", // {{ authNode.DevKey.description }}
+{% endif %}
+{% if factory == 'fromImpersonation' %}
+    {% if 'ImpersonateUserId' in authHeaders %}"{{ authNode.ImpersonateUserId['x-appwrite']['demo'] | raw }}", // {{ authNode.ImpersonateUserId.description }}{% else %}null,{% endif %}
+    {% if 'ImpersonateUserEmail' in authHeaders %}"{{ authNode.ImpersonateUserEmail['x-appwrite']['demo'] | raw }}", // {{ authNode.ImpersonateUserEmail.description }}{% else %}null,{% endif %}
+    {% if 'ImpersonateUserPhone' in authHeaders %}"{{ authNode.ImpersonateUserPhone['x-appwrite']['demo'] | raw }}", // {{ authNode.ImpersonateUserPhone.description }}{% else %}null,{% endif %}
+{% endif %}
+    "{{ spec.endpointDocs | raw }}" // Your API Endpoint
+);
+{% else %}
+Client client = new Client(context);
+{% endif %}
 
 {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
 
@@ -56,6 +78,5 @@ Client client = new Client(context)
     })
 );
 {% endif %}
-
 {% endfor %}
 ```

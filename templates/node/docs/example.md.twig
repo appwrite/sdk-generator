@@ -4,15 +4,26 @@ const sdk = require('node-{{ spec.title | caseDash }}');
 const fs = require('fs');
 {% endif %}
 
-const client = new sdk.Client()
-    {%~ if method.auth|length > 0 %}
-    .setEndpoint('{{ spec.endpointDocs | raw }}') // Your API Endpoint
-    {%~ for node in method.auth %}
-    {%~ for key,header in node|keys %}
-    .set{{header}}('{{node[header]['x-appwrite']['demo'] | raw }}'){% if loop.last %};{% endif%} // {{node[header].description}}
-    {%~ endfor %}
-    {%~ endfor %}
-    {%~ endif %}
+{% set authNode = {} %}
+{% for node in method.auth %}
+{% set authNode = authNode|merge(node) %}
+{% endfor %}
+{% set authHeaders = authNode|keys %}
+{% set factory = 'from' %}
+{% if 'ImpersonateUserId' in authHeaders or 'ImpersonateUserEmail' in authHeaders or 'ImpersonateUserPhone' in authHeaders %}{% set factory = 'fromImpersonation' %}{% elseif 'Key' in authHeaders %}{% set factory = 'fromAPIKey' %}{% elseif 'Cookie' in authHeaders %}{% set factory = 'fromCookie' %}{% elseif 'JWT' in authHeaders %}{% set factory = 'fromJWT' %}{% elseif 'DevKey' in authHeaders %}{% set factory = 'fromDevKey' %}{% elseif 'Session' in authHeaders %}{% set factory = 'fromSession' %}{% endif %}
+{% if method.auth|length > 0 %}
+const client = sdk.Client.{{ factory }}({
+    endpoint: '{{ spec.endpointDocs | raw }}', // Your API Endpoint
+    projectId: '{{ authNode.Project['x-appwrite']['demo'] | raw }}'{% if authHeaders|length > 1 %},{% endif %} // Your project ID
+{% for header in authHeaders %}
+{% if header != 'Project' %}
+    {% if header == 'Key' %}apiKey{% elseif header == 'JWT' %}jwt{% elseif header == 'Cookie' %}cookie{% elseif header == 'Session' %}session{% elseif header == 'DevKey' %}devKey{% elseif header == 'ImpersonateUserId' %}userId{% elseif header == 'ImpersonateUserEmail' %}email{% elseif header == 'ImpersonateUserPhone' %}phone{% else %}{{ header | caseCamel }}{% endif %}: '{{ authNode[header]['x-appwrite']['demo'] | raw }}'{% if not loop.last %},{% endif %} // {{ authNode[header].description }}
+{% endif %}
+{% endfor %}
+});
+{% else %}
+const client = new sdk.Client();
+{% endif %}
 
 const {{ service.name | caseCamel | escapeKeyword }} = new sdk.{{service.name | caseUcfirst}}(client);
 

@@ -1,15 +1,31 @@
 ```javascript
 import { Client, {{ service.name | caseUcfirst }}{% for parameter in method.parameters.all %}{% if parameter.enumValues | length > 0%}, {{ parameter.enumName | caseUcfirst}}{% endif %}{% endfor %}{% if method.parameters.all | hasPermissionParam %}, Permission, Role{% endif %} } from "{{ language.params.npmPackage }}";
 
-const client = new Client()
-    {%~ if method.auth|length > 0 %}
-    .setEndpoint('{{ spec.endpointDocs | raw }}') // Your API Endpoint
-    {%~ for node in method.auth %}
-    {%~ for key,header in node|keys %}
-    .set{{header}}('{{node[header]['x-appwrite']['demo'] | raw }}'){% if loop.last %};{% endif%} // {{node[header].description}}
-    {%~ endfor %}
-    {%~ endfor %}
-    {%~ endif %}
+{% set authNode = {} %}
+{% for node in method.auth %}
+{% set authNode = authNode|merge(node) %}
+{% endfor %}
+{% set authHeaders = [] %}
+{% for header in authNode|keys %}
+{% if not (header == 'Session' and 'client' in method.platforms) %}
+{% set authHeaders = authHeaders|merge([header]) %}
+{% endif %}
+{% endfor %}
+{% set factory = 'from' %}
+{% if 'ImpersonateUserId' in authHeaders or 'ImpersonateUserEmail' in authHeaders or 'ImpersonateUserPhone' in authHeaders %}{% set factory = 'fromImpersonation' %}{% elseif 'DevKey' in authHeaders %}{% set factory = 'fromDevKey' %}{% elseif 'Session' in authHeaders %}{% set factory = 'fromSession' %}{% endif %}
+{% if method.auth|length > 0 %}
+const client = Client.{{ factory }}({
+    endpoint: '{{ spec.endpointDocs | raw }}', // Your API Endpoint
+    projectId: '{{ authNode.Project['x-appwrite']['demo'] | raw }}'{% if authHeaders|length > 1 %},{% endif %} // Your project ID
+{% for header in authHeaders %}
+{% if header != 'Project' %}
+    {% if header == 'Session' %}session{% elseif header == 'DevKey' %}devKey{% elseif header == 'ImpersonateUserId' %}userId{% elseif header == 'ImpersonateUserEmail' %}email{% elseif header == 'ImpersonateUserPhone' %}phone{% else %}{{ header | caseCamel }}{% endif %}: '{{ authNode[header]['x-appwrite']['demo'] | raw }}'{% if not loop.last %},{% endif %} // {{ authNode[header].description }}
+{% endif %}
+{% endfor %}
+});
+{% else %}
+const client = new Client();
+{% endif %}
 
 const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
 
@@ -23,10 +39,4 @@ const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client
     {{ parameter.name | caseCamel | escapeKeyword }}: {% if parameter.enumValues | length > 0 %}{{ parameter | enumExample }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %} // optional
 {%~ endif %}
 {%~ endfor -%}
-});
-{% endif %}
-
-{% if method.type != 'webAuth' %}
-console.log(result);
-{% endif %}
-```
+});{%- endif -%}{% if method.type != 'webAuth' %}{{ "\n\nconsole.log(result);\n```" }}{% else %}{{ "\n```" }}{% endif %}

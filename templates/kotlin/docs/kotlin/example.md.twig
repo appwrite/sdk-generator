@@ -19,13 +19,26 @@ import {{ sdk.namespace | caseDot }}.Permission
 import {{ sdk.namespace | caseDot }}.Role
 {% endif %}
 
-val client = Client()
-{% if method.auth|length > 0 %}
-    .setEndpoint("{{ spec.endpointDocs | raw }}") // Your API Endpoint
+{% set authNode = {} %}
 {% for node in method.auth %}
-{% for key,header in node|keys %}
-    .set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo'] | raw }}") // {{node[header].description}}
-{% endfor %}{% endfor %}{% endif %}
+{% set authNode = authNode|merge(node) %}
+{% endfor %}
+{% set authHeaders = authNode|keys %}
+{% set factory = 'from' %}
+{% if 'ImpersonateUserId' in authHeaders or 'ImpersonateUserEmail' in authHeaders or 'ImpersonateUserPhone' in authHeaders %}{% set factory = 'fromImpersonation' %}{% elseif 'Key' in authHeaders %}{% set factory = 'fromAPIKey' %}{% elseif 'Cookie' in authHeaders %}{% set factory = 'fromCookie' %}{% elseif 'JWT' in authHeaders %}{% set factory = 'fromJWT' %}{% elseif 'DevKey' in authHeaders %}{% set factory = 'fromDevKey' %}{% elseif 'Session' in authHeaders %}{% set factory = 'fromSession' %}{% endif %}
+{% if method.auth|length > 0 %}
+val client = Client.{{ factory }}(
+    endPoint = "{{ spec.endpointDocs | raw }}", // Your API Endpoint
+    projectId = "{{ authNode.Project['x-appwrite']['demo'] | raw }}"{% if authHeaders|length > 1 %},{% endif %} // Your project ID
+{% for header in authHeaders %}
+{% if header != 'Project' %}
+    {% if header == 'Key' %}apiKey{% elseif header == 'JWT' %}jwt{% elseif header == 'Cookie' %}cookie{% elseif header == 'Session' %}session{% elseif header == 'DevKey' %}devKey{% elseif header == 'ImpersonateUserId' %}userId{% elseif header == 'ImpersonateUserEmail' %}userEmail{% elseif header == 'ImpersonateUserPhone' %}userPhone{% else %}{{ header | caseCamel }}{% endif %} = "{{ authNode[header]['x-appwrite']['demo'] | raw }}"{% if not loop.last %},{% endif %} // {{ authNode[header].description }}
+{% endif %}
+{% endfor %}
+)
+{% else %}
+val client = Client()
+{% endif %}
 
 val {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client)
 
