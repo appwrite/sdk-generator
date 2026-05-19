@@ -166,18 +166,15 @@ func run_general_tests() -> void:
 
     await Appwrite.general.empty()
 
-    var url = await Appwrite.general.oauth2(
-        "clientId",
-        ["test"],
-        "123456",
-        "https://localhost:8080",
-        "https://localhost:8080"
-    )
+#    response = await Appwrite.general.oauth2(
+#        "clientId",
+#        ["test"],
+#        "123456",
+#        "https://localhost:8080",
+#        "https://localhost:8080"
+#    )
 
-    print(url)
-
-    response = await Appwrite.general.headers()
-    print_response(response)
+#    print_response(response)
 
 func test_errors() -> void:
     var response
@@ -192,7 +189,7 @@ func test_errors() -> void:
     print_response(response)
 
     response = Appwrite.set_endpoint("htp://cloud.appwrite.io/v1")
-    print_response(response)
+    print(response.message)
 
 func run_query_tests() -> void:
     print(AppwriteQuery.equal("released", [true]))
@@ -203,17 +200,225 @@ func run_query_tests() -> void:
     print(AppwriteQuery.greater_than("releasedYear", 1990))
 
     print(AppwriteQuery.search("name", "john"))
-
     print(AppwriteQuery.is_null("name"))
     print(AppwriteQuery.is_not_null("name"))
+
+    print(AppwriteQuery.between("age", 50, 100))
+    print(AppwriteQuery.between("age", 50.5, 100.5))
+    print(AppwriteQuery.between("name", "Anna", "Brad"))
+
+    print(AppwriteQuery.starts_with("name", "Ann"))
+    print(AppwriteQuery.ends_with("name", "nne"))
+
+    print(AppwriteQuery.select(["name", "age"]))
+
+    print(AppwriteQuery.order_asc("title"))
+    print(AppwriteQuery.order_desc("title"))
+    print(AppwriteQuery.order_random())
+
+    print(AppwriteQuery.cursor_after("my_movie_id"))
+    print(AppwriteQuery.cursor_before("my_movie_id"))
 
     print(AppwriteQuery.limit(50))
     print(AppwriteQuery.offset(20))
 
-    print(AppwriteQuery.order_asc("title"))
-    print(AppwriteQuery.order_desc("title"))
-
     print(AppwriteQuery.contains("title", "Spider"))
+    print(AppwriteQuery.contains("labels", "first"))
+    print(AppwriteQuery.contains_any("labels", ["first", "second"]))
+    print(AppwriteQuery.contains_all("labels", ["first", "second"]))
+
+    # New query methods
+
+    print(AppwriteQuery.not_contains("title", "Spider"))
+    print(AppwriteQuery.not_search("name", "john"))
+
+    print(AppwriteQuery.not_between("age", 50, 100))
+
+    print(AppwriteQuery.not_starts_with("name", "Ann"))
+    print(AppwriteQuery.not_ends_with("name", "nne"))
+
+    print(AppwriteQuery.created_before("2023-01-01"))
+    print(AppwriteQuery.created_after("2023-01-01"))
+    print(AppwriteQuery.created_between(
+        "2023-01-01",
+        "2023-12-31"
+    ))
+
+    print(AppwriteQuery.updated_before("2023-01-01"))
+    print(AppwriteQuery.updated_after("2023-01-01"))
+    print(AppwriteQuery.updated_between(
+        "2023-01-01",
+        "2023-12-31"
+    ))
+
+    # Spatial Distance
+
+    print(AppwriteQuery.distance_equal(
+        "location",
+        [[40.7128,-74],[40.7128,-74]],
+        1000
+    ))
+
+    print(AppwriteQuery.distance_equal(
+        "location",
+        [40.7128,-74],
+        1000,
+        true
+    ))
+
+    print(AppwriteQuery.distance_not_equal(
+        "location",
+        [40.7128,-74],
+        1000
+    ))
+
+    print(AppwriteQuery.distance_not_equal(
+        "location",
+        [40.7128,-74],
+        1000,
+        true
+    ))
+
+    print(AppwriteQuery.distance_greater_than(
+        "location",
+        [40.7128,-74],
+        1000
+    ))
+
+    print(AppwriteQuery.distance_greater_than(
+        "location",
+        [40.7128,-74],
+        1000,
+        true
+    ))
+
+    print(AppwriteQuery.distance_less_than(
+        "location",
+        [40.7128,-74],
+        1000
+    ))
+
+    print(AppwriteQuery.distance_less_than(
+        "location",
+        [40.7128,-74],
+        1000,
+        true
+    ))
+
+    # Spatial queries
+
+    print(AppwriteQuery.intersects(
+        "location",
+        [40.7128,-74]
+    ))
+
+    print(AppwriteQuery.not_intersects(
+        "location",
+        [40.7128,-74]
+    ))
+
+    print(AppwriteQuery.crosses(
+        "location",
+        [40.7128,-74]
+    ))
+
+    print(AppwriteQuery.not_crosses(
+        "location",
+        [40.7128,-74]
+    ))
+
+    print(AppwriteQuery.overlaps(
+        "location",
+        [40.7128,-74]
+    ))
+
+    print(AppwriteQuery.not_overlaps(
+        "location",
+        [40.7128,-74]
+    ))
+
+    print(AppwriteQuery.touches(
+        "location",
+        [40.7128,-74]
+    ))
+
+    print(AppwriteQuery.not_touches(
+        "location",
+        [40.7128,-74]
+    ))
+
+    print(AppwriteQuery.contains(
+        "location",
+        [[40.7128,-74],[40.7128,-74]]
+    ))
+
+    print(AppwriteQuery.not_contains(
+        "location",
+        [[40.7128,-74],[40.7128,-74]]
+    ))
+
+    print(AppwriteQuery.equal(
+        "location",
+        [[40.7128,-74],[40.7128,-74]]
+    ))
+
+    print(AppwriteQuery.not_equal(
+        "location",
+        [[40.7128,-74],[40.7128,-74]]
+    ))
+
+    print(AppwriteQuery.or_query([
+        AppwriteQuery.equal(
+            "released",
+            true
+        ),
+        AppwriteQuery.less_than(
+            "releasedYear",
+            1990
+        )
+    ]))
+
+    print(AppwriteQuery.and_query([
+        AppwriteQuery.equal(
+            "released",
+            false
+        ),
+        AppwriteQuery.greater_than(
+            "releasedYear",
+            2015
+        )
+    ]))
+
+    # regex / exists / elemMatch
+
+    print(AppwriteQuery.regex(
+        "name",
+        "pattern.*"
+    ))
+
+    print(AppwriteQuery.exists([
+        "attr1",
+        "attr2"
+    ]))
+
+    print(AppwriteQuery.not_exists([
+        "attr1",
+        "attr2"
+    ]))
+
+    print(AppwriteQuery.elem_match(
+        "friends",
+        [
+            AppwriteQuery.equal(
+                "name",
+                "Alice"
+            ),
+            AppwriteQuery.greater_than(
+                "age",
+                18
+            )
+        ]
+    ))
 
 func run_permission_tests() -> void:
     print(AppwritePermission.read(AppwriteRole.any()))

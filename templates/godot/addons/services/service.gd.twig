@@ -1,5 +1,5 @@
 {% set prefix = spec.title | caseUcfirst %}
-extends "../service.gd"
+extends "../utils/service.gd"
 ## {{ service.description | default("Service class.") | replace({"\n": "\n## "}) }}
 
 {% for method in service.methods %}
@@ -93,7 +93,11 @@ func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.
     var model_script = null
     {%~ endif %}
 
+    {%~ if method.type == 'webAuth' %}
+    return await _call_web('{{ method.method }}', _path, _params)
+    {%~ else %}
     return await _call('{{ method.method }}', _path, _headers, _params, model_script)
+    {%~ endif %}
 
 {%~ endif %}
 {%~ endfor %}

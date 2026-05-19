@@ -18,7 +18,7 @@ var _global_headers = {
 {% endfor %}
 }
 
-const _cookie_store_class = preload("persistence/cookie_store.gd")
+const _cookie_store_class = preload("../persistence/cookie_store.gd")
 var _cookie_store = _cookie_store_class.new()
 
 func set_self_signed(status: bool = true) -> RefCounted:
@@ -28,7 +28,7 @@ func set_self_signed(status: bool = true) -> RefCounted:
 func set_endpoint(endpoint: String) -> Variant:
     if not _is_valid_endpoint(endpoint):
         push_error("Invalid endpoint URL: " + endpoint)
-        return {{prefix}}Exception.new("Invalid endpoint URL: " + endpoint) 
+        return {{prefix}}Exception.new("Invalid endpoint URL: " + endpoint, 0, "invalid_endpoint", "Invalid endpoint URL: " + endpoint) 
 
     _endpoint = endpoint.trim_suffix("/")
     return self
@@ -51,9 +51,22 @@ func set_{{header.key | caseSnake}}(value: String) -> RefCounted:
     return self
 
 {% endfor %}
+func call_web_api(method: String, path: String = "", params: Dictionary = {}) -> Dictionary:
+    if not _ensure_configured():
+        return {"statuscode": 400, "body": "missing/wrong configuration. please check logs for more info"}
+    var oauth_client = load("res://addons/{{ spec.title | caseSnake }}/utils/oauth2.gd").new()
+    
+    Engine.get_main_loop().root.add_child.call_deferred(oauth_client)
+    await oauth_client.tree_entered
+
+    var uri := _endpoint.trim_suffix("/")
+    var request_path := path + (("?" + _query_string_from_dict(params)) if not params.is_empty() else "")
+    var res = await oauth_client.authenticate(uri+request_path)
+    return res 
+
 func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
     if not _ensure_configured():
-        return {"statusCode": 400, "body": "Missing/wrong configuration. Please check logs for more info"}
+        return {"statuscode": 400, "body": "missing/wrong configuration. please check logs for more info"}
     var http := HTTPRequest.new()
     
     var tls_options := TLSOptions.client_unsafe() if _self_signed else TLSOptions.client()
@@ -62,7 +75,7 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
     Engine.get_main_loop().root.add_child.call_deferred(http)
     await http.tree_entered
 
-    # Merge headers
+    # merge headers
     var combined_headers := _global_headers.duplicate()
     for key in headers:
         combined_headers[key.to_lower()] = headers[key]
