@@ -23,7 +23,13 @@ func authenticate(auth_url:String) -> Dictionary:
 	_waiting = true
 	set_process(true)
 
-	OS.shell_open(auth_url)
+	# Open the authentication URL in the system browser
+	if OS.has_feature('JavaScript'):
+		JavaScript.eval("""
+			window.open('%s', '_blank').focus();
+		""".replace("%s", auth_url))
+	else:
+		OS.shell_open(auth_url)
 
 	var res = await oauth_result
 	return res

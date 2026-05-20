@@ -9,7 +9,7 @@ signal on_progress(progress: float, total_size: int, uploaded_size: int)
 const _{{ service.name | caseUpper }} = preload("services/{{ service.name | caseSnake }}.gd")
 {% endfor %}
 
-var _client := preload("client.gd").new()
+var _client := preload("utils/client.gd").new()
 {% for service in spec.services %}
 var {{ service.name | caseCamel }} : _{{ service.name | caseUpper }} = _{{ service.name | caseUpper }}.new(_client) ## {{ service.description | default("No description is provided") }}
 {% endfor %}
@@ -49,21 +49,27 @@ func _ready() -> void:
 {% if header.description %}
 ## {{header.description}}
 {% endif %}
-func set_{{header.key | caseSnake}}(value: String) -> void:
+func set_{{header.key | caseSnake}}(value: String) -> {{ prefix }}:
     _client.set_{{header.key | caseSnake}}(value)
+    return self
 
 {% endfor %}
 ## Set self signed status
-func set_self_signed(status: bool = true) -> void:
+func set_self_signed(status: bool = true) -> {{ prefix }}:
     _client.set_self_signed(status)
+    return self
 
 ## Set the endpoint
-func set_endpoint(endpoint: String) -> void:
-    _client.set_endpoint(endpoint)
+func set_endpoint(endpoint: String) -> Variant:
+    var res = _client.set_endpoint(endpoint)
+    if res is {{ prefix }}Exception:
+        return res
+    return self
 
 ## Add a header
-func add_header(key: String, value: String) -> void:
+func add_header(key: String, value: String) -> {{ prefix }}:
     _client.add_header(key, value)    
+    return self
 
 ## Get all headers
 func get_headers() -> Dictionary:
@@ -81,6 +87,6 @@ func _apply_env(key: String, value: String) -> void:
 {% endfor %}
 
 ## Ping {{prefix}} Server for testing connection
-func ping() -> String:
+func ping() -> Variant:
     var response = await _client.call_api('GET', '/ping')
-    return str(response.get('body'))
+    return response.get('body', {})

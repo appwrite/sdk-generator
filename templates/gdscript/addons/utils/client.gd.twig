@@ -23,8 +23,17 @@ func set_self_signed(status: bool = true) -> RefCounted:
     return self
 
 func set_endpoint(endpoint: String) -> RefCounted:
-    _endpoint = endpoint
+    if not _is_valid_endpoint(endpoint):
+        push_error("Invalid endpoint URL: " + endpoint)
+        return {{prefix}}Exception.new("Invalid endpoint URL: " + endpoint, 0, "invalid_endpoint", "Invalid endpoint URL: " + endpoint) 
+
+    _endpoint = endpoint.trim_suffix("/")
     return self
+
+func _is_valid_endpoint(url: String) -> bool:
+    var regex := RegEx.new()
+    regex.compile("^https?://.+")
+    return regex.search(url) != null
 
 func add_header(key: String, value: String) -> RefCounted:
     _global_headers[key.to_lower()] = value
@@ -37,8 +46,93 @@ func get_headers() -> Dictionary:
 func set_{{header.key | caseSnake}}(value: String) -> RefCounted:
     _global_headers['{{header.name|lower}}'] = value
     return self
-
 {% endfor %}
+
+func redirect(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Variant:
+    if not _ensure_configured():
+        return {{prefix}}Exception.new("Missing/wrong configuration. Please check logs for more info", 400, "config_error", "")
+    var http := HTTPRequest.new()
+    http.max_redirects = 0
+    
+    var tls_options := TLSOptions.client_unsafe() if _self_signed else TLSOptions.client()
+    http.set_tls_options(tls_options)
+    
+    Engine.get_main_loop().root.add_child.call_deferred(http)
+    await http.tree_entered
+
+    # Merge headers
+    var combined_headers := _global_headers.duplicate()
+    for key in headers:
+        combined_headers[key.to_lower()] = headers[key]
+
+    # Choose HTTP method constant
+    var http_method: int
+    match method.to_upper():
+        "POST":   http_method = HTTPClient.METHOD_POST
+        "PUT":    http_method = HTTPClient.METHOD_PUT
+        "PATCH":  http_method = HTTPClient.METHOD_PATCH
+        "DELETE": http_method = HTTPClient.METHOD_DELETE
+        _:        http_method = HTTPClient.METHOD_GET
+
+    var uri := _endpoint.trim_suffix("/")
+    var request_path := path
+    var body := PackedByteArray()
+    
+    if http_method == HTTPClient.METHOD_GET:
+        if not params.is_empty():
+            request_path += "?" + _query_string_from_dict(params)
+    else:
+        var has_files := false
+        var large_file_key := ""
+        for key in params:
+            if params[key] is {{prefix}}InputFile:
+                has_files = true
+                if params[key].get_size() > _chunk_size:
+                    large_file_key = key
+                break
+        
+        if large_file_key != "" and not headers.has("content-range"):
+            return await _call_chunked(method, path, headers, params, large_file_key)
+
+        if has_files:
+            var boundary := "Boundary-%x" % Time.get_ticks_msec()
+            combined_headers["content-type"] = "multipart/form-data; boundary=" + boundary
+            body = _build_multipart(params, boundary)
+        else:
+            var body_str := JSON.stringify(_serialize(params))
+            body = body_str.to_utf8_buffer()
+            combined_headers["content-type"] = "application/json"
+        
+        combined_headers["content-length"] = str(body.size())
+
+    # Build header array
+    var header_list := PackedStringArray()
+    for key in combined_headers:
+        if combined_headers[key] != "":
+            header_list.append(key + ": " + str(combined_headers[key]))
+
+    var err = http.request_raw(uri + request_path, header_list, http_method, body)
+    if err != OK:
+        http.queue_free()
+        return {{prefix}}Exception.new("Request failed: " + error_string(err), 0, "network_error", "")
+
+    var response = await http.request_completed
+    http.queue_free()
+    
+    var request_result: int = response[0]
+    var response_code: int = response[1]
+    
+    if response_code == 301 or response_code == 302:
+        for header in response[2]:
+            if header.to_lower().begins_with("location:"):
+                return header.substr(9).strip_edges()
+
+    if request_result != HTTPRequest.RESULT_SUCCESS:
+        return {{prefix}}Exception.new("HTTP Request Error: " + str(request_result), 0, "network_error", "")
+
+    var response_text := (response[3] as PackedByteArray).get_string_from_utf8()
+    return {{prefix}}Exception.new("Invalid redirect", response_code, "redirect_error", response_text)
+
 func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
     if not _ensure_configured():
         return {"statusCode": 400, "body": "Missing/wrong configuration. Please check logs for more info"}
@@ -68,10 +162,9 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
     var request_path := path
     var body := PackedByteArray()
     
-    if http_method in [HTTPClient.METHOD_GET, HTTPClient.METHOD_DELETE]:
+    if http_method == HTTPClient.METHOD_GET:
         if not params.is_empty():
-            var query_http := HTTPClient.new()
-            request_path += "?" + query_http.query_string_from_dict(params)
+            request_path += "?" + _query_string_from_dict(params)
     else:
         var has_files := false
         var large_file_key := ""
@@ -90,7 +183,7 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
             combined_headers["content-type"] = "multipart/form-data; boundary=" + boundary
             body = _build_multipart(params, boundary)
         else:
-            var body_str := JSON.stringify(params)
+            var body_str := JSON.stringify(_serialize(params))
             body = body_str.to_utf8_buffer()
             combined_headers["content-type"] = "application/json"
         
@@ -197,3 +290,45 @@ func _call_chunked(method: String, path: String, headers: Dictionary, params: Di
         start = end
         on_progress.emit((float(start) / size) * 100.0, size, start)
     return response
+
+func _query_string_from_dict(p_dict: Dictionary) -> String:
+    var query := ""
+    for key in p_dict.keys():
+        var value = p_dict[key]
+        var base_key := str(key)
+        match typeof(value):
+            TYPE_ARRAY:
+                # Always use 'key[]' syntax for arrays, even with a single element
+                var encoded_key := (base_key + "[]").uri_encode()
+                for element in value:
+                    query += "&" + encoded_key + "=" + str(element).uri_encode()
+            TYPE_NIL:
+                query += "&" + base_key.uri_encode()
+            _:
+                query += "&" + base_key.uri_encode() + "=" + str(value).uri_encode()
+    if query.length() > 0:
+        query = query.substr(1)
+    return query
+
+func _serialize(value):
+    match typeof(value):
+        TYPE_ARRAY:
+            var arr := []
+            for item in value:
+                arr.append(_serialize(item))
+            return arr
+
+        TYPE_DICTIONARY:
+            var dict := {}
+            for key in value:
+                dict[key] = _serialize(value[key])
+            return dict
+
+        TYPE_OBJECT:
+            if value != null and value.has_method("to_dict"):
+                return _serialize(value.to_dict())
+
+            return value
+
+        _:
+            return value

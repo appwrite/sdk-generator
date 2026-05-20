@@ -14,9 +14,9 @@ class Godot4Test extends Base
 
     protected array $build = [
         'cp tests/languages/godot/test.gd tests/sdks/godot/tests/test.gd',
+        'cp -r tests/resources/ tests/sdks/godot/tests/',
         'docker run --rm \
         -v $(pwd)/tests/sdks/godot:/app \
-        -v $(pwd)/tests/resources:/app/tests/resources:ro \
         -w /app \
         barichello/godot-ci:4.6 \
         godot --headless --import --quit'
@@ -25,7 +25,6 @@ class Godot4Test extends Base
     protected string $command =
         'docker run --network="mockapi" --rm \
         -v $(pwd)/tests/sdks/godot:/app \
-        -v $(pwd)/tests/resources:/app/tests/resources:ro \
         -w /app \
         barichello/godot-ci:4.6 \
         godot --headless --script tests/test.gd';

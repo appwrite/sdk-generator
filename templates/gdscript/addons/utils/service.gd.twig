@@ -8,7 +8,10 @@ var client: RefCounted
 func _init(p_client: RefCounted) -> void:
     client = p_client
 
-func _call(method: String, path: String, headers: Dictionary, params: Dictionary, model_script: Variant = null) -> Variant:
+func _call_web(method: String, path: String, params: Dictionary = {}) -> Variant:
+    return await client.redirect(method, path, {}, params)
+
+func _call(method: String, path: String, headers: Dictionary = {}, params: Dictionary = {}, model_script: Variant = null) -> Variant:
     var result = await client.call_api(method, path, headers, params)
     
     if result.statusCode == 0:
