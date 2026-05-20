@@ -12,7 +12,6 @@ config_version=5
 
 config/name="{{spec.title | caseUcfirst}} test"
 run/main_scene="res://Menu.tscn"
-config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
@@ -22,10 +21,6 @@ config/icon="res://icon.svg"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/{{spec.title | caseSnake }}/plugin.cfg")
-
-[physics]
-
-3d/physics_engine="Jolt Physics"
 
 [rendering]
 
