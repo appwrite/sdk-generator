@@ -389,6 +389,15 @@ App::post('/v1/mock/tests/general/upload')
                     'chunksTotal' => (int) ceil($size / ($end + 1 - $start)),
                     'chunksUploaded' => ceil($start / $chunkSize) + 1
                 ]);
+            } else {
+                $chunksTotal = (int) ceil($size / $chunkSize);
+
+                $response->json([
+                    '$id' => ID::custom('newfileid'),
+                    'chunksTotal' => $chunksTotal,
+                    'chunksUploaded' => $chunksTotal,
+                    'result' => 'POST:/v1/mock/tests/general/upload:passed',
+                ]);
             }
         } else {
             $file['tmp_name'] = (\is_array($file['tmp_name'])) ? $file['tmp_name'][0] : $file['tmp_name'];

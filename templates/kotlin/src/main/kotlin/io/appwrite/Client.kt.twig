@@ -8,6 +8,9 @@ import {{ sdk.namespace | caseDot }}.models.UploadProgress
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.*
 import okhttp3.Headers.Companion.toHeaders
@@ -24,6 +27,8 @@ import java.io.IOException
 import java.lang.IllegalArgumentException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocketFactory
@@ -39,6 +44,8 @@ class Client @JvmOverloads constructor(
 
     companion object {
         const val CHUNK_SIZE = 5*1024*1024; // 5MB
+
+        const val MAX_CONCURRENT_UPLOADS = 8
 
         @JvmStatic
         @JvmOverloads
@@ -531,12 +538,10 @@ class Client @JvmOverloads constructor(
         idParamName: String? = null,
         onProgress: ((UploadProgress) -> Unit)? = null,
     ): T {
-        var file: RandomAccessFile? = null
         val input = params[paramName] as InputFile
         val size: Long = when(input.sourceType) {
             "path", "file" -> {
-                file = RandomAccessFile(input.path, "r")
-                file.length()
+                File(input.path).length()
             }
             "bytes" -> {
                 (input.data as ByteArray).size.toLong()
@@ -565,9 +570,9 @@ class Client @JvmOverloads constructor(
             )
         }
 
-        val buffer = ByteArray(CHUNK_SIZE)
         var offset = 0L
         var result: Map<*, *>? = null
+        var uploadId: String? = null
 
         if (idParamName?.isNotEmpty() == true) {
             // Make a request to check if a file already exists
@@ -580,57 +585,126 @@ class Client @JvmOverloads constructor(
             )
             val chunksUploaded = current["chunksUploaded"] as Long
             offset = chunksUploaded * CHUNK_SIZE
+            uploadId = params[idParamName]?.toString()
+            result = current
         }
 
-        while (offset < size) {
-            when(input.sourceType) {
+        fun readChunk(start: Long, end: Long): ByteArray {
+            val length = (end - start).toInt()
+            return when(input.sourceType) {
                 "file", "path" -> {
-                    file!!.seek(offset)
-                    file!!.read(buffer)
+                    RandomAccessFile(input.path, "r").use { chunkFile ->
+                        val chunk = ByteArray(length)
+                        chunkFile.seek(start)
+                        chunkFile.readFully(chunk)
+                        chunk
+                    }
                 }
                 "bytes" -> {
-                    val end = if (offset + CHUNK_SIZE < size) {
-                        offset + CHUNK_SIZE - 1
-                    } else {
-                        size - 1
-                    }
-                    (input.data as ByteArray).copyInto(
-                        buffer,
-                        startIndex = offset.toInt(),
-                        endIndex = end.toInt()
-                    )
+                    (input.data as ByteArray).copyOfRange(start.toInt(), end.toInt())
                 }
                 else -> throw UnsupportedOperationException()
             }
+        }
 
-            params[paramName] = MultipartBody.Part.createFormData(
+        val totalChunks = (size + CHUNK_SIZE - 1) / CHUNK_SIZE
+
+        fun isUploadComplete(chunkResult: Map<*, *>): Boolean {
+            val chunksUploaded = chunkResult["chunksUploaded"]?.toString()?.toLongOrNull() ?: return false
+            val chunksTotal = chunkResult["chunksTotal"]?.toString()?.toLongOrNull() ?: totalChunks
+            return chunksUploaded >= chunksTotal
+        }
+
+        suspend fun uploadChunk(index: Int, start: Long, end: Long, includeUploadId: Boolean): Map<*, *> {
+            val chunkParams = params.toMutableMap()
+            val chunkHeaders = headers.toMutableMap()
+
+            if (includeUploadId && uploadId != null) {
+                chunkHeaders["x-{{ spec.title | caseLower }}-id"] = uploadId!!
+            }
+
+            chunkHeaders["Content-Range"] = "bytes $start-${end - 1}/$size"
+            chunkParams[paramName] = MultipartBody.Part.createFormData(
                 paramName,
                 input.filename,
-                buffer.toRequestBody()
+                readChunk(start, end).toRequestBody()
             )
 
-            headers["Content-Range"] =
-                "bytes $offset-${((offset + CHUNK_SIZE) - 1).coerceAtMost(size - 1)}/$size"
-
-            result = call(
+            val chunkResult = call(
                 method = "POST",
                 path,
-                headers,
-                params,
+                chunkHeaders,
+                chunkParams,
                 responseType = Map::class.java
             )
 
-            offset += CHUNK_SIZE
-            headers["x-{{ spec.title | caseLower }}-id"] = result!!["\$id"].toString()
+            if (index == 0 || uploadId == null) {
+                uploadId = chunkResult["\$id"].toString()
+            }
+
+            return chunkResult
+        }
+
+        if (offset == 0L) {
+            val firstChunkEnd = CHUNK_SIZE.toLong().coerceAtMost(size)
+            result = uploadChunk(0, 0, firstChunkEnd, false)
+            offset = firstChunkEnd
             onProgress?.invoke(
                 UploadProgress(
-                    id = result!!["\$id"].toString(),
+                    id = uploadId ?: result!!["\$id"].toString(),
                     progress = offset.coerceAtMost(size).toDouble() / size * 100,
                     sizeUploaded = offset.coerceAtMost(size),
                     chunksTotal = result!!["chunksTotal"].toString().toInt(),
                     chunksUploaded = result!!["chunksUploaded"].toString().toInt(),
                 )
             )
+        }
+
+        val chunks = mutableListOf<Triple<Int, Long, Long>>()
+        var chunkOffset = offset
+        while (chunkOffset < size) {
+            val end = (chunkOffset + CHUNK_SIZE).coerceAtMost(size)
+            chunks.add(Triple((chunkOffset / CHUNK_SIZE).toInt(), chunkOffset, end))
+            chunkOffset = end
+        }
+
+        if (chunks.isNotEmpty()) {
+            val nextChunk = AtomicInteger(0)
+            val completedChunks = AtomicInteger((offset / CHUNK_SIZE).toInt())
+            val uploadedBytes = AtomicLong(offset.coerceAtMost(size))
+
+            coroutineScope {
+                List(MAX_CONCURRENT_UPLOADS.coerceAtMost(chunks.size)) {
+                    async {
+                        while (true) {
+                            val chunkIndex = nextChunk.getAndIncrement()
+                            if (chunkIndex >= chunks.size) {
+                                break
+                            }
+
+                            val (index, start, end) = chunks[chunkIndex]
+                            val chunkResult = uploadChunk(index, start, end, true)
+
+                            val chunksUploaded = completedChunks.incrementAndGet()
+                            val sizeUploaded = uploadedBytes.addAndGet(end - start)
+
+                            if (isUploadComplete(chunkResult)) {
+                                result = chunkResult
+                            }
+
+                            onProgress?.invoke(
+                                UploadProgress(
+                                    id = uploadId ?: chunkResult["\$id"].toString(),
+                                    progress = sizeUploaded.coerceAtMost(size).toDouble() / size * 100,
+                                    sizeUploaded = sizeUploaded.coerceAtMost(size),
+                                    chunksTotal = chunkResult["chunksTotal"].toString().toInt(),
+                                    chunksUploaded = chunksUploaded,
+                                )
+                            )
+                        }
+                    }
+                }.awaitAll()
+            }
         }
 
         return converter(result as Map<String, Any>)
