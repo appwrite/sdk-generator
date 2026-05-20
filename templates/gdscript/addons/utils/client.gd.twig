@@ -233,20 +233,18 @@ func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
             var c_type = value.content_type if value.content_type != "" else "application/octet-stream"
             body.append_array(("Content-Type: %s\r\n\r\n" % c_type).to_utf8_buffer())
             body.append_array(data)
+            body.append_array(("\r\n").to_utf8_buffer())
         elif value is Array:
-            for i in range(value.size()):
-                if i == 0:
-                    body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
-                else:
-                    body.append_array(("\r\n--" + boundary + "\r\n").to_utf8_buffer())
+            for item in value:
+                body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
                 body.append_array(("Content-Disposition: form-data; name=\"%s[]\"\r\n\r\n" % key).to_utf8_buffer())
-                body.append_array((str(value[i])).to_utf8_buffer())
+                body.append_array((str(item)).to_utf8_buffer())
+                body.append_array(("\r\n").to_utf8_buffer())
         else:
             body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
             body.append_array(("Content-Disposition: form-data; name=\"%s\"\r\n\r\n" % key).to_utf8_buffer())
             body.append_array((str(value)).to_utf8_buffer())
-            
-        body.append_array(("\r\n").to_utf8_buffer())
+            body.append_array(("\r\n").to_utf8_buffer())
     
     body.append_array(("--" + boundary + "--\r\n").to_utf8_buffer())
     return body

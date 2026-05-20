@@ -89,4 +89,27 @@ func _apply_env(key: String, value: String) -> void:
 ## Ping {{prefix}} Server for testing connection
 func ping() -> Variant:
     var response = await _client.call_api('GET', '/ping')
+    
+    if response.statusCode == 0:
+        var error_msg = response.get("error", "Unknown error")
+        push_error("{{prefix}} Network Error: %s" % error_msg)
+        return {{prefix}}Exception.new(error_msg, 0, "network_error", "")
+
+    if response.statusCode >= 400:
+        var message = ""
+        var code = response.statusCode
+        var type = ""
+        var response_str = ""
+        if response.get("body") is Dictionary:
+            message = response.body.get("message", "")
+            code = response.body.get("code", response.statusCode)
+            type = response.body.get("type", "")
+            response_str = str(response.body)
+        else:
+            message = str(response.get("body", ""))
+            response_str = str(response.get("body", ""))
+        
+        push_error("{{prefix}} Error (%s): %s" % [type, message])
+        return {{prefix}}Exception.new(message, code, type, response_str)
+
     return response.get('body', {})

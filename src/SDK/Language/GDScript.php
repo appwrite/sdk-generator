@@ -413,10 +413,6 @@ class GDScript extends Language
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
-                case self::TYPE_OBJECT:
-                case self::TYPE_FILE:
-                    $output .= '{}';
-                    break;
                 default:
                     $output .= 'null';
                     break;
@@ -438,9 +434,6 @@ class GDScript extends Language
                 case self::TYPE_ARRAY:
                 case self::TYPE_OBJECT:
                     $output .= $default;
-                    break;
-                case self::TYPE_FILE:
-                    $output .= '{}';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
