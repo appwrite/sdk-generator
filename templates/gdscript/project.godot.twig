@@ -10,12 +10,12 @@ config_version=5
 
 [application]
 
-config/name="Appwrite test"
+config/name="{{spec.title | caseUcfirst}} test"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [autoload]
 
-Appwrite="*res://addons/{{spec.title | caseSnake }}/appwrite.gd"
+{{spec.title | caseUcfirst}}="*res://addons/{{spec.title | caseSnake }}/{{spec.title | caseSnake}}.gd"
 
 [editor_plugins]
 
