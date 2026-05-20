@@ -167,13 +167,17 @@ class {{ service.name | caseUcfirst }}Runtime {
             {%~ endfor %}
         }
 
-        {%~ if method.type == 'location' or method.type == 'webAuth' %}
+        {%~ if method.type == 'webAuth' %}
+        {%~ for node in method.auth %}
+        {%~ for key,header in node|keys %}
+        {%~ if header|caseLower in ['project', 'locale', 'mode', 'platform'] %}
+        payload['{{header|caseLower}}'] = (this.client.config as unknown as Record<string, string>)['{{header|caseLower}}'];
+        {%~ endif %}
+        {%~ endfor %}
+        {%~ endfor %}
         for (const [key, value] of Object.entries(Service.flatten(payload))) {
             uri.searchParams.append(key, value);
         }
-        
-        {%~ endif %}
-        {%~ if method.type == 'webAuth' %}
         if (typeof window !== 'undefined' && window?.location) {
             window.location.href = uri.toString();
             return;
@@ -190,6 +194,16 @@ class {{ service.name | caseUcfirst }}Runtime {
             'arrayBuffer'
         );
         {%~ else %}
+        {%~ for node in method.auth %}
+        {%~ for key,header in node|keys %}
+        {%~ if header|caseLower in ['project', 'locale', 'mode', 'platform'] %}
+        payload['{{header|caseLower}}'] = (this.client.config as unknown as Record<string, string>)['{{header|caseLower}}'];
+        {%~ endif %}
+        {%~ endfor %}
+        {%~ endfor %}
+        for (const [key, value] of Object.entries(Service.flatten(payload))) {
+            uri.searchParams.append(key, value);
+        }
         return uri.toString();
         {%~ endif %}
         {%~ elseif 'multipart/form-data' in method.consumes %}
