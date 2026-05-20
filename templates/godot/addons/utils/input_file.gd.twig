@@ -14,7 +14,7 @@ func _init(file_path: String = "", bytes_data: PackedByteArray = PackedByteArray
     if self.filename == "" and self.path != "":
         self.filename = self.path.get_file()
     
-    self.content_type = _guess_mime_type(self.path.get_file())
+    self.content_type = _guess_mime_type(self.filename)
 
 ## Creates a new {{prefix}}InputFile from a file path
 static func from_path(file_path: String, custom_filename: String = "") -> {{prefix}}InputFile:
