@@ -559,7 +559,7 @@ namespace {{ spec.title | caseUcfirst }}
 
                 var chunksTotal = result.TryGetValue("chunksTotal", out var chunksTotalValue) && chunksTotalValue != null
                     ? Convert.ToInt64(chunksTotalValue)
-                    : 0L;
+                    : (long)Math.Ceiling(size / (double)ChunkSize);
                 var chunksUploaded = result.TryGetValue("chunksUploaded", out var chunksUploadedValue) && chunksUploadedValue != null
                     ? Convert.ToInt64(chunksUploadedValue)
                     : 0L;
