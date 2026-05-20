@@ -405,6 +405,10 @@ class Web extends JS
         }
 
         if ($method['type'] === 'location') {
+            $platforms = $method['platforms'] ?? [];
+            if ((in_array('server', $platforms, true) || in_array('console', $platforms, true)) && !in_array('client', $platforms, true)) {
+                return 'Promise<ArrayBuffer>';
+            }
             return 'string';
         }
 

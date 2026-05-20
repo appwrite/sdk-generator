@@ -407,14 +407,14 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
         selfSigned: false,
     };
 
-    private sdkPlatform: SDKPlatform = '{{ sdk.platform == 'server' ? 'server' : 'client' }}';
+    private sdkPlatform: SDKPlatform = 'client';
 
     /**
      * Custom headers for API requests.
      */
     headers: Headers = {
         'x-sdk-name': '{{ sdk.name }}',
-        'x-sdk-platform': '{{ sdk.platform }}',
+        'x-sdk-platform': 'client',
         'x-sdk-language': '{{ language.name | caseLower }}',
         'x-sdk-version': '{{ sdk.version }}',
         {%~ for key,header in spec.global.defaultHeaders %}
