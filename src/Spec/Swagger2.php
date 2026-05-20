@@ -102,6 +102,60 @@ class Swagger2 extends Spec
     /**
      * @return array
      */
+    protected function supportsTargetPlatforms(array $method): bool
+    {
+        if (empty($this->targetPlatforms)) {
+            return true;
+        }
+
+        $platforms = $method['x-appwrite']['platforms'] ?? [];
+
+        if (empty($platforms)) {
+            return true;
+        }
+
+        return !empty(\array_intersect($this->targetPlatforms, $platforms));
+    }
+
+    protected function supportsAdditionalTargetPlatforms(array $additionalMethod): bool
+    {
+        if (empty($this->targetPlatforms)) {
+            return true;
+        }
+
+        $platforms = $additionalMethod['platforms'] ?? [];
+
+        if (empty($platforms)) {
+            return true;
+        }
+
+        return !empty(\array_intersect($this->targetPlatforms, $platforms));
+    }
+
+    protected function resolvePlatformSecurity(array $method): array
+    {
+        $platformSecurity = $method['x-appwrite']['platformSecurity'] ?? [];
+
+        if (empty($platformSecurity)) {
+            return $method['x-appwrite']['auth'] ?? [];
+        }
+
+        $platforms = $this->targetPlatforms ?: ($method['x-appwrite']['platforms'] ?? \array_keys($platformSecurity));
+        $auth = [];
+
+        foreach ($platforms as $platform) {
+            foreach ($platformSecurity[$platform] ?? [] as $security) {
+                foreach ($security as $key => $value) {
+                    $auth[$key] = $value;
+                }
+            }
+        }
+
+        return $auth;
+    }
+
+
+
     public function getServices(): array
     {
         $list = [];
@@ -111,6 +165,10 @@ class Swagger2 extends Spec
 
         foreach ($paths as $path) {
             foreach ($path as $method) {
+                if (!\is_array($method) || !$this->supportsTargetPlatforms($method)) {
+                    continue;
+                }
+
                 if (isset($method['tags'])) {
                     foreach ($method['tags'] as $tag) {
                         if (!array_key_exists($tag, $list)) {
@@ -139,7 +197,7 @@ class Swagger2 extends Spec
     protected function parseMethod(string $methodName, string $pathName, array $method): array
     {
         $security = $this->getAttribute('securityDefinitions', []);
-        $methodAuth = $method['x-appwrite']['auth'] ?? [];
+        $methodAuth = $this->resolvePlatformSecurity($method);
         $methodSecurity = $method['security'][0] ?? [];
 
         foreach ($methodAuth as $i => $node) {
@@ -420,11 +478,19 @@ class Swagger2 extends Spec
 
         foreach ($paths as $pathName => $path) {
             foreach ($path as $methodName => $method) {
+                if (!\is_array($method) || !$this->supportsTargetPlatforms($method)) {
+                    continue;
+                }
+
                 $isCurrentService = isset($method['tags']) && is_array($method['tags']) && in_array($service, $method['tags']);
 
                 if (!$isCurrentService) {
                     if (!empty($method['x-appwrite']['methods'] ?? [])) {
                         foreach ($method['x-appwrite']['methods'] as $additionalMethod) {
+                            if (!$this->supportsAdditionalTargetPlatforms($additionalMethod)) {
+                                continue;
+                            }
+
                             // has multiple namespaced methods!
                             $targetNamespace = $additionalMethod['namespace'] ?? null;
 
@@ -442,6 +508,10 @@ class Swagger2 extends Spec
                 }
 
                 foreach ($method['x-appwrite']['methods'] as $additionalMethod) {
+                    if (!$this->supportsAdditionalTargetPlatforms($additionalMethod)) {
+                        continue;
+                    }
+
                     $targetNamespace = $this->getTargetNamespace($additionalMethod, $service);
 
                     if ($targetNamespace === $service) {
@@ -466,6 +536,14 @@ class Swagger2 extends Spec
         $duplicatedMethod = $method;
         $duplicatedMethod['x-appwrite']['method'] = $additionalMethod['name'];
         $duplicatedMethod['x-appwrite']['auth'] = $additionalMethod['auth'] ?? [];
+
+        if (isset($additionalMethod['platforms'])) {
+            $duplicatedMethod['x-appwrite']['platforms'] = $additionalMethod['platforms'];
+        }
+
+        if (isset($additionalMethod['platformSecurity'])) {
+            $duplicatedMethod['x-appwrite']['platformSecurity'] = $additionalMethod['platformSecurity'];
+        }
 
         if (isset($additionalMethod['deprecated'])) {
             $duplicatedMethod['deprecated'] = $additionalMethod['deprecated'];

@@ -7,6 +7,10 @@ use ArrayObject;
 
 abstract class Spec extends ArrayObject
 {
+    /**
+     * @var array<string>
+     */
+    protected array $targetPlatforms = [];
     private const SET_TYPE_ASSIGN   = 'assign';
     private const SET_TYPE_PREPEND  = 'prepend';
     private const SET_TYPE_APPEND   = 'append';
@@ -16,8 +20,9 @@ abstract class Spec extends ArrayObject
      * @param string $input
      * @throws Exception
      */
-    public function __construct($input)
+    public function __construct($input, array $targetPlatforms = [])
     {
+        $this->targetPlatforms = $targetPlatforms;
         if (\filter_var($input, FILTER_VALIDATE_URL)) {
             $data = \file_get_contents($input, false, \stream_context_create([
                 'ssl' => [
@@ -100,6 +105,25 @@ abstract class Spec extends ArrayObject
     public function getServices(): array
     {
         return [];
+    }
+
+    /**
+     * @param array<string> $platforms
+     * @return $this
+     */
+    public function setTargetPlatforms(array $platforms): static
+    {
+        $this->targetPlatforms = \array_values(\array_unique($platforms));
+
+        return $this;
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getTargetPlatforms(): array
+    {
+        return $this->targetPlatforms;
     }
 
     public function getMethods($service): array

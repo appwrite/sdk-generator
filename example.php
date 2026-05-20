@@ -42,6 +42,10 @@ try {
         return $result;
     }
 
+    function isValidSpec($spec): bool {
+        return is_string($spec) && is_array(json_decode($spec, true));
+    }
+
     function configureSDK($sdk, $overrides = []) {
         $defaults = [
             'name' => 'NAME',
@@ -113,16 +117,32 @@ try {
         $platform = 'console';
         // $platform = 'client';
         // $platform = 'server';
+        // $platform = 'client-server';
     }
 
     $version = '1.9.x';
     $speclessSDKs = ['agent-skills', 'cursor-plugin', 'claude-plugin', 'codex-plugin'];
     $needsSpec = !$requestedSdk || !in_array($requestedSdk, $speclessSDKs);
 
-    if ($needsSpec) {
-        $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json");
+    $specTargetPlatforms = match ($platform) {
+        'client' => ['client'],
+        'server' => ['server'],
+        'client-server' => ['client', 'server'],
+        default => [],
+    };
 
-        if(empty($spec)) {
+    if ($needsSpec) {
+        $specFile = empty($specTargetPlatforms)
+            ? "swagger2-{$version}-{$platform}.json"
+            : "swagger2-{$version}.json";
+        $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/{$specFile}");
+
+        if (!isValidSpec($spec) && count($specTargetPlatforms) === 1) {
+            $fallbackSpecFile = "swagger2-{$version}-{$platform}.json";
+            $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/{$fallbackSpecFile}");
+        }
+
+        if(!isValidSpec($spec)) {
             throw new Exception('Failed to fetch spec from Appwrite server');
         }
     }
@@ -137,21 +157,21 @@ try {
         $php
             ->setComposerVendor('appwrite')
             ->setComposerPackage('appwrite');
-        $sdk  = new SDK($php, new Swagger2($spec));
+        $sdk  = new SDK($php, new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/php');
     }
 
     // Web
     if (!$requestedSdk || $requestedSdk === 'web') {
-        $sdk  = new SDK(new Web(), new Swagger2($spec));
+        $sdk  = new SDK(new Web(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk, ['platform' => $platform]);
         $sdk->generate(__DIR__ . '/examples/web');
     }
 
     // Node
     if (!$requestedSdk || $requestedSdk === 'node') {
-        $sdk  = new SDK(new Node(), new Swagger2($spec));
+        $sdk  = new SDK(new Node(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/node');
     }
@@ -178,7 +198,7 @@ try {
   \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
         |_|   |_|                                                ");
 
-        $sdk  = new SDK($language, new Swagger2($spec));
+        $sdk  = new SDK($language, new Swagger2($spec, $specTargetPlatforms));
         $sdk->setTest(false);
         configureSDK($sdk, [
             'exclude' => [
@@ -194,14 +214,14 @@ try {
 
     // Ruby
     if (!$requestedSdk || $requestedSdk === 'ruby') {
-        $sdk  = new SDK(new Ruby(), new Swagger2($spec));
+        $sdk  = new SDK(new Ruby(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/ruby');
     }
 
     // Python
     if (!$requestedSdk || $requestedSdk === 'python') {
-        $sdk  = new SDK(new Python(), new Swagger2($spec));
+        $sdk  = new SDK(new Python(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/python');
     }
@@ -210,7 +230,7 @@ try {
     if (!$requestedSdk || $requestedSdk === 'dart') {
         $dart = new Dart();
         $dart->setPackageName('dart_appwrite');
-        $sdk  = new SDK($dart, new Swagger2($spec));
+        $sdk  = new SDK($dart, new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/dart');
     }
@@ -219,7 +239,7 @@ try {
     if (!$requestedSdk || $requestedSdk === 'flutter') {
         $flutter = new Flutter();
         $flutter->setPackageName('appwrite');
-        $sdk  = new SDK($flutter, new Swagger2($spec));
+        $sdk  = new SDK($flutter, new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/flutter');
     }
@@ -228,49 +248,49 @@ try {
     if (!$requestedSdk || $requestedSdk === 'react-native') {
         $reactNative = new ReactNative();
         $reactNative->setNPMPackage('react-native-appwrite');
-        $sdk  = new SDK($reactNative, new Swagger2($spec));
+        $sdk  = new SDK($reactNative, new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/react-native');
     }
 
     // GO
     if (!$requestedSdk || $requestedSdk === 'go') {
-        $sdk  = new SDK(new Go(), new Swagger2($spec));
+        $sdk  = new SDK(new Go(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/go');
     }
 
     // Swift
     if (!$requestedSdk || $requestedSdk === 'swift') {
-        $sdk  = new SDK(new Swift(), new Swagger2($spec));
+        $sdk  = new SDK(new Swift(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/swift');
     }
 
     // Apple
     if (!$requestedSdk || $requestedSdk === 'apple') {
-        $sdk  = new SDK(new Apple(), new Swagger2($spec));
+        $sdk  = new SDK(new Apple(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/apple');
     }
 
     // DotNet
     if (!$requestedSdk || $requestedSdk === 'dotnet') {
-        $sdk  = new SDK(new DotNet(), new Swagger2($spec));
+        $sdk  = new SDK(new DotNet(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/dotnet');
     }
 
     // REST
     if (!$requestedSdk || $requestedSdk === 'rest') {
-        $sdk  = new SDK(new REST(), new Swagger2($spec));
+        $sdk  = new SDK(new REST(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/REST');
     }
 
     // Android
     if (!$requestedSdk || $requestedSdk === 'android') {
-        $sdk = new SDK(new Android(), new Swagger2($spec));
+        $sdk = new SDK(new Android(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk, [
             'namespace' => 'io.appwrite',
         ]);
@@ -279,7 +299,7 @@ try {
 
     // Kotlin
     if (!$requestedSdk || $requestedSdk === 'kotlin') {
-        $sdk = new SDK(new Kotlin(), new Swagger2($spec));
+        $sdk = new SDK(new Kotlin(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk, [
             'namespace' => 'io.appwrite',
         ]);
@@ -288,7 +308,7 @@ try {
 
     // GraphQL
     if (!$requestedSdk || $requestedSdk === 'graphql') {
-        $sdk = new SDK(new GraphQL(), new Swagger2($spec));
+        $sdk = new SDK(new GraphQL(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/graphql');
     }
@@ -297,7 +317,7 @@ try {
     if (!$requestedSdk || $requestedSdk === 'markdown') {
         $markdown = new Markdown();
         $markdown->setNPMPackage('@appwrite.io/docs');
-        $sdk = new SDK($markdown, new Swagger2($spec));
+        $sdk = new SDK($markdown, new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/markdown');
     }
@@ -355,7 +375,7 @@ try {
 
     // Rust
     if (!$requestedSdk || $requestedSdk === 'rust') {
-        $sdk = new SDK(new Rust(), new Swagger2($spec));
+        $sdk = new SDK(new Rust(), new Swagger2($spec, $specTargetPlatforms));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/rust');
     }
