@@ -62,6 +62,10 @@ func call_web_api(method: String, path: String = "", params: Dictionary = {}) ->
     var uri := _endpoint.trim_suffix("/")
     var request_path := path + (("?" + _query_string_from_dict(params)) if not params.is_empty() else "")
     var res = await oauth_client.authenticate(uri+request_path)
+    
+    if is_instance_valid(oauth_client):
+        oauth_client.queue_free()
+    
     return res 
 
 func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
