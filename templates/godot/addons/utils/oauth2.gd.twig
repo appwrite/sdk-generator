@@ -14,10 +14,10 @@ func _ready():
 func authenticate(auth_url:String) -> Dictionary:
 	await ready
 	if _waiting:
-		return {"statuscode": 0, "error": "Already waiting for authentication"}
+		return {"statusCode": 0, "error": "Already waiting for authentication"}
 	var err := server.listen(PORT)
 	if err != OK:
-		return {"statuscode": 0, "error": "Failed starting callback server: %s" % error_string(err)}
+		return {"statusCode": 0, "error": "Failed starting callback server: %s" % error_string(err)}
 
 	_request_buffer = ""
 	_waiting = true
@@ -258,10 +258,10 @@ func cleanup():
 func extract_callback_url(request:String) -> Dictionary:
 	var lines := request.split("\r\n")
 	if lines.is_empty():
-		return {"statuscode": 0, "error": "Invalid request"}
+		return {"statusCode": 0, "error": "Invalid request"}
 	var first_line := lines[0]
 	var pieces := first_line.split(" ")
 	if pieces.size() < 2:
-		return {"statuscode": 0, "error": "Invalid request"}
+		return {"statusCode": 0, "error": "Invalid request"}
 	var path := pieces[1]
-	return {"statuscode": 200, "body": "http://localhost:%d%s" % [PORT, path]}
+	return {"statusCode": 200, "body": "http://localhost:%d%s" % [PORT, path]}

@@ -53,7 +53,7 @@ func set_{{header.key | caseSnake}}(value: String) -> RefCounted:
 {% endfor %}
 func call_web_api(method: String, path: String = "", params: Dictionary = {}) -> Dictionary:
     if not _ensure_configured():
-        return {"statuscode": 400, "body": "missing/wrong configuration. please check logs for more info"}
+        return {"statusCode": 400, "body": "missing/wrong configuration. please check logs for more info"}
     var oauth_client = load("res://addons/{{ spec.title | caseSnake }}/utils/oauth2.gd").new()
     
     Engine.get_main_loop().root.add_child.call_deferred(oauth_client)
@@ -66,7 +66,7 @@ func call_web_api(method: String, path: String = "", params: Dictionary = {}) ->
 
 func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
     if not _ensure_configured():
-        return {"statuscode": 400, "body": "missing/wrong configuration. please check logs for more info"}
+        return {"statusCode": 400, "body": "missing/wrong configuration. please check logs for more info"}
     var http := HTTPRequest.new()
     
     var tls_options := TLSOptions.client_unsafe() if _self_signed else TLSOptions.client()
