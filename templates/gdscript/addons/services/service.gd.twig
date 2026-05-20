@@ -44,7 +44,7 @@ func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.
     {%~ set type = parameter | typeName(spec) %}
     {%~ if type != 'Variant' %}
     {%~ if type starts with 'Array' %}{% set check_type = 'Array' %}{% else %}{% set check_type = type %}{% endif %}
-    if {{ parameter.name | caseSnake | escapeKeyword }} != null and not {{ parameter.name | caseSnake | escapeKeyword }} is {{ check_type }}:
+    if {{ parameter.name | caseSnake | escapeKeyword }} != null and not {{ parameter.name | caseSnake | escapeKeyword }} is {{ check_type }}{% if check_type == 'float' %} and not typeof({{ parameter.name | caseSnake | escapeKeyword }}) == TYPE_INT{% endif %}:
         return {{prefix}}Exception.new("Invalid type for parameter '{{ parameter.name | caseSnake | escapeKeyword }}'. Expected {{ type }}.", 0, "argument_error", "")
     {%~ endif %}
     {%~ endif %}

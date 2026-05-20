@@ -31,6 +31,13 @@ func authenticate(auth_url:String) -> Dictionary:
 	else:
 		OS.shell_open(auth_url)
 
+	var timer := get_tree().create_timer(120.0)
+	timer.timeout.connect(func():
+		if _waiting:
+			cleanup()
+			oauth_result.emit({"statusCode": 0, "error": "Authentication timed out"})
+	)
+
 	var res = await oauth_result
 	return res
 
