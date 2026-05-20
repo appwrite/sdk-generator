@@ -14,6 +14,7 @@ public interface _Func
 public interface _Execution
 public interface _Team
 public interface _Membership
+public interface _Presence
 public interface _Resolved
 
 // Union type for actionable channels
@@ -81,6 +82,9 @@ class Channel<out T> private constructor(
         fun membership(id: String): Channel<_Membership> =
             Channel(listOf("memberships", normalize(id)))
 
+        fun presence(id: String): Channel<_Presence> =
+            Channel(listOf("presences", normalize(id)))
+
         fun account(): String = "account"
 
         // Global events
@@ -90,6 +94,7 @@ class Channel<out T> private constructor(
         fun executions(): String = "executions"
         fun teams(): String = "teams"
         fun memberships(): String = "memberships"
+        fun presences(): String = "presences"
     }
 }
 
@@ -250,4 +255,32 @@ fun Channel<_Membership>.update(): Channel<_Resolved> =
  */
 @JvmName("deleteMembership")
 fun Channel<_Membership>.delete(): Channel<_Resolved> =
+    this.resolve("delete")
+
+/**
+ * Only available on Channel<_Presence>
+ */
+@JvmName("createPresence")
+fun Channel<_Presence>.create(): Channel<_Resolved> =
+    this.resolve("create")
+
+/**
+ * Only available on Channel<_Presence>
+ */
+@JvmName("upsertPresence")
+fun Channel<_Presence>.upsert(): Channel<_Resolved> =
+    this.resolve("upsert")
+
+/**
+ * Only available on Channel<_Presence>
+ */
+@JvmName("updatePresence")
+fun Channel<_Presence>.update(): Channel<_Resolved> =
+    this.resolve("update")
+
+/**
+ * Only available on Channel<_Presence>
+ */
+@JvmName("deletePresence")
+fun Channel<_Presence>.delete(): Channel<_Resolved> =
     this.resolve("delete")

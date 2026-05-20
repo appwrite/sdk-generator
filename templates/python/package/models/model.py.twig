@@ -67,10 +67,19 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
     def with_data(cls, data: Dict[str, Any], model_type: Type[T] = dict) -> '{{ definition.name | caseUcfirst }}[T]':
         """Create {{ definition.name | caseUcfirst }} instance with typed data."""
 {% if definition.additionalProperties %}
-        internal_fields = {k: v for k, v in data.items() if k.startswith('$')}
-        user_data = {k: v for k, v in data.items() if not k.startswith('$')}
+{% if definition.properties | length > 0 %}
+        internal_aliases = {{ '{' }}{% for property in definition.properties %}'{{ property.name }}'{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}
+        internal_fields = {k: v for k, v in data.items() if k in internal_aliases}
+        user_data = {k: v for k, v in data.items() if k not in internal_aliases and k != '{{ definition.additionalPropertiesKey | default('data') }}'}
+        nested = data.get('{{ definition.additionalPropertiesKey | default('data') }}')
+        if isinstance(nested, dict):
+            user_data = {**nested, **user_data}
         instance = cls.model_validate(internal_fields)
-        instance._data = model_type(**user_data) if model_type is not dict else user_data
+{% else %}
+        user_data = dict(data)
+        instance = cls.model_validate({})
+{% endif %}
+        instance._{{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }} = model_type(**user_data) if model_type is not dict else user_data
         return instance
 {% else %}
         instance = cls.model_validate(data)
@@ -94,24 +103,24 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
 {% endif %}
 {% if definition.additionalProperties %}
 
-    _data: Any = PrivateAttr(default_factory=dict)
+    _{{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }}: Any = PrivateAttr(default_factory=dict)
 
     @property
-    def data(self) -> T:
-        return cast(T, self._data)
+    def {{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }}(self) -> T:
+        return cast(T, self._{{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }})
 
-    @data.setter
-    def data(self, value: T) -> None:
-        object.__setattr__(self, '_data', value)
+    @{{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }}.setter
+    def {{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }}(self, value: T) -> None:
+        object.__setattr__(self, '_{{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }}', value)
 
     def to_dict(self) -> Dict[str, Any]:
         result = super().to_dict()
-        if hasattr(self, '_data'):
-            if isinstance(self._data, dict):
-                result['data'] = self._data
-            elif hasattr(self._data, 'model_dump'):
-                result['data'] = self._data.model_dump(mode='json')
+        if hasattr(self, '_{{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }}'):
+            if isinstance(self._{{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }}, dict):
+                result['{{ definition.additionalPropertiesKey | default('data') }}'] = self._{{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }}
+            elif hasattr(self._{{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }}, 'model_dump'):
+                result['{{ definition.additionalPropertiesKey | default('data') }}'] = self._{{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }}.model_dump(mode='json')
             else:
-                result['data'] = self._data
+                result['{{ definition.additionalPropertiesKey | default('data') }}'] = self._{{ definition.additionalPropertiesKey | default('data') | caseSnake | removeDollarSign }}
         return result
 {% endif %}

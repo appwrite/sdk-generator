@@ -1,14 +1,22 @@
 ```bash
 {% set requiredParams = [] %}
+{% set query = method | cliQueryConfig %}
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
 {% set requiredParams = requiredParams|merge([parameter]) %}
 {% endif %}
 {% endfor %}
-{{ language.params.executableName }} {{ service.name | caseKebab }} {{ method.name | caseKebab }}{% if requiredParams | length > 0 %} \{% endif %}
-
+{% set exampleLines = [] %}
 {% for parameter in requiredParams %}
-    --{{ parameter.name | caseKebab }} {{ parameter | paramExample }}{% if not loop.last %} \{% endif %}
+{% set exampleLines = exampleLines|merge(['--' ~ (parameter.name | caseKebab) ~ ' ' ~ (parameter | paramExample)]) %}
+{% endfor %}
+{% if query.hasPagination %}
+{% set exampleLines = exampleLines|merge(['--limit 25']) %}
+{% endif %}
+{{ language.params.executableName }} {{ service.name | caseKebab }} {{ method.name | caseKebab }}{% if exampleLines | length > 0 %} \{% endif %}
+
+{% for line in exampleLines %}
+    {{ line | raw }}{% if not loop.last %} \{% endif %}
 
 {% endfor %}
 ```

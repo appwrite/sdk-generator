@@ -34,8 +34,8 @@ class Tests: XCTestCase {
 
         // reset configs
         client.setProject("console")
-        client.setEndpointRealtime("wss://cloud.appwrite.io/v1")
-        client.setSelfSigned(false)
+        client.setEndpointRealtime("ws://mockapi/v1")
+        // Keep selfSigned=true so WebSocketClient skips TLS for the ws:// mock endpoint.
 
         let foo = Foo(client)
         let bar = Bar(client)
@@ -82,6 +82,12 @@ class Tests: XCTestCase {
             if rtsubFailureUnsubscribed { rtsubFailureFiredAfterUnsubscribe = true }
             realtimeResponseWithQueriesFailure = message.payload?["response"] as! String
             expectationWithQueriesFailure.fulfill()
+        }
+
+        let rtPresenceSub = try await realtime.subscribe(channels: ["presences"]) { message in
+            guard let payload = message.payload,
+                  payload["$id"] as? String == "p-test" else { return }
+            print("Realtime presence:passed")
         }
 
         var mock: Mock
@@ -196,13 +202,13 @@ class Tests: XCTestCase {
 
         print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
 
-        wait(for: [expectation], timeout: 20.0)
+        await fulfillment(of: [expectation], timeout: 20.0)
         print(realtimeResponse)
 
-        wait(for: [expectationWithQueries], timeout: 20.0)
+        await fulfillment(of: [expectationWithQueries], timeout: 20.0)
         print(realtimeResponseWithQueries)
-        
-        wait(for: [expectationWithQueriesFailure], timeout: 20.0)
+
+        await fulfillment(of: [expectationWithQueriesFailure], timeout: 20.0)
         if expectationWithQueriesFailure.isInverted {
             print(realtimeResponseWithQueriesFailure)
         } else {
@@ -235,6 +241,19 @@ class Tests: XCTestCase {
         } catch {
             print("Realtime update:failed")
         }
+
+        // Fires the upsert. The "Realtime presence:passed" line is
+        // printed by rtPresenceSub's callback when the fan-out event for
+        // this presence document arrives — verifying the full round-trip
+        // rather than just "no exception thrown".
+        try realtime.upsertPresence(
+            status: "online",
+            presenceId: "p-test",
+            metadata: ["page": "/home"]
+        )
+        // Give the server time to fan out and the cb to fire before we
+        // tear the socket down with disconnect() below.
+        try await Task.sleep(nanoseconds: 1_000_000_000)
 
         do {
             try await realtime.disconnect()
@@ -377,6 +396,12 @@ class Tests: XCTestCase {
         print(try Channel.membership("membership2").toString())
         print(try Channel.membership("membership1").toString())
         print(try Channel.membership("membership1").update().toString())
+        print(Channel.presences())
+        print(try Channel.presence("presence2").toString())
+        print(try Channel.presence("presence1").toString())
+        print(try Channel.presence("presence1").upsert().toString())
+        print(try Channel.presence("presence1").update().toString())
+        print(try Channel.presence("presence1").delete().toString())
 
         // Operator helper tests
         print(Operator.increment(1))

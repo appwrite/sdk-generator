@@ -15,7 +15,7 @@ jobs:
         php-version: ['8.3']
         sdk: [
           Android5Java17,
-          Android14Java17,
+          Android16Java17,
           CLIBun10,
           CLIBun11,
           CLIBun13,
@@ -28,8 +28,6 @@ jobs:
           FlutterBeta,
           Go112,
           Go118,
-          KotlinJava8,
-          KotlinJava11,
           KotlinJava17,
           Node16,
           Node18,
@@ -45,8 +43,8 @@ jobs:
           Ruby30,
           Ruby31,
           Rust183,
-          AppleSwift56,
-          Swift56,
+          AppleSwift60,
+          Swift60,
           WebChromium,
           WebNode,
           ReactNative
@@ -54,15 +52,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
 
       - name: Docker Setup Buildx
-        uses: docker/setup-buildx-action@v3.0.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
       - name: Setup PHP with PECL extension
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # 2.37.0
         with:
           php-version: ${{ matrix.php-version }}
           extensions: curl
@@ -92,10 +90,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup PHP with PECL extension
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # 2.37.0
         with:
           php-version: '8.3'
           extensions: curl
@@ -111,7 +109,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Make script executable
         run: chmod +x ./.github/scripts/max-line-length.sh
