@@ -12,7 +12,7 @@ from ..input_file import InputFile
 {% endif %}
 {% if parameter.enumValues is not empty%}
 {% if parameter.enumName not in added %}
-from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName | caseUcfirst }};
+from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName | caseUcfirst }}
 {% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
@@ -20,9 +20,9 @@ from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName |
 {% if modelName %}
 {% if modelName not in added %}
 {% if (modelName | caseUcfirst) == (service.name | caseUcfirst) %}
-from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }} as {{ modelName | caseUcfirst }}Model;
+from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }} as {{ modelName | caseUcfirst }}Model
 {% else %}
-from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }};
+from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }}
 {% endif %}
 {% set added = added|merge([modelName]) %}
 {% endif %}
@@ -31,9 +31,9 @@ from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }};
 {% if method.responseModel and method.responseModel != 'any' %}
 {% if method.responseModel not in added %}
 {% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}
-from ..models.{{ method.responseModel | caseSnake }} import {{ method.responseModel | caseUcfirst }} as {{ method.responseModel | caseUcfirst }}Model;
+from ..models.{{ method.responseModel | caseSnake }} import {{ method.responseModel | caseUcfirst }} as {{ method.responseModel | caseUcfirst }}Model
 {% else %}
-from ..models.{{ method.responseModel | caseSnake }} import {{ method.responseModel | caseUcfirst }};
+from ..models.{{ method.responseModel | caseSnake }} import {{ method.responseModel | caseUcfirst }}
 {% endif %}
 {% set added = added|merge([method.responseModel]) %}
 {% endif %}
@@ -42,9 +42,9 @@ from ..models.{{ method.responseModel | caseSnake }} import {{ method.responseMo
 {% for responseModel in method.responseModels %}
 {% if responseModel and responseModel != 'any' and responseModel not in added %}
 {% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}
-from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }} as {{ responseModel | caseUcfirst }}Model;
+from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }} as {{ responseModel | caseUcfirst }}Model
 {% else %}
-from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }};
+from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }}
 {% endif %}
 {% set added = added|merge([responseModel]) %}
 {% endif %}

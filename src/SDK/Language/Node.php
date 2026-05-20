@@ -304,6 +304,11 @@ class Node extends Web
                 'template'      => 'node/.gitignore',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => '.npmrc',
+                'template'      => 'node/.npmrc',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'package-lock.json',
                 'template'      => 'node/package-lock.json.twig',

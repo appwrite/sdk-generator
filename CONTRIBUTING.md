@@ -59,6 +59,7 @@ Each file scope determines what template parameters will be available.
 * Service scope - Generate x templates where x is the number of API services, adds service-specific params to the template such as service name and methods.
 * Method scope - Generate x*y templates where x is the number of API services and y is the number of methods, adds service and method-specific params to the template, such as service name, method name, and method params. Used to generate MD files with examples for documenting each method.
 * Copy scope - Static files such as images that will be copied directly and not processed by twig.
+* Download scope - Static remote files where `template` is a URL that will be downloaded directly to `destination`.
 
 **getTypeName**
 This method receives the API param type and should return the equivalent param in the implemented language.
@@ -104,7 +105,7 @@ sdk-generator/blob/master/example.php:
     // NewLang
     $sdk  = new SDK(new NewLang(), new Swagger2($spec));
     $sdk
-        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setCoverImage('https://github.com/appwrite/appwrite/raw/main/public/images/github.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
     ;

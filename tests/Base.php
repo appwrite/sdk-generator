@@ -115,6 +115,7 @@ abstract class Base extends TestCase
         'Realtime failed!',
         'Realtime unsubscribe:passed',
         'Realtime update:passed',
+        'Realtime presence:passed',
         'Realtime disconnect:passed',
     ];
 
@@ -217,10 +218,14 @@ abstract class Base extends TestCase
         'x-sdk-name: cli; x-sdk-platform: server; x-sdk-language: cli; x-sdk-version: 0.0.1',
     ];
 
+    protected const CLI_FUNCTION_RESPONSES = [
+        'POST:/v1/functions/{functionId}/executions:passed',
+    ];
+
     protected const CLI_COMPLETION_RESPONSES = [
         'compdef _appwrite appwrite',
         'complete -F _appwrite_completion appwrite',
-        'complete -c \'appwrite\' -f -n \'__appwrite_using_command\' -a \'bar client completion foo general\'',
+        'complete -c \'appwrite\' -f -n \'__appwrite_using_command\' -a \'bar client completion foo functions general\'',
         '\'foo:get\') context=\'foo get\' ;;',
     ];
 
@@ -242,6 +247,7 @@ abstract class Base extends TestCase
         '"{\"method\":\"orderDesc\",\"attribute\":\"rawName\"}",' .
         '"{\"method\":\"equal\",\"attribute\":\"published\",\"values\":[true]}",' .
         '"{\"method\":\"greaterThanEqual\",\"attribute\":\"score\",\"values\":[10]}",' .
+        '"{\"method\":\"equal\",\"attribute\":\"legacy\",\"values\":[true]}",' .
         '"{\"method\":\"equal\",\"attribute\":\"status\",\"values\":[\"draft\",\"published\"]}",' .
         '"{\"method\":\"orderAsc\",\"attribute\":\"title\"}",' .
         '"{\"method\":\"orderDesc\",\"attribute\":\"$createdAt\"}",' .
@@ -282,6 +288,12 @@ abstract class Base extends TestCase
         'memberships.membership2',
         'memberships.membership1',
         'memberships.membership1.update',
+        'presences',
+        'presences.presence2',
+        'presences.presence1',
+        'presences.presence1.upsert',
+        'presences.presence1.update',
+        'presences.presence1.delete',
     ];
 
     protected const OPERATOR_HELPER_RESPONSES = [
@@ -364,7 +376,7 @@ abstract class Base extends TestCase
             ->setPlatform($this->sdkPlatform)
             ->setDescription('Repo description goes here')
             ->setShortDescription('Repo short description goes here')
-            ->setLogo('https://appwrite.io/v1/images/console.png')
+            ->setCoverImage('https://github.com/appwrite/appwrite/raw/main/public/images/github.png')
             ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
             ->setExamples('**EXAMPLES** <HTML>')
             ->setGitUserName('repoowner')

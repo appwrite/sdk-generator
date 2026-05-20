@@ -796,7 +796,7 @@ class Rust extends Language
                 $value = $this->getIdentifierOverrides()[$value];
             }
 
-            return ($param["required"] ?? false) ? $value : "Some({$value})";
+            return (($param["required"] ?? false) && !($param["nullable"] ?? false)) ? $value : "Some({$value})";
         }
 
         if (!empty($param["enumValues"]) || !empty($param["enumName"])) {
@@ -805,7 +805,7 @@ class Rust extends Language
             $value = $this->getParamExample($param);
         }
 
-        return ($param["required"] ?? false) ? $value : "Some({$value})";
+        return (($param["required"] ?? false) && !($param["nullable"] ?? false)) ? $value : "Some({$value})";
     }
 
     /**

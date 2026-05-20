@@ -54,9 +54,7 @@ class Swagger2 extends Spec
      */
     public function getEndpointDocs(): string
     {
-        return $this->getAttribute('schemes.0', 'https') .
-        '://' . $this->getAttribute('x-host-docs', 'example.com') .
-        $this->getAttribute('basePath', '');
+        return $this->getAttribute('x-appwrite.endpointDocs', '');
     }
 
     /**
@@ -598,7 +596,8 @@ class Swagger2 extends Spec
                 'properties' => $schema['properties'] ?? [],
                 'description' => $schema['description'] ?? '',
                 'required' => $schema['required'] ?? [],
-                'additionalProperties' => $schema['additionalProperties'] ?? []
+                'additionalProperties' => $schema['additionalProperties'] ?? [],
+                'additionalPropertiesKey' => $schema['x-additional-properties-key'] ?? 'data',
             ];
             if (isset($model['properties'])) {
                 foreach ($model['properties'] as $name => $def) {
@@ -660,7 +659,8 @@ class Swagger2 extends Spec
                 'properties' => $schema['properties'] ?? [],
                 'description' => $schema['description'] ?? '',
                 'required' => $schema['required'] ?? [],
-                'additionalProperties' => $schema['additionalProperties'] ?? []
+                'additionalProperties' => $schema['additionalProperties'] ?? [],
+                'additionalPropertiesKey' => $schema['x-additional-properties-key'] ?? 'data',
             ];
             if (isset($model['properties'])) {
                 foreach ($model['properties'] as $name => $def) {

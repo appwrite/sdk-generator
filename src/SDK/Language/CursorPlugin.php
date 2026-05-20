@@ -37,12 +37,12 @@ class CursorPlugin extends AgentSkills
         $files[] = [
             'scope' => 'default',
             'destination' => 'commands/deploy-site.md',
-            'template' => 'plugin/commands/deploy-site.md.twig',
+            'template'    => 'plugin/commands/deploy-site.md.twig',
         ];
         $files[] = [
             'scope' => 'default',
             'destination' => 'commands/deploy-function.md',
-            'template' => 'plugin/commands/deploy-function.md.twig',
+            'template'    => 'plugin/commands/deploy-function.md.twig',
         ];
 
         // MCP server definitions
@@ -66,7 +66,7 @@ class CursorPlugin extends AgentSkills
         $files[] = [
             'scope' => 'default',
             'destination' => 'LICENSE',
-            'template' => 'plugin/LICENSE.twig',
+            'template'    => 'plugin/LICENSE.twig',
         ];
 
         return $files;

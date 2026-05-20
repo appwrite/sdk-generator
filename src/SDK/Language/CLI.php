@@ -246,7 +246,7 @@ class CLI extends Node
             $builderParams[] = 'queries';
 
             if ($hasFilteringQueries) {
-                array_push($builderParams, 'where', 'sortAsc', 'sortDesc', 'cursorAfter', 'cursorBefore');
+                array_push($builderParams, 'filter', 'where', 'sortAsc', 'sortDesc', 'cursorAfter', 'cursorBefore');
             }
 
             if ($hasPaginationQueries) {
@@ -263,9 +263,9 @@ class CLI extends Node
         } elseif ($hasSelectionOnlyQueries) {
             $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for selecting returned attributes prefer --select. When mixed, raw --queries are sent before generated flag queries.';
         } elseif ($hasSelectQueries) {
-            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common filtering, sorting, pagination, and selection prefer --where, --sort-asc, --sort-desc, --limit, --offset, and --select. When mixed, raw --queries are sent before generated flag queries.';
+            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common filtering, sorting, pagination, and selection prefer --filter, --sort-asc, --sort-desc, --limit, --offset, and --select. When mixed, raw --queries are sent before generated flag queries.';
         } else {
-            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common filtering, sorting, and pagination prefer --where, --sort-asc, --sort-desc, --limit, and --offset. When mixed, raw --queries are sent before generated flag queries.';
+            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common filtering, sorting, and pagination prefer --filter, --sort-asc, --sort-desc, --limit, and --offset. When mixed, raw --queries are sent before generated flag queries.';
         }
 
         return [
@@ -296,6 +296,11 @@ class CLI extends Node
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'cli/CHANGELOG.md.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.npmrc',
+                'template'      => 'cli/.npmrc',
             ],
             [
                 'scope'         => 'copy',
@@ -913,7 +918,7 @@ class CLI extends Node
                 $type = $parameter['type'] ?? 'string';
 
                 if ($type === 'object') {
-                    return "JSON.parse({$varName})";
+                    return "parseJsonObject({$varName}, \"--{$optionName}\")";
                 } elseif ($type === 'file') {
                     return "{$varName} !== undefined ? await resolveFileParam({$varName}) : undefined";
                 } else {

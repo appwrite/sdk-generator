@@ -136,9 +136,7 @@ const printInitProjectNextSteps = (steps: InitProjectNextStep[]): void => {
 
   for (const step of steps) {
     const spacing = " ".repeat(longestCommand - step.command.length + 4);
-    console.log(
-      `    ${chalk.cyan(step.command)}${spacing}${step.description}`,
-    );
+    console.log(`    ${chalk.cyan(step.command)}${spacing}${step.description}`);
   }
 };
 
@@ -278,6 +276,13 @@ const initProject = async ({
   projectId,
   projectName,
 }: InitProjectOptions = {}): Promise<void> => {
+  try {
+    localConfig.useCwdConfig();
+  } catch (e) {
+    error(e instanceof Error ? e.message : String(e));
+    process.exit(1);
+  }
+
   try {
     if (globalConfig.getEndpoint() === "" || globalConfig.getCookie() === "") {
       throw new Error(
@@ -618,7 +623,11 @@ const initSkill = async (): Promise<void> => {
 };
 
 const initFunction = async (): Promise<void> => {
-  process.chdir(localConfig.configDirectoryPath);
+  const configDirectory = localConfig.getResourceDirname("functions");
+  if (!fs.existsSync(configDirectory)) {
+    fs.mkdirSync(configDirectory, { recursive: true });
+  }
+  process.chdir(configDirectory);
 
   // TODO: Add CI/CD support (ID, name, runtime)
   const answers = await inquirer.prompt(questionsCreateFunction);
@@ -788,7 +797,11 @@ const initFunction = async (): Promise<void> => {
 };
 
 const initSite = async (): Promise<void> => {
-  process.chdir(localConfig.configDirectoryPath);
+  const configDirectory = localConfig.getResourceDirname("sites");
+  if (!fs.existsSync(configDirectory)) {
+    fs.mkdirSync(configDirectory, { recursive: true });
+  }
+  process.chdir(configDirectory);
 
   const answers = await inquirer.prompt(questionsCreateSite);
   const siteId = answers.id === "unique()" ? ID.unique() : answers.id;

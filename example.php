@@ -25,6 +25,7 @@ use Appwrite\SDK\Language\ReactNative;
 use Appwrite\SDK\Language\Markdown;
 use Appwrite\SDK\Language\AgentSkills;
 use Appwrite\SDK\Language\ClaudePlugin;
+use Appwrite\SDK\Language\CodexPlugin;
 use Appwrite\SDK\Language\CursorPlugin;
 use Appwrite\SDK\Language\Rust;
 use Appwrite\SDK\Language\GDScript;
@@ -52,7 +53,7 @@ try {
             'description' => 'Repo description goes here',
             'shortDescription' => 'Repo short description goes here',
             'url' => 'https://example.com',
-            'logo' => 'https://appwrite.io/images/logos/logo.svg',
+            'coverImage' => 'https://github.com/appwrite/appwrite/raw/main/public/images/github.png',
             'licenseContent' => 'test test test',
             'warning' => '**WORK IN PROGRESS - NOT READY FOR USAGE**',
             'changelog' => '**CHANGELOG**',
@@ -84,7 +85,7 @@ try {
             ->setDescription($config['description'])
             ->setShortDescription($config['shortDescription'])
             ->setURL($config['url'])
-            ->setLogo($config['logo'])
+            ->setCoverImage($config['coverImage'])
             ->setLicenseContent($config['licenseContent'])
             ->setWarning($config['warning'])
             ->setChangelog($config['changelog'])
@@ -119,7 +120,7 @@ try {
     }
 
     $version = '1.9.x';
-    $speclessSDKs = ['agent-skills', 'cursor-plugin', 'claude-plugin'];
+    $speclessSDKs = ['agent-skills', 'cursor-plugin', 'claude-plugin', 'codex-plugin'];
     $needsSpec = !$requestedSdk || !in_array($requestedSdk, $speclessSDKs);
 
     if ($needsSpec) {
@@ -341,6 +342,19 @@ try {
         ));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/claude-plugin');
+    }
+
+    // Codex Plugin
+    if (!$requestedSdk || $requestedSdk === 'codex-plugin') {
+        $sdk = new SDK(new CodexPlugin(), new StaticSpec(
+            title: 'Appwrite',
+            description: 'Appwrite backend as a service',
+            version: $version,
+            licenseName: 'BSD-3-Clause',
+            licenseURL: 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
+        ));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/codex-plugin');
     }
 
     // Rust

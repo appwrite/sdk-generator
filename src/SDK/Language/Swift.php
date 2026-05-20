@@ -559,6 +559,9 @@ class Swift extends Language
             new TwigFilter('isAnyCodableArray', function (array $property, array $spec) {
                 return $this->isAnyCodableArray($property, $spec);
             }),
+            new TwigFilter('isAnyCodableObject', function (array $property, array $spec) {
+                return $this->isAnyCodableObject($property, $spec);
+            }),
             new TwigFilter('hasGenericType', function (string $model, array $spec) {
                 return $this->hasGenericType($model, $spec);
             }),
@@ -695,6 +698,11 @@ class Swift extends Language
     protected function isAnyCodableArray(array $property, array $spec): bool
     {
         return $property['type'] === 'array' && $this->getPropertyType($property, $spec, 'T') === '[AnyCodable]';
+    }
+
+    protected function isAnyCodableObject(array $property, array $spec): bool
+    {
+        return $property['type'] === 'object' && $this->getPropertyType($property, $spec, 'T') === '[String: AnyCodable]';
     }
 
     protected function hasGenericType(?string $model, array $spec): string

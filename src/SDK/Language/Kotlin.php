@@ -516,28 +516,13 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'scripts/configure.gradle',
-                'template'      => '/kotlin/scripts/configure.gradle',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'scripts/publish.gradle',
-                'template'      => '/kotlin/scripts/publish.gradle',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'scripts/setup.gradle',
-                'template'      => '/kotlin/scripts/setup.gradle',
-            ],
-            [
-                'scope'         => 'copy',
                 'destination'   => '.gitignore',
                 'template'      => '/kotlin/.gitignore',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'build.gradle',
-                'template'      => '/kotlin/build.gradle.twig',
+                'destination'   => 'build.gradle.kts',
+                'template'      => '/kotlin/build.gradle.kts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -571,8 +556,8 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'settings.gradle',
-                'template'      => '/kotlin/settings.gradle.twig',
+                'destination'   => 'settings.gradle.kts',
+                'template'      => '/kotlin/settings.gradle.kts.twig',
             ],
             [
                 'scope'         => 'default',

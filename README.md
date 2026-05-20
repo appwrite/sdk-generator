@@ -60,7 +60,7 @@ $lang // Set language or platform specific options
 $sdk  = new SDK($lang, $spec);
 
 $sdk
-    ->setLogo('https://appwrite.io/v1/images/console.png')
+    ->setCoverImage('https://github.com/appwrite/appwrite/raw/main/public/images/github.png')
     ->setLicenseContent('License content here.')
     ->setVersion('v1.1.0')
 ;

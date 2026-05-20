@@ -153,9 +153,7 @@ function getDeploymentProgressSignature(
   const status =
     typeof deployment["status"] === "string" ? deployment["status"] : "";
   const buildLogs =
-    typeof deployment["buildLogs"] === "string"
-      ? deployment["buildLogs"]
-      : "";
+    typeof deployment["buildLogs"] === "string" ? deployment["buildLogs"] : "";
   const updatedAt =
     typeof deployment["$updatedAt"] === "string"
       ? deployment["$updatedAt"]
@@ -173,9 +171,7 @@ function getDeploymentProgressSignature(
   });
 }
 
-function createDeploymentTimeoutTracker(
-  deployment: Record<string, unknown>,
-): {
+function createDeploymentTimeoutTracker(deployment: Record<string, unknown>): {
   touch: (deployment: Record<string, unknown>) => void;
   hasTimedOut: () => boolean;
 } {
@@ -1050,19 +1046,70 @@ export class Push {
         await projectService.updateSessionAlertPolicy({
           enabled: settings.auth.security.sessionAlerts,
         });
-        await projectsService.updateMockNumbers({
-          projectId,
-          numbers: settings.auth.security.mockNumbers,
-        });
+        if (settings.auth.security.mockNumbers !== undefined) {
+          const remoteMockNumbers: Array<{ number: string; otp: string }> = [];
+          const limit = 100;
+          let offset = 0;
+          let total = 0;
+
+          do {
+            const response = await projectService.listMockPhones({
+              queries: [Query.limit(limit), Query.offset(offset)],
+            });
+
+            remoteMockNumbers.push(...response.mockNumbers);
+            total = response.total;
+            offset += response.mockNumbers.length;
+
+            if (response.mockNumbers.length === 0) {
+              break;
+            }
+          } while (offset < total);
+
+          const desiredMockNumbersByPhone = new Map(
+            settings.auth.security.mockNumbers.map((mockNumber) => [
+              mockNumber.phone,
+              mockNumber.otp,
+            ]),
+          );
+
+          for (const remoteMockNumber of remoteMockNumbers) {
+            const desiredOtp = desiredMockNumbersByPhone.get(
+              remoteMockNumber.number,
+            );
+
+            if (desiredOtp === undefined) {
+              await projectService.deleteMockPhone({
+                number: remoteMockNumber.number,
+              });
+              continue;
+            }
+
+            if (remoteMockNumber.otp !== desiredOtp) {
+              await projectService.updateMockPhone({
+                number: remoteMockNumber.number,
+                otp: desiredOtp,
+              });
+            }
+
+            desiredMockNumbersByPhone.delete(remoteMockNumber.number);
+          }
+
+          for (const [phone, otp] of desiredMockNumbersByPhone) {
+            await projectService.createMockPhone({
+              number: phone,
+              otp,
+            });
+          }
+        }
       }
 
       if (settings.auth.methods) {
         this.log("Applying auth methods statuses ...");
         for (const [method, status] of Object.entries(settings.auth.methods)) {
-          await projectsService.updateAuthStatus({
-            projectId,
-            method: method as AuthMethod,
-            status: status,
+          await projectService.updateAuthMethod({
+            methodId: method as AuthMethod,
+            enabled: status,
           });
         }
       }
@@ -1505,6 +1552,7 @@ export class Push {
                 );
                 await functionsServiceCreate.createVariable({
                   functionId: func["$id"],
+                  variableId: ID.unique(),
                   key: variable.key,
                   value: variable.value,
                   secret: false,
@@ -2013,6 +2061,7 @@ export class Push {
                 );
                 await sitesServiceCreate.createVariable({
                   siteId: site["$id"],
+                  variableId: ID.unique(),
                   key: variable.key,
                   value: variable.value,
                   secret: false,
@@ -2781,6 +2830,18 @@ async function createPushInstance(
   return new Push(projectClient, consoleClient, silent);
 }
 
+function withResolvedResourcePaths<T extends { path?: string }>(
+  resource: "functions" | "sites",
+  resources: T[],
+): T[] {
+  return resources.map((item) => ({
+    ...item,
+    path: item.path
+      ? localConfig.resolveResourcePath(resource, item.path)
+      : item.path,
+  }));
+}
+
 const pushResources = async ({
   skipDeprecated = false,
   functionOptions,
@@ -2835,8 +2896,8 @@ const pushResources = async ({
       projectId: project.projectId ?? "",
       projectName: project.projectName,
       settings: project.projectSettings,
-      functions,
-      sites,
+      functions: withResolvedResourcePaths("functions", functions),
+      sites: withResolvedResourcePaths("sites", sites),
       collections: localConfig.getCollections(),
       databases: localConfig.getDatabases(),
       tables: localConfig.getTables(),
@@ -3054,13 +3115,16 @@ const pushSite = async ({
 
   const pushStartTime = Date.now();
   const pushInstance = await createPushInstance();
-  const result = await pushInstance.pushSites(sites, {
-    async: asyncDeploy,
-    code: shouldPushCode,
-    activate: shouldActivate ?? true,
-    withVariables,
-    logs,
-  });
+  const result = await pushInstance.pushSites(
+    withResolvedResourcePaths("sites", sites),
+    {
+      async: asyncDeploy,
+      code: shouldPushCode,
+      activate: shouldActivate ?? true,
+      withVariables,
+      logs,
+    },
+  );
 
   const {
     successfullyPushed,
@@ -3212,13 +3276,16 @@ const pushFunction = async ({
 
   const pushStartTime = Date.now();
   const pushInstance = await createPushInstance();
-  const result = await pushInstance.pushFunctions(functions, {
-    async: asyncDeploy,
-    code: shouldPushCode,
-    activate: shouldActivate ?? true,
-    withVariables,
-    logs,
-  });
+  const result = await pushInstance.pushFunctions(
+    withResolvedResourcePaths("functions", functions),
+    {
+      async: asyncDeploy,
+      code: shouldPushCode,
+      activate: shouldActivate ?? true,
+      withVariables,
+      logs,
+    },
+  );
 
   const {
     successfullyPushed,

@@ -10,6 +10,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::task::JoinSet;
 use url::Url;
 
 /// Default request timeout in seconds
@@ -735,6 +736,7 @@ impl Client {
         let total_chunks = file_size.div_ceil(chunk_size as u64);
         let mut current_upload_id = options.upload_id;
         let mut start_chunk = 0u64;
+        let mut last_response = None;
         if let Some(ref id) = current_upload_id {
             if let Ok(response) = self.call::<Value>(
                 Method::GET,
@@ -745,102 +747,221 @@ impl Client {
                 if let Some(chunks_uploaded) = response.get("chunksUploaded").and_then(|v| v.as_u64()) {
                     start_chunk = chunks_uploaded;
                 }
+                last_response = Some(response.clone());
             }
         }
 
-        let mut reader = input_file.chunked_reader().await?;
+        let mut next_chunk = start_chunk;
+        let mut uploaded_chunks = start_chunk;
+        let mut uploaded_bytes = (start_chunk * chunk_size as u64).min(file_size);
 
-        if start_chunk > 0 {
-            let resume_offset = start_chunk * chunk_size as u64;
-            reader.seek(resume_offset).await?;
-        }
-
-        let mut last_response = None;
-
-        for chunk_index in start_chunk..total_chunks {
-            let chunk_data = match reader.read_next(chunk_size).await? {
-                Some(data) => data,
-                None => break,
+        let is_upload_complete = |response: &Value| -> bool {
+            let Some(chunks_uploaded) = response.get("chunksUploaded").and_then(|v| v.as_u64()) else {
+                return false;
             };
-            let actual_chunk_size = chunk_data.len();
-            let start = reader.position() - actual_chunk_size as u64;
+            let chunks_total = response
+                .get("chunksTotal")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(total_chunks);
 
-            if actual_chunk_size == 0 {
-                break;
+            chunks_uploaded >= chunks_total
+        };
+
+        if next_chunk == 0 {
+            let result = self.upload_file_chunk(
+                path,
+                headers.clone(),
+                params.clone(),
+                param_name,
+                input_file,
+                current_upload_id.clone(),
+                0,
+                file_size,
+                chunk_size,
+            ).await?;
+
+            if let Some(id) = result.get("$id").and_then(|v| v.as_str()) {
+                current_upload_id = Some(id.to_string());
             }
 
-            let state = self.state.load_full();
-            let mut form = multipart::Form::new();
-            let mut file_part = multipart::Part::stream_with_length(chunk_data, actual_chunk_size as u64)
-                .file_name(input_file.filename().to_string());
-
-            if let Some(mime_type) = input_file.mime_type() {
-                file_part = file_part.mime_str(mime_type)
-                    .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Invalid MIME type: {}", e), None, String::new()))?;
-            }
-
-            form = form.part(param_name.to_string(), file_part);
-
-            let mut params_to_flatten = HashMap::new();
-            for (key, value) in &params {
-                if key != param_name {
-                    params_to_flatten.insert(key.clone(), value.clone());
-                }
-            }
-
-            for (key, value_str) in Self::flatten_multipart_params(&params_to_flatten, "") {
-                form = form.text(key, value_str);
-            }
-
-            let url = format!("{}{}", state.config.endpoint, path);
-            let mut request_builder = state.http.post(url).headers(state.config.headers.clone());
-
-            if let Some(ref custom_headers) = headers {
-                for (key, value) in custom_headers {
-                    // Skip content-type for multipart - reqwest sets it automatically with boundary
-                    if key.to_lowercase() != "content-type" {
-                        request_builder = request_builder.header(key, value);
-                    }
-                }
-            }
-
-            if let Some(ref id) = current_upload_id {
-                request_builder = request_builder.header("x-appwrite-id", id);
-            }
-
-            let chunk_end = start + actual_chunk_size as u64 - 1;
-            let content_range = format!("bytes {}-{}/{}", start, chunk_end, file_size);
-            request_builder = request_builder.header("content-range", content_range);
-
-            let response = request_builder
-                .multipart(form)
-                .send()
-                .await
-                ?;
-
-            let result: Value = self.handle_response(response).await?;
-
-            if current_upload_id.is_none() {
-                if let Some(id) = result.get("$id").and_then(|v| v.as_str()) {
-                    current_upload_id = Some(id.to_string());
-                }
-            }
-
-            last_response = Some(result);
+            uploaded_chunks = 1;
+            uploaded_bytes = (chunk_size as u64).min(file_size);
+            last_response = Some(result.clone());
 
             if let Some(ref callback) = options.on_progress {
                 callback(UploadProgress {
-                    bytes_uploaded: start + actual_chunk_size as u64,
+                    bytes_uploaded: uploaded_bytes,
                     total_bytes: file_size,
-                    chunks_uploaded: chunk_index + 1,
+                    chunks_uploaded: uploaded_chunks,
                     total_chunks,
                 });
+            }
+
+            next_chunk = 1;
+        }
+
+        let max_concurrency = 8usize;
+        let mut tasks = JoinSet::new();
+
+        while tasks.len() < max_concurrency && next_chunk < total_chunks {
+            let client = self.clone();
+            let path = path.to_string();
+            let headers = headers.clone();
+            let params = params.clone();
+            let param_name = param_name.to_string();
+            let input_file = input_file.clone();
+            let upload_id = current_upload_id.clone();
+            let chunk_index = next_chunk;
+
+            tasks.spawn(async move {
+                let result = client.upload_file_chunk(
+                    &path,
+                    headers,
+                    params,
+                    &param_name,
+                    &input_file,
+                    upload_id,
+                    chunk_index,
+                    file_size,
+                    chunk_size,
+                ).await?;
+
+                Ok::<_, {{ spec.title | caseUcfirst }}Error>((chunk_index, result))
+            });
+            next_chunk += 1;
+        }
+
+        while let Some(joined) = tasks.join_next().await {
+            let (chunk_index, result) = joined
+                .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Chunk upload task failed: {}", e), None, String::new()))??;
+
+            if is_upload_complete(&result) {
+                last_response = Some(result.clone());
+            }
+
+            uploaded_chunks += 1;
+            let chunk_start = chunk_index * chunk_size as u64;
+            let chunk_end = (chunk_start + chunk_size as u64).min(file_size);
+            uploaded_bytes += chunk_end - chunk_start;
+
+            if let Some(ref callback) = options.on_progress {
+                callback(UploadProgress {
+                    bytes_uploaded: uploaded_bytes.min(file_size),
+                    total_bytes: file_size,
+                    chunks_uploaded: uploaded_chunks,
+                    total_chunks,
+                });
+            }
+
+            while tasks.len() < max_concurrency && next_chunk < total_chunks {
+                let client = self.clone();
+                let path = path.to_string();
+                let headers = headers.clone();
+                let params = params.clone();
+                let param_name = param_name.to_string();
+                let input_file = input_file.clone();
+                let upload_id = current_upload_id.clone();
+                let chunk_index = next_chunk;
+
+                tasks.spawn(async move {
+                    let result = client.upload_file_chunk(
+                        &path,
+                        headers,
+                        params,
+                        &param_name,
+                        &input_file,
+                        upload_id,
+                        chunk_index,
+                        file_size,
+                        chunk_size,
+                    ).await?;
+
+                    Ok::<_, {{ spec.title | caseUcfirst }}Error>((chunk_index, result))
+                });
+                next_chunk += 1;
             }
         }
 
         last_response
             .ok_or_else(|| {{ spec.title | caseUcfirst }}Error::new(0, "No chunks uploaded", None, String::new()))
             .and_then(|v| serde_json::from_value(v).map_err(Into::into))
+    }
+
+    async fn upload_file_chunk(
+        &self,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: HashMap<String, Value>,
+        param_name: &str,
+        input_file: &InputFile,
+        upload_id: Option<String>,
+        chunk_index: u64,
+        file_size: u64,
+        chunk_size: usize,
+    ) -> Result<Value> {
+        let start = chunk_index * chunk_size as u64;
+        let mut reader = input_file.chunked_reader().await?;
+        reader.seek(start).await?;
+
+        let chunk_data = reader
+            .read_next(chunk_size)
+            .await?
+            .ok_or_else(|| {{ spec.title | caseUcfirst }}Error::new(0, "Chunk data not found", None, String::new()))?;
+        let actual_chunk_size = chunk_data.len();
+
+        if actual_chunk_size == 0 {
+            return Err({{ spec.title | caseUcfirst }}Error::new(0, "Chunk data is empty", None, String::new()));
+        }
+
+        let state = self.state.load_full();
+        let mut form = multipart::Form::new();
+        let mut file_part = multipart::Part::stream_with_length(chunk_data, actual_chunk_size as u64)
+            .file_name(input_file.filename().to_string());
+
+        if let Some(mime_type) = input_file.mime_type() {
+            file_part = file_part.mime_str(mime_type)
+                .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Invalid MIME type: {}", e), None, String::new()))?;
+        }
+
+        form = form.part(param_name.to_string(), file_part);
+
+        let mut params_to_flatten = HashMap::new();
+        for (key, value) in &params {
+            if key != param_name {
+                params_to_flatten.insert(key.clone(), value.clone());
+            }
+        }
+
+        for (key, value_str) in Self::flatten_multipart_params(&params_to_flatten, "") {
+            form = form.text(key, value_str);
+        }
+
+        let url = format!("{}{}", state.config.endpoint, path);
+        let mut request_builder = state.http.post(url).headers(state.config.headers.clone());
+
+        if let Some(custom_headers) = headers {
+            for (key, value) in custom_headers {
+                // Skip content-type for multipart - reqwest sets it automatically with boundary
+                if key.to_lowercase() != "content-type" {
+                    request_builder = request_builder.header(key, value);
+                }
+            }
+        }
+
+        if let Some(id) = upload_id {
+            request_builder = request_builder.header("x-{{ spec.title | caseLower }}-id", id);
+        }
+
+        let chunk_end = start + actual_chunk_size as u64 - 1;
+        let content_range = format!("bytes {}-{}/{}", start, chunk_end, file_size);
+        request_builder = request_builder.header("content-range", content_range);
+
+        let response = request_builder
+            .multipart(form)
+            .send()
+            .await?;
+
+        self.handle_response(response).await
     }
 
     async fn handle_response<T: DeserializeOwned>(&self, response: Response) -> Result<T> {
