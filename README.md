@@ -151,6 +151,7 @@ php example.php agent-skills
 | Apple | `apple` | iOS 15+, macOS 11+, watchOS 7+, tvOS 13+ | [Swift Style Guide] | Swift Package Manager | `examples/apple/` |
 | Android | `android` | Android 5.0+; Java 17 in CI | [Android style guide] | Gradle, Maven | `examples/android/` |
 | React Native | `react-native` | React Native >=0.76.7 <1.0.0; Node.js >=18 | [NPM Coding Style] | NPM | `examples/react-native/` |
+| Godot | `godot` | Godot 4.6+ | [GDScript Style Guide] | Native | `examples/godot/` |
 
 ### Server SDKs
 
@@ -166,6 +167,7 @@ php example.php agent-skills
 | .NET | `dotnet` | .NET Standard 2.0; .NET Framework 4.6.2 | [C# Coding Conventions] | NuGet | `examples/dotnet/` |
 | Kotlin | `kotlin` | JVM 1.8 target; Java 17 in CI | [Kotlin style guide] | Gradle, Maven | `examples/kotlin/` |
 | Rust | `rust` | Rust >=1.83 | [Rust API Guidelines] | Cargo | `examples/rust/` |
+| GDScript | `gdscript` | Godot 4.6+ | [GDScript Style Guide] | Native | `examples/gdscript/` |
 
 ### Tooling and Documentation
 
@@ -190,6 +192,7 @@ php example.php agent-skills
 [Kotlin style guide]: https://kotlinlang.org/docs/coding-conventions.html
 [Android style guide]: https://developer.android.com/kotlin/style-guide
 [Rust API Guidelines]: https://rust-lang.github.io/api-guidelines/
+[GDScript Style Guide]: https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_styleguide.html
 
 ## Contributing
 

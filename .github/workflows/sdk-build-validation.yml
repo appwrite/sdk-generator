@@ -36,6 +36,9 @@ jobs:
           - sdk: react-native
             platform: client
 
+          - sdk: godot
+            platform: client
+
           # Server SDKs
           - sdk: node
             platform: server
@@ -65,6 +68,9 @@ jobs:
             platform: server
 
           - sdk: rust
+            platform: server
+
+          - sdk: gdscript
             platform: server
 
           # Console SDKs
