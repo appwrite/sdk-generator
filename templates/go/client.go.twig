@@ -211,7 +211,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 
 	if fileInfo.Size() <= client.ChunkSize {
 		if uploadId != "" {
-			headers["x-appwrite-id"] = uploadId
+			headers["x-{{ spec.title | caseLower }}-id"] = uploadId
 		}
 		inputFile.Data = make([]byte, fileInfo.Size())
 		_, err := file.Read(inputFile.Data)
@@ -293,7 +293,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 		chunkParams[paramName] = chunkFile
 		chunkHeaders := copyHeaders(headers)
 		if id != "" {
-			chunkHeaders["x-appwrite-id"] = id
+			chunkHeaders["x-{{ spec.title | caseLower }}-id"] = id
 		}
 
 		totalSize := fileInfo.Size()

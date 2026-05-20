@@ -629,7 +629,7 @@ namespace {{ spec.title | caseUcfirst }}
                             var sizeUploaded = Interlocked.Add(ref uploadedBytes, chunk.End - chunk.Start);
                             var chunksTotal = chunkResult.TryGetValue("chunksTotal", out var chunksTotalValue) && chunksTotalValue != null
                                 ? Convert.ToInt64(chunksTotalValue)
-                                : 0L;
+                                : totalChunks;
 
                             onProgress?.Invoke(
                                 new UploadProgress(

@@ -949,7 +949,7 @@ impl Client {
         }
 
         if let Some(id) = upload_id {
-            request_builder = request_builder.header("x-appwrite-id", id);
+            request_builder = request_builder.header("x-{{ spec.title | caseLower }}-id", id);
         }
 
         let chunk_end = start + actual_chunk_size as u64 - 1;
