@@ -39,7 +39,7 @@ import {
     console.log(response.result);
 
     client.setProject('console');
-    client.setEndpointRealtime('wss://cloud.appwrite.io/v1');
+    client.setEndpointRealtime('ws://mockapi/v1');
 
     const realtime = new Realtime(client);
 
@@ -63,6 +63,12 @@ import {
         },
         [[Query.equal('response', ['failed'])]],
     );
+
+    const rtPresenceSub = await realtime.subscribe(['presences'], (message) => {
+        if (message.payload?.$id === 'p-test') {
+            console.log('Realtime presence:passed');
+        }
+    });
 
     // Foo
     response = await foo.get('string', 123, ['string in array']);
@@ -180,6 +186,19 @@ import {
     } catch (e) {
         console.log('Realtime update:failed');
     }
+
+    // Fires the upsert. The "Realtime presence:passed" line is printed by
+    // rtPresenceSub's callback when the fan-out event for this presence
+    // document arrives — verifying the full round-trip rather than just
+    // "no exception thrown".
+    await realtime.upsertPresence({
+        status: 'online',
+        presenceId: 'p-test',
+        metadata: { page: '/home' },
+    });
+    // Give the server time to fan out and the cb to fire before
+    // we tear the socket down with disconnect() below.
+    await delay(1000);
 
     try {
         await realtime.disconnect();
@@ -310,6 +329,12 @@ import {
     console.log(Channel.membership('membership2').toString());
     console.log(Channel.membership('membership1').toString());
     console.log(Channel.membership('membership1').update().toString());
+    console.log(Channel.presences());
+    console.log(Channel.presence('presence2').toString());
+    console.log(Channel.presence('presence1').toString());
+    console.log(Channel.presence('presence1').upsert().toString());
+    console.log(Channel.presence('presence1').update().toString());
+    console.log(Channel.presence('presence1').delete().toString());
 
     // Operator helper tests
     console.log(Operator.increment(1));
