@@ -413,6 +413,9 @@ class GDScript extends Language
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= '{}';
+                    break;
                 default:
                     $output .= 'null';
                     break;
