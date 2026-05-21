@@ -1,11 +1,12 @@
+{% set model = requestModel ?? definition %}
 {% set prefix = spec.title | caseUcfirst %}
-class_name {{ prefix }}{{ definition.name | caseUcfirst }}
+class_name {{ prefix }}{{ model.name | caseUcfirst }}
 extends RefCounted
-## {{ definition.description | default("Model class.") | replace({"\n": "\n## "}) }}[br]
+## {{ model.description | default("Model class.") | replace({"\n": "\n## "}) }}[br]
 
 {% set imports = [] %}
-{%~ for property in definition.properties %}
-{%~ set enumName = property.enumName ?? attribute(property, 'x-enum-name') ?? (definition.name ~ (property.name | caseUcfirst)) %}
+{%~ for property in model.properties %}
+{%~ set enumName = property.enumName ?? attribute(property, 'x-enum-name') ?? (model.name ~ (property.name | caseUcfirst)) %}
 {%~ if property.enum or property.items.enum is defined %}
 {%~ if enumName not in imports %}
 const _{{ enumName | caseUcfirst }} := preload("res://addons/{{ spec.title | caseSnake }}/enums/{{ enumName | caseSnake }}.gd")
@@ -15,30 +16,33 @@ const _{{ enumName | caseUcfirst }} := preload("res://addons/{{ spec.title | cas
 {%~ endfor %}
 
 const _FIELD_MAP := {
-{% for property in definition.properties %}
+{% for property in model.properties %}
     "{{ property.name | uniqueSnake }}": "{{ property.name }}",
 {% endfor %}
 }
 
-{% for property in definition.properties %}
+{% for property in model.properties %}
 {% set baseType = property | typeName(spec) %}
 var {{ property.name | uniqueSnake }}: {{ baseType }} ## {{ property.description | default("No description provided.") }}
 {% endfor %}
 
 ## Convert dictionary to model
 static func from_dict(dict: Dictionary):
-    var m := {{ prefix }}{{ definition.name | caseUcfirst }}.new()
+    var m := {{ prefix }}{{ model.name | caseUcfirst }}.new()
 
     for key in _FIELD_MAP:
         var raw_key = _FIELD_MAP[key]
         var value = dict.get(raw_key)
 
-{% for property in definition.properties %}
+{% for property in model.properties %}
 {% set field = property.name | uniqueSnake %}
-{% set enumName = property.enumName ?? attribute(property, 'x-enum-name') ?? (definition.name ~ (property.name | caseUcfirst)) %}
+{% set enumName = property.enumName ?? attribute(property, 'x-enum-name') ?? (model.name ~ (property.name | caseUcfirst)) %}
 {% if property.model %}
         if key == "{{ field }}" and value is Dictionary:
-            m.set(key, {{ prefix }}{{ property.model | caseUcfirst }}.from_dict(value))
+            var nested = {{ prefix }}{{ property.model | caseUcfirst }}.from_dict(value)
+            if nested is {{prefix}}Exception:
+                return nested
+            m.set(key, nested)
             continue
 {% endif %}
 {% if property.array.model %}
@@ -46,7 +50,10 @@ static func from_dict(dict: Dictionary):
             var list := []
             for item in value:
                 if item is Dictionary:
-                    list.append({{ prefix }}{{ property.array.model | caseUcfirst }}.from_dict(item))
+                    var nested = {{ prefix }}{{ property.array.model | caseUcfirst }}.from_dict(item)
+                    if nested is {{prefix}}Exception:
+                        return nested
+                    list.append(nested)
                 else:
                     list.append(item)
             m.set(key, list)
@@ -87,7 +94,7 @@ func to_dict() -> Dictionary:
     for key in _FIELD_MAP:
         var value = get(key)
 
-{% for property in definition.properties %}
+{% for property in model.properties %}
 {% set field = property.name | uniqueSnake %}
 {% if property.model %}
         if key == "{{ field }}" and value != null:

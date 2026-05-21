@@ -309,7 +309,7 @@ class GDScript extends Language
             [
                 'scope' => 'requestModel',
                 'destination' => 'addons/{{ spec.title | caseSnake }}/models/{{ requestModel.name | caseSnake }}.gd',
-                'template' => 'gdscript/addons/models/request_model.gd.twig',
+                'template' => 'gdscript/addons/models/model.gd.twig',
             ],
             [
                 'scope' => 'method',
