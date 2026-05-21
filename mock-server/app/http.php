@@ -786,11 +786,15 @@ App::shutdown()
         $path   = APP_STORAGE_CACHE . '/tests.json';
         $handle = \fopen($path, 'c+');
 
-        if ($handle === false || !\flock($handle, LOCK_EX)) {
+        if ($handle === false) {
             throw new Exception(Exception::GENERAL_MOCK, 'Failed to lock results', 500);
         }
 
         try {
+            if (!\flock($handle, LOCK_EX)) {
+                throw new Exception(Exception::GENERAL_MOCK, 'Failed to lock results', 500);
+            }
+
             $contents = \stream_get_contents($handle);
             $tests = ($contents !== false && $contents !== '') ? \json_decode($contents, true) : [];
 
