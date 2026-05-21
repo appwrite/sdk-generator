@@ -307,7 +307,7 @@ class Swagger2 extends Spec
                             $temp['enumKeys'] = $value['items']['x-enum-keys'] ?? [];
                         }
 
-                        $temp['default'] = (is_array($default) || $default instanceof stdClass) ? json_encode($default) : $default;
+                        $temp['default'] = (\is_array($default) || $default instanceof stdClass) ? json_encode($default) : $default;
 
                         $output['parameters']['body'][] = $temp;
                         $output['parameters']['all'][] = $temp;
