@@ -48,99 +48,17 @@ func set_{{header.key | caseSnake}}(value: String) -> RefCounted:
     return self
 {% endfor %}
 
-func redirect(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Variant:
-    if not _ensure_configured():
-        return {{prefix}}Exception.new("Missing/wrong configuration. Please check logs for more info", 400, "config_error", "")
-    var http := HTTPRequest.new()
-    http.max_redirects = 0
-    
-    var tls_options := TLSOptions.client_unsafe() if _self_signed else TLSOptions.client()
-    http.set_tls_options(tls_options)
-    
-    Engine.get_main_loop().root.add_child.call_deferred(http)
-    await http.tree_entered
-
-    # Merge headers
-    var combined_headers := _global_headers.duplicate()
-    for key in headers:
-        combined_headers[key.to_lower()] = headers[key]
-
-    # Choose HTTP method constant
-    var http_method: int
-    match method.to_upper():
-        "POST":   http_method = HTTPClient.METHOD_POST
-        "PUT":    http_method = HTTPClient.METHOD_PUT
-        "PATCH":  http_method = HTTPClient.METHOD_PATCH
-        "DELETE": http_method = HTTPClient.METHOD_DELETE
-        _:        http_method = HTTPClient.METHOD_GET
-
-    var uri := _endpoint.trim_suffix("/")
-    var request_path := path
-    var body := PackedByteArray()
-    
-    if http_method == HTTPClient.METHOD_GET:
-        if not params.is_empty():
-            request_path += "?" + _query_string_from_dict(params)
-    else:
-        var has_files := false
-        var large_file_key := ""
-        for key in params:
-            if params[key] is {{prefix}}InputFile:
-                has_files = true
-                if params[key].get_size() > _chunk_size:
-                    large_file_key = key
-                break
-        
-        if large_file_key != "" and not headers.has("content-range"):
-            return await _call_chunked(method, path, headers, params, large_file_key)
-
-        if has_files:
-            var boundary := "Boundary-%x" % Time.get_ticks_msec()
-            combined_headers["content-type"] = "multipart/form-data; boundary=" + boundary
-            body = _build_multipart(params, boundary)
-        else:
-            var body_str := JSON.stringify(_serialize(params))
-            body = body_str.to_utf8_buffer()
-            combined_headers["content-type"] = "application/json"
-        
-        combined_headers["content-length"] = str(body.size())
-
-    # Build header array
-    var header_list := PackedStringArray()
-    for key in combined_headers:
-        if combined_headers[key] != "":
-            header_list.append(key + ": " + str(combined_headers[key]))
-
-    var err = http.request_raw(uri + request_path, header_list, http_method, body)
-    if err != OK:
-        http.queue_free()
-        return {{prefix}}Exception.new("Request failed: " + error_string(err), 0, "network_error", "")
-
-    var response = await http.request_completed
-    http.queue_free()
-    
-    var request_result: int = response[0]
-    var response_code: int = response[1]
-    
-    if response_code == 301 or response_code == 302:
-        for header in response[2]:
-            if header.to_lower().begins_with("location:"):
-                return header.substr(9).strip_edges()
-
-    if request_result != HTTPRequest.RESULT_SUCCESS:
-        return {{prefix}}Exception.new("HTTP Request Error: " + str(request_result), 0, "network_error", "")
-
-    var response_text := (response[3] as PackedByteArray).get_string_from_utf8()
-    return {{prefix}}Exception.new("Invalid redirect", response_code, "redirect_error", response_text)
-
-func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
+func _http_request(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}, max_redirects: int = 8) -> Variant:
     if not _ensure_configured():
         return {"statusCode": 400, "body": "Missing/wrong configuration. Please check logs for more info"}
-    var http := HTTPRequest.new()
     
+    # Create HTTP request
+    var http := HTTPRequest.new()
+    http.max_redirects = max_redirects
     var tls_options := TLSOptions.client_unsafe() if _self_signed else TLSOptions.client()
     http.set_tls_options(tls_options)
     
+    # Add http request to the tree
     Engine.get_main_loop().root.add_child.call_deferred(http)
     await http.tree_entered
 
@@ -149,7 +67,7 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
     for key in headers:
         combined_headers[key.to_lower()] = headers[key]
 
-    # Choose HTTP method constant
+    # Choose http method constant
     var http_method: int
     match method.to_upper():
         "POST":   http_method = HTTPClient.METHOD_POST
@@ -157,11 +75,13 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
         "PATCH":  http_method = HTTPClient.METHOD_PATCH
         "DELETE": http_method = HTTPClient.METHOD_DELETE
         _:        http_method = HTTPClient.METHOD_GET
-
+    
+    # Build url
     var uri := _endpoint.trim_suffix("/")
     var request_path := path
     var body := PackedByteArray()
     
+    # Prepare body and path
     if http_method == HTTPClient.METHOD_GET:
         if not params.is_empty():
             request_path += "?" + _query_string_from_dict(params)
@@ -188,20 +108,49 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
             combined_headers["content-type"] = "application/json"
         
         combined_headers["content-length"] = str(body.size())
-
+    
     # Build header array
     var header_list := PackedStringArray()
     for key in combined_headers:
         if combined_headers[key] != "":
             header_list.append(key + ": " + str(combined_headers[key]))
-
+    
+    # Make request
     var err = http.request_raw(uri + request_path, header_list, http_method, body)
     if err != OK:
         http.queue_free()
-        return {"statusCode": 0, "error": "Request failed: " + error_string(err)}
-
+        return {"statusCode": 400, "body": "Request failed: " + error_string(err)}
+    
+    # Wait for response and clean node from tree on completion
     var response = await http.request_completed
     http.queue_free()
+
+    return response
+   
+func redirect(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Variant:
+    var response = await _http_request(method, path, headers, params, 0)
+    
+    var request_result: int = response[0]
+    var response_code: int = response[1]
+    
+    if response_code == 301 or response_code == 302:
+        for header in response[2]:
+            if header.to_lower().begins_with("location:"):
+                return { "statusCode": 200, "body": header.substr(9).strip_edges() }
+
+    if request_result != HTTPRequest.RESULT_SUCCESS:
+        return { "statusCode": 0, "body": "HTTP Request Error: " + str(request_result) }
+
+    var response_text := (response[3] as PackedByteArray).get_string_from_utf8()
+
+    var json := JSON.new()
+    if json.parse(response_text) == OK:
+        return {"statusCode": response_code, "body": json.data}
+
+    return {"statusCode": response_code, "body": response_text}
+
+func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
+    var response = await _http_request(method, path, headers, params)
     
     var request_result: int = response[0]
     var response_code: int = response[1]
@@ -211,11 +160,12 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
         return {"statusCode": 0, "error": "HTTP Request Error: " + str(request_result)}
 
     var response_text := response_body.get_string_from_utf8()
+
     var json := JSON.new()
     if json.parse(response_text) == OK:
         return {"statusCode": response_code, "body": json.data}
-    else:
-        return {"statusCode": response_code, "body": response_text}
+
+    return {"statusCode": response_code, "body": response_text}
 
 func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
     var body := PackedByteArray()

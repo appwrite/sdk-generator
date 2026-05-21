@@ -9,11 +9,14 @@ func _init(p_client: RefCounted) -> void:
     client = p_client
 
 func _call_web(method: String, path: String, params: Dictionary = {}) -> Variant:
-    return await client.call_web_api(method, path, params)
+    var result = await client.call_web_api(method, path, params)
+    return _handle_response(result)
 
 func _call(method: String, path: String, headers: Dictionary = {}, params: Dictionary = {}, model_script: Variant = null) -> Variant:
     var result = await client.call_api(method, path, headers, params)
-    
+    return _handle_response(result, model_script)
+
+func _handle_response(result: Dictionary, model_script: Variant = null) -> Variant:
     if result.statusCode == 0:
         var error_msg = result.get("error", "Unknown error")
         push_error("{{prefix}} Network Error: %s" % error_msg)
@@ -37,7 +40,7 @@ func _call(method: String, path: String, headers: Dictionary = {}, params: Dicti
         return {{prefix}}Exception.new(message, code, type, response)
 
     if model_script == null:
-        return result.get("body")
+        return result.get("body", {})
         
     if result.get("body") is Array:
         var list: Array[RefCounted] = []

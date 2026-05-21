@@ -157,8 +157,7 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
     var json := JSON.new()
     if json.parse(response_text) == OK:
         return {"statusCode": response_code, "body": json.data}
-    else:
-        return {"statusCode": response_code, "body": response_text}
+    return {"statusCode": response_code, "body": response_text}
 
 func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
     var body := PackedByteArray()
