@@ -52,7 +52,7 @@ func save_cookies() -> void:
     for name in _cookies:
         dict[name] = _cookies[name].to_dict()
     file.store_string(JSON.stringify(dict))
-    file.close()
+    file = null
 
 func load_cookies() -> void:
     if FileAccess.file_exists(_cookie_path):
@@ -69,6 +69,6 @@ func load_cookies() -> void:
                 if typeof(data) == TYPE_DICTIONARY:
                     var cookie = _cookie_class.new()
                     cookie.from_dict(data)
-                        if not cookie.is_expired():
-                            _cookies[name] = cookie
-            file.close()
+                    if not cookie.is_expired():
+                        _cookies[name] = cookie
+            file = null

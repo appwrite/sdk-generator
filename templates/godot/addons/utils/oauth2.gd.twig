@@ -62,8 +62,11 @@ func _process(_delta):
 	var parsed := extract_callback_url(_request_buffer)
 
 	if parsed.is_empty() or parsed.has("error") or parsed.get("body", "").contains("failure"):
+		parsed["statusCode"] = 401
+		if not parsed.has("error"):
+			parsed["error"] = "Authentication failed"
 		_connection.put_data(
-			failure_html(parsed.get("error", "Something went wrong. Please try again"))
+			failure_html(parsed.get("error"))
 			.to_utf8_buffer()
 		)
 	else:
@@ -80,7 +83,7 @@ func load_svg() -> String:
 		return ""
 	var svg := file.get_as_text()
 	svg = svg.replace("<svg", "<svg width=\"60\" height=\"60\"")
-	file.close()
+	file = null
 	return svg
 
 func success_html() -> String:

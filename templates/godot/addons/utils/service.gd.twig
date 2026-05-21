@@ -45,11 +45,25 @@ func _handle_response(result: Dictionary, model_script: Variant = null) -> Varia
     if result.get("body") is Array:
         var list: Array[RefCounted] = []
         for item in result.body:
-            var parsed_model = model_script.from_dict(item)
-            if parsed_model is {{prefix}}Exception:
-                return parsed_model
-            list.append(parsed_model)
+            if item is Dictionary:
+                var parsed = model_script.from_dict(item)
+                if parsed is {{prefix}}Exception:
+                    return parsed
+                list.append(parsed)
+            else:
+                return {{prefix}}Exception.new(
+                    "Expected Dictionary in array response",
+                    result.statusCode,
+                    "invalid_response",
+                    str(item)
+                )
         return list
     
-    # Return model if successfull else Exception
+    if not (result.get("body") is Dictionary):
+        return {{prefix}}Exception.new(
+            "Expected Dictionary response",
+            result.statusCode,
+            "invalid_response",
+            str(result.get("body"))
+        )
     return model_script.from_dict(result.get("body", {}))

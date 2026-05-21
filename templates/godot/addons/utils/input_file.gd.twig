@@ -46,7 +46,7 @@ func get_size() -> int:
         var file := FileAccess.open(path, FileAccess.READ)
         if file:
             var sz = file.get_length()
-            file.close()
+            file = null
             return sz
     return 0
 
@@ -59,7 +59,7 @@ func get_chunk(offset: int, length: int) -> PackedByteArray:
         if file:
             file.seek(offset)
             var data = file.get_buffer(length)
-            file.close()
+            file = null
             return data
     return PackedByteArray()
 
