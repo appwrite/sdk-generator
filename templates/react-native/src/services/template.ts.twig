@@ -233,12 +233,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
         let completedCount = startChunkIndex;
         let uploadedBytes = offset;
 
-        const isUploadComplete = (chunkResponse: any) => {
-            const chunksUploaded = chunkResponse?.chunksUploaded;
-            const chunksTotal = chunkResponse?.chunksTotal ?? totalChunks;
-            return typeof chunksUploaded === 'number' && typeof chunksTotal === 'number' && chunksUploaded >= chunksTotal;
-        };
-
         const uploadChunk = async (chunk: typeof chunks[0]) => {
             const chunkHeaders = { ...apiHeaders };
             if (uploadId) {
@@ -266,9 +260,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             completedCount++;
             uploadedBytes += (chunk.end - chunk.start);
 
-            if (isUploadComplete(chunkResponse)) {
-                response = chunkResponse;
-            }
+            response = chunkResponse;
 
             if (onProgress) {
                 onProgress({

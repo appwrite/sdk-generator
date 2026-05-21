@@ -206,14 +206,6 @@ module {{ spec.title | caseUcfirst }}
             completed_count = chunks.first[:index] + 1
             uploaded_size = chunks.first[:ending]
 
-            upload_complete = lambda do |chunk_result|
-                chunks_uploaded = chunk_result['chunksUploaded']
-                return false if chunks_uploaded.nil?
-
-                chunks_total = chunk_result['chunksTotal'] || total_chunks
-                chunks_uploaded.to_i >= chunks_total.to_i
-            end
-
             on_progress.call({
                 id: result['$id'],
                 progress: uploaded_size.to_f/size.to_f * 100.0,
@@ -225,18 +217,30 @@ module {{ spec.title | caseUcfirst }}
             mutex = Mutex.new
             queue = Queue.new
             chunks.drop(1).each { |chunk| queue << chunk }
+            first_error = nil
 
             workers = [8, queue.size].min.times.map do
                 Thread.new do
                     loop do
-                        chunk = queue.pop(true) rescue nil
+                        break if mutex.synchronize { !first_error.nil? }
+
+                        chunk = begin
+                            queue.pop(true)
+                        rescue ThreadError
+                            nil
+                        end
                         break unless chunk
 
-                        chunk_result = upload_chunk.call(chunk, upload_id)
+                        begin
+                            chunk_result = upload_chunk.call(chunk, upload_id)
+                        rescue => error
+                            mutex.synchronize { first_error ||= error }
+                            break
+                        end
                         mutex.synchronize do
                             completed_count += 1
                             uploaded_size += chunk[:ending] - chunk[:start]
-                            result = chunk_result if upload_complete.call(chunk_result)
+                            result = chunk_result
                             on_progress.call({
                                 id: upload_id,
                                 progress: uploaded_size.to_f/size.to_f * 100.0,
@@ -249,7 +253,8 @@ module {{ spec.title | caseUcfirst }}
                 end
             end
 
-            workers.each(&:value)
+            workers.each(&:join)
+            raise first_error if first_error
 
             return result unless response_type.respond_to?("from")
 

@@ -384,7 +384,6 @@ namespace {{ spec.title | caseUcfirst }}
             {
                 case "path":
                     var info = new FileInfo(input.Path);
-                    input.Data = info.OpenRead();
                     size = info.Length;
                     break;
                 case "stream":
@@ -410,6 +409,8 @@ namespace {{ spec.title | caseUcfirst }}
                 switch(input.SourceType)
                 {
                     case "path":
+                        buffer = await System.IO.File.ReadAllBytesAsync(input.Path);
+                        break;
                     case "stream":
                         var dataStream = input.Data as Stream;
                         if (dataStream == null)
@@ -541,7 +542,7 @@ namespace {{ spec.title | caseUcfirst }}
                     chunkParameters
                 );
 
-                if (index == 0 || string.IsNullOrEmpty(uploadId))
+                if (index == 0)
                 {
                     uploadId = chunkResult.ContainsKey("$id")
                         ? chunkResult["$id"]?.ToString() ?? string.Empty
@@ -590,21 +591,6 @@ namespace {{ spec.title | caseUcfirst }}
                 var uploadedBytes = offset;
                 var resultLock = new object();
 
-                bool IsUploadComplete(Dictionary<string, object?> chunkResult)
-                {
-                    if (!chunkResult.TryGetValue("chunksUploaded", out var chunksUploadedValue) || chunksUploadedValue == null)
-                    {
-                        return false;
-                    }
-
-                    var chunksUploaded = Convert.ToInt64(chunksUploadedValue);
-                    var chunksTotal = chunkResult.TryGetValue("chunksTotal", out var chunksTotalValue) && chunksTotalValue != null
-                        ? Convert.ToInt64(chunksTotalValue)
-                        : totalChunks;
-
-                    return chunksUploaded >= chunksTotal;
-                }
-
                 var workers = Enumerable.Range(0, Math.Min(MaxConcurrentUploads, chunks.Count))
                     .Select(async _ =>
                     {
@@ -617,12 +603,9 @@ namespace {{ spec.title | caseUcfirst }}
                             var chunk = chunks[chunkIndex];
                             var chunkResult = await UploadChunkAsync(chunk.Index, chunk.Start, chunk.End, true);
 
-                            if (IsUploadComplete(chunkResult))
+                            lock (resultLock)
                             {
-                                lock (resultLock)
-                                {
-                                    result = chunkResult;
-                                }
+                                result = chunkResult;
                             }
 
                             var chunksUploaded = Interlocked.Increment(ref completedChunks);

@@ -205,12 +205,6 @@ class ClientBrowser extends ClientBase with ClientMixin {
     var uploadedBytes = firstEnd;
     var lastResponse = res;
 
-    bool isUploadComplete(Response response) {
-      final chunksUploaded = response.data['chunksUploaded'];
-      final chunksTotal = response.data['chunksTotal'] ?? totalChunks;
-      return chunksUploaded is num && chunksTotal is num && chunksUploaded >= chunksTotal;
-    }
-
     final progress = UploadProgress(
       $id: uploadId ?? '',
       progress: min(uploadedBytes, size) / size * 100,
@@ -242,9 +236,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
         );
         completedChunks++;
         uploadedBytes += chunk['end']! - chunk['start']!;
-        if (isUploadComplete(chunkResponse)) {
-          lastResponse = chunkResponse;
-        }
+        lastResponse = chunkResponse;
 
         final progress = UploadProgress(
           $id: uploadId ?? '',

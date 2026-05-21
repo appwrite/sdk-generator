@@ -136,14 +136,15 @@ class Client:
 
         if input_file.source_type == 'path':
             size = os.stat(input_file.path).st_size
-            input = open(input_file.path, 'rb')
+            input = None
         elif input_file.source_type == 'bytes':
             size = len(input_file.data)
             input = input_file.data
 
         if size < self._chunk_size:
             if input_file.source_type == 'path':
-                input_file.data = input.read()
+                with open(input_file.path, 'rb') as input:
+                    input_file.data = input.read()
 
             params[param_name] = input_file
             return self.call(
@@ -164,8 +165,6 @@ class Client:
 
         if counter > 0:
             offset = counter * self._chunk_size
-            if input_file.source_type == 'path':
-                input.seek(offset)
 
         total_chunks = (size + self._chunk_size - 1) // self._chunk_size
         chunks = []
@@ -194,13 +193,6 @@ class Client:
         uploaded_size = chunks[0]['start']
         progress_lock = Lock()
         last_result = None
-
-        def is_upload_complete(chunk_result):
-            chunks_uploaded = chunk_result.get('chunksUploaded')
-            if chunks_uploaded is None:
-                return False
-            chunks_total = chunk_result.get('chunksTotal', total_chunks)
-            return int(chunks_uploaded) >= int(chunks_total)
 
         def upload_chunk(chunk, current_upload_id):
             chunk_input = InputFile.from_bytes(
@@ -231,7 +223,7 @@ class Client:
 
         if on_progress is not None:
             on_progress({
-                "$id": result["$id"],
+                "$id": result.get("$id"),
                 "progress": uploaded_size / size * 100,
                 "sizeUploaded": uploaded_size,
                 "chunksTotal": total_chunks,
@@ -244,8 +236,7 @@ class Client:
             with progress_lock:
                 completed_count = completed_count + 1
                 uploaded_size = uploaded_size + (chunk['end'] - chunk['start'])
-                if is_upload_complete(chunk_result):
-                    last_result = chunk_result
+                last_result = chunk_result
                 if on_progress is not None:
                     on_progress({
                         "$id": upload_id_header,

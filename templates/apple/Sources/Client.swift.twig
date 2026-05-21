@@ -16,6 +16,7 @@ open class Client {
 
     // MARK: Properties
     public static var chunkSize = 5 * 1024 * 1024 // 5MB
+    public static var maxConcurrentUploads = 8
 
     open var endPoint = "{{spec.endpoint}}"
 
@@ -468,19 +469,12 @@ open class Client {
         let baseParams = params
         let baseHeaders = headers
 
-        func isUploadComplete(_ response: [String: Any]) -> Bool {
-            guard let chunksUploaded = response["chunksUploaded"] as? Int else {
-                return false
-            }
-
-            let chunksTotal = response["chunksTotal"] as? Int ?? totalChunks
-            return chunksUploaded >= chunksTotal
-        }
-
         func uploadChunk(index: Int, uploadId: String?) async throws -> (Int, Int, [String: Any]) {
             let chunkOffset = index * Client.chunkSize
             let chunkLength = min(Client.chunkSize, size - chunkOffset)
-            let slice = (input.data as! ByteBuffer).getSlice(at: chunkOffset, length: chunkLength)!
+            guard let slice = (input.data as! ByteBuffer).getSlice(at: chunkOffset, length: chunkLength) else {
+                throw {{ spec.title | caseUcfirst }}Error(message: "Failed to read upload chunk")
+            }
             var chunkParams = baseParams
             var chunkHeaders = baseHeaders
             chunkParams[paramName] = InputFile.fromBuffer(slice, filename: input.filename, mimeType: input.mimeType)
@@ -516,7 +510,7 @@ open class Client {
             ))
         }
 
-        let maxConcurrency = 8
+        let maxConcurrency = Client.maxConcurrentUploads
 
         try await withThrowingTaskGroup(of: (Int, Int, [String: Any]).self) { group in
             var inFlight = 0
@@ -533,9 +527,7 @@ open class Client {
                 inFlight -= 1
                 completedChunks += 1
                 uploadedBytes += chunk.1
-                if isUploadComplete(chunk.2) {
-                    result = chunk.2
-                }
+                result = chunk.2
 
                 onProgress?(UploadProgress(
                     id: uploadId ?? "",

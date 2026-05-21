@@ -239,12 +239,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
         let nextChunk = 1;
         let lastResponse = response;
 
-        const isUploadComplete = (chunkResponse: any) => {
-            const chunksUploaded = chunkResponse?.chunksUploaded;
-            const chunksTotal = chunkResponse?.chunksTotal ?? totalChunks;
-            return typeof chunksUploaded === 'number' && typeof chunksTotal === 'number' && chunksUploaded >= chunksTotal;
-        };
-
         const uploadNext = async () => {
             while (nextChunk < chunks.length) {
                 const chunk = chunks[nextChunk++];
@@ -252,9 +246,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 completedCount++;
                 uploadedBytes += chunk.end - chunk.start;
 
-                if (isUploadComplete(chunkResponse)) {
-                    lastResponse = chunkResponse;
-                }
+                lastResponse = chunkResponse;
 
                 if (onProgress !== null) {
                     onProgress({
