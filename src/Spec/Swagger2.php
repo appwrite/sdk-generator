@@ -292,8 +292,9 @@ class Swagger2 extends Spec
                             'type' => $value['items']['type'] ?? '',
                             'model' => isset($value['items']['$ref']) ? str_replace('#/definitions/', '', $value['items']['$ref']) : null,
                         ];
-                        if ($value['type'] === 'object' && is_array($value['default'])) {
-                            $value['default'] = (empty($value['default'])) ? new stdClass() : $value['default'];
+                        $default = $value['default'] ?? null;
+                        if ($temp['type'] === 'object' && is_array($default)) {
+                            $default = (empty($default)) ? new stdClass() : $default;
                         }
 
                         if (isset($value['enum'])) {
@@ -306,7 +307,7 @@ class Swagger2 extends Spec
                             $temp['enumKeys'] = $value['items']['x-enum-keys'] ?? [];
                         }
 
-                        $temp['default'] = (is_array($value['default']) || $value['default'] instanceof stdClass) ? json_encode($value['default']) : $value['default'];
+                        $temp['default'] = (\is_array($default) || $default instanceof stdClass) ? json_encode($default) : $default;
 
                         $output['parameters']['body'][] = $temp;
                         $output['parameters']['all'][] = $temp;
