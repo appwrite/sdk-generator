@@ -32,6 +32,11 @@ static func from_dict(dict: Dictionary):
 
     for key in _FIELD_MAP:
         var raw_key = _FIELD_MAP[key]
+        
+        # Skip if key doesn't exist in dict
+        if not dict.has(raw_key):
+            continue
+        
         var value = dict.get(raw_key)
 
 {% for property in model.properties %}
@@ -84,7 +89,8 @@ static func from_dict(dict: Dictionary):
             continue
 {% endif %}
 {% endfor %}
-        m.set(key, value)
+        if value != null:
+            m.set(key, value)
     return m
 
 ## Convert to Dictionary
