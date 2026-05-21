@@ -78,7 +78,9 @@ func get_headers() -> Dictionary:
 func _apply_env(key: String, value: String) -> void:
     match key:
         "{{ prefix | caseUpper }}_ENDPOINT":
-            _client.set_endpoint(value)
+            var err = _client.set_endpoint(value)
+            if err is {{ prefix }}Exception:
+                push_error("{{prefix}} Error (%s): %s" % [err.type, err.message])
         "{{ prefix | caseUpper }}_SELF_SIGNED":
             _client.set_self_signed(value.to_lower() == "true")
 {% for header in spec.global.headers %}

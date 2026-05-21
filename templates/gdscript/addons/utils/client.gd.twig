@@ -22,7 +22,7 @@ func set_self_signed(status: bool = true) -> RefCounted:
     _self_signed = status
     return self
 
-func set_endpoint(endpoint: String) -> RefCounted:
+func set_endpoint(endpoint: String) -> Variant:
     if not _is_valid_endpoint(endpoint):
         push_error("Invalid endpoint URL: " + endpoint)
         return {{prefix}}Exception.new("Invalid endpoint URL: " + endpoint, 0, "invalid_endpoint", "Invalid endpoint URL: " + endpoint) 
@@ -129,7 +129,10 @@ func _http_request(method: String, path: String = "", headers: Dictionary = {}, 
    
 func redirect(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Variant:
     var response = await _http_request(method, path, headers, params, 0)
-    
+
+    if response is Dictionary:
+        return response 
+
     var request_result: int = response[0]
     var response_code: int = response[1]
     
@@ -152,6 +155,9 @@ func redirect(method: String, path: String = "", headers: Dictionary = {}, param
 func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
     var response = await _http_request(method, path, headers, params)
     
+    if response is Dictionary:
+        return response 
+
     var request_result: int = response[0]
     var response_code: int = response[1]
     var response_body: PackedByteArray = response[3]
