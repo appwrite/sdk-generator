@@ -360,13 +360,19 @@ class Client {
             const queue = [...chunks];
             const workers: Promise<void>[] = [];
             const workerCount = Math.min(CONCURRENCY, queue.length);
+            let failed = false;
 
             for (let i = 0; i < workerCount; i++) {
                 workers.push(
                     (async () => {
-                        while (queue.length > 0) {
+                        while (!failed && queue.length > 0) {
                             const chunk = queue.shift()!;
-                            await uploadChunk(chunk);
+                            try {
+                                await uploadChunk(chunk);
+                            } catch (error) {
+                                failed = true;
+                                throw error;
+                            }
                         }
                     })()
                 );
@@ -466,13 +472,19 @@ class Client {
         const queue = [...chunks];
         const workers: Promise<void>[] = [];
         const workerCount = Math.min(CONCURRENCY, queue.length);
+        let failed = false;
 
         for (let i = 0; i < workerCount; i++) {
             workers.push(
                 (async () => {
-                    while (queue.length > 0) {
+                    while (!failed && queue.length > 0) {
                         const chunk = queue.shift()!;
-                        await uploadChunk(chunk);
+                        try {
+                            await uploadChunk(chunk);
+                        } catch (error) {
+                            failed = true;
+                            throw error;
+                        }
                     }
                 })()
             );
