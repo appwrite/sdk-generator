@@ -50,7 +50,7 @@ func set_{{header.key | caseSnake}}(value: String) -> RefCounted:
 
 func _http_request(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}, max_redirects: int = 8) -> Variant:
     if not _ensure_configured():
-        return {"statusCode": 400, "body": "Missing/wrong configuration. Please check logs for more info"}
+        return {"statusCode": 0, "error": "Missing/wrong configuration. Please check logs for more info"}
 
     # Merge headers
     var combined_headers := _global_headers.duplicate()
