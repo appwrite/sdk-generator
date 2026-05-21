@@ -409,7 +409,7 @@ namespace {{ spec.title | caseUcfirst }}
                 switch(input.SourceType)
                 {
                     case "path":
-                        buffer = await System.IO.File.ReadAllBytesAsync(input.Path);
+                        buffer = System.IO.File.ReadAllBytes(input.Path);
                         break;
                     case "stream":
                         var dataStream = input.Data as Stream;
@@ -590,6 +590,23 @@ namespace {{ spec.title | caseUcfirst }}
                 var completedChunks = (long)(offset / ChunkSize);
                 var uploadedBytes = offset;
                 var resultLock = new object();
+                var lastResult = result;
+                Dictionary<string, object?>? completedResult = null;
+
+                bool IsUploadComplete(Dictionary<string, object?> chunkResult)
+                {
+                    if (!chunkResult.TryGetValue("chunksUploaded", out var chunksUploadedValue) || chunksUploadedValue == null)
+                    {
+                        return false;
+                    }
+
+                    var chunksUploaded = Convert.ToInt64(chunksUploadedValue);
+                    var chunksTotal = chunkResult.TryGetValue("chunksTotal", out var chunksTotalValue) && chunksTotalValue != null
+                        ? Convert.ToInt64(chunksTotalValue)
+                        : totalChunks;
+
+                    return chunksUploaded >= chunksTotal;
+                }
 
                 var workers = Enumerable.Range(0, Math.Min(MaxConcurrentUploads, chunks.Count))
                     .Select(async _ =>
@@ -605,7 +622,11 @@ namespace {{ spec.title | caseUcfirst }}
 
                             lock (resultLock)
                             {
-                                result = chunkResult;
+                                lastResult = chunkResult;
+                                if (IsUploadComplete(chunkResult))
+                                {
+                                    completedResult = chunkResult;
+                                }
                             }
 
                             var chunksUploaded = Interlocked.Increment(ref completedChunks);
@@ -625,6 +646,7 @@ namespace {{ spec.title | caseUcfirst }}
                     });
 
                 await Task.WhenAll(workers);
+                result = completedResult ?? lastResult;
             }
 
             // Convert to non-nullable dictionary for converter

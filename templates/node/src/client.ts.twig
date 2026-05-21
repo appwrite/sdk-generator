@@ -314,6 +314,13 @@ class Client {
             let completedCount = 1;
             let uploadedBytes = firstChunkEnd;
             let lastResponse = response;
+            let finalResponse = null;
+
+            const isUploadComplete = (chunkResponse: any) => {
+                const chunksUploaded = chunkResponse?.chunksUploaded;
+                const chunksTotal = chunkResponse?.chunksTotal ?? totalChunks;
+                return typeof chunksUploaded === 'number' && typeof chunksTotal === 'number' && chunksUploaded >= chunksTotal;
+            };
 
             const uploadChunk = async (chunk: typeof chunks[0]) => {
                 const chunkHeaders = { ...headers };
@@ -332,6 +339,9 @@ class Client {
                 uploadedBytes += (chunk.end - chunk.start);
                 
                 lastResponse = chunkResponse;
+                if (isUploadComplete(chunkResponse)) {
+                    finalResponse = chunkResponse;
+                }
 
                 if (onProgress && typeof onProgress === 'function') {
                     onProgress({
@@ -364,7 +374,7 @@ class Client {
 
             await Promise.all(workers);
 
-            return lastResponse;
+            return finalResponse ?? lastResponse;
         }
 
         if (file.size <= Client.CHUNK_SIZE) {
@@ -410,6 +420,13 @@ class Client {
         let completedCount = 1;
         let uploadedBytes = firstChunkEnd;
         let lastResponse = response;
+        let finalResponse = null;
+
+        const isUploadComplete = (chunkResponse: any) => {
+            const chunksUploaded = chunkResponse?.chunksUploaded;
+            const chunksTotal = chunkResponse?.chunksTotal ?? totalChunks;
+            return typeof chunksUploaded === 'number' && typeof chunksTotal === 'number' && chunksUploaded >= chunksTotal;
+        };
 
         const uploadChunk = async (chunk: typeof chunks[0]) => {
             const chunkHeaders = { ...headers };
@@ -428,6 +445,9 @@ class Client {
             uploadedBytes += (chunk.end - chunk.start);
             
             lastResponse = chunkResponse;
+            if (isUploadComplete(chunkResponse)) {
+                finalResponse = chunkResponse;
+            }
 
             if (onProgress && typeof onProgress === 'function') {
                 onProgress({
@@ -460,7 +480,7 @@ class Client {
 
         await Promise.all(workers);
 
-        return lastResponse;
+        return finalResponse ?? lastResponse;
     }
 
     async ping(): Promise<any> {

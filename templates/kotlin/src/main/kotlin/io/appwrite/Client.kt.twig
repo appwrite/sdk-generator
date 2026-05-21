@@ -433,6 +433,12 @@ class Client @JvmOverloads constructor(
 
         val totalChunks = (size + CHUNK_SIZE - 1) / CHUNK_SIZE
 
+        fun isUploadComplete(chunkResult: Map<*, *>): Boolean {
+            val chunksUploaded = chunkResult["chunksUploaded"]?.toString()?.toLongOrNull() ?: return false
+            val chunksTotal = chunkResult["chunksTotal"]?.toString()?.toLongOrNull() ?: totalChunks
+            return chunksUploaded >= chunksTotal
+        }
+
         suspend fun uploadChunk(index: Int, start: Long, end: Long, includeUploadId: Boolean): Map<*, *> {
             val chunkParams = params.toMutableMap()
             val chunkHeaders = headers.toMutableMap()
@@ -490,7 +496,8 @@ class Client @JvmOverloads constructor(
             val nextChunk = AtomicInteger(0)
             val completedChunks = AtomicInteger((offset / CHUNK_SIZE).toInt())
             val uploadedBytes = AtomicLong(offset.coerceAtMost(size))
-            val resultRef = AtomicReference(result)
+            val completedResultRef = AtomicReference<Map<*, *>?>(null)
+            val lastResultRef = AtomicReference(result)
             val progressLock = Any()
 
             coroutineScope {
@@ -508,7 +515,10 @@ class Client @JvmOverloads constructor(
                             val chunksUploaded = completedChunks.incrementAndGet()
                             val sizeUploaded = uploadedBytes.addAndGet(end - start)
 
-                            resultRef.set(chunkResult)
+                            lastResultRef.set(chunkResult)
+                            if (isUploadComplete(chunkResult)) {
+                                completedResultRef.set(chunkResult)
+                            }
 
                             synchronized(progressLock) {
                                 onProgress?.invoke(
@@ -525,7 +535,7 @@ class Client @JvmOverloads constructor(
                     }
                 }.awaitAll()
             }
-            result = resultRef.get()
+            result = completedResultRef.get() ?: lastResultRef.get()
         }
 
         return converter(result as Map<String, Any>)

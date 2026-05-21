@@ -232,6 +232,13 @@ export class {{ service.name | caseUcfirst }} extends Service {
         const CONCURRENCY = 8;
         let completedCount = startChunkIndex;
         let uploadedBytes = offset;
+        let finalResponse = null;
+
+        const isUploadComplete = (chunkResponse: any) => {
+            const chunksUploaded = chunkResponse?.chunksUploaded;
+            const chunksTotal = chunkResponse?.chunksTotal ?? totalChunks;
+            return typeof chunksUploaded === 'number' && typeof chunksTotal === 'number' && chunksUploaded >= chunksTotal;
+        };
 
         const uploadChunk = async (chunk: typeof chunks[0]) => {
             const chunkHeaders = { ...apiHeaders };
@@ -261,6 +268,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
             uploadedBytes += (chunk.end - chunk.start);
 
             response = chunkResponse;
+            if (isUploadComplete(chunkResponse)) {
+                finalResponse = chunkResponse;
+            }
 
             if (onProgress) {
                 onProgress({
@@ -293,7 +303,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         await Promise.all(workers);
 
-        return response;
+        return finalResponse ?? response;
 {% endif %}
 {% endfor %}
 {% else %}

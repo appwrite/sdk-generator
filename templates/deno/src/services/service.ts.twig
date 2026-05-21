@@ -238,6 +238,13 @@ export class {{ service.name | caseUcfirst }} extends Service {
         const CONCURRENCY = 8;
         let nextChunk = 1;
         let lastResponse = response;
+        let finalResponse = null;
+
+        const isUploadComplete = (chunkResponse: any) => {
+            const chunksUploaded = chunkResponse?.chunksUploaded;
+            const chunksTotal = chunkResponse?.chunksTotal ?? totalChunks;
+            return typeof chunksUploaded === 'number' && typeof chunksTotal === 'number' && chunksUploaded >= chunksTotal;
+        };
 
         const uploadNext = async () => {
             while (nextChunk < chunks.length) {
@@ -247,6 +254,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 uploadedBytes += chunk.end - chunk.start;
 
                 lastResponse = chunkResponse;
+                if (isUploadComplete(chunkResponse)) {
+                    finalResponse = chunkResponse;
+                }
 
                 if (onProgress !== null) {
                     onProgress({
@@ -262,7 +272,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         await Promise.all(Array.from({ length: Math.min(CONCURRENCY, chunks.length - 1) }, uploadNext));
 
-        response = lastResponse;
+        response = finalResponse ?? lastResponse;
 
         return response;
 {% endif %}

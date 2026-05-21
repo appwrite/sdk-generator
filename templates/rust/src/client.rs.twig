@@ -757,6 +757,19 @@ impl Client {
         let mut next_chunk = start_chunk;
         let mut uploaded_chunks = start_chunk;
         let mut uploaded_bytes = (start_chunk * chunk_size as u64).min(file_size);
+        let mut completed_response = None;
+
+        let is_upload_complete = |response: &Value| -> bool {
+            let Some(chunks_uploaded) = response.get("chunksUploaded").and_then(|v| v.as_u64()) else {
+                return false;
+            };
+            let chunks_total = response
+                .get("chunksTotal")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(total_chunks);
+
+            chunks_uploaded >= chunks_total
+        };
 
         if next_chunk == 0 {
             let result = self.upload_file_chunk(
@@ -778,6 +791,9 @@ impl Client {
             uploaded_chunks = 1;
             uploaded_bytes = (chunk_size as u64).min(file_size);
             last_response = Some(result.clone());
+            if is_upload_complete(&result) {
+                completed_response = Some(result.clone());
+            }
 
             if let Some(ref callback) = options.on_progress {
                 callback(UploadProgress {
@@ -827,6 +843,9 @@ impl Client {
                 .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Chunk upload task failed: {}", e), None, String::new()))??;
 
             last_response = Some(result.clone());
+            if is_upload_complete(&result) {
+                completed_response = Some(result.clone());
+            }
 
             uploaded_chunks += 1;
             let chunk_start = chunk_index * chunk_size as u64;
@@ -871,7 +890,8 @@ impl Client {
             }
         }
 
-        last_response
+        completed_response
+            .or(last_response)
             .ok_or_else(|| {{ spec.title | caseUcfirst }}Error::new(0, "No chunks uploaded", None, String::new()))
             .and_then(|v| serde_json::from_value(v).map_err(Into::into))
     }

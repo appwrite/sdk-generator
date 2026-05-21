@@ -341,6 +341,13 @@ class ClientIO extends ClientBase with ClientMixin {
     var completedChunks = firstIndex + 1;
     var uploadedBytes = firstEnd;
     var lastResponse = res;
+    Response? finalResponse;
+
+    bool isUploadComplete(Response response) {
+      final chunksUploaded = response.data['chunksUploaded'];
+      final chunksTotal = response.data['chunksTotal'] ?? totalChunks;
+      return chunksUploaded is num && chunksTotal is num && chunksUploaded >= chunksTotal;
+    }
 
     final progress = UploadProgress(
       $id: uploadId ?? '',
@@ -377,6 +384,9 @@ class ClientIO extends ClientBase with ClientMixin {
           completedChunks++;
           uploadedBytes += chunk['end']! - chunk['start']!;
           lastResponse = chunkResponse;
+          if (isUploadComplete(chunkResponse)) {
+            finalResponse = chunkResponse;
+          }
 
           final progress = UploadProgress(
             $id: uploadId ?? '',
@@ -395,7 +405,7 @@ class ClientIO extends ClientBase with ClientMixin {
     final concurrency = min(8, chunks.length);
     await Future.wait(List.generate(concurrency, (_) => uploadNext()));
 
-    return lastResponse;
+    return finalResponse ?? lastResponse;
   }
 
   bool get _customSchemeAllowed => Platform.isWindows || Platform.isLinux;

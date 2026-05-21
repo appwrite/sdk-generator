@@ -466,8 +466,19 @@ open class Client {
         var nextChunk = offset / Client.chunkSize
         var completedChunks = nextChunk
         var uploadedBytes = min(offset, size)
+        var completedResponse: [String: Any]? = nil
+        var lastChunkResponse: [String: Any]? = nil
         let baseParams = params
         let baseHeaders = headers
+
+        func isUploadComplete(_ response: [String: Any]) -> Bool {
+            guard let chunksUploaded = response["chunksUploaded"] as? Int else {
+                return false
+            }
+
+            let chunksTotal = response["chunksTotal"] as? Int ?? totalChunks
+            return chunksUploaded >= chunksTotal
+        }
 
         func uploadChunk(index: Int, uploadId: String?) async throws -> (Int, Int, [String: Any]) {
             let chunkOffset = index * Client.chunkSize
@@ -527,7 +538,10 @@ open class Client {
                 inFlight -= 1
                 completedChunks += 1
                 uploadedBytes += chunk.1
-                result = chunk.2
+                lastChunkResponse = chunk.2
+                if isUploadComplete(chunk.2) {
+                    completedResponse = chunk.2
+                }
 
                 onProgress?(UploadProgress(
                     id: uploadId ?? "",
@@ -546,6 +560,8 @@ open class Client {
                 }
             }
         }
+
+        result = completedResponse ?? lastChunkResponse ?? result
 
         return try converter!(result)
     }
