@@ -27,23 +27,29 @@ func _ready() -> void:
         return
 
     var file = FileAccess.open(path, FileAccess.READ)
+    if file == null:
+        push_error("Failed to open env file: %s" % path)
+        return
+
     while not file.eof_reached():
         var line = file.get_line().strip_edges()
         if line.is_empty() or line.begins_with("#"):
             continue
-            
+
         var parts = line.split("=", true, 1)
         if parts.size() != 2:
             continue
-            
+
         var key = parts[0].strip_edges()
         var value = parts[1].strip_edges()
-        
+
         # Remove quotes if present
         if (value.begins_with("\"") and value.ends_with("\"")) or (value.begins_with("'") and value.ends_with("'")):
             value = value.substr(1, value.length() - 2)
-            
+
         _apply_env(key, value)
+
+    file.close()
 
 {% for header in spec.global.headers %}
 {% if header.description %}

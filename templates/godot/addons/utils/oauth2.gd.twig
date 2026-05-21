@@ -80,6 +80,7 @@ func load_svg() -> String:
 		return ""
 	var svg := file.get_as_text()
 	svg = svg.replace("<svg", "<svg width=\"60\" height=\"60\"")
+	file.close()
 	return svg
 
 func success_html() -> String:

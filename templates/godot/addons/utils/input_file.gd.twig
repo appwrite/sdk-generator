@@ -32,7 +32,10 @@ func get_data() -> PackedByteArray:
     if not bytes.is_empty():
         return bytes
     if not path.is_empty():
-        return FileAccess.get_file_as_bytes(path)
+        var data = FileAccess.get_file_as_bytes(path)
+        if data.is_empty() and not FileAccess.file_exists(path):
+            push_error("File not found: %s" % path)
+        return data
     return PackedByteArray()
 
 ## Return the size of the file
@@ -42,7 +45,9 @@ func get_size() -> int:
     if not path.is_empty():
         var file := FileAccess.open(path, FileAccess.READ)
         if file:
-            return file.get_length()
+            var sz = file.get_length()
+            file.close()
+            return sz
     return 0
 
 ## Return a chunk of the file
@@ -53,7 +58,9 @@ func get_chunk(offset: int, length: int) -> PackedByteArray:
         var file := FileAccess.open(path, FileAccess.READ)
         if file:
             file.seek(offset)
-            return file.get_buffer(length)
+            var data = file.get_buffer(length)
+            file.close()
+            return data
     return PackedByteArray()
 
 static func _guess_mime_type(filename: String) -> String:

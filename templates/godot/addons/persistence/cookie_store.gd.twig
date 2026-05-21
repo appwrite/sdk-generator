@@ -44,25 +44,31 @@ func get_cookie_header() -> String:
 
 func save_cookies() -> void:
     var file = FileAccess.open(_cookie_path, FileAccess.WRITE)
-    if file:
-        var dict = {}
-        for name in _cookies:
-            dict[name] = _cookies[name].to_dict()
-        file.store_string(JSON.stringify(dict))
-        file.close()
+    if file == null:
+        push_error("Failed to save cookies: %s" % FileAccess.get_open_error())
+        return
+
+    var dict = {}
+    for name in _cookies:
+        dict[name] = _cookies[name].to_dict()
+    file.store_string(JSON.stringify(dict))
+    file.close()
 
 func load_cookies() -> void:
     if FileAccess.file_exists(_cookie_path):
         var file = FileAccess.open(_cookie_path, FileAccess.READ)
-        if file:
-            var text = file.get_as_text()
-            var json = JSON.new()
-            if json.parse(text) == OK and typeof(json.data) == TYPE_DICTIONARY:
-                for name in json.data:
-                    var data = json.data[name]
-                    if typeof(data) == TYPE_DICTIONARY:
-                        var cookie = _cookie_class.new()
-                        cookie.from_dict(data)
+        if file == null:
+            push_error("Failed to load cookies: %s" % FileAccess.get_open_error())
+            return
+
+        var text = file.get_as_text()
+        var json = JSON.new()
+        if json.parse(text) == OK and typeof(json.data) == TYPE_DICTIONARY:
+            for name in json.data:
+                var data = json.data[name]
+                if typeof(data) == TYPE_DICTIONARY:
+                    var cookie = _cookie_class.new()
+                    cookie.from_dict(data)
                         if not cookie.is_expired():
                             _cookies[name] = cookie
             file.close()
