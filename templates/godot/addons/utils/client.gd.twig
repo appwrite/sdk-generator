@@ -71,13 +71,6 @@ func call_web_api(method: String, path: String = "", params: Dictionary = {}) ->
 func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
     if not _ensure_configured():
         return {"statusCode": 400, "body": "missing/wrong configuration. please check logs for more info"}
-    var http := HTTPRequest.new()
-    
-    var tls_options := TLSOptions.client_unsafe() if _self_signed else TLSOptions.client()
-    http.set_tls_options(tls_options)
-    
-    Engine.get_main_loop().root.add_child.call_deferred(http)
-    await http.tree_entered
 
     # merge headers
     var combined_headers := _global_headers.duplicate()
@@ -134,6 +127,14 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
     if cookie_header != "":
         header_list.append("Cookie: " + cookie_header)
 
+    # Create HTTPRequest instance
+    var http := HTTPRequest.new()
+    var tls_options := TLSOptions.client_unsafe() if _self_signed else TLSOptions.client()
+    http.set_tls_options(tls_options)
+    Engine.get_main_loop().root.add_child.call_deferred(http)
+    await http.tree_entered
+
+    # Make request
     var err = http.request_raw(uri + request_path, header_list, http_method, body)
     if err != OK:
         http.queue_free()

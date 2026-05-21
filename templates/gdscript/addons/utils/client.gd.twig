@@ -51,16 +51,6 @@ func set_{{header.key | caseSnake}}(value: String) -> RefCounted:
 func _http_request(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}, max_redirects: int = 8) -> Variant:
     if not _ensure_configured():
         return {"statusCode": 400, "body": "Missing/wrong configuration. Please check logs for more info"}
-    
-    # Create HTTP request
-    var http := HTTPRequest.new()
-    http.max_redirects = max_redirects
-    var tls_options := TLSOptions.client_unsafe() if _self_signed else TLSOptions.client()
-    http.set_tls_options(tls_options)
-    
-    # Add http request to the tree
-    Engine.get_main_loop().root.add_child.call_deferred(http)
-    await http.tree_entered
 
     # Merge headers
     var combined_headers := _global_headers.duplicate()
@@ -115,6 +105,14 @@ func _http_request(method: String, path: String = "", headers: Dictionary = {}, 
         if combined_headers[key] != "":
             header_list.append(key + ": " + str(combined_headers[key]))
     
+    # Create HTTPRequest instance
+    var http := HTTPRequest.new()
+    var tls_options := TLSOptions.client_unsafe() if _self_signed else TLSOptions.client()
+    http.max_redirects = max_redirects
+    http.set_tls_options(tls_options)
+    Engine.get_main_loop().root.add_child.call_deferred(http)
+    await http.tree_entered
+
     # Make request
     var err = http.request_raw(uri + request_path, header_list, http_method, body)
     if err != OK:
