@@ -239,8 +239,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 	parseUploadId := func(resp *ClientResponse) string {
 		var parsed map[string]interface{}
 		if resp != nil && strings.HasPrefix(resp.Type, "application/json") {
-			err = json.Unmarshal([]byte(resp.Result.(string)), &parsed)
-			if err == nil {
+			if unmarshalErr := json.Unmarshal([]byte(resp.Result.(string)), &parsed); unmarshalErr == nil {
 				id, _ := parsed["$id"].(string)
 				return id
 			}
@@ -333,38 +332,52 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 
 	jobs := make(chan int64)
 	results := make(chan chunkResult, int(remainingChunks))
+	done := make(chan struct{})
 
 	for worker := int64(0); worker < concurrency; worker++ {
 		go func() {
-			for i := range jobs {
-				resp, err := uploadChunk(i, uploadId)
-				results <- chunkResult{index: i, resp: resp, err: err}
+			for {
+				select {
+				case <-done:
+					return
+				case i, ok := <-jobs:
+					if !ok {
+						return
+					}
+					resp, err := uploadChunk(i, uploadId)
+					results <- chunkResult{index: i, resp: resp, err: err}
+				}
 			}
 		}()
 	}
 
 	go func() {
+		defer close(jobs)
 		for i := currentChunk; i < numChunks; i++ {
-			jobs <- i
+			select {
+			case <-done:
+				return
+			case jobs <- i:
+			}
 		}
-		close(jobs)
 	}()
 
-	var firstErr error
+	var lastResult *ClientResponse
+	completeFound := false
 	for i := int64(0); i < remainingChunks; i++ {
 		chunk := <-results
 		if chunk.err != nil {
-			if firstErr == nil {
-				firstErr = chunk.err
-			}
-			continue
+			close(done)
+			return nil, chunk.err
 		}
+		lastResult = chunk.resp
 		if isUploadComplete(chunk.resp) {
 			result = chunk.resp
+			completeFound = true
 		}
 	}
-	if firstErr != nil {
-		return nil, firstErr
+	if !completeFound && lastResult != nil {
+		result = lastResult
 	}
 	return result, nil
 }

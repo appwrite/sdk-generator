@@ -225,18 +225,33 @@ module {{ spec.title | caseUcfirst }}
             mutex = Mutex.new
             queue = Queue.new
             chunks.drop(1).each { |chunk| queue << chunk }
+            first_error = nil
+            last_result = result
+            completed_result = nil
 
             workers = [8, queue.size].min.times.map do
                 Thread.new do
                     loop do
-                        chunk = queue.pop(true) rescue nil
+                        break if mutex.synchronize { !first_error.nil? }
+
+                        chunk = begin
+                            queue.pop(true)
+                        rescue ThreadError
+                            nil
+                        end
                         break unless chunk
 
-                        chunk_result = upload_chunk.call(chunk, upload_id)
+                        begin
+                            chunk_result = upload_chunk.call(chunk, upload_id)
+                        rescue => error
+                            mutex.synchronize { first_error ||= error }
+                            break
+                        end
                         mutex.synchronize do
                             completed_count += 1
                             uploaded_size += chunk[:ending] - chunk[:start]
-                            result = chunk_result if upload_complete.call(chunk_result)
+                            last_result = chunk_result
+                            completed_result = chunk_result if upload_complete.call(chunk_result)
                             on_progress.call({
                                 id: upload_id,
                                 progress: uploaded_size.to_f/size.to_f * 100.0,
@@ -249,7 +264,10 @@ module {{ spec.title | caseUcfirst }}
                 end
             end
 
-            workers.each(&:value)
+            workers.each(&:join)
+            raise first_error if first_error
+
+            result = completed_result || last_result
 
             return result unless response_type.respond_to?("from")
 

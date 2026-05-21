@@ -232,6 +232,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
         const CONCURRENCY = 8;
         let completedCount = startChunkIndex;
         let uploadedBytes = offset;
+        let finalResponse = null;
 
         const isUploadComplete = (chunkResponse: any) => {
             const chunksUploaded = chunkResponse?.chunksUploaded;
@@ -266,8 +267,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
             completedCount++;
             uploadedBytes += (chunk.end - chunk.start);
 
+            response = chunkResponse;
             if (isUploadComplete(chunkResponse)) {
-                response = chunkResponse;
+                finalResponse = chunkResponse;
             }
 
             if (onProgress) {
@@ -301,7 +303,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         await Promise.all(workers);
 
-        return response;
+        return finalResponse ?? response;
 {% endif %}
 {% endfor %}
 {% else %}
