@@ -31,6 +31,9 @@ func parse(header: String) -> void:
                     expires_at = 0
                 else:
                     expires_at = int(Time.get_unix_time_from_system()) + max_age
+            "expires":
+                if expires_at == -1:
+                    expires_at = _parse_http_date(attr_value)
             "path":
                 path = attr_value
             "domain":
@@ -59,3 +62,40 @@ func from_dict(dict: Dictionary) -> void:
     expires_at = int(dict.get("expires_at", -1))
     path = dict.get("path", "/")
     domain = dict.get("domain", "")
+
+func _parse_http_date(date_str: String) -> int:
+    var regex := RegEx.new()
+    regex.compile(
+        "\\w+,\\s+(\\d+)\\s+(\\w+)\\s+(\\d+)\\s+(\\d+):(\\d+):(\\d+)\\s+GMT"
+    )
+
+    var result = regex.search(date_str)
+
+    if result == null:
+        return -1
+
+    var months = {
+        "Jan":1,
+        "Feb":2,
+        "Mar":3,
+        "Apr":4,
+        "May":5,
+        "Jun":6,
+        "Jul":7,
+        "Aug":8,
+        "Sep":9,
+        "Oct":10,
+        "Nov":11,
+        "Dec":12
+    }
+
+    var dict = {
+        year = result.get_string(3).to_int(),
+        month = months.get(result.get_string(2),1),
+        day = result.get_string(1).to_int(),
+        hour = result.get_string(4).to_int(),
+        minute = result.get_string(5).to_int(),
+        second = result.get_string(6).to_int()
+    }
+
+    return Time.get_unix_time_from_datetime_dict(dict)

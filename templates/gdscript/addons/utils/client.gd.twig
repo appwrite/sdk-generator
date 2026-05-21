@@ -142,7 +142,7 @@ func redirect(method: String, path: String = "", headers: Dictionary = {}, param
                 return { "statusCode": 200, "body": header.substr(9).strip_edges() }
 
     if request_result != HTTPRequest.RESULT_SUCCESS:
-        return { "statusCode": 0, "body": "HTTP Request Error: " + str(request_result) }
+        return { "statusCode": 0, "error": "HTTP Request Error: " + str(request_result) }
 
     var response_text := (response[3] as PackedByteArray).get_string_from_utf8()
 
