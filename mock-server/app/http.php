@@ -784,18 +784,34 @@ App::shutdown()
         $result = [];
         $route  = $utopia->getRoute();
         $path   = APP_STORAGE_CACHE . '/tests.json';
-        $tests  = (\file_exists($path)) ? \json_decode(\file_get_contents($path), true) : [];
+        $handle = \fopen($path, 'c+');
 
-        if (!\is_array($tests)) {
-            throw new Exception(Exception::GENERAL_MOCK, 'Failed to read results', 500);
+        if ($handle === false || !\flock($handle, LOCK_EX)) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Failed to lock results', 500);
         }
 
-        $result[$route->getMethod() . ':' . $route->getPath()] = true;
+        try {
+            $contents = \stream_get_contents($handle);
+            $tests = ($contents !== false && $contents !== '') ? \json_decode($contents, true) : [];
 
-        $tests = \array_merge($tests, $result);
+            if (!\is_array($tests)) {
+                throw new Exception(Exception::GENERAL_MOCK, 'Failed to read results', 500);
+            }
 
-        if (!\file_put_contents($path, \json_encode($tests), LOCK_EX)) {
-            throw new Exception(Exception::GENERAL_MOCK, 'Failed to save results', 500);
+            $result[$route->getMethod() . ':' . $route->getPath()] = true;
+            $tests = \array_merge($tests, $result);
+
+            \ftruncate($handle, 0);
+            \rewind($handle);
+
+            if (!\fwrite($handle, \json_encode($tests))) {
+                throw new Exception(Exception::GENERAL_MOCK, 'Failed to save results', 500);
+            }
+
+            \fflush($handle);
+        } finally {
+            \flock($handle, LOCK_UN);
+            \fclose($handle);
         }
 
         $response->json(['result' => $route->getMethod() . ':' . $route->getPath() . ':passed']);
