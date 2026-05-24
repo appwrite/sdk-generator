@@ -1,8 +1,11 @@
 const { execFileSync, execSync } = require("child_process");
 const fs = require("fs");
+const assert = require("node:assert/strict");
 const os = require("os");
 const path = require("path");
 const Client = require("./lib/client.ts").default;
+const { localConfig } = require("./lib/config.ts");
+const { types } = require("./lib/commands/types.ts");
 const { parse } = require("./lib/parser.ts");
 const {
   openRuntimesVersion,
@@ -100,6 +103,28 @@ const captureStdoutSync = (callback) => {
   }
 
   return stripAnsi(output).replace(/\r/g, "");
+};
+
+const muteStdout = async (callback) => {
+  const originalWrite = process.stdout.write.bind(process.stdout);
+  const originalConsoleLog = console.log.bind(console);
+
+  console.log = () => {};
+  process.stdout.write = (_chunk, _encoding, cb) => {
+    const callback = typeof _encoding === "function" ? _encoding : cb;
+    if (typeof callback === "function") {
+      callback();
+    }
+
+    return true;
+  };
+
+  try {
+    return await callback();
+  } finally {
+    console.log = originalConsoleLog;
+    process.stdout.write = originalWrite;
+  }
 };
 
 const withArgv = (args, callback) => {
@@ -616,6 +641,51 @@ void (async () => {
     "bun ./node_modules/typescript/bin/tsc --pretty false --noEmit --strict --exactOptionalPropertyTypes --skipLibCheck --module NodeNext --moduleResolution NodeNext generated/appwrite/types.ts",
     { stdio: "pipe" },
   );
+
+  fs.writeFileSync(
+    path.join(process.cwd(), "appwrite.config.json"),
+    JSON.stringify(
+      {
+        projectId: "console",
+        tables: [
+          {
+            $id: "entitlements",
+            databaseId: "billing",
+            name: "entitlements",
+            rowSecurity: true,
+            columns: [
+              {
+                key: "purchaseTime",
+                type: "integer",
+                required: false,
+                default: null,
+              },
+            ],
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+  );
+  localConfig.useCwdConfig();
+  await muteStdout(async () => {
+    await types.parseAsync([
+      "bun",
+      "types",
+      "generated/kotlin",
+      "--language",
+      "kotlin",
+    ]);
+  });
+
+  const kotlinTypes = fs.readFileSync(
+    path.join(process.cwd(), "generated/kotlin/Entitlements.kt"),
+    "utf8",
+  );
+  assert.match(kotlinTypes, /val purchaseTime: Long\?/);
+  assert.doesNotMatch(kotlinTypes, /val purchaseTime: Int\?/);
+
   console.log("CLI_TYPEGEN:passed");
 })().catch((error) => {
   throw error;
