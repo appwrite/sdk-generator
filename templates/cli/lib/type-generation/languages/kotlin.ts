@@ -23,7 +23,7 @@ export class Kotlin extends LanguageMeta {
         }
         break;
       case AttributeType.INTEGER:
-        type = "Int";
+        type = "Long";
         break;
       case AttributeType.FLOAT:
         type = "Float";
