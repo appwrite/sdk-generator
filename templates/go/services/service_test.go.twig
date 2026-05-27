@@ -36,10 +36,10 @@
 {%- else -%}
     {%- if property.type == 'object' -%}
 {}
-    {%- elseif property.type == 'array' -%}
+{%- elseif property.type == 'array' -%}
 []
-    {%- elseif property.type == 'string' -%}
-"{{ (property.example | default('string')) | replace({'"': '\\"', '\\': '\\\\'}) }}"
+{%- elseif property.type == 'string' -%}
+"{{ (property.example | default('string')) | replace({'"': '\\"', '\\': '\\\\', '`': '\\u0060'}) }}"
     {%- elseif property.type == 'boolean' -%}
 true
     {%- elseif property.type == 'integer' -%}
@@ -113,7 +113,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 		mockResponse := `
 {
 {% for property in definition.properties | filter((param) => param.required) %}
-    "{{ property.name | replace({'"': '\\"', '\\': '\\\\'}) }}": {% if discriminatorConditions[property.name] is defined %}"{{ discriminatorConditions[property.name] | replace({'"': '\\"', '\\': '\\\\'}) }}"{% else %}{{ _self.render_json_value(spec.definitions, property, spec, '    ') | trim | raw }}{% endif %}{% if not loop.last %},{% endif %}{{ "\n" -}}
+    "{{ property.name | replace({'"': '\\"', '\\': '\\\\'}) }}": {% if discriminatorConditions[property.name] is defined %}"{{ discriminatorConditions[property.name] | replace({'"': '\\"', '\\': '\\\\', '`': '\\u0060'}) }}"{% else %}{{ _self.render_json_value(spec.definitions, property, spec, '    ') | trim | raw }}{% endif %}{% if not loop.last %},{% endif %}{{ "\n" -}}
 {% endfor %}
 }
 `

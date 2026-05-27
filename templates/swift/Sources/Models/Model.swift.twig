@@ -94,7 +94,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     public func toMap() -> [String: Any] {
         return [
             {%~ for property in definition.properties %}
-            "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.rawValue{% elseif property.enumValues %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.map { $0.rawValue }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.rawValue{% elseif property.enumValues %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.map { $0.rawValue }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
