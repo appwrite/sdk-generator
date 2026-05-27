@@ -131,20 +131,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
-            {%~ if definition.properties | length > 0 %}
-            {{ 'data' | escapeSwiftKeyword | removeDollarSign }}: try! JSONDecoder().decode(T.self, from: {
-                let raw = map["{{ 'data' }}"]
-                if let dict = raw as? [String: Any] {
-                    return try! JSONSerialization.data(withJSONObject: dict, options: [])
-                } else if let raw = raw, JSONSerialization.isValidJSONObject(raw) {
-                    return try! JSONSerialization.data(withJSONObject: raw, options: [])
-                } else {
-                    return try! JSONSerialization.data(withJSONObject: [:] as [String: Any], options: [])
-                }
-            }())
-            {%~ else %}
             {{ 'data' | escapeSwiftKeyword | removeDollarSign }}: try! JSONDecoder().decode(T.self, from: JSONSerialization.data(withJSONObject: map["{{ 'data' }}"] as? [String: Any] ?? map, options: []))
-            {%~ endif %}
             {%~ endif %}
         )
     }
