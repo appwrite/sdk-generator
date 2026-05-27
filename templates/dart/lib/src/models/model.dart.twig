@@ -67,7 +67,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
     Map<String, dynamic> toMap() {
         return {
 {% for property in definition.properties %}
-            "{{ property.name | escapeDollarSign }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword}}{% if not property.required %}?{% endif %}.map((p) => p.toMap()).toList(){% else %}{{property.name | escapeKeyword}}{% if not property.required %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeKeyword}}{% if not property.required %}?{% endif %}.value{% else %}{{property.name | escapeKeyword }}{% endif %},
+            "{{ property.name | escapeDollarSign }}": {{ property | modelToMapValue }},
 {% endfor %}
 {% if definition.additionalProperties %}
             "{{ definition.additionalPropertiesKey | default('data') | escapeDollarSign }}": {{ definition.additionalPropertiesKey | default('data') | escapeKeyword }},

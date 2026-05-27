@@ -536,6 +536,34 @@ class Swift extends Language
         return $output;
     }
 
+    public function getModelToMapValue(array $property): string
+    {
+        $name = $property['name'] ?? '';
+        if (\in_array($name, $this->getKeywords())) {
+            $name = "`{$name}`";
+        }
+        $name = \str_replace('$', '', $name);
+        $nullAware = !empty($property['required']) ? '' : '?';
+
+        if (!empty($property['sub_schema'])) {
+            if (($property['type'] ?? '') === self::TYPE_ARRAY) {
+                return "{$name}{$nullAware}.map { \$0.toMap() }";
+            }
+
+            return "{$name}{$nullAware}.toMap()";
+        }
+
+        if (!empty($property['enum'])) {
+            return "{$name}{$nullAware}.rawValue";
+        }
+
+        if (!empty($property['enumValues'])) {
+            return "{$name}{$nullAware}.map { \$0.rawValue }";
+        }
+
+        return $name;
+    }
+
     public function getFilters(): array
     {
         return [
@@ -623,6 +651,9 @@ class Swift extends Language
                 $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
                 return '.' . $resolveKey($value);
             }),
+            new TwigFilter('modelToMapValue', function (array $property) {
+                return $this->getModelToMapValue($property);
+            }, ['is_safe' => ['html']]),
         ];
     }
 

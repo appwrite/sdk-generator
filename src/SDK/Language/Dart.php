@@ -286,6 +286,26 @@ class Dart extends Language
         };
     }
 
+    public function getModelToMapValue(array $property): string
+    {
+        $name = $this->escapeKeyword($property['name'] ?? '');
+        $nullAware = !empty($property['required']) ? '' : '?';
+
+        if (!empty($property['sub_schema'])) {
+            if (($property['type'] ?? '') === self::TYPE_ARRAY) {
+                return "{$name}{$nullAware}.map((p) => p.toMap()).toList()";
+            }
+
+            return "{$name}{$nullAware}.toMap()";
+        }
+
+        if (!empty($property['enum'])) {
+            return "{$name}{$nullAware}.value";
+        }
+
+        return $name;
+    }
+
     /**
      * @return array
      */
@@ -601,6 +621,9 @@ class Dart extends Language
                 $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
                 return 'enums.' . \ucfirst($enumName) . '.' . $resolveKey($value);
             }),
+            new TwigFilter('modelToMapValue', function (array $property) {
+                return $this->getModelToMapValue($property);
+            }, ['is_safe' => ['html']]),
         ];
     }
 }
