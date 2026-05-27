@@ -69,11 +69,7 @@ import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
             {{ property.name | escapeKeyword | removeDollarSign }} = {{ property | propertyAssignment(spec) | raw }},
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
-            {%~ if definition.properties | length > 0 %}
-            {{ definition.additionalPropertiesKey | default('data') | escapeKeyword | removeDollarSign }} = map["{{ definition.additionalPropertiesKey | default('data') | escapeDollarSign }}"]?.jsonCast(to = nestedType) ?: emptyMap<String, Any>().jsonCast(to = nestedType)
-            {%~ else %}
             {{ definition.additionalPropertiesKey | default('data') | escapeKeyword | removeDollarSign }} = map["{{ definition.additionalPropertiesKey | default('data') | escapeDollarSign }}"]?.jsonCast(to = nestedType) ?: map.jsonCast(to = nestedType)
-            {%~ endif %}
             {%~ endif %}
         )
     }

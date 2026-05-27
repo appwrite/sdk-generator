@@ -54,11 +54,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
             {%- endif -%},
 {% endfor %}
 {% if definition.additionalProperties %}
-{% if definition.properties | length > 0 %}
-            {{ definition.additionalPropertiesKey | default('data') | escapeKeyword }}: Map<String, dynamic>.from(map["{{ definition.additionalPropertiesKey | default('data') | escapeDollarSign }}"] ?? {}),
-{% else %}
             {{ definition.additionalPropertiesKey | default('data') | escapeKeyword }}: map["{{ definition.additionalPropertiesKey | default('data') | escapeDollarSign }}"] ?? map,
-{% endif %}
 {% endif %}
         );
     }
