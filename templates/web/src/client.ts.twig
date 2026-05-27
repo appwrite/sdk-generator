@@ -988,6 +988,7 @@ class Client {
         if (data && typeof data === 'object') {
             Object.defineProperty(data, 'toString', {
                 value: () => JSONbig.stringify(data),
+                writable: true,
                 enumerable: false,
                 configurable: true,
             });
