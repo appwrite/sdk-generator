@@ -17,7 +17,7 @@ func test_query_value_wrapping():
 	assert_eq(parsed["values"].size(), 1)
 
 func test_query_is_null():
-	var q = {{spec.title | caseUcfirst}}Query.isNull("field")
+	var q = {{spec.title | caseUcfirst}}Query.is_null("field")
 	var parsed = JSON.parse_string(q)
 
 	assert_eq(parsed["method"], "isNull")
@@ -43,7 +43,7 @@ func test_query_and():
 
 func test_query_or():
 	var q1 = {{spec.title | caseUcfirst}}Query.equal("age", 10)
-	var q2 = {{spec.title | caseUcfirst}}Query.isNull("email")
+	var q2 = {{spec.title | caseUcfirst}}Query.is_null("email")
 
 	var combined = {{spec.title | caseUcfirst}}Query.or_query([q1, q2])
 	var parsed = JSON.parse_string(combined)
@@ -66,14 +66,14 @@ func test_query_offset():
 	assert_eq(parsed["values"][0], 5)
 
 func test_query_order_asc():
-	var q = {{spec.title | caseUcfirst}}Query.orderAsc("age")
+	var q = {{spec.title | caseUcfirst}}Query.order_asc("age")
 	var parsed = JSON.parse_string(q)
 
 	assert_eq(parsed["method"], "orderAsc")
 	assert_eq(parsed["attribute"], "age")
 
 func test_query_order_desc():
-	var q = {{spec.title | caseUcfirst}}Query.orderDesc("age")
+	var q = {{spec.title | caseUcfirst}}Query.order_desc("age")
 	var parsed = JSON.parse_string(q)
 
 	assert_eq(parsed["method"], "orderDesc")

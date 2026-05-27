@@ -113,6 +113,9 @@ func ping() -> Variant:
             code = response.body.get("code", response.statusCode)
             type = response.body.get("type", "")
             response_str = str(response.body)
+        elif response.has("error"):
+            message = str(response.get("error", ""))
+            response_str = message
         else:
             message = str(response.get("body", ""))
             response_str = str(response.get("body", ""))

@@ -32,6 +32,9 @@ func _handle_response(result: Dictionary, model_script: Variant = null) -> Varia
             code = result.body.get("code", result.statusCode)
             type = result.body.get("type", "")
             response = str(result.body)
+        elif result.has("error"):
+            message = str(result.get("error", ""))
+            response = message
         else:
             message = str(result.get("body", ""))
             response = str(result.get("body", ""))

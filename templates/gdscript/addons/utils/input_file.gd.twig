@@ -1,5 +1,6 @@
 {% set prefix = spec.title | caseUcfirst %}
 class_name {{prefix}}InputFile
+extends RefCounted
 
 var path: String ## Path to the file
 var bytes: PackedByteArray ## File bytes
