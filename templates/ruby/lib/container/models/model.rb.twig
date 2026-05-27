@@ -8,7 +8,7 @@ module {{ spec.title | caseUcfirst }}
             attr_reader :{{ property.name | caseSnake | escapeKeyword }}
 {% endfor %}
 {% if definition.additionalProperties %}
-            attr_reader :{{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword | removeDollarSign }}
+            attr_reader :{{ 'data' | caseSnake | escapeKeyword | removeDollarSign }}
 {% endif %}
 
             def initialize(
@@ -17,7 +17,7 @@ module {{ spec.title | caseUcfirst }}
 
 {% endfor %}
 {% if definition.additionalProperties %}
-                {{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword | removeDollarSign }}:
+                {{ 'data' | caseSnake | escapeKeyword | removeDollarSign }}:
 {% endif %}
             )
 {% for property in definition.properties %}
@@ -32,7 +32,7 @@ module {{ spec.title | caseUcfirst }}
 {% endif %}
 {% endfor %}
 {% if definition.additionalProperties %}
-                @{{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword | removeDollarSign }} = {{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword | removeDollarSign }}
+                @{{ 'data' | caseSnake | escapeKeyword | removeDollarSign }} = {{ 'data' | caseSnake | escapeKeyword | removeDollarSign }}
 {% endif %}
             end
 
@@ -43,7 +43,7 @@ module {{ spec.title | caseUcfirst }}
 
 {% endfor %}
 {% if definition.additionalProperties %}
-                    {{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword | removeDollarSign }}: map["{{ definition.additionalPropertiesKey | default('data') }}"] || map
+                    {{ 'data' | caseSnake | escapeKeyword | removeDollarSign }}: map["{{ 'data' }}"] || map
 {% endif %}
                 )
             end
@@ -55,14 +55,14 @@ module {{ spec.title | caseUcfirst }}
 
 {% endfor %}
 {% if definition.additionalProperties %}
-                    "{{ definition.additionalPropertiesKey | default('data') }}": @{{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword | removeDollarSign }}
+                    "{{ 'data' }}": @{{ 'data' | caseSnake | escapeKeyword | removeDollarSign }}
 {% endif %}
                 }
             end
 {% if definition.additionalProperties %}
 
             def convert_to(from_json)
-                from_json.call({{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword | removeDollarSign }})
+                from_json.call({{ 'data' | caseSnake | escapeKeyword | removeDollarSign }})
             end
 {% endif %}
 {% for property in definition.properties %}

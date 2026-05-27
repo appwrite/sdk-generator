@@ -618,7 +618,6 @@ class Swagger2 extends Spec
                 'description' => $schema['description'] ?? '',
                 'required' => $schema['required'] ?? [],
                 'additionalProperties' => $schema['additionalProperties'] ?? [],
-                'additionalPropertiesKey' => $schema['x-additional-properties-key'] ?? 'data',
             ];
             if (isset($model['properties'])) {
                 foreach ($model['properties'] as $name => $def) {
@@ -681,7 +680,6 @@ class Swagger2 extends Spec
                 'description' => $schema['description'] ?? '',
                 'required' => $schema['required'] ?? [],
                 'additionalProperties' => $schema['additionalProperties'] ?? [],
-                'additionalPropertiesKey' => $schema['x-additional-properties-key'] ?? 'data',
             ];
             if (isset($model['properties'])) {
                 foreach ($model['properties'] as $name => $def) {
