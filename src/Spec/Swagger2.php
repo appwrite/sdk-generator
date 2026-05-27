@@ -56,7 +56,12 @@ class Swagger2 extends Spec
     {
         $servers = $this->getAttribute('servers', []);
         if (empty($servers)) {
-            return '';
+            $host = $this->getAttribute('x-host-docs', '');
+            if ($host === '') {
+                return '';
+            }
+
+            return $this->getAttribute('schemes.0', 'https') . '://' . $host . $this->getAttribute('basePath', '');
         }
 
         $server = $servers[0];
