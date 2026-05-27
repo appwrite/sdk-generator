@@ -29,7 +29,7 @@
     {%- else -%}
 {
 {% for prop in requiredProps %}
-{{ indent }}    "{{ prop.name | replace({'"': '\\"', '\\': '\\\\'}) }}": {{ helper.render_json_value(definitions, prop, spec, indent ~ '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
+{{ indent }}    "{{ prop.name | replace({'"': '\\"', '\\': '\\\\', '`': '\\u0060'}) }}": {{ helper.render_json_value(definitions, prop, spec, indent ~ '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
 {% endfor %}
 {{ indent }}}
     {%- endif -%}
@@ -113,7 +113,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 		mockResponse := `
 {
 {% for property in definition.properties | filter((param) => param.required) %}
-    "{{ property.name | replace({'"': '\\"', '\\': '\\\\'}) }}": {% if discriminatorConditions[property.name] is defined %}"{{ discriminatorConditions[property.name] | replace({'"': '\\"', '\\': '\\\\', '`': '\\u0060'}) }}"{% else %}{{ _self.render_json_value(spec.definitions, property, spec, '    ') | trim | raw }}{% endif %}{% if not loop.last %},{% endif %}{{ "\n" -}}
+    "{{ property.name | replace({'"': '\\"', '\\': '\\\\', '`': '\\u0060'}) }}": {% if discriminatorConditions[property.name] is defined %}"{{ discriminatorConditions[property.name] | replace({'"': '\\"', '\\': '\\\\', '`': '\\u0060'}) }}"{% else %}{{ _self.render_json_value(spec.definitions, property, spec, '    ') | trim | raw }}{% endif %}{% if not loop.last %},{% endif %}{{ "\n" -}}
 {% endfor %}
 }
 `
