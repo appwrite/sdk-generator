@@ -25,9 +25,8 @@ func authenticate(auth_url:String) -> Dictionary:
 
 	# Open the authentication URL in the system browser
 	if OS.has_feature('web'):
-		JavaScriptBridge.eval("""
-			window.open('%s', '_blank').focus();
-		""".replace("%s", auth_url))
+		var safe_url := JSON.stringify(auth_url)
+		JavaScriptBridge.eval("window.open(" + safe_url + ", '_blank').focus();")
 	else:
 		OS.shell_open(auth_url)
 
@@ -61,10 +60,30 @@ func _process(_delta):
 
 	var parsed := extract_callback_url(_request_buffer)
 
-	if parsed.is_empty() or parsed.has("error") or parsed.get("body", "").contains("failure"):
-		parsed["statusCode"] = 401
+	if parsed.is_empty() or parsed.has("error"):
 		if not parsed.has("error"):
-			parsed["error"] = "Authentication failed"
+			parsed["error"] = "Invalid callback request"
+		if not parsed.has("statusCode"):
+			parsed["statusCode"] = 0
+		_connection.put_data(
+			failure_html(parsed.get("error"))
+			.to_utf8_buffer()
+		)
+	elif parsed.get("body", "").contains("failure") or parsed.get("body", "").contains("?error=") or parsed.get("body", "").contains("&error="):
+		var err_msg = "Authentication failed"
+		var body_str: String = parsed.get("body", "")
+		if body_str.contains("?"):
+			var query_parts = body_str.split("?")[1].split("&")
+			for p in query_parts:
+				var kv = p.split("=")
+				if kv.size() == 2:
+					if kv[0] == "error_description":
+						err_msg = kv[1].uri_decode().replace("+", " ")
+						break
+					if kv[0] == "error" and err_msg == "Authentication failed":
+						err_msg = kv[1].uri_decode().replace("+", " ")
+		parsed["statusCode"] = 401
+		parsed["error"] = err_msg
 		_connection.put_data(
 			failure_html(parsed.get("error"))
 			.to_utf8_buffer()

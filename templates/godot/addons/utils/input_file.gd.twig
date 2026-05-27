@@ -32,9 +32,18 @@ func get_data() -> PackedByteArray:
     if not bytes.is_empty():
         return bytes
     if not path.is_empty():
-        var data = FileAccess.get_file_as_bytes(path)
-        if data.is_empty() and not FileAccess.file_exists(path):
+        if not FileAccess.file_exists(path):
             push_error("File not found: %s" % path)
+            return PackedByteArray()
+        var file := FileAccess.open(path, FileAccess.READ)
+        if not file:
+            push_error("Failed to open file: %s" % path)
+            return PackedByteArray()
+        var data = file.get_buffer(file.get_length())
+        file = null
+        if data.is_empty():
+            push_error("Failed to read file: %s" % path)
+            return PackedByteArray()
         return data
     return PackedByteArray()
 

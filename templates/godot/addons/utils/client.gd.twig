@@ -148,7 +148,7 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
     var response_body: PackedByteArray = response[3]
     
     if request_result != HTTPRequest.RESULT_SUCCESS:
-        return {"statusCode": 0, "error": "HTTP Request Error: " + str(request_result)}
+        return {"statusCode": 0, "error": "HTTP Request Error: " + _get_request_error_message(request_result)}
 
     for header in response[2]:
         if header.to_lower().begins_with("set-cookie:"):
@@ -159,6 +159,23 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
     if json.parse(response_text) == OK:
         return {"statusCode": response_code, "body": json.data}
     return {"statusCode": response_code, "body": response_text}
+
+func _get_request_error_message(request_result: int) -> String:
+    match request_result:
+        HTTPRequest.RESULT_CHUNKED_BODY_SIZE_MISMATCH: return "Chunked body size mismatch"
+        HTTPRequest.RESULT_CANT_CONNECT: return "Cannot connect to server"
+        HTTPRequest.RESULT_CANT_RESOLVE: return "Cannot resolve hostname"
+        HTTPRequest.RESULT_CONNECTION_ERROR: return "Connection error"
+        HTTPRequest.RESULT_TLS_HANDSHAKE_ERROR: return "TLS handshake error"
+        HTTPRequest.RESULT_NO_RESPONSE: return "No response from server"
+        HTTPRequest.RESULT_BODY_SIZE_LIMIT_EXCEEDED: return "Body size limit exceeded"
+        HTTPRequest.RESULT_BODY_DECOMPRESS_FAILED: return "Body decompression failed"
+        HTTPRequest.RESULT_REQUEST_FAILED: return "Request failed"
+        HTTPRequest.RESULT_DOWNLOAD_FILE_CANT_OPEN: return "Cannot open download file"
+        HTTPRequest.RESULT_DOWNLOAD_FILE_WRITE_ERROR: return "Download file write error"
+        HTTPRequest.RESULT_REDIRECT_LIMIT_REACHED: return "Redirect limit reached"
+        HTTPRequest.RESULT_TIMEOUT: return "Request timeout"
+        _: return "Unknown error (" + str(request_result) + ")"
 
 func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
     var body := PackedByteArray()
