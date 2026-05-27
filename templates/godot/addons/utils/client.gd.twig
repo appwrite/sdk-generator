@@ -198,12 +198,12 @@ func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
             for item in value:
                 body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
                 body.append_array(("Content-Disposition: form-data; name=\"%s[]\"\r\n\r\n" % key).to_utf8_buffer())
-                body.append_array((str(item)).to_utf8_buffer())
+                body.append_array((JSON.stringify(_serialize(item))).to_utf8_buffer())
                 body.append_array(("\r\n").to_utf8_buffer())
         else:
             body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
             body.append_array(("Content-Disposition: form-data; name=\"%s\"\r\n\r\n" % key).to_utf8_buffer())
-            body.append_array((str(value)).to_utf8_buffer())
+            body.append_array((JSON.stringify(_serialize(value))).to_utf8_buffer())
             body.append_array(("\r\n").to_utf8_buffer())
     
     body.append_array(("--" + boundary + "--\r\n").to_utf8_buffer())
