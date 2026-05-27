@@ -629,7 +629,12 @@ class Client {
             }
 
             if (data && typeof data === 'object') {
-                data.toString = () => JSONbig.stringify(data);
+                Object.defineProperty(data, 'toString', {
+                    value: () => JSONbig.stringify(data),
+                    writable: true,
+                    enumerable: false,
+                    configurable: true,
+                });
             }
 
             return data;
