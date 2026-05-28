@@ -83,13 +83,13 @@ import {
   getTeamsService,
   getWebhooksService,
   getProjectService,
-  getProjectsService,
+  getOrganizationService,
 } from "../services.js";
 import { sdkForProject, sdkForConsole } from "../sdks.js";
 import {
-  ServiceId,
-  ProtocolId,
-  AuthMethod,
+  ProjectServiceId,
+  ProjectProtocolId,
+  ProjectAuthMethodId,
   AppwriteException,
   Client,
   ImageFormat,
@@ -988,7 +988,9 @@ export class Push {
     projectName?: string;
     settings?: SettingsType;
   }): Promise<void> {
-    const projectsService = await getProjectsService(this.consoleClient);
+    const organizationService = await getOrganizationService(
+      this.consoleClient,
+    );
     const projectId = config.projectId;
     const projectService = await getProjectService();
     const projectName = config.projectName;
@@ -996,7 +998,7 @@ export class Push {
 
     if (projectName) {
       this.log("Applying project name ...");
-      await projectsService.update({
+      await organizationService.updateProject({
         projectId: projectId,
         name: projectName,
       });
@@ -1006,7 +1008,7 @@ export class Push {
       this.log("Applying service statuses ...");
       for (const [service, status] of Object.entries(settings.services)) {
         await projectService.updateService({
-          serviceId: service as ServiceId,
+          serviceId: service as ProjectServiceId,
           enabled: status,
         });
       }
@@ -1016,7 +1018,7 @@ export class Push {
       this.log("Applying protocol statuses ...");
       for (const [protocol, status] of Object.entries(settings.protocols)) {
         await projectService.updateProtocol({
-          protocolId: protocol as ProtocolId,
+          protocolId: protocol as ProjectProtocolId,
           enabled: status,
         });
       }
@@ -1108,7 +1110,7 @@ export class Push {
         this.log("Applying auth methods statuses ...");
         for (const [method, status] of Object.entries(settings.auth.methods)) {
           await projectService.updateAuthMethod({
-            methodId: method as AuthMethod,
+            methodId: method as ProjectAuthMethodId,
             enabled: status,
           });
         }
@@ -2960,12 +2962,20 @@ const pushSettings = async (): Promise<void> => {
   checkDeployConditions(localConfig);
 
   try {
-    const projectsService = await getProjectsService();
-    const response = await projectsService.get(
-      localConfig.getProject().projectId,
-    );
+    const organizationService = await getOrganizationService();
+    const projectService = await getProjectService();
+    const projectId = localConfig.getProject().projectId;
+    const response = await organizationService.getProject({
+      projectId,
+    });
+    const policies = await projectService.listPolicies();
+    const mockPhones = await projectService.listMockPhones();
 
-    const remoteSettings = createSettingsObject(response);
+    const remoteSettings = createSettingsObject(
+      response,
+      policies,
+      mockPhones.mockNumbers,
+    );
     const localSettings = localConfig.getProject().projectSettings ?? {};
 
     log("Checking for changes ...");

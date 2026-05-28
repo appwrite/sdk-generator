@@ -13,8 +13,8 @@ import {
 import { Account, Client } from "@appwrite.io/console";
 import {
   getOrganizationsService,
+  getOrganizationService,
   getTeamsService,
-  getProjectsService,
   getFunctionsService,
   getSitesService,
   getDatabasesService,
@@ -315,7 +315,9 @@ export const questionsInitProject: Question[] = [
 
       const { projects } = await paginate(
         async (args) =>
-          (await getProjectsService()).list(args.queries as string[]),
+          (await getOrganizationService()).listProjects({
+            queries: args.queries as string[],
+          }),
         { parseOutput: false },
         100,
         "projects",

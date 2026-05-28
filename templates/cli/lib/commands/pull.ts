@@ -7,7 +7,8 @@ import {
   Databases,
   Functions,
   Messaging,
-  Projects,
+  Organization,
+  Project,
   Sites,
   Storage,
   TablesDB,
@@ -257,14 +258,19 @@ export class Pull {
   public async pullSettings(projectId: string): Promise<PullSettingsResult> {
     this.log("Pulling project settings ...");
 
-    const projectsService = new Projects(this.consoleClient);
-    const project = await projectsService.get({ projectId: projectId });
+    const organizationService = new Organization(this.consoleClient);
+    const projectService = new Project(this.projectClient);
+    const project = await organizationService.getProject({
+      projectId: projectId,
+    });
+    const policies = await projectService.listPolicies();
+    const mockPhones = await projectService.listMockPhones();
 
     this.success(`Successfully pulled ${chalk.bold("all")} project settings.`);
 
     return {
       projectName: project.name,
-      settings: createSettingsObject(project),
+      settings: createSettingsObject(project, policies, mockPhones.mockNumbers),
       project,
     };
   }
