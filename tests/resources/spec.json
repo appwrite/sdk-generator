@@ -2527,6 +2527,59 @@
       "type": "object",
       "additionalProperties": true
     },
+    "row": {
+      "description": "Row",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "$id": {
+          "type": "string",
+          "description": "Row ID.",
+          "x-example": "row1"
+        },
+        "$sequence": {
+          "type": "string",
+          "description": "Row sequence.",
+          "x-example": "1"
+        },
+        "$tableId": {
+          "type": "string",
+          "description": "Table ID.",
+          "x-example": "table1"
+        },
+        "$databaseId": {
+          "type": "string",
+          "description": "Database ID.",
+          "x-example": "database1"
+        },
+        "$createdAt": {
+          "type": "string",
+          "description": "Creation time.",
+          "x-example": "2026-01-01T00:00:00.000+00:00"
+        },
+        "$updatedAt": {
+          "type": "string",
+          "description": "Update time.",
+          "x-example": "2026-01-01T00:00:00.000+00:00"
+        },
+        "$permissions": {
+          "type": "array",
+          "description": "Permissions.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "$id",
+        "$sequence",
+        "$tableId",
+        "$databaseId",
+        "$createdAt",
+        "$updatedAt",
+        "$permissions"
+      ]
+    },
     "error": {
       "description": "Error",
       "type": "object",

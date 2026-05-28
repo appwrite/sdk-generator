@@ -365,6 +365,18 @@ void main() async {
   print(ID.unique());
   print(ID.custom('custom_id'));
 
+  final row = Row.fromMap({
+    'supported_versions': ['1.2.4', '1.2.5'],
+    '\$id': 'row_id',
+    '\$sequence': '1',
+    '\$tableId': 'table_id',
+    '\$databaseId': 'database_id',
+    '\$createdAt': '2026-01-01T00:00:00.000+00:00',
+    '\$updatedAt': '2026-01-01T00:00:00.000+00:00',
+    '\$permissions': [],
+  });
+  print(jsonEncode(row.data['supported_versions']));
+
   // Channel helper tests
   print(Channel.database('db1').collection('col1').document().toString());
   print(Channel.database('db1').collection('col1').document('doc1').toString());

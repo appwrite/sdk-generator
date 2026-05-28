@@ -202,6 +202,10 @@ abstract class Base extends TestCase
         'custom_id'
     ];
 
+    protected const ROW_DATA_RESPONSES = [
+        '["1.2.4","1.2.5"]',
+    ];
+
     protected const ADDITIONAL_PROPERTIES_RESPONSES = [
         '{"theme":"dark","timezone":"UTC"}',
         '{"$id":"row1","custom":"value","nested":{"enabled":true}}',

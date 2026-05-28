@@ -33,5 +33,20 @@ void main() {
       {% endif %}
 {% endfor %}
     });
+{% if definition.additionalProperties and definition.properties | length > 0 %}
+
+    test('fromMap preserves flattened additional properties', () {
+      final result = {{ definition.name | caseUcfirst | overrideIdentifier }}.fromMap({
+{% for property in definition.properties | filter(p => p.required) %}
+        '{{ property.name | escapeDollarSign }}': {% if property.type == 'array' %}[]{% elseif property.type == 'object' %}{}{% elseif property.enum %}'{{ property.enum[0] | escapeDollarSign }}'{% elseif property.type == 'string' %}'{{property['x-example'] | escapeDollarSign}}'{% elseif property.type == 'boolean' %}true{% else %}{{property['x-example']}}{% endif %},
+{% endfor %}
+        'custom': 'value',
+        'nested': {'enabled': true},
+      });
+
+      expect(result.{{ definition.additionalPropertiesKey | default('data') | escapeKeyword }}['custom'], 'value');
+      expect(result.{{ definition.additionalPropertiesKey | default('data') | escapeKeyword }}['nested'], {'enabled': true});
+    });
+{% endif %}
   });
 }
