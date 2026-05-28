@@ -54,7 +54,27 @@ class Swagger2 extends Spec
      */
     public function getEndpointDocs(): string
     {
-        return $this->getAttribute('x-appwrite.endpointDocs', '');
+        $servers = $this->getAttribute('servers', []);
+        if (empty($servers)) {
+            $host = $this->getAttribute('x-host-docs', '');
+            if ($host === '') {
+                return '';
+            }
+
+            return $this->getAttribute('schemes.0', 'https') . '://' . $host . $this->getAttribute('basePath', '');
+        }
+
+        $server = $servers[0];
+        foreach ($servers as $candidate) {
+            if (isset($candidate['url']) && \str_contains($candidate['url'], '{region}')) {
+                $server = $candidate;
+                break;
+            }
+        }
+
+        return \preg_replace_callback('/\{([^}]+)\}/', function (array $matches) {
+            return '<' . \strtoupper($matches[1]) . '>';
+        }, $server['url'] ?? '') ?? '';
     }
 
     /**

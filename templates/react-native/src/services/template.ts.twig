@@ -232,6 +232,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
         const CONCURRENCY = 8;
         let completedCount = startChunkIndex;
         let uploadedBytes = offset;
+        let finalResponse = null;
+        let failed = false;
 
         const isUploadComplete = (chunkResponse: any) => {
             const chunksUploaded = chunkResponse?.chunksUploaded;
@@ -263,11 +265,16 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
             const chunkResponse = await this.client.call('{{ method.method | caseLower }}', uri, chunkHeaders, chunkPayload);
 
+            if (failed) {
+                return chunkResponse;
+            }
+
             completedCount++;
             uploadedBytes += (chunk.end - chunk.start);
 
+            response = chunkResponse;
             if (isUploadComplete(chunkResponse)) {
-                response = chunkResponse;
+                finalResponse = chunkResponse;
             }
 
             if (onProgress) {
@@ -291,9 +298,14 @@ export class {{ service.name | caseUcfirst }} extends Service {
         for (let i = 0; i < workerCount; i++) {
             workers.push(
                 (async () => {
-                    while (queue.length > 0) {
+                    while (!failed && queue.length > 0) {
                         const chunk = queue.shift()!;
-                        await uploadChunk(chunk);
+                        try {
+                            await uploadChunk(chunk);
+                        } catch (error) {
+                            failed = true;
+                            throw error;
+                        }
                     }
                 })()
             );
@@ -301,7 +313,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         await Promise.all(workers);
 
-        return response;
+        return finalResponse ?? response;
 {% endif %}
 {% endfor %}
 {% else %}

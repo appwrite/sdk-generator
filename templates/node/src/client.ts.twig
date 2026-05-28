@@ -302,11 +302,11 @@ class Client {
             }
 
             // Prepare remaining chunks
-            const chunks: { index: number; start: number; end: number }[] = [];
+            const chunks: { start: number; end: number }[] = [];
             for (let i = 1; i < totalChunks; i++) {
                 const start = i * Client.CHUNK_SIZE;
                 const end = Math.min(start + Client.CHUNK_SIZE, size);
-                chunks.push({ index: i, start, end });
+                chunks.push({ start, end });
             }
 
             // Upload remaining chunks with max concurrency of 8
@@ -314,6 +314,8 @@ class Client {
             let completedCount = 1;
             let uploadedBytes = firstChunkEnd;
             let lastResponse = response;
+            let finalResponse = null;
+            let failed = false;
 
             const isUploadComplete = (chunkResponse: any) => {
                 const chunksUploaded = chunkResponse?.chunksUploaded;
@@ -333,12 +335,17 @@ class Client {
                 chunkPayload[fileParam] = new File([chunkBlob], file.filename);
 
                 const chunkResponse = await this.call(method, url, chunkHeaders, chunkPayload);
+
+                if (failed) {
+                    return chunkResponse;
+                }
                 
                 completedCount++;
                 uploadedBytes += (chunk.end - chunk.start);
                 
+                lastResponse = chunkResponse;
                 if (isUploadComplete(chunkResponse)) {
-                    lastResponse = chunkResponse;
+                    finalResponse = chunkResponse;
                 }
 
                 if (onProgress && typeof onProgress === 'function') {
@@ -362,9 +369,14 @@ class Client {
             for (let i = 0; i < workerCount; i++) {
                 workers.push(
                     (async () => {
-                        while (queue.length > 0) {
+                        while (!failed && queue.length > 0) {
                             const chunk = queue.shift()!;
-                            await uploadChunk(chunk);
+                            try {
+                                await uploadChunk(chunk);
+                            } catch (error) {
+                                failed = true;
+                                throw error;
+                            }
                         }
                     })()
                 );
@@ -372,7 +384,7 @@ class Client {
 
             await Promise.all(workers);
 
-            return lastResponse;
+            return finalResponse ?? lastResponse;
         }
 
         if (file.size <= Client.CHUNK_SIZE) {
@@ -406,11 +418,11 @@ class Client {
         }
 
         // Prepare remaining chunks
-        const chunks: { index: number; start: number; end: number }[] = [];
+        const chunks: { start: number; end: number }[] = [];
         for (let i = 1; i < totalChunks; i++) {
             const start = i * Client.CHUNK_SIZE;
             const end = Math.min(start + Client.CHUNK_SIZE, file.size);
-            chunks.push({ index: i, start, end });
+            chunks.push({ start, end });
         }
 
         // Upload remaining chunks with max concurrency of 8
@@ -418,6 +430,8 @@ class Client {
         let completedCount = 1;
         let uploadedBytes = firstChunkEnd;
         let lastResponse = response;
+        let finalResponse = null;
+        let failed = false;
 
         const isUploadComplete = (chunkResponse: any) => {
             const chunksUploaded = chunkResponse?.chunksUploaded;
@@ -437,12 +451,17 @@ class Client {
             chunkPayload[fileParam] = new File([chunkBlob], file.name);
 
             const chunkResponse = await this.call(method, url, chunkHeaders, chunkPayload);
+
+            if (failed) {
+                return chunkResponse;
+            }
             
             completedCount++;
             uploadedBytes += (chunk.end - chunk.start);
             
+            lastResponse = chunkResponse;
             if (isUploadComplete(chunkResponse)) {
-                lastResponse = chunkResponse;
+                finalResponse = chunkResponse;
             }
 
             if (onProgress && typeof onProgress === 'function') {
@@ -466,9 +485,14 @@ class Client {
         for (let i = 0; i < workerCount; i++) {
             workers.push(
                 (async () => {
-                    while (queue.length > 0) {
+                    while (!failed && queue.length > 0) {
                         const chunk = queue.shift()!;
-                        await uploadChunk(chunk);
+                        try {
+                            await uploadChunk(chunk);
+                        } catch (error) {
+                            failed = true;
+                            throw error;
+                        }
                     }
                 })()
             );
@@ -476,10 +500,10 @@ class Client {
 
         await Promise.all(workers);
 
-        return lastResponse;
+        return finalResponse ?? lastResponse;
     }
 
-    async ping(): Promise<string> {
+    async ping(): Promise<unknown> {
         return this.call('GET', new URL(this.config.endpoint + '/ping'));
     }
 
@@ -531,7 +555,12 @@ class Client {
         }
 
         if (data && typeof data === 'object') {
-            data.toString = () => JSONbig.stringify(data);
+            Object.defineProperty(data, 'toString', {
+                value: () => JSONbig.stringify(data),
+                writable: true,
+                enumerable: false,
+                configurable: true,
+            });
         }
 
         return data;

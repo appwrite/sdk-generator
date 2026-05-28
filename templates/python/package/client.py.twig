@@ -136,14 +136,15 @@ class Client:
 
         if input_file.source_type == 'path':
             size = os.stat(input_file.path).st_size
-            input = open(input_file.path, 'rb')
+            input = None
         elif input_file.source_type == 'bytes':
             size = len(input_file.data)
             input = input_file.data
 
         if size < self._chunk_size:
             if input_file.source_type == 'path':
-                input_file.data = input.read()
+                with open(input_file.path, 'rb') as input:
+                    input_file.data = input.read()
 
             params[param_name] = input_file
             return self.call(
@@ -164,8 +165,6 @@ class Client:
 
         if counter > 0:
             offset = counter * self._chunk_size
-            if input_file.source_type == 'path':
-                input.seek(offset)
 
         total_chunks = (size + self._chunk_size - 1) // self._chunk_size
         chunks = []
@@ -194,6 +193,7 @@ class Client:
         uploaded_size = chunks[0]['start']
         progress_lock = Lock()
         last_result = None
+        final_result = None
 
         def is_upload_complete(chunk_result):
             chunks_uploaded = chunk_result.get('chunksUploaded')
@@ -231,7 +231,7 @@ class Client:
 
         if on_progress is not None:
             on_progress({
-                "$id": result["$id"],
+                "$id": result.get("$id"),
                 "progress": uploaded_size / size * 100,
                 "sizeUploaded": uploaded_size,
                 "chunksTotal": total_chunks,
@@ -239,13 +239,14 @@ class Client:
             })
 
         def upload_remaining_chunk(chunk):
-            nonlocal completed_count, uploaded_size, last_result
+            nonlocal completed_count, uploaded_size, last_result, final_result
             chunk_result = upload_chunk(chunk, upload_id_header)
             with progress_lock:
                 completed_count = completed_count + 1
                 uploaded_size = uploaded_size + (chunk['end'] - chunk['start'])
+                last_result = chunk_result
                 if is_upload_complete(chunk_result):
-                    last_result = chunk_result
+                    final_result = chunk_result
                 if on_progress is not None:
                     on_progress({
                         "$id": upload_id_header,
@@ -260,7 +261,7 @@ class Client:
             for future in as_completed(futures):
                 future.result()
 
-        return last_result
+        return final_result or last_result
 
     def flatten(self, data, prefix='', stringify=False):
         output = {}

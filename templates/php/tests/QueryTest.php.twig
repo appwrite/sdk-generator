@@ -22,9 +22,9 @@ final class QueryTest extends TestCase {
      */
     private $tests;
 
-    function __construct(string $name)
+    protected function setUp(): void
     {
-        parent::__construct($name);
+        parent::setUp();
         $this->tests = array(
             new BasicFilterQueryTest('with a string', 's', '["s"]'),
             new BasicFilterQueryTest('with a integer', 1, '[1]'),
