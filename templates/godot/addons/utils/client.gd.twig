@@ -54,8 +54,11 @@ func set_{{header.key | caseSnake}}(value: String) -> RefCounted:
 func call_web_api(method: String, path: String = "", params: Dictionary = {}) -> Dictionary:
     if not _ensure_configured():
         return {"statusCode": 0, "error": "missing/wrong configuration. please check logs for more info"}
-    var oauth_client = load("res://addons/{{ spec.title | caseSnake }}/utils/oauth2.gd").new()
-    
+
+    var oauth_script = load("res://addons/{{ spec.title | caseSnake }}/utils/oauth2.gd")
+    if oauth_script == null:
+        return {"statusCode": 0, "error": "Failed loading OAuth2 script"}
+    var oauth_client = oauth_script.new()
     Engine.get_main_loop().root.add_child.call_deferred(oauth_client)
     await oauth_client.tree_entered
 
