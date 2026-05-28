@@ -13,7 +13,7 @@ class GDScript4Test extends Base
     protected string $class = 'Appwrite\SDK\Language\GDScript';
     protected array $build = [
         'cp tests/languages/gdscript/test.gd tests/sdks/gdscript/test.gd',
-        'cp -r tests/resources/ tests/sdks/gdscript/tests/',
+        'cp -r tests/resources tests/sdks/gdscript/tests/',
         'docker run --rm \
         -v $(pwd)/tests/sdks/gdscript:/app \
         -w /app \

@@ -14,7 +14,7 @@ class Godot4Test extends Base
 
     protected array $build = [
         'cp tests/languages/godot/test.gd tests/sdks/godot/tests/test.gd',
-        'cp -r tests/resources/ tests/sdks/godot/tests/',
+        'cp -r tests/resources tests/sdks/godot/tests/',
         'docker run --rm \
         -v $(pwd)/tests/sdks/godot:/app \
         -w /app \
