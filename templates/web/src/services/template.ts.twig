@@ -137,9 +137,11 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endfor %}
         {%~ endfor %}
         {%~ endif %}
+        {%~ if method.type == 'location' %}
         if (this.client.config.impersonateuserid) {
             payload['impersonateUserId'] = this.client.config.impersonateuserid;
         }
+        {%~ endif %}
 
         for (const [key, value] of Object.entries(Service.flatten(payload))) {
             uri.searchParams.append(key, value);
