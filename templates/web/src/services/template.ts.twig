@@ -133,7 +133,7 @@ export class {{ service.name | caseUcfirst }} {
         {%~ if method.auth|length > 0 %}
         {%~ for node in method.auth %}
         {%~ for key,header in node|keys %}
-        payload['{{header|caseCamel}}'] = this.client.config.{{header|caseLower}};
+        payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
         {%~ endfor %}
         {%~ endfor %}
         {%~ endif %}
