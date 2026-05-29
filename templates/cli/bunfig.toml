@@ -3,3 +3,7 @@
 
 [install]
 minimumReleaseAge = 604800 # 7d
+# Exempt `tmp` from the release-age policy so the security fix for
+# GHSA-ph9p-34f9-6g65 (landed in tmp@0.2.6) can be installed before the
+# 7d window elapses. Remove this entry once 0.2.6+ ages out.
+minimumReleaseAgeExcludes = ["tmp"]
