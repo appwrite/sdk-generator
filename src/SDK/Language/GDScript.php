@@ -132,7 +132,8 @@ class GDScript extends Language
             'Transform2D',
             'Transform3D',
             'RID',
-            '@on_ready'
+            '@on_ready',
+            'namespace'
             // TODO: add more
         ];
     }
