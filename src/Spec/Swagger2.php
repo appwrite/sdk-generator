@@ -584,7 +584,6 @@ class Swagger2 extends Spec
                     'key' => $key,
                     'name' => $definition['name'],
                     'description' => $definition['description'],
-                    'location' => $definition['x-location'] ?? false,
                 ];
             } elseif (
                 isset($definition['type']) && $definition['type'] === 'http' &&

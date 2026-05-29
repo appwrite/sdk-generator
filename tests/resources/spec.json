@@ -81,8 +81,7 @@
       "type": "apiKey",
       "name": "X-Appwrite-Impersonate-User-Id",
       "description": "Impersonate a user by ID.",
-      "in": "header",
-      "x-location": true
+      "in": "header"
     }
   },
   "paths": {
@@ -1393,7 +1392,8 @@
           "offline-key": "",
           "offline-response-key": "$id",
           "auth": {
-            "Project": []
+            "Project": [],
+            "ImpersonateUserId": []
           }
         },
         "security": [
