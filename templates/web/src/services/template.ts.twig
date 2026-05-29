@@ -138,9 +138,13 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endfor %}
         {%~ endif %}
         {%~ if method.type == 'location' %}
-        if (this.client.config.impersonateuserid) {
-            payload['impersonateUserId'] = this.client.config.impersonateuserid;
+        {%~ for header in spec.global.headers %}
+        {%~ if header.location %}
+        if (this.client.config.{{ header.key | caseLower }}) {
+            payload['{{ header.key | caseCamel }}'] = this.client.config.{{ header.key | caseLower }};
         }
+        {%~ endif %}
+        {%~ endfor %}
         {%~ endif %}
 
         for (const [key, value] of Object.entries(Service.flatten(payload))) {

@@ -81,7 +81,8 @@
       "type": "apiKey",
       "name": "X-Appwrite-Impersonate-User-Id",
       "description": "Impersonate a user by ID.",
-      "in": "header"
+      "in": "header",
+      "x-location": true
     }
   },
   "paths": {
