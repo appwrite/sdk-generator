@@ -376,7 +376,11 @@ const initProject = async ({
         break;
     }
 
-    const organizationService = await getOrganizationService();
+    // The Organization SDK has no per-request orgId param; the server resolves
+    // the target organization from the X-Appwrite-Organization header.
+    const consoleClient = await sdkForConsole();
+    consoleClient.headers["X-Appwrite-Organization"] = answers.organization;
+    const organizationService = await getOrganizationService(consoleClient);
     const response = await organizationService.createProject({
       projectId: projectIdToCreate,
       name: projectNameToCreate,
