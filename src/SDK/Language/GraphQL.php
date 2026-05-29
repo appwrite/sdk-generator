@@ -132,7 +132,7 @@ class GraphQL extends HTTP
      * @param array $spec
      * @return string
      */
-    public function getParamExample(array $param, string $lang = '', array $spec = []): string 
+    public function getParamExample(array $param, string $lang = '', array $spec = []): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';

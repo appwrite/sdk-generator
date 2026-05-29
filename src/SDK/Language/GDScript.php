@@ -331,7 +331,6 @@ class GDScript extends Language
 
         // ARRAY TYPES
         if (($parameter['type'] ?? null) === self::TYPE_ARRAY) {
-
             // Array of models
             if (!empty($parameter['array']['model'])) {
                 return 'Array[' . $prefix . $this->toPascalCase($parameter['array']['model']) . ']';

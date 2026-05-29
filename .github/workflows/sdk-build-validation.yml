@@ -169,6 +169,14 @@ jobs:
         with:
           go-version: '1.25.10'
 
+      - name: Setup GDScript
+        if: matrix.sdk == 'godot' || matrix.sdk == 'gdscript'
+        run: |
+          wget https://github.com/godotengine/godot/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip
+          unzip Godot*.x86_64.zip
+          chmod +x Godot*.x86_64
+          sudo mv Godot*.x86_64 /usr/local/bin/godot
+
       - name: Install OSV Scanner
         if: matrix.sdk == 'dart' || matrix.sdk == 'flutter'
         run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@${{ env.OSV_SCANNER_VERSION }}
@@ -196,6 +204,15 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-audit-0.22.1
+
+      - name: Install GUT
+        if: matrix.sdk == 'godot' || matrix.sdk == 'gdscript'
+        working-directory: examples/${{ matrix.sdk }}
+        run: |
+          wget https://github.com/bitwes/Gut/archive/refs/tags/v9.6.0.tar.gz -O gut.tar.gz
+          tar -xzf gut.tar.gz
+          mv Gut*/addons/gut addons/gut
+          rm -rf Gut* gut.tar.gz
 
       - name: Build SDK
         working-directory: examples/${{ matrix.sdk }}
@@ -290,6 +307,10 @@ jobs:
               cargo audit
               cargo +1.83.0 build --release
               cargo +1.83.0 test --lib
+              ;;
+            gdscript|godot)
+              godot --headless --import --quit
+              godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit
               ;;
             *)
               echo "Unknown SDK: ${{ matrix.sdk }}"
