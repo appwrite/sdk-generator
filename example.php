@@ -185,6 +185,8 @@ try {
                 'services' => [
                     ['name' => 'assistant'],
                     ['name' => 'avatars'],
+                    ['name' => 'advisor'],
+                    ['name' => 'compute'],
                 ],
             ],
         ]);
