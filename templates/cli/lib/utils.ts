@@ -4,6 +4,7 @@ import path from "path";
 import net from "net";
 import childProcess from "child_process";
 import type { Models } from "@appwrite.io/console";
+import { ProjectPolicyId } from "@appwrite.io/console";
 import { z } from "zod";
 import { globalConfig } from "./config.js";
 import type { SettingsType } from "./commands/config.js";
@@ -16,50 +17,93 @@ import {
   UPDATE_CHECK_INTERVAL_MS,
 } from "./constants.js";
 
-export const createSettingsObject = (project: Models.Project): SettingsType => {
+type AuthSecuritySettings = NonNullable<
+  NonNullable<SettingsType["auth"]>["security"]
+>;
+
+export const createSettingsObject = (
+  project: Models.Project,
+  policies?: Models.PolicyList,
+  mockNumbers?: Models.MockNumber[],
+): SettingsType => {
+  const byId = <T extends { $id: string; enabled: boolean }>(
+    items: T[] | undefined,
+  ): Map<string, boolean> =>
+    new Map((items ?? []).map((item) => [item.$id, item.enabled]));
+
+  const serviceStatus = byId(project.services);
+  const protocolStatus = byId(project.protocols);
+  const authMethodStatus = byId(project.authMethods);
+
+  const policyById = new Map<string, Models.PolicyList["policies"][number]>();
+  for (const policy of policies?.policies ?? []) {
+    policyById.set(policy.$id, policy);
+  }
+
+  const policyTotal = (id: ProjectPolicyId): number | undefined => {
+    const policy = policyById.get(id);
+    return policy && "total" in policy ? policy.total : undefined;
+  };
+
+  const policyEnabled = (id: ProjectPolicyId): boolean | undefined => {
+    const policy = policyById.get(id);
+    return policy && "enabled" in policy ? policy.enabled : undefined;
+  };
+
+  const sessionDuration = policyById.get(ProjectPolicyId.Sessionduration);
+  const buildSecurity = (): AuthSecuritySettings | undefined => {
+    if (policies === undefined && mockNumbers === undefined) {
+      return undefined;
+    }
+    return {
+      duration:
+        sessionDuration && "duration" in sessionDuration
+          ? sessionDuration.duration
+          : undefined,
+      limit: policyTotal(ProjectPolicyId.Userlimit),
+      sessionsLimit: policyTotal(ProjectPolicyId.Sessionlimit),
+      passwordHistory: policyTotal(ProjectPolicyId.Passwordhistory),
+      passwordDictionary: policyEnabled(ProjectPolicyId.Passworddictionary),
+      personalDataCheck: policyEnabled(ProjectPolicyId.Passwordpersonaldata),
+      sessionAlerts: policyEnabled(ProjectPolicyId.Sessionalert),
+      mockNumbers: mockNumbers?.map((mockNumber) => ({
+        phone: mockNumber.number,
+        otp: mockNumber.otp,
+      })),
+    };
+  };
+
   return {
     services: {
-      account: project.serviceStatusForAccount,
-      avatars: project.serviceStatusForAvatars,
-      databases: project.serviceStatusForDatabases,
-      locale: project.serviceStatusForLocale,
-      health: project.serviceStatusForHealth,
-      storage: project.serviceStatusForStorage,
-      teams: project.serviceStatusForTeams,
-      users: project.serviceStatusForUsers,
-      sites: project.serviceStatusForSites,
-      functions: project.serviceStatusForFunctions,
-      graphql: project.serviceStatusForGraphql,
-      messaging: project.serviceStatusForMessaging,
+      account: serviceStatus.get("account"),
+      avatars: serviceStatus.get("avatars"),
+      databases: serviceStatus.get("databases"),
+      locale: serviceStatus.get("locale"),
+      health: serviceStatus.get("health"),
+      storage: serviceStatus.get("storage"),
+      teams: serviceStatus.get("teams"),
+      users: serviceStatus.get("users"),
+      sites: serviceStatus.get("sites"),
+      functions: serviceStatus.get("functions"),
+      graphql: serviceStatus.get("graphql"),
+      messaging: serviceStatus.get("messaging"),
     },
     protocols: {
-      rest: project.protocolStatusForRest,
-      graphql: project.protocolStatusForGraphql,
-      websocket: project.protocolStatusForWebsocket,
+      rest: protocolStatus.get("rest"),
+      graphql: protocolStatus.get("graphql"),
+      websocket: protocolStatus.get("websocket"),
     },
     auth: {
       methods: {
-        jwt: project.authJWT,
-        phone: project.authPhone,
-        invites: project.authInvites,
-        anonymous: project.authAnonymous,
-        "email-otp": project.authEmailOtp,
-        "magic-url": project.authUsersAuthMagicURL,
-        "email-password": project.authEmailPassword,
+        jwt: authMethodStatus.get("jwt"),
+        phone: authMethodStatus.get("phone"),
+        invites: authMethodStatus.get("invites"),
+        anonymous: authMethodStatus.get("anonymous"),
+        "email-otp": authMethodStatus.get("email-otp"),
+        "magic-url": authMethodStatus.get("magic-url"),
+        "email-password": authMethodStatus.get("email-password"),
       },
-      security: {
-        duration: project.authDuration,
-        limit: project.authLimit,
-        sessionsLimit: project.authSessionsLimit,
-        passwordHistory: project.authPasswordHistory,
-        passwordDictionary: project.authPasswordDictionary,
-        personalDataCheck: project.authPersonalDataCheck,
-        sessionAlerts: project.authSessionAlerts,
-        mockNumbers: project.authMockNumbers?.map((mockNumber) => ({
-          phone: mockNumber.number,
-          otp: mockNumber.otp,
-        })),
-      },
+      security: buildSecurity(),
     },
   };
 };

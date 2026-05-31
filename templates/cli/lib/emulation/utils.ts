@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import { log } from "../parser.js";
 import { sdkForProject } from "../sdks.js";
-import { Project, Scopes, Users } from "@appwrite.io/console";
+import { Project, ProjectKeyScopes, Users } from "@appwrite.io/console";
 
 export const openRuntimesVersion = "v5";
 
@@ -104,7 +104,7 @@ export const JwtManager = {
 
   async setup(
     userId: string | null = null,
-    projectScopes: Scopes[] = [],
+    projectScopes: ProjectKeyScopes[] = [],
   ): Promise<void> {
     const projectClient = await sdkForProject();
     const projectService = new Project(projectClient);

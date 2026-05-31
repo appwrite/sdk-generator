@@ -44,7 +44,7 @@ import {
   dockerPull,
   assertFunctionSourceCode,
 } from "../emulation/docker.js";
-import { Scopes } from "@appwrite.io/console";
+import { ProjectKeyScopes } from "@appwrite.io/console";
 
 interface RunFunctionOptions {
   port?: string | number;
@@ -212,7 +212,7 @@ const runFunction = async ({
   allVariables["APPWRITE_FUNCTION_RUNTIME_VERSION"] = func.runtime;
 
   try {
-    await JwtManager.setup(userId, (func.scopes as Scopes[]) ?? []);
+    await JwtManager.setup(userId, (func.scopes as ProjectKeyScopes[]) ?? []);
   } catch (err: unknown) {
     warn(
       "Dynamic API key not generated. Header x-appwrite-key will not be set. Reason: " +

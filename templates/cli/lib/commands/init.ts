@@ -4,7 +4,7 @@ import childProcess from "child_process";
 import { Command } from "commander";
 import inquirer from "inquirer";
 import chalk from "chalk";
-import { getProjectsService, getSitesService } from "../services.js";
+import { getOrganizationService, getSitesService } from "../services.js";
 import { pullResources } from "./pull.js";
 import ID from "../id.js";
 import { localConfig, globalConfig } from "../config.js";
@@ -40,12 +40,16 @@ import {
   detectProjectSkills,
   placeSkills,
 } from "../utils.js";
-import { Account, UseCases, AppwriteException } from "@appwrite.io/console";
+import {
+  Account,
+  AppwriteException,
+  SiteTemplateUseCase,
+} from "@appwrite.io/console";
+import type { Region } from "@appwrite.io/console";
 import { DEFAULT_ENDPOINT, EXECUTABLE_NAME } from "../constants.js";
 
 type InitResourceAction = (_options?: unknown) => Promise<void>;
-type ProjectsService = Awaited<ReturnType<typeof getProjectsService>>;
-type ProjectCreateRegion = Parameters<ProjectsService["create"]>[3];
+type ProjectCreateRegion = Region;
 
 interface ExistingProjectSummary {
   $id: string;
@@ -107,8 +111,10 @@ const extractSelectionId = (value: string): string => {
 const getExistingProjectSummary = async (
   projectId: string,
 ): Promise<ExistingProjectSummary> => {
-  const projectsService = await getProjectsService();
-  const project = await projectsService.get(extractSelectionId(projectId));
+  const organizationService = await getOrganizationService();
+  const project = await organizationService.getProject({
+    projectId: extractSelectionId(projectId),
+  });
 
   return {
     $id: project.$id,
@@ -370,13 +376,16 @@ const initProject = async ({
         break;
     }
 
-    const projectsService = await getProjectsService();
-    const response = await projectsService.create(
-      projectIdToCreate,
-      projectNameToCreate,
-      answers.organization,
-      answers.region,
-    );
+    // The Organization SDK has no per-request orgId param; the server resolves
+    // the target organization from the X-Appwrite-Organization header.
+    const consoleClient = await sdkForConsole();
+    consoleClient.headers["X-Appwrite-Organization"] = answers.organization;
+    const organizationService = await getOrganizationService(consoleClient);
+    const response = await organizationService.createProject({
+      projectId: projectIdToCreate,
+      name: projectNameToCreate,
+      region: answers.region,
+    });
 
     localConfig.setProject(response["$id"], response.name ?? "");
     if (answers.region) {
@@ -839,7 +848,7 @@ const initSite = async (): Promise<void> => {
     const sitesService = await getSitesService();
     const response = await sitesService.listTemplates(
       [answers.framework.key],
-      [UseCases.Starter],
+      [SiteTemplateUseCase.Starter],
       1,
     );
     if (response.total == 0) {
