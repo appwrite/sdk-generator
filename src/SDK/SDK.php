@@ -160,14 +160,7 @@ class SDK
             return str_replace([' ', '_'], '.', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', $value)));
         }));
         $this->twig->addFilter(new TwigFilter('caseSnake', function ($value) {
-            preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $value, $matches);
-            $ret = $matches[0];
-            foreach ($ret as &$match) {
-                $match = $match == strtoupper($match)
-                    ? strtolower($match)
-                    : lcfirst($match);
-            }
-            return implode('_', $ret);
+            return $this->helperSnakeCase($value);
         }));
         $this->twig->addFilter(new TwigFilter('recasePathParams', function (string $path, array $params, string $case = 'camel') {
             foreach ($params as $param) {
@@ -177,12 +170,7 @@ class SDK
                 }
                 switch ($case) {
                     case 'snake':
-                        preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $name, $matches);
-                        $parts = $matches[0];
-                        foreach ($parts as &$part) {
-                            $part = $part == strtoupper($part) ? strtolower($part) : lcfirst($part);
-                        }
-                        $recased = implode('_', $parts);
+                        $recased = $this->helperSnakeCase($name);
                         break;
                     case 'ucfirst':
                         $recased = ucfirst($this->helperCamelCase($name));
@@ -1530,6 +1518,21 @@ class SDK
         $str = lcfirst($str);
 
         return $str;
+    }
+
+    protected function helperSnakeCase(?string $str): string
+    {
+        if ($str === null) {
+            return '';
+        }
+        preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $str, $matches);
+        $ret = $matches[0];
+        foreach ($ret as &$match) {
+            $match = $match == strtoupper($match)
+                ? strtolower($match)
+                : lcfirst($match);
+        }
+        return implode('_', $ret);
     }
 
     /**
