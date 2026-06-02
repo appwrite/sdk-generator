@@ -246,6 +246,14 @@ class Swagger2 extends Spec
             }
         }
 
+        // OAuth2 endpoints redirect by default; sending a JSON content-type makes the API
+        // respond with JSON instead, which is what SDK consumers expect. This also ensures
+        // the GET methods (which have no `consumes`) still send the header.
+        // TODO: Hard-coded to the oauth2 service for now — gradually enable for all services.
+        if (in_array('oauth2', $method['tags'] ?? [], true)) {
+            $output['headers']['content-type'] = 'application/json';
+        }
+
         $method['parameters'] = (isset($method['parameters']) && is_array($method['parameters'])) ? $method['parameters'] : [];
 
         foreach ($method['parameters'] as $parameter) {
