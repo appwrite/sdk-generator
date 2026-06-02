@@ -34,7 +34,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
         {%~ endif %}
         public Task{% if method.type == "webAuth" %}<String>{% else %}<{{ utils.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ utils.method_parameters(method.parameters, method.consumes) }})
         {
-            var apiPath = "{{ method.path }}"{% if method.parameters.path | length == 0 %};{% endif %}
+            var apiPath = "{{ method.path | recasePathParams(method.parameters.path, 'camel') }}"{% if method.parameters.path | length == 0 %};{% endif %}
 
             {{~ include('dotnet/base/params.twig') }}
 

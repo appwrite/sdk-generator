@@ -161,7 +161,7 @@ Dict[str, Any]
             If API request fails
         """
 
-        api_path = '{{ method.path }}'
+        api_path = '{{ method.path | recasePathParams(method.parameters.path, 'snake') }}'
 {{ include('python/base/params.twig') }}
 {% if 'multipart/form-data' in method.consumes %}
 {{ include('python/base/requests/file.twig') }}

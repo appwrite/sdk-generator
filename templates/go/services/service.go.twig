@@ -125,8 +125,8 @@ func (srv *{{ service.name | caseUcfirst }}) With{{ method.name | caseUcfirst }}
 {% set returnType = method | returnType(spec, spec.title | caseLower) %}
 func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ params }})({% if returnType == 'models.Model' %}{{ returnType }}{% else %}*{{ returnType }}{% endif %}, error) {
 {% if method.parameters.path|length > 0 %}
-	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
-	path := r.Replace("{{ method.path }}")
+	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseUcfirst }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
+	path := r.Replace("{{ method.path | recasePathParams(method.parameters.path, 'ucfirst') }}")
 {% else %}
 	path := "{{ method.path }}"
 {% endif %}
@@ -154,8 +154,8 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ 
 {% endif %}
 func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}URL({{ params }}) (*string, error) {
 {% if method.parameters.path|length > 0 %}
-	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
-	path := r.Replace("{{ method.path }}")
+	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseUcfirst }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
+	path := r.Replace("{{ method.path | recasePathParams(method.parameters.path, 'ucfirst') }}")
 {% else %}
 	path := "{{ method.path }}"
 {% endif %}

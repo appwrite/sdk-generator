@@ -1,4 +1,4 @@
-        let apiPath: String = "{{ method.path }}"
+        let apiPath: String = "{{ method.path | recasePathParams(method.parameters.path, 'camel') }}"
         {%~ for parameter in method.parameters.path %}
             .replacingOccurrences(of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", with: {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if parameter.enumValues is not empty %}.rawValue{% endif %})
         {%~ endfor %}

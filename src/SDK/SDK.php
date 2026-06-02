@@ -169,6 +169,32 @@ class SDK
             }
             return implode('_', $ret);
         }));
+        $this->twig->addFilter(new TwigFilter('recasePathParams', function (string $path, array $params, string $case = 'camel') {
+            foreach ($params as $param) {
+                $name = $param['name'] ?? null;
+                if ($name === null) {
+                    continue;
+                }
+                switch ($case) {
+                    case 'snake':
+                        preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $name, $matches);
+                        $parts = $matches[0];
+                        foreach ($parts as &$part) {
+                            $part = $part == strtoupper($part) ? strtolower($part) : lcfirst($part);
+                        }
+                        $recased = implode('_', $parts);
+                        break;
+                    case 'ucfirst':
+                        $recased = ucfirst($this->helperCamelCase($name));
+                        break;
+                    default:
+                        $recased = $this->helperCamelCase($name);
+                        break;
+                }
+                $path = str_replace('{' . $name . '}', '{' . $recased . '}', $path);
+            }
+            return $path;
+        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseJson', function ($value) {
             return (is_array($value)) ? json_encode($value) : $value;
         }, ['is_safe' => ['html']]));
