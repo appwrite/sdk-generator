@@ -162,27 +162,6 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseSnake', function ($value) {
             return $this->helperSnakeCase($value);
         }));
-        $this->twig->addFilter(new TwigFilter('recasePathParams', function (string $path, array $params, string $case = 'camel') {
-            foreach ($params as $param) {
-                $name = $param['name'] ?? null;
-                if ($name === null) {
-                    continue;
-                }
-                switch ($case) {
-                    case 'snake':
-                        $recased = $this->helperSnakeCase($name);
-                        break;
-                    case 'ucfirst':
-                        $recased = ucfirst($this->helperCamelCase($name));
-                        break;
-                    default:
-                        $recased = $this->helperCamelCase($name);
-                        break;
-                }
-                $path = str_replace('{' . $name . '}', '{' . $recased . '}', $path);
-            }
-            return $path;
-        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseJson', function ($value) {
             return (is_array($value)) ? json_encode($value) : $value;
         }, ['is_safe' => ['html']]));

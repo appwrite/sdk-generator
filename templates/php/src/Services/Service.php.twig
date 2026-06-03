@@ -68,9 +68,9 @@ class {{ service.name | caseUcfirst }} extends Service
     public function {{ method.name | caseCamel }}({{ method | methodParameters }}): {{ method | getReturn(spec) }}
     {
         $apiPath = str_replace(
-            [{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+            [{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}],
             [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}],
-            '{{ method.path | recasePathParams(method.parameters.path, 'camel') }}'
+            '{{ method.path }}'
         );
 
         {{~ include('php/base/params.twig') -}}
