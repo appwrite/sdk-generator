@@ -1,0 +1,27 @@
+```csharp
+using {{ spec.title | caseUcfirst }};
+{% set addedEnum = false %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues | length > 0 and not addedEnum %}
+using {{ spec.title | caseUcfirst }}.Enums;
+{% set addedEnum = true %}
+{% endif %}
+{% endfor %}
+using {{ spec.title | caseUcfirst }}.Models;
+using {{ spec.title | caseUcfirst }}.Services;
+
+Client client = Client.From(
+    projectId: "<YOUR_PROJECT_ID>",
+    endpoint: "{{ spec.endpointDocs | raw }}");
+
+{{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
+
+{% if method.method != 'delete' and method.type != 'webAuth' %}{% if method.type == 'location' %}byte[]{% elseif (method | getValidResponseModels)|length > 1 or method.responseModel | length == 0 %}object{% else %}{{ method.responseModel | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %});{% endif %}
+{%~ for parameter in method.parameters.all %}
+
+    {{ parameter.name }}: {% if parameter.enumValues | length > 0%}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
+{%~ endfor %}
+
+{% if method.parameters.all | length > 0 %});
+{% endif %}
+```

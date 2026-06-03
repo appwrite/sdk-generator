@@ -1,0 +1,81 @@
+{% import 'dotnet/base/utils.twig' as utils %}
+#if UNI_TASK
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Cysharp.Threading.Tasks;
+{% if spec.definitions is not empty %}
+using {{ spec.title | caseUcfirst }}.Models;
+{% endif %}
+{% if spec.enums is not empty %}
+using {{ spec.title | caseUcfirst }}.Enums;
+{% endif %}
+{% if service.name|lower == 'account' or service.name|lower == 'general' %}
+using {{ spec.title | caseUcfirst }}.Extensions;
+using UnityEngine;
+{% endif %}
+
+namespace {{ spec.title | caseUcfirst }}.Services
+{
+    public class {{ service.name | caseUcfirst }} : Service
+    {
+        public {{ service.name | caseUcfirst }}(Client client) : base(client)
+        {
+        }
+
+        {%~ for method in service.methods %}
+        {%~ if method.description %}
+        /// <summary>
+        /// <para>
+        {{~ method.description | dotnetComment }}
+        /// </para>
+        /// </summary>
+        {%~ endif %}
+        {%~ if method.deprecated %}
+        {%~ if method.since and method.replaceWith %}
+        [Obsolete("This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")]
+        {%~ else %}
+        [Obsolete("This API has been deprecated.")]
+        {%~ endif %}
+        {%~ endif %}
+{% if method.type == "webAuth" %}
+#if UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_WEBGL
+{% endif %}
+        public {% if method.type == "webAuth" %}async {% endif ~%} UniTask{% if method.type == "webAuth" %}{% else %}<{{ utils.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ utils.method_parameters(method.parameters, method.consumes) }})
+        {
+            var apiPath = "{{ method.path }}"{% if method.parameters.path | length == 0 %};{% endif %}
+
+            {{~ include('dotnet/base/params.twig') }}
+
+            {%~ if method.responseModel %}
+            static {{ utils.resultType(spec.title, method) }} Convert(Dictionary<string, object> it) =>
+            {%~ if method.responseModel == 'any' or method.responseModels|length > 1 %}
+                it;
+            {%~ else %}
+                {{ utils.resultType(spec.title, method) }}.From(map: it);
+            {%~ endif %}
+            {%~ endif %}
+
+            {%~ if method.type == 'location' %}
+            {{~ include('dotnet/base/requests/location.twig') }}
+            {%~ elseif method.type == 'webAuth' %}
+            {{~ include('unity/base/requests/oauth.twig') }}
+            {%~ elseif 'multipart/form-data' in method.consumes %}
+            {{~ include('dotnet/base/requests/file.twig') }}
+            {%~ else %}
+            {{~ include('dotnet/base/requests/api.twig')}}
+            {%~ endif %}
+        }
+{% if method.type == "webAuth" %}
+#else
+        public UniTask {{ method.name | caseUcfirst }}({{ utils.method_parameters(method.parameters, method.consumes) }})
+        {
+            Debug.LogWarning("[{{ spec.title | caseUcfirst }}] OAuth2 authorization is not supported on this platform. Available only in Editor, WebGL, iOS or Android.");
+            return UniTask.CompletedTask;
+        }
+#endif{% endif %}
+
+    {%~ endfor %}
+    }
+}
+#endif
