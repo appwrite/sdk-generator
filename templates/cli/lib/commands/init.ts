@@ -103,17 +103,17 @@ interface InitProjectStepOptions {
   autoPulled: boolean;
 }
 
-const extractSelectionId = (value: string): string => {
-  const match = value.match(/\(([^()]+)\)$/);
-  return match ? match[1] : value;
-};
-
 const getExistingProjectSummary = async (
+  organizationId: string,
   projectId: string,
 ): Promise<ExistingProjectSummary> => {
-  const organizationService = await getOrganizationService();
+  const client = await sdkForConsole({
+    requiresAuth: true,
+    organizationId,
+  });
+  const organizationService = await getOrganizationService(client);
   const project = await organizationService.getProject({
-    projectId: extractSelectionId(projectId),
+    projectId,
   });
 
   return {
@@ -314,9 +314,6 @@ const initProject = async ({
       log("No changes made. Existing project configuration was kept.");
       return;
     }
-    if (typeof answers.organization === "string") {
-      answers.organization = extractSelectionId(answers.organization);
-    }
   } else {
     const selectedOrganization =
       organizationId ??
@@ -326,16 +323,17 @@ const initProject = async ({
     const selectedProjectId =
       projectId ?? (await inquirer.prompt([questionsInitProject[4]])).id;
 
-    const normalizedOrganization = extractSelectionId(selectedOrganization);
-
     answers = {
       start: "existing",
       project: selectedProjectId,
-      organization: normalizedOrganization,
+      organization: selectedOrganization,
     };
 
     try {
-      answers.project = await getExistingProjectSummary(selectedProjectId);
+      answers.project = await getExistingProjectSummary(
+        selectedOrganization,
+        selectedProjectId,
+      );
     } catch (e) {
       if (e instanceof AppwriteException && e.code === 404) {
         answers = {
@@ -351,7 +349,10 @@ const initProject = async ({
   }
 
   if (answers.start === "existing" && typeof answers.project === "string") {
-    answers.project = await getExistingProjectSummary(answers.project);
+    answers.project = await getExistingProjectSummary(
+      answers.organization,
+      answers.project,
+    );
   }
 
   localConfig.clear(); // Clear the config to avoid any conflicts
@@ -376,10 +377,10 @@ const initProject = async ({
         break;
     }
 
-    // The Organization SDK has no per-request orgId param; the server resolves
-    // the target organization from the X-Appwrite-Organization header.
-    const consoleClient = await sdkForConsole();
-    consoleClient.headers["X-Appwrite-Organization"] = answers.organization;
+    const consoleClient = await sdkForConsole({
+      requiresAuth: true,
+      organizationId: answers.organization,
+    });
     const organizationService = await getOrganizationService(consoleClient);
     const response = await organizationService.createProject({
       projectId: projectIdToCreate,
@@ -388,6 +389,7 @@ const initProject = async ({
     });
 
     localConfig.setProject(response["$id"], response.name ?? "");
+    localConfig.setOrganizationId(answers.organization);
     if (answers.region) {
       localConfig.setEndpoint(
         `https://${answers.region}.${url.host}${url.pathname}`,
@@ -409,6 +411,7 @@ const initProject = async ({
     }
 
     localConfig.setProject(selectedProject.$id, selectedProject.name ?? "");
+    localConfig.setOrganizationId(answers.organization);
 
     if (isCloud() && selectedProject.region) {
       localConfig.setEndpoint(

@@ -21,6 +21,7 @@ import {
 import { getFunctionsService, getSitesService } from "../services.js";
 import { sdkForProject, sdkForConsole } from "../sdks.js";
 import { localConfig } from "../config.js";
+import { applyConfigFilters } from "../config-filters.js";
 import { paginate } from "../paginate.js";
 import {
   questionsPullFunctions,
@@ -105,7 +106,9 @@ async function createPullInstance(
 ): Promise<Pull> {
   const { silent = false, requiresConsoleAuth = false, resource } = options;
   const projectClient = await sdkForProject();
-  const consoleClient = await sdkForConsole(requiresConsoleAuth);
+  const consoleClient = await sdkForConsole({
+    requiresAuth: requiresConsoleAuth,
+  });
 
   const pullInstance = new Pull(projectClient, consoleClient, silent);
   pullInstance.setConfigDirectoryPath(
@@ -185,7 +188,10 @@ export class Pull {
 
     try {
       if (shouldPullAll || options.settings) {
-        const settings = await this.pullSettings(config.projectId);
+        const settings = await this.pullSettings(
+          config.organizationId,
+          config.projectId,
+        );
         updatedConfig.settings = settings.settings;
         updatedConfig.projectName = settings.projectName;
       }
@@ -255,9 +261,19 @@ export class Pull {
   /**
    * Pull project settings
    */
-  public async pullSettings(projectId: string): Promise<PullSettingsResult> {
+  public async pullSettings(
+    organizationId: string | undefined,
+    projectId: string,
+  ): Promise<PullSettingsResult> {
     this.log("Pulling project settings ...");
 
+    await applyConfigFilters({
+      config: {
+        organizationId,
+        projectId,
+      },
+      consoleClient: this.consoleClient,
+    });
     const organizationService = new Organization(this.consoleClient);
     const projectService = new Project(this.projectClient);
     const project = await organizationService.getProject({
@@ -838,8 +854,12 @@ const pullSettings = async (): Promise<void> => {
   const pullInstance = await createPullInstance({
     requiresConsoleAuth: true,
   });
-  const projectId = localConfig.getProject().projectId;
-  const settings = await pullInstance.pullSettings(projectId);
+  const project = localConfig.getProject();
+  const projectId = project.projectId;
+  const settings = await pullInstance.pullSettings(
+    project.organizationId,
+    projectId,
+  );
 
   localConfig.setProject(projectId, settings.projectName, settings.project);
 };

@@ -8,10 +8,15 @@ import {
   SDK_VERSION,
 } from "./constants.js";
 
-export const sdkForConsole = async (
-  requiresAuth: boolean = true,
-  endpointOverride?: string,
-): Promise<Client> => {
+export const sdkForConsole = async ({
+  requiresAuth = true,
+  endpointOverride,
+  organizationId,
+}: {
+  requiresAuth?: boolean;
+  endpointOverride?: string;
+  organizationId?: string;
+} = {}): Promise<Client> => {
   const client = new Client();
   const endpoint =
     endpointOverride || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
@@ -39,6 +44,10 @@ export const sdkForConsole = async (
     .setCookie(cookie)
     .setSelfSigned(selfSigned)
     .setLocale("en-US");
+
+  if (organizationId) {
+    client.headers["X-Appwrite-Organization"] = organizationId;
+  }
 
   return client;
 };

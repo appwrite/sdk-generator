@@ -94,6 +94,7 @@ const generateAction = async (
   }
 
   const config: ConfigType = {
+    organizationId: project.organizationId,
     projectId: project.projectId,
     projectName: project.projectName,
     endpoint:

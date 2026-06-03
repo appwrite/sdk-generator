@@ -484,6 +484,7 @@ const ConfigIncludesSchema = z
 
 const ConfigSchema = z
   .object({
+    organizationId: z.string().optional(),
     projectId: z.string(),
     projectName: z.string().optional(),
     endpoint: z.string().optional(),
