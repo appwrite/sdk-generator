@@ -63,6 +63,11 @@ CMD;
 
     public function testHTTPSuccess(): void
     {
+        $license = \getenv('UNITY_LICENSE');
+        if ($license === false || \trim($license) === '') {
+            $this->markTestSkipped('UNITY_LICENSE is required to run Unity SDK tests.');
+        }
+
         // Set Unity test mode to exclude problematic files
         $GLOBALS['UNITY_TEST_MODE'] = true;
 
