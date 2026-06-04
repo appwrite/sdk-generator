@@ -94,11 +94,6 @@ const validateSitePath = (value: unknown): boolean | string => {
 const buildSelectionLabel = (name: string, id: string): string =>
   `${name} (${id})`;
 
-const extractSelectionId = (value: string): string => {
-  const match = value.match(/\(([^()]+)\)$/);
-  return match ? match[1] : value;
-};
-
 const getInitProjectOverrideMessage = (): string => {
   const projectName = localConfig.getProject().projectName;
 
@@ -244,7 +239,7 @@ export const questionsInitProject: Question[] = [
     name: "organization",
     message: "Choose your organization:",
     choices: async () => {
-      const client = await sdkForConsole(true);
+      const client = await sdkForConsole({ requiresAuth: true });
       const { teams } = isCloud()
         ? await paginate(
             async (args) =>
@@ -269,7 +264,7 @@ export const questionsInitProject: Question[] = [
         const label = buildSelectionLabel(team.name, team["$id"]);
         return {
           name: label,
-          value: label,
+          value: team["$id"],
         };
       });
 
@@ -304,21 +299,25 @@ export const questionsInitProject: Question[] = [
     name: "project",
     message: "Choose your project:",
     choices: async (answers: Answers) => {
+      const client = await sdkForConsole({
+        requiresAuth: true,
+        organizationId: answers.organization,
+      });
       const queries = [
         JSON.stringify({
           method: "equal",
           attribute: "teamId",
-          values: [extractSelectionId(answers.organization)],
+          values: [answers.organization],
         }),
         JSON.stringify({ method: "orderDesc", attribute: "$id" }),
       ];
 
       const { projects } = await paginate(
         async (args) =>
-          (await getOrganizationService()).listProjects({
+          (await getOrganizationService(args.sdk as Client)).listProjects({
             queries: args.queries as string[],
           }),
-        { parseOutput: false },
+        { parseOutput: false, sdk: client },
         100,
         "projects",
         queries,
@@ -328,7 +327,7 @@ export const questionsInitProject: Question[] = [
         const label = buildSelectionLabel(project.name, project["$id"]);
         return {
           name: label,
-          value: label,
+          value: project["$id"],
         };
       });
 
@@ -345,7 +344,7 @@ export const questionsInitProject: Question[] = [
     name: "region",
     message: `Select your ${SDK_TITLE} Cloud region`,
     choices: async () => {
-      const client = await sdkForConsole(true);
+      const client = await sdkForConsole({ requiresAuth: true });
       const endpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
       const response = (await client.call(
         "GET",
@@ -1200,7 +1199,7 @@ export const questionsListFactors: Question[] = [
     message:
       "Your account is protected by multi-factor authentication. Please choose one for verification.",
     choices: async () => {
-      const client = await sdkForConsole(false);
+      const client = await sdkForConsole({ requiresAuth: false });
       const accountClient = new Account(client);
       const factors = await accountClient.listMfaFactors();
 

@@ -20,6 +20,7 @@ import {
   KeysCollection,
   KeysTable,
 } from "../config.js";
+import { applyConfigFilters } from "../config-filters.js";
 import {
   ConfigSchema,
   type SettingsType,
@@ -767,6 +768,7 @@ export class Push {
         try {
           this.log("Pushing settings ...");
           await this.pushSettings({
+            organizationId: config.organizationId,
             projectId: config.projectId,
             projectName: config.projectName,
             settings: config.settings,
@@ -985,9 +987,14 @@ export class Push {
 
   public async pushSettings(config: {
     projectId: string;
+    organizationId?: string;
     projectName?: string;
     settings?: SettingsType;
   }): Promise<void> {
+    await applyConfigFilters({
+      config,
+      consoleClient: this.consoleClient,
+    });
     const organizationService = await getOrganizationService(
       this.consoleClient,
     );
@@ -2405,10 +2412,11 @@ export class Push {
         )
       ) {
         try {
-          const consoleClient = await sdkForConsole(
-            true,
-            localConfig.getEndpoint() || globalConfig.getEndpoint(),
-          );
+          const consoleClient = await sdkForConsole({
+            requiresAuth: true,
+            endpointOverride:
+              localConfig.getEndpoint() || globalConfig.getEndpoint(),
+          });
           sitePreviewRenderer = {
             consoleClient,
             storageService: await getStorageService(consoleClient),
@@ -2827,7 +2835,9 @@ async function createPushInstance(
 ): Promise<Push> {
   const { silent, requiresConsoleAuth } = options;
   const projectClient = await sdkForProject();
-  const consoleClient = await sdkForConsole(requiresConsoleAuth);
+  const consoleClient = await sdkForConsole({
+    requiresAuth: requiresConsoleAuth,
+  });
 
   return new Push(projectClient, consoleClient, silent);
 }
@@ -2895,6 +2905,7 @@ const pushResources = async ({
     });
     const project = localConfig.getProject();
     const config: ConfigType = {
+      organizationId: project.organizationId,
       projectId: project.projectId ?? "",
       projectName: project.projectName,
       settings: project.projectSettings,
@@ -2961,10 +2972,20 @@ const pushResources = async ({
 const pushSettings = async (): Promise<void> => {
   checkDeployConditions(localConfig);
 
+  let resolvedOrganizationId: string | undefined;
+
   try {
-    const organizationService = await getOrganizationService();
+    const project = localConfig.getProject();
+    const consoleClient = await sdkForConsole({ requiresAuth: true });
+    await applyConfigFilters({
+      config: project,
+      consoleClient,
+    });
+    resolvedOrganizationId =
+      consoleClient.headers["X-Appwrite-Organization"];
+    const organizationService = await getOrganizationService(consoleClient);
     const projectService = await getProjectService();
-    const projectId = localConfig.getProject().projectId;
+    const projectId = project.projectId;
     const response = await organizationService.getProject({
       projectId,
     });
@@ -3020,6 +3041,7 @@ const pushSettings = async (): Promise<void> => {
 
     await pushInstance.pushSettings({
       projectId: config.projectId,
+      organizationId: config.organizationId ?? resolvedOrganizationId,
       projectName: config.projectName,
       settings: config.projectSettings,
     });

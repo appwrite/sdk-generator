@@ -82,7 +82,7 @@ const getCurrentAccount = async (): Promise<Models.User | null> => {
     globalConfig.setEndpoint(endpoint);
   }
 
-  const client = await sdkForConsole(false);
+  const client = await sdkForConsole({ requiresAuth: false });
   const accountClient = new Account(client);
 
   try {
@@ -308,7 +308,7 @@ export const loginCommand = async ({
       normalizeCloudConsoleEndpoint(globalConfig.getEndpoint()),
     );
 
-    const client = await sdkForConsole(false);
+    const client = await sdkForConsole({ requiresAuth: false });
     const accountClient = new Account(client);
     const legacyClient = createLegacyConsoleClient(
       globalConfig.getEndpoint() || DEFAULT_ENDPOINT,
@@ -348,7 +348,7 @@ export const loginCommand = async ({
   // Use legacy client for login to extract cookies from response
   const legacyClient = createLegacyConsoleClient(configEndpoint);
 
-  const client = await sdkForConsole(false);
+  const client = await sdkForConsole({ requiresAuth: false });
   let accountClient = new Account(client);
 
   let account;

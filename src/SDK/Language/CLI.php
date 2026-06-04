@@ -417,6 +417,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/config-filters.ts',
+                'template'      => 'cli/lib/config-filters.ts',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/completions.ts',
                 'template'      => 'cli/lib/completions.ts',
             ],

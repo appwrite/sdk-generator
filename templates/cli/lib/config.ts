@@ -81,6 +81,7 @@ const KeyIndexes = getSchemaKeys(IndexSchema);
 const KeyIndexesColumns = getSchemaKeys(IndexTableSchema);
 
 const CONFIG_KEY_ORDER = [
+  "organizationId",
   "projectId",
   "projectName",
   "endpoint",
@@ -1156,6 +1157,7 @@ class Local extends Config<ConfigType> {
   }
 
   getProject(): {
+    organizationId?: string;
     projectId?: string;
     projectName?: string;
     projectSettings?: SettingsType;
@@ -1165,6 +1167,7 @@ class Local extends Config<ConfigType> {
     }
 
     return {
+      organizationId: this.get("organizationId"),
       projectId: this.get("projectId"),
       projectName: this.get("projectName"),
       projectSettings: this.get("settings"),
@@ -1187,6 +1190,10 @@ class Local extends Config<ConfigType> {
     }
 
     this.set("settings", createSettingsObject(project));
+  }
+
+  setOrganizationId(organizationId: string): void {
+    this.set("organizationId", organizationId);
   }
 }
 
