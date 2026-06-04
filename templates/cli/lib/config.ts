@@ -37,7 +37,7 @@ import type {
   Entity,
   GlobalConfigData,
 } from "./types.js";
-import { createSettingsObject } from "./utils.js";
+import { createSettingsObject, isCloudHostname } from "./utils.js";
 import {
   CONFIG_RESOURCE_KEYS,
   EXECUTABLE_NAME,
@@ -107,10 +107,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function normalizeCloudConsoleEndpoint(endpoint: string): string {
   try {
     const url = new URL(endpoint);
-    if (
-      url.hostname === "cloud.appwrite.io" ||
-      url.hostname.endsWith(".cloud.appwrite.io")
-    ) {
+    if (isCloudHostname(url.hostname)) {
       return "https://cloud.appwrite.io/v1";
     }
   } catch (_error) {

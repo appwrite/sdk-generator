@@ -361,8 +361,20 @@ const getHomebrewLatestVersion = async (
   }
 };
 
-export const isCloudHostname = (hostname: string): boolean =>
-  hostname === "cloud.appwrite.io" || hostname.endsWith(".cloud.appwrite.io");
+// TODO: Derive this list from the regions in the API spec.
+const CLOUD_REGION_CODES = new Set(["fra", "nyc", "syd", "sfo", "sgp", "tor"]);
+
+export const isCloudHostname = (hostname: string): boolean => {
+  if (hostname === "cloud.appwrite.io") {
+    return true;
+  }
+
+  if (!hostname.endsWith(".cloud.appwrite.io")) {
+    return false;
+  }
+
+  return CLOUD_REGION_CODES.has(hostname.split(".")[0]);
+};
 
 export const getConsoleBaseUrl = (endpoint: string): string => {
   try {
