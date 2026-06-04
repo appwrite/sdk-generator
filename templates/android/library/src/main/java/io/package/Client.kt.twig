@@ -120,7 +120,9 @@ class Client @JvmOverloads constructor(
      */
     fun set{{header.key | caseUcfirst}}(value: String): Client {
         config["{{ header.key | caseCamel }}"] = value
+        {%~ if header.global %}
         addHeader("{{ header.name | caseLower }}", value)
+        {%~ endif %}
         return this
     }
 
@@ -256,7 +258,10 @@ class Client @JvmOverloads constructor(
     suspend fun ping(): String {
         val apiPath = "/ping"
         val apiParams = mutableMapOf<String, Any?>()
-        val apiHeaders = mutableMapOf("content-type" to "application/json")
+        val apiHeaders = mutableMapOf(
+            "content-type" to "application/json",
+            "X-Appwrite-Project" to config["project"].orEmpty(),
+        )
 
         return call(
             "GET",

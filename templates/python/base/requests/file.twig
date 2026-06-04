@@ -13,6 +13,9 @@
 {% endfor %}
 
         response = self.client.chunked_upload(api_path, {
+{%~ for key, security in method.securityHeaders %}
+            '{{ security.name }}': self.client.get_config('{{ key | caseLower }}'),
+{%~ endfor %}
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }}),
 {% endfor %}

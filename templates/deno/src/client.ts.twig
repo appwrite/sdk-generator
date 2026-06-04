@@ -9,6 +9,11 @@ export class Client {
     static DENO_READ_CHUNK_SIZE = 16384; // 16kb; refference: https://github.com/denoland/deno/discussions/9906
     
     endpoint: string = '{{spec.endpoint}}';
+    config: Payload = {
+{% for header in spec.global.headers %}
+        '{{ header.key | caseLower }}': '',
+{% endfor %}
+    };
     headers: Payload = {
         'content-type': '',
         'user-agent' : `{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Deno.build.os}; ${Deno.build.arch})`,
@@ -34,7 +39,10 @@ export class Client {
      * @return self
      */
     set{{header.key | caseUcfirst}}(value: string): this {
-        this.addHeader('{{header.name}}', value);
+        {%~ if header.global %}
+        this.addHeader('{{ header.name }}', value);
+        {%~ endif %}
+        this.config['{{ header.key | caseLower }}'] = value;
 
         return this;
     }
@@ -79,7 +87,9 @@ export class Client {
         let body: string | FormData | undefined = undefined;
 
         if (method.toUpperCase() === "GET") {
-            url.search = new URLSearchParams(Client.flatten(params)).toString();
+            for (const [key, value] of Object.entries(Client.flatten(params))) {
+                url.searchParams.append(key, value);
+            }
         } else if (headers["content-type"]?.toLowerCase().startsWith("multipart/form-data")) {
             delete headers["content-type"];
             const formData = new FormData();

@@ -51,6 +51,13 @@ class Client
         'x-sdk-version'=> '{{ sdk.version }}',
     ];
 
+    /**
+     * Auth/config values used by generated service methods.
+     *
+     * @var array
+     */
+    protected array $config = [];
+
 {% if spec.global.headers | hasBearerAuth %}
     /**
      * API key for JWT generation
@@ -117,13 +124,21 @@ class Client
         $this->authorization = null;
         $this->authorizationExpiresAt = null;
 {% else %}
+        {%~ if header.global %}
         $this->addHeader('{{header.name}}', $value);
+        {%~ endif %}
+        $this->config['{{ header.key | caseLower }}'] = $value;
 {% endif %}
 
         return $this;
     }
 
 {% endfor %}
+
+    public function getConfig(string $key): string
+    {
+        return $this->config[$key] ?? '';
+    }
 
     /***
      * @param bool $status
@@ -242,7 +257,8 @@ class Client
         }
 {% endif %}
         $headers = array_merge($this->headers, $headers);
-        $ch = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? '?' . http_build_query($params) : ''));
+        $querySeparator = str_contains($path, '?') ? '&' : '?';
+        $ch = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? $querySeparator . http_build_query($params) : ''));
         $responseHeaders = [];
 
         switch ($headers['content-type']) {

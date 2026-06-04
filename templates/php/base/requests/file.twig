@@ -94,7 +94,12 @@
 {% endif %}
 {% endfor %}
 
-        $apiHeaders = ['content-type' => 'multipart/form-data'];
+        $apiHeaders = [
+            'content-type' => 'multipart/form-data',
+        {%~ for key, security in method.securityHeaders %}
+            '{{ security.name }}' => $this->client->getConfig('{{ key | caseLower }}'),
+        {%~ endfor %}
+        ];
         $handle = null;
 
         if(!empty(${{parameter.name}}->getPath())) {

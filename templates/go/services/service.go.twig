@@ -2,7 +2,7 @@
 {%- set requireFilesPkg = false -%}
 {%- set requireUrlPkg = false -%}
 {%- for method in service.methods -%}
-{%- if method.type == 'location' -%}
+{%- if method.type == 'location' or method.securityQueries | length > 0 -%}
 {%- set requireUrlPkg = true -%}
 {%- endif -%}
 {%- endfor -%}
@@ -130,6 +130,9 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ 
 {% else %}
 	path := "{{ method.path }}"
 {% endif %}
+{%~ for security in method.securityQueries %}
+	path += "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=" + url.QueryEscape(srv.client.Config["{{ security.name | caseLower }}"])
+{%~ endfor %}
 {{include('go/base/params.twig')}}
 {% if 'multipart/form-data' in method.consumes %}
 {{ include('go/base/requests/file.twig') }}

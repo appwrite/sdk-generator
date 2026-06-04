@@ -5,6 +5,9 @@
         };
 
         final Map<String, String> apiHeaders = {
+            {%~ for key, security in method.securityHeaders %}
+            '{{ security.name }}': client.config['{{ key | caseCamel }}'] ?? '',
+            {%~ endfor %}
             {{~ utils.map_headers(method.headers) }}
         };
 

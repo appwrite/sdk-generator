@@ -1,4 +1,5 @@
 from ..service import Service
+from urllib.parse import quote
 from typing import Any, Dict, List, Optional, Union{% set hasGenericModel = false %}{% for method in service.methods %}{% if method.responseModel and method.responseModel != 'any' and method.responseModel | hasGenericType(spec) %}{% set hasGenericModel = true %}{% endif %}{% endfor %}{% if hasGenericModel %}, Type, TypeVar{% endif %}
 
 from ..exception import AppwriteException
@@ -162,6 +163,9 @@ Dict[str, Any]
         """
 
         api_path = '{{ method.path }}'
+        {%~ for security in method.securityQueries %}
+        api_path += '{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=' + quote(str(self.client.get_config('{{ security.name | caseLower }}')), safe='')
+        {%~ endfor %}
 {{ include('python/base/params.twig') }}
 {% if 'multipart/form-data' in method.consumes %}
 {{ include('python/base/requests/file.twig') }}

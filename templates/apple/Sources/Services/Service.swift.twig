@@ -52,12 +52,16 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {%~ elseif method.type == 'location' %}
         {{~ include('swift/base/requests/location.twig')}}
         {%~ else %}
-        {%~ if method.headers | length <= 0 %}
+        {%~ if method.headers | length <= 0 and method.securityHeaders | length <= 0 %}
         let apiHeaders: [String: String] = [:]
         {%~ else %}
         {% if 'multipart/form-data' in method.consumes -%} var
         {%- else -%} let
         {%- endif %} apiHeaders: [String: String] = [
+        {%~ for key, security in method.securityHeaders %}
+            "{{ security.name }}": client.config["{{ key | caseCamel }}"] ?? ""{% if not loop.last or method.headers | length > 0 %},{% endif %}
+
+        {%~ endfor %}
         {%~ for key, header in method.headers %}
             "{{ key }}": "{{ header }}"{% if not loop.last %},{% endif %}
 

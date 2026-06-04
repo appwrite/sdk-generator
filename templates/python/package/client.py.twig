@@ -26,6 +26,7 @@ class Client:
             '{{key}}' : '{{header}}',
 {% endfor %}
         }
+        self._config = {}
 
     def set_self_signed(self, status=True):
         self._self_signed = status
@@ -44,6 +45,9 @@ class Client:
 
     def get_headers(self):
         return dict(self._global_headers)
+
+    def get_config(self, key):
+        return self._config.get(key, '')
 {% for header in spec.global.headers %}
 
     def set_{{header.key | caseSnake}}(self, value):
@@ -51,7 +55,10 @@ class Client:
         """{{header.description}}"""
 
 {% endif %}
+        {%~ if header.global %}
         self._global_headers['{{header.name|lower}}'] = value
+        {%~ endif %}
+        self._config['{{ header.key | caseLower }}'] = value
         return self
 {% endfor %}
 

@@ -72,6 +72,9 @@ class {{ service.name | caseUcfirst }} extends Service
             [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}],
             '{{ method.path }}'
         );
+        {%~ for security in method.securityQueries %}
+        $apiPath .= '{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=' . urlencode($this->client->getConfig('{{ security.name | caseLower }}'));
+        {%~ endfor %}
 
         {{~ include('php/base/params.twig') -}}
         {%~ if 'multipart/form-data' in method.consumes %}

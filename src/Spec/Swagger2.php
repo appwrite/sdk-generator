@@ -161,10 +161,21 @@ class Swagger2 extends Spec
         $methodSecurity = $method['security'][0] ?? [];
 
         foreach ($methodAuth as $i => $node) {
-            $methodAuth[$i] = (array_key_exists($i, $security)) ? $security[$i] : [];
+            $methodAuth[$i] = (array_key_exists($i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
         }
         foreach ($methodSecurity as $i => $node) {
-            $methodSecurity[$i] = (array_key_exists($i, $security)) ? $security[$i] : [];
+            $methodSecurity[$i] = (array_key_exists($i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
+        }
+
+        $methodSecurityHeaders = [];
+        $methodSecurityQueries = [];
+        foreach ($methodSecurity as $i => $node) {
+            if (($node['in'] ?? '') === 'header' && !($node['global'] ?? false)) {
+                $methodSecurityHeaders[$i] = $node;
+            }
+            if (($node['in'] ?? '') === 'query') {
+                $methodSecurityQueries[$i] = $node;
+            }
         }
 
         $responseModel = '';
@@ -210,7 +221,8 @@ class Swagger2 extends Spec
             'title' => $method['summary'] ?? '',
             'description' => $method['description'] ?? '',
             'auth' => [$methodAuth] ?? [],
-            'security' => [$methodSecurity] ?? [],
+            'securityHeaders' => $methodSecurityHeaders,
+            'securityQueries' => $methodSecurityQueries,
             'consumes' => $method['consumes'] ?? [],
             'cookies' => $method['x-appwrite']['cookies'] ?? false,
             'platforms' => $method['x-appwrite']['platforms'] ?? [],
@@ -584,6 +596,9 @@ class Swagger2 extends Spec
                     'key' => $key,
                     'name' => $definition['name'],
                     'description' => $definition['description'],
+                    // Project is stored on the client, but each method's security decides
+                    // whether it is sent as X-Appwrite-Project or as a ProjectQuery param.
+                    'global' => $key !== 'Project',
                 ];
             } elseif (
                 isset($definition['type']) && $definition['type'] === 'http' &&
@@ -594,6 +609,7 @@ class Swagger2 extends Spec
                     'name' => 'Authorization',
                     'description' => $definition['description'] ?? 'Bearer token authentication',
                     'type' => 'bearer',
+                    'global' => true,
                 ];
             }
         }

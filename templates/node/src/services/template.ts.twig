@@ -122,8 +122,14 @@ export class {{ service.name | caseUcfirst }} {
         }
         {%~ endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
+        {%~ for security in method.securityQueries %}
+        uri.searchParams.append('{{ security.name }}', this.client.config.{{ security.name | caseLower }});
+        {%~ endfor %}
 
         const apiHeaders: { [header: string]: string } = {
+            {%~ for key, security in method.securityHeaders %}
+            '{{ security.name }}': this.client.config.{{ key | caseLower }},
+            {%~ endfor %}
             {%~ for parameter in method.parameters.header %}
             '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
             {%~ endfor %}

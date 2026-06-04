@@ -89,7 +89,10 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% endif %}
 {% endfor %}
-        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+        let apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+        {%~ for security in method.securityQueries %}
+        apiPath += `{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${encodeURIComponent(this.client.config['{{ security.name | caseLower }}'])}`;
+        {%~ endfor %}
         const payload: Payload = {};
 
 {% for parameter in method.parameters.query %}
@@ -110,6 +113,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
         const apiHeaders: { [header: string]: string } = {
+        {%~ for key, security in method.securityHeaders %}
+            '{{ security.name }}': this.client.config['{{ key | caseLower }}'],
+        {%~ endfor %}
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
