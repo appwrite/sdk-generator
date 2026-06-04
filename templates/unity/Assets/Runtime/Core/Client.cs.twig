@@ -226,7 +226,8 @@ namespace {{ spec.title | caseUcfirst }}
         {
             var headers = new Dictionary<string, string>
             {
-                ["content-type"] = "application/json"
+                ["content-type"] = "application/json",
+                ["X-Appwrite-Project"] = _config.GetValueOrDefault("project", "")
             };
 
             var parameters = new Dictionary<string, object?>();

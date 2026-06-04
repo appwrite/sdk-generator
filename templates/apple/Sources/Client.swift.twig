@@ -276,7 +276,8 @@ open class Client {
        let apiPath: String = "/ping"
 
        let apiHeaders: [String: String] = [
-           "content-type": "application/json"
+           "content-type": "application/json",
+           "X-Appwrite-Project": config["project"] ?? ""
        ]
 
        return try await call(

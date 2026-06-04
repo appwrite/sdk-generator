@@ -506,7 +506,9 @@ class Client {
     }
 
     async ping(): Promise<unknown> {
-        return this.call('GET', new URL(this.config.endpoint + '/ping'));
+        return this.call('GET', new URL(this.config.endpoint + '/ping'), {
+            'X-Appwrite-Project': this.config.project,
+        });
     }
 
     async redirect(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<string> {
