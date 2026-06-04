@@ -131,7 +131,7 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ 
 	path := "{{ method.path }}"
 {% endif %}
 {%~ for security in method.securityQueries %}
-	path += "?{{ security.name }}=" + url.QueryEscape(srv.client.Config["{{ security.name | caseLower }}"])
+	path += "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=" + url.QueryEscape(srv.client.Config["{{ security.name | caseLower }}"])
 {%~ endfor %}
 {{include('go/base/params.twig')}}
 {% if 'multipart/form-data' in method.consumes %}

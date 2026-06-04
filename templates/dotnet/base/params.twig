@@ -4,7 +4,7 @@
 
             {%~ endfor %}
             {%~ for security in method.securityQueries %}
-            apiPath += "?{{ security.name }}=" + Uri.EscapeDataString(_client.Config.GetValueOrDefault("{{ security.name | caseCamel }}", ""));
+            apiPath += "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=" + Uri.EscapeDataString(_client.Config.GetValueOrDefault("{{ security.name | caseCamel }}", ""));
 
             {%~ endfor %}
 

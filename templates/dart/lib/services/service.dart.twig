@@ -30,7 +30,7 @@ class {{ service.name | caseUcfirst }} extends Service {
             .replaceAll('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseCamel | overrideIdentifier }}{% if parameter.enumValues | length > 0  %}.value{% endif %})
             {%- endfor -%}
             {%- for security in method.securityQueries -%}
-            + '?{{ security.name }}=${Uri.encodeComponent(client.config['{{ security.name | caseCamel }}'] ?? '')}'
+            + '{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${Uri.encodeComponent(client.config['{{ security.name | caseCamel }}'] ?? '')}'
             {%- endfor -%}
             ;
 

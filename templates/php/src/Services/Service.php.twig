@@ -73,7 +73,7 @@ class {{ service.name | caseUcfirst }} extends Service
             '{{ method.path }}'
         );
         {%~ for security in method.securityQueries %}
-        $apiPath .= '?{{ security.name }}=' . urlencode($this->client->getConfig('{{ security.name | caseLower }}'));
+        $apiPath .= '{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=' . urlencode($this->client->getConfig('{{ security.name | caseLower }}'));
         {%~ endfor %}
 
         {{~ include('php/base/params.twig') -}}

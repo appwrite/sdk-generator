@@ -3,7 +3,7 @@
                 .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake | escapeKeyword }})
 {% endfor %}
             {%~ for security in method.securityQueries %}
-            api_path += '?{{ security.name }}=' + URI.encode_www_form_component(@client.get_config('{{ security.name | caseLower }}'))
+            api_path += '{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=' + URI.encode_www_form_component(@client.get_config('{{ security.name | caseLower }}'))
             {%~ endfor %}
 
 {% for parameter in method.parameters.all %}

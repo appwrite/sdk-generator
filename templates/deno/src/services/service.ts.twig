@@ -91,7 +91,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
         let apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
         {%~ for security in method.securityQueries %}
-        apiPath += `?{{ security.name }}=${encodeURIComponent(this.client.config['{{ security.name | caseLower }}'])}`;
+        apiPath += `{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${encodeURIComponent(this.client.config['{{ security.name | caseLower }}'])}`;
         {%~ endfor %}
         const payload: Payload = {};
 

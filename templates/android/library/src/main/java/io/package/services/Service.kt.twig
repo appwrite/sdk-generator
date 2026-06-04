@@ -72,7 +72,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             .replace("{{ '{' ~ parameter.name ~ '}' }}", {{ parameter.name | caseCamel }}{% if parameter.enumValues is not empty %}.value{% endif %})
         {%~ endfor %}
             {%~ for security in method.securityQueries %}
-            + "?{{ security.name }}=${java.net.URLEncoder.encode(client.config["{{ security.name | caseCamel }}"].orEmpty(), "UTF-8")}"
+            + "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${java.net.URLEncoder.encode(client.config["{{ security.name | caseCamel }}"].orEmpty(), "UTF-8")}"
             {%~ endfor %}
 
         val apiParams = mutableMapOf<String, Any?>(

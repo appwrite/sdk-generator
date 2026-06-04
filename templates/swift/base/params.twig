@@ -3,7 +3,7 @@
             .replacingOccurrences(of: "{{ '{' }}{{ parameter.name }}{{ '}' }}", with: {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if parameter.enumValues is not empty %}.rawValue{% endif %})
         {%~ endfor %}
         {%~ for security in method.securityQueries %}
-            + "?{{ security.name }}=\(client.config["{{ security.name | caseCamel }}"]?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
+            + "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=\(client.config["{{ security.name | caseCamel }}"]?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
         {%~ endfor %}
 
         {%~ if method.parameters.query | merge(method.parameters.body) | length <= 0 %}
