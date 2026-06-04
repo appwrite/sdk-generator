@@ -25,6 +25,11 @@ namespace {{ spec.title | caseUcfirst }}
         public Dictionary<string, string> Config => _config;
         public CookieContainer CookieContainer => _cookieContainer;
 
+        public string GetConfig(string key)
+        {
+            return _config.TryGetValue(key, out var value) ? value : "";
+        }
+
         private readonly Dictionary<string, string> _headers;
         private readonly Dictionary<string, string> _config;
         private string _endpoint;
