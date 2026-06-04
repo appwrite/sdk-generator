@@ -119,8 +119,10 @@ namespace {{ spec.title | caseUcfirst }}
         /// <summary>{{header.description}}</summary>
         {%~ endif %}
         public Client Set{{header.key | caseUcfirst}}(string value) {
-            _config.Add("{{ header.key | caseCamel }}", value);
+            _config["{{ header.key | caseCamel }}"] = value;
+            {%~ if header.global %}
             AddHeader("{{header.name}}", value);
+            {%~ endif %}
 
             return this;
         }
@@ -146,8 +148,8 @@ namespace {{ spec.title | caseUcfirst }}
         {
             var methodGet = "GET".Equals(method, StringComparison.OrdinalIgnoreCase);
 
-            var queryString = methodGet ?
-                "?" + parameters.ToQueryString() :
+            var queryString = methodGet && parameters.Count > 0 ?
+                (path.Contains("?") ? "&" : "?") + parameters.ToQueryString() :
                 string.Empty;
 
             var request = new HttpRequestMessage(

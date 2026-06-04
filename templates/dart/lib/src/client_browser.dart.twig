@@ -53,9 +53,11 @@ class ClientBrowser extends ClientBase with ClientMixin {
     /// {{header.description}}
 {% endif %}
     @override
-    ClientBrowser set{{header.key | caseUcfirst}}(value) {
+  ClientBrowser set{{header.key | caseUcfirst}}(value) {
         config['{{ header.key | caseCamel }}'] = value;
-        addHeader('{{header.name}}', value);
+        {%~ if header.global %}
+        addHeader('{{ header.name }}', value);
+        {%~ endif %}
         return this;
     }
 {% endfor %}

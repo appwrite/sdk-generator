@@ -13,6 +13,9 @@
 {% endif %}
 
         $apiHeaders = [];
+        {%~ for key, security in method.securityHeaders %}
+        $apiHeaders['{{ security.name }}'] = $this->client->getConfig('{{ key | caseLower }}');
+        {%~ endfor %}
         {%~ for parameter in method.parameters.header %}
         $apiHeaders['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
         {%~ endfor %}

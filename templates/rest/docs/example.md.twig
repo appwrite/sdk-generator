@@ -1,6 +1,6 @@
 ```http
 {% set boundary = 'cec8e8123c05ba25' %}
-{{ method.method | caseUpper }} {{spec.basePath}}{{ method.path }} HTTP/1.1
+{{ method.method | caseUpper }} {{spec.basePath}}{{ method.path }}{% for security in method.securityQueries %}{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}={{ security['x-appwrite']['demo'] | raw }}{% endfor %} HTTP/1.1
 Host: {{ spec.host }}
 {% for key, header in method.headers %}
 {{ key | caseUcwords }}: {{ header }}{% if header == 'multipart/form-data' %}; boundary="{{boundary}}"{% endif ~%}
@@ -8,10 +8,8 @@ Host: {{ spec.host }}
 {% for key,header in spec.global.defaultHeaders %}
 {{ key }}: {{ header }}
 {% endfor %}
-{% for node in method.security %}
-{% for key,header in node | keys %}
-{{ node[header]['name'] }}: {{ node[header]['x-appwrite']['demo'] | raw }}
-{% endfor %}
+{% for security in method.securityHeaders %}
+{{ security.name }}: {{ security['x-appwrite']['demo'] | raw }}
 {% endfor %}
 {% for key, header in method.headers %}
 {% if header == 'application/json' %}

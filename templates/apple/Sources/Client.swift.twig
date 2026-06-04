@@ -115,7 +115,9 @@ open class Client {
     ///
     open func set{{ header.key | caseUcfirst }}(_ value: String) -> Client {
         config["{{ header.key | caseLower }}"] = value
+        {%~ if header.global %}
         _ = addHeader(key: "{{header.name}}", value: value)
+        {%~ endif %}
         return self
     }
 
@@ -305,7 +307,7 @@ open class Client {
         let validParams = params.filter { $0.value != nil }
 
         let queryParameters = method == "GET" && !validParams.isEmpty
-            ? "?" + parametersToQueryString(params: validParams)
+            ? (path.contains("?") ? "&" : "?") + parametersToQueryString(params: validParams)
             : ""
 
         var request = HTTPClientRequest(url: endPoint + path + queryParameters)

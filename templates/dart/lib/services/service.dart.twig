@@ -25,7 +25,14 @@ class {{ service.name | caseUcfirst }} extends Service {
 {%~ endif %}
 {%~ endif %}
     {% if method.type == 'location' %}Future<Uint8List>{% else %}{% set responseModels = method | getValidResponseModels %}{% if responseModels|length > 1 %}Future<models.Model>{% elseif method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel | overrideIdentifier }}({{ _self.method_parameters(method.parameters.all, method.consumes) }}) async {
-        final String apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseCamel | overrideIdentifier }}{% if parameter.enumValues | length > 0  %}.value{% endif %}){% endfor %};
+        final String apiPath = '{{ method.path }}'
+            {%- for parameter in method.parameters.path -%}
+            .replaceAll('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseCamel | overrideIdentifier }}{% if parameter.enumValues | length > 0  %}.value{% endif %})
+            {%- endfor -%}
+            {%- for security in method.securityQueries -%}
+            + '?{{ security.name }}=${Uri.encodeComponent(client.config['{{ security.name | caseCamel }}'] ?? '')}'
+            {%- endfor -%}
+            ;
 
 {% if 'multipart/form-data' in method.consumes %}
 {{ include('dart/base/requests/file.twig') }}

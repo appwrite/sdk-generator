@@ -63,9 +63,11 @@ class ClientIO extends ClientBase with ClientMixin {
      /// {{header.description}}
 {% endif %}
     @override
-    ClientIO set{{header.key | caseUcfirst}}(value) {
+  ClientIO set{{header.key | caseUcfirst}}(value) {
         config['{{ header.key | caseCamel }}'] = value;
-        addHeader('{{header.name}}', value);
+        {%~ if header.global %}
+        addHeader('{{ header.name }}', value);
+        {%~ endif %}
         return this;
     }
 {% endfor %}

@@ -61,6 +61,9 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ for parameter in method.parameters.path %}
             .replace("{{ '{' ~ parameter.name ~ '}' }}", {{ parameter.name | caseCamel }}{% if parameter.enumValues is not empty %}.value{% endif %})
         {%~ endfor %}
+            {%~ for security in method.securityQueries %}
+            + "?{{ security.name }}=${java.net.URLEncoder.encode(client.config["{{ security.name | caseCamel }}"].orEmpty(), "UTF-8")}"
+            {%~ endfor %}
 
         val apiParams = mutableMapOf<String, Any?>(
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
@@ -68,6 +71,9 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ endfor %}
         )
         val apiHeaders = mutableMapOf<String, String>(
+        {%~ for key, security in method.securityHeaders %}
+            "{{ security.name }}" to client.config["{{ key | caseCamel }}"].orEmpty(),
+        {%~ endfor %}
         {%~ for key, header in method.headers %}
             "{{ key }}" to "{{ header }}",
         {%~ endfor %}

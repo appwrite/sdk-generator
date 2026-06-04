@@ -162,6 +162,9 @@ Dict[str, Any]
         """
 
         api_path = '{{ method.path }}'
+        {%~ for security in method.securityQueries %}
+        api_path += '?{{ security.name }}=' + self.client._normalize_value(self.client.get_config('{{ security.name | caseLower }}'))
+        {%~ endfor %}
 {{ include('python/base/params.twig') }}
 {% if 'multipart/form-data' in method.consumes %}
 {{ include('python/base/requests/file.twig') }}

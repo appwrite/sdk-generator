@@ -3,6 +3,10 @@
                 .Replace("{{ '{' ~ parameter.name ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}{% if parameter.enumValues is not empty %}.Value{% endif %}){% if loop.last %};{% endif %}
 
             {%~ endfor %}
+            {%~ for security in method.securityQueries %}
+            apiPath += "?{{ security.name }}=" + Uri.EscapeDataString(_client.Config.GetValueOrDefault("{{ security.name | caseCamel }}", ""));
+
+            {%~ endfor %}
 
             var apiParameters = new Dictionary<string, object?>()
             {
@@ -14,6 +18,10 @@
 
             var apiHeaders = new Dictionary<string, string>()
             {
+                {%~ for key, security in method.securityHeaders %}
+                { "{{ security.name }}", _client.Config.GetValueOrDefault("{{ key | caseCamel }}", "") }{% if not loop.last or method.headers | length > 0 %},{% endif %}
+
+                {%~ endfor %}
                 {%~ for key, header in method.headers %}
                 { "{{ key }}", "{{ header }}" }{% if not loop.last %},{% endif %}
 

@@ -64,6 +64,7 @@ func (ce *{{ spec.title | caseUcfirst }}Error) GetResponse() string {
 type Client struct {
 	Client     *http.Client
 	Headers    map[string]string
+	Config     map[string]string
 	Endpoint   string
 	Timeout    time.Duration
 	SelfSigned bool
@@ -92,6 +93,7 @@ func New(optionalSetters ...ClientOption) Client {
 		Client:    httpClient,
 		Timeout:   defaultTimeout,
 		Headers:   headers,
+		Config:    map[string]string{},
 		ChunkSize: defaultChunkSize,
 	}
 

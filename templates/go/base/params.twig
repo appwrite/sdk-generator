@@ -15,6 +15,9 @@
 {% endif %}
 {% endfor %}
 	headers := map[string]interface{}{
+{%~ for key, security in method.securityHeaders %}
+		"{{ security.name }}": srv.client.Config["{{ key | caseLower }}"],
+{%~ endfor %}
 {% for key, header in method.headers %}
 		"{{ key }}": "{{ header }}",
 {% endfor %}

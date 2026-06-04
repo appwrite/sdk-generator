@@ -23,6 +23,7 @@ module {{ spec.title | caseUcfirst }}
 
             }
             @endpoint = '{{spec.endpoint}}'
+            @config = {}
         end
 
 {% for header in spec.global.headers %}
@@ -36,12 +37,19 @@ module {{ spec.title | caseUcfirst }}
         #
         # @return [self]
         def set_{{header.key | caseSnake}}(value)
+            {%~ if header.global %}
             add_header('{{header.name | caseLower}}', value)
+            {%~ endif %}
+            @config['{{ header.key | caseLower }}'] = value
 
             self
         end
 
 {% endfor %}
+        def get_config(key)
+            @config[key] || ''
+        end
+
         # Set endpoint.
         #
         # @param [String] endpoint The endpoint to set
@@ -103,7 +111,8 @@ module {{ spec.title | caseUcfirst }}
             params: {},
             response_type: nil
         )
-            uri = URI.parse(@endpoint + path + ((method == "GET" && params.length) ? '?' + encode(params) : ''))
+            separator = path.include?('?') ? '&' : '?'
+            uri = URI.parse(@endpoint + path + ((method == "GET" && params.length) ? separator + encode(params) : ''))
 
             fetch(method, uri, headers, params, response_type)
         end

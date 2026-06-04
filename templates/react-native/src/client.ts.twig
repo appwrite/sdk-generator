@@ -266,7 +266,9 @@ class Client {
      * @return {this}
      */
     set{{header.key | caseUcfirst}}(value: string): this {
-        this.headers['{{header.name}}'] = value;
+        {%~ if header.global %}
+        this.headers['{{ header.name }}'] = value;
+        {%~ endif %}
         this.config.{{ header.key | caseLower }} = value;
         return this;
     }
