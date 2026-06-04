@@ -4,7 +4,7 @@
 
             {%~ endfor %}
             {%~ for security in method.securityQueries %}
-            apiPath += "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=" + Uri.EscapeDataString(_client.Config.GetValueOrDefault("{{ security.name | caseCamel }}", ""));
+            apiPath += "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=" + Uri.EscapeDataString(_client.GetConfig("{{ security.name | caseCamel }}"));
 
             {%~ endfor %}
 
@@ -19,7 +19,7 @@
             var apiHeaders = new Dictionary<string, string>()
             {
                 {%~ for key, security in method.securityHeaders %}
-                { "{{ security.name }}", _client.Config.GetValueOrDefault("{{ key | caseCamel }}", "") }{% if not loop.last or method.headers | length > 0 %},{% endif %}
+                { "{{ security.name }}", _client.GetConfig("{{ key | caseCamel }}") }{% if not loop.last or method.headers | length > 0 %},{% endif %}
 
                 {%~ endfor %}
                 {%~ for key, header in method.headers %}

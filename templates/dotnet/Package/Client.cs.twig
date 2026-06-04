@@ -20,6 +20,11 @@ namespace {{ spec.title | caseUcfirst }}
         public string Endpoint => _endpoint;
         public Dictionary<string, string> Config => _config;
 
+        public string GetConfig(string key)
+        {
+            return _config.TryGetValue(key, out var value) ? value : "";
+        }
+
         private HttpClient _http;
         private HttpClient _httpForRedirect;
         private readonly Dictionary<string, string> _headers;
