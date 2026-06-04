@@ -1412,6 +1412,7 @@ class SDK
         $consoleOnlyServices = [
             'account',
             'locale',
+            'organization',
             'organizations',
             'projects',
         ];

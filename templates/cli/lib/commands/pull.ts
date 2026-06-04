@@ -861,7 +861,10 @@ const pullSettings = async (): Promise<void> => {
     projectId,
   );
 
-  localConfig.setProject(projectId, settings.projectName, settings.project);
+  localConfig.setProject(projectId, settings.projectName);
+  if (settings.settings) {
+    localConfig.set("settings", settings.settings);
+  }
 };
 
 const pullFunctions = async ({
