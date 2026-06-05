@@ -325,7 +325,7 @@ class Go extends Language
                     $output .= 'map[string]interface{}{}';
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= '[]interface{}{}';
+                    $output .= $this->getTypeName($param) . '{}';
                     break;
                 case self::TYPE_FILE:
                     $output .= 'file.NewInputFile("/path/to/file.png", "file.png")';
@@ -344,7 +344,7 @@ class Go extends Language
                     if (\str_ends_with($example, ']')) {
                         $example = \substr($example, 0, -1);
                     }
-                    $output .= 'interface{}{' . $example . '}';
+                    $output .= $this->getTypeName($param) . '{' . $example . '}';
                     break;
                 case self::TYPE_OBJECT:
                     $output .= ($example === '{}')
