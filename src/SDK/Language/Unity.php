@@ -458,6 +458,8 @@ class Unity extends DotNet
             ],
         ];
 
+        $inTest = isset($GLOBALS['UNITY_TEST_MODE']) && $GLOBALS['UNITY_TEST_MODE'] === true;
+
         foreach ($files as &$file) {
             if (
                 str_starts_with($file['destination'], 'Packages/')
@@ -465,12 +467,16 @@ class Unity extends DotNet
             ) {
                 $file['test'] = true;
             }
+
+            if (!$inTest && str_starts_with($file['destination'], 'Assets/')) {
+                $file['destination'] = substr($file['destination'], \strlen('Assets/'));
+            }
         }
         unset($file);
 
         // Filter out problematic files in test mode
         // Check if we're in test mode by looking for a global variable
-        if (isset($GLOBALS['UNITY_TEST_MODE']) && $GLOBALS['UNITY_TEST_MODE'] === true) {
+        if ($inTest) {
             $excludeInTest = [
                 'Assets/Runtime/Utilities/{{ spec.title | caseUcfirst }}Utilities.cs',
                 'Assets/Runtime/{{ spec.title | caseUcfirst }}Config.cs',
@@ -486,5 +492,159 @@ class Unity extends DotNet
         }
 
         return $files;
+    }
+
+    /**
+     * Emit a .meta for every asset that lacks one.
+     *
+     * Immutable UPM packages need committed .meta files (Unity won't generate
+     * them), else assets are ignored. GUIDs are path-derived for stable diffs;
+     * existing metas (asmdef, .dll plugins) are left untouched.
+     *
+     * @param string $target
+     * @return void
+     */
+    public function postGenerate(string $target): void
+    {
+        if (isset($GLOBALS['UNITY_TEST_MODE']) && $GLOBALS['UNITY_TEST_MODE'] === true) {
+            return;
+        }
+
+        if (!is_dir($target)) {
+            return;
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($target, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            /** @var \SplFileInfo $item */
+            $path     = $item->getPathname();
+            $relative = ltrim(str_replace('\\', '/', substr($path, strlen($target))), '/');
+
+            if ($relative === '') {
+                continue;
+            }
+
+            // Unity ignores hidden entries and anything inside a folder (or
+            // file) suffixed with '~' (e.g. Samples~, Documentation~), so
+            // emitting metas there would be wrong. Skip the whole subtree.
+            $skip = false;
+            foreach (explode('/', $relative) as $segment) {
+                if ($segment === '' || $segment[0] === '.' || str_ends_with($segment, '~')) {
+                    $skip = true;
+                    break;
+                }
+            }
+            if ($skip) {
+                continue;
+            }
+
+            // Never emit a meta for a meta, and never clobber an existing one.
+            if (str_ends_with($path, '.meta')) {
+                continue;
+            }
+
+            $meta = $path . '.meta';
+            if (file_exists($meta)) {
+                continue;
+            }
+
+            file_put_contents($meta, $this->getMetaContents($relative, $item->isDir()));
+        }
+    }
+
+    /**
+     * Build the contents of a .meta file for a given asset.
+     *
+     * @param string $relativePath Package-relative path (forward slashes).
+     * @param bool   $isDir        Whether the asset is a directory.
+     * @return string
+     */
+    private function getMetaContents(string $relativePath, bool $isDir): string
+    {
+        $guid = md5($relativePath);
+
+        if ($isDir) {
+            $lines = [
+                'fileFormatVersion: 2',
+                "guid: {$guid}",
+                'folderAsset: yes',
+                'DefaultImporter:',
+                '  externalObjects: {}',
+                '  userData:',
+                '  assetBundleName:',
+                '  assetBundleVariant:',
+            ];
+
+            return implode("\n", $lines) . "\n";
+        }
+
+        $extension = strtolower(pathinfo($relativePath, PATHINFO_EXTENSION));
+
+        $lines = match ($extension) {
+            'cs' => [
+                'fileFormatVersion: 2',
+                "guid: {$guid}",
+                'MonoImporter:',
+                '  externalObjects: {}',
+                '  serializedVersion: 2',
+                '  defaultReferences: []',
+                '  executionOrder: 0',
+                '  icon: {instanceID: 0}',
+                '  userData:',
+                '  assetBundleName:',
+                '  assetBundleVariant:',
+            ],
+            // WebGL JavaScript plugin: enable on WebGL only so the cookie
+            // shim is actually compiled into WebGL builds.
+            'jslib' => [
+                'fileFormatVersion: 2',
+                "guid: {$guid}",
+                'PluginImporter:',
+                '  externalObjects: {}',
+                '  serializedVersion: 2',
+                '  iconMap: {}',
+                '  executionOrder: {}',
+                '  defineConstraints: []',
+                '  isPreloaded: 0',
+                '  isOverridable: 0',
+                '  isExplicitlyReferenced: 0',
+                '  validateReferences: 1',
+                '  platformData:',
+                '  - first:',
+                '      Any:',
+                '    second:',
+                '      enabled: 0',
+                '      settings: {}',
+                '  - first:',
+                '      Editor: Editor',
+                '    second:',
+                '      enabled: 0',
+                '      settings:',
+                '        DefaultValueInitialized: true',
+                '  - first:',
+                '      WebGL: WebGL',
+                '    second:',
+                '      enabled: 1',
+                '      settings: {}',
+                '  userData:',
+                '  assetBundleName:',
+                '  assetBundleVariant:',
+            ],
+            default => [
+                'fileFormatVersion: 2',
+                "guid: {$guid}",
+                'DefaultImporter:',
+                '  externalObjects: {}',
+                '  userData:',
+                '  assetBundleName:',
+                '  assetBundleVariant:',
+            ],
+        };
+
+        return implode("\n", $lines) . "\n";
     }
 }

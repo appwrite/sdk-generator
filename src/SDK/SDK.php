@@ -1145,6 +1145,8 @@ class SDK
                     break;
             }
         }
+
+        $this->language->postGenerate($target);
     }
 
     /**

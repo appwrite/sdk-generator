@@ -57,6 +57,20 @@ abstract class Language
     abstract public function getFiles(): array;
 
     /**
+     * Hook invoked once after all files have been generated.
+     *
+     * Languages can override this to run post-processing over the
+     * generated output (e.g. emitting sidecar files that depend on the
+     * full file tree). Default implementation is a no-op.
+     *
+     * @param string $target Absolute path the SDK was generated into.
+     * @return void
+     */
+    public function postGenerate(string $target): void
+    {
+    }
+
+    /**
      * @param array $parameter
      * @return string
      */
