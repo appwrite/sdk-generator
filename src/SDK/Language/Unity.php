@@ -586,6 +586,13 @@ class Unity extends DotNet
             return implode("\n", $lines) . "\n";
         }
 
+        // Plugins/Android/AndroidManifest.xml must import as an Android
+        // plugin so Unity merges it into the build manifest; a plain
+        // DefaultImporter would import it as an inert text asset.
+        if (str_ends_with($relativePath, 'Plugins/Android/AndroidManifest.xml')) {
+            return implode("\n", $this->pluginImporterMeta($guid, 'Android')) . "\n";
+        }
+
         $extension = strtolower(pathinfo($relativePath, PATHINFO_EXTENSION));
 
         $lines = match ($extension) {
@@ -604,40 +611,7 @@ class Unity extends DotNet
             ],
             // WebGL JavaScript plugin: enable on WebGL only so the cookie
             // shim is actually compiled into WebGL builds.
-            'jslib' => [
-                'fileFormatVersion: 2',
-                "guid: {$guid}",
-                'PluginImporter:',
-                '  externalObjects: {}',
-                '  serializedVersion: 2',
-                '  iconMap: {}',
-                '  executionOrder: {}',
-                '  defineConstraints: []',
-                '  isPreloaded: 0',
-                '  isOverridable: 0',
-                '  isExplicitlyReferenced: 0',
-                '  validateReferences: 1',
-                '  platformData:',
-                '  - first:',
-                '      Any:',
-                '    second:',
-                '      enabled: 0',
-                '      settings: {}',
-                '  - first:',
-                '      Editor: Editor',
-                '    second:',
-                '      enabled: 0',
-                '      settings:',
-                '        DefaultValueInitialized: true',
-                '  - first:',
-                '      WebGL: WebGL',
-                '    second:',
-                '      enabled: 1',
-                '      settings: {}',
-                '  userData:',
-                '  assetBundleName:',
-                '  assetBundleVariant:',
-            ],
+            'jslib' => $this->pluginImporterMeta($guid, 'WebGL'),
             default => [
                 'fileFormatVersion: 2',
                 "guid: {$guid}",
@@ -650,5 +624,51 @@ class Unity extends DotNet
         };
 
         return implode("\n", $lines) . "\n";
+    }
+
+    /**
+     * Build PluginImporter meta lines enabling a single target platform
+     * (and the editor stub), with every other platform disabled.
+     *
+     * @param string $guid
+     * @param string $platform Unity platform key (e.g. 'WebGL', 'Android').
+     * @return array<string>
+     */
+    private function pluginImporterMeta(string $guid, string $platform): array
+    {
+        return [
+            'fileFormatVersion: 2',
+            "guid: {$guid}",
+            'PluginImporter:',
+            '  externalObjects: {}',
+            '  serializedVersion: 2',
+            '  iconMap: {}',
+            '  executionOrder: {}',
+            '  defineConstraints: []',
+            '  isPreloaded: 0',
+            '  isOverridable: 0',
+            '  isExplicitlyReferenced: 0',
+            '  validateReferences: 1',
+            '  platformData:',
+            '  - first:',
+            '      Any:',
+            '    second:',
+            '      enabled: 0',
+            '      settings: {}',
+            '  - first:',
+            '      Editor: Editor',
+            '    second:',
+            '      enabled: 0',
+            '      settings:',
+            '        DefaultValueInitialized: true',
+            '  - first:',
+            "      {$platform}: {$platform}",
+            '    second:',
+            '      enabled: 1',
+            '      settings: {}',
+            '  userData:',
+            '  assetBundleName:',
+            '  assetBundleVariant:',
+        ];
     }
 }
