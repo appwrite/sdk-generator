@@ -514,6 +514,8 @@ class Unity extends DotNet
             return;
         }
 
+        $normalizedTarget = rtrim(str_replace('\\', '/', $target), '/');
+
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($target, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
@@ -522,7 +524,7 @@ class Unity extends DotNet
         foreach ($iterator as $item) {
             /** @var \SplFileInfo $item */
             $path     = $item->getPathname();
-            $relative = ltrim(str_replace('\\', '/', substr($path, strlen($target))), '/');
+            $relative = ltrim(substr(str_replace('\\', '/', $path), strlen($normalizedTarget)), '/');
 
             if ($relative === '') {
                 continue;
@@ -552,7 +554,9 @@ class Unity extends DotNet
                 continue;
             }
 
-            file_put_contents($meta, $this->getMetaContents($relative, $item->isDir()));
+            if (file_put_contents($meta, $this->getMetaContents($relative, $item->isDir())) === false) {
+                throw new \RuntimeException("Failed to write meta file: {$meta}");
+            }
         }
     }
 
