@@ -2,14 +2,12 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
 class Kotlin extends Language
 {
-    /**
-     * @return string
-     */
     public function getName(): string
     {
         return 'Kotlin';
@@ -17,8 +15,6 @@ class Kotlin extends Language
 
     /**
      * Get Language Keywords List
-     *
-     * @return array
      */
     public function getKeywords(): array
     {
@@ -91,9 +87,6 @@ class Kotlin extends Language
         ];
     }
 
-    /**
-     * @return array
-     */
     public function getIdentifierOverrides(): array
     {
         return [];
@@ -114,11 +107,6 @@ class Kotlin extends Language
         return 'listOf(' . $elements . ')';
     }
 
-    /**
-     * @param array $parameter
-     * @param array $spec
-     * @return string
-     */
     public function getTypeName(array $parameter, array $spec = []): string
     {
         if (
@@ -127,7 +115,7 @@ class Kotlin extends Language
         ) {
             $enumType = isset($parameter['enumName'])
                 ? \ucfirst($parameter['enumName'])
-                : \ucfirst($parameter['name']);
+                : \ucfirst((string) $parameter['name']);
 
             return 'List<io.appwrite.enums.' . $enumType . '>';
         }
@@ -136,7 +124,7 @@ class Kotlin extends Language
             return 'io.appwrite.enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return 'io.appwrite.enums.' . \ucfirst($parameter['name']);
+            return 'io.appwrite.enums.' . \ucfirst((string) $parameter['name']);
         }
         if (!empty($parameter['array']['model'])) {
             return 'List<io.appwrite.models.' . $this->toPascalCase($parameter['array']['model']) . '>';
@@ -162,10 +150,6 @@ class Kotlin extends Language
         };
     }
 
-    /**
-     * @param array $param
-     * @return string
-     */
     public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
@@ -222,9 +206,7 @@ class Kotlin extends Language
     }
 
     /**
-     * @param array $param
      * @param string $lang Language variant: 'kotlin' (default) or 'java'
-     * @return string
      */
     public function getParamExample(array $param, string $lang = 'kotlin'): string
     {
@@ -260,7 +242,7 @@ class Kotlin extends Language
         } else {
             switch ($type) {
                 case self::TYPE_OBJECT:
-                    $decoded = json_decode($example, true);
+                    $decoded = json_decode((string) $example, true);
                     if ($decoded && is_array($decoded)) {
                         if ($lang === 'java') {
                             $output .= $this->getJavaMapExample($decoded);
@@ -300,9 +282,7 @@ class Kotlin extends Language
     /**
      * Generate Kotlin-style map initialization
      *
-     * @param array $data
      * @param int $indentLevel Indentation level for nested maps
-     * @return string
      */
     protected function getKotlinMapExample(array $data, int $indentLevel = 0): string
     {
@@ -342,9 +322,7 @@ class Kotlin extends Language
     /**
      * Generate Java-style map initialization using Map.of()
      *
-     * @param array $data
      * @param int $indentLevel Indentation level for nested maps
-     * @return string
      */
     protected function getJavaMapExample(array $data, int $indentLevel = 0): string
     {
@@ -386,7 +364,6 @@ class Kotlin extends Language
      *
      * @param string $example Array example like '[1, 2, 3]' or '[{"key": "value"}]'
      * @param string $lang Language variant: 'kotlin' or 'java'
-     * @return string
      */
     protected function getArrayExample(string $example, string $lang = 'kotlin'): string
     {
@@ -398,29 +375,22 @@ class Kotlin extends Language
                 if (is_array($item)) {
                     // Check if it's an associative array (object) or indexed array (nested array)
                     $isObject = !array_is_list($item);
-
                     if ($isObject) {
                         // It's an object/map, convert it
-                        if ($lang === 'java') {
-                            $arrayItems[] = $this->getJavaMapExample($item);
-                        } else {
-                            $arrayItems[] = $this->getKotlinMapExample($item);
-                        }
+                        $arrayItems[] = $lang === 'java' ? $this->getJavaMapExample($item) : $this->getKotlinMapExample($item);
                     } else {
                         // It's a nested array, recursively convert it
                         $arrayItems[] = $this->getArrayExample(json_encode($item), $lang);
                     }
-                } else {
+                } elseif (is_string($item)) {
                     // Primitive value
-                    if (is_string($item)) {
-                        $arrayItems[] = '"' . $item . '"';
-                    } elseif (is_bool($item)) {
-                        $arrayItems[] = $item ? 'true' : 'false';
-                    } elseif (is_null($item)) {
-                        $arrayItems[] = 'null';
-                    } else {
-                        $arrayItems[] = (string)$item;
-                    }
+                    $arrayItems[] = '"' . $item . '"';
+                } elseif (is_bool($item)) {
+                    $arrayItems[] = $item ? 'true' : 'false';
+                } elseif (is_null($item)) {
+                    $arrayItems[] = 'null';
+                } else {
+                    $arrayItems[] = (string)$item;
                 }
             }
             return $lang === 'java'
@@ -445,8 +415,8 @@ class Kotlin extends Language
      *
      * @param string $example Permission string like '["read(\"any\")"]'
      * @param string $lang Language variant: 'kotlin' or 'java'
-     * @return string
      */
+    #[Override]
     public function getPermissionExample(string $example, string $lang = 'kotlin'): string
     {
         $permissions = [];
@@ -481,9 +451,6 @@ class Kotlin extends Language
         return 'listOf(' . $permissionsString . ')';
     }
 
-    /**
-     * @return array
-     */
     public function getFiles(): array
     {
         return [
@@ -647,48 +614,31 @@ class Kotlin extends Language
         ];
     }
 
+    #[Override]
     public function getFilters(): array
     {
         return [
-            new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'T') {
-                return $this->getReturnType($method, $spec, $namespace, $generic);
-            }),
-            new TwigFilter('modelType', function (array $property, array $spec, string $generic = 'T') {
-                return $this->getModelType($property, $spec, $generic);
-            }),
-            new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'T') {
-                return $this->getPropertyType($property, $spec, $generic);
-            }),
-            new TwigFilter('hasGenericType', function (string $model, array $spec) {
-                return $this->hasGenericType($model, $spec);
-            }),
-            new TwigFilter('caseEnumKey', function (string $value) {
+            new TwigFilter('returnType', fn(array $method, array $spec, string $namespace, string $generic = 'T'): string => $this->getReturnType($method, $spec, $namespace, $generic)),
+            new TwigFilter('modelType', fn(array $property, array $spec, string $generic = 'T'): string => $this->getModelType($property, $spec, $generic)),
+            new TwigFilter('propertyType', fn(array $property, array $spec, string $generic = 'T'): string => $this->getPropertyType($property, $spec, $generic)),
+            new TwigFilter('hasGenericType', fn(string $model, array $spec): string => $this->hasGenericType($model, $spec)),
+            new TwigFilter('caseEnumKey', function (string $value): string {
                 if (isset($this->getIdentifierOverrides()[$value])) {
                     $value = $this->getIdentifierOverrides()[$value];
                 }
                 return $this->toUpperSnakeCase($value);
             }),
-            new TwigFilter('propertyAssignment', function (array $property, array $spec) {
-                return $this->getPropertyAssignment($property, $spec);
-            }),
-            new TwigFilter('javaParamExample', function (array $param) {
-                return $this->getParamExample($param, 'java');
-            }, ['is_safe' => ['html']]),
-            new TwigFilter('enumExample', function (array $param, string $lang = 'kotlin') {
-                return $this->getEnumExample($param, $lang);
-            }),
-            new TwigFilter('javaEnumExample', function (array $param) {
-                return $this->getEnumExample($param, 'java');
-            }),
+            new TwigFilter('propertyAssignment', fn(array $property, array $spec): string => $this->getPropertyAssignment($property, $spec)),
+            new TwigFilter('javaParamExample', fn(array $param): string => $this->getParamExample($param, 'java'), ['is_safe' => ['html']]),
+            new TwigFilter('enumExample', fn(array $param, string $lang = 'kotlin'): string => $this->getEnumExample($param, $lang)),
+            new TwigFilter('javaEnumExample', fn(array $param): string => $this->getEnumExample($param, 'java')),
         ];
     }
 
     /**
      * Generate enum example for Kotlin/Java
      *
-     * @param array $param
      * @param string $lang 'kotlin' or 'java'
-     * @return string
      */
     protected function getEnumExample(array $param, string $lang = 'kotlin'): string
     {
@@ -702,7 +652,7 @@ class Kotlin extends Language
         $example = $param['example'] ?? null;
         $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
 
-        $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+        $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
             $index = array_search($value, $enumValues, true);
             if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
                 return $this->toUpperSnakeCase($enumKeys[$index]);
@@ -725,13 +675,11 @@ class Kotlin extends Language
                 $values = $example;
             }
 
-            if (empty($values)) {
+            if ($values === []) {
                 $values = [$enumValues[0]];
             }
 
-            $items = array_map(function ($value) use ($enumName, $resolveKey) {
-                return $enumName . '.' . $resolveKey($value);
-            }, $values);
+            $items = array_map(fn($value): string => $enumName . '.' . $resolveKey($value), $values);
 
             $listOf = $lang === 'java' ? 'List.of' : 'listOf';
             return $listOf . '(' . implode(', ', $items) . ')';
@@ -768,7 +716,7 @@ class Kotlin extends Language
 
         $ret = $this->toPascalCase($method['responseModel']);
 
-        if ($this->hasGenericType($method['responseModel'], $spec)) {
+        if ($this->hasGenericType($method['responseModel'], $spec) !== '' && $this->hasGenericType($method['responseModel'], $spec) !== '0') {
             $ret .= '<' . $generic . '>';
         }
 
@@ -777,7 +725,7 @@ class Kotlin extends Language
 
     protected function getModelType(array $definition, array $spec, string $generic = 'T'): string
     {
-        if ($this->hasGenericType($definition['name'], $spec)) {
+        if ($this->hasGenericType($definition['name'], $spec) !== '' && $this->hasGenericType($definition['name'], $spec) !== '0') {
             return $this->toPascalCase($definition['name']) . '<' . $generic . '>';
         }
         return $this->toPascalCase($definition['name']);
@@ -788,7 +736,7 @@ class Kotlin extends Language
         if (\array_key_exists('sub_schema', $property)) {
             $type = $this->toPascalCase($property['sub_schema']);
 
-            if ($this->hasGenericType($property['sub_schema'], $spec)) {
+            if ($this->hasGenericType($property['sub_schema'], $spec) !== '' && $this->hasGenericType($property['sub_schema'], $spec) !== '0') {
                 $type .= '<' . $generic . '>';
             }
 
@@ -797,7 +745,7 @@ class Kotlin extends Language
             }
         } elseif (isset($property['enum'])) {
             $enumName = $property['enumName'] ?? $property['name'];
-            $type = \ucfirst($enumName);
+            $type = \ucfirst((string) $enumName);
         } else {
             $type = $this->getTypeName($property);
         }
@@ -834,10 +782,6 @@ class Kotlin extends Language
 
     /**
      * Generate property assignment logic for model deserialization
-     *
-     * @param array $property
-     * @param array $spec
-     * @return string
      */
     protected function getPropertyAssignment(array $property, array $spec): string
     {
@@ -849,7 +793,7 @@ class Kotlin extends Language
         if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
             $subSchemaClass = $this->toPascalCase($property['sub_schema']);
             $hasGenericType = $this->hasGenericType($property['sub_schema'], $spec);
-            $nestedTypeParam = $hasGenericType ? ', nestedType' : '';
+            $nestedTypeParam = $hasGenericType !== '' && $hasGenericType !== '0' ? ', nestedType' : '';
 
             if ($property['type'] === 'array') {
                 return "($mapKey as List<Map<String, Any>>).map { " .
@@ -883,12 +827,12 @@ class Kotlin extends Language
 
         if ($property['type'] === 'integer') {
             return "($mapKey as$nullableModifier Number)" .
-                   ($nullableModifier ? '?' : '') . '.toLong()';
+                   ($nullableModifier !== '' && $nullableModifier !== '0' ? '?' : '') . '.toLong()';
         }
 
         if ($property['type'] === 'number') {
             return "($mapKey as$nullableModifier Number)" .
-                   ($nullableModifier ? '?' : '') . '.toDouble()';
+                   ($nullableModifier !== '' && $nullableModifier !== '0' ? '?' : '') . '.toDouble()';
         }
 
         // Handle other types (string, boolean, etc.)

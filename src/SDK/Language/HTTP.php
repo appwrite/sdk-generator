@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
@@ -9,25 +11,18 @@ abstract class HTTP extends Language
 {
     /**
      * Get Language Keywords List
-     *
-     * @return array
      */
     public function getKeywords(): array
     {
         return [];
     }
 
-    /**
-     * @return array
-     */
     public function getIdentifierOverrides(): array
     {
         return [];
     }
 
     /**
-     * @param array $parameter
-     * @return string
      * @throws Exception
      */
     public function getTypeName(array $parameter, array $spec = []): string

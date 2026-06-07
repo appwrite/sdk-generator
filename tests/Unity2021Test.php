@@ -1,22 +1,35 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
-class Unity2021Test extends Base
+use Appwrite\SDK\Language\Unity;
+use Override;
+
+final class Unity2021Test extends Base
 {
+    #[Override]
     protected string $sdkName = 'unity';
+    #[Override]
     protected string $sdkPlatform = 'client';
+    #[Override]
     protected string $sdkLanguage = 'unity';
+    #[Override]
     protected string $version = '0.0.1';
 
+    #[Override]
     protected string $language = 'unity';
-    protected string $class = 'Appwrite\SDK\Language\Unity';
+    #[Override]
+    protected string $class = Unity::class;
+    #[Override]
     protected array $build = [
         'mkdir -p tests/sdks/unity/Assets/Tests',
         'cp tests/languages/unity/Tests.cs tests/sdks/unity/Assets/Tests/Tests.cs',
         'cp tests/languages/unity/Tests.asmdef tests/sdks/unity/Assets/Tests/Tests.asmdef',
     ];
 
+    #[Override]
     protected string $command = <<<'CMD'
 docker run \
   --network="mockapi" \
@@ -61,11 +74,10 @@ docker run \
   '
 CMD;
 
+    #[Override]
     public function testHTTPSuccess(): void
     {
-        // Set Unity test mode to exclude problematic files
         $GLOBALS['UNITY_TEST_MODE'] = true;
-
         parent::testHTTPSuccess();
     }
 
@@ -75,6 +87,7 @@ CMD;
         parent::tearDown();
     }
 
+    #[Override]
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,

@@ -1,18 +1,32 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
-class Rust183Test extends Base
+use Override;
+use Appwrite\SDK\Language\Rust;
+
+final class Rust183Test extends Base
 {
+    #[Override]
     protected string $sdkName = "rust";
+    #[Override]
     protected string $sdkPlatform = "server";
+    #[Override]
     protected string $sdkLanguage = "rust";
+    #[Override]
     protected string $version = "0.0.1";
 
+    #[Override]
     protected string $language = "rust";
-    protected string $class = "Appwrite\SDK\Language\Rust";
+    #[Override]
+    protected string $class = Rust::class;
+    #[Override]
     protected array $build = ["mkdir -p tests/tmp/rust", "cp -Rf tests/sdks/rust/* tests/tmp/rust/"];
+    #[Override]
     protected string $command = 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app rust:1.83 sh -c "cd tests/languages/rust/ && ./test.sh"';
+    #[Override]
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,

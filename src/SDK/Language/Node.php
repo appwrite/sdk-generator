@@ -2,36 +2,42 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
+use Twig\TwigFilter;
+
 class Node extends Web
 {
-    /**
-     * @return string
-     */
+    #[Override]
     public function getName(): string
     {
         return 'NodeJS';
     }
 
+    #[Override]
     public function getStaticAccessOperator(): string
     {
         return '.';
     }
 
+    #[Override]
     public function getStringQuote(): string
     {
         return "'";
     }
 
+    #[Override]
     public function getArrayOf(string $elements): string
     {
         return '[' . $elements . ']';
     }
 
+    #[Override]
     protected function getPermissionPrefix(): string
     {
         return 'sdk.';
     }
 
+    #[Override]
     public function getTypeName(array $parameter, array $method = []): string
     {
         if (($parameter['type'] ?? null) === self::TYPE_ARRAY) {
@@ -49,6 +55,7 @@ class Node extends Web
         return parent::getTypeName($parameter, $method);
     }
 
+    #[Override]
     public function getReturn(array $method, array $spec): string
     {
         if ($method['type'] === 'webAuth') {
@@ -69,7 +76,7 @@ class Node extends Web
             $ret = 'Promise<';
 
             if (
-                array_key_exists($method['responseModel'], $spec['definitions']) &&
+                array_key_exists((string) $method['responseModel'], $spec['definitions']) &&
                 array_key_exists('additionalProperties', $spec['definitions'][$method['responseModel']]) &&
                 !$spec['definitions'][$method['responseModel']]['additionalProperties']
             ) {
@@ -83,24 +90,18 @@ class Node extends Web
             $this->populateGenerics($method['responseModel'], $spec, $models);
 
             $models = array_unique($models);
-            $models = array_filter($models, fn ($model) => $model != $this->toPascalCase($method['responseModel']));
+            $models = array_filter($models, fn ($model): bool => $model != $this->toPascalCase($method['responseModel']));
 
-            if (!empty($models)) {
+            if ($models !== []) {
                 $ret .= '<' . implode(', ', $models) . '>';
             }
 
-            $ret .= '>';
-
-            return $ret;
+            return $ret . '>';
         }
         return 'Promise<{}>';
     }
 
-    /**
-     * @param array $param
-     * @param string $lang
-     * @return string
-     */
+    #[Override]
     public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
@@ -124,7 +125,7 @@ class Node extends Web
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')
             ? '{}'
-            : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+            : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT))
                 ? preg_replace('/\n/', "\n    ", $formatted)
                 : $example),
             self::TYPE_STRING => "'{$example}'",
@@ -133,9 +134,6 @@ class Node extends Web
 
     /**
      * Check if service has any file parameters
-     *
-     * @param array $service
-     * @return bool
      */
     public function hasFileParam(array $service): bool
     {
@@ -149,21 +147,15 @@ class Node extends Web
         return false;
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getFilters(): array
     {
         return \array_merge(parent::getFilters(), [
-            new \Twig\TwigFilter('hasFileParam', function ($service) {
-                return $this->hasFileParam($service);
-            }),
+            new TwigFilter('hasFileParam', fn(array $service): bool => $this->hasFileParam($service)),
         ]);
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getFiles(): array
     {
         return [

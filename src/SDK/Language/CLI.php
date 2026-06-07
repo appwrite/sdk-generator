@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
 
@@ -9,9 +10,8 @@ class CLI extends Node
 {
     /**
      * List of functions to ignore for console preview.
-     * @var array
      */
-    private $consoleIgnoreFunctions = [
+    private array $consoleIgnoreFunctions = [
         'listidentities',
         'listmfafactors',
         'getprefs',
@@ -52,9 +52,8 @@ class CLI extends Node
 
     /**
      * List of SDK services to ignore for console preview.
-     * @var array
      */
-    private $consoleIgnoreServices = [
+    private array $consoleIgnoreServices = [
         'health',
         'migrations',
         'locale',
@@ -66,6 +65,7 @@ class CLI extends Node
     /**
      * @var array
      */
+    #[Override]
     protected $params = [
         'npmPackage' => 'packageName',
         'executableName' => 'executable',
@@ -112,16 +112,13 @@ class CLI extends Node
         'private'
     ];
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getName(): string
     {
         return 'cli';
     }
 
     /**
-     * @param string $name
      * @return $this
      */
     public function setExecutableName(string $name): self
@@ -132,7 +129,6 @@ class CLI extends Node
     }
 
     /**
-     * @param string $logo
      * @return $this
      */
     public function setLogo(string $logo): self
@@ -143,7 +139,6 @@ class CLI extends Node
     }
 
     /**
-     * @param string $logo
      * @return $this
      */
     public function setLogoUnescaped(string $logo): self
@@ -170,21 +165,18 @@ class CLI extends Node
 
     /**
      * Convert string to kebab-case.
-     * @param string $value
-     * @return string
      */
     protected function toKebabCase(string $value): string
     {
         $value = preg_replace('/([a-z])([A-Z])/', '$1-$2', $value);
-        $value = preg_replace('/[\s_]+/', '-', $value);
-        return strtolower($value);
+        $value = preg_replace('/[\s_]+/', '-', (string) $value);
+        return strtolower((string) $value);
     }
 
     /**
      * Escape reserved keywords.
-     * @param string $name
-     * @return string
      */
+    #[Override]
     public function escapeKeyword(string $name): string
     {
         $reserved = $this->reservedKeywords;
@@ -246,11 +238,17 @@ class CLI extends Node
             $builderParams[] = 'queries';
 
             if ($hasFilteringQueries) {
-                array_push($builderParams, 'filter', 'where', 'sortAsc', 'sortDesc', 'cursorAfter', 'cursorBefore');
+                $builderParams[] = 'filter';
+                $builderParams[] = 'where';
+                $builderParams[] = 'sortAsc';
+                $builderParams[] = 'sortDesc';
+                $builderParams[] = 'cursorAfter';
+                $builderParams[] = 'cursorBefore';
             }
 
             if ($hasPaginationQueries) {
-                array_push($builderParams, 'limit', 'offset');
+                $builderParams[] = 'limit';
+                $builderParams[] = 'offset';
             }
 
             if ($hasSelectQueries) {
@@ -280,9 +278,7 @@ class CLI extends Node
         ];
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getFiles(): array
     {
         return [
@@ -706,17 +702,16 @@ class CLI extends Node
     }
 
     /**
-     * @param array $parameter
      * @param array $nestedTypes
-     * @return string
      */
+    #[Override]
     public function getTypeName(array $parameter, array $spec = []): string
     {
         if (isset($parameter['enumName'])) {
             return \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return \ucfirst((string) $parameter['name']);
         }
         if (!empty($parameter['array']['model'])) {
             return $this->toPascalCase($parameter['array']['model']) . '[]';
@@ -743,11 +738,7 @@ class CLI extends Node
         };
     }
 
-    /**
-     * @param array $param
-     * @param string $lang
-     * @return string
-     */
+    #[Override]
     public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
@@ -778,8 +769,8 @@ class CLI extends Node
         } else {
             switch ($type) {
                 case self::TYPE_ARRAY:
-                    if (str_contains($example, '[') && str_contains($example, ']')) {
-                        $trimmed = substr($example, 1, -1);
+                    if (str_contains((string) $example, '[') && str_contains((string) $example, ']')) {
+                        $trimmed = substr((string) $example, 1, -1);
                         $split = explode(',', $trimmed);
                         $output .= implode(' ', $split);
                     } else {
@@ -810,8 +801,8 @@ class CLI extends Node
 
     /**
      * Language specific filters.
-     * @return array
      */
+    #[Override]
     public function getFilters(): array
     {
         return array_merge(parent::getFilters(), [
@@ -822,14 +813,14 @@ class CLI extends Node
 
     /**
      * Language specific functions.
-     * @return array
      */
+    #[Override]
     public function getFunctions(): array
     {
         return [
             /** Return true if the entered service->method is enabled for a console preview link */
-            new TwigFunction('hasConsolePreview', fn($method, $service) => preg_match('/^([Gg]et|[Ll]ist)/', $method)
-                && !in_array(strtolower($method), $this->consoleIgnoreFunctions)
+            new TwigFunction('hasConsolePreview', fn($method, $service): bool => preg_match('/^([Gg]et|[Ll]ist)/', (string) $method)
+                && !in_array(strtolower((string) $method), $this->consoleIgnoreFunctions)
                 && !in_array($service, $this->consoleIgnoreServices)),
 
             /**
@@ -869,33 +860,31 @@ class CLI extends Node
                             'parser' => null,
                         ];
                     }
+                } elseif ($type === 'boolean') {
+                    return [
+                        'method' => 'option',
+                        'syntax' => "--{$optionName} [value]",
+                        'parser' => null,
+                        'customParserCode' => "(value: string | undefined) =>\n      value === undefined ? true : parseBool(value)",
+                    ];
+                } elseif ($type === 'integer' || $type === 'number') {
+                    return [
+                        'method' => 'option',
+                        'syntax' => "--{$optionName} <{$optionName}>",
+                        'parser' => 'parseInteger',
+                    ];
+                } elseif ($type === 'array') {
+                    return [
+                        'method' => 'option',
+                        'syntax' => "--{$optionName} [{$optionName}...]",
+                        'parser' => null,
+                    ];
                 } else {
-                    if ($type === 'boolean') {
-                        return [
-                            'method' => 'option',
-                            'syntax' => "--{$optionName} [value]",
-                            'parser' => null,
-                            'customParserCode' => "(value: string | undefined) =>\n      value === undefined ? true : parseBool(value)",
-                        ];
-                    } elseif ($type === 'integer' || $type === 'number') {
-                        return [
-                            'method' => 'option',
-                            'syntax' => "--{$optionName} <{$optionName}>",
-                            'parser' => 'parseInteger',
-                        ];
-                    } elseif ($type === 'array') {
-                        return [
-                            'method' => 'option',
-                            'syntax' => "--{$optionName} [{$optionName}...]",
-                            'parser' => null,
-                        ];
-                    } else {
-                        return [
-                            'method' => 'option',
-                            'syntax' => "--{$optionName} <{$optionName}>",
-                            'parser' => null,
-                        ];
-                    }
+                    return [
+                        'method' => 'option',
+                        'syntax' => "--{$optionName} <{$optionName}>",
+                        'parser' => null,
+                    ];
                 }
             }),
 

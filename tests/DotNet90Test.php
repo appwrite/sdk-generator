@@ -1,24 +1,38 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
-class DotNet90Test extends Base
+use Override;
+use Appwrite\SDK\Language\DotNet;
+
+final class DotNet90Test extends Base
 {
+    #[Override]
     protected string $sdkName = 'dotnet';
+    #[Override]
     protected string $sdkPlatform = 'server';
+    #[Override]
     protected string $sdkLanguage = 'dotnet';
+    #[Override]
     protected string $version = '0.0.1';
 
+    #[Override]
     protected string $language = 'dotnet';
-    protected string $class = 'Appwrite\SDK\Language\DotNet';
+    #[Override]
+    protected string $class = DotNet::class;
+    #[Override]
     protected array $build = [
         'mkdir -p tests/sdks/dotnet/test',
         'cp tests/languages/dotnet/Tests.cs tests/sdks/dotnet/test/Tests.cs',
         'cp tests/languages/dotnet/Tests90.csproj tests/sdks/dotnet/test/Tests.csproj',
     ];
+    #[Override]
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/test mcr.microsoft.com/dotnet/sdk:9.0-alpine3.22 dotnet test --verbosity normal --framework net9.0';
 
+    #[Override]
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,

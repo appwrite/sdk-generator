@@ -1,25 +1,39 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
-class WebChromiumTest extends Base
+use Override;
+use Appwrite\SDK\Language\Web;
+
+final class WebChromiumTest extends Base
 {
+    #[Override]
     protected string $sdkName = 'web';
+    #[Override]
     protected string $sdkPlatform = 'client';
+    #[Override]
     protected string $sdkLanguage = 'web';
+    #[Override]
     protected string $version = '0.0.1';
 
+    #[Override]
     protected string $language = 'web';
-    protected string $class = 'Appwrite\SDK\Language\Web';
+    #[Override]
+    protected string $class = Web::class;
+    #[Override]
     protected array $build = [
         'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
         'cp tests/languages/web/node.js tests/sdks/web/node.js',
         'cp tests/languages/web/index.html tests/sdks/web/index.html',
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy sh -c "npm install && npm run build"',
     ];
+    #[Override]
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy node tests.js';
 
+    #[Override]
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,

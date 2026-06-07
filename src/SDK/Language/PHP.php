@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
@@ -10,13 +11,13 @@ class PHP extends Language
     /**
      * @var array
      */
+    #[Override]
     protected $params = [
         'composerVendor' => 'vendor-name',
         'composerPackage' => 'package-name',
     ];
 
     /**
-     * @param string $name
      * @return $this
      */
     public function setComposerVendor(string $name): self
@@ -27,7 +28,6 @@ class PHP extends Language
     }
 
     /**
-     * @param string $name
      * @return $this
      */
     public function setComposerPackage(string $name): self
@@ -37,9 +37,6 @@ class PHP extends Language
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getName(): string
     {
         return 'PHP';
@@ -47,8 +44,6 @@ class PHP extends Language
 
     /**
      * Get Language Keywords List
-     *
-     * @return array
      */
     public function getKeywords(): array
     {
@@ -122,9 +117,6 @@ class PHP extends Language
         ];
     }
 
-    /**
-     * @return array
-     */
     public function getIdentifierOverrides(): array
     {
         return [
@@ -152,9 +144,6 @@ class PHP extends Language
         return '[' . $elements . ']';
     }
 
-    /**
-     * @return array
-     */
     public function getFiles(): array
     {
         return [
@@ -305,9 +294,7 @@ class PHP extends Language
     protected function normalizeNamespace(string $namespace): string
     {
         $segments = explode('\\', $namespace);
-        $segments = array_map(function ($segment) {
-            return $this->toPascalCase($segment);
-        }, $segments);
+        $segments = array_map($this->toPascalCase(...), $segments);
 
         return implode('\\', $segments);
     }
@@ -335,7 +322,7 @@ class PHP extends Language
             $models[] = $this->getModelClassName($modelName, $spec, true);
         }
 
-        if (empty($models) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
+        if ($models === [] && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
             $models[] = $this->getModelClassName($method['responseModel'], $spec, true);
         }
 
@@ -343,9 +330,7 @@ class PHP extends Language
     }
 
     /**
-     * @param array $parameter
      * @param array $nestedTypes
-     * @return string
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
@@ -360,7 +345,7 @@ class PHP extends Language
             return $this->applyIdentifierOverride(\ucfirst($parameter['enumName']));
         }
         if (!empty($parameter['enumValues'])) {
-            return $this->applyIdentifierOverride(\ucfirst($parameter['name']));
+            return $this->applyIdentifierOverride(\ucfirst((string) $parameter['name']));
         }
         if (!empty($parameter['array']['model'])) {
             return 'array';
@@ -385,10 +370,6 @@ class PHP extends Language
         };
     }
 
-    /**
-     * @param array $param
-     * @return string
-     */
     public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
@@ -424,7 +405,7 @@ class PHP extends Language
                     $output .= $default;
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= $this->jsonToAssoc(json_decode($default, true));
+                    $output .= $this->jsonToAssoc(json_decode((string) $default, true));
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
@@ -438,11 +419,6 @@ class PHP extends Language
         return $output;
     }
 
-    /**
-     * @param array $param
-     * @param string $lang
-     * @return string
-     */
     public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
@@ -478,7 +454,7 @@ class PHP extends Language
                     $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= $this->jsonToAssoc(json_decode($example, true));
+                    $output .= $this->jsonToAssoc(json_decode((string) $example, true));
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -502,7 +478,7 @@ class PHP extends Language
      */
     protected function jsonToAssoc(array $data, int $indent = 0): string
     {
-        if (empty($data)) {
+        if ($data === []) {
             return '[]';
         }
 
@@ -530,9 +506,7 @@ class PHP extends Language
             $output .= '    ' . $itemIndent . '\'' . $key . '\' => ' . $value . $comma . "\n";
         }
 
-        $output .= $baseIndent . '    ]';
-
-        return $output;
+        return $output . ($baseIndent . '    ]');
     }
 
     protected function getMockDefinitionPayload(string $definitionName, array $spec, int $indentLevel = 2): string
@@ -552,10 +526,10 @@ class PHP extends Language
 
         $properties = array_values(array_filter(
             $definition['properties'] ?? [],
-            fn (array $property) => (bool)($property['required'] ?? false)
+            fn (array $property): bool => (bool)($property['required'] ?? false)
         ));
 
-        if (empty($properties)) {
+        if ($properties === []) {
             return 'array()';
         }
 
@@ -629,7 +603,7 @@ class PHP extends Language
         }
 
         if (is_array($value)) {
-            return empty($value) ? 'array()' : var_export($value, true);
+            return $value === [] ? 'array()' : var_export($value, true);
         }
 
         return (string)$value;
@@ -639,9 +613,8 @@ class PHP extends Language
     {
         $value = str_replace('\\', '\\\\', $value);
         $value = str_replace('"', '\\"', $value);
-        $value = str_replace('$', '\\$', $value);
 
-        return $value;
+        return str_replace('$', '\\$', $value);
     }
 
     protected function getReturn(array $method, array $spec = []): string
@@ -652,7 +625,7 @@ class PHP extends Language
 
         $responseModels = $this->getResponseModels($method, $spec);
 
-        if (!empty($responseModels)) {
+        if ($responseModels !== []) {
             return implode('|', $responseModels);
         }
 
@@ -661,9 +634,6 @@ class PHP extends Language
 
     /**
      * Generate method parameters string for PHP method signatures
-     *
-     * @param array $method
-     * @return string
      */
     protected function getMethodParameters(array $method): string
     {
@@ -675,7 +645,7 @@ class PHP extends Language
 
             $typeName = $this->getTypeName($parameter);
             $paramName = '$' . $this->escapeKeyword($this->toCamelCase($parameter['name'] ?? ''));
-            $default = !($parameter['required'] ?? true) ? ' = null' : '';
+            $default = $parameter['required'] ?? true ? '' : ' = null';
 
             $params[] = $nullablePrefix . $typeName . ' ' . $paramName . $default;
         }
@@ -690,58 +660,39 @@ class PHP extends Language
         return $result;
     }
 
+    #[Override]
     public function getFilters(): array
     {
         return [
-            new TwigFilter('getReturn', function ($value, array $spec = []) {
-                return $this->getReturn($value, $spec);
-            }),
-            new TwigFilter('getResponseModels', function ($value, array $spec = []) {
-                return $this->getResponseModels($value, $spec);
-            }),
-            new TwigFilter('mockDefinitionPayload', function (string $definitionName, array $spec, int $indentLevel = 2) {
-                return $this->getMockDefinitionPayload($definitionName, $spec, $indentLevel);
-            }, ['is_safe' => ['html']]),
-            new TwigFilter('methodParameters', function ($value) {
-                return $this->getMethodParameters($value);
-            }),
-            new TwigFilter('deviceInfo', function ($value) {
-                return php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m');
-            }),
-            new TwigFilter('caseEnumKey', function (string $value) {
+            new TwigFilter('getReturn', fn(array $value, array $spec = []): string => $this->getReturn($value, $spec)),
+            new TwigFilter('getResponseModels', fn(array $value, array $spec = []): array => $this->getResponseModels($value, $spec)),
+            new TwigFilter('mockDefinitionPayload', fn(string $definitionName, array $spec, int $indentLevel = 2): string => $this->getMockDefinitionPayload($definitionName, $spec, $indentLevel), ['is_safe' => ['html']]),
+            new TwigFilter('methodParameters', fn(array $value): string => $this->getMethodParameters($value)),
+            new TwigFilter('deviceInfo', fn($value): string => php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m')),
+            new TwigFilter('caseEnumKey', function (string $value): string {
                 if (isset($this->getIdentifierOverrides()[$value])) {
                     $value = $this->getIdentifierOverrides()[$value];
                 }
                 $value = \preg_replace('/[^a-zA-Z0-9]/', '', $value);
                 return $this->toUpperSnakeCase($value);
             }),
-            new TwigFilter('hasBearerAuth', function (array $headers) {
-                foreach ($headers as $header) {
-                    if (isset($header['type']) && $header['type'] === 'bearer') {
-                        return true;
-                    }
-                }
-                return false;
-            }),
-            new TwigFilter('caseNamespace', function ($value) {
+            new TwigFilter('hasBearerAuth', fn(array $headers): bool => array_any($headers, fn($header): bool => isset($header['type']) && $header['type'] === 'bearer')),
+            new TwigFilter('caseNamespace', function ($value): string {
                 $segments = explode('\\', $value);
-                $segments = array_map(function ($segment) {
-                    return $this->toPascalCase($segment);
-                }, $segments);
+                $segments = array_map($this->toPascalCase(...), $segments);
                 return implode('\\', $segments);
             }),
-            new TwigFilter('caseNamespacePath', function ($value) {
+            new TwigFilter('caseNamespacePath', function ($value): string {
                 $segments = explode('\\', $value);
-                $segments = array_map(function ($segment) {
-                    return $this->toPascalCase($segment);
-                }, $segments);
+                $segments = array_map($this->toPascalCase(...), $segments);
                 return implode('/', $segments);
             }),
-            new TwigFilter('escapeJson', function ($value) {
+            new TwigFilter(
+                'escapeJson',
                 // Escape backslashes for JSON strings
-                return str_replace('\\', '\\\\', $value);
-            }),
-            new TwigFilter('enumExample', function (array $param) {
+                fn($value): string|array => str_replace('\\', '\\\\', $value)
+            ),
+            new TwigFilter('enumExample', function (array $param): string {
                 $enumValues = $param['enumValues'] ?? [];
                 if (empty($enumValues)) {
                     return '';
@@ -752,14 +703,14 @@ class PHP extends Language
                 $example = $param['example'] ?? null;
                 $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
 
-                $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+                $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
                     if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
-                        $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', $enumKeys[$index]);
+                        $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', (string) $enumKeys[$index]);
                         return $this->toUpperSnakeCase($cleaned);
                     }
                     if ($index !== false && isset($enumValues[$index])) {
-                        $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', $enumValues[$index]);
+                        $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', (string) $enumValues[$index]);
                         return $this->toUpperSnakeCase($cleaned);
                     }
                     $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
@@ -778,13 +729,11 @@ class PHP extends Language
                         $values = $example;
                     }
 
-                    if (empty($values)) {
+                    if ($values === []) {
                         $values = [$enumValues[0]];
                     }
 
-                    $items = array_map(function ($value) use ($enumName, $resolveKey) {
-                        return $enumName . '::' . $resolveKey($value) . '()';
-                    }, $values);
+                    $items = array_map(fn($value): string => $enumName . '::' . $resolveKey($value) . '()', $values);
 
                     return '[' . implode(', ', $items) . ']';
                 }

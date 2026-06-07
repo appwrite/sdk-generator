@@ -2,18 +2,20 @@
 
 namespace Appwrite\SDK\Language;
 
+use stdClass;
+use Override;
 use Appwrite\SDK\Language;
 use Exception;
 use Twig\TwigFilter;
 
 class Python extends Language
 {
+    #[Override]
     protected $params = [
         'pipPackage' => 'packageName',
     ];
 
     /**
-     * @param string $name
      * @return $this
      */
     public function setPipPackage(string $name): self
@@ -23,9 +25,6 @@ class Python extends Language
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getName(): string
     {
         return 'Python';
@@ -33,8 +32,6 @@ class Python extends Language
 
     /**
      * Get Language Keywords List
-     *
-     * @return array
      */
     public function getKeywords(): array
     {
@@ -76,9 +73,6 @@ class Python extends Language
         ];
     }
 
-    /**
-     * @return array
-     */
     public function getIdentifierOverrides(): array
     {
         return [];
@@ -99,9 +93,6 @@ class Python extends Language
         return '[' . $elements . ']';
     }
 
-    /**
-     * @return array
-     */
     public function getFiles(): array
     {
         return [
@@ -314,8 +305,6 @@ class Python extends Language
     }
 
     /**
-     * @param array $parameter
-     * @return string
      * @throws Exception
      */
     public function getTypeName(array $parameter, array $spec = []): string
@@ -328,13 +317,13 @@ class Python extends Language
         ) {
             $enumType = isset($parameter['enumName'])
                 ? \ucfirst($parameter['enumName'])
-                : \ucfirst($parameter['name']);
+                : \ucfirst((string) $parameter['name']);
 
             $typeName = 'List[' . $enumType . ']';
         } elseif (isset($parameter['enumName'])) {
             $typeName = \ucfirst($parameter['enumName']);
         } elseif (!empty($parameter['enumValues'])) {
-            $typeName = \ucfirst($parameter['name']);
+            $typeName = \ucfirst((string) $parameter['name']);
         } elseif (!empty($parameter['array']['model'])) {
             $typeName = 'List[' . $this->toPascalCase($parameter['array']['model']) . ']';
         } elseif (!empty($parameter['model'])) {
@@ -378,10 +367,6 @@ class Python extends Language
         return $typeName;
     }
 
-    /**
-     * @param array $param
-     * @return string
-     */
     public function getParamDefault(array $param): string
     {
         $type = $param['type'] ?? '';
@@ -435,11 +420,6 @@ class Python extends Language
         return $output;
     }
 
-    /**
-     * @param array $param
-     * @param string $lang
-     * @return string
-     */
     public function getParamExample(array $param, string $lang = ''): string
     {
         $type = $param['type'] ?? '';
@@ -463,7 +443,7 @@ class Python extends Language
             self::TYPE_BOOLEAN => ($example) ? 'True' : 'False',
             self::TYPE_OBJECT => ($example === '{}')
             ? '{}'
-            : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+            : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT))
                 ? preg_replace('/\n/', "\n    ", str_replace(['true', 'false'], ['True', 'False'], $formatted))
                 : $example),
             self::TYPE_STRING => "'{$example}'",
@@ -552,7 +532,7 @@ class Python extends Language
     {
         $types = array_values(array_unique(array_filter($types)));
 
-        if (empty($types)) {
+        if ($types === []) {
             return 'Any';
         }
 
@@ -612,7 +592,7 @@ class Python extends Language
 
         if (!empty($property['sub_schemas'])) {
             $unionType = $this->getUnionType(array_map(
-                fn($schema) => $this->getModelName($schema),
+                $this->getModelName(...),
                 $property['sub_schemas']
             ));
 
@@ -696,9 +676,9 @@ class Python extends Language
         }
 
         if (!empty($method['responseModels']) && count($method['responseModels']) > 1) {
-            $types = array_map(fn($model) => $this->getDocsModelTypeName($model, $serviceName), array_filter(
+            $types = array_map(fn(string $model): string => $this->getDocsModelTypeName($model, $serviceName), array_filter(
                 $method['responseModels'],
-                fn($model) => !empty($model) && $model !== 'any'
+                fn($model): bool => !empty($model) && $model !== 'any'
             ));
 
             return $this->getUnionType($types);
@@ -713,10 +693,6 @@ class Python extends Language
 
     /**
      * Check if a model or any of its sub-schemas has additionalProperties
-     *
-     * @param string|null $model
-     * @param array $spec
-     * @return bool
      */
     protected function hasGenericType(?string $model, array $spec): bool
     {
@@ -748,7 +724,6 @@ class Python extends Language
      * Creates an example for a response model with the given name
      *
      * @param string $model
-     * @param array $spec
      * @return string
      */
     protected function getResponseModelExample(?string $model, array $spec): mixed
@@ -766,8 +741,8 @@ class Python extends Language
             }
 
             $result[$property['name']] = match ($property['type']) {
-                'object' => (array_key_exists('sub_schema', $property) && $property['sub_schema']) ? ((object) $this->getResponseModelExample($property['sub_schema'], $spec)) : new \stdClass(),
-                'array' => array(),
+                'object' => (array_key_exists('sub_schema', $property) && $property['sub_schema']) ? ((object) $this->getResponseModelExample($property['sub_schema'], $spec)) : new stdClass(),
+                'array' => [],
                 'string' => $property['example'] ?? '',
                 'boolean' => true,
                 'float' => (float) $property['example'],
@@ -779,45 +754,25 @@ class Python extends Language
         return (object) $result;
     }
 
+    #[Override]
     public function getFilters(): array
     {
         return [
-            new TwigFilter('caseEnumKey', function (string $value) {
-                return $this->toUpperSnakeCase($value);
-            }),
-            new TwigFilter('getPropertyType', function ($value, $method = []) {
-                return $this->getTypeName($value, $method);
-            }),
-            new TwigFilter('hasGenericType', function (string $model, array $spec) {
-                return $this->hasGenericType($model, $spec);
-            }),
-            new TwigFilter('hasGenericTypeProperty', function (array $properties, array $spec) {
-                foreach ($properties as $property) {
-                    if (!empty($property['sub_schema']) && $this->hasGenericType($property['sub_schema'], $spec)) {
-                        return true;
-                    }
-                }
-                return false;
-            }),
-            new TwigFilter('getServicePropertyType', function (array $value, string $serviceName) {
-                return $this->getServicePropertyType($value, $serviceName);
-            }),
-            new TwigFilter('getModelPropertyType', function (array $value, string $ownerName = '') {
-                return $this->getModelPropertyType($value, $ownerName);
-            }),
-            new TwigFilter('getModelFieldName', function (array $value, array $properties) {
-                return $this->getModelFieldName($value, $properties);
-            }),
-            new TwigFilter('getResponseType', function (array $method, string $serviceName = '') {
-                return $this->getResponseType($method, $serviceName);
-            }),
-            new TwigFilter('formatParamValue', function (string $paramName, string $paramType, bool $isMultipartFormData) {
+            new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
+            new TwigFilter('getPropertyType', fn(array $value, array $method = []): string => $this->getTypeName($value, $method)),
+            new TwigFilter('hasGenericType', fn(string $model, array $spec): bool => $this->hasGenericType($model, $spec)),
+            new TwigFilter('hasGenericTypeProperty', fn(array $properties, array $spec): bool => array_any($properties, fn($property): bool => !empty($property['sub_schema']) && $this->hasGenericType($property['sub_schema'], $spec))),
+            new TwigFilter('getServicePropertyType', fn(array $value, string $serviceName): string => $this->getServicePropertyType($value, $serviceName)),
+            new TwigFilter('getModelPropertyType', fn(array $value, string $ownerName = ''): string => $this->getModelPropertyType($value, $ownerName)),
+            new TwigFilter('getModelFieldName', fn(array $value, array $properties): string => $this->getModelFieldName($value, $properties)),
+            new TwigFilter('getResponseType', fn(array $method, string $serviceName = ''): string => $this->getResponseType($method, $serviceName)),
+            new TwigFilter('formatParamValue', function (string $paramName, string $paramType, bool $isMultipartFormData): string {
                 if ($isMultipartFormData && $paramType === self::TYPE_BOOLEAN) {
                     return "str({$paramName}).lower() if type({$paramName}) is bool else {$paramName}";
                 }
                 return $paramName;
             }),
-            new TwigFilter('enumExample', function (array $param) {
+            new TwigFilter('enumExample', function (array $param): string {
                 $enumValues = $param['enumValues'] ?? [];
                 if (empty($enumValues)) {
                     return '';
@@ -828,7 +783,7 @@ class Python extends Language
                 $example = $param['example'] ?? null;
                 $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
 
-                $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+                $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
                     if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
                         return $this->toUpperSnakeCase($enumKeys[$index]);
@@ -851,13 +806,11 @@ class Python extends Language
                         $values = $example;
                     }
 
-                    if (empty($values)) {
+                    if ($values === []) {
                         $values = [$enumValues[0]];
                     }
 
-                    $items = array_map(function ($value) use ($enumName, $resolveKey) {
-                        return $enumName . '.' . $resolveKey($value);
-                    }, $values);
+                    $items = array_map(fn($value): string => $enumName . '.' . $resolveKey($value), $values);
 
                     return '[' . implode(', ', $items) . ']';
                 }
@@ -865,10 +818,8 @@ class Python extends Language
                 $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
                 return $enumName . '.' . $resolveKey($value);
             }),
-            new TwigFilter('requestModelExample', function (array $parameter, array $spec, string $serviceName = '') {
-                return $this->getRequestModelExample($parameter, $spec, $serviceName);
-            }),
-            new TwigFilter('responseModelExample', function (string $model, array $spec) {
+            new TwigFilter('requestModelExample', fn(array $parameter, array $spec, string $serviceName = ''): string => $this->getRequestModelExample($parameter, $spec, $serviceName)),
+            new TwigFilter('responseModelExample', function (string $model, array $spec): string {
                 $result = $this->getResponseModelExample($model, $spec);
                 $json = json_encode($result, JSON_PRETTY_PRINT | JSON_PRESERVE_ZERO_FRACTION);
 

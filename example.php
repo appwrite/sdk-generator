@@ -1,6 +1,6 @@
 <?php
 
-include_once 'vendor/autoload.php';
+include_once __DIR__ . '/vendor/autoload.php';
 
 use Appwrite\SDK\Language\GraphQL;
 use Appwrite\Spec\Swagger2;
@@ -23,7 +23,6 @@ use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
 use Appwrite\SDK\Language\Unity;
-use Appwrite\SDK\Language\Markdown;
 use Appwrite\SDK\Language\AgentSkills;
 use Appwrite\SDK\Language\ClaudePlugin;
 use Appwrite\SDK\Language\CodexPlugin;
@@ -32,18 +31,17 @@ use Appwrite\SDK\Language\Rust;
 
 try {
 
-    function getSSLPage($url) {
+    function getSSLPage($url): bool|string {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_HEADER, false);
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $result = curl_exec($ch);
-        return $result;
+        return curl_exec($ch);
     }
 
-    function configureSDK($sdk, $overrides = []) {
+    function configureSDK($sdk, array $overrides = []) {
         $defaults = [
             'name' => 'NAME',
             'version' => '0.0.0',
@@ -105,20 +103,17 @@ try {
         return $sdk;
     }
 
-    $requestedSdk = isset($argv[1]) ? $argv[1] : null;
-    $requestedPlatform = isset($argv[2]) ? $argv[2] : null;
+    $requestedSdk = $argv[1] ?? null;
+    $requestedPlatform = $argv[2] ?? null;
 
-    if ($requestedPlatform) {
-        $platform = $requestedPlatform;
-    } else {
-        $platform = 'console';
-        // $platform = 'client';
-        // $platform = 'server';
-    }
+    $platform = $requestedPlatform ?: 'console';
+    // $platform = 'client';
+    // $platform = 'server';
 
     $version = '1.9.x';
     $speclessSDKs = ['agent-skills', 'cursor-plugin', 'claude-plugin', 'codex-plugin'];
     $needsSpec = !$requestedSdk || !in_array($requestedSdk, $speclessSDKs);
+    $spec = '';
 
     if ($needsSpec) {
         $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json");
@@ -305,14 +300,6 @@ try {
         $sdk->generate(__DIR__ . '/examples/graphql');
     }
 
-    // Markdown
-    if (!$requestedSdk || $requestedSdk === 'markdown') {
-        $markdown = new Markdown();
-        $markdown->setNPMPackage('@appwrite.io/docs');
-        $sdk = new SDK($markdown, new Swagger2($spec));
-        configureSDK($sdk);
-        $sdk->generate(__DIR__ . '/examples/markdown');
-    }
     // Agent Skills
     if (!$requestedSdk || $requestedSdk === 'agent-skills') {
         $sdk = new SDK(new AgentSkills(), new StaticSpec(
@@ -372,10 +359,7 @@ try {
         $sdk->generate(__DIR__ . '/examples/rust');
     }
 }
-catch (Exception $exception) {
-    echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
-}
-catch (Throwable $exception) {
+catch (Exception|Throwable $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
 }
 

@@ -1,22 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
-class Ruby30Test extends Base
+use Override;
+use Appwrite\SDK\Language\Ruby;
+
+final class Ruby30Test extends Base
 {
+    #[Override]
     protected string $sdkName = 'ruby';
+    #[Override]
     protected string $sdkPlatform = 'server';
+    #[Override]
     protected string $sdkLanguage = 'ruby';
+    #[Override]
     protected string $version = '0.0.1';
 
+    #[Override]
     protected string $language = 'ruby';
-    protected string $class = 'Appwrite\SDK\Language\Ruby';
+    #[Override]
+    protected string $class = Ruby::class;
+    #[Override]
     protected array $build = [
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/ruby --env GEM_HOME=/app/vendor ruby:3.0-alpine sh -c "apk add git build-base && bundle install"',
     ];
+    #[Override]
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:3.0-alpine ruby tests/languages/ruby/tests.rb';
 
+    #[Override]
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,

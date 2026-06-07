@@ -2,16 +2,17 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
+
 class Apple extends Swift
 {
-    /**
-     * @return string
-     */
+    #[Override]
     public function getName(): string
     {
         return 'Apple';
     }
 
+    #[Override]
     public function getFiles(): array
     {
         return [
@@ -501,6 +502,7 @@ class Apple extends Swift
         ];
     }
 
+    #[Override]
     protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
     {
         if ($method['type'] === 'webAuth') {

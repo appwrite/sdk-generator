@@ -2,13 +2,11 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
 use Twig\TwigFilter;
 
 class Web extends JS
 {
-    /**
-     * @return string
-     */
     public function getName(): string
     {
         return 'Web';
@@ -29,9 +27,6 @@ class Web extends JS
         return '[' . $elements . ']';
     }
 
-    /**
-     * @return array
-     */
     public function getFiles(): array
     {
         return [
@@ -168,11 +163,6 @@ class Web extends JS
         ];
     }
 
-    /**
-     * @param array $param
-     * @param string $lang
-     * @return string
-     */
     public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
@@ -197,7 +187,7 @@ class Web extends JS
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')
             ? '{}'
-            : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+            : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT))
                 ? preg_replace('/\n/', "\n    ", $formatted)
                 : $example),
             self::TYPE_STRING => "'{$example}'",
@@ -224,6 +214,7 @@ class Web extends JS
         return $properties;
     }
 
+    #[Override]
     public function getTypeName(array $parameter, array $method = []): string
     {
         if (
@@ -232,7 +223,7 @@ class Web extends JS
         ) {
             $enumType = isset($parameter['enumName'])
                 ? \ucfirst($parameter['enumName'])
-                : \ucfirst($parameter['name']);
+                : \ucfirst((string) $parameter['name']);
 
             return $enumType . '[]';
         }
@@ -241,7 +232,7 @@ class Web extends JS
             return \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return \ucfirst((string) $parameter['name']);
         }
         if (!empty($parameter['array']['model'])) {
             return 'Models.' . $this->toPascalCase($parameter['array']['model']) . '[]';
@@ -274,7 +265,7 @@ class Web extends JS
                             $unionTypes[] = 'Models.' . $this->toPascalCase($modelName);
                         }
                     }
-                    if (!empty($unionTypes)) {
+                    if ($unionTypes !== []) {
                         return '(' . implode(' | ', $unionTypes) . ')[]';
                     }
                 }
@@ -285,7 +276,7 @@ class Web extends JS
             case self::TYPE_FILE:
                 return 'File';
             case self::TYPE_OBJECT:
-                if (empty($method)) {
+                if ($method === []) {
                     return $parameter['type'];
                 }
                 switch ($method['responseModel']) {
@@ -340,12 +331,12 @@ class Web extends JS
             $this->populateGenerics($model, $spec, $generics, $skipFirst);
         }
 
-        if (empty($generics)) {
+        if ($generics === []) {
             return '';
         }
 
         $generics = array_unique($generics);
-        $generics = array_map(fn ($type) => "{$type} extends Models.{$type} = Models.Default{$type}", $generics);
+        $generics = array_map(fn ($type): string => "{$type} extends Models.{$type} = Models.Default{$type}", $generics);
 
         return '<' . implode(', ', $generics) . '>';
     }
@@ -370,7 +361,7 @@ class Web extends JS
             $modelType = '';
 
             if (
-                array_key_exists($model, $spec['definitions']) &&
+                array_key_exists((string) $model, $spec['definitions']) &&
                 array_key_exists('additionalProperties', $spec['definitions'][$model]) &&
                 !$spec['definitions'][$model]['additionalProperties']
             ) {
@@ -382,16 +373,16 @@ class Web extends JS
             $models = [];
             $this->populateGenerics($model, $spec, $models);
             $models = array_unique($models);
-            $models = array_filter($models, fn ($m) => $m != $this->toPascalCase($model));
+            $models = array_filter($models, fn ($m): bool => $m != $this->toPascalCase($model));
 
-            if (!empty($models)) {
+            if ($models !== []) {
                 $modelType .= '<' . implode(', ', $models) . '>';
             }
 
             $unionTypes[] = $modelType;
         }
 
-        if (empty($unionTypes)) {
+        if ($unionTypes === []) {
             return null;
         }
 
@@ -418,7 +409,7 @@ class Web extends JS
             $ret = 'Promise<';
 
             if (
-                array_key_exists($method['responseModel'], $spec['definitions']) &&
+                array_key_exists((string) $method['responseModel'], $spec['definitions']) &&
                 array_key_exists('additionalProperties', $spec['definitions'][$method['responseModel']]) &&
                 !$spec['definitions'][$method['responseModel']]['additionalProperties']
             ) {
@@ -432,15 +423,13 @@ class Web extends JS
             $this->populateGenerics($method['responseModel'], $spec, $models);
 
             $models = array_unique($models);
-            $models = array_filter($models, fn ($model) => $model != $this->toPascalCase($method['responseModel']));
+            $models = array_filter($models, fn ($model): bool => $model != $this->toPascalCase($method['responseModel']));
 
-            if (!empty($models)) {
+            if ($models !== []) {
                 $ret .= '<' . implode(', ', $models) . '>';
             }
 
-            $ret .= '>';
-
-            return $ret;
+            return $ret . '>';
         }
 
         return 'Promise<{}>';
@@ -457,10 +446,10 @@ class Web extends JS
             $generics = [];
             $this->populateGenerics($property['sub_schema'], $spec, $generics);
 
-            $generics = array_filter($generics, fn ($model) => $model != $this->toPascalCase($property['sub_schema']));
+            $generics = array_filter($generics, fn ($model): bool => $model != $this->toPascalCase($property['sub_schema']));
 
             $ret .= $this->toPascalCase($property['sub_schema']);
-            if (!empty($generics)) {
+            if ($generics !== []) {
                 $ret .= '<' . implode(', ', $generics) . '>';
             }
             if ($property['type'] === 'array') {
@@ -481,25 +470,16 @@ class Web extends JS
         return $this->getTypeName($property);
     }
 
+    #[Override]
     public function getFilters(): array
     {
         return \array_merge(parent::getFilters(), [
-            new TwigFilter('getPropertyType', function ($value, $method = []) {
-                return $this->getTypeName($value, $method);
-            }),
-            new TwigFilter('getReadOnlyProperties', function ($value, $responseModel, $spec = []) {
-                return $this->getReadOnlyProperties($value, $responseModel, $spec);
-            }),
-            new TwigFilter('getSubSchema', function (array $property, array $spec, string $methodName = '') {
-                return $this->getSubSchema($property, $spec, $methodName);
-            }),
-            new TwigFilter('getGenerics', function (string $model, array $spec, bool $skipAdditional = false) {
-                return $this->getGenerics($model, $spec, $skipAdditional);
-            }),
-            new TwigFilter('getReturn', function (array $method, array $spec) {
-                return $this->getReturn($method, $spec);
-            }),
-            new TwigFilter('getOverloadCondition', function (array $method) {
+            new TwigFilter('getPropertyType', fn(array $value, array $method = []): string => $this->getTypeName($value, $method)),
+            new TwigFilter('getReadOnlyProperties', fn(array $value, string $responseModel, array $spec = []): array => $this->getReadOnlyProperties($value, $responseModel, $spec)),
+            new TwigFilter('getSubSchema', fn(array $property, array $spec, string $methodName = ''): string => $this->getSubSchema($property, $spec, $methodName)),
+            new TwigFilter('getGenerics', fn(string $model, array $spec, bool $skipAdditional = false): string => $this->getGenerics($model, $spec, $skipAdditional)),
+            new TwigFilter('getReturn', fn(array $method, array $spec): string => $this->getReturn($method, $spec)),
+            new TwigFilter('getOverloadCondition', function (array $method): string {
                 $params = $method['parameters']['all'] ?? [];
 
                 $hasRequired = false;
@@ -537,18 +517,16 @@ class Web extends JS
                     $condition .= ' && (' . implode(' || ', $keys) . ')';
                 }
 
-                $condition .= ')';
-
-                return $condition;
+                return $condition . ')';
             }, ['is_safe' => ['html']]),
-            new TwigFilter('comment2', function ($value) {
+            new TwigFilter('comment2', function ($value): string {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
                     $value[$key] = "     * " . wordwrap($line, 75, "\n     * ");
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
-            new TwigFilter('comment3', function ($value) {
+            new TwigFilter('comment3', function ($value): string {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
                     $value[$key] = "         * " . wordwrap($line, 75, "\n         * ");

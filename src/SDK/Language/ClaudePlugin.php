@@ -1,23 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Appwrite\SDK\Language;
+
+use Override;
 
 class ClaudePlugin extends AgentSkills
 {
+    #[Override]
     protected string $skillDestination = 'skills/%s/SKILL.md';
+    #[Override]
     protected bool $prefixSkillName = false;
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getName(): string
     {
         return 'ClaudePlugin';
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getFiles(): array
     {
         $files = $this->getSkillFiles();

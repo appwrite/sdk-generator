@@ -1,17 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
-class ReactNativeTest extends Base
+use Override;
+use Appwrite\SDK\Language\ReactNative;
+
+final class ReactNativeTest extends Base
 {
+    #[Override]
     protected string $sdkName = 'react-native';
+    #[Override]
     protected string $sdkPlatform = 'client';
+    #[Override]
     protected string $sdkLanguage = 'reactnative';
+    #[Override]
     protected string $version = '0.0.1';
 
+    #[Override]
     protected string $language = 'react-native';
-    protected string $class = 'Appwrite\SDK\Language\ReactNative';
+    #[Override]
+    protected string $class = ReactNative::class;
 
+    #[Override]
     protected array $build = [
         'cp tests/languages/react-native/tests.js tests/sdks/react-native/tests.js',
         'cp tests/languages/react-native/index.html tests/sdks/react-native/index.html',
@@ -22,9 +34,11 @@ class ReactNativeTest extends Base
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/react-native mcr.microsoft.com/playwright:v1.59.0-jammy sh -c "npx rollup -c rollup.test.config.mjs"',
     ];
 
+    #[Override]
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/react-native mcr.microsoft.com/playwright:v1.59.0-jammy node tests.js';
 
+    #[Override]
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,

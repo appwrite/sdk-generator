@@ -4,9 +4,6 @@ namespace Appwrite\SDK\Language;
 
 class GraphQL extends HTTP
 {
-    /**
-     * @return string
-     */
     public function getName(): string
     {
         return 'GraphQL';
@@ -29,7 +26,6 @@ class GraphQL extends HTTP
 
     /**
      * @param $type
-     * @return string
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
@@ -71,10 +67,6 @@ class GraphQL extends HTTP
         return $type;
     }
 
-    /**
-     * @param array $param
-     * @return string
-     */
     public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
@@ -126,11 +118,6 @@ class GraphQL extends HTTP
         return $output;
     }
 
-    /**
-     * @param array $param
-     * @param string $lang
-     * @return string
-     */
     public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
@@ -154,14 +141,11 @@ class GraphQL extends HTTP
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')
                 ? '"{}"'
-                : '"' . str_replace('"', '\\"', json_encode(json_decode($example, true))) . '"',
+                : '"' . str_replace('"', '\\"', json_encode(json_decode((string) $example, true))) . '"',
             self::TYPE_STRING => '"' . $example . '"',
         };
     }
 
-    /**
-     * @return array
-     */
     public function getFiles(): array
     {
         return [

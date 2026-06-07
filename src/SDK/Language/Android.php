@@ -1,20 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Appwrite\SDK\Language;
+
+use Override;
 
 class Android extends Kotlin
 {
-    /**
-     * @return string
-     */
+    #[Override]
     public function getName(): string
     {
         return 'Android';
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getFiles(): array
     {
         return [
@@ -344,6 +344,7 @@ class Android extends Kotlin
         ];
     }
 
+    #[Override]
     protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
     {
         if ($method['type'] === 'webAuth') {

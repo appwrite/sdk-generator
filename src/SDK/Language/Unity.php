@@ -2,8 +2,16 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
+use FilesystemIterator;
+use RuntimeException;
+use SplFileInfo;
+
 class Unity extends DotNet
 {
+    #[Override]
     protected $params = [
         'packageName' => 'package-name',
     ];
@@ -15,9 +23,7 @@ class Unity extends DotNet
         return $this;
     }
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getName(): string
     {
         return 'Unity';
@@ -25,9 +31,8 @@ class Unity extends DotNet
 
     /**
      * Get Language Keywords List
-     *
-     * @return array
      */
+    #[Override]
     public function getKeywords(): array
     {
         $base = parent::getKeywords();
@@ -43,9 +48,7 @@ class Unity extends DotNet
         return array_values(array_unique(array_merge($base, $unity)));
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getFiles(): array
     {
         $files = [
@@ -486,9 +489,7 @@ class Unity extends DotNet
                 'Assets/Editor/{{ spec.title | caseUcfirst }}SetupWindow.cs',
             ];
 
-            $files = array_filter($files, function ($file) use ($excludeInTest): bool {
-                return !in_array($file['destination'], $excludeInTest);
-            });
+            $files = array_filter($files, fn(array $file): bool => !in_array($file['destination'], $excludeInTest));
         }
 
         return $files;
@@ -500,9 +501,6 @@ class Unity extends DotNet
      * Immutable UPM packages need committed .meta files (Unity won't generate
      * them), else assets are ignored. GUIDs are path-derived for stable diffs;
      * existing metas (asmdef, .dll plugins) are left untouched.
-     *
-     * @param string $target
-     * @return void
      */
     public function postGenerate(string $target): void
     {
@@ -516,30 +514,20 @@ class Unity extends DotNet
 
         $normalizedTarget = rtrim(str_replace('\\', '/', $target), '/');
 
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($target, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::SELF_FIRST
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($target, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
         );
 
         foreach ($iterator as $item) {
-            /** @var \SplFileInfo $item */
+            /** @var SplFileInfo $item */
             $path     = $item->getPathname();
             $relative = ltrim(substr(str_replace('\\', '/', $path), strlen($normalizedTarget)), '/');
 
             if ($relative === '') {
                 continue;
             }
-
-            // Unity ignores hidden entries and anything inside a folder (or
-            // file) suffixed with '~' (e.g. Samples~, Documentation~), so
-            // emitting metas there would be wrong. Skip the whole subtree.
-            $skip = false;
-            foreach (explode('/', $relative) as $segment) {
-                if ($segment === '' || $segment[0] === '.' || str_ends_with($segment, '~')) {
-                    $skip = true;
-                    break;
-                }
-            }
+            $skip = array_any(explode('/', $relative), fn($segment): bool => $segment === '' || $segment[0] === '.' || str_ends_with((string) $segment, '~'));
             if ($skip) {
                 continue;
             }
@@ -555,7 +543,7 @@ class Unity extends DotNet
             }
 
             if (file_put_contents($meta, $this->getMetaContents($relative, $item->isDir())) === false) {
-                throw new \RuntimeException("Failed to write meta file: {$meta}");
+                throw new RuntimeException("Failed to write meta file: {$meta}");
             }
         }
     }
@@ -565,7 +553,6 @@ class Unity extends DotNet
      *
      * @param string $relativePath Package-relative path (forward slashes).
      * @param bool   $isDir        Whether the asset is a directory.
-     * @return string
      */
     private function getMetaContents(string $relativePath, bool $isDir): string
     {
@@ -630,7 +617,6 @@ class Unity extends DotNet
      * Build PluginImporter meta lines enabling a single target platform
      * (and the editor stub), with every other platform disabled.
      *
-     * @param string $guid
      * @param string $platform Unity platform key (e.g. 'WebGL', 'Android').
      * @return array<string>
      */

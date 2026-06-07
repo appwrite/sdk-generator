@@ -2,15 +2,13 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
 
 class DotNet extends Language
 {
-    /**
-     * @return string
-     */
     public function getName(): string
     {
         return 'DotNet';
@@ -18,8 +16,6 @@ class DotNet extends Language
 
     /**
      * Get Language Keywords List
-     *
-     * @return array
      */
     public function getKeywords(): array
     {
@@ -135,9 +131,6 @@ class DotNet extends Language
         ];
     }
 
-    /**
-     * @return array
-     */
     public function getIdentifierOverrides(): array
     {
         return [
@@ -151,6 +144,7 @@ class DotNet extends Language
         return '.';
     }
 
+    #[Override]
     public function escapeKeyword(string $value): string
     {
         if (in_array($value, $this->getKeywords())) {
@@ -170,11 +164,13 @@ class DotNet extends Language
         return 'new List<string> { ' . $elements . ' }';
     }
 
+    #[Override]
     protected function transformPermissionAction(string $action): string
     {
         return ucfirst($action);
     }
 
+    #[Override]
     protected function transformPermissionRole(string $role): string
     {
         return ucfirst($role);
@@ -189,10 +185,6 @@ class DotNet extends Language
         ];
     }
 
-    /**
-     * @param array $parameter
-     * @return string
-     */
     public function getTypeName(array $parameter, array $spec = []): string
     {
         if (
@@ -201,7 +193,7 @@ class DotNet extends Language
         ) {
             $enumType = isset($parameter['enumName'])
                 ? \ucfirst($parameter['enumName'])
-                : \ucfirst($parameter['name']);
+                : \ucfirst((string) $parameter['name']);
 
             return 'List<Appwrite.Enums.' . $enumType . '>';
         }
@@ -210,7 +202,7 @@ class DotNet extends Language
             return 'Appwrite.Enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return 'Appwrite.Enums.' . \ucfirst($parameter['name']);
+            return 'Appwrite.Enums.' . \ucfirst((string) $parameter['name']);
         }
         if (!empty($parameter['array']['model'])) {
             return 'List<Appwrite.Models.' . $this->getTypeIdentifier($parameter['array']['model']) . '>';
@@ -237,10 +229,6 @@ class DotNet extends Language
         };
     }
 
-    /**
-     * @param array $param
-     * @return string
-     */
     public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
@@ -286,11 +274,6 @@ class DotNet extends Language
         return $output;
     }
 
-    /**
-     * @param array $param
-     * @param string $lang
-     * @return string
-     */
     public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
@@ -344,7 +327,7 @@ class DotNet extends Language
                     if ($example === '{}') {
                         $output .= '[object]';
                     } else {
-                        $decoded = json_decode($example, true);
+                        $decoded = json_decode((string) $example, true);
                         if ($decoded && is_array($decoded)) {
                             $csharpObject = $this->formatCSharpAnonymousObject($decoded, 1);
                             $output .= 'new ' . $csharpObject;
@@ -365,9 +348,6 @@ class DotNet extends Language
         return $output;
     }
 
-    /**
-     * @return array
-     */
     public function getFiles(): array
     {
         return [
@@ -514,32 +494,22 @@ class DotNet extends Language
         ];
     }
 
+    #[Override]
     public function getFilters(): array
     {
         return [
-            new TwigFilter('dotnetComment', function ($value) {
+            new TwigFilter('dotnetComment', function ($value): string {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
                     $value[$key] = "        /// " . wordwrap($line, 75, "\n        /// ");
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
-            new TwigFilter('caseEnumKey', function (string $value) {
-                return $this->toPascalCase($value);
-            }),
-            new TwigFilter('overrideProperty', function (string $property, string $class) {
-                if (isset($this->getPropertyOverrides()[$class][$property])) {
-                    return $this->getPropertyOverrides()[$class][$property];
-                }
-                return $property;
-            }),
-            new TwigFilter('propertyType', function (array $property, array $spec = []) {
-                return $this->getPropertyType($property, $spec);
-            }),
-            new TwigFilter('toMapValue', function (array $property, string $resolvedName) {
-                return $this->getToMapExpression($property, $resolvedName);
-            }, ['is_safe' => ['html']]),
-            new TwigFilter('enumExample', function (array $param) {
+            new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
+            new TwigFilter('overrideProperty', fn(string $property, string $class) => $this->getPropertyOverrides()[$class][$property] ?? $property),
+            new TwigFilter('propertyType', fn(array $property, array $spec = []): string => $this->getPropertyType($property, $spec)),
+            new TwigFilter('toMapValue', fn(array $property, string $resolvedName): string => $this->getToMapExpression($property, $resolvedName), ['is_safe' => ['html']]),
+            new TwigFilter('enumExample', function (array $param): string {
                 $enumValues = $param['enumValues'] ?? [];
                 if (empty($enumValues)) {
                     return '';
@@ -550,7 +520,7 @@ class DotNet extends Language
                 $example = $param['example'] ?? null;
                 $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
 
-                $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+                $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
                     if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
                         return $this->toPascalCase($enumKeys[$index]);
@@ -573,13 +543,11 @@ class DotNet extends Language
                         $values = $example;
                     }
 
-                    if (empty($values)) {
+                    if ($values === []) {
                         $values = [$enumValues[0]];
                     }
 
-                    $items = array_map(function ($value) use ($enumName, $resolveKey) {
-                        return $enumName . '.' . $resolveKey($value);
-                    }, $values);
+                    $items = array_map(fn($value): string => $enumName . '.' . $resolveKey($value), $values);
 
                     return 'new List<' . $enumName . '> { ' . implode(', ', $items) . ' }';
                 }
@@ -592,10 +560,6 @@ class DotNet extends Language
 
     /**
      * Get property type for request models
-     *
-     * @param array $property
-     * @param array $spec
-     * @return string
      */
     protected function getPropertyType(array $property, array $spec = [], bool $fullyQualified = true): string
     {
@@ -621,10 +585,11 @@ class DotNet extends Language
      * get sub_scheme and property_name functions
      * @return TwigFunction[]
      */
+    #[Override]
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('sub_schema', function (array $property) {
+            new TwigFunction('sub_schema', function (array $property): string {
                 $result = $this->getPropertyType($property, [], false);
 
                 if (!($property['required'] ?? true)) {
@@ -633,17 +598,12 @@ class DotNet extends Language
 
                 return $result;
             }, ['is_safe' => ['html']]),
-            new TwigFunction('property_name', function (array $definition, array $property) {
-                return $this->getPropertyName($definition, $property);
-            }),
+            new TwigFunction('property_name', fn(array $definition, array $property): string => $this->getPropertyName($definition, $property)),
         ];
     }
 
     /**
      * Generate property name for C# model
-     *
-     * @param array $property
-     * @return string
      */
     protected function getPropertyName(array $definition, array $property): string
     {
@@ -679,9 +639,7 @@ class DotNet extends Language
      * filter never derives the name itself, so there is no risk of drift
      * between the declared property and the ToMap() reference.
      *
-     * @param array $property
      * @param string $resolvedName  C# identifier already produced by the template
-     * @return string
      */
     protected function getToMapExpression(array $property, string $resolvedName): string
     {
@@ -740,7 +698,7 @@ class DotNet extends Language
             if (array_keys($value) !== range(0, count($value) - 1)) {
                 return $this->formatCSharpAnonymousObject($value, $indentLevel);
             } else {
-                $items = array_map(fn($item) => $this->formatCSharpValue($item, $indentLevel), $value);
+                $items = array_map(fn($item): string => $this->formatCSharpValue($item, $indentLevel), $value);
                 return 'new[] { ' . implode(', ', $items) . ' }';
             }
         } else {

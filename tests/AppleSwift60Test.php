@@ -1,23 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
-class AppleSwift60Test extends Base
+use Override;
+use Appwrite\SDK\Language\Apple;
+
+final class AppleSwift60Test extends Base
 {
+    #[Override]
     protected string $sdkName = 'swift';
+    #[Override]
     protected string $sdkPlatform = 'client';
+    #[Override]
     protected string $sdkLanguage = 'apple';
+    #[Override]
     protected string $version = '0.0.1';
 
+    #[Override]
     protected string $language = 'apple';
-    protected string $class = 'Appwrite\SDK\Language\Apple';
+    #[Override]
+    protected string $class = Apple::class;
+    #[Override]
     protected array $build = [
         'mkdir -p tests/sdks/apple/Tests/AppwriteTests',
         'cp tests/languages/apple/Tests.swift tests/sdks/apple/Tests/AppwriteTests/Tests.swift',
     ];
+    #[Override]
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/apple swift:6.0-jammy swift test';
 
+    #[Override]
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
