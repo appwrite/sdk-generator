@@ -137,7 +137,7 @@ readonly class AdditionalPropsMapped
     }
 }
 
-$client = new Client()
+$client = (new Client())
     ->addHeader("Origin", "http://localhost")
     ->setSelfSigned();
 
