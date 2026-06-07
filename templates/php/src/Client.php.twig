@@ -329,10 +329,8 @@ class Client
             }
         }
         
-        switch(substr($contentType, 0, strpos($contentType, ';'))) {
-            case 'application/json':
-                $responseBody = json_decode($responseBody, true);
-            break;
+        if (str_starts_with($contentType, 'application/json')) {
+            $responseBody = json_decode($responseBody, true);
         }
 
         if (curl_errno($ch)) {
