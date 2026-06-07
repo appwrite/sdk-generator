@@ -30,10 +30,12 @@
 3. Enter the following URL:
 
 ```sh
-https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.git?path=Assets
+https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.git#{{ sdk.version }}
 ```
 
 4. Click **Add**.
+
+The `#{{ sdk.version }}` suffix pins the package to a specific release. Change it to any released tag, or omit `#{{ sdk.version }}` to track the latest commit on the default branch.
 
 ### Manual Installation
 
