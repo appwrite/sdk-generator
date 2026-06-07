@@ -1,5 +1,7 @@
 <?php
 
+use Appwrite\Models\ArraySerializable;
+
 include __DIR__ . '/../../sdks/php/src/Appwrite/Client.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Service.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/InputFile.php';
@@ -36,7 +38,7 @@ use Appwrite\Services\General;
 
 readonly class AdditionalPropsDataOnly
 {
-    use \Appwrite\Models\ArraySerializable;
+    use ArraySerializable;
 
     public function __construct(
         public array $data = []
@@ -46,19 +48,19 @@ readonly class AdditionalPropsDataOnly
     public static function from(array $data): static
     {
         return new static(
-            data: static::extractAdditionalPropertiesFromFields($data, []),
+            data: self::extractAdditionalPropertiesFromFields($data, []),
         );
     }
 
     public function toArray(): array
     {
-        return static::serializeAdditionalProperties($this->data);
+        return self::serializeAdditionalProperties($this->data);
     }
 }
 
 readonly class AdditionalPropsDataFieldMapped
 {
-    use \Appwrite\Models\ArraySerializable;
+    use ArraySerializable;
 
     public function __construct(
         public array $payload,
@@ -70,28 +72,28 @@ readonly class AdditionalPropsDataFieldMapped
     public static function from(array $data): static
     {
         if (!array_key_exists('data', $data)) {
-            throw new \InvalidArgumentException('Missing required field "data" for ' . static::class . '.');
+            throw new InvalidArgumentException('Missing required field "data" for ' . static::class . '.');
         }
 
         if (!array_key_exists('status', $data)) {
-            throw new \InvalidArgumentException('Missing required field "status" for ' . static::class . '.');
+            throw new InvalidArgumentException('Missing required field "status" for ' . static::class . '.');
         }
 
         return new static(
             payload: $data['data'],
             status: $data['status'],
-            data: static::extractAdditionalPropertiesFromFields($data, ['data', 'status']),
+            data: self::extractAdditionalPropertiesFromFields($data, ['data', 'status']),
         );
     }
 
     public function toArray(): array
     {
         $result = [
-            'data' => static::serializeValue($this->payload),
-            'status' => static::serializeValue($this->status),
+            'data' => self::serializeValue($this->payload),
+            'status' => self::serializeValue($this->status),
         ];
 
-        foreach (static::serializeAdditionalProperties($this->data) as $field => $value) {
+        foreach (self::serializeAdditionalProperties($this->data) as $field => $value) {
             $result[$field] = $value;
         }
 
@@ -101,7 +103,7 @@ readonly class AdditionalPropsDataFieldMapped
 
 readonly class AdditionalPropsMapped
 {
-    use \Appwrite\Models\ArraySerializable;
+    use ArraySerializable;
 
     public function __construct(
         public string $id,
@@ -112,22 +114,22 @@ readonly class AdditionalPropsMapped
     public static function from(array $data): static
     {
         if (!array_key_exists('$id', $data)) {
-            throw new \InvalidArgumentException('Missing required field "$id" for ' . static::class . '.');
+            throw new InvalidArgumentException('Missing required field "$id" for ' . static::class . '.');
         }
 
         return new static(
             id: $data['$id'],
-            data: static::extractAdditionalPropertiesFromFields($data, ['$id']),
+            data: self::extractAdditionalPropertiesFromFields($data, ['$id']),
         );
     }
 
     public function toArray(): array
     {
         $result = [
-            '$id' => static::serializeValue($this->id),
+            '$id' => self::serializeValue($this->id),
         ];
 
-        foreach (static::serializeAdditionalProperties($this->data) as $field => $value) {
+        foreach (self::serializeAdditionalProperties($this->data) as $field => $value) {
             $result[$field] = $value;
         }
 

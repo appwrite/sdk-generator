@@ -7,9 +7,9 @@ use ArrayObject;
 
 abstract class Spec extends ArrayObject
 {
-    private const SET_TYPE_ASSIGN   = 'assign';
-    private const SET_TYPE_PREPEND  = 'prepend';
-    private const SET_TYPE_APPEND   = 'append';
+    private const string SET_TYPE_ASSIGN   = 'assign';
+    private const string SET_TYPE_PREPEND  = 'prepend';
+    private const string SET_TYPE_APPEND   = 'append';
 
     /**
      * Spec constructor.
@@ -134,7 +134,6 @@ abstract class Spec extends ArrayObject
      *
      * @param  string $name
      * @param  mixed  $default
-     * @return mixed
      */
     public function getAttribute($name, $default = null): mixed
     {
@@ -158,10 +157,7 @@ abstract class Spec extends ArrayObject
      *
      * Method for setting a specific field attribute
      *
-     * @param string $key
-     * @param mixed $value
      * @param array $parameter
-     * @return mixed
      */
     public function setAttribute(string $key, mixed $value, $type = self::SET_TYPE_ASSIGN): mixed
     {

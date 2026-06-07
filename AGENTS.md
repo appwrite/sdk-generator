@@ -47,7 +47,7 @@ The script strips Twig expressions before running `npm install`/`bun install`, t
 
 ## Repository at a Glance
 
-- **Purpose:** Generate Appwrite SDKs for ~16 languages from Swagger/OpenAPI specs using Twig templates
+- **Purpose:** Generate Appwrite SDKs and tooling targets for 20+ languages/platforms from Swagger/OpenAPI specs using Twig templates
 - **Language:** PHP (generator engine) + Twig (templates)
 - **Entry point:** `example.php` — runs generation for all or a specific SDK
 - **Output:** `examples/<lang>/` — checked-in generated SDK output for verification
@@ -59,7 +59,7 @@ examples/<lang>/              ← Generated SDK output (checked in for verificat
 example.php                   ← Entry point: regenerates all SDKs from specs
 ```
 
-**Supported SDKs:** PHP, Web, Node, CLI, Ruby, Python, Dart, Flutter, React Native, Go, Swift, Apple, DotNet, Android, Kotlin, GraphQL, Markdown, AgentSkills, CursorPlugin, ClaudePlugin, CodexPlugin
+**Supported SDKs:** PHP, Web, Node, CLI, Ruby, Python, Dart, Flutter, React Native, Go, Swift, Apple, DotNet, Android, Kotlin, Unity, REST, GraphQL, Rust, AgentSkills, CursorPlugin, ClaudePlugin, CodexPlugin
 
 ## Primary Workflows
 
@@ -68,11 +68,12 @@ example.php                   ← Entry point: regenerates all SDKs from specs
 1. Edit template(s) in `templates/<lang>/`
 2. Regenerate:
    ```bash
-   docker run --rm -v $(pwd):/app -w /app php:8.3-cli php example.php <lang>
+   php example.php <lang>
    ```
 3. Diff `examples/<lang>/` to verify the output is correct
-4. Run linter:
+4. Run linters and refactor check:
    ```bash
+   composer refactor:check
    composer lint-twig
    # or directly
    uvx djLint templates/ --lint
@@ -116,7 +117,7 @@ public function getFiles(): array
 3. Create `templates/newlang/` and add all Twig files
 4. Register all template files in `getFiles()`
 5. Add generation block to `example.php`
-6. Generate: `docker run --rm -v $(pwd):/app -w /app php:8.3-cli php example.php newlang`
+6. Generate: `php example.php newlang`
 7. Inspect `examples/newlang/`
 
 ## File Reference Map
@@ -139,6 +140,7 @@ Pass as first argument to generate only that SDK:
 | Argument | Language class | Output dir |
 |----------|---------------|------------|
 | `php` | PHP | `examples/php/` |
+| `unity` | Unity | `examples/unity/` |
 | `web` | Web | `examples/web/` |
 | `node` | Node | `examples/node/` |
 | `cli` | CLI | `examples/cli/` |
@@ -151,10 +153,11 @@ Pass as first argument to generate only that SDK:
 | `swift` | Swift | `examples/swift/` |
 | `apple` | Apple | `examples/apple/` |
 | `dotnet` | DotNet | `examples/dotnet/` |
+| `rest` | REST | `examples/REST/` |
 | `android` | Android | `examples/android/` |
 | `kotlin` | Kotlin | `examples/kotlin/` |
 | `graphql` | GraphQL | `examples/graphql/` |
-| `markdown` | Markdown | `examples/markdown/` |
+| `rust` | Rust | `examples/rust/` |
 | `agent-skills` | AgentSkills | `examples/agent-skills/` |
 | `cursor-plugin` | CursorPlugin | `examples/cursor-plugin/` |
 | `claude-plugin` | ClaudePlugin | `examples/claude-plugin/` |
@@ -186,18 +189,16 @@ Pass as first argument to generate only that SDK:
 ## Installing Dependencies
 
 ```bash
-# With Composer installed locally
 composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-scripts --prefer-dist
-
-# With Docker
-docker run --rm -it -v "$(pwd)":/app composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-scripts --prefer-dist
 ```
 
 ## Running Tests
 
 ```bash
-docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) php:8.3-cli-alpine vendor/bin/phpunit
+vendor/bin/phpunit
 ```
+
+If local PHP is missing, is not the required version, or has extension issues, use the matching PHP Docker image as a fallback for that command.
 
 ## Pre-Submit Checklist
 
@@ -207,5 +208,6 @@ Before submitting changes that touch templates or language classes:
 - [ ] Inspected `examples/<lang>/` output looks correct
 - [ ] Any new template files are listed in `getFiles()` of the language class
 - [ ] Any new language class is added to `example.php`
+- [ ] Rector check passes (`composer refactor:check`)
 - [ ] Twig linter passes (`composer lint-twig`)
 - [ ] If a parent language was modified, child SDKs were also checked

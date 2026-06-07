@@ -1,19 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
+use Override;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\Language\CLI;
 
-class CLIBun11Test extends Base
+final class CLIBun11Test extends Base
 {
+    #[Override]
     protected string $sdkName = 'cli';
+    #[Override]
     protected string $sdkPlatform = 'server';
+    #[Override]
     protected string $sdkLanguage = 'cli';
+    #[Override]
     protected string $version = '0.0.1';
 
+    #[Override]
     protected string $language = 'cli';
-    protected string $class = 'Appwrite\SDK\Language\CLI';
+    #[Override]
+    protected string $class = CLI::class;
+    #[Override]
     protected array $build = [
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli oven/bun:1.1 bun install',
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli oven/bun:1.1 bun run build:types',
@@ -21,9 +31,11 @@ class CLIBun11Test extends Base
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli oven/bun:1.1 bun run build:cli',
         'cp tests/languages/cli/test.js tests/sdks/cli/test.js'
     ];
+    #[Override]
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/cli oven/bun:1.1 bun test.js';
 
+    #[Override]
     protected array $expectedOutput = [
         ...Base::CLI_COMPLETION_RESPONSES,
         ...Base::FOO_RESPONSES,
@@ -39,7 +51,8 @@ class CLIBun11Test extends Base
         ...Base::CLI_TYPEGEN_RESPONSES,
     ];
 
-    public function getLanguage(): Language
+    #[Override]
+    public function getLanguage(): CLI
     {
         $language  = new CLI();
         $language->setNPMPackage('appwrite-cli');

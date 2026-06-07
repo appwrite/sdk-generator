@@ -2,14 +2,12 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
 class Swift extends Language
 {
-    /**
-     * @return string
-     */
     public function getName(): string
     {
         return 'Swift';
@@ -17,8 +15,6 @@ class Swift extends Language
 
     /**
      * Get Language Keywords List
-     *
-     * @return array
      */
     public function getKeywords(): array
     {
@@ -91,9 +87,6 @@ class Swift extends Language
         ];
     }
 
-    /**
-     * @return array
-     */
     public function getIdentifierOverrides(): array
     {
         return [
@@ -116,9 +109,6 @@ class Swift extends Language
         return '[' . $elements . ']';
     }
 
-    /**
-     * @return array
-     */
     public function getFiles(): array
     {
         return [
@@ -320,10 +310,6 @@ class Swift extends Language
         ];
     }
 
-    /**
-     * @param array $parameter
-     * @return string
-     */
     public function getTypeName(array $parameter, array $spec = [], bool $isProperty = false): string
     {
         if (
@@ -332,7 +318,7 @@ class Swift extends Language
         ) {
             $enumType = isset($parameter['enumName'])
                 ? \ucfirst($parameter['enumName'])
-                : \ucfirst($parameter['name']);
+                : \ucfirst((string) $parameter['name']);
 
             return '[' . ($spec['title'] ?? '') . 'Enums.' . $enumType . ']';
         }
@@ -341,7 +327,7 @@ class Swift extends Language
             return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['name']);
+            return ($spec['title'] ?? '') . 'Enums.' . \ucfirst((string) $parameter['name']);
         }
         if (!empty($parameter['array']['model'])) {
             return '[' . ($spec['title'] ?? '') . 'Models.' . $this->toPascalCase($parameter['array']['model']) . ']';
@@ -368,10 +354,6 @@ class Swift extends Language
         };
     }
 
-    /**
-     * @param array $param
-     * @return string
-     */
     public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
@@ -430,11 +412,6 @@ class Swift extends Language
     }
 
 
-    /**
-     * @param array $param
-     * @param string $lang
-     * @return string
-     */
     public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
@@ -481,7 +458,7 @@ class Swift extends Language
                     $output .= "\"{$example}\"";
                     break;
                 case self::TYPE_OBJECT:
-                    $decoded = json_decode($example, true);
+                    $decoded = json_decode((string) $example, true);
                     if ($decoded && is_array($decoded)) {
                         $output .= $this->jsonToSwiftDict($decoded);
                     } else {
@@ -496,14 +473,10 @@ class Swift extends Language
 
     /**
      * Converts JSON Object To Swift Native Dictionary
-     *
-     * @param array $data
-     * @param int $indent
-     * @return string
      */
     protected function jsonToSwiftDict(array $data, int $indent = 0): string
     {
-        if (empty($data)) {
+        if ($data === []) {
             return '[:]';
         }
 
@@ -531,9 +504,7 @@ class Swift extends Language
             $output .= '    ' . $itemIndent . '"' . $key . '": ' . $value . $comma . "\n";
         }
 
-        $output .= '    ' . $baseIndent . ']';
-
-        return $output;
+        return $output . ('    ' . $baseIndent . ']');
     }
 
     public function getModelToMapValue(array $property): string
@@ -543,7 +514,7 @@ class Swift extends Language
             $name = "`{$name}`";
         }
         $name = \str_replace('$', '', $name);
-        $nullAware = !empty($property['required']) ? '' : '?';
+        $nullAware = empty($property['required']) ? '?' : '';
 
         if (!empty($property['sub_schema'])) {
             if (($property['type'] ?? '') === self::TYPE_ARRAY) {
@@ -564,47 +535,36 @@ class Swift extends Language
         return $name;
     }
 
+    #[Override]
     public function getFilters(): array
     {
         return [
-            new TwigFilter('swiftComment', function ($value) {
+            new TwigFilter('swiftComment', function ($value): string {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
                     $value[$key] = "    /// " . wordwrap($line, 75, "\n    /// ");
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
-            new TwigFilter('returnType', function (array $method, array $spec, string $generic = 'T') {
-                return $this->getReturnType($method, $spec, $generic);
-            }),
-            new TwigFilter('modelType', function (array $property, array $spec, string $generic = 'T : Codable') {
-                return $this->getModelType($property, $spec, $generic);
-            }),
-            new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'T') {
-                return $this->getPropertyType($property, $spec, $generic);
-            }),
-            new TwigFilter('isAnyCodableArray', function (array $property, array $spec) {
-                return $this->isAnyCodableArray($property, $spec);
-            }),
-            new TwigFilter('isAnyCodableObject', function (array $property, array $spec) {
-                return $this->isAnyCodableObject($property, $spec);
-            }),
-            new TwigFilter('hasGenericType', function (string $model, array $spec) {
-                return $this->hasGenericType($model, $spec);
-            }),
+            new TwigFilter('returnType', fn(array $method, array $spec, string $generic = 'T'): string => $this->getReturnType($method, $spec, $generic)),
+            new TwigFilter('modelType', fn(array $property, array $spec, string $generic = 'T : Codable'): string => $this->getModelType($property, $spec, $generic)),
+            new TwigFilter('propertyType', fn(array $property, array $spec, string $generic = 'T'): string => $this->getPropertyType($property, $spec, $generic)),
+            new TwigFilter('isAnyCodableArray', fn(array $property, array $spec): bool => $this->isAnyCodableArray($property, $spec)),
+            new TwigFilter('isAnyCodableObject', fn(array $property, array $spec): bool => $this->isAnyCodableObject($property, $spec)),
+            new TwigFilter('hasGenericType', fn(string $model, array $spec): string => $this->hasGenericType($model, $spec)),
             new TwigFilter('escapeSwiftKeyword', function ($value) {
                 if (\in_array($value, $this->getKeywords())) {
                     return "`{$value}`";
                 }
                 return $value;
             }),
-            new TwigFilter('caseEnumKey', function (string $value) {
+            new TwigFilter('caseEnumKey', function (string $value): string {
                 if (isset($this->getIdentifierOverrides()[$value])) {
                     $value = $this->getIdentifierOverrides()[$value];
                 }
                 return $this->toCamelCase($value);
             }),
-            new TwigFilter('enumExample', function (array $param) {
+            new TwigFilter('enumExample', function (array $param): string {
                 $enumValues = $param['enumValues'] ?? [];
                 if (empty($enumValues)) {
                     return '';
@@ -614,7 +574,7 @@ class Swift extends Language
                 $example = $param['example'] ?? null;
                 $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
 
-                $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+                $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
                     if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
                         return $this->toCamelCase($enumKeys[$index]);
@@ -637,13 +597,11 @@ class Swift extends Language
                         $values = $example;
                     }
 
-                    if (empty($values)) {
+                    if ($values === []) {
                         $values = [$enumValues[0]];
                     }
 
-                    $items = array_map(function ($value) use ($resolveKey) {
-                        return '.' . $resolveKey($value);
-                    }, $values);
+                    $items = array_map(fn($value): string => '.' . $resolveKey($value), $values);
 
                     return '[' . implode(', ', $items) . ']';
                 }
@@ -651,9 +609,7 @@ class Swift extends Language
                 $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
                 return '.' . $resolveKey($value);
             }),
-            new TwigFilter('modelToMapValue', function (array $property) {
-                return $this->getModelToMapValue($property);
-            }, ['is_safe' => ['html']]),
+            new TwigFilter('modelToMapValue', fn(array $property): string => $this->getModelToMapValue($property), ['is_safe' => ['html']]),
         ];
     }
 
@@ -684,16 +640,16 @@ class Swift extends Language
 
         $ret = $this->toPascalCase($method['responseModel']);
 
-        if ($this->hasGenericType($method['responseModel'], $spec)) {
+        if ($this->hasGenericType($method['responseModel'], $spec) !== '' && $this->hasGenericType($method['responseModel'], $spec) !== '0') {
             $ret .= '<' . $generic . '>';
         }
 
-        return \ucfirst($spec['title']) . 'Models.' . $ret;
+        return \ucfirst((string) $spec['title']) . 'Models.' . $ret;
     }
 
     protected function getModelType(array $definition, array $spec, string $generic): string
     {
-        if ($this->hasGenericType($definition['name'], $spec)) {
+        if ($this->hasGenericType($definition['name'], $spec) !== '' && $this->hasGenericType($definition['name'], $spec) !== '0') {
             return $this->toPascalCase($definition['name']) . '<' . $generic . '>';
         }
         return $this->toPascalCase($definition['name']);
@@ -704,7 +660,7 @@ class Swift extends Language
         if (\array_key_exists('sub_schema', $property)) {
             $type = $this->toPascalCase($property['sub_schema']);
 
-            if ($this->hasGenericType($property['sub_schema'], $spec)) {
+            if ($this->hasGenericType($property['sub_schema'], $spec) !== '' && $this->hasGenericType($property['sub_schema'], $spec) !== '0') {
                 $type .= '<' . $generic . '>';
             }
 
@@ -720,10 +676,6 @@ class Swift extends Language
 
     /**
      * Check if a property is an array that results in [AnyCodable] type
-     *
-     * @param array $property
-     * @param array $spec
-     * @return bool
      */
     protected function isAnyCodableArray(array $property, array $spec): bool
     {

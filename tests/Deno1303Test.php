@@ -1,20 +1,34 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
-class Deno1303Test extends Base
+use Override;
+use Appwrite\SDK\Language\Deno;
+
+final class Deno1303Test extends Base
 {
+    #[Override]
     protected string $sdkName = 'deno';
+    #[Override]
     protected string $sdkPlatform = 'server';
+    #[Override]
     protected string $sdkLanguage = 'deno';
+    #[Override]
     protected string $version = '0.0.1';
 
+    #[Override]
     protected string $language = 'deno';
-    protected string $class = 'Appwrite\SDK\Language\Deno';
+    #[Override]
+    protected string $class = Deno::class;
+    #[Override]
     protected array $build = [];
+    #[Override]
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app denoland/deno:alpine-1.30.3 run --allow-net --allow-read tests/languages/deno/tests.ts';
 
+    #[Override]
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,

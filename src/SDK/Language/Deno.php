@@ -2,11 +2,10 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
+
 class Deno extends JS
 {
-    /**
-     * @return string
-     */
     public function getName(): string
     {
         return 'Deno';
@@ -27,9 +26,6 @@ class Deno extends JS
         return '[' . $elements . ']';
     }
 
-    /**
-     * @return array
-     */
     public function getFiles(): array
     {
         return [
@@ -151,17 +147,14 @@ class Deno extends JS
         ];
     }
 
-    /**
-     * @param array $parameter
-     * @return string
-     */
+    #[Override]
     public function getTypeName(array $parameter, array $spec = []): string
     {
         if (isset($parameter['enumName'])) {
             return \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return \ucfirst((string) $parameter['name']);
         }
         if (!empty($parameter['array']['model'])) {
             return $this->toPascalCase($parameter['array']['model']) . '[]';
@@ -186,11 +179,6 @@ class Deno extends JS
         };
     }
 
-    /**
-     * @param array $param
-     * @param string $lang
-     * @return string
-     */
     public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
@@ -215,7 +203,7 @@ class Deno extends JS
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')
             ? '{}'
-            : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+            : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT))
                 ? preg_replace('/\n/', "\n    ", $formatted)
                 : $example),
             self::TYPE_STRING => "'{$example}'",

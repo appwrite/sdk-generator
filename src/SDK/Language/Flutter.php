@@ -1,27 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Appwrite\SDK\Language;
+
+use Override;
 
 class Flutter extends Dart
 {
     /**
      * @var array
      */
+    #[Override]
     protected $params = [
         'packageName' => 'packageName',
     ];
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getName(): string
     {
         return 'Flutter';
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getFiles(): array
     {
         return [

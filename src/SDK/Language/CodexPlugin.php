@@ -1,20 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Appwrite\SDK\Language;
+
+use Override;
 
 class CodexPlugin extends AgentSkills
 {
-    /**
-     * @return string
-     */
+    #[Override]
     public function getName(): string
     {
         return 'CodexPlugin';
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getFiles(): array
     {
         $languages = [

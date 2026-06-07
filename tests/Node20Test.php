@@ -1,24 +1,38 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
-class Node20Test extends Base
+use Override;
+use Appwrite\SDK\Language\Node;
+
+final class Node20Test extends Base
 {
+    #[Override]
     protected string $sdkName = 'node.js';
+    #[Override]
     protected string $sdkPlatform = 'server';
+    #[Override]
     protected string $sdkLanguage = 'nodejs';
+    #[Override]
     protected string $version = '0.0.1';
 
+    #[Override]
     protected string $language = 'node';
-    protected string $class = 'Appwrite\SDK\Language\Node';
+    #[Override]
+    protected string $class = Node::class;
+    #[Override]
     protected array $build = [
         'cp tests/languages/node/test.js tests/sdks/node/test.js',
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:20-alpine npm install',
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:20-alpine npm run build'
     ];
+    #[Override]
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app node:20-alpine node tests/sdks/node/test.js';
 
+    #[Override]
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,

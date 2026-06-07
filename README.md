@@ -1,7 +1,7 @@
 # ⚙️ Appwrite SDK Generator
 
 [![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
-[![Twig Linting](https://github.com/appwrite/sdk-generator/actions/workflows/djlint.yml/badge.svg)](https://github.com/appwrite/sdk-generator/actions/workflows/djlint.yml)
+[![CI](https://github.com/appwrite/sdk-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/appwrite/sdk-generator/actions/workflows/ci.yml)
 [![X Account](https://img.shields.io/badge/follow-@appwrite-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/appwrite)
 [![appwrite.io](https://img.shields.io/badge/appwrite-.io-f02e65?style=flat-square)](https://appwrite.io)
 
@@ -174,7 +174,6 @@ php example.php agent-skills
 | CLI | `cli` | Node.js 20 and Bun 1.3.11 in CI | [NPM Coding Style] | NPM, Bun, native binaries | `examples/cli/` |
 | REST examples | `rest` | N/A | Markdown | N/A | `examples/REST/` |
 | GraphQL | `graphql` | N/A | GraphQL | N/A | `examples/graphql/` |
-| Markdown docs | `markdown` | N/A | Markdown | N/A | `examples/markdown/` |
 | Agent Skills | `agent-skills` | N/A | Markdown | N/A | `examples/agent-skills/` |
 | Cursor Plugin | `cursor-plugin` | N/A | Markdown | N/A | `examples/cursor-plugin/` |
 | Claude Plugin | `claude-plugin` | N/A | Markdown | N/A | `examples/claude-plugin/` |

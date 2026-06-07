@@ -2,18 +2,19 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
 abstract class JS extends Language
 {
+    #[Override]
     protected $params = [
         'npmPackage' => 'packageName',
         'bowerPackage' => 'packageName',
     ];
 
     /**
-     * @param string $name
      * @return $this
      */
     public function setNPMPackage(string $name): self
@@ -24,7 +25,6 @@ abstract class JS extends Language
     }
 
     /**
-     * @param string $name
      * @return $this
      */
     public function setBowerPackage(string $name): self
@@ -36,8 +36,6 @@ abstract class JS extends Language
 
     /**
      * Get Language Keywords List
-     *
-     * @return array
      */
     public function getKeywords(): array
     {
@@ -111,18 +109,13 @@ abstract class JS extends Language
         ];
     }
 
-    /**
-     * @return array
-     */
     public function getIdentifierOverrides(): array
     {
         return [];
     }
 
     /**
-     * @param array $parameter
      * @param array $nestedTypes
-     * @return string
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
@@ -132,7 +125,7 @@ abstract class JS extends Language
         ) {
             $enumType = isset($parameter['enumName'])
                 ? \ucfirst($parameter['enumName'])
-                : \ucfirst($parameter['name']);
+                : \ucfirst((string) $parameter['name']);
 
             return $enumType . '[]';
         }
@@ -141,7 +134,7 @@ abstract class JS extends Language
             return \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return \ucfirst((string) $parameter['name']);
         }
         if (!empty($parameter['array']['model'])) {
             return $this->toPascalCase($parameter['array']['model']) . '[]';
@@ -170,10 +163,6 @@ abstract class JS extends Language
         return $parameter['type'];
     }
 
-    /**
-     * @param array $param
-     * @return string
-     */
     public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
@@ -223,13 +212,12 @@ abstract class JS extends Language
         return $output;
     }
 
+    #[Override]
     public function getFilters(): array
     {
         return [
-            new TwigFilter('caseEnumKey', function (string $value) {
-                return $this->toPascalCase($value);
-            }),
-            new TwigFilter('enumExample', function (array $param) {
+            new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
+            new TwigFilter('enumExample', function (array $param): string {
                 $enumValues = $param['enumValues'] ?? [];
                 if (empty($enumValues)) {
                     return '';
@@ -241,7 +229,7 @@ abstract class JS extends Language
                 $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
                 $prefix = $this->getPermissionPrefix();
 
-                $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+                $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
                     if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
                         return $this->toPascalCase($enumKeys[$index]);
@@ -264,13 +252,11 @@ abstract class JS extends Language
                         $values = $example;
                     }
 
-                    if (empty($values)) {
+                    if ($values === []) {
                         $values = [$enumValues[0]];
                     }
 
-                    $items = array_map(function ($value) use ($enumName, $prefix, $resolveKey) {
-                        return $prefix . $enumName . '.' . $resolveKey($value);
-                    }, $values);
+                    $items = array_map(fn($value): string => $prefix . $enumName . '.' . $resolveKey($value), $values);
 
                     return '[' . implode(', ', $items) . ']';
                 }

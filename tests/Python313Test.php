@@ -1,24 +1,38 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
-class Python313Test extends Base
+use Override;
+use Appwrite\SDK\Language\Python;
+
+final class Python313Test extends Base
 {
+    #[Override]
     protected string $sdkName = 'python';
+    #[Override]
     protected string $sdkPlatform = 'server';
+    #[Override]
     protected string $sdkLanguage = 'python';
+    #[Override]
     protected string $version = '0.0.1';
 
+    #[Override]
     protected string $language = 'python';
-    protected string $class = 'Appwrite\SDK\Language\Python';
+    #[Override]
+    protected string $class = Python::class;
+    #[Override]
     protected array $build = [
         'cp tests/languages/python/tests.py tests/sdks/python/test.py',
         'echo "" > tests/sdks/python/__init__.py',
         'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor python:3.13-alpine pip install -r tests/sdks/python/requirements.txt --upgrade',
     ];
+    #[Override]
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.13-alpine python tests/sdks/python/test.py';
 
+    #[Override]
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,

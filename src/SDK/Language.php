@@ -2,6 +2,8 @@
 
 namespace Appwrite\SDK;
 
+use Normalizer;
+
 abstract class Language
 {
     public const TYPE_INTEGER = 'integer';
@@ -17,9 +19,6 @@ abstract class Language
      */
     protected $params = [];
 
-    /**
-     * @return string
-     */
     abstract public function getName(): string;
 
     /**
@@ -34,20 +33,17 @@ abstract class Language
 
     /**
      * Get the static access operator for the language (e.g. '::' for PHP, '.' for JS)
-     * @return string
      */
     abstract public function getStaticAccessOperator(): string;
 
     /**
      * Get the string quote character for the language (e.g. '"' for PHP, "'" for JS)
-     * @return string
      */
     abstract public function getStringQuote(): string;
 
     /**
      * Wrap elements in an array syntax for the language
      * @param string $elements Comma-separated elements
-     * @return string
      */
     abstract public function getArrayOf(string $elements): string;
 
@@ -64,36 +60,20 @@ abstract class Language
      * full file tree). Default implementation is a no-op.
      *
      * @param string $target Absolute path the SDK was generated into.
-     * @return void
      */
     public function postGenerate(string $target): void
     {
     }
 
-    /**
-     * @param array $parameter
-     * @return string
-     */
     abstract public function getTypeName(array $parameter, array $spec = []): string;
 
-    /**
-     * @param array $param
-     * @return string
-     */
     abstract public function getParamDefault(array $param): string;
 
     /**
-     * @param array $param
      * @param string $lang Optional language variant (for multi-language SDKs)
-     * @return string
      */
     abstract public function getParamExample(array $param, string $lang = ''): string;
 
-    /**
-     * @param string $key
-     * @param string $value
-     * @return Language
-     */
     public function setParam(string $key, string $value): Language
     {
         $this->params[$key] = $value;
@@ -101,9 +81,6 @@ abstract class Language
         return $this;
     }
 
-    /**
-     * @return array
-     */
     public function getParams(): array
     {
         return $this->params;
@@ -111,7 +88,6 @@ abstract class Language
 
     /**
      * Language specific filters.
-     * @return array
      */
     public function getFilters(): array
     {
@@ -120,7 +96,6 @@ abstract class Language
 
     /**
      * Language specific functions.
-     * @return array
      */
     public function getFunctions(): array
     {
@@ -135,24 +110,23 @@ abstract class Language
     protected function toCamelCase($str): string
     {
         // Normalize the string to decompose accented characters
-        $str = \Normalizer::normalize($str, \Normalizer::FORM_D);
+        $str = Normalizer::normalize($str, Normalizer::FORM_D);
 
         // Remove accents and other residual non-ASCII characters
         $str = \preg_replace('/\p{M}/u', '', $str);
 
-        $str = \preg_replace('/[^a-zA-Z0-9]+/', ' ', $str);
-        $str = \trim($str);
+        $str = \preg_replace('/[^a-zA-Z0-9]+/', ' ', (string) $str);
+        $str = \trim((string) $str);
         $str = \ucwords($str);
         $str = \str_replace(' ', '', $str);
-        $str = \lcfirst($str);
 
-        return $str;
+        return \lcfirst($str);
     }
 
     protected function toSnakeCase($str): string
     {
         // Normalize the string to decompose accented characters
-        $str = \Normalizer::normalize($str, \Normalizer::FORM_D);
+        $str = Normalizer::normalize($str, Normalizer::FORM_D);
 
         // Remove accents and other residual non-ASCII characters
         $str = \preg_replace('/\p{M}/u', '', $str);
@@ -160,11 +134,10 @@ abstract class Language
         // Remove apostrophes before replacing non-word characters with underscores
         $str = \str_replace("'", '', $str);
         $str = \preg_replace('/[^a-zA-Z0-9]+/', '_', $str);
-        $str = \preg_replace('/_+/', '_', $str);
-        $str = \trim($str, '_');
-        $str = \strtolower($str);
+        $str = \preg_replace('/_+/', '_', (string) $str);
+        $str = \trim((string) $str, '_');
 
-        return $str;
+        return \strtolower($str);
     }
 
     protected function toUpperSnakeCase($str): string
@@ -174,9 +147,6 @@ abstract class Language
 
     /**
      * Escape reserved keywords by prefixing with 'x'
-     *
-     * @param string $value
-     * @return string
      */
     public function escapeKeyword(string $value): string
     {
@@ -207,11 +177,11 @@ abstract class Language
             $id = null;
             $innerRole = null;
 
-            if (strpos($roleString, ':') !== false) {
+            if (str_contains($roleString, ':')) {
                 $role = explode(':', $roleString, 2)[0];
                 $idString = explode(':', $roleString, 2)[1];
 
-                if (strpos($idString, '/') !== false) {
+                if (str_contains($idString, '/')) {
                     $id = explode('/', $idString, 2)[0];
                     $innerRole = explode('/', $idString, 2)[1];
                 } else {
@@ -245,7 +215,6 @@ abstract class Language
 
     /**
      * Get the prefix for Permission and Role classes (e.g., 'sdk.' for Node)
-     * @return string
      */
     protected function getPermissionPrefix(): string
     {
@@ -255,8 +224,6 @@ abstract class Language
     /**
      * Transform permission action name for language-specific casing
      * Override in child classes if needed (e.g., DotNet uses ucfirst)
-     * @param string $action
-     * @return string
      */
     protected function transformPermissionAction(string $action): string
     {
@@ -266,8 +233,6 @@ abstract class Language
     /**
      * Transform permission role name for language-specific casing
      * Override in child classes if needed (e.g., DotNet uses ucfirst)
-     * @param string $role
-     * @return string
      */
     protected function transformPermissionRole(string $role): string
     {
@@ -277,7 +242,6 @@ abstract class Language
     /**
      * Generate permission example code for the language
      * @param string $example Permission string example
-     * @return string
      */
     public function getPermissionExample(string $example): string
     {

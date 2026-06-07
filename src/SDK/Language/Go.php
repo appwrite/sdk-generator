@@ -2,14 +2,12 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
 class Go extends Language
 {
-    /**
-     * @return string
-     */
     public function getName(): string
     {
         return 'Go';
@@ -17,8 +15,6 @@ class Go extends Language
 
     /**
      * Get Language Keywords List
-     *
-     * @return array
      */
     public function getKeywords(): array
     {
@@ -59,17 +55,11 @@ class Go extends Language
         return '[' . $elements . ']';
     }
 
-    /**
-     * @return array
-     */
     public function getIdentifierOverrides(): array
     {
         return [];
     }
 
-    /**
-     * @return array
-     */
     public function getFiles(): array
     {
         return [
@@ -206,9 +196,7 @@ class Go extends Language
     }
 
     /**
-     * @param array $parameter
      * @param array $nestedTypes
-     * @return string
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
@@ -240,10 +228,6 @@ class Go extends Language
         };
     }
 
-    /**
-     * @param array $param
-     * @return string
-     */
     public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
@@ -297,11 +281,6 @@ class Go extends Language
         return $output;
     }
 
-    /**
-     * @param array $param
-     * @param string $lang
-     * @return string
-     */
     public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
@@ -338,18 +317,18 @@ class Go extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
-                    if (\str_starts_with($example, '[')) {
-                        $example = \substr($example, 1);
+                    if (\str_starts_with((string) $example, '[')) {
+                        $example = \substr((string) $example, 1);
                     }
-                    if (\str_ends_with($example, ']')) {
-                        $example = \substr($example, 0, -1);
+                    if (\str_ends_with((string) $example, ']')) {
+                        $example = \substr((string) $example, 0, -1);
                     }
                     $output .= $this->getTypeName($param) . '{' . $example . '}';
                     break;
                 case self::TYPE_OBJECT:
                     $output .= ($example === '{}')
                     ? 'map[string]interface{}{}'
-                    : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+                    : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT))
                         ? 'map[string]interface{}' . preg_replace('/\n/', "\n    ", $formatted)
                         : 'map[string]interface{}' . $example);
                     break;
@@ -368,10 +347,11 @@ class Go extends Language
         return $output;
     }
 
+    #[Override]
     public function getFilters(): array
     {
         return [
-            new TwigFilter('godocComment', function ($value, $indent = 0) {
+            new TwigFilter('godocComment', function ($value, $indent = 0): string {
                 $value = trim($value);
                 $value = explode("\n", $value);
                 $indent = \str_repeat(' ', $indent);
@@ -380,18 +360,10 @@ class Go extends Language
                 }
                 return implode("\n" . $indent, $value);
             }, ['is_safe' => ['html']]),
-            new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'map[string]interface{}') {
-                return $this->getPropertyType($property, $spec, $generic);
-            }),
-            new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'map[string]interface{}') {
-                return $this->getReturnType($method, $spec, $namespace, $generic);
-            }),
-            new TwigFilter('caseEnumKey', function (string $value) {
-                return $this->toUpperSnakeCase($value);
-            }),
-            new TwigFilter('goPackagePath', function (array $sdk) {
-                return $this->getPackagePath($sdk);
-            }),
+            new TwigFilter('propertyType', fn(array $property, array $spec, string $generic = 'map[string]interface{}'): string => $this->getPropertyType($property, $spec, $generic)),
+            new TwigFilter('returnType', fn(array $method, array $spec, string $namespace, string $generic = 'map[string]interface{}'): string => $this->getReturnType($method, $spec, $namespace, $generic)),
+            new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
+            new TwigFilter('goPackagePath', fn(array $sdk): string => $this->getPackagePath($sdk)),
         ];
     }
 
@@ -459,7 +431,7 @@ class Go extends Language
             return 'interface{}';
         }
 
-        $ret = ucfirst($method['responseModel']);
+        $ret = ucfirst((string) $method['responseModel']);
 
         return 'models.' . $ret;
     }

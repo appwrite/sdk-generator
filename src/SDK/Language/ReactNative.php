@@ -2,21 +2,18 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
 use Twig\TwigFilter;
 
 class ReactNative extends Web
 {
-    /**
-     * @return string
-     */
+    #[Override]
     public function getName(): string
     {
         return 'ReactNative';
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getFiles(): array
     {
         return [
@@ -153,11 +150,7 @@ class ReactNative extends Web
         ];
     }
 
-    /**
-     * @param array $parameter
-     * @param array $method
-     * @return string
-     */
+    #[Override]
     public function getTypeName(array $parameter, array $method = []): string
     {
         if (($parameter['type'] ?? '') === self::TYPE_FILE) {
@@ -167,11 +160,7 @@ class ReactNative extends Web
         return parent::getTypeName($parameter, $method);
     }
 
-    /**
-     * @param array $param
-     * @param string $lang
-     * @return string
-     */
+    #[Override]
     public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
@@ -195,13 +184,14 @@ class ReactNative extends Web
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')
             ? '{}'
-            : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+            : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT))
                 ? preg_replace('/\n/', "\n    ", $formatted)
                 : $example),
             self::TYPE_STRING => "'{$example}'",
         };
     }
 
+    #[Override]
     public function getReturn(array $method, array $spec): string
     {
         if ($method['type'] === 'webAuth') {
@@ -220,7 +210,7 @@ class ReactNative extends Web
             $ret = 'Promise<';
 
             if (
-                array_key_exists($method['responseModel'], $spec['definitions']) &&
+                array_key_exists((string) $method['responseModel'], $spec['definitions']) &&
                 array_key_exists('additionalProperties', $spec['definitions'][$method['responseModel']]) &&
                 !$spec['definitions'][$method['responseModel']]['additionalProperties']
             ) {
@@ -234,15 +224,13 @@ class ReactNative extends Web
             $this->populateGenerics($method['responseModel'], $spec, $models);
 
             $models = array_unique($models);
-            $models = array_filter($models, fn ($model) => $model != $this->toPascalCase($method['responseModel']));
+            $models = array_filter($models, fn ($model): bool => $model != $this->toPascalCase($method['responseModel']));
 
-            if (!empty($models)) {
+            if ($models !== []) {
                 $ret .= '<' . implode(', ', $models) . '>';
             }
 
-            $ret .= '>';
-
-            return $ret;
+            return $ret . '>';
         }
         return 'Promise<{}>';
     }

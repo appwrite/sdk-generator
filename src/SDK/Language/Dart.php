@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
+use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
@@ -10,12 +11,12 @@ class Dart extends Language
     /**
      * @var array
      */
+    #[Override]
     protected $params = [
         'packageName' => 'packageName',
     ];
 
     /**
-     * @param string $name
      * @return $this
      */
     public function setPackageName(string $name): self
@@ -25,9 +26,6 @@ class Dart extends Language
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getName(): string
     {
         return 'Dart';
@@ -35,8 +33,6 @@ class Dart extends Language
 
     /**
      * Get Language Keywords List
-     *
-     * @return array
      */
     public function getKeywords(): array
     {
@@ -107,9 +103,6 @@ class Dart extends Language
         ];
     }
 
-    /**
-     * @return array
-     */
     public function getIdentifierOverrides(): array
     {
         return [
@@ -136,10 +129,6 @@ class Dart extends Language
         return '[' . $elements . ']';
     }
 
-    /**
-     * @param array $parameter
-     * @return string
-     */
     public function getTypeName(array $parameter, array $spec = []): string
     {
         if (
@@ -148,7 +137,7 @@ class Dart extends Language
         ) {
             $enumType = isset($parameter['enumName'])
                 ? \ucfirst($parameter['enumName'])
-                : \ucfirst($parameter['name']);
+                : \ucfirst((string) $parameter['name']);
 
             return 'List<enums.' . $enumType . '>';
         }
@@ -157,7 +146,7 @@ class Dart extends Language
             return 'enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return 'enums.' . \ucfirst($parameter['name']);
+            return 'enums.' . \ucfirst((string) $parameter['name']);
         }
         if (!empty($parameter['array']['model'])) {
             return 'List<models.' . $this->toPascalCase($parameter['array']['model']) . '>';
@@ -193,10 +182,6 @@ class Dart extends Language
         }
     }
 
-    /**
-     * @param array $param
-     * @return string
-     */
     public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
@@ -250,11 +235,6 @@ class Dart extends Language
         return $output;
     }
 
-    /**
-     * @param array $param
-     * @param string $lang
-     * @return string
-     */
     public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
@@ -289,7 +269,7 @@ class Dart extends Language
     public function getModelToMapValue(array $property): string
     {
         $name = $this->escapeKeyword($property['name'] ?? '');
-        $nullAware = !empty($property['required']) ? '' : '?';
+        $nullAware = empty($property['required']) ? '?' : '';
 
         if (!empty($property['sub_schema'])) {
             if (($property['type'] ?? '') === self::TYPE_ARRAY) {
@@ -306,9 +286,6 @@ class Dart extends Language
         return $name;
     }
 
-    /**
-     * @return array
-     */
     public function getFiles(): array
     {
         return [
@@ -560,20 +537,19 @@ class Dart extends Language
         ];
     }
 
+    #[Override]
     public function getFilters(): array
     {
         return [
-            new TwigFilter('dartComment', function ($value) {
+            new TwigFilter('dartComment', function ($value): string {
                 $value = explode("\n", $value);
-                foreach ($value as $key => $line) {
+                foreach (array_keys($value) as $key) {
                     $value[$key] = "  /// " . wordwrap($value[$key], 75, "\n  /// ");
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
-            new TwigFilter('caseEnumKey', function (string $value) {
-                return $this->toCamelCase($value);
-            }),
-            new TwigFilter('enumExample', function (array $param) {
+            new TwigFilter('caseEnumKey', fn(string $value): string => $this->toCamelCase($value)),
+            new TwigFilter('enumExample', function (array $param): string {
                 $enumValues = $param['enumValues'] ?? [];
                 if (empty($enumValues)) {
                     return '';
@@ -584,7 +560,7 @@ class Dart extends Language
                 $example = $param['example'] ?? null;
                 $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
 
-                $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+                $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
                     if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
                         return $this->toCamelCase($enumKeys[$index]);
@@ -607,13 +583,11 @@ class Dart extends Language
                         $values = $example;
                     }
 
-                    if (empty($values)) {
+                    if ($values === []) {
                         $values = [$enumValues[0]];
                     }
 
-                    $items = array_map(function ($value) use ($enumName, $resolveKey) {
-                        return 'enums.' . \ucfirst($enumName) . '.' . $resolveKey($value);
-                    }, $values);
+                    $items = array_map(fn($value): string => 'enums.' . \ucfirst($enumName) . '.' . $resolveKey($value), $values);
 
                     return '[' . implode(', ', $items) . ']';
                 }
@@ -621,9 +595,7 @@ class Dart extends Language
                 $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
                 return 'enums.' . \ucfirst($enumName) . '.' . $resolveKey($value);
             }),
-            new TwigFilter('modelToMapValue', function (array $property) {
-                return $this->getModelToMapValue($property);
-            }, ['is_safe' => ['html']]),
+            new TwigFilter('modelToMapValue', fn(array $property): string => $this->getModelToMapValue($property), ['is_safe' => ['html']]),
         ];
     }
 }

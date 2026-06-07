@@ -1,18 +1,23 @@
-name: CI Workflow
+name: CI
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches:
+      - master
 
 jobs:
-  build:
+  tests:
+    name: Tests / ${{ matrix.sdk }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['8.3']
+        php-version: ['8.5']
         sdk: [
           Android5Java17,
           Android16Java17,
@@ -77,18 +82,13 @@ jobs:
           docker --version
           composer install
 
-      - name: Lint
-        if: matrix.sdk == 'Lint'
-        run: |
-          composer lint
-
       - name: Run Tests
         env:
           UNITY_LICENSE: ${{ matrix.sdk == 'Unity2021' && secrets.UNITY_LICENSE || '' }}
-        run: |
-          composer test tests/${{ matrix.sdk }}Test.php
+        run: composer test tests/${{ matrix.sdk }}Test.php
 
   lint:
+    name: Checks / Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -98,7 +98,7 @@ jobs:
       - name: Setup PHP with PECL extension
         uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # 2.37.0
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           extensions: curl
 
       - name: Install
@@ -107,7 +107,42 @@ jobs:
       - name: Lint
         run: composer lint
 
+  refactor:
+    name: Checks / Refactor
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # 2.37.0
+        with:
+          php-version: '8.5'
+          extensions: curl
+
+      - name: Install
+        run: composer install
+
+      - name: Run Rector
+        run: composer refactor:check
+
+  twig-lint:
+    name: Checks / Twig
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Run djLint
+        run: uvx djlint templates/ --lint
+
   max-line-length:
+    name: Checks / Twig line length
     runs-on: ubuntu-latest
 
     steps:
@@ -116,6 +151,6 @@ jobs:
 
       - name: Make script executable
         run: chmod +x ./.github/scripts/max-line-length.sh
-      
+
       - name: Check max lines
         run: ./.github/scripts/max-line-length.sh . 1200 "*.twig"

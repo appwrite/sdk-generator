@@ -1,7 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
+use Exception;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
+use FilesystemIterator;
+use Throwable;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\SDK;
 use Appwrite\Spec\Swagger2;
@@ -360,7 +367,7 @@ abstract class Base extends TestCase
 
     /**
      * @throws SyntaxError
-     * @throws \Throwable
+     * @throws Throwable
      * @throws RuntimeError
      * @throws LoaderError
      */
@@ -369,7 +376,7 @@ abstract class Base extends TestCase
         $spec = file_get_contents(realpath(__DIR__ . '/resources/spec.json'));
 
         if (empty($spec)) {
-            throw new \Exception('Failed to parse spec.');
+            throw new Exception('Failed to parse spec.');
         }
 
         $sdk = new SDK($this->getLanguage(), new Swagger2($spec));
@@ -433,7 +440,7 @@ abstract class Base extends TestCase
 
         do {
             $removed = \array_shift($output);
-        } while ($removed != 'Test Started' && sizeof($output) != 0);
+        } while ($removed != 'Test Started' && count($output) !== 0);
 
         echo \implode("\n", $output);
 
@@ -443,23 +450,23 @@ abstract class Base extends TestCase
             }
 
             // HACK: Swift does not guarantee the order of the JSON parameters
-            if (\str_starts_with($expected, '{')) {
+            if (\str_starts_with((string) $expected, '{')) {
                 $this->assertEquals(
-                    \json_decode($expected, true),
+                    \json_decode((string) $expected, true),
                     \json_decode($output[$index], true)
                 );
             } elseif ($expected == 'unique()') {
                 $this->assertNotEmpty($output[$index]);
                 $this->assertIsString($output[$index]);
-                $this->assertEquals(20, strlen($output[$index]));
-                $this->assertNotEquals($output[$index], 'unique()');
+                $this->assertSame(20, strlen($output[$index]));
+                $this->assertNotSame('unique()', $output[$index]);
             } else {
                 $this->assertEquals($expected, $output[$index]);
             }
         }
     }
 
-    private function rmdirRecursive($dir): void
+    private function rmdirRecursive(string $dir): void
     {
         if (!\is_dir($dir)) {
             return;
@@ -479,12 +486,12 @@ abstract class Base extends TestCase
 
     private function assertExcludedFixtureWasRemoved(string $dir): void
     {
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
         );
 
         foreach ($iterator as $file) {
-            $path = \strtolower($file->getPathname());
+            $path = \strtolower((string) $file->getPathname());
 
             foreach (self::EXCLUDED_FIXTURE_TOKENS as $token) {
                 $this->assertStringNotContainsString($token, $path, "Excluded fixture leaked into generated path: {$path}");

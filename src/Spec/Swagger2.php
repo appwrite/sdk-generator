@@ -2,46 +2,37 @@
 
 namespace Appwrite\Spec;
 
+use Override;
 use stdClass;
 
 class Swagger2 extends Spec
 {
-    /**
-     * @return string
-     */
+    #[Override]
     public function getTitle(): string
     {
         return $this->getAttribute('info.title', '');
     }
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getDescription(): string
     {
         return $this->getAttribute('info.description', '');
     }
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getNamespace(): string
     {
         $namespace = $this->getAttribute('info.namespace', '');
         return $namespace !== '' ? $namespace : $this->getTitle();
     }
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getVersion(): string
     {
         return $this->getAttribute('info.version', '');
     }
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getEndpoint(): string
     {
         return $this->getAttribute('schemes.0', 'https') .
@@ -49,9 +40,7 @@ class Swagger2 extends Spec
         $this->getAttribute('basePath', '');
     }
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getEndpointDocs(): string
     {
         $servers = $this->getAttribute('servers', []);
@@ -66,60 +55,46 @@ class Swagger2 extends Spec
 
         $server = $servers[0];
         foreach ($servers as $candidate) {
-            if (isset($candidate['url']) && \str_contains($candidate['url'], '{region}')) {
+            if (isset($candidate['url']) && \str_contains((string) $candidate['url'], '{region}')) {
                 $server = $candidate;
                 break;
             }
         }
 
-        return \preg_replace_callback('/\{([^}]+)\}/', function (array $matches) {
-            return '<' . \strtoupper($matches[1]) . '>';
-        }, $server['url'] ?? '') ?? '';
+        return \preg_replace_callback('/\{([^}]+)\}/', fn(array $matches): string => '<' . \strtoupper($matches[1]) . '>', $server['url'] ?? '') ?? '';
     }
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getLicenseName(): string
     {
         return $this->getAttribute('info.license.name', '');
     }
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getLicenseURL(): string
     {
         return $this->getAttribute('info.license.url', '');
     }
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getContactName(): string
     {
         return $this->getAttribute('info.contact.name', '');
     }
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getContactURL(): string
     {
         return $this->getAttribute('info.contact.url', '');
     }
 
-    /**
-     * @return string
-     */
+    #[Override]
     public function getContactEmail(): string
     {
         return $this->getAttribute('info.contact.email', '');
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getServices(): array
     {
         $list = [];
@@ -131,7 +106,7 @@ class Swagger2 extends Spec
             foreach ($path as $method) {
                 if (isset($method['tags'])) {
                     foreach ($method['tags'] as $tag) {
-                        if (!array_key_exists($tag, $list)) {
+                        if (!array_key_exists((string) $tag, $list)) {
                             $methods = $this->getMethods($tag);
                             $list[$tag] = [
                                 'name' => $tag,
@@ -161,10 +136,10 @@ class Swagger2 extends Spec
         $methodSecurity = $method['security'][0] ?? [];
 
         foreach ($methodAuth as $i => $node) {
-            $methodAuth[$i] = (array_key_exists($i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
+            $methodAuth[$i] = (array_key_exists((string) $i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
         }
         foreach ($methodSecurity as $i => $node) {
-            $methodSecurity[$i] = (array_key_exists($i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
+            $methodSecurity[$i] = (array_key_exists((string) $i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
         }
 
         $methodSecurityHeaders = [];
@@ -198,7 +173,7 @@ class Swagger2 extends Spec
             // check for union types
             if (isset($desc['schema']['x-oneOf'])) {
                 $responseModels = \array_map(
-                    fn($schema) => $this->normalizeSchemaRef($schema['$ref'] ?? ''),
+                    fn(array $schema): string => $this->normalizeSchemaRef($schema['$ref'] ?? ''),
                     $desc['schema']['x-oneOf']
                 );
 
@@ -206,7 +181,7 @@ class Swagger2 extends Spec
 
                 // set to first model
                 // for backward compatibility
-                if (!empty($responseModels)) {
+                if ($responseModels !== []) {
                     $responseModel = $responseModels[0];
                 }
             }
@@ -331,7 +306,7 @@ class Swagger2 extends Spec
                         ];
                         $default = $value['default'] ?? null;
                         if ($temp['type'] === 'object' && is_array($default)) {
-                            $default = (empty($default)) ? new stdClass() : $default;
+                            $default = ($default === []) ? new stdClass() : $default;
                         }
 
                         if (isset($value['enum'])) {
@@ -356,9 +331,7 @@ class Swagger2 extends Spec
             $output['parameters']['all'][] = $param;
         }
 
-        usort($output['parameters']['all'], function ($a, $b) {
-            return $b['required'] - $a['required'];
-        });
+        usort($output['parameters']['all'], fn(array $a, array $b): int => (int) $b['required'] - (int) $a['required']);
 
         return $output;
     }
@@ -397,13 +370,13 @@ class Swagger2 extends Spec
 
                 $mapping[$modelName] = \array_filter(
                     $conditions,
-                    fn($value) => $value !== null
+                    fn($value): bool => $value !== null
                 );
             }
         }
 
         if (
-            empty($mapping)
+            $mapping === []
             && isset($discriminator['propertyName'], $discriminator['mapping'])
             && \is_array($discriminator['mapping'])
         ) {
@@ -420,7 +393,7 @@ class Swagger2 extends Spec
             }
         }
 
-        if (empty($mapping)) {
+        if ($mapping === []) {
             return [];
         }
 
@@ -434,21 +407,19 @@ class Swagger2 extends Spec
             $cases[$modelName] = $mapping[$modelName];
         }
 
-        if (empty($cases)) {
+        if ($cases === []) {
             $cases = $mapping;
         }
 
-        uksort($cases, function (string $left, string $right) use ($cases): int {
-            return \count($cases[$right]) <=> \count($cases[$left]);
-        });
+        uksort($cases, fn(string $left, string $right): int => \count($cases[$right]) <=> \count($cases[$left]));
 
         return $cases;
     }
 
     /**
      * @param string $service
-     * @return array
      */
+    #[Override]
     public function getMethods($service): array
     {
         $list = [];
@@ -495,9 +466,8 @@ class Swagger2 extends Spec
      * @param $pathName
      * @param $method
      * @param $additionalMethod
-     * @return array
      */
-    private function handleAdditionalMethods($methodName, $pathName, $method, $additionalMethod): array
+    private function handleAdditionalMethods(string $methodName, string $pathName, $method, array $additionalMethod): array
     {
         $duplicatedMethod = $method;
         $duplicatedMethod['x-appwrite']['method'] = $additionalMethod['name'];
@@ -522,7 +492,7 @@ class Swagger2 extends Spec
                 if (\is_array($desc['model'])) {
                     $convertedResponse[$code] = [
                         'schema' => [
-                            'x-oneOf' => \array_map(fn($model) => [
+                            'x-oneOf' => \array_map(fn($model): array => [
                                 '$ref' => $model,
                             ], $desc['model']),
                         ],
@@ -541,7 +511,7 @@ class Swagger2 extends Spec
         $duplicatedMethod['responses'] = $convertedResponse;
 
         // Remove non-whitelisted parameters on body parameters, also set required.
-        $handleParams = function (&$params) use ($additionalMethod) {
+        $handleParams = function (array &$params) use ($additionalMethod): void {
             if (!empty($additionalMethod['parameters'])) {
                 foreach ($params as $key => $param) {
                     if (empty($param['in']) || $param['in'] !== 'body' || empty($param['schema']['properties'])) {
@@ -562,7 +532,9 @@ class Swagger2 extends Spec
             }
         };
 
-        $handleParams($duplicatedMethod['parameters']);
+        if (is_array($duplicatedMethod['parameters'] ?? null)) {
+            $handleParams($duplicatedMethod['parameters']);
+        }
 
         // Overwrite description and name if method has one
         if (!empty($additionalMethod['name'])) {
@@ -576,19 +548,13 @@ class Swagger2 extends Spec
         return $this->parseMethod($methodName, $pathName, $duplicatedMethod);
     }
 
-    /**
-     * @param array $method
-     * @param string $service
-     * @return string
-     */
+    #[Override]
     public function getTargetNamespace(array $method, string $service): string
     {
         return $method['namespace'] ?? $service;
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getGlobalHeaders(): array
     {
         $list = [];
@@ -622,6 +588,7 @@ class Swagger2 extends Spec
         return $list;
     }
 
+    #[Override]
     public function getDefinitions(): array
     {
         $list = [];
@@ -657,22 +624,22 @@ class Swagger2 extends Spec
 
                     if (isset($def['items']['x-anyOf'])) {
                         //nested model
-                        $model['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-anyOf']);
+                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-anyOf']);
                     }
 
                     if (isset($def['items']['x-oneOf'])) {
                         //nested model
-                        $model['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
+                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
                     }
 
                     if (isset($def['enum'])) {
                         // enum property
                         $model['properties'][$name]['enum'] = $def['enum'];
-                        $model['properties'][$name]['enumName'] = $def['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
+                        $model['properties'][$name]['enumName'] = $def['x-enum-name'] ?? ucfirst((string) $key) . ucfirst((string) $name);
                         $model['properties'][$name]['enumKeys'] = $def['x-enum-keys'] ?? [];
                     } elseif (($model['properties'][$name]['type'] ?? null) === 'array' && isset($def['items']['enum'])) {
                         $model['properties'][$name]['enumValues'] = $def['items']['enum'];
-                        $model['properties'][$name]['enumName'] = $def['items']['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
+                        $model['properties'][$name]['enumName'] = $def['items']['x-enum-name'] ?? ucfirst((string) $key) . ucfirst((string) $name);
                         $model['properties'][$name]['enumKeys'] = $def['items']['x-enum-keys'] ?? [];
                     }
                 }
@@ -684,9 +651,8 @@ class Swagger2 extends Spec
 
     /**
      * Get request model definitions
-     *
-     * @return array
      */
+    #[Override]
     public function getRequestModels(): array
     {
         $list = [];
@@ -717,20 +683,20 @@ class Swagger2 extends Spec
                     }
 
                     if (isset($def['items']['x-anyOf'])) {
-                        $model['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-anyOf']);
+                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-anyOf']);
                     }
 
                     if (isset($def['items']['x-oneOf'])) {
-                        $model['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
+                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
                     }
 
                     if (isset($def['enum'])) {
                         $model['properties'][$name]['enum'] = $def['enum'];
-                        $model['properties'][$name]['enumName'] = $def['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
+                        $model['properties'][$name]['enumName'] = $def['x-enum-name'] ?? ucfirst((string) $key) . ucfirst((string) $name);
                         $model['properties'][$name]['enumKeys'] = $def['x-enum-keys'] ?? [];
                     } elseif (($model['properties'][$name]['type'] ?? null) === 'array' && isset($def['items']['enum'])) {
                         $model['properties'][$name]['enumValues'] = $def['items']['enum'];
-                        $model['properties'][$name]['enumName'] = $def['items']['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
+                        $model['properties'][$name]['enumName'] = $def['items']['x-enum-name'] ?? ucfirst((string) $key) . ucfirst((string) $name);
                         $model['properties'][$name]['enumKeys'] = $def['items']['x-enum-keys'] ?? [];
                     }
                 }
@@ -740,14 +706,12 @@ class Swagger2 extends Spec
         return $list;
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getRequestEnums(): array
     {
         $list = [];
 
-        foreach ($this->getServices() as $key => $service) {
+        foreach (array_keys($this->getServices()) as $key) {
             foreach ($this->getMethods($key) as $method) {
                 if (isset($method['parameters']) && is_array($method['parameters'])) {
                     foreach ($method['parameters']['all'] as $parameter) {
@@ -768,9 +732,7 @@ class Swagger2 extends Spec
         return \array_values($list);
     }
 
-    /**
-     * @return array
-     */
+    #[Override]
     public function getResponseEnums(): array
     {
         $list = [];
@@ -780,7 +742,7 @@ class Swagger2 extends Spec
             if (isset($model['properties']) && is_array($model['properties'])) {
                 foreach ($model['properties'] as $propertyName => $property) {
                     if (isset($property['enum'])) {
-                        $enumName = $property['x-enum-name'] ?? ucfirst($modelName) . ucfirst($propertyName);
+                        $enumName = $property['x-enum-name'] ?? ucfirst((string) $modelName) . ucfirst((string) $propertyName);
 
                         if (!isset($list[$enumName])) {
                             $list[$enumName] = [
@@ -795,7 +757,7 @@ class Swagger2 extends Spec
                     if ((($property['type'] ?? null) === 'array') && isset($property['items']['enum'])) {
                         $enumName = $property['items']['x-enum-name']
                             ?? $property['enumName']
-                            ?? ucfirst($modelName) . ucfirst($propertyName);
+                            ?? ucfirst((string) $modelName) . ucfirst((string) $propertyName);
 
                         if (!isset($list[$enumName])) {
                             $list[$enumName] = [
@@ -812,9 +774,6 @@ class Swagger2 extends Spec
         return \array_values($list);
     }
 
-    /**
-     * @return array
-     */
     public function getRequestModelEnums(): array
     {
         $list = [];
@@ -826,7 +785,7 @@ class Swagger2 extends Spec
 
             foreach ($model['properties'] as $propertyName => $property) {
                 if (isset($property['enum'])) {
-                    $enumName = $property['enumName'] ?? ucfirst($modelName) . ucfirst($propertyName);
+                    $enumName = $property['enumName'] ?? ucfirst((string) $modelName) . ucfirst((string) $propertyName);
 
                     if (!isset($list[$enumName])) {
                         $list[$enumName] = [
@@ -838,7 +797,7 @@ class Swagger2 extends Spec
                 }
 
                 if ((($property['type'] ?? null) === 'array') && isset($property['enumValues'])) {
-                    $enumName = $property['enumName'] ?? ucfirst($modelName) . ucfirst($propertyName);
+                    $enumName = $property['enumName'] ?? ucfirst((string) $modelName) . ucfirst((string) $propertyName);
 
                     if (!isset($list[$enumName])) {
                         $list[$enumName] = [
@@ -854,9 +813,6 @@ class Swagger2 extends Spec
         return \array_values($list);
     }
 
-    /**
-     * @return array
-     */
     public function getAllEnums(): array
     {
         $list = [];

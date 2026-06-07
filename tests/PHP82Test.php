@@ -1,20 +1,34 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
-class PHP82Test extends Base
+use Override;
+use Appwrite\SDK\Language\PHP;
+
+final class PHP82Test extends Base
 {
+    #[Override]
     protected string $sdkName = 'php';
+    #[Override]
     protected string $sdkPlatform = 'server';
+    #[Override]
     protected string $sdkLanguage = 'php';
+    #[Override]
     protected string $version = '0.0.1';
 
+    #[Override]
     protected string $language = 'php';
-    protected string $class = 'Appwrite\SDK\Language\PHP';
+    #[Override]
+    protected string $class = PHP::class;
+    #[Override]
     protected array $build = [];
+    #[Override]
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app php:8.2-cli-alpine php tests/languages/php/test.php';
 
+    #[Override]
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
