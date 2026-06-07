@@ -289,6 +289,7 @@ App::get('/v1/mock/tests/general/headers')
             'x-sdk-platform' => $request->getHeader('x-sdk-platform'),
             'x-sdk-language' => $request->getHeader('x-sdk-language'),
             'x-sdk-version' => $request->getHeader('x-sdk-version'),
+            'accept' => $request->getHeader('accept'),
         ];
         $res = array_map(function ($key, $value) {
             return $key . ': ' . $value;

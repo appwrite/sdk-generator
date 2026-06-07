@@ -215,7 +215,8 @@ abstract class Base extends TestCase
     ];
 
     protected const CLI_HEADERS_RESPONSES = [
-        'x-sdk-name: cli; x-sdk-platform: server; x-sdk-language: cli; x-sdk-version: 0.0.1',
+        'x-sdk-name: cli; x-sdk-platform: server; x-sdk-language: cli; '
+            . 'x-sdk-version: 0.0.1; accept: application/json, text/plain',
     ];
 
     protected const CLI_FUNCTION_RESPONSES = [
@@ -237,6 +238,8 @@ abstract class Base extends TestCase
         'CLI_LOCAL_FUNCTION_RUNNER_CONFIG:passed',
         'CLI_LOCAL_SOURCE_PREFLIGHT:passed',
     ];
+
+    protected const HEADERS_RESPONSE = '__HEADERS_RESPONSE__';
 
     protected const CLI_RUNTIME_RENDERING_RESPONSES = [
         'CLI_RUNTIME_RENDERING:passed',
@@ -322,6 +325,7 @@ abstract class Base extends TestCase
         '{"method":"dateAddDays","values":[7]}',
         '{"method":"dateSubDays","values":[3]}',
         '{"method":"dateSetNow","values":[]}',
+        self::HEADERS_RESPONSE,
     ];
 
     protected string $class = '';
@@ -434,6 +438,10 @@ abstract class Base extends TestCase
         echo \implode("\n", $output);
 
         foreach ($this->expectedOutput as $index => $expected) {
+            if ($expected === self::HEADERS_RESPONSE) {
+                $expected = $this->getExpectedSdkHeaders() . '; accept: application/json, text/plain';
+            }
+
             // HACK: Swift does not guarantee the order of the JSON parameters
             if (\str_starts_with($expected, '{')) {
                 $this->assertEquals(
