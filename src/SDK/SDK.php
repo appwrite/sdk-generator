@@ -68,11 +68,8 @@ class SDK
 
     /**
      * SDK constructor.
-     *
-     * @param Language $language
-     * @param Spec $spec
      */
-    public function __construct(protected ?Language $language, protected ?Spec $spec)
+    public function __construct(protected Language $language, protected Spec $spec)
     {
         $this->twig = new Environment(new FilesystemLoader(__DIR__ . '/../../templates'), [
             'debug' => true
@@ -117,10 +114,10 @@ class SDK
         }));
         $this->twig->addFilter(new TwigFilter('caseJson', fn($value) => (is_array($value)) ? json_encode($value) : $value, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseArray', fn($value) => (is_array($value)) ? json_encode($value) : '[]', ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('typeName', fn($value, $spec = []): string => $this->language->getTypeName($value, $spec), ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('typeName', fn(array $value, array $spec = []): string => $this->language->getTypeName($value, $spec), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('getValidResponseModels', fn(array $value): array => $this->getValidResponseModels($value)));
-        $this->twig->addFilter(new TwigFilter('paramDefault', fn($value): string => $this->language->getParamDefault($value), ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('paramExample', fn($value): string => $this->language->getParamExample($value), ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('paramDefault', fn(array $value): string => $this->language->getParamDefault($value), ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('paramExample', fn(array $value): string => $this->language->getParamExample($value), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('comment1', function ($value): string {
             $value = explode("\n", $value);
             foreach ($value as $key => $line) {
@@ -145,7 +142,7 @@ class SDK
             return $query;
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('html', fn($value) => $value, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('escapeKeyword', fn($value): string => $language->escapeKeyword($value), ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('escapeKeyword', fn(string $value): string => $language->escapeKeyword($value), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseHTML', fn($value) => $value, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('removeDollarSign', fn($value): string|array => str_replace('$', '', $value)));
         $this->twig->addFilter(new TwigFilter('unescape', fn($value): string => html_entity_decode((string) $value)));
@@ -163,7 +160,7 @@ class SDK
             }
             return $parts[0] . '.' . $toSnake($parts[1]);
         }));
-        $this->twig->addFilter(new TwigFilter('hasPermissionParam', fn($value): bool => $this->language->hasPermissionParam($value)));
+        $this->twig->addFilter(new TwigFilter('hasPermissionParam', fn(array $value): bool => $this->language->hasPermissionParam($value)));
         $this->twig->addFilter(new TwigFilter('stripMarkdown', function ($value): string|array|null {
             if ($value === null) {
                 return '';

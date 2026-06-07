@@ -359,7 +359,7 @@ try {
         $sdk->generate(__DIR__ . '/examples/rust');
     }
 }
-catch (Exception|Throwable $exception) {
+catch (Throwable $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
 }
 

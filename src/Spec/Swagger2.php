@@ -331,7 +331,7 @@ class Swagger2 extends Spec
             $output['parameters']['all'][] = $param;
         }
 
-        usort($output['parameters']['all'], fn(array $a, array $b): int|float => $b['required'] - $a['required']);
+        usort($output['parameters']['all'], fn(array $a, array $b): int => (int) $b['required'] - (int) $a['required']);
 
         return $output;
     }
