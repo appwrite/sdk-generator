@@ -532,7 +532,9 @@ class Swagger2 extends Spec
             }
         };
 
-        $handleParams($duplicatedMethod['parameters']);
+        if (is_array($duplicatedMethod['parameters'] ?? null)) {
+            $handleParams($duplicatedMethod['parameters']);
+        }
 
         // Overwrite description and name if method has one
         if (!empty($additionalMethod['name'])) {
