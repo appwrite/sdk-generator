@@ -1665,7 +1665,10 @@
         "summary": "Get headers",
         "operationId": "generalHeaders",
         "consumes": [],
-        "produces": [],
+        "produces": [
+          "application/json",
+          "text/plain"
+        ],
         "tags": [
           "general"
         ],

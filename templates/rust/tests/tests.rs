@@ -1,4 +1,13 @@
-use appwrite::{Client, services::*, id::ID, permission::Permission, query::Query, role::Role, input_file::InputFile};
+use appwrite::{
+    Client,
+    id::ID,
+    input_file::InputFile,
+    operator::{self, Condition},
+    permission::Permission,
+    query::Query,
+    role::Role,
+    services::*,
+};
 use serde_json::json;
 use std::path::Path;
 use tokio;
@@ -146,6 +155,9 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
 
     // Test Id Helpers
     test_id_helpers();
+
+    // Test Operator Helpers
+    test_operator_helpers();
 
     // Final test
     match general.headers().await {
@@ -296,4 +308,32 @@ fn test_permission_helpers() {
 fn test_id_helpers() {
     println!("{}", ID::unique());
     println!("{}", ID::custom("custom_id"));
+}
+
+fn test_operator_helpers() {
+    println!("{}", operator::increment());
+    println!("{}", operator::increment_with_max(5, 100));
+    println!("{}", operator::decrement());
+    println!("{}", operator::decrement_with_min(3, 0));
+    println!("{}", operator::multiply(2));
+    println!("{}", operator::multiply_with_max(3, 1000));
+    println!("{}", operator::divide(2));
+    println!("{}", operator::divide_with_min(4, 1));
+    println!("{}", operator::modulo(5));
+    println!("{}", operator::power(2));
+    println!("{}", operator::power_with_max(3, 100));
+    println!("{}", operator::array_append(&["item1", "item2"]));
+    println!("{}", operator::array_prepend(&["first", "second"]));
+    println!("{}", operator::array_insert(0, "newItem"));
+    println!("{}", operator::array_remove("oldItem"));
+    println!("{}", operator::array_unique());
+    println!("{}", operator::array_intersect(&["a", "b", "c"]));
+    println!("{}", operator::array_diff(&["x", "y"]));
+    println!("{}", operator::array_filter_with_value(Condition::Equal, "test"));
+    println!("{}", operator::string_concat("suffix"));
+    println!("{}", operator::string_replace("old", "new"));
+    println!("{}", operator::toggle());
+    println!("{}", operator::date_add_days(7));
+    println!("{}", operator::date_sub_days(3));
+    println!("{}", operator::date_set_now());
 }

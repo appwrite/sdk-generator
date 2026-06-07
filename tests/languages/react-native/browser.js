@@ -363,6 +363,9 @@ import {
     console.log(Operator.dateSubDays(3));
     console.log(Operator.dateSetNow());
 
+    response = await general.headers();
+    console.log(response.result);
+
     window.__APPWRITE_TEST_DONE__ = true;
 })().catch((err) => {
     console.log('TEST RUNNER ERROR: ' + (err && err.message ? err.message : String(err)));

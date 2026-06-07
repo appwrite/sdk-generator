@@ -224,6 +224,7 @@ class Swagger2 extends Spec
             'securityHeaders' => $methodSecurityHeaders,
             'securityQueries' => $methodSecurityQueries,
             'consumes' => $method['consumes'] ?? [],
+            'produces' => $method['produces'] ?? [],
             'cookies' => $method['x-appwrite']['cookies'] ?? false,
             'platforms' => $method['x-appwrite']['platforms'] ?? [],
             'consoleOnly' => $method['x-appwrite']['consoleOnly'] ?? false,
@@ -256,6 +257,10 @@ class Swagger2 extends Spec
             foreach ($method['consumes'] as $consume) {
                 $output['headers']['content-type'] = $consume;
             }
+        }
+
+        if (isset($method['produces']) && is_array($method['produces']) && !empty($method['produces'])) {
+            $output['headers']['accept'] = implode(', ', $method['produces']);
         }
 
         $method['parameters'] = (isset($method['parameters']) && is_array($method['parameters'])) ? $method['parameters'] : [];

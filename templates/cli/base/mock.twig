@@ -32,7 +32,11 @@ class {{ service.name | caseUcfirst }} {
 {% elseif method.name == 'redirect' %}
     return { result: '{{ method.method | upper }}:/v1{{ method.path }}/done:passed' };
 {% elseif method.name == 'headers' %}
-    return { result: 'x-sdk-name: {{ sdk.name }}; x-sdk-platform: {{ sdk.platform }}; x-sdk-language: {{ language.name | caseLower }}; x-sdk-version: {{ sdk.version }}' };
+    return {
+      result: 'x-sdk-name: {{ sdk.name }}; x-sdk-platform: {{ sdk.platform }}; '
+        + 'x-sdk-language: {{ language.name | caseLower }}; x-sdk-version: {{ sdk.version }}'
+        + '{% for key, header in method.headers %}; {{ key }}: {{ header }}{% endfor %}'
+    };
 {% else %}
     return { result: '{{ method.method | upper }}:/v1{{ method.path }}:passed' };
 {% endif %}
