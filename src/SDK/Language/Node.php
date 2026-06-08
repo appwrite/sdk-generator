@@ -186,6 +186,11 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/client.test.js',
+                'template'      => 'node/test/client.test.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'test/permission.test.js',
                 'template'      => 'node/test/permission.test.js.twig',
             ],

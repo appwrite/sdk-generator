@@ -7,7 +7,7 @@ namespace Tests;
 use Override;
 use Appwrite\SDK\Language\Node;
 
-final class Node16Test extends Base
+final class Node26Test extends Base
 {
     #[Override]
     protected string $sdkName = 'node.js';
@@ -25,12 +25,12 @@ final class Node16Test extends Base
     #[Override]
     protected array $build = [
         'cp tests/languages/node/test.js tests/sdks/node/test.js',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:16-alpine npm install',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:16-alpine npm run build'
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:26-alpine npm install',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:26-alpine npm run build'
     ];
     #[Override]
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app node:16-alpine node tests/sdks/node/test.js';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app node:26-alpine node tests/sdks/node/test.js';
 
     #[Override]
     protected array $expectedOutput = [
