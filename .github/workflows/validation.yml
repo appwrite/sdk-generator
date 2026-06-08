@@ -223,6 +223,7 @@ jobs:
               flutter pub get
               osv-scanner scan source --lockfile=pubspec.lock
               dart analyze --no-fatal-warnings
+              flutter test
               ;;
             apple|swift)
               swift build

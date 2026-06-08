@@ -32,7 +32,7 @@ class MockClient extends Mock implements Client {
   }
 
   @override
-  Future<String?> webAuth(Uri url) async {
+  Future<String?> webAuth(Uri? url) async {
     return super.noSuchMethod(Invocation.method(#webAuth, [url]), returnValue: 'done');
   }
 
@@ -61,10 +61,6 @@ void main() {
 
 {% for method in service.methods %}
         test('test method {{method.name | caseCamel}}()', () async {
-            {%- if method.type == 'webAuth' -%}
-            {%~ elseif method.type == 'location' -%}
-            final Uint8List data = Uint8List.fromList([]);
-            {%- else -%}
 {% set responseModels = method | getValidResponseModels %}
 {% set responseModelName = '' %}
 {% if responseModels|length > 1 %}
@@ -72,6 +68,10 @@ void main() {
 {% elseif method.responseModel and method.responseModel != 'any' %}
 {% set responseModelName = method.responseModel %}
 {% endif %}
+            {%- if method.type == 'webAuth' -%}
+            {%~ elseif method.type == 'location' -%}
+            final Uint8List data = Uint8List.fromList([]);
+            {%- else -%}
 
                 {%~ if responseModelName ~%}
             final Map<String, dynamic> data = {
@@ -86,7 +86,7 @@ void main() {
 
             {%~ if method.type == 'webAuth' ~%}
             when(client.webAuth(
-                Uri(),
+                argThat(isNotNull),
             )).thenAnswer((_) async => 'done');
             {%~ elseif 'multipart/form-data' in method.consumes ~%}
             when(client.chunkedUpload(
@@ -108,7 +108,9 @@ void main() {
 
         {%- if method.type == 'location' ~%}
             expect(response, isA<Uint8List>());
-        {%~ endif ~%}{%~ if responseModelName ~%}
+        {%~ elseif method.type == 'webAuth' ~%}
+            expect(response, equals('done'));
+        {%~ elseif responseModelName ~%}
             expect(response, isA<models.{{responseModelName | caseUcfirst | overrideIdentifier}}>());
         {%~ endif ~%}
         });
