@@ -34,7 +34,7 @@ jobs:
           Go112,
           Go118,
           KotlinJava17,
-          Node16,
+          Node26,
           Node18,
           Node20,
           PHP82,

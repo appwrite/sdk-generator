@@ -1,4 +1,4 @@
-import { File } from "node-fetch-native-with-agent";
+import { File } from "undici";
 
 type FsPromises = {
   stat: (path: string) => Promise<{ size: number }>;

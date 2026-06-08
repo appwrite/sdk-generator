@@ -1,5 +1,4 @@
-import { fetch, FormData, File } from 'node-fetch-native-with-agent';
-import { createAgent } from 'node-fetch-native-with-agent/agent';
+import { fetch, FormData, File, Agent, type RequestInit } from 'undici';
 import { Models } from './models';
 import { InputFile } from './inputFile';
 import JSONbigModule from 'json-bigint';
@@ -108,6 +107,7 @@ function getUserAgent() {
 
 class Client {
     static CHUNK_SIZE = 1024 * 1024 * 5;
+    private selfSignedAgent?: Agent;
 
     config = {
         endpoint: '{{ spec.endpoint }}',
@@ -163,6 +163,11 @@ class Client {
         }
 
         this.config.selfSigned = selfSigned;
+
+        if (!selfSigned && this.selfSignedAgent) {
+            this.selfSignedAgent.destroy();
+            this.selfSignedAgent = undefined;
+        }
 
         return this;
     }
@@ -222,8 +227,18 @@ class Client {
         let options: RequestInit = {
             method,
             headers,
-            ...createAgent(this.config.endpoint, { rejectUnauthorized: !this.config.selfSigned }),
         };
+
+        if (this.config.selfSigned) {
+            if (!this.selfSignedAgent) {
+                this.selfSignedAgent = new Agent({
+                    connect: {
+                        rejectUnauthorized: false,
+                    },
+                });
+            }
+            options.dispatcher = this.selfSignedAgent;
+        }
 
         if (method === 'GET') {
             for (const [key, value] of Object.entries(Client.flatten(params))) {
