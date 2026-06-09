@@ -14,13 +14,13 @@
         {%- elseif property.type == 'array' -%}
             {{ (property | typeName) }}{
                 {%- if property.items.type == 'string' -%}
-                    "{{ property.items.example | default('test') | replace({'"': '\\"', '\\': '\\\\'}) }}"
+                    "{{ property.items.example | default('test') | replace({'\\': '\\\\', '"': '\\"'}) | raw }}"
                 {%- elseif property.items.type == 'integer' -%}
                     1
                 {%- endif -%}
             }
         {%- elseif property.type == 'string' -%}
-            "{{ (property.example | default('string')) | replace({'"': '\\"', '\\': '\\\\'}) }}"
+            "{{ (property.example | default('string')) | replace({'\\': '\\\\', '"': '\\"'}) | raw }}"
         {%- elseif property.type == 'boolean' -%}
             true
         {%- elseif property.type == 'integer' -%}
