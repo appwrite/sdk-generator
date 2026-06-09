@@ -136,7 +136,7 @@ impl {{ service.name | caseUcfirst }} {
 {% endfor %}
 {% endif %}
 
-        let path = "{{ method.path }}".to_string(){% for parameter in method.parameters.path %}.replace("{{ '{' }}{{ parameter.name }}{{ '}' }}", &{{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}.to_string()){% endfor %};
+        let path = "{{ method.path }}".to_string(){% for parameter in method.parameters.path %}.replace("{{ '{' }}{{ parameter.name }}{{ '}' }}", &{% if parameter.source|default('') == 'security' %}self.client.get_headers().get("x-appwrite-{{ parameter.config | caseLower }}").cloned().unwrap_or_default(){% else %}{{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}.to_string(){% endif %}){% endfor %};
 
 {% set hasFileParam = false %}
 {% set fileParamName = '' %}

@@ -1,6 +1,6 @@
         let apiPath: String = "{{ method.path }}"
         {%~ for parameter in method.parameters.path %}
-            .replacingOccurrences(of: "{{ '{' }}{{ parameter.name }}{{ '}' }}", with: {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if parameter.enumValues is not empty %}.rawValue{% endif %})
+            .replacingOccurrences(of: "{{ '{' }}{{ parameter.name }}{{ '}' }}", with: {% if parameter.source|default('') == 'security' %}client.config["{{ parameter.config | caseCamel }}"] ?? ""{% else %}{{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if parameter.enumValues is not empty %}.rawValue{% endif %}{% endif %})
         {%~ endfor %}
         {%~ for security in method.securityQueries %}
             + "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=\(client.config["{{ security.name | caseCamel }}"]?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"

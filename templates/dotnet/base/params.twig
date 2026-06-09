@@ -1,6 +1,6 @@
 {% import 'dotnet/base/utils.twig' as utils %}
             {%~ for parameter in method.parameters.path %}
-                .Replace("{{ '{' ~ parameter.name ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}{% if parameter.enumValues is not empty %}.Value{% endif %}){% if loop.last %};{% endif %}
+                .Replace("{{ '{' ~ parameter.name ~ '}' }}", {% if parameter.source|default('') == 'security' %}_client.GetConfig("{{ parameter.config | caseCamel }}"){% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% if parameter.enumValues is not empty %}.Value{% endif %}{% endif %}){% if loop.last %};{% endif %}
 
             {%~ endfor %}
             {%~ for security in method.securityQueries %}
