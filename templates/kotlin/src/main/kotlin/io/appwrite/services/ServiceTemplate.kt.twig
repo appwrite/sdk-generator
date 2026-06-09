@@ -57,13 +57,14 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         onProgress: ((UploadProgress) -> Unit)? = null
         {%~ endif %}
     ): {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} {
-        val apiPath = "{{ method.path }}"
+        val apiPath = ("{{ method.path }}"
         {%~ for parameter in method.parameters.path %}
             .replace("{{ '{' ~ parameter.name ~ '}' }}", {% if parameter.source|default('') == 'security' %}client.config["{{ parameter.config | caseCamel }}"].orEmpty(){% else %}{{ parameter.name | caseCamel }}{% if parameter.enumValues is not empty %}.value{% endif %}{% endif %})
         {%~ endfor %}
             {%~ for security in method.securityQueries %}
-            + "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${java.net.URLEncoder.encode(client.config["{{ security.name | caseCamel }}"].orEmpty(), "UTF-8")}"
+            + "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${java.net.URLEncoder.encode(client.config[\"{{ security.name | caseCamel }}\"].orEmpty(), \"UTF-8\")}"
             {%~ endfor %}
+        )
 
         val apiParams = mutableMapOf<String, Any?>(
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
