@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Rector\CodeQuality\Rector\Catch_\ThrowWithPreviousExceptionRector;
 use Rector\Config\RectorConfig;
 use Rector\Php84\Rector\MethodCall\NewMethodCallWithoutParenthesesRector;
+use Rector\Php85\Rector\Property\AddOverrideAttributeToOverriddenPropertiesRector;
 use Rector\PHPUnit\Set\PHPUnitSetList;
 use Rector\Strict\Rector\Empty_\DisallowedEmptyRuleFixerRector;
 
@@ -30,6 +31,7 @@ return RectorConfig::configure()
     ])
     ->withSkip([
         ThrowWithPreviousExceptionRector::class,
+        AddOverrideAttributeToOverriddenPropertiesRector::class,
         DisallowedEmptyRuleFixerRector::class,
         NewMethodCallWithoutParenthesesRector::class => [
             __DIR__ . '/tests/languages/php/test.php',
