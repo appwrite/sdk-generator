@@ -69,7 +69,7 @@ class {{ service.name | caseUcfirst }} extends Service
     {
         $apiPath = str_replace(
             [{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-            [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            [{% for parameter in method.parameters.path %}{% if parameter.source|default('') == 'security' %}$this->client->getConfig('{{ parameter.config | caseLower }}'){% else %}${{ parameter.name | caseCamel | escapeKeyword }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}],
             '{{ method.path }}'
         );
         {%~ for security in method.securityQueries %}

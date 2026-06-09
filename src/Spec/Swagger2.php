@@ -144,7 +144,16 @@ class Swagger2 extends Spec
 
         $methodSecurityHeaders = [];
         $methodSecurityQueries = [];
+        $methodSecurityPathParams = [];
         foreach ($methodSecurity as $i => $node) {
+            if (($node['x-appwrite']['location'] ?? '') === 'path') {
+                $methodSecurityPathParams[$node['x-appwrite']['param'] ?? $node['name'] ?? (string) $i] = [
+                    'key' => (string) $i,
+                    'config' => $node['x-appwrite']['config'] ?? $node['name'] ?? '',
+                ];
+                continue;
+            }
+
             if (($node['in'] ?? '') === 'header' && !($node['global'] ?? false)) {
                 $methodSecurityHeaders[$i] = $node;
             }
@@ -198,6 +207,7 @@ class Swagger2 extends Spec
             'auth' => [$methodAuth] ?? [],
             'securityHeaders' => $methodSecurityHeaders,
             'securityQueries' => $methodSecurityQueries,
+            'securityPathParams' => $methodSecurityPathParams,
             'consumes' => $method['consumes'] ?? [],
             'produces' => $method['produces'] ?? [],
             'cookies' => $method['x-appwrite']['cookies'] ?? false,
@@ -277,6 +287,15 @@ class Swagger2 extends Spec
                     $output['parameters']['header'][] = $param;
                     break;
                 case 'path':
+                    if (isset($methodSecurityPathParams[$param['name']])) {
+                        $param['source'] = 'security';
+                        $param['security'] = $methodSecurityPathParams[$param['name']]['key'];
+                        $param['config'] = $methodSecurityPathParams[$param['name']]['config'];
+                        $output['parameters']['path'][] = $param;
+
+                        continue 2;
+                    }
+
                     $output['parameters']['path'][] = $param;
                     break;
                 case 'query':
@@ -568,7 +587,7 @@ class Swagger2 extends Spec
                     'name' => $definition['name'],
                     'description' => $definition['description'],
                     // Project is stored on the client, but each method's security decides
-                    // whether it is sent as X-Appwrite-Project or as a ProjectQuery param.
+                    // whether it is sent as X-Appwrite-Project or injected into the path.
                     'global' => $key !== 'Project',
                 ];
             } elseif (

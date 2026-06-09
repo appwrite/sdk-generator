@@ -612,8 +612,19 @@ class SDK
                 continue;
             }
 
+            $key = $enumKeys[$index] ?? $value;
+            $normalizedKey = \strtoupper((string) \preg_replace('/[^a-zA-Z0-9]/', '', (string) $key));
+            $existingKeys = \array_map(
+                fn($existingKey) => \strtoupper((string) \preg_replace('/[^a-zA-Z0-9]/', '', (string) $existingKey)),
+                $list[$enumName]['keys']
+            );
+
+            if (\in_array($normalizedKey, $existingKeys, true)) {
+                continue;
+            }
+
             $list[$enumName]['enum'][] = $value;
-            $list[$enumName]['keys'][] = $enumKeys[$index] ?? $value;
+            $list[$enumName]['keys'][] = $key;
         }
     }
 
