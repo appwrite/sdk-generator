@@ -8,7 +8,6 @@ use Twig\TwigFilter;
 
 abstract class JS extends Language
 {
-    #[Override]
     protected $params = [
         'npmPackage' => 'packageName',
         'bowerPackage' => 'packageName',
