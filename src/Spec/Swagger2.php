@@ -636,6 +636,14 @@ class Swagger2 extends Spec
                         $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['$ref']);
                     }
 
+                    foreach ($def['allOf'] ?? [] as $nested) {
+                        //nested model reference merged with sibling keywords
+                        if (isset($nested['$ref'])) {
+                            $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $nested['$ref']);
+                            break;
+                        }
+                    }
+
                     if (isset($def['items']['$ref'])) {
                         //nested model
                         $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
@@ -649,6 +657,16 @@ class Swagger2 extends Spec
                     if (isset($def['items']['x-oneOf'])) {
                         //nested model
                         $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
+                    }
+
+                    if (isset($def['x-anyOf'])) {
+                        //nested model union on an object property
+                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['x-anyOf']);
+                    }
+
+                    if (isset($def['x-oneOf'])) {
+                        //nested model union on an object property
+                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['x-oneOf']);
                     }
 
                     if (isset($def['enum'])) {
@@ -697,6 +715,13 @@ class Swagger2 extends Spec
                         $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['$ref']);
                     }
 
+                    foreach ($def['allOf'] ?? [] as $nested) {
+                        if (isset($nested['$ref'])) {
+                            $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $nested['$ref']);
+                            break;
+                        }
+                    }
+
                     if (isset($def['items']['$ref'])) {
                         $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
                     }
@@ -707,6 +732,14 @@ class Swagger2 extends Spec
 
                     if (isset($def['items']['x-oneOf'])) {
                         $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
+                    }
+
+                    if (isset($def['x-anyOf'])) {
+                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['x-anyOf']);
+                    }
+
+                    if (isset($def['x-oneOf'])) {
+                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['x-oneOf']);
                     }
 
                     if (isset($def['enum'])) {
