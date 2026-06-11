@@ -251,7 +251,7 @@ class OpenAPI3 extends Spec
             'headers' => [],
             'parameters' => [
                 'all' => [],
-                'headers' => [],
+                'header' => [],
                 'path' => [],
                 'query' => [],
                 'body' => [],
