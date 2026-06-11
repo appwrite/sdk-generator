@@ -49,7 +49,6 @@ jobs:
           Ruby31,
           Rust183,
           AppleSwift60,
-          Swagger2Spec,
           Swift60,
           Unity2021,
           WebChromium,
