@@ -1,0 +1,410 @@
+<?php
+
+use Appwrite\Models\ArraySerializable;
+
+include __DIR__ . '/../../sdks/php/src/Appwrite/Client.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Service.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/InputFile.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Query.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Permission.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Role.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/ID.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Operator.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/AppwriteException.php';
+foreach (glob(__DIR__ . '/../../sdks/php/src/Appwrite/Enums/*.php') as $file) {
+    include $file;
+}
+foreach (glob(__DIR__ . '/../../sdks/php/src/Appwrite/Models/*.php') as $file) {
+    include $file;
+}
+foreach (glob(__DIR__ . '/../../sdks/php/src/Appwrite/Services/*.php') as $file) {
+    include $file;
+}
+
+use Appwrite\AppwriteException;
+use Appwrite\Models\Player;
+use Appwrite\Client;
+use Appwrite\InputFile;
+use Appwrite\Query;
+use Appwrite\Permission;
+use Appwrite\Role;
+use Appwrite\ID;
+use Appwrite\Operator;
+use Appwrite\Condition;
+use Appwrite\Enums\MockType;
+use Appwrite\Services\Bar;
+use Appwrite\Services\Foo;
+use Appwrite\Services\General;
+
+readonly class AdditionalPropsDataOnly
+{
+    use ArraySerializable;
+
+    public function __construct(
+        public array $data = []
+    ) {
+    }
+
+    public static function from(array $data): static
+    {
+        return new static(
+            data: self::extractAdditionalPropertiesFromFields($data, []),
+        );
+    }
+
+    public function toArray(): array
+    {
+        return self::serializeAdditionalProperties($this->data);
+    }
+}
+
+readonly class AdditionalPropsDataFieldMapped
+{
+    use ArraySerializable;
+
+    public function __construct(
+        public array $payload,
+        public string $status,
+        public array $data = []
+    ) {
+    }
+
+    public static function from(array $data): static
+    {
+        if (!array_key_exists('data', $data)) {
+            throw new InvalidArgumentException('Missing required field "data" for ' . static::class . '.');
+        }
+
+        if (!array_key_exists('status', $data)) {
+            throw new InvalidArgumentException('Missing required field "status" for ' . static::class . '.');
+        }
+
+        return new static(
+            payload: $data['data'],
+            status: $data['status'],
+            data: self::extractAdditionalPropertiesFromFields($data, ['data', 'status']),
+        );
+    }
+
+    public function toArray(): array
+    {
+        $result = [
+            'data' => self::serializeValue($this->payload),
+            'status' => self::serializeValue($this->status),
+        ];
+
+        foreach (self::serializeAdditionalProperties($this->data) as $field => $value) {
+            $result[$field] = $value;
+        }
+
+        return $result;
+    }
+}
+
+readonly class AdditionalPropsMapped
+{
+    use ArraySerializable;
+
+    public function __construct(
+        public string $id,
+        public array $data = []
+    ) {
+    }
+
+    public static function from(array $data): static
+    {
+        if (!array_key_exists('$id', $data)) {
+            throw new InvalidArgumentException('Missing required field "$id" for ' . static::class . '.');
+        }
+
+        return new static(
+            id: $data['$id'],
+            data: self::extractAdditionalPropertiesFromFields($data, ['$id']),
+        );
+    }
+
+    public function toArray(): array
+    {
+        $result = [
+            '$id' => self::serializeValue($this->id),
+        ];
+
+        foreach (self::serializeAdditionalProperties($this->data) as $field => $value) {
+            $result[$field] = $value;
+        }
+
+        return $result;
+    }
+}
+
+$client = (new Client())
+    ->addHeader("Origin", "http://localhost")
+    ->setSelfSigned();
+
+$foo = new Foo($client);
+$bar = new Bar($client);
+$general = new General($client);
+
+echo "\nTest Started\n";
+$sdkHeaders = $client->getHeaders();
+echo "x-sdk-name: {$sdkHeaders['x-sdk-name']}; x-sdk-platform: {$sdkHeaders['x-sdk-platform']}; x-sdk-language: {$sdkHeaders['x-sdk-language']}; x-sdk-version: {$sdkHeaders['x-sdk-version']}\n";
+
+// Foo Service
+
+$response = $foo->get('string', 123, ['string in array']);
+echo $response->result . "\n";
+
+$response = $foo->post('string', 123, ['string in array']);
+echo $response->result . "\n";
+
+$response = $foo->put('string', 123, ['string in array']);
+echo $response->result . "\n";
+
+$response = $foo->patch('string', 123, ['string in array']);
+echo $response->result . "\n";
+
+$response = $foo->delete('string', 123, ['string in array']);
+echo $response->result . "\n";
+
+// Bar Service
+
+$response = $bar->get('string', 123, ['string in array']);
+echo $response->result . "\n";
+
+$response = $bar->post('string', 123, ['string in array']);
+echo $response->result . "\n";
+
+$response = $bar->put('string', 123, ['string in array']);
+echo $response->result . "\n";
+
+$response = $bar->patch('string', 123, ['string in array']);
+echo $response->result . "\n";
+
+$response = $bar->delete('string', 123, ['string in array']);
+echo $response->result . "\n";
+
+$response = $general->redirect();
+echo $response['result'] . "\n";
+
+$response = $general->getUnion();
+echo $response->result . "\n";
+
+$response = $general->getUnion('stub');
+echo $response->data . "\n";
+echo $response->type . "\n";
+
+$data = file_get_contents(__DIR__ . '/../../../resources/file.png');
+$response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'image/png', 'file.png'));
+echo $response->result . "\n";
+
+$data = file_get_contents(__DIR__ . '/../../../resources/large_file.mp4');
+$response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'video/mp4', 'large_file.mp4'));
+echo $response->result . "\n";
+
+$response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../../resources/file.png'));
+echo $response->result . "\n";
+
+$response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../../resources/large_file.mp4'));
+echo $response->result . "\n";
+
+$response = $general->enum(MockType::FIRST());
+echo $response->result . "\n";
+
+// Request model tests
+$player = new Player('player1', 'John Doe', 100);
+$response = $general->createPlayer($player);
+echo $response->result . "\n";
+
+$players = [
+    new Player('player1', 'John Doe', 100),
+    new Player('player2', 'Jane Doe', 200),
+];
+$response = $general->createPlayers($players);
+echo $response->result . "\n";
+
+try {
+    $response = $general->error400();
+} catch (AppwriteException $e) {
+    echo "{$e->getMessage()}\n";
+    echo "{$e->getResponse()}\n";
+}
+
+try {
+    $response = $general->error500();
+} catch (AppwriteException $e) {
+    echo "{$e->getMessage()}\n";
+    echo "{$e->getResponse()}\n";
+}
+
+try {
+    $response = $general->error502();
+} catch (AppwriteException $e) {
+    echo "{$e->getMessage()}\n";
+    echo "{$e->getResponse()}\n";
+}
+
+try {
+    $client->setEndpoint("htp://cloud.appwrite.io/v1");
+} catch (AppwriteException $e) {
+    echo "{$e->getMessage()}\n";
+}
+
+$general->empty();
+
+$url = $general->oauth2(
+    'clientId',
+    ['test'],
+    '123456',
+    'https://localhost',
+    'https://localhost'
+);
+echo $url . "\n";
+
+// Query helper tests
+echo Query::equal('released', [true]) . "\n";
+echo Query::equal('title', ['Spiderman', 'Dr. Strange']) . "\n";
+echo Query::notEqual('title', 'Spiderman') . "\n";
+echo Query::lessThan('releasedYear', 1990) . "\n";
+echo Query::greaterThan('releasedYear', 1990) . "\n";
+echo Query::search('name', 'john') . "\n";
+echo Query::isNull('name') . "\n";
+echo Query::isNotNull('name') . "\n";
+echo Query::between('age', 50, 100) . "\n";
+echo Query::between('age', 50.5, 100.5) . "\n";
+echo Query::between('name', 'Anna', 'Brad') . "\n";
+echo Query::startsWith('name', 'Ann') . "\n";
+echo Query::endsWith('name', 'nne') . "\n";
+echo Query::select(['name', 'age']) . "\n";
+echo Query::orderAsc('title') . "\n";
+echo Query::orderDesc('title') . "\n";
+echo Query::orderRandom() . "\n";
+echo Query::cursorAfter('my_movie_id') . "\n";
+echo Query::cursorBefore('my_movie_id') . "\n";
+echo Query::limit(50) . "\n";
+echo Query::offset(20) . "\n";
+echo Query::contains('title', ['Spider']) . "\n";
+echo Query::contains('labels', ['first']) . "\n";
+echo Query::containsAny('labels', ['first', 'second']) . "\n";
+echo Query::containsAll('labels', ['first', 'second']) . "\n";
+
+// New query methods
+echo Query::notContains('title', ['Spider']) . "\n";
+echo Query::notSearch('name', 'john') . "\n";
+echo Query::notBetween('age', 50, 100) . "\n";
+echo Query::notStartsWith('name', 'Ann') . "\n";
+echo Query::notEndsWith('name', 'nne') . "\n";
+echo Query::createdBefore('2023-01-01') . "\n";
+echo Query::createdAfter('2023-01-01') . "\n";
+echo Query::createdBetween('2023-01-01', '2023-12-31') . "\n";
+echo Query::updatedBefore('2023-01-01') . "\n";
+echo Query::updatedAfter('2023-01-01') . "\n";
+echo Query::updatedBetween('2023-01-01', '2023-12-31') . "\n";
+
+// Spatial Distance query tests
+echo Query::distanceEqual('location', [[40.7128, -74], [40.7128, -74]], 1000) . "\n";
+echo Query::distanceEqual('location', [40.7128, -74], 1000, true) . "\n";
+echo Query::distanceNotEqual('location', [40.7128, -74], 1000) . "\n";
+echo Query::distanceNotEqual('location', [40.7128, -74], 1000, true) . "\n";
+echo Query::distanceGreaterThan('location', [40.7128, -74], 1000) . "\n";
+echo Query::distanceGreaterThan('location', [40.7128, -74], 1000, true) . "\n";
+echo Query::distanceLessThan('location', [40.7128, -74], 1000) . "\n";
+echo Query::distanceLessThan('location', [40.7128, -74], 1000, true) . "\n";
+
+// Spatial query tests
+echo Query::intersects('location', [40.7128, -74]) . "\n";
+echo Query::notIntersects('location', [40.7128, -74]) . "\n";
+echo Query::crosses('location', [40.7128, -74]) . "\n";
+echo Query::notCrosses('location', [40.7128, -74]) . "\n";
+echo Query::overlaps('location', [40.7128, -74]) . "\n";
+echo Query::notOverlaps('location', [40.7128, -74]) . "\n";
+echo Query::touches('location', [40.7128, -74]) . "\n";
+echo Query::notTouches('location', [40.7128, -74]) . "\n";
+echo Query::contains('location', [[40.7128, -74], [40.7128, -74]]) . "\n";
+echo Query::notContains('location', [[40.7128, -74], [40.7128, -74]]) . "\n";
+echo Query::equal('location', [[40.7128, -74], [40.7128, -74]]) . "\n";
+echo Query::notEqual('location', [[40.7128, -74], [40.7128, -74]]) . "\n";
+
+echo Query::or([
+    Query::equal('released', [true]),
+    Query::lessThan('releasedYear', 1990)
+]) . "\n";
+echo Query::and([
+    Query::equal('released', [false]),
+    Query::greaterThan('releasedYear', 2015)
+]) . "\n";
+
+// regex, exists, notExists, elemMatch
+echo Query::regex('name', 'pattern.*') . "\n";
+echo Query::exists(['attr1', 'attr2']) . "\n";
+echo Query::notExists(['attr1', 'attr2']) . "\n";
+echo Query::elemMatch('friends', [
+    Query::equal('name', ['Alice']),
+    Query::greaterThan('age', 18)
+]) . "\n";
+
+// Permission & Role helper tests
+echo Permission::read(Role::any()) . "\n";
+echo Permission::write(Role::user(ID::custom('userid'))) . "\n";
+echo Permission::create(Role::users()) . "\n";
+echo Permission::update(Role::guests()) . "\n";
+echo Permission::delete(Role::team('teamId', 'owner')) . "\n";
+echo Permission::delete(Role::team('teamId')) . "\n";
+echo Permission::create(Role::member('memberId')) . "\n";
+echo Permission::update(Role::users('verified')) . "\n";
+echo Permission::update(Role::user(ID::custom('userid'), 'unverified')) . "\n";
+echo Permission::create(Role::label('admin')) . "\n";
+
+// ID helper tests
+echo ID::unique() . "\n";
+echo ID::custom('custom_id') . "\n";
+
+// additionalProperties round-trip tests
+$preferences = AdditionalPropsDataOnly::from([
+    'theme' => 'dark',
+    'timezone' => 'UTC',
+]);
+echo json_encode($preferences->toArray(), JSON_THROW_ON_ERROR) . "\n";
+
+$row = AdditionalPropsMapped::from([
+    '$id' => 'row1',
+    'custom' => 'value',
+    'nested' => ['enabled' => true],
+]);
+echo json_encode($row->toArray(), JSON_THROW_ON_ERROR) . "\n";
+
+$dataFieldPayload = AdditionalPropsDataFieldMapped::from([
+    'status' => 'ok',
+    'data' => ['enabled' => true],
+    'extra' => 'kept',
+]);
+echo json_encode($dataFieldPayload->toArray(), JSON_THROW_ON_ERROR) . "\n";
+
+// Operator helper tests
+echo Operator::increment() . "\n";
+echo Operator::increment(5, 100) . "\n";
+echo Operator::decrement() . "\n";
+echo Operator::decrement(3, 0) . "\n";
+echo Operator::multiply(2) . "\n";
+echo Operator::multiply(3, 1000) . "\n";
+echo Operator::divide(2) . "\n";
+echo Operator::divide(4, 1) . "\n";
+echo Operator::modulo(5) . "\n";
+echo Operator::power(2) . "\n";
+echo Operator::power(3, 100) . "\n";
+echo Operator::arrayAppend(['item1', 'item2']) . "\n";
+echo Operator::arrayPrepend(['first', 'second']) . "\n";
+echo Operator::arrayInsert(0, 'newItem') . "\n";
+echo Operator::arrayRemove('oldItem') . "\n";
+echo Operator::arrayUnique() . "\n";
+echo Operator::arrayIntersect(['a', 'b', 'c']) . "\n";
+echo Operator::arrayDiff(['x', 'y']) . "\n";
+echo Operator::arrayFilter(Condition::Equal, 'test') . "\n";
+echo Operator::stringConcat('suffix') . "\n";
+echo Operator::stringReplace('old', 'new') . "\n";
+echo Operator::toggle() . "\n";
+echo Operator::dateAddDays(7) . "\n";
+echo Operator::dateSubDays(3) . "\n";
+echo Operator::dateSetNow() . "\n";
+
+$response = $general->headers();
+echo $response->result . "\n";

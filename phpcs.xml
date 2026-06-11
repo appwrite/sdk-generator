@@ -7,8 +7,9 @@
     <ini name="memory_limit" value="4096M"/>
 
     <!-- Exclude SDKs and resources for performance reasons -->
-    <exclude-pattern>./tests/sdks</exclude-pattern>
-    <exclude-pattern>./tests/languages</exclude-pattern>
+    <exclude-pattern>./tests/e2e/sdks</exclude-pattern>
+    <exclude-pattern>./tests/e2e/languages</exclude-pattern>
+    <exclude-pattern>./tests/e2e/tmp</exclude-pattern>
     <exclude-pattern>./tests/resources</exclude-pattern>
 
     <!-- Ignore max line width -->

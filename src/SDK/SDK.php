@@ -776,7 +776,7 @@ class SDK
                 'endpoint' => $this->spec->getEndpoint(),
                 'endpointDocs' => $this->spec->getEndpointDocs(),
                 'host' => parse_url($this->spec->getEndpoint(), PHP_URL_HOST),
-                'basePath' => $this->spec->getAttribute('basePath', ''),
+                'basePath' => parse_url($this->spec->getEndpoint(), PHP_URL_PATH) ?: '',
                 'licenseName' => $this->spec->getLicenseName(),
                 'licenseURL' => $this->spec->getLicenseURL(),
                 'contactName' => $this->spec->getContactName(),

@@ -74,10 +74,10 @@ namespace {{ spec.title | caseUcfirst }}.Models
                     {%- if property.type == 'array' -%}
                         {%- if not property.required -%}
                             map.TryGetValue("{{ property.name }}", out var arrayRaw{{ loop.index }}) && arrayRaw{{ loop.index }} != null
-                                ? arrayRaw{{ loop.index }}.ConvertToList<{{ property | typeName | replace({'List<': '', '>': ''}) }}>()
+                                ? arrayRaw{{ loop.index }}.ConvertToList<{{ property | typeName | slice(5, (property | typeName | length) - 6) | raw }}>()
                                 : null
                         {%- else -%}
-                            map["{{ property.name }}"].ConvertToList<{{ property | typeName | replace({'List<': '', '>': ''}) }}>()
+                            map["{{ property.name }}"].ConvertToList<{{ property | typeName | slice(5, (property | typeName | length) - 6) | raw }}>()
                         {%- endif %}
                     {%- else %}
                         {%- if property.type == "integer" or property.type == "number" %}
