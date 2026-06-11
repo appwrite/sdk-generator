@@ -156,10 +156,8 @@ abstract class Spec extends ArrayObject
      * Set Attribute
      *
      * Method for setting a specific field attribute
-     *
-     * @param array $parameter
      */
-    public function setAttribute(string $key, mixed $value, $type = self::SET_TYPE_ASSIGN): mixed
+    public function setAttribute(string $key, mixed $value, string $type = self::SET_TYPE_ASSIGN): mixed
     {
         switch ($type) {
             case self::SET_TYPE_ASSIGN:
@@ -184,6 +182,16 @@ abstract class Spec extends ArrayObject
     }
 
     public function getResponseEnums(): array
+    {
+        return [];
+    }
+
+    public function getRequestModelEnums(): array
+    {
+        return [];
+    }
+
+    public function getAllEnums(): array
     {
         return [];
     }

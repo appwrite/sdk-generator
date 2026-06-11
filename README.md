@@ -9,7 +9,7 @@
 
 The SDK Generator uses predefined language settings as [Twig templates](https://twig.symfony.com/) to generate codebases based on different API specs.
 
-Currently, the only spec supported is Swagger 2.0, but we intend to add support for more specifications in the near future. This generator is still lacking support for any definition/model specs.
+Both OpenAPI 3.0 and Swagger 2.0 specs are supported and produce identical SDKs. This generator is still lacking support for any definition/model specs.
 
 ## Getting Started
 
@@ -39,14 +39,18 @@ Create language and SDK instances and generate code to target directory.
 
 require_once 'vendor/autoload.php';
 
-use Appwrite\Spec\Swagger2;
+use Appwrite\Spec\OpenAPI3;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\PHP;
 
-// Read API specification file (Swagger 2) and create spec instance
+// Read API specification file (OpenAPI 3) and create spec instance
 $version = '1.9.x';
 $platform = 'server';
-$spec = new Swagger2(file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json"));
+$spec = new OpenAPI3(file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/open-api3-{$version}-{$platform}.json"));
+
+// Swagger 2 specs are supported as well:
+// use Appwrite\Spec\Swagger2;
+// $spec = new Swagger2(file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json"));
 
 // Create language instance
 $lang = new PHP();
@@ -113,8 +117,8 @@ Requires [uv](https://github.com/astral-sh/uv) to be installed. Configuration is
 
 ## Supported Specs
 
+* [OpenAPI 3](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md)
 * [Swagger 2](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md)
-* [OpenAPI 3](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md) (Not Ready)
 * [RAML 1.0](https://raml.org/) (Not Ready)
 * [RAML 0.8](https://raml.org/) (Not Ready)
 * [Postman 2.0](https://schema.getpostman.com/json/collection/v2.0.0/docs/index.html) (Not Ready)
@@ -129,9 +133,12 @@ The primary generation targets are defined in `example.php`. Run it without argu
 php example.php
 php example.php <target>
 php example.php <target> <platform>
+php example.php <target> <platform> <format>
 ```
 
 `<platform>` can be `console`, `client`, or `server`. If omitted, it defaults to `console`.
+
+`<format>` can be `openapi3` or `swagger2`. If omitted, it defaults to `openapi3`. Both formats produce identical SDKs.
 
 Examples:
 

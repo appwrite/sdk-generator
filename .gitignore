@@ -1,7 +1,7 @@
 .idea/
 .dart_tool
 /vendor/
-/tests/sdks
+/tests/e2e/sdks
 /.vscode
 .vs
 .phpunit.*
@@ -13,7 +13,7 @@ tmp-upload-tests/
 
 # exclude everything
 examples/*
-tests/tmp
+tests/e2e/tmp
 .phpunit.result.cache
 
 # exception to the rule

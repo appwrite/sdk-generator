@@ -2,882 +2,201 @@
 
 namespace Appwrite\Spec;
 
-use Override;
-use stdClass;
+use Exception;
 
-class Swagger2 extends Spec
+/**
+ * Swagger 2 (legacy) spec parser.
+ *
+ * Converts the Swagger 2 document into its OpenAPI 3 equivalent at
+ * construction time, then inherits the native OpenAPI 3 parsing pipeline.
+ * This guarantees both formats produce an identical internal representation
+ * (and therefore identical generated SDKs).
+ */
+class Swagger2 extends OpenAPI3
 {
-    #[Override]
-    public function getTitle(): string
+    /**
+     * @param string $input
+     * @throws Exception
+     */
+    public function __construct($input)
     {
-        return $this->getAttribute('info.title', '');
+        parent::__construct($input);
+
+        $this->convertDocument();
     }
 
-    #[Override]
-    public function getDescription(): string
+    /**
+     * Convert the Swagger 2 document in-place to its OpenAPI 3 equivalent.
+     */
+    private function convertDocument(): void
     {
-        return $this->getAttribute('info.description', '');
-    }
-
-    #[Override]
-    public function getNamespace(): string
-    {
-        $namespace = $this->getAttribute('info.namespace', '');
-        return $namespace !== '' ? $namespace : $this->getTitle();
-    }
-
-    #[Override]
-    public function getVersion(): string
-    {
-        return $this->getAttribute('info.version', '');
-    }
-
-    #[Override]
-    public function getEndpoint(): string
-    {
-        return $this->getAttribute('schemes.0', 'https') .
-        '://' . $this->getAttribute('host', 'example.com') .
-        $this->getAttribute('basePath', '');
-    }
-
-    #[Override]
-    public function getEndpointDocs(): string
-    {
-        $servers = $this->getAttribute('servers', []);
-        if (empty($servers)) {
-            $host = $this->getAttribute('x-host-docs', '');
-            if ($host === '') {
-                return '';
-            }
-
-            return $this->getAttribute('schemes.0', 'https') . '://' . $host . $this->getAttribute('basePath', '');
+        if (isset($this['openapi'])) {
+            return; // already an OpenAPI 3 document
         }
 
-        $server = $servers[0];
-        foreach ($servers as $candidate) {
-            if (isset($candidate['url']) && \str_contains((string) $candidate['url'], '{region}')) {
-                $server = $candidate;
-                break;
-            }
-        }
+        $scheme = $this->getAttribute('schemes.0', 'https');
+        $basePath = $this->getAttribute('basePath', '');
 
-        return \preg_replace_callback('/\{([^}]+)\}/', fn(array $matches): string => '<' . \strtoupper($matches[1]) . '>', $server['url'] ?? '') ?? '';
-    }
-
-    #[Override]
-    public function getLicenseName(): string
-    {
-        return $this->getAttribute('info.license.name', '');
-    }
-
-    #[Override]
-    public function getLicenseURL(): string
-    {
-        return $this->getAttribute('info.license.url', '');
-    }
-
-    #[Override]
-    public function getContactName(): string
-    {
-        return $this->getAttribute('info.contact.name', '');
-    }
-
-    #[Override]
-    public function getContactURL(): string
-    {
-        return $this->getAttribute('info.contact.url', '');
-    }
-
-    #[Override]
-    public function getContactEmail(): string
-    {
-        return $this->getAttribute('info.contact.email', '');
-    }
-
-    #[Override]
-    public function getServices(): array
-    {
-        $list = [];
-
-        $paths = $this->getAttribute('paths', []);
-        $tags = $this->getAttribute('tags', []);
-
-        foreach ($paths as $path) {
-            foreach ($path as $method) {
-                if (isset($method['tags'])) {
-                    foreach ($method['tags'] as $tag) {
-                        if (!array_key_exists((string) $tag, $list)) {
-                            $methods = $this->getMethods($tag);
-                            $list[$tag] = [
-                                'name' => $tag,
-                                'methods' => $methods,
-                            ];
-                        }
-                    }
-                }
-            }
-        }
-
-        foreach ($tags as $tag) { // Fetch descriptions
-            $name = $tag['name'];
-
-            if (isset($list[$name])) {
-                $list[$name]['description'] = $tag['description'] ?? '';
-            }
-        }
-
-        return $list;
-    }
-
-    protected function parseMethod(string $methodName, string $pathName, array $method): array
-    {
-        $security = $this->getAttribute('securityDefinitions', []);
-        $methodAuth = $method['x-appwrite']['auth'] ?? [];
-        $methodSecurity = $method['security'][0] ?? [];
-
-        foreach ($methodAuth as $i => $node) {
-            $methodAuth[$i] = (array_key_exists((string) $i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
-        }
-        foreach ($methodSecurity as $i => $node) {
-            $methodSecurity[$i] = (array_key_exists((string) $i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
-        }
-
-        $methodSecurityHeaders = [];
-        $methodSecurityQueries = [];
-        $methodSecurityPathParams = [];
-        foreach ($methodSecurity as $i => $node) {
-            if (($node['x-appwrite']['location'] ?? '') === 'path') {
-                $methodSecurityPathParams[$node['x-appwrite']['param'] ?? $node['name'] ?? (string) $i] = [
-                    'key' => (string) $i,
-                    'config' => $node['x-appwrite']['config'] ?? $node['name'] ?? '',
-                ];
-                continue;
-            }
-
-            if (($node['in'] ?? '') === 'header' && !($node['global'] ?? false)) {
-                $methodSecurityHeaders[$i] = $node;
-            }
-            if (($node['in'] ?? '') === 'query') {
-                $methodSecurityQueries[$i] = $node;
-            }
-        }
-
-        $responseModel = '';
-        $responseModels = [];
-        $responseDiscriminator = [];
-        $responses = $method['responses'];
-        $emptyResponse = true;
-        foreach ($responses as $code => $desc) {
-            if ($code != '204') {
-                $emptyResponse = false;
-            }
-            // Check for single model reference
-            if (isset($desc['schema']) && isset($desc['schema']['$ref'])) {
-                $responseModel = $desc['schema']['$ref'];
-                if (!empty($responseModel)) {
-                    $responseModel = str_replace('#/definitions/', '', $responseModel);
-                }
-            }
-
-            // check for union types
-            if (isset($desc['schema']['x-oneOf'])) {
-                $responseModels = \array_map(
-                    fn(array $schema): string => $this->normalizeSchemaRef($schema['$ref'] ?? ''),
-                    $desc['schema']['x-oneOf']
-                );
-
-                $responseDiscriminator = $this->parseUnionDiscriminator($desc['schema']);
-
-                // set to first model
-                // for backward compatibility
-                if ($responseModels !== []) {
-                    $responseModel = $responseModels[0];
-                }
-            }
-        }
-
-        $output = [
-            'method' => $methodName,
-            'path' => $pathName,
-            'fullPath' => parse_url($this->getEndpoint(), PHP_URL_PATH) . $pathName,
-            'name' => $method['x-appwrite']['method'] ?? ($method['operationId'] ?? ''),
-            'packaging' => $method['x-appwrite']['packaging'] ?? false,
-            'title' => $method['summary'] ?? '',
-            'description' => $method['description'] ?? '',
-            'auth' => [$methodAuth] ?? [],
-            'securityHeaders' => $methodSecurityHeaders,
-            'securityQueries' => $methodSecurityQueries,
-            'securityPathParams' => $methodSecurityPathParams,
-            'consumes' => $method['consumes'] ?? [],
-            'produces' => $method['produces'] ?? [],
-            'cookies' => $method['x-appwrite']['cookies'] ?? false,
-            'platforms' => $method['x-appwrite']['platforms'] ?? [],
-            'consoleOnly' => $method['x-appwrite']['consoleOnly'] ?? false,
-            'type' => $method['x-appwrite']['type'] ?? false,
-            'deprecated' => $method['deprecated'] ?? false,
-            'headers' => [],
-            'parameters' => [
-                'all' => [],
-                'headers' => [],
-                'path' => [],
-                'query' => [],
-                'body' => [],
-            ],
-            'emptyResponse' => $emptyResponse,
-            'responseModel' => $responseModel,
-            'responseModels' => $responseModels,
-            'responseDiscriminator' => $responseDiscriminator,
+        $servers = [
+            ['url' => $scheme . '://' . $this->getAttribute('host', 'example.com') . $basePath],
         ];
 
-        if ($method['x-appwrite']['deprecated'] ?? false) {
-            $output['since'] = $method['x-appwrite']['deprecated']['since'] ?? '';
-            $output['replaceWith'] = $method['x-appwrite']['deprecated']['replaceWith'] ?? '';
+        $docsHost = $this->getAttribute('x-host-docs', '');
+        if ($docsHost !== '') {
+            $servers[] = ['url' => $scheme . '://' . \str_replace('<REGION>', '{region}', $docsHost) . $basePath];
         }
 
-        if ($output['type'] == 'graphql') {
-            $output['headers']['x-sdk-graphql'] = 'true';
-        }
+        $this['servers'] = $servers;
 
-        if (isset($method['consumes']) && is_array($method['consumes'])) {
-            foreach ($method['consumes'] as $consume) {
-                $output['headers']['content-type'] = $consume;
+        $this['components'] = [
+            'schemas' => $this->getAttribute('definitions', []),
+            'securitySchemes' => $this->getAttribute('securityDefinitions', []),
+        ];
+
+        $paths = $this->getAttribute('paths', []);
+        foreach ($paths as $pathName => $path) {
+            foreach ($path as $verb => $method) {
+                if (!\is_array($method)) {
+                    continue;
+                }
+
+                $paths[$pathName][$verb] = $this->convertMethod($method);
             }
         }
+        $this['paths'] = $paths;
 
-        if (isset($method['produces']) && is_array($method['produces']) && !empty($method['produces'])) {
-            $output['headers']['accept'] = implode(', ', $method['produces']);
+        $this->exchangeArray($this->convertRefs($this->getArrayCopy()));
+    }
+
+    /**
+     * Recursively rewrite definition references to component schema references,
+     * in both array values and array keys (discriminator mappings use refs as keys).
+     */
+    private function convertRefs(mixed $node): mixed
+    {
+        if (\is_string($node)) {
+            return \str_replace('#/definitions/', '#/components/schemas/', $node);
         }
 
-        $method['parameters'] = (isset($method['parameters']) && is_array($method['parameters'])) ? $method['parameters'] : [];
+        if (!\is_array($node)) {
+            return $node;
+        }
 
-        foreach ($method['parameters'] as $parameter) {
-            $param = [
-                'name' => $parameter['name'] ?? null,
-                'type' => $parameter['type'] ?? null,
-                'class' => $parameter['x-class'] ?? null,
-                'description' => $parameter['description'] ?? '',
-                'required' => $parameter['required'] ?? false,
-                'nullable' => $parameter['x-nullable'] ?? false,
-                'default' => $parameter['default'] ?? null,
-                'example' => $parameter['x-example'] ?? null,
-                'isUploadID' => $parameter['x-upload-id'] ?? false,
-                'format' => $parameter['format'] ?? null,
-                'array' => [
-                    'type' => $parameter['items']['type'] ?? '',
-                ],
-            ];
-
-            if ($param['type'] === 'object' && is_array($param['default'])) {
-                $param['default'] = (empty($param['default'])) ? new stdClass() : $param['default'];
+        $converted = [];
+        foreach ($node as $key => $value) {
+            if (\is_string($key) && \str_starts_with($key, '#/definitions/')) {
+                $key = \str_replace('#/definitions/', '#/components/schemas/', $key);
             }
 
-            $param['default'] = (is_array($param['default']) || $param['default'] instanceof stdClass) ? json_encode($param['default']) : $param['default'];
-            if (isset($parameter['enum'])) {
-                $param['enumValues'] = $parameter['enum'];
-                $param['enumName'] = $parameter['x-enum-name'] ?? $param['name'];
-                $param['enumKeys'] = $parameter['x-enum-keys'];
-            } elseif (($param['type'] ?? null) === 'array' && isset($parameter['items']['enum'])) {
-                $param['enumValues'] = $parameter['items']['enum'];
-                $param['enumName'] = $parameter['items']['x-enum-name'] ?? $param['name'];
-                $param['enumKeys'] = $parameter['items']['x-enum-keys'] ?? [];
+            $converted[$key] = $this->convertRefs($value);
+        }
+
+        return $converted;
+    }
+
+    /**
+     * Convert an operation object: response schemas move into response content
+     * keyed by the produced content types, and body/formData parameters become
+     * the request body.
+     */
+    private function convertMethod(array $method): array
+    {
+        $consumes = $method['consumes'] ?? [];
+        $produces = $method['produces'] ?? [];
+
+        $hasContent = false;
+        foreach ($method['responses'] ?? [] as $code => $response) {
+            if (!isset($response['schema'])) {
+                continue;
             }
 
-            switch ($parameter['in']) {
-                case 'header':
-                    $output['parameters']['header'][] = $param;
-                    break;
-                case 'path':
-                    if (isset($methodSecurityPathParams[$param['name']])) {
-                        $param['source'] = 'security';
-                        $param['security'] = $methodSecurityPathParams[$param['name']]['key'];
-                        $param['config'] = $methodSecurityPathParams[$param['name']]['config'];
-                        $output['parameters']['path'][] = $param;
+            $schema = $response['schema'];
+            unset($response['schema']);
 
-                        continue 2;
-                    }
+            // A response without a produced content type still carries its
+            // schema, under an empty content type
+            foreach (($produces !== [] ? $produces : ['']) as $contentType) {
+                $response['content'][$contentType] = ['schema' => $schema];
+            }
 
-                    $output['parameters']['path'][] = $param;
-                    break;
-                case 'query':
-                    $output['parameters']['query'][] = $param;
+            $method['responses'][$code] = $response;
+
+            $hasContent = $hasContent || $produces !== [];
+        }
+
+        if (!$hasContent && $produces !== []) {
+            // No response declares content (e.g. 204 No content); keep the
+            // produced content type available in the x-appwrite metadata.
+            $method['x-appwrite']['produces'] = $produces;
+        }
+
+        $parameters = [];
+        $body = null;
+        $formData = [];
+
+        foreach ($method['parameters'] ?? [] as $parameter) {
+            switch ($parameter['in'] ?? '') {
+                case 'body':
+                    $body = $parameter;
                     break;
                 case 'formData':
-                    $output['parameters']['body'][] = $param;
+                    $formData[] = $parameter;
                     break;
-                case 'body':
-                    $bodyProperties = $parameter['schema']['properties'] ?? [];
-                    $bodyRequired = $parameter['schema']['required'] ?? [];
-
-                    foreach ($bodyProperties as $key => $value) {
-                        $temp = $param;
-                        $temp['name'] = $key;
-                        $temp['type'] = $value['type'] ?? null;
-                        $temp['description'] = $value['description'] ?? '';
-                        $temp['required'] = (in_array($key, $bodyRequired));
-                        $temp['example'] = $value['x-example'] ?? null;
-                        $temp['isUploadID'] = $value['x-upload-id'] ?? false;
-                        $temp['nullable'] = $value['x-nullable'] ?? false;
-                        $temp['model'] = $value['x-model'] ?? null;
-                        $temp['format'] = $value['format'] ?? null;
-                        $temp['array'] = [
-                            'type' => $value['items']['type'] ?? '',
-                            'model' => isset($value['items']['$ref']) ? str_replace('#/definitions/', '', $value['items']['$ref']) : null,
-                        ];
-                        $default = $value['default'] ?? null;
-                        if ($temp['type'] === 'object' && is_array($default)) {
-                            $default = ($default === []) ? new stdClass() : $default;
-                        }
-
-                        if (isset($value['enum'])) {
-                            $temp['enumValues'] = $value['enum'];
-                            $temp['enumName'] = $value['x-enum-name'] ?? $temp['name'];
-                            $temp['enumKeys'] = $value['x-enum-keys'];
-                        } elseif (($temp['type'] ?? null) === 'array' && isset($value['items']['enum'])) {
-                            $temp['enumValues'] = $value['items']['enum'];
-                            $temp['enumName'] = $value['items']['x-enum-name'] ?? $temp['name'];
-                            $temp['enumKeys'] = $value['items']['x-enum-keys'] ?? [];
-                        }
-
-                        $temp['default'] = (\is_array($default) || $default instanceof stdClass) ? json_encode($default) : $default;
-
-                        $output['parameters']['body'][] = $temp;
-                        $output['parameters']['all'][] = $temp;
-                    }
-
-                    continue 2;
-            }
-
-            $output['parameters']['all'][] = $param;
-        }
-
-        usort($output['parameters']['all'], fn(array $a, array $b): int => (int) $b['required'] - (int) $a['required']);
-
-        return $output;
-    }
-
-    protected function normalizeSchemaRef(string $ref): string
-    {
-        return str_replace(
-            ['#/definitions/', '#/components/schemas/'],
-            '',
-            $ref
-        );
-    }
-
-    protected function parseUnionDiscriminator(array $schema): array
-    {
-        $discriminator = $schema['x-discriminator'] ?? $schema['discriminator'] ?? null;
-
-        if (!\is_array($discriminator)) {
-            return [];
-        }
-
-        $cases = [];
-        $mapping = [];
-
-        if (\is_array($discriminator['x-mapping'] ?? null)) {
-            foreach ($discriminator['x-mapping'] as $ref => $conditions) {
-                if (!\is_array($conditions)) {
-                    continue;
-                }
-
-                $modelName = $this->normalizeSchemaRef((string) $ref);
-
-                if ($modelName === '') {
-                    continue;
-                }
-
-                $mapping[$modelName] = \array_filter(
-                    $conditions,
-                    fn($value): bool => $value !== null
-                );
+                default:
+                    $parameters[] = $parameter;
             }
         }
 
-        if (
-            $mapping === []
-            && isset($discriminator['propertyName'], $discriminator['mapping'])
-            && \is_array($discriminator['mapping'])
-        ) {
-            foreach ($discriminator['mapping'] as $value => $ref) {
-                $modelName = $this->normalizeSchemaRef((string) $ref);
-
-                if ($modelName === '') {
-                    continue;
-                }
-
-                $mapping[$modelName] = [
-                    $discriminator['propertyName'] => $value,
-                ];
-            }
-        }
-
-        if ($mapping === []) {
-            return [];
-        }
-
-        foreach ($schema['x-oneOf'] ?? [] as $unionSchema) {
-            $modelName = $this->normalizeSchemaRef($unionSchema['$ref'] ?? '');
-
-            if ($modelName === '' || !isset($mapping[$modelName])) {
-                continue;
-            }
-
-            $cases[$modelName] = $mapping[$modelName];
-        }
-
-        if ($cases === []) {
-            $cases = $mapping;
-        }
-
-        uksort($cases, fn(string $left, string $right): int => \count($cases[$right]) <=> \count($cases[$left]));
-
-        return $cases;
-    }
-
-    /**
-     * @param string $service
-     */
-    #[Override]
-    public function getMethods($service): array
-    {
-        $list = [];
-        $paths = $this->getAttribute('paths', []);
-
-        foreach ($paths as $pathName => $path) {
-            foreach ($path as $methodName => $method) {
-                $isCurrentService = isset($method['tags']) && is_array($method['tags']) && in_array($service, $method['tags']);
-
-                if (!$isCurrentService) {
-                    if (!empty($method['x-appwrite']['methods'] ?? [])) {
-                        foreach ($method['x-appwrite']['methods'] as $additionalMethod) {
-                            // has multiple namespaced methods!
-                            $targetNamespace = $additionalMethod['namespace'] ?? null;
-
-                            if ($targetNamespace === $service) {
-                                $list[] = $this->handleAdditionalMethods($methodName, $pathName, $method, $additionalMethod);
-                            }
-                        }
-                    }
-                    continue;
-                }
-
-                if (empty($method['x-appwrite']['methods'] ?? [])) {
-                    $list[] = $this->parseMethod($methodName, $pathName, $method);
-                    continue;
-                }
-
-                foreach ($method['x-appwrite']['methods'] as $additionalMethod) {
-                    $targetNamespace = $this->getTargetNamespace($additionalMethod, $service);
-
-                    if ($targetNamespace === $service) {
-                        $list[] = $this->handleAdditionalMethods($methodName, $pathName, $method, $additionalMethod);
-                    }
-                }
-            }
-        }
-
-        return $list;
-    }
-
-    /**
-     * @param $methodName
-     * @param $pathName
-     * @param $method
-     * @param $additionalMethod
-     */
-    private function handleAdditionalMethods(string $methodName, string $pathName, $method, array $additionalMethod): array
-    {
-        $duplicatedMethod = $method;
-        $duplicatedMethod['x-appwrite']['method'] = $additionalMethod['name'];
-        $duplicatedMethod['x-appwrite']['auth'] = $additionalMethod['auth'] ?? [];
-
-        if (isset($additionalMethod['deprecated'])) {
-            $duplicatedMethod['deprecated'] = $additionalMethod['deprecated'];
-            $duplicatedMethod['x-appwrite']['deprecated'] = $additionalMethod['deprecated'];
-        } else {
-            // remove inherited deprecations!
-            unset($duplicatedMethod['deprecated']);
-            unset($duplicatedMethod['x-appwrite']['deprecated']);
-        }
-
-        // Update Response
-        $responses = $additionalMethod['responses'];
-        $convertedResponse = [];
-
-        foreach ($responses as $desc) {
-            $code = $desc['code'];
-            if (isset($desc['model'])) {
-                if (\is_array($desc['model'])) {
-                    $convertedResponse[$code] = [
-                        'schema' => [
-                            'x-oneOf' => \array_map(fn($model): array => [
-                                '$ref' => $model,
-                            ], $desc['model']),
-                        ],
-                    ];
-                    continue;
-                }
-
-                $convertedResponse[$code] = [
-                    'schema' => [
-                        '$ref' => $desc['model'],
+        if ($body !== null) {
+            $method['requestBody'] = [
+                'content' => [
+                    ($consumes[0] ?? static::DEFAULT_CONTENT_TYPE) => [
+                        'schema' => $body['schema'] ?? [],
                     ],
-                ];
-            }
-        }
-
-        $duplicatedMethod['responses'] = $convertedResponse;
-
-        // Remove non-whitelisted parameters on body parameters, also set required.
-        $handleParams = function (array &$params) use ($additionalMethod): void {
-            if (!empty($additionalMethod['parameters'])) {
-                foreach ($params as $key => $param) {
-                    if (empty($param['in']) || $param['in'] !== 'body' || empty($param['schema']['properties'])) {
-                        continue;
-                    }
-
-                    $whitelistedParams = $additionalMethod['parameters'];
-
-                    foreach ($param['schema']['properties'] as $paramName => $value) {
-                        if (!in_array($paramName, $whitelistedParams)) {
-                            unset($param['schema']['properties'][$paramName]);
-                        }
-                    }
-
-                    $param['schema']['required'] = $additionalMethod['required'] ?? [];
-                    $params[$key] = $param;
-                }
-            }
-        };
-
-        if (is_array($duplicatedMethod['parameters'] ?? null)) {
-            $handleParams($duplicatedMethod['parameters']);
-        }
-
-        // Overwrite description and name if method has one
-        if (!empty($additionalMethod['name'])) {
-            $duplicatedMethod['summary'] = $additionalMethod['name'];
-        }
-
-        if (!empty($additionalMethod['description'])) {
-            $duplicatedMethod['description'] = $additionalMethod['description'];
-        }
-
-        return $this->parseMethod($methodName, $pathName, $duplicatedMethod);
-    }
-
-    #[Override]
-    public function getTargetNamespace(array $method, string $service): string
-    {
-        return $method['namespace'] ?? $service;
-    }
-
-    #[Override]
-    public function getGlobalHeaders(): array
-    {
-        $list = [];
-
-        $security = $this->getAttribute('securityDefinitions', []);
-
-        foreach ($security as $key => $definition) {
-            if (isset($definition['in']) && $definition['in'] === 'header') {
-                $list[] = [
-                    'key' => $key,
-                    'name' => $definition['name'],
-                    'description' => $definition['description'],
-                    // Project is stored on the client, but each method's security decides
-                    // whether it is sent as X-Appwrite-Project or injected into the path.
-                    'global' => $key !== 'Project',
-                ];
-            } elseif (
-                isset($definition['type']) && $definition['type'] === 'http' &&
-                      isset($definition['scheme']) && $definition['scheme'] === 'bearer'
-            ) {
-                $list[] = [
-                    'key' => $key,
-                    'name' => 'Authorization',
-                    'description' => $definition['description'] ?? 'Bearer token authentication',
-                    'type' => 'bearer',
-                    'global' => true,
-                ];
-            }
-        }
-
-        return $list;
-    }
-
-    #[Override]
-    public function getDefinitions(): array
-    {
-        $list = [];
-        $definition = $this->getAttribute('definitions', []);
-        foreach ($definition as $key => $schema) {
-            if ($key == 'any') {
-                continue;
-            }
-            if ($schema['x-request-model'] ?? false) {
-                continue;
-            }
-            $model = [
-                'name' => $key,
-                'properties' => $schema['properties'] ?? [],
-                'description' => $schema['description'] ?? '',
-                'required' => $schema['required'] ?? [],
-                'additionalProperties' => $schema['additionalProperties'] ?? [],
+                ],
             ];
-            if (isset($model['properties'])) {
-                foreach ($model['properties'] as $name => $def) {
-                    $model['properties'][$name]['name'] = $name;
-                    $model['properties'][$name]['description'] = $def['description'] ?? '';
-                    $model['properties'][$name]['example'] = $def['x-example'] ?? null;
-                    $model['properties'][$name]['required'] =  in_array($name, $model['required']);
-                    if (isset($def['$ref'])) {
-                        $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['$ref']);
-                    }
+        } elseif ($formData !== []) {
+            $properties = [];
+            $required = [];
 
-                    foreach ($def['allOf'] ?? [] as $nested) {
-                        //nested model reference merged with sibling keywords
-                        if (isset($nested['$ref'])) {
-                            $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $nested['$ref']);
-                            break;
-                        }
-                    }
+            foreach ($formData as $parameter) {
+                $name = $parameter['name'];
 
-                    if (isset($def['items']['$ref'])) {
-                        //nested model
-                        $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
-                    }
-
-                    if (isset($def['items']['x-anyOf'])) {
-                        //nested model
-                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-anyOf']);
-                    }
-
-                    if (isset($def['items']['x-oneOf'])) {
-                        //nested model
-                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
-                    }
-
-                    if (isset($def['x-anyOf'])) {
-                        //nested model union on an object property
-                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['x-anyOf']);
-                    }
-
-                    if (isset($def['x-oneOf'])) {
-                        //nested model union on an object property
-                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['x-oneOf']);
-                    }
-
-                    if (isset($def['enum'])) {
-                        // enum property
-                        $model['properties'][$name]['enum'] = $def['enum'];
-                        $model['properties'][$name]['enumName'] = $def['x-enum-name'] ?? ucfirst((string) $key) . ucfirst((string) $name);
-                        $model['properties'][$name]['enumKeys'] = $def['x-enum-keys'] ?? [];
-                    } elseif (($model['properties'][$name]['type'] ?? null) === 'array' && isset($def['items']['enum'])) {
-                        $model['properties'][$name]['enumValues'] = $def['items']['enum'];
-                        $model['properties'][$name]['enumName'] = $def['items']['x-enum-name'] ?? ucfirst((string) $key) . ucfirst((string) $name);
-                        $model['properties'][$name]['enumKeys'] = $def['items']['x-enum-keys'] ?? [];
-                    }
+                if ($parameter['required'] ?? false) {
+                    $required[] = $name;
                 }
-            }
-            $list[$key] = $model;
-        }
-        return $list;
-    }
 
-    /**
-     * Get request model definitions
-     */
-    #[Override]
-    public function getRequestModels(): array
-    {
-        $list = [];
-        $definition = $this->getAttribute('definitions', []);
-        foreach ($definition as $key => $schema) {
-            if (!($schema['x-request-model'] ?? false)) {
-                continue;
+                unset($parameter['name'], $parameter['in'], $parameter['required'], $parameter['collectionFormat']);
+
+                if (($parameter['type'] ?? '') === 'file') {
+                    $parameter['type'] = 'string';
+                    $parameter['format'] = 'binary';
+                }
+
+                $properties[$name] = $parameter;
             }
-            $model = [
-                'name' => $key,
-                'properties' => $schema['properties'] ?? [],
-                'description' => $schema['description'] ?? '',
-                'required' => $schema['required'] ?? [],
-                'additionalProperties' => $schema['additionalProperties'] ?? [],
+
+            $schema = [
+                'type' => 'object',
+                'properties' => $properties,
             ];
-            if (isset($model['properties'])) {
-                foreach ($model['properties'] as $name => $def) {
-                    $model['properties'][$name]['name'] = $name;
-                    $model['properties'][$name]['description'] = $def['description'] ?? '';
-                    $model['properties'][$name]['example'] = $def['x-example'] ?? null;
-                    $model['properties'][$name]['required'] = in_array($name, $model['required']);
-                    if (isset($def['$ref'])) {
-                        $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['$ref']);
-                    }
 
-                    foreach ($def['allOf'] ?? [] as $nested) {
-                        if (isset($nested['$ref'])) {
-                            $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $nested['$ref']);
-                            break;
-                        }
-                    }
-
-                    if (isset($def['items']['$ref'])) {
-                        $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
-                    }
-
-                    if (isset($def['items']['x-anyOf'])) {
-                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-anyOf']);
-                    }
-
-                    if (isset($def['items']['x-oneOf'])) {
-                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
-                    }
-
-                    if (isset($def['x-anyOf'])) {
-                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['x-anyOf']);
-                    }
-
-                    if (isset($def['x-oneOf'])) {
-                        $model['properties'][$name]['sub_schemas'] = \array_map(fn(array $schema): string|array => str_replace('#/definitions/', '', $schema['$ref']), $def['x-oneOf']);
-                    }
-
-                    if (isset($def['enum'])) {
-                        $model['properties'][$name]['enum'] = $def['enum'];
-                        $model['properties'][$name]['enumName'] = $def['x-enum-name'] ?? ucfirst((string) $key) . ucfirst((string) $name);
-                        $model['properties'][$name]['enumKeys'] = $def['x-enum-keys'] ?? [];
-                    } elseif (($model['properties'][$name]['type'] ?? null) === 'array' && isset($def['items']['enum'])) {
-                        $model['properties'][$name]['enumValues'] = $def['items']['enum'];
-                        $model['properties'][$name]['enumName'] = $def['items']['x-enum-name'] ?? ucfirst((string) $key) . ucfirst((string) $name);
-                        $model['properties'][$name]['enumKeys'] = $def['items']['x-enum-keys'] ?? [];
-                    }
-                }
-            }
-            $list[$key] = $model;
-        }
-        return $list;
-    }
-
-    #[Override]
-    public function getRequestEnums(): array
-    {
-        $list = [];
-
-        foreach (array_keys($this->getServices()) as $key) {
-            foreach ($this->getMethods($key) as $method) {
-                if (isset($method['parameters']) && is_array($method['parameters'])) {
-                    foreach ($method['parameters']['all'] as $parameter) {
-                        $enumName = $parameter['enumName'] ?? $parameter['name'];
-
-                        if (isset($parameter['enumValues']) && !\in_array($enumName, $list)) {
-                            $list[$enumName] = [
-                                'name' => $enumName,
-                                'enum' => $parameter['enumValues'],
-                                'keys' => $parameter['enumKeys'],
-                            ];
-                        }
-                    }
-                }
-            }
-        }
-
-        return \array_values($list);
-    }
-
-    #[Override]
-    public function getResponseEnums(): array
-    {
-        $list = [];
-        $definitions = $this->getDefinitions();
-
-        foreach ($definitions as $modelName => $model) {
-            if (isset($model['properties']) && is_array($model['properties'])) {
-                foreach ($model['properties'] as $propertyName => $property) {
-                    if (isset($property['enum'])) {
-                        $enumName = $property['x-enum-name'] ?? ucfirst((string) $modelName) . ucfirst((string) $propertyName);
-
-                        if (!isset($list[$enumName])) {
-                            $list[$enumName] = [
-                                'name' => $enumName,
-                                'enum' => $property['enum'],
-                                'keys' => $property['x-enum-keys'] ?? [],
-                            ];
-                        }
-                    }
-
-                    // array of enums
-                    if ((($property['type'] ?? null) === 'array') && isset($property['items']['enum'])) {
-                        $enumName = $property['items']['x-enum-name']
-                            ?? $property['enumName']
-                            ?? ucfirst((string) $modelName) . ucfirst((string) $propertyName);
-
-                        if (!isset($list[$enumName])) {
-                            $list[$enumName] = [
-                                'name' => $enumName,
-                                'enum' => $property['items']['enum'],
-                                'keys' => $property['items']['x-enum-keys'] ?? [],
-                            ];
-                        }
-                    }
-                }
-            }
-        }
-
-        return \array_values($list);
-    }
-
-    public function getRequestModelEnums(): array
-    {
-        $list = [];
-
-        foreach ($this->getRequestModels() as $modelName => $model) {
-            if (!isset($model['properties']) || !is_array($model['properties'])) {
-                continue;
+            if ($required !== []) {
+                $schema['required'] = $required;
             }
 
-            foreach ($model['properties'] as $propertyName => $property) {
-                if (isset($property['enum'])) {
-                    $enumName = $property['enumName'] ?? ucfirst((string) $modelName) . ucfirst((string) $propertyName);
-
-                    if (!isset($list[$enumName])) {
-                        $list[$enumName] = [
-                            'name' => $enumName,
-                            'enum' => $property['enum'],
-                            'keys' => $property['enumKeys'] ?? [],
-                        ];
-                    }
-                }
-
-                if ((($property['type'] ?? null) === 'array') && isset($property['enumValues'])) {
-                    $enumName = $property['enumName'] ?? ucfirst((string) $modelName) . ucfirst((string) $propertyName);
-
-                    if (!isset($list[$enumName])) {
-                        $list[$enumName] = [
-                            'name' => $enumName,
-                            'enum' => $property['enumValues'],
-                            'keys' => $property['enumKeys'] ?? [],
-                        ];
-                    }
-                }
-            }
+            $method['requestBody'] = [
+                'content' => [
+                    'multipart/form-data' => [
+                        'schema' => $schema,
+                    ],
+                ],
+            ];
         }
 
-        return \array_values($list);
-    }
+        $method['parameters'] = $parameters;
+        unset($method['consumes'], $method['produces']);
 
-    public function getAllEnums(): array
-    {
-        $list = [];
-        foreach ($this->getRequestEnums() as $enum) {
-            $list[$enum['name']] = $enum;
-        }
-        foreach ($this->getRequestModelEnums() as $enum) {
-            $list[$enum['name']] = $enum;
-        }
-        foreach ($this->getResponseEnums() as $enum) {
-            $list[$enum['name']] = $enum;
-        }
-
-        return \array_values($list);
+        return $method;
     }
 }

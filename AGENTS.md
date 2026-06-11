@@ -128,7 +128,7 @@ public function getFiles(): array
 | Which files get generated | `src/SDK/Language/<Lang>.php` → `getFiles()` |
 | Type mappings for a language | `src/SDK/Language/<Lang>.php` → `getTypeName()` |
 | Available Twig filters | `src/SDK/SDK.php` (around line 62) |
-| How specs are parsed | `src/Spec/Swagger2.php` |
+| How specs are parsed | `src/Spec/OpenAPI3.php`, `src/Spec/Swagger2.php` |
 | Generation orchestration | `src/SDK/SDK.php` → `generate()` |
 | Example generation script | `example.php` |
 | Generated output for review | `examples/<lang>/` |
@@ -179,9 +179,14 @@ Pass as first argument to generate only that SDK:
 - **Silent no-op:** A new `.twig` file with no `getFiles()` entry — generation runs successfully but the file is never created
 - **Wrong scope:** Using `default` scope when you need `service` scope means your template can't access `{{ service.name }}`
 - **Copy scope surprises:** A `copy`-scoped file with Twig syntax — the syntax is output literally, not rendered
-- **Spec fetch failure:** `example.php` requires internet access to fetch the live spec from GitHub; generation fails with an exception if the fetch returns empty. Spec URL pattern:
+- **Spec fetch failure:** `example.php` requires internet access to fetch the live spec from GitHub; generation fails with an exception if the fetch returns empty. Spec URL pattern (prefix is `open-api3` or `swagger2` depending on the format):
   ```
-  https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/swagger2-{version}-{platform}.json
+  https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/open-api3-{version}-{platform}.json
+  ```
+- **Spec formats:** `example.php` parses OpenAPI 3 specs by default (`Appwrite\Spec\OpenAPI3`). Swagger 2 (`Appwrite\Spec\Swagger2`) is still fully supported; both formats produce identical SDKs. Pass the format as the third argument:
+  ```bash
+  php example.php <sdk> <platform> swagger2             # use Swagger 2 spec
+  SDK_GEN_SPEC_FILE=/path/to/spec.json php example.php  # use a local spec file
   ```
 - **Platform mismatch:** Pass the right platform (`console`, `client`, `server`) as second arg — different platforms expose different API services
 - **Child language gaps:** Adding a file to a parent's `getFiles()` but the child language needs a different template — child classes can override `getFiles()` to replace or remove entries
@@ -194,8 +199,15 @@ composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-s
 
 ## Running Tests
 
+Tests are split into two suites:
+
+- `tests/unit/` — fast, pure-PHP tests (spec parsers); no Docker needed
+- `tests/e2e/` — per-language SDK tests; generate an SDK from `tests/resources/spec-openapi3.json` into `tests/e2e/sdks/` and run it in Docker against a mock API. The mock server (`./mock-server`) is started in `setUp()` and removed in `tearDown()` (`docker compose down`); after interrupted runs, clean up with `cd mock-server && docker compose down`
+- `tests/resources/` — shared fixtures (spec file, upload files) used by both suites
+
 ```bash
-vendor/bin/phpunit
+vendor/bin/phpunit --testsuite Unit        # fast, run these always
+vendor/bin/phpunit tests/e2e/PHP83Test.php # one language e2e (needs Docker)
 ```
 
 If local PHP is missing, is not the required version, or has extension issues, use the matching PHP Docker image as a fallback for that command.

@@ -19,7 +19,7 @@ return RectorConfig::configure()
     ])
     ->withSkipPath(__DIR__ . '/vendor')
     ->withSkipPath(__DIR__ . '/tests/resources')
-    ->withSkipPath(__DIR__ . '/tests/sdks/*')
+    ->withSkipPath(__DIR__ . '/tests/e2e/sdks/*')
     ->withPhpSets(php85: true)
     ->withPreparedSets(
         deadCode: true,
@@ -34,6 +34,6 @@ return RectorConfig::configure()
         AddOverrideAttributeToOverriddenPropertiesRector::class,
         DisallowedEmptyRuleFixerRector::class,
         NewMethodCallWithoutParenthesesRector::class => [
-            __DIR__ . '/tests/languages/php/test.php',
+            __DIR__ . '/tests/e2e/languages/php/test.php',
         ],
     ]);
