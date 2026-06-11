@@ -237,6 +237,8 @@ try {
                     ['name' => 'avatars'],
                     ['name' => 'advisor'],
                     ['name' => 'compute'],
+                    ['name' => 'apps'],
+                    ['name' => 'oauth'],
                 ],
             ],
         ]);
