@@ -9,7 +9,7 @@
 
 The SDK Generator uses predefined language settings as [Twig templates](https://twig.symfony.com/) to generate codebases based on different API specs.
 
-Both OpenAPI 3.0 and Swagger 2.0 specs are supported and produce identical SDKs. This generator is still lacking support for any definition/model specs.
+Both OpenAPI 3.0 and Swagger 2.0 specs are supported and produce identical SDKs, including services, methods, models, enums, and union types.
 
 ## Getting Started
 
