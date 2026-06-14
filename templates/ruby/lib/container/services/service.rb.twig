@@ -28,7 +28,7 @@ module {{spec.title | caseUcfirst}}
 {%~ endif %}
         #
 {% endif %}
-{{ method.description | rubyComment }}
+{{ method.description | wrap(75, '        # ') }}
         #
 {% for parameter in method.parameters.all %}
         # @param [{{ parameter | typeName }}] {{ parameter.name | caseSnake | escapeKeyword }} {{ parameter.description | raw }}

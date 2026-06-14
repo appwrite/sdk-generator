@@ -8,7 +8,7 @@ part of '../{{ language.params.packageName }}.dart';
 {% endmacro %}
 
 {%if service.description %}
-{{- service.description|dartComment | split('    ///') | join('///')}}
+{{- service.description | wrap(75, '  /// ') | split('    ///') | join('///')}}
 {% endif %}
 class {{ service.name | caseUcfirst }} extends Service {
   /// Initializes a [{{ service.name | caseUcfirst }}] service
@@ -16,7 +16,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% for method in service.methods %}
 
 {%~ if method.description %}
-{{ method.description|dartComment }}
+{{ method.description | wrap(75, '  /// ') }}
 {% endif %}
 {%~ if method.deprecated %}
 {%~ if method.since and method.replaceWith %}

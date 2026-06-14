@@ -541,13 +541,6 @@ class Dart extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('dartComment', function ($value): string {
-                $value = explode("\n", $value);
-                foreach (array_keys($value) as $key) {
-                    $value[$key] = "  /// " . wordwrap($value[$key], 75, "\n  /// ");
-                }
-                return implode("\n", $value);
-            }, ['is_safe' => ['html']]),
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toCamelCase($value)),
             new TwigFilter('enumExample', function (array $param): string {
                 $enumValues = $param['enumValues'] ?? [];

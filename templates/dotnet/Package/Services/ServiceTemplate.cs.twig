@@ -21,7 +21,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
         {%~ for method in service.methods %}
         {%~ if method.description %}
         /// <para>
-        {{~ method.description | dotnetComment }}
+        {{~ method.description | wrap(75, '        /// ') }}
         /// </para>
         {%~ endif %}
         /// </summary>

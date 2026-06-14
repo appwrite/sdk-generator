@@ -118,12 +118,12 @@ class SDK
         $this->twig->addFilter(new TwigFilter('getValidResponseModels', fn(array $value): array => $this->getValidResponseModels($value)));
         $this->twig->addFilter(new TwigFilter('paramDefault', fn(array $value): string => $this->language->getParamDefault($value), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('paramExample', fn(array $value): string => $this->language->getParamExample($value), ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('comment1', function ($value): string {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "     * " . wordwrap($line, 75, "\n     * ");
+        $this->twig->addFilter(new TwigFilter('wrap', function ($value, int $width = 75, string $prefix = ''): string {
+            $lines = explode("\n", (string) $value);
+            foreach ($lines as $key => $line) {
+                $lines[$key] = $prefix . wordwrap($line, $width, "\n" . $prefix);
             }
-            return implode("\n", $value);
+            return implode("\n", $lines);
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value): string|array {
             $value = str_replace('\\', '\\\\', $value ?? ''); // Escape backslashes first

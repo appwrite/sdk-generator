@@ -539,13 +539,6 @@ class Swift extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('swiftComment', function ($value): string {
-                $value = explode("\n", $value);
-                foreach ($value as $key => $line) {
-                    $value[$key] = "    /// " . wordwrap($line, 75, "\n    /// ");
-                }
-                return implode("\n", $value);
-            }, ['is_safe' => ['html']]),
             new TwigFilter('returnType', fn(array $method, array $spec, string $generic = 'T'): string => $this->getReturnType($method, $spec, $generic)),
             new TwigFilter('modelType', fn(array $property, array $spec, string $generic = 'T : Codable'): string => $this->getModelType($property, $spec, $generic)),
             new TwigFilter('propertyType', fn(array $property, array $spec, string $generic = 'T'): string => $this->getPropertyType($property, $spec, $generic)),
