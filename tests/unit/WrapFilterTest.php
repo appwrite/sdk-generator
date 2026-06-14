@@ -36,8 +36,9 @@ final class WrapFilterTest extends TestCase
     {
         $args = ['value' => $value];
         $call = '{{ value | wrap';
-        if ($width !== null) {
-            $call .= '(' . $width . ($prefix !== null ? ", '" . $prefix . "'" : '') . ')';
+
+        if ($width !== null || $prefix !== null) {
+            $call .= '(' . ($width ?? 75) . ($prefix !== null ? ", '" . $prefix . "'" : '') . ')';
         }
         $call .= ' }}';
 
