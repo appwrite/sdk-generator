@@ -948,11 +948,20 @@ class Client {
         return finalResponse ?? lastResponse;
     }
 
-    async ping(): Promise<unknown> {
-        return this.call('GET', new URL(this.config.endpoint + '/ping'), {
-            'X-Appwrite-Project': this.config.project,
+    {%~ for clientMethodName, clientMethods in spec.clientMethods %}
+    {%~ for clientMethod in clientMethods %}
+    async {{ clientMethodName | caseCamel }}(): Promise<unknown> {
+        return this.call('{{ clientMethod.method | caseUpper }}', new URL(this.config.endpoint + '{{ clientMethod.path }}'), {
+            {%~ for key, security in clientMethod.securityHeaders %}
+            '{{ security.name }}': this.config.{{ key | caseLower }},
+            {%~ endfor %}
+            {%~ for key, header in clientMethod.headers %}
+            '{{ key }}': '{{ header }}',
+            {%~ endfor %}
         });
     }
+    {%~ endfor %}
+    {%~ endfor %}
 
     async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}, responseType = 'json'): Promise<any> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);

@@ -88,6 +88,61 @@
     }
   },
   "paths": {
+    "\/ping": {
+      "get": {
+        "summary": "Ping",
+        "operationId": "pingGet",
+        "tags": [
+          "ping"
+        ],
+        "description": "Send a ping to project as part of onboarding.",
+        "x-appwrite": {
+          "method": "get",
+          "group": null,
+          "cookies": false,
+          "type": "",
+          "demo": "ping\/get.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "global",
+          "platforms": [
+            "client",
+            "server",
+            "console"
+          ],
+          "packaging": false,
+          "public": true,
+          "auth": {
+            "Project": [],
+            "Admin": [],
+            "Key": [],
+            "JWT": [],
+            "Session": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Admin": [],
+            "Key": [],
+            "JWT": [],
+            "Session": []
+          }
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Any",
+            "schema": {
+              "$ref": "#\/definitions\/any"
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/bar": {
       "get": {
         "summary": "Get Bar",

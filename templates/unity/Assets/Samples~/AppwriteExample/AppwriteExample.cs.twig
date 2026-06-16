@@ -53,8 +53,10 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
             {
                 // Direct client access
                 var client = _manager.Client;
+                {%~ if spec.clientMethods.ping.get is defined %}
                 var pingResult = await client.Ping();
                 Debug.Log($"Ping result: {pingResult}");
+                {%~ endif %}
                 
                 // Service creation through DI container
                 // var account = _manager.GetService<Account>();
@@ -94,9 +96,11 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
                 // Create and configure client
                 var client = config.CreateClient();
 
+                {%~ if spec.clientMethods.ping.get is defined %}
                 // Test connection
                 var pingResult = await client.Ping();
                 Debug.Log($"Direct client ping: {pingResult}");
+                {%~ endif %}
 
                 // Create services manually
                 // var account = new Account(client);

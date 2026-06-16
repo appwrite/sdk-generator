@@ -223,23 +223,31 @@ namespace {{ spec.title | caseUcfirst }}
                 .Replace("https://", "wss://");
         }
 #if UNI_TASK
+        {%~ for clientMethodName, clientMethods in spec.clientMethods %}
+        {%~ for clientMethod in clientMethods %}
         /// <summary>
-        /// Sends a "ping" request to {{ spec.title | caseUcfirst }} to verify connectivity.
+        /// {{ clientMethod.description | replace({'\n': '\n        /// '}) | raw }}
         /// </summary>
-        /// <returns>Ping response as string</returns>
-        public async UniTask<string> Ping()
+        /// <returns>Response as string</returns>
+        public async UniTask<string> {{ clientMethodName | caseUcfirst }}()
         {
             var headers = new Dictionary<string, string>
             {
-                ["content-type"] = "application/json",
-                ["X-Appwrite-Project"] = _config.GetValueOrDefault("project", "")
+                {%~ for key, security in clientMethod.securityHeaders %}
+                ["{{ security.name }}"] = _config.GetValueOrDefault("{{ key | caseLower }}", ""),
+                {%~ endfor %}
+                {%~ for key, header in clientMethod.headers %}
+                ["{{ key }}"] = "{{ header }}",
+                {%~ endfor %}
             };
 
             var parameters = new Dictionary<string, object?>();
 
-            return await Call<string>("GET", "/ping", headers, parameters, 
+            return await Call<string>("{{ clientMethod.method | caseUpper }}", "{{ clientMethod.path }}", headers, parameters,
                 response => (response.TryGetValue("result", out var result) ? result?.ToString() : null) ?? string.Empty);
         }
+        {%~ endfor %}
+        {%~ endfor %}
 #endif
         private void SetHeader(string configKey, string header, string value, bool persist = false)
         {
