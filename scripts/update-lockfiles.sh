@@ -38,6 +38,27 @@ validate_no_placeholders() {
     fi
 }
 
+sync_npm_overrides() {
+    local lockfile="$1"
+    local packagefile="$2"
+
+    node - "$lockfile" "$packagefile" <<'NODE'
+const fs = require('fs');
+
+const [lockfile, packagefile] = process.argv.slice(2);
+const lock = JSON.parse(fs.readFileSync(lockfile, 'utf8'));
+const pkg = JSON.parse(fs.readFileSync(packagefile, 'utf8'));
+
+if (pkg.overrides) {
+  lock.packages ??= {};
+  lock.packages[''] ??= {};
+  lock.packages[''].overrides = pkg.overrides;
+}
+
+fs.writeFileSync(lockfile, `${JSON.stringify(lock, null, 2)}\n`);
+NODE
+}
+
 restore_twig_npm() {
     # Replace PLACEHOLDER values in package-lock.json with the correct
     # Twig expressions extracted from the corresponding package.json.twig.
@@ -74,6 +95,7 @@ update_npm() {
     strip_twig "$template" > "$dir/package.json"
     (cd "$dir" && npm_config_legacy_peer_deps=false npm install --package-lock-only --ignore-scripts --silent 2>/dev/null)
     cp "$dir/package-lock.json" "$dest"
+    sync_npm_overrides "$dest" "$template"
     restore_twig_npm "$dest" "$twig_name"
     echo "  updated templates/$lang/package-lock.json.twig"
 }
