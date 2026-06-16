@@ -447,7 +447,41 @@ class SDK
 
     protected function getFilteredMethods(array $methods, string $serviceName = ''): array
     {
-        return \array_values(\array_filter($methods, fn (array $method): bool => !$this->isMethodExcluded($method, $serviceName)));
+        return \array_values(\array_filter(
+            $methods,
+            function (array $method) use ($serviceName): bool {
+                $method['service'] = $serviceName;
+
+                return !$this->isClientMethod($method) && !$this->isMethodExcluded($method, $serviceName);
+            }
+        ));
+    }
+
+    protected function isClientMethod(array $method): bool
+    {
+        return match (($method['service'] ?? '') . '.' . ($method['name'] ?? '')) {
+            'ping.get' => true,
+            default => false,
+        };
+    }
+
+    protected function getClientMethods(): array
+    {
+        $clientMethods = [];
+
+        foreach (array_keys($this->spec->getServices()) as $serviceName) {
+            foreach ($this->spec->getMethods($serviceName) as $method) {
+                $method['service'] = $serviceName;
+
+                if (!$this->isClientMethod($method)) {
+                    continue;
+                }
+
+                $clientMethods[$serviceName][$method['name']] = $method;
+            }
+        }
+
+        return $clientMethods;
     }
 
     protected function getFilteredDefinitions(): array
@@ -783,6 +817,7 @@ class SDK
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
                 'services' => $filteredServices,
+                'clientMethods' => $this->getClientMethods(),
                 'requestEnums' => $filteredRequestEnums,
                 'requestModelEnums' => $filteredRequestModelEnums,
                 'responseEnums' => $filteredResponseEnums,

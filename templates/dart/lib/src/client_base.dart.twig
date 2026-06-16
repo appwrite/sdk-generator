@@ -23,19 +23,28 @@ abstract class ClientBase implements Client {
   @override
   Map<String, String> getHeaders();
 
+{% for clientMethodName, clientMethods in spec.clientMethods %}
+{% for clientMethod in clientMethods %}
   @override
-  Future<String> ping() async {
-    final String apiPath = '/ping';
+  Future<String> {{ clientMethodName | caseCamel }}() async {
+    final String apiPath = '{{ clientMethod.path }}';
     final response = await call(
-      HttpMethod.get,
+      HttpMethod.{{ clientMethod.method | caseLower }},
       path: apiPath,
       headers: {
-        'X-Appwrite-Project': config['project'] ?? '',
+        {%~ for key, security in clientMethod.securityHeaders %}
+        '{{ security.name }}': config['{{ key | caseLower }}'] ?? '',
+        {%~ endfor %}
+        {%~ for key, header in clientMethod.headers %}
+        '{{ key }}': '{{ header }}',
+        {%~ endfor %}
       },
       responseType: ResponseType.plain,
     );
     return response.data;
   }
+{% endfor %}
+{% endfor %}
 
   @override
   Future<Response> call(

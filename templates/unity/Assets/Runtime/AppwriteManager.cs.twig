@@ -102,8 +102,10 @@ namespace {{ spec.title | caseUcfirst }}
                 
                 if (config.AutoConnect)
                 {
+                    {%~ if spec.clientMethods.ping.get is defined %}
                     var pingResult = await _client.Ping();
                     Debug.Log($"{{ spec.title | caseUcfirst }} connected successfully: {pingResult}");
+                    {%~ endif %}
                 }
                 
                 if (needRealtime)

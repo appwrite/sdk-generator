@@ -266,26 +266,34 @@ open class Client {
        )?.replacingOccurrences(of: "+", with: "%2B") ?? "" // since urlHostAllowed doesn't include +
    }
 
+    {%~ for clientMethodName, clientMethods in spec.clientMethods %}
+    {%~ for clientMethod in clientMethods %}
     ///
-    /// Sends a "ping" request to Appwrite to verify connectivity.
+    /// {{ clientMethod.description | replace({'\n': '\n    /// '}) | raw }}
     ///
     /// @return String
     /// @throws Exception
     ///
-   open func ping() async throws -> String {
-       let apiPath: String = "/ping"
+   open func {{ clientMethodName | caseCamel }}() async throws -> String {
+       let apiPath: String = "{{ clientMethod.path }}"
 
        let apiHeaders: [String: String] = [
-           "content-type": "application/json",
-           "X-Appwrite-Project": config["project"] ?? ""
+           {%~ for key, security in clientMethod.securityHeaders %}
+           "{{ security.name }}": config["{{ key | caseLower }}"] ?? "",
+           {%~ endfor %}
+           {%~ for key, header in clientMethod.headers %}
+           "{{ key }}": "{{ header }}",
+           {%~ endfor %}
        ]
 
        return try await call(
-           method: "GET",
+           method: "{{ clientMethod.method | caseUpper }}",
            path: apiPath,
            headers: apiHeaders
        )
     }
+    {%~ endfor %}
+    {%~ endfor %}
 
     ///
     /// Make an API call

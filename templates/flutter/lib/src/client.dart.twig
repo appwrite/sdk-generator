@@ -70,8 +70,13 @@ abstract class Client {
   /// Get the current request headers.
   Map<String, String> getHeaders();
 
-  /// Sends a "ping" request to Appwrite to verify connectivity.
-  Future<String> ping();
+{% for clientMethodName, clientMethods in spec.clientMethods %}
+{% for clientMethod in clientMethods %}
+  /// {{ clientMethod.description | replace({'\n': '\n  /// '}) | raw }}
+  Future<String> {{ clientMethodName | caseCamel }}();
+
+{% endfor %}
+{% endfor %}
 
   /// Send the API request.
   Future<Response> call(
