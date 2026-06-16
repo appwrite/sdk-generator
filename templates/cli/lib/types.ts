@@ -67,6 +67,10 @@ export interface SessionData {
   email?: string;
   phone?: string;
   cookie?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  tokenExpiry?: number;
+  clientId?: string;
 }
 
 export interface GlobalConfigData extends ConfigData {

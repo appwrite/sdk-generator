@@ -1,7 +1,7 @@
 import inquirer from "inquirer";
 import { Command } from "commander";
-import { Client } from "@appwrite.io/console";
-import { sdkForConsole } from "../sdks.js";
+import { AppwriteException, Client } from "@appwrite.io/console";
+import { OAUTH2_CLIENT_ID, OAUTH2_SCOPES, sdkForConsole } from "../sdks.js";
 import {
   globalConfig,
   localConfig,
@@ -16,25 +16,15 @@ import {
   error,
   parse,
   hint,
+  warn,
   log,
   drawTable,
   cliConfig,
 } from "../parser.js";
 import { isCloudHostname } from "../utils.js";
 import ID from "../id.js";
-import {
-  questionsLogin,
-  questionsLogout,
-  questionsListFactors,
-  questionsMFAChallenge,
-  questionsSwitchAccount,
-} from "../questions.js";
-import {
-  Account,
-  Client as ConsoleClient,
-  type Models,
-} from "@appwrite.io/console";
-import ClientLegacy from "../client.js";
+import { questionsLogout, questionsSwitchAccount } from "../questions.js";
+import { Account, Oauth2, type Models } from "@appwrite.io/console";
 
 const DEFAULT_ENDPOINT = "https://cloud.appwrite.io/v1";
 
@@ -43,13 +33,39 @@ interface AppwriteError {
   response?: string;
 }
 
-const isMfaRequiredError = (err: unknown): err is AppwriteError =>
-  (err as AppwriteError)?.type === "user_more_factors_required" ||
-  (err as AppwriteError)?.response === "user_more_factors_required";
-
 const isGuestUnauthorizedError = (err: unknown): err is AppwriteError =>
   (err as AppwriteError)?.type === "general_unauthorized_scope" ||
   (err as AppwriteError)?.response === "general_unauthorized_scope";
+
+const isAuthorizationPendingError = (err: unknown): boolean => {
+  if (!(err instanceof AppwriteException)) {
+    return false;
+  }
+
+  return (
+    err.type === "authorization_pending" ||
+    err.type === "slow_down" ||
+    err.message === "authorization_pending" ||
+    err.message === "slow_down" ||
+    err.response.includes("authorization_pending") ||
+    err.response.includes("slow_down")
+  );
+};
+
+const decodeIdToken = (idToken: string): { email?: string; name?: string; sub?: string } => {
+  try {
+    const payload = idToken.split(".")[1];
+    if (!payload) return {};
+    const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf-8"));
+    return {
+      email: decoded.email,
+      name: decoded.name,
+      sub: decoded.sub,
+    };
+  } catch (_error) {
+    return {};
+  }
+};
 
 const isRegionalCloudEndpoint = (endpoint: string): boolean => {
   try {
@@ -72,8 +88,12 @@ const removeCurrentSession = (): void => {
   globalConfig.removeSession(current);
 };
 
+const hasAuthSession = (): boolean => {
+  return globalConfig.getAccessToken() !== "" || globalConfig.getCookie() !== "";
+};
+
 const getCurrentAccount = async (): Promise<Models.User | null> => {
-  if (globalConfig.getEndpoint() === "" || globalConfig.getCookie() === "") {
+  if (globalConfig.getEndpoint() === "" || !hasAuthSession()) {
     return null;
   }
 
@@ -82,7 +102,7 @@ const getCurrentAccount = async (): Promise<Models.User | null> => {
     globalConfig.setEndpoint(endpoint);
   }
 
-  const client = await sdkForConsole({ requiresAuth: false });
+  const client = await sdkForConsole();
   const accountClient = new Account(client);
 
   try {
@@ -97,69 +117,26 @@ const getCurrentAccount = async (): Promise<Models.User | null> => {
   }
 };
 
-const createLegacyConsoleClient = (endpoint: string): ClientLegacy => {
-  const legacyClient = new ClientLegacy();
-  legacyClient.setEndpoint(endpoint);
-  legacyClient.setProject("console");
-  if (globalConfig.getSelfSigned()) {
-    legacyClient.setSelfSigned(true);
-  }
-  return legacyClient;
-};
-
-const completeMfaLogin = async ({
-  client,
-  legacyClient,
-  mfa,
-  code,
-}: {
-  client: ConsoleClient;
-  legacyClient: ClientLegacy;
-  mfa?: string;
-  code?: string;
-}): Promise<unknown> => {
-  let accountClient = new Account(client);
-
-  const savedCookie = globalConfig.getCookie();
-  if (savedCookie) {
-    legacyClient.setCookie(savedCookie);
-    client.setCookie(savedCookie);
-  }
-
-  const { factor } = mfa
-    ? { factor: mfa }
-    : await inquirer.prompt(questionsListFactors);
-  const challenge = await accountClient.createMfaChallenge(factor);
-
-  const { otp } = code
-    ? { otp: code }
-    : await inquirer.prompt(questionsMFAChallenge);
-  await legacyClient.call(
-    "PUT",
-    "/account/mfa/challenges",
-    {
-      "content-type": "application/json",
-    },
-    {
-      challengeId: challenge.$id,
-      otp,
-    },
-  );
-
-  const updatedCookie = globalConfig.getCookie();
-  if (updatedCookie) {
-    client.setCookie(updatedCookie);
-  }
-
-  accountClient = new Account(client);
-  return accountClient.get();
-};
-
 const deleteServerSession = async (sessionId: string): Promise<boolean> => {
+  const session = globalConfig.get(sessionId) as
+    | { refreshToken?: string; endpoint?: string; clientId?: string }
+    | undefined;
+  if (!session?.refreshToken || !session?.endpoint) {
+    return false;
+  }
+
   try {
-    const client = await sdkForConsole();
-    const accountClient = new Account(client);
-    await accountClient.deleteSession(sessionId);
+    const client = new Client()
+      .setEndpoint(session.endpoint)
+      .setProject("console")
+      .setSelfSigned(globalConfig.getSelfSigned());
+    const oauth2 = new Oauth2(client);
+    await oauth2.revoke({
+      projectId: "console",
+      token: session.refreshToken,
+      tokenTypeHint: "refresh_token",
+      clientId: session.clientId || OAUTH2_CLIENT_ID,
+    });
     return true;
   } catch (_e) {
     return false;
@@ -178,6 +155,55 @@ const getSessionAccountKey = (sessionId: string): string | undefined => {
   return `${session.email ?? ""}|${normalizeCloudConsoleEndpoint(
     session.endpoint ?? "",
   )}`;
+};
+
+const sleep = (ms: number): Promise<void> => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+const startWaitingForApprovalSpinner = (): (() => void) => {
+  const message = "Waiting for approval...";
+  const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+  if (!process.stdout.isTTY) {
+    console.log(message);
+    return () => {};
+  }
+
+  let frame = 0;
+  process.stdout.write(`${frames[frame]} ${message}`);
+
+  const interval = setInterval(() => {
+    frame = (frame + 1) % frames.length;
+    process.stdout.write(`\r${frames[frame]} ${message}`);
+  }, 80);
+
+  return () => {
+    clearInterval(interval);
+    process.stdout.write("\r\x1b[K");
+  };
+};
+
+const isLegacySession = (sessionId: string): boolean => {
+  const session = globalConfig.get(sessionId) as
+    | { accessToken?: string; cookie?: string }
+    | undefined;
+
+  return Boolean(session?.cookie && !session?.accessToken);
+};
+
+const removeLegacySessionsExcept = (sessionIdToKeep: string): number => {
+  let removed = 0;
+  for (const sessionId of globalConfig.getSessionIds()) {
+    if (sessionId === sessionIdToKeep || !isLegacySession(sessionId)) {
+      continue;
+    }
+
+    globalConfig.removeSession(sessionId);
+    removed++;
+  }
+
+  return removed;
 };
 
 /**
@@ -222,19 +248,11 @@ const planSessionLogout = (
 };
 
 export const loginCommand = async ({
-  email,
-  password,
   endpoint,
-  mfa,
-  code,
   switch: switchAccount,
   new: newAccount,
 }: {
-  email?: string;
-  password?: string;
   endpoint?: string;
-  mfa?: string;
-  code?: string;
   switch?: boolean;
   new?: boolean;
 }): Promise<void> => {
@@ -259,7 +277,13 @@ export const loginCommand = async ({
     oldCurrent = globalConfig.getCurrentSession();
 
     if (account) {
-      if (!email && !password && !endpoint && !switchAccount && !newAccount) {
+      if (!globalConfig.getAccessToken() && globalConfig.getCookie()) {
+        warn(
+          `You are using a legacy cookie session. Run '${EXECUTABLE_NAME} login --new' to switch to the new browser-based login flow.`,
+        );
+      }
+
+      if (!endpoint && !switchAccount && !newAccount) {
         success("Already logged in as " + account.email);
         hint(`Use '${EXECUTABLE_NAME} login --new' to add another account`);
         return;
@@ -275,17 +299,9 @@ export const loginCommand = async ({
       );
     }
     answers = await inquirer.prompt(questionsSwitchAccount);
-  } else if (email && password) {
-    answers = { email, password };
-  } else {
-    answers = await inquirer.prompt(questionsLogin);
   }
 
-  if (!answers.method) {
-    answers.method = switchAccount ? "select" : "login";
-  }
-
-  if (answers.method === "select") {
+  if (switchAccount && answers?.method === "select") {
     const accountId = answers.accountId;
 
     if (!globalConfig.getSessionIds().includes(accountId)) {
@@ -308,96 +324,125 @@ export const loginCommand = async ({
       normalizeCloudConsoleEndpoint(globalConfig.getEndpoint()),
     );
 
-    const client = await sdkForConsole({ requiresAuth: false });
-    const accountClient = new Account(client);
-    const legacyClient = createLegacyConsoleClient(
-      globalConfig.getEndpoint() || DEFAULT_ENDPOINT,
-    );
-
     try {
-      await accountClient.get();
+      await getCurrentAccount();
     } catch (err) {
-      if (!isMfaRequiredError(err)) {
-        if (isGuestUnauthorizedError(err)) {
-          globalConfig.removeSession(accountId);
-        }
-        restoreCurrentSession(oldCurrent);
-        throw err;
+      if (isGuestUnauthorizedError(err)) {
+        globalConfig.removeSession(accountId);
       }
-
-      await completeMfaLogin({
-        client,
-        legacyClient,
-        mfa,
-        code,
-      });
+      restoreCurrentSession(oldCurrent);
+      throw err;
     }
 
     success(`Switched to ${globalConfig.getEmail()}`);
-
     return;
   }
 
   const id = ID.unique();
+  const clientId = OAUTH2_CLIENT_ID;
+  const oauth2Client = new Client()
+    .setEndpoint(configEndpoint)
+    .setProject("console")
+    .setSelfSigned(globalConfig.getSelfSigned());
+  const oauth2 = new Oauth2(oauth2Client);
 
-  globalConfig.addSession(id, { endpoint: configEndpoint });
+  globalConfig.addSession(id, { endpoint: configEndpoint, clientId });
   globalConfig.setCurrentSession(id);
   globalConfig.setEndpoint(configEndpoint);
-  globalConfig.setEmail(answers.email);
 
-  // Use legacy client for login to extract cookies from response
-  const legacyClient = createLegacyConsoleClient(configEndpoint);
-
-  const client = await sdkForConsole({ requiresAuth: false });
-  let accountClient = new Account(client);
-
-  let account;
-
+  let deviceAuth;
   try {
-    await legacyClient.call(
-      "POST",
-      "/account/sessions/email",
-      {
-        "content-type": "application/json",
-      },
-      {
-        email: answers.email,
-        password: answers.password,
-      },
-    );
-
-    const savedCookie = globalConfig.getCookie();
-
-    if (savedCookie) {
-      legacyClient.setCookie(savedCookie);
-      client.setCookie(savedCookie);
-    }
-
-    accountClient = new Account(client);
-    account = await accountClient.get();
+    deviceAuth = await oauth2.createDeviceAuthorization({
+      clientId,
+      scope: OAUTH2_SCOPES,
+    });
   } catch (err) {
-    if (isMfaRequiredError(err)) {
-      account = await completeMfaLogin({
-        client,
-        legacyClient,
-        mfa,
-        code,
-      });
-    } else {
-      globalConfig.removeSession(id);
-      globalConfig.setCurrentSession(oldCurrent);
-      if (
-        endpoint !== DEFAULT_ENDPOINT &&
-        (err.type === "user_invalid_credentials" ||
-          err.response === "user_invalid_credentials")
-      ) {
-        log("Use the --endpoint option for self-hosted instances");
-      }
-      throw err;
-    }
+    globalConfig.removeSession(id);
+    globalConfig.setCurrentSession(oldCurrent);
+    throw err;
   }
 
-  success("Successfully signed in as " + account.email);
+  console.log("");
+  console.log("To sign in, confirm the code below in your browser:");
+  console.log("");
+  console.log(`  Code: ${deviceAuth.user_code}`);
+  console.log(`  URL:  ${deviceAuth.verification_uri_complete || deviceAuth.verification_uri}`);
+  console.log("");
+
+  const expiresAt = Date.now() + deviceAuth.expires_in * 1000;
+  let token: Models.Oauth2Token | null = null;
+  const stopWaitingForApprovalSpinner = startWaitingForApprovalSpinner();
+
+  try {
+    while (Date.now() < expiresAt) {
+      await sleep(deviceAuth.interval * 1000);
+
+      try {
+        token = await oauth2.createToken({
+          grantType: "urn:ietf:params:oauth:grant-type:device_code",
+          deviceCode: deviceAuth.device_code,
+          clientId,
+        });
+      } catch (err) {
+        if (isAuthorizationPendingError(err)) {
+          continue;
+        }
+
+        globalConfig.removeSession(id);
+        globalConfig.setCurrentSession(oldCurrent);
+        throw err;
+      }
+
+      if (token) {
+        break;
+      }
+    }
+  } finally {
+    stopWaitingForApprovalSpinner();
+  }
+
+  if (!token || !token.access_token) {
+    globalConfig.removeSession(id);
+    globalConfig.setCurrentSession(oldCurrent);
+    throw new Error("Device authorization timed out or was denied.");
+  }
+
+  const tokenExpiry = Date.now() + token.expires_in * 1000;
+  globalConfig.setAccessToken(token.access_token);
+  globalConfig.setRefreshToken(token.refresh_token || "");
+  globalConfig.setTokenExpiry(tokenExpiry);
+
+  let email = "";
+  if (token.id_token) {
+    const idTokenClaims = decodeIdToken(token.id_token);
+    email = idTokenClaims.email || "";
+  }
+
+  if (email) {
+    globalConfig.setEmail(email);
+  }
+
+  let account: Models.User | null = null;
+  try {
+    account = await getCurrentAccount();
+  } catch (_err) {
+    // Fallback: account may still be fetched later
+  }
+
+  if (account?.email) {
+    globalConfig.setEmail(account.email);
+  }
+
+  if (!globalConfig.getEmail()) {
+    globalConfig.setEmail("unknown");
+  }
+
+  const removedLegacySessions = removeLegacySessionsExcept(id);
+
+  success("Successfully signed in as " + globalConfig.getEmail());
+  if (removedLegacySessions > 0) {
+    hint("Removed legacy cookie session data from this CLI configuration.");
+  }
   hint(
     "Next you can create or link to your project using 'appwrite init project'",
   );
@@ -409,7 +454,7 @@ export const whoami = new Command("whoami")
     actionRunner(async () => {
       if (
         globalConfig.getEndpoint() === "" ||
-        globalConfig.getCookie() === ""
+        !hasAuthSession()
       ) {
         error("No user is signed in. To sign in, run 'appwrite login'");
         return;
@@ -450,17 +495,10 @@ export const register = new Command("register")
 
 export const login = new Command("login")
   .description(commandDescriptions["login"])
-  .option(`--email [email]`, `User email`)
-  .option(`--password [password]`, `User password`)
   .option(
     `--endpoint [endpoint]`,
     `Appwrite endpoint for self hosted instances`,
   )
-  .option(
-    `--mfa [factor]`,
-    `Multi-factor authentication login factor: totp, email, phone or recoveryCode`,
-  )
-  .option(`--code [code]`, `Multi-factor code`)
   .option(`--switch`, `Switch to another signed-in account`)
   .option(`--new`, `Sign in to another account`)
   .configureHelp({
@@ -600,21 +638,14 @@ export const client = new Command("client")
                 ? "********"
                 : "";
           const project = localConfig.getProject();
-          const cookie = globalConfig.getCookie();
-          let maskedCookie = "";
-          if (cookie) {
-            const [cookieName, cookieValueAndRest = ""] = cookie.split("=", 2);
-            const cookieValue = cookieValueAndRest.split(";")[0] ?? "";
-            const tail =
-              cookieValue.length > 8
-                ? cookieValue.slice(-8)
-                : cookieValue || "********";
-            maskedCookie = `${cookieName}=...${tail}`;
-          }
+          const accessToken = globalConfig.getAccessToken();
+          const maskedAccessToken = accessToken
+            ? `${accessToken.slice(0, 8)}...${accessToken.slice(-8)}`
+            : "";
           const config = {
             endpoint: globalConfig.getEndpoint(),
             key: maskedKey,
-            cookie: maskedCookie,
+            accessToken: maskedAccessToken,
             selfSigned: globalConfig.getSelfSigned(),
             projectId: project.projectId ?? "",
             projectName: project.projectName ?? "",
@@ -675,10 +706,7 @@ export const client = new Command("client")
         }
 
         if (reset !== undefined) {
-          const sessions = globalConfig.getSessions();
-
-          for (const sessionId of sessions.map((session) => session.id)) {
-            globalConfig.setCurrentSession(sessionId);
+          for (const sessionId of globalConfig.getSessionIds()) {
             await deleteServerSession(sessionId);
           }
 

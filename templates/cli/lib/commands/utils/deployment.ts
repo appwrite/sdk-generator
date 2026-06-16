@@ -273,7 +273,8 @@ export async function watchDeploymentUpdates(
   params: WatchDeploymentUpdatesParams,
 ): Promise<DeploymentUpdateSubscription | null> {
   const cookieHeader = getCookieHeader(globalConfig.getCookie());
-  if (!cookieHeader) {
+  const accessToken = globalConfig.getAccessToken();
+  if (!cookieHeader && !accessToken) {
     return null;
   }
 
@@ -287,10 +288,16 @@ export async function watchDeploymentUpdates(
 
   let socket: WebSocket;
   try {
+    const headers: Record<string, string> = {};
+    if (cookieHeader) {
+      headers.cookie = cookieHeader;
+    }
+    if (accessToken) {
+      headers.authorization = `Bearer ${accessToken}`;
+    }
+
     socket = new WebSocket(getRealtimeUrl(params.endpoint), {
-      headers: {
-        cookie: cookieHeader,
-      },
+      headers,
       dispatcher,
     });
   } catch {

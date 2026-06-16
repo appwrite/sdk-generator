@@ -822,32 +822,6 @@ export const questionsPullCollection: Question[] = [
   },
 ];
 
-export const questionsLogin: Question[] = [
-  {
-    type: "input",
-    name: "email",
-    message: "Enter your email",
-    validate(value: string) {
-      if (!value) {
-        return "Please enter your email";
-      }
-      return true;
-    },
-  },
-  {
-    type: "password",
-    name: "password",
-    message: "Enter your password",
-    mask: "*",
-    validate(value: string) {
-      if (!value) {
-        return "Please enter your password";
-      }
-      return true;
-    },
-  },
-];
-
 export const questionsSwitchAccount: Question[] = [
   {
     type: "list",
