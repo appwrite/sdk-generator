@@ -89,14 +89,6 @@ const isRegionalCloudEndpoint = (endpoint: string): boolean => {
   }
 };
 
-const isCloudConsoleEndpoint = (endpoint: string): boolean => {
-  try {
-    return isCloudHostname(new URL(endpoint).hostname);
-  } catch (_error) {
-    return false;
-  }
-};
-
 const restoreCurrentSession = (sessionId: string): void => {
   globalConfig.setCurrentSession(
     globalConfig.getSessionIds().includes(sessionId) ? sessionId : "",
@@ -436,6 +428,12 @@ export const loginCommand = async ({
   const configEndpoint = normalizeCloudConsoleEndpoint(
     (endpoint ?? globalConfig.getEndpoint()) || DEFAULT_ENDPOINT,
   );
+  let isCloudLoginEndpoint = false;
+  try {
+    isCloudLoginEndpoint = isCloudHostname(new URL(configEndpoint).hostname);
+  } catch (_error) {
+    isCloudLoginEndpoint = false;
+  }
 
   if (globalConfig.getCurrentSession() !== "") {
     let account: Models.User | null = null;
@@ -469,7 +467,7 @@ export const loginCommand = async ({
       );
     }
     answers = await inquirer.prompt(questionsSwitchAccount);
-  } else if (!isCloudConsoleEndpoint(configEndpoint)) {
+  } else if (!isCloudLoginEndpoint) {
     answers =
       email && password
         ? { email, password }
@@ -520,7 +518,7 @@ export const loginCommand = async ({
 
   const id = ID.unique();
 
-  if (!isCloudConsoleEndpoint(configEndpoint)) {
+  if (!isCloudLoginEndpoint) {
     await loginWithEmailPassword({
       id,
       oldCurrent,

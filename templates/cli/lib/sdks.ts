@@ -26,14 +26,6 @@ const warnLegacySession = (): void => {
   );
 };
 
-const isCloudEndpoint = (endpoint: string): boolean => {
-  try {
-    return isCloudHostname(new URL(endpoint).hostname);
-  } catch (_error) {
-    return false;
-  }
-};
-
 export const getValidAccessToken = async (endpoint: string): Promise<string> => {
   const accessToken = globalConfig.getAccessToken();
   const refreshToken = globalConfig.getRefreshToken();
@@ -84,6 +76,7 @@ export const sdkForConsole = async ({
   const endpoint = normalizeCloudConsoleEndpoint(
     endpointOverride || globalConfig.getEndpoint() || DEFAULT_ENDPOINT,
   );
+  const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
   const selfSigned = globalConfig.getSelfSigned();
 
   const accessToken = globalConfig.getAccessToken();
@@ -115,7 +108,7 @@ export const sdkForConsole = async ({
       const validAccessToken = await getValidAccessToken(endpoint);
       client.headers["Authorization"] = `Bearer ${validAccessToken}`;
     } else if (cookie) {
-      if (isCloudEndpoint(endpoint)) {
+      if (isCloudEndpoint) {
         warnLegacySession();
       }
       client.setCookie(cookie);
@@ -134,6 +127,7 @@ export const sdkForProject = async (): Promise<Client> => {
 
   const endpoint =
     localConfig.getEndpoint() || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
+  const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
 
   const project = localConfig.getProject().projectId
     ? localConfig.getProject().projectId
@@ -176,7 +170,7 @@ export const sdkForProject = async (): Promise<Client> => {
   }
 
   if (cookie) {
-    if (isCloudEndpoint(endpoint)) {
+    if (isCloudEndpoint) {
       warnLegacySession();
     }
     client.setCookie(cookie);
