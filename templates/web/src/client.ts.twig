@@ -722,12 +722,6 @@ class Client {
         callback: (payload: RealtimeResponseEvent<T>) => void,
         queries: (string | Query)[] = []
     ): () => void {
-{%~ if sdk.platform == 'console' %}
-        if (this.config.credentials === 'omit') {
-            throw new {{spec.title | caseUcfirst}}Exception('Realtime is not supported when credentials are omitted because browser WebSocket handshakes can still include cookies.');
-        }
-
-{%~ endif %}
         const channelArray = Array.isArray(channels) ? channels : [channels];
         // Convert Channel instances to strings
         const channelStrings = channelArray.map(ch => {

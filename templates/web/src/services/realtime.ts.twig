@@ -194,12 +194,6 @@ export class Realtime {
     }
 
     private async createSocketLocked(): Promise<void> {
-{%~ if sdk.platform == 'console' %}
-        if (this.client.config.credentials === 'omit') {
-            throw new {{spec.title | caseUcfirst}}Exception('Realtime is not supported when credentials are omitted because browser WebSocket handshakes can still include cookies.');
-        }
-
-{%~ endif %}
         // Nothing to do if there's neither a subscription nor a queued presence
         // that needs the wire. (Reconnect cleanup path also flows through here.)
         if (this.activeSubscriptions.size === 0 && !this.pendingPresence) {
