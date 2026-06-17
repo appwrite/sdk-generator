@@ -275,7 +275,12 @@ export const loginCommand = async ({
   );
 
   if (globalConfig.getCurrentSession() !== "") {
-    const account = await getCurrentAccount();
+    let account: Models.User | null = null;
+    try {
+      account = await getCurrentAccount();
+    } catch (_err) {
+      account = null;
+    }
     oldCurrent = globalConfig.getCurrentSession();
 
     if (account) {
