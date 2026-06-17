@@ -326,7 +326,14 @@ export const loginCommand = async ({
       normalizeCloudConsoleEndpoint(globalConfig.getEndpoint()),
     );
 
-    const account = await getCurrentAccount();
+    let account: Models.User | null = null;
+    try {
+      account = await getCurrentAccount();
+    } catch (err) {
+      restoreCurrentSession(oldCurrent);
+      throw err;
+    }
+
     if (!account) {
       restoreCurrentSession(oldCurrent);
       throw new Error(
