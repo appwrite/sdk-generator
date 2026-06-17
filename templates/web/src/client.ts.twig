@@ -358,6 +358,7 @@ class Client {
 {%~ endfor %}
 {%~ if sdk.platform == 'console' %}
         selfSigned: boolean;
+        credentials: RequestCredentials;
 {%~ endif %}
     } = {
         endpoint: '{{ spec.endpoint }}',
@@ -367,6 +368,7 @@ class Client {
 {%~ endfor %}
 {%~ if sdk.platform == 'console' %}
         selfSigned: false,
+        credentials: 'include',
 {%~ endif %}
     };
     /**
@@ -448,6 +450,20 @@ class Client {
      */
     setSelfSigned(selfSigned: boolean): this {
         this.config.selfSigned = selfSigned;
+        return this;
+    }
+
+    /**
+     * Set credentials
+     *
+     * Controls whether fetch sends credentials like cookies with requests.
+     *
+     * @param {RequestCredentials} credentials
+     *
+     * @returns {this}
+     */
+    setCredentials(credentials: RequestCredentials): this {
+        this.config.credentials = credentials;
         return this;
     }
 
@@ -776,7 +792,11 @@ class Client {
         };
 
         if (headers['X-Appwrite-Dev-Key'] === undefined) {
+{%~ if sdk.platform == 'console' %}
+            options.credentials = this.config.credentials;
+{%~ else %}
             options.credentials = 'include';
+{%~ endif %}
         }
 
         if (method === 'GET') {
