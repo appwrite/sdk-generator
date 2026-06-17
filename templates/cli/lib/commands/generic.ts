@@ -23,8 +23,15 @@ import {
 } from "../parser.js";
 import { isCloudHostname } from "../utils.js";
 import ID from "../id.js";
-import { questionsLogout, questionsSwitchAccount } from "../questions.js";
+import {
+  questionsListFactors,
+  questionsLogin,
+  questionsLogout,
+  questionsMFAChallenge,
+  questionsSwitchAccount,
+} from "../questions.js";
 import { Account, Oauth2, type Models } from "@appwrite.io/console";
+import ClientLegacy from "../client.js";
 
 const DEFAULT_ENDPOINT = "https://cloud.appwrite.io/v1";
 
@@ -36,6 +43,10 @@ interface AppwriteError {
 const isGuestUnauthorizedError = (err: unknown): err is AppwriteError =>
   (err as AppwriteError)?.type === "general_unauthorized_scope" ||
   (err as AppwriteError)?.response === "general_unauthorized_scope";
+
+const isMfaRequiredError = (err: unknown): err is AppwriteError =>
+  (err as AppwriteError)?.type === "user_more_factors_required" ||
+  (err as AppwriteError)?.response === "user_more_factors_required";
 
 const isAuthorizationPendingError = (err: unknown): boolean => {
   if (!(err instanceof AppwriteException)) {
@@ -73,6 +84,14 @@ const isRegionalCloudEndpoint = (endpoint: string): boolean => {
   try {
     const hostname = new URL(endpoint).hostname;
     return isCloudHostname(hostname) && hostname !== "cloud.appwrite.io";
+  } catch (_error) {
+    return false;
+  }
+};
+
+const isCloudConsoleEndpoint = (endpoint: string): boolean => {
+  try {
+    return isCloudHostname(new URL(endpoint).hostname);
   } catch (_error) {
     return false;
   }
@@ -117,6 +136,142 @@ const getCurrentAccount = async (): Promise<Models.User | null> => {
     }
     return null;
   }
+};
+
+const createLegacyConsoleClient = (endpoint: string): ClientLegacy => {
+  const legacyClient = new ClientLegacy();
+  legacyClient.setEndpoint(endpoint);
+  legacyClient.setProject("console");
+  if (globalConfig.getSelfSigned()) {
+    legacyClient.setSelfSigned(true);
+  }
+  return legacyClient;
+};
+
+const completeMfaLogin = async ({
+  client,
+  legacyClient,
+  mfa,
+  code,
+}: {
+  client: Client;
+  legacyClient: ClientLegacy;
+  mfa?: string;
+  code?: string;
+}): Promise<Models.User> => {
+  let accountClient = new Account(client);
+
+  const savedCookie = globalConfig.getCookie();
+  if (savedCookie) {
+    legacyClient.setCookie(savedCookie);
+    client.setCookie(savedCookie);
+  }
+
+  const { factor } = mfa
+    ? { factor: mfa }
+    : await inquirer.prompt(questionsListFactors);
+  const challenge = await accountClient.createMfaChallenge(factor);
+
+  const { otp } = code
+    ? { otp: code }
+    : await inquirer.prompt(questionsMFAChallenge);
+  await legacyClient.call(
+    "PUT",
+    "/account/mfa/challenges",
+    {
+      "content-type": "application/json",
+    },
+    {
+      challengeId: challenge.$id,
+      otp,
+    },
+  );
+
+  const updatedCookie = globalConfig.getCookie();
+  if (updatedCookie) {
+    client.setCookie(updatedCookie);
+  }
+
+  accountClient = new Account(client);
+  return accountClient.get();
+};
+
+const loginWithEmailPassword = async ({
+  id,
+  oldCurrent,
+  configEndpoint,
+  email,
+  password,
+  endpoint,
+  mfa,
+  code,
+}: {
+  id: string;
+  oldCurrent: string;
+  configEndpoint: string;
+  email: string;
+  password: string;
+  endpoint?: string;
+  mfa?: string;
+  code?: string;
+}): Promise<void> => {
+  globalConfig.addSession(id, { endpoint: configEndpoint });
+  globalConfig.setCurrentSession(id);
+  globalConfig.setEndpoint(configEndpoint);
+  globalConfig.setEmail(email);
+
+  const legacyClient = createLegacyConsoleClient(configEndpoint);
+  const client = await sdkForConsole({ requiresAuth: false });
+  let accountClient = new Account(client);
+  let account: Models.User;
+
+  try {
+    await legacyClient.call(
+      "POST",
+      "/account/sessions/email",
+      {
+        "content-type": "application/json",
+      },
+      { email, password },
+    );
+
+    const savedCookie = globalConfig.getCookie();
+    if (savedCookie) {
+      legacyClient.setCookie(savedCookie);
+      client.setCookie(savedCookie);
+    }
+
+    accountClient = new Account(client);
+    account = await accountClient.get();
+  } catch (err) {
+    if (isMfaRequiredError(err)) {
+      account = await completeMfaLogin({
+        client,
+        legacyClient,
+        mfa,
+        code,
+      });
+    } else {
+      globalConfig.removeSession(id);
+      globalConfig.setCurrentSession(oldCurrent);
+
+      if (
+        endpoint !== DEFAULT_ENDPOINT &&
+        ((err as AppwriteError)?.type === "user_invalid_credentials" ||
+          (err as AppwriteError)?.response === "user_invalid_credentials")
+      ) {
+        log("Use the --endpoint option for self-hosted instances");
+      }
+
+      throw err;
+    }
+  }
+
+  globalConfig.setEmail(account.email);
+  success("Successfully signed in as " + account.email);
+  hint(
+    "Next you can create or link to your project using 'appwrite init project'",
+  );
 };
 
 const deleteServerSession = async (sessionId: string): Promise<boolean> => {
@@ -250,11 +405,19 @@ const planSessionLogout = (
 };
 
 export const loginCommand = async ({
+  email,
+  password,
   endpoint,
+  mfa,
+  code,
   switch: switchAccount,
   new: newAccount,
 }: {
+  email?: string;
+  password?: string;
   endpoint?: string;
+  mfa?: string;
+  code?: string;
   switch?: boolean;
   new?: boolean;
 }): Promise<void> => {
@@ -306,6 +469,11 @@ export const loginCommand = async ({
       );
     }
     answers = await inquirer.prompt(questionsSwitchAccount);
+  } else if (!isCloudConsoleEndpoint(configEndpoint)) {
+    answers =
+      email && password
+        ? { email, password }
+        : await inquirer.prompt(questionsLogin);
   }
 
   if (switchAccount && answers?.accountId) {
@@ -351,6 +519,21 @@ export const loginCommand = async ({
   }
 
   const id = ID.unique();
+
+  if (!isCloudConsoleEndpoint(configEndpoint)) {
+    await loginWithEmailPassword({
+      id,
+      oldCurrent,
+      configEndpoint,
+      email: answers.email,
+      password: answers.password,
+      endpoint,
+      mfa,
+      code,
+    });
+    return;
+  }
+
   const clientId = OAUTH2_CLIENT_ID;
   const oauth2Client = new Client()
     .setEndpoint(configEndpoint)
@@ -424,14 +607,14 @@ export const loginCommand = async ({
   globalConfig.setRefreshToken(token.refresh_token || "");
   globalConfig.setTokenExpiry(tokenExpiry);
 
-  let email = "";
+  let tokenEmail = "";
   if (token.id_token) {
     const idTokenClaims = decodeIdToken(token.id_token);
-    email = idTokenClaims.email || "";
+    tokenEmail = idTokenClaims.email || "";
   }
 
-  if (email) {
-    globalConfig.setEmail(email);
+  if (tokenEmail) {
+    globalConfig.setEmail(tokenEmail);
   }
 
   let account: Models.User | null = null;
@@ -507,6 +690,13 @@ export const register = new Command("register")
 
 export const login = new Command("login")
   .description(commandDescriptions["login"])
+  .option(`--email [email]`, `Email`)
+  .option(`--password [password]`, `Password`)
+  .option(
+    `--mfa [factor]`,
+    `Factor used for MFA. Must be one of: email, phone, totp, recoveryCode`,
+  )
+  .option(`--code [code]`, `Code used for MFA`)
   .option(
     `--endpoint [endpoint]`,
     `Appwrite endpoint for self hosted instances`,

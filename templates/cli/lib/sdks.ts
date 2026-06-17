@@ -8,6 +8,7 @@ import {
   SDK_VERSION,
 } from "./constants.js";
 import { warn } from "./parser.js";
+import { isCloudHostname } from "./utils.js";
 
 export const OAUTH2_CLIENT_ID = "appwrite-cli";
 export const OAUTH2_SCOPES = "openid email profile";
@@ -23,6 +24,14 @@ const warnLegacySession = (): void => {
   warn(
     `This CLI is using a legacy cookie session. Run \`${EXECUTABLE_NAME} login --new\` to switch to the new browser-based login flow.`,
   );
+};
+
+const isCloudEndpoint = (endpoint: string): boolean => {
+  try {
+    return isCloudHostname(new URL(endpoint).hostname);
+  } catch (_error) {
+    return false;
+  }
 };
 
 export const getValidAccessToken = async (endpoint: string): Promise<string> => {
@@ -106,7 +115,9 @@ export const sdkForConsole = async ({
       const validAccessToken = await getValidAccessToken(endpoint);
       client.headers["Authorization"] = `Bearer ${validAccessToken}`;
     } else if (cookie) {
-      warnLegacySession();
+      if (isCloudEndpoint(endpoint)) {
+        warnLegacySession();
+      }
       client.setCookie(cookie);
     }
   }
@@ -165,7 +176,9 @@ export const sdkForProject = async (): Promise<Client> => {
   }
 
   if (cookie) {
-    warnLegacySession();
+    if (isCloudEndpoint(endpoint)) {
+      warnLegacySession();
+    }
     client.setCookie(cookie);
     return client.setMode("admin");
   }

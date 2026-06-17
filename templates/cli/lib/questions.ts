@@ -880,6 +880,32 @@ export const questionGetEndpoint: Question[] = [
   },
 ];
 
+export const questionsLogin: Question[] = [
+  {
+    type: "input",
+    name: "email",
+    message: "Enter your email",
+    validate(value: string) {
+      if (!value) {
+        return "Please enter your email";
+      }
+      return true;
+    },
+  },
+  {
+    type: "password",
+    name: "password",
+    message: "Enter your password",
+    mask: "*",
+    validate(value: string) {
+      if (!value) {
+        return "Please enter your password";
+      }
+      return true;
+    },
+  },
+];
+
 export const questionsLogout: Question[] = [
   {
     type: "checkbox",
@@ -1173,7 +1199,7 @@ export const questionsListFactors: Question[] = [
     message:
       "Your account is protected by multi-factor authentication. Please choose one for verification.",
     choices: async () => {
-      const client = await sdkForConsole({ requiresAuth: false });
+      const client = await sdkForConsole();
       const accountClient = new Account(client);
       const factors = await accountClient.listMfaFactors();
 
