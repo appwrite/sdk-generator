@@ -8,6 +8,7 @@ import { Agent, WebSocket } from "undici";
 import { Client, AppwriteException } from "@appwrite.io/console";
 import { error } from "../../parser.js";
 import { globalConfig } from "../../config.js";
+import { getValidAccessToken } from "../../sdks.js";
 import { Spinner } from "../../spinner.js";
 
 const ignore: typeof ignoreModule =
@@ -273,8 +274,8 @@ export async function watchDeploymentUpdates(
   params: WatchDeploymentUpdatesParams,
 ): Promise<DeploymentUpdateSubscription | null> {
   const cookieHeader = getCookieHeader(globalConfig.getCookie());
-  const accessToken = globalConfig.getAccessToken();
-  if (!cookieHeader && !accessToken) {
+  const hasAccessToken = globalConfig.getAccessToken() !== "";
+  if (!cookieHeader && !hasAccessToken) {
     return null;
   }
 
@@ -292,7 +293,8 @@ export async function watchDeploymentUpdates(
     if (cookieHeader) {
       headers.cookie = cookieHeader;
     }
-    if (accessToken) {
+    if (hasAccessToken) {
+      const accessToken = await getValidAccessToken(params.endpoint);
       headers.authorization = `Bearer ${accessToken}`;
     }
 

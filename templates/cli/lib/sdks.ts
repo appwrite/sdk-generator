@@ -25,11 +25,12 @@ const warnLegacySession = (): void => {
   );
 };
 
-const getValidAccessToken = async (endpoint: string): Promise<string> => {
+export const getValidAccessToken = async (endpoint: string): Promise<string> => {
   const accessToken = globalConfig.getAccessToken();
   const refreshToken = globalConfig.getRefreshToken();
   const tokenExpiry = globalConfig.getTokenExpiry();
   const clientId = globalConfig.getClientId() || OAUTH2_CLIENT_ID;
+  const consoleEndpoint = normalizeCloudConsoleEndpoint(endpoint);
 
   if (accessToken && tokenExpiry > Date.now() + 60_000) {
     return accessToken;
@@ -42,7 +43,7 @@ const getValidAccessToken = async (endpoint: string): Promise<string> => {
   }
 
   const oauth2Client = new Client()
-    .setEndpoint(endpoint)
+    .setEndpoint(consoleEndpoint)
     .setProject("console")
     .setSelfSigned(globalConfig.getSelfSigned());
   const oauth2 = new Oauth2(oauth2Client);
@@ -120,9 +121,8 @@ export const sdkForConsole = async ({
 export const sdkForProject = async (): Promise<Client> => {
   const client = new Client();
 
-  const endpoint = normalizeCloudConsoleEndpoint(
-    localConfig.getEndpoint() || globalConfig.getEndpoint() || DEFAULT_ENDPOINT,
-  );
+  const endpoint =
+    localConfig.getEndpoint() || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
 
   const project = localConfig.getProject().projectId
     ? localConfig.getProject().projectId
@@ -154,6 +154,10 @@ export const sdkForProject = async (): Promise<Client> => {
     .setSelfSigned(selfSigned)
     .setLocale("en-US");
 
+  if (key) {
+    return client.setKey(key).setMode("default");
+  }
+
   if (accessToken) {
     const validAccessToken = await getValidAccessToken(endpoint);
     client.headers["Authorization"] = `Bearer ${validAccessToken}`;
@@ -164,10 +168,6 @@ export const sdkForProject = async (): Promise<Client> => {
     warnLegacySession();
     client.setCookie(cookie);
     return client.setMode("admin");
-  }
-
-  if (key) {
-    return client.setKey(key).setMode("default");
   }
 
   throw new Error(

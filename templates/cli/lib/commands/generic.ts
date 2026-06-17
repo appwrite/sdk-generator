@@ -42,13 +42,15 @@ const isAuthorizationPendingError = (err: unknown): boolean => {
     return false;
   }
 
+  const response = typeof err.response === "string" ? err.response : "";
+
   return (
     err.type === "authorization_pending" ||
     err.type === "slow_down" ||
     err.message === "authorization_pending" ||
     err.message === "slow_down" ||
-    err.response.includes("authorization_pending") ||
-    err.response.includes("slow_down")
+    response.includes("authorization_pending") ||
+    response.includes("slow_down")
   );
 };
 
@@ -301,7 +303,7 @@ export const loginCommand = async ({
     answers = await inquirer.prompt(questionsSwitchAccount);
   }
 
-  if (switchAccount && answers?.method === "select") {
+  if (switchAccount && answers?.accountId) {
     const accountId = answers.accountId;
 
     if (!globalConfig.getSessionIds().includes(accountId)) {
@@ -324,17 +326,15 @@ export const loginCommand = async ({
       normalizeCloudConsoleEndpoint(globalConfig.getEndpoint()),
     );
 
-    try {
-      await getCurrentAccount();
-    } catch (err) {
-      if (isGuestUnauthorizedError(err)) {
-        globalConfig.removeSession(accountId);
-      }
+    const account = await getCurrentAccount();
+    if (!account) {
       restoreCurrentSession(oldCurrent);
-      throw err;
+      throw new Error(
+        `Selected account session is no longer valid. Run '${EXECUTABLE_NAME} login --switch' again.`,
+      );
     }
 
-    success(`Switched to ${globalConfig.getEmail()}`);
+    success(`Switched to ${account.email}`);
     return;
   }
 
