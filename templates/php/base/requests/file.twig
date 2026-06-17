@@ -95,9 +95,14 @@
 {% endfor %}
 
         $apiHeaders = [
-            'content-type' => 'multipart/form-data',
         {%~ for key, security in method.securityHeaders %}
             '{{ security.name }}' => $this->client->getConfig('{{ key | caseLower }}'),
+        {%~ endfor %}
+        {%~ for parameter in method.parameters.header %}
+            '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
+        {%~ endfor %}
+        {%~ for key, header in method.headers %}
+            '{{ key }}' => '{{ header }}',
         {%~ endfor %}
         ];
         $handle = null;
