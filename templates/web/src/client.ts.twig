@@ -358,6 +358,7 @@ class Client {
 {%~ endfor %}
 {%~ if sdk.platform == 'console' %}
         selfSigned: boolean;
+        credentials: RequestCredentials;
 {%~ endif %}
     } = {
         endpoint: '{{ spec.endpoint }}',
@@ -367,6 +368,7 @@ class Client {
 {%~ endfor %}
 {%~ if sdk.platform == 'console' %}
         selfSigned: false,
+        credentials: 'include',
 {%~ endif %}
     };
     /**
@@ -448,6 +450,20 @@ class Client {
      */
     setSelfSigned(selfSigned: boolean): this {
         this.config.selfSigned = selfSigned;
+        return this;
+    }
+
+    /**
+     * Set credentials
+     *
+     * Controls whether fetch sends credentials like cookies with requests.
+     *
+     * @param {RequestCredentials} credentials
+     *
+     * @returns {this}
+     */
+    setCredentials(credentials: RequestCredentials): this {
+        this.config.credentials = credentials;
         return this;
     }
 
@@ -595,19 +611,25 @@ class Client {
                     case 'connected': {
                         const messageData = <RealtimeResponseConnected>message.data;
 
-                        let session = this.config.session;
-                        if (!session) {
-                            const cookie = JSONbig.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
-                            session = cookie?.[`a_session_${this.config.project}`];
+{%~ if sdk.platform == 'console' %}
+                        if (this.config.credentials !== 'omit') {
+{%~ endif %}
+                            let session = this.config.session;
+                            if (!session) {
+                                const cookie = JSONbig.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
+                                session = cookie?.[`a_session_${this.config.project}`];
+                            }
+                            if (session && !messageData?.user) {
+                                this.realtime.socket?.send(JSONbig.stringify(<RealtimeRequest>{
+                                    type: 'authentication',
+                                    data: {
+                                        session
+                                    }
+                                }));
+                            }
+{%~ if sdk.platform == 'console' %}
                         }
-                        if (session && !messageData?.user) {
-                            this.realtime.socket?.send(JSONbig.stringify(<RealtimeRequest>{
-                                type: 'authentication',
-                                data: {
-                                    session
-                                }
-                            }));
-                        }
+{%~ endif %}
 
                         this.realtime.subscriptions.forEach((sub, subscriptionId) => {
                             this.realtime.pendingSubscribes.set(subscriptionId, {
@@ -763,7 +785,7 @@ class Client {
 
         headers = Object.assign({}, this.headers, headers);
 
-        if (typeof window !== 'undefined' && window.localStorage) {
+        if (typeof window !== 'undefined' && window.localStorage{% if sdk.platform == 'console' %} && this.config.credentials !== 'omit'{% endif %}) {
             const cookieFallback = window.localStorage.getItem('cookieFallback');
             if (cookieFallback) {
                 headers['X-Fallback-Cookies'] = cookieFallback;
@@ -776,7 +798,11 @@ class Client {
         };
 
         if (headers['X-Appwrite-Dev-Key'] === undefined) {
+{%~ if sdk.platform == 'console' %}
+            options.credentials = this.config.credentials;
+{%~ else %}
             options.credentials = 'include';
+{%~ endif %}
         }
 
         if (method === 'GET') {
@@ -1007,7 +1033,7 @@ class Client {
 
         const cookieFallback = response.headers.get('X-Fallback-Cookies');
 
-        if (typeof window !== 'undefined' && window.localStorage && cookieFallback) {
+        if (typeof window !== 'undefined' && window.localStorage && cookieFallback{% if sdk.platform == 'console' %} && this.config.credentials !== 'omit'{% endif %}) {
             window.console.warn('{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
             window.localStorage.setItem('cookieFallback', cookieFallback);
         }
