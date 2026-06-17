@@ -1199,7 +1199,7 @@ export const questionsListFactors: Question[] = [
     message:
       "Your account is protected by multi-factor authentication. Please choose one for verification.",
     choices: async () => {
-      const client = await sdkForConsole();
+      const client = await sdkForConsole({ requiresAuth: false });
       const accountClient = new Account(client);
       const factors = await accountClient.listMfaFactors();
 

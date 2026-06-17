@@ -451,7 +451,7 @@ export const loginCommand = async ({
         );
       }
 
-      if (!endpoint && !switchAccount && !newAccount) {
+      if (!email && !password && !endpoint && !switchAccount && !newAccount) {
         success("Already logged in as " + account.email);
         hint(`Use '${EXECUTABLE_NAME} login --new' to add another account`);
         return;
