@@ -20,7 +20,7 @@ client := client.New(
 {% if method.auth|length > 0 %}
     client.WithEndpoint("{{ spec.endpointDocs | raw }}")
 {% for node in method.auth %}
-{% for key,header in node|keys %}
+{% for key,header in node|keys|filter(h => not node[h]['x-appwrite']['optional']) %}
     client.With{{header}}("{{node[header]['x-appwrite']['demo'] | raw }}")
 {% endfor %}
 {% endfor %}
