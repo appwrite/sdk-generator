@@ -93,9 +93,9 @@ export const pollForDeviceToken = async (
 ): Promise<Models.Oauth2Token | null> => {
   const expiresAt = Date.now() + deviceAuth.expires_in * 1000;
   // Default to a 5s interval when the server omits one (RFC 8628 §3.5);
-  // an undefined interval would otherwise be NaN and busy-poll the endpoint.
+  // an omitted interval would otherwise be NaN and busy-poll the endpoint.
   let intervalMs =
-    (Number.isFinite(deviceAuth.interval) && deviceAuth.interval > 0
+    (Number.isFinite(deviceAuth.interval) && deviceAuth.interval >= 0
       ? deviceAuth.interval
       : 5) * 1000;
 
