@@ -376,6 +376,35 @@ export const isCloudHostname = (hostname: string): boolean => {
   return CLOUD_REGION_CODES.has(hostname.split(".")[0]);
 };
 
+export const isRegionalCloudEndpoint = (endpoint: string): boolean => {
+  try {
+    const hostname = new URL(endpoint).hostname;
+    return isCloudHostname(hostname) && hostname !== "cloud.appwrite.io";
+  } catch (_error) {
+    return false;
+  }
+};
+
+export const isLocalhostHostname = (hostname: string): boolean =>
+  hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+
+export const isDevCloudLoginOverrideEnabled = (): boolean =>
+  ["1", "true", "yes"].includes(
+    (process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN ?? "").toLowerCase(),
+  );
+
+export const isCloudLoginEndpoint = (endpoint: string): boolean => {
+  try {
+    const hostname = new URL(endpoint).hostname;
+    return (
+      isCloudHostname(hostname) ||
+      (isDevCloudLoginOverrideEnabled() && isLocalhostHostname(hostname))
+    );
+  } catch (_error) {
+    return false;
+  }
+};
+
 export const getConsoleBaseUrl = (endpoint: string): string => {
   try {
     const url = new URL(endpoint);

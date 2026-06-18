@@ -3030,8 +3030,7 @@ const pushSettings = async (): Promise<void> => {
       config: project,
       consoleClient,
     });
-    resolvedOrganizationId =
-      consoleClient.headers["X-Appwrite-Organization"];
+    resolvedOrganizationId = consoleClient.headers["X-Appwrite-Organization"];
     const organizationService = await getOrganizationService(consoleClient);
     const projectService = await getProjectService();
     const projectId = project.projectId;

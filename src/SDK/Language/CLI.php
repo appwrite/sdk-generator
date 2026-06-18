@@ -458,6 +458,21 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/auth/oauth.ts',
+                'template'      => 'cli/lib/auth/oauth.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/auth/session.ts',
+                'template'      => 'cli/lib/auth/session.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/auth/login.ts',
+                'template'      => 'cli/lib/auth/login.ts',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/services.ts',
                 'template'      => 'cli/lib/services.ts',
             ],

@@ -1,5 +1,9 @@
-import { globalConfig, localConfig, normalizeCloudConsoleEndpoint } from "./config.js";
-import { Client, Oauth2 } from "@appwrite.io/console";
+import {
+  globalConfig,
+  localConfig,
+  normalizeCloudConsoleEndpoint,
+} from "./config.js";
+import { Client } from "@appwrite.io/console";
 import os from "os";
 import {
   DEFAULT_ENDPOINT,
@@ -9,9 +13,7 @@ import {
 } from "./constants.js";
 import { warn } from "./parser.js";
 import { isCloudHostname } from "./utils.js";
-
-export const OAUTH2_CLIENT_ID = "appwrite-cli";
-export const OAUTH2_SCOPES = "openid email profile";
+import { getValidAccessToken } from "./auth/oauth.js";
 
 let legacySessionWarningShown = false;
 
@@ -24,43 +26,6 @@ const warnLegacySession = (): void => {
   warn(
     `This CLI is using a legacy cookie session. Run \`${EXECUTABLE_NAME} login --new\` to switch to the new browser-based login flow.`,
   );
-};
-
-export const getValidAccessToken = async (endpoint: string): Promise<string> => {
-  const accessToken = globalConfig.getAccessToken();
-  const refreshToken = globalConfig.getRefreshToken();
-  const tokenExpiry = globalConfig.getTokenExpiry();
-  const clientId = globalConfig.getClientId() || OAUTH2_CLIENT_ID;
-  const consoleEndpoint = normalizeCloudConsoleEndpoint(endpoint);
-
-  if (accessToken && tokenExpiry > Date.now() + 60_000) {
-    return accessToken;
-  }
-
-  if (!refreshToken) {
-    throw new Error(
-      `Session expired. Please run \`${EXECUTABLE_NAME} login\` to create a new session.`,
-    );
-  }
-
-  const oauth2Client = new Client()
-    .setEndpoint(consoleEndpoint)
-    .setProject("console")
-    .setSelfSigned(globalConfig.getSelfSigned());
-  const oauth2 = new Oauth2(oauth2Client);
-  const token = await oauth2.createToken({
-    grantType: "refresh_token",
-    refreshToken,
-    clientId,
-  });
-  const newExpiry = Date.now() + token.expires_in * 1000;
-  globalConfig.setAccessToken(token.access_token);
-  if (token.refresh_token) {
-    globalConfig.setRefreshToken(token.refresh_token);
-  }
-  globalConfig.setTokenExpiry(newExpiry);
-
-  return token.access_token;
 };
 
 export const sdkForConsole = async ({
