@@ -89,6 +89,26 @@ const isRegionalCloudEndpoint = (endpoint: string): boolean => {
   }
 };
 
+const isLocalhostHostname = (hostname: string): boolean =>
+  hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+
+const isDevCloudLoginOverrideEnabled = (): boolean =>
+  ["1", "true", "yes"].includes(
+    (process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN ?? "").toLowerCase(),
+  );
+
+const isCloudLoginEndpoint = (endpoint: string): boolean => {
+  try {
+    const hostname = new URL(endpoint).hostname;
+    return (
+      isCloudHostname(hostname) ||
+      (isDevCloudLoginOverrideEnabled() && isLocalhostHostname(hostname))
+    );
+  } catch (_error) {
+    return false;
+  }
+};
+
 const restoreCurrentSession = (sessionId: string): void => {
   globalConfig.setCurrentSession(
     globalConfig.getSessionIds().includes(sessionId) ? sessionId : "",
@@ -459,12 +479,7 @@ export const loginCommand = async ({
   const configEndpoint = normalizeCloudConsoleEndpoint(
     (endpoint ?? globalConfig.getEndpoint()) || DEFAULT_ENDPOINT,
   );
-  let isCloudLoginEndpoint = false;
-  try {
-    isCloudLoginEndpoint = isCloudHostname(new URL(configEndpoint).hostname);
-  } catch (_error) {
-    isCloudLoginEndpoint = false;
-  }
+  const shouldUseCloudLogin = isCloudLoginEndpoint(configEndpoint);
 
   if (globalConfig.getCurrentSession() !== "") {
     let account: Models.User | null = null;
@@ -498,7 +513,7 @@ export const loginCommand = async ({
       );
     }
     answers = await inquirer.prompt(questionsSwitchAccount);
-  } else if (!isCloudLoginEndpoint) {
+  } else if (!shouldUseCloudLogin) {
     answers =
       email && password
         ? { email, password }
@@ -549,7 +564,7 @@ export const loginCommand = async ({
 
   const id = ID.unique();
 
-  if (!isCloudLoginEndpoint) {
+  if (!shouldUseCloudLogin) {
     await loginWithEmailPassword({
       id,
       oldCurrent,
