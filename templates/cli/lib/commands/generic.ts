@@ -481,7 +481,9 @@ export const loginCommand = async ({
   );
   const shouldUseCloudLogin = isCloudLoginEndpoint(configEndpoint);
 
-  if (globalConfig.getCurrentSession() !== "") {
+  oldCurrent = globalConfig.getCurrentSession();
+
+  if (oldCurrent !== "" && !newAccount) {
     let account: Models.User | null = null;
     try {
       account = await getCurrentAccount();
