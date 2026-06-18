@@ -954,6 +954,34 @@ async function runAuthChecks() {
     assert.equal(token, null);
   });
 
+  await authCheck("poll-device-token-slow-down", async () => {
+    let calls = 0;
+    const oauth2 = {
+      createToken: async () => {
+        calls += 1;
+        if (calls === 1) throw new AppwriteException("slow_down", 400, "slow_down");
+        return { access_token: "tok3", expires_in: 3600 };
+      },
+    };
+    const token = await pollForDeviceToken(oauth2, deviceAuth(), "cli");
+    assert.equal(token.access_token, "tok3");
+    assert.equal(calls, 2);
+  });
+
+  await authCheck("poll-device-token-empty-error", async () => {
+    let calls = 0;
+    const oauth2 = {
+      createToken: async () => {
+        calls += 1;
+        if (calls === 1) throw new AppwriteException("", 400, "", "");
+        return { access_token: "tok4", expires_in: 3600 };
+      },
+    };
+    const token = await pollForDeviceToken(oauth2, deviceAuth(), "cli");
+    assert.equal(token.access_token, "tok4");
+    assert.equal(calls, 2);
+  });
+
   await authCheck("valid-access-token-cached", async () => {
     globalConfig.clear();
     globalConfig.addSession("tok1", {

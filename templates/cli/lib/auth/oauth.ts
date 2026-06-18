@@ -48,27 +48,43 @@ export const decodeIdToken = (
   }
 };
 
-export const isAuthorizationPendingError = (err: unknown): boolean => {
+const matchesOAuthError = (err: unknown, code: string): boolean => {
   if (!(err instanceof AppwriteException)) {
     return false;
   }
 
   const response = typeof err.response === "string" ? err.response : "";
 
-  return (
-    err.type === "authorization_pending" ||
-    err.type === "slow_down" ||
-    err.message === "authorization_pending" ||
-    err.message === "slow_down" ||
-    response.includes("authorization_pending") ||
-    response.includes("slow_down")
-  );
+  return err.type === code || err.message === code || response.includes(code);
+};
+
+export const isAuthorizationPendingError = (err: unknown): boolean =>
+  matchesOAuthError(err, "authorization_pending") ||
+  matchesOAuthError(err, "slow_down");
+
+const isSlowDownError = (err: unknown): boolean =>
+  matchesOAuthError(err, "slow_down");
+
+// An empty/unrecognized error body during polling (e.g. a 400 with no type,
+// message, or response) is treated as a transient pending response rather than
+// aborting the device flow.
+const isEmptyDevicePollError = (err: unknown): boolean => {
+  if (!(err instanceof AppwriteException)) {
+    return false;
+  }
+
+  const type = typeof err.type === "string" ? err.type.trim() : "";
+  const message = typeof err.message === "string" ? err.message.trim() : "";
+  const response = typeof err.response === "string" ? err.response.trim() : "";
+
+  return type === "" && message === "" && response === "";
 };
 
 /**
  * Poll the token endpoint until the device authorization is approved.
  * Returns the token, or `null` if the authorization window expires.
- * Pending/slow-down responses are retried; any other error is thrown.
+ * Pending and empty-body responses are retried; `slow_down` additionally
+ * increases the polling interval by 5s (RFC 8628 §3.5); any other error throws.
  */
 export const pollForDeviceToken = async (
   oauth2: Oauth2,
@@ -76,9 +92,10 @@ export const pollForDeviceToken = async (
   clientId: string,
 ): Promise<Models.Oauth2Token | null> => {
   const expiresAt = Date.now() + deviceAuth.expires_in * 1000;
+  let intervalMs = deviceAuth.interval * 1000;
 
   while (Date.now() < expiresAt) {
-    await sleep(deviceAuth.interval * 1000);
+    await sleep(intervalMs);
 
     let token: Models.Oauth2Token;
     try {
@@ -88,7 +105,10 @@ export const pollForDeviceToken = async (
         clientId,
       });
     } catch (err) {
-      if (isAuthorizationPendingError(err)) {
+      if (isAuthorizationPendingError(err) || isEmptyDevicePollError(err)) {
+        if (isSlowDownError(err)) {
+          intervalMs += 5000;
+        }
         continue;
       }
       throw err;
