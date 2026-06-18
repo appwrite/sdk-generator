@@ -241,6 +241,29 @@ abstract class Base extends TestCase
         'CLI_TYPEGEN:passed',
     ];
 
+    protected const AUTH_LOGIC_RESPONSES = [
+        'auth:endpoint-cloud-hostname:passed',
+        'auth:endpoint-regional:passed',
+        'auth:endpoint-localhost:passed',
+        'auth:endpoint-cloud-login:passed',
+        'auth:endpoint-dev-override:passed',
+        'auth:endpoint-normalize:passed',
+        'auth:console-slug-region:passed',
+        'auth:decode-id-token:passed',
+        'auth:authorization-pending-error:passed',
+        'auth:session-account-key:passed',
+        'auth:session-local-only:passed',
+        'auth:session-legacy:passed',
+        'auth:session-has-auth:passed',
+        'auth:plan-session-logout:passed',
+        'auth:restore-current-session-fallback:passed',
+        'auth:poll-device-token-success:passed',
+        'auth:poll-device-token-retry:passed',
+        'auth:poll-device-token-error:passed',
+        'auth:poll-device-token-timeout:passed',
+        'auth:valid-access-token-cached:passed',
+    ];
+
     protected const CLI_LOCAL_FUNCTION_EMULATION_RESPONSES = [
         'CLI_LOCAL_FUNCTION_RUNNER_CONFIG:passed',
         'CLI_LOCAL_SOURCE_PREFLIGHT:passed',
