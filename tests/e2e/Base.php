@@ -47,6 +47,10 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/redirect/done:passed',
     ];
 
+    protected const PATH_PARAM_RESPONSES = [
+        'GET:/v1/mock/tests/general/path/grant%2Fspecial%26id:passed',
+    ];
+
     protected const OAUTH_RESPONSES = [
         'https://localhost?code=abcdef&state=123456',
     ];

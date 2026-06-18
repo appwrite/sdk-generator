@@ -451,6 +451,21 @@ App::get('/v1/mock/tests/general/redirect/done')
     ->action(function () {
     });
 
+App::get('/v1/mock/tests/general/path/grant%2Fspecial%26id')
+    ->desc('Path Param')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'getPath')
+    ->label('sdk.description', 'Mock an encoded path parameter request.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->action(function () {
+    });
+
 App::get('/v1/mock/tests/general/set-cookie')
     ->desc('Set Cookie')
     ->groups(['mock'])

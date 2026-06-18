@@ -94,6 +94,88 @@ final class OpenAPI3SpecTest extends TestCase
         $this->assertSame('X-Appwrite-Key', $headers['Key']);
     }
 
+    public function testPathLocatedProjectAuthUsesPublicSetterName(): void
+    {
+        $spec = new OpenAPI3(\json_encode([
+            'openapi' => '3.0.0',
+            'info' => [
+                'title' => 'Appwrite',
+                'description' => 'Test spec',
+                'version' => '1.0.0',
+            ],
+            'servers' => [
+                ['url' => 'https://example.com/v1'],
+            ],
+            'tags' => [
+                ['name' => 'oauth2'],
+            ],
+            'paths' => [
+                '/projects/{project_id}/oauth2/grants/{grant_id}' => [
+                    'get' => [
+                        'summary' => 'Get Grant',
+                        'operationId' => 'oauth2GetGrant',
+                        'tags' => ['oauth2'],
+                        'x-appwrite' => [
+                            'method' => 'getGrant',
+                            'auth' => [
+                                'ProjectPath' => [],
+                            ],
+                        ],
+                        'security' => [
+                            [
+                                'ProjectPath' => [],
+                            ],
+                        ],
+                        'parameters' => [
+                            [
+                                'name' => 'project_id',
+                                'description' => 'Project ID.',
+                                'required' => true,
+                                'in' => 'path',
+                                'schema' => ['type' => 'string'],
+                            ],
+                            [
+                                'name' => 'grant_id',
+                                'description' => 'Grant ID.',
+                                'required' => true,
+                                'in' => 'path',
+                                'schema' => ['type' => 'string'],
+                            ],
+                        ],
+                        'responses' => [
+                            '200' => [
+                                'description' => 'OK',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'components' => [
+                'securitySchemes' => [
+                    'ProjectPath' => [
+                        'type' => 'apiKey',
+                        'name' => 'project',
+                        'description' => 'Your project ID',
+                        'in' => 'query',
+                        'x-appwrite' => [
+                            'location' => 'path',
+                            'param' => 'project_id',
+                            'demo' => '<YOUR_PROJECT_ID>',
+                        ],
+                    ],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR));
+
+        $methods = $spec->getMethods('oauth2');
+
+        $this->assertSame('getGrant', $methods[0]['name']);
+        $this->assertArrayHasKey('Project', $methods[0]['auth'][0]);
+        $this->assertArrayNotHasKey('ProjectPath', $methods[0]['auth'][0]);
+        $this->assertSame('project', $methods[0]['parameters']['path'][0]['config']);
+        $this->assertSame('security', $methods[0]['parameters']['path'][0]['source']);
+    }
+
     public function testRequestBodyBecomesBodyParameters(): void
     {
         $method = $this->getMethod('foo', 'post');
