@@ -138,7 +138,11 @@ class OpenAPI3 extends Spec
         $methodSecurity = $method['security'][0] ?? [];
 
         foreach ($methodAuth as $i => $node) {
-            $methodAuth[$i] = (array_key_exists((string) $i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
+            $authKey = $this->getAuthSetterKey((string) $i, $security[(string) $i] ?? []);
+            $methodAuth[$authKey] = (array_key_exists((string) $i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
+            if ($authKey !== (string) $i) {
+                unset($methodAuth[$i]);
+            }
         }
         foreach ($methodSecurity as $i => $node) {
             $methodSecurity[$i] = (array_key_exists((string) $i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
@@ -710,6 +714,24 @@ class OpenAPI3 extends Spec
         }
 
         return $list;
+    }
+
+    private function getAuthSetterKey(string $key, array $security): string
+    {
+        if (($security['x-appwrite']['location'] ?? '') !== 'path') {
+            return $key;
+        }
+
+        $name = $security['name'] ?? '';
+        if ($name === '') {
+            return $key;
+        }
+
+        return \ucfirst((string) \preg_replace_callback(
+            '/[-_\\s]+([a-zA-Z0-9])/',
+            fn(array $matches): string => \strtoupper($matches[1]),
+            (string) $name
+        ));
     }
 
     /**

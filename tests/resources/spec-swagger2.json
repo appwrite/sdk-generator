@@ -2062,6 +2062,69 @@
         ]
       }
     },
+    "\/mock\/tests\/general\/path\/{pathId}": {
+      "get": {
+        "summary": "Path Param",
+        "operationId": "generalGetPath",
+        "consumes": [],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "getPath",
+          "weight": 280,
+          "cookies": false,
+          "type": "",
+          "demo": "general\/get-path.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock an encoded path parameter request.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pathId",
+            "description": "Path ID.",
+            "required": true,
+            "type": "string",
+            "in": "path",
+            "x-example": "grant\/special&id"
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/set-cookie": {
       "get": {
         "summary": "Set Cookie",

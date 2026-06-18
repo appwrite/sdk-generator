@@ -109,7 +109,7 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endif %}
         {%~ endfor %}
 
-        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {% if parameter.source|default('') == 'security' %}this.client.config.{{ parameter.config | caseLower }}{% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}){% endfor %};
+        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', encodeURIComponent(String({% if parameter.source|default('') == 'security' %}this.client.config.{{ parameter.config | caseLower }}{% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}))){% endfor %};
         const payload: Payload = {};
         {%~ for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {

@@ -123,6 +123,9 @@ async function start() {
     // General
     response = await general.redirect();
     console.log(response.result);
+
+    response = await general.getPath({ pathId: 'grant/special&id' });
+    console.log(response.result);
   
     console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
     console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
