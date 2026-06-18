@@ -397,11 +397,16 @@ export const getConsoleBaseUrl = (endpoint: string): string => {
 export const getConsoleProjectSlug = (
   endpoint: string,
   projectId: string,
+  projectRegion?: string,
 ): string => {
   try {
     const hostname = new URL(endpoint).hostname;
 
     if (!isCloudHostname(hostname)) {
+      if (projectRegion) {
+        return `project-${projectRegion}-${projectId}`;
+      }
+
       return `project-${projectId}`;
     }
 
@@ -419,8 +424,9 @@ export const getFunctionDeploymentConsoleUrl = (
   projectId: string,
   functionId: string,
   deploymentId: string,
+  projectRegion?: string,
 ): string => {
-  const projectSlug = getConsoleProjectSlug(endpoint, projectId);
+  const projectSlug = getConsoleProjectSlug(endpoint, projectId, projectRegion);
   return `${getConsoleBaseUrl(endpoint)}/console/${projectSlug}/functions/function-${functionId}/deployment-${deploymentId}`;
 };
 
@@ -429,8 +435,9 @@ export const getSiteDeploymentConsoleUrl = (
   projectId: string,
   siteId: string,
   deploymentId: string,
+  projectRegion?: string,
 ): string => {
-  const projectSlug = getConsoleProjectSlug(endpoint, projectId);
+  const projectSlug = getConsoleProjectSlug(endpoint, projectId, projectRegion);
   return `${getConsoleBaseUrl(endpoint)}/console/${projectSlug}/sites/site-${siteId}/deployments/deployment-${deploymentId}`;
 };
 
