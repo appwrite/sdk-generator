@@ -262,6 +262,7 @@ abstract class Base extends TestCase
         'auth:poll-device-token-error:passed',
         'auth:poll-device-token-timeout:passed',
         'auth:valid-access-token-cached:passed',
+        'auth:oauth-login-flag:passed',
     ];
 
     protected const CLI_LOCAL_FUNCTION_EMULATION_RESPONSES = [

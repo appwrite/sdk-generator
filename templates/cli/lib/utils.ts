@@ -7,6 +7,7 @@ import type { Models } from "@appwrite.io/console";
 import { ProjectPolicyId } from "@appwrite.io/console";
 import { z } from "zod";
 import { globalConfig } from "./config.js";
+import { isFlagEnabled } from "./flags.js";
 import type { SettingsType } from "./commands/config.js";
 import {
   NPM_REGISTRY_URL,
@@ -388,17 +389,12 @@ export const isRegionalCloudEndpoint = (endpoint: string): boolean => {
 export const isLocalhostHostname = (hostname: string): boolean =>
   hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
 
-export const isDevCloudLoginOverrideEnabled = (): boolean =>
-  ["1", "true", "yes"].includes(
-    (process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN ?? "").toLowerCase(),
-  );
-
 export const isCloudLoginEndpoint = (endpoint: string): boolean => {
   try {
     const hostname = new URL(endpoint).hostname;
     return (
       isCloudHostname(hostname) ||
-      (isDevCloudLoginOverrideEnabled() && isLocalhostHostname(hostname))
+      (isFlagEnabled("devCloudLogin") && isLocalhostHostname(hostname))
     );
   } catch (_error) {
     return false;

@@ -458,6 +458,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/flags.ts',
+                'template'      => 'cli/lib/flags.ts',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/auth/oauth.ts',
                 'template'      => 'cli/lib/auth/oauth.ts',
             ],

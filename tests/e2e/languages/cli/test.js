@@ -39,10 +39,10 @@ const {
   isCloudHostname,
   isRegionalCloudEndpoint,
   isLocalhostHostname,
-  isDevCloudLoginOverrideEnabled,
   isCloudLoginEndpoint,
   getConsoleProjectSlug,
 } = require("./lib/utils.ts");
+const { isFlagEnabled } = require("./lib/flags.ts");
 const {
   normalizeCloudConsoleEndpoint,
   globalConfig,
@@ -766,7 +766,7 @@ async function runAuthChecks() {
     const prev = process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
     delete process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
     try {
-      assert.equal(isDevCloudLoginOverrideEnabled(), false);
+      assert.equal(isFlagEnabled("devCloudLogin"), false);
       assert.equal(isCloudLoginEndpoint("https://cloud.appwrite.io/v1"), true);
       assert.equal(isCloudLoginEndpoint("http://localhost/v1"), false);
     } finally {
@@ -779,7 +779,7 @@ async function runAuthChecks() {
     const prev = process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
     process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN = "1";
     try {
-      assert.equal(isDevCloudLoginOverrideEnabled(), true);
+      assert.equal(isFlagEnabled("devCloudLogin"), true);
       assert.equal(isCloudLoginEndpoint("http://localhost/v1"), true);
     } finally {
       if (prev === undefined) delete process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
@@ -964,6 +964,19 @@ async function runAuthChecks() {
     globalConfig.setCurrentSession("tok1");
     const token = await getValidAccessToken("http://localhost/v1");
     assert.equal(token, "cached-token");
+  });
+
+  await authCheck("oauth-login-flag", () => {
+    const prev = process.env.APPWRITE_CLI_OAUTH_LOGIN;
+    delete process.env.APPWRITE_CLI_OAUTH_LOGIN;
+    try {
+      assert.equal(isFlagEnabled("oauthLogin"), false);
+      process.env.APPWRITE_CLI_OAUTH_LOGIN = "1";
+      assert.equal(isFlagEnabled("oauthLogin"), true);
+    } finally {
+      if (prev === undefined) delete process.env.APPWRITE_CLI_OAUTH_LOGIN;
+      else process.env.APPWRITE_CLI_OAUTH_LOGIN = prev;
+    }
   });
 
   globalConfig.clear();

@@ -13,12 +13,14 @@ import {
 } from "./constants.js";
 import { warn } from "./parser.js";
 import { isCloudHostname } from "./utils.js";
+import { isFlagEnabled } from "./flags.js";
 import { getValidAccessToken } from "./auth/oauth.js";
 
 let legacySessionWarningShown = false;
 
 const warnLegacySession = (): void => {
-  if (legacySessionWarningShown) {
+  // Only nudge toward OAuth login when the feature is enabled.
+  if (legacySessionWarningShown || !isFlagEnabled("oauthLogin")) {
     return;
   }
 

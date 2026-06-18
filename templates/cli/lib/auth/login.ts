@@ -5,6 +5,7 @@ import { globalConfig, normalizeCloudConsoleEndpoint } from "../config.js";
 import { EXECUTABLE_NAME } from "../constants.js";
 import { success, hint, warn, log } from "../parser.js";
 import { isCloudLoginEndpoint, isRegionalCloudEndpoint } from "../utils.js";
+import { isFlagEnabled } from "../flags.js";
 import ID from "../id.js";
 import {
   questionsListFactors,
@@ -400,7 +401,8 @@ export const loginCommand = async ({
   const configEndpoint = normalizeCloudConsoleEndpoint(
     (endpoint ?? globalConfig.getEndpoint()) || DEFAULT_ENDPOINT,
   );
-  const shouldUseCloudLogin = isCloudLoginEndpoint(configEndpoint);
+  const shouldUseCloudLogin =
+    isFlagEnabled("oauthLogin") && isCloudLoginEndpoint(configEndpoint);
 
   oldCurrent = globalConfig.getCurrentSession();
 
@@ -414,7 +416,11 @@ export const loginCommand = async ({
     oldCurrent = globalConfig.getCurrentSession();
 
     if (account) {
-      if (!globalConfig.getAccessToken() && globalConfig.getCookie()) {
+      if (
+        isFlagEnabled("oauthLogin") &&
+        !globalConfig.getAccessToken() &&
+        globalConfig.getCookie()
+      ) {
         warn(
           `You are using a legacy cookie session. Run '${EXECUTABLE_NAME} login --new' to switch to the new browser-based login flow.`,
         );
