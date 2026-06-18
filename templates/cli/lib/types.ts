@@ -71,6 +71,7 @@ export interface SessionData {
   refreshToken?: string;
   tokenExpiry?: number;
   clientId?: string;
+  selfSigned?: boolean;
 }
 
 export interface GlobalConfigData extends ConfigData {

@@ -9,11 +9,14 @@ import { OAUTH2_CLIENT_ID, revokeRefreshToken } from "./oauth.js";
 export const getSession = (sessionId: string): SessionData | undefined =>
   globalConfig.get(sessionId) as SessionData | undefined;
 
-export const createLegacyConsoleClient = (endpoint: string): ClientLegacy => {
+export const createLegacyConsoleClient = (
+  endpoint: string,
+  selfSigned: boolean = globalConfig.getSelfSigned(),
+): ClientLegacy => {
   const legacyClient = new ClientLegacy();
   legacyClient.setEndpoint(endpoint);
   legacyClient.setProject("console");
-  if (globalConfig.getSelfSigned()) {
+  if (selfSigned) {
     legacyClient.setSelfSigned(true);
   }
   return legacyClient;
@@ -95,7 +98,13 @@ export const deleteServerSession = async (
     }
 
     if (session.cookie) {
-      const legacyClient = createLegacyConsoleClient(session.endpoint);
+      // Use the target session's own self-signed setting, not the current
+      // session's, so revoking a self-signed legacy session works even when a
+      // different (e.g. new OAuth) session is current.
+      const legacyClient = createLegacyConsoleClient(
+        session.endpoint,
+        Boolean(session.selfSigned),
+      );
       legacyClient.setCookie(session.cookie);
       await legacyClient.call("DELETE", "/account/sessions/current", {
         "content-type": "application/json",

@@ -73,11 +73,9 @@ export const getCurrentAccount = async (): Promise<Models.User | null> => {
     return null;
   }
 
-  const endpoint = normalizeCloudConsoleEndpoint(globalConfig.getEndpoint());
-  if (endpoint !== globalConfig.getEndpoint()) {
-    globalConfig.setEndpoint(endpoint);
-  }
-
+  // sdkForConsole normalizes the endpoint when building the console client, so
+  // we must not persist it back into the session here — that would overwrite a
+  // regional Cloud endpoint and route later project calls to the generic host.
   const client = await sdkForConsole();
   const accountClient = new Account(client);
 
@@ -248,9 +246,6 @@ const switchToAccount = async ({
   }
 
   globalConfig.setCurrentSession(accountId);
-  globalConfig.setEndpoint(
-    normalizeCloudConsoleEndpoint(globalConfig.getEndpoint()),
-  );
 
   let account: Models.User | null = null;
   try {

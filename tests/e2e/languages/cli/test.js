@@ -982,6 +982,20 @@ async function runAuthChecks() {
     assert.equal(calls, 2);
   });
 
+  await authCheck("poll-device-token-default-interval", async () => {
+    // interval omitted: must fall back to a real 5s interval (not NaN) and
+    // still resolve, rather than busy-polling the endpoint.
+    const oauth2 = {
+      createToken: async () => ({ access_token: "tok5", expires_in: 3600 }),
+    };
+    const token = await pollForDeviceToken(
+      oauth2,
+      { expires_in: 30, device_code: "dc" },
+      "cli",
+    );
+    assert.equal(token.access_token, "tok5");
+  });
+
   await authCheck("valid-access-token-cached", async () => {
     globalConfig.clear();
     globalConfig.addSession("tok1", {
