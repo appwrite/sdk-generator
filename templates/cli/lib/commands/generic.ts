@@ -393,16 +393,15 @@ const removeLegacySessionsExcept = async (
 };
 
 /**
- * Given selected session IDs, determine which sessions should be logged out
- * from the server (one per unique account) and which should be removed locally (all sessions for those accounts).
+ * Given selected session IDs, determine which local sessions belong to the
+ * selected accounts and should be individually logged out from the server.
  *
  * @param selectedSessionIds Array of session IDs to process for logout.
- * @returns Object containing `serverTargets` (sessions to logout from server)
- *          and `localTargets` (sessions to remove locally).
+ * @returns Session IDs that belong to selected account groups.
  */
 const planSessionLogout = (
   selectedSessionIds: string[],
-): { serverTargets: string[]; localTargets: string[] } => {
+): string[] => {
   // Map to group all session IDs by their unique account key (email+endpoint)
   const sessionIdsByAccount = new Map<string, string[]>();
   for (const sessionId of globalConfig.getSessionIds()) {
@@ -423,14 +422,9 @@ const planSessionLogout = (
     selectedByAccount.set(key, selectedSessionId);
   }
 
-  // Sessions to target for server logout: one per unique account
-  const serverTargets = Array.from(selectedByAccount.values());
-  // Sessions to remove locally: all sessions under selected accounts
-  const localTargets = Array.from(selectedByAccount.keys()).flatMap(
+  return Array.from(selectedByAccount.keys()).flatMap(
     (accountKey) => sessionIdsByAccount.get(accountKey) ?? [],
   );
-
-  return { serverTargets, localTargets };
 };
 
 export const loginCommand = async ({
@@ -763,16 +757,24 @@ export const logout = new Command("logout")
         return;
       }
       if (sessions.length === 1) {
-        // Try to delete from server, then remove locally
-        const serverDeleted = await deleteServerSession(current);
-        // Remove all local sessions with the same email+endpoint
-        const allSessionIds = globalConfig.getSessionIds();
-        for (const sessId of allSessionIds) {
-          deleteLocalSession(sessId);
+        const sessionTargets = planSessionLogout([current]);
+        let failed = 0;
+
+        for (const sessionId of sessionTargets) {
+          globalConfig.setCurrentSession(sessionId);
+          const serverDeleted = await deleteServerSession(sessionId);
+          if (serverDeleted) {
+            deleteLocalSession(sessionId);
+          } else {
+            failed++;
+          }
         }
-        globalConfig.setCurrentSession("");
-        if (!serverDeleted) {
-          hint("Could not reach server, removed local session data");
+
+        if (failed > 0) {
+          restoreCurrentSession(originalCurrent);
+          hint("Could not reach server for all sessions; kept local session data");
+        } else {
+          globalConfig.setCurrentSession("");
         }
         success("Logged out successfully");
 
@@ -782,17 +784,23 @@ export const logout = new Command("logout")
       const answers = await inquirer.prompt(questionsLogout);
 
       if (answers.accounts?.length) {
-        const { serverTargets, localTargets } = planSessionLogout(
+        const sessionTargets = planSessionLogout(
           answers.accounts as string[],
         );
+        let failed = 0;
 
-        for (const sessionId of serverTargets) {
+        for (const sessionId of sessionTargets) {
           globalConfig.setCurrentSession(sessionId);
-          await deleteServerSession(sessionId);
+          const serverDeleted = await deleteServerSession(sessionId);
+          if (serverDeleted) {
+            deleteLocalSession(sessionId);
+          } else {
+            failed++;
+          }
         }
 
-        for (const sessionId of localTargets) {
-          deleteLocalSession(sessionId);
+        if (failed > 0) {
+          hint("Could not reach server for all sessions; kept local session data");
         }
       }
 
@@ -947,15 +955,24 @@ export const client = new Command("client")
         }
 
         if (reset !== undefined) {
+          const originalCurrent = globalConfig.getCurrentSession();
+          let failed = 0;
           for (const sessionId of globalConfig.getSessionIds()) {
-            await deleteServerSession(sessionId);
+            globalConfig.setCurrentSession(sessionId);
+            const serverDeleted = await deleteServerSession(sessionId);
+            if (serverDeleted) {
+              deleteLocalSession(sessionId);
+            } else {
+              failed++;
+            }
           }
 
-          for (const sessionId of globalConfig.getSessionIds()) {
-            deleteLocalSession(sessionId);
+          if (failed > 0) {
+            restoreCurrentSession(originalCurrent);
+            hint("Could not reach server for all sessions; kept local session data");
+          } else {
+            globalConfig.setCurrentSession("");
           }
-
-          globalConfig.setCurrentSession("");
         }
 
         if (!debug) {

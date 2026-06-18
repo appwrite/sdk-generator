@@ -159,10 +159,6 @@ export const sdkForProject = async (): Promise<Client> => {
     .setSelfSigned(selfSigned)
     .setLocale("en-US");
 
-  if (key) {
-    return client.setKey(key).setMode("default");
-  }
-
   if (accessToken) {
     const validAccessToken = await getValidAccessToken(endpoint);
     client.headers["Authorization"] = `Bearer ${validAccessToken}`;
@@ -175,6 +171,10 @@ export const sdkForProject = async (): Promise<Client> => {
     }
     client.setCookie(cookie);
     return client.setMode("admin");
+  }
+
+  if (key) {
+    return client.setKey(key).setMode("default");
   }
 
   throw new Error(
