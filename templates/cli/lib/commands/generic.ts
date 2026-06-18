@@ -369,18 +369,27 @@ const isLegacySession = (sessionId: string): boolean => {
   return Boolean(session?.cookie && !session?.accessToken);
 };
 
-const removeLegacySessionsExcept = (sessionIdToKeep: string): number => {
+const removeLegacySessionsExcept = async (
+  sessionIdToKeep: string,
+): Promise<{ removed: number; failed: number }> => {
   let removed = 0;
+  let failed = 0;
+
   for (const sessionId of globalConfig.getSessionIds()) {
     if (sessionId === sessionIdToKeep || !isLegacySession(sessionId)) {
       continue;
     }
 
-    globalConfig.removeSession(sessionId);
-    removed++;
+    const serverDeleted = await deleteServerSession(sessionId);
+    if (serverDeleted) {
+      globalConfig.removeSession(sessionId);
+      removed++;
+    } else {
+      failed++;
+    }
   }
 
-  return removed;
+  return { removed, failed };
 };
 
 /**
@@ -646,23 +655,27 @@ export const loginCommand = async ({
   let account: Models.User | null = null;
   try {
     account = await getCurrentAccount();
-  } catch (_err) {
-    // Fallback: account may still be fetched later
+    if (!account?.email) {
+      throw new Error("Unable to verify the new session.");
+    }
+  } catch (err) {
+    await deleteServerSession(id);
+    globalConfig.removeSession(id);
+    restoreCurrentSession(oldCurrent);
+    throw err;
   }
 
-  if (account?.email) {
-    globalConfig.setEmail(account.email);
-  }
+  globalConfig.setEmail(account.email);
 
-  if (!globalConfig.getEmail()) {
-    globalConfig.setEmail("unknown");
-  }
-
-  const removedLegacySessions = removeLegacySessionsExcept(id);
+  const { removed: removedLegacySessions, failed: failedLegacySessions } =
+    await removeLegacySessionsExcept(id);
 
   success("Successfully signed in as " + globalConfig.getEmail());
   if (removedLegacySessions > 0) {
     hint("Removed legacy cookie session data from this CLI configuration.");
+  }
+  if (failedLegacySessions > 0) {
+    warn("Could not revoke all legacy sessions; kept them in local config.");
   }
   hint(
     "Next you can create or link to your project using 'appwrite init project'",
