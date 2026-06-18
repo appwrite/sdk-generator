@@ -115,6 +115,18 @@ const restoreCurrentSession = (sessionId: string): void => {
   );
 };
 
+const restoreCurrentSessionFallback = (
+  preferredSessionId: string,
+  fallbackSessionIds: string[],
+): void => {
+  const sessionIds = globalConfig.getSessionIds();
+  globalConfig.setCurrentSession(
+    [preferredSessionId, ...fallbackSessionIds].find((sessionId) =>
+      sessionIds.includes(sessionId),
+    ) ?? "",
+  );
+};
+
 const removeCurrentSession = (): void => {
   const current = globalConfig.getCurrentSession();
   globalConfig.setCurrentSession("");
@@ -342,6 +354,14 @@ const deleteServerSession = async (sessionId: string): Promise<boolean> => {
 
 const deleteLocalSession = (accountId: string): void => {
   globalConfig.removeSession(accountId);
+};
+
+const isLocalOnlySession = (sessionId: string): boolean => {
+  const session = globalConfig.get(sessionId) as
+    | { refreshToken?: string; cookie?: string }
+    | undefined;
+
+  return Boolean(session && !session.refreshToken && !session.cookie);
 };
 
 const getSessionAccountKey = (sessionId: string): string | undefined => {
@@ -776,19 +796,26 @@ export const logout = new Command("logout")
       if (sessions.length === 1) {
         const sessionTargets = planSessionLogout([current]);
         let failed = 0;
+        const failedSessionIds: string[] = [];
 
         for (const sessionId of sessionTargets) {
+          if (isLocalOnlySession(sessionId)) {
+            deleteLocalSession(sessionId);
+            continue;
+          }
+
           globalConfig.setCurrentSession(sessionId);
           const serverDeleted = await deleteServerSession(sessionId);
           if (serverDeleted) {
             deleteLocalSession(sessionId);
           } else {
             failed++;
+            failedSessionIds.push(sessionId);
           }
         }
 
         if (failed > 0) {
-          restoreCurrentSession(originalCurrent);
+          restoreCurrentSessionFallback(originalCurrent, failedSessionIds);
           hint("Could not reach server for all sessions; kept local session data");
         } else {
           globalConfig.setCurrentSession("");
@@ -807,6 +834,11 @@ export const logout = new Command("logout")
         let failed = 0;
 
         for (const sessionId of sessionTargets) {
+          if (isLocalOnlySession(sessionId)) {
+            deleteLocalSession(sessionId);
+            continue;
+          }
+
           globalConfig.setCurrentSession(sessionId);
           const serverDeleted = await deleteServerSession(sessionId);
           if (serverDeleted) {
@@ -974,18 +1006,25 @@ export const client = new Command("client")
         if (reset !== undefined) {
           const originalCurrent = globalConfig.getCurrentSession();
           let failed = 0;
+          const failedSessionIds: string[] = [];
           for (const sessionId of globalConfig.getSessionIds()) {
+            if (isLocalOnlySession(sessionId)) {
+              deleteLocalSession(sessionId);
+              continue;
+            }
+
             globalConfig.setCurrentSession(sessionId);
             const serverDeleted = await deleteServerSession(sessionId);
             if (serverDeleted) {
               deleteLocalSession(sessionId);
             } else {
               failed++;
+              failedSessionIds.push(sessionId);
             }
           }
 
           if (failed > 0) {
-            restoreCurrentSession(originalCurrent);
+            restoreCurrentSessionFallback(originalCurrent, failedSessionIds);
             hint("Could not reach server for all sessions; kept local session data");
           } else {
             globalConfig.setCurrentSession("");
