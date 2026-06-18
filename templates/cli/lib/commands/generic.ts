@@ -274,25 +274,47 @@ const loginWithEmailPassword = async ({
 
 const deleteServerSession = async (sessionId: string): Promise<boolean> => {
   const session = globalConfig.get(sessionId) as
-    | { refreshToken?: string; endpoint?: string; clientId?: string }
+    | {
+        refreshToken?: string;
+        endpoint?: string;
+        clientId?: string;
+        cookie?: string;
+      }
     | undefined;
-  if (!session?.refreshToken || !session?.endpoint) {
+  if (!session?.endpoint) {
     return false;
   }
 
   try {
-    const client = new Client()
-      .setEndpoint(session.endpoint)
-      .setProject("console")
-      .setSelfSigned(globalConfig.getSelfSigned());
-    const oauth2 = new Oauth2(client);
-    await oauth2.revoke({
-      projectId: "console",
-      token: session.refreshToken,
-      tokenTypeHint: "refresh_token",
-      clientId: session.clientId || OAUTH2_CLIENT_ID,
-    });
-    return true;
+    if (session.refreshToken) {
+      const client = new Client()
+        .setEndpoint(session.endpoint)
+        .setProject("console")
+        .setSelfSigned(globalConfig.getSelfSigned());
+      const oauth2 = new Oauth2(client);
+      await oauth2.revoke({
+        projectId: "console",
+        token: session.refreshToken,
+        tokenTypeHint: "refresh_token",
+        clientId: session.clientId || OAUTH2_CLIENT_ID,
+      });
+      return true;
+    }
+
+    if (session.cookie) {
+      const legacyClient = createLegacyConsoleClient(session.endpoint);
+      legacyClient.setCookie(session.cookie);
+      await legacyClient.call(
+        "DELETE",
+        "/account/sessions/current",
+        {
+          "content-type": "application/json",
+        },
+      );
+      return true;
+    }
+
+    return false;
   } catch (_e) {
     return false;
   }
