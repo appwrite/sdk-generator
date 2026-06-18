@@ -763,9 +763,11 @@ export class Push {
 
     const region = (async () => {
       try {
-        const organizationService = await getOrganizationService(
-          this.consoleClient,
-        );
+        const consoleClient = await sdkForConsole({
+          requiresAuth: true,
+          organizationId: localConfig.getProject().organizationId,
+        });
+        const organizationService = await getOrganizationService(consoleClient);
         const project = await organizationService.getProject({
           projectId,
         });
