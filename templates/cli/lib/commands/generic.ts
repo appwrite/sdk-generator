@@ -237,12 +237,18 @@ const loginWithEmailPassword = async ({
     account = await accountClient.get();
   } catch (err) {
     if (isMfaRequiredError(err)) {
-      account = await completeMfaLogin({
-        client,
-        legacyClient,
-        mfa,
-        code,
-      });
+      try {
+        account = await completeMfaLogin({
+          client,
+          legacyClient,
+          mfa,
+          code,
+        });
+      } catch (mfaErr) {
+        globalConfig.removeSession(id);
+        restoreCurrentSession(oldCurrent);
+        throw mfaErr;
+      }
     } else {
       globalConfig.removeSession(id);
       globalConfig.setCurrentSession(oldCurrent);
