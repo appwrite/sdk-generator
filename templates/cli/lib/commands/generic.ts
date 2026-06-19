@@ -10,7 +10,6 @@ import {
   commandDescriptions,
   error,
   parse,
-  hint,
   log,
   drawTable,
   cliConfig,
@@ -26,6 +25,16 @@ import {
 } from "../auth/session.js";
 
 export { loginCommand };
+
+const logMessages = {
+  noActiveSessions: "No active sessions found.",
+  logoutFailure: (errors: string[] = []): string => {
+    const details = errors[0] ? `: ${errors[0]}` : "";
+    return `Could not log out because the server session could not be revoked${details}. Kept local session data.`;
+  },
+  logoutSuccess: "Logged out successfully",
+  clientConfigUpdated: "Client configuration updated",
+} as const;
 
 export const whoami = new Command("whoami")
   .description(commandDescriptions["whoami"])
@@ -101,38 +110,37 @@ export const logout = new Command("logout")
       const originalCurrent = current;
 
       if (current === "" || !sessions.length) {
-        log("No active sessions found.");
+        log(logMessages.noActiveSessions);
         return;
       }
       if (sessions.length === 1) {
-        const { failed, failedIds } = await logoutSessions(
+        const { failed, failedIds, errors } = await logoutSessions(
           planSessionLogout([current]),
         );
 
         if (failed > 0) {
           restoreCurrentSessionFallback(originalCurrent, failedIds);
-          hint(
-            "Could not reach server for all sessions; kept local session data",
-          );
+          error(logMessages.logoutFailure(errors));
+          return;
         } else {
           globalConfig.setCurrentSession("");
         }
-        success("Logged out successfully");
+        success(logMessages.logoutSuccess);
 
         return;
       }
 
       const answers = await inquirer.prompt(questionsLogout);
+      let logoutFailed = false;
 
       if (answers.accounts?.length) {
-        const { failed } = await logoutSessions(
+        const { failed, errors } = await logoutSessions(
           planSessionLogout(answers.accounts as string[]),
         );
 
         if (failed > 0) {
-          hint(
-            "Could not reach server for all sessions; kept local session data",
-          );
+          logoutFailed = true;
+          error(logMessages.logoutFailure(errors));
         }
       }
 
@@ -158,7 +166,9 @@ export const logout = new Command("logout")
         globalConfig.setCurrentSession("");
       }
 
-      success("Logged out successfully");
+      if (!logoutFailed) {
+        success(logMessages.logoutSuccess);
+      }
     }),
   );
 
@@ -288,22 +298,21 @@ export const client = new Command("client")
 
         if (reset !== undefined) {
           const originalCurrent = globalConfig.getCurrentSession();
-          const { failed, failedIds } = await logoutSessions(
+          const { failed, failedIds, errors } = await logoutSessions(
             globalConfig.getSessionIds(),
           );
 
           if (failed > 0) {
             restoreCurrentSessionFallback(originalCurrent, failedIds);
-            hint(
-              "Could not reach server for all sessions; kept local session data",
-            );
+            error(logMessages.logoutFailure(errors));
+            return;
           } else {
             globalConfig.setCurrentSession("");
           }
         }
 
         if (!debug) {
-          success("Setting client");
+          success(logMessages.clientConfigUpdated);
         }
       },
     ),
