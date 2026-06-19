@@ -82,10 +82,10 @@ export const removeCurrentSession = (): void => {
  */
 export const deleteServerSession = async (
   sessionId: string,
-): Promise<boolean> => {
+): Promise<{ deleted: boolean; error?: string }> => {
   const session = getSession(sessionId);
   if (!session?.endpoint) {
-    return false;
+    return { deleted: false };
   }
 
   try {
@@ -95,7 +95,7 @@ export const deleteServerSession = async (
         session.refreshToken,
         session.clientId || OAUTH2_CLIENT_ID,
       );
-      return true;
+      return { deleted: true };
     }
 
     if (session.cookie) {
@@ -110,12 +110,15 @@ export const deleteServerSession = async (
       await legacyClient.call("DELETE", "/account/sessions/current", {
         "content-type": "application/json",
       });
-      return true;
+      return { deleted: true };
     }
 
-    return false;
-  } catch (_e) {
-    return false;
+    return { deleted: false };
+  } catch (e) {
+    return {
+      deleted: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
   }
 };
 
@@ -126,9 +129,10 @@ export const deleteServerSession = async (
  */
 export const logoutSessions = async (
   sessionIds: string[],
-): Promise<{ failed: number; failedIds: string[] }> => {
+): Promise<{ failed: number; failedIds: string[]; errors: string[] }> => {
   let failed = 0;
   const failedIds: string[] = [];
+  const errors: string[] = [];
 
   for (const sessionId of sessionIds) {
     if (isLocalOnlySession(sessionId)) {
@@ -137,16 +141,19 @@ export const logoutSessions = async (
     }
 
     globalConfig.setCurrentSession(sessionId);
-    const serverDeleted = await deleteServerSession(sessionId);
-    if (serverDeleted) {
+    const result = await deleteServerSession(sessionId);
+    if (result.deleted) {
       globalConfig.removeSession(sessionId);
     } else {
       failed++;
       failedIds.push(sessionId);
+      if (result.error) {
+        errors.push(result.error);
+      }
     }
   }
 
-  return { failed, failedIds };
+  return { failed, failedIds, errors };
 };
 
 export const removeLegacySessionsExcept = async (
@@ -160,8 +167,8 @@ export const removeLegacySessionsExcept = async (
       continue;
     }
 
-    const serverDeleted = await deleteServerSession(sessionId);
-    if (serverDeleted) {
+    const result = await deleteServerSession(sessionId);
+    if (result.deleted) {
       globalConfig.removeSession(sessionId);
       removed++;
     } else {
