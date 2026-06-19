@@ -3,18 +3,57 @@ import {
   localConfig,
   normalizeCloudConsoleEndpoint,
 } from "./config.js";
-import { Client } from "@appwrite.io/console";
+import { Client, Oauth2 } from "@appwrite.io/console";
 import os from "os";
 import {
   DEFAULT_ENDPOINT,
   EXECUTABLE_NAME,
+  OAUTH2_CLIENT_ID,
   SDK_TITLE,
   SDK_VERSION,
 } from "./constants.js";
 import { warn } from "./parser.js";
 import { isCloudHostname } from "./utils.js";
 import { isFlagEnabled } from "./flags.js";
-import { getValidAccessToken } from "./auth/oauth.js";
+
+export const getValidAccessToken = async (
+  endpoint: string,
+): Promise<string> => {
+  const accessToken = globalConfig.getAccessToken();
+  const refreshToken = globalConfig.getRefreshToken();
+  const tokenExpiry = globalConfig.getTokenExpiry();
+  const clientId = globalConfig.getClientId() || OAUTH2_CLIENT_ID;
+
+  if (accessToken && tokenExpiry > Date.now() + 60_000) {
+    return accessToken;
+  }
+
+  if (!refreshToken) {
+    throw new Error(
+      `Session expired. Please run \`${EXECUTABLE_NAME} login\` to create a new session.`,
+    );
+  }
+
+  const oauth2 = new Oauth2(
+    new Client()
+      .setEndpoint(normalizeCloudConsoleEndpoint(endpoint))
+      .setProject("console")
+      .setSelfSigned(globalConfig.getSelfSigned()),
+  );
+  const token = await oauth2.createToken({
+    grantType: "refresh_token",
+    refreshToken,
+    clientId,
+  });
+  const newExpiry = Date.now() + token.expires_in * 1000;
+  globalConfig.setAccessToken(token.access_token);
+  if (token.refresh_token) {
+    globalConfig.setRefreshToken(token.refresh_token);
+  }
+  globalConfig.setTokenExpiry(newExpiry);
+
+  return token.access_token;
+};
 
 let legacySessionWarningShown = false;
 

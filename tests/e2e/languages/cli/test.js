@@ -25,8 +25,8 @@ const {
   decodeIdToken,
   isAuthorizationPendingError,
   pollForDeviceToken,
-  getValidAccessToken,
 } = require("./lib/auth/oauth.ts");
+const { getValidAccessToken } = require("./lib/sdks.ts");
 const {
   planSessionLogout,
   isLocalOnlySession,

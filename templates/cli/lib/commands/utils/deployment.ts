@@ -8,7 +8,7 @@ import { Agent, WebSocket } from "undici";
 import { Client, AppwriteException } from "@appwrite.io/console";
 import { error } from "../../parser.js";
 import { globalConfig } from "../../config.js";
-import { getValidAccessToken } from "../../auth/oauth.js";
+import { getValidAccessToken } from "../../sdks.js";
 import { Spinner } from "../../spinner.js";
 
 const ignore: typeof ignoreModule =

@@ -2,7 +2,11 @@ import inquirer from "inquirer";
 import { Account, type Models } from "@appwrite.io/console";
 import { sdkForConsole } from "../sdks.js";
 import { globalConfig, normalizeCloudConsoleEndpoint } from "../config.js";
-import { EXECUTABLE_NAME } from "../constants.js";
+import {
+  EXECUTABLE_NAME,
+  OAUTH2_CLIENT_ID,
+  OAUTH2_SCOPES,
+} from "../constants.js";
 import { success, hint, warn, log } from "../parser.js";
 import { isCloudLoginEndpoint, isRegionalCloudEndpoint } from "../utils.js";
 import { isFlagEnabled } from "../flags.js";
@@ -14,12 +18,7 @@ import {
   questionsSwitchAccount,
 } from "../questions.js";
 import ClientLegacy from "../client.js";
-import {
-  OAUTH2_CLIENT_ID,
-  OAUTH2_SCOPES,
-  decodeIdToken,
-  pollForDeviceToken,
-} from "./oauth.js";
+import { decodeIdToken, pollForDeviceToken } from "./oauth.js";
 import { getOauth2Service } from "../services.js";
 import {
   createLegacyConsoleClient,

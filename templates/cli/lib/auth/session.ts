@@ -1,7 +1,8 @@
 import { globalConfig, normalizeCloudConsoleEndpoint } from "../config.js";
 import type { SessionData } from "../types.js";
 import ClientLegacy from "../client.js";
-import { OAUTH2_CLIENT_ID, revokeRefreshToken } from "./oauth.js";
+import { OAUTH2_CLIENT_ID } from "../constants.js";
+import { revokeRefreshToken } from "./oauth.js";
 
 /**
  * Typed accessor for a stored session, avoiding repeated inline casts.

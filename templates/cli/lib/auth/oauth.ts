@@ -1,11 +1,6 @@
 import { AppwriteException, Oauth2, type Models } from "@appwrite.io/console";
-import { globalConfig } from "../config.js";
-import { EXECUTABLE_NAME } from "../constants.js";
 import { sdkForConsole } from "../sdks.js";
 import { getOauth2Service } from "../services.js";
-
-export const OAUTH2_CLIENT_ID = "appwrite-cli";
-export const OAUTH2_SCOPES = "openid email profile";
 
 export type DeviceAuthorization = Awaited<
   ReturnType<Oauth2["createDeviceAuthorization"]>
@@ -123,40 +118,4 @@ export const revokeRefreshToken = async (
     tokenTypeHint: "refresh_token",
     clientId,
   });
-};
-
-export const getValidAccessToken = async (
-  endpoint: string,
-): Promise<string> => {
-  const accessToken = globalConfig.getAccessToken();
-  const refreshToken = globalConfig.getRefreshToken();
-  const tokenExpiry = globalConfig.getTokenExpiry();
-  const clientId = globalConfig.getClientId() || OAUTH2_CLIENT_ID;
-
-  if (accessToken && tokenExpiry > Date.now() + 60_000) {
-    return accessToken;
-  }
-
-  if (!refreshToken) {
-    throw new Error(
-      `Session expired. Please run \`${EXECUTABLE_NAME} login\` to create a new session.`,
-    );
-  }
-
-  const oauth2 = await getOauth2Service(
-    await sdkForConsole({ requiresAuth: false, endpointOverride: endpoint }),
-  );
-  const token = await oauth2.createToken({
-    grantType: "refresh_token",
-    refreshToken,
-    clientId,
-  });
-  const newExpiry = Date.now() + token.expires_in * 1000;
-  globalConfig.setAccessToken(token.access_token);
-  if (token.refresh_token) {
-    globalConfig.setRefreshToken(token.refresh_token);
-  }
-  globalConfig.setTokenExpiry(newExpiry);
-
-  return token.access_token;
 };
