@@ -265,6 +265,7 @@ abstract class Base extends TestCase
         'auth:poll-device-token-empty-error:passed',
         'auth:poll-device-token-default-interval:passed',
         'auth:valid-access-token-cached:passed',
+        'auth:valid-access-token-missing-expiry:passed',
         'auth:oauth-login-flag:passed',
     ];
 

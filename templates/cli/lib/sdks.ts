@@ -28,6 +28,10 @@ export const getValidAccessToken = async (
     return accessToken;
   }
 
+  if (accessToken && tokenExpiry === 0 && !refreshToken) {
+    return accessToken;
+  }
+
   if (!refreshToken) {
     throw new Error(
       `Session expired. Please run \`${EXECUTABLE_NAME} login\` to create a new session.`,

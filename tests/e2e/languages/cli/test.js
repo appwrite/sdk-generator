@@ -1008,6 +1008,17 @@ async function runAuthChecks() {
     assert.equal(token, "cached-token");
   });
 
+  await authCheck("valid-access-token-missing-expiry", async () => {
+    globalConfig.clear();
+    globalConfig.addSession("tok2", {
+      endpoint: "http://localhost/v1",
+      accessToken: "cached-token-without-expiry",
+    });
+    globalConfig.setCurrentSession("tok2");
+    const token = await getValidAccessToken("http://localhost/v1");
+    assert.equal(token, "cached-token-without-expiry");
+  });
+
   await authCheck("oauth-login-flag", () => {
     const prev = process.env.APPWRITE_CLI_OAUTH_LOGIN;
     delete process.env.APPWRITE_CLI_OAUTH_LOGIN;

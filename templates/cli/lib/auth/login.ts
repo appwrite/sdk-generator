@@ -382,8 +382,6 @@ export const loginCommand = async ({
   switch?: boolean;
   new?: boolean;
 }): Promise<void> => {
-  let oldCurrent = globalConfig.getCurrentSession();
-
   if (switchAccount && newAccount) {
     throw new Error("Use either --switch or --new, not both.");
   }
@@ -400,7 +398,7 @@ export const loginCommand = async ({
   const shouldUseCloudLogin =
     isFlagEnabled("oauthLogin") && isCloudLoginEndpoint(configEndpoint);
 
-  oldCurrent = globalConfig.getCurrentSession();
+  let oldCurrent = globalConfig.getCurrentSession();
 
   if (oldCurrent !== "" && !newAccount) {
     let account: Models.User | null = null;
@@ -409,6 +407,7 @@ export const loginCommand = async ({
     } catch (_err) {
       account = null;
     }
+    // Refresh the current session after account lookup.
     oldCurrent = globalConfig.getCurrentSession();
 
     if (account) {
