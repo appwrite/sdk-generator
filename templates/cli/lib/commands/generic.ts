@@ -29,7 +29,8 @@ export { loginCommand };
 const logMessages = {
   noActiveSessions: "No active sessions found.",
   logoutFailure: (errors: string[] = []): string => {
-    const details = errors[0] ? `: ${errors[0]}` : "";
+    const uniqueErrors = [...new Set(errors)];
+    const details = uniqueErrors.length ? `: ${uniqueErrors.join("; ")}` : "";
     return `Could not log out because the server session could not be revoked${details}. Kept local session data.`;
   },
   logoutSuccess: "Logged out successfully",
@@ -157,11 +158,13 @@ export const logout = new Command("logout")
           remainingSessions[0];
         globalConfig.setCurrentSession(nextSession.id);
 
-        success(
-          nextSession.email
-            ? `Switched to ${nextSession.email}`
-            : `Switched to session at ${nextSession.endpoint}`,
-        );
+        if (!logoutFailed) {
+          success(
+            nextSession.email
+              ? `Switched to ${nextSession.email}`
+              : `Switched to session at ${nextSession.endpoint}`,
+          );
+        }
       } else if (remainingSessions.length === 0) {
         globalConfig.setCurrentSession("");
       }
