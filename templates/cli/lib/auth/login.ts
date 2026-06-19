@@ -17,10 +17,10 @@ import ClientLegacy from "../client.js";
 import {
   OAUTH2_CLIENT_ID,
   OAUTH2_SCOPES,
-  createOauth2,
   decodeIdToken,
   pollForDeviceToken,
 } from "./oauth.js";
+import { getOauth2Service } from "../services.js";
 import {
   createLegacyConsoleClient,
   hasAuthSession,
@@ -275,7 +275,9 @@ const loginWithOAuthDevice = async ({
   configEndpoint: string;
 }): Promise<void> => {
   const clientId = OAUTH2_CLIENT_ID;
-  const oauth2 = createOauth2(configEndpoint);
+  const oauth2 = await getOauth2Service(
+    await sdkForConsole({ requiresAuth: false, endpointOverride: configEndpoint }),
+  );
 
   globalConfig.addSession(id, { endpoint: configEndpoint, clientId });
   globalConfig.setCurrentSession(id);

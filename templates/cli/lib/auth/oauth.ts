@@ -1,11 +1,8 @@
-import {
-  AppwriteException,
-  Client,
-  Oauth2,
-  type Models,
-} from "@appwrite.io/console";
-import { globalConfig, normalizeCloudConsoleEndpoint } from "../config.js";
+import { AppwriteException, Oauth2, type Models } from "@appwrite.io/console";
+import { globalConfig } from "../config.js";
 import { EXECUTABLE_NAME } from "../constants.js";
+import { sdkForConsole } from "../sdks.js";
+import { getOauth2Service } from "../services.js";
 
 export const OAUTH2_CLIENT_ID = "appwrite-cli";
 export const OAUTH2_SCOPES = "openid email profile";
@@ -13,18 +10,6 @@ export const OAUTH2_SCOPES = "openid email profile";
 export type DeviceAuthorization = Awaited<
   ReturnType<Oauth2["createDeviceAuthorization"]>
 >;
-
-/**
- * Build an Oauth2 client for the console project at the given endpoint.
- * The endpoint is used as-is; callers normalize it when required.
- */
-export const createOauth2 = (endpoint: string): Oauth2 => {
-  const client = new Client()
-    .setEndpoint(endpoint)
-    .setProject("console")
-    .setSelfSigned(globalConfig.getSelfSigned());
-  return new Oauth2(client);
-};
 
 export const decodeIdToken = (
   idToken: string,
@@ -129,7 +114,9 @@ export const revokeRefreshToken = async (
   refreshToken: string,
   clientId: string,
 ): Promise<void> => {
-  const oauth2 = createOauth2(endpoint);
+  const oauth2 = await getOauth2Service(
+    await sdkForConsole({ requiresAuth: false, endpointOverride: endpoint }),
+  );
   await oauth2.revoke({
     projectId: "console",
     token: refreshToken,
@@ -145,7 +132,6 @@ export const getValidAccessToken = async (
   const refreshToken = globalConfig.getRefreshToken();
   const tokenExpiry = globalConfig.getTokenExpiry();
   const clientId = globalConfig.getClientId() || OAUTH2_CLIENT_ID;
-  const consoleEndpoint = normalizeCloudConsoleEndpoint(endpoint);
 
   if (accessToken && tokenExpiry > Date.now() + 60_000) {
     return accessToken;
@@ -157,7 +143,9 @@ export const getValidAccessToken = async (
     );
   }
 
-  const oauth2 = createOauth2(consoleEndpoint);
+  const oauth2 = await getOauth2Service(
+    await sdkForConsole({ requiresAuth: false, endpointOverride: endpoint }),
+  );
   const token = await oauth2.createToken({
     grantType: "refresh_token",
     refreshToken,

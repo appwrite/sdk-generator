@@ -720,8 +720,6 @@ void (async () => {
   });
 
 async function runAuthChecks() {
-  // ESM import so AppwriteException matches the instance lib/auth/oauth.ts uses
-  // (the package ships dual ESM/CJS builds; a CJS require breaks instanceof).
   const { AppwriteException } = await import("@appwrite.io/console");
 
   const authCheck = async (name, fn) => {
