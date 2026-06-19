@@ -1,8 +1,3 @@
-// Type-check stub for the CLI templates. The generated SDK uses
-// constants.ts.twig (registered in CLI.php getFiles); this plain file exists
-// only so `templates/cli` type-checks locally before generation. Keep its
-// exported symbols in sync with constants.ts.twig.
-
 // SDK
 export const SDK_TITLE = "SDK for CLI";
 export const SDK_TITLE_LOWER = "sdk for cli";
