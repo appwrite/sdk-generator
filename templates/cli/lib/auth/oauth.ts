@@ -14,9 +14,6 @@ export type DeviceAuthorization = Awaited<
   ReturnType<Oauth2["createDeviceAuthorization"]>
 >;
 
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
 /**
  * Build an Oauth2 client for the console project at the given endpoint.
  * The endpoint is used as-is; callers normalize it when required.
@@ -100,7 +97,7 @@ export const pollForDeviceToken = async (
       : 5) * 1000;
 
   while (Date.now() < expiresAt) {
-    await sleep(intervalMs);
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
 
     let token: Models.Oauth2Token;
     try {
