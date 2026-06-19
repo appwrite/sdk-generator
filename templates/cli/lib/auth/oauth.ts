@@ -113,7 +113,6 @@ export const revokeRefreshToken = async (
     await sdkForConsole({ requiresAuth: false, endpointOverride: endpoint }),
   );
   await oauth2.revoke({
-    projectId: "console",
     token: refreshToken,
     tokenTypeHint: "refresh_token",
     clientId,
