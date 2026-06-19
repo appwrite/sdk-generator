@@ -822,32 +822,6 @@ export const questionsPullCollection: Question[] = [
   },
 ];
 
-export const questionsLogin: Question[] = [
-  {
-    type: "input",
-    name: "email",
-    message: "Enter your email",
-    validate(value: string) {
-      if (!value) {
-        return "Please enter your email";
-      }
-      return true;
-    },
-  },
-  {
-    type: "password",
-    name: "password",
-    message: "Enter your password",
-    mask: "*",
-    validate(value: string) {
-      if (!value) {
-        return "Please enter your password";
-      }
-      return true;
-    },
-  },
-];
-
 export const questionsSwitchAccount: Question[] = [
   {
     type: "list",
@@ -902,6 +876,32 @@ export const questionGetEndpoint: Question[] = [
       } catch (_error) {
         return "Invalid endpoint or your Appwrite server is not running as expected.";
       }
+    },
+  },
+];
+
+export const questionsLogin: Question[] = [
+  {
+    type: "input",
+    name: "email",
+    message: "Enter your email",
+    validate(value: string) {
+      if (!value) {
+        return "Please enter your email";
+      }
+      return true;
+    },
+  },
+  {
+    type: "password",
+    name: "password",
+    message: "Enter your password",
+    mask: "*",
+    validate(value: string) {
+      if (!value) {
+        return "Please enter your password";
+      }
+      return true;
     },
   },
 ];
@@ -1199,7 +1199,7 @@ export const questionsListFactors: Question[] = [
     message:
       "Your account is protected by multi-factor authentication. Please choose one for verification.",
     choices: async () => {
-      const client = await sdkForConsole({ requiresAuth: false });
+      const client = await sdkForConsole();
       const accountClient = new Account(client);
       const factors = await accountClient.listMfaFactors();
 

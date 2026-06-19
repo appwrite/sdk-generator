@@ -1,12 +1,73 @@
-import { globalConfig, localConfig } from "./config.js";
-import { Client } from "@appwrite.io/console";
+import {
+  globalConfig,
+  localConfig,
+  normalizeCloudConsoleEndpoint,
+} from "./config.js";
+import { Client, Oauth2 } from "@appwrite.io/console";
 import os from "os";
 import {
   DEFAULT_ENDPOINT,
   EXECUTABLE_NAME,
+  OAUTH2_CLIENT_ID,
   SDK_TITLE,
   SDK_VERSION,
 } from "./constants.js";
+import { warn } from "./parser.js";
+import { isCloudHostname } from "./utils.js";
+import { isFlagEnabled } from "./flags.js";
+
+export const getValidAccessToken = async (
+  endpoint: string,
+): Promise<string> => {
+  const accessToken = globalConfig.getAccessToken();
+  const refreshToken = globalConfig.getRefreshToken();
+  const tokenExpiry = globalConfig.getTokenExpiry();
+  const clientId = globalConfig.getClientId() || OAUTH2_CLIENT_ID;
+
+  if (accessToken && tokenExpiry > Date.now() + 60_000) {
+    return accessToken;
+  }
+
+  if (!refreshToken) {
+    throw new Error(
+      `Session expired. Please run \`${EXECUTABLE_NAME} login\` to create a new session.`,
+    );
+  }
+
+  const oauth2 = new Oauth2(
+    new Client()
+      .setEndpoint(normalizeCloudConsoleEndpoint(endpoint))
+      .setProject("console")
+      .setSelfSigned(globalConfig.getSelfSigned()),
+  );
+  const token = await oauth2.createToken({
+    grantType: "refresh_token",
+    refreshToken,
+    clientId,
+  });
+  const newExpiry = Date.now() + token.expires_in * 1000;
+  globalConfig.setAccessToken(token.access_token);
+  if (token.refresh_token) {
+    globalConfig.setRefreshToken(token.refresh_token);
+  }
+  globalConfig.setTokenExpiry(newExpiry);
+
+  return token.access_token;
+};
+
+let legacySessionWarningShown = false;
+
+const warnLegacySession = (): void => {
+  // Only nudge toward OAuth login when the feature is enabled.
+  if (legacySessionWarningShown || !isFlagEnabled("oauthLogin")) {
+    return;
+  }
+
+  legacySessionWarningShown = true;
+  warn(
+    `This CLI is using a legacy cookie session. Run \`${EXECUTABLE_NAME} login --new\` to switch to the new browser-based login flow.`,
+  );
+};
 
 export const sdkForConsole = async ({
   requiresAuth = true,
@@ -18,12 +79,16 @@ export const sdkForConsole = async ({
   organizationId?: string;
 } = {}): Promise<Client> => {
   const client = new Client();
-  const endpoint =
-    endpointOverride || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
-  const cookie = globalConfig.getCookie();
+  const endpoint = normalizeCloudConsoleEndpoint(
+    endpointOverride || globalConfig.getEndpoint() || DEFAULT_ENDPOINT,
+  );
+  const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
   const selfSigned = globalConfig.getSelfSigned();
 
-  if (requiresAuth && cookie === "") {
+  const accessToken = globalConfig.getAccessToken();
+  const cookie = globalConfig.getCookie();
+
+  if (requiresAuth && !accessToken && !cookie) {
     throw new Error(
       `Session not found. Please run \`${EXECUTABLE_NAME} login\` to create a session`,
     );
@@ -41,9 +106,20 @@ export const sdkForConsole = async ({
   client
     .setEndpoint(endpoint)
     .setProject("console")
-    .setCookie(cookie)
     .setSelfSigned(selfSigned)
     .setLocale("en-US");
+
+  if (requiresAuth) {
+    if (accessToken) {
+      const validAccessToken = await getValidAccessToken(endpoint);
+      client.headers["Authorization"] = `Bearer ${validAccessToken}`;
+    } else if (cookie) {
+      if (isCloudEndpoint) {
+        warnLegacySession();
+      }
+      client.setCookie(cookie);
+    }
+  }
 
   if (organizationId) {
     client.headers["X-Appwrite-Organization"] = organizationId;
@@ -57,12 +133,14 @@ export const sdkForProject = async (): Promise<Client> => {
 
   const endpoint =
     localConfig.getEndpoint() || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
+  const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
 
   const project = localConfig.getProject().projectId
     ? localConfig.getProject().projectId
     : globalConfig.getProject();
 
   const key = globalConfig.getKey();
+  const accessToken = globalConfig.getAccessToken();
   const cookie = globalConfig.getCookie();
   const selfSigned = globalConfig.getSelfSigned();
 
@@ -87,8 +165,18 @@ export const sdkForProject = async (): Promise<Client> => {
     .setSelfSigned(selfSigned)
     .setLocale("en-US");
 
+  if (accessToken) {
+    const validAccessToken = await getValidAccessToken(endpoint);
+    client.headers["Authorization"] = `Bearer ${validAccessToken}`;
+    return client.setMode("admin");
+  }
+
   if (cookie) {
-    return client.setCookie(cookie).setMode("admin");
+    if (isCloudEndpoint) {
+      warnLegacySession();
+    }
+    client.setCookie(cookie);
+    return client.setMode("admin");
   }
 
   if (key) {

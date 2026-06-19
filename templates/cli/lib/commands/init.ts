@@ -290,9 +290,12 @@ const initProject = async ({
   }
 
   try {
-    if (globalConfig.getEndpoint() === "" || globalConfig.getCookie() === "") {
+    if (
+      globalConfig.getEndpoint() === "" ||
+      (globalConfig.getAccessToken() === "" && globalConfig.getCookie() === "")
+    ) {
       throw new Error(
-        `Missing endpoint or cookie configuration. Please run '${EXECUTABLE_NAME} login' first.`,
+        `Missing endpoint or session configuration. Please run '${EXECUTABLE_NAME} login' first.`,
       );
     }
     const client = await sdkForConsole();

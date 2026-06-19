@@ -7,6 +7,7 @@ import type { Models } from "@appwrite.io/console";
 import { ProjectPolicyId } from "@appwrite.io/console";
 import { z } from "zod";
 import { globalConfig } from "./config.js";
+import { isFlagEnabled } from "./flags.js";
 import type { SettingsType } from "./commands/config.js";
 import {
   NPM_REGISTRY_URL,
@@ -376,6 +377,30 @@ export const isCloudHostname = (hostname: string): boolean => {
   return CLOUD_REGION_CODES.has(hostname.split(".")[0]);
 };
 
+export const isRegionalCloudEndpoint = (endpoint: string): boolean => {
+  try {
+    const hostname = new URL(endpoint).hostname;
+    return isCloudHostname(hostname) && hostname !== "cloud.appwrite.io";
+  } catch (_error) {
+    return false;
+  }
+};
+
+export const isLocalhostHostname = (hostname: string): boolean =>
+  hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+
+export const isCloudLoginEndpoint = (endpoint: string): boolean => {
+  try {
+    const hostname = new URL(endpoint).hostname;
+    return (
+      isCloudHostname(hostname) ||
+      (isFlagEnabled("devCloudLogin") && isLocalhostHostname(hostname))
+    );
+  } catch (_error) {
+    return false;
+  }
+};
+
 export const getConsoleBaseUrl = (endpoint: string): string => {
   try {
     const url = new URL(endpoint);
@@ -397,11 +422,16 @@ export const getConsoleBaseUrl = (endpoint: string): string => {
 export const getConsoleProjectSlug = (
   endpoint: string,
   projectId: string,
+  projectRegion?: string,
 ): string => {
   try {
     const hostname = new URL(endpoint).hostname;
 
     if (!isCloudHostname(hostname)) {
+      if (projectRegion) {
+        return `project-${projectRegion}-${projectId}`;
+      }
+
       return `project-${projectId}`;
     }
 
@@ -419,8 +449,9 @@ export const getFunctionDeploymentConsoleUrl = (
   projectId: string,
   functionId: string,
   deploymentId: string,
+  projectRegion?: string,
 ): string => {
-  const projectSlug = getConsoleProjectSlug(endpoint, projectId);
+  const projectSlug = getConsoleProjectSlug(endpoint, projectId, projectRegion);
   return `${getConsoleBaseUrl(endpoint)}/console/${projectSlug}/functions/function-${functionId}/deployment-${deploymentId}`;
 };
 
@@ -429,8 +460,9 @@ export const getSiteDeploymentConsoleUrl = (
   projectId: string,
   siteId: string,
   deploymentId: string,
+  projectRegion?: string,
 ): string => {
-  const projectSlug = getConsoleProjectSlug(endpoint, projectId);
+  const projectSlug = getConsoleProjectSlug(endpoint, projectId, projectRegion);
   return `${getConsoleBaseUrl(endpoint)}/console/${projectSlug}/sites/site-${siteId}/deployments/deployment-${deploymentId}`;
 };
 

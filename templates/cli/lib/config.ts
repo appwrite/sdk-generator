@@ -1206,6 +1206,10 @@ class Global extends Config<GlobalConfigData> {
   static PREFERENCE_KEY = "key" as const;
   static PREFERENCE_LOCALE = "locale" as const;
   static PREFERENCE_MODE = "mode" as const;
+  static PREFERENCE_ACCESS_TOKEN = "accessToken" as const;
+  static PREFERENCE_REFRESH_TOKEN = "refreshToken" as const;
+  static PREFERENCE_TOKEN_EXPIRY = "tokenExpiry" as const;
+  static PREFERENCE_CLIENT_ID = "clientId" as const;
 
   static IGNORE_ATTRIBUTES: readonly string[] = [
     Global.PREFERENCE_CURRENT,
@@ -1216,6 +1220,10 @@ class Global extends Config<GlobalConfigData> {
     Global.PREFERENCE_KEY,
     Global.PREFERENCE_LOCALE,
     Global.PREFERENCE_MODE,
+    Global.PREFERENCE_ACCESS_TOKEN,
+    Global.PREFERENCE_REFRESH_TOKEN,
+    Global.PREFERENCE_TOKEN_EXPIRY,
+    Global.PREFERENCE_CLIENT_ID,
   ];
 
   static MODE_ADMIN = "admin";
@@ -1357,6 +1365,50 @@ class Global extends Config<GlobalConfigData> {
 
   setKey(key: string): void {
     this.setTo(Global.PREFERENCE_KEY, key);
+  }
+
+  getAccessToken(): string {
+    if (!this.hasFrom(Global.PREFERENCE_ACCESS_TOKEN)) {
+      return "";
+    }
+    return this.getFrom(Global.PREFERENCE_ACCESS_TOKEN);
+  }
+
+  setAccessToken(accessToken: string): void {
+    this.setTo(Global.PREFERENCE_ACCESS_TOKEN, accessToken);
+  }
+
+  getRefreshToken(): string {
+    if (!this.hasFrom(Global.PREFERENCE_REFRESH_TOKEN)) {
+      return "";
+    }
+    return this.getFrom(Global.PREFERENCE_REFRESH_TOKEN);
+  }
+
+  setRefreshToken(refreshToken: string): void {
+    this.setTo(Global.PREFERENCE_REFRESH_TOKEN, refreshToken);
+  }
+
+  getTokenExpiry(): number {
+    if (!this.hasFrom(Global.PREFERENCE_TOKEN_EXPIRY)) {
+      return 0;
+    }
+    return this.getFrom(Global.PREFERENCE_TOKEN_EXPIRY);
+  }
+
+  setTokenExpiry(tokenExpiry: number): void {
+    this.setTo(Global.PREFERENCE_TOKEN_EXPIRY, tokenExpiry);
+  }
+
+  getClientId(): string {
+    if (!this.hasFrom(Global.PREFERENCE_CLIENT_ID)) {
+      return "";
+    }
+    return this.getFrom(Global.PREFERENCE_CLIENT_ID);
+  }
+
+  setClientId(clientId: string): void {
+    this.setTo(Global.PREFERENCE_CLIENT_ID, clientId);
   }
 
   hasFrom(key: string): boolean {

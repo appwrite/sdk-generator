@@ -21,6 +21,32 @@ const {
 } = require("./lib/utils.ts");
 const { EXECUTABLE_NAME } = require("./lib/constants.ts");
 const { isCompletionInvocation } = require("./lib/completions.ts");
+const {
+  decodeIdToken,
+  isAuthorizationPendingError,
+  pollForDeviceToken,
+} = require("./lib/auth/oauth.ts");
+const { getValidAccessToken } = require("./lib/sdks.ts");
+const {
+  planSessionLogout,
+  isLocalOnlySession,
+  isLegacySession,
+  getSessionAccountKey,
+  hasAuthSession,
+  restoreCurrentSessionFallback,
+} = require("./lib/auth/session.ts");
+const {
+  isCloudHostname,
+  isRegionalCloudEndpoint,
+  isLocalhostHostname,
+  isCloudLoginEndpoint,
+  getConsoleProjectSlug,
+} = require("./lib/utils.ts");
+const { isFlagEnabled } = require("./lib/flags.ts");
+const {
+  normalizeCloudConsoleEndpoint,
+  globalConfig,
+} = require("./lib/config.ts");
 
 const extractFirstValue = (output) => {
   const firstLine =
@@ -687,6 +713,313 @@ void (async () => {
   assert.doesNotMatch(kotlinTypes, /val purchaseTime: Int\?/);
 
   console.log("CLI_TYPEGEN:passed");
-})().catch((error) => {
-  throw error;
-});
+})()
+  .then(runAuthChecks)
+  .catch((error) => {
+    throw error;
+  });
+
+async function runAuthChecks() {
+  const { AppwriteException } = await import("@appwrite.io/console");
+
+  const authCheck = async (name, fn) => {
+    try {
+      await fn();
+      console.log(`auth:${name}:passed`);
+    } catch (error) {
+      console.log(`auth:${name}:failed`);
+      console.error(`auth:${name}`, error && error.message ? error.message : error);
+    }
+  };
+
+  const deviceAuth = (overrides = {}) => ({
+    expires_in: 5,
+    interval: 0,
+    device_code: "dc",
+    ...overrides,
+  });
+
+  await authCheck("endpoint-cloud-hostname", () => {
+    assert.equal(isCloudHostname("cloud.appwrite.io"), true);
+    assert.equal(isCloudHostname("fra.cloud.appwrite.io"), true);
+    assert.equal(isCloudHostname("evil.cloud.appwrite.io"), false);
+    assert.equal(isCloudHostname("localhost"), false);
+  });
+
+  await authCheck("endpoint-regional", () => {
+    assert.equal(isRegionalCloudEndpoint("https://fra.cloud.appwrite.io/v1"), true);
+    assert.equal(isRegionalCloudEndpoint("https://cloud.appwrite.io/v1"), false);
+    assert.equal(isRegionalCloudEndpoint("http://localhost/v1"), false);
+    assert.equal(isRegionalCloudEndpoint("nonsense"), false);
+  });
+
+  await authCheck("endpoint-localhost", () => {
+    assert.equal(isLocalhostHostname("localhost"), true);
+    assert.equal(isLocalhostHostname("127.0.0.1"), true);
+    assert.equal(isLocalhostHostname("[::1]"), true);
+    assert.equal(isLocalhostHostname("example.com"), false);
+  });
+
+  await authCheck("endpoint-cloud-login", () => {
+    const prev = process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
+    delete process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
+    try {
+      assert.equal(isFlagEnabled("devCloudLogin"), false);
+      assert.equal(isCloudLoginEndpoint("https://cloud.appwrite.io/v1"), true);
+      assert.equal(isCloudLoginEndpoint("http://localhost/v1"), false);
+    } finally {
+      if (prev === undefined) delete process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
+      else process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN = prev;
+    }
+  });
+
+  await authCheck("endpoint-dev-override", () => {
+    const prev = process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
+    process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN = "1";
+    try {
+      assert.equal(isFlagEnabled("devCloudLogin"), true);
+      assert.equal(isCloudLoginEndpoint("http://localhost/v1"), true);
+    } finally {
+      if (prev === undefined) delete process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
+      else process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN = prev;
+    }
+  });
+
+  await authCheck("endpoint-normalize", () => {
+    assert.equal(
+      normalizeCloudConsoleEndpoint("https://fra.cloud.appwrite.io/v1"),
+      "https://cloud.appwrite.io/v1",
+    );
+    assert.equal(
+      normalizeCloudConsoleEndpoint("https://cloud.appwrite.io/v1"),
+      "https://cloud.appwrite.io/v1",
+    );
+    assert.equal(normalizeCloudConsoleEndpoint("http://localhost/v1"), "http://localhost/v1");
+    assert.equal(normalizeCloudConsoleEndpoint("not a url"), "not a url");
+  });
+
+  await authCheck("console-slug-region", () => {
+    assert.equal(getConsoleProjectSlug("http://localhost/v1", "proj1"), "project-proj1");
+    assert.equal(getConsoleProjectSlug("http://localhost/v1", "proj1", "fra"), "project-fra-proj1");
+    assert.equal(getConsoleProjectSlug("https://fra.cloud.appwrite.io/v1", "proj1"), "project-fra-proj1");
+    assert.equal(getConsoleProjectSlug("https://cloud.appwrite.io/v1", "proj1"), "project-proj1");
+  });
+
+  await authCheck("decode-id-token", () => {
+    const payload = Buffer.from(
+      JSON.stringify({ email: "u@e.com", name: "U", sub: "123" }),
+    ).toString("base64url");
+    const decoded = decodeIdToken(`header.${payload}.sig`);
+    assert.equal(decoded.email, "u@e.com");
+    assert.equal(decoded.name, "U");
+    assert.equal(decoded.sub, "123");
+    assert.deepEqual(decodeIdToken("garbage"), {});
+    assert.deepEqual(decodeIdToken("a.b.c"), {});
+  });
+
+  await authCheck("authorization-pending-error", () => {
+    assert.equal(
+      isAuthorizationPendingError(
+        new AppwriteException("authorization_pending", 428, "authorization_pending"),
+      ),
+      true,
+    );
+    assert.equal(
+      isAuthorizationPendingError(new AppwriteException("slow_down", 429, "slow_down")),
+      true,
+    );
+    assert.equal(isAuthorizationPendingError(new AppwriteException("authorization_pending")), true);
+    assert.equal(
+      isAuthorizationPendingError(new AppwriteException("x", 400, "", "authorization_pending")),
+      true,
+    );
+    assert.equal(
+      isAuthorizationPendingError(new AppwriteException("other", 500, "general_server_error")),
+      false,
+    );
+    assert.equal(isAuthorizationPendingError({ type: "authorization_pending" }), false);
+  });
+
+  await authCheck("session-account-key", () => {
+    globalConfig.clear();
+    globalConfig.addSession("s1", {
+      endpoint: "https://fra.cloud.appwrite.io/v1",
+      email: "a@b.com",
+    });
+    assert.equal(getSessionAccountKey("s1"), "a@b.com|https://cloud.appwrite.io/v1");
+    globalConfig.addSession("s2", { endpoint: "http://localhost/v1", email: "x@y.com" });
+    assert.equal(getSessionAccountKey("s2"), "x@y.com|http://localhost/v1");
+  });
+
+  await authCheck("session-local-only", () => {
+    globalConfig.clear();
+    globalConfig.addSession("local1", { endpoint: "http://localhost/v1" });
+    assert.equal(isLocalOnlySession("local1"), true);
+    globalConfig.addSession("oauth1", { endpoint: "http://localhost/v1", refreshToken: "r" });
+    assert.equal(isLocalOnlySession("oauth1"), false);
+    globalConfig.addSession("legacy1", { endpoint: "http://localhost/v1", cookie: "c" });
+    assert.equal(isLocalOnlySession("legacy1"), false);
+  });
+
+  await authCheck("session-legacy", () => {
+    globalConfig.clear();
+    globalConfig.addSession("legacy1", { endpoint: "http://localhost/v1", cookie: "c" });
+    assert.equal(isLegacySession("legacy1"), true);
+    globalConfig.addSession("mixed", {
+      endpoint: "http://localhost/v1",
+      cookie: "c",
+      accessToken: "a",
+    });
+    assert.equal(isLegacySession("mixed"), false);
+    globalConfig.addSession("nocookie", { endpoint: "http://localhost/v1", accessToken: "a" });
+    assert.equal(isLegacySession("nocookie"), false);
+  });
+
+  await authCheck("session-has-auth", () => {
+    globalConfig.clear();
+    globalConfig.addSession("s1", { endpoint: "http://localhost/v1", accessToken: "a" });
+    globalConfig.setCurrentSession("s1");
+    assert.equal(hasAuthSession(), true);
+    globalConfig.clear();
+    globalConfig.addSession("s2", { endpoint: "http://localhost/v1", cookie: "c" });
+    globalConfig.setCurrentSession("s2");
+    assert.equal(hasAuthSession(), true);
+    globalConfig.clear();
+    globalConfig.addSession("s3", { endpoint: "http://localhost/v1" });
+    globalConfig.setCurrentSession("s3");
+    assert.equal(hasAuthSession(), false);
+  });
+
+  await authCheck("plan-session-logout", () => {
+    globalConfig.clear();
+    globalConfig.addSession("a1", { endpoint: "https://cloud.appwrite.io/v1", email: "a@b.com" });
+    globalConfig.addSession("a2", { endpoint: "https://cloud.appwrite.io/v1", email: "a@b.com" });
+    globalConfig.addSession("b1", { endpoint: "http://localhost/v1", email: "b@c.com" });
+    assert.deepEqual([...planSessionLogout(["a1"])].sort(), ["a1", "a2"]);
+    assert.deepEqual(planSessionLogout(["b1"]), ["b1"]);
+  });
+
+  await authCheck("restore-current-session-fallback", () => {
+    globalConfig.clear();
+    globalConfig.addSession("s1", { endpoint: "http://localhost/v1" });
+    globalConfig.addSession("s2", { endpoint: "http://localhost/v1" });
+    restoreCurrentSessionFallback("s1", ["s2"]);
+    assert.equal(globalConfig.getCurrentSession(), "s1");
+    restoreCurrentSessionFallback("missing", ["nope", "s2"]);
+    assert.equal(globalConfig.getCurrentSession(), "s2");
+    restoreCurrentSessionFallback("missing", ["alsoMissing"]);
+    assert.equal(globalConfig.getCurrentSession(), "");
+  });
+
+  await authCheck("poll-device-token-success", async () => {
+    const oauth2 = { createToken: async () => ({ access_token: "tok", expires_in: 3600 }) };
+    const token = await pollForDeviceToken(oauth2, deviceAuth(), "cli");
+    assert.equal(token.access_token, "tok");
+  });
+
+  await authCheck("poll-device-token-retry", async () => {
+    let calls = 0;
+    const oauth2 = {
+      createToken: async () => {
+        calls += 1;
+        if (calls === 1) {
+          throw new AppwriteException("authorization_pending", 428, "authorization_pending");
+        }
+        return { access_token: "tok2", expires_in: 3600 };
+      },
+    };
+    const token = await pollForDeviceToken(oauth2, deviceAuth(), "cli");
+    assert.equal(token.access_token, "tok2");
+    assert.equal(calls, 2);
+  });
+
+  await authCheck("poll-device-token-error", async () => {
+    const oauth2 = {
+      createToken: async () => {
+        throw new AppwriteException("boom", 500, "general_server_error");
+      },
+    };
+    await assert.rejects(() => pollForDeviceToken(oauth2, deviceAuth(), "cli"));
+  });
+
+  await authCheck("poll-device-token-timeout", async () => {
+    const oauth2 = {
+      createToken: async () => {
+        throw new AppwriteException("authorization_pending", 428, "authorization_pending");
+      },
+    };
+    const token = await pollForDeviceToken(oauth2, deviceAuth({ expires_in: 0.05 }), "cli");
+    assert.equal(token, null);
+  });
+
+  await authCheck("poll-device-token-slow-down", async () => {
+    let calls = 0;
+    const oauth2 = {
+      createToken: async () => {
+        calls += 1;
+        if (calls === 1) throw new AppwriteException("slow_down", 400, "slow_down");
+        return { access_token: "tok3", expires_in: 3600 };
+      },
+    };
+    const token = await pollForDeviceToken(oauth2, deviceAuth(), "cli");
+    assert.equal(token.access_token, "tok3");
+    assert.equal(calls, 2);
+  });
+
+  await authCheck("poll-device-token-empty-error", async () => {
+    let calls = 0;
+    const oauth2 = {
+      createToken: async () => {
+        calls += 1;
+        if (calls === 1) throw new AppwriteException("", 400, "", "");
+        return { access_token: "tok4", expires_in: 3600 };
+      },
+    };
+    const token = await pollForDeviceToken(oauth2, deviceAuth(), "cli");
+    assert.equal(token.access_token, "tok4");
+    assert.equal(calls, 2);
+  });
+
+  await authCheck("poll-device-token-default-interval", async () => {
+    // interval omitted: must fall back to a real 5s interval (not NaN, which
+    // would resolve immediately and busy-poll the endpoint).
+    const oauth2 = {
+      createToken: async () => ({ access_token: "tok5", expires_in: 3600 }),
+    };
+    const startedAt = Date.now();
+    const token = await pollForDeviceToken(
+      oauth2,
+      { expires_in: 30, device_code: "dc" },
+      "cli",
+    );
+    assert.equal(token.access_token, "tok5");
+    assert.ok(Date.now() - startedAt >= 4000);
+  });
+
+  await authCheck("valid-access-token-cached", async () => {
+    globalConfig.clear();
+    globalConfig.addSession("tok1", {
+      endpoint: "http://localhost/v1",
+      accessToken: "cached-token",
+      tokenExpiry: Date.now() + 3600000,
+    });
+    globalConfig.setCurrentSession("tok1");
+    const token = await getValidAccessToken("http://localhost/v1");
+    assert.equal(token, "cached-token");
+  });
+
+  await authCheck("oauth-login-flag", () => {
+    const prev = process.env.APPWRITE_CLI_OAUTH_LOGIN;
+    delete process.env.APPWRITE_CLI_OAUTH_LOGIN;
+    try {
+      assert.equal(isFlagEnabled("oauthLogin"), false);
+      process.env.APPWRITE_CLI_OAUTH_LOGIN = "1";
+      assert.equal(isFlagEnabled("oauthLogin"), true);
+    } finally {
+      if (prev === undefined) delete process.env.APPWRITE_CLI_OAUTH_LOGIN;
+      else process.env.APPWRITE_CLI_OAUTH_LOGIN = prev;
+    }
+  });
+
+  globalConfig.clear();
+}

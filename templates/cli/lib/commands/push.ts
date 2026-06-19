@@ -34,6 +34,7 @@ import {
   arrayEqualsUnordered,
   getFunctionDeploymentConsoleUrl,
   getSiteDeploymentConsoleUrl,
+  isCloudHostname,
   siteRequiresBuildCommand,
 } from "../utils.js";
 import { Spinner, SPINNER_DOTS } from "../spinner.js";
@@ -699,6 +700,7 @@ export class Push {
   private projectClient: Client;
   private consoleClient: Client;
   private silent: boolean;
+  private projectRegionCache = new Map<string, Promise<string | undefined>>();
 
   constructor(projectClient: Client, consoleClient: Client, silent = false) {
     this.projectClient = projectClient;
@@ -740,6 +742,43 @@ export class Push {
     if (!this.silent) {
       error(message);
     }
+  }
+
+  private async getConsoleUrlProjectRegion(
+    endpoint: string,
+    projectId: string,
+  ): Promise<string | undefined> {
+    try {
+      if (isCloudHostname(new URL(endpoint).hostname)) {
+        return undefined;
+      }
+    } catch {
+      return undefined;
+    }
+
+    const cached = this.projectRegionCache.get(projectId);
+    if (cached) {
+      return cached;
+    }
+
+    const region = (async () => {
+      try {
+        const consoleClient = await sdkForConsole({
+          requiresAuth: true,
+          organizationId: localConfig.getProject().organizationId,
+        });
+        const organizationService = await getOrganizationService(consoleClient);
+        const project = await organizationService.getProject({
+          projectId,
+        });
+        return project.region || undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+    this.projectRegionCache.set(projectId, region);
+
+    return region;
   }
 
   public async pushResources(
@@ -1651,11 +1690,16 @@ export class Push {
             const endpoint =
               localConfig.getEndpoint() || globalConfig.getEndpoint();
             const projectId = localConfig.getProject().projectId;
+            const projectRegion = await this.getConsoleUrlProjectRegion(
+              endpoint,
+              projectId,
+            );
             const consoleUrl = getFunctionDeploymentConsoleUrl(
               endpoint,
               projectId,
               func["$id"],
               deploymentId,
+              projectRegion,
             );
             let waitingSince: number | null = null;
             const deploymentTimeoutTracker =
@@ -2159,11 +2203,16 @@ export class Push {
             const endpoint =
               localConfig.getEndpoint() || globalConfig.getEndpoint();
             const projectId = localConfig.getProject().projectId;
+            const projectRegion = await this.getConsoleUrlProjectRegion(
+              endpoint,
+              projectId,
+            );
             const consoleUrl = getSiteDeploymentConsoleUrl(
               endpoint,
               projectId,
               site["$id"],
               deploymentId,
+              projectRegion,
             );
             let waitingSince: number | null = null;
             let readyWithoutScreenshotsSince: number | null = null;
@@ -2981,8 +3030,7 @@ const pushSettings = async (): Promise<void> => {
       config: project,
       consoleClient,
     });
-    resolvedOrganizationId =
-      consoleClient.headers["X-Appwrite-Organization"];
+    resolvedOrganizationId = consoleClient.headers["X-Appwrite-Organization"];
     const organizationService = await getOrganizationService(consoleClient);
     const projectService = await getProjectService();
     const projectId = project.projectId;

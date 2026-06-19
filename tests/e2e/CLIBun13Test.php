@@ -49,6 +49,7 @@ final class CLIBun13Test extends Base
         ...Base::CLI_RUNTIME_RENDERING_RESPONSES,
         ...Base::CLI_QUERY_HELPER_RESPONSES,
         ...Base::CLI_TYPEGEN_RESPONSES,
+        ...Base::AUTH_LOGIC_RESPONSES,
     ];
 
     #[Override]

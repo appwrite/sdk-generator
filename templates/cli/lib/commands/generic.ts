@@ -1,12 +1,7 @@
 import inquirer from "inquirer";
 import { Command } from "commander";
 import { Client } from "@appwrite.io/console";
-import { sdkForConsole } from "../sdks.js";
-import {
-  globalConfig,
-  localConfig,
-  normalizeCloudConsoleEndpoint,
-} from "../config.js";
+import { globalConfig, localConfig } from "../config.js";
 import { EXECUTABLE_NAME } from "../constants.js";
 import {
   actionRunner,
@@ -20,397 +15,23 @@ import {
   drawTable,
   cliConfig,
 } from "../parser.js";
-import { isCloudHostname } from "../utils.js";
 import ID from "../id.js";
+import { questionsLogout } from "../questions.js";
+import { getCurrentAccount, loginCommand } from "../auth/login.js";
 import {
-  questionsLogin,
-  questionsLogout,
-  questionsListFactors,
-  questionsMFAChallenge,
-  questionsSwitchAccount,
-} from "../questions.js";
-import {
-  Account,
-  Client as ConsoleClient,
-  type Models,
-} from "@appwrite.io/console";
-import ClientLegacy from "../client.js";
+  hasAuthSession,
+  logoutSessions,
+  planSessionLogout,
+  restoreCurrentSessionFallback,
+} from "../auth/session.js";
 
-const DEFAULT_ENDPOINT = "https://cloud.appwrite.io/v1";
-
-interface AppwriteError {
-  type?: string;
-  response?: string;
-}
-
-const isMfaRequiredError = (err: unknown): err is AppwriteError =>
-  (err as AppwriteError)?.type === "user_more_factors_required" ||
-  (err as AppwriteError)?.response === "user_more_factors_required";
-
-const isGuestUnauthorizedError = (err: unknown): err is AppwriteError =>
-  (err as AppwriteError)?.type === "general_unauthorized_scope" ||
-  (err as AppwriteError)?.response === "general_unauthorized_scope";
-
-const isRegionalCloudEndpoint = (endpoint: string): boolean => {
-  try {
-    const hostname = new URL(endpoint).hostname;
-    return isCloudHostname(hostname) && hostname !== "cloud.appwrite.io";
-  } catch (_error) {
-    return false;
-  }
-};
-
-const restoreCurrentSession = (sessionId: string): void => {
-  globalConfig.setCurrentSession(
-    globalConfig.getSessionIds().includes(sessionId) ? sessionId : "",
-  );
-};
-
-const removeCurrentSession = (): void => {
-  const current = globalConfig.getCurrentSession();
-  globalConfig.setCurrentSession("");
-  globalConfig.removeSession(current);
-};
-
-const getCurrentAccount = async (): Promise<Models.User | null> => {
-  if (globalConfig.getEndpoint() === "" || globalConfig.getCookie() === "") {
-    return null;
-  }
-
-  const endpoint = normalizeCloudConsoleEndpoint(globalConfig.getEndpoint());
-  if (endpoint !== globalConfig.getEndpoint()) {
-    globalConfig.setEndpoint(endpoint);
-  }
-
-  const client = await sdkForConsole({ requiresAuth: false });
-  const accountClient = new Account(client);
-
-  try {
-    const account = await accountClient.get();
-    globalConfig.setEmail(account.email);
-    return account;
-  } catch (err) {
-    if (isGuestUnauthorizedError(err)) {
-      removeCurrentSession();
-    }
-    return null;
-  }
-};
-
-const createLegacyConsoleClient = (endpoint: string): ClientLegacy => {
-  const legacyClient = new ClientLegacy();
-  legacyClient.setEndpoint(endpoint);
-  legacyClient.setProject("console");
-  if (globalConfig.getSelfSigned()) {
-    legacyClient.setSelfSigned(true);
-  }
-  return legacyClient;
-};
-
-const completeMfaLogin = async ({
-  client,
-  legacyClient,
-  mfa,
-  code,
-}: {
-  client: ConsoleClient;
-  legacyClient: ClientLegacy;
-  mfa?: string;
-  code?: string;
-}): Promise<unknown> => {
-  let accountClient = new Account(client);
-
-  const savedCookie = globalConfig.getCookie();
-  if (savedCookie) {
-    legacyClient.setCookie(savedCookie);
-    client.setCookie(savedCookie);
-  }
-
-  const { factor } = mfa
-    ? { factor: mfa }
-    : await inquirer.prompt(questionsListFactors);
-  const challenge = await accountClient.createMfaChallenge(factor);
-
-  const { otp } = code
-    ? { otp: code }
-    : await inquirer.prompt(questionsMFAChallenge);
-  await legacyClient.call(
-    "PUT",
-    "/account/mfa/challenges",
-    {
-      "content-type": "application/json",
-    },
-    {
-      challengeId: challenge.$id,
-      otp,
-    },
-  );
-
-  const updatedCookie = globalConfig.getCookie();
-  if (updatedCookie) {
-    client.setCookie(updatedCookie);
-  }
-
-  accountClient = new Account(client);
-  return accountClient.get();
-};
-
-const deleteServerSession = async (sessionId: string): Promise<boolean> => {
-  try {
-    const client = await sdkForConsole();
-    const accountClient = new Account(client);
-    await accountClient.deleteSession(sessionId);
-    return true;
-  } catch (_e) {
-    return false;
-  }
-};
-
-const deleteLocalSession = (accountId: string): void => {
-  globalConfig.removeSession(accountId);
-};
-
-const getSessionAccountKey = (sessionId: string): string | undefined => {
-  const session = globalConfig.get(sessionId) as
-    | { email?: string; endpoint?: string }
-    | undefined;
-  if (!session) return undefined;
-  return `${session.email ?? ""}|${normalizeCloudConsoleEndpoint(
-    session.endpoint ?? "",
-  )}`;
-};
-
-/**
- * Given selected session IDs, determine which sessions should be logged out
- * from the server (one per unique account) and which should be removed locally (all sessions for those accounts).
- *
- * @param selectedSessionIds Array of session IDs to process for logout.
- * @returns Object containing `serverTargets` (sessions to logout from server)
- *          and `localTargets` (sessions to remove locally).
- */
-const planSessionLogout = (
-  selectedSessionIds: string[],
-): { serverTargets: string[]; localTargets: string[] } => {
-  // Map to group all session IDs by their unique account key (email+endpoint)
-  const sessionIdsByAccount = new Map<string, string[]>();
-  for (const sessionId of globalConfig.getSessionIds()) {
-    const key = getSessionAccountKey(sessionId);
-    if (!key) continue; // Skip sessions without proper account key
-
-    // For each account key, gather all associated session IDs
-    const ids = sessionIdsByAccount.get(key) ?? [];
-    ids.push(sessionId);
-    sessionIdsByAccount.set(key, ids);
-  }
-
-  // Map to store one selected session ID per unique account for server logout
-  const selectedByAccount = new Map<string, string>();
-  for (const selectedSessionId of selectedSessionIds) {
-    const key = getSessionAccountKey(selectedSessionId);
-    if (!key || selectedByAccount.has(key)) continue; // Skip if key missing or already considered for this account
-    selectedByAccount.set(key, selectedSessionId);
-  }
-
-  // Sessions to target for server logout: one per unique account
-  const serverTargets = Array.from(selectedByAccount.values());
-  // Sessions to remove locally: all sessions under selected accounts
-  const localTargets = Array.from(selectedByAccount.keys()).flatMap(
-    (accountKey) => sessionIdsByAccount.get(accountKey) ?? [],
-  );
-
-  return { serverTargets, localTargets };
-};
-
-export const loginCommand = async ({
-  email,
-  password,
-  endpoint,
-  mfa,
-  code,
-  switch: switchAccount,
-  new: newAccount,
-}: {
-  email?: string;
-  password?: string;
-  endpoint?: string;
-  mfa?: string;
-  code?: string;
-  switch?: boolean;
-  new?: boolean;
-}): Promise<void> => {
-  let oldCurrent = globalConfig.getCurrentSession();
-
-  if (switchAccount && newAccount) {
-    throw new Error("Use either --switch or --new, not both.");
-  }
-
-  if (endpoint && isRegionalCloudEndpoint(endpoint)) {
-    throw new Error(
-      `Cloud login uses ${DEFAULT_ENDPOINT}. Regional Cloud endpoints are for project API calls, not account login.`,
-    );
-  }
-
-  const configEndpoint = normalizeCloudConsoleEndpoint(
-    (endpoint ?? globalConfig.getEndpoint()) || DEFAULT_ENDPOINT,
-  );
-
-  if (globalConfig.getCurrentSession() !== "") {
-    const account = await getCurrentAccount();
-    oldCurrent = globalConfig.getCurrentSession();
-
-    if (account) {
-      if (!email && !password && !endpoint && !switchAccount && !newAccount) {
-        success("Already logged in as " + account.email);
-        hint(`Use '${EXECUTABLE_NAME} login --new' to add another account`);
-        return;
-      }
-    }
-  }
-
-  let answers;
-  if (switchAccount) {
-    if (!globalConfig.getSessions().some((session) => session.email)) {
-      throw new Error(
-        `No signed-in accounts found. Run '${EXECUTABLE_NAME} login' to sign in.`,
-      );
-    }
-    answers = await inquirer.prompt(questionsSwitchAccount);
-  } else if (email && password) {
-    answers = { email, password };
-  } else {
-    answers = await inquirer.prompt(questionsLogin);
-  }
-
-  if (!answers.method) {
-    answers.method = switchAccount ? "select" : "login";
-  }
-
-  if (answers.method === "select") {
-    const accountId = answers.accountId;
-
-    if (!globalConfig.getSessionIds().includes(accountId)) {
-      throw Error("Session ID not found");
-    }
-
-    if (accountId === oldCurrent) {
-      const account = await getCurrentAccount();
-      if (account) {
-        success(`Already using ${account.email}`);
-        return;
-      }
-      throw new Error(
-        `Selected account session is no longer valid. Run '${EXECUTABLE_NAME} login --switch' again.`,
-      );
-    }
-
-    globalConfig.setCurrentSession(accountId);
-    globalConfig.setEndpoint(
-      normalizeCloudConsoleEndpoint(globalConfig.getEndpoint()),
-    );
-
-    const client = await sdkForConsole({ requiresAuth: false });
-    const accountClient = new Account(client);
-    const legacyClient = createLegacyConsoleClient(
-      globalConfig.getEndpoint() || DEFAULT_ENDPOINT,
-    );
-
-    try {
-      await accountClient.get();
-    } catch (err) {
-      if (!isMfaRequiredError(err)) {
-        if (isGuestUnauthorizedError(err)) {
-          globalConfig.removeSession(accountId);
-        }
-        restoreCurrentSession(oldCurrent);
-        throw err;
-      }
-
-      await completeMfaLogin({
-        client,
-        legacyClient,
-        mfa,
-        code,
-      });
-    }
-
-    success(`Switched to ${globalConfig.getEmail()}`);
-
-    return;
-  }
-
-  const id = ID.unique();
-
-  globalConfig.addSession(id, { endpoint: configEndpoint });
-  globalConfig.setCurrentSession(id);
-  globalConfig.setEndpoint(configEndpoint);
-  globalConfig.setEmail(answers.email);
-
-  // Use legacy client for login to extract cookies from response
-  const legacyClient = createLegacyConsoleClient(configEndpoint);
-
-  const client = await sdkForConsole({ requiresAuth: false });
-  let accountClient = new Account(client);
-
-  let account;
-
-  try {
-    await legacyClient.call(
-      "POST",
-      "/account/sessions/email",
-      {
-        "content-type": "application/json",
-      },
-      {
-        email: answers.email,
-        password: answers.password,
-      },
-    );
-
-    const savedCookie = globalConfig.getCookie();
-
-    if (savedCookie) {
-      legacyClient.setCookie(savedCookie);
-      client.setCookie(savedCookie);
-    }
-
-    accountClient = new Account(client);
-    account = await accountClient.get();
-  } catch (err) {
-    if (isMfaRequiredError(err)) {
-      account = await completeMfaLogin({
-        client,
-        legacyClient,
-        mfa,
-        code,
-      });
-    } else {
-      globalConfig.removeSession(id);
-      globalConfig.setCurrentSession(oldCurrent);
-      if (
-        endpoint !== DEFAULT_ENDPOINT &&
-        (err.type === "user_invalid_credentials" ||
-          err.response === "user_invalid_credentials")
-      ) {
-        log("Use the --endpoint option for self-hosted instances");
-      }
-      throw err;
-    }
-  }
-
-  success("Successfully signed in as " + account.email);
-  hint(
-    "Next you can create or link to your project using 'appwrite init project'",
-  );
-};
+export { loginCommand };
 
 export const whoami = new Command("whoami")
   .description(commandDescriptions["whoami"])
   .action(
     actionRunner(async () => {
-      if (
-        globalConfig.getEndpoint() === "" ||
-        globalConfig.getCookie() === ""
-      ) {
+      if (globalConfig.getEndpoint() === "" || !hasAuthSession()) {
         error("No user is signed in. To sign in, run 'appwrite login'");
         return;
       }
@@ -450,17 +71,17 @@ export const register = new Command("register")
 
 export const login = new Command("login")
   .description(commandDescriptions["login"])
-  .option(`--email [email]`, `User email`)
-  .option(`--password [password]`, `User password`)
+  .option(`--email [email]`, `Email`)
+  .option(`--password [password]`, `Password`)
+  .option(
+    `--mfa [factor]`,
+    `Factor used for MFA. Must be one of: email, phone, totp, recoveryCode`,
+  )
+  .option(`--code [code]`, `Code used for MFA`)
   .option(
     `--endpoint [endpoint]`,
     `Appwrite endpoint for self hosted instances`,
   )
-  .option(
-    `--mfa [factor]`,
-    `Multi-factor authentication login factor: totp, email, phone or recoveryCode`,
-  )
-  .option(`--code [code]`, `Multi-factor code`)
   .option(`--switch`, `Switch to another signed-in account`)
   .option(`--new`, `Sign in to another account`)
   .configureHelp({
@@ -484,16 +105,17 @@ export const logout = new Command("logout")
         return;
       }
       if (sessions.length === 1) {
-        // Try to delete from server, then remove locally
-        const serverDeleted = await deleteServerSession(current);
-        // Remove all local sessions with the same email+endpoint
-        const allSessionIds = globalConfig.getSessionIds();
-        for (const sessId of allSessionIds) {
-          deleteLocalSession(sessId);
-        }
-        globalConfig.setCurrentSession("");
-        if (!serverDeleted) {
-          hint("Could not reach server, removed local session data");
+        const { failed, failedIds } = await logoutSessions(
+          planSessionLogout([current]),
+        );
+
+        if (failed > 0) {
+          restoreCurrentSessionFallback(originalCurrent, failedIds);
+          hint(
+            "Could not reach server for all sessions; kept local session data",
+          );
+        } else {
+          globalConfig.setCurrentSession("");
         }
         success("Logged out successfully");
 
@@ -503,17 +125,14 @@ export const logout = new Command("logout")
       const answers = await inquirer.prompt(questionsLogout);
 
       if (answers.accounts?.length) {
-        const { serverTargets, localTargets } = planSessionLogout(
-          answers.accounts as string[],
+        const { failed } = await logoutSessions(
+          planSessionLogout(answers.accounts as string[]),
         );
 
-        for (const sessionId of serverTargets) {
-          globalConfig.setCurrentSession(sessionId);
-          await deleteServerSession(sessionId);
-        }
-
-        for (const sessionId of localTargets) {
-          deleteLocalSession(sessionId);
+        if (failed > 0) {
+          hint(
+            "Could not reach server for all sessions; kept local session data",
+          );
         }
       }
 
@@ -600,21 +219,14 @@ export const client = new Command("client")
                 ? "********"
                 : "";
           const project = localConfig.getProject();
-          const cookie = globalConfig.getCookie();
-          let maskedCookie = "";
-          if (cookie) {
-            const [cookieName, cookieValueAndRest = ""] = cookie.split("=", 2);
-            const cookieValue = cookieValueAndRest.split(";")[0] ?? "";
-            const tail =
-              cookieValue.length > 8
-                ? cookieValue.slice(-8)
-                : cookieValue || "********";
-            maskedCookie = `${cookieName}=...${tail}`;
-          }
+          const accessToken = globalConfig.getAccessToken();
+          const maskedAccessToken = accessToken
+            ? `${accessToken.slice(0, 8)}...${accessToken.slice(-8)}`
+            : "";
           const config = {
             endpoint: globalConfig.getEndpoint(),
             key: maskedKey,
-            cookie: maskedCookie,
+            accessToken: maskedAccessToken,
             selfSigned: globalConfig.getSelfSigned(),
             projectId: project.projectId ?? "",
             projectName: project.projectName ?? "",
@@ -675,18 +287,19 @@ export const client = new Command("client")
         }
 
         if (reset !== undefined) {
-          const sessions = globalConfig.getSessions();
+          const originalCurrent = globalConfig.getCurrentSession();
+          const { failed, failedIds } = await logoutSessions(
+            globalConfig.getSessionIds(),
+          );
 
-          for (const sessionId of sessions.map((session) => session.id)) {
-            globalConfig.setCurrentSession(sessionId);
-            await deleteServerSession(sessionId);
+          if (failed > 0) {
+            restoreCurrentSessionFallback(originalCurrent, failedIds);
+            hint(
+              "Could not reach server for all sessions; kept local session data",
+            );
+          } else {
+            globalConfig.setCurrentSession("");
           }
-
-          for (const sessionId of globalConfig.getSessionIds()) {
-            deleteLocalSession(sessionId);
-          }
-
-          globalConfig.setCurrentSession("");
         }
 
         if (!debug) {
