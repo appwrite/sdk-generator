@@ -29,7 +29,7 @@ export const DEFAULT_ENDPOINT = "https://cloud.appwrite.io/v1";
 
 // OAuth2
 export const OAUTH2_CLIENT_ID = "appwrite-cli";
-export const OAUTH2_SCOPES = "openid email profile";
+export const OAUTH2_SCOPES = "openid email profile account.admin";
 
 // Config resources
 export const CONFIG_RESOURCE_KEYS = [
