@@ -821,7 +821,10 @@ export function systemHasCommand(command: string): boolean {
   return true;
 }
 
-export function openBrowser(url: string): boolean {
+// Best-effort, fire-and-forget: spawn reports a missing/failed opener via an
+// async `error` event (not a throw), so there's no reliable success value to
+// return — failures just mean the user opens the printed URL manually.
+export function openBrowser(url: string): void {
   let command: string;
   let args: string[];
 
@@ -849,9 +852,8 @@ export function openBrowser(url: string): boolean {
     });
     child.on("error", () => {});
     child.unref();
-    return true;
   } catch {
-    return false;
+    // Ignore synchronous spawn failures; opening the browser is best-effort.
   }
 }
 

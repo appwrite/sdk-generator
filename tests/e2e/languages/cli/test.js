@@ -1037,18 +1037,21 @@ async function runAuthChecks() {
   await authCheck("open-browser", () => {
     const childProcess = require("child_process");
     const originalSpawn = childProcess.spawn;
+    const url = "https://cloud.appwrite.io/device";
     try {
       let captured = null;
+      let errorHandler = null;
       childProcess.spawn = (command, args) => {
         captured = { command, args };
-        return { on() {}, unref() {} };
+        return {
+          on(event, cb) {
+            if (event === "error") errorHandler = cb;
+          },
+          unref() {},
+        };
       };
-      assert.equal(openBrowser("https://cloud.appwrite.io/device"), true);
+      openBrowser(url);
       assert.ok(captured, "expected openBrowser to spawn an open command");
-      assert.ok(
-        captured.args.includes("https://cloud.appwrite.io/device"),
-        "expected the verification URL to be passed to the open command",
-      );
       const expectedCommand =
         process.platform === "win32"
           ? "cmd"
@@ -1056,11 +1059,22 @@ async function runAuthChecks() {
             ? "open"
             : "xdg-open";
       assert.equal(captured.command, expectedCommand);
+      // win32 quotes the URL arg, so match by substring rather than equality.
+      assert.ok(
+        captured.args.some((arg) => arg.includes(url)),
+        "expected the verification URL to be passed to the open command",
+      );
 
+      // A missing opener (e.g. no xdg-open) surfaces as an async 'error' event;
+      // it must be swallowed, not crash the process.
+      assert.equal(typeof errorHandler, "function");
+      assert.doesNotThrow(() => errorHandler(new Error("spawn ENOENT")));
+
+      // A synchronous spawn failure must also not propagate.
       childProcess.spawn = () => {
         throw new Error("spawn ENOENT");
       };
-      assert.equal(openBrowser("https://cloud.appwrite.io/device"), false);
+      assert.doesNotThrow(() => openBrowser(url));
     } finally {
       childProcess.spawn = originalSpawn;
     }
