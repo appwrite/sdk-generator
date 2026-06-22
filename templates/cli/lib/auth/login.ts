@@ -94,13 +94,17 @@ const listenForBrowserOpen = (
     stdin.pause();
   };
 
+  // Open the browser at most once; keep listening afterwards so Ctrl+C still
+  // cancels cleanly even after the user has opened the URL.
+  let opened = false;
   const onData = (data: Buffer): void => {
     if (data.includes(0x03) || data.includes(0x04)) {
       cleanup();
       onCancel();
       return;
     }
-    if (data.includes(0x0d) || data.includes(0x0a)) {
+    if (!opened && (data.includes(0x0d) || data.includes(0x0a))) {
+      opened = true;
       openBrowser(url);
     }
   };

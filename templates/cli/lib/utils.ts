@@ -828,7 +828,9 @@ export function openBrowser(url: string): boolean {
   switch (process.platform) {
     case "win32":
       command = "cmd";
-      args = ["/c", "start", "", url]; // "" is the window-title arg for start
+      // "" is start's window-title arg; quoting the URL stops cmd from
+      // splitting it on `&` (and running the remainder as a command).
+      args = ["/c", "start", "", `"${url}"`];
       break;
     case "darwin":
       command = "open";
