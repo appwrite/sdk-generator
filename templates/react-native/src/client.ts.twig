@@ -258,7 +258,7 @@ class Client {
      * Set {{header.key | caseUcfirst}}
      *
 {% if header.description %}
-{{header.description|comment2}}
+{{ header.description | wrap(75, '     * ') }}
      *
 {% endif %}
      * @param value string

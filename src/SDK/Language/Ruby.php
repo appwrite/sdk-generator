@@ -386,13 +386,6 @@ class Ruby extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('rubyComment', function ($value): string {
-                $value = explode("\n", $value);
-                foreach ($value as $key => $line) {
-                    $value[$key] = "        # " . wordwrap($line, 75, "\n        # ");
-                }
-                return implode("\n", $value);
-            }, ['is_safe' => ['html']]),
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
             new TwigFilter('enumExample', function (array $param): string {
                 $enumValues = $param['enumValues'] ?? [];

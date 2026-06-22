@@ -11,7 +11,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     {%~ for method in service.methods %}
     ///
     {%~ if method.description %}
-    {{~ method.description | swiftComment }}
+    {{~ method.description | wrap(75, '    /// ') }}
     ///
     {%~ endif %}
     {%~ if method.parameters.all | length > 0 %}
@@ -106,7 +106,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
 
     ///
     {%~ if method.description %}
-    {{~ method.description | swiftComment }}
+    {{~ method.description | wrap(75, '    /// ') }}
     ///
     {%~ endif %}
     {%~ if method.parameters.all | length > 0 %}

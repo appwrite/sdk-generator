@@ -498,13 +498,6 @@ class DotNet extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('dotnetComment', function ($value): string {
-                $value = explode("\n", $value);
-                foreach ($value as $key => $line) {
-                    $value[$key] = "        /// " . wordwrap($line, 75, "\n        /// ");
-                }
-                return implode("\n", $value);
-            }, ['is_safe' => ['html']]),
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
             new TwigFilter('overrideProperty', fn(string $property, string $class) => $this->getPropertyOverrides()[$class][$property] ?? $property),
             new TwigFilter('propertyType', fn(array $property, array $spec = []): string => $this->getPropertyType($property, $spec)),

@@ -64,7 +64,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% set generics_return = _self.get_generics_return(spec.definitions[method.responseModel], spec) %}
     /**
 {% if method.description %}
-{{ method.description|comment1 }}
+{{ method.description | wrap(75, '     * ') }}
      *
 {% endif %}
 {% for parameter in method.parameters.all%}

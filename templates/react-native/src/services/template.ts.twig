@@ -347,7 +347,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
     /**
 {% if method.description %}
-{{ method.description|comment2 }}
+{{ method.description | wrap(75, '     * ') }}
 {% endif %}
      *
 {% for parameter in method.parameters.all %}
