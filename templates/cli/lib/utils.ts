@@ -821,6 +821,42 @@ export function systemHasCommand(command: string): boolean {
   return true;
 }
 
+// Best-effort, fire-and-forget: spawn reports a missing/failed opener via an
+// async `error` event (not a throw), so there's no reliable success value to
+// return — failures just mean the user opens the printed URL manually.
+export function openBrowser(url: string): void {
+  let command: string;
+  let args: string[];
+
+  switch (process.platform) {
+    case "win32":
+      command = "cmd";
+      // "" is start's window-title arg; quoting the URL stops cmd from
+      // splitting it on `&` (and running the remainder as a command).
+      args = ["/c", "start", "", `"${url}"`];
+      break;
+    case "darwin":
+      command = "open";
+      args = [url];
+      break;
+    default:
+      command = "xdg-open";
+      args = [url];
+      break;
+  }
+
+  try {
+    const child = childProcess.spawn(command, args, {
+      stdio: "ignore",
+      detached: true,
+    });
+    child.on("error", () => {});
+    child.unref();
+  } catch {
+    // Ignore synchronous spawn failures; opening the browser is best-effort.
+  }
+}
+
 type DeployLocalConfig = {
   keys: () => string[];
 };

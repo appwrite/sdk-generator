@@ -8,7 +8,11 @@ import {
   OAUTH2_SCOPES,
 } from "../constants.js";
 import { success, hint, warn, log } from "../parser.js";
-import { isCloudLoginEndpoint, isRegionalCloudEndpoint } from "../utils.js";
+import {
+  isCloudLoginEndpoint,
+  isRegionalCloudEndpoint,
+  openBrowser,
+} from "../utils.js";
 import { isFlagEnabled } from "../flags.js";
 import ID from "../id.js";
 import {
@@ -65,6 +69,49 @@ const startWaitingForApprovalSpinner = (): (() => void) => {
     clearInterval(interval);
     process.stdout.write("\r\x1b[K");
   };
+};
+
+const listenForBrowserOpen = (
+  url: string,
+  onCancel: () => void,
+): (() => void) => {
+  const stdin = process.stdin;
+  if (!stdin.isTTY) {
+    return () => {};
+  }
+
+  // Raw mode so keypresses aren't echoed onto the spinner line; the trade-off
+  // is that the terminal no longer turns Ctrl+C/Ctrl+D into a signal for us.
+  const wasRaw = stdin.isRaw;
+  stdin.setRawMode(true);
+  stdin.resume();
+
+  const cleanup = (): void => {
+    stdin.off("data", onData);
+    if (!wasRaw) {
+      stdin.setRawMode(false);
+    }
+    stdin.pause();
+  };
+
+  // Open the browser at most once; keep listening afterwards so Ctrl+C still
+  // cancels cleanly even after the user has opened the URL.
+  let opened = false;
+  const onData = (data: Buffer): void => {
+    if (data.includes(0x03) || data.includes(0x04)) {
+      cleanup();
+      onCancel();
+      return;
+    }
+    if (!opened && (data.includes(0x0d) || data.includes(0x0a))) {
+      opened = true;
+      openBrowser(url);
+    }
+  };
+
+  stdin.on("data", onData);
+
+  return cleanup;
 };
 
 export const getCurrentAccount = async (): Promise<Models.User | null> => {
@@ -299,11 +346,24 @@ const loginWithOAuthDevice = async ({
   process.stdout.write(
     "\nTo sign in, confirm the code below in your browser:\n\n" +
       `  Code: ${deviceAuth.user_code}\n` +
-      `  URL:  ${verificationUri}\n\n`,
+      `  URL:  ${verificationUri}\n\n` +
+      (process.stdin.isTTY
+        ? "Press Enter to open this URL in your browser.\n\n"
+        : ""),
   );
 
   let token: Models.Oauth2Token | null = null;
   const stopWaitingForApprovalSpinner = startWaitingForApprovalSpinner();
+  const stopListeningForBrowserOpen = listenForBrowserOpen(
+    verificationUri,
+    () => {
+      stopWaitingForApprovalSpinner();
+      globalConfig.removeSession(id);
+      globalConfig.setCurrentSession(oldCurrent);
+      log("Login cancelled.");
+      process.exit(130);
+    },
+  );
 
   try {
     token = await pollForDeviceToken(oauth2, deviceAuth, clientId);
@@ -313,6 +373,7 @@ const loginWithOAuthDevice = async ({
     throw err;
   } finally {
     stopWaitingForApprovalSpinner();
+    stopListeningForBrowserOpen();
   }
 
   if (!token || !token.access_token) {
