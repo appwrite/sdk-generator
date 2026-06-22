@@ -821,6 +821,38 @@ export function systemHasCommand(command: string): boolean {
   return true;
 }
 
+export function openBrowser(url: string): boolean {
+  let command: string;
+  let args: string[];
+
+  switch (process.platform) {
+    case "win32":
+      command = "cmd";
+      args = ["/c", "start", "", url]; // "" is the window-title arg for start
+      break;
+    case "darwin":
+      command = "open";
+      args = [url];
+      break;
+    default:
+      command = "xdg-open";
+      args = [url];
+      break;
+  }
+
+  try {
+    const child = childProcess.spawn(command, args, {
+      stdio: "ignore",
+      detached: true,
+    });
+    child.on("error", () => {});
+    child.unref();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 type DeployLocalConfig = {
   keys: () => string[];
 };

@@ -41,6 +41,7 @@ const {
   isLocalhostHostname,
   isCloudLoginEndpoint,
   getConsoleProjectSlug,
+  openBrowser,
 } = require("./lib/utils.ts");
 const { isFlagEnabled } = require("./lib/flags.ts");
 const {
@@ -1030,6 +1031,38 @@ async function runAuthChecks() {
     } finally {
       if (prev === undefined) delete process.env.APPWRITE_CLI_OAUTH_LOGIN;
       else process.env.APPWRITE_CLI_OAUTH_LOGIN = prev;
+    }
+  });
+
+  await authCheck("open-browser", () => {
+    const childProcess = require("child_process");
+    const originalSpawn = childProcess.spawn;
+    try {
+      let captured = null;
+      childProcess.spawn = (command, args) => {
+        captured = { command, args };
+        return { on() {}, unref() {} };
+      };
+      assert.equal(openBrowser("https://cloud.appwrite.io/device"), true);
+      assert.ok(captured, "expected openBrowser to spawn an open command");
+      assert.ok(
+        captured.args.includes("https://cloud.appwrite.io/device"),
+        "expected the verification URL to be passed to the open command",
+      );
+      const expectedCommand =
+        process.platform === "win32"
+          ? "cmd"
+          : process.platform === "darwin"
+            ? "open"
+            : "xdg-open";
+      assert.equal(captured.command, expectedCommand);
+
+      childProcess.spawn = () => {
+        throw new Error("spawn ENOENT");
+      };
+      assert.equal(openBrowser("https://cloud.appwrite.io/device"), false);
+    } finally {
+      childProcess.spawn = originalSpawn;
     }
   });
 
