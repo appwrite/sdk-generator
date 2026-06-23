@@ -260,6 +260,7 @@ abstract class Base extends TestCase
         'auth:session-legacy:passed',
         'auth:session-has-auth:passed',
         'auth:plan-session-logout:passed',
+        'auth:logout-question-choices:passed',
         'auth:restore-current-session-fallback:passed',
         'auth:poll-device-token-success:passed',
         'auth:poll-device-token-retry:passed',

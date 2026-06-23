@@ -49,6 +49,7 @@ const {
   globalConfig,
 } = require("./lib/config.ts");
 const { listenForBrowserOpen } = require("./lib/auth/login.ts");
+const { questionsLogout } = require("./lib/questions.ts");
 
 const extractFirstValue = (output) => {
   const firstLine =
@@ -900,6 +901,30 @@ async function runAuthChecks() {
     globalConfig.addSession("b1", { endpoint: "http://localhost/v1", email: "b@c.com" });
     assert.deepEqual([...planSessionLogout(["a1"])].sort(), ["a1", "a2"]);
     assert.deepEqual(planSessionLogout(["b1"]), ["b1"]);
+  });
+
+  await authCheck("logout-question-choices", () => {
+    globalConfig.clear();
+    globalConfig.addSession("a1", {
+      endpoint: "https://cloud.appwrite.io/v1",
+      email: "a@b.com",
+    });
+    globalConfig.addSession("b1", {
+      endpoint: "http://localhost/v1",
+      email: "b@c.com",
+    });
+    globalConfig.setCurrentSession("b1");
+
+    const choices = questionsLogout[0].choices().map((choice) => ({
+      ...choice,
+      name: stripAnsi(choice.name),
+    }));
+
+    assert.equal(choices[0].value, "b1");
+    assert.equal(choices[0].name, "b@c.com (current) - http://localhost/v1");
+    assert.equal(choices[0].short, "b@c.com (current)");
+    assert.equal(choices[1].name, "a@b.com - https://cloud.appwrite.io/v1");
+    assert.equal(choices[1].short, "a@b.com");
   });
 
   await authCheck("restore-current-session-fallback", () => {

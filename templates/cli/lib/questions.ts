@@ -910,7 +910,7 @@ export const questionsLogout: Question[] = [
   {
     type: "checkbox",
     name: "accounts",
-    message: "Select accounts to logout from",
+    message: "Select accounts to log out",
     validate: (value: any) => validateRequired("account", value),
     choices() {
       const sessions = globalConfig.getSessions();
@@ -918,18 +918,17 @@ export const questionsLogout: Question[] = [
 
       const data: Choice[] = [];
 
-      const longestEmail = sessions.reduce((prev: any, current: any) =>
-        prev && (prev.email ?? "").length > (current.email ?? "").length
-          ? prev
-          : current,
-      ).email.length;
-
       sessions.forEach((session: any) => {
         if (session.email) {
+          const isCurrent = current === session.id;
+          const currentLabel = isCurrent
+            ? ` ${chalk.green.bold("(current)")}`
+            : "";
           data.push({
-            current: current === session.id,
+            current: isCurrent,
             value: session.id,
-            name: `${session.email.padEnd(longestEmail)} ${current === session.id ? chalk.green.bold("current") : " ".repeat(6)} ${session.endpoint}`,
+            name: `${session.email}${currentLabel} - ${session.endpoint}`,
+            short: `${session.email}${isCurrent ? " (current)" : ""}`,
           });
         }
       });
