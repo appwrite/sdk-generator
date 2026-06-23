@@ -90,6 +90,7 @@ const listenForBrowserOpen = (
   if (shouldRestoreRawMode) {
     stdin.setRawMode?.(true);
   }
+  const shouldPause = stdin.isPaused();
   stdin.resume();
 
   const cleanup = (): void => {
@@ -97,7 +98,9 @@ const listenForBrowserOpen = (
     if (shouldRestoreRawMode) {
       stdin.setRawMode?.(false);
     }
-    stdin.pause();
+    if (shouldPause) {
+      stdin.pause();
+    }
   };
 
   // Open the browser at most once; keep listening afterwards so Ctrl+C still

@@ -168,11 +168,6 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
         fs.writeFileSync(destination, buffer);
         success(`File saved to ${destination}`);
       },
-{% elseif method.type == 'webAuth' %}
-      async ({{ actionParams }}) => {
-        const url = (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
-        if (url) console.log(url);
-      },
 {% elseif shouldCallOauth2ResourceDirectly %}
       async ({{ actionParams }}) => {
         const client = await get{{ service.name | caseUcfirst }}Client();
@@ -181,13 +176,13 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% for parameter in method.parameters.query %}
 {% set varName = getCliVarName(parameter) %}
         if (typeof {{ varName }} !== 'undefined') {
-          payload['{{ parameter.name }}'] = {{ varName }};
+          payload['{{ parameter.name }}'] = {{ getCliArgExpression(parameter) | raw }};
         }
 {% endfor %}
 {% for parameter in method.parameters.body %}
 {% set varName = getCliVarName(parameter) %}
         if (typeof {{ varName }} !== 'undefined') {
-          payload['{{ parameter.name }}'] = {{ varName }};
+          payload['{{ parameter.name }}'] = {{ getCliArgExpression(parameter) | raw }};
         }
 {% endfor %}
         const uri = new URL(client.client.config.endpoint + apiPath);
@@ -196,7 +191,22 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
           '{{ key }}': '{{ header }}',
 {% endfor %}
         };
+{% if method.type == 'webAuth' %}
+        const { uri: redirectUri, options } = client.client.prepareRequest('{{ method.method | caseLower }}', uri, apiHeaders, payload);
+        const response = await fetch(redirectUri, { ...options, redirect: "manual" });
+        if (response.status !== 301 && response.status !== 302) {
+          throw new Error(`Invalid redirect: ${response.status}`);
+        }
+        const url = response.headers.get("location") || "";
+        if (url) console.log(url);
+{% else %}
         parse(await client.client.call('{{ method.method | caseLower }}', uri, apiHeaders, payload));
+{% endif %}
+      },
+{% elseif method.type == 'webAuth' %}
+      async ({{ actionParams }}) => {
+        const url = (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
+        if (url) console.log(url);
       },
 {% elseif hasParams %}
       async ({{ actionParams }}) =>
