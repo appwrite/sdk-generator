@@ -19,6 +19,7 @@ import {
   SDK_TITLE,
   EXECUTABLE_NAME,
 } from "./constants.js";
+import { deleteStoredRefreshToken } from "./auth/refresh-token.js";
 
 class Client {
   private endpoint: string;
@@ -250,6 +251,7 @@ class Client {
 
         const current = globalConfig.getCurrentSession();
         globalConfig.setCurrentSession("");
+        deleteStoredRefreshToken(current);
         globalConfig.removeSession(current);
       }
 

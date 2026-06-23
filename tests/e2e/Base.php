@@ -257,6 +257,8 @@ abstract class Base extends TestCase
         'auth:authorization-pending-error:passed',
         'auth:session-account-key:passed',
         'auth:session-local-only:passed',
+        'auth:refresh-token-keyring-storage:passed',
+        'auth:refresh-token-prefs-fallback:passed',
         'auth:session-legacy:passed',
         'auth:session-has-auth:passed',
         'auth:plan-session-logout:passed',

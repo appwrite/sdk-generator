@@ -28,6 +28,13 @@ const {
 } = require("./lib/auth/oauth.ts");
 const { getValidAccessToken } = require("./lib/sdks.ts");
 const {
+  deleteStoredRefreshToken,
+  getStoredRefreshToken,
+  hasStoredRefreshToken,
+  setRefreshTokenEntryFactoryForTests,
+  setStoredRefreshToken,
+} = require("./lib/auth/refresh-token.ts");
+const {
   planSessionLogout,
   isLocalOnlySession,
   isLegacySession,
@@ -724,6 +731,21 @@ void (async () => {
 
 async function runAuthChecks() {
   const { AppwriteException } = await import("@appwrite.io/console");
+  const keyringTokens = new Map();
+  const previousNodeEnv = process.env.NODE_ENV;
+
+  process.env.NODE_ENV = "test";
+  const restoreKeyringEntryFactory = setRefreshTokenEntryFactoryForTests((_service, account) => ({
+    setPassword(password) {
+      keyringTokens.set(account, password);
+    },
+    getPassword() {
+      return keyringTokens.get(account) ?? null;
+    },
+    deletePassword() {
+      return keyringTokens.delete(account);
+    },
+  }));
 
   const authCheck = async (name, fn) => {
     try {
@@ -857,12 +879,56 @@ async function runAuthChecks() {
 
   await authCheck("session-local-only", () => {
     globalConfig.clear();
+    keyringTokens.clear();
     globalConfig.addSession("local1", { endpoint: "http://localhost/v1" });
     assert.equal(isLocalOnlySession("local1"), true);
-    globalConfig.addSession("oauth1", { endpoint: "http://localhost/v1", refreshToken: "r" });
+    globalConfig.addSession("oauth1", { endpoint: "http://localhost/v1" });
+    setStoredRefreshToken("oauth1", "r");
     assert.equal(isLocalOnlySession("oauth1"), false);
     globalConfig.addSession("legacy1", { endpoint: "http://localhost/v1", cookie: "c" });
     assert.equal(isLocalOnlySession("legacy1"), false);
+  });
+
+  await authCheck("refresh-token-keyring-storage", () => {
+    globalConfig.clear();
+    keyringTokens.clear();
+    globalConfig.addSession("oauth1", { endpoint: "http://localhost/v1" });
+    globalConfig.setCurrentSession("oauth1");
+
+    setStoredRefreshToken("oauth1", "refresh-secret");
+
+    assert.equal(globalConfig.get("oauth1").refreshToken, undefined);
+    assert.equal(getStoredRefreshToken("oauth1"), "refresh-secret");
+    assert.equal(hasStoredRefreshToken("oauth1"), true);
+
+    deleteStoredRefreshToken("oauth1");
+
+    assert.equal(getStoredRefreshToken("oauth1"), "");
+    assert.equal(hasStoredRefreshToken("oauth1"), false);
+  });
+
+  await authCheck("refresh-token-prefs-fallback", () => {
+    globalConfig.clear();
+    keyringTokens.clear();
+    globalConfig.addSession("fallback1", { endpoint: "http://localhost/v1" });
+
+    const restore = setRefreshTokenEntryFactoryForTests(() => {
+      throw new Error("keyring unavailable");
+    });
+    try {
+      setStoredRefreshToken("fallback1", "fallback-secret");
+      assert.equal(globalConfig.get("fallback1").refreshToken, "fallback-secret");
+      assert.equal(getStoredRefreshToken("fallback1"), "fallback-secret");
+    } finally {
+      restore();
+    }
+
+    assert.equal(getStoredRefreshToken("fallback1"), "fallback-secret");
+    assert.equal(hasStoredRefreshToken("fallback1"), true);
+    assert.equal(isLocalOnlySession("fallback1"), false);
+
+    deleteStoredRefreshToken("fallback1");
+    assert.equal(globalConfig.get("fallback1").refreshToken, undefined);
   });
 
   await authCheck("session-legacy", () => {
@@ -1160,4 +1226,7 @@ async function runAuthChecks() {
   });
 
   globalConfig.clear();
+  restoreKeyringEntryFactory();
+  if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+  else process.env.NODE_ENV = previousNodeEnv;
 }
