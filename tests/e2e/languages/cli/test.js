@@ -48,6 +48,7 @@ const {
   normalizeCloudConsoleEndpoint,
   globalConfig,
 } = require("./lib/config.ts");
+const { listenForBrowserOpen } = require("./lib/auth/login.ts");
 
 const extractFirstValue = (output) => {
   const firstLine =
@@ -1075,6 +1076,59 @@ async function runAuthChecks() {
         throw new Error("spawn ENOENT");
       };
       assert.doesNotThrow(() => openBrowser(url));
+
+      const listeners = new Map();
+      const stdin = process.stdin;
+      const originalIsTTY = stdin.isTTY;
+      const originalIsRaw = stdin.isRaw;
+      const originalSetRawMode = stdin.setRawMode;
+      const originalResume = stdin.resume;
+      const originalPause = stdin.pause;
+      const originalOn = stdin.on;
+      const originalOff = stdin.off;
+      let paused = false;
+
+      try {
+        stdin.isTTY = true;
+        stdin.isRaw = false;
+        stdin.setRawMode = (mode) => {
+          stdin.isRaw = mode;
+          return stdin;
+        };
+        stdin.resume = () => {
+          paused = false;
+          return stdin;
+        };
+        stdin.pause = () => {
+          paused = true;
+          return stdin;
+        };
+        stdin.on = (event, listener) => {
+          listeners.set(event, listener);
+          return stdin;
+        };
+        stdin.off = (event, listener) => {
+          if (listeners.get(event) === listener) {
+            listeners.delete(event);
+          }
+          return stdin;
+        };
+
+        const cleanup = listenForBrowserOpen(url, () => {});
+        cleanup();
+
+        assert.equal(paused, true);
+        assert.equal(stdin.isRaw, false);
+        assert.equal(listeners.has("data"), false);
+      } finally {
+        stdin.isTTY = originalIsTTY;
+        stdin.isRaw = originalIsRaw;
+        stdin.setRawMode = originalSetRawMode;
+        stdin.resume = originalResume;
+        stdin.pause = originalPause;
+        stdin.on = originalOn;
+        stdin.off = originalOff;
+      }
     } finally {
       childProcess.spawn = originalSpawn;
     }
