@@ -75,20 +75,29 @@ const listenForBrowserOpen = (
   url: string,
   onCancel: () => void,
 ): (() => void) => {
-  const stdin = process.stdin;
+  const stdin = process.stdin as NodeJS.ReadStream & {
+    isRaw?: boolean;
+    setRawMode?: (mode: boolean) => void;
+  };
   if (!stdin.isTTY) {
+    return () => {};
+  }
+
+  if (typeof stdin.setRawMode !== "function") {
     return () => {};
   }
 
   // Raw mode so keypresses aren't echoed onto the spinner line; the trade-off
   // is that the terminal no longer turns Ctrl+C/Ctrl+D into a signal for us.
-  const wasRaw = stdin.isRaw;
-  stdin.setRawMode(true);
+  const shouldRestoreRawMode = stdin.isRaw !== true;
+  if (shouldRestoreRawMode) {
+    stdin.setRawMode(true);
+  }
   stdin.resume();
 
   const cleanup = (): void => {
     stdin.off("data", onData);
-    if (!wasRaw) {
+    if (shouldRestoreRawMode) {
       stdin.setRawMode(false);
     }
     stdin.pause();
