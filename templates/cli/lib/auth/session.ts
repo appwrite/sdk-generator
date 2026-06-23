@@ -3,6 +3,11 @@ import type { SessionData } from "../types.js";
 import ClientLegacy from "../client.js";
 import { OAUTH2_CLIENT_ID } from "../constants.js";
 import { revokeRefreshToken } from "./oauth.js";
+import {
+  deleteStoredRefreshToken,
+  getStoredRefreshToken,
+  hasStoredRefreshToken,
+} from "./refresh-token.js";
 
 /**
  * Typed accessor for a stored session, avoiding repeated inline casts.
@@ -32,7 +37,7 @@ export const hasAuthSession = (): boolean =>
  */
 export const isLocalOnlySession = (sessionId: string): boolean => {
   const session = getSession(sessionId);
-  return Boolean(session && !session.refreshToken && !session.cookie);
+  return Boolean(session && !hasStoredRefreshToken(sessionId) && !session.cookie);
 };
 
 /**
@@ -72,6 +77,7 @@ export const restoreCurrentSessionFallback = (
 export const removeCurrentSession = (): void => {
   const current = globalConfig.getCurrentSession();
   globalConfig.setCurrentSession("");
+  deleteStoredRefreshToken(current);
   globalConfig.removeSession(current);
 };
 
@@ -89,10 +95,11 @@ export const deleteServerSession = async (
   }
 
   try {
-    if (session.refreshToken) {
+    const refreshToken = getStoredRefreshToken(sessionId);
+    if (refreshToken) {
       await revokeRefreshToken(
         session.endpoint,
-        session.refreshToken,
+        refreshToken,
         session.clientId || OAUTH2_CLIENT_ID,
       );
       return { deleted: true };
@@ -136,6 +143,7 @@ export const logoutSessions = async (
 
   for (const sessionId of sessionIds) {
     if (isLocalOnlySession(sessionId)) {
+      deleteStoredRefreshToken(sessionId);
       globalConfig.removeSession(sessionId);
       continue;
     }
@@ -143,6 +151,7 @@ export const logoutSessions = async (
     globalConfig.setCurrentSession(sessionId);
     const result = await deleteServerSession(sessionId);
     if (result.deleted) {
+      deleteStoredRefreshToken(sessionId);
       globalConfig.removeSession(sessionId);
     } else {
       failed++;
@@ -169,6 +178,7 @@ export const removeLegacySessionsExcept = async (
 
     const result = await deleteServerSession(sessionId);
     if (result.deleted) {
+      deleteStoredRefreshToken(sessionId);
       globalConfig.removeSession(sessionId);
       removed++;
     } else {

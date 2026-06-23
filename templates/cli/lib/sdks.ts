@@ -15,18 +15,26 @@ import {
 import { warn } from "./parser.js";
 import { isCloudHostname } from "./utils.js";
 import { isFlagEnabled } from "./flags.js";
+import {
+  getStoredRefreshToken,
+  setStoredRefreshToken,
+} from "./auth/refresh-token.js";
 
 export const getValidAccessToken = async (
   endpoint: string,
 ): Promise<string> => {
   const accessToken = globalConfig.getAccessToken();
-  const refreshToken = globalConfig.getRefreshToken();
   const tokenExpiry = globalConfig.getTokenExpiry();
   const clientId = globalConfig.getClientId() || OAUTH2_CLIENT_ID;
+  const currentSession = globalConfig.getCurrentSession();
 
   if (accessToken && tokenExpiry > Date.now() + 60_000) {
     return accessToken;
   }
+
+  const refreshToken = currentSession
+    ? getStoredRefreshToken(currentSession)
+    : "";
 
   if (accessToken && tokenExpiry === 0 && !refreshToken) {
     return accessToken;
@@ -52,7 +60,7 @@ export const getValidAccessToken = async (
   const newExpiry = Date.now() + token.expires_in * 1000;
   globalConfig.setAccessToken(token.access_token);
   if (token.refresh_token) {
-    globalConfig.setRefreshToken(token.refresh_token);
+    setStoredRefreshToken(currentSession, token.refresh_token);
   }
   globalConfig.setTokenExpiry(newExpiry);
 

@@ -32,6 +32,7 @@ import {
   restoreCurrentSession,
   deleteServerSession,
 } from "./session.js";
+import { setStoredRefreshToken } from "./refresh-token.js";
 
 const DEFAULT_ENDPOINT = "https://cloud.appwrite.io/v1";
 
@@ -390,7 +391,7 @@ const loginWithOAuthDevice = async ({
 
   const tokenExpiry = Date.now() + token.expires_in * 1000;
   globalConfig.setAccessToken(token.access_token);
-  globalConfig.setRefreshToken(token.refresh_token || "");
+  setStoredRefreshToken(id, token.refresh_token || "");
   globalConfig.setTokenExpiry(tokenExpiry);
 
   let tokenEmail = "";

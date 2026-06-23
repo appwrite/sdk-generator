@@ -468,6 +468,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/auth/refresh-token.ts',
+                'template'      => 'cli/lib/auth/refresh-token.ts',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/auth/session.ts',
                 'template'      => 'cli/lib/auth/session.ts',
             ],
