@@ -94,6 +94,7 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% set seenCommands = seenCommands|merge([commandName]) %}
 {% set commandVar = service.name | caseCamel ~ method.name | caseUcfirst ~ 'Command' %}
 {% set query = method | cliQueryConfig %}
+{% set shouldCallOauth2ResourceDirectly = service.name == 'oauth2' and hasCliParam(method, 'resource') %}
 const {{ commandVar }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`)
   .description(`{{ method.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
@@ -171,6 +172,31 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
       async ({{ actionParams }}) => {
         const url = (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
         if (url) console.log(url);
+      },
+{% elseif shouldCallOauth2ResourceDirectly %}
+      async ({{ actionParams }}) => {
+        const client = await get{{ service.name | caseUcfirst }}Client();
+        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', encodeURIComponent(String({% if parameter.source|default('') == 'security' %}client.client.config.{{ parameter.config | caseLower }}{% else %}{{ getCliVarName(parameter) }}{% endif %}))){% endfor %};
+        const payload: Record<string, unknown> = {};
+{% for parameter in method.parameters.query %}
+{% set varName = getCliVarName(parameter) %}
+        if (typeof {{ varName }} !== 'undefined') {
+          payload['{{ parameter.name }}'] = {{ varName }};
+        }
+{% endfor %}
+{% for parameter in method.parameters.body %}
+{% set varName = getCliVarName(parameter) %}
+        if (typeof {{ varName }} !== 'undefined') {
+          payload['{{ parameter.name }}'] = {{ varName }};
+        }
+{% endfor %}
+        const uri = new URL(client.client.config.endpoint + apiPath);
+        const apiHeaders: { [header: string]: string } = {
+{% for key, header in method.headers %}
+          '{{ key }}': '{{ header }}',
+{% endfor %}
+        };
+        parse(await client.client.call('{{ method.method | caseLower }}', uri, apiHeaders, payload));
       },
 {% elseif hasParams %}
       async ({{ actionParams }}) =>

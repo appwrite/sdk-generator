@@ -920,6 +920,19 @@ class CLI extends Node
             }),
 
             /**
+             * Check whether a generated method contains a parameter by raw spec name.
+             */
+            new TwigFunction('hasCliParam', function (array $method, string $name): bool {
+                foreach ($method['parameters']['all'] ?? [] as $parameter) {
+                    if (($parameter['name'] ?? null) === $name) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }),
+
+            /**
              * Get CLI argument expression for a parameter when calling the SDK method.
              * Handles JSON parsing for objects, or plain variable.
              */
