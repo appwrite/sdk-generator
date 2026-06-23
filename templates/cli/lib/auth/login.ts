@@ -71,7 +71,7 @@ const startWaitingForApprovalSpinner = (): (() => void) => {
   };
 };
 
-const listenForBrowserOpen = (
+export const listenForBrowserOpen = (
   url: string,
   onCancel: () => void,
 ): (() => void) => {
@@ -90,7 +90,6 @@ const listenForBrowserOpen = (
   if (shouldRestoreRawMode) {
     stdin.setRawMode?.(true);
   }
-  const shouldPause = stdin.isPaused();
   stdin.resume();
 
   const cleanup = (): void => {
@@ -98,9 +97,7 @@ const listenForBrowserOpen = (
     if (shouldRestoreRawMode) {
       stdin.setRawMode?.(false);
     }
-    if (shouldPause) {
-      stdin.pause();
-    }
+    stdin.pause();
   };
 
   // Open the browser at most once; keep listening afterwards so Ctrl+C still
