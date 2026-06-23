@@ -1210,6 +1210,7 @@ class Global extends Config<GlobalConfigData> {
   static PREFERENCE_REFRESH_TOKEN = "refreshToken" as const;
   static PREFERENCE_TOKEN_EXPIRY = "tokenExpiry" as const;
   static PREFERENCE_CLIENT_ID = "clientId" as const;
+  static PREFERENCE_TOKEN_STORAGE = "tokenStorage" as const;
 
   static IGNORE_ATTRIBUTES: readonly string[] = [
     Global.PREFERENCE_CURRENT,
@@ -1224,6 +1225,7 @@ class Global extends Config<GlobalConfigData> {
     Global.PREFERENCE_REFRESH_TOKEN,
     Global.PREFERENCE_TOKEN_EXPIRY,
     Global.PREFERENCE_CLIENT_ID,
+    Global.PREFERENCE_TOKEN_STORAGE,
   ];
 
   static MODE_ADMIN = "admin";
@@ -1375,7 +1377,15 @@ class Global extends Config<GlobalConfigData> {
   }
 
   setAccessToken(accessToken: string): void {
+    if (accessToken === "") {
+      this.removeAccessToken();
+      return;
+    }
     this.setTo(Global.PREFERENCE_ACCESS_TOKEN, accessToken);
+  }
+
+  removeAccessToken(): void {
+    this.deleteFrom(Global.PREFERENCE_ACCESS_TOKEN);
   }
 
   getRefreshToken(): string {
@@ -1386,7 +1396,15 @@ class Global extends Config<GlobalConfigData> {
   }
 
   setRefreshToken(refreshToken: string): void {
+    if (refreshToken === "") {
+      this.removeRefreshToken();
+      return;
+    }
     this.setTo(Global.PREFERENCE_REFRESH_TOKEN, refreshToken);
+  }
+
+  removeRefreshToken(): void {
+    this.deleteFrom(Global.PREFERENCE_REFRESH_TOKEN);
   }
 
   getTokenExpiry(): number {
@@ -1409,6 +1427,21 @@ class Global extends Config<GlobalConfigData> {
 
   setClientId(clientId: string): void {
     this.setTo(Global.PREFERENCE_CLIENT_ID, clientId);
+  }
+
+  getTokenStorage(): SessionData["tokenStorage"] | "" {
+    if (!this.hasFrom(Global.PREFERENCE_TOKEN_STORAGE)) {
+      return "";
+    }
+    return this.getFrom(Global.PREFERENCE_TOKEN_STORAGE);
+  }
+
+  setTokenStorage(tokenStorage: SessionData["tokenStorage"] | ""): void {
+    if (tokenStorage === "") {
+      this.deleteFrom(Global.PREFERENCE_TOKEN_STORAGE);
+      return;
+    }
+    this.setTo(Global.PREFERENCE_TOKEN_STORAGE, tokenStorage);
   }
 
   hasFrom(key: string): boolean {
@@ -1439,6 +1472,17 @@ class Global extends Config<GlobalConfigData> {
       const config = this.get(current as any);
 
       (config as any)[key] = value;
+      this.write();
+    }
+  }
+
+  deleteFrom(key: string): void {
+    const current = this.getCurrentSession();
+
+    if (current) {
+      const config = this.get(current as any);
+
+      delete (config as any)[key];
       this.write();
     }
   }

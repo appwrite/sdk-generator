@@ -914,24 +914,26 @@ export const questionsLogout: Question[] = [
     validate: (value: any) => validateRequired("account", value),
     choices() {
       const sessions = globalConfig.getSessions();
+      const accountSessions = sessions.filter((session) => session.email);
       const current = globalConfig.getCurrentSession();
 
       const data: Choice[] = [];
+      if (!accountSessions.length) {
+        return data;
+      }
 
-      const longestEmail = sessions.reduce((prev: any, current: any) =>
+      const longestEmail = accountSessions.reduce((prev: any, current: any) =>
         prev && (prev.email ?? "").length > (current.email ?? "").length
           ? prev
           : current,
       ).email.length;
 
-      sessions.forEach((session: any) => {
-        if (session.email) {
-          data.push({
-            current: current === session.id,
-            value: session.id,
-            name: `${session.email.padEnd(longestEmail)} ${current === session.id ? chalk.green.bold("current") : " ".repeat(6)} ${session.endpoint}`,
-          });
-        }
+      accountSessions.forEach((session: any) => {
+        data.push({
+          current: current === session.id,
+          value: session.id,
+          name: `${session.email.padEnd(longestEmail)} ${current === session.id ? chalk.green.bold("current") : " ".repeat(6)} ${session.endpoint}`,
+        });
       });
 
       return data.sort((a, b) => Number(b.current) - Number(a.current));

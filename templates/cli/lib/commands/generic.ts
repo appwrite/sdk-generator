@@ -107,16 +107,31 @@ export const logout = new Command("logout")
   .action(
     actionRunner(async () => {
       const sessions = globalConfig.getSessions();
+      const accountSessions = sessions.filter((session) => session.email);
       const current = globalConfig.getCurrentSession();
       const originalCurrent = current;
 
-      if (current === "" || !sessions.length) {
+      if (!accountSessions.length && current !== "" && hasAuthSession()) {
+        const { failed, failedIds, errors } = await logoutSessions([current]);
+
+        if (failed > 0) {
+          restoreCurrentSessionFallback(originalCurrent, failedIds);
+          error(logMessages.logoutFailure(errors));
+          return;
+        }
+
+        globalConfig.setCurrentSession("");
+        success(logMessages.logoutSuccess);
+        return;
+      }
+
+      if (current === "" || !accountSessions.length) {
         log(logMessages.noActiveSessions);
         return;
       }
-      if (sessions.length === 1) {
+      if (accountSessions.length === 1) {
         const { failed, failedIds, errors } = await logoutSessions(
-          planSessionLogout([current]),
+          planSessionLogout([accountSessions[0].id]),
         );
 
         if (failed > 0) {
@@ -232,18 +247,34 @@ export const client = new Command("client")
                 ? "********"
                 : "";
           const project = localConfig.getProject();
-          const accessToken = globalConfig.getAccessToken();
-          const maskedAccessToken = accessToken
-            ? `${accessToken.slice(0, 8)}...${accessToken.slice(-8)}`
-            : "";
-          const config = {
-            endpoint: globalConfig.getEndpoint(),
-            key: maskedKey,
-            accessToken: maskedAccessToken,
-            selfSigned: globalConfig.getSelfSigned(),
-            projectId: project.projectId ?? "",
-            projectName: project.projectName ?? "",
+          globalConfig.removeAccessToken();
+          if (globalConfig.getTokenStorage() === "secureStore") {
+            globalConfig.removeRefreshToken();
+          }
+          const authEndpoint = globalConfig.getEndpoint();
+          const projectEndpoint = localConfig.getEndpoint();
+          const config: Record<string, unknown> = {
           };
+          if (!authEndpoint && !projectEndpoint && !key && !hasAuthSession()) {
+            config.status = "not configured";
+          }
+          if (project.projectId) {
+            config.projectId = project.projectId;
+          }
+          if (project.projectName) {
+            config.projectName = project.projectName;
+          }
+          if (projectEndpoint && projectEndpoint !== authEndpoint) {
+            config.regionalEndpoint = projectEndpoint;
+          }
+          config.endpoint = authEndpoint || "not set";
+          config.selfSigned = globalConfig.getSelfSigned();
+          if (key) {
+            config.key = maskedKey;
+          }
+          if (globalConfig.getTokenStorage()) {
+            config.tokenStorage = globalConfig.getTokenStorage();
+          }
           parse(config);
         }
 

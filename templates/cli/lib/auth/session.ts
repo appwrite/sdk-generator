@@ -3,6 +3,10 @@ import type { SessionData } from "../types.js";
 import ClientLegacy from "../client.js";
 import { OAUTH2_CLIENT_ID } from "../constants.js";
 import { revokeRefreshToken } from "./oauth.js";
+import {
+  deleteOAuthRefreshToken,
+  getOAuthRefreshToken,
+} from "./credential-store.js";
 
 /**
  * Typed accessor for a stored session, avoiding repeated inline casts.
@@ -24,7 +28,12 @@ export const createLegacyConsoleClient = (
 };
 
 export const hasAuthSession = (): boolean =>
-  globalConfig.getAccessToken() !== "" || globalConfig.getCookie() !== "";
+  globalConfig.getCookie() !== "" ||
+  Boolean(
+    getSession(globalConfig.getCurrentSession())?.refreshToken ||
+      getSession(globalConfig.getCurrentSession())?.tokenStorage ===
+        "secureStore",
+  );
 
 /**
  * A session that exists only in local config (no server-side credential to
@@ -32,7 +41,12 @@ export const hasAuthSession = (): boolean =>
  */
 export const isLocalOnlySession = (sessionId: string): boolean => {
   const session = getSession(sessionId);
-  return Boolean(session && !session.refreshToken && !session.cookie);
+  return Boolean(
+    session &&
+      !session.refreshToken &&
+      !session.cookie &&
+      session.tokenStorage !== "secureStore",
+  );
 };
 
 /**
@@ -40,7 +54,7 @@ export const isLocalOnlySession = (sessionId: string): boolean => {
  */
 export const isLegacySession = (sessionId: string): boolean => {
   const session = getSession(sessionId);
-  return Boolean(session?.cookie && !session?.accessToken);
+  return Boolean(session?.cookie);
 };
 
 export const getSessionAccountKey = (sessionId: string): string | undefined => {
@@ -89,12 +103,25 @@ export const deleteServerSession = async (
   }
 
   try {
-    if (session.refreshToken) {
+    const { refreshToken } = await getOAuthRefreshToken(
+      sessionId,
+      session.endpoint,
+      {
+        migratePrefsToken: false,
+      },
+    );
+    if (refreshToken) {
       await revokeRefreshToken(
         session.endpoint,
-        session.refreshToken,
+        refreshToken,
         session.clientId || OAUTH2_CLIENT_ID,
       );
+      await deleteOAuthRefreshToken(sessionId, session.endpoint);
+      return { deleted: true };
+    }
+
+    if (session.tokenStorage === "secureStore") {
+      await deleteOAuthRefreshToken(sessionId, session.endpoint);
       return { deleted: true };
     }
 

@@ -468,6 +468,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/auth/credential-store.ts',
+                'template'      => 'cli/lib/auth/credential-store.ts',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/auth/session.ts',
                 'template'      => 'cli/lib/auth/session.ts',
             ],

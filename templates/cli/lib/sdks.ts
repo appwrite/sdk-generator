@@ -15,21 +15,39 @@ import {
 import { warn } from "./parser.js";
 import { isCloudHostname } from "./utils.js";
 import { isFlagEnabled } from "./flags.js";
+import {
+  getOAuthRefreshToken,
+  storeOAuthRefreshToken,
+} from "./auth/credential-store.js";
+
+let cachedOAuthAccessToken = "";
+let cachedOAuthAccessTokenExpiry = 0;
+
+export const setOAuthAccessToken = (
+  accessToken: string,
+  tokenExpiry: number,
+): void => {
+  cachedOAuthAccessToken = accessToken;
+  cachedOAuthAccessTokenExpiry = tokenExpiry;
+  globalConfig.removeAccessToken();
+  globalConfig.setTokenExpiry(tokenExpiry);
+};
 
 export const getValidAccessToken = async (
   endpoint: string,
 ): Promise<string> => {
-  const accessToken = globalConfig.getAccessToken();
-  const refreshToken = globalConfig.getRefreshToken();
-  const tokenExpiry = globalConfig.getTokenExpiry();
+  const currentSession = globalConfig.getCurrentSession();
+  const { refreshToken } = currentSession
+    ? await getOAuthRefreshToken(currentSession, endpoint)
+    : { refreshToken: "" };
   const clientId = globalConfig.getClientId() || OAUTH2_CLIENT_ID;
 
-  if (accessToken && tokenExpiry > Date.now() + 60_000) {
-    return accessToken;
-  }
-
-  if (accessToken && tokenExpiry === 0 && !refreshToken) {
-    return accessToken;
+  globalConfig.removeAccessToken();
+  if (
+    cachedOAuthAccessToken &&
+    cachedOAuthAccessTokenExpiry > Date.now() + 60_000
+  ) {
+    return cachedOAuthAccessToken;
   }
 
   if (!refreshToken) {
@@ -50,11 +68,10 @@ export const getValidAccessToken = async (
     clientId,
   });
   const newExpiry = Date.now() + token.expires_in * 1000;
-  globalConfig.setAccessToken(token.access_token);
-  if (token.refresh_token) {
-    globalConfig.setRefreshToken(token.refresh_token);
+  setOAuthAccessToken(token.access_token, newExpiry);
+  if (token.refresh_token && currentSession) {
+    await storeOAuthRefreshToken(currentSession, endpoint, token.refresh_token);
   }
-  globalConfig.setTokenExpiry(newExpiry);
 
   return token.access_token;
 };
@@ -89,10 +106,15 @@ export const sdkForConsole = async ({
   const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
   const selfSigned = globalConfig.getSelfSigned();
 
-  const accessToken = globalConfig.getAccessToken();
   const cookie = globalConfig.getCookie();
+  const currentSession = globalConfig.getCurrentSession();
+  const { refreshToken } =
+    requiresAuth && !cookie && currentSession
+      ? await getOAuthRefreshToken(currentSession, endpoint)
+      : { refreshToken: "" };
 
-  if (requiresAuth && !accessToken && !cookie) {
+  globalConfig.removeAccessToken();
+  if (requiresAuth && !refreshToken && !cookie) {
     throw new Error(
       `Session not found. Please run \`${EXECUTABLE_NAME} login\` to create a session`,
     );
@@ -114,7 +136,7 @@ export const sdkForConsole = async ({
     .setLocale("en-US");
 
   if (requiresAuth) {
-    if (accessToken) {
+    if (refreshToken) {
       const validAccessToken = await getValidAccessToken(endpoint);
       client.headers["Authorization"] = `Bearer ${validAccessToken}`;
     } else if (cookie) {
@@ -144,9 +166,14 @@ export const sdkForProject = async (): Promise<Client> => {
     : globalConfig.getProject();
 
   const key = globalConfig.getKey();
-  const accessToken = globalConfig.getAccessToken();
   const cookie = globalConfig.getCookie();
+  const currentSession = globalConfig.getCurrentSession();
+  const { refreshToken } =
+    !cookie && currentSession
+      ? await getOAuthRefreshToken(currentSession, endpoint)
+      : { refreshToken: "" };
   const selfSigned = globalConfig.getSelfSigned();
+  globalConfig.removeAccessToken();
 
   if (!project) {
     throw new Error(
@@ -169,7 +196,7 @@ export const sdkForProject = async (): Promise<Client> => {
     .setSelfSigned(selfSigned)
     .setLocale("en-US");
 
-  if (accessToken) {
+  if (refreshToken) {
     const validAccessToken = await getValidAccessToken(endpoint);
     client.headers["Authorization"] = `Bearer ${validAccessToken}`;
     return client.setMode("admin");

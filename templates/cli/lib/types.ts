@@ -72,6 +72,7 @@ export interface SessionData {
   tokenExpiry?: number;
   clientId?: string;
   selfSigned?: boolean;
+  tokenStorage?: "secureStore" | "prefsFallback" | "";
 }
 
 export interface GlobalConfigData extends ConfigData {

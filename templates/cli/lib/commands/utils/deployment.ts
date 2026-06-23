@@ -9,6 +9,7 @@ import { Client, AppwriteException } from "@appwrite.io/console";
 import { error } from "../../parser.js";
 import { globalConfig } from "../../config.js";
 import { getValidAccessToken } from "../../sdks.js";
+import { hasAuthSession } from "../../auth/session.js";
 import { Spinner } from "../../spinner.js";
 
 const ignore: typeof ignoreModule =
@@ -274,8 +275,8 @@ export async function watchDeploymentUpdates(
   params: WatchDeploymentUpdatesParams,
 ): Promise<DeploymentUpdateSubscription | null> {
   const cookieHeader = getCookieHeader(globalConfig.getCookie());
-  const hasAccessToken = globalConfig.getAccessToken() !== "";
-  if (!cookieHeader && !hasAccessToken) {
+  const hasBearerAuth = !cookieHeader && hasAuthSession();
+  if (!cookieHeader && !hasBearerAuth) {
     return null;
   }
 
@@ -293,7 +294,7 @@ export async function watchDeploymentUpdates(
     if (cookieHeader) {
       headers.cookie = cookieHeader;
     }
-    if (hasAccessToken) {
+    if (hasBearerAuth) {
       const accessToken = await getValidAccessToken(params.endpoint);
       headers.authorization = `Bearer ${accessToken}`;
     }

@@ -31,6 +31,7 @@ import {
   commandDescriptions,
 } from "../parser.js";
 import { sdkForConsole } from "../sdks.js";
+import { hasAuthSession } from "../auth/session.js";
 import {
   isCloud,
   getSafeDirectoryName,
@@ -292,7 +293,7 @@ const initProject = async ({
   try {
     if (
       globalConfig.getEndpoint() === "" ||
-      (globalConfig.getAccessToken() === "" && globalConfig.getCookie() === "")
+      !hasAuthSession()
     ) {
       throw new Error(
         `Missing endpoint or session configuration. Please run '${EXECUTABLE_NAME} login' first.`,

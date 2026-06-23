@@ -154,16 +154,16 @@ const maskSensitiveData = (
   trackRedaction: boolean = true,
 ): unknown => {
   if (key && isSensitiveKey(key) && !cliConfig.showSecrets) {
+    if (value == null || value === "") {
+      return value;
+    }
+
     if (trackRedaction) {
       redactionApplied = true;
     }
 
     if (typeof value === "string") {
       return maskSensitiveString(value);
-    }
-
-    if (value == null) {
-      return value;
     }
 
     return HIDDEN_VALUE;

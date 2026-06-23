@@ -1,6 +1,6 @@
 import inquirer from "inquirer";
 import { Account, type Models } from "@appwrite.io/console";
-import { sdkForConsole } from "../sdks.js";
+import { sdkForConsole, setOAuthAccessToken } from "../sdks.js";
 import { globalConfig, normalizeCloudConsoleEndpoint } from "../config.js";
 import {
   EXECUTABLE_NAME,
@@ -32,6 +32,7 @@ import {
   restoreCurrentSession,
   deleteServerSession,
 } from "./session.js";
+import { storeOAuthRefreshToken } from "./credential-store.js";
 
 const DEFAULT_ENDPOINT = "https://cloud.appwrite.io/v1";
 
@@ -90,7 +91,6 @@ const listenForBrowserOpen = (
   if (shouldRestoreRawMode) {
     stdin.setRawMode?.(true);
   }
-  const shouldPause = stdin.isPaused();
   stdin.resume();
 
   const cleanup = (): void => {
@@ -98,9 +98,7 @@ const listenForBrowserOpen = (
     if (shouldRestoreRawMode) {
       stdin.setRawMode?.(false);
     }
-    if (shouldPause) {
-      stdin.pause();
-    }
+    stdin.pause();
   };
 
   // Open the browser at most once; keep listening afterwards so Ctrl+C still
@@ -392,8 +390,13 @@ const loginWithOAuthDevice = async ({
   }
 
   const tokenExpiry = Date.now() + token.expires_in * 1000;
-  globalConfig.setAccessToken(token.access_token);
-  globalConfig.setRefreshToken(token.refresh_token || "");
+  setOAuthAccessToken(token.access_token, tokenExpiry);
+  if (token.refresh_token) {
+    await storeOAuthRefreshToken(id, configEndpoint, token.refresh_token);
+  } else {
+    globalConfig.setRefreshToken("");
+    globalConfig.setTokenStorage("");
+  }
   globalConfig.setTokenExpiry(tokenExpiry);
 
   let tokenEmail = "";
@@ -483,7 +486,6 @@ export const loginCommand = async ({
     if (account) {
       if (
         isFlagEnabled("oauthLogin") &&
-        !globalConfig.getAccessToken() &&
         globalConfig.getCookie()
       ) {
         warn(
