@@ -192,8 +192,28 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% endfor %}
         };
 {% if method.type == 'webAuth' %}
-        const { uri: redirectUri, options } = client.client.prepareRequest('{{ method.method | caseLower }}', uri, apiHeaders, payload);
-        const response = await fetch(redirectUri, { ...options, redirect: "manual" });
+        const appendPayload = (data: Record<string, unknown>, prefix = ""): void => {
+          for (const [key, value] of Object.entries(data)) {
+            if (typeof value === "undefined") {
+              continue;
+            }
+
+            const finalKey = prefix ? `${prefix}[${key}]` : key;
+            if (Array.isArray(value)) {
+              value.forEach((nestedValue, index) => appendPayload({ [index]: nestedValue }, finalKey));
+              continue;
+            }
+
+            uri.searchParams.append(finalKey, String(value));
+          }
+        };
+        appendPayload(payload);
+        const response = await fetch(uri.toString(), {
+          method: '{{ method.method | caseUpper }}',
+          headers: { ...client.client.getHeaders(), ...apiHeaders },
+          credentials: client.client.config.credentials,
+          redirect: "manual",
+        });
         if (response.status !== 301 && response.status !== 302) {
           throw new Error(`Invalid redirect: ${response.status}`);
         }
