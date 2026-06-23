@@ -94,7 +94,6 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% set seenCommands = seenCommands|merge([commandName]) %}
 {% set commandVar = service.name | caseCamel ~ method.name | caseUcfirst ~ 'Command' %}
 {% set query = method | cliQueryConfig %}
-{% set shouldCallOauth2ResourceDirectly = service.name == 'oauth2' and hasCliParam(method, 'resource') %}
 const {{ commandVar }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`)
   .description(`{{ method.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
@@ -167,61 +166,6 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
         const buffer = Buffer.from(await response.arrayBuffer());
         fs.writeFileSync(destination, buffer);
         success(`File saved to ${destination}`);
-      },
-{% elseif shouldCallOauth2ResourceDirectly %}
-      async ({{ actionParams }}) => {
-        const client = await get{{ service.name | caseUcfirst }}Client();
-        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', encodeURIComponent(String({% if parameter.source|default('') == 'security' %}client.client.config.{{ parameter.config | caseLower }}{% else %}{{ getCliVarName(parameter) }}{% endif %}))){% endfor %};
-        const payload: Record<string, unknown> = {};
-{% for parameter in method.parameters.query %}
-{% set varName = getCliVarName(parameter) %}
-        if (typeof {{ varName }} !== 'undefined') {
-          payload['{{ parameter.name }}'] = {{ getCliArgExpression(parameter) | raw }};
-        }
-{% endfor %}
-{% for parameter in method.parameters.body %}
-{% set varName = getCliVarName(parameter) %}
-        if (typeof {{ varName }} !== 'undefined') {
-          payload['{{ parameter.name }}'] = {{ getCliArgExpression(parameter) | raw }};
-        }
-{% endfor %}
-        const uri = new URL(client.client.config.endpoint + apiPath);
-        const apiHeaders: { [header: string]: string } = {
-{% for key, header in method.headers %}
-          '{{ key }}': '{{ header }}',
-{% endfor %}
-        };
-{% if method.type == 'webAuth' %}
-        const appendPayload = (data: Record<string, unknown>, prefix = ""): void => {
-          for (const [key, value] of Object.entries(data)) {
-            if (typeof value === "undefined") {
-              continue;
-            }
-
-            const finalKey = prefix ? `${prefix}[${key}]` : key;
-            if (Array.isArray(value)) {
-              value.forEach((nestedValue, index) => appendPayload({ [index]: nestedValue }, finalKey));
-              continue;
-            }
-
-            uri.searchParams.append(finalKey, String(value));
-          }
-        };
-        appendPayload(payload);
-        const response = await fetch(uri.toString(), {
-          method: '{{ method.method | caseUpper }}',
-          headers: { ...client.client.getHeaders(), ...apiHeaders },
-          credentials: client.client.config.credentials,
-          redirect: "manual",
-        });
-        if (response.status !== 301 && response.status !== 302) {
-          throw new Error(`Invalid redirect: ${response.status}`);
-        }
-        const url = response.headers.get("location") || "";
-        if (url) console.log(url);
-{% else %}
-        parse(await client.client.call('{{ method.method | caseLower }}', uri, apiHeaders, payload));
-{% endif %}
       },
 {% elseif method.type == 'webAuth' %}
       async ({{ actionParams }}) => {
