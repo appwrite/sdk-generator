@@ -1345,6 +1345,10 @@ class Global extends Config<GlobalConfigData> {
     this.setTo(Global.PREFERENCE_COOKIE, cookie);
   }
 
+  removeCookie(): void {
+    this.deleteFrom(Global.PREFERENCE_COOKIE);
+  }
+
   getProject(): string {
     if (!this.hasFrom(Global.PREFERENCE_PROJECT)) {
       return "";
@@ -1440,6 +1444,19 @@ class Global extends Config<GlobalConfigData> {
 
       (config as any)[key] = value;
       this.write();
+    }
+  }
+
+  deleteFrom(key: string): void {
+    const current = this.getCurrentSession();
+
+    if (current) {
+      const config = this.get(current as any);
+
+      if (config && (config as any)[key] !== undefined) {
+        delete (config as any)[key];
+        this.write();
+      }
     }
   }
 }

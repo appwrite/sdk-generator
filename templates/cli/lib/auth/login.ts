@@ -416,6 +416,7 @@ const loginWithOAuthDevice = async ({
   }
 
   globalConfig.setEmail(account.email);
+  globalConfig.removeCookie();
 
   const { removed: removedLegacySessions, failed: failedLegacySessions } =
     await removeLegacySessionsExcept(id);
