@@ -73,7 +73,12 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             val encodedProject = java.net.URLEncoder.encode(client.config["project"].toString(), "UTF-8")
             val queryParams = "project=$encodedProject"
             val url = "${client.endpointRealtime}/realtime?$queryParams"
-            val request = Request.Builder().url(url).build()
+            val requestBuilder = Request.Builder().url(url)
+            val jwt = client.config["jwt"]
+            if (!jwt.isNullOrEmpty()) {
+                requestBuilder.addHeader("x-{{ spec.title | caseLower }}-jwt", jwt)
+            }
+            val request = requestBuilder.build()
 
             val generation = socketGeneration.incrementAndGet()
             socket = client.http.newWebSocket(request, {{ spec.title | caseUcfirst }}WebSocketListener(generation))

@@ -208,7 +208,14 @@ export class Realtime {
         }
 
         // URL carries only the project; channels/queries are sent via the subscribe message.
-        const queryParams = `project=${projectId}`;
+        let queryParams = `project=${projectId}`;
+
+        const jwt = this.client.config.jwt;
+{% if language.name != 'ReactNative' %}
+        if (jwt) {
+            queryParams += `&jwt=${encodeURIComponent(jwt)}`;
+        }
+{% endif %}
 
         const endpoint =
             this.client.config.endpointRealtime !== ''
@@ -243,10 +250,11 @@ export class Realtime {
 {% if language.name == 'ReactNative' %}
                 const WebSocketCtor: any = WebSocket;
                 const socket = (this.socket = Platform.OS === 'web'
-                    ? new WebSocketCtor(url)
+                    ? new WebSocketCtor(jwt ? `${url}&jwt=${encodeURIComponent(jwt)}` : url)
                     : new WebSocketCtor(url, undefined, {
                         headers: {
-                            Origin: `{{ spec.title | caseLower }}-${Platform.OS}://${this.client.config.platform}`
+                            Origin: `{{ spec.title | caseLower }}-${Platform.OS}://${this.client.config.platform}`,
+                            ...(jwt ? { 'x-{{ spec.title | caseLower }}-jwt': jwt } : {})
                         }
                     }));
 {% else %}
