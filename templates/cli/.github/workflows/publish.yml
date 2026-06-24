@@ -43,9 +43,21 @@ jobs:
           sudo make
           sudo make install
 
-      - name: Install dependencies and build for Linux and Windows
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Fetch keyring native bindings for all targets
         run: |
-          bun install --frozen-lockfile
+          version="$(bun -e 'console.log(require("@napi-rs/keyring/package.json").version)')"
+          for triple in darwin-arm64 darwin-x64 linux-x64-gnu linux-arm64-gnu win32-x64-msvc win32-arm64-msvc; do
+            dir="node_modules/@napi-rs/keyring-$triple"
+            [ -d "$dir" ] && continue
+            mkdir -p "$dir"
+            curl -fsSL "https://registry.npmjs.org/@napi-rs/keyring-$triple/-/keyring-$triple-$version.tgz" | tar -xz -C "$dir" --strip-components=1
+          done
+
+      - name: Build for Linux and Windows
+        run: |
           bun run linux-x64
           bun run linux-arm64
           bun run mac-x64
