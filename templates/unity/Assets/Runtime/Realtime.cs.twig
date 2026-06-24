@@ -524,8 +524,6 @@ namespace {{ spec.title | caseUcfirst }}
                 var uri = PrepareUri();
                 Debug.Log($"[Realtime] Connecting to URI: {uri}");
 
-                // Native clients can set headers on the handshake, so the JWT goes
-                // in the `x-{{ spec.title | caseLower }}-jwt` header (the server accepts both).
                 var headers = new Dictionary<string, string>();
                 var jwt = _client.Config.GetValueOrDefault("jwt");
                 if (!string.IsNullOrEmpty(jwt))

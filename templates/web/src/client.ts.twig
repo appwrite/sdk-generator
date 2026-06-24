@@ -566,8 +566,6 @@ class Client {
             // URL carries only the project; channels/queries are sent via subscribe message.
             let queryParams = 'project=' + encodedProject;
 
-            // Browsers cannot set headers on the WebSocket handshake, so the JWT
-            // travels in the `jwt` query string instead (the server accepts both).
             if (this.config.jwt) {
                 queryParams += '&jwt=' + encodeURIComponent(this.config.jwt as string);
             }

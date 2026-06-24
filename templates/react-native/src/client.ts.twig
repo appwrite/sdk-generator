@@ -328,8 +328,6 @@ class Client {
             const channels = new URLSearchParams();
             channels.set('project', this.config.project);
 
-            // On web the JWT must ride in the query string (no handshake headers);
-            // on native it goes in the `x-{{ spec.title | caseLower }}-jwt` header below.
             const jwt = this.config.jwt;
             if (jwt && Platform.OS === 'web') {
                 channels.set('jwt', jwt);

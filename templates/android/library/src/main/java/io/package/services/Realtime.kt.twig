@@ -74,8 +74,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             val queryParams = "project=$encodedProject"
             val url = "${client.endpointRealtime}/realtime?$queryParams"
             val requestBuilder = Request.Builder().url(url)
-            // Native clients can set headers on the handshake, so the JWT goes in
-            // the `x-{{ spec.title | caseLower }}-jwt` header (the server accepts both).
             val jwt = client.config["jwt"]
             if (!jwt.isNullOrEmpty()) {
                 requestBuilder.addHeader("x-{{ spec.title | caseLower }}-jwt", jwt)

@@ -212,8 +212,6 @@ export class Realtime {
 
         const jwt = this.client.config.jwt;
 {% if language.name != 'ReactNative' %}
-        // Browsers cannot set headers on the WebSocket handshake, so the JWT
-        // travels in the `jwt` query string instead (the server accepts both).
         if (jwt) {
             queryParams += `&jwt=${encodeURIComponent(jwt)}`;
         }
@@ -251,8 +249,6 @@ export class Realtime {
                 const connectionId = ++this.connectionId;
 {% if language.name == 'ReactNative' %}
                 const WebSocketCtor: any = WebSocket;
-                // On web the JWT must ride in the query string (no handshake headers);
-                // on native it goes in the `x-{{ spec.title | caseLower }}-jwt` header.
                 const socket = (this.socket = Platform.OS === 'web'
                     ? new WebSocketCtor(jwt ? `${url}&jwt=${encodeURIComponent(jwt)}` : url)
                     : new WebSocketCtor(url, undefined, {
