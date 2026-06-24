@@ -830,10 +830,8 @@ export function openBrowser(url: string): void {
 
   switch (process.platform) {
     case "win32":
-      command = "cmd";
-      // "" is start's window-title arg; escape shell metacharacters without
-      // adding nested quotes that Windows can pass through as part of the URL.
-      args = ["/c", "start", '""', "/b", url.replaceAll("&", "^&")];
+      command = "rundll32";
+      args = ["url.dll,FileProtocolHandler", url];
       break;
     case "darwin":
       command = "open";
@@ -849,7 +847,6 @@ export function openBrowser(url: string): void {
     const child = childProcess.spawn(command, args, {
       stdio: "ignore",
       detached: true,
-      windowsVerbatimArguments: process.platform === "win32",
     });
     child.on("error", () => {});
     child.unref();

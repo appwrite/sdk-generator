@@ -1168,6 +1168,34 @@ async function runAuthChecks() {
       };
       assert.doesNotThrow(() => openBrowser(url));
 
+      const originalPlatform = process.platform;
+      try {
+        Object.defineProperty(process, "platform", {
+          value: "win32",
+        });
+
+        const windowsUrl =
+          "https://cloud.appwrite.io/device?user=a b&next=one|two<three>four^five";
+        captured = null;
+        childProcess.spawn = (command, args) => {
+          captured = { command, args };
+          return {
+            on() {},
+            unref() {},
+          };
+        };
+
+        openBrowser(windowsUrl);
+        assert.deepEqual(captured, {
+          command: "rundll32",
+          args: ["url.dll,FileProtocolHandler", windowsUrl],
+        });
+      } finally {
+        Object.defineProperty(process, "platform", {
+          value: originalPlatform,
+        });
+      }
+
       const listeners = new Map();
       const stdin = process.stdin;
       const originalIsTTY = stdin.isTTY;
