@@ -1146,14 +1146,13 @@ async function runAuthChecks() {
       assert.ok(captured, "expected openBrowser to spawn an open command");
       const expectedCommand =
         process.platform === "win32"
-          ? "cmd"
+          ? "rundll32"
           : process.platform === "darwin"
             ? "open"
             : "xdg-open";
       assert.equal(captured.command, expectedCommand);
-      // win32 quotes the URL arg, so match by substring rather than equality.
       assert.ok(
-        captured.args.some((arg) => arg.includes(url)),
+        captured.args.includes(url),
         "expected the verification URL to be passed to the open command",
       );
 
