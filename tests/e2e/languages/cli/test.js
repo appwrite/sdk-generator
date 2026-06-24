@@ -1146,14 +1146,13 @@ async function runAuthChecks() {
       assert.ok(captured, "expected openBrowser to spawn an open command");
       const expectedCommand =
         process.platform === "win32"
-          ? "cmd"
+          ? "rundll32"
           : process.platform === "darwin"
             ? "open"
             : "xdg-open";
       assert.equal(captured.command, expectedCommand);
-      // win32 quotes the URL arg, so match by substring rather than equality.
       assert.ok(
-        captured.args.some((arg) => arg.includes(url)),
+        captured.args.includes(url),
         "expected the verification URL to be passed to the open command",
       );
 
@@ -1167,6 +1166,34 @@ async function runAuthChecks() {
         throw new Error("spawn ENOENT");
       };
       assert.doesNotThrow(() => openBrowser(url));
+
+      const originalPlatform = process.platform;
+      try {
+        Object.defineProperty(process, "platform", {
+          value: "win32",
+        });
+
+        const windowsUrl =
+          "https://cloud.appwrite.io/device?user=a b&next=one|two<three>four^five";
+        captured = null;
+        childProcess.spawn = (command, args) => {
+          captured = { command, args };
+          return {
+            on() {},
+            unref() {},
+          };
+        };
+
+        openBrowser(windowsUrl);
+        assert.deepEqual(captured, {
+          command: "rundll32",
+          args: ["url.dll,FileProtocolHandler", windowsUrl],
+        });
+      } finally {
+        Object.defineProperty(process, "platform", {
+          value: originalPlatform,
+        });
+      }
 
       const listeners = new Map();
       const stdin = process.stdin;

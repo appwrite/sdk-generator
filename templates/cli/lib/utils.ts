@@ -830,10 +830,8 @@ export function openBrowser(url: string): void {
 
   switch (process.platform) {
     case "win32":
-      command = "cmd";
-      // "" is start's window-title arg; quoting the URL stops cmd from
-      // splitting it on `&` (and running the remainder as a command).
-      args = ["/c", "start", "", `"${url}"`];
+      command = "rundll32";
+      args = ["url.dll,FileProtocolHandler", url];
       break;
     case "darwin":
       command = "open";
