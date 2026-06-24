@@ -46,6 +46,18 @@ jobs:
       - name: Install dependencies and build for Linux and Windows
         run: |
           bun install --frozen-lockfile
+          # @napi-rs/keyring ships its native binding as os/cpu-gated platform
+          # packages, so `bun install` only fetches the host's. bun --compile
+          # embeds a binding only when its platform package is present on disk, so
+          # fetch the rest before cross-compiling; otherwise those binaries
+          # silently fall back to plaintext credential storage.
+          KEYRING_VERSION="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' node_modules/@napi-rs/keyring/package.json | head -1)"
+          for triple in darwin-arm64 darwin-x64 linux-x64-gnu linux-arm64-gnu win32-x64-msvc win32-arm64-msvc; do
+            dir="node_modules/@napi-rs/keyring-${triple}"
+            ls "${dir}"/*.node >/dev/null 2>&1 && continue
+            mkdir -p "${dir}"
+            curl -fsSL "https://registry.npmjs.org/@napi-rs/keyring-${triple}/-/keyring-${triple}-${KEYRING_VERSION}.tgz" | tar -xz -C "${dir}" --strip-components=1
+          done
           bun run linux-x64
           bun run linux-arm64
           bun run mac-x64
