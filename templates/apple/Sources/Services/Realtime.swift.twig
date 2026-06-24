@@ -135,9 +135,17 @@ open class Realtime : Service {
             return
         }
 
+        // Native clients can set headers on the handshake, so the JWT goes in
+        // the `x-{{ spec.title | caseLower }}-jwt` header (the server accepts both).
+        var headers = HTTPHeaders()
+        if let jwt = client.config["jwt"], !jwt.isEmpty {
+            headers.add(name: "x-{{ spec.title | caseLower }}-jwt", value: jwt)
+        }
+
         socketClient = WebSocketClient(
             url,
             tlsEnabled: !client.selfSigned,
+            headers: headers,
             delegate: self
         )
 

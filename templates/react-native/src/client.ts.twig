@@ -328,6 +328,13 @@ class Client {
             const channels = new URLSearchParams();
             channels.set('project', this.config.project);
 
+            // On web the JWT must ride in the query string (no handshake headers);
+            // on native it goes in the `x-{{ spec.title | caseLower }}-jwt` header below.
+            const jwt = this.config.jwt;
+            if (jwt && Platform.OS === 'web') {
+                channels.set('jwt', jwt);
+            }
+
             const url = this.config.endpointRealtime + '/realtime?' + channels.toString();
 
             if (
@@ -347,7 +354,8 @@ class Client {
                 // @ts-ignore
                 this.realtime.socket = new WebSocket(url, undefined, {
                     headers: {
-                        Origin: `{{ spec.title | caseLower }}-${Platform.OS}://${this.config.platform}`
+                        Origin: `{{ spec.title | caseLower }}-${Platform.OS}://${this.config.platform}`,
+                        ...(jwt && Platform.OS !== 'web' ? { 'x-{{ spec.title | caseLower }}-jwt': jwt } : {})
                     }
                 });
                 this.realtime.socket.addEventListener('message', this.realtime.onMessage);

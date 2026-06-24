@@ -32,6 +32,13 @@ class RealtimeIO extends RealtimeBase with RealtimeMixin {
     final cookies = await (client as ClientIO).cookieJar.loadForRequest(uri);
     headers = {HttpHeaders.cookieHeader: CookieManager.getCookies(cookies)};
 
+    // Native clients can set headers on the handshake, so the JWT goes in the
+    // `x-{{ spec.title | caseLower }}-jwt` header (the server accepts both).
+    final jwt = client.config['jwt'];
+    if (jwt != null && jwt.isNotEmpty) {
+      headers['x-{{ spec.title | caseLower }}-jwt'] = jwt;
+    }
+
     final websok = IOWebSocketChannel((client as ClientIO).selfSigned
         ? await _connectForSelfSignedCert(uri, headers)
         : await WebSocket.connect(uri.toString(), headers: headers));
