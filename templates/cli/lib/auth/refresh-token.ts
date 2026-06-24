@@ -1,4 +1,3 @@
-import { Entry } from "@napi-rs/keyring";
 import { globalConfig } from "../config.js";
 import { EXECUTABLE_NAME } from "../constants.js";
 import type { SessionData } from "../types.js";
@@ -11,10 +10,65 @@ interface KeyringEntry {
   deletePassword(): boolean;
 }
 
+type KeyringEntryConstructor = new (
+  service: string,
+  account: string,
+) => KeyringEntry;
+
 type KeyringEntryFactory = (service: string, account: string) => KeyringEntry;
 
-let keyringEntryFactory: KeyringEntryFactory = (service, account) =>
-  new Entry(service, account);
+// undefined = unresolved; null = resolved but no native binding (use fallback).
+let cachedEntry: KeyringEntryConstructor | null | undefined;
+
+// Resolve @napi-rs/keyring lazily via a literal per-platform require: a top-level
+// import would crash the `bun --compile` binaries ("Cannot find native binding"),
+// whereas a literal specifier lets bun embed the matching .node per --target so
+// secure storage still works. Anything unresolved falls back to config storage.
+/* eslint-disable @typescript-eslint/no-require-imports */
+const loadEntry = (): KeyringEntryConstructor | null => {
+  if (cachedEntry !== undefined) {
+    return cachedEntry;
+  }
+
+  cachedEntry = null;
+  if (typeof require !== "function") {
+    return cachedEntry;
+  }
+
+  try {
+    let mod: { Entry: KeyringEntryConstructor } | undefined;
+    if (process.platform === "darwin" && process.arch === "arm64") {
+      mod = require("@napi-rs/keyring-darwin-arm64");
+    } else if (process.platform === "darwin" && process.arch === "x64") {
+      mod = require("@napi-rs/keyring-darwin-x64");
+    } else if (process.platform === "linux" && process.arch === "x64") {
+      mod = require("@napi-rs/keyring-linux-x64-gnu");
+    } else if (process.platform === "linux" && process.arch === "arm64") {
+      mod = require("@napi-rs/keyring-linux-arm64-gnu");
+    } else if (process.platform === "win32" && process.arch === "x64") {
+      mod = require("@napi-rs/keyring-win32-x64-msvc");
+    } else if (process.platform === "win32" && process.arch === "arm64") {
+      mod = require("@napi-rs/keyring-win32-arm64-msvc");
+    }
+
+    mod ??= require("@napi-rs/keyring");
+    cachedEntry = mod.Entry;
+  } catch {
+    cachedEntry = null;
+  }
+
+  return cachedEntry;
+};
+/* eslint-enable @typescript-eslint/no-require-imports */
+
+let keyringEntryFactory: KeyringEntryFactory = (service, account) => {
+  const Entry = loadEntry();
+  if (!Entry) {
+    throw new Error("Secure credential storage is unavailable in this build.");
+  }
+
+  return new Entry(service, account);
+};
 
 const getSessionData = (sessionId: string): SessionData | undefined =>
   globalConfig.get(sessionId) as SessionData | undefined;

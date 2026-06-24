@@ -297,6 +297,15 @@ jobs:
         working-directory: examples/cli
         run: python3 ../../scripts/verify-darwin-signatures.py
 
+      - name: Test compiled CLI binary
+        if: matrix.sdk == 'cli'
+        working-directory: examples/cli
+        run: |
+          BIN=build/appwrite-cli-linux-x64
+          "./$BIN" --version
+          "./$BIN" --help | grep -q "Usage:"
+          SHELL=bash "./$BIN" completion bash >/dev/null
+
       - name: Verify npm package entry points
         if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'
         working-directory: examples/${{ matrix.sdk }}
