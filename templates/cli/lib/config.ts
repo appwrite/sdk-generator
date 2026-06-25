@@ -596,11 +596,9 @@ class Config<T extends ConfigData = ConfigData> {
   ): void {
     props = whitelistKeys(props, keysSet, nestedKeys);
 
-    if (!this.has(entityType)) {
-      (this.set as (key: string, value: Entity[]) => void)(entityType, []);
-    }
-
-    const entities = this.get(entityType) as Entity[];
+    const entities = this.has(entityType)
+      ? ([...((this.get(entityType) as Entity[]) ?? [])] as Entity[])
+      : [];
     for (let i = 0; i < entities.length; i++) {
       if (entities[i]["$id"] == props["$id"]) {
         entities[i] = props;

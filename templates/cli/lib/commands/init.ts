@@ -123,6 +123,12 @@ const getExistingProjectSummary = async (
   };
 };
 
+const getRegionalCloudEndpoint = (region: string): string => {
+  const url = new URL(globalConfig.getEndpoint() || DEFAULT_ENDPOINT);
+  url.hostname = `${region}.${url.hostname}`;
+  return url.toString().replace(/\/$/, "");
+};
+
 const printInitProjectSuccess = (message: string): void => {
   console.log(`${chalk.green.bold("✓")} ${chalk.green(message)}`);
 };
@@ -359,7 +365,6 @@ const initProject = async ({
   }
 
   localConfig.clear(); // Clear the config to avoid any conflicts
-  const url = new URL(DEFAULT_ENDPOINT);
 
   if (answers.start === "new") {
     let projectIdToCreate;
@@ -394,9 +399,7 @@ const initProject = async ({
     localConfig.setProject(response["$id"], response.name ?? "");
     localConfig.setOrganizationId(answers.organization);
     if (answers.region) {
-      localConfig.setEndpoint(
-        `https://${answers.region}.${url.host}${url.pathname}`,
-      );
+      localConfig.setEndpoint(getRegionalCloudEndpoint(answers.region));
     }
   } else {
     let selectedProject;
@@ -417,9 +420,7 @@ const initProject = async ({
     localConfig.setOrganizationId(answers.organization);
 
     if (isCloud() && selectedProject.region) {
-      localConfig.setEndpoint(
-        `https://${selectedProject.region}.${url.host}${url.pathname}`,
-      );
+      localConfig.setEndpoint(getRegionalCloudEndpoint(selectedProject.region));
     }
   }
 
