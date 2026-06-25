@@ -22,13 +22,18 @@ import {
 
 export const getValidAccessToken = async (
   endpoint: string,
+  options: { forceRefresh?: boolean } = {},
 ): Promise<string> => {
   const accessToken = globalConfig.getAccessToken();
   const tokenExpiry = globalConfig.getTokenExpiry();
   const clientId = globalConfig.getClientId() || OAUTH2_CLIENT_ID;
   const currentSession = globalConfig.getCurrentSession();
 
-  if (accessToken && tokenExpiry > Date.now() + 60_000) {
+  if (
+    !options.forceRefresh &&
+    accessToken &&
+    tokenExpiry > Date.now() + 60_000
+  ) {
     return accessToken;
   }
 

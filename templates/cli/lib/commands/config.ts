@@ -120,9 +120,9 @@ const SettingsSchema = z
         security: z
           .object({
             duration: z.union([z.number(), z.bigint()]).optional(),
-            limit: z.union([z.number(), z.bigint()]).optional(),
-            sessionsLimit: z.union([z.number(), z.bigint()]).optional(),
-            passwordHistory: z.union([z.number(), z.bigint()]).optional(),
+            limit: z.union([z.number(), z.bigint()]).nullable().optional(),
+            sessionsLimit: z.union([z.number(), z.bigint()]).nullable().optional(),
+            passwordHistory: z.union([z.number(), z.bigint()]).nullable().optional(),
             passwordDictionary: z.boolean().optional(),
             personalDataCheck: z.boolean().optional(),
             sessionAlerts: z.boolean().optional(),

@@ -1,6 +1,6 @@
 import inquirer from "inquirer";
 import { Account, type Models } from "@appwrite.io/console";
-import { sdkForConsole } from "../sdks.js";
+import { getValidAccessToken, sdkForConsole } from "../sdks.js";
 import { globalConfig, normalizeCloudConsoleEndpoint } from "../config.js";
 import {
   EXECUTABLE_NAME,
@@ -138,6 +138,18 @@ export const getCurrentAccount = async (): Promise<Models.User | null> => {
     return account;
   } catch (err) {
     if (isGuestUnauthorizedError(err)) {
+      try {
+        await getValidAccessToken(globalConfig.getEndpoint(), {
+          forceRefresh: true,
+        });
+        const refreshedClient = await sdkForConsole();
+        const refreshedAccount = await new Account(refreshedClient).get();
+        globalConfig.setEmail(refreshedAccount.email);
+        return refreshedAccount;
+      } catch (_refreshError) {
+        // Fall through to local cleanup only after refresh recovery fails.
+      }
+
       removeCurrentSession();
     }
     return null;

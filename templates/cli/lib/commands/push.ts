@@ -34,6 +34,7 @@ import {
   arrayEqualsUnordered,
   getFunctionDeploymentConsoleUrl,
   getSiteDeploymentConsoleUrl,
+  getCloudEndpointRegion,
   isCloudHostname,
   siteRequiresBuildCommand,
 } from "../utils.js";
@@ -72,6 +73,7 @@ import {
   commandDescriptions,
   drawTable,
   parseBool,
+  formatErrorForLog,
 } from "../parser.js";
 import {
   getProxyService,
@@ -679,6 +681,73 @@ interface PushCollectionState extends PushCollectionInput {
   isNewlyCreated?: boolean;
 }
 
+const getPushErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  return String(error);
+};
+
+const getPushResultErrors = (result: unknown): string[] => {
+  if (typeof result !== "object" || result === null) {
+    return [];
+  }
+
+  if (
+    "errors" in result &&
+    Array.isArray(result.errors) &&
+    result.errors.length > 0
+  ) {
+    return result.errors
+      .map(getPushErrorMessage)
+      .filter((message) => message.trim() !== "");
+  }
+
+  if (
+    "error" in result &&
+    typeof result.error === "string" &&
+    result.error.trim() !== ""
+  ) {
+    return [result.error];
+  }
+
+  return [];
+};
+
+const formatPushResourceErrors = (results: Record<string, unknown>): string => {
+  const failed = Object.entries(results)
+    .map(([resourceGroup, result]) => ({
+      resourceGroup,
+      messages: getPushResultErrors(result),
+    }))
+    .filter(({ messages }) => messages.length > 0);
+
+  if (failed.length === 0) {
+    return "Failed to push resource groups.";
+  }
+
+  return [
+    `Failed to push ${failed.length} resource group${failed.length === 1 ? "" : "s"}:`,
+    ...failed.flatMap(({ resourceGroup, messages }) => [
+      `- ${resourceGroup}:`,
+      ...messages.map((message) => `  - ${message}`),
+    ]),
+  ].join("\n");
+};
+
+const nullablePolicyTotal = (value: number | bigint | null): number | null =>
+  value === null || Number(value) === 0 ? null : Number(value);
+
 const normalizeIgnoreRules = (value: unknown): string[] => {
   if (Array.isArray(value)) {
     return value.filter(
@@ -733,6 +802,67 @@ export class Push {
     if (!this.silent) {
       warn(message);
     }
+  }
+
+  private getFunctionRuleDomain(domain: string): string {
+    const region = getCloudEndpointRegion(this.projectClient.config.endpoint);
+
+    if (!region) {
+      return domain;
+    }
+
+    const parts = domain.split(".");
+    if (parts.length < 3) {
+      return domain;
+    }
+
+    // TODO: Replace this fallback with a server-provided regional functions domain.
+    parts[0] = region;
+    return parts.join(".");
+  }
+
+  private async createDefaultFunctionRule(functionId: string): Promise<void> {
+    let domain = "";
+    try {
+      const consoleService = await getConsoleService(this.consoleClient);
+      const variables = await consoleService.variables();
+      const domains = variables["_APP_DOMAIN_FUNCTIONS"]
+        .split(",")
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0);
+
+      if (domains.length === 0) {
+        throw new Error("_APP_DOMAIN_FUNCTIONS is not configured.");
+      }
+
+      domain = ID.unique() + "." + this.getFunctionRuleDomain(domains[0]);
+    } catch (err) {
+      this.error("Error fetching console variables.");
+      throw err;
+    }
+
+    try {
+      const proxyService = await getProxyService(this.projectClient);
+      this.log(`Creating function proxy rule for ${domain} ...`);
+      await proxyService.createFunctionRule(domain, functionId);
+    } catch (err) {
+      this.error("Error creating function rule.");
+      throw err;
+    }
+  }
+
+  private async hasDefaultFunctionRule(functionId: string): Promise<boolean> {
+    const proxyService = await getProxyService(this.projectClient);
+    const { rules } = await proxyService.listRules({
+      queries: [
+        Query.limit(1),
+        Query.equal("deploymentResourceType", "function"),
+        Query.equal("deploymentResourceId", functionId),
+        Query.equal("trigger", "manual"),
+      ],
+    });
+
+    return rules.length > 0;
   }
 
   /**
@@ -818,7 +948,11 @@ export class Push {
           results.settings = { success: true };
         } catch (e: any) {
           allErrors.push(e);
-          results.settings = { success: false, error: e.message };
+          results.settings = {
+            success: false,
+            error: getPushErrorMessage(e),
+            errors: [e],
+          };
         }
       }
 
@@ -937,10 +1071,36 @@ export class Push {
         config.sites.length > 0
       ) {
         try {
+          let siteOptions = options.siteOptions;
+          if (siteOptions?.code === undefined) {
+            let allowSitesCodePush: boolean | null =
+              cliConfig.force === true ? true : null;
+            if (allowSitesCodePush === null) {
+              const codeAnswer = await inquirer.prompt(questionsPushSitesCode);
+              allowSitesCodePush = codeAnswer.override;
+            }
+
+            siteOptions = {
+              ...siteOptions,
+              code: allowSitesCodePush === true,
+            };
+          }
+
+          if (siteOptions.code === true && siteOptions.activate === undefined) {
+            siteOptions = {
+              ...siteOptions,
+              activate:
+                cliConfig.force === true
+                  ? true
+                  : (await inquirer.prompt(questionsPushSitesActivate))
+                      .activate,
+            };
+          }
+
           this.log("Pushing sites ...");
           const result = await this.pushSites(
             config.sites,
-            options.siteOptions,
+            siteOptions,
           );
           this.success(
             `Successfully pushed ${chalk.bold(result.successfullyPushed)} sites.`,
@@ -965,6 +1125,13 @@ export class Push {
         config.tables.length > 0
       ) {
         try {
+          const { resyncNeeded } = await checkAndApplyTablesDBChanges();
+          if (resyncNeeded) {
+            throw new Error(
+              "Configuration changed after applying tablesDB deletions. Re-run the push command to continue.",
+            );
+          }
+
           this.log("Pushing tables ...");
           const result = await this.pushTables(config.tables, {
             attempts: options.tableOptions?.attempts,
@@ -1052,48 +1219,83 @@ export class Push {
 
     if (settings.services) {
       this.log("Applying service statuses ...");
-      for (const [service, status] of Object.entries(settings.services)) {
-        await projectService.updateService({
-          serviceId: service as ProjectServiceId,
-          enabled: status,
-        });
-      }
+      await Promise.all(
+        Object.entries(settings.services).map(([service, status]) =>
+          projectService.updateService({
+            serviceId: service as ProjectServiceId,
+            enabled: status,
+          }),
+        ),
+      );
     }
 
     if (settings.protocols) {
       this.log("Applying protocol statuses ...");
-      for (const [protocol, status] of Object.entries(settings.protocols)) {
-        await projectService.updateProtocol({
-          protocolId: protocol as ProjectProtocolId,
-          enabled: status,
-        });
-      }
+      await Promise.all(
+        Object.entries(settings.protocols).map(([protocol, status]) =>
+          projectService.updateProtocol({
+            protocolId: protocol as ProjectProtocolId,
+            enabled: status,
+          }),
+        ),
+      );
     }
 
     if (settings.auth) {
       if (settings.auth.security) {
         this.log("Applying auth security settings ...");
-        await projectService.updateSessionDurationPolicy({
-          duration: Number(settings.auth.security.duration),
-        });
-        await projectService.updateUserLimitPolicy({
-          total: Number(settings.auth.security.limit),
-        });
-        await projectService.updateSessionLimitPolicy({
-          total: Number(settings.auth.security.sessionsLimit),
-        });
-        await projectService.updatePasswordDictionaryPolicy({
-          enabled: settings.auth.security.passwordDictionary,
-        });
-        await projectService.updatePasswordHistoryPolicy({
-          total: Number(settings.auth.security.passwordHistory),
-        });
-        await projectService.updatePasswordPersonalDataPolicy({
-          enabled: settings.auth.security.personalDataCheck,
-        });
-        await projectService.updateSessionAlertPolicy({
-          enabled: settings.auth.security.sessionAlerts,
-        });
+        const securityUpdates: Promise<unknown>[] = [];
+        if (settings.auth.security.duration !== undefined) {
+          securityUpdates.push(
+            projectService.updateSessionDurationPolicy({
+              duration: Number(settings.auth.security.duration),
+            }),
+          );
+        }
+        if (settings.auth.security.limit !== undefined) {
+          securityUpdates.push(
+            projectService.updateUserLimitPolicy({
+              total: nullablePolicyTotal(settings.auth.security.limit),
+            }),
+          );
+        }
+        if (settings.auth.security.sessionsLimit !== undefined) {
+          securityUpdates.push(
+            projectService.updateSessionLimitPolicy({
+              total: nullablePolicyTotal(settings.auth.security.sessionsLimit),
+            }),
+          );
+        }
+        if (settings.auth.security.passwordDictionary !== undefined) {
+          securityUpdates.push(
+            projectService.updatePasswordDictionaryPolicy({
+              enabled: settings.auth.security.passwordDictionary,
+            }),
+          );
+        }
+        if (settings.auth.security.passwordHistory !== undefined) {
+          securityUpdates.push(
+            projectService.updatePasswordHistoryPolicy({
+              total: nullablePolicyTotal(settings.auth.security.passwordHistory),
+            }),
+          );
+        }
+        if (settings.auth.security.personalDataCheck !== undefined) {
+          securityUpdates.push(
+            projectService.updatePasswordPersonalDataPolicy({
+              enabled: settings.auth.security.personalDataCheck,
+            }),
+          );
+        }
+        if (settings.auth.security.sessionAlerts !== undefined) {
+          securityUpdates.push(
+            projectService.updateSessionAlertPolicy({
+              enabled: settings.auth.security.sessionAlerts,
+            }),
+          );
+        }
+        await Promise.all(securityUpdates);
+
         if (settings.auth.security.mockNumbers !== undefined) {
           const remoteMockNumbers: Array<{ number: string; otp: string }> = [];
           const limit = 100;
@@ -1120,6 +1322,7 @@ export class Push {
               mockNumber.otp,
             ]),
           );
+          const mockNumberUpdates: Promise<unknown>[] = [];
 
           for (const remoteMockNumber of remoteMockNumbers) {
             const desiredOtp = desiredMockNumbersByPhone.get(
@@ -1127,39 +1330,48 @@ export class Push {
             );
 
             if (desiredOtp === undefined) {
-              await projectService.deleteMockPhone({
-                number: remoteMockNumber.number,
-              });
+              mockNumberUpdates.push(
+                projectService.deleteMockPhone({
+                  number: remoteMockNumber.number,
+                }),
+              );
               continue;
             }
 
             if (remoteMockNumber.otp !== desiredOtp) {
-              await projectService.updateMockPhone({
-                number: remoteMockNumber.number,
-                otp: desiredOtp,
-              });
+              mockNumberUpdates.push(
+                projectService.updateMockPhone({
+                  number: remoteMockNumber.number,
+                  otp: desiredOtp,
+                }),
+              );
             }
 
             desiredMockNumbersByPhone.delete(remoteMockNumber.number);
           }
 
           for (const [phone, otp] of desiredMockNumbersByPhone) {
-            await projectService.createMockPhone({
-              number: phone,
-              otp,
-            });
+            mockNumberUpdates.push(
+              projectService.createMockPhone({
+                number: phone,
+                otp,
+              }),
+            );
           }
+          await Promise.all(mockNumberUpdates);
         }
       }
 
       if (settings.auth.methods) {
         this.log("Applying auth methods statuses ...");
-        for (const [method, status] of Object.entries(settings.auth.methods)) {
-          await projectService.updateAuthMethod({
-            methodId: method as ProjectAuthMethodId,
-            enabled: status,
-          });
-        }
+        await Promise.all(
+          Object.entries(settings.auth.methods).map(([method, status]) =>
+            projectService.updateAuthMethod({
+              methodId: method as ProjectAuthMethodId,
+              enabled: status,
+            }),
+          ),
+        );
       }
     }
   }
@@ -1524,27 +1736,21 @@ export class Push {
                 deploymentRetention: func.deploymentRetention,
               });
 
-              let domain = "";
-              try {
-                const consoleService = await getConsoleService(
-                  this.consoleClient,
-                );
-                const variables = await consoleService.variables();
-                domain = ID.unique() + "." + variables["_APP_DOMAIN_FUNCTIONS"];
-              } catch (err) {
-                this.error("Error fetching console variables.");
-                throw err;
-              }
-
-              try {
-                const proxyService = await getProxyService(this.projectClient);
-                await proxyService.createFunctionRule(domain, func.$id);
-              } catch (err) {
-                this.error("Error creating function rule.");
-                throw err;
-              }
-
+              await this.createDefaultFunctionRule(func.$id);
               updaterRow.update({ status: "Created" });
+            } catch (e: any) {
+              errors.push(e);
+              updaterRow.fail({
+                errorMessage:
+                  e.message ?? "General error occurs please try again",
+              });
+              return;
+            }
+          } else {
+            try {
+              if (!(await this.hasDefaultFunctionRule(func.$id))) {
+                await this.createDefaultFunctionRule(func.$id);
+              }
             } catch (e: any) {
               errors.push(e);
               updaterRow.fail({
@@ -2877,15 +3083,20 @@ export class Push {
 }
 
 async function createPushInstance(
-  options: { silent?: boolean; requiresConsoleAuth?: boolean } = {
+  options: {
+    silent?: boolean;
+    requiresConsoleAuth?: boolean;
+    organizationId?: string;
+  } = {
     silent: false,
     requiresConsoleAuth: false,
   },
 ): Promise<Push> {
-  const { silent, requiresConsoleAuth } = options;
+  const { silent, requiresConsoleAuth, organizationId } = options;
   const projectClient = await sdkForProject();
   const consoleClient = await sdkForConsole({
     requiresAuth: requiresConsoleAuth,
+    organizationId,
   });
 
   return new Push(projectClient, consoleClient, silent);
@@ -2932,27 +3143,12 @@ const pushResources = async ({
     }
 
     const sites = localConfig.getSites();
-    let allowSitesCodePush: boolean | null =
-      cliConfig.force === true ? true : null;
-    let activateSitesDeployment: boolean | undefined =
-      cliConfig.force === true ? true : undefined;
-    if (sites.length > 0 && allowSitesCodePush === null) {
-      const codeAnswer = await inquirer.prompt(questionsPushSitesCode);
-      allowSitesCodePush = codeAnswer.override;
-    }
-    if (
-      sites.length > 0 &&
-      allowSitesCodePush === true &&
-      activateSitesDeployment === undefined
-    ) {
-      const activateAnswer = await inquirer.prompt(questionsPushSitesActivate);
-      activateSitesDeployment = activateAnswer.activate;
-    }
 
+    const project = localConfig.getProject();
     const pushInstance = await createPushInstance({
       requiresConsoleAuth: true,
+      organizationId: project.organizationId,
     });
-    const project = localConfig.getProject();
     const config: ConfigType = {
       organizationId: project.organizationId,
       projectId: project.projectId ?? "",
@@ -2977,7 +3173,7 @@ const pushResources = async ({
       config,
     );
 
-    await pushInstance.pushResources(config, {
+    const result = await pushInstance.pushResources(config, {
       all: cliConfig.all,
       skipDeprecated,
       functionOptions: {
@@ -2987,12 +3183,14 @@ const pushResources = async ({
         logs: functionOptions?.logs,
       },
       siteOptions: {
-        code: allowSitesCodePush === true,
-        activate: activateSitesDeployment ?? true,
         withVariables: false,
         logs: siteOptions?.logs,
       },
     });
+
+    if (result.errors.length > 0) {
+      throw new Error(formatPushResourceErrors(result.results));
+    }
   } else {
     const actions: Record<string, (options?: any) => Promise<void>> = {
       settings: pushSettings,
@@ -3082,10 +3280,11 @@ const pushSettings = async (): Promise<void> => {
   try {
     log("Pushing project settings ...");
 
+    const config = localConfig.getProject();
     const pushInstance = await createPushInstance({
       requiresConsoleAuth: true,
+      organizationId: config.organizationId ?? resolvedOrganizationId,
     });
-    const config = localConfig.getProject();
 
     await pushInstance.pushSettings({
       projectId: config.projectId,
@@ -3194,7 +3393,10 @@ const pushSite = async ({
   log("Pushing sites ...");
 
   const pushStartTime = Date.now();
-  const pushInstance = await createPushInstance();
+  const pushInstance = await createPushInstance({
+    requiresConsoleAuth: true,
+    organizationId: localConfig.getProject().organizationId,
+  });
   const result = await pushInstance.pushSites(
     withResolvedResourcePaths("sites", sites),
     {
@@ -3255,7 +3457,7 @@ const pushSite = async ({
 
   if (cliConfig.verbose) {
     errors.forEach((e) => {
-      console.error(e);
+      console.error(formatErrorForLog(e));
     });
   }
 };
@@ -3355,7 +3557,10 @@ const pushFunction = async ({
   log("Pushing functions ...");
 
   const pushStartTime = Date.now();
-  const pushInstance = await createPushInstance();
+  const pushInstance = await createPushInstance({
+    requiresConsoleAuth: true,
+    organizationId: localConfig.getProject().organizationId,
+  });
   const result = await pushInstance.pushFunctions(
     withResolvedResourcePaths("functions", functions),
     {
@@ -3416,7 +3621,7 @@ const pushFunction = async ({
 
   if (cliConfig.verbose) {
     errors.forEach((e) => {
-      console.error(e);
+      console.error(formatErrorForLog(e));
     });
   }
 };
@@ -3586,7 +3791,7 @@ const pushTable = async ({
   }
 
   if (cliConfig.verbose) {
-    errors.forEach((e) => console.error(e));
+    errors.forEach((e) => console.error(formatErrorForLog(e)));
   }
 };
 
@@ -3663,7 +3868,7 @@ const pushCollection = async (): Promise<void> => {
   }
 
   if (cliConfig.verbose) {
-    errors.forEach((e) => console.error(e));
+    errors.forEach((e) => console.error(formatErrorForLog(e)));
   }
 };
 
@@ -3727,7 +3932,7 @@ const pushBucket = async (): Promise<void> => {
   }
 
   if (cliConfig.verbose) {
-    errors.forEach((e) => console.error(e));
+    errors.forEach((e) => console.error(formatErrorForLog(e)));
   }
 };
 
@@ -3791,7 +3996,7 @@ const pushTeam = async (): Promise<void> => {
   }
 
   if (cliConfig.verbose) {
-    errors.forEach((e) => console.error(e));
+    errors.forEach((e) => console.error(formatErrorForLog(e)));
   }
 };
 
@@ -3855,7 +4060,7 @@ const pushWebhook = async (): Promise<void> => {
   }
 
   if (cliConfig.verbose) {
-    errors.forEach((e) => console.error(e));
+    errors.forEach((e) => console.error(formatErrorForLog(e)));
   }
 };
 
@@ -3919,7 +4124,7 @@ const pushMessagingTopic = async (): Promise<void> => {
   }
 
   if (cliConfig.verbose) {
-    errors.forEach((e) => console.error(e));
+    errors.forEach((e) => console.error(formatErrorForLog(e)));
   }
 };
 

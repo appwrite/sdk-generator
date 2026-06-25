@@ -41,9 +41,13 @@ export const createSettingsObject = (
     policyById.set(policy.$id, policy);
   }
 
-  const policyTotal = (id: ProjectPolicyId): number | undefined => {
+  const policyTotal = (id: ProjectPolicyId): number | null | undefined => {
     const policy = policyById.get(id);
-    return policy && "total" in policy ? policy.total : undefined;
+    if (!policy || !("total" in policy)) {
+      return undefined;
+    }
+
+    return policy.total === 0 ? null : policy.total;
   };
 
   const policyEnabled = (id: ProjectPolicyId): boolean | undefined => {
@@ -387,12 +391,53 @@ export const isRegionalCloudEndpoint = (endpoint: string): boolean => {
   }
 };
 
+export const getCloudEndpointRegion = (endpoint: string): string | null => {
+  try {
+    const hostname = new URL(endpoint).hostname;
+
+    if (!isCloudHostname(hostname) || hostname === "cloud.appwrite.io") {
+      return null;
+    }
+
+    const region = hostname.split(".")[0];
+    return CLOUD_REGION_CODES.has(region) ? region : null;
+  } catch (_error) {
+    return null;
+  }
+};
+
 export const isLocalhostHostname = (hostname: string): boolean =>
   hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
 
 const isCloudEnvironmentHostname = (hostname: string): boolean =>
   hostname.endsWith(".cloud.appwrite.io") &&
   CLOUD_LOGIN_ENVIRONMENTS.has(hostname.split(".")[0]);
+
+const getCloudConsoleHostname = (hostname: string): string | null => {
+  if (hostname === "cloud.appwrite.io") {
+    return hostname;
+  }
+
+  const labels = hostname.split(".");
+  if (labels.length < 4 || labels.slice(-3).join(".") !== "cloud.appwrite.io") {
+    return null;
+  }
+
+  if (CLOUD_REGION_CODES.has(labels[0])) {
+    const environment = labels[1];
+    if (environment && CLOUD_LOGIN_ENVIRONMENTS.has(environment)) {
+      return `${environment}.cloud.appwrite.io`;
+    }
+
+    return "cloud.appwrite.io";
+  }
+
+  if (CLOUD_LOGIN_ENVIRONMENTS.has(labels[0])) {
+    return hostname;
+  }
+
+  return null;
+};
 
 export const isCloudLoginEndpoint = (endpoint: string): boolean => {
   try {
@@ -410,9 +455,10 @@ export const isCloudLoginEndpoint = (endpoint: string): boolean => {
 export const getConsoleBaseUrl = (endpoint: string): string => {
   try {
     const url = new URL(endpoint);
+    const consoleHostname = getCloudConsoleHostname(url.hostname);
 
-    if (isCloudHostname(url.hostname)) {
-      url.hostname = "cloud.appwrite.io";
+    if (consoleHostname) {
+      url.hostname = consoleHostname;
     }
 
     url.pathname = url.pathname.replace(/\/v1\/?$/, "");
