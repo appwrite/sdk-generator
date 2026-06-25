@@ -663,6 +663,38 @@ const printQueryErrorHint = (err: Error): void => {
   );
 };
 
+const ERROR_DETAIL_KEYS = ["code", "type", "response"] as const;
+
+export const formatErrorForLog = (err: Error): string => {
+  const stack = err.stack || `${err.name}: ${err.message}`;
+  const detailLines = ERROR_DETAIL_KEYS.flatMap((key) => {
+    if (!Object.prototype.hasOwnProperty.call(err, key)) {
+      return [];
+    }
+
+    const value = (err as unknown as Record<string, unknown>)[key];
+    let detail = "undefined";
+    try {
+      detail =
+        typeof value === "string"
+          ? JSON.stringify(value)
+          : JSON.stringify(value) ?? String(value);
+    } catch {
+      detail = String(value);
+    }
+
+    return [`${key}: ${detail}`];
+  });
+
+  if (detailLines.length === 0) {
+    return stack;
+  }
+
+  const [summary, ...frames] = stack.split("\n");
+
+  return [summary, ...detailLines, ...frames].join("\n");
+};
+
 export const parseError = (err: Error): void => {
   if (cliConfig.report) {
     void (async () => {
@@ -712,12 +744,12 @@ export const parseError = (err: Error): void => {
       printQueryErrorHint(err);
 
       error("\n Stack Trace: \n");
-      console.error(err);
+      console.error(formatErrorForLog(err));
       process.exit(1);
     })();
   } else {
     if (cliConfig.verbose) {
-      console.error(err);
+      console.error(formatErrorForLog(err));
       printQueryErrorHint(err);
     } else {
       log("For detailed error pass the --verbose or --report flag");
