@@ -272,16 +272,16 @@ class Rust extends Language
 
         // Handle enum types
         if (!$isArray && isset($parameter["enumName"])) {
-            return "crate::enums::" . ucfirst($parameter["enumName"]);
+            return "crate::enums::" . $this->toPascalCase($parameter["enumName"]);
         }
         if (!$isArray && !empty($parameter["enumValues"])) {
-            return "crate::enums::" . ucfirst($parameter["name"]);
+            return "crate::enums::" . $this->toPascalCase($parameter["name"]);
         }
         if ($isArray && isset($parameter["enumName"])) {
-            return "Vec<crate::enums::" . ucfirst($parameter["enumName"]) . ">";
+            return "Vec<crate::enums::" . $this->toPascalCase($parameter["enumName"]) . ">";
         }
         if ($isArray && !empty($parameter["enumValues"])) {
-            return "Vec<crate::enums::" . ucfirst($parameter["name"]) . ">";
+            return "Vec<crate::enums::" . $this->toPascalCase($parameter["name"]) . ">";
         }
 
         if (
@@ -297,6 +297,14 @@ class Rust extends Language
             $parameter["array"] = $parameter["items"];
         }
 
+        if (($parameter["array"]["model"] ?? null) === "any") {
+            return "Vec<serde_json::Value>";
+        }
+
+        if (($parameter["model"] ?? null) === "any") {
+            return "serde_json::Value";
+        }
+
         return match ($parameter["type"]) {
             self::TYPE_INTEGER => "i64",
             self::TYPE_NUMBER => "f64",
@@ -305,12 +313,12 @@ class Rust extends Language
             self::TYPE_BOOLEAN => "bool",
             self::TYPE_OBJECT => "serde_json::Value",
             self::TYPE_ARRAY => isset($parameter["array"]["model"])
-                ? "Vec<crate::models::" . ucfirst($parameter["array"]["model"]) . ">"
+                ? "Vec<crate::models::" . $this->toPascalCase($parameter["array"]["model"]) . ">"
                 : (!empty(($parameter["array"] ?? [])["type"]) && !\is_array($parameter["array"]["type"])
                     ? "Vec<" . $this->getTypeName($parameter["array"]) . ">"
                     : "Vec<String>"),
             default => isset($parameter["model"])
-                ? "crate::models::" . ucfirst($parameter["model"])
+                ? "crate::models::" . $this->toPascalCase($parameter["model"])
                 : $parameter["type"],
         };
     }
@@ -544,7 +552,9 @@ class Rust extends Language
         }
 
         if (\array_key_exists("sub_schema", $property)) {
-            $type = "crate::models::" . ucfirst((string) $property["sub_schema"]);
+            $type = $property["sub_schema"] === "any"
+                ? "serde_json::Value"
+                : "crate::models::" . $this->toPascalCase((string) $property["sub_schema"]);
 
             if ($property["type"] === "array") {
                 $type = "Vec<" . $type . ">";
@@ -780,7 +790,7 @@ class Rust extends Language
             return "crate::error::Result<serde_json::Value>";
         }
 
-        $ret = ucfirst((string) $method["responseModel"]);
+        $ret = $this->toPascalCase((string) $method["responseModel"]);
 
         return "crate::error::Result<crate::models::" . $ret . ">";
     }
