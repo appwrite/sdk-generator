@@ -303,6 +303,9 @@ async function start() {
     console.log(Query.distanceGreaterThan("location", [40.7128, -74], 1000, true));
     console.log(Query.distanceLessThan("location", [40.7128, -74], 1000));
     console.log(Query.distanceLessThan("location", [40.7128, -74], 1000, true));
+    console.log(Query.vectorDot("embedding", [0.1, 0.2, 0.3]));
+    console.log(Query.vectorCosine("embedding", [0.1, 0.2, 0.3]));
+    console.log(Query.vectorEuclidean("embedding", [0.1, 0.2, 0.3]));
 
     // Spatial query tests
     console.log(Query.intersects("location", [40.7128, -74]));

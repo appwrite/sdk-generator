@@ -186,6 +186,18 @@ impl Query {
         Self::new("distanceLessThan".to_string(), Some(attribute.into()), vec![params])
     }
 
+    pub fn vector_dot<S: Into<String>, V: Into<Value>>(attribute: S, vector: V) -> Self {
+        Self::new("vectorDot".to_string(), Some(attribute.into()), vec![vector.into()])
+    }
+
+    pub fn vector_cosine<S: Into<String>, V: Into<Value>>(attribute: S, vector: V) -> Self {
+        Self::new("vectorCosine".to_string(), Some(attribute.into()), vec![vector.into()])
+    }
+
+    pub fn vector_euclidean<S: Into<String>, V: Into<Value>>(attribute: S, vector: V) -> Self {
+        Self::new("vectorEuclidean".to_string(), Some(attribute.into()), vec![vector.into()])
+    }
+
     pub fn intersects<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
         Self::new("intersects".to_string(), Some(attribute.into()), vec![values.into()])
     }
@@ -669,6 +681,33 @@ mod tests {
         let params = value["values"][0].as_array().unwrap();
         assert_eq!(params[1], 321);
         assert_eq!(params[2], false);
+    }
+
+    #[test]
+    fn test_vector_dot() {
+        let query = Query::vector_dot("embedding", Value::Array(vec![Value::from(0.1), Value::from(0.2), Value::from(0.3)]));
+        let value = query.to_value();
+        assert_eq!(value["method"], "vectorDot");
+        assert_eq!(value["attribute"], "embedding");
+        assert_eq!(value["values"][0][0], 0.1);
+    }
+
+    #[test]
+    fn test_vector_cosine() {
+        let query = Query::vector_cosine("embedding", Value::Array(vec![Value::from(0.1), Value::from(0.2), Value::from(0.3)]));
+        let value = query.to_value();
+        assert_eq!(value["method"], "vectorCosine");
+        assert_eq!(value["attribute"], "embedding");
+        assert_eq!(value["values"][0][1], 0.2);
+    }
+
+    #[test]
+    fn test_vector_euclidean() {
+        let query = Query::vector_euclidean("embedding", Value::Array(vec![Value::from(0.1), Value::from(0.2), Value::from(0.3)]));
+        let value = query.to_value();
+        assert_eq!(value["method"], "vectorEuclidean");
+        assert_eq!(value["attribute"], "embedding");
+        assert_eq!(value["values"][0][2], 0.3);
     }
 
     #[test]

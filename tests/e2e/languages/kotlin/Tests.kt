@@ -218,7 +218,10 @@ class ServiceTest {
             writeToFile(Query.distanceGreaterThan("location", listOf(40.7128, -74), 1000, true))
             writeToFile(Query.distanceLessThan("location", listOf(40.7128, -74), 1000))
             writeToFile(Query.distanceLessThan("location", listOf(40.7128, -74), 1000, true))
-            
+            writeToFile(Query.vectorDot("embedding", listOf(0.1, 0.2, 0.3)))
+            writeToFile(Query.vectorCosine("embedding", listOf(0.1, 0.2, 0.3)))
+            writeToFile(Query.vectorEuclidean("embedding", listOf(0.1, 0.2, 0.3)))
+
             // Spatial query tests
             writeToFile(Query.intersects("location", listOf(40.7128, -74)))
             writeToFile(Query.notIntersects("location", listOf(40.7128, -74)))

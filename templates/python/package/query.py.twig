@@ -249,6 +249,18 @@ class Query():
         return str(Query("distanceLessThan", attribute, [[values, distance, meters]]))
 
     @staticmethod
+    def vector_dot(attribute, vector):
+        return str(Query("vectorDot", attribute, [vector]))
+
+    @staticmethod
+    def vector_cosine(attribute, vector):
+        return str(Query("vectorCosine", attribute, [vector]))
+
+    @staticmethod
+    def vector_euclidean(attribute, vector):
+        return str(Query("vectorEuclidean", attribute, [vector]))
+
+    @staticmethod
     def intersects(attribute, values):
         return str(Query("intersects", attribute, [values]))
 

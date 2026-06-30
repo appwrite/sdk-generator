@@ -300,6 +300,21 @@ namespace {{ spec.title | caseUcfirst }}
             return new Query("distanceLessThan", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
         }
 
+        public static string VectorDot(string attribute, List<double> vector)
+        {
+            return new Query("vectorDot", attribute, new List<object> { vector }).ToString();
+        }
+
+        public static string VectorCosine(string attribute, List<double> vector)
+        {
+            return new Query("vectorCosine", attribute, new List<object> { vector }).ToString();
+        }
+
+        public static string VectorEuclidean(string attribute, List<double> vector)
+        {
+            return new Query("vectorEuclidean", attribute, new List<object> { vector }).ToString();
+        }
+
         public static string Intersects(string attribute, object values)
         {
             return new Query("intersects", attribute, new List<object> { values }).ToString();

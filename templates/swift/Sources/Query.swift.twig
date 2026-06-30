@@ -548,6 +548,30 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
+    public static func vectorDot(_ attribute: String, vector: [Double]) -> String {
+        return Query(
+            method: "vectorDot",
+            attribute: attribute,
+            values: [vector]
+        ).description
+    }
+
+    public static func vectorCosine(_ attribute: String, vector: [Double]) -> String {
+        return Query(
+            method: "vectorCosine",
+            attribute: attribute,
+            values: [vector]
+        ).description
+    }
+
+    public static func vectorEuclidean(_ attribute: String, vector: [Double]) -> String {
+        return Query(
+            method: "vectorEuclidean",
+            attribute: attribute,
+            values: [vector]
+        ).description
+    }
+
     public static func intersects(_ attribute: String, values: [Any]) -> String {
         return Query(
             method: "intersects",

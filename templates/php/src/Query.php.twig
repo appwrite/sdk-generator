@@ -574,6 +574,42 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Vector Dot
+     *
+     * @param string $attribute
+     * @param array<float> $vector
+     * @return string
+     */
+    public static function vectorDot(string $attribute, array $vector): string
+    {
+        return (new Query('vectorDot', $attribute, [$vector]))->__toString();
+    }
+
+    /**
+     * Vector Cosine
+     *
+     * @param string $attribute
+     * @param array<float> $vector
+     * @return string
+     */
+    public static function vectorCosine(string $attribute, array $vector): string
+    {
+        return (new Query('vectorCosine', $attribute, [$vector]))->__toString();
+    }
+
+    /**
+     * Vector Euclidean
+     *
+     * @param string $attribute
+     * @param array<float> $vector
+     * @return string
+     */
+    public static function vectorEuclidean(string $attribute, array $vector): string
+    {
+        return (new Query('vectorEuclidean', $attribute, [$vector]))->__toString();
+    }
+
+    /**
      * Intersects
      *
      * @param string $attribute

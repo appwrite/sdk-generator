@@ -211,6 +211,9 @@ class Tests: XCTestCase {
         print(Query.distanceGreaterThan("location", values: [40.7128, -74], distance: 1000, meters: true))
         print(Query.distanceLessThan("location", values: [40.7128, -74], distance: 1000))
         print(Query.distanceLessThan("location", values: [40.7128, -74], distance: 1000, meters: true))
+        print(Query.vectorDot("embedding", vector: [0.1, 0.2, 0.3]))
+        print(Query.vectorCosine("embedding", vector: [0.1, 0.2, 0.3]))
+        print(Query.vectorEuclidean("embedding", vector: [0.1, 0.2, 0.3]))
 
         // Spatial query tests
         print(Query.intersects("location", values: [40.7128, -74]))

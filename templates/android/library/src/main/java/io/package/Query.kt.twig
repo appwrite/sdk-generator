@@ -413,6 +413,12 @@ class Query(
          */
         fun distanceLessThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceLessThan", attribute, listOf(listOf(values, distance, meters))).toJson()
 
+        fun vectorDot(attribute: String, vector: List<Number>) = Query("vectorDot", attribute, listOf(vector)).toJson()
+
+        fun vectorCosine(attribute: String, vector: List<Number>) = Query("vectorCosine", attribute, listOf(vector)).toJson()
+
+        fun vectorEuclidean(attribute: String, vector: List<Number>) = Query("vectorEuclidean", attribute, listOf(vector)).toJson()
+
         /**
          * Filter resources where attribute intersects with the given geometry.
          *

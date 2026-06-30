@@ -113,7 +113,7 @@ abstract class Language
         $str = Normalizer::normalize($str, Normalizer::FORM_D);
 
         // Remove accents and other residual non-ASCII characters
-        $str = \preg_replace('/\p{M}/u', '', $str);
+        $str = \preg_replace('/\p{M}/u', '', (string) $str);
 
         $str = \preg_replace('/[^a-zA-Z0-9]+/', ' ', (string) $str);
         $str = \trim((string) $str);
@@ -129,7 +129,7 @@ abstract class Language
         $str = Normalizer::normalize($str, Normalizer::FORM_D);
 
         // Remove accents and other residual non-ASCII characters
-        $str = \preg_replace('/\p{M}/u', '', $str);
+        $str = \preg_replace('/\p{M}/u', '', (string) $str);
 
         // Remove apostrophes before replacing non-word characters with underscores
         $str = \str_replace("'", '', $str);
