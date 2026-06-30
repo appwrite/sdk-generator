@@ -246,6 +246,9 @@ func testQueries() {
 	fmt.Println(query.DistanceGreaterThan("location", []interface{}{40.7128, -74}, 1000, true))
 	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, true))
 	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.VectorDot("embedding", []float64{0.1, 0.2, 0.3}))
+	fmt.Println(query.VectorCosine("embedding", []float64{0.1, 0.2, 0.3}))
+	fmt.Println(query.VectorEuclidean("embedding", []float64{0.1, 0.2, 0.3}))
 
 	// Spatial query tests
 	fmt.Println(query.Intersects("location", []interface{}{40.7128, -74}))

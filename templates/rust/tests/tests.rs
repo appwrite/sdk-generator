@@ -263,6 +263,9 @@ fn test_queries() {
     println!("{}", Query::distance_greater_than("location", json!([40.7128, -74]), 1000, true));
     println!("{}", Query::distance_less_than("location", json!([40.7128, -74]), 1000, true));
     println!("{}", Query::distance_less_than("location", json!([40.7128, -74]), 1000, true));
+    println!("{}", Query::vector_dot("embedding", json!([0.1, 0.2, 0.3])));
+    println!("{}", Query::vector_cosine("embedding", json!([0.1, 0.2, 0.3])));
+    println!("{}", Query::vector_euclidean("embedding", json!([0.1, 0.2, 0.3])));
     println!("{}", Query::intersects("location", json!([40.7128, -74])));
     println!("{}", Query::not_intersects("location", json!([40.7128, -74])));
     println!("{}", Query::crosses("location", json!([40.7128, -74])));

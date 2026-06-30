@@ -316,6 +316,9 @@ void main() async {
   print(Query.distanceGreaterThan("location", [40.7128, -74], 1000, true));
   print(Query.distanceLessThan("location", [40.7128, -74], 1000));
   print(Query.distanceLessThan("location", [40.7128, -74], 1000, true));
+  print(Query.vectorDot("embedding", [0.1, 0.2, 0.3]));
+  print(Query.vectorCosine("embedding", [0.1, 0.2, 0.3]));
+  print(Query.vectorEuclidean("embedding", [0.1, 0.2, 0.3]));
 
   // Spatial query tests
   print(Query.intersects("location", [40.7128, -74]));

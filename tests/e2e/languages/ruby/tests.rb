@@ -185,6 +185,9 @@ puts Query.distance_greater_than("location", [40.7128, -74], 1000)
 puts Query.distance_greater_than("location", [40.7128, -74], 1000, true)
 puts Query.distance_less_than("location", [40.7128, -74], 1000)
 puts Query.distance_less_than("location", [40.7128, -74], 1000, true)
+puts Query.vector_dot("embedding", [0.1, 0.2, 0.3])
+puts Query.vector_cosine("embedding", [0.1, 0.2, 0.3])
+puts Query.vector_euclidean("embedding", [0.1, 0.2, 0.3])
 
 # Spatial query tests
 puts Query.intersects("location", [40.7128, -74])

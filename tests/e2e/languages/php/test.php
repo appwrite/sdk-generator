@@ -309,6 +309,9 @@ echo Query::distanceGreaterThan('location', [40.7128, -74], 1000) . "\n";
 echo Query::distanceGreaterThan('location', [40.7128, -74], 1000, true) . "\n";
 echo Query::distanceLessThan('location', [40.7128, -74], 1000) . "\n";
 echo Query::distanceLessThan('location', [40.7128, -74], 1000, true) . "\n";
+echo Query::vectorDot('embedding', [0.1, 0.2, 0.3]) . "\n";
+echo Query::vectorCosine('embedding', [0.1, 0.2, 0.3]) . "\n";
+echo Query::vectorEuclidean('embedding', [0.1, 0.2, 0.3]) . "\n";
 
 // Spatial query tests
 echo Query::intersects('location', [40.7128, -74]) . "\n";

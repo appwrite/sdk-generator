@@ -375,6 +375,30 @@ func DistanceLessThan(attribute string, values []interface{}, distance float64, 
 	})
 }
 
+func VectorDot(attribute string, vector []float64) string {
+	return parseQuery(queryOptions{
+		Method:    "vectorDot",
+		Attribute: &attribute,
+		Values:    &[]interface{}{vector},
+	})
+}
+
+func VectorCosine(attribute string, vector []float64) string {
+	return parseQuery(queryOptions{
+		Method:    "vectorCosine",
+		Attribute: &attribute,
+		Values:    &[]interface{}{vector},
+	})
+}
+
+func VectorEuclidean(attribute string, vector []float64) string {
+	return parseQuery(queryOptions{
+		Method:    "vectorEuclidean",
+		Attribute: &attribute,
+		Values:    &[]interface{}{vector},
+	})
+}
+
 func Intersects(attribute string, values []interface{}) string {
 	return parseQuery(queryOptions{
 		Method:    "intersects",

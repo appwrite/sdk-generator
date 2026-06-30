@@ -195,6 +195,9 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.DistanceGreaterThan("location", new List<object> { 40.7128, -74 }, 1000, true));
             TestContext.WriteLine(Query.DistanceLessThan("location", new List<object> { 40.7128, -74 }, 1000));
             TestContext.WriteLine(Query.DistanceLessThan("location", new List<object> { 40.7128, -74 }, 1000, true));
+            TestContext.WriteLine(Query.VectorDot("embedding", new List<double> { 0.1, 0.2, 0.3 }));
+            TestContext.WriteLine(Query.VectorCosine("embedding", new List<double> { 0.1, 0.2, 0.3 }));
+            TestContext.WriteLine(Query.VectorEuclidean("embedding", new List<double> { 0.1, 0.2, 0.3 }));
             
             // Spatial query tests
             TestContext.WriteLine(Query.Intersects("location", new List<object> { 40.7128, -74 }));

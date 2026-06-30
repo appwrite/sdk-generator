@@ -336,6 +336,9 @@ namespace AppwriteTests
             LogResult(Query.DistanceGreaterThan("location", new List<object> { 40.7128, -74 }, 1000, true));
             LogResult(Query.DistanceLessThan("location", new List<object> { 40.7128, -74 }, 1000));
             LogResult(Query.DistanceLessThan("location", new List<object> { 40.7128, -74 }, 1000, true));
+            LogResult(Query.VectorDot("embedding", new List<double> { 0.1, 0.2, 0.3 }));
+            LogResult(Query.VectorCosine("embedding", new List<double> { 0.1, 0.2, 0.3 }));
+            LogResult(Query.VectorEuclidean("embedding", new List<double> { 0.1, 0.2, 0.3 }));
             
             // Spatial query tests
             LogResult(Query.Intersects("location", new List<object> { 40.7128, -74 }));

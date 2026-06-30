@@ -232,6 +232,18 @@ module {{spec.title | caseUcfirst}}
                 return Query.new("distanceLessThan", attribute, [[values, distance, meters]]).to_s
             end
 
+            def vector_dot(attribute, vector)
+                return Query.new("vectorDot", attribute, [vector]).to_s
+            end
+
+            def vector_cosine(attribute, vector)
+                return Query.new("vectorCosine", attribute, [vector]).to_s
+            end
+
+            def vector_euclidean(attribute, vector)
+                return Query.new("vectorEuclidean", attribute, [vector]).to_s
+            end
+
             def intersects(attribute, values)
                 return Query.new("intersects", attribute, [values]).to_s
             end

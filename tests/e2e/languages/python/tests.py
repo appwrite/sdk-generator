@@ -175,6 +175,9 @@ print(Query.distance_greater_than("location", [40.7128, -74], 1000))
 print(Query.distance_greater_than("location", [40.7128, -74], 1000, True))
 print(Query.distance_less_than("location", [40.7128, -74], 1000))
 print(Query.distance_less_than("location", [40.7128, -74], 1000, True))
+print(Query.vector_dot("embedding", [0.1, 0.2, 0.3]))
+print(Query.vector_cosine("embedding", [0.1, 0.2, 0.3]))
+print(Query.vector_euclidean("embedding", [0.1, 0.2, 0.3]))
 
 # Spatial query tests
 print(Query.intersects("location", [40.7128, -74]))
