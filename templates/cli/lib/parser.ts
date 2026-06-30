@@ -849,7 +849,7 @@ export const commandDescriptions: Record<string, string> = {
   avatars: `The avatars command aims to help you complete everyday tasks related to your app image, icons, and avatars.`,
   databases: `(Legacy) The databases command allows you to create structured collections of documents and query and filter lists of documents.`,
   "tables-db": `The tables-db command allows you to create structured tables of columns and query and filter lists of rows.`,
-  init: `The init command provides a convenient wrapper for creating and initializing projects, functions, collections, buckets, teams, messaging-topics, and agent skills in ${SDK_TITLE}.`,
+  init: `The init command provides a convenient wrapper for creating and initializing projects, functions, collections, buckets, teams, messaging-topics, and skills in ${SDK_TITLE}.`,
   push: `The push command provides a convenient wrapper for pushing your functions, collections, buckets, teams, and messaging-topics.`,
   run: `The run command allows you to run the project locally to allow easy development and quick debugging.`,
   functions: `The functions command allows you to view, create, and manage your Cloud Functions.`,

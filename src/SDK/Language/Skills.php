@@ -6,7 +6,7 @@ use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
-class AgentSkills extends Language
+class Skills extends Language
 {
     protected array $skillLanguages = [
         'typescript',
@@ -27,7 +27,7 @@ class AgentSkills extends Language
 
     public function getName(): string
     {
-        return 'AgentSkills';
+        return 'Skills';
     }
 
     public function getKeywords(): array
@@ -95,7 +95,7 @@ class AgentSkills extends Language
             $files[] = [
                 'scope'       => 'default',
                 'destination' => \sprintf($this->skillDestination, $lang),
-                'template'    => 'agent-skills/' . $lang . '.md.twig',
+                'template'    => 'skills/' . $lang . '.md.twig',
             ];
         }
 
@@ -109,19 +109,19 @@ class AgentSkills extends Language
         $files[] = [
             'scope'       => 'default',
             'destination' => 'README.md',
-            'template'    => 'agent-skills/README.md.twig',
+            'template'    => 'skills/README.md.twig',
         ];
 
         $files[] = [
             'scope'       => 'default',
             'destination' => 'CHANGELOG.md',
-            'template'    => 'agent-skills/CHANGELOG.md.twig',
+            'template'    => 'skills/CHANGELOG.md.twig',
         ];
 
         $files[] = [
             'scope'       => 'default',
             'destination' => 'LICENSE',
-            'template'    => 'agent-skills/LICENSE.twig',
+            'template'    => 'skills/LICENSE.twig',
         ];
 
         return $files;

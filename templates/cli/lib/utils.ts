@@ -919,9 +919,9 @@ export function isCloud(): boolean {
   return hostname.endsWith("appwrite.io");
 }
 
-// --- Agent Skills helpers ---
+// --- Skills helpers ---
 
-const SKILLS_REPO = "https://github.com/appwrite/agent-skills";
+const SKILLS_REPO = "https://github.com/appwrite/skills";
 
 const LANGUAGE_MARKERS: Record<string, string[]> = {
   typescript: [

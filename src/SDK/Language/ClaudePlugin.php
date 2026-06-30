@@ -6,7 +6,7 @@ namespace Appwrite\SDK\Language;
 
 use Override;
 
-class ClaudePlugin extends AgentSkills
+class ClaudePlugin extends Skills
 {
     #[Override]
     protected string $skillDestination = 'skills/%s/SKILL.md';
@@ -63,7 +63,7 @@ class ClaudePlugin extends AgentSkills
         $files[] = [
             'scope'       => 'default',
             'destination' => 'CHANGELOG.md',
-            'template'    => 'agent-skills/CHANGELOG.md.twig',
+            'template'    => 'skills/CHANGELOG.md.twig',
         ];
 
         $files[] = [

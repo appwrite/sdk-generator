@@ -59,7 +59,7 @@ examples/<lang>/              ← Generated SDK output (checked in for verificat
 example.php                   ← Entry point: regenerates all SDKs from specs
 ```
 
-**Supported SDKs:** PHP, Web, Node, CLI, Ruby, Python, Dart, Flutter, React Native, Go, Swift, Apple, DotNet, Android, Kotlin, Unity, REST, GraphQL, Rust, AgentSkills, CursorPlugin, ClaudePlugin, CodexPlugin
+**Supported SDKs:** PHP, Web, Node, CLI, Ruby, Python, Dart, Flutter, React Native, Go, Swift, Apple, DotNet, Android, Kotlin, Unity, REST, GraphQL, Rust, Skills, CursorPlugin, ClaudePlugin, CodexPlugin
 
 ## Primary Workflows
 
@@ -158,7 +158,7 @@ Pass as first argument to generate only that SDK:
 | `kotlin` | Kotlin | `examples/kotlin/` |
 | `graphql` | GraphQL | `examples/graphql/` |
 | `rust` | Rust | `examples/rust/` |
-| `agent-skills` | AgentSkills | `examples/agent-skills/` |
+| `skills` | Skills | `examples/skills/` |
 | `cursor-plugin` | CursorPlugin | `examples/cursor-plugin/` |
 | `claude-plugin` | ClaudePlugin | `examples/claude-plugin/` |
 | `codex-plugin` | CodexPlugin | `examples/codex-plugin/` |
