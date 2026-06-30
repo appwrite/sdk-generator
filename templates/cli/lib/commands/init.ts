@@ -252,7 +252,7 @@ const installInitProjectSkills = async (): Promise<void> => {
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    error(`Failed to install agent skills: ${msg}`);
+    error(`Failed to install skills: ${msg}`);
     hint(`You can install them later with '${EXECUTABLE_NAME} init skill'.`);
   }
 };
@@ -573,7 +573,7 @@ const initSkill = async (): Promise<void> => {
   process.chdir(localConfig.configDirectoryPath);
   const cwd = process.cwd();
 
-  log("Fetching available Appwrite agent skills ...");
+  log("Fetching available Appwrite skills ...");
   const { skills, tempDir } = fetchAvailableSkills();
 
   try {
@@ -1089,7 +1089,7 @@ init
 init
   .command("skill")
   .alias("skills")
-  .description("Install Appwrite agent skills for AI coding agents")
+  .description("Install Appwrite skills for AI coding agents")
   .action(actionRunner(initSkill));
 
 init

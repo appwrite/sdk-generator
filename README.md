@@ -82,7 +82,7 @@ require_once 'vendor/autoload.php';
 
 use Appwrite\Spec\StaticSpec;
 use Appwrite\SDK\SDK;
-use Appwrite\SDK\Language\AgentSkills;
+use Appwrite\SDK\Language\Skills;
 
 $spec = new StaticSpec(
     title: 'Appwrite',
@@ -92,14 +92,14 @@ $spec = new StaticSpec(
     licenseURL: 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
 );
 
-$sdk = new SDK(new AgentSkills(), $spec);
+$sdk = new SDK(new Skills(), $spec);
 
 $sdk
     ->setName('Appwrite')
     ->setVersion('1.9.x')
 ;
 
-$sdk->generate(__DIR__ . '/examples/agent-skills');
+$sdk->generate(__DIR__ . '/examples/skills');
 ```
 
 ## Linting Twig Templates
@@ -146,7 +146,7 @@ Examples:
 php example.php web client
 php example.php node server
 php example.php cli console
-php example.php agent-skills
+php example.php skills
 ```
 
 ### Client SDKs
@@ -181,7 +181,7 @@ php example.php agent-skills
 | CLI | `cli` | Node.js 20 and Bun 1.3.11 in CI | [NPM Coding Style] | NPM, Bun, native binaries | `examples/cli/` |
 | REST examples | `rest` | N/A | Markdown | N/A | `examples/REST/` |
 | GraphQL | `graphql` | N/A | GraphQL | N/A | `examples/graphql/` |
-| Agent Skills | `agent-skills` | N/A | Markdown | N/A | `examples/agent-skills/` |
+| Skills | `skills` | N/A | Markdown | N/A | `examples/skills/` |
 | Cursor Plugin | `cursor-plugin` | N/A | Markdown | N/A | `examples/cursor-plugin/` |
 | Claude Plugin | `claude-plugin` | N/A | Markdown | N/A | `examples/claude-plugin/` |
 

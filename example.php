@@ -25,7 +25,7 @@ use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
 use Appwrite\SDK\Language\Unity;
-use Appwrite\SDK\Language\AgentSkills;
+use Appwrite\SDK\Language\Skills;
 use Appwrite\SDK\Language\ClaudePlugin;
 use Appwrite\SDK\Language\CodexPlugin;
 use Appwrite\SDK\Language\CursorPlugin;
@@ -148,7 +148,36 @@ try {
     }
 
     $version = Config::VERSION;
-    $speclessSDKs = ['agent-skills', 'cursor-plugin', 'claude-plugin', 'codex-plugin'];
+    $sdkTargets = [
+        'php',
+        'unity',
+        'web',
+        'node',
+        'cli',
+        'ruby',
+        'python',
+        'dart',
+        'flutter',
+        'react-native',
+        'go',
+        'swift',
+        'apple',
+        'dotnet',
+        'rest',
+        'android',
+        'kotlin',
+        'graphql',
+        'skills',
+        'cursor-plugin',
+        'claude-plugin',
+        'codex-plugin',
+        'rust',
+    ];
+    if ($requestedSdk && !in_array($requestedSdk, $sdkTargets)) {
+        throw new Exception("Unsupported SDK target: $requestedSdk");
+    }
+
+    $speclessSDKs = ['skills', 'cursor-plugin', 'claude-plugin', 'codex-plugin'];
     $needsSpec = !$requestedSdk || !in_array($requestedSdk, $speclessSDKs);
     $spec = '';
 
@@ -347,11 +376,11 @@ try {
         $sdk->generate(__DIR__ . '/examples/graphql');
     }
 
-    // Agent Skills
-    if (!$requestedSdk || $requestedSdk === 'agent-skills') {
-        $sdk = new SDK(new AgentSkills(), buildStaticSpec());
+    // Skills
+    if (!$requestedSdk || $requestedSdk === 'skills') {
+        $sdk = new SDK(new Skills(), buildStaticSpec());
         configureSDK($sdk);
-        $sdk->generate(__DIR__ . '/examples/agent-skills');
+        $sdk->generate(__DIR__ . '/examples/skills');
     }
 
     // Cursor Plugin
@@ -384,6 +413,7 @@ try {
 }
 catch (Throwable $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
+    exit(1);
 }
 
 echo "Example SDKs generated successfully\n";

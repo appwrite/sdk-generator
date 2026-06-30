@@ -6,7 +6,7 @@ namespace Appwrite\SDK\Language;
 
 use Override;
 
-class CodexPlugin extends AgentSkills
+class CodexPlugin extends Skills
 {
     #[Override]
     public function getName(): string
@@ -37,7 +37,7 @@ class CodexPlugin extends AgentSkills
             $files[] = [
                 'scope'       => 'default',
                 'destination' => 'plugins/{{ spec.title | caseLower }}/skills/{{ spec.title | caseLower }}-' . $lang . '/SKILL.md',
-                'template'    => 'agent-skills/' . $lang . '.md.twig',
+                'template'    => 'skills/' . $lang . '.md.twig',
             ];
         }
 
@@ -86,7 +86,7 @@ class CodexPlugin extends AgentSkills
         $files[] = [
             'scope'       => 'default',
             'destination' => 'CHANGELOG.md',
-            'template'    => 'agent-skills/CHANGELOG.md.twig',
+            'template'    => 'skills/CHANGELOG.md.twig',
         ];
 
         $files[] = [
