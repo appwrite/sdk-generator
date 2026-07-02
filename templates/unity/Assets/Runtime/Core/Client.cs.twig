@@ -110,7 +110,7 @@ namespace {{ spec.title | caseUcfirst }}
             bool selfSigned = false)
         {
             var client = From(projectId, endpoint, endpointRealtime, locale, selfSigned);
-            client.SetHeader("session", "X-{{ spec.title | caseUcfirst }}-Session", session, persist: true);
+            client.SetHeader("session", "X-{{ spec.title | caseUcfirst }}-Session", session);
             return client;
         }
 
@@ -249,12 +249,12 @@ namespace {{ spec.title | caseUcfirst }}
         {%~ endfor %}
         {%~ endfor %}
 #endif
-        private void SetHeader(string configKey, string header, string value, bool persist = false)
+        private void SetHeader(string configKey, string header, string value)
         {
             _config[configKey] = value;
             _headers[header] = value;
 
-            if (persist)
+            if (header == "X-{{ spec.title | caseUcfirst }}-Session" || header == "X-{{ spec.title | caseUcfirst }}-JWT")
             {
                 SaveSession();
             }
@@ -278,19 +278,23 @@ namespace {{ spec.title | caseUcfirst }}
             return _config.GetValueOrDefault("jwt") ?? _config.GetValueOrDefault("jWT");
         }
 
+{% for header in spec.global.headers %}
         /// <summary>
-        /// Set the current JWT and persist it for future requests
+        /// Set {{header.key | caseUcfirst}}
+{% if header.description %}
+        ///
+        /// {{header.description}}
+{% endif %}
         /// </summary>
-        /// <param name="jwt">JWT token returned by Account.CreateJWT()</param>
+        /// <param name="value">The value to set</param>
         /// <returns>Client instance for method chaining</returns>
-        public Client SetJWT(string jwt)
+        public Client Set{{header.key | caseUcfirst}}(string value)
         {
-            SetHeader("jwt", "X-{{ spec.title | caseUcfirst }}-JWT", jwt, persist: true);
-            _config.Remove("jWT");
+            SetHeader("{{header.key | caseLower}}", "{{header.name}}", value);
             return this;
         }
 
-        /// <summary>
+{% endfor %}        /// <summary>
         /// Clear session and JWT from client
         /// </summary>
         /// <returns>Client instance for method chaining</returns>
