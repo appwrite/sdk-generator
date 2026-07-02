@@ -123,6 +123,11 @@ class Client
         $this->addHeader('{{header.name}}', $value);
         {%~ endif %}
         $this->config['{{ header.key | caseLower }}'] = $value;
+{% if header.type is defined and header.type == 'bearer' %}
+        $this->key = null;
+        $this->authorization = null;
+        $this->authorizationExpiresAt = null;
+{% endif %}
 
         return $this;
     }
@@ -143,6 +148,11 @@ class Client
         $this->key = $key;
         $this->authorization = null;
         $this->authorizationExpiresAt = null;
+{% for header in spec.global.headers %}
+{% if header.type is defined and header.type == 'bearer' %}
+        unset($this->headers['{{ header.name | caseLower }}'], $this->config['{{ header.key | caseLower }}']);
+{% endif %}
+{% endfor %}
 
         return $this;
     }
