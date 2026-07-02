@@ -158,12 +158,8 @@ export const logout = new Command("logout")
           remainingSessions[0];
         globalConfig.setCurrentSession(nextSession.id);
 
-        if (!logoutFailed) {
-          success(
-            nextSession.email
-              ? `Switched to ${nextSession.email}`
-              : `Switched to session at ${nextSession.endpoint}`,
-          );
+        if (!logoutFailed && nextSession.email) {
+          success(`Switched to ${nextSession.email}`);
         }
       } else if (remainingSessions.length === 0) {
         globalConfig.setCurrentSession("");
