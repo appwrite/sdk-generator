@@ -154,42 +154,13 @@ impl Client {
         self.clone()
     }
 
-    /// Set the project ID
-    pub fn set_project<S: Into<String>>(&self, project: S) -> Self {
-        let project = project.into();
-        self.state.rcu(|state| {
-            let mut next = (**state).clone();
-            next.config.headers.insert("x-appwrite-project", project.clone().parse().unwrap());
-            Arc::new(next)
-        });
-        self.clone()
-    }
-
-    /// Set the API key
-    pub fn set_key<S: Into<String>>(&self, key: S) -> Self {
-        let key = key.into();
-        self.state.rcu(|state| {
-            let mut next = (**state).clone();
-            next.config.headers.insert("x-appwrite-key", key.clone().parse().unwrap());
-            Arc::new(next)
-        });
-        self.clone()
-    }
-
-    /// Set the JWT token
-    pub fn set_jwt<S: Into<String>>(&self, jwt: S) -> Self {
-        let jwt = jwt.into();
-        self.state.rcu(|state| {
-            let mut next = (**state).clone();
-            next.config.headers.insert("x-appwrite-jwt", jwt.clone().parse().unwrap());
-            Arc::new(next)
-        });
-        self.clone()
-    }
 {% for header in spec.global.headers %}
-{% if header.type is defined and header.type == 'bearer' %}
 
+    /// Set {{header.key | caseUcfirst}}
+{% if header.description %}
+    ///
     /// {{header.description}}
+{% endif %}
     pub fn set_{{header.key | caseSnake}}<S: Into<String>>(&self, value: S) -> Self {
         let value = value.into();
         self.state.rcu(|state| {
@@ -199,41 +170,7 @@ impl Client {
         });
         self.clone()
     }
-{% endif %}
 {% endfor %}
-
-    /// Set the locale
-    pub fn set_locale<S: Into<String>>(&self, locale: S) -> Self {
-        let locale = locale.into();
-        self.state.rcu(|state| {
-            let mut next = (**state).clone();
-            next.config.headers.insert("x-appwrite-locale", locale.clone().parse().unwrap());
-            Arc::new(next)
-        });
-        self.clone()
-    }
-
-    /// Set the session
-    pub fn set_session<S: Into<String>>(&self, session: S) -> Self {
-        let session = session.into();
-        self.state.rcu(|state| {
-            let mut next = (**state).clone();
-            next.config.headers.insert("x-appwrite-session", session.clone().parse().unwrap());
-            Arc::new(next)
-        });
-        self.clone()
-    }
-
-    /// Set the request mode, e.g. `admin` to act as a console administrator
-    pub fn set_mode<S: Into<String>>(&self, mode: S) -> Self {
-        let mode = mode.into();
-        self.state.rcu(|state| {
-            let mut next = (**state).clone();
-            next.config.headers.insert("x-appwrite-mode", mode.clone().parse().unwrap());
-            Arc::new(next)
-        });
-        self.clone()
-    }
 
     /// Enable or disable self-signed certificates
     pub fn set_self_signed(&self, self_signed: bool) -> Self {
