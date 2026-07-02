@@ -186,6 +186,21 @@ impl Client {
         });
         self.clone()
     }
+{% for header in spec.global.headers %}
+{% if header.type is defined and header.type == 'bearer' %}
+
+    /// {{header.description}}
+    pub fn set_{{header.key | caseSnake}}<S: Into<String>>(&self, value: S) -> Self {
+        let value = value.into();
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            next.config.headers.insert("{{header.name | caseLower}}", value.clone().parse().unwrap());
+            Arc::new(next)
+        });
+        self.clone()
+    }
+{% endif %}
+{% endfor %}
 
     /// Set the locale
     pub fn set_locale<S: Into<String>>(&self, locale: S) -> Self {

@@ -119,21 +119,35 @@ class Client
      */
     public function set{{header.key | caseUcfirst}}(string $value): Client
     {
-{% if header.type is defined and header.type == 'bearer' %}
-        $this->key = $value;
-        $this->authorization = null;
-        $this->authorizationExpiresAt = null;
-{% else %}
         {%~ if header.global %}
         $this->addHeader('{{header.name}}', $value);
         {%~ endif %}
         $this->config['{{ header.key | caseLower }}'] = $value;
-{% endif %}
 
         return $this;
     }
 
 {% endfor %}
+{% if spec.global.headers | hasBearerAuth %}
+    /**
+     * Set Signing Key
+     *
+     * Set a secret key used to self-sign short-lived JWTs for the Authorization header
+     *
+     * @param string $key
+     *
+     * @return Client
+     */
+    public function setSigningKey(string $key): Client
+    {
+        $this->key = $key;
+        $this->authorization = null;
+        $this->authorizationExpiresAt = null;
+
+        return $this;
+    }
+
+{% endif %}
 
     public function getConfig(string $key): string
     {

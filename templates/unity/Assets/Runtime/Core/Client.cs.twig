@@ -290,6 +290,23 @@ namespace {{ spec.title | caseUcfirst }}
             return this;
         }
 
+{% for header in spec.global.headers %}
+{% if header.type is defined and header.type == 'bearer' %}
+        /// <summary>
+        /// Set {{header.key | caseUcfirst}}
+        ///
+        /// {{header.description}}
+        /// </summary>
+        /// <param name="value">Bearer token value</param>
+        /// <returns>Client instance for method chaining</returns>
+        public Client Set{{header.key | caseUcfirst}}(string value)
+        {
+            SetHeader("{{header.key | caseCamel}}", "{{header.name}}", value);
+            return this;
+        }
+
+{% endif %}
+{% endfor %}
         /// <summary>
         /// Clear session and JWT from client
         /// </summary>
