@@ -9,6 +9,7 @@ import { Client, AppwriteException } from "@appwrite.io/console";
 import { error } from "../../parser.js";
 import { globalConfig } from "../../config.js";
 import { getValidAccessToken } from "../../sdks.js";
+import { getErrorMessage } from "../../utils.js";
 import { Spinner } from "../../spinner.js";
 
 const ignore: typeof ignoreModule =
@@ -598,7 +599,7 @@ export async function downloadDeploymentCode(params: {
     }
   } catch (e: unknown) {
     if (e instanceof AppwriteException) {
-      error(e.message);
+      error(getErrorMessage(e));
       return;
     } else {
       throw e;

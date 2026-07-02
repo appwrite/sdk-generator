@@ -1058,7 +1058,7 @@ class Client {
             } else {
                 responseText = data?.message;
             }
-            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
+            throw new {{spec.title | caseUcfirst}}Exception(data?.message ?? responseText, response.status, data?.type, responseText);
         }
 
         const cookieFallback = response.headers.get('X-Fallback-Cookies');

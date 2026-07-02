@@ -11,7 +11,7 @@ const { description } = packageJson;
 import { globalConfig } from "./config.js";
 import os from "os";
 import { Client } from "@appwrite.io/console";
-import { isCloud } from "./utils.js";
+import { getErrorMessage, isCloud } from "./utils.js";
 import type { CliConfig } from "./types.js";
 import {
   SDK_VERSION,
@@ -664,35 +664,63 @@ const printQueryErrorHint = (err: Error): void => {
 };
 
 const ERROR_DETAIL_KEYS = ["code", "type", "response"] as const;
+const ERROR_DETAIL_INDENT = "  ";
+const ERROR_DETAIL_LABEL_WIDTH =
+  Math.max(...ERROR_DETAIL_KEYS.map((key) => key.length)) + 2;
+
+const formatErrorDetail = (value: unknown): string => {
+  if (typeof value === "string") {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (parsed && typeof parsed === "object") {
+        value = parsed;
+      }
+    } catch {
+      return value;
+    }
+  }
+
+  try {
+    const json = JSON.stringify(value, null, 2) ?? String(value);
+    return json
+      .split("\n")
+      .map((line, index) => (index === 0 ? line : ERROR_DETAIL_INDENT + line))
+      .join("\n");
+  } catch {
+    return String(value);
+  }
+};
 
 export const formatErrorForLog = (err: Error): string => {
-  const stack = err.stack || `${err.name}: ${err.message}`;
-  const detailLines = ERROR_DETAIL_KEYS.flatMap((key) => {
+  const lines = [
+    `${chalk.red.bold(err.name || "Error")}${chalk.red(`: ${getErrorMessage(err)}`)}`,
+  ];
+
+  for (const key of ERROR_DETAIL_KEYS) {
     if (!Object.prototype.hasOwnProperty.call(err, key)) {
-      return [];
+      continue;
     }
 
     const value = (err as unknown as Record<string, unknown>)[key];
-    let detail = "undefined";
-    try {
-      detail =
-        typeof value === "string"
-          ? JSON.stringify(value)
-          : JSON.stringify(value) ?? String(value);
-    } catch {
-      detail = String(value);
-    }
-
-    return [`${key}: ${detail}`];
-  });
-
-  if (detailLines.length === 0) {
-    return stack;
+    lines.push(
+      `${ERROR_DETAIL_INDENT}${chalk.cyan(`${key}:`.padEnd(ERROR_DETAIL_LABEL_WIDTH))}${formatErrorDetail(value)}`,
+    );
   }
 
-  const [summary, ...frames] = stack.split("\n");
+  const frames = (err.stack ?? "")
+    .split("\n")
+    .filter((line) => line.trim().startsWith("at "));
+  if (frames.length > 0) {
+    lines.push(
+      "",
+      chalk.dim(`${ERROR_DETAIL_INDENT}Stack trace:`),
+      ...frames.map((frame) =>
+        chalk.dim(`${ERROR_DETAIL_INDENT.repeat(2)}${frame.trim()}`),
+      ),
+    );
+  }
 
-  return [summary, ...detailLines, ...frames].join("\n");
+  return lines.join("\n");
 };
 
 export const parseError = (err: Error): void => {
@@ -726,7 +754,7 @@ export const parseError = (err: Error): void => {
       githubIssueUrl.searchParams.append("template", "bug.yaml");
       githubIssueUrl.searchParams.append(
         "title",
-        `🐛 Bug Report: ${err.message}`,
+        `🐛 Bug Report: ${getErrorMessage(err)}`,
       );
       githubIssueUrl.searchParams.append(
         "actual-behavior",
@@ -753,7 +781,7 @@ export const parseError = (err: Error): void => {
       printQueryErrorHint(err);
     } else {
       log("For detailed error pass the --verbose or --report flag");
-      error(err.message);
+      error(getErrorMessage(err));
       printQueryErrorHint(err);
     }
     process.exit(1);

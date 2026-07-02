@@ -3,6 +3,7 @@ import type { SessionData } from "../types.js";
 import ClientLegacy from "../client.js";
 import { OAUTH2_CLIENT_ID } from "../constants.js";
 import { revokeRefreshToken } from "./oauth.js";
+import { getErrorMessage } from "../utils.js";
 import {
   deleteStoredRefreshToken,
   getStoredRefreshToken,
@@ -124,7 +125,7 @@ export const deleteServerSession = async (
   } catch (e) {
     return {
       deleted: false,
-      error: e instanceof Error ? e.message : String(e),
+      error: getErrorMessage(e),
     };
   }
 };
