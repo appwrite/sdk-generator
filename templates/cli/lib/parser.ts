@@ -670,13 +670,14 @@ const ERROR_DETAIL_LABEL_WIDTH =
 
 const formatErrorDetail = (value: unknown): string => {
   if (typeof value === "string") {
+    const text = value;
     try {
-      const parsed: unknown = JSON.parse(value);
+      const parsed: unknown = JSON.parse(text);
       if (parsed && typeof parsed === "object") {
         value = parsed;
       }
     } catch {
-      return value;
+      return text;
     }
   }
 
