@@ -224,6 +224,17 @@ impl Client {
         self.clone()
     }
 
+    /// Set the request mode, e.g. `admin` to act as a console administrator
+    pub fn set_mode<S: Into<String>>(&self, mode: S) -> Self {
+        let mode = mode.into();
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            next.config.headers.insert("x-appwrite-mode", mode.clone().parse().unwrap());
+            Arc::new(next)
+        });
+        self.clone()
+    }
+
     /// Enable or disable self-signed certificates
     pub fn set_self_signed(&self, self_signed: bool) -> Self {
         self.state.rcu(|state| {

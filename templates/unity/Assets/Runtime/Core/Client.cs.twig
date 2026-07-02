@@ -308,6 +308,17 @@ namespace {{ spec.title | caseUcfirst }}
 {% endif %}
 {% endfor %}
         /// <summary>
+        /// Set the request mode, e.g. `admin` to act as a console administrator
+        /// </summary>
+        /// <param name="mode">Request mode</param>
+        /// <returns>Client instance for method chaining</returns>
+        public Client SetMode(string mode)
+        {
+            SetHeader("mode", "X-{{ spec.title | caseUcfirst }}-Mode", mode);
+            return this;
+        }
+
+        /// <summary>
         /// Clear session and JWT from client
         /// </summary>
         /// <returns>Client instance for method chaining</returns>
