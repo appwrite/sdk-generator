@@ -171,6 +171,11 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/waf.ts',
+                'template'      => 'node/src/waf.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/inputFile.ts',
                 'template'      => 'node/src/inputFile.ts.twig',
             ],

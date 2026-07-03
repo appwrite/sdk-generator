@@ -42,6 +42,11 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/waf.ts',
+                'template'      => 'web/src/waf.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/service.ts',
                 'template'      => 'web/src/service.ts.twig',
             ],

@@ -2,6 +2,7 @@ import { Models } from './models';
 import { Channel, ActionableChannel, ResolvedChannel } from './channel';
 import { Query } from './query';
 import { ID } from './id';
+import { WafChallenge, WAF_CHALLENGE_ERROR } from './waf';
 import JSONbigModule from 'json-bigint';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
 const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
@@ -383,6 +384,15 @@ class Client {
         '{{key}}': '{{header}}',
         {%~ endfor %}
     };
+
+    /**
+     * Handles WAF proof-of-work challenges transparently: solves and retries so
+     * application code never sees `waf_challenge_required`. See ./waf.
+     */
+    private waf: WafChallenge = new WafChallenge(
+        () => this.config.endpoint,
+        () => this.config.project,
+    );
 
     /**
      * Get Headers
@@ -1019,7 +1029,13 @@ class Client {
     {%~ endfor %}
     {%~ endfor %}
 
-    async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}, responseType = 'json'): Promise<any> {
+    async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}, responseType = 'json', _wafAttempt = 0): Promise<any> {
+        // Attach a cached WAF clearance token, if we hold a valid one.
+        const wafToken = this.waf.token();
+        if (wafToken) {
+            headers = { ...headers, 'X-Appwrite-WAF-Token': wafToken };
+        }
+
         const { uri, options } = this.prepareRequest(method, url, headers, params);
 
         let data: any = null;
@@ -1049,6 +1065,22 @@ class Client {
             data = {
                 message: await response.text()
             };
+        }
+
+        // WAF proof-of-work challenge: solve it transparently and retry once, so
+        // callers never see `waf_challenge_required`. A single retry (guarded by
+        // _wafAttempt) can never loop; a stale/rejected token is dropped and
+        // re-solved once before the error is surfaced.
+        if (response.status === 403 && data?.type === WAF_CHALLENGE_ERROR && _wafAttempt < 1) {
+            const challengeHeaders: Record<string, string> = {};
+            response.headers.forEach((value: string, key: string) => { challengeHeaders[key.toLowerCase()] = value; });
+            this.waf.reset();
+            try {
+                const token = await this.waf.solve(challengeHeaders);
+                return this.call(method, url, { ...headers, 'X-Appwrite-WAF-Token': token }, params, responseType, _wafAttempt + 1);
+            } catch {
+                // Solve failed — fall through and surface the original error.
+            }
         }
 
         if (400 <= response.status) {
