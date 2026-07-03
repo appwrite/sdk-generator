@@ -73,6 +73,7 @@ class CLI extends Node
         'logoUnescaped' => '',
         'homebrewTapOwner' => 'appwrite',
         'homebrewTapName' => 'appwrite',
+        'homebrewTapBranch' => 'main',
     ];
 
     /**
@@ -151,14 +152,16 @@ class CLI extends Node
     /**
      * Configure the Homebrew tap (`<owner>/homebrew-<name>`) hosting the CLI formula.
      *
-     * @param string $owner Tap owner (e.g. "appwrite")
-     * @param string $name  Tap short name without the `homebrew-` prefix
+     * @param string $owner  Tap owner (e.g. "appwrite")
+     * @param string $name   Tap short name without the `homebrew-` prefix
+     * @param string $branch Default branch of the tap repository
      * @return $this
      */
-    public function setHomebrewTap(string $owner, string $name): self
+    public function setHomebrewTap(string $owner, string $name, string $branch = 'main'): self
     {
         $this->setParam('homebrewTapOwner', $owner);
         $this->setParam('homebrewTapName', $name);
+        $this->setParam('homebrewTapBranch', $branch);
 
         return $this;
     }

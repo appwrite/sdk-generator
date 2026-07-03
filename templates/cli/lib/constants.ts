@@ -15,6 +15,8 @@ export const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 // Homebrew — fully-qualified `<owner>/<tap>/<formula>` reference
 export const HOMEBREW_TAP = "appwrite/appwrite";
 export const HOMEBREW_FORMULA = `${HOMEBREW_TAP}/appwrite`;
+export const HOMEBREW_TAP_FORMULA_URL =
+  "https://raw.githubusercontent.com/appwrite/homebrew-appwrite/main/Formula/appwrite.rb";
 
 // NPM
 export const NPM_PACKAGE_NAME = "sdk-for-cli";
