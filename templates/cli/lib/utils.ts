@@ -360,7 +360,13 @@ const getHomebrewLatestVersion = async (
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const match = (await response.text()).match(/^\s*version\s+"([^"]+)"/m);
+      // Strip resource blocks so their `version` lines cannot shadow the
+      // formula-level version.
+      const formulaSource = (await response.text()).replace(
+        /^\s*resource\s+"[^"]*"\s+do[\s\S]*?^\s*end/gm,
+        "",
+      );
+      const match = formulaSource.match(/^\s*version\s+"([^"]+)"/m);
       if (!match) {
         throw new Error("Could not find a version in the tap formula.");
       }
