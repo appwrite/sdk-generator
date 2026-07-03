@@ -15,6 +15,7 @@ import {
   DEFAULT_ENDPOINT,
   EXECUTABLE_NAME,
   HOMEBREW_FORMULA,
+  HOMEBREW_TAP_FORMULA_URL,
   UPDATE_CHECK_INTERVAL_MS,
 } from "./constants.js";
 
@@ -343,6 +344,32 @@ const getHomebrewLatestVersion = async (
     options.homebrewFormula ??
     getInstalledHomebrewFormula(options) ??
     HOMEBREW_FORMULA;
+
+  // `brew info` reads the local tap clone, which is only refreshed by
+  // `brew update` and can report a stale version. For the official tap,
+  // resolve the latest version from the tap repo itself and fall back to
+  // local metadata only when the fetch fails (e.g. offline).
+  if (formulaName === HOMEBREW_FORMULA) {
+    try {
+      const signal = AbortSignal.timeout(
+        options.timeoutMs ?? DEFAULT_HOMEBREW_COMMAND_TIMEOUT_MS,
+      );
+
+      const response = await fetch(HOMEBREW_TAP_FORMULA_URL, { signal });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const match = (await response.text()).match(/^\s*version\s+"([^"]+)"/m);
+      if (!match) {
+        throw new Error("Could not find a version in the tap formula.");
+      }
+
+      return normalizeHomebrewVersion(match[1].trim());
+    } catch (_error) {
+      // Fall through to local Homebrew metadata below.
+    }
+  }
 
   try {
     const output = childProcess.execFileSync(
