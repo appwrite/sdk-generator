@@ -5,6 +5,7 @@
 # Usage:
 #   ./scripts/update-lockfiles.sh           # update all
 #   ./scripts/update-lockfiles.sh web       # update one (web | node | react-native | cli)
+#   ./scripts/update-lockfiles.sh renovate  # update lock files and regenerate examples
 
 set -euo pipefail
 
@@ -122,6 +123,33 @@ restore_cli_bin() {
     validate_no_placeholders "$ROOT/templates/cli/package-lock.json.twig"
 }
 
+update_all() {
+    update_npm web "{{ language.params.npmPackage }}"
+    validate_no_placeholders "$ROOT/templates/web/package-lock.json.twig"
+    update_npm node "{{ language.params.npmPackage | caseDash }}"
+    validate_no_placeholders "$ROOT/templates/node/package-lock.json.twig"
+    update_npm react-native "{{ language.params.npmPackage }}"
+    validate_no_placeholders "$ROOT/templates/react-native/package-lock.json.twig"
+    update_npm cli "{{ language.params.npmPackage|caseDash }}"
+    restore_cli_bin
+    update_bun "{{ language.params.npmPackage|caseDash }}"
+}
+
+regenerate_examples() {
+    cd "$ROOT"
+
+    if [ ! -f vendor/autoload.php ]; then
+        composer install --ignore-platform-reqs --no-interaction --prefer-dist
+    fi
+
+    php example.php
+
+    if grep -R '"PLACEHOLDER"' "$ROOT"/templates/*/*lock*.twig >/dev/null 2>&1; then
+        echo "ERROR: unresolved PLACEHOLDER values remain in generated lockfile templates" >&2
+        exit 1
+    fi
+}
+
 case "$TARGET" in
     web)
         update_npm web "{{ language.params.npmPackage }}"
@@ -141,18 +169,14 @@ case "$TARGET" in
         update_bun "{{ language.params.npmPackage|caseDash }}"
         ;;
     all)
-        update_npm web "{{ language.params.npmPackage }}"
-        validate_no_placeholders "$ROOT/templates/web/package-lock.json.twig"
-        update_npm node "{{ language.params.npmPackage | caseDash }}"
-        validate_no_placeholders "$ROOT/templates/node/package-lock.json.twig"
-        update_npm react-native "{{ language.params.npmPackage }}"
-        validate_no_placeholders "$ROOT/templates/react-native/package-lock.json.twig"
-        update_npm cli "{{ language.params.npmPackage|caseDash }}"
-        restore_cli_bin
-        update_bun "{{ language.params.npmPackage|caseDash }}"
+        update_all
+        ;;
+    renovate)
+        update_all
+        regenerate_examples
         ;;
     *)
-        echo "Unknown target: $TARGET. Use web | node | react-native | cli | all"
+        echo "Unknown target: $TARGET. Use web | node | react-native | cli | all | renovate"
         exit 1
         ;;
 esac
