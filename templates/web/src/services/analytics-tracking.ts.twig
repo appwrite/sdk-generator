@@ -19,12 +19,20 @@
  *
  * All helpers respect `navigator.doNotTrack === '1'` by default; opt out with
  * `respectDoNotTrack: false` in the constructor options.
+ *
+ * Auto-emitted event names follow `snake_case` + lowercase (`pageview`,
+ * `outbound_link`, `file_download`, `screen_view`, etc.). Any prop keys use
+ * camelCase to match the endpoint's parameter naming. Callers can pass any
+ * custom event name; the auto-track methods only own the events they emit
+ * themselves.
  */
 
 export type AnalyticsEventOptions = {
     props?: Record<string, unknown>;
     url?: string;
     referrer?: string;
+    scrollDepth?: number;         // 0-100 percentage; forwarded to cloud endpoint as top-level param
+    engagementTime?: number;      // seconds; forwarded to cloud endpoint as top-level param
 }
 
 export type AnalyticsEventEmitter = (name: string, options?: AnalyticsEventOptions) => unknown;
@@ -122,7 +130,7 @@ export class AnalyticsTracking {
      * Convenience wrapper for pageview-shaped events.
      */
     public pageview(url?: string, referrer?: string): void {
-        this.track('Pageview', {
+        this.track('pageview', {
             url: url ?? this.currentPageUrl(),
             referrer: referrer ?? (typeof document !== 'undefined' ? document.referrer : undefined)
         });
@@ -195,9 +203,8 @@ export class AnalyticsTracking {
 
     /**
      * Enable click-based outbound link tracking. Detects anchor clicks that
-     * navigate to a different origin and fires an `Outbound Link: <host>` event
-     * before the browser navigates. Uses `sendBeacon` under the hood so the
-     * event survives the pagehide.
+     * navigate to a different origin and fires an `outbound_link` event
+     * (with `hostname` and `href` props) before the browser navigates.
      */
     public enableAutoOutboundTracking(options: OutboundTrackingOptions = {}): void {
         if (this.outboundCleanup) {
@@ -218,9 +225,9 @@ export class AnalyticsTracking {
             if (!target || !this.isExternal(target, includeSubdomains)) {
                 return;
             }
-            this.track('Outbound Link: ' + target.hostname, {
+            this.track('outbound_link', {
                 url: target.href,
-                props: { href: target.href, hostname: target.hostname }
+                props: { hostname: target.hostname, href: target.href }
             });
         };
 
@@ -230,8 +237,8 @@ export class AnalyticsTracking {
 
     /**
      * Enable click-based download tracking. Detects anchor clicks that point
-     * at a file whose extension appears in the configured list and fires
-     * `File Download: <filename>`.
+     * at a file whose extension appears in the configured list and fires a
+     * `file_download` event with `filename`, `extension` and `href` props.
      */
     public enableAutoDownloadTracking(options: DownloadTrackingOptions = {}): void {
         if (this.downloadCleanup) {
@@ -259,9 +266,9 @@ export class AnalyticsTracking {
             if (!extension || !extensionSet.has(extension)) {
                 return;
             }
-            this.track('File Download: ' + filename, {
+            this.track('file_download', {
                 url: url.href,
-                props: { href: url.href, filename, extension }
+                props: { filename, extension, href: url.href }
             });
         };
 
@@ -435,9 +442,9 @@ export class AnalyticsTracking {
         if (this.maxScrollDepth <= 0) {
             return;
         }
-        this.track('Scroll Depth', {
+        this.track('scroll_depth', {
             url,
-            props: { depth: this.maxScrollDepth }
+            scrollDepth: this.maxScrollDepth
         });
         this.maxScrollDepth = 0;
     }
@@ -465,9 +472,9 @@ export class AnalyticsTracking {
         this.pauseEngagement();
         const seconds = Math.round(this.engagementAccumulatedMs / 1000);
         if (seconds > 0) {
-            this.track('Engagement Time', {
+            this.track('engagement_time', {
                 url,
-                props: { seconds }
+                engagementTime: seconds
             });
         }
         this.engagementAccumulatedMs = 0;

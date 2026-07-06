@@ -12,7 +12,7 @@ import 'package:flutter/widgets.dart';
 ///   (name, {props}) => analytics.event(name: name, props: props),
 /// );
 /// ```
-typedef AnalyticsEventEmit = void Function(
+typedef AnalyticsEventEmitter = void Function(
   String name, {
   Map<String, dynamic>? props,
 });
@@ -48,20 +48,20 @@ String? defaultScreenNameExtractor(Route<dynamic> route) {
 /// );
 /// ```
 class AnalyticsObserver extends NavigatorObserver {
-  /// Callback used to send the resulting `Screen View` event.
-  final AnalyticsEventEmit emit;
+  /// Callback used to send the resulting `screen_view` event.
+  final AnalyticsEventEmitter emit;
 
   /// Optional route-name extractor. Defaults to [defaultScreenNameExtractor]
   /// which reads [RouteSettings.name].
   final ScreenNameExtractor nameExtractor;
 
-  /// Event name used for screen views. Defaults to `Screen View`.
+  /// Event name used for screen views. Defaults to `screen_view`.
   final String eventName;
 
   AnalyticsObserver(
     this.emit, {
     ScreenNameExtractor? nameExtractor,
-    this.eventName = 'Screen View',
+    this.eventName = 'screen_view',
   }) : nameExtractor = nameExtractor ?? defaultScreenNameExtractor;
 
   @override

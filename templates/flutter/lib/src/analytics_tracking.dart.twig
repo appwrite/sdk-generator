@@ -2,11 +2,15 @@ import 'package:flutter/widgets.dart';
 
 import 'analytics_observer.dart';
 
-export 'analytics_observer.dart' show AnalyticsEventEmit, AnalyticsObserver, ScreenNameExtractor;
+export 'analytics_observer.dart' show AnalyticsEventEmitter, AnalyticsObserver, ScreenNameExtractor;
 
 /// Companion class for the generated `Analytics` service that wires up the
 /// mobile-idiomatic auto-tracking primitives: app-lifecycle events (backgrounded
 /// / foregrounded) and manual `screenView` calls.
+///
+/// Auto-emitted event names follow `snake_case` + lowercase (`pageview`,
+/// `screen_view`, `app_backgrounded`, `app_foregrounded`, etc.). Prop keys use
+/// camelCase to match the endpoint's parameter naming.
 ///
 /// Attach an [AnalyticsObserver] to your `MaterialApp` for automatic route
 /// tracking; use [AnalyticsTracking] on top for lifecycle events and the
@@ -31,12 +35,12 @@ export 'analytics_observer.dart' show AnalyticsEventEmit, AnalyticsObserver, Scr
 /// ));
 /// ```
 class AnalyticsTracking with WidgetsBindingObserver {
-  final AnalyticsEventEmit _emit;
+  final AnalyticsEventEmitter _emit;
 
   bool _lifecycleAttached = false;
   DateTime? _foregroundSince;
 
-  AnalyticsTracking(AnalyticsEventEmit emit) : _emit = emit;
+  AnalyticsTracking(AnalyticsEventEmitter emit) : _emit = emit;
 
   /// Enable the opinionated default auto-tracking set. Currently this covers
   /// lifecycle events; route tracking is opt-in via [AnalyticsObserver].
@@ -44,7 +48,7 @@ class AnalyticsTracking with WidgetsBindingObserver {
     enableAutoLifecycleEvents();
   }
 
-  /// Start emitting `App Backgrounded` and `App Foregrounded` events when the
+  /// Start emitting `app_backgrounded` and `app_foregrounded` events when the
   /// host app changes lifecycle state. Idempotent — repeat calls no-op.
   void enableAutoLifecycleEvents() {
     if (_lifecycleAttached) {
@@ -76,9 +80,9 @@ class AnalyticsTracking with WidgetsBindingObserver {
     }
   }
 
-  /// Mobile-idiomatic screen-view shortcut. Renders as a `Screen View`
-  /// analytics event with `screen`, optional `class` and any caller-supplied
-  /// properties.
+  /// Mobile-idiomatic screen-view shortcut. Renders as a `screen_view`
+  /// analytics event with `screen`, optional `screenClass` and any
+  /// caller-supplied properties.
   void screenView(
     String name, {
     String? className,
@@ -86,12 +90,12 @@ class AnalyticsTracking with WidgetsBindingObserver {
   }) {
     final merged = <String, dynamic>{'screen': name};
     if (className != null) {
-      merged['class'] = className;
+      merged['screenClass'] = className;
     }
     if (props != null) {
       merged.addAll(props);
     }
-    event('Screen View', props: merged);
+    event('screen_view', props: merged);
   }
 
   @override
@@ -106,11 +110,11 @@ class AnalyticsTracking with WidgetsBindingObserver {
               DateTime.now().difference(since).inSeconds;
           _foregroundSince = null;
         }
-        event('App Backgrounded', props: props);
+        event('app_backgrounded', props: props);
         break;
       case AppLifecycleState.resumed:
         _foregroundSince = DateTime.now();
-        event('App Foregrounded');
+        event('app_foregrounded');
         break;
       case AppLifecycleState.inactive:
       case AppLifecycleState.detached:
