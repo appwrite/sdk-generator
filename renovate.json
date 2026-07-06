@@ -6,12 +6,15 @@
   "branchPrefix": "renovate/",
   "ignorePaths": [
     "examples/**",
+    "tests/e2e/languages/go*/go.mod",
     "tests/e2e/sdks/**",
     "templates/cli/package.json",
     "vendor/**",
     "node_modules/**"
   ],
-  "rangeStrategy": "bump",
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 5am on monday"]
@@ -21,14 +24,12 @@
   },
   "npm": {
     "managerFilePatterns": [
-      "/(^|/)package\\.json$/",
-      "/(^|/)package\\.json\\.twig$/"
+      "/(^|/)package\\.json$/"
     ]
   },
   "gradle": {
     "managerFilePatterns": [
       "/\\.gradle(\\.kts)?$/",
-      "/\\.gradle(\\.kts)?\\.twig$/",
       "/(^|/)gradle\\.properties$/",
       "/(^|/)gradle/.+\\.toml$/",
       "/(^|/)buildSrc/.+\\.kt$/",
@@ -50,8 +51,7 @@
   },
   "gomod": {
     "managerFilePatterns": [
-      "/(^|/)go\\.mod$/",
-      "/(^|/)go\\.mod\\.twig$/"
+      "/(^|/)go\\.mod$/"
     ]
   },
   "nuget": {
@@ -84,7 +84,7 @@
       "description": "NPM package versions in SDK templates",
       "managerFilePatterns": ["/^templates/(web|node|react-native|cli)/package\\.json\\.twig$/"],
       "matchStrings": [
-        "\"(?<depName>(?:@[^/\\\"]+/)?[^/\\\"]+)\"\\s*:\\s*\"(?<currentValue>[~^<>=\" ]*\\d[^\\\"]*)\""
+        "\"(?<depName>(?:@[^/\\\"]+/)?[A-Za-z0-9][A-Za-z0-9._-]*)\"\\s*:\\s*\"(?<currentValue>[~^<>=\" ]*\\d[^\\\"]*)\""
       ],
       "datasourceTemplate": "npm",
       "versioningTemplate": "npm"
@@ -176,8 +176,20 @@
   ],
   "packageRules": [
     {
-      "matchDepNames": ["node", "rust-version"],
+      "matchDepNames": ["node", "php", "rust-version"],
       "enabled": false
+    },
+    {
+      "matchManagers": ["composer"],
+      "postUpdateOptions": ["composerWithAll"]
+    },
+    {
+      "matchDatasources": ["maven"],
+      "registryUrls": [
+        "https://repo.maven.apache.org/maven2",
+        "https://maven.google.com",
+        "https://plugins.gradle.org/m2"
+      ]
     },
     {
       "matchManagers": ["pub"],
