@@ -16,6 +16,9 @@
     "enabled": true,
     "schedule": ["before 5am on monday"]
   },
+  "postUpgradeTasks": {
+    "commands": []
+  },
   "npm": {
     "managerFilePatterns": [
       "/(^|/)package\\.json$/",
