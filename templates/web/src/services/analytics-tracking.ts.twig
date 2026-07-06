@@ -1,0 +1,476 @@
+/**
+ * Analytics auto-tracking helpers.
+ *
+ * These are hand-written companions to the generated `Analytics` service.
+ * The generated service exposes `event(params)` for arbitrary events; this
+ * module wires up common auto-tracking behaviours (pageviews, outbound links,
+ * downloads, scroll depth, active engagement) on top of it via composition.
+ *
+ * The tracking helpers accept a plain event-emitter function so they do not
+ * hard-couple to the generated `Analytics` class. Typical wiring:
+ *
+ * ```ts
+ * const analytics = new Analytics(client);
+ * const tracking = new AnalyticsTracking(
+ *     (name, options) => analytics.event({ name, ...(options ?? {}) })
+ * );
+ * tracking.enableAllAutoTracking();
+ * ```
+ *
+ * All helpers respect `navigator.doNotTrack === '1'` by default; opt out with
+ * `respectDoNotTrack: false` in the constructor options.
+ */
+
+export type AnalyticsEventOptions = {
+    props?: Record<string, unknown>;
+    url?: string;
+    referrer?: string;
+}
+
+export type AnalyticsEventEmitter = (name: string, options?: AnalyticsEventOptions) => unknown;
+
+export type AnalyticsTrackingOptions = {
+    /**
+     * When true (default) the tracker becomes a no-op if `navigator.doNotTrack`
+     * is set to `'1'`. Set to false to always fire regardless of the DNT signal.
+     */
+    respectDoNotTrack?: boolean;
+}
+
+export type OutboundTrackingOptions = {
+    /**
+     * When true, links pointing at the current host's subdomains are treated
+     * as outbound. Defaults to false (subdomains are same-origin for tracking).
+     */
+    includeSubdomains?: boolean;
+}
+
+export type DownloadTrackingOptions = {
+    /**
+     * File extensions (without the leading dot) that mark an anchor as a
+     * download. Defaults cover the common set.
+     */
+    extensions?: string[];
+}
+
+const DEFAULT_DOWNLOAD_EXTENSIONS = [
+    'pdf', 'zip', 'rar', '7z', 'tar', 'gz',
+    'csv', 'tsv', 'xls', 'xlsx', 'doc', 'docx', 'ppt', 'pptx',
+    'dmg', 'exe', 'msi', 'pkg', 'deb', 'rpm', 'apk',
+    'mp3', 'wav', 'flac',
+    'mp4', 'mov', 'avi', 'mkv', 'webm',
+    'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'
+];
+
+const SCROLL_DEPTH_THROTTLE_MS = 200;
+
+type Cleanup = () => void;
+
+export class AnalyticsTracking {
+    private readonly emit: AnalyticsEventEmitter;
+    private readonly respectDoNotTrack: boolean;
+
+    private pageviewCleanups: Cleanup[] = [];
+    private outboundCleanup?: Cleanup;
+    private downloadCleanup?: Cleanup;
+    private scrollCleanups: Cleanup[] = [];
+    private engagementCleanups: Cleanup[] = [];
+
+    private currentPath?: string;
+    private maxScrollDepth = 0;
+    private scrollTicking = false;
+    private lastScrollReport = 0;
+
+    private engagementStart = 0;
+    private engagementAccumulatedMs = 0;
+    private engagementActive = false;
+
+    constructor(emit: AnalyticsEventEmitter, options: AnalyticsTrackingOptions = {}) {
+        this.emit = emit;
+        this.respectDoNotTrack = options.respectDoNotTrack !== false;
+    }
+
+    /**
+     * Enable the opinionated default auto-tracking set: pageviews, outbound
+     * links, scroll depth and active engagement time. Downloads must be opted
+     * into separately via `enableAutoDownloadTracking()` because the extension
+     * list is application-specific.
+     */
+    public enableAllAutoTracking(): void {
+        this.enableAutoPageviews();
+        this.enableAutoOutboundTracking();
+        this.enableAutoScrollDepth();
+        this.enableAutoEngagementTime();
+    }
+
+    /**
+     * Track an event manually. Respects the DNT setting and swallows emitter
+     * exceptions so tracking failures never surface to the host page.
+     */
+    public track(name: string, options?: AnalyticsEventOptions): void {
+        if (!this.canTrack()) {
+            return;
+        }
+        try {
+            this.emit(name, options);
+        } catch (error) {
+            console.warn('AnalyticsTracking: emitter threw', error);
+        }
+    }
+
+    /**
+     * Convenience wrapper for pageview-shaped events.
+     */
+    public pageview(url?: string, referrer?: string): void {
+        this.track('Pageview', {
+            url: url ?? this.currentPageUrl(),
+            referrer: referrer ?? (typeof document !== 'undefined' ? document.referrer : undefined)
+        });
+    }
+
+    /**
+     * Enable SPA-aware pageview tracking. Fires an initial pageview on
+     * enable, then again on every `pushState`, `replaceState`, `popstate`
+     * or hashchange. Idempotent — repeat calls no-op.
+     */
+    public enableAutoPageviews(): void {
+        if (this.pageviewCleanups.length > 0) {
+            return;
+        }
+        if (typeof window === 'undefined' || typeof history === 'undefined') {
+            return;
+        }
+
+        this.currentPath = this.currentPageUrl();
+        this.pageview();
+
+        const handleNavigation = (): void => {
+            const nextPath = this.currentPageUrl();
+            if (nextPath === this.currentPath) {
+                return;
+            }
+            const previous = this.currentPath;
+            this.currentPath = nextPath;
+            this.flushScrollDepth(previous);
+            this.flushEngagement(previous);
+            this.pageview(nextPath);
+        };
+
+        const originalPushState = history.pushState.bind(history);
+        const originalReplaceState = history.replaceState.bind(history);
+
+        history.pushState = (data: unknown, unused: string, url?: string | URL | null): void => {
+            originalPushState(data, unused, url);
+            handleNavigation();
+        };
+        history.replaceState = (data: unknown, unused: string, url?: string | URL | null): void => {
+            originalReplaceState(data, unused, url);
+            handleNavigation();
+        };
+
+        const popstateHandler = (): void => handleNavigation();
+        const hashchangeHandler = (): void => handleNavigation();
+
+        window.addEventListener('popstate', popstateHandler);
+        window.addEventListener('hashchange', hashchangeHandler);
+
+        this.pageviewCleanups.push(() => {
+            history.pushState = originalPushState;
+            history.replaceState = originalReplaceState;
+            window.removeEventListener('popstate', popstateHandler);
+            window.removeEventListener('hashchange', hashchangeHandler);
+        });
+    }
+
+    /**
+     * Disable auto-pageview tracking installed by `enableAutoPageviews`.
+     * Safe to call when auto-pageviews were never enabled.
+     */
+    public disableAutoPageviews(): void {
+        for (const cleanup of this.pageviewCleanups) {
+            cleanup();
+        }
+        this.pageviewCleanups = [];
+    }
+
+    /**
+     * Enable click-based outbound link tracking. Detects anchor clicks that
+     * navigate to a different origin and fires an `Outbound Link: <host>` event
+     * before the browser navigates. Uses `sendBeacon` under the hood so the
+     * event survives the pagehide.
+     */
+    public enableAutoOutboundTracking(options: OutboundTrackingOptions = {}): void {
+        if (this.outboundCleanup) {
+            return;
+        }
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const includeSubdomains = options.includeSubdomains === true;
+
+        const clickHandler = (event: MouseEvent): void => {
+            const anchor = this.findAnchor(event.target);
+            if (!anchor || !anchor.href) {
+                return;
+            }
+            const target = this.parseUrl(anchor.href);
+            if (!target || !this.isExternal(target, includeSubdomains)) {
+                return;
+            }
+            this.track('Outbound Link: ' + target.hostname, {
+                url: target.href,
+                props: { href: target.href, hostname: target.hostname }
+            });
+        };
+
+        document.addEventListener('click', clickHandler, { capture: true });
+        this.outboundCleanup = () => document.removeEventListener('click', clickHandler, { capture: true });
+    }
+
+    /**
+     * Enable click-based download tracking. Detects anchor clicks that point
+     * at a file whose extension appears in the configured list and fires
+     * `File Download: <filename>`.
+     */
+    public enableAutoDownloadTracking(options: DownloadTrackingOptions = {}): void {
+        if (this.downloadCleanup) {
+            return;
+        }
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const extensions = (options.extensions ?? DEFAULT_DOWNLOAD_EXTENSIONS)
+            .map(ext => ext.toLowerCase().replace(/^\./, ''));
+        const extensionSet = new Set(extensions);
+
+        const clickHandler = (event: MouseEvent): void => {
+            const anchor = this.findAnchor(event.target);
+            if (!anchor || !anchor.href) {
+                return;
+            }
+            const url = this.parseUrl(anchor.href);
+            if (!url) {
+                return;
+            }
+            const filename = url.pathname.split('/').pop() ?? '';
+            const extension = filename.includes('.') ? filename.split('.').pop()?.toLowerCase() : undefined;
+            if (!extension || !extensionSet.has(extension)) {
+                return;
+            }
+            this.track('File Download: ' + filename, {
+                url: url.href,
+                props: { href: url.href, filename, extension }
+            });
+        };
+
+        document.addEventListener('click', clickHandler, { capture: true });
+        this.downloadCleanup = () => document.removeEventListener('click', clickHandler, { capture: true });
+    }
+
+    /**
+     * Enable passive scroll-depth tracking. Records the maximum percent of the
+     * document scrolled and reports it on `beforeunload` and on SPA route
+     * changes. Uses a throttled passive listener so it is safe on hot paths.
+     */
+    public enableAutoScrollDepth(): void {
+        if (this.scrollCleanups.length > 0) {
+            return;
+        }
+        if (typeof window === 'undefined' || typeof document === 'undefined') {
+            return;
+        }
+
+        this.maxScrollDepth = 0;
+        this.lastScrollReport = 0;
+
+        const scrollHandler = (): void => {
+            if (this.scrollTicking) {
+                return;
+            }
+            this.scrollTicking = true;
+            window.requestAnimationFrame(() => {
+                const now = Date.now();
+                if (now - this.lastScrollReport < SCROLL_DEPTH_THROTTLE_MS) {
+                    this.scrollTicking = false;
+                    return;
+                }
+                this.lastScrollReport = now;
+                const depth = this.computeScrollDepth();
+                if (depth > this.maxScrollDepth) {
+                    this.maxScrollDepth = depth;
+                }
+                this.scrollTicking = false;
+            });
+        };
+
+        const unloadHandler = (): void => {
+            this.flushScrollDepth(this.currentPageUrl());
+        };
+
+        window.addEventListener('scroll', scrollHandler, { passive: true });
+        window.addEventListener('beforeunload', unloadHandler);
+        window.addEventListener('pagehide', unloadHandler);
+
+        this.scrollCleanups.push(() => {
+            window.removeEventListener('scroll', scrollHandler);
+            window.removeEventListener('beforeunload', unloadHandler);
+            window.removeEventListener('pagehide', unloadHandler);
+        });
+    }
+
+    /**
+     * Enable active engagement-time tracking. Counts time the tab is visible
+     * and reports it on `beforeunload` and on SPA route changes. Uses
+     * `visibilitychange` to exclude background time.
+     */
+    public enableAutoEngagementTime(): void {
+        if (this.engagementCleanups.length > 0) {
+            return;
+        }
+        if (typeof window === 'undefined' || typeof document === 'undefined') {
+            return;
+        }
+
+        this.engagementAccumulatedMs = 0;
+        this.startEngagement();
+
+        const visibilityHandler = (): void => {
+            if (document.visibilityState === 'hidden') {
+                this.pauseEngagement();
+            } else if (document.visibilityState === 'visible') {
+                this.startEngagement();
+            }
+        };
+
+        const unloadHandler = (): void => {
+            this.flushEngagement(this.currentPageUrl());
+        };
+
+        document.addEventListener('visibilitychange', visibilityHandler);
+        window.addEventListener('beforeunload', unloadHandler);
+        window.addEventListener('pagehide', unloadHandler);
+
+        this.engagementCleanups.push(() => {
+            document.removeEventListener('visibilitychange', visibilityHandler);
+            window.removeEventListener('beforeunload', unloadHandler);
+            window.removeEventListener('pagehide', unloadHandler);
+        });
+    }
+
+    private canTrack(): boolean {
+        if (!this.respectDoNotTrack) {
+            return true;
+        }
+        if (typeof navigator === 'undefined') {
+            return true;
+        }
+        return navigator.doNotTrack !== '1';
+    }
+
+    private currentPageUrl(): string {
+        if (typeof window === 'undefined' || !window.location) {
+            return '';
+        }
+        return window.location.href;
+    }
+
+    private findAnchor(target: EventTarget | null): HTMLAnchorElement | null {
+        let node = target as Node | null;
+        while (node) {
+            if ((node as HTMLElement).tagName === 'A') {
+                return node as HTMLAnchorElement;
+            }
+            node = (node as Node).parentNode;
+        }
+        return null;
+    }
+
+    private parseUrl(href: string): URL | null {
+        try {
+            return new URL(href, window.location.href);
+        } catch {
+            return null;
+        }
+    }
+
+    private isExternal(target: URL, includeSubdomains: boolean): boolean {
+        if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+            return false;
+        }
+        if (target.hostname === window.location.hostname) {
+            return false;
+        }
+        if (includeSubdomains) {
+            return true;
+        }
+        const root = this.rootDomain(window.location.hostname);
+        return this.rootDomain(target.hostname) !== root;
+    }
+
+    private rootDomain(hostname: string): string {
+        const parts = hostname.split('.');
+        if (parts.length <= 2) {
+            return hostname;
+        }
+        return parts.slice(-2).join('.');
+    }
+
+    private computeScrollDepth(): number {
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const viewport = window.innerHeight || document.documentElement.clientHeight;
+        const total = document.documentElement.scrollHeight;
+        if (total <= viewport) {
+            return 100;
+        }
+        const depth = Math.round(((scrollTop + viewport) / total) * 100);
+        return Math.max(0, Math.min(100, depth));
+    }
+
+    private flushScrollDepth(url: string | undefined): void {
+        if (this.scrollCleanups.length === 0) {
+            return;
+        }
+        if (this.maxScrollDepth <= 0) {
+            return;
+        }
+        this.track('Scroll Depth', {
+            url,
+            props: { depth: this.maxScrollDepth }
+        });
+        this.maxScrollDepth = 0;
+    }
+
+    private startEngagement(): void {
+        if (this.engagementActive) {
+            return;
+        }
+        this.engagementActive = true;
+        this.engagementStart = Date.now();
+    }
+
+    private pauseEngagement(): void {
+        if (!this.engagementActive) {
+            return;
+        }
+        this.engagementActive = false;
+        this.engagementAccumulatedMs += Date.now() - this.engagementStart;
+    }
+
+    private flushEngagement(url: string | undefined): void {
+        if (this.engagementCleanups.length === 0) {
+            return;
+        }
+        this.pauseEngagement();
+        const seconds = Math.round(this.engagementAccumulatedMs / 1000);
+        if (seconds > 0) {
+            this.track('Engagement Time', {
+                url,
+                props: { seconds }
+            });
+        }
+        this.engagementAccumulatedMs = 0;
+        this.startEngagement();
+    }
+}
