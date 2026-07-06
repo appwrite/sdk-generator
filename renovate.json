@@ -16,14 +16,6 @@
     "enabled": true,
     "schedule": ["before 5am on monday"]
   },
-  "postUpgradeTasks": {
-    "commands": ["./scripts/update-lockfiles.sh renovate"],
-    "executionMode": "branch",
-    "fileFilters": [
-      "templates/**",
-      "examples/**"
-    ]
-  },
   "npm": {
     "managerFilePatterns": [
       "/(^|/)package\\.json$/",
@@ -202,6 +194,29 @@
         "templates/cli/package.json.twig"
       ],
       "groupName": "typescript sdk template dependencies"
+    },
+    {
+      "matchManagers": ["custom.regex", "npm"],
+      "matchFileNames": [
+        "templates/web/package.json.twig",
+        "templates/node/package.json.twig",
+        "templates/react-native/package.json.twig",
+        "templates/cli/package.json.twig"
+      ],
+      "postUpgradeTasks": {
+        "commands": ["./scripts/update-lockfiles.sh renovate"],
+        "executionMode": "branch",
+        "fileFilters": [
+          "templates/**",
+          "examples/**"
+        ],
+        "installTools": {
+          "node": {},
+          "bun": {},
+          "php": {},
+          "composer": {}
+        }
+      }
     },
     {
       "matchManagers": ["gradle", "gradle-wrapper"],
