@@ -6,33 +6,31 @@
   "branchPrefix": "renovate/",
   "ignorePaths": [
     "examples/**",
+    "tests/e2e/languages/go*/go.mod",
     "tests/e2e/sdks/**",
+    "templates/cli/package.json",
     "vendor/**",
     "node_modules/**"
   ],
-  "rangeStrategy": "bump",
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
+  "rangeStrategy": "auto",
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 5am on monday"]
   },
   "postUpgradeTasks": {
-    "commands": ["./scripts/update-lockfiles.sh renovate"],
-    "executionMode": "branch",
-    "fileFilters": [
-      "templates/**",
-      "examples/**"
-    ]
+    "commands": []
   },
   "npm": {
     "managerFilePatterns": [
-      "/(^|/)package\\.json$/",
-      "/(^|/)package\\.json\\.twig$/"
+      "/(^|/)package\\.json$/"
     ]
   },
   "gradle": {
     "managerFilePatterns": [
       "/\\.gradle(\\.kts)?$/",
-      "/\\.gradle(\\.kts)?\\.twig$/",
       "/(^|/)gradle\\.properties$/",
       "/(^|/)gradle/.+\\.toml$/",
       "/(^|/)buildSrc/.+\\.kt$/",
@@ -54,8 +52,7 @@
   },
   "gomod": {
     "managerFilePatterns": [
-      "/(^|/)go\\.mod$/",
-      "/(^|/)go\\.mod\\.twig$/"
+      "/(^|/)go\\.mod$/"
     ]
   },
   "nuget": {
@@ -88,7 +85,7 @@
       "description": "NPM package versions in SDK templates",
       "managerFilePatterns": ["/^templates/(web|node|react-native|cli)/package\\.json\\.twig$/"],
       "matchStrings": [
-        "\"(?<depName>(?:@[^/\\\"]+/)?[^/\\\"]+)\"\\s*:\\s*\"(?<currentValue>[~^<>=\" ]*\\d[^\\\"]*)\""
+        "\"(?<depName>(?:@[^/\\\"]+/)?[A-Za-z0-9][A-Za-z0-9._-]*)\"\\s*:\\s*\"(?<currentValue>[~^<>=\" ]*\\d[^\\\"]*)\""
       ],
       "datasourceTemplate": "npm",
       "versioningTemplate": "npm"
@@ -180,8 +177,45 @@
   ],
   "packageRules": [
     {
-      "matchDepNames": ["node", "rust-version"],
+      "matchDepNames": ["node", "php", "rust-version"],
       "enabled": false
+    },
+    {
+      "description": "Ignore npm package export override pseudo-dependency extracted from template package.json files.",
+      "matchDepNames": ["/^\\.$/"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["dtolnay/rust-toolchain", "fnkr/github-action-ghr"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["composer"],
+      "matchFileNames": ["mock-server/composer.json"],
+      "matchDepNames": [
+        "utopia-php/database",
+        "utopia-php/framework",
+        "utopia-php/swoole"
+      ],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["composer"],
+      "matchDepNames": ["brianium/paratest"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["composer"],
+      "postUpdateOptions": ["composerWithAll"]
+    },
+    {
+      "matchDatasources": ["maven"],
+      "registryUrls": [
+        "https://repo.maven.apache.org/maven2",
+        "https://maven.google.com",
+        "https://plugins.gradle.org/m2"
+      ]
     },
     {
       "matchManagers": ["pub"],
@@ -203,8 +237,32 @@
       "groupName": "typescript sdk template dependencies"
     },
     {
+      "matchManagers": ["custom.regex", "npm"],
+      "matchFileNames": [
+        "templates/web/package.json.twig",
+        "templates/node/package.json.twig",
+        "templates/react-native/package.json.twig",
+        "templates/cli/package.json.twig"
+      ],
+      "postUpgradeTasks": {
+        "commands": ["./scripts/update-lockfiles.sh renovate"],
+        "executionMode": "branch",
+        "fileFilters": [
+          "templates/**",
+          "examples/**"
+        ],
+        "installTools": {
+          "node": {},
+          "bun": {},
+          "php": {},
+          "composer": {}
+        }
+      }
+    },
+    {
       "matchManagers": ["gradle", "gradle-wrapper"],
-      "groupName": "jvm sdk template dependencies"
+      "groupName": "jvm sdk template dependencies",
+      "skipArtifactsUpdate": true
     },
     {
       "matchManagers": ["pub"],
