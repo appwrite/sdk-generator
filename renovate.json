@@ -7,6 +7,7 @@
   "ignorePaths": [
     "examples/**",
     "tests/e2e/sdks/**",
+    "templates/cli/package.json",
     "vendor/**",
     "node_modules/**"
   ],
