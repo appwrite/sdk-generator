@@ -185,6 +185,21 @@
       "enabled": false
     },
     {
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["dtolnay/rust-toolchain", "fnkr/github-action-ghr"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["composer"],
+      "matchFileNames": ["mock-server/composer.json"],
+      "matchDepNames": [
+        "utopia-php/database",
+        "utopia-php/framework",
+        "utopia-php/swoole"
+      ],
+      "groupName": "mock server utopia dependencies"
+    },
+    {
       "matchManagers": ["composer"],
       "postUpdateOptions": ["composerWithAll"]
     },
