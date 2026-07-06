@@ -32,6 +32,10 @@ jobs:
         if: inputs.dryRun
         run: echo "RENOVATE_DRY_RUN=full" >> "$GITHUB_ENV"
 
+      - name: target dispatch ref for dry run
+        if: inputs.dryRun
+        run: printf 'RENOVATE_BASE_BRANCHES=["%s"]\n' "$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+
       - name: renovate
         uses: renovatebot/github-action@dd5302ec17783b2fc721b19ae7209b57b1587765 # v46.1.17
         with:
