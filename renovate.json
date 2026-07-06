@@ -184,6 +184,11 @@
       "enabled": false
     },
     {
+      "matchManagers": ["pub"],
+      "matchDepNames": ["dart", "flutter"],
+      "enabled": false
+    },
+    {
       "matchManagers": ["github-actions"],
       "groupName": "github actions"
     },
