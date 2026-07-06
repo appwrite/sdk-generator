@@ -15,6 +15,7 @@
   "vulnerabilityAlerts": {
     "enabled": false
   },
+  "rangeStrategy": "auto",
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 5am on monday"]
@@ -180,6 +181,10 @@
       "enabled": false
     },
     {
+      "matchDepNames": ["."],
+      "enabled": false
+    },
+    {
       "matchManagers": ["composer"],
       "postUpdateOptions": ["composerWithAll"]
     },
@@ -235,7 +240,8 @@
     },
     {
       "matchManagers": ["gradle", "gradle-wrapper"],
-      "groupName": "jvm sdk template dependencies"
+      "groupName": "jvm sdk template dependencies",
+      "skipArtifactsUpdate": true
     },
     {
       "matchManagers": ["pub"],
