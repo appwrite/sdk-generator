@@ -1,0 +1,120 @@
+import 'package:flutter/widgets.dart';
+
+import 'analytics_observer.dart';
+
+export 'analytics_observer.dart' show AnalyticsEventEmit, AnalyticsObserver, ScreenNameExtractor;
+
+/// Companion class for the generated `Analytics` service that wires up the
+/// mobile-idiomatic auto-tracking primitives: app-lifecycle events (backgrounded
+/// / foregrounded) and manual `screenView` calls.
+///
+/// Attach an [AnalyticsObserver] to your `MaterialApp` for automatic route
+/// tracking; use [AnalyticsTracking] on top for lifecycle events and the
+/// convenience `screenView` / `event` shortcuts.
+///
+/// Typical wiring:
+///
+/// ```dart
+/// final analytics = Analytics(client);
+/// final tracking = AnalyticsTracking(
+///   (name, {props}) => analytics.event(name: name, props: props),
+/// );
+/// tracking.enableAllAutoTracking();
+///
+/// runApp(MaterialApp(
+///   navigatorObservers: [
+///     AnalyticsObserver(
+///       (name, {props}) => analytics.event(name: name, props: props),
+///     ),
+///   ],
+///   home: MyApp(),
+/// ));
+/// ```
+class AnalyticsTracking with WidgetsBindingObserver {
+  final AnalyticsEventEmit _emit;
+
+  bool _lifecycleAttached = false;
+  DateTime? _foregroundSince;
+
+  AnalyticsTracking(AnalyticsEventEmit emit) : _emit = emit;
+
+  /// Enable the opinionated default auto-tracking set. Currently this covers
+  /// lifecycle events; route tracking is opt-in via [AnalyticsObserver].
+  void enableAllAutoTracking() {
+    enableAutoLifecycleEvents();
+  }
+
+  /// Start emitting `App Backgrounded` and `App Foregrounded` events when the
+  /// host app changes lifecycle state. Idempotent — repeat calls no-op.
+  void enableAutoLifecycleEvents() {
+    if (_lifecycleAttached) {
+      return;
+    }
+    _lifecycleAttached = true;
+    _foregroundSince = DateTime.now();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  /// Stop emitting lifecycle events. Safe to call when auto-lifecycle was
+  /// never enabled.
+  void disableAutoLifecycleEvents() {
+    if (!_lifecycleAttached) {
+      return;
+    }
+    _lifecycleAttached = false;
+    _foregroundSince = null;
+    WidgetsBinding.instance.removeObserver(this);
+  }
+
+  /// Emit an ad-hoc analytics event. Emitter exceptions are swallowed so
+  /// analytics failures never surface to the host app.
+  void event(String name, {Map<String, dynamic>? props}) {
+    try {
+      _emit(name, props: props);
+    } catch (_) {
+      // Silent — see class docs.
+    }
+  }
+
+  /// Mobile-idiomatic screen-view shortcut. Renders as a `Screen View`
+  /// analytics event with `screen`, optional `class` and any caller-supplied
+  /// properties.
+  void screenView(
+    String name, {
+    String? className,
+    Map<String, dynamic>? props,
+  }) {
+    final merged = <String, dynamic>{'screen': name};
+    if (className != null) {
+      merged['class'] = className;
+    }
+    if (props != null) {
+      merged.addAll(props);
+    }
+    event('Screen View', props: merged);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+        final since = _foregroundSince;
+        final props = <String, dynamic>{};
+        if (since != null) {
+          props['foregroundSeconds'] =
+              DateTime.now().difference(since).inSeconds;
+          _foregroundSince = null;
+        }
+        event('App Backgrounded', props: props);
+        break;
+      case AppLifecycleState.resumed:
+        _foregroundSince = DateTime.now();
+        event('App Foregrounded');
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        break;
+    }
+  }
+}
