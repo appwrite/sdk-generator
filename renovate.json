@@ -181,7 +181,8 @@
       "enabled": false
     },
     {
-      "matchDepNames": ["."],
+      "description": "Ignore npm package export override pseudo-dependency extracted from template package.json files.",
+      "matchDepNames": ["/^\\.$/"],
       "enabled": false
     },
     {
