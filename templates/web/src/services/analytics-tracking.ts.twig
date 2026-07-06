@@ -66,8 +66,7 @@ const DEFAULT_DOWNLOAD_EXTENSIONS = [
     'csv', 'tsv', 'xls', 'xlsx', 'doc', 'docx', 'ppt', 'pptx',
     'dmg', 'exe', 'msi', 'pkg', 'deb', 'rpm', 'apk',
     'mp3', 'wav', 'flac',
-    'mp4', 'mov', 'avi', 'mkv', 'webm',
-    'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'
+    'mp4', 'mov', 'avi', 'mkv', 'webm'
 ];
 
 const SCROLL_DEPTH_THROTTLE_MS = 200;
@@ -162,6 +161,14 @@ export class AnalyticsTracking {
             this.flushScrollDepth(previous);
             this.flushEngagement(previous);
             this.pageview(nextPath);
+            // flushEngagement no longer auto-restarts the timer (see its
+            // implementation note re: bfcache). SPA navigation stays on the
+            // same document, so restart engagement tracking for the new
+            // route as long as the tab is visible.
+            if (this.engagementCleanups.length > 0 &&
+                (typeof document === 'undefined' || document.visibilityState !== 'hidden')) {
+                this.startEngagement();
+            }
         };
 
         const originalPushState = history.pushState.bind(history);
@@ -236,6 +243,17 @@ export class AnalyticsTracking {
     }
 
     /**
+     * Disable outbound-link tracking installed by `enableAutoOutboundTracking`.
+     * Safe to call when auto-outbound was never enabled.
+     */
+    public disableAutoOutboundTracking(): void {
+        if (this.outboundCleanup) {
+            this.outboundCleanup();
+            this.outboundCleanup = undefined;
+        }
+    }
+
+    /**
      * Enable click-based download tracking. Detects anchor clicks that point
      * at a file whose extension appears in the configured list and fires a
      * `file_download` event with `filename`, `extension` and `href` props.
@@ -274,6 +292,17 @@ export class AnalyticsTracking {
 
         document.addEventListener('click', clickHandler, { capture: true });
         this.downloadCleanup = () => document.removeEventListener('click', clickHandler, { capture: true });
+    }
+
+    /**
+     * Disable file-download tracking installed by `enableAutoDownloadTracking`.
+     * Safe to call when auto-download was never enabled.
+     */
+    public disableAutoDownloadTracking(): void {
+        if (this.downloadCleanup) {
+            this.downloadCleanup();
+            this.downloadCleanup = undefined;
+        }
     }
 
     /**
@@ -328,6 +357,21 @@ export class AnalyticsTracking {
     }
 
     /**
+     * Disable scroll-depth tracking installed by `enableAutoScrollDepth`. Safe
+     * to call when auto-scroll-depth was never enabled. Any accumulated depth
+     * for the current page is dropped.
+     */
+    public disableAutoScrollDepth(): void {
+        for (const cleanup of this.scrollCleanups) {
+            cleanup();
+        }
+        this.scrollCleanups = [];
+        this.maxScrollDepth = 0;
+        this.scrollTicking = false;
+        this.lastScrollReport = 0;
+    }
+
+    /**
      * Enable active engagement-time tracking. Counts time the tab is visible
      * and reports it on `beforeunload` and on SPA route changes. Uses
      * `visibilitychange` to exclude background time.
@@ -355,15 +399,43 @@ export class AnalyticsTracking {
             this.flushEngagement(this.currentPageUrl());
         };
 
+        const pageshowHandler = (event: PageTransitionEvent): void => {
+            // When the page is restored from the back-forward cache the
+            // engagement timer is in a stopped state (flushEngagement paused
+            // it on pagehide and does not auto-restart). Kick off a fresh
+            // engagementStart so bfcache dwell time is not billed as
+            // engagement.
+            if (event.persisted) {
+                this.startEngagement();
+            }
+        };
+
         document.addEventListener('visibilitychange', visibilityHandler);
         window.addEventListener('beforeunload', unloadHandler);
         window.addEventListener('pagehide', unloadHandler);
+        window.addEventListener('pageshow', pageshowHandler);
 
         this.engagementCleanups.push(() => {
             document.removeEventListener('visibilitychange', visibilityHandler);
             window.removeEventListener('beforeunload', unloadHandler);
             window.removeEventListener('pagehide', unloadHandler);
+            window.removeEventListener('pageshow', pageshowHandler);
         });
+    }
+
+    /**
+     * Disable engagement-time tracking installed by `enableAutoEngagementTime`.
+     * Safe to call when auto-engagement was never enabled. Any accumulated
+     * engagement time is dropped without being emitted.
+     */
+    public disableAutoEngagementTime(): void {
+        for (const cleanup of this.engagementCleanups) {
+            cleanup();
+        }
+        this.engagementCleanups = [];
+        this.engagementActive = false;
+        this.engagementAccumulatedMs = 0;
+        this.engagementStart = 0;
     }
 
     private canTrack(): boolean {
@@ -478,6 +550,14 @@ export class AnalyticsTracking {
             });
         }
         this.engagementAccumulatedMs = 0;
-        this.startEngagement();
+        // NOTE: intentionally do NOT call startEngagement() here. flushEngagement
+        // runs on `pagehide`, which is also the last hook before the browser
+        // may freeze the page into the back-forward cache. Auto-restarting
+        // would snapshot engagementStart just before the freeze; the next
+        // pauseEngagement (after bfcache restore) would then bill the entire
+        // bfcache dwell as active engagement. Restart is driven by explicit
+        // resume signals: `pageshow` (with `persisted === true`),
+        // `visibilitychange` back to visible, or the SPA navigation flow in
+        // `enableAutoPageviews`.
     }
 }
