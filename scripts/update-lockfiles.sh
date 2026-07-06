@@ -14,6 +14,41 @@ TARGET="${1:-all}"
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
+ensure_tool() {
+    local command_name="$1" tool_name="$2" version="${3:-}"
+
+    if command -v "$command_name" >/dev/null 2>&1; then
+        return
+    fi
+
+    if ! command -v install-tool >/dev/null 2>&1; then
+        echo "ERROR: required command '$command_name' is missing" >&2
+        return 1
+    fi
+
+    if [ -n "$version" ]; then
+        install-tool "$tool_name" "$version"
+    else
+        install-tool "$tool_name"
+    fi
+}
+
+ensure_npm() {
+    ensure_tool npm node "${SDK_GEN_NODE_VERSION:-24.18.0}"
+}
+
+ensure_bun() {
+    ensure_tool bun bun "${SDK_GEN_BUN_VERSION:-1.3.4}"
+}
+
+ensure_php() {
+    ensure_tool php php "${SDK_GEN_PHP_VERSION:-8.5.0}"
+}
+
+ensure_composer() {
+    ensure_tool composer composer "${SDK_GEN_COMPOSER_VERSION:-2.10.2}"
+}
+
 strip_twig() {
     # Replace {{ ... }} expressions with a safe placeholder so npm/bun
     # can parse the file as plain JSON. Only metadata fields use Twig
@@ -91,6 +126,8 @@ update_npm() {
     local dest="$ROOT/templates/$lang/package-lock.json.twig"
     local dir="$WORKDIR/$lang"
 
+    ensure_npm
+
     echo "→ $lang (npm)"
     mkdir -p "$dir"
     strip_twig "$template" > "$dir/package.json"
@@ -106,6 +143,8 @@ update_bun() {
     local dir="$WORKDIR/cli"
     local template="$ROOT/templates/cli/package.json.twig"
     local dest="$ROOT/templates/cli/bun.lock.twig"
+
+    ensure_bun
 
     echo "→ cli (bun)"
     mkdir -p "$dir"
@@ -137,6 +176,9 @@ update_all() {
 
 regenerate_examples() {
     cd "$ROOT"
+
+    ensure_php
+    ensure_composer
 
     if [ ! -f vendor/autoload.php ]; then
         composer install --ignore-platform-reqs --no-interaction --prefer-dist
