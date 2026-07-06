@@ -197,7 +197,12 @@
         "utopia-php/framework",
         "utopia-php/swoole"
       ],
-      "groupName": "mock server utopia dependencies"
+      "enabled": false
+    },
+    {
+      "matchManagers": ["composer"],
+      "matchDepNames": ["brianium/paratest"],
+      "enabled": false
     },
     {
       "matchManagers": ["composer"],
