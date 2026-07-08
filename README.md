@@ -168,7 +168,7 @@ php example.php skills
 | Python | `python` | Python >=3.9 | [PEP8] | pip | `examples/python/` |
 | Ruby | `ruby` | Ruby 3.1 in CI | [Ruby Style Guide] | RubyGems, Bundler | `examples/ruby/` |
 | Dart | `dart` | Dart >=2.17 <4 | [Effective Dart] | pub | `examples/dart/` |
-| Go | `go` | Go 1.22.5 | [Effective Go] | Go modules | `examples/go/` |
+| Go | `go` | Go 1.26.5 | [Effective Go] | Go modules | `examples/go/` |
 | Swift | `swift` | Swift 5.1+; Swift 5.9.2 in CI | [Swift Style Guide] | Swift Package Manager | `examples/swift/` |
 | .NET | `dotnet` | .NET Standard 2.0; .NET Framework 4.6.2 | [C# Coding Conventions] | NuGet | `examples/dotnet/` |
 | Kotlin | `kotlin` | JVM 1.8 target; Java 17 in CI | [Kotlin style guide] | Gradle, Maven | `examples/kotlin/` |
