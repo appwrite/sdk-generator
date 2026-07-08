@@ -142,6 +142,9 @@ jobs:
             echo "tag=latest" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Audit npm dependencies
+        run: npm audit --audit-level=high
+
       - name: Publish
         run: npm publish --provenance --access public --tag ${{ steps.release_tag.outputs.tag }}
 
