@@ -37,7 +37,7 @@ jobs:
     - name: Install dependencies, audit, and build
       run: |
         npm ci
-        npm audit --audit-level=high
+        npm audit --audit-level=high --omit=dev
         npm run build
 
     - name: Publish
