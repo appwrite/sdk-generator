@@ -278,6 +278,7 @@ abstract class Base extends TestCase
         'auth:valid-access-token-missing-expiry:passed',
         'auth:oauth-login-flag:passed',
         'auth:open-browser:passed',
+        'auth:config-filters-project-header:passed',
     ];
 
     protected const CLI_LOCAL_FUNCTION_EMULATION_RESPONSES = [
