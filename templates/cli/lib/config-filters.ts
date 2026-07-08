@@ -41,7 +41,9 @@ const configFilters: ConfigFilter[] = [
           new URL(
             `${consoleClient.config.endpoint}/projects/${encodeURIComponent(config.projectId)}`,
           ),
-          {},
+          {
+            "X-Appwrite-Project": "console",
+          },
           {},
         );
 

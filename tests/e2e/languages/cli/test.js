@@ -56,6 +56,7 @@ const {
   globalConfig,
 } = require("./lib/config.ts");
 const { listenForBrowserOpen } = require("./lib/auth/login.ts");
+const { applyConfigFilters } = require("./lib/config-filters.ts");
 const { questionsLogout } = require("./lib/questions.ts");
 
 const extractFirstValue = (output) => {
@@ -1250,6 +1251,49 @@ async function runAuthChecks() {
     } finally {
       childProcess.spawn = originalSpawn;
     }
+  });
+
+  await authCheck("config-filters-project-header", async () => {
+    // organizationId missing: the org is resolved via a raw projects lookup.
+    // That call bypasses the generated service methods, so it must set
+    // X-Appwrite-Project itself — without it the API treats the request as a
+    // guest and rejects it with a missing-scopes 401.
+    const calls = [];
+    const consoleClient = {
+      headers: {},
+      config: { endpoint: "http://mockapi/v1" },
+      call: async (method, url, headers) => {
+        calls.push({ method, url: url.toString(), headers });
+        return { teamId: "team-1" };
+      },
+    };
+
+    await muteStdout(() =>
+      applyConfigFilters({
+        config: { projectId: "project-1" },
+        consoleClient,
+      }),
+    );
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].method, "get");
+    assert.equal(calls[0].url, "http://mockapi/v1/projects/project-1");
+    assert.equal(calls[0].headers["X-Appwrite-Project"], "console");
+    assert.equal(consoleClient.headers["X-Appwrite-Organization"], "team-1");
+
+    // organizationId present: applied directly, no lookup request.
+    const directClient = {
+      headers: {},
+      config: { endpoint: "http://mockapi/v1" },
+      call: async () => {
+        throw new Error("unexpected API call when organizationId is set");
+      },
+    };
+    await applyConfigFilters({
+      config: { organizationId: "org-1", projectId: "project-1" },
+      consoleClient: directClient,
+    });
+    assert.equal(directClient.headers["X-Appwrite-Organization"], "org-1");
   });
 
   globalConfig.clear();
