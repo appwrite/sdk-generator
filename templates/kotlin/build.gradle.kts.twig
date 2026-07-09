@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
-    kotlin("jvm") version "2.2.21"
+    kotlin("jvm") version "2.4.0"
     `java-library`
     `maven-publish`
     signing
@@ -29,14 +29,14 @@ repositories {
 }
 
 dependencies {
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 
-    api(platform("com.squareup.okhttp3:okhttp-bom:5.3.2"))
+    api(platform("com.squareup.okhttp3:okhttp-bom:5.4.0"))
     api("com.squareup.okhttp3:okhttp")
 
     implementation("com.squareup.okhttp3:okhttp-urlconnection")
     implementation("com.squareup.okhttp3:logging-interceptor")
-    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.google.code.gson:gson:2.14.0")
 
     testImplementation(kotlin("test-junit"))
 }
