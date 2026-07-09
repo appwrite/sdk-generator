@@ -2,6 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "labels": ["dependencies"],
+  "reviewers": ["ChiragAgg5k"],
   "dependencyDashboard": true,
   "branchPrefix": "renovate/",
   "ignorePaths": [
@@ -15,7 +16,6 @@
   "vulnerabilityAlerts": {
     "enabled": false
   },
-  "rangeStrategy": "auto",
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 5am on monday"]
@@ -201,9 +201,23 @@
       "enabled": false
     },
     {
+      "description": "paratest is pinned separately; enabling it alone (or with phpunit majors) leaves composer.lock unresolvable.",
       "matchManagers": ["composer"],
       "matchDepNames": ["brianium/paratest"],
       "enabled": false
+    },
+    {
+      "description": "phpunit 12+/13* needs a newer paratest than we allow Renovate to bump, so majors open broken lockfile PRs.",
+      "matchManagers": ["composer"],
+      "matchDepNames": ["phpunit/phpunit"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Rector minor bumps often fail Checks/Refactor until src is re-run through the new rules.",
+      "matchManagers": ["composer"],
+      "matchDepNames": ["rector/rector"],
+      "dependencyDashboardApproval": true
     },
     {
       "matchManagers": ["composer"],
@@ -218,6 +232,15 @@
       ]
     },
     {
+      "description": "Playwright browser images are hardcoded in e2e tests; bumping the npm dep alone breaks WebChromium/ReactNative CI.",
+      "matchDepNames": ["playwright"],
+      "matchFileNames": [
+        "templates/web/package.json.twig",
+        "templates/react-native/package.json.twig"
+      ],
+      "enabled": false
+    },
+    {
       "matchManagers": ["pub"],
       "matchDepNames": ["dart", "flutter"],
       "enabled": false
@@ -227,7 +250,7 @@
       "groupName": "github actions"
     },
     {
-      "matchManagers": ["npm"],
+      "matchManagers": ["npm", "custom.regex"],
       "matchFileNames": [
         "templates/web/package.json.twig",
         "templates/node/package.json.twig",
@@ -283,6 +306,24 @@
     {
       "matchManagers": ["custom.regex"],
       "groupName": "sdk template dependencies"
+    },
+    {
+      "description": "Keep Android Gradle plugin / Maven template deps out of the catch-all regex group (must follow that rule).",
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": [
+        "templates/android/**",
+        "templates/kotlin/**"
+      ],
+      "groupName": "android and kotlin sdk template dependencies"
+    },
+    {
+      "description": "Keep Swift package bumps separate from Android/npm template groups (must follow catch-all regex rule).",
+      "matchManagers": ["custom.regex", "swift"],
+      "matchFileNames": [
+        "templates/swift/**",
+        "templates/apple/**"
+      ],
+      "groupName": "swift sdk template dependencies"
     },
     {
       "matchDatasources": ["npm"],
