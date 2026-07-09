@@ -53,10 +53,5 @@ jobs:
         env:
           RENOVATE_ALLOWED_COMMANDS: '["^./scripts/update-lockfiles\\.sh renovate$"]'
           RENOVATE_REPOSITORIES: ${{ github.repository }}
-          # TODO: remove once the renovate-appwrite installation token can POST commit
-          # statuses (statuses:write). The app definition already grants Commit statuses
-          # R/W, but the org installation token still 403s and Renovate aborts with
-          # repository-changed before refreshing the Dependency Dashboard. Accept any
-          # pending installation permission update, then delete this env + renovate.json
-          # statusCheckNames workaround.
+          # TODO: remove when renovate-appwrite installation token has statuses:write
           RENOVATE_STATUS_CHECK_NAMES: '{"artifactError":null,"configValidation":null,"mergeConfidence":null,"minimumReleaseAge":null}'
