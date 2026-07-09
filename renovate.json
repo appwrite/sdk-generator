@@ -232,25 +232,6 @@
       ]
     },
     {
-      "description": "TEMPORARY: AGP 9.2+ needs Gradle 9.4.1; templates still ship 9.3.1 wrappers. DELETE this rule after bumping templates/**/gradle-wrapper.properties to >=9.4.1.",
-      "matchDepNames": [
-        "com.android.application:com.android.application.gradle.plugin",
-        "com.android.library:com.android.library.gradle.plugin"
-      ],
-      "allowedVersions": "<9.2.0",
-      "prBodyNotes": [
-        "⚠️ renovate.json caps AGP at <9.2.0 until Gradle wrappers are >=9.4.1. Delete that `allowedVersions` rule when the wrappers are bumped, or newer AGP will stay blocked forever."
-      ]
-    },
-    {
-      "description": "TEMPORARY: swift-nio 2.98+ needs Swift tools 6.1; Package.swift templates still declare tools-version 6.0. DELETE this rule after bumping templates/(swift|apple)/Package.swift.twig to tools-version 6.1+.",
-      "matchDepNames": ["apple/swift-nio"],
-      "allowedVersions": "<2.98.0",
-      "prBodyNotes": [
-        "⚠️ renovate.json caps apple/swift-nio at <2.98.0 until Package.swift templates use tools-version 6.1+. Delete that `allowedVersions` rule when the tools-version is bumped, or newer swift-nio will stay blocked forever."
-      ]
-    },
-    {
       "description": "Playwright browser images are hardcoded in e2e tests; bumping the npm dep alone breaks WebChromium/ReactNative CI.",
       "matchDepNames": ["playwright"],
       "matchFileNames": [
