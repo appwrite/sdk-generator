@@ -15,7 +15,7 @@
         "utopia-php/query": "^0.3.1"
     },
     "require-dev": {
-        "swoole/ide-helper": "5.1.8"
+        "swoole/ide-helper": "6.0.2"
     },
     "platform": {
         "php": "8.4"
