@@ -47,6 +47,12 @@ export const requireConsoleAuth = (action: string): void => {
   );
 };
 
+/**
+ * True only for missing-scope / missing-session failures that optional
+ * console side-effects (e.g. default domain rules) should soft-fail on.
+ * Intentionally narrow: do not treat generic "unauthorized" text or all
+ * HTTP 403s as scope errors, so real authorization failures still surface.
+ */
 export const isAuthScopeError = (error: unknown): boolean => {
   if (!(error instanceof Error)) {
     return false;
@@ -57,14 +63,12 @@ export const isAuthScopeError = (error: unknown): boolean => {
     message.includes("missing scope") ||
     message.includes("missing scopes") ||
     message.includes("session not found") ||
-    message.includes("unauthorized") ||
     message.includes("console session required");
 
   if (error instanceof AppwriteException) {
     return (
       isScopeMessage ||
-      Number(error.code) === 401 ||
-      Number(error.code) === 403
+      String(error.type ?? "").toLowerCase() === "general_unauthorized_scope"
     );
   }
 

@@ -204,6 +204,6 @@ export const sdkForProject = async (): Promise<Client> => {
   }
 
   throw new Error(
-    `Session not found. Please run \`${EXECUTABLE_NAME} login\` to create a session.`,
+    `Authentication not found. Run \`${EXECUTABLE_NAME} login\` or \`${EXECUTABLE_NAME} client --key <API_KEY>\`.`,
   );
 };

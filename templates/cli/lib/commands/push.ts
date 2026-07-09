@@ -25,6 +25,7 @@ import {
   canUseConsole,
   isAuthScopeError,
   requireConsoleAuth,
+  requireProjectAuth,
 } from "../auth/capabilities.js";
 import {
   ConfigSchema,
@@ -3179,6 +3180,7 @@ async function createPushInstance(
   },
 ): Promise<Push> {
   const { silent, organizationId } = options;
+  requireProjectAuth();
   const projectClient = await sdkForProject();
   // Console credentials are attached when present. Console-required ops
   // call requireConsoleAuth() themselves instead of gating the whole push.

@@ -25,6 +25,7 @@ import { applyConfigFilters } from "../config-filters.js";
 import {
   canUseConsole,
   requireConsoleAuth,
+  requireProjectAuth,
 } from "../auth/capabilities.js";
 import { paginate } from "../paginate.js";
 import {
@@ -108,6 +109,7 @@ async function createPullInstance(
   } = {},
 ): Promise<Pull> {
   const { silent = false, resource } = options;
+  requireProjectAuth();
   const projectClient = await sdkForProject();
   // Console credentials are attached when present. Console-required ops
   // call requireConsoleAuth() themselves instead of gating the whole pull.
