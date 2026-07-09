@@ -16,6 +16,12 @@
   "vulnerabilityAlerts": {
     "enabled": false
   },
+  "statusCheckNames": {
+    "artifactError": null,
+    "configValidation": null,
+    "mergeConfidence": null,
+    "minimumReleaseAge": null
+  },
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 5am on monday"]
