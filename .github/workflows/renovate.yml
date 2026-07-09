@@ -9,6 +9,10 @@ on:
         description: "Dry run (log what would change, open no PRs)"
         type: boolean
         default: false
+      debug:
+        description: "Enable Renovate debug logging"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -31,6 +35,10 @@ jobs:
       - name: enable dry run
         if: inputs.dryRun
         run: echo "RENOVATE_DRY_RUN=full" >> "$GITHUB_ENV"
+
+      - name: enable debug logging
+        if: inputs.debug
+        run: echo "LOG_LEVEL=debug" >> "$GITHUB_ENV"
 
       - name: target dispatch ref for dry run
         if: inputs.dryRun

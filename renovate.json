@@ -15,7 +15,6 @@
   "vulnerabilityAlerts": {
     "enabled": false
   },
-  "rangeStrategy": "auto",
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 5am on monday"]
