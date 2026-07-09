@@ -15,6 +15,9 @@
   "vulnerabilityAlerts": {
     "enabled": false
   },
+  "statusCheckNames": {
+    "minimumReleaseAge": null
+  },
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 5am on monday"]
