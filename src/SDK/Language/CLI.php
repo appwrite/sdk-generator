@@ -481,6 +481,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/auth/capabilities.ts',
+                'template'      => 'cli/lib/auth/capabilities.ts',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/auth/login.ts',
                 'template'      => 'cli/lib/auth/login.ts',
             ],

@@ -106,8 +106,11 @@ export const sdkForConsole = async ({
   const cookie = globalConfig.getCookie();
 
   if (requiresAuth && !accessToken && !cookie) {
+    const hasKey = globalConfig.getKey() !== "";
     throw new Error(
-      `Session not found. Please run \`${EXECUTABLE_NAME} login\` to create a session`,
+      hasKey
+        ? `Session not found. Run \`${EXECUTABLE_NAME} login\`. API keys work for project commands (e.g. \`${EXECUTABLE_NAME} push functions\`), not console-only commands (e.g. \`${EXECUTABLE_NAME} push settings\`).`
+        : `Session not found. Please run \`${EXECUTABLE_NAME} login\` to create a session`,
     );
   }
 

@@ -21,7 +21,11 @@ import {
   KeysTable,
 } from "../config.js";
 import { applyConfigFilters } from "../config-filters.js";
-import { hasAuthSession } from "../auth/session.js";
+import {
+  canUseConsole,
+  isAuthScopeError,
+  requireConsoleAuth,
+} from "../auth/capabilities.js";
 import {
   ConfigSchema,
   type SettingsType,
@@ -749,22 +753,6 @@ const formatPushResourceErrors = (results: Record<string, unknown>): string => {
 const nullablePolicyTotal = (value: number | bigint | null): number | null =>
   value === null || Number(value) === 0 ? null : Number(value);
 
-const isProxyRuleAuthError = (error: unknown): boolean => {
-  if (!(error instanceof AppwriteException) && !(error instanceof Error)) {
-    return false;
-  }
-
-  const message = error.message.toLowerCase();
-  return (
-    message.includes("missing scope") ||
-    message.includes("missing scopes") ||
-    message.includes("session not found") ||
-    message.includes("unauthorized") ||
-    (error instanceof AppwriteException &&
-      (Number(error.code) === 401 || Number(error.code) === 403))
-  );
-};
-
 const normalizeIgnoreRules = (value: unknown): string[] => {
   if (Array.isArray(value)) {
     return value.filter(
@@ -839,7 +827,7 @@ export class Push {
   }
 
   private async createDefaultFunctionRule(functionId: string): Promise<boolean> {
-    if (!hasAuthSession()) {
+    if (!canUseConsole()) {
       this.warn(
         `Skipping default domain rule for ${functionId}: console session required to read function domains. Run \`${EXECUTABLE_NAME} login\` or create the domain in the Console.`,
       );
@@ -861,7 +849,7 @@ export class Push {
 
       domain = ID.unique() + "." + this.getFunctionRuleDomain(domains[0]);
     } catch (err) {
-      if (isProxyRuleAuthError(err)) {
+      if (isAuthScopeError(err)) {
         this.warn(
           `Skipping default domain rule for ${functionId}: ${getPushErrorMessage(err)}`,
         );
@@ -878,7 +866,7 @@ export class Push {
       await proxyService.createFunctionRule(domain, functionId);
       return true;
     } catch (err) {
-      if (isProxyRuleAuthError(err)) {
+      if (isAuthScopeError(err)) {
         this.warn(
           `Skipping default domain rule for ${functionId}: ${getPushErrorMessage(err)}`,
         );
@@ -910,7 +898,7 @@ export class Push {
         return;
       }
     } catch (err) {
-      if (isProxyRuleAuthError(err)) {
+      if (isAuthScopeError(err)) {
         this.warn(
           `Skipping default domain rule check for ${functionId}: ${getPushErrorMessage(err)}`,
         );
@@ -923,7 +911,7 @@ export class Push {
   }
 
   private async createDefaultSiteRule(siteId: string): Promise<boolean> {
-    if (!hasAuthSession()) {
+    if (!canUseConsole()) {
       this.warn(
         `Skipping default domain rule for ${siteId}: console session required to read site domains. Run \`${EXECUTABLE_NAME} login\` or create the domain in the Console.`,
       );
@@ -945,7 +933,7 @@ export class Push {
 
       domain = ID.unique() + "." + domains[0];
     } catch (err) {
-      if (isProxyRuleAuthError(err)) {
+      if (isAuthScopeError(err)) {
         this.warn(
           `Skipping default domain rule for ${siteId}: ${getPushErrorMessage(err)}`,
         );
@@ -962,7 +950,7 @@ export class Push {
       await proxyService.createSiteRule(domain, siteId);
       return true;
     } catch (err) {
-      if (isProxyRuleAuthError(err)) {
+      if (isAuthScopeError(err)) {
         this.warn(
           `Skipping default domain rule for ${siteId}: ${getPushErrorMessage(err)}`,
         );
@@ -1043,7 +1031,7 @@ export class Push {
         (shouldPushAll || options.settings) &&
         (config.projectName || config.settings)
       ) {
-        if (!hasAuthSession()) {
+        if (!canUseConsole()) {
           this.warn(
             `Skipping project settings: console session required. Run \`${EXECUTABLE_NAME} login\` to push settings.`,
           );
@@ -1317,6 +1305,7 @@ export class Push {
     projectName?: string;
     settings?: SettingsType;
   }): Promise<void> {
+    requireConsoleAuth("Pushing project settings");
     await applyConfigFilters({
       config,
       consoleClient: this.consoleClient,
@@ -3184,17 +3173,17 @@ export class Push {
 async function createPushInstance(
   options: {
     silent?: boolean;
-    requiresConsoleAuth?: boolean;
     organizationId?: string;
   } = {
     silent: false,
-    requiresConsoleAuth: false,
   },
 ): Promise<Push> {
-  const { silent, requiresConsoleAuth, organizationId } = options;
+  const { silent, organizationId } = options;
   const projectClient = await sdkForProject();
+  // Console credentials are attached when present. Console-required ops
+  // call requireConsoleAuth() themselves instead of gating the whole push.
   const consoleClient = await sdkForConsole({
-    requiresAuth: requiresConsoleAuth,
+    requiresAuth: canUseConsole(),
     organizationId,
   });
 
@@ -3244,10 +3233,7 @@ const pushResources = async ({
     const sites = localConfig.getSites();
 
     const project = localConfig.getProject();
-    // Settings still need console auth; other resources work with an API key.
-    // Default domain rules soft-fail when no console session is available.
     const pushInstance = await createPushInstance({
-      requiresConsoleAuth: hasAuthSession(),
       organizationId: project.organizationId,
     });
     const config: ConfigType = {
@@ -3319,6 +3305,7 @@ const pushResources = async ({
 
 const pushSettings = async (): Promise<void> => {
   checkDeployConditions(localConfig);
+  requireConsoleAuth("Pushing project settings");
 
   let resolvedOrganizationId: string | undefined;
 
@@ -3383,7 +3370,6 @@ const pushSettings = async (): Promise<void> => {
 
     const config = localConfig.getProject();
     const pushInstance = await createPushInstance({
-      requiresConsoleAuth: true,
       organizationId: config.organizationId ?? resolvedOrganizationId,
     });
 
@@ -3494,9 +3480,7 @@ const pushSite = async ({
   log("Pushing sites ...");
 
   const pushStartTime = Date.now();
-  // Domain rule creation needs console auth; soft-fails with an API key only.
   const pushInstance = await createPushInstance({
-    requiresConsoleAuth: hasAuthSession(),
     organizationId: localConfig.getProject().organizationId,
   });
   const result = await pushInstance.pushSites(
@@ -3659,9 +3643,7 @@ const pushFunction = async ({
   log("Pushing functions ...");
 
   const pushStartTime = Date.now();
-  // Domain rule creation needs console auth; soft-fails with an API key only.
   const pushInstance = await createPushInstance({
-    requiresConsoleAuth: hasAuthSession(),
     organizationId: localConfig.getProject().organizationId,
   });
   const result = await pushInstance.pushFunctions(
