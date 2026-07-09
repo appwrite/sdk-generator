@@ -53,3 +53,5 @@ jobs:
         env:
           RENOVATE_ALLOWED_COMMANDS: '["^./scripts/update-lockfiles\\.sh renovate$"]'
           RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # TODO: remove when renovate-appwrite installation token has statuses:write
+          RENOVATE_STATUS_CHECK_NAMES: '{"artifactError":null,"configValidation":null,"mergeConfidence":null,"minimumReleaseAge":null}'
