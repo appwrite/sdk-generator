@@ -21,6 +21,7 @@ import {
   KeysTable,
 } from "../config.js";
 import { applyConfigFilters } from "../config-filters.js";
+import { hasAuthSession } from "../auth/session.js";
 import {
   ConfigSchema,
   type SettingsType,
@@ -748,6 +749,22 @@ const formatPushResourceErrors = (results: Record<string, unknown>): string => {
 const nullablePolicyTotal = (value: number | bigint | null): number | null =>
   value === null || Number(value) === 0 ? null : Number(value);
 
+const isProxyRuleAuthError = (error: unknown): boolean => {
+  if (!(error instanceof AppwriteException) && !(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("missing scope") ||
+    message.includes("missing scopes") ||
+    message.includes("session not found") ||
+    message.includes("unauthorized") ||
+    (error instanceof AppwriteException &&
+      (Number(error.code) === 401 || Number(error.code) === 403))
+  );
+};
+
 const normalizeIgnoreRules = (value: unknown): string[] => {
   if (Array.isArray(value)) {
     return value.filter(
@@ -821,7 +838,14 @@ export class Push {
     return parts.join(".");
   }
 
-  private async createDefaultFunctionRule(functionId: string): Promise<void> {
+  private async createDefaultFunctionRule(functionId: string): Promise<boolean> {
+    if (!hasAuthSession()) {
+      this.warn(
+        `Skipping default domain rule for ${functionId}: console session required to read function domains. Run \`${EXECUTABLE_NAME} login\` or create the domain in the Console.`,
+      );
+      return false;
+    }
+
     let domain = "";
     try {
       const consoleService = await getConsoleService(this.consoleClient);
@@ -837,6 +861,13 @@ export class Push {
 
       domain = ID.unique() + "." + this.getFunctionRuleDomain(domains[0]);
     } catch (err) {
+      if (isProxyRuleAuthError(err)) {
+        this.warn(
+          `Skipping default domain rule for ${functionId}: ${getPushErrorMessage(err)}`,
+        );
+        return false;
+      }
+
       this.error("Error fetching console variables.");
       throw err;
     }
@@ -845,7 +876,15 @@ export class Push {
       const proxyService = await getProxyService(this.projectClient);
       this.log(`Creating function proxy rule for ${domain} ...`);
       await proxyService.createFunctionRule(domain, functionId);
+      return true;
     } catch (err) {
+      if (isProxyRuleAuthError(err)) {
+        this.warn(
+          `Skipping default domain rule for ${functionId}: ${getPushErrorMessage(err)}`,
+        );
+        return false;
+      }
+
       this.error("Error creating function rule.");
       throw err;
     }
@@ -863,6 +902,76 @@ export class Push {
     });
 
     return rules.length > 0;
+  }
+
+  private async ensureDefaultFunctionRule(functionId: string): Promise<void> {
+    try {
+      if (await this.hasDefaultFunctionRule(functionId)) {
+        return;
+      }
+    } catch (err) {
+      if (isProxyRuleAuthError(err)) {
+        this.warn(
+          `Skipping default domain rule check for ${functionId}: ${getPushErrorMessage(err)}`,
+        );
+        return;
+      }
+      throw err;
+    }
+
+    await this.createDefaultFunctionRule(functionId);
+  }
+
+  private async createDefaultSiteRule(siteId: string): Promise<boolean> {
+    if (!hasAuthSession()) {
+      this.warn(
+        `Skipping default domain rule for ${siteId}: console session required to read site domains. Run \`${EXECUTABLE_NAME} login\` or create the domain in the Console.`,
+      );
+      return false;
+    }
+
+    let domain = "";
+    try {
+      const consoleService = await getConsoleService(this.consoleClient);
+      const variables = await consoleService.variables();
+      const domains = variables["_APP_DOMAIN_SITES"]
+        .split(",")
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0);
+
+      if (domains.length === 0) {
+        throw new Error("_APP_DOMAIN_SITES is not configured.");
+      }
+
+      domain = ID.unique() + "." + domains[0];
+    } catch (err) {
+      if (isProxyRuleAuthError(err)) {
+        this.warn(
+          `Skipping default domain rule for ${siteId}: ${getPushErrorMessage(err)}`,
+        );
+        return false;
+      }
+
+      this.error("Error fetching console variables.");
+      throw err;
+    }
+
+    try {
+      const proxyService = await getProxyService(this.projectClient);
+      this.log(`Creating site proxy rule for ${domain} ...`);
+      await proxyService.createSiteRule(domain, siteId);
+      return true;
+    } catch (err) {
+      if (isProxyRuleAuthError(err)) {
+        this.warn(
+          `Skipping default domain rule for ${siteId}: ${getPushErrorMessage(err)}`,
+        );
+        return false;
+      }
+
+      this.error("Error creating site rule.");
+      throw err;
+    }
   }
 
   /**
@@ -934,25 +1043,36 @@ export class Push {
         (shouldPushAll || options.settings) &&
         (config.projectName || config.settings)
       ) {
-        try {
-          this.log("Pushing settings ...");
-          await this.pushSettings({
-            organizationId: config.organizationId,
-            projectId: config.projectId,
-            projectName: config.projectName,
-            settings: config.settings,
-          });
-          this.success(
-            `Successfully pushed ${chalk.bold("all")} project settings.`,
+        if (!hasAuthSession()) {
+          this.warn(
+            `Skipping project settings: console session required. Run \`${EXECUTABLE_NAME} login\` to push settings.`,
           );
-          results.settings = { success: true };
-        } catch (e: any) {
-          allErrors.push(e);
           results.settings = {
             success: false,
-            error: getPushErrorMessage(e),
-            errors: [e],
+            error: "Console session required to push project settings.",
+            errors: [],
           };
+        } else {
+          try {
+            this.log("Pushing settings ...");
+            await this.pushSettings({
+              organizationId: config.organizationId,
+              projectId: config.projectId,
+              projectName: config.projectName,
+              settings: config.settings,
+            });
+            this.success(
+              `Successfully pushed ${chalk.bold("all")} project settings.`,
+            );
+            results.settings = { success: true };
+          } catch (e: any) {
+            allErrors.push(e);
+            results.settings = {
+              success: false,
+              error: getPushErrorMessage(e),
+              errors: [e],
+            };
+          }
         }
       }
 
@@ -1736,7 +1856,7 @@ export class Push {
                 deploymentRetention: func.deploymentRetention,
               });
 
-              await this.createDefaultFunctionRule(func.$id);
+              await this.ensureDefaultFunctionRule(func.$id);
               updaterRow.update({ status: "Created" });
             } catch (e: any) {
               errors.push(e);
@@ -1748,9 +1868,7 @@ export class Push {
             }
           } else {
             try {
-              if (!(await this.hasDefaultFunctionRule(func.$id))) {
-                await this.createDefaultFunctionRule(func.$id);
-              }
+              await this.ensureDefaultFunctionRule(func.$id);
             } catch (e: any) {
               errors.push(e);
               updaterRow.fail({
@@ -2243,26 +2361,7 @@ export class Push {
                 deploymentRetention: site.deploymentRetention,
               });
 
-              let domain = "";
-              try {
-                const consoleService = await getConsoleService(
-                  this.consoleClient,
-                );
-                const variables = await consoleService.variables();
-                const domains = variables["_APP_DOMAIN_SITES"].split(",");
-                domain = ID.unique() + "." + domains[0].trim();
-              } catch (err) {
-                this.error("Error fetching console variables.");
-                throw err;
-              }
-
-              try {
-                const proxyService = await getProxyService(this.projectClient);
-                await proxyService.createSiteRule(domain, site.$id);
-              } catch (err) {
-                this.error("Error creating site rule.");
-                throw err;
-              }
+              await this.createDefaultSiteRule(site.$id);
 
               updaterRow.update({ status: "Created" });
             } catch (e: any) {
@@ -3145,8 +3244,10 @@ const pushResources = async ({
     const sites = localConfig.getSites();
 
     const project = localConfig.getProject();
+    // Settings still need console auth; other resources work with an API key.
+    // Default domain rules soft-fail when no console session is available.
     const pushInstance = await createPushInstance({
-      requiresConsoleAuth: true,
+      requiresConsoleAuth: hasAuthSession(),
       organizationId: project.organizationId,
     });
     const config: ConfigType = {
@@ -3393,8 +3494,9 @@ const pushSite = async ({
   log("Pushing sites ...");
 
   const pushStartTime = Date.now();
+  // Domain rule creation needs console auth; soft-fails with an API key only.
   const pushInstance = await createPushInstance({
-    requiresConsoleAuth: true,
+    requiresConsoleAuth: hasAuthSession(),
     organizationId: localConfig.getProject().organizationId,
   });
   const result = await pushInstance.pushSites(
@@ -3557,8 +3659,9 @@ const pushFunction = async ({
   log("Pushing functions ...");
 
   const pushStartTime = Date.now();
+  // Domain rule creation needs console auth; soft-fails with an API key only.
   const pushInstance = await createPushInstance({
-    requiresConsoleAuth: true,
+    requiresConsoleAuth: hasAuthSession(),
     organizationId: localConfig.getProject().organizationId,
   });
   const result = await pushInstance.pushFunctions(
