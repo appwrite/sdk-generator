@@ -16,6 +16,9 @@
     "enabled": false
   },
   "statusCheckNames": {
+    "artifactError": null,
+    "configValidation": null,
+    "mergeConfidence": null,
     "minimumReleaseAge": null
   },
   "lockFileMaintenance": {
