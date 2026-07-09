@@ -47,7 +47,7 @@
         "brianium/paratest": "7.*",
         "phpunit/phpunit": "11.*",
         "rector/rector": "^2.4",
-        "squizlabs/php_codesniffer": "3.*"
+        "squizlabs/php_codesniffer": "4.*"
     },
     "config": {
         "sort-packages": true,
