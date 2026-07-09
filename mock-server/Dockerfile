@@ -1,4 +1,4 @@
-FROM composer:2.0 as composer
+FROM composer:2.10 as composer
 
 LABEL maintainer="team@appwrite.io"
 
