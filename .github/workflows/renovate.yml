@@ -53,3 +53,6 @@ jobs:
         env:
           RENOVATE_ALLOWED_COMMANDS: '["^./scripts/update-lockfiles\\.sh renovate$"]'
           RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # appwrite-renovate lacks statuses:write; disable stability status checks
+          # so runs don't 403/abort before refreshing the Dependency Dashboard.
+          RENOVATE_STATUS_CHECK_NAMES: '{"minimumReleaseAge":null}'
