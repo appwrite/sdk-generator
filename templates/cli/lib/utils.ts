@@ -526,12 +526,10 @@ export const getConsoleProjectSlug = (
   try {
     const hostname = new URL(endpoint).hostname;
 
+    // Self-hosted / non-cloud consoles always use project-{region}-{id},
+    // with region defaulting to "default" (matches Appwrite console routes).
     if (!isCloudHostname(hostname)) {
-      if (projectRegion) {
-        return `project-${projectRegion}-${projectId}`;
-      }
-
-      return `project-${projectId}`;
+      return `project-${projectRegion || "default"}-${projectId}`;
     }
 
     const firstSubdomain = hostname.split(".")[0];
@@ -539,7 +537,7 @@ export const getConsoleProjectSlug = (
       ? `project-${firstSubdomain}-${projectId}`
       : `project-${projectId}`;
   } catch {
-    return `project-${projectId}`;
+    return `project-${projectRegion || "default"}-${projectId}`;
   }
 };
 
