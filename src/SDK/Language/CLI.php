@@ -230,11 +230,19 @@ class CLI extends Node
     {
         $hasQueries = $this->hasArrayQueriesParameter($method);
         $methodName = $method['name'] ?? '';
+        $parameterNames = array_map(
+            fn (array $parameter): string => $parameter['name'] ?? '',
+            $method['parameters']['all'] ?? []
+        );
+        // Skip generated query flags whose names collide with the method's
+        // own parameters (e.g. usage endpoints declare literal limit/offset),
+        // otherwise Commander throws on the duplicate option binding.
+        $collides = fn (array $names): bool => array_intersect($names, $parameterNames) !== [];
         $hasOnlyLimitOffsetQueries = $hasQueries && $this->hasOnlyLimitOffsetQueries($method);
-        $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true);
+        $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true) && !$collides(['select']);
         $hasSelectionOnlyQueries = $hasQueries && in_array($methodName, ['getDocument', 'getRow'], true);
-        $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries;
-        $hasPaginationQueries = $hasQueries && !$hasSelectionOnlyQueries;
+        $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries && !$collides(['filter', 'where', 'sortAsc', 'sortDesc', 'cursorAfter', 'cursorBefore']);
+        $hasPaginationQueries = $hasQueries && !$hasSelectionOnlyQueries && !$collides(['limit', 'offset']);
 
         $builderParams = [];
         if ($hasQueries) {
