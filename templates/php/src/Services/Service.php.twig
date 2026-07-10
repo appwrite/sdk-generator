@@ -1,0 +1,92 @@
+<?php
+
+namespace {{ spec.namespace | caseNamespace }}\Services;
+
+use {{ spec.namespace | caseNamespace }}\{{ spec.namespace | split('\\') | last | caseUcfirst}}Exception;
+use {{ spec.namespace | caseNamespace }}\Client;
+use {{ spec.namespace | caseNamespace }}\Service;
+use {{ spec.namespace | caseNamespace }}\InputFile;
+{% set added = [] %}
+{% for method in service.methods %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName not in added %}
+use {{ spec.namespace | caseNamespace }}\Enums\{{ parameter.enumName | caseUcfirst }};
+{% set added = added|merge([parameter.enumName]) %}
+{% endif %}
+{% endif %}
+{% if parameter.model is not empty and parameter.type != 'array' %}
+{% if parameter.model not in added %}
+use {{ spec.namespace | caseNamespace }}\Models\{{ parameter.model | caseUcfirst | overrideIdentifier }};
+{% set added = added|merge([parameter.model]) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+class {{ service.name | caseUcfirst }} extends Service
+{
+    public function __construct(Client $client)
+    {
+        parent::__construct($client);
+    }
+
+{% set nonDeprecatedMethodNames = [] %}
+{% for method in service.methods %}
+{% if not method.deprecated %}
+{% set nonDeprecatedMethodNames = nonDeprecatedMethodNames|merge([method.name | caseCamel | lower]) %}
+{% endif %}
+{% endfor %}
+{% for method in service.methods %}
+{% set methodNameLower = method.name | caseCamel | lower %}
+{% if method.deprecated and methodNameLower in nonDeprecatedMethodNames %}
+{# Skip deprecated methods that have namespace collisions with non-deprecated methods #}
+{% else %}
+{% set deprecated_message = '' %}
+    /**
+{% if method.description %}
+{{ method.description | wrap(75, '     * ') }}
+     *
+{% endif %}
+{% for parameter in method.parameters.all %}
+     * @param {% if not parameter.required or parameter.nullable %}?{% endif %}{{ parameter | typeName }} ${{ parameter.name | caseCamel | escapeKeyword }}
+{% endfor %}
+     * @throws {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception
+     * @return {{ method | getReturn(spec) }}
+{% if method.deprecated %}
+     *
+{%~ if method.since and method.replaceWith %}
+     * @deprecated This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | split('.') | last | caseCamel }}` instead.
+{%~ else %}
+     * @deprecated This API has been deprecated.
+{%~ endif %}
+{% if method.replaceWith %}
+     * @see {{ method.replaceWith | replace({'.': '::'}) | capitalizeFirst }}
+{% endif %}
+{% endif %}
+     */
+    public function {{ method.name | caseCamel }}({{ method | methodParameters }}): {{ method | getReturn(spec) }}
+    {
+        $apiPath = str_replace(
+            [{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+            [{% for parameter in method.parameters.path %}{% if parameter.source|default('') == 'security' %}$this->client->getConfig('{{ parameter.config | caseLower }}'){% else %}${{ parameter.name | caseCamel | escapeKeyword }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}],
+            '{{ method.path }}'
+        );
+        {%~ for security in method.securityQueries %}
+        $apiPath .= '{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=' . urlencode($this->client->getConfig('{{ security.name | caseLower }}'));
+        {%~ endfor %}
+
+        {{~ include('php/base/params.twig') -}}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        {{~ include('php/base/requests/file.twig') }}
+        {%~ else %}
+
+        {{~ include('php/base/requests/api.twig') }}
+        {%~ endif %}
+    }
+        {%~ if not loop.last %}
+
+        {%~ endif %}
+        {%~ endif %}
+        {%~ endfor %}
+}

@@ -1,0 +1,358 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    public class Query
+    {
+        [JsonPropertyName("method")]
+        public string Method { get; set; } = string.Empty;
+        
+        [JsonPropertyName("attribute")]
+        public string? Attribute { get; set; }
+        
+        [JsonPropertyName("values")]
+        public List<object>? Values { get; set; }
+
+        public Query()
+        {
+        }
+
+        public Query(string method, string? attribute, object? values)
+        {
+            this.Method = method;
+            this.Attribute = attribute;
+
+            if (values is IList valuesList)
+            {
+                this.Values = new List<object>();
+                foreach (var value in valuesList)
+                {
+                    this.Values.Add(value); // Automatically boxes if value is a value type
+                }
+            }
+            else if (values != null)
+            {
+                this.Values = new List<object> { values };
+            }
+        }
+
+        override public string ToString()
+        {
+            return JsonSerializer.Serialize(this, Client.SerializerOptions);
+        }
+
+        public static string Equal(string attribute, object value)
+        {
+            return new Query("equal", attribute, value).ToString();
+        }
+
+        public static string NotEqual(string attribute, object value)
+        {
+            return new Query("notEqual", attribute, value).ToString();
+        }
+
+        /// <summary>
+        /// Filter resources where attribute matches a regular expression pattern.
+        /// </summary>
+        /// <param name="attribute">The attribute to filter on.</param>
+        /// <param name="pattern">The regular expression pattern to match.</param>
+        /// <returns>The query string.</returns>
+        public static string Regex(string attribute, string pattern)
+        {
+            return new Query("regex", attribute, pattern).ToString();
+        }
+
+        public static string LessThan(string attribute, object value)
+        {
+            return new Query("lessThan", attribute, value).ToString();
+        }
+
+        public static string LessThanEqual(string attribute, object value)
+        {
+            return new Query("lessThanEqual", attribute, value).ToString();
+        }
+
+        public static string GreaterThan(string attribute, object value)
+        {
+            return new Query("greaterThan", attribute, value).ToString();
+        }
+
+        public static string GreaterThanEqual(string attribute, object value)
+        {
+            return new Query("greaterThanEqual", attribute, value).ToString();
+        }
+
+        public static string Search(string attribute, string value)
+        {
+            return new Query("search", attribute, value).ToString();
+        }
+
+        public static string IsNull(string attribute)
+        {
+            return new Query("isNull", attribute, null).ToString();
+        }
+
+        public static string IsNotNull(string attribute)
+        {
+            return new Query("isNotNull", attribute, null).ToString();
+        }
+
+        /// <summary>
+        /// Filter resources where the specified attributes exist.
+        /// </summary>
+        /// <param name="attributes">The list of attributes that must exist.</param>
+        /// <returns>The query string.</returns>
+        public static string Exists(List<string> attributes)
+        {
+            return new Query("exists", null, attributes).ToString();
+        }
+
+        /// <summary>
+        /// Filter resources where the specified attributes do not exist.
+        /// </summary>
+        /// <param name="attributes">The list of attributes that must not exist.</param>
+        /// <returns>The query string.</returns>
+        public static string NotExists(List<string> attributes)
+        {
+            return new Query("notExists", null, attributes).ToString();
+        }
+
+        public static string StartsWith(string attribute, string value)
+        {
+            return new Query("startsWith", attribute, value).ToString();
+        }
+
+        public static string EndsWith(string attribute, string value)
+        {
+            return new Query("endsWith", attribute, value).ToString();
+        }
+
+        public static string Between(string attribute, string start, string end)
+        {
+            return new Query("between", attribute, new List<string> { start, end }).ToString();
+        }
+
+        public static string Between(string attribute, int start, int end)
+        {
+            return new Query("between", attribute, new List<int> { start, end }).ToString();
+        }
+
+        public static string Between(string attribute, double start, double end)
+        {
+            return new Query("between", attribute, new List<double> { start, end }).ToString();
+        }
+
+        public static string Select(List<string> attributes)
+        {
+            return new Query("select", null, attributes).ToString();
+        }
+
+        public static string CursorAfter(string documentId)
+        {
+            return new Query("cursorAfter", null, documentId).ToString();
+        }
+
+        public static string CursorBefore(string documentId) {
+            return new Query("cursorBefore", null, documentId).ToString();
+        }
+
+        public static string OrderAsc(string attribute) {
+            return new Query("orderAsc", attribute, null).ToString();
+        }
+
+        public static string OrderDesc(string attribute) {
+            return new Query("orderDesc", attribute, null).ToString();
+        }
+
+        public static string OrderRandom() {
+            return new Query("orderRandom", null, null).ToString();
+        }
+
+        public static string Limit(int limit) {
+            return new Query("limit", null, limit).ToString();
+        }
+
+        public static string Offset(int offset) {
+            return new Query("offset", null, offset).ToString();
+        }
+
+        /// <summary>
+        /// Filter resources where attribute contains the specified value.
+        /// For string attributes, checks if the string contains the substring.
+        /// </summary>
+        /// <remarks>For array attributes, use <see cref="ContainsAny"/> or <see cref="ContainsAll"/> instead.</remarks>
+        public static string Contains(string attribute, object value) {
+            return new Query("contains", attribute, value).ToString();
+        }
+
+        /// <summary>
+        /// Filter resources where attribute contains ANY of the specified values.
+        /// For array and relationship attributes, matches documents where the attribute
+        /// contains at least one of the given values.
+        /// </summary>
+        public static string ContainsAny(string attribute, IList value) {
+            return new Query("containsAny", attribute, value).ToString();
+        }
+
+        /// <summary>
+        /// Filter resources where attribute contains ALL of the specified values.
+        /// For array and relationship attributes, matches documents where the attribute
+        /// contains every one of the given values.
+        /// </summary>
+        public static string ContainsAll(string attribute, IList value) {
+            return new Query("containsAll", attribute, value).ToString();
+        }
+
+        public static string NotContains(string attribute, object value) {
+            return new Query("notContains", attribute, value).ToString();
+        }
+
+        public static string NotSearch(string attribute, string value) {
+            return new Query("notSearch", attribute, value).ToString();
+        }
+
+        public static string NotBetween(string attribute, string start, string end) {
+            return new Query("notBetween", attribute, new List<string> { start, end }).ToString();
+        }
+
+        public static string NotBetween(string attribute, int start, int end) {
+            return new Query("notBetween", attribute, new List<int> { start, end }).ToString();
+        }
+
+        public static string NotBetween(string attribute, double start, double end) {
+            return new Query("notBetween", attribute, new List<double> { start, end }).ToString();
+        }
+
+        public static string NotStartsWith(string attribute, string value) {
+            return new Query("notStartsWith", attribute, value).ToString();
+        }
+
+        public static string NotEndsWith(string attribute, string value) {
+            return new Query("notEndsWith", attribute, value).ToString();
+        }
+
+        public static string CreatedBefore(string value) {
+            return LessThan("$createdAt", value);
+        }
+
+        public static string CreatedAfter(string value) {
+            return GreaterThan("$createdAt", value);
+        }
+
+        public static string CreatedBetween(string start, string end) {
+            return Between("$createdAt", start, end);
+        }
+
+        public static string UpdatedBefore(string value) {
+            return LessThan("$updatedAt", value);
+        }
+
+        public static string UpdatedAfter(string value) {
+            return GreaterThan("$updatedAt", value);
+        }
+
+        public static string UpdatedBetween(string start, string end) {
+            return Between("$updatedAt", start, end);
+        }
+
+        public static string Or(List<string> queries) {
+            return new Query("or", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
+        }
+
+        public static string And(List<string> queries) {
+            return new Query("and", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
+        }
+
+        /// <summary>
+        /// Filter array elements where at least one element matches all the specified queries.
+        /// </summary>
+        /// <param name="attribute">The attribute containing the array to filter on.</param>
+        /// <param name="queries">The list of query strings to match against array elements.</param>
+        /// <returns>The query string.</returns>
+        public static string ElemMatch(string attribute, List<string> queries) {
+            var parsed = queries
+                .Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions) as object)
+                .ToList();
+            return new Query("elemMatch", attribute, parsed).ToString();
+        }
+
+        public static string DistanceEqual(string attribute, object values, double distance, bool meters = true)
+        {
+            return new Query("distanceEqual", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
+        }
+
+        public static string DistanceNotEqual(string attribute, object values, double distance, bool meters = true)
+        {
+            return new Query("distanceNotEqual", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
+        }
+
+        public static string DistanceGreaterThan(string attribute, object values, double distance, bool meters = true)
+        {
+            return new Query("distanceGreaterThan", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
+        }
+
+        public static string DistanceLessThan(string attribute, object values, double distance, bool meters = true)
+        {
+            return new Query("distanceLessThan", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
+        }
+
+        public static string VectorDot(string attribute, List<double> vector)
+        {
+            return new Query("vectorDot", attribute, new List<object> { vector }).ToString();
+        }
+
+        public static string VectorCosine(string attribute, List<double> vector)
+        {
+            return new Query("vectorCosine", attribute, new List<object> { vector }).ToString();
+        }
+
+        public static string VectorEuclidean(string attribute, List<double> vector)
+        {
+            return new Query("vectorEuclidean", attribute, new List<object> { vector }).ToString();
+        }
+
+        public static string Intersects(string attribute, object values)
+        {
+            return new Query("intersects", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string NotIntersects(string attribute, object values)
+        {
+            return new Query("notIntersects", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string Crosses(string attribute, object values)
+        {
+            return new Query("crosses", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string NotCrosses(string attribute, object values)
+        {
+            return new Query("notCrosses", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string Overlaps(string attribute, object values)
+        {
+            return new Query("overlaps", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string NotOverlaps(string attribute, object values)
+        {
+            return new Query("notOverlaps", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string Touches(string attribute, object values)
+        {
+            return new Query("touches", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string NotTouches(string attribute, object values)
+        {
+            return new Query("notTouches", attribute, new List<object> { values }).ToString();
+        }
+    }
+}

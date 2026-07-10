@@ -1,0 +1,80 @@
+#if UNI_TASK
+using System;
+using UnityEngine;
+using Cysharp.Threading.Tasks;
+
+namespace {{ spec.title | caseUcfirst }}.Utilities
+{
+    /// <summary>
+    /// Utility class for {{ spec.title | caseUcfirst }} Unity integration
+    /// </summary>
+    public static class {{ spec.title | caseUcfirst }}Utilities
+    {
+        #if UNITY_EDITOR
+        /// <summary>
+        /// Quick setup for {{ spec.title | caseUcfirst }} in Unity (Editor Only)
+        /// </summary>
+        public static async UniTask<{{ spec.title | caseUcfirst }}Manager> QuickSetup()
+        {
+            // Create configuration
+            var config = {{ spec.title | caseUcfirst }}Config.CreateConfiguration();
+            
+
+            // Create manager
+            var managerGO = new GameObject("{{ spec.title | caseUcfirst }}Manager");
+            var manager = managerGO.AddComponent<{{ spec.title | caseUcfirst }}Manager>();
+            manager.SetConfig(config);
+
+            // Initialize
+            var success = await manager.Initialize(true);
+            if (!success)
+            {
+                UnityEngine.Object.Destroy(managerGO);
+                throw new InvalidOperationException("Failed to initialize {{ spec.title | caseUcfirst }}Manager");
+            }
+            //Create Realtime instance
+            var a =manager.Realtime;
+            return manager;
+        }
+        #endif
+
+        /// <summary>
+        /// Run async operation with Unity-safe error handling
+        /// </summary>
+        public static async UniTask<T> SafeExecute<T>(
+            Func<UniTask<T>> operation,
+            T defaultValue = default,
+            bool logErrors = true)
+        {
+            try
+            {
+                return await operation();
+            }
+            catch (Exception ex)
+            {
+                if (logErrors)
+                    Debug.LogError($"{{ spec.title | caseUcfirst }} operation failed: {ex.Message}");
+                return defaultValue;
+            }
+        }
+
+        /// <summary>
+        /// Run async operation with Unity-safe error handling (no return value)
+        /// </summary>
+        public static async UniTask SafeExecute(
+            Func<UniTask> operation,
+            bool logErrors = true)
+        {
+            try
+            {
+                await operation();
+            }
+            catch (Exception ex)
+            {
+                if (logErrors)
+                    Debug.LogError($"{{ spec.title | caseUcfirst }} operation failed: {ex.Message}");
+            }
+        }
+    }
+}
+#endif

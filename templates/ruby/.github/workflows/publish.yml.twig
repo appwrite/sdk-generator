@@ -1,0 +1,31 @@
+name: Publish to RubyGems
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    name: Release build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@c4e5b1316158f92e3d49443a9d58b31d25ac0f8f # v1.306.0
+        with:
+          ruby-version: 2.7
+          bundler-cache: true
+
+      - name: Set up RubyGems
+        run: |
+          echo -e "---\n:rubygems_api_key: $RUBYGEMS_TOKEN\n" > ~/.gem/credentials
+          chmod 0600 ~/.gem/credentials
+        env:
+          RUBYGEMS_TOKEN: {{ '${{ secrets.RUBYGEMS_TOKEN }}' | raw }}
+
+      - name: Build gem
+        run: gem build {{ spec.title | caseLower }}.gemspec
+
+      - name: Publish gem
+        run: gem push {{ spec.title | caseLower }}-*.gem

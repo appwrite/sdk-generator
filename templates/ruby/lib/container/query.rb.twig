@@ -1,0 +1,280 @@
+require 'json'
+
+module {{spec.title | caseUcfirst}}
+    class Query
+        def initialize(method, attribute = nil, values = nil)
+            @method = method
+            @attribute = attribute
+
+            if values != nil
+                if values.is_a?(Array)
+                    @values = values
+                else
+                    @values = [values]
+                end
+            end
+        end
+
+        def to_json(*args)
+            {
+                method: @method,
+                attribute: @attribute,
+                values: @values
+            }.compact.to_json(*args)
+        end
+
+        def to_s
+            return self.to_json
+        end
+
+        class << Query
+            def equal(attribute, value)
+                return Query.new("equal", attribute, value).to_s
+            end
+
+            def not_equal(attribute, value)
+                return Query.new("notEqual", attribute, value).to_s
+            end
+
+            # Filter resources where attribute matches a regular expression pattern.
+            #
+            # @param attribute [String] The attribute to filter on.
+            # @param pattern [String] The regular expression pattern to match.
+            # @return [String] The query string.
+            def regex(attribute, pattern)
+                return Query.new("regex", attribute, pattern).to_s
+            end
+
+            def less_than(attribute, value)
+                return Query.new("lessThan", attribute, value).to_s
+            end
+            
+            def less_than_equal(attribute, value)
+                return Query.new("lessThanEqual", attribute, value).to_s
+            end
+            
+            def greater_than(attribute, value)
+                return Query.new("greaterThan", attribute, value).to_s
+            end
+            
+            def greater_than_equal(attribute, value)
+                return Query.new("greaterThanEqual", attribute, value).to_s
+            end
+
+            def is_null(attribute)
+                return Query.new("isNull", attribute, nil).to_s
+            end
+
+            def is_not_null(attribute)
+                return Query.new("isNotNull", attribute, nil).to_s
+            end
+
+            # Filter resources where the specified attributes exist.
+            #
+            # @param attributes [Array<String>] The list of attributes that must exist.
+            # @return [String] The query string.
+            def exists(attributes)
+                return Query.new("exists", nil, attributes).to_s
+            end
+
+            # Filter resources where the specified attributes do not exist.
+            #
+            # @param attributes [Array<String>] The list of attributes that must not exist.
+            # @return [String] The query string.
+            def not_exists(attributes)
+                return Query.new("notExists", nil, attributes).to_s
+            end
+
+            def between(attribute, start, ending)
+                return Query.new("between", attribute, [start, ending]).to_s
+            end
+
+            def starts_with(attribute, value)
+                return Query.new("startsWith", attribute, value).to_s
+            end
+
+            def ends_with(attribute, value)
+                return Query.new("endsWith", attribute, value).to_s
+            end
+
+            def select(attributes)
+                return Query.new("select", nil, attributes).to_s
+            end
+            
+            def search(attribute, value)
+                return Query.new("search", attribute, value).to_s
+            end
+
+            def order_asc(attribute)
+                return Query.new("orderAsc", attribute, nil).to_s
+            end
+
+            def order_desc(attribute)
+                return Query.new("orderDesc", attribute, nil).to_s
+            end
+
+            def order_random()
+                return Query.new("orderRandom", nil, nil).to_s
+            end
+
+            def cursor_before(id)
+                return Query.new("cursorBefore", nil, id).to_s
+            end
+
+            def cursor_after(id)
+                return Query.new("cursorAfter", nil, id).to_s
+            end
+
+            def limit(limit)
+                return Query.new("limit", nil, limit).to_s
+            end
+
+            def offset(offset)
+                return Query.new("offset", nil, offset).to_s
+            end
+
+            # Filter resources where attribute contains the specified value.
+            # For string attributes, checks if the string contains the substring.
+            #
+            # Note: For array attributes, use contains_any or contains_all instead.
+            def contains(attribute, value)
+                return Query.new("contains", attribute, value).to_s
+            end
+
+            # Filter resources where attribute contains ANY of the specified values.
+            # For array and relationship attributes, matches documents where the attribute
+            # contains at least one of the given values.
+            def contains_any(attribute, value)
+                return Query.new("containsAny", attribute, value).to_s
+            end
+
+            # Filter resources where attribute contains ALL of the specified values.
+            # For array and relationship attributes, matches documents where the attribute
+            # contains every one of the given values.
+            def contains_all(attribute, value)
+                return Query.new("containsAll", attribute, value).to_s
+            end
+
+            def not_contains(attribute, value)
+                return Query.new("notContains", attribute, value).to_s
+            end
+
+            def not_search(attribute, value)
+                return Query.new("notSearch", attribute, value).to_s
+            end
+
+            def not_between(attribute, start, ending)
+                return Query.new("notBetween", attribute, [start, ending]).to_s
+            end
+
+            def not_starts_with(attribute, value)
+                return Query.new("notStartsWith", attribute, value).to_s
+            end
+
+            def not_ends_with(attribute, value)
+                return Query.new("notEndsWith", attribute, value).to_s
+            end
+
+            def created_before(value)
+                return less_than("$createdAt", value)
+            end
+
+            def created_after(value)
+                return greater_than("$createdAt", value)
+            end
+
+            def created_between(start, ending)
+                return between("$createdAt", start, ending)
+            end
+
+            def updated_before(value)
+                return less_than("$updatedAt", value)
+            end
+
+            def updated_after(value)
+                return greater_than("$updatedAt", value)
+            end
+
+            def updated_between(start, ending)
+                return between("$updatedAt", start, ending)
+            end
+
+            def or(queries)
+                return Query.new("or", nil, queries.map { |query| JSON.parse(query) }).to_s
+            end
+
+            def and(queries)
+                return Query.new("and", nil, queries.map { |query| JSON.parse(query) }).to_s
+            end
+
+            # Filter array elements where at least one element matches all the specified queries.
+            #
+            # @param attribute [String] The attribute containing the array to filter on.
+            # @param queries [Array<String>] The list of query strings to match against array elements.
+            # @return [String] The query string.
+            def elem_match(attribute, queries)
+                return Query.new("elemMatch", attribute, queries.map { |query| JSON.parse(query) }).to_s
+            end
+
+            def distance_equal(attribute, values, distance, meters = true)
+                return Query.new("distanceEqual", attribute, [[values, distance, meters]]).to_s
+            end
+
+            def distance_not_equal(attribute, values, distance, meters = true)
+                return Query.new("distanceNotEqual", attribute, [[values, distance, meters]]).to_s
+            end
+
+            def distance_greater_than(attribute, values, distance, meters = true)
+                return Query.new("distanceGreaterThan", attribute, [[values, distance, meters]]).to_s
+            end
+
+            def distance_less_than(attribute, values, distance, meters = true)
+                return Query.new("distanceLessThan", attribute, [[values, distance, meters]]).to_s
+            end
+
+            def vector_dot(attribute, vector)
+                return Query.new("vectorDot", attribute, [vector]).to_s
+            end
+
+            def vector_cosine(attribute, vector)
+                return Query.new("vectorCosine", attribute, [vector]).to_s
+            end
+
+            def vector_euclidean(attribute, vector)
+                return Query.new("vectorEuclidean", attribute, [vector]).to_s
+            end
+
+            def intersects(attribute, values)
+                return Query.new("intersects", attribute, [values]).to_s
+            end
+
+            def not_intersects(attribute, values)
+                return Query.new("notIntersects", attribute, [values]).to_s
+            end
+
+            def crosses(attribute, values)
+                return Query.new("crosses", attribute, [values]).to_s
+            end
+
+            def not_crosses(attribute, values)
+                return Query.new("notCrosses", attribute, [values]).to_s
+            end
+
+            def overlaps(attribute, values)
+                return Query.new("overlaps", attribute, [values]).to_s
+            end
+
+            def not_overlaps(attribute, values)
+                return Query.new("notOverlaps", attribute, [values]).to_s
+            end
+
+            def touches(attribute, values)
+                return Query.new("touches", attribute, [values]).to_s
+            end
+
+            def not_touches(attribute, values)
+                return Query.new("notTouches", attribute, [values]).to_s
+            end
+        end
+    end
+end

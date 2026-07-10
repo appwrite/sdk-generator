@@ -1,0 +1,176 @@
+name: CI
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  tests:
+    name: Tests / ${{ matrix.sdk }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.5']
+        sdk: [
+          Android5Java17,
+          Android16Java17,
+          CLIBun10,
+          CLIBun11,
+          CLIBun13,
+          DartBeta,
+          DartStable,
+          DotNet60,
+          DotNet80,
+          DotNet90,
+          FlutterStable,
+          FlutterBeta,
+          Go112,
+          Go118,
+          KotlinJava17,
+          Node26,
+          Node18,
+          Node20,
+          PHP82,
+          PHP83,
+          Python39,
+          Python310,
+          Python311,
+          Python312,
+          Python313,
+          Ruby27,
+          Ruby30,
+          Ruby31,
+          Rust183,
+          AppleSwift61,
+          Swift61,
+          Unity2021,
+          WebChromium,
+          WebNode,
+          ReactNative
+        ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          submodules: recursive
+
+      - name: Docker Setup Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # 2.37.0
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: curl
+
+      - name: Before Install
+        run: |
+          if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
+            echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
+          fi
+
+      - name: Install
+        run: |
+          docker --version
+          composer install
+
+      - name: Run Tests
+        env:
+          UNITY_LICENSE: ${{ matrix.sdk == 'Unity2021' && secrets.UNITY_LICENSE || '' }}
+        run: composer test tests/e2e/${{ matrix.sdk }}Test.php
+
+  unit:
+    name: Tests / Unit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # 2.37.0
+        with:
+          php-version: '8.5'
+          extensions: curl
+
+      - name: Install
+        run: composer install
+
+      - name: Run Unit Tests
+        run: composer test -- --testsuite Unit
+
+  lint:
+    name: Checks / Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # 2.37.0
+        with:
+          php-version: '8.5'
+          extensions: curl
+
+      - name: Install
+        run: composer install
+
+      - name: Lint
+        run: composer lint
+
+  refactor:
+    name: Checks / Refactor
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # 2.37.0
+        with:
+          php-version: '8.5'
+          extensions: curl
+
+      - name: Install
+        run: composer install
+
+      - name: Run Rector
+        run: composer refactor:check
+
+  twig-lint:
+    name: Checks / Twig
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Run djLint
+        run: uvx djlint templates/ --lint
+
+  max-line-length:
+    name: Checks / Twig line length
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Make script executable
+        run: chmod +x ./.github/scripts/max-line-length.sh
+
+      - name: Check max lines
+        run: ./.github/scripts/max-line-length.sh . 1200 "*.twig"

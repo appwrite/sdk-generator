@@ -1,0 +1,32 @@
+.idea/
+.dart_tool
+/vendor/
+/tests/e2e/sdks
+/.vscode
+.vs
+.phpunit.*
+.env
+.envrc
+.hatch
+
+tmp-upload-tests/
+
+# exclude everything
+examples/*
+tests/e2e/tmp
+.phpunit.result.cache
+
+# exception to the rule
+!examples/.gitkeep 
+
+**/.DS_Store
+templates/swift/example/.build
+templates/swift/example/Example.xcodeproj/project.xcworkspace/xcuserdata
+templates/swift/example/Example.xcodeproj/xcuserdata
+**/xcuserdata
+# exclude go checksum files
+go.sum
+
+# exclude raw lock files in templates (use .twig versions instead)
+templates/cli/package-lock.json
+templates/cli/bun.lock

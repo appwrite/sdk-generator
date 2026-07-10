@@ -1,0 +1,16 @@
+<?php
+
+namespace {{ spec.namespace | caseNamespace }};
+
+use PHPUnit\Framework\TestCase;
+
+final class IDTest extends TestCase {
+    public function testUnique(): void {
+        $id = ID::unique();
+        $this->assertSame(20, strlen($id));
+    }
+
+    public function testCustom(): void {
+        $this->assertSame('custom', ID::custom('custom'));
+    }
+}

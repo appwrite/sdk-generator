@@ -1,0 +1,320 @@
+import 'dart:io';
+import 'dart:math';
+import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
+import 'client_mixin.dart';
+import 'client_base.dart';
+import 'enums.dart';
+import 'exception.dart';
+import 'response.dart';
+import 'input_file.dart';
+import 'upload_progress.dart';
+
+ClientBase createClient({
+  required String endPoint,
+  required bool selfSigned,
+}) =>
+    ClientIO(
+      endPoint: endPoint,
+      selfSigned: selfSigned,
+    );
+
+class ClientIO extends ClientBase with ClientMixin {
+  static const int chunkSize = 5*1024*1024;
+  String _endPoint;
+  Map<String, String>? _headers;
+  @override
+  late Map<String, String> config;
+  late http.Client _httpClient;
+  late HttpClient _nativeClient;
+
+  ClientIO({
+    String endPoint = '{{ spec.endpoint }}',
+    bool selfSigned = false,
+  }) : _endPoint = endPoint {
+    _nativeClient = HttpClient()
+      ..badCertificateCallback =
+          ((X509Certificate cert, String host, int port) => selfSigned);
+    _httpClient = IOClient(_nativeClient);
+    _endPoint = endPoint;
+    _headers = {
+      'content-type': 'application/json',
+      'x-sdk-name': '{{ sdk.name }}',
+      'x-sdk-platform': '{{ sdk.platform }}',
+      'x-sdk-language': '{{ language.name | caseLower }}',
+      'x-sdk-version': '{{ sdk.version }}',
+      'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Platform.operatingSystem}; ${Platform.operatingSystemVersion})',
+{% for key,header in spec.global.defaultHeaders %}
+      '{{key}}' : '{{header}}',
+{% endfor %}
+    };
+
+    config = {};
+
+    assert(_endPoint.startsWith(RegExp("http://|https://")),
+        "endPoint $_endPoint must start with 'http'");
+  }
+
+  @override
+  String get endPoint => _endPoint;
+
+{% for header in spec.global.headers %}
+{% if header.description %}
+     /// {{header.description}}
+{% endif %}
+    @override
+  ClientIO set{{header.key | caseUcfirst}}(value) {
+        config['{{ header.key | caseCamel }}'] = value;
+        {%~ if header.global %}
+        addHeader('{{ header.name }}', value);
+        {%~ endif %}
+        return this;
+    }
+{% endfor %}
+
+  @override
+  ClientIO setSelfSigned({bool status = true}) {
+    _nativeClient.badCertificateCallback =
+        ((X509Certificate cert, String host, int port) => status);
+    return this;
+  }
+
+  @override
+  ClientIO setEndpoint(String endPoint) {
+    if (!endPoint.startsWith('http://') && !endPoint.startsWith('https://')) {
+      throw {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: $endPoint');
+    }
+
+    _endPoint = endPoint;
+    return this;
+  }
+
+  @override
+  ClientIO addHeader(String key, String value) {
+    _headers![key] = value;
+    return this;
+  }
+
+  @override
+  Map<String, String> getHeaders() {
+    return Map<String, String>.from(_headers!);
+  }
+
+  @override
+  Future<Response> chunkedUpload({
+    required String path,
+    required Map<String, dynamic> params,
+    required String paramName,
+    required String idParamName,
+    required Map<String, String> headers,
+    Function(UploadProgress)? onProgress,
+  }) async {
+    InputFile file = params[paramName];
+    if (file.path == null && file.bytes == null) {
+      throw {{spec.title | caseUcfirst}}Exception("File path or bytes must be provided");
+    }
+
+    int size = 0;
+    if (file.bytes != null) {
+      size = file.bytes!.length;
+    }
+
+    File? iofile;
+
+    if (file.path != null) {
+      iofile = File(file.path!);
+      size = await iofile.length();
+    }
+
+    late Response res;
+    if (size <= chunkSize) {
+      if (file.path != null) {
+        params[paramName] = await http.MultipartFile.fromPath(
+            paramName, file.path!,
+            filename: file.filename);
+      } else {
+        params[paramName] = http.MultipartFile.fromBytes(paramName, file.bytes!,
+            filename: file.filename);
+      }
+      return call(
+        HttpMethod.post,
+        path: path,
+        params: params,
+        headers: headers,
+      );
+    }
+
+    var offset = 0;
+    String? uploadId;
+    if (idParamName.isNotEmpty) {
+      //make a request to check if a file already exists
+      try {
+        res = await call(
+          HttpMethod.get,
+          path: '$path/${params[idParamName]}',
+          headers: headers,
+        );
+        final int chunksUploaded = res.data['chunksUploaded'] as int;
+        offset = chunksUploaded * chunkSize;
+        uploadId = res.data['\$id'] ?? params[idParamName]?.toString();
+      } on {{spec.title | caseUcfirst}}Exception catch (_) {}
+    }
+
+    if (offset >= size) {
+      return res;
+    }
+
+    final totalChunks = (size / chunkSize).ceil();
+
+    Future<Response> uploadChunk(int index, int start, int end, String? id,
+        [RandomAccessFile? raf]) async {
+      List<int> chunk = [];
+      if (file.bytes != null) {
+        chunk = file.bytes!.getRange(start, end).toList();
+      } else {
+        if (raf != null) {
+          await raf.setPosition(start);
+          chunk = await raf.read(end - start);
+        } else {
+          final chunkFile = await iofile!.open(mode: FileMode.read);
+          try {
+            await chunkFile.setPosition(start);
+            chunk = await chunkFile.read(end - start);
+          } finally {
+            await chunkFile.close();
+          }
+        }
+      }
+
+      final chunkParams = Map<String, dynamic>.from(params);
+      chunkParams[paramName] =
+          http.MultipartFile.fromBytes(paramName, chunk, filename: file.filename);
+      final chunkHeaders = Map<String, String>.from(headers);
+      if (id != null && id.isNotEmpty) {
+        chunkHeaders['x-{{spec.title | caseLower }}-id'] = id;
+      }
+      chunkHeaders['content-range'] = 'bytes $start-${end - 1}/$size';
+
+      return call(
+        HttpMethod.post,
+        path: path,
+        headers: chunkHeaders,
+        params: chunkParams,
+      );
+    }
+
+    final firstStart = offset;
+    final firstEnd = min(firstStart + chunkSize, size);
+    final firstIndex = firstStart ~/ chunkSize;
+    res = await uploadChunk(firstIndex, firstStart, firstEnd, uploadId);
+    uploadId = res.data['\$id'] ?? uploadId;
+
+    var completedChunks = firstIndex + 1;
+    var uploadedBytes = firstEnd;
+    var lastResponse = res;
+    Response? finalResponse;
+
+    bool isUploadComplete(Response response) {
+      final chunksUploaded = response.data['chunksUploaded'];
+      final chunksTotal = response.data['chunksTotal'] ?? totalChunks;
+      return chunksUploaded is num && chunksTotal is num && chunksUploaded >= chunksTotal;
+    }
+
+    final progress = UploadProgress(
+      $id: uploadId ?? '',
+      progress: min(uploadedBytes, size) / size * 100,
+      sizeUploaded: min(uploadedBytes, size),
+      chunksTotal: totalChunks,
+      chunksUploaded: completedChunks,
+    );
+    onProgress?.call(progress);
+
+    final chunks = <Map<String, int>>[];
+    for (var start = firstEnd; start < size; start += chunkSize) {
+      final end = min(start + chunkSize, size);
+      chunks.add({
+        'index': start ~/ chunkSize,
+        'start': start,
+        'end': end,
+      });
+    }
+
+    var nextChunk = 0;
+    Future<void> uploadNext() async {
+      final raf = file.bytes == null ? await iofile!.open(mode: FileMode.read) : null;
+      try {
+        while (nextChunk < chunks.length) {
+          final chunk = chunks[nextChunk++];
+          final chunkResponse = await uploadChunk(
+            chunk['index']!,
+            chunk['start']!,
+            chunk['end']!,
+            uploadId,
+            raf,
+          );
+          completedChunks++;
+          uploadedBytes += chunk['end']! - chunk['start']!;
+          lastResponse = chunkResponse;
+          if (isUploadComplete(chunkResponse)) {
+            finalResponse = chunkResponse;
+          }
+
+          final progress = UploadProgress(
+            $id: uploadId ?? '',
+            progress: min(uploadedBytes, size) / size * 100,
+            sizeUploaded: min(uploadedBytes, size),
+            chunksTotal: totalChunks,
+            chunksUploaded: completedChunks,
+          );
+          onProgress?.call(progress);
+        }
+      } finally {
+        await raf?.close();
+      }
+    }
+
+    final concurrency = min(8, chunks.length);
+    await Future.wait(List.generate(concurrency, (_) => uploadNext()));
+
+    return finalResponse ?? lastResponse;
+  }
+
+  @override
+  Future<String?> webAuth(Uri url) async {
+    final request = http.Request('GET', url);
+    request.followRedirects = false;
+    final response = await _httpClient.send(request);
+    return response.headers['location'];
+  }
+
+  @override
+  Future<Response> call(
+    HttpMethod method, {
+    String path = '',
+    Map<String, String> headers = const {},
+    Map<String, dynamic> params = const {},
+    ResponseType? responseType,
+  }) async {
+    late http.Response res;
+    http.BaseRequest request = prepareRequest(
+      method,
+      uri: Uri.parse(_endPoint + path),
+      headers: {..._headers!, ...headers},
+      params: params,
+    );
+
+    try {
+      final streamedResponse = await _httpClient.send(request);
+      res = await toResponse(streamedResponse);
+      return prepareResponse(
+        res,
+        responseType: responseType,
+      );
+    } catch (e) {
+      if (e is {{spec.title | caseUcfirst}}Exception) {
+        rethrow;
+      }
+      throw {{spec.title | caseUcfirst}}Exception(e.toString());
+    }
+  }
+}

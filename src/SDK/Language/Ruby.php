@@ -1,0 +1,438 @@
+<?php
+
+namespace Appwrite\SDK\Language;
+
+use Override;
+use Appwrite\SDK\Language;
+use Twig\TwigFilter;
+
+class Ruby extends Language
+{
+    #[Override]
+    protected $params = [
+        'gemPackage' => 'gemName',
+    ];
+
+    /**
+     * @return $this
+     */
+    public function setGemPackage(string $name): self
+    {
+        $this->setParam('gemPackage', $name);
+
+        return $this;
+    }
+
+    public function getName(): string
+    {
+        return 'Ruby';
+    }
+
+    /**
+     * Get Language Keywords List
+     */
+    public function getKeywords(): array
+    {
+        return [
+            'BEGIN',
+            'END',
+            'alias',
+            'and',
+            'begin',
+            'break',
+            'case',
+            'class',
+            'def',
+            'defined?',
+            'do',
+            'else',
+            'module',
+            'next',
+            'nil',
+            'not',
+            'or',
+            'redo',
+            'rescue',
+            'retry',
+            'return',
+            'self',
+            'super',
+            'then',
+            'elsif',
+            'end',
+            'false',
+            'ensure',
+            'for',
+            'if',
+            'true',
+            'undef',
+            'unless',
+            'until',
+            'when',
+            'while',
+            'path'
+        ];
+    }
+
+    public function getIdentifierOverrides(): array
+    {
+        return [];
+    }
+
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return "'";
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
+    public function getFiles(): array
+    {
+        return [
+            [
+                'scope'         => 'default',
+                'destination'   => 'README.md',
+                'template'      => 'ruby/README.md.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'CHANGELOG.md',
+                'template'      => 'ruby/CHANGELOG.md.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'LICENSE',
+                'template'      => 'ruby/LICENSE.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Gemfile',
+                'template'      => 'ruby/Gemfile.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseDash }}.gemspec',
+                'template'      => 'ruby/gemspec.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}.rb',
+                'template'      => 'ruby/lib/container.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/client.rb',
+                'template'      => 'ruby/lib/container/client.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/permission.rb',
+                'template'      => 'ruby/lib/container/permission.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/role.rb',
+                'template'      => 'ruby/lib/container/role.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/id.rb',
+                'template'      => 'ruby/lib/container/id.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/query.rb',
+                'template'      => 'ruby/lib/container/query.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/operator.rb',
+                'template'      => 'ruby/lib/container/operator.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/service.rb',
+                'template'      => 'ruby/lib/container/service.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/input_file.rb',
+                'template'      => 'ruby/lib/container/input_file.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/exception.rb',
+                'template'      => 'ruby/lib/container/exception.rb.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '/lib/{{ spec.title | caseDash}}/services/{{service.name | caseSnake}}.rb',
+                'template'      => 'ruby/lib/container/services/service.rb.twig',
+            ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'template'      => 'ruby/docs/example.md.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'ruby/.github/workflows/publish.yml.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ definition.name | caseSnake }}.rb',
+                'template'      => 'ruby/lib/container/models/model.rb.twig',
+            ],
+            [
+                'scope'         => 'requestModel',
+                'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ requestModel.name | caseSnake }}.rb',
+                'template'      => 'ruby/lib/container/models/request_model.rb.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'lib/{{ spec.title | caseSnake}}/enums/{{ enum.name | caseSnake }}.rb',
+                'template'      => 'ruby/lib/container/enums/enum.rb.twig',
+            ],
+        ];
+    }
+
+    /**
+     * @param array $nestedTypes
+     */
+    public function getTypeName(array $parameter, array $spec = []): string
+    {
+        if (
+            ($parameter['type'] ?? null) === self::TYPE_ARRAY
+            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
+        ) {
+            return 'Array';
+        }
+
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
+        }
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst((string) $parameter['name']);
+        }
+        if (!empty($parameter['array']['model'])) {
+            return 'Array';
+        }
+        if (!empty($parameter['model'])) {
+            return $parameter['type'] === self::TYPE_ARRAY ? 'Array' : $this->toPascalCase($parameter['model']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'Integer',
+            self::TYPE_NUMBER => 'Float',
+            self::TYPE_STRING => 'String',
+            self::TYPE_ARRAY => 'Array',
+            self::TYPE_OBJECT => 'Hash',
+            self::TYPE_BOOLEAN => '',
+            default => $parameter['type'],
+        };
+    }
+
+    public function getParamDefault(array $param): string
+    {
+        $type       = $param['type'] ?? '';
+        $default    = $param['default'] ?? '';
+        $required   = $param['required'] ?? '';
+
+        if ($required) {
+            return ':';
+        }
+
+        $output = ': ';
+
+        if (empty($default) && $default !== 0 && $default !== false) {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_BOOLEAN:
+                    $output .= 'nill';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "''";
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= '[]';
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= '{}';
+                    break;
+            }
+        } else {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                    $output .= $default;
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($default) ? 'true' : 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "'{$default}'";
+                    break;
+            }
+        }
+
+        return $output;
+    }
+
+    public function getParamExample(array $param, string $lang = ''): string
+    {
+        $type       = $param['type'] ?? '';
+        $example    = $param['example'] ?? '';
+
+        $output = '';
+
+        if (empty($example) && $example !== 0 && $example !== false) {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_BOOLEAN:
+                    $output .= 'null';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "''";
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= '[]';
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= '{}';
+                    break;
+                case self::TYPE_FILE:
+                    $output .= "InputFile.from_path('dir/file.png')";
+                    break;
+            }
+        } else {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                    $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= $this->jsonToHash(json_decode((string) $example, true));
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($example) ? 'true' : 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "'{$example}'";
+                    break;
+                case self::TYPE_FILE:
+                    $output .= "InputFile.from_path('dir/file.png')";
+                    break;
+            }
+        }
+
+        return $output;
+    }
+
+    /**
+     * Converts JSON Object To Ruby Native Hash
+     *
+     * @var $data array
+     */
+    protected function jsonToHash(array $data, int $indent = 0): string
+    {
+        if ($data === []) {
+            return '{}';
+        }
+
+        $output = "{\n";
+        $indentStr = str_repeat('  ', $indent + 4);
+        $keys = array_keys($data);
+
+        foreach ($data as $key => $node) {
+            if (is_array($node)) {
+                $value = $this->jsonToHash($node, $indent + 1);
+            } elseif (is_bool($node)) {
+                $value = $node ? 'true' : 'false';
+            } elseif (is_string($node)) {
+                $value = '"' . $node . '"';
+            } else {
+                $value = $node;
+            }
+
+            $output .= $indentStr . '"' . $key . '" => ' . $value;
+
+            // Add comma if not the last item
+            if ($key !== end($keys)) {
+                $output .= ',';
+            }
+
+            $output .= "\n";
+        }
+
+        return $output . (str_repeat('  ', $indent + 2) . '}');
+    }
+
+    #[Override]
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
+            new TwigFilter('enumExample', function (array $param): string {
+                $enumValues = $param['enumValues'] ?? [];
+                if (empty($enumValues)) {
+                    return '';
+                }
+
+                $enumKeys = $param['enumKeys'] ?? [];
+                $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
+                $example = $param['example'] ?? null;
+                $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+
+                $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
+                    $index = array_search($value, $enumValues, true);
+                    if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
+                        return $this->toUpperSnakeCase($enumKeys[$index]);
+                    }
+                    if ($index !== false && isset($enumValues[$index])) {
+                        return $this->toUpperSnakeCase($enumValues[$index]);
+                    }
+                    $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
+                    return $this->toUpperSnakeCase((string)$fallback);
+                };
+
+                if ($isArray) {
+                    $values = [];
+                    if (\is_string($example) && $example !== '') {
+                        $decoded = json_decode($example, true);
+                        if (\is_array($decoded)) {
+                            $values = $decoded;
+                        }
+                    } elseif (\is_array($example)) {
+                        $values = $example;
+                    }
+
+                    if ($values === []) {
+                        $values = [$enumValues[0]];
+                    }
+
+                    $items = array_map(fn($value): string => $enumName . '::' . $resolveKey($value), $values);
+
+                    return '[' . implode(', ', $items) . ']';
+                }
+
+                $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
+                return $enumName . '::' . $resolveKey($value);
+            }),
+        ];
+    }
+}

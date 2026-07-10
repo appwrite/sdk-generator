@@ -1,0 +1,52 @@
+// SDK
+export const SDK_TITLE = '{{ spec.title|caseUcfirst }}';
+export const SDK_TITLE_LOWER = '{{ spec.title|caseLower }}';
+export const SDK_VERSION = '{{ sdk.version }}';
+export const SDK_NAME = '{{ sdk.name }}';
+export const SDK_PLATFORM = '{{ sdk.platform }}';
+export const SDK_LANGUAGE = '{{ language.name | caseLower }}';
+export const SDK_LOGO = {{ language.params.logo | raw }};
+
+// CLI
+export const EXECUTABLE_NAME = '{{ language.params.executableName }}';
+// 1 day
+export const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+// Homebrew — fully-qualified `<owner>/<tap>/<formula>` reference
+export const HOMEBREW_TAP = '{{ language.params.homebrewTapOwner }}/{{ language.params.homebrewTapName }}';
+export const HOMEBREW_FORMULA = `${HOMEBREW_TAP}/{{ language.params.executableName|caseLower }}`;
+export const HOMEBREW_TAP_FORMULA_URL = 'https://raw.githubusercontent.com/{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}/{{ language.params.homebrewTapBranch }}/Formula/{{ language.params.executableName|caseLower }}.rb';
+
+// NPM
+export const NPM_PACKAGE_NAME = '{{ language.params.npmPackage|caseDash }}';
+export const NPM_REGISTRY_URL = `https://registry.npmjs.org/${NPM_PACKAGE_NAME}/latest`;
+
+// GitHub
+export const GITHUB_REPO = '{{ sdk.gitUserName }}/{{ sdk.gitRepoName|caseDash }}';
+export const GITHUB_RELEASES_URL = `https://github.com/${GITHUB_REPO}/releases`;
+
+// API
+export const DEFAULT_ENDPOINT = '{{ spec.endpoint }}';
+
+// OAuth2
+export const OAUTH2_CLIENT_ID = "appwrite-cli";
+export const OAUTH2_SCOPES = "openid email profile all";
+
+// Config resources
+export const CONFIG_RESOURCE_KEYS = [
+  "databases",
+  "functions",
+  "topics",
+  "messages",
+  "sites",
+  "buckets",
+  "tablesDB",
+  "tables",
+  "teams",
+  "webhooks",
+  "collections",
+] as const;
+
+export const TOP_LEVEL_RESOURCE_ARRAY_KEYS = new Set<string>(
+  CONFIG_RESOURCE_KEYS,
+);

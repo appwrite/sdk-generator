@@ -1,0 +1,143 @@
+import 'package:http/http.dart' as http;
+import 'exception.dart';
+import 'response.dart';
+import 'dart:convert';
+import 'dart:developer';
+import 'enums.dart';
+
+mixin ClientMixin {
+  http.BaseRequest prepareRequest(
+    HttpMethod method, {
+    required Uri uri,
+    required Map<String, String> headers,
+    required Map<String, dynamic> params,
+  }) {
+
+    http.BaseRequest request = http.Request(method.name(), uri);
+    if (headers['content-type'] == 'multipart/form-data') {
+      request = http.MultipartRequest(method.name(), uri);
+      if (params.isNotEmpty) {
+        params.forEach((key, value) {
+          if (value == null) {
+            return;
+          }
+          if (value is http.MultipartFile) {
+            (request as http.MultipartRequest).files.add(value);
+          } else {
+            if (value is List) {
+              value.asMap().forEach((i, v) {
+                if (v != null) {
+                  (request as http.MultipartRequest).fields.addAll({
+                    "$key[$i]": v.toString(),
+                  });
+                }
+              });
+            } else {
+              (request as http.MultipartRequest).fields.addAll({
+                key: value.toString(),
+              });
+            }
+          }
+        });
+      }
+    } else if (method == HttpMethod.get) {
+      if (params.isNotEmpty) {
+        Map<String, dynamic> filteredParams = {};
+        params.forEach((key, value) {
+          if (value != null) {
+            if (value is int || value is double) {
+              filteredParams[key] = value.toString();
+            } else if (value is bool) {
+              filteredParams[key] = value.toString();
+            } else if (value is List) {
+              filteredParams["$key[]"] = value;
+            } else {
+              filteredParams[key] = value;
+            }
+          }
+        });
+        params = filteredParams;
+      }
+      uri = Uri(
+        fragment: uri.fragment,
+        path: uri.path,
+        host: uri.host,
+        scheme: uri.scheme,
+        queryParameters: {...uri.queryParameters, ...params},
+        port: uri.port,
+      );
+      request = http.Request(method.name(), uri);
+    } else {
+      (request as http.Request).body = jsonEncode(params);
+    }
+
+    if (headers['User-Agent'] != null) {
+      headers['User-Agent'] = Uri.encodeFull(headers['User-Agent']!);
+    }
+    if (headers['X-Forwarded-User-Agent'] != null) {
+      headers['X-Forwarded-User-Agent'] = Uri.encodeFull(
+        headers['X-Forwarded-User-Agent']!,
+      );
+    }
+
+    request.headers.addAll(headers);
+    return request;
+  }
+
+  Response prepareResponse(http.Response res, {ResponseType? responseType}) {
+    responseType ??= ResponseType.json;
+
+    String? warnings = res.headers['x-{{ spec.title | lower }}-warning'];
+    if (warnings != null) {
+      warnings.split(';').forEach((warning) => log('Warning: $warning'));
+    }
+
+    if (res.statusCode >= 400) {
+      if ((res.headers['content-type'] ?? '').contains('application/json')) {
+        final response = json.decode(res.body);
+        throw {{spec.title | caseUcfirst}}Exception(
+          response['message'],
+          response['code'],
+          response['type'],
+          res.body,
+        );
+      } else {
+        throw {{spec.title | caseUcfirst}}Exception(res.body, res.statusCode, '', res.body);
+      }
+    }
+    dynamic data;
+    if ((res.headers['content-type'] ?? '').contains('application/json')) {
+      if (responseType == ResponseType.json) {
+        data = json.decode(res.body);
+      } else if (responseType == ResponseType.bytes) {
+        data = res.bodyBytes;
+      } else {
+        data = res.body;
+      }
+    } else {
+      if (responseType == ResponseType.bytes) {
+        data = res.bodyBytes;
+      } else {
+        data = res.body;
+      }
+    }
+    return Response(data: data);
+  }
+
+  Future<http.Response> toResponse(
+    http.StreamedResponse streamedResponse,
+  ) async {
+    if (streamedResponse.statusCode == 204) {
+      return http.Response('',
+        streamedResponse.statusCode,
+        headers: streamedResponse.headers.map((k,v) => k.toLowerCase()=='content-type' ? MapEntry(k, 'text/plain') : MapEntry(k,v)),
+        request: streamedResponse.request,
+        isRedirect: streamedResponse.isRedirect,
+        persistentConnection: streamedResponse.persistentConnection,
+        reasonPhrase: streamedResponse.reasonPhrase,
+      );
+    } else {
+      return await http.Response.fromStream(streamedResponse);
+    }
+  }
+}

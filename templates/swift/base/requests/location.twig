@@ -1,0 +1,5 @@
+        return try await client.call(
+            method: "{{ method.method | caseUpper }}",
+            path: apiPath,
+            params: apiParams
+        )

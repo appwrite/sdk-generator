@@ -1,0 +1,148 @@
+
+using System;
+using System.Linq;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using {{ spec.title | caseUcfirst }}.Enums;
+using {{ spec.title | caseUcfirst }}.Extensions;
+
+namespace {{ spec.title | caseUcfirst }}.Models
+{
+    public class {{ definition.name | caseUcfirst | overrideIdentifier }}
+    {
+        {%~ for property in definition.properties %}
+        [JsonPropertyName("{{ property.name }}")]
+        public {{ sub_schema(property) | raw }} {{ property_name(definition, property) | overrideProperty(definition.name) }} { get; private set; }
+
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
+        public Dictionary<string, object> {{ 'data' | caseUcfirst | escapeKeyword | removeDollarSign }} { get; private set; }
+
+        {%~ endif %}
+        public {{ definition.name | caseUcfirst | overrideIdentifier }}(
+            {%~ for property in definition.properties %}
+            {{ sub_schema(property) | raw }} {{ property.name | caseCamel | escapeKeyword }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+
+            {%~ endfor %}
+            {%~ if definition.additionalProperties %}
+            Dictionary<string, object> {{ 'data' | caseCamel | escapeKeyword | removeDollarSign }}
+            {%~ endif %}
+        )
+        {
+            {%~ for property in definition.properties %}
+            {{ property_name(definition, property) | overrideProperty(definition.name) }} = {{ property.name | caseCamel | escapeKeyword }};
+            {%~ endfor %}
+            {%~ if definition.additionalProperties %}
+            {{ 'data' | caseUcfirst | escapeKeyword | removeDollarSign }} = {{ 'data' | caseCamel | escapeKeyword | removeDollarSign }};
+            {%~ endif %}
+        }
+
+        public static {{ definition.name | caseUcfirst | overrideIdentifier }} From(Dictionary<string, object> map) => new {{ definition.name | caseUcfirst | overrideIdentifier }}(
+            {%~ for property in definition.properties %}
+            {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
+                    {%- if property.sub_schema %}
+                        {%- if property.type == 'array' -%}
+                            {%- if not property.required -%}
+                                map.TryGetValue("{{ property.name }}", out var arrayRaw{{ loop.index }}) && arrayRaw{{ loop.index }} != null
+                                    ? arrayRaw{{ loop.index }}.ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                                    : null
+                            {%- else -%}
+                                map["{{ property.name }}"].ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                            {%- endif %}
+                        {%- else -%}
+                            {%- if not property.required -%}
+                                map.TryGetValue("{{ property.name }}", out var objectRaw{{ loop.index }}) && objectRaw{{ loop.index }} != null
+                                    ? {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: objectRaw{{ loop.index }} is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)objectRaw{{ loop.index }})
+                                    : null
+                            {%- else -%}
+                                {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
+                            {%- endif %}
+                        {%- endif %}
+                {%- elseif property.enum %}
+                    {%- set enumName = property['enumName'] ?? property.name -%}
+                    {%- if not property.required -%}
+                        map.TryGetValue("{{ property.name }}", out var enumRaw{{ loop.index }})
+                            ? enumRaw{{ loop.index }} == null
+                                ? null
+                                : new {{ enumName | caseUcfirst }}(enumRaw{{ loop.index }}.ToString()!)
+                            : null
+                    {%- else -%}
+                        new {{ enumName | caseUcfirst }}(map["{{ property.name }}"].ToString()!)
+                    {%- endif %}
+                {%- else %}
+                    {%- if property.type == 'array' -%}
+                        {%- if not property.required -%}
+                            map.TryGetValue("{{ property.name }}", out var arrayRaw{{ loop.index }}) && arrayRaw{{ loop.index }} != null
+                                ? arrayRaw{{ loop.index }}.ConvertToList<{{ property | typeName | slice(5, (property | typeName | length) - 6) | raw }}>()
+                                : null
+                        {%- else -%}
+                            map["{{ property.name }}"].ConvertToList<{{ property | typeName | slice(5, (property | typeName | length) - 6) | raw }}>()
+                        {%- endif %}
+                    {%- else %}
+                        {%- if property.type == "integer" or property.type == "number" %}
+                            {%- if not property.required -%}
+                                map.TryGetValue("{{ property.name }}", out var numberRaw{{ loop.index }}) && numberRaw{{ loop.index }} != null
+                                    ? Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(numberRaw{{ loop.index }})
+                                    : null
+                            {%- else -%}
+                                Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
+                            {%- endif %}
+                        {%- else %}
+                            {%- if property.type == "boolean" -%}
+                                {%- if not property.required -%}
+                                    map.TryGetValue("{{ property.name }}", out var boolRaw{{ loop.index }}) && boolRaw{{ loop.index }} != null
+                                        ? ({{ property | typeName }}?)boolRaw{{ loop.index }}
+                                        : null
+                                {%- else -%}
+                                    ({{ property | typeName }})map["{{ property.name }}"]
+                                {%- endif %}
+                            {%- else %}
+                                {%- if not property.required -%}
+                                    map.TryGetValue("{{ property.name }}", out var {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}) ? {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null
+                                {%- else -%}
+                                    map["{{ property.name }}"].ToString()
+                                {%- endif %}
+                            {%- endif %}
+                        {%- endif %}
+                    {%- endif %}
+                {%~ endif %}
+                {%- if not loop.last or (loop.last and definition.additionalProperties) %},
+                {%~ endif %}
+            {%~ endfor %}
+            {%- if definition.additionalProperties %}
+            {{ 'data' | caseCamel | escapeKeyword | removeDollarSign }}: map.TryGetValue("{{ 'data' }}", out var additionalPropsValue)
+                ? (Dictionary<string, object>)additionalPropsValue
+                : map
+            {%- endif ~%}
+        );
+
+        public Dictionary<string, object?> ToMap() => new Dictionary<string, object?>()
+        {
+            {%~ for property in definition.properties %}
+            { "{{ property.name }}", {{ property | toMapValue(property_name(definition, property) | overrideProperty(definition.name)) | raw }} }{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+
+            {%~ endfor %}
+            {%~ if definition.additionalProperties %}
+            { "{{ 'data' }}", {{ 'data' | caseUcfirst | escapeKeyword | removeDollarSign }} }
+            {%~ endif %}
+        };
+        {%~ if definition.additionalProperties %}
+
+        public T ConvertTo<T>(Func<Dictionary<string, object>, T> fromJson) =>
+            fromJson.Invoke({{ 'data' | caseUcfirst | escapeKeyword | removeDollarSign }});
+        {%~ endif %}
+        {%~ for property in definition.properties %}
+        {%~ if property.sub_schema %}
+        {%~ for def in spec.definitions %}
+        {%~ if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
+
+        public T ConvertTo<T>(Func<Dictionary<string, object>, T> fromJson) =>
+            (T){{ property.name | caseUcfirst | escapeKeyword }}.Select(it => it.ConvertTo(fromJson));
+
+        {%~ endif %}
+        {%~ endfor %}
+        {%~ endif %}
+        {%~ endfor %}
+    }
+}

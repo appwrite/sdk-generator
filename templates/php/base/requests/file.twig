@@ -1,0 +1,331 @@
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+{% set responseModels = method | getResponseModels(spec) %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+        $size = 0;
+        $mimeType = null;
+        $postedName = null;
+        if(empty(${{ parameter.name | caseCamel }}->getPath() ?? null)) {
+            $size = strlen(${{ parameter.name | caseCamel }}->getData());
+            $mimeType = ${{ parameter.name | caseCamel }}->getMimeType();
+            $postedName = ${{ parameter.name | caseCamel }}->getFilename();
+            if ($size <= Client::CHUNK_SIZE) {
+                $apiParams['{{ parameter.name | caseCamel }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(${{ parameter.name | caseCamel }}->getData()), $mimeType, $postedName);
+                $response = $this->client->call(Client::METHOD_POST, $apiPath, [
+    {% for param in method.parameters.header %}
+                    '{{ param.name }}' => ${{ param.name | caseCamel }},
+    {% endfor %}
+    {% for key, header in method.headers %}
+                    '{{ key }}' => '{{ header }}',
+    {% endfor %}
+                    ], $apiParams);
+{% if responseModels | length > 0 %}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+                if (!is_array($response)) {
+                    throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+                }
+{% for modelName, conditions in responseDiscriminator %}
+                if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                    return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
+                }
+{% endfor %}
+                throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
+                if (!is_array($response)) {
+                    throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+                }
+
+                return {{ responseModels | first }}::from($response);
+{% endif %}
+{% else %}
+                return $response;
+{% endif %}
+            }
+        } else {
+            $size = filesize(${{ parameter.name | caseCamel }}->getPath());
+            $mimeType = ${{ parameter.name | caseCamel }}->getMimeType() ?? mime_content_type(${{ parameter.name | caseCamel }}->getPath());
+            $postedName = ${{ parameter.name | caseCamel }}->getFilename() ?? basename(${{ parameter.name | caseCamel }}->getPath());
+            //send single file if size is less than or equal to 5MB
+            if ($size <= Client::CHUNK_SIZE) {
+                $apiParams['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }}->getPath(), $mimeType, $postedName);
+                $response = $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $apiPath, [
+    {% for param in method.parameters.header %}
+                    '{{ param.name }}' => ${{ param.name | caseCamel }},
+    {% endfor %}
+    {% for key, header in method.headers %}
+                    '{{ key }}' => '{{ header }}',
+    {% endfor %}
+                    ], $apiParams);
+{% if responseModels | length > 0 %}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+                if (!is_array($response)) {
+                    throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+                }
+{% for modelName, conditions in responseDiscriminator %}
+                if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                    return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
+                }
+{% endfor %}
+                throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
+                if (!is_array($response)) {
+                    throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+                }
+
+                return {{ responseModels | first }}::from($response);
+{% endif %}
+{% else %}
+                return $response;
+{% endif %}
+            }
+        }
+
+        $id = '';
+        $counter = 0;
+
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+        try {
+            $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ parameter.name }});
+            $counter = $response['chunksUploaded'] ?? 0;
+        } catch(\Exception $e) {
+        }
+{% endif %}
+{% endfor %}
+
+        $apiHeaders = [
+        {%~ for key, security in method.securityHeaders %}
+            '{{ security.name }}' => $this->client->getConfig('{{ key | caseLower }}'),
+        {%~ endfor %}
+        {%~ for parameter in method.parameters.header %}
+            '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
+        {%~ endfor %}
+        {%~ for key, header in method.headers %}
+            '{{ key }}' => '{{ header }}',
+        {%~ endfor %}
+        ];
+        $handle = null;
+
+        if(!empty(${{parameter.name}}->getPath())) {
+            $handle = @fopen(${{parameter.name}}->getPath(), "rb");
+        }
+
+        $uploadId = '';
+        {% for parameter in method.parameters.all %}{% if parameter.isUploadID %}
+        $uploadId = ${{ parameter.name }} ?? '';
+        {% endif %}{% endfor %}
+        $totalChunks = (int) ceil($size / Client::CHUNK_SIZE);
+        $chunks = [];
+        $start = $counter * Client::CHUNK_SIZE;
+        while ($start < $size) {
+            $chunks[] = [
+                'index' => $counter,
+                'start' => $start,
+                'end' => min($start + Client::CHUNK_SIZE, $size),
+            ];
+            $counter++;
+            $start += Client::CHUNK_SIZE;
+        }
+
+        $readChunk = function(int $start, int $end) use ($handle, ${{ parameter.name | caseCamel }}) {
+            if(!empty($handle)) {
+                fseek($handle, $start);
+                return @fread($handle, $end - $start);
+            }
+
+            return substr(${{ parameter.name | caseCamel }}->getData(), $start, $end - $start);
+        };
+
+        $uploadChunk = function(array $chunk, string $currentUploadId = '') use ($readChunk, $apiPath, $apiHeaders, $apiParams, $mimeType, $postedName, $size) {
+            $chunkParams = $apiParams;
+            $chunkHeaders = $apiHeaders;
+            $data = $readChunk($chunk['start'], $chunk['end']);
+            $chunkParams['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode($data), $mimeType, $postedName);
+            $chunkHeaders['content-range'] = 'bytes ' . $chunk['start'] . '-' . ($chunk['end'] - 1) . '/' . $size;
+            if(!empty($currentUploadId)) {
+                $chunkHeaders['x-{{spec.title | caseLower }}-id'] = $currentUploadId;
+            }
+
+            return $this->client->call(Client::METHOD_POST, $apiPath, $chunkHeaders, $chunkParams);
+        };
+
+        $isUploadComplete = function($chunkResponse) use ($totalChunks): bool {
+            if(!is_array($chunkResponse) || !isset($chunkResponse['chunksUploaded'])) {
+                return false;
+            }
+
+            return (int) $chunkResponse['chunksUploaded'] >= (int) ($chunkResponse['chunksTotal'] ?? $totalChunks);
+        };
+
+        if (!empty($chunks)) {
+            $response = $uploadChunk($chunks[0], $uploadId);
+            if(empty($uploadId)) {
+                $uploadId = $response['$id'];
+            }
+            $completedCount = $chunks[0]['index'] + 1;
+            $uploadedSize = $chunks[0]['end'];
+            if($onProgress !== null) {
+                $onProgress([
+                    '$id' => $response['$id'],
+                    'progress' => $uploadedSize / $size * 100,
+                    'sizeUploaded' => $uploadedSize,
+                    'chunksTotal' => $totalChunks,
+                    'chunksUploaded' => $completedCount,
+                ]);
+            }
+
+            $remainingChunks = array_slice($chunks, 1);
+            $clientConfig = \Closure::bind(function() {
+                if (property_exists($this, 'key') && $this->key !== null) {
+                    $this->headers['authorization'] = $this->getAuthorization();
+                }
+
+                return [$this->endpoint, $this->headers, $this->selfSigned, $this->timeout, $this->connectTimeout];
+            }, $this->client, Client::class);
+            $flattenParams = \Closure::bind(function(array $params): array {
+                return $this->flatten($params);
+            }, $this->client, Client::class);
+            [$endpoint, $globalHeaders, $selfSigned, $timeout, $connectTimeout] = $clientConfig();
+            $responseHeaders = [];
+            $lastResponse = $response;
+            $completedResponse = null;
+
+            $makeHandle = function(array $chunk) use ($readChunk, $apiPath, $apiHeaders, $apiParams, $mimeType, $postedName, $size, $uploadId, $endpoint, $globalHeaders, $selfSigned, $timeout, $connectTimeout, $flattenParams, &$responseHeaders) {
+                $chunkParams = $apiParams;
+                $chunkHeaders = array_merge($globalHeaders, $apiHeaders);
+                $data = $readChunk($chunk['start'], $chunk['end']);
+                $chunkParams['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode($data), $mimeType, $postedName);
+                $chunkHeaders['content-range'] = 'bytes ' . $chunk['start'] . '-' . ($chunk['end'] - 1) . '/' . $size;
+                if(!empty($uploadId)) {
+                    $chunkHeaders['x-{{spec.title | caseLower }}-id'] = $uploadId;
+                }
+
+                $headers = [];
+                foreach ($chunkHeaders as $key => $value) {
+                    $headers[] = $key . ':' . $value;
+                }
+
+                $ch = curl_init($endpoint . $apiPath);
+                $responseHeaders[spl_object_id($ch)] = [];
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, Client::METHOD_POST);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($ch, CURLOPT_USERAGENT, php_uname('s') . '-' . php_uname('r') . ':{{ language.name | caseLower }}-' . phpversion());
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $flattenParams($chunkParams));
+                curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($curl, $header) use (&$responseHeaders) {
+                    $length = strlen($header);
+                    $header = explode(':', strtolower($header), 2);
+                    if (count($header) >= 2) {
+                        $responseHeaders[spl_object_id($curl)][strtolower(trim($header[0]))] = trim($header[1]);
+                    }
+
+                    return $length;
+                });
+                if($selfSigned) {
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                }
+                if($timeout !== null) {
+                    curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+                }
+                if($connectTimeout !== null) {
+                    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connectTimeout);
+                }
+
+                return $ch;
+            };
+
+            $nextChunk = 0;
+            while ($nextChunk < count($remainingChunks)) {
+                $multiHandle = curl_multi_init();
+                $handles = [];
+                for ($i = 0; $i < 8 && $nextChunk < count($remainingChunks); $i++, $nextChunk++) {
+                    $chunk = $remainingChunks[$nextChunk];
+                    $ch = $makeHandle($chunk);
+                    $handles[spl_object_id($ch)] = ['handle' => $ch, 'chunk' => $chunk];
+                    curl_multi_add_handle($multiHandle, $ch);
+                }
+
+                try {
+                    do {
+                        $status = curl_multi_exec($multiHandle, $active);
+                        if ($active) {
+                            curl_multi_select($multiHandle);
+                        }
+                    } while ($active && ($status == CURLM_OK || $status == CURLM_CALL_MULTI_PERFORM));
+
+                    foreach ($handles as $handleInfo) {
+                        $ch = $handleInfo['handle'];
+                        $body = curl_multi_getcontent($ch);
+                        $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                        $contentType = $responseHeaders[spl_object_id($ch)]['content-type'] ?? '';
+
+                        if (curl_errno($ch)) {
+                            throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $statusCode, '', $body);
+                        }
+
+                        $chunkResponse = str_starts_with($contentType, 'application/json') ? json_decode($body, true) : $body;
+
+                        if($statusCode >= 400) {
+                            if(is_array($chunkResponse)) {
+                                throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception($chunkResponse['message'], $statusCode, $chunkResponse['type'] ?? '', json_encode($chunkResponse));
+                            }
+
+                            throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception($chunkResponse, $statusCode, '', $chunkResponse);
+                        }
+
+                        $completedCount++;
+                        $uploadedSize += $handleInfo['chunk']['end'] - $handleInfo['chunk']['start'];
+                        $lastResponse = $chunkResponse;
+                        if($isUploadComplete($chunkResponse)) {
+                            $completedResponse = $chunkResponse;
+                        }
+                        if($onProgress !== null) {
+                            $onProgress([
+                                '$id' => $uploadId,
+                                'progress' => $uploadedSize / $size * 100,
+                                'sizeUploaded' => $uploadedSize,
+                                'chunksTotal' => $totalChunks,
+                                'chunksUploaded' => $completedCount,
+                            ]);
+                        }
+                    }
+                } finally {
+                    foreach ($handles as $handleInfo) {
+                        curl_multi_remove_handle($multiHandle, $handleInfo['handle']);
+                        curl_close($handleInfo['handle']);
+                    }
+                    curl_multi_close($multiHandle);
+                }
+            }
+            $response = $completedResponse ?? $lastResponse;
+
+        }
+        if(!empty($handle)) {
+            @fclose($handle);
+        }
+{% if responseModels | length > 0 %}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+        if (!is_array($response)) {
+            throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+        }
+{% for modelName, conditions in responseDiscriminator %}
+        if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+            return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
+        }
+{% endfor %}
+        throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
+        if (!is_array($response)) {
+            throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+        }
+
+        return {{ responseModels | first }}::from($response);
+{% endif %}
+{% else %}
+        return $response;
+{% endif %}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,293 @@
+import json
+
+# Inherit from dict to allow for easy serialization
+class Query():
+    def __init__(self, method, attribute=None, values=None):
+        self.method = method
+
+        if attribute is not None:
+            self.attribute = attribute
+
+        if values is not None:
+            self.values = values if isinstance(values, list) else [values]
+
+    def __str__(self):
+        return json.dumps(
+            self.__dict__,
+            separators=(",", ":"),
+            default=lambda obj: obj.__dict__
+        )
+
+    @staticmethod
+    def equal(attribute, value):
+        return str(Query("equal", attribute, value))
+
+    @staticmethod
+    def not_equal(attribute, value):
+        return str(Query("notEqual", attribute, value))
+
+    @staticmethod
+    def regex(attribute, pattern):
+        """
+        Filter resources where attribute matches a regular expression pattern.
+
+        Args:
+            attribute: The attribute to filter on.
+            pattern: The regular expression pattern to match.
+
+        Returns:
+            The query string.
+        """
+        return str(Query("regex", attribute, pattern))
+
+    @staticmethod
+    def less_than(attribute, value):
+        return str(Query("lessThan", attribute, value))
+
+    @staticmethod
+    def less_than_equal(attribute, value):
+        return str(Query("lessThanEqual", attribute, value))
+
+    @staticmethod
+    def greater_than(attribute, value):
+        return str(Query("greaterThan", attribute, value))
+
+    @staticmethod
+    def greater_than_equal(attribute, value):
+        return str(Query("greaterThanEqual", attribute, value))
+
+    @staticmethod
+    def is_null(attribute):
+        return str(Query("isNull", attribute, None))
+
+    @staticmethod
+    def is_not_null(attribute):
+        return str(Query("isNotNull", attribute, None))
+
+    @staticmethod
+    def exists(attributes):
+        """
+        Filter resources where the specified attributes exist.
+
+        Args:
+            attributes: The list of attributes that must exist.
+
+        Returns:
+            The query string.
+        """
+        return str(Query("exists", None, attributes))
+
+    @staticmethod
+    def not_exists(attributes):
+        """
+        Filter resources where the specified attributes do not exist.
+
+        Args:
+            attributes: The list of attributes that must not exist.
+
+        Returns:
+            The query string.
+        """
+        return str(Query("notExists", None, attributes))
+
+    @staticmethod
+    def between(attribute, start, end):
+        return str(Query("between", attribute, [start, end]))
+
+    @staticmethod
+    def starts_with(attribute, value):
+        return str(Query("startsWith", attribute, value))
+
+    @staticmethod
+    def ends_with(attribute, value):
+        return str(Query("endsWith", attribute, value))
+
+    @staticmethod
+    def select(attributes):
+        return str(Query("select", None, attributes))
+
+    @staticmethod
+    def search(attribute, value):
+        return str(Query("search", attribute, value))
+
+    @staticmethod
+    def order_asc(attribute):
+        return str(Query("orderAsc", attribute, None))
+
+    @staticmethod
+    def order_desc(attribute):
+        return str(Query("orderDesc", attribute, None))
+
+    @staticmethod
+    def order_random():
+        return str(Query("orderRandom", None, None))
+
+    @staticmethod
+    def cursor_before(id):
+        return str(Query("cursorBefore", None, id))
+
+    @staticmethod
+    def cursor_after(id):
+        return str(Query("cursorAfter", None, id))
+
+    @staticmethod
+    def limit(limit):
+        return str(Query("limit", None, limit))
+
+    @staticmethod
+    def offset(offset):
+        return str(Query("offset", None, offset))
+
+    @staticmethod
+    def contains(attribute, value):
+        """
+        Filter resources where attribute contains the specified value.
+        For string attributes, checks if the string contains the substring.
+
+        Note: For array attributes, use contains_any() or contains_all() instead.
+        """
+        return str(Query("contains", attribute, value))
+
+    @staticmethod
+    def contains_any(attribute, value):
+        """
+        Filter resources where attribute contains ANY of the specified values.
+        For array and relationship attributes, matches documents where the attribute
+        contains at least one of the given values.
+        """
+        return str(Query("containsAny", attribute, value))
+
+    @staticmethod
+    def contains_all(attribute, value):
+        """
+        Filter resources where attribute contains ALL of the specified values.
+        For array and relationship attributes, matches documents where the attribute
+        contains every one of the given values.
+        """
+        return str(Query("containsAll", attribute, value))
+
+    @staticmethod
+    def not_contains(attribute, value):
+        return str(Query("notContains", attribute, value))
+
+    @staticmethod
+    def not_search(attribute, value):
+        return str(Query("notSearch", attribute, value))
+
+    @staticmethod
+    def not_between(attribute, start, end):
+        return str(Query("notBetween", attribute, [start, end]))
+
+    @staticmethod
+    def not_starts_with(attribute, value):
+        return str(Query("notStartsWith", attribute, value))
+
+    @staticmethod
+    def not_ends_with(attribute, value):
+        return str(Query("notEndsWith", attribute, value))
+
+    @staticmethod
+    def created_before(value):
+        return Query.less_than("$createdAt", value)
+
+    @staticmethod
+    def created_after(value):
+        return Query.greater_than("$createdAt", value)
+
+    @staticmethod
+    def created_between(start, end):
+        return Query.between("$createdAt", start, end)
+
+    @staticmethod
+    def updated_before(value):
+        return Query.less_than("$updatedAt", value)
+
+    @staticmethod
+    def updated_after(value):
+        return Query.greater_than("$updatedAt", value)
+
+    @staticmethod
+    def updated_between(start, end):
+        return Query.between("$updatedAt", start, end)
+
+    @staticmethod
+    def or_queries(queries):
+        return str(Query("or", None, [json.loads(query) for query in queries]))
+
+    @staticmethod
+    def and_queries(queries):
+        return str(Query("and", None, [json.loads(query) for query in queries]))
+
+    @staticmethod
+    def elem_match(attribute, queries):
+        """
+        Filter array elements where at least one element matches all the specified queries.
+
+        Args:
+            attribute: The attribute containing the array to filter on.
+            queries: The list of query strings to match against array elements.
+
+        Returns:
+            The query string.
+        """
+        return str(Query("elemMatch", attribute, [json.loads(query) for query in queries]))
+
+    @staticmethod
+    def distance_equal(attribute, values, distance, meters=True):
+        return str(Query("distanceEqual", attribute, [[values, distance, meters]]))
+
+    @staticmethod
+    def distance_not_equal(attribute, values, distance, meters=True):
+        return str(Query("distanceNotEqual", attribute, [[values, distance, meters]]))
+
+    @staticmethod
+    def distance_greater_than(attribute, values, distance, meters=True):
+        return str(Query("distanceGreaterThan", attribute, [[values, distance, meters]]))
+
+    @staticmethod
+    def distance_less_than(attribute, values, distance, meters=True):
+        return str(Query("distanceLessThan", attribute, [[values, distance, meters]]))
+
+    @staticmethod
+    def vector_dot(attribute, vector):
+        return str(Query("vectorDot", attribute, [vector]))
+
+    @staticmethod
+    def vector_cosine(attribute, vector):
+        return str(Query("vectorCosine", attribute, [vector]))
+
+    @staticmethod
+    def vector_euclidean(attribute, vector):
+        return str(Query("vectorEuclidean", attribute, [vector]))
+
+    @staticmethod
+    def intersects(attribute, values):
+        return str(Query("intersects", attribute, [values]))
+
+    @staticmethod
+    def not_intersects(attribute, values):
+        return str(Query("notIntersects", attribute, [values]))
+
+    @staticmethod
+    def crosses(attribute, values):
+        return str(Query("crosses", attribute, [values]))
+
+    @staticmethod
+    def not_crosses(attribute, values):
+        return str(Query("notCrosses", attribute, [values]))
+
+    @staticmethod
+    def overlaps(attribute, values):
+        return str(Query("overlaps", attribute, [values]))
+
+    @staticmethod
+    def not_overlaps(attribute, values):
+        return str(Query("notOverlaps", attribute, [values]))
+
+    @staticmethod
+    def touches(attribute, values):
+        return str(Query("touches", attribute, [values]))
+
+    @staticmethod
+    def not_touches(attribute, values):
+        return str(Query("notTouches", attribute, [values]))

@@ -1,0 +1,55 @@
+name: renovate
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # Daily 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: "Dry run (log what would change, open no PRs)"
+        type: boolean
+        default: false
+      debug:
+        description: "Enable Renovate debug logging"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: generate app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.RENOVATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+          owner: appwrite
+          repositories: sdk-generator
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: enable dry run
+        if: inputs.dryRun
+        run: echo "RENOVATE_DRY_RUN=full" >> "$GITHUB_ENV"
+
+      - name: enable debug logging
+        if: inputs.debug
+        run: echo "LOG_LEVEL=debug" >> "$GITHUB_ENV"
+
+      - name: target dispatch ref for dry run
+        if: inputs.dryRun
+        run: |
+          printf 'RENOVATE_BASE_BRANCHES=["%s"]\n' "$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+          echo "RENOVATE_USE_BASE_BRANCH_CONFIG=merge" >> "$GITHUB_ENV"
+
+      - name: renovate
+        uses: renovatebot/github-action@dd5302ec17783b2fc721b19ae7209b57b1587765 # v46.1.17
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+        env:
+          RENOVATE_ALLOWED_COMMANDS: '["^./scripts/update-lockfiles\\.sh renovate$"]'
+          RENOVATE_REPOSITORIES: ${{ github.repository }}

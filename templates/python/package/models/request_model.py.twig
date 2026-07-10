@@ -1,0 +1,53 @@
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import Field
+
+from .base_model import AppwriteModel
+{% set added = [] %}
+{%~ for property in requestModel.properties %}
+{%~ set enumName = property.enumName ?? attribute(property, 'x-enum-name') ?? (requestModel.name ~ (property.name | caseUcfirst)) %}
+{%~ if property.enum or property.items.enum is defined %}
+{%~ if enumName not in added %}
+from ..enums.{{ enumName | caseSnake }} import {{ enumName | caseUcfirst }}
+{%~ set added = added|merge([enumName]) %}
+{%~ endif %}
+{%~ endif %}
+{%~ if property.sub_schema and property.sub_schema not in added %}
+from .{{ property.sub_schema | caseSnake }} import {{ property.sub_schema | caseUcfirst }}
+{%~ set added = added|merge([property.sub_schema]) %}
+{%~ endif %}
+{%~ if property.sub_schemas is defined %}
+{%~ for subSchema in property.sub_schemas %}
+{%~ if subSchema not in added %}
+from .{{ subSchema | caseSnake }} import {{ subSchema | caseUcfirst }}
+{%~ set added = added|merge([subSchema]) %}
+{%~ endif %}
+{%~ endfor %}
+{%~ endif %}
+{%~ endfor %}
+
+class {{ requestModel.name | caseUcfirst }}(AppwriteModel):
+    """
+    {{ requestModel.description }}
+{% if requestModel.properties | length > 0 %}
+
+    Attributes
+    ----------
+{% for property in requestModel.properties %}
+{% set propertyType %}{% if not property.required and not (property.nullable ?? false) %}Optional[{{ property | getModelPropertyType(requestModel.name) | raw }}]{% else %}{{ property | getModelPropertyType(requestModel.name) | raw }}{% endif %}{% endset %}
+    {{ property | getModelFieldName(requestModel.properties) }} : {{ propertyType | trim }}
+{% if property.description %}
+        {{ property.description | replace({"\n": "\n        "}) }}
+{% else %}
+        Typed model field.
+{% endif %}
+{% endfor %}
+{% endif %}
+    """
+{% if requestModel.properties | length == 0 %}
+    pass
+{% else %}
+{% for property in requestModel.properties %}
+    {{ property | getModelFieldName(requestModel.properties) }}: {% if not property.required and not (property.nullable ?? false) %}Optional[{{ property | getModelPropertyType(requestModel.name) | raw }}]{% else %}{{ property | getModelPropertyType(requestModel.name) | raw }}{% endif %} = Field({% if property.required %}...{% else %}default=None{% endif %}, alias='{{ property.name }}')
+{% endfor %}
+{% endif %}

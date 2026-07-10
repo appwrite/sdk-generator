@@ -1,0 +1,26 @@
+package models
+
+import (
+    "encoding/json"
+)
+
+{{ ((requestModel.description | caseUcfirst) ~ " Request Model") | godocComment }}
+type {{ requestModel.name | caseUcfirst }} struct {
+    {%~ for property in requestModel.properties %}
+    {{ property.description | godocComment(4) }}
+    {{ property.name | caseUcfirst | escapeKeyword }} {{ property | propertyType(spec) }}{% if not property.required %} `json:"{{ property.name }},omitempty"`{% else %} `json:"{{ property.name }}"`{% endif %}
+
+    {%~ endfor %}
+}
+
+func (model {{ requestModel.name | caseUcfirst }}) ToMap() map[string]interface{} {
+    return map[string]interface{}{
+        {%~ for property in requestModel.properties %}
+        "{{ property.name }}": model.{{ property.name | caseUcfirst | escapeKeyword }},
+        {%~ endfor %}
+    }
+}
+
+func (model {{ requestModel.name | caseUcfirst }}) ToJson() ([]byte, error) {
+    return json.Marshal(model.ToMap())
+}

@@ -1,0 +1,37 @@
+```ruby
+require '{{ spec.title | lower }}'
+
+include {{ spec.title | caseUcfirst }}
+{% set break = false %}
+{% for parameter in method.parameters.all %}
+{% if not break %}
+{% if parameter.enumValues is not empty %}
+include {{ spec.title | caseUcfirst }}::Enums
+{% set break = true %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% if method.parameters.all | hasPermissionParam %}
+include {{ spec.title | caseUcfirst }}::Permission
+include {{ spec.title | caseUcfirst }}::Role
+{% endif %}
+
+client = Client.new
+    .set_endpoint('{{ spec.endpointDocs | raw }}') # Your API Endpoint
+    {%~ for node in method.auth %}
+    {%~ for key,header in node|keys|filter(h => not node[h]['x-appwrite']['optional']) %}
+    .set_{{header|caseSnake}}('{{node[header]['x-appwrite']['demo'] | raw }}') # {{node[header].description}}
+    {%~ endfor %}
+    {%~ endfor %}
+
+{{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}.new(client)
+
+result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% if method.parameters.all | length == 0 %}){% endif %}
+
+    {%~ for parameter in method.parameters.all %}
+    {{ parameter.name | caseSnake }}: {% if parameter.enumValues | length > 0%}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
+
+    {%~ endfor -%}
+{% if method.parameters.all | length > 0 %})
+{% endif %}
+```

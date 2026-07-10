@@ -1,0 +1,326 @@
+<?php
+
+namespace {{ spec.namespace | caseNamespace }};
+
+use PHPUnit\Framework\TestCase;
+
+final class BasicFilterQueryTest {
+    public $description;
+    public $value;
+    public $expectedValues;
+
+    public function __construct(string $description, mixed $value, string $expectedValues) {
+        $this->description = $description;
+        $this->value = $value;
+        $this->expectedValues = $expectedValues;
+    }
+}
+
+final class QueryTest extends TestCase {
+    /**
+     * @var BasicFilterQueryTest[] $tests
+     */
+    private $tests;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->tests = array(
+            new BasicFilterQueryTest('with a string', 's', '["s"]'),
+            new BasicFilterQueryTest('with a integer', 1, '[1]'),
+            new BasicFilterQueryTest('with a double', 1.2, '[1.2]'),
+            new BasicFilterQueryTest('with a whole number double', 1.0, '[1]'),
+            new BasicFilterQueryTest('with a bool', false, '[false]'),
+            new BasicFilterQueryTest('with a list', ['a', 'b', 'c'], '["a","b","c"]'),
+        );
+    }
+
+    public function testBasicFilterEqual(): void {
+        foreach($this->tests as $test) {
+            $query = json_decode(Query::equal('attr', $test->value), true);
+            $expected = json_decode($test->expectedValues, true);
+            $this->assertSame('attr', $query['attribute'], $test->description);
+            $this->assertSame($expected, $query['values'], $test->description);
+            $this->assertSame('equal', $query['method'], $test->description);
+        }
+    }
+
+    public function testBasicFilterNotEqual(): void {
+        foreach($this->tests as $test) {
+            $query = json_decode(Query::notEqual('attr', $test->value), true);
+            $expected = json_decode($test->expectedValues, true);
+            $this->assertSame('attr', $query['attribute'], $test->description);
+            $this->assertSame($expected, $query['values'], $test->description);
+            $this->assertSame('notEqual', $query['method'], $test->description);
+        }
+    }
+
+    public function testBasicFilterLessThan(): void {
+        foreach($this->tests as $test) {
+            $query = json_decode(Query::lessThan('attr', $test->value), true);
+            $expected = json_decode($test->expectedValues, true);
+            $this->assertSame('attr', $query['attribute'], $test->description);
+            $this->assertSame($expected, $query['values'], $test->description);
+            $this->assertSame('lessThan', $query['method'], $test->description);
+        }
+    }
+
+    public function testBasicFilterLessThanEqual(): void {
+        foreach($this->tests as $test) {
+            $query = json_decode(Query::lessThanEqual('attr', $test->value), true);
+            $expected = json_decode($test->expectedValues, true);
+            $this->assertSame('attr', $query['attribute'], $test->description);
+            $this->assertSame($expected, $query['values'], $test->description);
+            $this->assertSame('lessThanEqual', $query['method'], $test->description);
+        }
+    }
+
+    public function testBasicFilterGreaterThan(): void {
+        foreach($this->tests as $test) {
+            $query = json_decode(Query::greaterThan('attr', $test->value), true);
+            $expected = json_decode($test->expectedValues, true);
+            $this->assertSame('attr', $query['attribute'], $test->description);
+            $this->assertSame($expected, $query['values'], $test->description);
+            $this->assertSame('greaterThan', $query['method'], $test->description);
+        }
+    }
+
+    public function testBasicFilterGreaterThanEqual(): void {
+        foreach($this->tests as $test) {
+            $query = json_decode(Query::greaterThanEqual('attr', $test->value), true);
+            $expected = json_decode($test->expectedValues, true);
+            $this->assertSame('attr', $query['attribute'], $test->description);
+            $this->assertSame($expected, $query['values'], $test->description);
+            $this->assertSame('greaterThanEqual', $query['method'], $test->description);
+        }
+    }
+
+    public function testSearch(): void {
+        $query = json_decode(Query::search('attr', 'keyword1 keyword2'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame(['keyword1 keyword2'], $query['values']);
+        $this->assertSame('search', $query['method']);
+    }
+
+    public function testIsNull(): void {
+        $query = json_decode(Query::isNull('attr'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertNull($query['values'] ?? null);
+        $this->assertSame('isNull', $query['method']);
+    }
+
+    public function testIsNotNull(): void {
+        $query = json_decode(Query::isNotNull('attr'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertNull($query['values'] ?? null);
+        $this->assertSame('isNotNull', $query['method']);
+    }
+
+    public function testBetweenWithIntegers(): void {
+        $query = json_decode(Query::between('attr', 1, 2), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame([1, 2], $query['values']);
+        $this->assertSame('between', $query['method']);
+    }
+
+    public function testBetweenWithDoubles(): void {
+        $query = json_decode(Query::between('attr', 1.0, 2.0), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame([1, 2], $query['values']);
+        $this->assertSame('between', $query['method']);
+    }
+
+    public function testBetweenWithStrings(): void {
+        $query = json_decode(Query::between('attr', 'a', 'z'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame(['a', 'z'], $query['values']);
+        $this->assertSame('between', $query['method']);
+    }
+
+    public function testSelect(): void {
+        $query = json_decode(Query::select(['attr1', 'attr2']), true);
+        $this->assertNull($query['attribute'] ?? null);
+        $this->assertSame(['attr1', 'attr2'], $query['values']);
+        $this->assertSame('select', $query['method']);
+    }
+
+    public function testOrderAsc(): void {
+        $query = json_decode(Query::orderAsc('attr'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertNull($query['values'] ?? null);
+        $this->assertSame('orderAsc', $query['method']);
+    }
+
+    public function testOrderDesc(): void {
+        $query = json_decode(Query::orderDesc('attr'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertNull($query['values'] ?? null);
+        $this->assertSame('orderDesc', $query['method']);
+    }
+
+    public function testOrderRandom(): void {
+        $query = json_decode(Query::orderRandom(), true);
+        $this->assertNull($query['attribute'] ?? null);
+        $this->assertNull($query['values'] ?? null);
+        $this->assertSame('orderRandom', $query['method']);
+    }
+
+    public function testCursorBefore(): void {
+        $query = json_decode(Query::cursorBefore('attr'), true);
+        $this->assertNull($query['attribute'] ?? null);
+        $this->assertSame(['attr'], $query['values']);
+        $this->assertSame('cursorBefore', $query['method']);
+    }
+
+    public function testCursorAfter(): void {
+        $query = json_decode(Query::cursorAfter('attr'), true);
+        $this->assertNull($query['attribute'] ?? null);
+        $this->assertSame(['attr'], $query['values']);
+        $this->assertSame('cursorAfter', $query['method']);
+    }
+
+    public function testLimit(): void {
+        $query = json_decode(Query::limit(1), true);
+        $this->assertNull($query['attribute'] ?? null);
+        $this->assertSame([1], $query['values']);
+        $this->assertSame('limit', $query['method']);
+    }
+
+    public function testOffset(): void {
+        $query = json_decode(Query::offset(1), true);
+        $this->assertNull($query['attribute'] ?? null);
+        $this->assertSame([1], $query['values']);
+        $this->assertSame('offset', $query['method']);
+    }
+
+    public function testNotContains(): void {
+        $query = json_decode(Query::notContains('attr', 'value'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame(['value'], $query['values']);
+        $this->assertSame('notContains', $query['method']);
+    }
+
+    public function testNotSearch(): void {
+        $query = json_decode(Query::notSearch('attr', 'keyword1 keyword2'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame(['keyword1 keyword2'], $query['values']);
+        $this->assertSame('notSearch', $query['method']);
+    }
+
+    public function testNotBetweenWithIntegers(): void {
+        $query = json_decode(Query::notBetween('attr', 1, 2), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame([1, 2], $query['values']);
+        $this->assertSame('notBetween', $query['method']);
+    }
+
+    public function testNotBetweenWithDoubles(): void {
+        $query = json_decode(Query::notBetween('attr', 1.0, 2.0), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame([1, 2], $query['values']);
+        $this->assertSame('notBetween', $query['method']);
+    }
+
+    public function testNotBetweenWithStrings(): void {
+        $query = json_decode(Query::notBetween('attr', 'a', 'z'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame(['a', 'z'], $query['values']);
+        $this->assertSame('notBetween', $query['method']);
+    }
+
+    public function testNotStartsWith(): void {
+        $query = json_decode(Query::notStartsWith('attr', 'prefix'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame(['prefix'], $query['values']);
+        $this->assertSame('notStartsWith', $query['method']);
+    }
+
+    public function testNotEndsWith(): void {
+        $query = json_decode(Query::notEndsWith('attr', 'suffix'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame(['suffix'], $query['values']);
+        $this->assertSame('notEndsWith', $query['method']);
+    }
+
+    public function testRegex(): void {
+        $query = json_decode(Query::regex('attr', 'pattern.*'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame(['pattern.*'], $query['values']);
+        $this->assertSame('regex', $query['method']);
+    }
+
+    public function testExists(): void {
+        $query = json_decode(Query::exists(['attr1', 'attr2']), true);
+        $this->assertNull($query['attribute'] ?? null);
+        $this->assertSame(['attr1', 'attr2'], $query['values']);
+        $this->assertSame('exists', $query['method']);
+    }
+
+    public function testNotExists(): void {
+        $query = json_decode(Query::notExists(['attr1', 'attr2']), true);
+        $this->assertNull($query['attribute'] ?? null);
+        $this->assertSame(['attr1', 'attr2'], $query['values']);
+        $this->assertSame('notExists', $query['method']);
+    }
+
+    public function testElemMatch(): void {
+        $inner1 = Query::equal('name', 'Alice');
+        $inner2 = Query::greaterThan('age', 18);
+
+        $query = json_decode(Query::elemMatch('friends', [$inner1, $inner2]), true);
+
+        $this->assertSame('friends', $query['attribute']);
+        $this->assertSame('elemMatch', $query['method']);
+        $this->assertCount(2, $query['values']);
+
+        $this->assertSame('equal', $query['values'][0]['method']);
+        $this->assertSame('name', $query['values'][0]['attribute']);
+        $this->assertSame(['Alice'], $query['values'][0]['values']);
+
+        $this->assertSame('greaterThan', $query['values'][1]['method']);
+        $this->assertSame('age', $query['values'][1]['attribute']);
+        $this->assertSame([18], $query['values'][1]['values']);
+    }
+
+    public function testCreatedBefore(): void {
+        $query = json_decode(Query::createdBefore('2023-01-01'), true);
+        $this->assertSame('$createdAt', $query['attribute']);
+        $this->assertSame(['2023-01-01'], $query['values']);
+        $this->assertSame('lessThan', $query['method']);
+    }
+
+    public function testCreatedAfter(): void {
+        $query = json_decode(Query::createdAfter('2023-01-01'), true);
+        $this->assertSame('$createdAt', $query['attribute']);
+        $this->assertSame(['2023-01-01'], $query['values']);
+        $this->assertSame('greaterThan', $query['method']);
+    }
+
+    public function testCreatedBetween(): void {
+        $query = json_decode(Query::createdBetween('2023-01-01', '2023-12-31'), true);
+        $this->assertSame('$createdAt', $query['attribute']);
+        $this->assertSame(['2023-01-01', '2023-12-31'], $query['values']);
+        $this->assertSame('between', $query['method']);
+    }
+
+    public function testUpdatedBefore(): void {
+        $query = json_decode(Query::updatedBefore('2023-01-01'), true);
+        $this->assertSame('$updatedAt', $query['attribute']);
+        $this->assertSame(['2023-01-01'], $query['values']);
+        $this->assertSame('lessThan', $query['method']);
+    }
+
+    public function testUpdatedAfter(): void {
+        $query = json_decode(Query::updatedAfter('2023-01-01'), true);
+        $this->assertSame('$updatedAt', $query['attribute']);
+        $this->assertSame(['2023-01-01'], $query['values']);
+        $this->assertSame('greaterThan', $query['method']);
+    }
+
+    public function testUpdatedBetween(): void {
+        $query = json_decode(Query::updatedBetween('2023-01-01', '2023-12-31'), true);
+        $this->assertSame('$updatedAt', $query['attribute']);
+        $this->assertSame(['2023-01-01', '2023-12-31'], $query['values']);
+        $this->assertSame('between', $query['method']);
+    }
+}

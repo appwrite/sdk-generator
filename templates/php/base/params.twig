@@ -1,0 +1,24 @@
+        $apiParams = [];
+{% if method.parameters.all | length %}
+{% for parameter in method.parameters.all %}
+{% if not parameter.required and not parameter.nullable %}
+
+        if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
+            $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
+        }
+{% else %}
+        $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
+{% endif %}
+{% endfor %}
+{% endif %}
+
+        $apiHeaders = [];
+        {%~ for key, security in method.securityHeaders %}
+        $apiHeaders['{{ security.name }}'] = $this->client->getConfig('{{ key | caseLower }}');
+        {%~ endfor %}
+        {%~ for parameter in method.parameters.header %}
+        $apiHeaders['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
+        {%~ endfor %}
+        {%~ for key, header in method.headers %}
+        $apiHeaders['{{ key }}'] = '{{ header }}';
+        {%~ endfor %}

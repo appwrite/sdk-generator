@@ -1,0 +1,19 @@
+        val idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %}
+
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.type == 'file' %}
+        val paramName = "{{ parameter.name }}"
+        {%~ endif %}
+        {%~ endfor %}
+        return client.chunkedUpload(
+            apiPath,
+            apiHeaders,
+            apiParams,
+            responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java,
+            {%~ if method.responseModel %}
+            converter,
+            {%~ endif %}
+            paramName,
+            idParamName,
+            onProgress,
+        )

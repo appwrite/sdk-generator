@@ -1,0 +1,6 @@
+        return client.redirect(
+            "{{ method.method | caseUpper }}",
+            apiPath,
+            apiHeaders,
+            apiParams
+        )

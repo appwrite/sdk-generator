@@ -1,0 +1,461 @@
+<?php
+
+namespace Appwrite\SDK\Language;
+
+use Override;
+use Appwrite\SDK\Language;
+use Twig\TwigFilter;
+
+class Go extends Language
+{
+    public function getName(): string
+    {
+        return 'Go';
+    }
+
+    /**
+     * Get Language Keywords List
+     */
+    public function getKeywords(): array
+    {
+        return [
+            'bool',
+            'error',
+            'for',
+            'func',
+            'go',
+            'if',
+            'import',
+            'make',
+            'map',
+            'nil',
+            'package',
+            'range',
+            'return',
+            'string',
+            'struct',
+            'type',
+            'var',
+            'default'
+        ];
+    }
+
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
+    public function getIdentifierOverrides(): array
+    {
+        return [];
+    }
+
+    public function getFiles(): array
+    {
+        return [
+            [
+                'scope'         => 'default',
+                'destination'   => 'go.mod',
+                'template'      => 'go/go.mod.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'README.md',
+                'template'      => 'go/README.md.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'CHANGELOG.md',
+                'template'      => 'go/CHANGELOG.md.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'LICENSE',
+                'template'      => 'go/LICENSE.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'appwrite/appwrite.go',
+                'template'      => 'go/appwrite.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'client/client.go',
+                'template'      => 'go/client.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'file/inputFile.go',
+                'template'      => 'go/inputFile.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'query/query.go',
+                'template'      => 'go/query.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'operator/operator.go',
+                'template'      => 'go/operator.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'permission/permission.go',
+                'template'      => 'go/permission.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'role/role.go',
+                'template'      => 'go/role.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'id/id.go',
+                'template'      => 'go/id.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'id/id_test.go',
+                'template'      => 'go/id_test.go.twig',
+            ],
+
+            [
+                'scope'         => 'default',
+                'destination'   => 'role/role_test.go',
+                'template'      => 'go/role_test.go.twig',
+            ],
+
+            [
+                'scope'         => 'default',
+                'destination'   => 'permission/permission_test.go',
+                'template'      => 'go/permission_test.go.twig',
+            ],
+
+            [
+                'scope'         => 'default',
+                'destination'   => 'query/query_test.go',
+                'template'      => 'go/query_test.go.twig',
+            ],
+
+            [
+                'scope'         => 'default',
+                'destination'   => 'operator/operator_test.go',
+                'template'      => 'go/operator_test.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'client/client_test.go',
+                'template'      => 'go/client_test.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'models/model_interface.go',
+                'template'      => 'go/models/model_interface.go.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '{{ service.name | caseLower}}/{{service.name | caseSnake}}.go',
+                'template'      => 'go/services/service.go.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '{{ service.name | caseLower}}/{{service.name | caseSnake}}_test.go',
+                'template'      => 'go/services/service_test.go.twig',
+            ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'template'      => 'go/docs/example.md.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'models/{{ definition.name | caseCamel }}.go',
+                'template'      => 'go/models/model.go.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'models/{{ definition.name | caseCamel }}_test.go',
+                'template'      => 'go/models/model_test.go.twig',
+            ],
+            [
+                'scope'         => 'requestModel',
+                'destination'   => 'models/{{ requestModel.name | caseCamel }}.go',
+                'template'      => 'go/models/request_model.go.twig',
+            ],
+        ];
+    }
+
+    /**
+     * @param array $nestedTypes
+     */
+    public function getTypeName(array $parameter, array $spec = []): string
+    {
+        if (str_contains($parameter['description'] ?? '', 'Collection attributes') || str_contains($parameter['description'] ?? '', 'List of attributes')) {
+            return '[]map[string]any';
+        }
+        if (!empty($parameter['array']['model'])) {
+            return '[]models.' . $this->toPascalCase($parameter['array']['model']);
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = 'models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? '[]' . $modelType : $modelType;
+        }
+        if (isset($parameter['items'])) {
+            // Map definition nested type to parameter nested type
+            $parameter['array'] = $parameter['items'];
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'int',
+            self::TYPE_NUMBER => 'float64',
+            self::TYPE_FILE => 'file.InputFile',
+            self::TYPE_STRING => 'string',
+            self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_OBJECT => 'interface{}',
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
+            ? '[]' . $this->getTypeName($parameter['array'])
+            : '[]interface{}',
+            default => $parameter['type'],
+        };
+    }
+
+    public function getParamDefault(array $param): string
+    {
+        $type       = $param['type'] ?? '';
+        $default    = $param['default'] ?? '';
+        $required   = $param['required'] ?? '';
+
+        if ($required) {
+            return '';
+        }
+
+        $output = ' = ';
+
+        if (empty($default) && $default !== 0 && $default !== false) {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                    $output .= "0";
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= '""';
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= 'nil';
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= '[]';
+                    break;
+            }
+        } else {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_ARRAY:
+                    $output .= $default;
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= "\"$default\"";
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($default) ? 'true' : 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "nil";
+                    break;
+            }
+        }
+
+        return $output;
+    }
+
+    public function getParamExample(array $param, string $lang = ''): string
+    {
+        $type       = $param['type'] ?? '';
+        $example    = $param['example'] ?? '';
+
+        $output = '';
+
+        if (empty($example) && $example !== 0 && $example !== false) {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                    $output .= '0';
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= '""';
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= 'map[string]interface{}{}';
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->getTypeName($param) . '{}';
+                    break;
+                case self::TYPE_FILE:
+                    $output .= 'file.NewInputFile("/path/to/file.png", "file.png")';
+                    break;
+            }
+        } else {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                    $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    if (\str_starts_with((string) $example, '[')) {
+                        $example = \substr((string) $example, 1);
+                    }
+                    if (\str_ends_with((string) $example, ']')) {
+                        $example = \substr((string) $example, 0, -1);
+                    }
+                    $output .= $this->getTypeName($param) . '{' . $example . '}';
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= ($example === '{}')
+                    ? 'map[string]interface{}{}'
+                    : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT))
+                        ? 'map[string]interface{}' . preg_replace('/\n/', "\n    ", $formatted)
+                        : 'map[string]interface{}' . $example);
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($example) ? 'true' : 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "\"{$example}\"";
+                    break;
+                case self::TYPE_FILE:
+                    $output .= 'file.NewInputFile("/path/to/file.png", "file.png")';
+                    break;
+            }
+        }
+
+        return $output;
+    }
+
+    #[Override]
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('godocComment', function ($value, $indent = 0): string {
+                $value = trim($value);
+                $value = explode("\n", $value);
+                $indent = \str_repeat(' ', $indent);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "// " . wordwrap(trim($line), 75, "\n" . $indent . "// ");
+                }
+                return implode("\n" . $indent, $value);
+            }, ['is_safe' => ['html']]),
+            new TwigFilter('propertyType', fn(array $property, array $spec, string $generic = 'map[string]interface{}'): string => $this->getPropertyType($property, $spec, $generic)),
+            new TwigFilter('returnType', fn(array $method, array $spec, string $namespace, string $generic = 'map[string]interface{}'): string => $this->getReturnType($method, $spec, $namespace, $generic)),
+            new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
+            new TwigFilter('goPackagePath', fn(array $sdk): string => $this->getPackagePath($sdk)),
+        ];
+    }
+
+    protected function getPackagePath(array $sdk): string
+    {
+        $user = $sdk['gitUserName'] ?? '';
+        $repo = $sdk['gitRepoName'] ?? 'sdk-for-go';
+        $suffix = $this->getMajorVersionSuffix($sdk['version'] ?? '');
+
+        if ($user === '') {
+            return $repo . $suffix;
+        }
+
+        return 'github.com/' . $user . '/' . $repo . $suffix;
+    }
+
+    protected function getMajorVersionSuffix(string $version): string
+    {
+        if (!\preg_match('/^v?(?<major>\d+)/', $version, $matches)) {
+            return '';
+        }
+
+        $major = (int) ($matches['major'] ?? 0);
+
+        return $major >= 2 ? '/v' . $major : '';
+    }
+
+    protected function getPropertyType(array $property, array $spec, string $generic = 'map[string]interface{}'): string
+    {
+        if (\array_key_exists('sub_schema', $property)) {
+            $type = $this->toPascalCase($property['sub_schema']);
+
+            if ($property['type'] === 'array') {
+                $type = '[]' . $type;
+            }
+        } else {
+            $type = $this->getTypeName($property);
+        }
+
+        return $type;
+    }
+
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'map[string]interface{}'): string
+    {
+        if ($method['type'] === 'webAuth') {
+            return 'bool';
+        }
+        if ($method['type'] === 'location') {
+            return '[]byte';
+        }
+
+        if (
+            \array_key_exists('responseModels', $method)
+            && \count($method['responseModels']) > 1
+        ) {
+            return 'models.Model';
+        }
+
+        // Check for missing or generic response model
+        if (
+            !\array_key_exists('responseModel', $method)
+            || empty($method['responseModel'])
+            || $method['responseModel'] === 'any'
+        ) {
+            return 'interface{}';
+        }
+
+        $ret = ucfirst((string) $method['responseModel']);
+
+        return 'models.' . $ret;
+    }
+
+    protected function hasGenericType(?string $model, array $spec): string
+    {
+        if (empty($model) || $model === 'any') {
+            return false;
+        }
+
+        $model = $spec['definitions'][$model];
+
+        if ($model['additionalProperties']) {
+            return true;
+        }
+
+        foreach ($model['properties'] as $property) {
+            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
+                continue;
+            }
+
+            return $this->hasGenericType($property['sub_schema'], $spec);
+        }
+
+        return false;
+    }
+}

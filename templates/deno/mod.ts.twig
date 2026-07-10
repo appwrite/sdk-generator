@@ -1,0 +1,35 @@
+import { Client } from "./src/client.ts";
+import { Query } from "./src/query.ts";
+import { Permission } from "./src/permission.ts";
+import { Role } from "./src/role.ts";
+import { ID } from "./src/id.ts";
+import { Operator, Condition } from "./src/operator.ts";
+import { InputFile } from "./src/inputFile.ts";
+import { {{spec.title | caseUcfirst}}Exception } from "./src/exception.ts";
+{% for service in spec.services %}
+import { {{service.name | caseUcfirst}} } from "./src/services/{{service.name | caseKebab}}.ts";
+{% endfor %}
+{% for enum in spec.allEnums %}
+import { {{enum.name | caseUcfirst}} } from "./src/enums/{{enum.name | caseKebab}}.ts";
+{% endfor %}
+
+export {
+    Client,
+    Query,
+    Permission,
+    Role,
+    ID,
+    Operator,
+    Condition,
+    InputFile,
+    {{spec.title | caseUcfirst}}Exception,
+{% for service in spec.services %}
+    {{service.name | caseUcfirst}},
+{% endfor %}
+{% for enum in spec.allEnums %}
+    {{enum.name | caseUcfirst}},
+{% endfor %}
+};
+
+export type { Models } from "./src/models.d.ts";
+export type { QueryTypes, QueryTypesList } from "./src/query.ts";

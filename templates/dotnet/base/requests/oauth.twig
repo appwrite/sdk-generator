@@ -1,0 +1,5 @@
+            return _client.Redirect(
+                method: "{{ method.method | caseUpper }}",
+                path: apiPath,
+                headers: apiHeaders,
+                parameters: apiParameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!);

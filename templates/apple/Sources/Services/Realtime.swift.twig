@@ -1,0 +1,654 @@
+import Foundation
+import AsyncHTTPClient
+import NIO
+import NIOHTTP1
+
+open class Realtime : Service {
+
+    // Diagnostic messages go to stderr so they don't interleave with any stdout
+    // the host process may be asserting on (e.g. SDK integration tests).
+    private static func logDiagnostic(_ message: String) {
+        FileHandle.standardError.write(Data("\(message)\n".utf8))
+    }
+
+    private let TYPE_ERROR = "error"
+    private let TYPE_EVENT = "event"
+    private let TYPE_PONG = "pong"
+    private let DEBOUNCE_NANOS = 1_000_000
+    private let HEARTBEAT_INTERVAL: UInt64 = 20_000_000_000 // 20 seconds in nanoseconds
+
+    private var socketClient: WebSocketClient? = nil
+    private var activeSubscriptions = [String: RealtimeCallback]()
+    private var pendingSubscribes = [String: [String: Any]]()
+    private var pendingPresence: [String: Any]? = nil
+    private var appConnected = false
+    private var heartbeatTask: Task<Void, Swift.Error>? = nil
+    /// Single-flight lock for `createSocket()`. While set, concurrent callers
+    /// join this task instead of issuing a second `WebSocketClient.connect()`.
+    /// Cleared once the underlying connect resolves or throws.
+    private var socketCreationTask: Task<Void, Swift.Error>? = nil
+
+    let connectSync = DispatchQueue(label: "ConnectSync")
+    let presenceSync = DispatchQueue(label: "PresenceSync")
+    /// Guards mutations and reads of `activeSubscriptions` and
+    /// `pendingSubscribes`. These are touched from both async caller contexts
+    /// (subscribe / unsubscribe / close closures) and the WebSocket delegate
+    /// thread (handleResponseConnected / handleResponseEvent), so every access
+    /// goes through this queue. Never hold this across an `await` — keep
+    /// critical sections short.
+    let subscriptionsSync = DispatchQueue(label: "SubscriptionsSync")
+
+    private var subCallDepth = 0
+    private var reconnectAttempts = 0
+    private var reconnect = true
+    
+    private var onErrorCallbacks: [((Swift.Error?, HTTPResponseStatus?) -> Void)] = []
+    private var onCloseCallbacks: [(() -> Void)] = []
+    private var onOpenCallbacks: [(() -> Void)] = []
+
+    public func onError(_ callback: @escaping (Swift.Error?, HTTPResponseStatus?) -> Void) {
+        self.onErrorCallbacks.append(callback)
+    }
+    
+    public func onClose(_ callback: @escaping () -> Void) {
+        self.onCloseCallbacks.append(callback)
+    }
+    
+    public func onOpen(_ callback: @escaping () -> Void) {
+        self.onOpenCallbacks.append(callback)
+    }
+
+    private func startHeartbeat() {
+        stopHeartbeat()
+        heartbeatTask = Task {
+            do {
+                while !Task.isCancelled {
+                    if let client = socketClient, client.isConnected {
+                        client.send(text: #"{"type": "ping"}"#)
+                    }
+                    try await Task.sleep(nanoseconds: HEARTBEAT_INTERVAL)
+                }
+            } catch {
+                if !Task.isCancelled {
+                    Realtime.logDiagnostic("Heartbeat task failed: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    private func stopHeartbeat() {
+        heartbeatTask?.cancel()
+        heartbeatTask = nil
+    }
+
+    /// Idempotent socket opener. Both `subscribe()` and `upsertPresence()` can
+    /// call this; the single-flight lock (`socketCreationTask`) guarantees
+    /// only one `WebSocketClient.connect()` is ever in flight, so concurrent
+    /// callers join the same connection attempt instead of opening duplicates.
+    private func createSocket() async throws {
+        // Fast path: a usable socket is already there.
+        if let ws = socketClient, ws.isConnected {
+            return
+        }
+
+        // Atomically check / claim the in-flight slot via the existing serial
+        // queue. The actual connect work runs outside the queue's critical
+        // section.
+        let task: Task<Void, Swift.Error> = connectSync.sync {
+            if let existing = socketCreationTask {
+                return existing
+            }
+            let newTask = Task<Void, Swift.Error> { [weak self] in
+                guard let self = self else { return }
+                defer {
+                    self.connectSync.sync { self.socketCreationTask = nil }
+                }
+                try await self.createSocketLocked()
+            }
+            socketCreationTask = newTask
+            return newTask
+        }
+        try await task.value
+    }
+
+    private func createSocketLocked() async throws {
+        let hasPendingPresence: Bool = presenceSync.sync { pendingPresence != nil }
+        let hasActiveSubscriptions: Bool = subscriptionsSync.sync { !activeSubscriptions.isEmpty }
+        guard hasActiveSubscriptions || hasPendingPresence else {
+            reconnect = false
+            try await closeSocket()
+            return
+        }
+
+        let queryParams = "project=\(client.config["project"]!)"
+
+        let url = "\(client.endPointRealtime!)/realtime?\(queryParams)"
+
+        if (socketClient != nil) {
+            reconnect = false
+            try await closeSocket()
+        }
+
+        // Cooperative cancellation point: disconnect() may have cancelled us
+        // while we awaited closeSocket(). Bail before allocating a new client.
+        if Task.isCancelled || isTornDown() {
+            return
+        }
+
+        var headers = HTTPHeaders()
+        if let jwt = client.config["jwt"], !jwt.isEmpty {
+            headers.add(name: "x-{{ spec.title | caseLower }}-jwt", value: jwt)
+        }
+
+        socketClient = WebSocketClient(
+            url,
+            tlsEnabled: !client.selfSigned,
+            headers: headers,
+            delegate: self
+        )
+
+        try await socketClient?.connect()
+
+        // disconnect() may also have run between WebSocketClient init and the
+        // moment connect() resolved. The handshake succeeded, but state has
+        // been torn down — close the freshly opened socket so it doesn't leak.
+        if Task.isCancelled || isTornDown() {
+            try? await closeSocket()
+        }
+    }
+
+    private func isTornDown() -> Bool {
+        let hasPendingPresence: Bool = presenceSync.sync { pendingPresence != nil }
+        let hasActiveSubscriptions: Bool = subscriptionsSync.sync { !activeSubscriptions.isEmpty }
+        return !hasActiveSubscriptions && !hasPendingPresence
+    }
+
+    private func sendUnsubscribeMessage(_ subscriptionIds: [String]) {
+        let ids = subscriptionIds.filter { !$0.isEmpty }
+        guard !ids.isEmpty, let ws = socketClient, ws.isConnected else {
+            return
+        }
+        let payload: [String: Any] = [
+            "type": "unsubscribe",
+            "data": ids.map { ["subscriptionId": $0] }
+        ]
+        if let data = try? JSONSerialization.data(withJSONObject: payload),
+           let text = String(data: data, encoding: .utf8) {
+            ws.send(text: text)
+        }
+    }
+
+    /// Must be called with `subscriptionsSync` held.
+    private func generateUniqueSubscriptionIdLocked() throws -> String {
+        let attempts = activeSubscriptions.count + 1
+        for _ in 0..<attempts {
+            let id = ID.unique()
+            if activeSubscriptions[id] == nil {
+                return id
+            }
+        }
+        throw {{ spec.title | caseUcfirst }}Error(message: "Failed to generate unique subscription id")
+    }
+
+    /// Must be called with `subscriptionsSync` held.
+    private func enqueuePendingSubscribeLocked(subscriptionId: String) {
+        guard let subscription = activeSubscriptions[subscriptionId] else {
+            return
+        }
+        pendingSubscribes[subscriptionId] = [
+            "subscriptionId": subscriptionId,
+            "channels": Array(subscription.channels),
+            "queries": subscription.queries
+        ]
+    }
+
+    /// Close the WebSocket connection and drop all active subscriptions client-side.
+    /// Use this instead of calling `unsubscribe()` on every subscription when you want
+    /// to tear everything down.
+    public func disconnect() async throws {
+        subscriptionsSync.sync {
+            activeSubscriptions.removeAll()
+            pendingSubscribes.removeAll()
+        }
+        presenceSync.sync {
+            pendingPresence = nil
+        }
+        connectSync.sync { appConnected = false }
+        reconnect = false
+        // Capture and cancel any in-flight socket-creation task. Just nulling
+        // the reference is not enough — Swift tasks are cooperative, so the
+        // already-running body would otherwise proceed past its guard checks
+        // and assign `socketClient` after teardown, leaving a stray realtime
+        // connection alive with no subscriptions or presence.
+        let pendingTask: Task<Void, Swift.Error>? = connectSync.sync {
+            let t = socketCreationTask
+            socketCreationTask = nil
+            return t
+        }
+        pendingTask?.cancel()
+        try await closeSocket()
+    }
+
+    private func sendPendingSubscribes() {
+        guard let ws = socketClient, ws.isConnected else {
+            return
+        }
+        // The WebSocketClient becomes "connected" as soon as the WS upgrade
+        // succeeds — but the server only accepts `subscribe` frames after
+        // emitting its application-level `connected` event (which flips
+        // `appConnected` in handleResponseConnected). Sending early triggers
+        // a policy-violation close on real Appwrite, which reconnects and
+        // re-sends, looping forever. handleResponseConnected re-enqueues
+        // every active subscription and re-calls this method, so the queued
+        // rows are guaranteed to be sent once it's safe.
+        let isAppConnected: Bool = connectSync.sync { appConnected }
+        guard isAppConnected else {
+            return
+        }
+
+        let rows: [[String: Any]] = subscriptionsSync.sync {
+            if pendingSubscribes.isEmpty {
+                return []
+            }
+            let snapshot = Array(pendingSubscribes.values)
+            pendingSubscribes.removeAll()
+            return snapshot
+        }
+
+        if rows.isEmpty {
+            return
+        }
+
+        let payload: [String: Any] = [
+            "type": "subscribe",
+            "data": rows
+        ]
+        if let data = try? JSONSerialization.data(withJSONObject: payload),
+           let text = String(data: data, encoding: .utf8) {
+            ws.send(text: text)
+        }
+    }
+
+    private func closeSocket() async throws {
+        stopHeartbeat()
+        
+        guard let client = socketClient,
+              let group = client.threadGroup else {
+            return
+        }
+
+        if (client.isConnected) {
+            let promise = group.any().makePromise(of: Void.self)
+            client.close(promise: promise)
+            try await promise.futureResult.get()
+        }
+
+        try await group.shutdownGracefully()
+    }
+
+    private func getTimeout() -> Int {
+        switch reconnectAttempts {
+        case 0..<5: return 1000
+        case 5..<15: return 5000
+        case 15..<100: return 10000
+        default: return 60000
+        }
+    }
+
+    /**
+     * Convert channel value to string
+     * All Channel instances and String conform to ChannelValue
+     */
+    private func channelToString(_ channel: ChannelValue) -> String {
+        return channel.toString()
+    }
+
+    /// Fire-and-forget presence upsert. Records the latest payload in state so
+    /// that — if the WebSocket isn't open yet, or later reconnects — the most
+    /// recent presence is automatically (re)sent on the next `connected` event.
+    /// When the socket is already open, the frame is sent immediately.
+    ///
+    /// - Parameters:
+    ///   - status: The presence status (required).
+    ///   - presenceId: The presence ID (required).
+    ///   - permissions: Optional permission list to attach to the presence document.
+    ///   - metadata: Optional metadata payload.
+    public func upsertPresence(
+        status: String,
+        presenceId: String,
+        permissions: [String]? = nil,
+        metadata: [String: Any]? = nil
+    ) throws {
+        var data: [String: Any] = [
+            "status": status,
+            "presenceId": presenceId,
+        ]
+        if let permissions = permissions {
+            data["permissions"] = permissions
+        }
+        if let metadata = metadata {
+            data["metadata"] = metadata
+        }
+
+        presenceSync.sync {
+            pendingPresence = data
+        }
+
+        // Both subscribe() and upsertPresence() may need to open the socket.
+        // createSocket() is single-flight, so this is a no-op when one is
+        // already in flight or healthy. Fire-and-forget keeps upsertPresence's
+        // documented behavior of resolving once the payload is stored.
+        // Read socket state under `connectSync` since `createSocketLocked()`
+        // assigns `socketClient` from inside the single-flight task.
+        let needsSocket: Bool = connectSync.sync {
+            return socketClient == nil || !(socketClient?.isConnected ?? false)
+        }
+        if needsSocket {
+            Task { [weak self] in
+                do {
+                    try await self?.createSocket()
+                } catch {
+                    Realtime.logDiagnostic("Failed to open realtime socket for presence: \(error)")
+                }
+            }
+        }
+
+        // Opportunistic send for when the socket is already past `connected`.
+        // The appConnected gate inside flushPendingPresence keeps this a no-op
+        // until the application-level handshake completes.
+        try flushPendingPresence()
+    }
+
+    private func flushPendingPresence() throws {
+        var data: [String: Any]?
+        presenceSync.sync {
+            data = pendingPresence
+        }
+        let isAppConnected: Bool = connectSync.sync { appConnected }
+        guard let payloadData = data, let ws = socketClient, ws.isConnected, isAppConnected else {
+            return
+        }
+        let payload: [String: Any] = [
+            "type": "presence",
+            "data": payloadData
+        ]
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
+              let text = String(data: jsonData, encoding: .utf8) else {
+            throw {{ spec.title | caseUcfirst }}Error(message: "Failed to encode presence payload")
+        }
+        ws.send(text: text)
+    }
+
+    public func subscribe(
+        channel: ChannelValue,
+        callback: @escaping (RealtimeResponseEvent) -> Void,
+        queries: [String] = []
+    ) async throws -> RealtimeSubscription {
+        return try await subscribe(
+            channels: Set([channelToString(channel)]),
+            payloadType: String.self,
+            queries: queries,
+            callback: callback
+        )
+    }
+
+    public func subscribe(
+        channels: [ChannelValue],
+        callback: @escaping (RealtimeResponseEvent) -> Void,
+        queries: [String] = []
+    ) async throws -> RealtimeSubscription {
+        return try await subscribe(
+            channels: Set(channels.map { channelToString($0) }),
+            payloadType: String.self,
+            queries: queries,
+            callback: callback
+        )
+    }
+
+    public func subscribe<T : Codable>(
+        channel: ChannelValue,
+        payloadType: T.Type,
+        callback: @escaping (RealtimeResponseEvent) -> Void,
+        queries: [String] = []
+    ) async throws -> RealtimeSubscription {
+        return try await subscribe(
+            channels: Set([channelToString(channel)]),
+            payloadType: T.self,
+            queries: queries,
+            callback: callback
+        )
+    }
+
+    public func subscribe<T : Codable>(
+        channels: [ChannelValue],
+        payloadType: T.Type,
+        callback: @escaping (RealtimeResponseEvent) -> Void,
+        queries: [String] = []
+    ) async throws -> RealtimeSubscription {
+        return try await subscribe(
+            channels: Set(channels.map { channelToString($0) }),
+            payloadType: T.self,
+            queries: queries,
+            callback: callback
+        )
+    }
+
+    public func subscribe<T : Codable>(
+        channels: Set<String>,
+        payloadType: T.Type,
+        queries: [String] = [],
+        callback: @escaping (RealtimeResponseEvent) -> Void
+    ) async throws -> RealtimeSubscription {
+        let subscriptionId: String = try subscriptionsSync.sync {
+            let id = try generateUniqueSubscriptionIdLocked()
+            activeSubscriptions[id] = RealtimeCallback(
+                for: channels,
+                queries: queries,
+                with: callback
+            )
+            enqueuePendingSubscribeLocked(subscriptionId: id)
+            return id
+        }
+
+        connectSync.sync {
+            subCallDepth += 1
+        }
+        defer {
+            connectSync.sync {
+                self.subCallDepth -= 1
+            }
+        }
+
+        try await Task.sleep(nanoseconds: UInt64(DEBOUNCE_NANOS))
+
+        if self.subCallDepth == 1 {
+            if let ws = self.socketClient, ws.isConnected {
+                self.sendPendingSubscribes()
+            } else {
+                try await self.createSocket()
+            }
+        }
+
+        return RealtimeSubscription(
+            unsubscribe: { [weak self] in
+                guard let self = self else { return }
+                let removed: Bool = self.subscriptionsSync.sync {
+                    guard self.activeSubscriptions[subscriptionId] != nil else { return false }
+                    self.activeSubscriptions[subscriptionId] = nil
+                    self.pendingSubscribes[subscriptionId] = nil
+                    return true
+                }
+                if removed {
+                    self.sendUnsubscribeMessage([subscriptionId])
+                }
+            },
+            update: { [weak self] changes in
+                guard let self = self else { return }
+                let didUpdate: Bool = self.subscriptionsSync.sync {
+                    guard let subscription = self.activeSubscriptions[subscriptionId] else {
+                        return false
+                    }
+                    if let nextChannels = changes.channels {
+                        subscription.channels = Set(nextChannels.map { self.channelToString($0) })
+                    }
+                    if let nextQueries = changes.queries {
+                        subscription.queries = nextQueries
+                    }
+                    self.enqueuePendingSubscribeLocked(subscriptionId: subscriptionId)
+                    return true
+                }
+                guard didUpdate else { return }
+
+                self.connectSync.sync {
+                    self.subCallDepth += 1
+                }
+                defer {
+                    self.connectSync.sync {
+                        self.subCallDepth -= 1
+                    }
+                }
+
+                try await Task.sleep(nanoseconds: UInt64(self.DEBOUNCE_NANOS))
+
+                if self.subCallDepth == 1 {
+                    if let ws = self.socketClient, ws.isConnected {
+                        self.sendPendingSubscribes()
+                    } else {
+                        try await self.createSocket()
+                    }
+                }
+            },
+            close: { [weak self] in
+                guard let self = self else { return }
+                let (removed, becameEmpty): (Bool, Bool) = self.subscriptionsSync.sync {
+                    let wasPresent = self.activeSubscriptions[subscriptionId] != nil
+                    if wasPresent {
+                        self.activeSubscriptions[subscriptionId] = nil
+                        self.pendingSubscribes[subscriptionId] = nil
+                    }
+                    return (wasPresent, self.activeSubscriptions.isEmpty)
+                }
+                if removed {
+                    self.sendUnsubscribeMessage([subscriptionId])
+                }
+                if becameEmpty {
+                    self.reconnect = false
+                    try await self.closeSocket()
+                }
+            }
+        )
+    }
+}
+
+extension Realtime: WebSocketClientDelegate {
+
+    public func onOpen(channel: NIO.Channel) {
+        self.reconnectAttempts = 0
+        onOpenCallbacks.forEach { $0() }
+        startHeartbeat()
+    }
+    
+    private func handleResponseConnected(from json: [String: Any]) {
+        guard json["data"] is [String: Any] else {
+            return
+        }
+
+        subscriptionsSync.sync {
+            for subscriptionId in activeSubscriptions.keys {
+                enqueuePendingSubscribeLocked(subscriptionId: subscriptionId)
+            }
+        }
+        connectSync.sync { appConnected = true }
+        sendPendingSubscribes()
+        try? flushPendingPresence()
+    }
+
+    public func onMessage(text: String) {
+        let data = Data(text.utf8)
+        guard let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+              let type = json["type"] as? String else {
+            return
+        }
+        
+        switch type {
+        case TYPE_ERROR:
+            do {
+                try handleResponseError(from: json)
+            } catch {
+                onErrorCallbacks.forEach { $0(error, nil) }
+            }
+        case "connected":
+            handleResponseConnected(from: json)
+        case TYPE_EVENT:
+            handleResponseEvent(from: json)
+        case TYPE_PONG:
+            break  // Handle pong response if needed
+        default:
+            break
+        }
+    }
+
+    public func onClose(channel: NIO.Channel, data: Data) async throws {
+        connectSync.sync { appConnected = false }
+        stopHeartbeat()
+
+        onCloseCallbacks.forEach { $0() }
+
+        if (!reconnect) {
+            reconnect = true
+            return
+        }
+
+        let timeout = getTimeout()
+
+        Realtime.logDiagnostic("Realtime disconnected. Re-connecting in \(timeout / 1000) seconds.")
+
+        try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000))
+
+        self.reconnectAttempts += 1
+
+        try await self.createSocket()
+    }
+
+    public func onError(error: Swift.Error?, status: HTTPResponseStatus?) {
+        stopHeartbeat()
+        Realtime.logDiagnostic(error?.localizedDescription ?? "Unknown error")
+
+        onErrorCallbacks.forEach { $0(error, status) }
+    }
+
+    func handleResponseError(from json: [String: Any]) throws {
+        let message = json["message"] as? String ?? "Unknown error"
+        let error = {{ spec.title | caseUcfirst }}Error(message: message)
+        throw error
+    }
+
+    func handleResponseEvent(from json: [String: Any]) {
+        guard let data = json["data"] as? [String: Any],
+              let channels = data["channels"] as? [String],
+              let events = data["events"] as? [String],
+              let payload = data["payload"] as? [String: Any],
+              let subscriptions = data["subscriptions"] as? [String] else {
+            return
+        }
+
+        guard subscriptions.count > 0 else {
+            return
+        }
+
+        for subscriptionId in subscriptions {
+            let subscription: RealtimeCallback? = subscriptionsSync.sync {
+                activeSubscriptions[subscriptionId]
+            }
+            if let subscription = subscription {
+                let response = RealtimeResponseEvent(
+                    events: events,
+                    channels: channels,
+                    timestamp: data["timestamp"] as? String ?? "",
+                    payload: payload
+                )
+                subscription.callback(response)
+            }
+        }
+    }
+}

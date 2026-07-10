@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <NuGetAudit Condition="'$(MSBuildProjectName)' == '{{ spec.title | caseUcfirst }}'">true</NuGetAudit>
+    <NuGetAuditMode Condition="'$(MSBuildProjectName)' == '{{ spec.title | caseUcfirst }}'">all</NuGetAuditMode>
+
+    <!-- Fail only on high/critical -->
+    <NuGetAuditLevel Condition="'$(MSBuildProjectName)' == '{{ spec.title | caseUcfirst }}'">high</NuGetAuditLevel>
+
+    <WarningsAsErrors Condition="'$(MSBuildProjectName)' == '{{ spec.title | caseUcfirst }}'">$(WarningsAsErrors);NU1903;NU1904</WarningsAsErrors>
+  </PropertyGroup>
+</Project>

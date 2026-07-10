@@ -1,0 +1,167 @@
+import fs from "fs";
+import path from "path";
+import type {
+  AttributeType,
+  ColumnType,
+  CollectionType,
+  TableType,
+} from "../../commands/config.js";
+
+export type Attribute = AttributeType | ColumnType;
+
+export type Collection = (CollectionType | TableType) & {
+  attributes: Attribute[];
+};
+
+export type EnumMember = { key: string; value: string };
+
+export type EnumDefinition = {
+  name: string;
+  members: EnumMember[];
+};
+
+export abstract class LanguageMeta {
+  constructor() {
+    if (new.target === LanguageMeta) {
+      throw new TypeError("Abstract classes can't be instantiated.");
+    }
+  }
+
+  static toKebabCase(string: string): string {
+    return string
+      .replace(/[^a-zA-Z0-9\s-_]/g, "") // Remove invalid characters
+      .replace(/([a-z])([A-Z])/g, "$1-$2") // Add hyphen between camelCase
+      .replace(/([A-Z])([A-Z][a-z])/g, "$1-$2") // Add hyphen between PascalCase
+      .replace(/[_\s]+/g, "-") // Replace spaces and underscores with hyphens
+      .replace(/^-+|-+$/g, "") // Remove leading and trailing hyphens
+      .replace(/--+/g, "-") // Replace multiple hyphens with a single hyphen
+      .toLowerCase();
+  }
+
+  static toSnakeCase(string: string): string {
+    return this.toKebabCase(string).replace(/-/g, "_");
+  }
+
+  static toUpperSnakeCase(string: string): string {
+    return this.toSnakeCase(string).toUpperCase();
+  }
+
+  static sanitizeEnumKey(value: string): string {
+    let key = this.toUpperSnakeCase(value);
+
+    if (!key || /^\d/.test(key)) {
+      key = `_${key}`;
+    }
+
+    return key;
+  }
+
+  static toCamelCase(string: string): string {
+    return this.toKebabCase(string).replace(/-([a-z0-9])/g, (g) =>
+      g[1].toUpperCase(),
+    );
+  }
+
+  static toPascalCase(string: string): string {
+    return this.toCamelCase(string).replace(/^./, (g) => g.toUpperCase());
+  }
+
+  static getRelatedCollectionId(attribute: Attribute): string | undefined {
+    if ("relatedCollection" in attribute && attribute.relatedCollection) {
+      return attribute.relatedCollection;
+    }
+    if ("relatedTable" in attribute && attribute.relatedTable) {
+      return attribute.relatedTable;
+    }
+    return undefined;
+  }
+
+  static getRelatedCollection(
+    attribute: Attribute,
+    collections?: Collection[],
+  ): Collection {
+    const relatedId = this.getRelatedCollectionId(attribute);
+    const relatedCollection = collections?.find((c) => c.$id === relatedId);
+    if (!relatedCollection) {
+      throw new Error(`Related collection with ID '${relatedId}' not found.`);
+    }
+    return relatedCollection;
+  }
+
+  /**
+   * Get the type literal of the given attribute.
+   */
+  abstract getType(
+    attribute: Attribute,
+    collections?: Collection[],
+    collectionName?: string,
+  ): string;
+
+  generateEnum(
+    _entityName: string,
+    _attributeKey: string,
+    _elements: string[],
+  ): EnumDefinition {
+    throw new Error("Enum generation is not supported for this language.");
+  }
+
+  /**
+   * Returns true if the language uses a single file for all types.
+   */
+  isSingleFile(): boolean {
+    return false;
+  }
+
+  /**
+   * Get the EJS template used to generate the types for this language.
+   */
+  abstract getTemplate(): string;
+
+  /**
+   * Get the file extension used by files of this language.
+   */
+  abstract getFileName(collection?: Collection): string;
+}
+
+const existsFiles = (...files: string[]): boolean =>
+  files.some((file) => fs.existsSync(path.join(process.cwd(), file)));
+
+export function detectLanguage(): string {
+  if (existsFiles("tsconfig.json", "deno.json")) {
+    return "ts";
+  }
+  if (existsFiles("package.json")) {
+    return "js";
+  }
+  if (existsFiles("composer.json")) {
+    return "php";
+  }
+  if (existsFiles("requirements.txt", "Pipfile", "pyproject.toml")) {
+    return "python";
+  }
+  if (existsFiles("Gemfile", "Rakefile")) {
+    return "ruby";
+  }
+  if (existsFiles("build.gradle.kts")) {
+    return "kotlin";
+  }
+  if (existsFiles("build.gradle", "pom.xml")) {
+    return "java";
+  }
+  try {
+    if (
+      fs.readdirSync(process.cwd()).some((file) => file.endsWith(".csproj"))
+    ) {
+      return "dotnet";
+    }
+  } catch {
+    // Directory not readable, skip .csproj detection
+  }
+  if (existsFiles("Package.swift")) {
+    return "swift";
+  }
+  if (existsFiles("pubspec.yaml")) {
+    return "dart";
+  }
+  throw new Error("Could not detect language, please specify with -l");
+}

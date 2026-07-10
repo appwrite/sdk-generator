@@ -1,0 +1,30 @@
+```csharp
+using {{ spec.title | caseUcfirst }};
+{% set addedEnum = false %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues | length > 0 and not addedEnum %}
+using {{ spec.title | caseUcfirst }}.Enums;
+{% set addedEnum = true %}
+{% endif %}
+{% endfor %}
+using {{ spec.title | caseUcfirst }}.Models;
+using {{ spec.title | caseUcfirst }}.Services;
+
+Client client = new Client()
+{% if method.auth|length > 0 %}
+    .SetEndPoint("{{ spec.endpointDocs | raw }}") // Your API Endpoint
+{% for node in method.auth %}
+{% for key,header in node|keys|filter(h => not node[h]['x-appwrite']['optional']) %}
+    .Set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo'] | raw }}"){% if loop.last %};{% endif %} // {{node[header].description}}
+{% endfor %}{% endfor %}{% endif %}
+
+{{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
+
+{% if method.method != 'delete' and method.type != 'webAuth' %}{% if method.type == 'location' %}byte[]{% elseif (method | getValidResponseModels)|length > 1 %}object{% else %}{{ method.responseModel | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %});{% endif %}
+	  {%~ for parameter in method.parameters.all %}
+
+    {{ parameter.name }}: {% if parameter.enumValues | length > 0%}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
+    {%~ endfor %}
+
+{% if method.parameters.all | length > 0 %});{% endif %}
+```

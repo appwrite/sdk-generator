@@ -1,0 +1,99 @@
+const { Condition, Operator } = require("../dist/operator");
+
+describe('Operator', () => {
+  test('returns increment', () => {
+    expect(Operator.increment(1)).toEqual(`{"method":"increment","values":[1]}`);
+  });
+
+  test('returns increment with max', () => {
+    expect(Operator.increment(5, 100)).toEqual(`{"method":"increment","values":[5,100]}`);
+  });
+
+  test('returns decrement', () => {
+    expect(Operator.decrement(1)).toEqual(`{"method":"decrement","values":[1]}`);
+  });
+
+  test('returns decrement with min', () => {
+    expect(Operator.decrement(3, 0)).toEqual(`{"method":"decrement","values":[3,0]}`);
+  });
+
+  test('returns multiply', () => {
+    expect(Operator.multiply(2)).toEqual(`{"method":"multiply","values":[2]}`);
+  });
+
+  test('returns multiply with max', () => {
+    expect(Operator.multiply(3, 1000)).toEqual(`{"method":"multiply","values":[3,1000]}`);
+  });
+
+  test('returns divide', () => {
+    expect(Operator.divide(2)).toEqual(`{"method":"divide","values":[2]}`);
+  });
+
+  test('returns divide with min', () => {
+    expect(Operator.divide(4, 1)).toEqual(`{"method":"divide","values":[4,1]}`);
+  });
+
+  test('returns modulo', () => {
+    expect(Operator.modulo(5)).toEqual(`{"method":"modulo","values":[5]}`);
+  });
+
+  test('returns power', () => {
+    expect(Operator.power(2)).toEqual(`{"method":"power","values":[2]}`);
+  });
+
+  test('returns arrayAppend', () => {
+    expect(Operator.arrayAppend(['item1', 'item2'])).toEqual('{"method":"arrayAppend","values":["item1","item2"]}');
+  });
+
+  test('returns arrayPrepend', () => {
+    expect(Operator.arrayPrepend(['first', 'second'])).toEqual('{"method":"arrayPrepend","values":["first","second"]}');
+  });
+
+  test('returns arrayInsert', () => {
+    expect(Operator.arrayInsert(0, 'newItem')).toEqual('{"method":"arrayInsert","values":[0,"newItem"]}');
+  });
+
+  test('returns arrayRemove', () => {
+    expect(Operator.arrayRemove('oldItem')).toEqual('{"method":"arrayRemove","values":["oldItem"]}');
+  });
+
+  test('returns arrayUnique', () => {
+    expect(Operator.arrayUnique()).toEqual('{"method":"arrayUnique","values":[]}');
+  });
+
+  test('returns arrayIntersect', () => {
+    expect(Operator.arrayIntersect(['a', 'b', 'c'])).toEqual('{"method":"arrayIntersect","values":["a","b","c"]}');
+  });
+
+  test('returns arrayDiff', () => {
+    expect(Operator.arrayDiff(['x', 'y'])).toEqual('{"method":"arrayDiff","values":["x","y"]}');
+  });
+
+  test('returns arrayFilter', () => {
+    expect(Operator.arrayFilter(Condition.Equal, 'test')).toEqual('{"method":"arrayFilter","values":["equal","test"]}');
+  });
+
+  test('returns stringConcat', () => {
+    expect(Operator.stringConcat('suffix')).toEqual('{"method":"stringConcat","values":["suffix"]}');
+  });
+
+  test('returns stringReplace', () => {
+    expect(Operator.stringReplace('old', 'new')).toEqual('{"method":"stringReplace","values":["old","new"]}');
+  });
+
+  test('returns toggle', () => {
+    expect(Operator.toggle()).toEqual('{"method":"toggle","values":[]}');
+  });
+
+  test('returns dateAddDays', () => {
+    expect(Operator.dateAddDays(7)).toEqual('{"method":"dateAddDays","values":[7]}');
+  });
+
+  test('returns dateSubDays', () => {
+    expect(Operator.dateSubDays(7)).toEqual('{"method":"dateSubDays","values":[7]}');
+  });
+
+  test('returns dateSetNow', () => {
+    expect(Operator.dateSetNow()).toEqual('{"method":"dateSetNow","values":[]}');
+  });
+});

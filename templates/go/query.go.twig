@@ -1,0 +1,522 @@
+package query
+
+import (
+	"encoding/json"
+)
+
+func toArray(val interface{}) []interface{} {
+	switch v := val.(type) {
+	case nil:
+		return nil
+	case []interface{}:
+		return v
+	default:
+		return []interface{}{val}
+	}
+}
+
+type queryOptions struct {
+	Method    string
+	Attribute *string
+	Values    *[]interface{}
+}
+
+func parseQuery(options queryOptions) string {
+	data := struct {
+		Method    string        `json:"method"`
+		Attribute string        `json:"attribute,omitempty"`
+		Values    []interface{} `json:"values,omitempty"`
+	}{
+		Method:    options.Method,
+	}
+
+	if options.Attribute != nil {
+		data.Attribute = *options.Attribute
+	}
+
+	if options.Values != nil {
+		data.Values = *options.Values
+	}
+
+	jsonData, _ := json.Marshal(data)
+
+	return string(jsonData)
+}
+
+func Equal(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "equal",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotEqual(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "notEqual",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func LessThan(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "lessThan",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func LessThanEqual(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "lessThanEqual",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func GreaterThan(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "greaterThan",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func GreaterThanEqual(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "greaterThanEqual",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func Search(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "search",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func IsNull(attribute string) string {
+	return parseQuery(queryOptions{
+		Method:    "isNull",
+		Attribute: &attribute,
+	})
+}
+
+func IsNotNull(attribute string) string {
+	return parseQuery(queryOptions{
+		Method:    "isNotNull",
+		Attribute: &attribute,
+	})
+}
+
+func Between(attribute string, start, end interface{}) string {
+	values := []interface{}{start, end}
+	return parseQuery(queryOptions{
+		Method:    "between",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func StartsWith(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "startsWith",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func EndsWith(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "endsWith",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+// Contains filters resources where attribute contains the specified value.
+// For string attributes, checks if the string contains the substring.
+//
+// Note: For array attributes, use ContainsAny or ContainsAll instead.
+func Contains(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "contains",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+// ContainsAny filters resources where attribute contains ANY of the specified values.
+// For array and relationship attributes, matches documents where the attribute
+// contains at least one of the given values.
+func ContainsAny(attribute string, value []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "containsAny",
+		Attribute: &attribute,
+		Values:    &value,
+	})
+}
+
+// ContainsAll filters resources where attribute contains ALL of the specified values.
+// For array and relationship attributes, matches documents where the attribute
+// contains every one of the given values.
+func ContainsAll(attribute string, value []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "containsAll",
+		Attribute: &attribute,
+		Values:    &value,
+	})
+}
+
+func NotContains(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "notContains",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotSearch(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "notSearch",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotBetween(attribute string, start, end interface{}) string {
+	values := []interface{}{start, end}
+	return parseQuery(queryOptions{
+		Method:    "notBetween",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotStartsWith(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "notStartsWith",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotEndsWith(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "notEndsWith",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func CreatedBefore(value interface{}) string {
+	return LessThan("$createdAt", value)
+}
+
+func CreatedAfter(value interface{}) string {
+	return GreaterThan("$createdAt", value)
+}
+
+func CreatedBetween(start, end interface{}) string {
+	return Between("$createdAt", start, end)
+}
+
+func UpdatedBefore(value interface{}) string {
+	return LessThan("$updatedAt", value)
+}
+
+func UpdatedAfter(value interface{}) string {
+	return GreaterThan("$updatedAt", value)
+}
+
+func UpdatedBetween(start, end interface{}) string {
+	return Between("$updatedAt", start, end)
+}
+
+func Select(attributes interface{}) string {
+	values := toArray(attributes)
+	return parseQuery(queryOptions{
+		Method: "select",
+		Values: &values,
+	})
+}
+
+func OrderAsc(attribute string) string {
+	return parseQuery(queryOptions{
+		Method:    "orderAsc",
+		Attribute: &attribute,
+	})
+}
+
+func OrderDesc(attribute string) string {
+	return parseQuery(queryOptions{
+		Method:    "orderDesc",
+		Attribute: &attribute,
+	})
+}
+
+func OrderRandom() string {
+	return parseQuery(queryOptions{
+		Method: "orderRandom",
+	})
+}
+
+func CursorBefore(documentId interface{}) string {
+	values := toArray(documentId)
+	return parseQuery(queryOptions{
+		Method:    "cursorBefore",
+		Values:    &values,
+	})
+}
+
+func CursorAfter(documentId string) string {
+	values := toArray(documentId)
+	return parseQuery(queryOptions{
+		Method:    "cursorAfter",
+		Values:    &values,
+	})
+}
+
+func Limit(limit int) string {
+	values := toArray(limit)
+	return parseQuery(queryOptions{
+		Method:    "limit",
+		Values:    &values,
+	})
+}
+
+func Offset(offset int) string {
+	values := toArray(offset)
+	return parseQuery(queryOptions{
+		Method:    "offset",
+		Values:    &values,
+	})
+}
+
+func Or(queries []string) string {
+	var parsedQueries []interface{}
+	for _, query := range queries {
+		var q interface{}
+		if err := json.Unmarshal([]byte(query), &q); err != nil {
+			// Handle error, possibly log it or return an empty result
+			continue
+		}
+		parsedQueries = append(parsedQueries, q)
+	}
+	return parseQuery(queryOptions{
+		Method: "or",
+		Values: &parsedQueries,
+	})
+}
+
+func And(queries []string) string {
+	var parsedQueries []interface{}
+	for _, query := range queries {
+		var q interface{}
+		if err := json.Unmarshal([]byte(query), &q); err != nil {
+			// Handle error, possibly log it or return an empty result
+			continue
+		}
+		parsedQueries = append(parsedQueries, q)
+	}
+	return parseQuery(queryOptions{
+		Method: "and",
+		Values: &parsedQueries,
+	})
+}
+
+func DistanceEqual(attribute string, values []interface{}, distance float64, meters bool) string {
+	return parseQuery(queryOptions{
+		Method:    "distanceEqual",
+		Attribute: &attribute,
+		Values:    &[]interface{}{[]interface{}{values, distance, meters}},
+	})
+}
+
+func DistanceNotEqual(attribute string, values []interface{}, distance float64, meters bool) string {
+	return parseQuery(queryOptions{
+		Method:    "distanceNotEqual",
+		Attribute: &attribute,
+		Values:    &[]interface{}{[]interface{}{values, distance, meters}},
+	})
+}
+
+func DistanceGreaterThan(attribute string, values []interface{}, distance float64, meters bool) string {
+	return parseQuery(queryOptions{
+		Method:    "distanceGreaterThan",
+		Attribute: &attribute,
+		Values:    &[]interface{}{[]interface{}{values, distance, meters}},
+	})
+}
+
+func DistanceLessThan(attribute string, values []interface{}, distance float64, meters bool) string {
+	return parseQuery(queryOptions{
+		Method:    "distanceLessThan",
+		Attribute: &attribute,
+		Values:    &[]interface{}{[]interface{}{values, distance, meters}},
+	})
+}
+
+func VectorDot(attribute string, vector []float64) string {
+	return parseQuery(queryOptions{
+		Method:    "vectorDot",
+		Attribute: &attribute,
+		Values:    &[]interface{}{vector},
+	})
+}
+
+func VectorCosine(attribute string, vector []float64) string {
+	return parseQuery(queryOptions{
+		Method:    "vectorCosine",
+		Attribute: &attribute,
+		Values:    &[]interface{}{vector},
+	})
+}
+
+func VectorEuclidean(attribute string, vector []float64) string {
+	return parseQuery(queryOptions{
+		Method:    "vectorEuclidean",
+		Attribute: &attribute,
+		Values:    &[]interface{}{vector},
+	})
+}
+
+func Intersects(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "intersects",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values},
+	})
+}
+
+func NotIntersects(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "notIntersects",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values},
+	})
+}
+
+func Crosses(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "crosses",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values},
+	})
+}
+
+func NotCrosses(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "notCrosses",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values},
+	})
+}
+
+func Overlaps(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "overlaps",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values},
+	})
+}
+
+func NotOverlaps(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "notOverlaps",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values},
+	})
+}
+
+func Touches(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "touches",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values},
+	})
+}
+
+func NotTouches(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "notTouches",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values},
+	})
+}
+
+// Regex filters resources where attribute matches a regular expression pattern.
+//
+// attribute: The attribute to filter on.
+// pattern: The regular expression pattern to match.
+// Returns the query string.
+func Regex(attribute string, pattern string) string {
+	values := toArray(pattern)
+	return parseQuery(queryOptions{
+		Method:    "regex",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+// Exists filters resources where the specified attributes exist.
+//
+// attributes: The list of attributes that must exist.
+// Returns the query string.
+func Exists(attributes []interface{}) string {
+	return parseQuery(queryOptions{
+		Method: "exists",
+		Values: &attributes,
+	})
+}
+
+// NotExists filters resources where the specified attributes do not exist.
+//
+// attributes: The list of attributes that must not exist.
+// Returns the query string.
+func NotExists(attributes []interface{}) string {
+	return parseQuery(queryOptions{
+		Method: "notExists",
+		Values: &attributes,
+	})
+}
+
+// ElemMatch filters array elements where at least one element matches all the specified queries.
+//
+// attribute: The attribute containing the array to filter on.
+// queries: The list of query strings to match against array elements.
+// Returns the query string.
+func ElemMatch(attribute string, queries []string) string {
+	var parsedQueries []interface{}
+	for _, query := range queries {
+		var q interface{}
+		if err := json.Unmarshal([]byte(query), &q); err != nil {
+			// Handle error, possibly log it or return an empty result
+			continue
+		}
+		parsedQueries = append(parsedQueries, q)
+	}
+	return parseQuery(queryOptions{
+		Method:    "elemMatch",
+		Attribute: &attribute,
+		Values:    &parsedQueries,
+	})
+}

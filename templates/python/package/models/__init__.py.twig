@@ -1,0 +1,17 @@
+from .base_model import AppwriteModel
+{% for definition in spec.definitions %}
+from .{{ definition.name | caseSnake }} import {{ definition.name | caseUcfirst }}
+{% endfor %}
+{% for requestModel in spec.requestModels %}
+from .{{ requestModel.name | caseSnake }} import {{ requestModel.name | caseUcfirst }}
+{% endfor %}
+
+__all__ = [
+    'AppwriteModel',
+{% for definition in spec.definitions %}
+    '{{ definition.name | caseUcfirst }}',
+{% endfor %}
+{% for requestModel in spec.requestModels %}
+    '{{ requestModel.name | caseUcfirst }}',
+{% endfor %}
+]

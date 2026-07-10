@@ -1,0 +1,14 @@
+        return client.call(
+            "{{ method.method | caseUpper }}",
+            apiPath,
+            apiHeaders,
+            apiParams,
+            {%~ if method.responseModel | hasGenericType(spec) %}
+            responseType = classOf(),
+            {%~ else %}
+            responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java,
+            {%~ endif %}
+            {%~ if method.responseModel %}
+            converter,
+            {%~ endif %}
+        )

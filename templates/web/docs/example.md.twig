@@ -1,0 +1,32 @@
+```javascript
+import { Client, {{ service.name | caseUcfirst }}{% for parameter in method.parameters.all %}{% if parameter.enumValues | length > 0%}, {{ parameter.enumName | caseUcfirst}}{% endif %}{% endfor %}{% if method.parameters.all | hasPermissionParam %}, Permission, Role{% endif %} } from "{{ language.params.npmPackage }}";
+
+const client = new Client()
+    {%~ if method.auth|length > 0 %}
+    .setEndpoint('{{ spec.endpointDocs | raw }}') // Your API Endpoint
+    {%~ for node in method.auth %}
+    {%~ for key,header in node|keys|filter(h => not node[h]['x-appwrite']['optional']) %}
+    .set{{header}}('{{node[header]['x-appwrite']['demo'] | raw }}'){% if loop.last %};{% endif%} // {{node[header].description}}
+    {%~ endfor %}
+    {%~ endfor %}
+    {%~ endif %}
+
+const {{ service.name | caseCamel | escapeKeyword }} = new {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
+
+{% if method.type == 'location' %}const result = {% elseif method.type != 'webAuth' %}const result = await {% endif %}{{ service.name | caseCamel | escapeKeyword }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %});
+{% else %}{
+{%~ for parameter in method.parameters.all %}
+{%~ if parameter.required %}
+    {{ parameter.name | caseCamel | escapeKeyword }}: {% if parameter.enumValues | length > 0 %}{{ parameter | enumExample }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %}
+
+{%~ else %}
+    {{ parameter.name | caseCamel | escapeKeyword }}: {% if parameter.enumValues | length > 0 %}{{ parameter | enumExample }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %} // optional
+{%~ endif %}
+{%~ endfor -%}
+});
+{% endif %}
+
+{% if method.type != 'webAuth' %}
+console.log(result);
+{% endif %}
+```

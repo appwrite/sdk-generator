@@ -1,0 +1,57 @@
+import 'response.dart';
+import 'client.dart';
+import 'enums.dart';
+
+abstract class ClientBase implements Client {  
+{% for header in spec.global.headers %}
+{% if header.description %}
+  /// {{header.description}}
+{% endif %}
+  @override
+  ClientBase set{{header.key | caseUcfirst}}(value);
+{% endfor %}
+
+  @override
+  ClientBase setSelfSigned({bool status = true});
+
+  @override
+  ClientBase setEndpoint(String endPoint);
+
+  @override
+  ClientBase addHeader(String key, String value);
+
+  @override
+  Map<String, String> getHeaders();
+
+{% for clientMethodName, clientMethods in spec.clientMethods %}
+{% for clientMethod in clientMethods %}
+  @override
+  Future<String> {{ clientMethodName | caseCamel }}() async {
+    final String apiPath = '{{ clientMethod.path }}';
+    final response = await call(
+      HttpMethod.{{ clientMethod.method | caseLower }},
+      path: apiPath,
+      headers: {
+        {%~ for key, security in clientMethod.securityHeaders %}
+        '{{ security.name }}': config['{{ key | caseLower }}'] ?? '',
+        {%~ endfor %}
+        {%~ for key, header in clientMethod.headers %}
+        '{{ key }}': '{{ header }}',
+        {%~ endfor %}
+      },
+      responseType: ResponseType.plain,
+    );
+    return response.data;
+  }
+{% endfor %}
+{% endfor %}
+
+  @override
+  Future<Response> call(
+    HttpMethod method, {
+    String path = '',
+    Map<String, String> headers = const {},
+    Map<String, dynamic> params = const {},
+    ResponseType? responseType,
+  });
+}

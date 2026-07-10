@@ -1,0 +1,42 @@
+```go
+{% set requireModelsPkg = false -%}
+{%- set requireFilesPkg = false -%}
+{%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
+		{%- set requireModelsPkg = true -%}
+{%- endif -%}
+
+package main
+
+import (
+    "fmt"
+    "{{ sdk | goPackagePath }}/client"
+    "{{ sdk | goPackagePath }}/{{ service.name | caseLower }}"
+{% if requireFilesPkg %}
+	"{{ sdk | goPackagePath }}/file"
+{% endif %}
+)
+
+client := client.New(
+{% if method.auth|length > 0 %}
+    client.WithEndpoint("{{ spec.endpointDocs | raw }}")
+{% for node in method.auth %}
+{% for key,header in node|keys|filter(h => not node[h]['x-appwrite']['optional']) %}
+    client.With{{header}}("{{node[header]['x-appwrite']['demo'] | raw }}")
+{% endfor %}
+{% endfor %}
+)
+
+{% endif %}
+service := {{ service.name | caseLower }}.New(client)
+
+response, error := service.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %}){% else %}
+
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+    {{ parameter | paramExample }},
+{% else %}
+    {{ service.name | caseLower }}.With{{ method.name | caseUcfirst }}{{ parameter.name | caseUcfirst }}({{ parameter | paramExample }}),
+{% endif %}
+{% endfor %}
+{% endif %})
+```

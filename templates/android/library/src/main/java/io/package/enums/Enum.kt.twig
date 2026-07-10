@@ -1,0 +1,14 @@
+package {{ sdk.namespace | caseDot }}.enums
+
+import com.google.gson.annotations.SerializedName
+
+enum class {{ enum.name | caseUcfirst | overrideIdentifier }}(val value: String) {
+{% for value in enum.enum %}
+{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+    @SerializedName("{{ value }}")
+    {{ key | caseEnumKey }}("{{ value }}"){% if not loop.last %},{% else %};{% endif %}
+
+{% endfor %}
+
+    override fun toString() = value
+}

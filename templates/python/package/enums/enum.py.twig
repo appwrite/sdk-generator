@@ -1,0 +1,7 @@
+from enum import Enum
+
+class {{ enum.name | caseUcfirst | overrideIdentifier }}(Enum):
+{% for value in enum.enum %}
+{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+    {{ key | caseEnumKey }} = "{{ value }}"
+{% endfor %}

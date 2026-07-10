@@ -1,0 +1,209 @@
+import {
+  globalConfig,
+  localConfig,
+  normalizeCloudConsoleEndpoint,
+} from "./config.js";
+import { Client, Oauth2 } from "@appwrite.io/console";
+import os from "os";
+import {
+  DEFAULT_ENDPOINT,
+  EXECUTABLE_NAME,
+  OAUTH2_CLIENT_ID,
+  SDK_TITLE,
+  SDK_VERSION,
+} from "./constants.js";
+import { warn } from "./parser.js";
+import { isCloudHostname } from "./utils.js";
+import { isFlagEnabled } from "./flags.js";
+import {
+  getStoredRefreshToken,
+  setStoredRefreshToken,
+} from "./auth/refresh-token.js";
+
+export const getValidAccessToken = async (
+  endpoint: string,
+  options: { forceRefresh?: boolean } = {},
+): Promise<string> => {
+  const accessToken = globalConfig.getAccessToken();
+  const tokenExpiry = globalConfig.getTokenExpiry();
+  const clientId = globalConfig.getClientId() || OAUTH2_CLIENT_ID;
+  const currentSession = globalConfig.getCurrentSession();
+
+  if (
+    !options.forceRefresh &&
+    accessToken &&
+    tokenExpiry > Date.now() + 60_000
+  ) {
+    return accessToken;
+  }
+
+  const refreshToken = currentSession
+    ? getStoredRefreshToken(currentSession)
+    : "";
+
+  if (accessToken && tokenExpiry === 0 && !refreshToken) {
+    return accessToken;
+  }
+
+  if (!refreshToken) {
+    throw new Error(
+      `Session expired. Please run \`${EXECUTABLE_NAME} login\` to create a new session.`,
+    );
+  }
+
+  const oauth2 = new Oauth2(
+    new Client()
+      .setEndpoint(normalizeCloudConsoleEndpoint(endpoint))
+      .setProject("console")
+      .setSelfSigned(globalConfig.getSelfSigned()),
+  );
+  const token = await oauth2.createToken({
+    grantType: "refresh_token",
+    refreshToken,
+    clientId,
+  });
+  const newExpiry = Date.now() + token.expires_in * 1000;
+  globalConfig.setAccessToken(token.access_token);
+  if (token.refresh_token) {
+    setStoredRefreshToken(currentSession, token.refresh_token);
+  }
+  globalConfig.setTokenExpiry(newExpiry);
+
+  return token.access_token;
+};
+
+let legacySessionWarningShown = false;
+
+const warnLegacySession = (): void => {
+  // Only nudge toward OAuth login when the feature is enabled.
+  if (legacySessionWarningShown || !isFlagEnabled("oauthLogin")) {
+    return;
+  }
+
+  legacySessionWarningShown = true;
+  warn(
+    `This CLI is using a legacy cookie session. Run \`${EXECUTABLE_NAME} login --new\` to switch to the new browser-based login flow.`,
+  );
+};
+
+export const sdkForConsole = async ({
+  requiresAuth = true,
+  endpointOverride,
+  organizationId,
+}: {
+  requiresAuth?: boolean;
+  endpointOverride?: string;
+  organizationId?: string;
+} = {}): Promise<Client> => {
+  const client = new Client();
+  const endpoint = normalizeCloudConsoleEndpoint(
+    endpointOverride || globalConfig.getEndpoint() || DEFAULT_ENDPOINT,
+  );
+  const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
+  const selfSigned = globalConfig.getSelfSigned();
+
+  const accessToken = globalConfig.getAccessToken();
+  const cookie = globalConfig.getCookie();
+
+  if (requiresAuth && !accessToken && !cookie) {
+    const hasKey = globalConfig.getKey() !== "";
+    throw new Error(
+      hasKey
+        ? `Session not found. Run \`${EXECUTABLE_NAME} login\`. API keys work for project commands (e.g. \`${EXECUTABLE_NAME} push functions\`), not console-only commands (e.g. \`${EXECUTABLE_NAME} push settings\`).`
+        : `Session not found. Please run \`${EXECUTABLE_NAME} login\` to create a session`,
+    );
+  }
+
+  client.headers = {
+    ...client.headers,
+    "x-sdk-name": "Command Line",
+    "x-sdk-platform": "console",
+    "x-sdk-language": "cli",
+    "x-sdk-version": SDK_VERSION,
+    "user-agent": `AppwriteCLI/${SDK_VERSION} (${os.type()} ${os.version()}; ${os.arch()})`,
+  };
+
+  client
+    .setEndpoint(endpoint)
+    .setProject("console")
+    .setSelfSigned(selfSigned)
+    .setLocale("en-US");
+
+  if (requiresAuth) {
+    if (accessToken) {
+      const validAccessToken = await getValidAccessToken(endpoint);
+      client.headers["Authorization"] = `Bearer ${validAccessToken}`;
+    } else if (cookie) {
+      if (isCloudEndpoint) {
+        warnLegacySession();
+      }
+      client.setCookie(cookie);
+    }
+  }
+
+  if (organizationId) {
+    client.headers["X-Appwrite-Organization"] = organizationId;
+  }
+
+  return client;
+};
+
+export const sdkForProject = async (): Promise<Client> => {
+  const client = new Client();
+
+  const endpoint =
+    localConfig.getEndpoint() || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
+  const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
+
+  const project = localConfig.getProject().projectId
+    ? localConfig.getProject().projectId
+    : globalConfig.getProject();
+
+  const key = globalConfig.getKey();
+  const accessToken = globalConfig.getAccessToken();
+  const cookie = globalConfig.getCookie();
+  const selfSigned = globalConfig.getSelfSigned();
+
+  if (!project) {
+    throw new Error(
+      `Project is not set. Please run \`${EXECUTABLE_NAME} init project\` to initialize the current directory with an ${SDK_TITLE} project.`,
+    );
+  }
+
+  client.headers = {
+    ...client.headers,
+    "x-sdk-name": "Command Line",
+    "x-sdk-platform": "console",
+    "x-sdk-language": "cli",
+    "x-sdk-version": SDK_VERSION,
+    "user-agent": `AppwriteCLI/${SDK_VERSION} (${os.type()} ${os.version()}; ${os.arch()})`,
+  };
+
+  client
+    .setEndpoint(endpoint)
+    .setProject(project)
+    .setSelfSigned(selfSigned)
+    .setLocale("en-US");
+
+  if (accessToken) {
+    const validAccessToken = await getValidAccessToken(endpoint);
+    client.headers["Authorization"] = `Bearer ${validAccessToken}`;
+    return client.setMode("admin");
+  }
+
+  if (cookie) {
+    if (isCloudEndpoint) {
+      warnLegacySession();
+    }
+    client.setCookie(cookie);
+    return client.setMode("admin");
+  }
+
+  if (key) {
+    return client.setKey(key).setMode("default");
+  }
+
+  throw new Error(
+    `Authentication not found. Run \`${EXECUTABLE_NAME} login\` or \`${EXECUTABLE_NAME} client --key <API_KEY>\`.`,
+  );
+};

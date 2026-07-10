@@ -1,0 +1,26 @@
+services:
+  mockapi:
+    container_name: mockapi
+    build:
+      context: .
+      args:
+        DEBUG: "false"
+        TESTING: "true"
+        VERSION: "dev"
+    entrypoint:
+      - php
+      - -e
+      - app/http.php
+    volumes:
+      - ./app:/usr/src/code/app
+      - ./src:/usr/src/code/src
+      - mockapi-cache:/storage/cache
+    networks:
+      - mockapi
+
+networks:
+  mockapi:
+    name: mockapi
+
+volumes:
+  mockapi-cache:

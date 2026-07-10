@@ -1,0 +1,1123 @@
+import fs from "fs";
+import path from "path";
+import childProcess from "child_process";
+import { Command } from "commander";
+import inquirer from "inquirer";
+import chalk from "chalk";
+import { getOrganizationService, getSitesService } from "../services.js";
+import { pullResources } from "./pull.js";
+import ID from "../id.js";
+import { localConfig, globalConfig } from "../config.js";
+import {
+  questionsCreateFunction,
+  questionsCreateFunctionSelectTemplate,
+  questionsCreateSite,
+  questionsCreateBucket,
+  questionsCreateMessagingTopic,
+  questionsCreateCollection,
+  questionsCreateTable,
+  questionsInitProject,
+  questionsInitProjectAutopull,
+  questionsInitResources,
+  questionsCreateTeam,
+} from "../questions.js";
+import {
+  cliConfig,
+  success,
+  log,
+  hint,
+  error,
+  actionRunner,
+  commandDescriptions,
+} from "../parser.js";
+import { sdkForConsole } from "../sdks.js";
+import {
+  isCloud,
+  getSafeDirectoryName,
+  siteRequiresBuildCommand,
+  hasSkillsInstalled,
+  fetchAvailableSkills,
+  detectProjectSkills,
+  placeSkills,
+} from "../utils.js";
+import {
+  Account,
+  AppwriteException,
+  SiteTemplateUseCase,
+} from "@appwrite.io/console";
+import type { Region } from "@appwrite.io/console";
+import { DEFAULT_ENDPOINT, EXECUTABLE_NAME } from "../constants.js";
+
+type InitResourceAction = (_options?: unknown) => Promise<void>;
+type ProjectCreateRegion = Region;
+
+interface ExistingProjectSummary {
+  $id: string;
+  name?: string;
+  region?: string;
+}
+
+interface InitProjectAnswers {
+  start: "new" | "existing";
+  override?: boolean;
+  id?: string;
+  project: string | ExistingProjectSummary;
+  organization: string;
+  region?: ProjectCreateRegion;
+}
+
+interface InitProjectAutopullAnswer {
+  autopull?: boolean;
+}
+
+interface SiteTemplateFramework {
+  providerRootDirectory: string;
+  adapter?: string;
+  buildRuntime?: string;
+  installCommand?: string;
+  buildCommand?: string;
+  outputDirectory?: string;
+  fallbackFile?: string;
+}
+
+interface SiteTemplateVariable {
+  name: string;
+  value?: string;
+}
+
+interface SiteTemplateDetails {
+  providerOwner: string;
+  providerRepositoryId: string;
+  providerVersion: string;
+  frameworks: SiteTemplateFramework[];
+  variables?: SiteTemplateVariable[];
+}
+
+interface InitProjectNextStep {
+  command: string;
+  description: string;
+}
+
+interface InitProjectStepOptions {
+  start: "new" | "existing";
+  autoPulled: boolean;
+}
+
+const getExistingProjectSummary = async (
+  organizationId: string,
+  projectId: string,
+): Promise<ExistingProjectSummary> => {
+  const client = await sdkForConsole({
+    requiresAuth: true,
+    organizationId,
+  });
+  const organizationService = await getOrganizationService(client);
+  const project = await organizationService.getProject({
+    projectId,
+  });
+
+  return {
+    $id: project.$id,
+    name: project.name,
+    region: project.region || "",
+  };
+};
+
+const getRegionalCloudEndpoint = (region: string): string => {
+  const url = new URL(globalConfig.getEndpoint() || DEFAULT_ENDPOINT);
+  url.hostname = `${region}.${url.hostname}`;
+  return url.toString().replace(/\/$/, "");
+};
+
+const printInitProjectSuccess = (message: string): void => {
+  console.log(`${chalk.green.bold("✓")} ${chalk.green(message)}`);
+};
+
+const printInitProjectNextSteps = (steps: InitProjectNextStep[]): void => {
+  if (steps.length === 0) {
+    return;
+  }
+
+  const longestCommand = steps.reduce(
+    (longest, step) => Math.max(longest, step.command.length),
+    0,
+  );
+
+  console.log("");
+  console.log("  Next steps:");
+
+  for (const step of steps) {
+    const spacing = " ".repeat(longestCommand - step.command.length + 4);
+    console.log(`    ${chalk.cyan(step.command)}${spacing}${step.description}`);
+  }
+};
+
+const getLocalInitProjectResourceState = () => {
+  const functions = localConfig.getFunctions();
+  const sites = localConfig.getSites();
+  const collections = localConfig.getCollections();
+  const tables = localConfig.getTables();
+  const buckets = localConfig.getBuckets();
+  const teams = localConfig.getTeams();
+  const webhooks = localConfig.getWebhooks();
+  const topics = localConfig.getMessagingTopics();
+
+  return {
+    hasFunctions: functions.length > 0,
+    hasResources:
+      functions.length > 0 ||
+      sites.length > 0 ||
+      collections.length > 0 ||
+      tables.length > 0 ||
+      buckets.length > 0 ||
+      teams.length > 0 ||
+      webhooks.length > 0 ||
+      topics.length > 0,
+  };
+};
+
+const getInitProjectNextSteps = ({
+  start,
+  autoPulled,
+}: InitProjectStepOptions): InitProjectNextStep[] => {
+  const { hasFunctions, hasResources } = getLocalInitProjectResourceState();
+  const nextSteps: InitProjectNextStep[] = [];
+
+  if (start === "existing" && !autoPulled) {
+    nextSteps.push(
+      {
+        command: `${EXECUTABLE_NAME} pull`,
+        description: "Choose a resource to sync",
+      },
+      {
+        command: `${EXECUTABLE_NAME} init`,
+        description: "Create a new resource",
+      },
+    );
+
+    return nextSteps;
+  }
+
+  if (start === "new") {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} init`,
+      description: "Create your first resource",
+    });
+
+    return nextSteps;
+  }
+
+  nextSteps.push({
+    command: `${EXECUTABLE_NAME} init`,
+    description: "Create another resource",
+  });
+
+  if (hasFunctions) {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} run function`,
+      description: "Run a pulled function locally",
+    });
+  }
+
+  if (hasResources) {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} push`,
+      description: "Deploy your local edits",
+    });
+  }
+
+  return nextSteps;
+};
+
+const installInitProjectSkills = async (): Promise<void> => {
+  if (hasSkillsInstalled(localConfig.configDirectoryPath)) {
+    log("Agent skills already found. Skipping installation.");
+    return;
+  }
+
+  try {
+    const skillsCwd = localConfig.configDirectoryPath;
+    const { skills, tempDir } = fetchAvailableSkills();
+    try {
+      const detected = detectProjectSkills(skillsCwd, skills);
+      if (detected.length > 0) {
+        const names = detected.map((s) => s.dirName);
+        placeSkills(skillsCwd, tempDir, names, [".agents", ".claude"], true);
+        printInitProjectSuccess(
+          `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"}: ${detected.map((s) => s.name).join(", ")}`,
+        );
+      }
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    error(`Failed to install skills: ${msg}`);
+    hint(`You can install them later with '${EXECUTABLE_NAME} init skill'.`);
+  }
+};
+
+const initResources = async (): Promise<void> => {
+  const actions: Record<string, InitResourceAction> = {
+    function: initFunction,
+    site: initSite,
+    skill: initSkill,
+    table: initTable,
+    bucket: initBucket,
+    team: initTeam,
+    message: initTopic,
+    collection: initCollection,
+  };
+
+  const answers = await inquirer.prompt([questionsInitResources[0]]);
+
+  const action = actions[answers.resource];
+  if (action !== undefined) {
+    await action({ returnOnZero: true });
+  }
+};
+
+interface InitProjectOptions {
+  organizationId?: string;
+  projectId?: string;
+  projectName?: string;
+}
+
+const initProject = async ({
+  organizationId,
+  projectId,
+  projectName,
+}: InitProjectOptions = {}): Promise<void> => {
+  try {
+    localConfig.useCwdConfig();
+  } catch (e) {
+    error(e instanceof Error ? e.message : String(e));
+    process.exit(1);
+  }
+
+  try {
+    if (
+      globalConfig.getEndpoint() === "" ||
+      (globalConfig.getAccessToken() === "" && globalConfig.getCookie() === "")
+    ) {
+      throw new Error(
+        `Missing endpoint or session configuration. Please run '${EXECUTABLE_NAME} login' first.`,
+      );
+    }
+    const client = await sdkForConsole();
+    const accountClient = new Account(client);
+
+    await accountClient.get();
+  } catch (_e) {
+    error(
+      `Error Session not found. Please run '${EXECUTABLE_NAME} login' to create a session`,
+    );
+    process.exit(1);
+  }
+
+  let answers: InitProjectAnswers;
+
+  if (!organizationId && !projectId && !projectName) {
+    answers = await inquirer.prompt(questionsInitProject);
+    if (answers.override === false) {
+      log("No changes made. Existing project configuration was kept.");
+      return;
+    }
+  } else {
+    const selectedOrganization =
+      organizationId ??
+      (await inquirer.prompt([questionsInitProject[2]])).organization;
+    const selectedProjectName =
+      projectName ?? (await inquirer.prompt([questionsInitProject[3]])).project;
+    const selectedProjectId =
+      projectId ?? (await inquirer.prompt([questionsInitProject[4]])).id;
+
+    answers = {
+      start: "existing",
+      project: selectedProjectId,
+      organization: selectedOrganization,
+    };
+
+    try {
+      answers.project = await getExistingProjectSummary(
+        selectedOrganization,
+        selectedProjectId,
+      );
+    } catch (e) {
+      if (e instanceof AppwriteException && e.code === 404) {
+        answers = {
+          start: "new",
+          id: selectedProjectId,
+          project: selectedProjectName,
+          organization: selectedOrganization,
+        };
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  if (answers.start === "existing" && typeof answers.project === "string") {
+    answers.project = await getExistingProjectSummary(
+      answers.organization,
+      answers.project,
+    );
+  }
+
+  localConfig.clear(); // Clear the config to avoid any conflicts
+
+  if (answers.start === "new") {
+    let projectIdToCreate;
+    let projectNameToCreate;
+
+    switch (typeof answers.project) {
+      case "string":
+        projectIdToCreate = answers.id ?? answers.project;
+        projectNameToCreate = answers.project;
+        break;
+      case "object":
+        projectIdToCreate = answers.id ?? answers.project.$id;
+        projectNameToCreate = answers.project.name ?? answers.project.$id;
+        break;
+      default:
+        projectIdToCreate = answers.id;
+        projectNameToCreate = "";
+        break;
+    }
+
+    const consoleClient = await sdkForConsole({
+      requiresAuth: true,
+      organizationId: answers.organization,
+    });
+    const organizationService = await getOrganizationService(consoleClient);
+    const response = await organizationService.createProject({
+      projectId: projectIdToCreate,
+      name: projectNameToCreate,
+      region: answers.region,
+    });
+
+    localConfig.setProject(response["$id"], response.name ?? "");
+    localConfig.setOrganizationId(answers.organization);
+    if (answers.region) {
+      localConfig.setEndpoint(getRegionalCloudEndpoint(answers.region));
+    }
+  } else {
+    let selectedProject;
+
+    switch (typeof answers.project) {
+      case "string":
+        selectedProject = { $id: answers.project };
+        break;
+      case "object":
+        selectedProject = answers.project;
+        break;
+      default:
+        selectedProject = { $id: "" };
+        break;
+    }
+
+    localConfig.setProject(selectedProject.$id, selectedProject.name ?? "");
+    localConfig.setOrganizationId(answers.organization);
+
+    if (isCloud() && selectedProject.region) {
+      localConfig.setEndpoint(getRegionalCloudEndpoint(selectedProject.region));
+    }
+  }
+
+  let autoPulled = false;
+  if (answers.start === "existing") {
+    const autopullAnswers: InitProjectAutopullAnswer = await inquirer.prompt(
+      questionsInitProjectAutopull,
+    );
+    console.log("");
+    printInitProjectSuccess("Project linked → appwrite.config.json");
+    await installInitProjectSkills();
+    if (autopullAnswers.autopull) {
+      console.log("");
+      autoPulled = true;
+      cliConfig.all = true;
+      cliConfig.force = true;
+      await pullResources({
+        skipDeprecated: true,
+      });
+    }
+  } else {
+    console.log("");
+    printInitProjectSuccess("Project created → appwrite.config.json");
+    await installInitProjectSkills();
+  }
+
+  const nextSteps = getInitProjectNextSteps({
+    start: answers.start,
+    autoPulled,
+  });
+
+  printInitProjectNextSteps(nextSteps);
+};
+
+const initBucket = async (): Promise<void> => {
+  const answers = await inquirer.prompt(questionsCreateBucket);
+
+  localConfig.addBucket({
+    $id: answers.id === "unique()" ? ID.unique() : answers.id,
+    name: answers.bucket,
+    fileSecurity: answers.fileSecurity.toLowerCase() === "yes",
+    enabled: true,
+  });
+  success("Initialing bucket");
+  log(
+    `Next you can use '${EXECUTABLE_NAME} push bucket' to deploy the changes.`,
+  );
+};
+
+const initTeam = async (): Promise<void> => {
+  const answers = await inquirer.prompt(questionsCreateTeam);
+
+  localConfig.addTeam({
+    $id: answers.id === "unique()" ? ID.unique() : answers.id,
+    name: answers.team,
+  });
+
+  success("Initialing team");
+  log(`Next you can use '${EXECUTABLE_NAME} push team' to deploy the changes.`);
+};
+
+const initTable = async (): Promise<void> => {
+  const answers = await inquirer.prompt(questionsCreateTable);
+  const newDatabase = (answers.method ?? "").toLowerCase() !== "existing";
+
+  if (!newDatabase) {
+    answers.databaseId = answers.database;
+    answers.databaseName = localConfig.getTablesDB(answers.database).name;
+  }
+
+  const databaseId =
+    answers.databaseId === "unique()" ? ID.unique() : answers.databaseId;
+
+  if (newDatabase || !localConfig.getTablesDB(answers.databaseId)) {
+    localConfig.addTablesDB({
+      $id: databaseId,
+      name: answers.databaseName,
+      enabled: true,
+    });
+  }
+
+  localConfig.addTable({
+    $id: answers.id === "unique()" ? ID.unique() : answers.id,
+    $permissions: [],
+    databaseId: databaseId,
+    name: answers.table,
+    enabled: true,
+    rowSecurity: answers.rowSecurity.toLowerCase() === "yes",
+    columns: [],
+    indexes: [],
+  });
+
+  success("Initialing table");
+  log(
+    `Next you can use '${EXECUTABLE_NAME} push table' to deploy the changes.`,
+  );
+};
+
+const initCollection = async (): Promise<void> => {
+  const answers = await inquirer.prompt(questionsCreateCollection);
+  const newDatabase = (answers.method ?? "").toLowerCase() !== "existing";
+
+  if (!newDatabase) {
+    answers.databaseId = answers.database;
+    answers.databaseName = localConfig.getDatabase(answers.database).name;
+  }
+
+  const databaseId =
+    answers.databaseId === "unique()" ? ID.unique() : answers.databaseId;
+
+  if (newDatabase || !localConfig.getDatabase(answers.databaseId)) {
+    localConfig.addDatabase({
+      $id: databaseId,
+      name: answers.databaseName,
+      enabled: true,
+    });
+  }
+
+  localConfig.addCollection({
+    $id: answers.id === "unique()" ? ID.unique() : answers.id,
+    databaseId: databaseId,
+    name: answers.collection,
+    documentSecurity: answers.documentSecurity.toLowerCase() === "yes",
+    attributes: [],
+    indexes: [],
+    enabled: true,
+  });
+
+  success("Initialing collection");
+  log(
+    `Next you can use '${EXECUTABLE_NAME} push collection' to deploy the changes.`,
+  );
+};
+
+const initTopic = async (): Promise<void> => {
+  const answers = await inquirer.prompt(questionsCreateMessagingTopic);
+
+  localConfig.addMessagingTopic({
+    $id: answers.id === "unique()" ? ID.unique() : answers.id,
+    name: answers.topic,
+  });
+
+  success("Initialing topic");
+  log(
+    `Next you can use '${EXECUTABLE_NAME} push topic' to deploy the changes.`,
+  );
+};
+
+const initSkill = async (): Promise<void> => {
+  process.chdir(localConfig.configDirectoryPath);
+  const cwd = process.cwd();
+
+  log("Fetching available Appwrite skills ...");
+  const { skills, tempDir } = fetchAvailableSkills();
+
+  try {
+    const { selectedSkills } = await inquirer.prompt([
+      {
+        type: "checkbox",
+        name: "selectedSkills",
+        message: "Which skills would you like to install?",
+        choices: skills.map((skill) => ({
+          name: skill.name,
+          value: skill.dirName,
+          checked: false,
+        })),
+        validate: (value: string[]) =>
+          value.length > 0 || "Please select at least one skill.",
+      },
+    ]);
+
+    const { selectedAgents } = await inquirer.prompt([
+      {
+        type: "checkbox",
+        name: "selectedAgents",
+        message: "Which agent directories would you like to install to?",
+        choices: [
+          { name: ".agents", value: ".agents", checked: true },
+          { name: ".claude", value: ".claude", checked: false },
+        ],
+        validate: (value: string[]) =>
+          value.length > 0 || "Please select at least one agent directory.",
+      },
+    ]);
+
+    const { installMethod } = await inquirer.prompt([
+      {
+        type: "list",
+        name: "installMethod",
+        message: "How would you like to install the skills?",
+        choices: [
+          {
+            name: "Symlink (recommended) — single source of truth, easy to update",
+            value: "symlink",
+          },
+          {
+            name: "Copy — independent copies in each agent directory",
+            value: "copy",
+          },
+        ],
+      },
+    ]);
+
+    const useSymlinks = installMethod === "symlink";
+    placeSkills(cwd, tempDir, selectedSkills, selectedAgents, useSymlinks);
+
+    success(
+      `${selectedSkills.length} skill${selectedSkills.length === 1 ? "" : "s"} installed successfully.`,
+    );
+    hint(
+      `Agent skills are automatically discovered by AI coding agents like Claude Code, Cursor, and GitHub Copilot.`,
+    );
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+};
+
+const initFunction = async (): Promise<void> => {
+  const configDirectory = localConfig.getResourceDirname("functions");
+  if (!fs.existsSync(configDirectory)) {
+    fs.mkdirSync(configDirectory, { recursive: true });
+  }
+  process.chdir(configDirectory);
+
+  // TODO: Add CI/CD support (ID, name, runtime)
+  const answers = await inquirer.prompt(questionsCreateFunction);
+  const functionFolder = path.join(process.cwd(), "functions");
+
+  if (!fs.existsSync(functionFolder)) {
+    fs.mkdirSync(functionFolder, {
+      recursive: true,
+    });
+  }
+
+  const functionId = answers.id === "unique()" ? ID.unique() : answers.id;
+  const functionName = answers.name;
+  const functionDirectoryName = getSafeDirectoryName(functionName, functionId);
+  const functionDir = path.join(functionFolder, functionDirectoryName);
+  const templatesDir = path.join(functionFolder, `${functionId}-templates`);
+  const runtimeDir = path.join(templatesDir, answers.runtime.name);
+
+  if (fs.existsSync(functionDir)) {
+    throw new Error(
+      `( ${functionDirectoryName} ) already exists in the current directory. Please choose another name.`,
+    );
+  }
+
+  if (!answers.runtime.entrypoint) {
+    log(
+      `Entrypoint for this runtime not found. You will be asked to configure entrypoint when you first push the function.`,
+    );
+  }
+
+  if (!answers.runtime.commands) {
+    log(
+      `Installation command for this runtime not found. You will be asked to configure the install command when you first push the function.`,
+    );
+  }
+
+  fs.mkdirSync(functionDir, { mode: 0o777 });
+  fs.mkdirSync(templatesDir, { mode: 0o777 });
+  const repo = "https://github.com/appwrite/templates";
+  let selected: { template: string } = { template: "starter" };
+
+  const sparse = (
+    selected
+      ? `${answers.runtime.name}/${selected.template}`
+      : answers.runtime.name
+  ).toLowerCase();
+
+  let gitInitCommands = `git clone --single-branch --depth 1 --sparse ${repo} .`; // depth prevents fetching older commits reducing the amount fetched
+
+  let gitPullCommands = `git sparse-checkout add ${sparse}`;
+
+  /* Force use CMD as powershell does not support && */
+  if (process.platform === "win32") {
+    gitInitCommands = 'cmd /c "' + gitInitCommands + '"';
+    gitPullCommands = 'cmd /c "' + gitPullCommands + '"';
+  }
+
+  /*  Execute the child process but do not print any std output */
+  try {
+    childProcess.execSync(gitInitCommands, {
+      stdio: "pipe",
+      cwd: templatesDir,
+    });
+    childProcess.execSync(gitPullCommands, {
+      stdio: "pipe",
+      cwd: templatesDir,
+    });
+  } catch (err) {
+    /* Specialised errors with recommended actions to take */
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (errorMessage.includes("error: unknown option")) {
+      throw new Error(
+        `${errorMessage} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+      );
+    } else if (
+      errorMessage.includes(
+        "is not recognized as an internal or external command,",
+      ) ||
+      errorMessage.includes("command not found")
+    ) {
+      throw new Error(
+        `${errorMessage} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
+      );
+    } else {
+      throw err;
+    }
+  }
+
+  fs.rmSync(path.join(templatesDir, ".git"), { recursive: true });
+  if (!selected) {
+    const templates: string[] = [];
+    templates.push(
+      ...fs
+        .readdirSync(runtimeDir, { withFileTypes: true })
+        .filter((item) => item.isDirectory() && item.name !== "starter")
+        .map((dirent) => dirent.name),
+    );
+    selected = { template: "starter" };
+
+    if (templates.length > 1) {
+      selected = await inquirer.prompt(
+        questionsCreateFunctionSelectTemplate(templates),
+      );
+    }
+  }
+
+  const copyRecursiveSync = (src: string, dest: string): void => {
+    const exists = fs.existsSync(src);
+    const stats = exists && fs.statSync(src);
+    const isDirectory = exists && stats && stats.isDirectory();
+    if (isDirectory) {
+      if (!fs.existsSync(dest)) {
+        fs.mkdirSync(dest);
+      }
+
+      fs.readdirSync(src).forEach(function (childItemName) {
+        copyRecursiveSync(
+          path.join(src, childItemName),
+          path.join(dest, childItemName),
+        );
+      });
+    } else {
+      fs.copyFileSync(src, dest);
+    }
+  };
+  copyRecursiveSync(path.join(runtimeDir, selected.template), functionDir);
+
+  fs.rmSync(templatesDir, { recursive: true, force: true });
+
+  const readmePath = path.join(
+    process.cwd(),
+    "functions",
+    functionDirectoryName,
+    "README.md",
+  );
+  const readmeFile = fs.readFileSync(readmePath).toString();
+  const newReadmeFile = readmeFile.split("\n");
+  newReadmeFile[0] = `# ${answers.name}`;
+  newReadmeFile.splice(1, 2);
+  fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
+
+  const data = {
+    $id: functionId,
+    name: answers.name,
+    runtime: answers.runtime.id,
+    buildSpecification: answers.buildSpecification,
+    runtimeSpecification: answers.runtimeSpecification,
+    execute: ["any"],
+    events: [],
+    scopes: ["users.read"],
+    schedule: "",
+    timeout: 15,
+    enabled: true,
+    logging: true,
+    entrypoint: answers.runtime.entrypoint || "",
+    commands: answers.runtime.commands || "",
+    ignore: answers.runtime.ignore || null,
+    deploymentRetention: 0,
+    path: `functions/${functionDirectoryName}`,
+  };
+
+  localConfig.addFunction(data);
+  success("Initialing function");
+  log(
+    `Next you can use '${EXECUTABLE_NAME} run function' to develop a function locally. To deploy the function, use '${EXECUTABLE_NAME} push function'`,
+  );
+};
+
+const initSite = async (): Promise<void> => {
+  const configDirectory = localConfig.getResourceDirname("sites");
+  if (!fs.existsSync(configDirectory)) {
+    fs.mkdirSync(configDirectory, { recursive: true });
+  }
+  process.chdir(configDirectory);
+
+  const answers = await inquirer.prompt(questionsCreateSite);
+  const siteId = answers.id === "unique()" ? ID.unique() : answers.id;
+  const sitePath = answers.path.trim();
+  const siteDir = path.resolve(process.cwd(), sitePath);
+  const siteFolder = path.join(process.cwd(), "sites");
+  const templatesDir = path.join(siteFolder, `${siteId}-templates`);
+  const siteDirExists = fs.existsSync(siteDir);
+  const siteFolderExists = fs.existsSync(siteFolder);
+
+  if (siteDirExists && !fs.statSync(siteDir).isDirectory()) {
+    throw new Error(
+      `( ${sitePath} ) already exists and is not a directory. Please choose another path.`,
+    );
+  }
+
+  const siteDirIsEmpty = siteDirExists
+    ? fs.readdirSync(siteDir).length === 0
+    : true;
+
+  if (answers.downloadTemplate && siteDirExists && !siteDirIsEmpty) {
+    throw new Error(
+      `( ${sitePath} ) already exists and is not empty. Please choose another path.`,
+    );
+  }
+
+  if (!answers.downloadTemplate && siteDirExists && !siteDirIsEmpty) {
+    hint(
+      `Using existing non-empty site directory '${sitePath}'. No starter template code will be downloaded.`,
+    );
+  }
+
+  let templateDetails: SiteTemplateDetails | null = null;
+  try {
+    const sitesService = await getSitesService();
+    const response = await sitesService.listTemplates(
+      [answers.framework.key],
+      [SiteTemplateUseCase.Starter],
+      1,
+    );
+    if (response.total == 0) {
+      throw new Error(
+        `No starter template found for framework ${answers.framework.key}`,
+      );
+    }
+    templateDetails = response.templates[0];
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (answers.downloadTemplate) {
+      throw new Error(
+        `Failed to fetch template for framework ${answers.framework.key}: ${errorMessage}`,
+      );
+    }
+    log(
+      `Failed to fetch template details for framework ${answers.framework.key}: ${errorMessage}`,
+    );
+  }
+
+  const templateFramework = templateDetails?.frameworks[0];
+
+  const createdSiteDir = !siteDirExists;
+  if (!siteDirExists) {
+    fs.mkdirSync(siteDir, { recursive: true, mode: 0o777 });
+  }
+
+  if (answers.downloadTemplate) {
+    try {
+      if (!templateDetails || !templateFramework) {
+        throw new Error(
+          `No starter template found for framework ${answers.framework.key}`,
+        );
+      }
+
+      if (!fs.existsSync(siteFolder)) {
+        fs.mkdirSync(siteFolder, {
+          recursive: true,
+        });
+      }
+
+      fs.mkdirSync(templatesDir, { mode: 0o777 });
+      const repo = `https://github.com/${templateDetails.providerOwner}/${templateDetails.providerRepositoryId}`;
+      const selected = {
+        template: templateFramework.providerRootDirectory,
+      };
+
+      let dirSetupCommands = "";
+
+      const sparse = selected.template.startsWith("./")
+        ? selected.template.substring(2)
+        : selected.template;
+
+      log("Fetching site code ...");
+
+      if (selected.template === "./") {
+        dirSetupCommands = `
+              cd ${templatesDir}
+              git init
+              git remote add origin ${repo}
+              git config --global init.defaultBranch main
+          `.trim();
+      } else {
+        dirSetupCommands = `
+              cd ${templatesDir}
+              git init
+              git remote add origin ${repo}
+              git config --global init.defaultBranch main
+              git config core.sparseCheckout true
+              echo "${sparse}" >> .git/info/sparse-checkout
+              git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+              git config remote.origin.tagopt --no-tags
+          `.trim();
+      }
+      const windowsGitCloneCommands = `
+              $tag = (git ls-remote --tags origin "${templateDetails.providerVersion}" | Select-Object -Last 1) -replace '.*refs/tags/', ''
+              git fetch --depth=1 origin "refs/tags/$tag"
+              git checkout FETCH_HEAD
+              `.trim();
+      const unixGitCloneCommands = `
+              git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
+              git checkout FETCH_HEAD
+              `.trim();
+
+      let usedShell = null;
+      if (process.platform === "win32") {
+        dirSetupCommands = dirSetupCommands + "\n" + windowsGitCloneCommands;
+        usedShell = "powershell.exe";
+      } else {
+        dirSetupCommands = dirSetupCommands + "\n" + unixGitCloneCommands;
+      }
+
+      /*  Execute the child process but do not print any std output */
+      try {
+        childProcess.execSync(dirSetupCommands, {
+          stdio: "pipe",
+          cwd: templatesDir,
+          shell: usedShell,
+        });
+      } catch (err) {
+        /* Specialised errors with recommended actions to take */
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        if (errorMessage.includes("error: unknown option")) {
+          throw new Error(
+            `${errorMessage} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+          );
+        } else if (
+          errorMessage.includes(
+            "is not recognized as an internal or external command,",
+          ) ||
+          errorMessage.includes("command not found")
+        ) {
+          throw new Error(
+            `${errorMessage} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
+          );
+        } else {
+          throw err;
+        }
+      }
+
+      fs.rmSync(path.join(templatesDir, ".git"), {
+        recursive: true,
+        force: true,
+      });
+
+      fs.cpSync(
+        selected.template === "./"
+          ? templatesDir
+          : path.join(templatesDir, selected.template),
+        siteDir,
+        { recursive: true, force: true },
+      );
+
+      fs.rmSync(templatesDir, { recursive: true, force: true });
+
+      const readmePath = path.join(siteDir, "README.md");
+      if (fs.existsSync(readmePath)) {
+        const readmeFile = fs.readFileSync(readmePath).toString();
+        const newReadmeFile = readmeFile.split("\n");
+        newReadmeFile[0] = `# ${answers.name}`;
+        newReadmeFile.splice(1, 2);
+        fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
+      }
+    } catch (err) {
+      fs.rmSync(templatesDir, { recursive: true, force: true });
+      if (createdSiteDir) {
+        fs.rmSync(siteDir, { recursive: true, force: true });
+      }
+      if (
+        !siteFolderExists &&
+        fs.existsSync(siteFolder) &&
+        fs.readdirSync(siteFolder).length === 0
+      ) {
+        fs.rmSync(siteFolder, { recursive: true, force: true });
+      }
+      throw err;
+    }
+  }
+
+  const data = {
+    $id: siteId,
+    name: answers.name,
+    framework: answers.framework.key,
+    adapter: templateFramework?.adapter || "",
+    buildRuntime: templateFramework?.buildRuntime || "",
+    installCommand: templateFramework?.installCommand || "",
+    buildCommand: templateFramework?.buildCommand || "",
+    outputDirectory: templateFramework?.outputDirectory || "",
+    fallbackFile: templateFramework?.fallbackFile || "",
+    buildSpecification: answers.buildSpecification,
+    runtimeSpecification: answers.runtimeSpecification,
+    deploymentRetention: Number(answers.deploymentRetention),
+    timeout: 30,
+    logging: true,
+    path: sitePath,
+  };
+
+  if (!data.buildRuntime) {
+    log(
+      `Build runtime for this framework not found. You will be asked to configure build runtime when you first push the site.`,
+    );
+  }
+
+  if (!data.installCommand) {
+    log(
+      `Installation command for this framework not found. You will be asked to configure the install command when you first push the site.`,
+    );
+  }
+
+  if (!data.buildCommand && siteRequiresBuildCommand(data)) {
+    log(
+      `Build command for this framework not found. You will be asked to configure the build command when you first push the site.`,
+    );
+  }
+
+  if (!data.outputDirectory) {
+    log(
+      `Output directory for this framework not found. You will be asked to configure the output directory when you first push the site.`,
+    );
+  }
+
+  localConfig.addSite(data);
+  success("Initializing site");
+  log(`Next you can use '${EXECUTABLE_NAME} push site' to deploy the changes.`);
+};
+
+export const init = new Command("init")
+  .description(commandDescriptions["init"])
+  .action(actionRunner(initResources));
+
+init
+  .command("project")
+  .description("Init a new Appwrite project")
+  .option("--organization-id <organization-id>", "Appwrite organization ID")
+  .option("--project-id <project-id>", "Appwrite project ID")
+  .option("--project-name <project-name>", "Appwrite project ID")
+  .action(actionRunner(initProject));
+
+init
+  .command("function")
+  .alias("functions")
+  .description("Init a new Appwrite function")
+  .action(actionRunner(initFunction));
+
+init
+  .command("site")
+  .alias("sites")
+  .description("Init a new Appwrite site")
+  .action(actionRunner(initSite));
+
+init
+  .command("skill")
+  .alias("skills")
+  .description("Install Appwrite skills for AI coding agents")
+  .action(actionRunner(initSkill));
+
+init
+  .command("bucket")
+  .alias("buckets")
+  .description("Init a new Appwrite bucket")
+  .action(actionRunner(initBucket));
+
+init
+  .command("team")
+  .alias("teams")
+  .description("Init a new Appwrite team")
+  .action(actionRunner(initTeam));
+
+init
+  .command("collection")
+  .alias("collections")
+  .description("Init a new Appwrite collection")
+  .action(actionRunner(initCollection));
+
+init
+  .command("table")
+  .alias("tables")
+  .description("Init a new Appwrite table")
+  .action(actionRunner(initTable));
+
+init
+  .command("topic")
+  .alias("topics")
+  .description("Init a new Appwrite topic")
+  .action(actionRunner(initTopic));

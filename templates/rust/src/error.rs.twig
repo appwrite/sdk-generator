@@ -1,0 +1,112 @@
+//! Error types for {{ spec.title }} SDK
+
+use serde_json;
+
+/// Result type alias for SDK operations
+pub type Result<T> = std::result::Result<T, {{ spec.title | caseUcfirst }}Error>;
+
+/// Main error type for {{ spec.title }} SDK
+#[derive(Debug, Clone, thiserror::Error)]
+#[error("{message}")]
+pub struct {{ spec.title | caseUcfirst }}Error {
+    pub code: u16,
+    pub message: String,
+    pub error_type: Option<String>,
+    pub response: String,
+}
+
+impl {{ spec.title | caseUcfirst }}Error {
+    pub fn new(code: u16, message: impl Into<String>, error_type: Option<String>, response: impl Into<String>) -> Self {
+        Self {
+            code,
+            message: message.into(),
+            error_type,
+            response: response.into(),
+        }
+    }
+
+    pub fn status_code(&self) -> u16 {
+        self.code
+    }
+
+    pub fn get_message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn get_type(&self) -> Option<&str> {
+        self.error_type.as_deref()
+    }
+
+    pub fn get_response(&self) -> &str {
+        &self.response
+    }
+
+    pub fn is_client_error(&self) -> bool {
+        (400..500).contains(&self.code)
+    }
+
+    pub fn is_server_error(&self) -> bool {
+        (500..600).contains(&self.code)
+    }
+}
+
+impl From<reqwest::Error> for {{ spec.title | caseUcfirst }}Error {
+    fn from(err: reqwest::Error) -> Self {
+        let code = err.status().map(|s| s.as_u16()).unwrap_or(0);
+        Self::new(code, format!("HTTP error: {}", err), None, String::new())
+    }
+}
+
+impl From<serde_json::Error> for {{ spec.title | caseUcfirst }}Error {
+    fn from(err: serde_json::Error) -> Self {
+        Self::new(0, format!("Serialization error: {}", err), None, String::new())
+    }
+}
+
+impl From<std::io::Error> for {{ spec.title | caseUcfirst }}Error {
+    fn from(err: std::io::Error) -> Self {
+        Self::new(0, format!("File error: {}", err), None, String::new())
+    }
+}
+
+/// {{ spec.title }} specific error response structure
+#[derive(Debug, serde::Deserialize)]
+pub struct ErrorResponse {
+    pub message: String,
+    pub code: Option<u16>,
+    pub r#type: Option<String>,
+    pub version: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_client_error() {
+        let error = {{ spec.title | caseUcfirst }}Error::new(
+            404,
+            "Not found",
+            None,
+            "{}",
+        );
+
+        assert_eq!(error.status_code(), 404);
+        assert_eq!(error.get_message(), "Not found");
+        assert!(error.is_client_error());
+        assert!(!error.is_server_error());
+    }
+
+    #[test]
+    fn test_server_error() {
+        let error = {{ spec.title | caseUcfirst }}Error::new(
+            500,
+            "Internal server error",
+            None,
+            "{}",
+        );
+
+        assert!(error.is_server_error());
+        assert!(!error.is_client_error());
+    }
+}

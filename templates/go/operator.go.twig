@@ -1,0 +1,277 @@
+package operator
+
+import (
+	"encoding/json"
+	"fmt"
+	"math"
+)
+
+type Condition string
+
+const (
+	ConditionEqual              Condition = "equal"
+	ConditionNotEqual           Condition = "notEqual"
+	ConditionGreaterThan        Condition = "greaterThan"
+	ConditionGreaterThanEqual   Condition = "greaterThanEqual"
+	ConditionLessThan           Condition = "lessThan"
+	ConditionLessThanEqual      Condition = "lessThanEqual"
+	ConditionContains           Condition = "contains"
+	ConditionIsNull             Condition = "isNull"
+	ConditionIsNotNull          Condition = "isNotNull"
+)
+
+type operatorOptions struct {
+	Method string
+	Values *[]interface{}
+}
+
+func validateNumeric(value interface{}, paramName string) {
+	switch v := value.(type) {
+	case float64:
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			panic(fmt.Sprintf("%s cannot be NaN or Infinity", paramName))
+		}
+	case float32:
+		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+			panic(fmt.Sprintf("%s cannot be NaN or Infinity", paramName))
+		}
+	}
+}
+
+func parseOperator(options operatorOptions) string {
+	data := struct {
+		Method string        `json:"method"`
+		Values []interface{} `json:"values"`
+	}{
+		Method: options.Method,
+	}
+
+	if options.Values != nil {
+		data.Values = *options.Values
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		panic(fmt.Errorf("failed to marshal operator data: %w", err))
+	}
+
+	return string(jsonData)
+}
+
+func Increment(value ...interface{}) string {
+	var values []interface{}
+	if len(value) == 0 {
+		values = []interface{}{1}
+	} else if len(value) == 1 {
+		validateNumeric(value[0], "value")
+		values = []interface{}{value[0]}
+	} else {
+		validateNumeric(value[0], "value")
+		validateNumeric(value[1], "max")
+		values = []interface{}{value[0], value[1]}
+	}
+	return parseOperator(operatorOptions{
+		Method: "increment",
+		Values: &values,
+	})
+}
+
+func Decrement(value ...interface{}) string {
+	var values []interface{}
+	if len(value) == 0 {
+		values = []interface{}{1}
+	} else if len(value) == 1 {
+		validateNumeric(value[0], "value")
+		values = []interface{}{value[0]}
+	} else {
+		validateNumeric(value[0], "value")
+		validateNumeric(value[1], "min")
+		values = []interface{}{value[0], value[1]}
+	}
+	return parseOperator(operatorOptions{
+		Method: "decrement",
+		Values: &values,
+	})
+}
+
+func Multiply(factor interface{}, max ...interface{}) string {
+	validateNumeric(factor, "factor")
+	values := []interface{}{factor}
+	if len(max) > 0 && max[0] != nil {
+		validateNumeric(max[0], "max")
+		values = append(values, max[0])
+	}
+	return parseOperator(operatorOptions{
+		Method: "multiply",
+		Values: &values,
+	})
+}
+
+func Divide(divisor interface{}, min ...interface{}) string {
+	validateNumeric(divisor, "divisor")
+	if len(min) > 0 && min[0] != nil {
+		validateNumeric(min[0], "min")
+	}
+	// Check for zero divisor
+	switch v := divisor.(type) {
+	case int:
+		if v == 0 {
+			panic("divisor cannot be zero")
+		}
+	case float64:
+		if v == 0.0 {
+			panic("divisor cannot be zero")
+		}
+	}
+	values := []interface{}{divisor}
+	if len(min) > 0 && min[0] != nil {
+		values = append(values, min[0])
+	}
+	return parseOperator(operatorOptions{
+		Method: "divide",
+		Values: &values,
+	})
+}
+
+func Modulo(divisor interface{}) string {
+	validateNumeric(divisor, "divisor")
+	switch v := divisor.(type) {
+	case int:
+		if v == 0 {
+			panic("divisor cannot be zero")
+		}
+	case float64:
+		if v == 0.0 {
+			panic("divisor cannot be zero")
+		}
+	}
+	values := []interface{}{divisor}
+	return parseOperator(operatorOptions{
+		Method: "modulo",
+		Values: &values,
+	})
+}
+
+func Power(exponent interface{}, max ...interface{}) string {
+	validateNumeric(exponent, "exponent")
+	values := []interface{}{exponent}
+	if len(max) > 0 && max[0] != nil {
+		validateNumeric(max[0], "max")
+		values = append(values, max[0])
+	}
+	return parseOperator(operatorOptions{
+		Method: "power",
+		Values: &values,
+	})
+}
+
+func ArrayAppend(values []interface{}) string {
+	return parseOperator(operatorOptions{
+		Method: "arrayAppend",
+		Values: &values,
+	})
+}
+
+func ArrayPrepend(values []interface{}) string {
+	return parseOperator(operatorOptions{
+		Method: "arrayPrepend",
+		Values: &values,
+	})
+}
+
+func ArrayInsert(index int, value interface{}) string {
+	values := []interface{}{index, value}
+	return parseOperator(operatorOptions{
+		Method: "arrayInsert",
+		Values: &values,
+	})
+}
+
+func ArrayRemove(value interface{}) string {
+	values := []interface{}{value}
+	return parseOperator(operatorOptions{
+		Method: "arrayRemove",
+		Values: &values,
+	})
+}
+
+func ArrayUnique() string {
+	values := []interface{}{}
+	return parseOperator(operatorOptions{
+		Method: "arrayUnique",
+		Values: &values,
+	})
+}
+
+func ArrayIntersect(values []interface{}) string {
+	return parseOperator(operatorOptions{
+		Method: "arrayIntersect",
+		Values: &values,
+	})
+}
+
+func ArrayDiff(values []interface{}) string {
+	return parseOperator(operatorOptions{
+		Method: "arrayDiff",
+		Values: &values,
+	})
+}
+
+func ArrayFilter(condition Condition, value ...interface{}) string {
+	values := []interface{}{string(condition), nil}
+	if len(value) > 0 && value[0] != nil {
+		values[1] = value[0]
+	}
+	return parseOperator(operatorOptions{
+		Method: "arrayFilter",
+		Values: &values,
+	})
+}
+
+func StringConcat(value interface{}) string {
+	values := []interface{}{value}
+	return parseOperator(operatorOptions{
+		Method: "stringConcat",
+		Values: &values,
+	})
+}
+
+func StringReplace(search string, replace string) string {
+	values := []interface{}{search, replace}
+	return parseOperator(operatorOptions{
+		Method: "stringReplace",
+		Values: &values,
+	})
+}
+
+func Toggle() string {
+	values := []interface{}{}
+	return parseOperator(operatorOptions{
+		Method: "toggle",
+		Values: &values,
+	})
+}
+
+func DateAddDays(days int) string {
+	values := []interface{}{days}
+	return parseOperator(operatorOptions{
+		Method: "dateAddDays",
+		Values: &values,
+	})
+}
+
+func DateSubDays(days int) string {
+	values := []interface{}{days}
+	return parseOperator(operatorOptions{
+		Method: "dateSubDays",
+		Values: &values,
+	})
+}
+
+func DateSetNow() string {
+	values := []interface{}{}
+	return parseOperator(operatorOptions{
+		Method: "dateSetNow",
+		Values: &values,
+	})
+}

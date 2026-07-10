@@ -1,0 +1,100 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Appwrite\SDK\Language;
+
+use Override;
+
+class CodexPlugin extends Skills
+{
+    #[Override]
+    public function getName(): string
+    {
+        return 'CodexPlugin';
+    }
+
+    #[Override]
+    public function getFiles(): array
+    {
+        $languages = [
+            'typescript',
+            'dart',
+            'kotlin',
+            'swift',
+            'php',
+            'python',
+            'ruby',
+            'go',
+            'rust',
+            'dotnet',
+            'cli',
+        ];
+
+        $files = [];
+
+        foreach ($languages as $lang) {
+            $files[] = [
+                'scope'       => 'default',
+                'destination' => 'plugins/{{ spec.title | caseLower }}/skills/{{ spec.title | caseLower }}-' . $lang . '/SKILL.md',
+                'template'    => 'skills/' . $lang . '.md.twig',
+            ];
+        }
+
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'plugins/{{ spec.title | caseLower }}/.codex-plugin/plugin.json',
+            'template'    => 'codex-plugin/plugin.json.twig',
+        ];
+
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => '.agents/plugins/marketplace.json',
+            'template'    => 'codex-plugin/marketplace.json.twig',
+        ];
+
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'plugins/{{ spec.title | caseLower }}/.mcp.json',
+            'template'    => 'codex-plugin/.mcp.json.twig',
+        ];
+
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'plugins/{{ spec.title | caseLower }}/skills/{{ spec.title | caseLower }}-deploy-site/SKILL.md',
+            'template'    => 'plugin/commands/deploy-site.md.twig',
+        ];
+
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'plugins/{{ spec.title | caseLower }}/skills/{{ spec.title | caseLower }}-deploy-function/SKILL.md',
+            'template'    => 'plugin/commands/deploy-function.md.twig',
+        ];
+
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'plugins/{{ spec.title | caseLower }}/config.toml',
+            'template'    => 'codex-plugin/config.toml.twig',
+        ];
+
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'README.md',
+            'template'    => 'codex-plugin/README.md.twig',
+        ];
+
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'CHANGELOG.md',
+            'template'    => 'skills/CHANGELOG.md.twig',
+        ];
+
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'LICENSE',
+            'template'    => 'plugin/LICENSE.twig',
+        ];
+
+        return $files;
+    }
+}

@@ -1,0 +1,13 @@
+Gem::Specification.new do |spec|
+
+  spec.name = '{{spec.title | caseLower | caseSnake}}'
+  spec.version = '{{ sdk.version }}'
+  spec.license = '{{ spec.licenseName }}'
+  spec.summary = '{{ sdk.shortDescription }}'
+  spec.author = '{{ spec.contactName }}'
+  spec.homepage = '{{ spec.contactURL }}'
+  spec.email = '{{ spec.contactEmail }}'
+  spec.files = Dir['lib/**/*.rb']
+
+  spec.add_dependency 'mime-types', '~> 3.4.1'
+end

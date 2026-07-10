@@ -1,0 +1,16 @@
+name: Analyze and test
+
+on: pull_request
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+      - name: Install dependencies
+        run: dart pub get
+      - name: Analyze
+        run: dart analyze --no-fatal-warnings
+      - name: Test
+        run: dart test

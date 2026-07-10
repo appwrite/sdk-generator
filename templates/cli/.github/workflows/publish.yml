@@ -1,0 +1,260 @@
+name: Publish Package to npmjs
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  actions: read
+  id-token: write
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    env:
+      # Bun 1.3.12 has a sig_size calculation bug in macho.zig that truncates the
+      # LC_CODE_SIGNATURE blob on cross-compiled Darwin binaries, so macOS kills
+      # them on launch (oven-sh/bun#29120). Unpin once a Bun release includes the
+      # upstream fix (oven-sh/bun#29122).
+      CLI_BUN_VERSION: '1.3.11'
+      HOMEBREW_TAP_REPO: appwrite/homebrew-appwrite
+      WINDOWS_SIGNING_PROJECT_SLUG: ${{ vars.WINDOWS_SIGNING_PROJECT_SLUG || 'sdk-for-cli' }}
+      WINDOWS_SIGNING_POLICY_SLUG: ${{ vars.WINDOWS_SIGNING_POLICY_SLUG || 'release-signing' }}
+      WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG: ${{ vars.WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG || 'initial' }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.CLI_BUN_VERSION }}
+
+      - name: Setup binfmt with QEMU
+        run: | 
+          sudo apt update
+          sudo apt install qemu-system binfmt-support qemu-user-static osslsigncode
+          update-binfmts --display
+
+      - name: Setup ldid
+        run: |
+          git clone https://github.com/tpoechtrager/ldid
+          cd ./ldid
+          sudo make
+          sudo make install
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Fetch keyring native bindings for all targets
+        run: |
+          version="$(bun -e 'console.log(require("@napi-rs/keyring/package.json").version)')"
+          for triple in darwin-arm64 darwin-x64 linux-x64-gnu linux-arm64-gnu win32-x64-msvc win32-arm64-msvc; do
+            dir="node_modules/@napi-rs/keyring-$triple"
+            [ -d "$dir" ] && continue
+            mkdir -p "$dir"
+            curl -fsSL "https://registry.npmjs.org/@napi-rs/keyring-$triple/-/keyring-$triple-$version.tgz" | tar -xz -C "$dir" --strip-components=1
+          done
+
+      - name: Build for Linux and Windows
+        run: |
+          bun run linux-x64
+          bun run linux-arm64
+          bun run mac-x64
+          bun run mac-arm64
+          bun run windows-x64
+          bun run windows-arm64
+
+      - name: Upload unsigned Windows binaries
+        id: upload-windows-unsigned
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-unsigned
+          path: |
+            build/appwrite-cli-win-x64.exe
+            build/appwrite-cli-win-arm64.exe
+
+      - name: Submit Windows binaries for signing
+        uses: signpath/github-action-submit-signing-request@b9d91eadd323de506c0c81cf0c7fe7438f3360fd # v2
+        with:
+          api-token: ${{ secrets.WINDOWS_SIGNING_API_TOKEN }}
+          organization-id: ${{ vars.WINDOWS_SIGNING_ORGANIZATION_ID }}
+          project-slug: ${{ env.WINDOWS_SIGNING_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.WINDOWS_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ env.WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload-windows-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: build-signed
+          parameters: |
+            version: "${{ github.event.release.tag_name }}"
+
+      - name: Replace unsigned Windows binaries
+        run: |
+          set -euo pipefail
+
+          signed_x64="$(find build-signed -type f -name 'appwrite-cli-win-x64.exe' -print -quit)"
+          signed_arm64="$(find build-signed -type f -name 'appwrite-cli-win-arm64.exe' -print -quit)"
+
+          if [ -z "$signed_x64" ] || [ -z "$signed_arm64" ]; then
+            echo "Signed Windows binaries were not found in build-signed"
+            find build-signed -type f -print
+            exit 1
+          fi
+
+          cp "$signed_x64" build/appwrite-cli-win-x64.exe
+          cp "$signed_arm64" build/appwrite-cli-win-arm64.exe
+
+      - name: Verify Windows signatures
+        run: |
+          set -uo pipefail
+
+          verify_signature() {
+            local file="$1"
+            local output rc
+            rc=0
+            output="$(osslsigncode verify -in "$file" 2>&1)" || rc=$?
+            echo "--- $file (osslsigncode exit $rc) ---"
+            echo "$output"
+
+            if [ "$rc" -ne 0 ] || ! grep -Fq "Succeeded" <<< "$output"; then
+              echo "::warning::$file signature verification failed; continuing while Windows signing policy is being enabled"
+            fi
+          }
+
+          verify_signature build/appwrite-cli-win-x64.exe
+          verify_signature build/appwrite-cli-win-arm64.exe
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24.14.1'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Pin npm for trusted publishing
+        run: npm install -g npm@11.10.0
+
+      - name: Determine release tag
+        id: release_tag
+        run: |
+          if [[ "${{ github.ref }}" == *"-rc"* ]] || [[ "${{ github.ref }}" == *"-RC"* ]]; then
+            echo "tag=next" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Audit npm dependencies
+        run: npm audit --package-lock-only --audit-level=high --omit=dev
+
+      - name: Publish
+        run: npm publish --provenance --access public --tag ${{ steps.release_tag.outputs.tag }}
+
+      - uses: fnkr/github-action-ghr@2fcb5ab637a49c14f4b3e7d81d0389d059171d35 # v1
+        env:
+          GHR_PATH: build/
+          GHR_REPLACE: false
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Check out Homebrew tap
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: ${{ env.HOMEBREW_TAP_REPO }}
+          token: ${{ secrets.HOMEBREW_TAP_GH_TOKEN }}
+          path: homebrew-tap
+          fetch-depth: 0
+
+      - name: Update Homebrew formula in tap
+        id: tap
+        working-directory: homebrew-tap
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          FORMULA_PATH="$(find Formula -maxdepth 1 -name '*.rb' | head -n 1)"
+          if [ -z "$FORMULA_PATH" ]; then
+            echo "No formula found in Homebrew tap"
+            exit 1
+          fi
+          EXECUTABLE_NAME="$(basename "$FORMULA_PATH" .rb)"
+
+          export FORMULA_PATH EXECUTABLE_NAME
+          export MAC_ARM64_SHA256="$(sha256sum "../build/${EXECUTABLE_NAME}-cli-darwin-arm64" | awk '{print $1}')"
+          export MAC_X64_SHA256="$(sha256sum "../build/${EXECUTABLE_NAME}-cli-darwin-x64" | awk '{print $1}')"
+          export LINUX_ARM64_SHA256="$(sha256sum "../build/${EXECUTABLE_NAME}-cli-linux-arm64" | awk '{print $1}')"
+          export LINUX_X64_SHA256="$(sha256sum "../build/${EXECUTABLE_NAME}-cli-linux-x64" | awk '{print $1}')"
+
+          ruby <<'RUBY'
+          formula_path = ENV.fetch("FORMULA_PATH")
+          executable = ENV.fetch("EXECUTABLE_NAME")
+          release_tag = ENV.fetch("RELEASE_TAG")
+          checksums = {
+            "#{executable}-cli-darwin-arm64" => ENV.fetch("MAC_ARM64_SHA256"),
+            "#{executable}-cli-darwin-x64" => ENV.fetch("MAC_X64_SHA256"),
+            "#{executable}-cli-linux-arm64" => ENV.fetch("LINUX_ARM64_SHA256"),
+            "#{executable}-cli-linux-x64" => ENV.fetch("LINUX_X64_SHA256"),
+          }
+
+          text = File.read(formula_path)
+
+          unless text.sub!(/^(\s*version ")([^"]+)(")$/) { "#{$1}#{release_tag}#{$3}" }
+            abort("Failed to update formula version")
+          end
+
+          checksums.each do |artifact, checksum|
+            pattern = /(#{Regexp.escape(artifact)}"\n\s+sha256 ")([0-9a-f]{64})(")/
+            unless text.sub!(pattern) { "#{$1}#{checksum}#{$3}" }
+              abort("Failed to update checksum for #{artifact}")
+            end
+          end
+
+          File.write(formula_path, text)
+          RUBY
+
+          ruby -c "$FORMULA_PATH"
+
+          {
+            echo "executable=${EXECUTABLE_NAME}"
+            echo "formula_path=${FORMULA_PATH}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request on Homebrew tap
+        working-directory: homebrew-tap
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          EXECUTABLE_NAME: ${{ steps.tap.outputs.executable }}
+          FORMULA_PATH: ${{ steps.tap.outputs.formula_path }}
+          SOURCE_REPO: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_GH_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- "$FORMULA_PATH"; then
+            echo "Homebrew formula already up to date for ${RELEASE_TAG}"
+            exit 0
+          fi
+
+          BASE_BRANCH="$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')"
+          BRANCH="release/${EXECUTABLE_NAME}-${RELEASE_TAG}"
+
+          git config user.name "appwrite-bot"
+          git config user.email "bot@appwrite.io"
+
+          git checkout -B "$BRANCH"
+          git add "$FORMULA_PATH"
+          git commit -m "${EXECUTABLE_NAME} ${RELEASE_TAG}"
+          git push -f -u origin "$BRANCH"
+
+          PR_TITLE="${EXECUTABLE_NAME} ${RELEASE_TAG}"
+          PR_BODY=$(printf 'Automated formula update for the `%s` CLI release [`%s`](%s/%s/releases/tag/%s).\n\nOpened automatically by the `%s` publish workflow after release binaries were uploaded.' "$EXECUTABLE_NAME" "$RELEASE_TAG" "$SERVER_URL" "$SOURCE_REPO" "$RELEASE_TAG" "${SOURCE_REPO#*/}")
+
+          EXISTING_PR="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' || true)"
+          if [ -n "$EXISTING_PR" ]; then
+            gh pr edit "$EXISTING_PR" --title "$PR_TITLE" --body "$PR_BODY"
+          else
+            gh pr create \
+              --title "$PR_TITLE" \
+              --body "$PR_BODY" \
+              --base "$BASE_BRANCH" \
+              --head "$BRANCH"
+          fi

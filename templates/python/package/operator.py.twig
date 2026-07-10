@@ -1,0 +1,150 @@
+import json
+import math
+from enum import Enum
+
+class Condition(Enum):
+    EQUAL = "equal"
+    NOT_EQUAL = "notEqual"
+    GREATER_THAN = "greaterThan"
+    GREATER_THAN_EQUAL = "greaterThanEqual"
+    LESS_THAN = "lessThan"
+    LESS_THAN_EQUAL = "lessThanEqual"
+    CONTAINS = "contains"
+    IS_NULL = "isNull"
+    IS_NOT_NULL = "isNotNull"
+
+class Operator():
+    def __init__(self, method, values=None):
+        self.method = method
+
+        if values is not None:
+            self.values = values if isinstance(values, list) else [values]
+
+    def __str__(self):
+        return json.dumps(
+            self.__dict__,
+            separators=(",", ":"),
+            default=lambda obj: obj.__dict__
+        )
+
+    @staticmethod
+    def increment(value=1, max=None):
+        if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+            raise ValueError("Value cannot be NaN or Infinity")
+        if max is not None and isinstance(max, float) and (math.isnan(max) or math.isinf(max)):
+            raise ValueError("Max cannot be NaN or Infinity")
+        values = [value]
+        if max is not None:
+            values.append(max)
+        return str(Operator("increment", values))
+
+    @staticmethod
+    def decrement(value=1, min=None):
+        if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+            raise ValueError("Value cannot be NaN or Infinity")
+        if min is not None and isinstance(min, float) and (math.isnan(min) or math.isinf(min)):
+            raise ValueError("Min cannot be NaN or Infinity")
+        values = [value]
+        if min is not None:
+            values.append(min)
+        return str(Operator("decrement", values))
+
+    @staticmethod
+    def multiply(factor, max=None):
+        if isinstance(factor, float) and (math.isnan(factor) or math.isinf(factor)):
+            raise ValueError("Factor cannot be NaN or Infinity")
+        if max is not None and isinstance(max, float) and (math.isnan(max) or math.isinf(max)):
+            raise ValueError("Max cannot be NaN or Infinity")
+        values = [factor]
+        if max is not None:
+            values.append(max)
+        return str(Operator("multiply", values))
+
+    @staticmethod
+    def divide(divisor, min=None):
+        if isinstance(divisor, float) and (math.isnan(divisor) or math.isinf(divisor)):
+            raise ValueError("Divisor cannot be NaN or Infinity")
+        if min is not None and isinstance(min, float) and (math.isnan(min) or math.isinf(min)):
+            raise ValueError("Min cannot be NaN or Infinity")
+        if divisor == 0:
+            raise ValueError("Divisor cannot be zero")
+        values = [divisor]
+        if min is not None:
+            values.append(min)
+        return str(Operator("divide", values))
+
+    @staticmethod
+    def modulo(divisor):
+        if isinstance(divisor, float) and (math.isnan(divisor) or math.isinf(divisor)):
+            raise ValueError("Divisor cannot be NaN or Infinity")
+        if divisor == 0:
+            raise ValueError("Divisor cannot be zero")
+        return str(Operator("modulo", [divisor]))
+
+    @staticmethod
+    def power(exponent, max=None):
+        if isinstance(exponent, float) and (math.isnan(exponent) or math.isinf(exponent)):
+            raise ValueError("Exponent cannot be NaN or Infinity")
+        if max is not None and isinstance(max, float) and (math.isnan(max) or math.isinf(max)):
+            raise ValueError("Max cannot be NaN or Infinity")
+        values = [exponent]
+        if max is not None:
+            values.append(max)
+        return str(Operator("power", values))
+
+    @staticmethod
+    def array_append(values):
+        return str(Operator("arrayAppend", values))
+
+    @staticmethod
+    def array_prepend(values):
+        return str(Operator("arrayPrepend", values))
+
+    @staticmethod
+    def array_insert(index, value):
+        return str(Operator("arrayInsert", [index, value]))
+
+    @staticmethod
+    def array_remove(value):
+        return str(Operator("arrayRemove", [value]))
+
+    @staticmethod
+    def array_unique():
+        return str(Operator("arrayUnique", []))
+
+    @staticmethod
+    def array_intersect(values):
+        return str(Operator("arrayIntersect", values))
+
+    @staticmethod
+    def array_diff(values):
+        return str(Operator("arrayDiff", values))
+
+    @staticmethod
+    def array_filter(condition, value=None):
+        values = [condition.value if isinstance(condition, Condition) else condition, value]
+        return str(Operator("arrayFilter", values))
+
+    @staticmethod
+    def string_concat(value):
+        return str(Operator("stringConcat", [value]))
+
+    @staticmethod
+    def string_replace(search, replace):
+        return str(Operator("stringReplace", [search, replace]))
+
+    @staticmethod
+    def toggle():
+        return str(Operator("toggle", []))
+
+    @staticmethod
+    def date_add_days(days):
+        return str(Operator("dateAddDays", [days]))
+
+    @staticmethod
+    def date_sub_days(days):
+        return str(Operator("dateSubDays", [days]))
+
+    @staticmethod
+    def date_set_now():
+        return str(Operator("dateSetNow", []))

@@ -1,0 +1,176 @@
+from ..service import Service
+from urllib.parse import quote
+from typing import Any, Dict, List, Optional, Union{% set hasGenericModel = false %}{% for method in service.methods %}{% if method.responseModel and method.responseModel != 'any' and method.responseModel | hasGenericType(spec) %}{% set hasGenericModel = true %}{% endif %}{% endfor %}{% if hasGenericModel %}, Type, TypeVar{% endif %}
+
+from ..exception import AppwriteException
+from appwrite.utils.deprecated import deprecated
+{% set added = [] %}
+{% for method in service.methods %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' and parameter.type not in added %}
+from ..input_file import InputFile
+{% set added = added|merge(['InputFile']) %}
+{% endif %}
+{% if parameter.enumValues is not empty%}
+{% if parameter.enumName not in added %}
+from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName | caseUcfirst }}
+{% set added = added|merge([parameter.enumName]) %}
+{% endif %}
+{% endif %}
+{% set modelName = parameter.model ?? parameter.array.model ?? null %}
+{% if modelName %}
+{% if modelName not in added %}
+{% if (modelName | caseUcfirst) == (service.name | caseUcfirst) %}
+from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }} as {{ modelName | caseUcfirst }}Model
+{% else %}
+from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }}
+{% endif %}
+{% set added = added|merge([modelName]) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% if method.responseModel and method.responseModel != 'any' %}
+{% if method.responseModel not in added %}
+{% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}
+from ..models.{{ method.responseModel | caseSnake }} import {{ method.responseModel | caseUcfirst }} as {{ method.responseModel | caseUcfirst }}Model
+{% else %}
+from ..models.{{ method.responseModel | caseSnake }} import {{ method.responseModel | caseUcfirst }}
+{% endif %}
+{% set added = added|merge([method.responseModel]) %}
+{% endif %}
+{% endif %}
+{% if method.responseModels is defined and method.responseModels|length > 1 %}
+{% for responseModel in method.responseModels %}
+{% if responseModel and responseModel != 'any' and responseModel not in added %}
+{% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}
+from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }} as {{ responseModel | caseUcfirst }}Model
+{% else %}
+from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }}
+{% endif %}
+{% set added = added|merge([responseModel]) %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% if hasGenericModel %}
+
+T = TypeVar('T')
+{% endif %}
+
+class {{ service.name | caseUcfirst }}(Service):
+
+    def __init__(self, client) -> None:
+        super({{ service.name | caseUcfirst }}, self).__init__(client)
+{% for method in service.methods %}
+{% set methodNameSnake = method.name | caseSnake %}
+{# Check if this method should be skipped (is deprecated and has a non-deprecated duplicate) #}
+{% set shouldSkip = false %}
+{% if method.deprecated %}
+{% for otherMethod in service.methods %}
+{% if not otherMethod.deprecated and (otherMethod.name | caseSnake) == methodNameSnake %}
+{% set shouldSkip = true %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if not shouldSkip %}
+{% set validResponseModels = [] %}
+{% if method.responseModels is defined and method.responseModels|length > 1 %}
+{% for responseModel in method.responseModels %}
+{% if responseModel and responseModel != 'any' %}
+{% set validResponseModels = validResponseModels|merge([responseModel]) %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% set isGenericResponse = method.responseModel and method.responseModel != 'any' and method.responseModel | hasGenericType(spec) %}
+
+{% if method.deprecated %}
+{% if method.since and method.replaceWith %}
+    @deprecated("This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | caseSnakeExceptFirstDot }}` instead.")
+{% else %}
+    @deprecated("This API has been deprecated.")
+{% endif %}
+{% endif %}
+{% set returnType %}
+{% if method.type == 'webAuth' %}
+str
+{% elseif method.type == 'location' %}
+bytes
+{% elseif validResponseModels|length > 1 %}
+Union[{% for responseModel in validResponseModels %}{% if not loop.first %}, {% endif %}{% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ responseModel | caseUcfirst }}Model{% else %}{{ responseModel | caseUcfirst }}{% endif %}{% endfor %}]
+{% elseif validResponseModels|length == 1 %}
+{% if (validResponseModels[0] | caseUcfirst) == (service.name | caseUcfirst) %}{{ validResponseModels[0] | caseUcfirst }}Model{% else %}{{ validResponseModels[0] | caseUcfirst }}{% endif %}
+{% elseif method.responseModel and method.responseModel != 'any' %}
+{% if isGenericResponse %}{% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}[T]{% elseif (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}
+{% else %}
+Dict[str, Any]
+{% endif %}
+{% endset %}
+    def {{ method.name | caseSnake }}(
+        self{% for parameter in method.parameters.all %},
+        {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service.name) | raw }}{% if not parameter.required %} = None{% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},
+        on_progress = None{% endif %}{% if isGenericResponse %},
+        model_type: Type[T] = dict{% endif %}
+
+    ) -> {{ returnType | trim }}:
+        """
+        {% autoescape false %}{{ method.description | replace({"\n": "\n        "}) }}{% endautoescape %}
+
+{% if method.parameters.all|length > 0 or 'multipart/form-data' in method.consumes or isGenericResponse %}
+
+{% if method.deprecated %}
+{%~ if method.since and method.replaceWith %}
+        .. deprecated::{{ method.since }}
+            This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | caseSnakeExceptFirstDot }}` instead.
+{%~ else %}
+        .. deprecated::
+            This API has been deprecated.
+{%~ endif %}
+{% endif %}
+        Parameters
+        ----------
+        {% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getServicePropertyType(service.name) | raw }}
+            {% autoescape false %}{{ parameter.description | replace({"\n": "\n            "}) }}{% endautoescape %}
+
+        {% endfor %}{% if 'multipart/form-data' in method.consumes %}
+        on_progress : callable, optional
+            Optional callback for upload progress
+        {% endif %}{%~ if isGenericResponse ~%}
+        model_type : Type[T], optional
+            Pydantic model class for the user-defined data. Defaults to dict for backward compatibility.
+        {% endif %}{% endif %}
+
+        Returns
+        -------
+        {% if method.type == 'webAuth' %}str
+            Authentication response as a string
+        {% elseif method.type == 'location' %}bytes
+            Response as bytes
+        {% elseif validResponseModels|length > 1 %}{{ method | getResponseType(service.name) }}
+            API response as one of the typed response models
+        {% elseif validResponseModels|length == 1 %}{{ validResponseModels[0] | caseUcfirst }}
+            API response as a typed Pydantic model
+        {% elseif method.responseModel and method.responseModel != 'any' %}{% if isGenericResponse %}{% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}[T]
+{% else %}{{ method | getResponseType(service.name) }}
+{% endif %}            API response as a typed Pydantic model
+        {% else %}Dict[str, Any]
+            API response as a dictionary
+        {% endif %}
+
+        Raises
+        ------
+        AppwriteException
+            If API request fails
+        """
+
+        api_path = '{{ method.path }}'
+        {%~ for security in method.securityQueries %}
+        api_path += '{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=' + quote(str(self.client.get_config('{{ security.name | caseLower }}')), safe='')
+        {%~ endfor %}
+{{ include('python/base/params.twig') }}
+{% if 'multipart/form-data' in method.consumes %}
+{{ include('python/base/requests/file.twig') }}
+{% else %}
+{{ include('python/base/requests/api.twig') }}
+{% endif %}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,337 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "reviewers": ["ChiragAgg5k"],
+  "dependencyDashboard": true,
+  "branchPrefix": "renovate/",
+  "ignorePaths": [
+    "examples/**",
+    "tests/e2e/languages/go*/go.mod",
+    "tests/e2e/sdks/**",
+    "templates/cli/package.json",
+    "vendor/**",
+    "node_modules/**"
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on monday"]
+  },
+  "postUpgradeTasks": {
+    "commands": []
+  },
+  "npm": {
+    "managerFilePatterns": [
+      "/(^|/)package\\.json$/"
+    ]
+  },
+  "gradle": {
+    "managerFilePatterns": [
+      "/\\.gradle(\\.kts)?$/",
+      "/(^|/)gradle\\.properties$/",
+      "/(^|/)gradle/.+\\.toml$/",
+      "/(^|/)buildSrc/.+\\.kt$/",
+      "/\\.versions\\.toml$/",
+      "/(^|/)versions.props$/",
+      "/(^|/)versions.lock$/"
+    ]
+  },
+  "gradle-wrapper": {
+    "managerFilePatterns": [
+      "/(^|/)gradle/wrapper/gradle-wrapper\\.properties$/"
+    ]
+  },
+  "cargo": {
+    "managerFilePatterns": [
+      "/(^|/)Cargo\\.toml$/",
+      "/(^|/)Cargo\\.toml\\.twig$/"
+    ]
+  },
+  "gomod": {
+    "managerFilePatterns": [
+      "/(^|/)go\\.mod$/"
+    ]
+  },
+  "nuget": {
+    "managerFilePatterns": [
+      "/\\.csproj$/",
+      "/\\.csproj\\.twig$/"
+    ]
+  },
+  "pip_requirements": {
+    "managerFilePatterns": [
+      "/(^|/)([\\w-]*)requirements(?:\\.(?<constraints>constraints|pip))?\\.(?<ext>txt|in)$/",
+      "/(^|/)requirements\\.txt\\.twig$/"
+    ]
+  },
+  "pub": {
+    "managerFilePatterns": [
+      "/(^|/)pubspec\\.ya?ml$/",
+      "/(^|/)pubspec\\.ya?ml\\.twig$/"
+    ]
+  },
+  "swift": {
+    "managerFilePatterns": [
+      "/(^|/)Package\\.swift$/",
+      "/(^|/)Package\\.swift\\.twig$/"
+    ]
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "NPM package versions in SDK templates",
+      "managerFilePatterns": ["/^templates/(web|node|react-native|cli)/package\\.json\\.twig$/"],
+      "matchStrings": [
+        "\"(?<depName>(?:@[^/\\\"]+/)?[A-Za-z0-9][A-Za-z0-9._-]*)\"\\s*:\\s*\"(?<currentValue>[~^<>=\" ]*\\d[^\\\"]*)\""
+      ],
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "description": "Composer package versions in SDK templates",
+      "managerFilePatterns": ["/^templates/php/composer\\.json\\.twig$/"],
+      "matchStrings": [
+        "\"(?<depName>[a-z0-9_.-]+/[a-z0-9_.-]+)\"\\s*:\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "packagist",
+      "versioningTemplate": "composer"
+    },
+    {
+      "customType": "regex",
+      "description": "Ruby gem versions in SDK templates",
+      "managerFilePatterns": ["/^templates/ruby/gemspec\\.twig$/"],
+      "matchStrings": [
+        "spec\\.add_dependency\\s+['\"](?<depName>[^'\"]+)['\"]\\s*,\\s*['\"](?<currentValue>[^'\"]+)['\"]"
+      ],
+      "datasourceTemplate": "rubygems",
+      "versioningTemplate": "ruby"
+    },
+    {
+      "customType": "regex",
+      "description": "Cargo crate versions in SDK templates",
+      "managerFilePatterns": ["/^templates/rust/Cargo\\.toml\\.twig$/"],
+      "matchStrings": [
+        "^[ \\t]*(?<depName>[A-Za-z0-9_-]+)\\s*=\\s*\"(?<currentValue>[^\"]+)\"",
+        "^[ \\t]*(?<depName>[A-Za-z0-9_-]+)\\s*=\\s*\\{[^\\n]*version\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "crate",
+      "versioningTemplate": "cargo"
+    },
+    {
+      "customType": "regex",
+      "description": "Maven package versions in JVM SDK templates",
+      "managerFilePatterns": ["/^templates/(android|kotlin)/.*\\.gradle\\.kts\\.twig$/"],
+      "matchStrings": [
+        "(?:api|implementation|testImplementation|androidTestImplementation)\\((?:platform\\()?\"(?<depName>[^:\"]+:[^:\"]+):(?<currentValue>[^\"]+)\"\\)?\\)"
+      ],
+      "datasourceTemplate": "maven",
+      "versioningTemplate": "maven"
+    },
+    {
+      "customType": "regex",
+      "description": "Android Gradle plugin versions in SDK templates",
+      "managerFilePatterns": ["/^templates/android/build\\.gradle\\.kts\\.twig$/"],
+      "matchStrings": [
+        "id\\(\"(?<pluginId>com\\.android\\.[^\"]+)\"\\)\\s+version\\s+\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "maven",
+      "depNameTemplate": "{{{pluginId}}}:{{{pluginId}}}.gradle.plugin",
+      "versioningTemplate": "maven"
+    },
+    {
+      "customType": "regex",
+      "description": "Kotlin Gradle plugin versions in SDK templates",
+      "managerFilePatterns": ["/^templates/kotlin/build\\.gradle\\.kts\\.twig$/"],
+      "matchStrings": [
+        "kotlin\\(\"(?<pluginName>[^\"]+)\"\\)\\s+version\\s+\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "maven",
+      "depNameTemplate": "org.jetbrains.kotlin.{{{pluginName}}}:org.jetbrains.kotlin.{{{pluginName}}}.gradle.plugin",
+      "versioningTemplate": "maven"
+    },
+    {
+      "customType": "regex",
+      "description": "Gradle Nexus publish plugin versions in SDK templates",
+      "managerFilePatterns": ["/^templates/(android|kotlin)/build\\.gradle\\.kts\\.twig$/"],
+      "matchStrings": [
+        "id\\(\"(?<pluginId>io\\.github\\.gradle-nexus\\.publish-plugin)\"\\)\\s+version\\s+\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "maven",
+      "depNameTemplate": "{{{pluginId}}}:{{{pluginId}}}.gradle.plugin",
+      "versioningTemplate": "maven"
+    },
+    {
+      "customType": "regex",
+      "description": "Swift package versions in SDK templates",
+      "managerFilePatterns": ["/^templates/(swift|apple)/Package\\.swift\\.twig$/"],
+      "matchStrings": [
+        "\\.package\\(url:\\s*\"https://github\\.com/(?<depName>[^\"]+)\\.git\",\\s*from:\\s*\"(?<currentValue>[^\"]+)\"\\)"
+      ],
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDepNames": ["node", "php", "rust-version"],
+      "enabled": false
+    },
+    {
+      "description": "Ignore npm package export override pseudo-dependency extracted from template package.json files.",
+      "matchDepNames": ["/^\\.$/"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["dtolnay/rust-toolchain", "fnkr/github-action-ghr"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["composer"],
+      "matchFileNames": ["mock-server/composer.json"],
+      "matchDepNames": [
+        "utopia-php/database",
+        "utopia-php/framework",
+        "utopia-php/swoole"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "paratest is pinned separately; enabling it alone (or with phpunit majors) leaves composer.lock unresolvable.",
+      "matchManagers": ["composer"],
+      "matchDepNames": ["brianium/paratest"],
+      "enabled": false
+    },
+    {
+      "description": "phpunit 12+/13* needs a newer paratest than we allow Renovate to bump, so majors open broken lockfile PRs.",
+      "matchManagers": ["composer"],
+      "matchDepNames": ["phpunit/phpunit"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Rector minor bumps often fail Checks/Refactor until src is re-run through the new rules.",
+      "matchManagers": ["composer"],
+      "matchDepNames": ["rector/rector"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchManagers": ["composer"],
+      "postUpdateOptions": ["composerWithAll"]
+    },
+    {
+      "matchDatasources": ["maven"],
+      "registryUrls": [
+        "https://repo.maven.apache.org/maven2",
+        "https://maven.google.com",
+        "https://plugins.gradle.org/m2"
+      ]
+    },
+    {
+      "description": "Playwright browser images are hardcoded in e2e tests; bumping the npm dep alone breaks WebChromium/ReactNative CI.",
+      "matchDepNames": ["playwright"],
+      "matchFileNames": [
+        "templates/web/package.json.twig",
+        "templates/react-native/package.json.twig"
+      ],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["pub"],
+      "matchDepNames": ["dart", "flutter"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    },
+    {
+      "matchManagers": ["npm", "custom.regex"],
+      "matchFileNames": [
+        "templates/web/package.json.twig",
+        "templates/node/package.json.twig",
+        "templates/react-native/package.json.twig",
+        "templates/cli/package.json.twig"
+      ],
+      "groupName": "typescript sdk template dependencies"
+    },
+    {
+      "matchManagers": ["custom.regex", "npm"],
+      "matchFileNames": [
+        "templates/web/package.json.twig",
+        "templates/node/package.json.twig",
+        "templates/react-native/package.json.twig",
+        "templates/cli/package.json.twig"
+      ],
+      "postUpgradeTasks": {
+        "commands": ["./scripts/update-lockfiles.sh renovate"],
+        "executionMode": "branch",
+        "fileFilters": [
+          "templates/**",
+          "examples/**"
+        ],
+        "installTools": {
+          "node": {},
+          "bun": {},
+          "php": {},
+          "composer": {}
+        }
+      }
+    },
+    {
+      "matchManagers": ["gradle", "gradle-wrapper"],
+      "groupName": "jvm sdk template dependencies",
+      "skipArtifactsUpdate": true
+    },
+    {
+      "matchManagers": ["pub"],
+      "groupName": "dart and flutter sdk template dependencies"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "groupName": "rust sdk template dependencies"
+    },
+    {
+      "matchManagers": ["nuget"],
+      "groupName": "dotnet sdk template dependencies"
+    },
+    {
+      "matchManagers": ["pip_requirements"],
+      "groupName": "python sdk template dependencies"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "groupName": "sdk template dependencies"
+    },
+    {
+      "description": "Keep Android Gradle plugin / Maven template deps out of the catch-all regex group (must follow that rule).",
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": [
+        "templates/android/**",
+        "templates/kotlin/**"
+      ],
+      "groupName": "android and kotlin sdk template dependencies"
+    },
+    {
+      "description": "Keep Swift package bumps separate from Android/npm template groups (must follow catch-all regex rule).",
+      "matchManagers": ["custom.regex", "swift"],
+      "matchFileNames": [
+        "templates/swift/**",
+        "templates/apple/**"
+      ],
+      "groupName": "swift sdk template dependencies"
+    },
+    {
+      "matchDatasources": ["npm"],
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}

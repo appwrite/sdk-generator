@@ -1,0 +1,205 @@
+import { EventEmitter } from "node:events";
+import { log } from "../parser.js";
+import { sdkForProject } from "../sdks.js";
+import { Project, ProjectKeyScopes, Users } from "@appwrite.io/console";
+
+export const openRuntimesVersion = "v5";
+
+export const runtimeNames: Record<string, string> = {
+  node: "Node.js",
+  php: "PHP",
+  ruby: "Ruby",
+  python: "Python",
+  "python-ml": "Python (ML)",
+  deno: "Deno",
+  dart: "Dart",
+  dotnet: ".NET",
+  java: "Java",
+  swift: "Swift",
+  kotlin: "Kotlin",
+  bun: "Bun",
+  go: "Go",
+};
+
+interface SystemTool {
+  isCompiled: boolean;
+  startCommand: string;
+  dependencyFiles: string[];
+}
+
+export const systemTools: Record<string, SystemTool> = {
+  node: {
+    isCompiled: false,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: ["package.json", "package-lock.json"],
+  },
+  php: {
+    isCompiled: false,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: ["composer.json", "composer.lock"],
+  },
+  ruby: {
+    isCompiled: false,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: ["Gemfile", "Gemfile.lock"],
+  },
+  python: {
+    isCompiled: false,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: ["requirements.txt", "requirements.lock"],
+  },
+  "python-ml": {
+    isCompiled: false,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: ["requirements.txt", "requirements.lock"],
+  },
+  deno: {
+    isCompiled: false,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: [],
+  },
+  dart: {
+    isCompiled: true,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: [],
+  },
+  dotnet: {
+    isCompiled: true,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: [],
+  },
+  java: {
+    isCompiled: true,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: [],
+  },
+  swift: {
+    isCompiled: true,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: [],
+  },
+  kotlin: {
+    isCompiled: true,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: [],
+  },
+  bun: {
+    isCompiled: false,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: ["package.json", "package-lock.json", "bun.lockb"],
+  },
+  go: {
+    isCompiled: true,
+    startCommand: "bash helpers/server.sh",
+    dependencyFiles: [],
+  },
+};
+
+export const JwtManager = {
+  userJwt: null as string | null,
+  functionJwt: null as string | null,
+
+  timerWarn: null as NodeJS.Timeout | null,
+  timerError: null as NodeJS.Timeout | null,
+
+  async setup(
+    userId: string | null = null,
+    projectScopes: ProjectKeyScopes[] = [],
+  ): Promise<void> {
+    const projectClient = await sdkForProject();
+    const projectService = new Project(projectClient);
+
+    if (this.timerWarn) {
+      clearTimeout(this.timerWarn);
+    }
+
+    if (this.timerError) {
+      clearTimeout(this.timerError);
+    }
+
+    this.timerWarn = setTimeout(
+      () => {
+        log(
+          "Warning: Authorized JWT will expire in 5 minutes. Please stop and re-run the command to refresh tokens for 1 hour.",
+        );
+      },
+      1000 * 60 * 55,
+    ); // 55 mins
+
+    this.timerError = setTimeout(
+      () => {
+        log(
+          "Warning: Authorized JWT just expired. Please stop and re-run the command to obtain new tokens with 1 hour validity.",
+        );
+        log("Some Appwrite API communication is not authorized now.");
+      },
+      1000 * 60 * 60,
+    ); // 60 mins
+
+    if (userId) {
+      const usersClient = new Users(projectClient);
+      await usersClient.get({
+        userId,
+      });
+      const userResponse = await usersClient.createJWT({
+        userId,
+        duration: 60 * 60,
+      });
+      this.userJwt = userResponse.jwt;
+    }
+
+    const functionResponse = await projectService.createEphemeralKey({
+      scopes: projectScopes,
+      duration: 60 * 60,
+    });
+    this.functionJwt = functionResponse.secret;
+  },
+};
+
+interface QueueReloadEvent {
+  files: string[];
+}
+
+export const Queue = {
+  files: [] as string[],
+  locked: false,
+  events: new EventEmitter(),
+  debounce: null as NodeJS.Timeout | null,
+
+  push(file: string): void {
+    if (!this.files.includes(file)) {
+      this.files.push(file);
+    }
+
+    if (!this.locked) {
+      this._trigger();
+    }
+  },
+
+  lock(): void {
+    this.files = [];
+    this.locked = true;
+  },
+
+  isEmpty(): boolean {
+    return this.files.length === 0;
+  },
+
+  unlock(): void {
+    this.locked = false;
+    if (this.files.length > 0) {
+      this._trigger();
+    }
+  },
+
+  _trigger(): void {
+    if (this.debounce) {
+      return;
+    }
+
+    this.debounce = setTimeout(() => {
+      this.events.emit("reload", { files: this.files } as QueueReloadEvent);
+      this.debounce = null;
+    }, 300);
+  },
+};

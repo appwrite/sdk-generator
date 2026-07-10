@@ -1,0 +1,209 @@
+package {{ sdk.namespace | caseDot }}
+
+import {{ sdk.namespace | caseDot }}.extensions.toJson
+import {{ sdk.namespace | caseDot }}.extensions.fromJson
+
+class Query(
+    val method: String,
+    val attribute: String? = null,
+    val values: List<Any>? = null,
+) {
+    override fun toString() = this.toJson()
+
+    companion object {
+        fun equal(attribute: String, value: Any) = Query("equal", attribute, parseValue(value)).toJson()
+
+        fun notEqual(attribute: String, value: Any) = Query("notEqual", attribute, parseValue(value)).toJson()
+
+        /**
+         * Filter resources where attribute matches a regular expression pattern.
+         *
+         * @param attribute The attribute to filter on.
+         * @param pattern The regular expression pattern to match.
+         * @returns The query string.
+         */
+        fun regex(attribute: String, pattern: String) = Query("regex", attribute, parseValue(pattern)).toJson()
+
+        fun lessThan(attribute: String, value: Any) = Query("lessThan", attribute, parseValue(value)).toJson()
+
+        fun lessThanEqual(attribute: String, value: Any) = Query("lessThanEqual", attribute, parseValue(value)).toJson()
+
+        fun greaterThan(attribute: String, value: Any) = Query("greaterThan", attribute, parseValue(value)).toJson()
+
+        fun greaterThanEqual(attribute: String, value: Any) = Query("greaterThanEqual", attribute, parseValue(value)).toJson()
+
+        fun search(attribute: String, value: String) = Query("search", attribute, listOf(value)).toJson()
+
+        fun isNull(attribute: String) = Query("isNull", attribute).toJson()
+
+        fun isNotNull(attribute: String) = Query("isNotNull", attribute).toJson()
+
+        /**
+         * Filter resources where the specified attributes exist.
+         *
+         * @param attributes The list of attributes that must exist.
+         * @returns The query string.
+         */
+        fun exists(attributes: List<String>) = Query("exists", null, attributes).toJson()
+
+        /**
+         * Filter resources where the specified attributes do not exist.
+         *
+         * @param attributes The list of attributes that must not exist.
+         * @returns The query string.
+         */
+        fun notExists(attributes: List<String>) = Query("notExists", null, attributes).toJson()
+
+        fun between(attribute: String, start: Any, end: Any) = Query("between", attribute, listOf(start, end)).toJson()
+
+        fun startsWith(attribute: String, value: String) = Query("startsWith", attribute, listOf(value)).toJson()
+
+        fun endsWith(attribute: String, value: String) = Query("endsWith", attribute, listOf(value)).toJson()
+
+        fun select(attributes: List<String>) = Query("select", null, attributes).toJson()
+
+        fun orderAsc(attribute: String) = Query("orderAsc", attribute).toJson()
+
+        fun orderDesc(attribute: String) = Query("orderDesc", attribute).toJson()
+
+        fun orderRandom() = Query("orderRandom").toJson()
+
+        fun cursorBefore(documentId: String) = Query("cursorBefore", null, listOf(documentId)).toJson()
+
+        fun cursorAfter(documentId: String) = Query("cursorAfter", null, listOf(documentId)).toJson()
+
+        fun limit(limit: Int) = Query("limit", null, listOf(limit)).toJson()
+
+        fun offset(offset: Int) = Query("offset", null, listOf(offset)).toJson()
+
+        /**
+         * Filter resources where attribute contains the specified value.
+         * For string attributes, checks if the string contains the substring.
+         *
+         * Note: For array attributes, use containsAny or containsAll instead.
+         */
+        fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value)).toJson()
+
+        /**
+         * Filter resources where attribute contains ANY of the specified values.
+         * For array and relationship attributes, matches documents where the attribute
+         * contains at least one of the given values.
+         */
+        fun containsAny(attribute: String, value: List<Any>) = Query("containsAny", attribute, value).toJson()
+
+        /**
+         * Filter resources where attribute contains ALL of the specified values.
+         * For array and relationship attributes, matches documents where the attribute
+         * contains every one of the given values.
+         */
+        fun containsAll(attribute: String, value: List<Any>) = Query("containsAll", attribute, value).toJson()
+
+        fun notContains(attribute: String, value: Any) = Query("notContains", attribute, parseValue(value)).toJson()
+
+        fun notSearch(attribute: String, value: String) = Query("notSearch", attribute, listOf(value)).toJson()
+
+        fun notBetween(attribute: String, start: Any, end: Any) = Query("notBetween", attribute, listOf(start, end)).toJson()
+
+        fun notStartsWith(attribute: String, value: String) = Query("notStartsWith", attribute, listOf(value)).toJson()
+
+        fun notEndsWith(attribute: String, value: String) = Query("notEndsWith", attribute, listOf(value)).toJson()
+
+        fun createdBefore(value: String) = lessThan("\$createdAt", value)
+
+        fun createdAfter(value: String) = greaterThan("\$createdAt", value)
+
+        fun createdBetween(start: String, end: String) = between("\$createdAt", start, end)
+
+        fun updatedBefore(value: String) = lessThan("\$updatedAt", value)
+
+        fun updatedAfter(value: String) = greaterThan("\$updatedAt", value)
+
+        fun updatedBetween(start: String, end: String) = between("\$updatedAt", start, end)
+
+        fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Query>() }).toJson()
+
+        fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Query>() }).toJson()
+
+        /**
+         * Filter array elements where at least one element matches all the specified queries.
+         *
+         * @param attribute The attribute containing the array to filter on.
+         * @param queries The list of query strings to match against array elements.
+         * @returns The query string.
+         */
+        fun elemMatch(attribute: String, queries: List<String>) = Query("elemMatch", attribute, queries.map { it.fromJson<Query>() }).toJson()
+
+        /**
+         * Filter resources where attribute is at a specific distance from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceEqual", attribute, listOf(listOf(values, distance, meters))).toJson()
+
+        /**
+         * Filter resources where attribute is not at a specific distance from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceNotEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceNotEqual", attribute, listOf(listOf(values, distance, meters))).toJson()
+
+        /**
+         * Filter resources where attribute is at a distance greater than the specified value from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceGreaterThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceGreaterThan", attribute, listOf(listOf(values, distance, meters))).toJson()
+
+        /**
+         * Filter resources where attribute is at a distance less than the specified value from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceLessThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceLessThan", attribute, listOf(listOf(values, distance, meters))).toJson()
+
+        fun vectorDot(attribute: String, vector: List<Number>) = Query("vectorDot", attribute, listOf(vector)).toJson()
+
+        fun vectorCosine(attribute: String, vector: List<Number>) = Query("vectorCosine", attribute, listOf(vector)).toJson()
+
+        fun vectorEuclidean(attribute: String, vector: List<Number>) = Query("vectorEuclidean", attribute, listOf(vector)).toJson()
+
+        fun intersects(attribute: String, values: List<Any>) = Query("intersects", attribute, listOf(values)).toJson()
+
+        fun notIntersects(attribute: String, values: List<Any>) = Query("notIntersects", attribute, listOf(values)).toJson()
+
+        fun crosses(attribute: String, values: List<Any>) = Query("crosses", attribute, listOf(values)).toJson()
+
+        fun notCrosses(attribute: String, values: List<Any>) = Query("notCrosses", attribute, listOf(values)).toJson()
+
+        fun overlaps(attribute: String, values: List<Any>) = Query("overlaps", attribute, listOf(values)).toJson()
+
+        fun notOverlaps(attribute: String, values: List<Any>) = Query("notOverlaps", attribute, listOf(values)).toJson()
+
+        fun touches(attribute: String, values: List<Any>) = Query("touches", attribute, listOf(values)).toJson()
+
+        fun notTouches(attribute: String, values: List<Any>) = Query("notTouches", attribute, listOf(values)).toJson()
+
+        private fun parseValue(value: Any): List<Any> {
+            return when (value) {
+                is List<*> -> value as List<Any>
+                else -> listOf(value)
+            }
+        }
+    }
+}

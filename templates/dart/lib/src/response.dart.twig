@@ -1,0 +1,18 @@
+import 'dart:convert';
+
+/// {{spec.title | caseUcfirst}} Response
+class Response<T> {
+  /// Initializes a [Response]
+  Response({this.data});
+
+  /// HTTP body returned from {{spec.title | caseUcfirst}}
+  T? data;
+
+  @override
+  String toString() {
+    if (data is Map) {
+      return json.encode(data);
+    }
+    return data.toString();
+  }
+}

@@ -1,0 +1,130 @@
+package {{ sdk.namespace | caseDot }}
+
+import {{ sdk.namespace | caseDot }}.extensions.toJson
+
+enum class Condition(val value: String) {
+    EQUAL("equal"),
+    NOT_EQUAL("notEqual"),
+    GREATER_THAN("greaterThan"),
+    GREATER_THAN_EQUAL("greaterThanEqual"),
+    LESS_THAN("lessThan"),
+    LESS_THAN_EQUAL("lessThanEqual"),
+    CONTAINS("contains"),
+    IS_NULL("isNull"),
+    IS_NOT_NULL("isNotNull");
+
+    override fun toString() = value
+}
+
+class Operator(
+    val method: String,
+    val values: List<Any?>? = null,
+) {
+    override fun toString() = this.toJson()
+
+    companion object {
+        fun increment(value: Number = 1, max: Number? = null): String {
+            require(!value.toDouble().isNaN() && !value.toDouble().isInfinite()) { "Value cannot be NaN or Infinity" }
+            max?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Max cannot be NaN or Infinity" } }
+            val values = mutableListOf<Any?>(value)
+            max?.let { values.add(it) }
+            return Operator("increment", values).toJson()
+        }
+
+        fun decrement(value: Number = 1, min: Number? = null): String {
+            require(!value.toDouble().isNaN() && !value.toDouble().isInfinite()) { "Value cannot be NaN or Infinity" }
+            min?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Min cannot be NaN or Infinity" } }
+            val values = mutableListOf<Any?>(value)
+            min?.let { values.add(it) }
+            return Operator("decrement", values).toJson()
+        }
+
+        fun multiply(factor: Number, max: Number? = null): String {
+            require(!factor.toDouble().isNaN() && !factor.toDouble().isInfinite()) { "Factor cannot be NaN or Infinity" }
+            max?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Max cannot be NaN or Infinity" } }
+            val values = mutableListOf<Any?>(factor)
+            max?.let { values.add(it) }
+            return Operator("multiply", values).toJson()
+        }
+
+        fun divide(divisor: Number, min: Number? = null): String {
+            require(!divisor.toDouble().isNaN() && !divisor.toDouble().isInfinite()) { "Divisor cannot be NaN or Infinity" }
+            min?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Min cannot be NaN or Infinity" } }
+            require(divisor.toDouble() != 0.0) { "Divisor cannot be zero" }
+            val values = mutableListOf<Any?>(divisor)
+            min?.let { values.add(it) }
+            return Operator("divide", values).toJson()
+        }
+
+        fun modulo(divisor: Number): String {
+            require(!divisor.toDouble().isNaN() && !divisor.toDouble().isInfinite()) { "Divisor cannot be NaN or Infinity" }
+            require(divisor.toDouble() != 0.0) { "Divisor cannot be zero" }
+            return Operator("modulo", listOf(divisor)).toJson()
+        }
+
+        fun power(exponent: Number, max: Number? = null): String {
+            require(!exponent.toDouble().isNaN() && !exponent.toDouble().isInfinite()) { "Exponent cannot be NaN or Infinity" }
+            max?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Max cannot be NaN or Infinity" } }
+            val values = mutableListOf<Any?>(exponent)
+            max?.let { values.add(it) }
+            return Operator("power", values).toJson()
+        }
+
+        fun arrayAppend(values: List<Any?>): String {
+            return Operator("arrayAppend", values).toJson()
+        }
+
+        fun arrayPrepend(values: List<Any?>): String {
+            return Operator("arrayPrepend", values).toJson()
+        }
+
+        fun arrayInsert(index: Int, value: Any): String {
+            return Operator("arrayInsert", listOf(index, value)).toJson()
+        }
+
+        fun arrayRemove(value: Any): String {
+            return Operator("arrayRemove", listOf(value)).toJson()
+        }
+
+        fun arrayUnique(): String {
+            return Operator("arrayUnique", emptyList()).toJson()
+        }
+
+        fun arrayIntersect(values: List<Any?>): String {
+            return Operator("arrayIntersect", values).toJson()
+        }
+
+        fun arrayDiff(values: List<Any?>): String {
+            return Operator("arrayDiff", values).toJson()
+        }
+
+        fun arrayFilter(condition: Condition, value: Any? = null): String {
+            val values = listOf<Any?>(condition.value, value)
+            return Operator("arrayFilter", values).toJson()
+        }
+
+        fun stringConcat(value: Any): String {
+            return Operator("stringConcat", listOf(value)).toJson()
+        }
+
+        fun stringReplace(search: String, replace: String): String {
+            return Operator("stringReplace", listOf(search, replace)).toJson()
+        }
+
+        fun toggle(): String {
+            return Operator("toggle", emptyList()).toJson()
+        }
+
+        fun dateAddDays(days: Int): String {
+            return Operator("dateAddDays", listOf(days)).toJson()
+        }
+
+        fun dateSubDays(days: Int): String {
+            return Operator("dateSubDays", listOf(days)).toJson()
+        }
+
+        fun dateSetNow(): String {
+            return Operator("dateSetNow", emptyList()).toJson()
+        }
+    }
+}
