@@ -225,7 +225,7 @@ abstract class Base extends TestCase
     protected const CLI_CONSOLE_URL_RESPONSES = [
         'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/sites/site-chirag-profile-website/deployments/deployment-123',
         'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/functions/function-sample-function/deployment-123',
-        'https://abc.example.com/console/project-self-hosted-project/sites/site-docs/deployments/deployment-456',
+        'https://abc.example.com/console/project-default-self-hosted-project/sites/site-docs/deployments/deployment-456',
     ];
 
     protected const CLI_HEADERS_RESPONSES = [

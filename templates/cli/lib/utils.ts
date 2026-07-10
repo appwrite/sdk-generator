@@ -527,11 +527,7 @@ export const getConsoleProjectSlug = (
     const hostname = new URL(endpoint).hostname;
 
     if (!isCloudHostname(hostname)) {
-      if (projectRegion) {
-        return `project-${projectRegion}-${projectId}`;
-      }
-
-      return `project-${projectId}`;
+      return `project-${projectRegion || "default"}-${projectId}`;
     }
 
     const firstSubdomain = hostname.split(".")[0];
@@ -539,7 +535,7 @@ export const getConsoleProjectSlug = (
       ? `project-${firstSubdomain}-${projectId}`
       : `project-${projectId}`;
   } catch {
-    return `project-${projectId}`;
+    return `project-${projectRegion || "default"}-${projectId}`;
   }
 };
 

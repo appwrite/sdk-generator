@@ -826,7 +826,7 @@ async function runAuthChecks() {
   });
 
   await authCheck("console-slug-region", () => {
-    assert.equal(getConsoleProjectSlug("http://localhost/v1", "proj1"), "project-proj1");
+    assert.equal(getConsoleProjectSlug("http://localhost/v1", "proj1"), "project-default-proj1");
     assert.equal(getConsoleProjectSlug("http://localhost/v1", "proj1", "fra"), "project-fra-proj1");
     assert.equal(getConsoleProjectSlug("https://fra.cloud.appwrite.io/v1", "proj1"), "project-fra-proj1");
     assert.equal(getConsoleProjectSlug("https://cloud.appwrite.io/v1", "proj1"), "project-proj1");
