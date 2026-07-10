@@ -9,6 +9,19 @@ use Twig\TwigFunction;
 class CLI extends Node
 {
     /**
+     * Generated query flag options per group, keyed by the config flag that
+     * enables them. A group is skipped when any of its option names collides
+     * with a parameter the method already declares in the spec (e.g. usage
+     * endpoints declare literal limit/offset), otherwise Commander throws on
+     * the duplicate option binding.
+     */
+    private const QUERY_FLAG_PARAMS = [
+        'filtering' => ['filter', 'where', 'sortAsc', 'sortDesc', 'cursorAfter', 'cursorBefore'],
+        'pagination' => ['limit', 'offset'],
+        'select' => ['select'],
+    ];
+
+    /**
      * List of functions to ignore for console preview.
      */
     private array $consoleIgnoreFunctions = [
@@ -234,36 +247,27 @@ class CLI extends Node
             fn (array $parameter): string => $parameter['name'] ?? '',
             $method['parameters']['all'] ?? []
         );
-        // Skip generated query flags whose names collide with the method's
-        // own parameters (e.g. usage endpoints declare literal limit/offset),
-        // otherwise Commander throws on the duplicate option binding.
-        $collides = fn (array $names): bool => array_intersect($names, $parameterNames) !== [];
+        $collides = fn (string $group): bool => array_intersect(self::QUERY_FLAG_PARAMS[$group], $parameterNames) !== [];
         $hasOnlyLimitOffsetQueries = $hasQueries && $this->hasOnlyLimitOffsetQueries($method);
-        $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true) && !$collides(['select']);
+        $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true) && !$collides('select');
         $hasSelectionOnlyQueries = $hasQueries && in_array($methodName, ['getDocument', 'getRow'], true);
-        $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries && !$collides(['filter', 'where', 'sortAsc', 'sortDesc', 'cursorAfter', 'cursorBefore']);
-        $hasPaginationQueries = $hasQueries && !$hasSelectionOnlyQueries && !$collides(['limit', 'offset']);
+        $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries && !$collides('filtering');
+        $hasPaginationQueries = $hasQueries && !$hasSelectionOnlyQueries && !$collides('pagination');
 
         $builderParams = [];
         if ($hasQueries) {
             $builderParams[] = 'queries';
 
             if ($hasFilteringQueries) {
-                $builderParams[] = 'filter';
-                $builderParams[] = 'where';
-                $builderParams[] = 'sortAsc';
-                $builderParams[] = 'sortDesc';
-                $builderParams[] = 'cursorAfter';
-                $builderParams[] = 'cursorBefore';
+                $builderParams = array_merge($builderParams, self::QUERY_FLAG_PARAMS['filtering']);
             }
 
             if ($hasPaginationQueries) {
-                $builderParams[] = 'limit';
-                $builderParams[] = 'offset';
+                $builderParams = array_merge($builderParams, self::QUERY_FLAG_PARAMS['pagination']);
             }
 
             if ($hasSelectQueries) {
-                $builderParams[] = 'select';
+                $builderParams = array_merge($builderParams, self::QUERY_FLAG_PARAMS['select']);
             }
         }
 
