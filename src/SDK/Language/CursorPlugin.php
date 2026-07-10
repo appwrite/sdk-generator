@@ -6,7 +6,7 @@ namespace Appwrite\SDK\Language;
 
 use Override;
 
-class CursorPlugin extends Skills
+class CursorPlugin extends AgentSkills
 {
     #[Override]
     public function getName(): string

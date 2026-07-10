@@ -6,7 +6,7 @@ namespace Appwrite\SDK\Language;
 
 use Override;
 
-class CodexPlugin extends Skills
+class CodexPlugin extends AgentSkills
 {
     #[Override]
     public function getName(): string

@@ -6,7 +6,7 @@ use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
-class Skills extends Language
+class AgentSkills extends Language
 {
     protected array $skillLanguages = [
         'typescript',
@@ -27,7 +27,7 @@ class Skills extends Language
 
     public function getName(): string
     {
-        return 'Skills';
+        return 'AgentSkills';
     }
 
     public function getKeywords(): array

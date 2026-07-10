@@ -6,7 +6,7 @@ namespace Appwrite\SDK\Language;
 
 use Override;
 
-class ClaudePlugin extends Skills
+class ClaudePlugin extends AgentSkills
 {
     #[Override]
     protected string $skillDestination = 'skills/%s/SKILL.md';

@@ -25,7 +25,7 @@ use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
 use Appwrite\SDK\Language\Unity;
-use Appwrite\SDK\Language\Skills;
+use Appwrite\SDK\Language\AgentSkills;
 use Appwrite\SDK\Language\ClaudePlugin;
 use Appwrite\SDK\Language\CodexPlugin;
 use Appwrite\SDK\Language\CursorPlugin;
@@ -378,7 +378,7 @@ try {
 
     // Skills
     if (!$requestedSdk || $requestedSdk === 'skills') {
-        $sdk = new SDK(new Skills(), buildStaticSpec());
+        $sdk = new SDK(new AgentSkills(), buildStaticSpec());
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/skills');
     }
