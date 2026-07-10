@@ -232,6 +232,14 @@ class CLI extends Node
         return false;
     }
 
+    private function getCliOptionName(string $name): string
+    {
+        $kebabName = strtolower((string) preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s_]|(?<=[A-Z])\d)/', '-$1', $name));
+        $kebabName = trim((string) preg_replace('/-+/', '-', str_replace('_', '-', $kebabName)), '-');
+
+        return in_array(strtolower($name), $this->reservedKeywords) ? 'x' . $kebabName : $kebabName;
+    }
+
     private function getCliQueryConfig(array $method): array
     {
         $hasQueries = $this->hasArrayQueriesParameter($method);
@@ -866,9 +874,7 @@ class CLI extends Node
              * Returns array with: method, syntax, parser, customParserCode
              */
             new TwigFunction('getCliOption', function (array $parameter): array {
-                $name = $parameter['name'];
-                $kebabName = strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $name));
-                $optionName = in_array(strtolower($name), $this->reservedKeywords) ? 'x' . $kebabName : $kebabName;
+                $optionName = $this->getCliOptionName($parameter['name']);
                 $type = $parameter['type'] ?? 'string';
                 $required = $parameter['required'] ?? false;
 
@@ -931,9 +937,7 @@ class CLI extends Node
              * This matches the option name converted to camelCase.
              */
             new TwigFunction('getCliVarName', function (array $parameter): string {
-                $name = $parameter['name'];
-                $kebabName = strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $name));
-                $optionName = in_array(strtolower($name), $this->reservedKeywords) ? 'x' . $kebabName : $kebabName;
+                $optionName = $this->getCliOptionName($parameter['name']);
                 return lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $optionName))));
             }),
 
@@ -942,9 +946,7 @@ class CLI extends Node
              * Handles JSON parsing for objects, or plain variable.
              */
             new TwigFunction('getCliArgExpression', function (array $parameter): string {
-                $name = $parameter['name'];
-                $kebabName = strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $name));
-                $optionName = in_array(strtolower($name), $this->reservedKeywords) ? 'x' . $kebabName : $kebabName;
+                $optionName = $this->getCliOptionName($parameter['name']);
                 $varName = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $optionName))));
                 $type = $parameter['type'] ?? 'string';
 
