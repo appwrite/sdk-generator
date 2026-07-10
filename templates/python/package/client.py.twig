@@ -282,6 +282,8 @@ class Client:
 
             if isinstance(value, list) or isinstance(value, dict):
                 output = {**output, **self.flatten(value, finalKey, stringify)}
+            elif isinstance(value, bool):
+                output[finalKey] = 'true' if value else 'false'
             else:
                 if stringify:
                     output[finalKey] = str(value)
