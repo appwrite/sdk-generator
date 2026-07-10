@@ -113,6 +113,17 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
     def {{ 'data' | caseSnake | removeDollarSign }}(self, value: T) -> None:
         object.__setattr__(self, '_{{ 'data' | caseSnake | removeDollarSign }}', value)
 
+    def model_dump(self, **kwargs) -> Dict[str, Any]:
+        result = super().model_dump(**kwargs)
+        if hasattr(self, '_{{ 'data' | caseSnake | removeDollarSign }}'):
+            if isinstance(self._{{ 'data' | caseSnake | removeDollarSign }}, dict):
+                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}
+            elif hasattr(self._{{ 'data' | caseSnake | removeDollarSign }}, 'model_dump'):
+                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}.model_dump(**kwargs)
+            else:
+                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}
+        return result
+
     def to_dict(self) -> Dict[str, Any]:
         result = super().to_dict()
         if hasattr(self, '_{{ 'data' | caseSnake | removeDollarSign }}'):
