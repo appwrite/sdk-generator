@@ -8,14 +8,7 @@ use Twig\TwigFunction;
 
 class CLI extends Node
 {
-    /**
-     * Generated query flag options per group, keyed by the config flag that
-     * enables them. A group is skipped when any of its option names collides
-     * with a parameter the method already declares in the spec (e.g. usage
-     * endpoints declare literal limit/offset), otherwise Commander throws on
-     * the duplicate option binding.
-     */
-    private const QUERY_FLAG_PARAMS = [
+    private const array QUERY_FLAG_PARAMS = [
         'filtering' => ['filter', 'where', 'sortAsc', 'sortDesc', 'cursorAfter', 'cursorBefore'],
         'pagination' => ['limit', 'offset'],
         'select' => ['select'],
