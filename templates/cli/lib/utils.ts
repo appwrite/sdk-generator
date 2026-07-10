@@ -526,8 +526,6 @@ export const getConsoleProjectSlug = (
   try {
     const hostname = new URL(endpoint).hostname;
 
-    // Self-hosted / non-cloud consoles always use project-{region}-{id},
-    // with region defaulting to "default" (matches Appwrite console routes).
     if (!isCloudHostname(hostname)) {
       return `project-${projectRegion || "default"}-${projectId}`;
     }
