@@ -39,14 +39,14 @@ extra["signing.secretKeyRingFile"] = signingSecretKeyRingFile.ifEmpty { localPro
 android {
     namespace = publishGroupId
 
-    compileSdk = 36
+    compileSdk = 37
 
     buildFeatures {
         buildConfig = true
     }
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 23
         buildConfigField("String", "SDK_VERSION", "\"$publishVersion\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

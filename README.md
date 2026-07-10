@@ -156,7 +156,7 @@ php example.php skills
 | Web | `web` | ES5+; Node.js >=18 for builds | [NPM Coding Style] | NPM | `examples/web/` |
 | Flutter | `flutter` | Dart >=2.17 <4; Flutter stable | [Effective Dart] | pub | `examples/flutter/` |
 | Apple | `apple` | iOS 15+, macOS 11+, watchOS 7+, tvOS 13+ | [Swift Style Guide] | Swift Package Manager | `examples/apple/` |
-| Android | `android` | Android 5.0+; Java 17 in CI | [Android style guide] | Gradle, Maven | `examples/android/` |
+| Android | `android` | Android 6.0+; Java 17 in CI | [Android style guide] | Gradle, Maven | `examples/android/` |
 | React Native | `react-native` | React Native >=0.76.7 <1.0.0; Node.js >=18 | [NPM Coding Style] | NPM | `examples/react-native/` |
 
 ### Server SDKs

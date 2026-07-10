@@ -5,13 +5,13 @@ plugins {
 android {
     namespace = "{{ sdk.namespace | caseDot }}.android"
 
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "{{ sdk.namespace | caseDot }}.android"
-        minSdk = 21
+        minSdk = 23
         @Suppress("DEPRECATION")
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
