@@ -8,6 +8,12 @@ use Twig\TwigFunction;
 
 class CLI extends Node
 {
+    private const array QUERY_FLAG_PARAMS = [
+        'filtering' => ['filter', 'where', 'sortAsc', 'sortDesc', 'cursorAfter', 'cursorBefore'],
+        'pagination' => ['limit', 'offset'],
+        'select' => ['select'],
+    ];
+
     /**
      * List of functions to ignore for console preview.
      */
@@ -230,32 +236,31 @@ class CLI extends Node
     {
         $hasQueries = $this->hasArrayQueriesParameter($method);
         $methodName = $method['name'] ?? '';
+        $parameterNames = array_map(
+            fn (array $parameter): string => $parameter['name'] ?? '',
+            $method['parameters']['all'] ?? []
+        );
+        $collides = fn (string $group): bool => array_intersect(self::QUERY_FLAG_PARAMS[$group], $parameterNames) !== [];
         $hasOnlyLimitOffsetQueries = $hasQueries && $this->hasOnlyLimitOffsetQueries($method);
-        $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true);
+        $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true) && !$collides('select');
         $hasSelectionOnlyQueries = $hasQueries && in_array($methodName, ['getDocument', 'getRow'], true);
-        $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries;
-        $hasPaginationQueries = $hasQueries && !$hasSelectionOnlyQueries;
+        $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries && !$collides('filtering');
+        $hasPaginationQueries = $hasQueries && !$hasSelectionOnlyQueries && !$collides('pagination');
 
         $builderParams = [];
         if ($hasQueries) {
             $builderParams[] = 'queries';
 
             if ($hasFilteringQueries) {
-                $builderParams[] = 'filter';
-                $builderParams[] = 'where';
-                $builderParams[] = 'sortAsc';
-                $builderParams[] = 'sortDesc';
-                $builderParams[] = 'cursorAfter';
-                $builderParams[] = 'cursorBefore';
+                $builderParams = array_merge($builderParams, self::QUERY_FLAG_PARAMS['filtering']);
             }
 
             if ($hasPaginationQueries) {
-                $builderParams[] = 'limit';
-                $builderParams[] = 'offset';
+                $builderParams = array_merge($builderParams, self::QUERY_FLAG_PARAMS['pagination']);
             }
 
             if ($hasSelectQueries) {
-                $builderParams[] = 'select';
+                $builderParams = array_merge($builderParams, self::QUERY_FLAG_PARAMS['select']);
             }
         }
 

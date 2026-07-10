@@ -30,7 +30,7 @@
 {% set isGenericResponse = method.responseModel | hasGenericType(spec) %}
 {% if isGenericResponse %}
 
-        return {{ method.responseModel | caseUcfirst }}.with_data(response, model_type)
+        return {% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}.with_data(response, model_type)
 {% else %}
 
         return self._parse_response(response, model={% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %})

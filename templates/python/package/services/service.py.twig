@@ -100,7 +100,7 @@ Union[{% for responseModel in validResponseModels %}{% if not loop.first %}, {% 
 {% elseif validResponseModels|length == 1 %}
 {% if (validResponseModels[0] | caseUcfirst) == (service.name | caseUcfirst) %}{{ validResponseModels[0] | caseUcfirst }}Model{% else %}{{ validResponseModels[0] | caseUcfirst }}{% endif %}
 {% elseif method.responseModel and method.responseModel != 'any' %}
-{% if isGenericResponse %}{{ method.responseModel | caseUcfirst }}[T]{% elseif (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}
+{% if isGenericResponse %}{% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}[T]{% elseif (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}
 {% else %}
 Dict[str, Any]
 {% endif %}
@@ -149,7 +149,7 @@ Dict[str, Any]
             API response as one of the typed response models
         {% elseif validResponseModels|length == 1 %}{{ validResponseModels[0] | caseUcfirst }}
             API response as a typed Pydantic model
-        {% elseif method.responseModel and method.responseModel != 'any' %}{% if isGenericResponse %}{{ method.responseModel | caseUcfirst }}[T]
+        {% elseif method.responseModel and method.responseModel != 'any' %}{% if isGenericResponse %}{% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}[T]
 {% else %}{{ method | getResponseType(service.name) }}
 {% endif %}            API response as a typed Pydantic model
         {% else %}Dict[str, Any]
