@@ -300,6 +300,11 @@
       "groupName": "dotnet sdk template dependencies"
     },
     {
+      "description": "net6 e2e stays on the older VSTest/NUnit stack; newer combos break TestContext capture on EOL net6.",
+      "matchFileNames": ["tests/e2e/languages/dotnet/Tests60.csproj"],
+      "enabled": false
+    },
+    {
       "matchManagers": ["pip_requirements"],
       "groupName": "python sdk template dependencies"
     },
