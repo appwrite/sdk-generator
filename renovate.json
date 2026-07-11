@@ -300,6 +300,12 @@
       "groupName": "dotnet sdk template dependencies"
     },
     {
+      "description": "Microsoft.NET.Test.Sdk 17.14+ rejects net6.0; keep Tests60 on 17.13.x.",
+      "matchPackageNames": ["Microsoft.NET.Test.Sdk"],
+      "matchFileNames": ["tests/e2e/languages/dotnet/Tests60.csproj"],
+      "allowedVersions": "<=17.13.0"
+    },
+    {
       "matchManagers": ["pip_requirements"],
       "groupName": "python sdk template dependencies"
     },
