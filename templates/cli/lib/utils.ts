@@ -456,10 +456,6 @@ export const getCloudEndpointRegion = (endpoint: string): string | null => {
 export const isLocalhostHostname = (hostname: string): boolean =>
   hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
 
-const isCloudEnvironmentHostname = (hostname: string): boolean =>
-  hostname.endsWith(".cloud.appwrite.io") &&
-  CLOUD_LOGIN_ENVIRONMENTS.has(hostname.split(".")[0]);
-
 const getCloudConsoleHostname = (hostname: string): string | null => {
   if (hostname === "cloud.appwrite.io") {
     return hostname;
@@ -490,8 +486,7 @@ export const isCloudLoginEndpoint = (endpoint: string): boolean => {
   try {
     const hostname = new URL(endpoint).hostname;
     return (
-      isCloudHostname(hostname) ||
-      isCloudEnvironmentHostname(hostname) ||
+      hostname.endsWith(".appwrite.io") ||
       (isFlagEnabled("devCloudLogin") && isLocalhostHostname(hostname))
     );
   } catch (_error) {

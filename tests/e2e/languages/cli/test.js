@@ -793,6 +793,13 @@ async function runAuthChecks() {
       assert.equal(isFlagEnabled("devCloudLogin"), false);
       assert.equal(isCloudLoginEndpoint("https://cloud.appwrite.io/v1"), true);
       assert.equal(isCloudLoginEndpoint("https://stage.cloud.appwrite.io/v1"), true);
+      assert.equal(isCloudLoginEndpoint("https://new.appwrite.io/v1"), true);
+      assert.equal(isCloudLoginEndpoint("https://appwrite.io/v1"), false);
+      assert.equal(isCloudLoginEndpoint("https://notappwrite.io/v1"), false);
+      assert.equal(
+        isCloudLoginEndpoint("https://real.appwrite.io.attacker.com/v1"),
+        false,
+      );
       assert.equal(isCloudLoginEndpoint("http://localhost/v1"), false);
     } finally {
       if (prev === undefined) delete process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
