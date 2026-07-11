@@ -300,10 +300,9 @@
       "groupName": "dotnet sdk template dependencies"
     },
     {
-      "description": "Microsoft.NET.Test.Sdk 17.14+ rejects net6.0; keep Tests60 on 17.13.x.",
-      "matchPackageNames": ["Microsoft.NET.Test.Sdk"],
+      "description": "net6 e2e stays on the older VSTest/NUnit stack; newer combos break TestContext capture on EOL net6.",
       "matchFileNames": ["tests/e2e/languages/dotnet/Tests60.csproj"],
-      "allowedVersions": "<=17.13.0"
+      "enabled": false
     },
     {
       "matchManagers": ["pip_requirements"],
