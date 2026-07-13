@@ -18,10 +18,6 @@ tests/e2e/tmp
 
 # exception to the rule
 !examples/.gitkeep 
-!examples/zed-extension/
-!examples/zed-extension/**
-examples/zed-extension/target/
-examples/zed-extension/extension.wasm
 
 **/.DS_Store
 templates/swift/example/.build

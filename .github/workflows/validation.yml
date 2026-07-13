@@ -97,9 +97,19 @@ jobs:
       - name: Generate SDK for ${{ matrix.sdk }}
         run: php example.php ${{ matrix.sdk }} ${{ matrix.platform }}
 
-      - name: Verify generated Zed extension is up to date
+      - name: Verify generated Zed extension is idempotent
         if: matrix.sdk == 'zed-extension'
-        run: git diff --exit-code examples/zed-extension
+        run: |
+          find examples/zed-extension -type f -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > /tmp/zed-extension-checksums
+
+          php example.php zed-extension
+
+          find examples/zed-extension -type f -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            | diff -u /tmp/zed-extension-checksums -
 
       # Language-specific setup
       - name: Setup Node.js
