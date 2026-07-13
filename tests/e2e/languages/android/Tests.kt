@@ -137,6 +137,13 @@ class ServiceTest {
 
         runBlocking {
             var mock: Mock
+
+            val nullableMockMap = Mock.from(mapOf("result" to "Success")).toMap()
+            check(nullableMockMap.keys.containsAll(setOf("optionalResult", "status", "relatedMock")))
+            check(nullableMockMap["optionalResult"] == null)
+            check(nullableMockMap["status"] == null)
+            check(nullableMockMap["relatedMock"] == null)
+
             // Foo Tests
             mock = foo.get("string", 123, listOf("string in array"))
             writeToFile(mock.result)
