@@ -796,13 +796,21 @@ class Kotlin extends Language
             $nestedTypeParam = $hasGenericType !== '' && $hasGenericType !== '0' ? ', nestedType' : '';
 
             if ($property['type'] === 'array') {
-                return "($mapKey as List<Map<String, Any>>).map { " .
+                $safeCast = $property['required'] ? 'as' : 'as?';
+                $safeCall = $property['required'] ? '' : '?';
+
+                return "($mapKey $safeCast List<Map<String, Any>>)$safeCall.map { " .
                        "$subSchemaClass.from(map = it$nestedTypeParam) }";
-            } else {
-                return "$subSchemaClass.from(" .
-                       "map = $mapKey as Map<String, Any>$nestedTypeParam" .
-                       ")";
             }
+
+            if (!$property['required']) {
+                return "($mapKey as? Map<String, Any>)?.let { " .
+                       "$subSchemaClass.from(map = it$nestedTypeParam) }";
+            }
+
+            return "$subSchemaClass.from(" .
+                   "map = $mapKey as Map<String, Any>$nestedTypeParam" .
+                   ")";
         }
 
         // Handle enum properties
