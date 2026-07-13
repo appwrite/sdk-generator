@@ -508,7 +508,7 @@ class Client {
      */
     set{{header.key | caseUcfirst}}(value: string): this {
         {%~ if header.global %}
-        this.headers['{{ header.name }}'] = value;
+        this.headers['{{ header.name }}'] = {% if header.type is defined and header.type == 'bearer' %}`Bearer ${value}`{% else %}value{% endif %};
         {%~ endif %}
         this.config.{{ header.key | caseLower }} = value;
         return this;
@@ -643,7 +643,6 @@ class Client {
 
 {%~ if sdk.platform == 'console' %}
                         if (this.shouldUseFallbackCredentials(this.realtime.url)) {
-{%~ endif %}
                             let session = this.config.session;
                             if (!session) {
                                 const cookie = JSONbig.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
@@ -657,7 +656,20 @@ class Client {
                                     }
                                 }));
                             }
-{%~ if sdk.platform == 'console' %}
+                        }
+{%~ else %}
+                        let session = this.config.session;
+                        if (!session) {
+                            const cookie = JSONbig.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
+                            session = cookie?.[`a_session_${this.config.project}`];
+                        }
+                        if (session && !messageData?.user) {
+                            this.realtime.socket?.send(JSONbig.stringify(<RealtimeRequest>{
+                                type: 'authentication',
+                                data: {
+                                    session
+                                }
+                            }));
                         }
 {%~ endif %}
 

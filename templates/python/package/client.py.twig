@@ -55,9 +55,9 @@ class Client:
         """{{header.description}}"""
 
 {% endif %}
-        {%~ if header.global %}
-        self._global_headers['{{header.name|lower}}'] = value
-        {%~ endif %}
+{% if header.global %}
+        self._global_headers['{{header.name|lower}}'] = {% if header.type is defined and header.type == 'bearer' %}'Bearer ' + value{% else %}value{% endif %}{{- "\n" -}}
+{% endif %}
         self._config['{{ header.key | caseLower }}'] = value
         return self
 {% endfor %}

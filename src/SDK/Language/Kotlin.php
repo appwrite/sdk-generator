@@ -809,7 +809,7 @@ class Kotlin extends Language
         if (isset($property['enum']) && !empty($property['enum'])) {
             $enumName = $property['enumName'] ?? $property['name'];
             $enumClass = $this->toPascalCase($enumName);
-            $nullCheck = $property['required'] ? '!!' : ' ?: null';
+            $nullCheck = $property['required'] ? '!!' : '';
 
             if ($property['required']) {
                 return "$enumClass.values().find { " .

@@ -165,7 +165,7 @@ impl Client {
         let value = value.into();
         self.state.rcu(|state| {
             let mut next = (**state).clone();
-            next.config.headers.insert("{{header.name | caseLower}}", value.clone().parse().unwrap());
+            next.config.headers.insert("{{header.name | caseLower}}", {% if header.type is defined and header.type == 'bearer' %}format!("Bearer {}", value){% else %}value.clone(){% endif %}.parse().unwrap());
             Arc::new(next)
         });
         self.clone()

@@ -161,17 +161,17 @@ namespace {{ spec.title | caseUcfirst }}
 
             if (!string.IsNullOrEmpty(userId))
             {
-                client.SetHeader("impersonateUserId", "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id", userId);
+                client.SetHeader("impersonateuserid", "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id", userId);
             }
 
             if (!string.IsNullOrEmpty(userEmail))
             {
-                client.SetHeader("impersonateUserEmail", "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email", userEmail);
+                client.SetHeader("impersonateuseremail", "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email", userEmail);
             }
 
             if (!string.IsNullOrEmpty(userPhone))
             {
-                client.SetHeader("impersonateUserPhone", "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone", userPhone);
+                client.SetHeader("impersonateuserphone", "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone", userPhone);
             }
 
             return client;
@@ -290,7 +290,12 @@ namespace {{ spec.title | caseUcfirst }}
         /// <returns>Client instance for method chaining</returns>
         public Client Set{{header.key | caseUcfirst}}(string value)
         {
+{% if header.type is defined and header.type == 'bearer' %}
+            _config["{{header.key | caseLower}}"] = value;
+            _headers["{{header.name}}"] = "Bearer " + value;
+{% else %}
             SetHeader("{{header.key | caseLower}}", "{{header.name}}", value);
+{% endif %}
             return this;
         }
 

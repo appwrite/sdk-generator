@@ -111,7 +111,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
                 {%- if property.type == 'array' -%}
                     (map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [[String: Any]]{% if isDocument %} ?? []{% elseif not property.required %} ?? []{% endif %}).map { {{property.sub_schema | caseUcfirst}}.from(map: $0) }
                 {%- else -%}
-                    {% if isDocument %}map["{{property.name }}"] as? [String: Any] != nil ? {{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]) : nil{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]){% endif %}
+                    {% if isDocument or not property.required %}map["{{property.name }}"] as? [String: Any] != nil ? {{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]) : nil{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]){% endif %}
                 {%- endif -%}
             {%- else -%}
                 {%- if property | isAnyCodableArray(spec) -%}
