@@ -5,7 +5,7 @@
 [![Twitter Account](https://img.shields.io/twitter/follow/appwrite?color=00acee&label=twitter&style=flat-square)](https://twitter.com/appwrite)
 [![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
 
-{{ spec.title }} tools for the [OpenAI Codex CLI](https://github.com/openai/codex). This plugin packages {{ spec.title }} SDK skills, {{ spec.title }} deployment workflow skills, and the {{ spec.title }} docs MCP server.
+{{ spec.title }} tools for the [OpenAI Codex CLI](https://github.com/openai/codex). This plugin packages {{ spec.title }} SDK skills, {{ spec.title }} deployment workflow skills, and the hosted {{ spec.title }} MCP server.
 
 ## Structure
 
@@ -89,11 +89,21 @@ Deployment workflows are exposed as explicit skills:
 
 Use these to walk through deploying {{ spec.title }} sites and functions with the {{ spec.title }} CLI. Codex can also load them automatically when a task matches the skill description.
 
-## Included MCP Servers
+## Hosted MCP Server
 
-The bundled `plugins/{{ spec.title | caseLower }}/config.toml` registers one MCP server:
+The bundled plugin and `plugins/{{ spec.title | caseLower }}/config.toml` register one `{{ spec.title | caseLower }}` server at `https://mcp.appwrite.io/`. It provides tools for working with your {{ spec.title }} workspace and projects and for searching the latest {{ spec.title }} documentation.
 
-- `{{ spec.title | caseLower }}-docs` proxies `https://mcp-for-docs.appwrite.io` through `npx mcp-remote` so Codex can search the {{ spec.title }} documentation.
+The hosted server uses browser-based OAuth, so no API key, project ID, endpoint, or other manually configured secret is required. After installing the plugin or merging the manual configuration, authenticate with:
+
+```sh
+codex mcp login {{ spec.title | caseLower }}
+```
+
+Then try:
+
+> Use {{ spec.title }} to show my workspace context and list my projects.
+
+If the browser does not open, use the authorization URL printed by Codex. Run `codex mcp logout {{ spec.title | caseLower }}` followed by `codex mcp login {{ spec.title | caseLower }}` to refresh the OAuth session, and use `codex mcp get {{ spec.title | caseLower }}` to inspect the server configuration and status.
 
 ## Verify
 
@@ -101,7 +111,7 @@ After copying, run `codex` and check:
 
 - A session about {{ spec.title }} TypeScript work loads the `{{ spec.title | caseLower }}-typescript` skill (visible in the session header).
 - Typing `$` lets you invoke the `{{ spec.title | caseLower }}-deploy-*` skills explicitly.
-- `codex mcp list` (or `codex --debug`) lists the `{{ spec.title | caseLower }}-docs` server.
+- `codex mcp list` (or `codex --debug`) lists the `{{ spec.title | caseLower }}` server.
 
 ## Contribution
 
