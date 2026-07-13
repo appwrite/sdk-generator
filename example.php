@@ -30,6 +30,7 @@ use Appwrite\SDK\Language\ClaudePlugin;
 use Appwrite\SDK\Language\CodexPlugin;
 use Appwrite\SDK\Language\CursorPlugin;
 use Appwrite\SDK\Language\Rust;
+use Appwrite\SDK\Language\ZedExtension;
 
 final class Config
 {
@@ -171,13 +172,14 @@ try {
         'cursor-plugin',
         'claude-plugin',
         'codex-plugin',
+        'zed-extension',
         'rust',
     ];
     if ($requestedSdk && !in_array($requestedSdk, $sdkTargets)) {
         throw new Exception("Unsupported SDK target: $requestedSdk");
     }
 
-    $speclessSDKs = ['skills', 'cursor-plugin', 'claude-plugin', 'codex-plugin'];
+    $speclessSDKs = ['skills', 'cursor-plugin', 'claude-plugin', 'codex-plugin', 'zed-extension'];
     $needsSpec = !$requestedSdk || !in_array($requestedSdk, $speclessSDKs);
     $spec = '';
 
@@ -402,6 +404,15 @@ try {
         $sdk = new SDK(new CodexPlugin(), buildStaticSpec());
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/codex-plugin');
+    }
+
+    // Zed Extension
+    if (!$requestedSdk || $requestedSdk === 'zed-extension') {
+        $sdk = new SDK(new ZedExtension(), buildStaticSpec());
+        configureSDK($sdk, [
+            'licenseContent' => rtrim(file_get_contents(__DIR__ . '/LICENSE.md')),
+        ]);
+        $sdk->generate(__DIR__ . '/examples/zed-extension');
     }
 
     // Rust

@@ -1,0 +1,14 @@
+id = "appwrite-mcp"
+name = "Appwrite MCP Server"
+version = "0.0.1"
+schema_version = 1
+authors = ["Appwrite"]
+description = "Manage Appwrite projects and resources with AI assistants."
+repository = "https://github.com/appwrite/sdk-generator"
+
+[lib]
+kind = "Rust"
+version = "0.7.0"
+
+[context_servers.appwrite-mcp]
+name = "Appwrite MCP Server"

@@ -162,6 +162,7 @@ Pass as first argument to generate only that SDK:
 | `cursor-plugin` | CursorPlugin | `examples/cursor-plugin/` |
 | `claude-plugin` | ClaudePlugin | `examples/claude-plugin/` |
 | `codex-plugin` | CodexPlugin | `examples/codex-plugin/` |
+| `zed-extension` | ZedExtension | `examples/zed-extension/` |
 
 ## Twig Template Variables by Scope
 
