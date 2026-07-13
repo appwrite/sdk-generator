@@ -185,11 +185,9 @@ jobs:
         if: matrix.sdk == 'rust' || matrix.sdk == 'zed-extension'
         uses: dtolnay/rust-toolchain@bd41891a8e7f4b8649f6d684415e1a6155fe4e22 # 1.83.0
 
-      - name: Install Zed extension WASM target
+      - name: Setup Rust for Zed extension
         if: matrix.sdk == 'zed-extension'
-        run: |
-          rustup component add rustfmt
-          rustup target add wasm32-wasip1
+        run: rustup toolchain install 1.86.0 --profile minimal --no-self-update --component rustfmt --target wasm32-wasip1
 
       - name: Setup Rust for cargo-audit
         if: matrix.sdk == 'rust'
@@ -301,8 +299,8 @@ jobs:
               cargo +1.83.0 test --lib
               ;;
             zed-extension)
-              cargo fmt --check
-              cargo check --target wasm32-wasip1
+              cargo +1.86.0 fmt --check
+              cargo +1.86.0 check --target wasm32-wasip1
               ;;
             *)
               echo "Unknown SDK: ${{ matrix.sdk }}"
