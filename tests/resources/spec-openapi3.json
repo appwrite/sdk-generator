@@ -2643,6 +2643,12 @@
             "description": "Result message.",
             "x-example": "Success"
           },
+          "optionalResult": {
+            "type": "string",
+            "description": "Optional result message.",
+            "default": null,
+            "x-example": null
+          },
           "status": {
             "type": "string",
             "description": "Mock status. Possible values: `active`, `inactive`, `pending`, `completed`, or `cancelled`",
