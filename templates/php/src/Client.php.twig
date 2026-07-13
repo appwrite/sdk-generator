@@ -120,7 +120,7 @@ class Client
     public function set{{header.key | caseUcfirst}}(string $value): Client
     {
         {%~ if header.global %}
-        $this->addHeader('{{header.name}}', $value);
+        $this->addHeader('{{header.name}}', {% if header.type is defined and header.type == 'bearer' %}"Bearer {$value}"{% else %}$value{% endif %});
         {%~ endif %}
         $this->config['{{ header.key | caseLower }}'] = $value;
 {% if header.type is defined and header.type == 'bearer' %}

@@ -88,10 +88,15 @@ final class OpenAPI3SpecTest extends TestCase
 
     public function testGlobalHeadersComeFromSecuritySchemes(): void
     {
-        $headers = \array_column($this->spec->getGlobalHeaders(), 'name', 'key');
+        $globalHeaders = $this->spec->getGlobalHeaders();
+        $headers = \array_column($globalHeaders, 'name', 'key');
+        $headersByKey = \array_column($globalHeaders, null, 'key');
 
         $this->assertSame('X-Appwrite-Project', $headers['Project']);
         $this->assertSame('X-Appwrite-Key', $headers['Key']);
+        $this->assertSame('Authorization', $headers['Bearer']);
+        $this->assertSame('bearer', $headersByKey['Bearer']['type']);
+        $this->assertTrue($headersByKey['Bearer']['global']);
     }
 
     public function testPathLocatedProjectAuthUsesPublicSetterName(): void

@@ -177,10 +177,31 @@ class Query(
          */
         fun distanceLessThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceLessThan", attribute, listOf(listOf(values, distance, meters))).toJson()
 
+        /**
+         * Filter resources by dot product similarity between attribute and the given vector.
+         *
+         * @param attribute The attribute to filter on.
+         * @param vector The query vector.
+         * @returns The query string.
+         */
         fun vectorDot(attribute: String, vector: List<Number>) = Query("vectorDot", attribute, listOf(vector)).toJson()
 
+        /**
+         * Filter resources by cosine similarity between attribute and the given vector.
+         *
+         * @param attribute The attribute to filter on.
+         * @param vector The query vector.
+         * @returns The query string.
+         */
         fun vectorCosine(attribute: String, vector: List<Number>) = Query("vectorCosine", attribute, listOf(vector)).toJson()
 
+        /**
+         * Filter resources by Euclidean distance between attribute and the given vector.
+         *
+         * @param attribute The attribute to filter on.
+         * @param vector The query vector.
+         * @returns The query string.
+         */
         fun vectorEuclidean(attribute: String, vector: List<Number>) = Query("vectorEuclidean", attribute, listOf(vector)).toJson()
 
         fun intersects(attribute: String, values: List<Any>) = Query("intersects", attribute, listOf(values)).toJson()

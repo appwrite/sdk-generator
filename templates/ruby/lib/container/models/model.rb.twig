@@ -39,7 +39,7 @@ module {{ spec.title | caseUcfirst }}
             def self.from(map:)
                 {{ definition.name | caseUcfirst }}.new(
 {% for property in definition.properties %}
-                    {{ property.name | caseSnake | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}map["{{ property.name }}"].map { |it| {{ property.sub_schema | caseUcfirst }}.from(map: it) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"]){% endif %}{% else %}map["{{ property.name }}"]{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+                    {{ property.name | caseSnake | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}map["{{ property.name }}"]{% if not property.required %}&.{% else %}.{% endif %}map { |it| {{ property.sub_schema | caseUcfirst }}.from(map: it) }{% else %}{% if not property.required %}map["{{property.name }}"].nil? ? nil : {% endif %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"]){% endif %}{% else %}map["{{ property.name }}"]{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}
@@ -51,7 +51,7 @@ module {{ spec.title | caseUcfirst }}
             def to_map
                 {
 {% for property in definition.properties %}
-                    "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}@{{ property.name | caseSnake | escapeKeyword | removeDollarSign }}.map { |it| it.to_map }{% else %}@{{property.name | caseSnake | escapeKeyword | removeDollarSign }}.to_map{% endif %}{% else %}@{{property.name | caseSnake | escapeKeyword }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+                    "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}@{{ property.name | caseSnake | escapeKeyword | removeDollarSign }}{% if not property.required %}&.{% else %}.{% endif %}map { |it| it.to_map }{% else %}@{{property.name | caseSnake | escapeKeyword | removeDollarSign }}{% if not property.required %}&.{% else %}.{% endif %}to_map{% endif %}{% else %}@{{property.name | caseSnake | escapeKeyword }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}

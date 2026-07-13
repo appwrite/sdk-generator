@@ -9,6 +9,7 @@ abstract class ClientBase implements Client {
 {% endif %}
   @override
   ClientBase set{{header.key | caseUcfirst}}(value);
+
 {% endfor %}
 
   @override
