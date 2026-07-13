@@ -68,6 +68,10 @@ jobs:
           - sdk: rust
             platform: server
 
+          # Tooling targets
+          - sdk: zed-extension
+            platform: console
+
           # Console SDKs
           - sdk: cli
             platform: console
@@ -92,6 +96,20 @@ jobs:
 
       - name: Generate SDK for ${{ matrix.sdk }}
         run: php example.php ${{ matrix.sdk }} ${{ matrix.platform }}
+
+      - name: Verify generated Zed extension is idempotent
+        if: matrix.sdk == 'zed-extension'
+        run: |
+          find examples/zed-extension -type f -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > /tmp/zed-extension-checksums
+
+          php example.php zed-extension
+
+          find examples/zed-extension -type f -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            | diff -u /tmp/zed-extension-checksums -
 
       # Language-specific setup
       - name: Setup Node.js
@@ -176,6 +194,10 @@ jobs:
       - name: Setup Rust
         if: matrix.sdk == 'rust'
         uses: dtolnay/rust-toolchain@bd41891a8e7f4b8649f6d684415e1a6155fe4e22 # 1.83.0
+
+      - name: Setup Rust for Zed extension
+        if: matrix.sdk == 'zed-extension'
+        run: rustup toolchain install 1.86.0 --profile minimal --no-self-update --component rustfmt --target wasm32-wasip1
 
       - name: Setup Rust for cargo-audit
         if: matrix.sdk == 'rust'
@@ -285,6 +307,10 @@ jobs:
               cargo audit
               cargo +1.83.0 build --release
               cargo +1.83.0 test --lib
+              ;;
+            zed-extension)
+              cargo +1.86.0 fmt --check
+              cargo +1.86.0 check --target wasm32-wasip1
               ;;
             *)
               echo "Unknown SDK: ${{ matrix.sdk }}"

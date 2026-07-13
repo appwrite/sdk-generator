@@ -147,6 +147,7 @@ php example.php web client
 php example.php node server
 php example.php cli console
 php example.php skills
+php example.php zed-extension
 ```
 
 ### Client SDKs
@@ -184,6 +185,8 @@ php example.php skills
 | Skills | `skills` | N/A | Markdown | N/A | `examples/skills/` |
 | Cursor Plugin | `cursor-plugin` | N/A | Markdown | N/A | `examples/cursor-plugin/` |
 | Claude Plugin | `claude-plugin` | N/A | Markdown | N/A | `examples/claude-plugin/` |
+| Codex Plugin | `codex-plugin` | N/A | Markdown | N/A | `examples/codex-plugin/` |
+| Zed Extension | `zed-extension` | Zed extension API 0.7.0 | Rust | Cargo | `examples/zed-extension/` |
 
 [PHP FIG]: https://www.php-fig.org/
 [NPM Coding Style]: https://docs.npmjs.com/misc/coding-style
