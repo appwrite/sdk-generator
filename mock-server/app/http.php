@@ -12,7 +12,7 @@ use Utopia\MockServer\Utopia\Exception;
 use Utopia\MockServer\Utopia\File;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
-use Utopia\CLI\Console;
+use Utopia\Console;
 use Utopia\MockServer\Utopia\Response;
 use Utopia\Swoole\Request;
 use Utopia\Swoole\Response as UtopiaSwooleResponse;
