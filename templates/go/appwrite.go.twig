@@ -68,9 +68,9 @@ func WithChunkSize(size int64) client.ClientOption {
 func With{{header.key | caseUcfirst}}(value string) client.ClientOption {
 	return func(clt *client.Client) error {
 		clt.Config["{{ header.key | caseLower }}"] = value
-{% if header.global %}
-		clt.Headers["{{header.name}}"] = {% if header.type is defined and header.type == 'bearer' %}"Bearer " + value{% else %}value{% endif %}{{- "\n" -}}
-{% endif %}
+		{%~ if header.global %}
+		clt.Headers["{{header.name}}"] = {{ header.type is defined and header.type == 'bearer' ? '"Bearer " + value' : 'value' }}
+		{%~ endif %}
 		return nil
 	}
 }
