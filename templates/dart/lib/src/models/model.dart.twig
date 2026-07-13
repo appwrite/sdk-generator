@@ -28,9 +28,13 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
             {{ property.name | escapeKeyword }}:{{' '}}
             {%- if property.sub_schema -%}
                 {%- if property.type == 'array' -%}
+                    {%- if not property.required -%}map['{{property.name | escapeDollarSign }}'] != null ? {% endif -%}
                     List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(p)))
+                    {%- if not property.required %} : null{% endif -%}
                 {%- else -%}
+                    {%- if not property.required -%}map['{{property.name | escapeDollarSign }}'] != null ? {% endif -%}
                     {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(map['{{property.name | escapeDollarSign }}'])
+                    {%- if not property.required %} : null{% endif -%}
                 {%- endif -%}
             {%- elseif property.enum -%}
                 {%- set enumName = property['enumName'] ?? property.name -%}
