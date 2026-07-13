@@ -182,7 +182,7 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Setup Rust
-        if: matrix.sdk == 'rust' || matrix.sdk == 'zed-extension'
+        if: matrix.sdk == 'rust'
         uses: dtolnay/rust-toolchain@bd41891a8e7f4b8649f6d684415e1a6155fe4e22 # 1.83.0
 
       - name: Setup Rust for Zed extension
