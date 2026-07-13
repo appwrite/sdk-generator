@@ -187,7 +187,9 @@ jobs:
 
       - name: Install Zed extension WASM target
         if: matrix.sdk == 'zed-extension'
-        run: rustup target add wasm32-wasip1
+        run: |
+          rustup component add rustfmt
+          rustup target add wasm32-wasip1
 
       - name: Setup Rust for cargo-audit
         if: matrix.sdk == 'rust'
