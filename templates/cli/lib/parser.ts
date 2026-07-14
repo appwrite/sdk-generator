@@ -199,6 +199,7 @@ const maskSensitiveData = (
 
 const filterObject = (obj: JsonObject): JsonObject => {
   const result: JsonObject = {};
+  if (!obj) return result;
   for (const key of Object.keys(obj)) {
     const value = obj[key];
     if (typeof value === "function") continue;
@@ -341,12 +342,12 @@ export const parse = (data: unknown): void => {
 
       if (Array.isArray(section.value)) {
         const sectionTitle =
-          typeof section.value[0] === "object"
+          typeof section.value[0] === "object" && section.value[0] !== null
             ? `${section.key} (${section.value.length})`
             : section.key;
         console.log(`${chalk.yellow.bold.underline(sectionTitle)}`);
 
-        if (typeof section.value[0] === "object") {
+        if (typeof section.value[0] === "object" && section.value[0] !== null) {
           drawTable(section.value, { indent: "  ", sectionName: section.key });
         } else {
           drawScalarArray(section.value, { indent: "  " });
