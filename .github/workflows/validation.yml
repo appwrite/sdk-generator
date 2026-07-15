@@ -385,3 +385,84 @@ jobs:
           fi
           echo "All entry points verified."
           echo "::endgroup::"
+
+  validate-tooling-plugins:
+    name: Tooling plugins
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # 2.37.0
+        with:
+          php-version: '8.5'
+          extensions: curl
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.11'
+
+      - name: Install Composer Dependencies
+        run: composer install
+
+      - name: Regenerate tooling plugins
+        run: |
+          php example.php cursor-plugin
+          php example.php claude-plugin
+          php example.php codex-plugin
+
+      - name: Verify tooling plugin generation is idempotent
+        run: |
+          find examples/cursor-plugin examples/claude-plugin examples/codex-plugin -type f -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > /tmp/tooling-plugin-checksums
+
+          php example.php cursor-plugin
+          php example.php claude-plugin
+          php example.php codex-plugin
+
+          find examples/cursor-plugin examples/claude-plugin examples/codex-plugin -type f -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            | diff -u /tmp/tooling-plugin-checksums -
+
+      - name: Validate hosted MCP configurations
+        run: |
+          python3 <<'PY'
+          import json
+          import pathlib
+          import tomllib
+
+          root = pathlib.Path("examples")
+          expected_url = "https://mcp.appwrite.io/"
+
+          cursor = json.loads((root / "cursor-plugin/.mcp.json").read_text())
+          assert cursor["mcpServers"] == {
+              "appwrite": {"url": expected_url},
+          }
+
+          claude = json.loads((root / "claude-plugin/.mcp.json").read_text())
+          assert claude["mcpServers"] == {
+              "appwrite": {"type": "http", "url": expected_url},
+          }
+          claude_manifest = json.loads(
+              (root / "claude-plugin/.claude-plugin/plugin.json").read_text()
+          )
+          assert "userConfig" not in claude_manifest
+
+          codex = json.loads(
+              (root / "codex-plugin/plugins/appwrite/.mcp.json").read_text()
+          )
+          assert codex["mcpServers"] == {
+              "appwrite": {"type": "http", "url": expected_url},
+          }
+          codex_config = tomllib.loads(
+              (root / "codex-plugin/plugins/appwrite/config.toml").read_text()
+          )
+          assert codex_config["mcp_servers"] == {
+              "appwrite": {"url": expected_url},
+          }
+          PY
