@@ -10,8 +10,16 @@ export { Client, Query, {{spec.title | caseUcfirst}}Exception } from './client';
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}
 export { Realtime } from './services/realtime';
+export { AnalyticsTracking } from './services/analytics-tracking';
 export type { Models, Payload, RealtimeResponseEvent, UploadProgress } from './client';
 export type { RealtimeSubscription } from './services/realtime';
+export type {
+    AnalyticsEventEmitter,
+    AnalyticsEventOptions,
+    AnalyticsTrackingOptions,
+    DownloadTrackingOptions,
+    OutboundTrackingOptions
+} from './services/analytics-tracking';
 export type { QueryTypes, QueryTypesList } from './query';
 export { Permission } from './permission';
 export { Role } from './role';

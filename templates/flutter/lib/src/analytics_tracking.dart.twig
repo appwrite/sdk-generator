@@ -1,0 +1,142 @@
+import 'package:flutter/widgets.dart';
+
+import 'analytics_observer.dart';
+
+export 'analytics_observer.dart' show AnalyticsEventEmitter, AnalyticsObserver, ScreenNameExtractor;
+
+/// Companion class for the generated `Analytics` service that wires up the
+/// mobile-idiomatic auto-tracking primitives: app-lifecycle events (backgrounded
+/// / foregrounded) and manual `screenView` calls.
+///
+/// Auto-emitted event names follow `snake_case` + lowercase (`pageview`,
+/// `screen_view`, `app_backgrounded`, `app_foregrounded`, etc.). Prop keys use
+/// camelCase to match the endpoint's parameter naming.
+///
+/// Attach an [AnalyticsObserver] to your `MaterialApp` for automatic route
+/// tracking; use [AnalyticsTracking] on top for lifecycle events and the
+/// convenience `screenView` / `event` shortcuts.
+///
+/// [enableAutoLifecycleEvents] calls [WidgetsFlutterBinding.ensureInitialized]
+/// internally, so it is safe to invoke before [runApp] without wiring up the
+/// binding manually. Callers who need the binding for their own initialization
+/// (async setup, plugin channels, etc.) can still call `ensureInitialized()`
+/// themselves — the call is idempotent.
+///
+/// Typical wiring:
+///
+/// ```dart
+/// final analytics = Analytics(client);
+/// final tracking = AnalyticsTracking(
+///   (name, {props}) => analytics.event(name: name, props: props),
+/// );
+/// tracking.enableAllAutoTracking();
+///
+/// runApp(MaterialApp(
+///   navigatorObservers: [
+///     AnalyticsObserver(
+///       (name, {props}) => analytics.event(name: name, props: props),
+///     ),
+///   ],
+///   home: MyApp(),
+/// ));
+/// ```
+class AnalyticsTracking with WidgetsBindingObserver {
+  final AnalyticsEventEmitter _emit;
+
+  bool _lifecycleAttached = false;
+  DateTime? _foregroundSince;
+
+  AnalyticsTracking(AnalyticsEventEmitter emit) : _emit = emit;
+
+  /// Enable the opinionated default auto-tracking set. Currently this covers
+  /// lifecycle events; route tracking is opt-in via [AnalyticsObserver].
+  void enableAllAutoTracking() {
+    enableAutoLifecycleEvents();
+  }
+
+  /// Start emitting `app_backgrounded` and `app_foregrounded` events when the
+  /// host app changes lifecycle state. Idempotent — repeat calls no-op.
+  ///
+  /// Calls [WidgetsFlutterBinding.ensureInitialized] internally so this is
+  /// safe to invoke before [runApp] without the caller having to bootstrap
+  /// the binding themselves.
+  void enableAutoLifecycleEvents() {
+    if (_lifecycleAttached) {
+      return;
+    }
+    // WidgetsBinding.instance throws StateError if the binding has not been
+    // set up yet. The docstring example wires this call before runApp(), so
+    // ensure the binding here — the call is idempotent.
+    WidgetsFlutterBinding.ensureInitialized();
+    _lifecycleAttached = true;
+    _foregroundSince = DateTime.now();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  /// Stop emitting lifecycle events. Safe to call when auto-lifecycle was
+  /// never enabled.
+  void disableAutoLifecycleEvents() {
+    if (!_lifecycleAttached) {
+      return;
+    }
+    _lifecycleAttached = false;
+    _foregroundSince = null;
+    WidgetsBinding.instance.removeObserver(this);
+  }
+
+  /// Emit an ad-hoc analytics event. Emitter exceptions are swallowed so
+  /// analytics failures never surface to the host app.
+  void event(String name, {Map<String, dynamic>? props}) {
+    try {
+      _emit(name, props: props);
+    } catch (_) {
+      // Silent — see class docs.
+    }
+  }
+
+  /// Mobile-idiomatic screen-view shortcut. Renders as a `screen_view`
+  /// analytics event with `screen`, optional `screenClass` and any
+  /// caller-supplied properties.
+  void screenView(
+    String name, {
+    String? className,
+    Map<String, dynamic>? props,
+  }) {
+    final merged = <String, dynamic>{'screen': name};
+    if (className != null) {
+      merged['screenClass'] = className;
+    }
+    if (props != null) {
+      merged.addAll(props);
+    }
+    event('screen_view', props: merged);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+        // On Flutter desktop and web the lifecycle transitions through both
+        // `hidden` and `paused` when the window is minimised / closed. Guard
+        // on `_foregroundSince` so we emit `app_backgrounded` exactly once
+        // per background transition instead of firing a second empty event.
+        final since = _foregroundSince;
+        if (since == null) {
+          break;
+        }
+        _foregroundSince = null;
+        event('app_backgrounded', props: <String, dynamic>{
+          'foregroundSeconds': DateTime.now().difference(since).inSeconds,
+        });
+        break;
+      case AppLifecycleState.resumed:
+        _foregroundSince = DateTime.now();
+        event('app_foregrounded');
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        break;
+    }
+  }
+}
