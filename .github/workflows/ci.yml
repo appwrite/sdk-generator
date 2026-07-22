@@ -159,7 +159,8 @@ jobs:
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
 
       - name: Run djLint
-        run: uvx djlint templates/ --lint
+        # Pinned: djlint 1.41.0+ false-positives T038 on multi-line {% if %} tags
+        run: uvx djlint==1.40.10 templates/ --lint
 
   max-line-length:
     name: Checks / Twig line length

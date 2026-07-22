@@ -768,13 +768,18 @@ async function runAuthChecks() {
   await authCheck("endpoint-cloud-hostname", () => {
     assert.equal(isCloudHostname("cloud.appwrite.io"), true);
     assert.equal(isCloudHostname("fra.cloud.appwrite.io"), true);
+    assert.equal(isCloudHostname("cloud.staging.appwrite.io"), true);
+    assert.equal(isCloudHostname("fra.cloud.staging.appwrite.io"), true);
     assert.equal(isCloudHostname("evil.cloud.appwrite.io"), false);
+    assert.equal(isCloudHostname("evil.cloud.staging.appwrite.io"), false);
     assert.equal(isCloudHostname("localhost"), false);
   });
 
   await authCheck("endpoint-regional", () => {
     assert.equal(isRegionalCloudEndpoint("https://fra.cloud.appwrite.io/v1"), true);
+    assert.equal(isRegionalCloudEndpoint("https://syd.cloud.staging.appwrite.io/v1"), true);
     assert.equal(isRegionalCloudEndpoint("https://cloud.appwrite.io/v1"), false);
+    assert.equal(isRegionalCloudEndpoint("https://cloud.staging.appwrite.io/v1"), false);
     assert.equal(isRegionalCloudEndpoint("http://localhost/v1"), false);
     assert.equal(isRegionalCloudEndpoint("nonsense"), false);
   });
@@ -792,7 +797,7 @@ async function runAuthChecks() {
     try {
       assert.equal(isFlagEnabled("devCloudLogin"), false);
       assert.equal(isCloudLoginEndpoint("https://cloud.appwrite.io/v1"), true);
-      assert.equal(isCloudLoginEndpoint("https://stage.cloud.appwrite.io/v1"), true);
+      assert.equal(isCloudLoginEndpoint("https://cloud.staging.appwrite.io/v1"), true);
       assert.equal(isCloudLoginEndpoint("https://new.appwrite.io/v1"), true);
       assert.equal(isCloudLoginEndpoint("https://appwrite.io/v1"), false);
       assert.equal(isCloudLoginEndpoint("https://notappwrite.io/v1"), false);
@@ -827,6 +832,10 @@ async function runAuthChecks() {
     assert.equal(
       normalizeCloudConsoleEndpoint("https://cloud.appwrite.io/v1"),
       "https://cloud.appwrite.io/v1",
+    );
+    assert.equal(
+      normalizeCloudConsoleEndpoint("https://fra.cloud.staging.appwrite.io/v1"),
+      "https://cloud.staging.appwrite.io/v1",
     );
     assert.equal(normalizeCloudConsoleEndpoint("http://localhost/v1"), "http://localhost/v1");
     assert.equal(normalizeCloudConsoleEndpoint("not a url"), "not a url");
