@@ -65,10 +65,10 @@ namespace {{ spec.title | caseUcfirst }}.Models
                         map.TryGetValue("{{ property.name }}", out var enumRaw{{ loop.index }})
                             ? enumRaw{{ loop.index }} == null
                                 ? null
-                                : new {{ enumName | caseUcfirst }}(enumRaw{{ loop.index }}.ToString()!)
+                                : new {{ spec.title | caseUcfirst }}.Enums.{{ enumName | caseUcfirst }}(enumRaw{{ loop.index }}.ToString()!)
                             : null
                     {%- else -%}
-                        new {{ enumName | caseUcfirst }}(map["{{ property.name }}"].ToString()!)
+                        new {{ spec.title | caseUcfirst }}.Enums.{{ enumName | caseUcfirst }}(map["{{ property.name }}"].ToString()!)
                     {%- endif %}
                 {%- else %}
                     {%- if property.type == 'array' -%}
