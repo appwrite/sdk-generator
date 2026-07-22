@@ -10,12 +10,12 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Setup Swift
-        uses: fwal/setup-swift@cdbe0f7f4c77929b6580e71983e8606e55ffe7e4 # v1
+        uses: fwal/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
         with:
           swift-version: "5.4"
 
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install cocoapods
         run: gem install cocoapods

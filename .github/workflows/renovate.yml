@@ -30,7 +30,7 @@ jobs:
           owner: appwrite
           repositories: sdk-generator
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: enable dry run
         if: inputs.dryRun
@@ -47,7 +47,7 @@ jobs:
           echo "RENOVATE_USE_BASE_BRANCH_CONFIG=merge" >> "$GITHUB_ENV"
 
       - name: renovate
-        uses: renovatebot/github-action@dd5302ec17783b2fc721b19ae7209b57b1587765 # v46.1.17
+        uses: renovatebot/github-action@3064367f740a1a91cca218698a63902689cce200 # v46.1.20
         with:
           token: ${{ steps.app-token.outputs.token }}
         env:
