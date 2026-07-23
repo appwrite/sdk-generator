@@ -872,10 +872,6 @@ export const error = (message?: string): void => {
 
 export const logo = SDK_LOGO;
 
-/**
- * CLI-only / override descriptions. Service commands prefer OpenAPI tag
- * descriptions from specs (services.php subtitles); keys here win when set.
- */
 export const commandDescriptions: Record<string, string> = {
   account: `The account command allows you to authenticate and manage a user account.`,
   activities: `The activities command allows you to list and inspect project activity events.`,
