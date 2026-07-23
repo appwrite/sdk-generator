@@ -83,7 +83,7 @@ const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.n
 
 export const {{ service.name | caseCamel }} = new Command("{{ service.name | caseKebab }}")
 {% if service.description %}
-  .description(commandDescriptions["{{ service.name | caseCamel }}"] || `{{ service.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
+  .description(commandDescriptions["{{ service.name | caseCamel }}"] || {{ service.description | stripMarkdown | json_encode | raw }})
 {% else %}
   .description(commandDescriptions["{{ service.name | caseCamel }}"] ?? "")
 {% endif %}
