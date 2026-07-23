@@ -48,7 +48,7 @@ module {{ spec.title | caseUcfirst }}
             def validate_{{ property.name | caseSnake | escapeKeyword }}({{ property.name | caseSnake | escapeKeyword }})
                 valid_{{ property.name | caseSnake }} = [
 {% for value in property.enum %}
-                    {{ spec.title | caseUcfirst }}::Enums::{{ property.enumName | caseUcfirst }}::{{ value | caseUpper }},
+                    {{ spec.title | caseUcfirst }}::Enums::{{ property.enumName | caseUcfirst }}::{{ (property.enumKeys[loop.index0] ?? value) | caseEnumKey }},
 {% endfor %}
                 ]
 

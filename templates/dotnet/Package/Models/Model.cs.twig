@@ -98,10 +98,18 @@ namespace {{ spec.title | caseUcfirst }}.Models
                                     ({{ property | typeName }})map["{{ property.name }}"]
                                 {%- endif %}
                             {%- else %}
-                                {%- if not property.required -%}
-                                    map.TryGetValue("{{ property.name }}", out var {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}) ? {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null
-                                {%- else -%}
-                                    map["{{ property.name }}"].ToString()
+                                {%- if property.type == "object" -%}
+                                    {%- if not property.required -%}
+                                        map.TryGetValue("{{ property.name }}", out var objectRaw{{ loop.index }}) ? objectRaw{{ loop.index }} : null
+                                    {%- else -%}
+                                        map["{{ property.name }}"]
+                                    {%- endif %}
+                                {%- else %}
+                                    {%- if not property.required -%}
+                                        map.TryGetValue("{{ property.name }}", out var {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}) ? {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null
+                                    {%- else -%}
+                                        map["{{ property.name }}"].ToString()
+                                    {%- endif %}
                                 {%- endif %}
                             {%- endif %}
                         {%- endif %}
