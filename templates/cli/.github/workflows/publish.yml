@@ -154,11 +154,20 @@ jobs:
           GHR_REPLACE: false
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
+      - name: Generate Appwrite Bot token for Homebrew tap
+        id: bot-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.APPWRITE_BOT_APP_ID }}
+          private-key: ${{ secrets.APPWRITE_BOT_PRIVATE_KEY }}
+          owner: appwrite
+          repositories: homebrew-appwrite
+
       - name: Check out Homebrew tap
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ env.HOMEBREW_TAP_REPO }}
-          token: ${{ secrets.HOMEBREW_TAP_GH_TOKEN }}
+          token: ${{ steps.bot-token.outputs.token }}
           path: homebrew-tap
           fetch-depth: 0
 
@@ -225,7 +234,7 @@ jobs:
           FORMULA_PATH: ${{ steps.tap.outputs.formula_path }}
           SOURCE_REPO: ${{ github.repository }}
           SERVER_URL: ${{ github.server_url }}
-          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_GH_TOKEN }}
+          GH_TOKEN: ${{ steps.bot-token.outputs.token }}
         run: |
           set -euo pipefail
 
@@ -237,8 +246,8 @@ jobs:
           BASE_BRANCH="$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')"
           BRANCH="release/${EXECUTABLE_NAME}-${RELEASE_TAG}"
 
-          git config user.name "appwrite-bot"
-          git config user.email "bot@appwrite.io"
+          git config user.name "appwrite-bot[bot]"
+          git config user.email "217594562+appwrite-bot[bot]@users.noreply.github.com"
 
           git checkout -B "$BRANCH"
           git add "$FORMULA_PATH"
