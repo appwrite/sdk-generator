@@ -10,6 +10,7 @@ import { error } from "../../parser.js";
 import { globalConfig, localConfig } from "../../config.js";
 import { getValidAccessToken } from "../../sdks.js";
 import {
+  copyContainedFile,
   getErrorMessage,
   isPathInside,
   resolveSymlinkBoundary,
@@ -592,6 +593,10 @@ async function packageDirectory(
     os.tmpdir(),
     `appwrite-deploy-${Date.now()}.tar.gz`,
   );
+  const stagingDir = path.join(
+    os.tmpdir(),
+    `appwrite-deploy-stage-${Date.now()}`,
+  );
   // Constrain followed symlinks to the Appwrite project directory when the
   // packaged path lives inside it; otherwise stay within dirPath itself.
   let projectRoot: string | undefined;
@@ -600,6 +605,7 @@ async function packageDirectory(
   } catch (_error) {
     projectRoot = undefined;
   }
+  const symlinkBoundary = resolveSymlinkBoundary(dirPath, projectRoot);
   const files = listDeployableFiles(dirPath, extraIgnoreRules, projectRoot);
 
   if (files.length === 0) {
@@ -608,19 +614,40 @@ async function packageDirectory(
     );
   }
 
-  // follow: dereference file/dir symlinks so shared code is stored as real
-  // files in the archive (required for remote deploy / open-runtimes).
-  await create(
-    {
-      gzip: true,
-      file: tempFile,
-      cwd: dirPath,
-      follow: true,
-    },
-    files,
-  );
+  fs.mkdirSync(stagingDir, { recursive: true });
 
   try {
+    // Stage real file contents first (re-validating realpath at copy time),
+    // then archive the staging tree without following symlinks. This closes
+    // the TOCTOU window where a symlink could be swapped after the walk.
+    const stagedFiles: string[] = [];
+    for (const relativeFile of files) {
+      const stagedPath = path.join(stagingDir, relativeFile);
+      const copied = copyContainedFile(
+        path.join(dirPath, relativeFile),
+        stagedPath,
+        symlinkBoundary,
+      );
+      if (copied) {
+        stagedFiles.push(relativeFile);
+      }
+    }
+
+    if (stagedFiles.length === 0) {
+      throw new Error(
+        `No deployable files found at path: ${dirPath}. Check your .gitignore and ignore rules.`,
+      );
+    }
+
+    await create(
+      {
+        gzip: true,
+        file: tempFile,
+        cwd: stagingDir,
+      },
+      stagedFiles,
+    );
+
     const buffer = fs.readFileSync(tempFile);
     return new File([buffer], path.basename(tempFile), {
       type: "application/gzip",
@@ -629,6 +656,7 @@ async function packageDirectory(
     if (fs.existsSync(tempFile)) {
       fs.unlinkSync(tempFile);
     }
+    fs.rmSync(stagingDir, { recursive: true, force: true });
   }
 }
 

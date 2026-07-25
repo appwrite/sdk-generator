@@ -27,6 +27,7 @@ import {
 import {
   systemHasCommand,
   isPortTaken,
+  copyContainedFile,
   getAllFiles,
   getErrorMessage,
   isOutsideIgnoreRoot,
@@ -375,6 +376,10 @@ const runFunction = async ({
           );
         }
 
+        const symlinkBoundary = resolveSymlinkBoundary(
+          functionPath,
+          localConfig.getDirname(),
+        );
         const filesToCopy = getAllFiles(
           functionPath,
           localConfig.getDirname(),
@@ -390,14 +395,12 @@ const runFunction = async ({
             fs.rmSync(filePath, { force: true });
           }
 
-          const fileDir = path.dirname(filePath);
-          if (!fs.existsSync(fileDir)) {
-            fs.mkdirSync(fileDir, { recursive: true });
-          }
-
-          // copyFileSync follows symlinks and writes real file contents.
-          const sourcePath = path.join(functionPath, f);
-          fs.copyFileSync(sourcePath, filePath);
+          // Re-validate realpath at copy time to prevent symlink-swap escapes.
+          copyContainedFile(
+            path.join(functionPath, f),
+            filePath,
+            symlinkBoundary,
+          );
         }
 
         await create(

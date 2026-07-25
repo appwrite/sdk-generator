@@ -11,8 +11,10 @@ import fs from "fs";
 import { log, error, success } from "../parser.js";
 import { openRuntimesVersion, systemTools, Queue } from "./utils.js";
 import {
+  copyContainedFile,
   getAllFiles,
   isOutsideIgnoreRoot,
+  resolveSymlinkBoundary,
   safeIgnores,
 } from "../utils.js";
 import type { FunctionType } from "../commands/config.js";
@@ -39,9 +41,14 @@ function getFunctionFiles(func: FunctionType): {
   functionDir: string;
   files: string[];
   ignorer: ignoreModule.Ignore;
+  symlinkBoundary: string;
 } {
   const functionDir = localConfig.resolveResourcePath("functions", func.path);
   const ignorer = getFunctionIgnorer(func, functionDir);
+  const symlinkBoundary = resolveSymlinkBoundary(
+    functionDir,
+    localConfig.getDirname(),
+  );
   // Follow in-project symlinks (e.g. src/common -> ../../common) but keep
   // virtual paths under functionDir and refuse targets outside the project.
   const files = getAllFiles(functionDir, localConfig.getDirname())
@@ -50,7 +57,7 @@ function getFunctionFiles(func: FunctionType): {
       (file) => !isOutsideIgnoreRoot(file) && !safeIgnores(ignorer, file),
     );
 
-  return { functionDir, files, ignorer };
+  return { functionDir, files, ignorer, symlinkBoundary };
 }
 
 export function assertFunctionSourceCode(func: FunctionType): void {
@@ -217,7 +224,7 @@ export async function dockerBuild(
 ): Promise<void> {
   const imageName = getRuntimeImageName(func);
 
-  const { functionDir, files } = getFunctionFiles(func);
+  const { functionDir, files, symlinkBoundary } = getFunctionFiles(func);
 
   const id = func.$id;
   const tmpBuildPath = path.join(functionDir, ".appwrite/tmp-build");
@@ -229,14 +236,12 @@ export async function dockerBuild(
 
   try {
     for (const f of files) {
-      const filePath = path.join(tmpBuildPath, f);
-      const fileDir = path.dirname(filePath);
-      if (!fs.existsSync(fileDir)) {
-        fs.mkdirSync(fileDir, { recursive: true });
-      }
-
-      const sourcePath = path.join(functionDir, f);
-      fs.copyFileSync(sourcePath, filePath);
+      // Re-validate realpath at copy time to prevent symlink-swap escapes.
+      copyContainedFile(
+        path.join(functionDir, f),
+        path.join(tmpBuildPath, f),
+        symlinkBoundary,
+      );
     }
 
     const params: string[] = ["run"];

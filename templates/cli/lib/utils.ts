@@ -894,6 +894,37 @@ export function resolveSymlinkBoundary(
 }
 
 /**
+ * Copy `sourcePath` to `destinationPath` only if its realpath stays inside
+ * `boundary`. Re-checks at copy time so a swapped symlink cannot escape.
+ * Returns false when the source is missing or escapes the boundary.
+ */
+export function copyContainedFile(
+  sourcePath: string,
+  destinationPath: string,
+  boundary: string,
+): boolean {
+  let realSource: string;
+  try {
+    realSource = fs.realpathSync(sourcePath);
+  } catch (_error) {
+    return false;
+  }
+
+  if (!isPathInside(boundary, realSource)) {
+    return false;
+  }
+
+  const destinationDir = path.dirname(destinationPath);
+  if (!fs.existsSync(destinationDir)) {
+    fs.mkdirSync(destinationDir, { recursive: true });
+  }
+
+  // Copy from the validated realpath, not the mutable symlink path.
+  fs.copyFileSync(realSource, destinationPath);
+  return true;
+}
+
+/**
  * Safe wrapper around ignore().ignores() that never throws on symlink
  * targets outside the watched/packaged root.
  */
