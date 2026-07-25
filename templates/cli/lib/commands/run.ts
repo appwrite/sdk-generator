@@ -279,7 +279,6 @@ const runFunction = async ({
       .watch(".", {
         cwd: functionPath,
         ignoreInitial: true,
-        // Follow symlinks so shared code (e.g. src/common -> ../../common) is watched.
         followSymlinks: true,
         ignored: (xpath: string) => {
           const relativePath = path
@@ -287,9 +286,7 @@ const runFunction = async ({
             .split(path.sep)
             .join("/");
 
-          // Watching a symlink surfaces its target's real path, which resolves
-          // outside functionPath. The `ignore` package throws a RangeError on
-          // such paths, so keep watching them instead of testing the rules.
+          // The ignore package throws on paths outside its root.
           if (!relativePath || relativePath.startsWith("../")) {
             return false;
           }
@@ -367,7 +364,6 @@ const runFunction = async ({
           }
 
           fs.mkdirSync(path.dirname(filePath), { recursive: true });
-          // copyFileSync reads through symlinks, so shared code lands as a real file.
           fs.copyFileSync(path.join(functionPath, f), filePath);
         }
 

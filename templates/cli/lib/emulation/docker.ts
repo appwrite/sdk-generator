@@ -223,7 +223,6 @@ export async function dockerBuild(
     for (const f of files) {
       const filePath = path.join(tmpBuildPath, f);
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      // copyFileSync reads through symlinks, so shared code lands as a real file.
       fs.copyFileSync(path.join(functionDir, f), filePath);
     }
 

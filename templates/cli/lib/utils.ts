@@ -842,10 +842,12 @@ export function isPathInside(parent: string, child: string): boolean {
 }
 
 /**
- * A symlink can point anywhere on the host, so following one is bounded to the
- * Appwrite project directory when `folder` sits inside it, and to `folder`
- * itself otherwise. Sharing code between functions stays possible; reaching
- * out to `~/.ssh` does not.
+ * Symlinks are followed so that functions can share code, and the paths they
+ * produce stay rooted at the link (`src/common/util.js`, not the real
+ * `../../common/util.js`). Since a link can point anywhere on the host, this
+ * bounds how far one may be followed: to the Appwrite project directory when
+ * `folder` sits inside it, and to `folder` itself otherwise. Sharing
+ * `functions/common` stays possible; reaching `~/.ssh` does not.
  */
 export function resolveSymlinkBoundary(
   folder: string,
@@ -863,13 +865,6 @@ export function resolveSymlinkBoundary(
 
 /**
  * Recursively list every file under `folder` as an absolute path.
- *
- * Symlinked files and directories are followed, and the returned paths stay
- * rooted at the symlink location (e.g. `src/common/util.js` rather than the
- * real `../../common/util.js`), so shared code can be packaged like any other
- * file in the folder. Symlink cycles are handled by the crawler.
- *
- * Links resolving outside `projectRoot` are left out.
  */
 export function getAllFiles(folder: string, projectRoot?: string): string[] {
   const boundary = resolveSymlinkBoundary(folder, projectRoot);

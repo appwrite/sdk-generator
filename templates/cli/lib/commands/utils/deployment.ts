@@ -496,15 +496,6 @@ function listDeployableFiles(
 
   const files: string[] = [];
 
-  // Dangling symlinks have no target to stat, so they are simply skipped.
-  const statOrNull = (target: string): fs.Stats | null => {
-    try {
-      return fs.statSync(target);
-    } catch (_error) {
-      return null;
-    }
-  };
-
   const walk = (
     relativeDir = "",
     inheritedMatchers = rootMatchers,
@@ -512,9 +503,8 @@ function listDeployableFiles(
   ): void => {
     const absoluteDir = path.join(dirPath, relativeDir);
 
-    // Tracking the real directories on the current branch stops a cyclic
-    // symlink from recursing forever, while still letting the same shared
-    // directory be included under two different symlink paths.
+    // Tracked per branch, so a cycle terminates but a shared directory can
+    // still appear under two different paths.
     const realDir = fs.realpathSync(absoluteDir);
     if (ancestors.has(realDir)) {
       return;
@@ -531,11 +521,8 @@ function listDeployableFiles(
 
       const absolutePath = path.join(dirPath, relativePath);
 
-      // statSync resolves symlinks, so shared code linked into the deployment
-      // (e.g. src/common -> ../../common) is walked like a real directory and
-      // packaged under the symlink's path.
-      const stats = statOrNull(absolutePath);
-      if (stats === null) {
+      const stats = fs.statSync(absolutePath, { throwIfNoEntry: false });
+      if (!stats) {
         continue;
       }
 
@@ -543,7 +530,6 @@ function listDeployableFiles(
         continue;
       }
 
-      // Checked after the ignore rules so ignored trees cost no extra syscalls.
       if (!isPathInside(boundary, fs.realpathSync(absolutePath))) {
         skippedSymlinks.push(relativePath);
         continue;
@@ -574,9 +560,7 @@ async function packageDirectory(
   dirPath: string,
   extraIgnoreRules: string[] = [],
 ): Promise<File> {
-  // The project directory bounds which symlinks may be followed. Paths passed
-  // straight to the CLI can sit outside a project, in which case there is no
-  // root to bound them to.
+  // Paths passed straight to the CLI can sit outside any project.
   let projectRoot: string | undefined;
   try {
     projectRoot = localConfig.getDirname();
@@ -603,9 +587,6 @@ async function packageDirectory(
         gzip: true,
         file: tempFile,
         cwd: dirPath,
-        // Archive what a symlink points at rather than the link itself, so
-        // shared code deploys as real files instead of links that dangle in
-        // the runtime.
         follow: true,
       },
       files,

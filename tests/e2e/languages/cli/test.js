@@ -467,70 +467,6 @@ try {
 }
 console.log("CLI_LOCAL_SOURCE_PREFLIGHT:passed");
 
-// A function that shares code through a symlink (appwrite/sdk-for-cli#253):
-// functions/shared holds the common code, functions/app/src/shared links to it.
-const symlinkRoot = path.join(process.cwd(), "tmp-symlink-check");
-fs.rmSync(symlinkRoot, { recursive: true, force: true });
-const symlinkFunctionDir = path.join(symlinkRoot, "app");
-fs.mkdirSync(path.join(symlinkFunctionDir, "src"), { recursive: true });
-fs.mkdirSync(path.join(symlinkRoot, "shared"), { recursive: true });
-fs.writeFileSync(
-  path.join(symlinkFunctionDir, "src/main.js"),
-  "export default async ({ res }) => res.json({ ok: true });\n",
-);
-fs.writeFileSync(
-  path.join(symlinkRoot, "shared/helper.js"),
-  "export const help = () => true;\n",
-);
-fs.symlinkSync(
-  path.join("..", "..", "shared"),
-  path.join(symlinkFunctionDir, "src/shared"),
-);
-// A symlink pointing at itself must not send the walk into an endless loop.
-fs.symlinkSync(
-  path.join("..", "src"),
-  path.join(symlinkFunctionDir, "src/loop"),
-);
-// A symlink escaping the project entirely must not be followed.
-const outsideProject = fs.mkdtempSync(path.join(os.tmpdir(), "outside-project-"));
-fs.writeFileSync(path.join(outsideProject, "secret.txt"), "do not deploy me\n");
-fs.symlinkSync(
-  path.join(outsideProject, "secret.txt"),
-  path.join(symlinkFunctionDir, "escape.txt"),
-);
-
-try {
-  const symlinkFiles = getAllFiles(symlinkFunctionDir, symlinkRoot)
-    .map((file) =>
-      path.relative(symlinkFunctionDir, file).split(path.sep).join("/"),
-    )
-    .sort();
-
-  // The shared file is reported under the symlink's path, not "../../shared".
-  assert.ok(
-    symlinkFiles.includes("src/shared/helper.js"),
-    `Expected shared code behind a symlink to be listed, got ${JSON.stringify(symlinkFiles)}`,
-  );
-  assert.ok(
-    symlinkFiles.includes("src/main.js"),
-    `Expected regular function files to still be listed, got ${JSON.stringify(symlinkFiles)}`,
-  );
-  assert.ok(
-    symlinkFiles.every((file) => !file.startsWith("../")),
-    `Expected every listed path to stay inside the function, got ${JSON.stringify(symlinkFiles)}`,
-  );
-  // A link out of the project is not followed, so a stray link to somewhere
-  // like ~/.ssh cannot pull host files into a deployment.
-  assert.ok(
-    !symlinkFiles.includes("escape.txt"),
-    `Expected a symlink leaving the project to be skipped, got ${JSON.stringify(symlinkFiles)}`,
-  );
-} finally {
-  fs.rmSync(symlinkRoot, { recursive: true, force: true });
-  fs.rmSync(outsideProject, { recursive: true, force: true });
-}
-console.log("CLI_LOCAL_SYMLINK_SOURCE:passed");
-
 const runtimeRenderingOutput = captureStdoutSync(() =>
   parse({
     total: 4,
@@ -1384,15 +1320,16 @@ async function runAuthChecks() {
   else process.env.NODE_ENV = previousNodeEnv;
 }
 
-// Pushing a function that shares code through a symlink (appwrite/sdk-for-cli#253).
-// Deliberately silent on success so the positional output assertions are unaffected.
+// A function that shares code through a symlink (appwrite/sdk-for-cli#253).
+// Deliberately silent on success so the positional output assertions above are
+// unaffected; a regression throws and fails the run.
 async function runDeploymentSymlinkChecks() {
   const { list } = await import("tar");
   const { resolveFileParam } = await import(
     "./lib/commands/utils/deployment.ts"
   );
 
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cli-push-symlink-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cli-symlink-"));
   const functionDir = path.join(root, "app");
   fs.mkdirSync(path.join(functionDir, "src"), { recursive: true });
   fs.mkdirSync(path.join(root, "shared"));
@@ -1401,7 +1338,7 @@ async function runDeploymentSymlinkChecks() {
     path.join(root, "shared/helper.js"),
     "export const help = () => true;\n",
   );
-  // A shared directory, and a single shared file, both reached by symlink.
+  // A shared directory and a single shared file, both reached by symlink.
   fs.symlinkSync(
     path.join("..", "..", "shared"),
     path.join(functionDir, "src/shared"),
@@ -1410,15 +1347,16 @@ async function runDeploymentSymlinkChecks() {
     path.join("..", "shared", "helper.js"),
     path.join(functionDir, "direct.js"),
   );
+  // A self-referential link must not send either walk into an endless loop.
+  fs.symlinkSync(path.join("..", "src"), path.join(functionDir, "src/loop"));
   // A link out of the project must not pull host files into the archive.
-  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "cli-push-outside-"));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "cli-symlink-outside-"));
   fs.writeFileSync(path.join(outside, "secret.txt"), "do not deploy me\n");
   fs.symlinkSync(
     path.join(outside, "secret.txt"),
     path.join(functionDir, "escape.txt"),
   );
 
-  const archivePath = path.join(root, "code.tar.gz");
   // Point the CLI at the fixture so `root` acts as the project directory that
   // bounds which symlinks may be followed.
   const previousCwd = process.cwd();
@@ -1426,11 +1364,22 @@ async function runDeploymentSymlinkChecks() {
   localConfig.useCwdConfig();
 
   try {
-    const archive = await resolveFileParam(functionDir);
-    fs.writeFileSync(
-      archivePath,
-      Buffer.from(await archive.arrayBuffer()),
+    // Local run and Docker build discovery.
+    const discovered = getAllFiles(functionDir, root).map((file) =>
+      path.relative(functionDir, file).split(path.sep).join("/"),
     );
+    assert.deepEqual(discovered.sort(), [
+      "direct.js",
+      "src/loop/main.js",
+      "src/loop/shared/helper.js",
+      "src/main.js",
+      "src/shared/helper.js",
+    ]);
+
+    // Deployment packaging.
+    const archivePath = path.join(root, "code.tar.gz");
+    const archive = await resolveFileParam(functionDir);
+    fs.writeFileSync(archivePath, Buffer.from(await archive.arrayBuffer()));
 
     const entries = new Map();
     await list({
@@ -1438,20 +1387,17 @@ async function runDeploymentSymlinkChecks() {
       onReadEntry: (entry) => entries.set(entry.path, entry),
     });
 
-    // The shared directory is packaged under its symlink path.
-    const shared = entries.get("src/shared/helper.js");
-    assert.ok(
-      shared,
-      `Expected shared code behind a symlink to be packaged, got ${JSON.stringify([...entries.keys()])}`,
-    );
-    // Symlinks must be dereferenced, otherwise they dangle in the runtime.
-    assert.equal(shared.type, "File");
-    assert.ok(shared.size > 0, "Expected shared code to be packaged with content");
-
-    const direct = entries.get("direct.js");
-    assert.ok(direct, "Expected a symlinked file to be packaged");
-    assert.equal(direct.type, "File");
-    assert.ok(direct.size > 0, "Expected a symlinked file to keep its content");
+    // Shared code is packaged under its symlink path, and dereferenced into a
+    // real file rather than a link that would dangle in the runtime.
+    for (const name of ["src/shared/helper.js", "direct.js"]) {
+      const entry = entries.get(name);
+      assert.ok(
+        entry,
+        `Expected ${name} to be packaged, got ${JSON.stringify([...entries.keys()])}`,
+      );
+      assert.equal(entry.type, "File");
+      assert.ok(entry.size > 0, `Expected ${name} to be packaged with content`);
+    }
 
     assert.ok(
       !entries.has("escape.txt"),
