@@ -30,6 +30,8 @@ import {
   getAllFiles,
   getErrorMessage,
   isOutsideIgnoreRoot,
+  isPathInside,
+  resolveSymlinkBoundary,
   safeIgnores,
 } from "../utils.js";
 import {
@@ -277,6 +279,11 @@ const runFunction = async ({
       );
     }
 
+    const symlinkBoundary = resolveSymlinkBoundary(
+      functionPath,
+      localConfig.getDirname(),
+    );
+
     chokidar
       .watch(".", {
         cwd: functionPath,
@@ -284,10 +291,25 @@ const runFunction = async ({
         // Follow symlinks so shared code (e.g. src/common -> ../../common) is watched.
         followSymlinks: true,
         ignored: (xpath: string) => {
-          const relativePath = path.relative(functionPath, path.resolve(xpath));
+          const absolutePath = path.resolve(functionPath, xpath);
+          let realPath = absolutePath;
+          try {
+            if (fs.existsSync(absolutePath)) {
+              realPath = fs.realpathSync(absolutePath);
+            }
+          } catch (_error) {
+            return true;
+          }
 
-          // Symlink targets outside the function root produce "../..." paths.
-          // The ignore package rejects those; keep watching shared code instead.
+          // Never watch (or surface) symlink targets outside the project root.
+          if (!isPathInside(symlinkBoundary, realPath)) {
+            return true;
+          }
+
+          const relativePath = path.relative(functionPath, absolutePath);
+
+          // In-project shared code via symlink yields "../..." relative paths.
+          // The ignore package rejects those; keep watching instead.
           if (isOutsideIgnoreRoot(relativePath)) {
             return false;
           }
@@ -353,7 +375,10 @@ const runFunction = async ({
           );
         }
 
-        const filesToCopy = getAllFiles(functionPath)
+        const filesToCopy = getAllFiles(
+          functionPath,
+          localConfig.getDirname(),
+        )
           .map((file: string) => path.relative(functionPath, file))
           .filter(
             (file: string) =>

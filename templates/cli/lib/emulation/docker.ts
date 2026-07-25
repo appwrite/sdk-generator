@@ -42,9 +42,9 @@ function getFunctionFiles(func: FunctionType): {
 } {
   const functionDir = localConfig.resolveResourcePath("functions", func.path);
   const ignorer = getFunctionIgnorer(func, functionDir);
-  // getAllFiles follows symlinks but keeps virtual paths under functionDir
-  // (e.g. src/common/foo.py, not ../common/foo.py).
-  const files = getAllFiles(functionDir)
+  // Follow in-project symlinks (e.g. src/common -> ../../common) but keep
+  // virtual paths under functionDir and refuse targets outside the project.
+  const files = getAllFiles(functionDir, localConfig.getDirname())
     .map((file) => path.relative(functionDir, file))
     .filter(
       (file) => !isOutsideIgnoreRoot(file) && !safeIgnores(ignorer, file),

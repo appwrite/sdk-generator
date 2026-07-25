@@ -7,9 +7,13 @@ import chalk from "chalk";
 import { Agent, WebSocket } from "undici";
 import { Client, AppwriteException } from "@appwrite.io/console";
 import { error } from "../../parser.js";
-import { globalConfig } from "../../config.js";
+import { globalConfig, localConfig } from "../../config.js";
 import { getValidAccessToken } from "../../sdks.js";
-import { getErrorMessage } from "../../utils.js";
+import {
+  getErrorMessage,
+  isPathInside,
+  resolveSymlinkBoundary,
+} from "../../utils.js";
 import { Spinner } from "../../spinner.js";
 
 const ignore: typeof ignoreModule =
@@ -412,9 +416,11 @@ export async function watchDeploymentUpdates(
 function listDeployableFiles(
   dirPath: string,
   extraIgnoreRules: string[] = [],
+  allowedRoot?: string,
 ): string[] {
   const normalizePath = (value: string): string =>
     value.split(path.sep).join("/");
+  const symlinkBoundary = resolveSymlinkBoundary(dirPath, allowedRoot);
 
   const createMatcher = (baseDir: string, rules: string[]): IgnoreMatcher => {
     const ignorer = ignore();
@@ -503,6 +509,10 @@ function listDeployableFiles(
       return;
     }
 
+    if (!isPathInside(symlinkBoundary, realDir)) {
+      return;
+    }
+
     // Prevent infinite recursion on cyclic symlinks while still allowing the
     // same shared directory to appear under multiple distinct symlink paths.
     if (visitedStack.has(realDir)) {
@@ -531,9 +541,20 @@ function listDeployableFiles(
         let isDirectory = entry.isDirectory();
         let isFile = entry.isFile();
 
-        // Follow symlink-to-dir/file so shared function code is packaged under
-        // the symlink name (e.g. src/common/...), matching historical CLI behavior.
+        // Follow in-bound symlink-to-dir/file so shared function code is
+        // packaged under the symlink name (e.g. src/common/...).
         if (entry.isSymbolicLink()) {
+          let realTarget: string;
+          try {
+            realTarget = fs.realpathSync(absolutePath);
+          } catch (_error) {
+            continue;
+          }
+
+          if (!isPathInside(symlinkBoundary, realTarget)) {
+            continue;
+          }
+
           let stats: fs.Stats;
           try {
             stats = fs.statSync(absolutePath);
@@ -571,7 +592,15 @@ async function packageDirectory(
     os.tmpdir(),
     `appwrite-deploy-${Date.now()}.tar.gz`,
   );
-  const files = listDeployableFiles(dirPath, extraIgnoreRules);
+  // Constrain followed symlinks to the Appwrite project directory when the
+  // packaged path lives inside it; otherwise stay within dirPath itself.
+  let projectRoot: string | undefined;
+  try {
+    projectRoot = localConfig.getDirname();
+  } catch (_error) {
+    projectRoot = undefined;
+  }
+  const files = listDeployableFiles(dirPath, extraIgnoreRules, projectRoot);
 
   if (files.length === 0) {
     throw new Error(

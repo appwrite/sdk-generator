@@ -846,6 +846,54 @@ export function isOutsideIgnoreRoot(relativePath: string): boolean {
 }
 
 /**
+ * Resolve to a canonical absolute path when the target exists; otherwise
+ * fall back to path.resolve so comparisons still work for missing paths.
+ */
+function toCanonicalPath(targetPath: string): string {
+  const resolved = path.resolve(targetPath);
+  try {
+    return fs.realpathSync(resolved);
+  } catch (_error) {
+    return resolved;
+  }
+}
+
+/**
+ * True when `childPath` resolves inside `parentPath` (or is the same path).
+ * Uses realpath when available so macOS `/tmp` vs `/private/tmp` matches.
+ */
+export function isPathInside(parentPath: string, childPath: string): boolean {
+  const parent = toCanonicalPath(parentPath);
+  const child = toCanonicalPath(childPath);
+  const relativePath = path.relative(parent, child);
+  return (
+    relativePath === "" ||
+    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+  );
+}
+
+/**
+ * Symlink walk boundary: prefer the project root when the packaging folder is
+ * inside it (so `functions/common` sharing works), otherwise stay within the
+ * folder itself so absolute/out-of-tree resources cannot escape further.
+ */
+export function resolveSymlinkBoundary(
+  folder: string,
+  allowedRoot?: string,
+): string {
+  const resolvedFolder = toCanonicalPath(folder);
+
+  if (allowedRoot) {
+    const resolvedAllowed = toCanonicalPath(allowedRoot);
+    if (isPathInside(resolvedAllowed, resolvedFolder)) {
+      return resolvedAllowed;
+    }
+  }
+
+  return resolvedFolder;
+}
+
+/**
  * Safe wrapper around ignore().ignores() that never throws on symlink
  * targets outside the watched/packaged root.
  */
@@ -863,16 +911,23 @@ export function safeIgnores(
 /**
  * Recursively list files under `folder`, following symlinks while keeping
  * paths rooted at the symlink location (never leaking "../" real paths).
- * Cycle-safe via a realpath visit stack.
+ *
+ * Symlink targets are only followed when their realpath stays inside
+ * `allowedRoot` (or `folder` when omitted). Cycle-safe via a realpath stack.
  */
-export function getAllFiles(folder: string): string[] {
+export function getAllFiles(folder: string, allowedRoot?: string): string[] {
   const files: string[] = [];
+  const boundary = resolveSymlinkBoundary(folder, allowedRoot);
 
   const walk = (current: string, visitedStack: Set<string>): void => {
     let realCurrent: string;
     try {
       realCurrent = fs.realpathSync(current);
     } catch (_error) {
+      return;
+    }
+
+    if (!isPathInside(boundary, realCurrent)) {
       return;
     }
 
@@ -897,6 +952,18 @@ export function getAllFiles(folder: string): string[] {
         let isFile = entry.isFile();
 
         if (entry.isSymbolicLink()) {
+          let realTarget: string;
+          try {
+            realTarget = fs.realpathSync(absolutePath);
+          } catch (_error) {
+            continue;
+          }
+
+          // Refuse to follow symlinks that escape the project / package root.
+          if (!isPathInside(boundary, realTarget)) {
+            continue;
+          }
+
           let stats: fs.Stats;
           try {
             stats = fs.statSync(absolutePath);
