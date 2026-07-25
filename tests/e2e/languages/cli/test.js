@@ -491,9 +491,16 @@ fs.symlinkSync(
   path.join("..", "src"),
   path.join(symlinkFunctionDir, "src/loop"),
 );
+// A symlink escaping the project entirely must not be followed.
+const outsideProject = fs.mkdtempSync(path.join(os.tmpdir(), "outside-project-"));
+fs.writeFileSync(path.join(outsideProject, "secret.txt"), "do not deploy me\n");
+fs.symlinkSync(
+  path.join(outsideProject, "secret.txt"),
+  path.join(symlinkFunctionDir, "escape.txt"),
+);
 
 try {
-  const symlinkFiles = getAllFiles(symlinkFunctionDir)
+  const symlinkFiles = getAllFiles(symlinkFunctionDir, symlinkRoot)
     .map((file) =>
       path.relative(symlinkFunctionDir, file).split(path.sep).join("/"),
     )
@@ -512,8 +519,15 @@ try {
     symlinkFiles.every((file) => !file.startsWith("../")),
     `Expected every listed path to stay inside the function, got ${JSON.stringify(symlinkFiles)}`,
   );
+  // A link out of the project is not followed, so a stray link to somewhere
+  // like ~/.ssh cannot pull host files into a deployment.
+  assert.ok(
+    !symlinkFiles.includes("escape.txt"),
+    `Expected a symlink leaving the project to be skipped, got ${JSON.stringify(symlinkFiles)}`,
+  );
 } finally {
   fs.rmSync(symlinkRoot, { recursive: true, force: true });
+  fs.rmSync(outsideProject, { recursive: true, force: true });
 }
 console.log("CLI_LOCAL_SYMLINK_SOURCE:passed");
 
@@ -1396,8 +1410,21 @@ async function runDeploymentSymlinkChecks() {
     path.join("..", "shared", "helper.js"),
     path.join(functionDir, "direct.js"),
   );
+  // A link out of the project must not pull host files into the archive.
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "cli-push-outside-"));
+  fs.writeFileSync(path.join(outside, "secret.txt"), "do not deploy me\n");
+  fs.symlinkSync(
+    path.join(outside, "secret.txt"),
+    path.join(functionDir, "escape.txt"),
+  );
 
   const archivePath = path.join(root, "code.tar.gz");
+  // Point the CLI at the fixture so `root` acts as the project directory that
+  // bounds which symlinks may be followed.
+  const previousCwd = process.cwd();
+  process.chdir(root);
+  localConfig.useCwdConfig();
+
   try {
     const archive = await resolveFileParam(functionDir);
     fs.writeFileSync(
@@ -1425,7 +1452,15 @@ async function runDeploymentSymlinkChecks() {
     assert.ok(direct, "Expected a symlinked file to be packaged");
     assert.equal(direct.type, "File");
     assert.ok(direct.size > 0, "Expected a symlinked file to keep its content");
+
+    assert.ok(
+      !entries.has("escape.txt"),
+      `Expected a symlink leaving the project to be excluded, got ${JSON.stringify([...entries.keys()])}`,
+    );
   } finally {
+    process.chdir(previousCwd);
+    localConfig.useCwdConfig();
     fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
   }
 }

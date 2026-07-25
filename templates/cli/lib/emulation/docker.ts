@@ -38,7 +38,7 @@ function getFunctionFiles(func: FunctionType): {
 } {
   const functionDir = localConfig.resolveResourcePath("functions", func.path);
   const ignorer = getFunctionIgnorer(func, functionDir);
-  const files = getAllFiles(functionDir)
+  const files = getAllFiles(functionDir, localConfig.getDirname())
     .map((file) => path.relative(functionDir, file).split(path.sep).join("/"))
     .filter((file) => !ignorer.ignores(file));
 

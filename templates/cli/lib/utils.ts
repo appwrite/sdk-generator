@@ -830,21 +830,57 @@ export async function getCachedUpdateNotification(
 }
 
 /**
+ * True when `child` is `parent` or sits beneath it. Both arguments must
+ * already be real paths, so that `/tmp` and `/private/tmp` compare equal.
+ */
+export function isPathInside(parent: string, child: string): boolean {
+  const relativePath = path.relative(parent, child);
+  return (
+    relativePath === "" ||
+    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+  );
+}
+
+/**
+ * A symlink can point anywhere on the host, so following one is bounded to the
+ * Appwrite project directory when `folder` sits inside it, and to `folder`
+ * itself otherwise. Sharing code between functions stays possible; reaching
+ * out to `~/.ssh` does not.
+ */
+export function resolveSymlinkBoundary(
+  folder: string,
+  projectRoot?: string,
+): string {
+  const realFolder = fs.realpathSync(folder);
+
+  if (!projectRoot) {
+    return realFolder;
+  }
+
+  const realRoot = fs.realpathSync(projectRoot);
+  return isPathInside(realRoot, realFolder) ? realRoot : realFolder;
+}
+
+/**
  * Recursively list every file under `folder` as an absolute path.
  *
  * Symlinked files and directories are followed, and the returned paths stay
  * rooted at the symlink location (e.g. `src/common/util.js` rather than the
  * real `../../common/util.js`), so shared code can be packaged like any other
  * file in the folder. Symlink cycles are handled by the crawler.
+ *
+ * Links resolving outside `projectRoot` are left out.
  */
-export function getAllFiles(folder: string): string[] {
+export function getAllFiles(folder: string, projectRoot?: string): string[] {
+  const boundary = resolveSymlinkBoundary(folder, projectRoot);
+
   return globSync("**/*", {
     cwd: folder,
     absolute: true,
     dot: true,
     onlyFiles: true,
     followSymbolicLinks: true,
-  });
+  }).filter((file) => isPathInside(boundary, fs.realpathSync(file)));
 }
 
 export async function isPortTaken(port: number): Promise<boolean> {

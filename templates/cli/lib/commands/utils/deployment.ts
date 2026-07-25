@@ -6,10 +6,14 @@ import ignoreModule from "ignore";
 import chalk from "chalk";
 import { Agent, WebSocket } from "undici";
 import { Client, AppwriteException } from "@appwrite.io/console";
-import { error } from "../../parser.js";
-import { globalConfig } from "../../config.js";
+import { error, warn } from "../../parser.js";
+import { globalConfig, localConfig } from "../../config.js";
 import { getValidAccessToken } from "../../sdks.js";
-import { getErrorMessage } from "../../utils.js";
+import {
+  getErrorMessage,
+  isPathInside,
+  resolveSymlinkBoundary,
+} from "../../utils.js";
 import { Spinner } from "../../spinner.js";
 
 const ignore: typeof ignoreModule =
@@ -412,9 +416,12 @@ export async function watchDeploymentUpdates(
 function listDeployableFiles(
   dirPath: string,
   extraIgnoreRules: string[] = [],
+  projectRoot?: string,
 ): string[] {
   const normalizePath = (value: string): string =>
     value.split(path.sep).join("/");
+  const boundary = resolveSymlinkBoundary(dirPath, projectRoot);
+  const skippedSymlinks: string[] = [];
 
   const createMatcher = (baseDir: string, rules: string[]): IgnoreMatcher => {
     const ignorer = ignore();
@@ -522,15 +529,23 @@ function listDeployableFiles(
     for (const entry of fs.readdirSync(absoluteDir)) {
       const relativePath = normalizePath(path.join(relativeDir, entry));
 
+      const absolutePath = path.join(dirPath, relativePath);
+
       // statSync resolves symlinks, so shared code linked into the deployment
       // (e.g. src/common -> ../../common) is walked like a real directory and
       // packaged under the symlink's path.
-      const stats = statOrNull(path.join(dirPath, relativePath));
+      const stats = statOrNull(absolutePath);
       if (stats === null) {
         continue;
       }
 
       if (isIgnored(relativePath, activeMatchers, stats.isDirectory())) {
+        continue;
+      }
+
+      // Checked after the ignore rules so ignored trees cost no extra syscalls.
+      if (!isPathInside(boundary, fs.realpathSync(absolutePath))) {
+        skippedSymlinks.push(relativePath);
         continue;
       }
 
@@ -545,6 +560,13 @@ function listDeployableFiles(
   };
 
   walk();
+
+  if (skippedSymlinks.length > 0) {
+    warn(
+      `Skipped ${skippedSymlinks.length} symlink(s) pointing outside the project and left them out of the deployment: ${skippedSymlinks.join(", ")}`,
+    );
+  }
+
   return files;
 }
 
@@ -552,7 +574,17 @@ async function packageDirectory(
   dirPath: string,
   extraIgnoreRules: string[] = [],
 ): Promise<File> {
-  const files = listDeployableFiles(dirPath, extraIgnoreRules);
+  // The project directory bounds which symlinks may be followed. Paths passed
+  // straight to the CLI can sit outside a project, in which case there is no
+  // root to bound them to.
+  let projectRoot: string | undefined;
+  try {
+    projectRoot = localConfig.getDirname();
+  } catch (_error) {
+    projectRoot = undefined;
+  }
+
+  const files = listDeployableFiles(dirPath, extraIgnoreRules, projectRoot);
 
   if (files.length === 0) {
     throw new Error(

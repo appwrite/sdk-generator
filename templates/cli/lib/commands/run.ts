@@ -355,7 +355,7 @@ const runFunction = async ({
           );
         }
 
-        const filesToCopy = getAllFiles(functionPath)
+        const filesToCopy = getAllFiles(functionPath, localConfig.getDirname())
           .map((file: string) =>
             path.relative(functionPath, file).split(path.sep).join("/"),
           )
