@@ -16,6 +16,7 @@ const {
   TypeScriptDatabasesGenerator,
 } = require("./lib/commands/generators/typescript/databases.ts");
 const {
+  getAllFiles,
   getFunctionDeploymentConsoleUrl,
   getSiteDeploymentConsoleUrl,
 } = require("./lib/utils.ts");
@@ -726,6 +727,7 @@ void (async () => {
   console.log("CLI_TYPEGEN:passed");
 })()
   .then(runAuthChecks)
+  .then(runDeploymentSymlinkChecks)
   .catch((error) => {
     throw error;
   });
@@ -1316,4 +1318,95 @@ async function runAuthChecks() {
   restoreKeyringEntryFactory();
   if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
   else process.env.NODE_ENV = previousNodeEnv;
+}
+
+// A function that shares code through a symlink (appwrite/sdk-for-cli#253).
+// Deliberately silent on success so the positional output assertions above are
+// unaffected; a regression throws and fails the run.
+async function runDeploymentSymlinkChecks() {
+  const { list } = await import("tar");
+  const { resolveFileParam } = await import(
+    "./lib/commands/utils/deployment.ts"
+  );
+
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cli-symlink-"));
+  const functionDir = path.join(root, "app");
+  fs.mkdirSync(path.join(functionDir, "src"), { recursive: true });
+  fs.mkdirSync(path.join(root, "shared"));
+  fs.writeFileSync(path.join(functionDir, "src/main.js"), "export default 1;\n");
+  fs.writeFileSync(
+    path.join(root, "shared/helper.js"),
+    "export const help = () => true;\n",
+  );
+  // A shared directory and a single shared file, both reached by symlink.
+  fs.symlinkSync(
+    path.join("..", "..", "shared"),
+    path.join(functionDir, "src/shared"),
+  );
+  fs.symlinkSync(
+    path.join("..", "shared", "helper.js"),
+    path.join(functionDir, "direct.js"),
+  );
+  // A self-referential link must not send either walk into an endless loop.
+  fs.symlinkSync(path.join("..", "src"), path.join(functionDir, "src/loop"));
+  // A link out of the project must not pull host files into the archive.
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "cli-symlink-outside-"));
+  fs.writeFileSync(path.join(outside, "secret.txt"), "do not deploy me\n");
+  fs.symlinkSync(
+    path.join(outside, "secret.txt"),
+    path.join(functionDir, "escape.txt"),
+  );
+
+  // Point the CLI at the fixture so `root` acts as the project directory that
+  // bounds which symlinks may be followed.
+  const previousCwd = process.cwd();
+  process.chdir(root);
+  localConfig.useCwdConfig();
+
+  try {
+    // Local run and Docker build discovery.
+    const discovered = getAllFiles(functionDir, root).map((file) =>
+      path.relative(functionDir, file).split(path.sep).join("/"),
+    );
+    assert.deepEqual(discovered.sort(), [
+      "direct.js",
+      "src/loop/main.js",
+      "src/loop/shared/helper.js",
+      "src/main.js",
+      "src/shared/helper.js",
+    ]);
+
+    // Deployment packaging.
+    const archivePath = path.join(root, "code.tar.gz");
+    const archive = await resolveFileParam(functionDir);
+    fs.writeFileSync(archivePath, Buffer.from(await archive.arrayBuffer()));
+
+    const entries = new Map();
+    await list({
+      file: archivePath,
+      onReadEntry: (entry) => entries.set(entry.path, entry),
+    });
+
+    // Shared code is packaged under its symlink path, and dereferenced into a
+    // real file rather than a link that would dangle in the runtime.
+    for (const name of ["src/shared/helper.js", "direct.js"]) {
+      const entry = entries.get(name);
+      assert.ok(
+        entry,
+        `Expected ${name} to be packaged, got ${JSON.stringify([...entries.keys()])}`,
+      );
+      assert.equal(entry.type, "File");
+      assert.ok(entry.size > 0, `Expected ${name} to be packaged with content`);
+    }
+
+    assert.ok(
+      !entries.has("escape.txt"),
+      `Expected a symlink leaving the project to be excluded, got ${JSON.stringify([...entries.keys()])}`,
+    );
+  } finally {
+    process.chdir(previousCwd);
+    localConfig.useCwdConfig();
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  }
 }

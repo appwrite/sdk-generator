@@ -3,6 +3,7 @@ import os from "os";
 import path from "path";
 import net from "net";
 import childProcess from "child_process";
+import { globSync } from "tinyglobby";
 import type { Models } from "@appwrite.io/console";
 import { ProjectPolicyId } from "@appwrite.io/console";
 import { z } from "zod";
@@ -828,23 +829,53 @@ export async function getCachedUpdateNotification(
   }
 }
 
-export function getAllFiles(folder: string): string[] {
-  const files: string[] = [];
-  for (const pathDir of fs.readdirSync(folder)) {
-    const pathAbsolute = path.join(folder, pathDir);
-    let stats: fs.Stats;
-    try {
-      stats = fs.statSync(pathAbsolute);
-    } catch (_error) {
-      continue;
-    }
-    if (stats.isDirectory()) {
-      files.push(...getAllFiles(pathAbsolute));
-    } else {
-      files.push(pathAbsolute);
-    }
+/**
+ * True when `child` is `parent` or sits beneath it. Both arguments must
+ * already be real paths, so that `/tmp` and `/private/tmp` compare equal.
+ */
+export function isPathInside(parent: string, child: string): boolean {
+  const relativePath = path.relative(parent, child);
+  return (
+    relativePath === "" ||
+    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+  );
+}
+
+/**
+ * Symlinks are followed so that functions can share code, and the paths they
+ * produce stay rooted at the link (`src/common/util.js`, not the real
+ * `../../common/util.js`). Since a link can point anywhere on the host, this
+ * bounds how far one may be followed: to the Appwrite project directory when
+ * `folder` sits inside it, and to `folder` itself otherwise. Sharing
+ * `functions/common` stays possible; reaching `~/.ssh` does not.
+ */
+export function resolveSymlinkBoundary(
+  folder: string,
+  projectRoot?: string,
+): string {
+  const realFolder = fs.realpathSync(folder);
+
+  if (!projectRoot) {
+    return realFolder;
   }
-  return files;
+
+  const realRoot = fs.realpathSync(projectRoot);
+  return isPathInside(realRoot, realFolder) ? realRoot : realFolder;
+}
+
+/**
+ * Recursively list every file under `folder` as an absolute path.
+ */
+export function getAllFiles(folder: string, projectRoot?: string): string[] {
+  const boundary = resolveSymlinkBoundary(folder, projectRoot);
+
+  return globSync("**/*", {
+    cwd: folder,
+    absolute: true,
+    dot: true,
+    onlyFiles: true,
+    followSymbolicLinks: true,
+  }).filter((file) => isPathInside(boundary, fs.realpathSync(file)));
 }
 
 export async function isPortTaken(port: number): Promise<boolean> {

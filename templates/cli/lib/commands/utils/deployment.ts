@@ -6,10 +6,14 @@ import ignoreModule from "ignore";
 import chalk from "chalk";
 import { Agent, WebSocket } from "undici";
 import { Client, AppwriteException } from "@appwrite.io/console";
-import { error } from "../../parser.js";
-import { globalConfig } from "../../config.js";
+import { error, warn } from "../../parser.js";
+import { globalConfig, localConfig } from "../../config.js";
 import { getValidAccessToken } from "../../sdks.js";
-import { getErrorMessage } from "../../utils.js";
+import {
+  getErrorMessage,
+  isPathInside,
+  resolveSymlinkBoundary,
+} from "../../utils.js";
 import { Spinner } from "../../spinner.js";
 
 const ignore: typeof ignoreModule =
@@ -412,9 +416,12 @@ export async function watchDeploymentUpdates(
 function listDeployableFiles(
   dirPath: string,
   extraIgnoreRules: string[] = [],
+  projectRoot?: string,
 ): string[] {
   const normalizePath = (value: string): string =>
     value.split(path.sep).join("/");
+  const boundary = resolveSymlinkBoundary(dirPath, projectRoot);
+  const skippedSymlinks: string[] = [];
 
   const createMatcher = (baseDir: string, rules: string[]): IgnoreMatcher => {
     const ignorer = ignore();
@@ -489,29 +496,63 @@ function listDeployableFiles(
 
   const files: string[] = [];
 
-  const walk = (relativeDir = "", inheritedMatchers = rootMatchers): void => {
+  const walk = (
+    relativeDir = "",
+    inheritedMatchers = rootMatchers,
+    ancestors = new Set<string>(),
+  ): void => {
     const absoluteDir = path.join(dirPath, relativeDir);
+
+    // Tracked per branch, so a cycle terminates but a shared directory can
+    // still appear under two different paths.
+    const realDir = fs.realpathSync(absoluteDir);
+    if (ancestors.has(realDir)) {
+      return;
+    }
+    ancestors.add(realDir);
+
     const localMatcher = relativeDir === "" ? null : loadMatcher(relativeDir);
     const activeMatchers = localMatcher
       ? [...inheritedMatchers, localMatcher]
       : inheritedMatchers;
 
-    for (const entry of fs.readdirSync(absoluteDir, { withFileTypes: true })) {
-      const relativePath = normalizePath(path.join(relativeDir, entry.name));
+    for (const entry of fs.readdirSync(absoluteDir)) {
+      const relativePath = normalizePath(path.join(relativeDir, entry));
 
-      if (isIgnored(relativePath, activeMatchers, entry.isDirectory())) {
+      const absolutePath = path.join(dirPath, relativePath);
+
+      const stats = fs.statSync(absolutePath, { throwIfNoEntry: false });
+      if (!stats) {
         continue;
       }
 
-      if (entry.isDirectory()) {
-        walk(relativePath, activeMatchers);
-      } else {
+      if (isIgnored(relativePath, activeMatchers, stats.isDirectory())) {
+        continue;
+      }
+
+      if (!isPathInside(boundary, fs.realpathSync(absolutePath))) {
+        skippedSymlinks.push(relativePath);
+        continue;
+      }
+
+      if (stats.isDirectory()) {
+        walk(relativePath, activeMatchers, ancestors);
+      } else if (stats.isFile()) {
         files.push(relativePath);
       }
     }
+
+    ancestors.delete(realDir);
   };
 
   walk();
+
+  if (skippedSymlinks.length > 0) {
+    warn(
+      `Skipped ${skippedSymlinks.length} symlink(s) pointing outside the project and left them out of the deployment: ${skippedSymlinks.join(", ")}`,
+    );
+  }
+
   return files;
 }
 
@@ -519,11 +560,15 @@ async function packageDirectory(
   dirPath: string,
   extraIgnoreRules: string[] = [],
 ): Promise<File> {
-  const tempFile = path.join(
-    os.tmpdir(),
-    `appwrite-deploy-${Date.now()}.tar.gz`,
-  );
-  const files = listDeployableFiles(dirPath, extraIgnoreRules);
+  // Paths passed straight to the CLI can sit outside any project.
+  let projectRoot: string | undefined;
+  try {
+    projectRoot = localConfig.getDirname();
+  } catch (_error) {
+    projectRoot = undefined;
+  }
+
+  const files = listDeployableFiles(dirPath, extraIgnoreRules, projectRoot);
 
   if (files.length === 0) {
     throw new Error(
@@ -531,24 +576,28 @@ async function packageDirectory(
     );
   }
 
-  await create(
-    {
-      gzip: true,
-      file: tempFile,
-      cwd: dirPath,
-    },
-    files,
-  );
+  // A unique directory per call, so concurrent function and site pushes can
+  // never write to the same archive.
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "appwrite-deploy-"));
+  const tempFile = path.join(tempDir, "code.tar.gz");
 
   try {
+    await create(
+      {
+        gzip: true,
+        file: tempFile,
+        cwd: dirPath,
+        follow: true,
+      },
+      files,
+    );
+
     const buffer = fs.readFileSync(tempFile);
     return new File([buffer], path.basename(tempFile), {
       type: "application/gzip",
     });
   } finally {
-    if (fs.existsSync(tempFile)) {
-      fs.unlinkSync(tempFile);
-    }
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
 }
 
