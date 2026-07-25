@@ -894,9 +894,98 @@ export function resolveSymlinkBoundary(
 }
 
 /**
+ * Resolve the path for an open fd when the OS exposes it (Linux /proc).
+ */
+function getPathFromFd(fd: number): string | null {
+  if (process.platform !== "linux") {
+    return null;
+  }
+
+  try {
+    return fs.readlinkSync(`/proc/self/fd/${fd}`);
+  } catch (_error) {
+    return null;
+  }
+}
+
+/**
+ * Ensure every path component from `boundary` to `absolutePath` is not a
+ * symlink. Used on already-realpath'd paths so a raced intermediate symlink
+ * is rejected before open.
+ */
+function assertRealPathComponents(
+  absolutePath: string,
+  boundary: string,
+): void {
+  const canonicalBoundary = toCanonicalPath(boundary);
+  const relative = path.relative(canonicalBoundary, absolutePath);
+  if (
+    relative === "" ||
+    relative.startsWith("..") ||
+    path.isAbsolute(relative)
+  ) {
+    if (relative !== "") {
+      throw new Error("Path escapes containment boundary");
+    }
+    return;
+  }
+
+  let current = canonicalBoundary;
+  for (const segment of relative.split(path.sep)) {
+    if (!segment || segment === ".") {
+      continue;
+    }
+    if (segment === "..") {
+      throw new Error("Path escapes containment boundary");
+    }
+
+    current = path.join(current, segment);
+    if (fs.lstatSync(current).isSymbolicLink()) {
+      throw new Error("Symlink component in contained path");
+    }
+  }
+}
+
+/**
+ * True when the opened fd is still the intended in-boundary file.
+ * Prefers the fd's OS path; falls back to matching device/inode against the
+ * re-resolved pathname (detects intermediate-directory swap races).
+ */
+function isOpenedFileContained(
+  fd: number,
+  expectedRealPath: string,
+  boundary: string,
+  fdStats: fs.Stats,
+): boolean {
+  const fdPath = getPathFromFd(fd);
+  if (fdPath) {
+    return isPathInside(boundary, fdPath);
+  }
+
+  let verifyStats: fs.Stats;
+  let verifyRealPath: string;
+  try {
+    verifyRealPath = fs.realpathSync(expectedRealPath);
+    verifyStats = fs.statSync(expectedRealPath);
+  } catch (_error) {
+    return false;
+  }
+
+  if (
+    fdStats.dev !== verifyStats.dev ||
+    fdStats.ino !== verifyStats.ino ||
+    !isPathInside(boundary, verifyRealPath)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Copy `sourcePath` to `destinationPath` only if its realpath stays inside
- * `boundary`. Opens the canonical path with O_NOFOLLOW (when available) and
- * reads through that fd so a swapped symlink cannot change what is copied.
+ * `boundary`. Opens the canonical path with O_NOFOLLOW (when available),
+ * verifies the opened fd itself is still in-bound, then reads through that fd.
  * Returns false when the source is missing, not a regular file, or escapes.
  */
 export function copyContainedFile(
@@ -912,6 +1001,9 @@ export function copyContainedFile(
       return false;
     }
 
+    // Reject raced symlink components on the canonical path before opening.
+    assertRealPathComponents(realSource, boundary);
+
     // Bind open to the validated canonical path. O_NOFOLLOW rejects a final
     // component that was raced into a symlink after realpath resolved.
     const openFlags =
@@ -926,8 +1018,9 @@ export function copyContainedFile(
       return false;
     }
 
-    // Recheck containment after open; drop the copy if the path escaped.
-    if (!isPathInside(boundary, fs.realpathSync(realSource))) {
+    // Containment must be proven for the opened descriptor, not only a
+    // re-resolved pathname (intermediate-directory swap TOCTOU).
+    if (!isOpenedFileContained(fd, realSource, boundary, stats)) {
       return false;
     }
 
