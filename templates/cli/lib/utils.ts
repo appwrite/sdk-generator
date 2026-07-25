@@ -895,33 +895,61 @@ export function resolveSymlinkBoundary(
 
 /**
  * Copy `sourcePath` to `destinationPath` only if its realpath stays inside
- * `boundary`. Re-checks at copy time so a swapped symlink cannot escape.
- * Returns false when the source is missing or escapes the boundary.
+ * `boundary`. Opens the canonical path with O_NOFOLLOW (when available) and
+ * reads through that fd so a swapped symlink cannot change what is copied.
+ * Returns false when the source is missing, not a regular file, or escapes.
  */
 export function copyContainedFile(
   sourcePath: string,
   destinationPath: string,
   boundary: string,
 ): boolean {
-  let realSource: string;
+  let fd: number | undefined;
+
   try {
-    realSource = fs.realpathSync(sourcePath);
+    const realSource = fs.realpathSync(sourcePath);
+    if (!isPathInside(boundary, realSource)) {
+      return false;
+    }
+
+    // Bind open to the validated canonical path. O_NOFOLLOW rejects a final
+    // component that was raced into a symlink after realpath resolved.
+    const openFlags =
+      fs.constants.O_RDONLY |
+      (typeof fs.constants.O_NOFOLLOW === "number"
+        ? fs.constants.O_NOFOLLOW
+        : 0);
+    fd = fs.openSync(realSource, openFlags);
+
+    const stats = fs.fstatSync(fd);
+    if (!stats.isFile()) {
+      return false;
+    }
+
+    // Recheck containment after open; drop the copy if the path escaped.
+    if (!isPathInside(boundary, fs.realpathSync(realSource))) {
+      return false;
+    }
+
+    const destinationDir = path.dirname(destinationPath);
+    if (!fs.existsSync(destinationDir)) {
+      fs.mkdirSync(destinationDir, { recursive: true });
+    }
+
+    // Read via the already-opened fd so content cannot track a later swap.
+    fs.writeFileSync(destinationPath, fs.readFileSync(fd));
+    return true;
   } catch (_error) {
     return false;
+  } finally {
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch (_error) {
+        // ignore close errors
+      }
+    }
   }
-
-  if (!isPathInside(boundary, realSource)) {
-    return false;
-  }
-
-  const destinationDir = path.dirname(destinationPath);
-  if (!fs.existsSync(destinationDir)) {
-    fs.mkdirSync(destinationDir, { recursive: true });
-  }
-
-  // Copy from the validated realpath, not the mutable symlink path.
-  fs.copyFileSync(realSource, destinationPath);
-  return true;
 }
 
 /**
