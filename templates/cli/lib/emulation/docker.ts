@@ -10,13 +10,7 @@ import path from "path";
 import fs from "fs";
 import { log, error, success } from "../parser.js";
 import { openRuntimesVersion, systemTools, Queue } from "./utils.js";
-import {
-  copyContainedFile,
-  getAllFiles,
-  isOutsideIgnoreRoot,
-  resolveSymlinkBoundary,
-  safeIgnores,
-} from "../utils.js";
+import { getAllFiles } from "../utils.js";
 import type { FunctionType } from "../commands/config.js";
 
 function getFunctionIgnorer(
@@ -41,23 +35,14 @@ function getFunctionFiles(func: FunctionType): {
   functionDir: string;
   files: string[];
   ignorer: ignoreModule.Ignore;
-  symlinkBoundary: string;
 } {
   const functionDir = localConfig.resolveResourcePath("functions", func.path);
   const ignorer = getFunctionIgnorer(func, functionDir);
-  const symlinkBoundary = resolveSymlinkBoundary(
-    functionDir,
-    localConfig.getDirname(),
-  );
-  // Follow in-project symlinks (e.g. src/common -> ../../common) but keep
-  // virtual paths under functionDir and refuse targets outside the project.
-  const files = getAllFiles(functionDir, localConfig.getDirname())
-    .map((file) => path.relative(functionDir, file))
-    .filter(
-      (file) => !isOutsideIgnoreRoot(file) && !safeIgnores(ignorer, file),
-    );
+  const files = getAllFiles(functionDir)
+    .map((file) => path.relative(functionDir, file).split(path.sep).join("/"))
+    .filter((file) => !ignorer.ignores(file));
 
-  return { functionDir, files, ignorer, symlinkBoundary };
+  return { functionDir, files, ignorer };
 }
 
 export function assertFunctionSourceCode(func: FunctionType): void {
@@ -80,7 +65,7 @@ export function assertFunctionSourceCode(func: FunctionType): void {
   const normalizedEntrypoint = path.normalize(func.entrypoint);
   const relativeEntrypoint = normalizedEntrypoint.split(path.sep).join("/");
 
-  if (safeIgnores(ignorer, relativeEntrypoint)) {
+  if (ignorer.ignores(relativeEntrypoint)) {
     throw new Error(
       `Entrypoint '${func.entrypoint}' is ignored by your local ignore rules. Update appwrite.config.json or your ignore file before running locally.`,
     );
@@ -224,7 +209,7 @@ export async function dockerBuild(
 ): Promise<void> {
   const imageName = getRuntimeImageName(func);
 
-  const { functionDir, files, symlinkBoundary } = getFunctionFiles(func);
+  const { functionDir, files } = getFunctionFiles(func);
 
   const id = func.$id;
   const tmpBuildPath = path.join(functionDir, ".appwrite/tmp-build");
@@ -236,12 +221,10 @@ export async function dockerBuild(
 
   try {
     for (const f of files) {
-      // Re-validate realpath at copy time to prevent symlink-swap escapes.
-      copyContainedFile(
-        path.join(functionDir, f),
-        path.join(tmpBuildPath, f),
-        symlinkBoundary,
-      );
+      const filePath = path.join(tmpBuildPath, f);
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      // copyFileSync reads through symlinks, so shared code lands as a real file.
+      fs.copyFileSync(path.join(functionDir, f), filePath);
     }
 
     const params: string[] = ["run"];

@@ -7,14 +7,9 @@ import chalk from "chalk";
 import { Agent, WebSocket } from "undici";
 import { Client, AppwriteException } from "@appwrite.io/console";
 import { error } from "../../parser.js";
-import { globalConfig, localConfig } from "../../config.js";
+import { globalConfig } from "../../config.js";
 import { getValidAccessToken } from "../../sdks.js";
-import {
-  copyContainedFile,
-  getErrorMessage,
-  isPathInside,
-  resolveSymlinkBoundary,
-} from "../../utils.js";
+import { getErrorMessage } from "../../utils.js";
 import { Spinner } from "../../spinner.js";
 
 const ignore: typeof ignoreModule =
@@ -417,11 +412,9 @@ export async function watchDeploymentUpdates(
 function listDeployableFiles(
   dirPath: string,
   extraIgnoreRules: string[] = [],
-  allowedRoot?: string,
 ): string[] {
   const normalizePath = (value: string): string =>
     value.split(path.sep).join("/");
-  const symlinkBoundary = resolveSymlinkBoundary(dirPath, allowedRoot);
 
   const createMatcher = (baseDir: string, rules: string[]): IgnoreMatcher => {
     const ignorer = ignore();
@@ -496,89 +489,59 @@ function listDeployableFiles(
 
   const files: string[] = [];
 
+  // Dangling symlinks have no target to stat, so they are simply skipped.
+  const statOrNull = (target: string): fs.Stats | null => {
+    try {
+      return fs.statSync(target);
+    } catch (_error) {
+      return null;
+    }
+  };
+
   const walk = (
     relativeDir = "",
     inheritedMatchers = rootMatchers,
-    visitedStack = new Set<string>(),
+    ancestors = new Set<string>(),
   ): void => {
     const absoluteDir = path.join(dirPath, relativeDir);
 
-    let realDir: string;
-    try {
-      realDir = fs.realpathSync(absoluteDir);
-    } catch (_error) {
+    // Tracking the real directories on the current branch stops a cyclic
+    // symlink from recursing forever, while still letting the same shared
+    // directory be included under two different symlink paths.
+    const realDir = fs.realpathSync(absoluteDir);
+    if (ancestors.has(realDir)) {
       return;
     }
-
-    if (!isPathInside(symlinkBoundary, realDir)) {
-      return;
-    }
-
-    // Prevent infinite recursion on cyclic symlinks while still allowing the
-    // same shared directory to appear under multiple distinct symlink paths.
-    if (visitedStack.has(realDir)) {
-      return;
-    }
-    visitedStack.add(realDir);
+    ancestors.add(realDir);
 
     const localMatcher = relativeDir === "" ? null : loadMatcher(relativeDir);
     const activeMatchers = localMatcher
       ? [...inheritedMatchers, localMatcher]
       : inheritedMatchers;
 
-    let entries: fs.Dirent[];
-    try {
-      entries = fs.readdirSync(absoluteDir, { withFileTypes: true });
-    } catch (_error) {
-      visitedStack.delete(realDir);
-      return;
-    }
+    for (const entry of fs.readdirSync(absoluteDir)) {
+      const relativePath = normalizePath(path.join(relativeDir, entry));
 
-    try {
-      for (const entry of entries) {
-        const relativePath = normalizePath(path.join(relativeDir, entry.name));
-        const absolutePath = path.join(dirPath, relativePath);
-
-        let isDirectory = entry.isDirectory();
-        let isFile = entry.isFile();
-
-        // Follow in-bound symlink-to-dir/file so shared function code is
-        // packaged under the symlink name (e.g. src/common/...).
-        if (entry.isSymbolicLink()) {
-          let realTarget: string;
-          try {
-            realTarget = fs.realpathSync(absolutePath);
-          } catch (_error) {
-            continue;
-          }
-
-          if (!isPathInside(symlinkBoundary, realTarget)) {
-            continue;
-          }
-
-          let stats: fs.Stats;
-          try {
-            stats = fs.statSync(absolutePath);
-          } catch (_error) {
-            continue;
-          }
-          isDirectory = stats.isDirectory();
-          isFile = stats.isFile();
-        }
-
-        if (isIgnored(relativePath, activeMatchers, isDirectory)) {
-          continue;
-        }
-
-        if (isDirectory) {
-          walk(relativePath, activeMatchers, visitedStack);
-        } else if (isFile) {
-          files.push(relativePath);
-        }
+      // statSync resolves symlinks, so shared code linked into the deployment
+      // (e.g. src/common -> ../../common) is walked like a real directory and
+      // packaged under the symlink's path.
+      const stats = statOrNull(path.join(dirPath, relativePath));
+      if (stats === null) {
+        continue;
       }
-    } finally {
-      visitedStack.delete(realDir);
+
+      if (isIgnored(relativePath, activeMatchers, stats.isDirectory())) {
+        continue;
+      }
+
+      if (stats.isDirectory()) {
+        walk(relativePath, activeMatchers, ancestors);
+      } else if (stats.isFile()) {
+        files.push(relativePath);
+      }
     }
+
+    ancestors.delete(realDir);
   };
 
   walk();
@@ -589,24 +552,7 @@ async function packageDirectory(
   dirPath: string,
   extraIgnoreRules: string[] = [],
 ): Promise<File> {
-  const tempFile = path.join(
-    os.tmpdir(),
-    `appwrite-deploy-${Date.now()}.tar.gz`,
-  );
-  const stagingDir = path.join(
-    os.tmpdir(),
-    `appwrite-deploy-stage-${Date.now()}`,
-  );
-  // Constrain followed symlinks to the Appwrite project directory when the
-  // packaged path lives inside it; otherwise stay within dirPath itself.
-  let projectRoot: string | undefined;
-  try {
-    projectRoot = localConfig.getDirname();
-  } catch (_error) {
-    projectRoot = undefined;
-  }
-  const symlinkBoundary = resolveSymlinkBoundary(dirPath, projectRoot);
-  const files = listDeployableFiles(dirPath, extraIgnoreRules, projectRoot);
+  const files = listDeployableFiles(dirPath, extraIgnoreRules);
 
   if (files.length === 0) {
     throw new Error(
@@ -614,38 +560,23 @@ async function packageDirectory(
     );
   }
 
-  fs.mkdirSync(stagingDir, { recursive: true });
+  // A unique directory per call, so concurrent function and site pushes can
+  // never write to the same archive.
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "appwrite-deploy-"));
+  const tempFile = path.join(tempDir, "code.tar.gz");
 
   try {
-    // Stage real file contents first (re-validating realpath at copy time),
-    // then archive the staging tree without following symlinks. This closes
-    // the TOCTOU window where a symlink could be swapped after the walk.
-    const stagedFiles: string[] = [];
-    for (const relativeFile of files) {
-      const stagedPath = path.join(stagingDir, relativeFile);
-      const copied = copyContainedFile(
-        path.join(dirPath, relativeFile),
-        stagedPath,
-        symlinkBoundary,
-      );
-      if (copied) {
-        stagedFiles.push(relativeFile);
-      }
-    }
-
-    if (stagedFiles.length === 0) {
-      throw new Error(
-        `No deployable files found at path: ${dirPath}. Check your .gitignore and ignore rules.`,
-      );
-    }
-
     await create(
       {
         gzip: true,
         file: tempFile,
-        cwd: stagingDir,
+        cwd: dirPath,
+        // Archive what a symlink points at rather than the link itself, so
+        // shared code deploys as real files instead of links that dangle in
+        // the runtime.
+        follow: true,
       },
-      stagedFiles,
+      files,
     );
 
     const buffer = fs.readFileSync(tempFile);
@@ -653,10 +584,7 @@ async function packageDirectory(
       type: "application/gzip",
     });
   } finally {
-    if (fs.existsSync(tempFile)) {
-      fs.unlinkSync(tempFile);
-    }
-    fs.rmSync(stagingDir, { recursive: true, force: true });
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
 }
 

@@ -284,6 +284,7 @@ abstract class Base extends TestCase
     protected const CLI_LOCAL_FUNCTION_EMULATION_RESPONSES = [
         'CLI_LOCAL_FUNCTION_RUNNER_CONFIG:passed',
         'CLI_LOCAL_SOURCE_PREFLIGHT:passed',
+        'CLI_LOCAL_SYMLINK_SOURCE:passed',
     ];
 
     protected const HEADERS_RESPONSE = '__HEADERS_RESPONSE__';

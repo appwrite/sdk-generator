@@ -27,13 +27,8 @@ import {
 import {
   systemHasCommand,
   isPortTaken,
-  copyContainedFile,
   getAllFiles,
   getErrorMessage,
-  isOutsideIgnoreRoot,
-  isPathInside,
-  resolveSymlinkBoundary,
-  safeIgnores,
 } from "../utils.js";
 import {
   runtimeNames,
@@ -280,11 +275,6 @@ const runFunction = async ({
       );
     }
 
-    const symlinkBoundary = resolveSymlinkBoundary(
-      functionPath,
-      localConfig.getDirname(),
-    );
-
     chokidar
       .watch(".", {
         cwd: functionPath,
@@ -292,30 +282,19 @@ const runFunction = async ({
         // Follow symlinks so shared code (e.g. src/common -> ../../common) is watched.
         followSymlinks: true,
         ignored: (xpath: string) => {
-          const absolutePath = path.resolve(functionPath, xpath);
-          let realPath = absolutePath;
-          try {
-            if (fs.existsSync(absolutePath)) {
-              realPath = fs.realpathSync(absolutePath);
-            }
-          } catch (_error) {
-            return true;
-          }
+          const relativePath = path
+            .relative(functionPath, path.resolve(functionPath, xpath))
+            .split(path.sep)
+            .join("/");
 
-          // Never watch (or surface) symlink targets outside the project root.
-          if (!isPathInside(symlinkBoundary, realPath)) {
-            return true;
-          }
-
-          const relativePath = path.relative(functionPath, absolutePath);
-
-          // In-project shared code via symlink yields "../..." relative paths.
-          // The ignore package rejects those; keep watching instead.
-          if (isOutsideIgnoreRoot(relativePath)) {
+          // Watching a symlink surfaces its target's real path, which resolves
+          // outside functionPath. The `ignore` package throws a RangeError on
+          // such paths, so keep watching them instead of testing the rules.
+          if (!relativePath || relativePath.startsWith("../")) {
             return false;
           }
 
-          return safeIgnores(ignorer, relativePath);
+          return ignorer.ignores(relativePath);
         },
       })
       .on("all", async (_event: string, filePath: string) => {
@@ -376,31 +355,20 @@ const runFunction = async ({
           );
         }
 
-        const symlinkBoundary = resolveSymlinkBoundary(
-          functionPath,
-          localConfig.getDirname(),
-        );
-        const filesToCopy = getAllFiles(
-          functionPath,
-          localConfig.getDirname(),
-        )
-          .map((file: string) => path.relative(functionPath, file))
-          .filter(
-            (file: string) =>
-              !isOutsideIgnoreRoot(file) && !safeIgnores(ignorer, file),
-          );
+        const filesToCopy = getAllFiles(functionPath)
+          .map((file: string) =>
+            path.relative(functionPath, file).split(path.sep).join("/"),
+          )
+          .filter((file: string) => !ignorer.ignores(file));
         for (const f of filesToCopy) {
           const filePath = path.join(hotSwapPath, f);
           if (fs.existsSync(filePath)) {
             fs.rmSync(filePath, { force: true });
           }
 
-          // Re-validate realpath at copy time to prevent symlink-swap escapes.
-          copyContainedFile(
-            path.join(functionPath, f),
-            filePath,
-            symlinkBoundary,
-          );
+          fs.mkdirSync(path.dirname(filePath), { recursive: true });
+          // copyFileSync reads through symlinks, so shared code lands as a real file.
+          fs.copyFileSync(path.join(functionPath, f), filePath);
         }
 
         await create(
