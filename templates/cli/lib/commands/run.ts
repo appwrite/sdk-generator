@@ -29,6 +29,8 @@ import {
   isPortTaken,
   getAllFiles,
   getErrorMessage,
+  isOutsideIgnoreRoot,
+  safeIgnores,
 } from "../utils.js";
 import {
   runtimeNames,
@@ -279,13 +281,18 @@ const runFunction = async ({
       .watch(".", {
         cwd: functionPath,
         ignoreInitial: true,
+        // Follow symlinks so shared code (e.g. src/common -> ../../common) is watched.
+        followSymlinks: true,
         ignored: (xpath: string) => {
-          const relativePath = path.relative(functionPath, xpath);
+          const relativePath = path.relative(functionPath, path.resolve(xpath));
 
-          if (!relativePath) {
+          // Symlink targets outside the function root produce "../..." paths.
+          // The ignore package rejects those; keep watching shared code instead.
+          if (isOutsideIgnoreRoot(relativePath)) {
             return false;
           }
-          return ignorer.ignores(relativePath);
+
+          return safeIgnores(ignorer, relativePath);
         },
       })
       .on("all", async (_event: string, filePath: string) => {
@@ -348,7 +355,10 @@ const runFunction = async ({
 
         const filesToCopy = getAllFiles(functionPath)
           .map((file: string) => path.relative(functionPath, file))
-          .filter((file: string) => !ignorer.ignores(file));
+          .filter(
+            (file: string) =>
+              !isOutsideIgnoreRoot(file) && !safeIgnores(ignorer, file),
+          );
         for (const f of filesToCopy) {
           const filePath = path.join(hotSwapPath, f);
           if (fs.existsSync(filePath)) {
@@ -360,6 +370,7 @@ const runFunction = async ({
             fs.mkdirSync(fileDir, { recursive: true });
           }
 
+          // copyFileSync follows symlinks and writes real file contents.
           const sourcePath = path.join(functionPath, f);
           fs.copyFileSync(sourcePath, filePath);
         }

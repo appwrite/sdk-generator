@@ -10,7 +10,11 @@ import path from "path";
 import fs from "fs";
 import { log, error, success } from "../parser.js";
 import { openRuntimesVersion, systemTools, Queue } from "./utils.js";
-import { getAllFiles } from "../utils.js";
+import {
+  getAllFiles,
+  isOutsideIgnoreRoot,
+  safeIgnores,
+} from "../utils.js";
 import type { FunctionType } from "../commands/config.js";
 
 function getFunctionIgnorer(
@@ -38,9 +42,13 @@ function getFunctionFiles(func: FunctionType): {
 } {
   const functionDir = localConfig.resolveResourcePath("functions", func.path);
   const ignorer = getFunctionIgnorer(func, functionDir);
+  // getAllFiles follows symlinks but keeps virtual paths under functionDir
+  // (e.g. src/common/foo.py, not ../common/foo.py).
   const files = getAllFiles(functionDir)
     .map((file) => path.relative(functionDir, file))
-    .filter((file) => !ignorer.ignores(file));
+    .filter(
+      (file) => !isOutsideIgnoreRoot(file) && !safeIgnores(ignorer, file),
+    );
 
   return { functionDir, files, ignorer };
 }
@@ -65,7 +73,7 @@ export function assertFunctionSourceCode(func: FunctionType): void {
   const normalizedEntrypoint = path.normalize(func.entrypoint);
   const relativeEntrypoint = normalizedEntrypoint.split(path.sep).join("/");
 
-  if (ignorer.ignores(relativeEntrypoint)) {
+  if (safeIgnores(ignorer, relativeEntrypoint)) {
     throw new Error(
       `Entrypoint '${func.entrypoint}' is ignored by your local ignore rules. Update appwrite.config.json or your ignore file before running locally.`,
     );

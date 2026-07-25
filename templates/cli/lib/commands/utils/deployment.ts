@@ -489,25 +489,73 @@ function listDeployableFiles(
 
   const files: string[] = [];
 
-  const walk = (relativeDir = "", inheritedMatchers = rootMatchers): void => {
+  const walk = (
+    relativeDir = "",
+    inheritedMatchers = rootMatchers,
+    visitedStack = new Set<string>(),
+  ): void => {
     const absoluteDir = path.join(dirPath, relativeDir);
+
+    let realDir: string;
+    try {
+      realDir = fs.realpathSync(absoluteDir);
+    } catch (_error) {
+      return;
+    }
+
+    // Prevent infinite recursion on cyclic symlinks while still allowing the
+    // same shared directory to appear under multiple distinct symlink paths.
+    if (visitedStack.has(realDir)) {
+      return;
+    }
+    visitedStack.add(realDir);
+
     const localMatcher = relativeDir === "" ? null : loadMatcher(relativeDir);
     const activeMatchers = localMatcher
       ? [...inheritedMatchers, localMatcher]
       : inheritedMatchers;
 
-    for (const entry of fs.readdirSync(absoluteDir, { withFileTypes: true })) {
-      const relativePath = normalizePath(path.join(relativeDir, entry.name));
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(absoluteDir, { withFileTypes: true });
+    } catch (_error) {
+      visitedStack.delete(realDir);
+      return;
+    }
 
-      if (isIgnored(relativePath, activeMatchers, entry.isDirectory())) {
-        continue;
-      }
+    try {
+      for (const entry of entries) {
+        const relativePath = normalizePath(path.join(relativeDir, entry.name));
+        const absolutePath = path.join(dirPath, relativePath);
 
-      if (entry.isDirectory()) {
-        walk(relativePath, activeMatchers);
-      } else {
-        files.push(relativePath);
+        let isDirectory = entry.isDirectory();
+        let isFile = entry.isFile();
+
+        // Follow symlink-to-dir/file so shared function code is packaged under
+        // the symlink name (e.g. src/common/...), matching historical CLI behavior.
+        if (entry.isSymbolicLink()) {
+          let stats: fs.Stats;
+          try {
+            stats = fs.statSync(absolutePath);
+          } catch (_error) {
+            continue;
+          }
+          isDirectory = stats.isDirectory();
+          isFile = stats.isFile();
+        }
+
+        if (isIgnored(relativePath, activeMatchers, isDirectory)) {
+          continue;
+        }
+
+        if (isDirectory) {
+          walk(relativePath, activeMatchers, visitedStack);
+        } else if (isFile) {
+          files.push(relativePath);
+        }
       }
+    } finally {
+      visitedStack.delete(realDir);
     }
   };
 
@@ -531,11 +579,14 @@ async function packageDirectory(
     );
   }
 
+  // follow: dereference file/dir symlinks so shared code is stored as real
+  // files in the archive (required for remote deploy / open-runtimes).
   await create(
     {
       gzip: true,
       file: tempFile,
       cwd: dirPath,
+      follow: true,
     },
     files,
   );

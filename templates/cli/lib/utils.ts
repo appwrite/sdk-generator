@@ -828,22 +828,98 @@ export async function getCachedUpdateNotification(
   }
 }
 
+/**
+ * Paths outside the ignore root (e.g. "../common" from a followed symlink)
+ * cannot be passed to the `ignore` package — it throws RangeError.
+ */
+export function isOutsideIgnoreRoot(relativePath: string): boolean {
+  if (!relativePath) {
+    return true;
+  }
+
+  const normalized = relativePath.split(path.sep).join("/");
+  return (
+    normalized === ".." ||
+    normalized.startsWith("../") ||
+    path.isAbsolute(relativePath)
+  );
+}
+
+/**
+ * Safe wrapper around ignore().ignores() that never throws on symlink
+ * targets outside the watched/packaged root.
+ */
+export function safeIgnores(
+  ignorer: { ignores: (path: string) => boolean },
+  relativePath: string,
+): boolean {
+  if (isOutsideIgnoreRoot(relativePath)) {
+    return false;
+  }
+
+  return ignorer.ignores(relativePath.split(path.sep).join("/"));
+}
+
+/**
+ * Recursively list files under `folder`, following symlinks while keeping
+ * paths rooted at the symlink location (never leaking "../" real paths).
+ * Cycle-safe via a realpath visit stack.
+ */
 export function getAllFiles(folder: string): string[] {
   const files: string[] = [];
-  for (const pathDir of fs.readdirSync(folder)) {
-    const pathAbsolute = path.join(folder, pathDir);
-    let stats: fs.Stats;
+
+  const walk = (current: string, visitedStack: Set<string>): void => {
+    let realCurrent: string;
     try {
-      stats = fs.statSync(pathAbsolute);
+      realCurrent = fs.realpathSync(current);
     } catch (_error) {
-      continue;
+      return;
     }
-    if (stats.isDirectory()) {
-      files.push(...getAllFiles(pathAbsolute));
-    } else {
-      files.push(pathAbsolute);
+
+    if (visitedStack.has(realCurrent)) {
+      return;
     }
-  }
+
+    visitedStack.add(realCurrent);
+
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch (_error) {
+      visitedStack.delete(realCurrent);
+      return;
+    }
+
+    try {
+      for (const entry of entries) {
+        const absolutePath = path.join(current, entry.name);
+        let isDirectory = entry.isDirectory();
+        let isFile = entry.isFile();
+
+        if (entry.isSymbolicLink()) {
+          let stats: fs.Stats;
+          try {
+            stats = fs.statSync(absolutePath);
+          } catch (_error) {
+            continue;
+          }
+          isDirectory = stats.isDirectory();
+          isFile = stats.isFile();
+        }
+
+        if (isDirectory) {
+          walk(absolutePath, visitedStack);
+        } else if (isFile) {
+          // Keep the virtual path (through the symlink name), not the realpath.
+          files.push(absolutePath);
+        }
+      }
+    } finally {
+      visitedStack.delete(realCurrent);
+    }
+  };
+
+  walk(folder, new Set());
   return files;
 }
 
