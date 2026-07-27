@@ -13,7 +13,7 @@
 {% if query.hasPagination %}
 {% set exampleLines = exampleLines|merge(['--limit 25']) %}
 {% endif %}
-{{ language.params.executableName }} {{ service.name | caseKebab }} {{ method.name | caseKebab }}{% if exampleLines | length > 0 %} \{% endif %}
+{{ language.params.executableName }} {{ service.name | caseLower }} {{ method.name | caseKebab }}{% if exampleLines | length > 0 %} \{% endif %}
 
 {% for line in exampleLines %}
     {{ line | raw }}{% if not loop.last %} \{% endif %}

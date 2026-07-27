@@ -441,17 +441,17 @@ appwrite push tables
 
 | Command | Description |
 |---------|-------------|
-| `appwrite tables-db list-tables --database-id <ID>` | List tables |
-| `appwrite tables-db create-table --database-id <ID>` | Create table |
-| `appwrite tables-db get-table --database-id <ID> --table-id <ID>` | Get table |
-| `appwrite tables-db update-table --database-id <ID> --table-id <ID>` | Update table |
-| `appwrite tables-db delete-table --database-id <ID> --table-id <ID>` | Delete table |
-| `appwrite tables-db list-columns --database-id <ID> --table-id <ID>` | List columns |
-| `appwrite tables-db get-column --database-id <ID> --table-id <ID> --key <KEY>` | Get column |
-| `appwrite tables-db delete-column --database-id <ID> --table-id <ID> --key <KEY>` | Delete column |
-| `appwrite tables-db list-column-indexes --database-id <ID> --table-id <ID>` | List indexes |
-| `appwrite tables-db create-column-index --database-id <ID> --table-id <ID>` | Create index |
-| `appwrite tables-db delete-column-index --database-id <ID> --table-id <ID> --key <KEY>` | Delete index |
+| `appwrite tablesdb list-tables --database-id <ID>` | List tables |
+| `appwrite tablesdb create-table --database-id <ID>` | Create table |
+| `appwrite tablesdb get-table --database-id <ID> --table-id <ID>` | Get table |
+| `appwrite tablesdb update-table --database-id <ID> --table-id <ID>` | Update table |
+| `appwrite tablesdb delete-table --database-id <ID> --table-id <ID>` | Delete table |
+| `appwrite tablesdb list-columns --database-id <ID> --table-id <ID>` | List columns |
+| `appwrite tablesdb get-column --database-id <ID> --table-id <ID> --key <KEY>` | Get column |
+| `appwrite tablesdb delete-column --database-id <ID> --table-id <ID> --key <KEY>` | Delete column |
+| `appwrite tablesdb list-column-indexes --database-id <ID> --table-id <ID>` | List indexes |
+| `appwrite tablesdb create-column-index --database-id <ID> --table-id <ID>` | Create index |
+| `appwrite tablesdb delete-column-index --database-id <ID> --table-id <ID> --key <KEY>` | Delete index |
 
 ### Column type commands
 
@@ -473,23 +473,23 @@ appwrite push tables
 | `create-enum-column` | Enum column (whitelist of accepted values) |
 | `create-relationship-column` | Relationship column |
 
-All column commands use `appwrite tables-db <command> --database-id <ID> --table-id <ID>`.
+All column commands use `appwrite tablesdb <command> --database-id <ID> --table-id <ID>`.
 
 ### Row operations
 
 ```bash
 # Create a row
-appwrite tables-db create-row \
+appwrite tablesdb create-row \
     --database-id "<DATABASE_ID>" --table-id "<TABLE_ID>" \
     --row-id 'unique()' --data '{ "title": "Hello World" }' \
     --permissions 'read("any")' 'write("team:abc")'
 
 # List rows (JSON output)
-appwrite tables-db list-rows \
+appwrite tablesdb list-rows \
     --database-id "<DATABASE_ID>" --table-id "<TABLE_ID>" --json
 
 # Get a row
-appwrite tables-db get-row \
+appwrite tablesdb get-row \
     --database-id "<DATABASE_ID>" --table-id "<TABLE_ID>" --row-id "<ROW_ID>"
 ```
 
@@ -498,7 +498,7 @@ appwrite tables-db get-row \
 Use `--where`, `--sort-asc`, `--sort-desc`, `--limit`, `--offset`, `--cursor-after`, and `--cursor-before` on list commands. Row and document list/get commands also support repeated `--select` flags.
 
 ```bash
-appwrite tables-db list-rows \
+appwrite tablesdb list-rows \
     --database-id "<DATABASE_ID>" \
     --table-id "<TABLE_ID>" \
     --where 'status=active' \
@@ -804,7 +804,7 @@ appwrite users list --json
 appwrite users list --verbose
 
 # View a row in the Console
-appwrite tables-db get-row \
+appwrite tablesdb get-row \
     --database-id "<DATABASE_ID>" \
     --table-id "<TABLE_ID>" \
     --row-id "<ROW_ID>" \

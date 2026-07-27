@@ -659,7 +659,7 @@ const printQueryErrorHint = (err: Error): void => {
   }
 
   hint(
-    `For common list filters, use flags like --limit 25, --sort-desc '$createdAt', or --filter 'status=active'. Raw --queries values must be Appwrite JSON query strings, for example: ${EXECUTABLE_NAME} tables-db list-rows --queries '{"method":"limit","values":[25]}'`,
+    `For common list filters, use flags like --limit 25, --sort-desc '$createdAt', or --filter 'status=active'. Raw --queries values must be Appwrite JSON query strings, for example: ${EXECUTABLE_NAME} tablesdb list-rows --queries '{"method":"limit","values":[25]}'`,
   );
 };
 
@@ -879,7 +879,7 @@ export const commandDescriptions: Record<string, string> = {
   avatars: `The avatars command aims to help you complete everyday tasks related to your app image, icons, and avatars.`,
   backups: `The backups command allows you to manage backup policies, archives, and restorations for your project.`,
   databases: `(Legacy) The databases command allows you to create structured collections of documents and query and filter lists of documents.`,
-  tablesDB: `The tables-db command allows you to create structured tables of columns and query and filter lists of rows.`,
+  tablesDB: `The tablesdb command allows you to create structured tables of columns and query and filter lists of rows.`,
   init: `The init command provides a convenient wrapper for creating and initializing projects, functions, collections, buckets, teams, messaging-topics, and skills in ${SDK_TITLE}.`,
   push: `The push command provides a convenient wrapper for pushing your functions, collections, buckets, teams, and messaging-topics.`,
   run: `The run command allows you to run the project locally to allow easy development and quick debugging.`,
@@ -905,7 +905,7 @@ export const commandDescriptions: Record<string, string> = {
   messaging: `The messaging command allows you to manage topics and targets and send messages.`,
   migrations: `The migrations command allows you to migrate data between services.`,
   notifications: `The notifications command allows you to read and manage your Appwrite Console notifications.`,
-  oauth2: `The oauth-2 command allows you to authorize apps and issue standards-based OAuth2 and OpenID Connect tokens.`,
+  oauth2: `The oauth2 command allows you to authorize apps and issue standards-based OAuth2 and OpenID Connect tokens.`,
   organization: `The organization command allows you to manage organization-level projects.`,
   organizations: `The organizations command allows you to manage organization billing, plans, invoices, and add-ons.`,
   presences: `The presences command allows you to track and manage real-time user presence in your project.`,

@@ -81,7 +81,11 @@ const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.n
   return {{ service.name | caseCamel }}Client;
 };
 
-export const {{ service.name | caseCamel }} = new Command("{{ service.name | caseKebab }}")
+export const {{ service.name | caseCamel }} = new Command("{{ service.name | caseLower }}")
+{% if service.name == 'tablesDB' %}
+  // TODO: Move CLI alias configuration to the API spec.
+  .alias("tables-db")
+{% endif %}
 {% if service.description %}
   .description(commandDescriptions["{{ service.name | caseCamel }}"] || {{ service.description | stripMarkdown | json_encode | raw }})
 {% else %}
