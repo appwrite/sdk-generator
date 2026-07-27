@@ -20,6 +20,21 @@ import {
   setStoredRefreshToken,
 } from "./auth/refresh-token.js";
 
+const normalizeEndpointForComparison = (endpoint: string): string =>
+  normalizeCloudConsoleEndpoint(endpoint).replace(/\/+$/, "");
+
+export const assertSessionEndpointMatches = (endpoint: string): void => {
+  const sessionEndpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
+  if (
+    normalizeEndpointForComparison(endpoint) !==
+    normalizeEndpointForComparison(sessionEndpoint)
+  ) {
+    throw new Error(
+      `Endpoint ${endpoint} does not match the current login session endpoint ${sessionEndpoint}. Switch to an account for this environment with \`${EXECUTABLE_NAME} login --switch\`.`,
+    );
+  }
+};
+
 export const getValidAccessToken = async (
   options: { forceRefresh?: boolean } = {},
 ): Promise<string> => {
@@ -133,6 +148,10 @@ export const sdkForConsole = async ({
     .setSelfSigned(selfSigned)
     .setLocale("en-US");
 
+  if (requiresAuth && (accessToken || cookie)) {
+    assertSessionEndpointMatches(endpoint);
+  }
+
   if (requiresAuth) {
     if (accessToken) {
       const validAccessToken = await getValidAccessToken();
@@ -189,19 +208,11 @@ export const sdkForProject = async (): Promise<Client> => {
     .setSelfSigned(selfSigned)
     .setLocale("en-US");
 
-  if (accessToken) {
-    const sessionEndpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
-    if (
-      isCloudEndpoint &&
-      isCloudHostname(new URL(sessionEndpoint).hostname) &&
-      normalizeCloudConsoleEndpoint(endpoint) !==
-        normalizeCloudConsoleEndpoint(sessionEndpoint)
-    ) {
-      throw new Error(
-        `Project endpoint ${endpoint} does not match the current login session endpoint ${sessionEndpoint}. Switch to an account for this environment with \`${EXECUTABLE_NAME} login --switch\`.`,
-      );
-    }
+  if (accessToken || cookie) {
+    assertSessionEndpointMatches(endpoint);
+  }
 
+  if (accessToken) {
     const validAccessToken = await getValidAccessToken();
     client.headers["Authorization"] = `Bearer ${validAccessToken}`;
     return client.setMode("admin");

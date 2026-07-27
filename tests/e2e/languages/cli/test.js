@@ -28,6 +28,7 @@ const {
   pollForDeviceToken,
 } = require("./lib/auth/oauth.ts");
 const {
+  assertSessionEndpointMatches,
   getValidAccessToken,
   sdkForConsole,
   sdkForProject,
@@ -1290,6 +1291,25 @@ async function runAuthChecks() {
       await assert.rejects(
         () => sdkForProject(),
         /does not match the current login session endpoint/,
+      );
+
+      assert.throws(
+        () => assertSessionEndpointMatches("http://localhost/v1"),
+        /does not match the current login session endpoint/,
+      );
+
+      globalConfig.addSession("tok4", {
+        endpoint: "http://localhost/v1",
+        accessToken: "cached-token",
+        tokenExpiry: Date.now() + 3600000,
+      });
+      assert.throws(
+        () =>
+          assertSessionEndpointMatches("https://cloud.staging.appwrite.io/v1"),
+        /does not match the current login session endpoint/,
+      );
+      assert.doesNotThrow(() =>
+        assertSessionEndpointMatches("http://localhost/v1/"),
       );
     } finally {
       localConfig.getEndpoint = originalGetEndpoint;
