@@ -27,7 +27,11 @@ const {
   isAuthorizationPendingError,
   pollForDeviceToken,
 } = require("./lib/auth/oauth.ts");
-const { getValidAccessToken, sdkForConsole } = require("./lib/sdks.ts");
+const {
+  getValidAccessToken,
+  sdkForConsole,
+  sdkForProject,
+} = require("./lib/sdks.ts");
 const {
   deleteStoredRefreshToken,
   getStoredRefreshToken,
@@ -825,7 +829,7 @@ void (async () => {
   });
 
 async function runAuthChecks() {
-  const { AppwriteException } = await import("@appwrite.io/console");
+  const { AppwriteException, Oauth2 } = await import("@appwrite.io/console");
   const keyringTokens = new Map();
   const previousNodeEnv = process.env.NODE_ENV;
 
@@ -1219,7 +1223,7 @@ async function runAuthChecks() {
       tokenExpiry: Date.now() + 3600000,
     });
     globalConfig.setCurrentSession("tok1");
-    const token = await getValidAccessToken("http://localhost/v1");
+    const token = await getValidAccessToken();
     assert.equal(token, "cached-token");
   });
 
@@ -1230,8 +1234,67 @@ async function runAuthChecks() {
       accessToken: "cached-token-without-expiry",
     });
     globalConfig.setCurrentSession("tok2");
-    const token = await getValidAccessToken("http://localhost/v1");
+    const token = await getValidAccessToken();
     assert.equal(token, "cached-token-without-expiry");
+  });
+
+  await authCheck("valid-access-token-session-endpoint", async () => {
+    globalConfig.clear();
+    keyringTokens.clear();
+    globalConfig.addSession("tok3", {
+      endpoint: "https://cloud.staging.appwrite.io/v1",
+      accessToken: "expired-token",
+      tokenExpiry: Date.now() - 1000,
+    });
+    globalConfig.setCurrentSession("tok3");
+    setStoredRefreshToken("tok3", "refresh-token");
+
+    const originalCreateToken = Oauth2.prototype.createToken;
+    let refreshEndpoint = "";
+    Oauth2.prototype.createToken = async function (params) {
+      refreshEndpoint = this.client.config.endpoint;
+      assert.equal(params.grantType, "refresh_token");
+      assert.equal(params.refreshToken, "refresh-token");
+      return {
+        access_token: "refreshed-token",
+        refresh_token: "rotated-refresh-token",
+        expires_in: 3600,
+      };
+    };
+
+    try {
+      assert.equal(await getValidAccessToken(), "refreshed-token");
+    } finally {
+      Oauth2.prototype.createToken = originalCreateToken;
+    }
+
+    assert.equal(refreshEndpoint, "https://cloud.staging.appwrite.io/v1");
+    assert.equal(getStoredRefreshToken("tok3"), "rotated-refresh-token");
+  });
+
+  await authCheck("project-session-endpoint-mismatch", async () => {
+    globalConfig.clear();
+    globalConfig.addSession("tok4", {
+      endpoint: "https://cloud.staging.appwrite.io/v1",
+      accessToken: "cached-token",
+      tokenExpiry: Date.now() + 3600000,
+    });
+    globalConfig.setCurrentSession("tok4");
+
+    const originalGetEndpoint = localConfig.getEndpoint;
+    const originalGetProject = localConfig.getProject;
+    localConfig.getEndpoint = () => "https://fra.cloud.appwrite.io/v1";
+    localConfig.getProject = () => ({ projectId: "project-id" });
+
+    try {
+      await assert.rejects(
+        () => sdkForProject(),
+        /does not match the current login session endpoint/,
+      );
+    } finally {
+      localConfig.getEndpoint = originalGetEndpoint;
+      localConfig.getProject = originalGetProject;
+    }
   });
 
   await authCheck("oauth-login-flag", () => {

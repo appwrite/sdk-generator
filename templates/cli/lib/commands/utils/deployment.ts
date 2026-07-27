@@ -299,7 +299,7 @@ export async function watchDeploymentUpdates(
       headers.cookie = cookieHeader;
     }
     if (hasAccessToken) {
-      const accessToken = await getValidAccessToken(params.endpoint);
+      const accessToken = await getValidAccessToken();
       headers.authorization = `Bearer ${accessToken}`;
     }
 

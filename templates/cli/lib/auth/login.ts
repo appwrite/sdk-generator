@@ -139,7 +139,7 @@ export const getCurrentAccount = async (): Promise<Models.User | null> => {
   } catch (err) {
     if (isGuestUnauthorizedError(err)) {
       try {
-        await getValidAccessToken(globalConfig.getEndpoint(), {
+        await getValidAccessToken({
           forceRefresh: true,
         });
         const refreshedClient = await sdkForConsole();
