@@ -20,14 +20,26 @@ import {
   setStoredRefreshToken,
 } from "./auth/refresh-token.js";
 
+export const assertSessionEndpointMatches = (endpoint: string): void => {
+  const sessionEndpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
+  if (
+    normalizeCloudConsoleEndpoint(endpoint).replace(/\/+$/, "") !==
+    normalizeCloudConsoleEndpoint(sessionEndpoint).replace(/\/+$/, "")
+  ) {
+    throw new Error(
+      `Endpoint ${endpoint} does not match the current login session endpoint ${sessionEndpoint}. Switch to an account for this environment with \`${EXECUTABLE_NAME} login --switch\`.`,
+    );
+  }
+};
+
 export const getValidAccessToken = async (
-  endpoint: string,
   options: { forceRefresh?: boolean } = {},
 ): Promise<string> => {
   const accessToken = globalConfig.getAccessToken();
   const tokenExpiry = globalConfig.getTokenExpiry();
   const clientId = globalConfig.getClientId() || OAUTH2_CLIENT_ID;
   const currentSession = globalConfig.getCurrentSession();
+  const sessionEndpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
 
   if (
     !options.forceRefresh &&
@@ -53,7 +65,7 @@ export const getValidAccessToken = async (
 
   const oauth2 = new Oauth2(
     new Client()
-      .setEndpoint(normalizeCloudConsoleEndpoint(endpoint))
+      .setEndpoint(normalizeCloudConsoleEndpoint(sessionEndpoint))
       .setProject("console")
       .setSelfSigned(globalConfig.getSelfSigned()),
   );
@@ -133,9 +145,13 @@ export const sdkForConsole = async ({
     .setSelfSigned(selfSigned)
     .setLocale("en-US");
 
+  if (requiresAuth && (accessToken || cookie)) {
+    assertSessionEndpointMatches(endpoint);
+  }
+
   if (requiresAuth) {
     if (accessToken) {
-      const validAccessToken = await getValidAccessToken(endpoint);
+      const validAccessToken = await getValidAccessToken();
       client.headers["Authorization"] = `Bearer ${validAccessToken}`;
     } else if (cookie) {
       if (isCloudEndpoint) {
@@ -189,8 +205,12 @@ export const sdkForProject = async (): Promise<Client> => {
     .setSelfSigned(selfSigned)
     .setLocale("en-US");
 
+  if (accessToken || cookie) {
+    assertSessionEndpointMatches(endpoint);
+  }
+
   if (accessToken) {
-    const validAccessToken = await getValidAccessToken(endpoint);
+    const validAccessToken = await getValidAccessToken();
     client.headers["Authorization"] = `Bearer ${validAccessToken}`;
     return client.setMode("admin");
   }

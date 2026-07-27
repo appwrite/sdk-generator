@@ -8,7 +8,10 @@ import { Agent, WebSocket } from "undici";
 import { Client, AppwriteException } from "@appwrite.io/console";
 import { error, warn } from "../../parser.js";
 import { globalConfig, localConfig } from "../../config.js";
-import { getValidAccessToken } from "../../sdks.js";
+import {
+  assertSessionEndpointMatches,
+  getValidAccessToken,
+} from "../../sdks.js";
 import {
   getErrorMessage,
   isPathInside,
@@ -284,6 +287,9 @@ export async function watchDeploymentUpdates(
     return null;
   }
 
+  // Never attach session credentials to a different environment.
+  assertSessionEndpointMatches(params.endpoint);
+
   const sessionSecret = getSessionSecret(cookieHeader);
   const selfSigned = globalConfig.getSelfSigned();
   const dispatcher = new Agent({
@@ -299,7 +305,7 @@ export async function watchDeploymentUpdates(
       headers.cookie = cookieHeader;
     }
     if (hasAccessToken) {
-      const accessToken = await getValidAccessToken(params.endpoint);
+      const accessToken = await getValidAccessToken();
       headers.authorization = `Bearer ${accessToken}`;
     }
 
