@@ -90,15 +90,19 @@ export const sdkForConsole = async ({
   requiresAuth = true,
   endpointOverride,
   organizationId,
+  preserveRegion = false,
 }: {
   requiresAuth?: boolean;
   endpointOverride?: string;
   organizationId?: string;
+  preserveRegion?: boolean;
 } = {}): Promise<Client> => {
   const client = new Client();
-  const endpoint = normalizeCloudConsoleEndpoint(
-    endpointOverride || globalConfig.getEndpoint() || DEFAULT_ENDPOINT,
-  );
+  const configuredEndpoint =
+    endpointOverride || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
+  const endpoint = preserveRegion
+    ? configuredEndpoint
+    : normalizeCloudConsoleEndpoint(configuredEndpoint);
   const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
   const selfSigned = globalConfig.getSelfSigned();
 

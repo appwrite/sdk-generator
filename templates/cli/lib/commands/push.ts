@@ -2772,6 +2772,7 @@ export class Push {
             requiresAuth: true,
             endpointOverride:
               localConfig.getEndpoint() || globalConfig.getEndpoint(),
+            preserveRegion: true,
           });
           sitePreviewRenderer = {
             consoleClient,

@@ -27,7 +27,7 @@ const {
   isAuthorizationPendingError,
   pollForDeviceToken,
 } = require("./lib/auth/oauth.ts");
-const { getValidAccessToken } = require("./lib/sdks.ts");
+const { getValidAccessToken, sdkForConsole } = require("./lib/sdks.ts");
 const {
   deleteStoredRefreshToken,
   getStoredRefreshToken,
@@ -918,7 +918,7 @@ async function runAuthChecks() {
     }
   });
 
-  await authCheck("endpoint-normalize", () => {
+  await authCheck("endpoint-normalize", async () => {
     assert.equal(
       normalizeCloudConsoleEndpoint("https://fra.cloud.appwrite.io/v1"),
       "https://cloud.appwrite.io/v1",
@@ -933,6 +933,16 @@ async function runAuthChecks() {
     );
     assert.equal(normalizeCloudConsoleEndpoint("http://localhost/v1"), "http://localhost/v1");
     assert.equal(normalizeCloudConsoleEndpoint("not a url"), "not a url");
+
+    const regionalClient = await sdkForConsole({
+      requiresAuth: false,
+      endpointOverride: "https://fra.cloud.appwrite.io/v1",
+      preserveRegion: true,
+    });
+    assert.equal(
+      regionalClient.config.endpoint,
+      "https://fra.cloud.appwrite.io/v1",
+    );
   });
 
   await authCheck("console-slug-region", () => {
