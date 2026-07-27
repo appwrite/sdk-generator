@@ -287,6 +287,7 @@ export async function watchDeploymentUpdates(
     return null;
   }
 
+  // Never attach session credentials to a different environment.
   assertSessionEndpointMatches(params.endpoint);
 
   const sessionSecret = getSessionSecret(cookieHeader);
