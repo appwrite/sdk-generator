@@ -20,14 +20,11 @@ import {
   setStoredRefreshToken,
 } from "./auth/refresh-token.js";
 
-const normalizeEndpointForComparison = (endpoint: string): string =>
-  normalizeCloudConsoleEndpoint(endpoint).replace(/\/+$/, "");
-
 export const assertSessionEndpointMatches = (endpoint: string): void => {
   const sessionEndpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
   if (
-    normalizeEndpointForComparison(endpoint) !==
-    normalizeEndpointForComparison(sessionEndpoint)
+    normalizeCloudConsoleEndpoint(endpoint).replace(/\/+$/, "") !==
+    normalizeCloudConsoleEndpoint(sessionEndpoint).replace(/\/+$/, "")
   ) {
     throw new Error(
       `Endpoint ${endpoint} does not match the current login session endpoint ${sessionEndpoint}. Switch to an account for this environment with \`${EXECUTABLE_NAME} login --switch\`.`,
