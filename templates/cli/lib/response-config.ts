@@ -107,6 +107,62 @@ const compactAmount = (value: unknown): string => {
   return "—";
 };
 
+const compactBytes = (value: unknown): string => {
+  const bytes =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : Number.NaN;
+
+  if (!Number.isFinite(bytes) || bytes < 0) {
+    return "—";
+  }
+
+  if (bytes < 1024) {
+    return `${Math.round(bytes)} B`;
+  }
+
+  const units = ["KB", "MB", "GB", "TB"];
+  let amount = bytes / 1024;
+  let unitIndex = 0;
+
+  while (amount >= 1024 && unitIndex < units.length - 1) {
+    amount /= 1024;
+    unitIndex++;
+  }
+
+  return `${amount.toFixed(1).replace(/\.0$/, "")} ${units[unitIndex]}`;
+};
+
+const compactDuration = (value: unknown): string => {
+  const duration =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : Number.NaN;
+
+  if (!Number.isFinite(duration) || duration < 0) {
+    return "—";
+  }
+
+  const totalSeconds = Math.round(duration);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+
+  return `${seconds}s`;
+};
+
 const isPresent = (value: unknown): boolean => {
   if (value == null) return false;
   if (typeof value === "string") return value.trim() !== "";
@@ -228,6 +284,17 @@ const RuntimeSummarySchema = createSummarySchema(
   "Expected a runtime summary row",
 );
 
+const DeploymentSummarySchema = z
+  .object({
+    $id: z.string(),
+    status: z.string(),
+    type: z.string().nullable().optional(),
+    activate: z.boolean().optional(),
+    totalSize: z.union([z.string(), z.number()]).nullable().optional(),
+    buildDuration: z.union([z.string(), z.number()]).nullable().optional(),
+  })
+  .passthrough();
+
 const paymentMethodLabel = (row: JsonObject): string => {
   const brand = valueFrom<string>(row, "brand") ?? "";
   const last4 = valueFrom<string>(row, "last4") ?? "";
@@ -291,10 +358,56 @@ const runtimeLabel = (row: JsonObject): string => {
   return `${runtimeName} ${version}`;
 };
 
+const deploymentStatus = (row: JsonObject): string => {
+  const status = compactText(valueFrom(row, "status"), "unknown");
+
+  switch (status.toLowerCase()) {
+    case "ready":
+      return chalk.green(status);
+    case "failed":
+      return chalk.red(status);
+    case "waiting":
+    case "processing":
+    case "building":
+      return chalk.yellow(status);
+    case "canceled":
+      return chalk.dim(status);
+    default:
+      return status;
+  }
+};
+
 const structuredCollectionRenderers: Record<
   string,
   StructuredCollectionRenderer
 > = {
+  deployments: createColumnRenderer(DeploymentSummarySchema, [
+    {
+      header: "deployment",
+      value: (row, context) =>
+        indexedLabel(compactText(valueFrom(row, "$id")), context),
+    },
+    {
+      header: "status",
+      value: (row) => deploymentStatus(row),
+    },
+    {
+      header: "type",
+      value: (row) => compactText(valueFrom(row, "type")),
+    },
+    {
+      header: "auto-activate",
+      value: (row) => (row.activate === true ? "yes" : "no"),
+    },
+    {
+      header: "size",
+      value: (row) => compactBytes(valueFrom(row, "totalSize")),
+    },
+    {
+      header: "build",
+      value: (row) => compactDuration(valueFrom(row, "buildDuration")),
+    },
+  ]),
   runtimes: createColumnRenderer(RuntimeSummarySchema, [
     {
       header: "runtime",

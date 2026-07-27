@@ -46,7 +46,7 @@ final class CLIBun11Test extends Base
         ...Base::CLI_HEADERS_RESPONSES,
         ...Base::CLI_FUNCTION_RESPONSES,
         ...Base::CLI_LOCAL_FUNCTION_EMULATION_RESPONSES,
-        ...Base::CLI_RUNTIME_RENDERING_RESPONSES,
+        ...Base::CLI_RESPONSE_RENDERING_RESPONSES,
         ...Base::CLI_QUERY_HELPER_RESPONSES,
         ...Base::CLI_TYPEGEN_RESPONSES,
         ...Base::AUTH_LOGIC_RESPONSES,
