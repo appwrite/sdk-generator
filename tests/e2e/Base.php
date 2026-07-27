@@ -288,8 +288,9 @@ abstract class Base extends TestCase
 
     protected const HEADERS_RESPONSE = '__HEADERS_RESPONSE__';
 
-    protected const CLI_RUNTIME_RENDERING_RESPONSES = [
+    protected const CLI_RESPONSE_RENDERING_RESPONSES = [
         'CLI_RUNTIME_RENDERING:passed',
+        'CLI_DEPLOYMENT_RENDERING:passed',
     ];
 
     protected const CLI_QUERY_HELPER_RESPONSES = [

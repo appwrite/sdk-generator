@@ -549,6 +549,98 @@ for (const forbiddenToken of [
 
 console.log("CLI_RUNTIME_RENDERING:passed");
 
+const deploymentRenderingOutput = captureStdoutSync(() =>
+  parse({
+    total: 3,
+    deployments: [
+      {
+        $id: "6a65e0ff00d45cdb1e36",
+        type: "manual",
+        resourceId: "layby",
+        resourceType: "sites",
+        sourceSize: 7507,
+        buildSize: 0,
+        totalSize: 7507,
+        activate: false,
+        status: "failed",
+        buildLogs: "Build failed with exit code -1.",
+        buildDuration: 904,
+      },
+      {
+        $id: "6a66c7381a16bff498d3",
+        type: "cli",
+        resourceId: "layby",
+        resourceType: "sites",
+        sourceSize: 10471,
+        buildSize: 20480,
+        totalSize: 30951,
+        activate: false,
+        status: "ready",
+        buildLogs: "Build finished.",
+        buildDuration: 14,
+      },
+      {
+        $id: "6a67091aeafb8c211d5e",
+        type: "cli",
+        resourceId: "layby",
+        resourceType: "sites",
+        sourceSize: 67782,
+        buildSize: 77824,
+        totalSize: 145606,
+        activate: true,
+        status: "ready",
+        buildLogs: "Build finished.",
+        buildDuration: 16,
+      },
+    ],
+  }),
+)
+  .split("\n")
+  .map((line) => line.replace(/\s+$/g, ""))
+  .join("\n");
+
+for (const expectedToken of [
+  "total  3",
+  "deployments (3)",
+  "deployment",
+  "status",
+  "type",
+  "auto-activate",
+  "size",
+  "build",
+  "[1] 6a65e0ff00d45cdb1e36",
+  "failed",
+  "7.3 KB",
+  "15m 4s",
+  "[3] 6a67091aeafb8c211d5e",
+  "142.2 KB",
+  "yes",
+]) {
+  if (!deploymentRenderingOutput.includes(expectedToken)) {
+    throw new Error(
+      `Expected deployment rendering to include ${JSON.stringify(expectedToken)}.\n${deploymentRenderingOutput}`,
+    );
+  }
+}
+
+for (const forbiddenToken of [
+  "resourceId",
+  "resourceType",
+  "sourceSize",
+  "buildSize",
+  "totalSize",
+  "buildLogs",
+  "Build failed with exit code -1.",
+]) {
+  if (deploymentRenderingOutput.includes(forbiddenToken)) {
+    throw new Error(
+      `Expected deployment rendering to omit ${JSON.stringify(forbiddenToken)}.\n${deploymentRenderingOutput}`,
+    );
+  }
+}
+
+console.log("CLI_DEPLOYMENT_RENDERING:passed");
+
 output = execFileSync(
   "bun",
   [
