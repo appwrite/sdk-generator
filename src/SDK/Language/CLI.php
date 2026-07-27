@@ -640,7 +640,7 @@ class CLI extends Node
             // Command services (lib/commands/services/)
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/commands/services/{{service.name | caseKebab}}.ts',
+                'destination'   => '/lib/commands/services/{{service.name | caseLower}}.ts',
                 'template'      => 'cli/lib/commands/services/services.ts.twig',
             ],
 

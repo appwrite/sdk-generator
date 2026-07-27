@@ -39,7 +39,7 @@ import { migrate } from './lib/commands/generic.js';
 {% endif %}
 
 {% for service in spec.services %}
-import { {{ service.name }} } from './lib/commands/services/{{ service.name | caseKebab }}.js';
+import { {{ service.name }} } from './lib/commands/services/{{ service.name | caseLower }}.js';
 {% endfor %}
 
 const { version } = packageJson;
