@@ -45,6 +45,16 @@ final class Python39Test extends Base
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
-        ...Base::OPERATOR_HELPER_RESPONSES
+        ...Base::OPERATOR_HELPER_RESPONSES,
+        ...Base::FOO_RESPONSES,
+        ...Base::BAR_RESPONSES,
+        ...Base::GENERAL_RESPONSES,
+        ...Base::UPLOAD_RESPONSES,
+        ...Base::ENUM_RESPONSES,
+        ...Base::MODEL_RESPONSES,
+        ...Base::EXCEPTION_RESPONSES,
+        Base::HEADERS_RESPONSE,
+        ...Base::OAUTH_RESPONSES,
+        'ASYNC_CLEANUP_PASSED',
     ];
 }

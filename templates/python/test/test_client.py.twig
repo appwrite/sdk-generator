@@ -130,7 +130,6 @@ class TestClientMethods(unittest.TestCase):
             client.close()
         self.assertIsNone(client._async_http_client)
 
-
     def test_sync_close_after_active_pool(self):
         """close() clears async pool reference after serving real requests."""
         import warnings
@@ -209,7 +208,6 @@ class TestClientMethods(unittest.TestCase):
             self.assertIsNone(client._async_http_client)
 
         asyncio.run(run_test())
-
 
     def test_chunked_upload_async_concurrency(self):
         async def run_test():
@@ -347,8 +345,4 @@ class TestClientMethods(unittest.TestCase):
                 warnings.simplefilter("always")
                 client._get_async_http_client()
                 self.assertTrue(any(issubclass(warn.category, ResourceWarning) for warn in w))
-
         asyncio.run(second_loop())
-
-
-
