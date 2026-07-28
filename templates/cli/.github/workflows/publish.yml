@@ -226,15 +226,12 @@ jobs:
             echo "formula_path=${FORMULA_PATH}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Open pull request on Homebrew tap
+      - name: Commit Homebrew formula update
         working-directory: homebrew-tap
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           EXECUTABLE_NAME: ${{ steps.tap.outputs.executable }}
           FORMULA_PATH: ${{ steps.tap.outputs.formula_path }}
-          SOURCE_REPO: ${{ github.repository }}
-          SERVER_URL: ${{ github.server_url }}
-          GH_TOKEN: ${{ steps.bot-token.outputs.token }}
         run: |
           set -euo pipefail
 
@@ -243,27 +240,12 @@ jobs:
             exit 0
           fi
 
-          BASE_BRANCH="$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')"
-          BRANCH="release/${EXECUTABLE_NAME}-${RELEASE_TAG}"
-
           git config user.name "appwrite-bot[bot]"
           git config user.email "217594562+appwrite-bot[bot]@users.noreply.github.com"
 
-          git checkout -B "$BRANCH"
           git add "$FORMULA_PATH"
           git commit -m "${EXECUTABLE_NAME} ${RELEASE_TAG}"
-          git push -f -u origin "$BRANCH"
 
-          PR_TITLE="${EXECUTABLE_NAME} ${RELEASE_TAG}"
-          PR_BODY=$(printf 'Automated formula update for the `%s` CLI release [`%s`](%s/%s/releases/tag/%s).\n\nOpened automatically by the `%s` publish workflow after release binaries were uploaded.' "$EXECUTABLE_NAME" "$RELEASE_TAG" "$SERVER_URL" "$SOURCE_REPO" "$RELEASE_TAG" "${SOURCE_REPO#*/}")
-
-          EXISTING_PR="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' || true)"
-          if [ -n "$EXISTING_PR" ]; then
-            gh pr edit "$EXISTING_PR" --title "$PR_TITLE" --body "$PR_BODY"
-          else
-            gh pr create \
-              --title "$PR_TITLE" \
-              --body "$PR_BODY" \
-              --base "$BASE_BRANCH" \
-              --head "$BRANCH"
-          fi
+          BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+          git pull --rebase origin "$BRANCH"
+          git push origin "HEAD:${BRANCH}"
