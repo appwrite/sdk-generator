@@ -81,13 +81,13 @@ export const register = new Command("register")
 
 export const login = new Command("login")
   .description(commandDescriptions["login"])
-  .option(`--email [email]`, `Email`)
-  .option(`--password [password]`, `Password`)
+  .option(`--email [email]`, `Email, for self hosted instances`)
+  .option(`--password [password]`, `Password, for self hosted instances`)
   .option(
     `--mfa [factor]`,
-    `Factor used for MFA. Must be one of: email, phone, totp, recoveryCode`,
+    `Factor used for MFA on self hosted instances. Must be one of: email, phone, totp, recoveryCode`,
   )
-  .option(`--code [code]`, `Code used for MFA`)
+  .option(`--code [code]`, `Code used for MFA on self hosted instances`)
   .option(
     `--endpoint [endpoint]`,
     `Appwrite endpoint for self hosted instances`,

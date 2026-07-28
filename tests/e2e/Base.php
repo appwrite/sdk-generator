@@ -278,7 +278,7 @@ abstract class Base extends TestCase
         'auth:valid-access-token-missing-expiry:passed',
         'auth:valid-access-token-session-endpoint:passed',
         'auth:project-session-endpoint-mismatch:passed',
-        'auth:oauth-login-flag:passed',
+        'auth:cloud-login-rejects-credentials:passed',
         'auth:open-browser:passed',
         'auth:config-filters-project-header:passed',
     ];
