@@ -1,11 +1,13 @@
-import io
+import asyncio
+import inspect
 import json
 import os
 import platform
 import sys
-import requests
+import threading
+import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from threading import Lock
+import httpx
 from .input_file import InputFile
 from .exception import {{spec.title | caseUcfirst}}Exception
 from .encoders.value_class_encoder import ValueClassEncoder
@@ -15,6 +17,8 @@ class Client:
         self._chunk_size = 5*1024*1024
         self._self_signed = False
         self._endpoint = '{{spec.endpoint}}'
+        self._http_client = None
+        self._async_http_client = None
         self._global_headers = {
             'content-type': '',
             'user-agent' : f'{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({platform.uname().system}; {platform.uname().version}; {platform.uname().machine})',
@@ -27,9 +31,158 @@ class Client:
 {% endfor %}
         }
         self._config = {}
+        self._async_client_loop = None      # event loop the async client was last created on
+        self._async_client_thread_id = None  # OS thread that owned that loop
+
+    def _get_http_client(self) -> httpx.Client:
+        if self._http_client is None or self._http_client.is_closed:
+            self._http_client = httpx.Client(
+                verify=(not self._self_signed),
+                timeout=httpx.Timeout(30.0, connect=10.0),
+            )
+        return self._http_client
+
+    def _get_async_http_client(self) -> httpx.AsyncClient:
+        current_loop = None
+        try:
+            current_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+
+        loop_changed = (
+            current_loop is not None
+            and self._async_client_loop is not None
+            and self._async_client_loop is not current_loop
+        )
+
+        if self._async_http_client is None or self._async_http_client.is_closed or loop_changed:
+            if loop_changed and not self._async_http_client.is_closed:
+                old_client = self._async_http_client
+                old_loop = self._async_client_loop
+                old_thread_id = self._async_client_thread_id
+
+                if old_loop.is_running() and old_thread_id != threading.get_ident():
+                    future = asyncio.run_coroutine_threadsafe(old_client.aclose(), old_loop)
+                    future.result()
+                else:
+                    warnings.warn(
+                        "Async HTTP client's event loop changed while its previous "
+                        "connection pool was still open; the previous pool could not "
+                        "be closed safely and its connections may leak until garbage "
+                        "collection. Call `await client.aclose()` before switching "
+                        "event loops to avoid this.",
+                        ResourceWarning,
+                    )
+
+            self._async_http_client = httpx.AsyncClient(
+                verify=(not self._self_signed),
+                timeout=httpx.Timeout(30.0, connect=10.0),
+            )
+            self._async_client_loop = current_loop
+            self._async_client_thread_id = threading.get_ident() if current_loop is not None else None
+
+        return self._async_http_client
+
+    def _close_async_client_sync(self, client_to_close):
+        """Close an AsyncClient synchronously from any calling context.
+
+        - If the client's owning loop is running in a different OS thread,
+          closure is scheduled via run_coroutine_threadsafe on that loop.
+        - If an event loop was associated with this client but is stopped, closed,
+          or running on the current thread, running a fresh loop is unsafe.
+          A ResourceWarning is emitted and the reference is cleared for GC.
+        - If no event loop was attached or active, asyncio.run() attempts a
+          fresh synchronous close.
+        """
+        if client_to_close is None or client_to_close.is_closed:
+            return
+
+        owning_loop = getattr(self, '_async_client_loop', None)
+        owning_thread_id = getattr(self, '_async_client_thread_id', None)
+
+        if owning_loop is not None:
+            if owning_loop.is_running() and owning_thread_id != threading.get_ident():
+                future = asyncio.run_coroutine_threadsafe(
+                    client_to_close.aclose(), owning_loop
+                )
+                future.result()
+                return
+
+            warnings.warn(
+                "Async HTTP client's event loop is not active on a separate thread; "
+                "underlying connections could not be closed gracefully synchronously. "
+                "Call `await client.aclose()` or use `async with Client()` for async cleanup.",
+                ResourceWarning,
+            )
+            return
+
+        coro = client_to_close.aclose()
+        try:
+            asyncio.run(coro)
+        except RuntimeError:
+            coro.close()
+            warnings.warn(
+                "Synchronous close() was called while an event loop was running on the "
+                "same thread. Use `await client.aclose()` or `async with Client()`.",
+                ResourceWarning,
+            )
+
+    def _teardown_clients(self):
+        if self._http_client and not self._http_client.is_closed:
+            try:
+                self._http_client.close()
+            finally:
+                self._http_client = None
+        if self._async_http_client and not self._async_http_client.is_closed:
+            try:
+                self._close_async_client_sync(self._async_http_client)
+            finally:
+                self._async_http_client = None
+
+    def close(self):
+        self._teardown_clients()
+
+    async def aclose(self):
+        if self._async_http_client and not self._async_http_client.is_closed:
+            await self._async_http_client.aclose()
+        if self._http_client and not self._http_client.is_closed:
+            self._http_client.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.aclose()
+
+    def __del__(self):
+        try:
+            if self._http_client and not self._http_client.is_closed:
+                self._http_client.close()
+            if self._async_http_client and not self._async_http_client.is_closed:
+                warnings.warn(
+                    "Unclosed AsyncClient was garbage collected. "
+                    "Use `await client.aclose()` or `async with Client()` to ensure clean shutdown.",
+                    ResourceWarning,
+                )
+        except Exception:
+            pass
 
     def set_self_signed(self, status=True):
+        if self._self_signed == status:
+            return self
+        old_self_signed = self._self_signed
         self._self_signed = status
+        try:
+            self._teardown_clients()
+        except Exception:
+            self._self_signed = old_self_signed
+            raise
         return self
 
     def set_endpoint(self, endpoint):
@@ -62,7 +215,7 @@ class Client:
         return self
 {% endfor %}
 
-    def call(self, method, path='', headers=None, params=None, response_type='json'):
+    def _prepare_request(self, method, path='', headers=None, params=None):
         if headers is None:
             headers = {}
 
@@ -82,53 +235,99 @@ class Client:
         if headers['content-type'].startswith('application/json'):
             data = json.dumps(data, cls=ValueClassEncoder)
 
-        if headers['content-type'].startswith('multipart/form-data'):
+        if headers.get('content-type', '').startswith('multipart/form-data'):
             del headers['content-type']
             stringify = True
-            for key in data.copy():
+            for key in list(data.keys()):
                 if isinstance(data[key], InputFile):
-                    files[key] = (data[key].filename, data[key].data)
+                    file_content = data[key].data
+                    if isinstance(file_content, bytearray):
+                        file_content = bytes(file_content)
+                    files[key] = (data[key].filename, file_content)
                     del data[key]
             data = self.flatten(data, stringify=stringify)
 
+        return self._endpoint + path, headers, self.flatten(params, stringify=stringify), data, files
+
+    def _handle_response(self, response, response_type):
+        warnings = response.headers.get('x-{{ spec.title | lower }}-warning')
+        if warnings:
+            for warning in warnings.split(';'):
+                print(f'Warning: {warning}', file=sys.stderr)
+
+        content_type = response.headers.get('Content-Type', '')
+
+        if response_type == 'location':
+            return response.headers.get('Location')
+
+        if content_type.startswith('application/json'):
+            return response.json()
+
+        return response.content
+
+    def _handle_exception(self, e, response=None):
+        if response is not None:
+            content_type = response.headers.get('Content-Type', '')
+            if content_type.startswith('application/json'):
+                try:
+                    body = response.json()
+                except Exception:
+                    raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
+                raise {{spec.title | caseUcfirst}}Exception(body.get('message', ''), response.status_code, body.get('type'), response.text)
+            else:
+                raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
+        else:
+            raise {{spec.title | caseUcfirst}}Exception(str(e))
+
+    def call(self, method, path='', headers=None, params=None, response_type='json'):
+        url, headers, params, data, files = self._prepare_request(method, path, headers, params)
+
         response = None
         try:
-            response = requests.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
+            http_client = self._get_http_client()
+            response = http_client.request(
                 method=method,
-                url=self._endpoint + path,
-                params=self.flatten(params, stringify=stringify),
+                url=url,
+                params=params,
                 data=data,
                 files=files,
                 headers=headers,
-                verify=(not self._self_signed),
-                allow_redirects=False if response_type == 'location' else True
+                follow_redirects=False if response_type == 'location' else True,
             )
 
-            response.raise_for_status()
+            if response_type != 'location':
+                response.raise_for_status()
 
-            warnings = response.headers.get('x-{{ spec.title | lower }}-warning')
-            if warnings:
-                for warning in warnings.split(';'):
-                    print(f'Warning: {warning}', file=sys.stderr)
-
-            content_type = response.headers['Content-Type']
-
-            if response_type == 'location':
-                return response.headers.get('Location')
-
-            if content_type.startswith('application/json'):
-                return response.json()
-
-            return response._content
+            return self._handle_response(response, response_type)
+        except httpx.HTTPStatusError as e:
+            self._handle_exception(e, e.response)
         except Exception as e:
-            if response != None:
-                content_type = response.headers['Content-Type']
-                if content_type.startswith('application/json'):
-                    raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json().get('type'), response.text)
-                else:
-                    raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
-            else:
-                raise {{spec.title | caseUcfirst}}Exception(e)
+            self._handle_exception(e, response)
+
+    async def call_async(self, method, path='', headers=None, params=None, response_type='json'):
+        url, headers, params, data, files = self._prepare_request(method, path, headers, params)
+
+        response = None
+        try:
+            http_client = self._get_async_http_client()
+            response = await http_client.request(
+                method=method,
+                url=url,
+                params=params,
+                data=data,
+                files=files,
+                headers=headers,
+                follow_redirects=False if response_type == 'location' else True,
+            )
+
+            if response_type != 'location':
+                response.raise_for_status()
+
+            return self._handle_response(response, response_type)
+        except httpx.HTTPStatusError as e:
+            self._handle_exception(e, e.response)
+        except Exception as e:
+            self._handle_exception(e, response)
 
     def chunked_upload(
         self,
@@ -139,19 +338,19 @@ class Client:
         on_progress = None,
         upload_id = ''
     ):
+        headers = headers.copy() if headers else {}
         input_file = params[param_name]
 
         if input_file.source_type == 'path':
             size = os.stat(input_file.path).st_size
-            input = None
         elif input_file.source_type == 'bytes':
             size = len(input_file.data)
             input = input_file.data
 
         if size < self._chunk_size:
             if input_file.source_type == 'path':
-                with open(input_file.path, 'rb') as input:
-                    input_file.data = input.read()
+                with open(input_file.path, 'rb') as f:
+                    input_file.data = f.read()
 
             params[param_name] = input_file
             return self.call(
@@ -167,7 +366,7 @@ class Client:
         try:
             result = self.call('get', path + '/' + upload_id, headers)
             counter = result['chunksUploaded']
-        except:
+        except Exception:
             pass
 
         if counter > 0:
@@ -198,7 +397,7 @@ class Client:
         upload_id_header = upload_id
         completed_count = chunks[0]['index']
         uploaded_size = chunks[0]['start']
-        progress_lock = Lock()
+        progress_lock = threading.Lock()
         last_result = None
         final_result = None
 
@@ -267,6 +466,158 @@ class Client:
             futures = [executor.submit(upload_remaining_chunk, chunk) for chunk in chunks[1:]]
             for future in as_completed(futures):
                 future.result()
+
+        return final_result or last_result
+
+    # Note: Textual parallelism between chunked_upload and chunked_upload_async is intentional
+    # to maintain call-site readability in generated output and isolate asyncio.to_thread I/O operations.
+    async def chunked_upload_async(
+        self,
+        path,
+        headers = None,
+        params = None,
+        param_name = '',
+        on_progress = None,
+        upload_id = ''
+    ):
+        headers = headers.copy() if headers else {}
+        input_file = params[param_name]
+
+        if input_file.source_type == 'path':
+            stat_result = await asyncio.to_thread(os.stat, input_file.path)
+            size = stat_result.st_size
+        elif input_file.source_type == 'bytes':
+            size = len(input_file.data)
+
+        if size < self._chunk_size:
+            if input_file.source_type == 'path':
+                def _read():
+                    with open(input_file.path, 'rb') as f:
+                        return f.read()
+                input_file.data = await asyncio.to_thread(_read)
+
+            params[param_name] = input_file
+            return await self.call_async(
+                'post',
+                path,
+                headers,
+                params
+            )
+
+        offset = 0
+        counter = 0
+
+        try:
+            result = await self.call_async('get', path + '/' + upload_id, headers)
+            counter = result['chunksUploaded']
+        except Exception:
+            pass
+
+        if counter > 0:
+            offset = counter * self._chunk_size
+
+        total_chunks = (size + self._chunk_size - 1) // self._chunk_size
+        chunks = []
+        while offset < size:
+            end = min(offset + self._chunk_size, size)
+            chunks.append({
+                'index': counter,
+                'start': offset,
+                'end': end,
+            })
+            offset = end
+            counter = counter + 1
+
+        if not chunks:
+            return result
+
+        async def read_chunk_async(start, end):
+            if input_file.source_type == 'path':
+                def _read():
+                    with open(input_file.path, 'rb') as f:
+                        f.seek(start)
+                        return f.read(end - start)
+                return await asyncio.to_thread(_read)
+            return input_file.data[start:end]
+
+        upload_id_header = upload_id
+        completed_count = chunks[0]['index']
+        uploaded_size = chunks[0]['start']
+        progress_lock = asyncio.Lock()
+        last_result = None
+        final_result = None
+
+        def is_upload_complete(chunk_result):
+            chunks_uploaded = chunk_result.get('chunksUploaded')
+            if chunks_uploaded is None:
+                return False
+            chunks_total = chunk_result.get('chunksTotal', total_chunks)
+            return int(chunks_uploaded) >= int(chunks_total)
+
+        async def upload_chunk_async(chunk, current_upload_id):
+            chunk_data = await read_chunk_async(chunk['start'], chunk['end'])
+            chunk_input = InputFile.from_bytes(
+                chunk_data,
+                input_file.filename,
+                getattr(input_file, 'mime_type', None)
+            )
+            chunk_params = {**params, param_name: chunk_input}
+            chunk_headers = {**headers}
+            chunk_headers["content-range"] = f"bytes {chunk['start']}-{chunk['end'] - 1}/{size}"
+            if current_upload_id:
+                chunk_headers["x-{{ spec.title | caseLower }}-id"] = current_upload_id
+
+            return await self.call_async(
+                'post',
+                path,
+                chunk_headers,
+                chunk_params,
+            )
+
+        # Upload first chunk to obtain the upload ID before parallelising
+        result = await upload_chunk_async(chunks[0], upload_id_header)
+        last_result = result
+        if "$id" in result:
+            upload_id_header = result["$id"]
+
+        completed_count = chunks[0]['index'] + 1
+        uploaded_size = chunks[0]['end']
+
+        if on_progress is not None:
+            cb = on_progress({
+                "$id": result.get("$id"),
+                "progress": uploaded_size / size * 100,
+                "sizeUploaded": uploaded_size,
+                "chunksTotal": total_chunks,
+                "chunksUploaded": completed_count,
+            })
+            if inspect.isawaitable(cb):
+                await cb
+
+        semaphore = asyncio.Semaphore(8)
+
+        async def upload_remaining_chunk_async(chunk):
+            nonlocal completed_count, uploaded_size, last_result, final_result
+            async with semaphore:
+                chunk_result = await upload_chunk_async(chunk, upload_id_header)
+            async with progress_lock:
+                completed_count = completed_count + 1
+                uploaded_size = uploaded_size + (chunk['end'] - chunk['start'])
+                last_result = chunk_result
+                if is_upload_complete(chunk_result):
+                    final_result = chunk_result
+                if on_progress is not None:
+                    cb = on_progress({
+                        "$id": upload_id_header,
+                        "progress": uploaded_size / size * 100,
+                        "sizeUploaded": uploaded_size,
+                        "chunksTotal": total_chunks,
+                        "chunksUploaded": completed_count,
+                    })
+                    if inspect.isawaitable(cb):
+                        await cb
+
+        await asyncio.gather(*[upload_remaining_chunk_async(chunk) for chunk in chunks[1:]])
 
         return final_result or last_result
 

@@ -4,56 +4,58 @@ from typing import Any, Dict, List, Optional, Union{% set hasGenericModel = fals
 
 from ..exception import AppwriteException
 from appwrite.utils.deprecated import deprecated
-{% set added = [] %}
+{% set addedEnums = [] %}
+{% set addedModels = [] %}
+{% set hasInputFile = false %}
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' and parameter.type not in added %}
+{% if parameter.type == 'file' and not hasInputFile %}
 from ..input_file import InputFile
-{% set added = added|merge(['InputFile']) %}
+{% set hasInputFile = true %}
 {% endif %}
 {% if parameter.enumValues is not empty%}
-{% if parameter.enumName not in added %}
-from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName | caseUcfirst }}
-{% set added = added|merge([parameter.enumName]) %}
+{% set enumName = parameter.enumName | caseUcfirst %}
+{% if enumName not in addedEnums %}
+from ..enums.{{ parameter.enumName | caseSnake }} import {{ enumName }} as {{ enumName }}Enum
+{% set addedEnums = addedEnums|merge([enumName]) %}
 {% endif %}
 {% endif %}
 {% set modelName = parameter.model ?? parameter.array.model ?? null %}
 {% if modelName %}
-{% if modelName not in added %}
+{% if modelName not in addedModels %}
 {% if (modelName | caseUcfirst) == (service.name | caseUcfirst) %}
 from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }} as {{ modelName | caseUcfirst }}Model
 {% else %}
 from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }}
 {% endif %}
-{% set added = added|merge([modelName]) %}
+{% set addedModels = addedModels|merge([modelName]) %}
 {% endif %}
 {% endif %}
 {% endfor %}
 {% if method.responseModel and method.responseModel != 'any' %}
-{% if method.responseModel not in added %}
+{% if method.responseModel not in addedModels %}
 {% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}
 from ..models.{{ method.responseModel | caseSnake }} import {{ method.responseModel | caseUcfirst }} as {{ method.responseModel | caseUcfirst }}Model
 {% else %}
 from ..models.{{ method.responseModel | caseSnake }} import {{ method.responseModel | caseUcfirst }}
 {% endif %}
-{% set added = added|merge([method.responseModel]) %}
+{% set addedModels = addedModels|merge([method.responseModel]) %}
 {% endif %}
 {% endif %}
 {% if method.responseModels is defined and method.responseModels|length > 1 %}
 {% for responseModel in method.responseModels %}
-{% if responseModel and responseModel != 'any' and responseModel not in added %}
+{% if responseModel and responseModel != 'any' and responseModel not in addedModels %}
 {% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}
 from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }} as {{ responseModel | caseUcfirst }}Model
 {% else %}
 from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }}
 {% endif %}
-{% set added = added|merge([responseModel]) %}
+{% set addedModels = addedModels|merge([responseModel]) %}
 {% endif %}
 {% endfor %}
 {% endif %}
 {% endfor %}
 {% if hasGenericModel %}
-
 T = TypeVar('T')
 {% endif %}
 
@@ -107,7 +109,7 @@ Dict[str, Any]
 {% endset %}
     def {{ method.name | caseSnake }}(
         self{% for parameter in method.parameters.all %},
-        {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service.name) | raw }}{% if not parameter.required %} = None{% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},
+        {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service.name, spec) | raw }}{% if not parameter.required %} = None{% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},
         on_progress = None{% endif %}{% if isGenericResponse %},
         model_type: Type[T] = dict{% endif %}
 
@@ -128,7 +130,7 @@ Dict[str, Any]
 {% endif %}
         Parameters
         ----------
-        {% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getServicePropertyType(service.name) | raw }}
+        {% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getServicePropertyType(service.name, spec) | raw }}
             {% autoescape false %}{{ parameter.description | replace({"\n": "\n            "}) }}{% endautoescape %}
 
         {% endfor %}{% if 'multipart/form-data' in method.consumes %}
@@ -171,6 +173,35 @@ Dict[str, Any]
 {{ include('python/base/requests/file.twig') }}
 {% else %}
 {{ include('python/base/requests/api.twig') }}
+{% endif %}
+
+{% if method.deprecated %}
+{% if method.since and method.replaceWith %}
+    @deprecated("This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | caseSnakeExceptFirstDot }}` instead.")
+{% else %}
+    @deprecated("This API has been deprecated.")
+{% endif %}
+{% endif %}
+    async def {{ method.name | caseSnake }}_async(
+        self{% for parameter in method.parameters.all %},
+        {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service.name, spec) | raw }}{% if not parameter.required %} = None{% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},
+        on_progress = None{% endif %}{% if isGenericResponse %},
+        model_type: Type[T] = dict{% endif %}
+
+    ) -> {{ returnType | trim }}:
+        """
+        Async version of :meth:`{{ method.name | caseSnake }}`.
+        """
+
+        api_path = '{{ method.path }}'
+        {%~ for security in method.securityQueries %}
+        api_path += '{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=' + quote(str(self.client.get_config('{{ security.name | caseLower }}')), safe='')
+        {%~ endfor %}
+{{ include('python/base/params.twig') }}
+{% if 'multipart/form-data' in method.consumes %}
+{{ include('python/base/requests/file_async.twig') }}
+{% else %}
+{{ include('python/base/requests/api_async.twig') }}
 {% endif %}
 {% endif %}
 {% endfor %}
