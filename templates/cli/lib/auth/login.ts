@@ -13,7 +13,6 @@ import {
   isRegionalCloudEndpoint,
   openBrowser,
 } from "../utils.js";
-import { isFlagEnabled } from "../flags.js";
 import ID from "../id.js";
 import {
   questionsListFactors,
@@ -476,8 +475,13 @@ export const loginCommand = async ({
   const configEndpoint = normalizeCloudConsoleEndpoint(
     (endpoint ?? globalConfig.getEndpoint()) || DEFAULT_ENDPOINT,
   );
-  const shouldUseCloudLogin =
-    isFlagEnabled("oauthLogin") && isCloudLoginEndpoint(configEndpoint);
+  const shouldUseCloudLogin = isCloudLoginEndpoint(configEndpoint);
+
+  if (shouldUseCloudLogin && (email || password || mfa || code)) {
+    throw new Error(
+      `Cloud sign-in happens in your browser. Run '${EXECUTABLE_NAME} login' without --email, --password, --mfa or --code — those options are for self-hosted instances.`,
+    );
+  }
 
   let oldCurrent = globalConfig.getCurrentSession();
 
@@ -493,7 +497,7 @@ export const loginCommand = async ({
 
     if (account) {
       if (
-        isFlagEnabled("oauthLogin") &&
+        shouldUseCloudLogin &&
         !globalConfig.getAccessToken() &&
         globalConfig.getCookie()
       ) {

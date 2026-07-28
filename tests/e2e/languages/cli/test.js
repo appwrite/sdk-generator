@@ -61,7 +61,7 @@ const {
   normalizeCloudConsoleEndpoint,
   globalConfig,
 } = require("./lib/config.ts");
-const { listenForBrowserOpen } = require("./lib/auth/login.ts");
+const { listenForBrowserOpen, loginCommand } = require("./lib/auth/login.ts");
 const { applyConfigFilters } = require("./lib/config-filters.ts");
 const { questionsLogout } = require("./lib/questions.ts");
 
@@ -1317,16 +1317,30 @@ async function runAuthChecks() {
     }
   });
 
-  await authCheck("oauth-login-flag", () => {
-    const prev = process.env.APPWRITE_CLI_OAUTH_LOGIN;
-    delete process.env.APPWRITE_CLI_OAUTH_LOGIN;
+  await authCheck("cloud-login-rejects-credentials", async () => {
+    const prev = process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
+    delete process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
     try {
-      assert.equal(isFlagEnabled("oauthLogin"), false);
-      process.env.APPWRITE_CLI_OAUTH_LOGIN = "1";
-      assert.equal(isFlagEnabled("oauthLogin"), true);
+      for (const options of [
+        { email: "user@example.com", password: "password" },
+        { mfa: "totp" },
+        { code: "123456" },
+      ]) {
+        await assert.rejects(
+          () =>
+            loginCommand({
+              endpoint: "https://cloud.appwrite.io/v1",
+              ...options,
+            }),
+          /Cloud sign-in happens in your browser/,
+        );
+      }
+
+      // Self-hosted endpoints keep the email/password flow.
+      assert.equal(isCloudLoginEndpoint("http://localhost/v1"), false);
     } finally {
-      if (prev === undefined) delete process.env.APPWRITE_CLI_OAUTH_LOGIN;
-      else process.env.APPWRITE_CLI_OAUTH_LOGIN = prev;
+      if (prev === undefined) delete process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
+      else process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN = prev;
     }
   });
 

@@ -14,7 +14,6 @@ import {
 } from "./constants.js";
 import { warn } from "./parser.js";
 import { isCloudHostname } from "./utils.js";
-import { isFlagEnabled } from "./flags.js";
 import {
   getStoredRefreshToken,
   setStoredRefreshToken,
@@ -87,8 +86,7 @@ export const getValidAccessToken = async (
 let legacySessionWarningShown = false;
 
 const warnLegacySession = (): void => {
-  // Only nudge toward OAuth login when the feature is enabled.
-  if (legacySessionWarningShown || !isFlagEnabled("oauthLogin")) {
+  if (legacySessionWarningShown) {
     return;
   }
 
