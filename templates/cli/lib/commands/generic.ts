@@ -110,13 +110,17 @@ export const logout = new Command("logout")
       const current = globalConfig.getCurrentSession();
       const originalCurrent = current;
 
-      if (current === "" || !sessions.length) {
+      // The picker only offers sessions with an email, so count those — counting
+      // endpoint-only entries would open a checkbox with no selectable options.
+      const accounts = sessions.filter((session) => session.email);
+
+      if (current === "" || !accounts.length) {
         log(logMessages.noActiveSessions);
         return;
       }
-      if (sessions.length === 1) {
+      if (accounts.length === 1) {
         const { failed, failedIds, errors } = await logoutSessions(
-          planSessionLogout([current]),
+          planSessionLogout([accounts[0].id]),
         );
 
         if (failed > 0) {

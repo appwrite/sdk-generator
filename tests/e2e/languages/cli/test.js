@@ -64,6 +64,9 @@ const {
 const { listenForBrowserOpen, loginCommand } = require("./lib/auth/login.ts");
 const { applyConfigFilters } = require("./lib/config-filters.ts");
 const { questionsLogout } = require("./lib/questions.ts");
+const { logout } = require("./lib/commands/generic.ts");
+const inquirerModule = require("inquirer");
+const inquirer = inquirerModule.default ?? inquirerModule;
 
 const extractFirstValue = (output) => {
   const firstLine =
@@ -857,6 +860,25 @@ async function runAuthChecks() {
     }
   };
 
+  // Runs fn with inquirer stubbed, returning the question sets it prompted with.
+  // Records rather than throws so a stray prompt cannot trip actionRunner's
+  // error path and exit the test process. Output is muted because the expected
+  // output is asserted positionally.
+  const recordPrompts = async (fn) => {
+    const prompts = [];
+    const original = inquirer.prompt;
+    inquirer.prompt = async (questions) => {
+      prompts.push(questions);
+      return {};
+    };
+    try {
+      await muteStdout(fn);
+    } finally {
+      inquirer.prompt = original;
+    }
+    return prompts;
+  };
+
   const deviceAuth = (overrides = {}) => ({
     expires_in: 5,
     interval: 0,
@@ -1117,6 +1139,40 @@ async function runAuthChecks() {
     assert.equal(choices[0].short, "b@c.com (current)");
     assert.equal(choices[1].name, "a@b.com - https://cloud.appwrite.io/v1");
     assert.equal(choices[1].short, "a@b.com");
+  });
+
+  // Endpoint-only entries, as left behind by `appwrite client --endpoint`.
+  await authCheck("logout-skips-empty-prompt", async () => {
+    globalConfig.clear();
+    keyringTokens.clear();
+    globalConfig.addSession("stub1", { endpoint: "https://cloud.appwrite.io/v1" });
+    globalConfig.addSession("stub2", { endpoint: "http://localhost/v1" });
+    globalConfig.setCurrentSession("stub2");
+
+    // Sessions are stored, yet the picker has nothing to offer — logout used to
+    // open a checkbox with no options and a required validator, so no answer
+    // could satisfy it.
+    assert.ok(globalConfig.getSessions().length > 0);
+    assert.deepEqual(questionsLogout[0].choices(), []);
+    assert.deepEqual(await recordPrompts(() => logout.parseAsync([], { from: "user" })), []);
+  });
+
+  await authCheck("logout-single-account-ignores-current-stub", async () => {
+    globalConfig.clear();
+    keyringTokens.clear();
+    globalConfig.addSession("stub1", { endpoint: "http://localhost/v1" });
+    globalConfig.addSession("acct1", {
+      endpoint: "https://cloud.appwrite.io/v1",
+      email: "a@b.com",
+    });
+    // The lone account is not current, so logging out the current session would
+    // revoke the wrong entry.
+    globalConfig.setCurrentSession("stub1");
+
+    assert.deepEqual(await recordPrompts(() => logout.parseAsync([], { from: "user" })), []);
+    assert.equal(globalConfig.get("acct1"), undefined);
+    assert.notEqual(globalConfig.get("stub1"), undefined);
+    assert.equal(globalConfig.getCurrentSession(), "");
   });
 
   await authCheck("restore-current-session-fallback", () => {
