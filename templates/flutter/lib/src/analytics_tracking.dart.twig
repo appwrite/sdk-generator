@@ -22,20 +22,33 @@ export 'analytics_observer.dart' show AnalyticsEventEmitter, AnalyticsObserver, 
 /// (async setup, plugin channels, etc.) can still call `ensureInitialized()`
 /// themselves — the call is idempotent.
 ///
+/// Engagement time is reported the same way the Web helper reports it: as a
+/// **delta** attached to each `app_backgrounded` event, covering only the
+/// foreground time accrued since the last resume. Backgrounding is the mobile
+/// equivalent of a browser tab going hidden, and it is where the Web helper
+/// flushes too, so the two platforms feed the same additive `engagementTime`
+/// column. The seconds ride on the lifecycle event that is already being sent
+/// at that exact moment rather than adding a second request for a single
+/// number.
+///
 /// Typical wiring:
 ///
 /// ```dart
 /// final analytics = Analytics(client);
-/// final tracking = AnalyticsTracking(
-///   (name, {props}) => analytics.event(name: name, props: props),
-/// );
+/// final emit = (String name, {Map<String, dynamic>? props, String? propertyId, int? engagementTime}) =>
+///     analytics.event(
+///       name: name,
+///       props: props,
+///       propertyId: propertyId,
+///       engagementTime: engagementTime,
+///     );
+///
+/// final tracking = AnalyticsTracking(emit, propertyId: '<PROPERTY_ID>');
 /// tracking.enableAllAutoTracking();
 ///
 /// runApp(MaterialApp(
 ///   navigatorObservers: [
-///     AnalyticsObserver(
-///       (name, {props}) => analytics.event(name: name, props: props),
-///     ),
+///     AnalyticsObserver(emit, propertyId: '<PROPERTY_ID>'),
 ///   ],
 ///   home: MyApp(),
 /// ));
@@ -43,10 +56,19 @@ export 'analytics_observer.dart' show AnalyticsEventEmitter, AnalyticsObserver, 
 class AnalyticsTracking with WidgetsBindingObserver {
   final AnalyticsEventEmitter _emit;
 
+  /// Analytics property (or snippet) ID forwarded with every emitted event.
+  /// Optional — leave null when the emitter closure already supplies one.
+  final String? propertyId;
+
   bool _lifecycleAttached = false;
   DateTime? _foregroundSince;
 
-  AnalyticsTracking(AnalyticsEventEmitter emit) : _emit = emit;
+  /// Sub-second engagement left over from the previous flush. Carried forward
+  /// so a session made of many short foreground stretches does not lose a
+  /// fraction of a second to truncation on every one of them.
+  Duration _engagementCarry = Duration.zero;
+
+  AnalyticsTracking(AnalyticsEventEmitter emit, {this.propertyId}) : _emit = emit;
 
   /// Enable the opinionated default auto-tracking set. Currently this covers
   /// lifecycle events; route tracking is opt-in via [AnalyticsObserver].
@@ -70,6 +92,7 @@ class AnalyticsTracking with WidgetsBindingObserver {
     WidgetsFlutterBinding.ensureInitialized();
     _lifecycleAttached = true;
     _foregroundSince = DateTime.now();
+    _engagementCarry = Duration.zero;
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -81,14 +104,24 @@ class AnalyticsTracking with WidgetsBindingObserver {
     }
     _lifecycleAttached = false;
     _foregroundSince = null;
+    _engagementCarry = Duration.zero;
     WidgetsBinding.instance.removeObserver(this);
   }
 
   /// Emit an ad-hoc analytics event. Emitter exceptions are swallowed so
   /// analytics failures never surface to the host app.
-  void event(String name, {Map<String, dynamic>? props}) {
+  void event(
+    String name, {
+    Map<String, dynamic>? props,
+    int? engagementTime,
+  }) {
     try {
-      _emit(name, props: props);
+      _emit(
+        name,
+        props: props,
+        propertyId: propertyId,
+        engagementTime: engagementTime,
+      );
     } catch (_) {
       // Silent — see class docs.
     }
@@ -120,15 +153,21 @@ class AnalyticsTracking with WidgetsBindingObserver {
         // On Flutter desktop and web the lifecycle transitions through both
         // `hidden` and `paused` when the window is minimised / closed. Guard
         // on `_foregroundSince` so we emit `app_backgrounded` exactly once
-        // per background transition instead of firing a second empty event.
+        // per background transition instead of firing a second empty event —
+        // which is also what keeps the engagement delta from being billed
+        // twice for one transition.
         final since = _foregroundSince;
         if (since == null) {
           break;
         }
         _foregroundSince = null;
-        event('app_backgrounded', props: <String, dynamic>{
-          'foregroundSeconds': DateTime.now().difference(since).inSeconds,
-        });
+        final elapsed = _engagementCarry + DateTime.now().difference(since);
+        final seconds = elapsed.inSeconds;
+        _engagementCarry = elapsed - Duration(seconds: seconds);
+        event(
+          'app_backgrounded',
+          engagementTime: seconds > 0 ? seconds : null,
+        );
         break;
       case AppLifecycleState.resumed:
         _foregroundSince = DateTime.now();

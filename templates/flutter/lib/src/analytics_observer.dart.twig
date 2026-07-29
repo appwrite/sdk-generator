@@ -9,12 +9,24 @@ import 'package:flutter/widgets.dart';
 /// ```dart
 /// final analytics = Analytics(client);
 /// final observer = AnalyticsObserver(
-///   (name, {props}) => analytics.event(name: name, props: props),
+///   (name, {props, propertyId, engagementTime}) => analytics.event(
+///     name: name,
+///     props: props,
+///     propertyId: propertyId,
+///     engagementTime: engagementTime,
+///   ),
+///   propertyId: '<PROPERTY_ID>',
 /// );
 /// ```
+///
+/// [propertyId] and [engagementTime] map to the endpoint's top-level params of
+/// the same name; both are null unless the helper has something to say about
+/// them, so a closure is free to ignore either.
 typedef AnalyticsEventEmitter = void Function(
   String name, {
   Map<String, dynamic>? props,
+  String? propertyId,
+  int? engagementTime,
 });
 
 /// Signature used to derive a screen name from a [Route].
@@ -41,7 +53,13 @@ String? defaultScreenNameExtractor(Route<dynamic> route) {
 /// MaterialApp(
 ///   navigatorObservers: [
 ///     AnalyticsObserver(
-///       (name, {props}) => analytics.event(name: name, props: props),
+///       (name, {props, propertyId, engagementTime}) => analytics.event(
+///         name: name,
+///         props: props,
+///         propertyId: propertyId,
+///         engagementTime: engagementTime,
+///       ),
+///       propertyId: '<PROPERTY_ID>',
 ///     ),
 ///   ],
 ///   ...
@@ -58,10 +76,15 @@ class AnalyticsObserver extends NavigatorObserver {
   /// Event name used for screen views. Defaults to `screen_view`.
   final String eventName;
 
+  /// Analytics property (or snippet) ID forwarded with every emitted event.
+  /// Optional — leave null when the emitter closure already supplies one.
+  final String? propertyId;
+
   AnalyticsObserver(
     this.emit, {
     ScreenNameExtractor? nameExtractor,
     this.eventName = 'screen_view',
+    this.propertyId,
   }) : nameExtractor = nameExtractor ?? defaultScreenNameExtractor;
 
   @override
@@ -108,7 +131,7 @@ class AnalyticsObserver extends NavigatorObserver {
       props['previous'] = previousName;
     }
     try {
-      emit(eventName, props: props);
+      emit(eventName, props: props, propertyId: propertyId);
     } catch (_) {
       // Emitter failures must never propagate into the navigator stack —
       // swallow so analytics can't crash the app.

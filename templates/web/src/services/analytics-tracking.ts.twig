@@ -12,13 +12,23 @@
  * ```ts
  * const analytics = new Analytics(client);
  * const tracking = new AnalyticsTracking(
- *     (name, options) => analytics.event({ name, ...(options ?? {}) })
+ *     (name, options) => analytics.event({ name, ...(options ?? {}) }),
+ *     { propertyId: '<PROPERTY_ID>' }
  * );
  * tracking.enableAllAutoTracking();
  * ```
  *
+ * `propertyId` is optional: when set it is merged into the options of every
+ * emitted event, so an emitter that spreads its options (as above) forwards it
+ * automatically instead of every caller hand-rolling it into the closure.
+ * Per-event `propertyId` always wins over the configured default.
+ *
  * All helpers respect `navigator.doNotTrack === '1'` by default; opt out with
  * `respectDoNotTrack: false` in the constructor options.
+ *
+ * Engagement time follows Plausible's model: rather than one total at unload,
+ * a delta is emitted at every natural checkpoint of the visit (tab hidden, SPA
+ * route change, unload). See `enableAutoEngagementTime` for details.
  *
  * Auto-emitted event names follow `snake_case` + lowercase (`pageview`,
  * `outbound_link`, `file_download`, `screen_view`, etc.). Any prop keys use
@@ -31,8 +41,9 @@ export type AnalyticsEventOptions = {
     props?: Record<string, unknown>;
     url?: string;
     referrer?: string;
+    propertyId?: string;          // analytics property (or snippet) ID; forwarded to cloud endpoint as top-level param
     scrollDepth?: number;         // 0-100 percentage; forwarded to cloud endpoint as top-level param
-    engagementTime?: number;      // seconds; forwarded to cloud endpoint as top-level param
+    engagementTime?: number;      // seconds since the previous flush; forwarded to cloud endpoint as top-level param
 }
 
 export type AnalyticsEventEmitter = (name: string, options?: AnalyticsEventOptions) => unknown;
@@ -43,6 +54,13 @@ export type AnalyticsTrackingOptions = {
      * is set to `'1'`. Set to false to always fire regardless of the DNT signal.
      */
     respectDoNotTrack?: boolean;
+
+    /**
+     * Analytics property (or snippet) ID to attach to every emitted event.
+     * Optional — omit it when the emitter closure already supplies one. A
+     * `propertyId` passed on an individual event takes precedence.
+     */
+    propertyId?: string;
 }
 
 export type OutboundTrackingOptions = {
@@ -76,6 +94,7 @@ type Cleanup = () => void;
 export class AnalyticsTracking {
     private readonly emit: AnalyticsEventEmitter;
     private readonly respectDoNotTrack: boolean;
+    private readonly propertyId?: string;
 
     private pageviewCleanups: Cleanup[] = [];
     private outboundCleanup?: Cleanup;
@@ -95,6 +114,7 @@ export class AnalyticsTracking {
     constructor(emit: AnalyticsEventEmitter, options: AnalyticsTrackingOptions = {}) {
         this.emit = emit;
         this.respectDoNotTrack = options.respectDoNotTrack !== false;
+        this.propertyId = options.propertyId;
     }
 
     /**
@@ -119,7 +139,7 @@ export class AnalyticsTracking {
             return;
         }
         try {
-            this.emit(name, options);
+            this.emit(name, this.withPropertyId(options));
         } catch (error) {
             console.warn('AnalyticsTracking: emitter threw', error);
         }
@@ -373,8 +393,24 @@ export class AnalyticsTracking {
 
     /**
      * Enable active engagement-time tracking. Counts time the tab is visible
-     * and reports it on `beforeunload` and on SPA route changes. Uses
-     * `visibilitychange` to exclude background time.
+     * and uses `visibilitychange` to exclude background time.
+     *
+     * Delivery follows Plausible's model rather than a single total at the
+     * end of the visit: an `engagement_time` event is emitted at every natural
+     * checkpoint — the tab going hidden, an SPA route change, and finally
+     * `beforeunload`/`pagehide`. Unload is kept only as a best-effort last
+     * flush; it is the least reliable moment to send anything (browsers
+     * routinely cancel in-flight requests there, and `sendBeacon` cannot set
+     * the `X-Appwrite-Project` header the endpoint requires), so it must never
+     * be the only delivery.
+     *
+     * Each event carries a **delta** — the seconds accrued since the previous
+     * flush, not a running total — so the values are additive per session and
+     * a lost event costs only its own slice.
+     *
+     * There is deliberately no periodic ping. The cadence is driven by
+     * navigation and tab switches, so request volume tracks what the visitor
+     * actually does instead of multiplying with time on page.
      */
     public enableAutoEngagementTime(): void {
         if (this.engagementCleanups.length > 0) {
@@ -385,11 +421,19 @@ export class AnalyticsTracking {
         }
 
         this.engagementAccumulatedMs = 0;
-        this.startEngagement();
+        // Do not start the clock for a tab that is already hidden (prerender,
+        // background tab restore); `visibilitychange` starts it when it is
+        // actually looked at.
+        if (document.visibilityState !== 'hidden') {
+            this.startEngagement();
+        }
 
         const visibilityHandler = (): void => {
             if (document.visibilityState === 'hidden') {
-                this.pauseEngagement();
+                // Flush, don't just pause. The page is still fully alive here,
+                // which makes this the most reliable delivery point in the
+                // whole visit — and it is the same moment Plausible reports on.
+                this.flushEngagement(this.currentPageUrl());
             } else if (document.visibilityState === 'visible') {
                 this.startEngagement();
             }
@@ -436,6 +480,19 @@ export class AnalyticsTracking {
         this.engagementActive = false;
         this.engagementAccumulatedMs = 0;
         this.engagementStart = 0;
+    }
+
+    /**
+     * Merge the configured `propertyId` into an event's options. Returns the
+     * caller's object untouched when no default is configured (or the event
+     * already carries one), so emitters written against the pre-`propertyId`
+     * shape keep receiving exactly what they received before.
+     */
+    private withPropertyId(options?: AnalyticsEventOptions): AnalyticsEventOptions | undefined {
+        if (this.propertyId === undefined || options?.propertyId !== undefined) {
+            return options;
+        }
+        return { ...(options ?? {}), propertyId: this.propertyId };
     }
 
     private canTrack(): boolean {
@@ -542,14 +599,21 @@ export class AnalyticsTracking {
             return;
         }
         this.pauseEngagement();
-        const seconds = Math.round(this.engagementAccumulatedMs / 1000);
+        // Deltas, not a running total: emit only what accrued since the last
+        // flush. `floor` plus keeping the sub-second remainder in the
+        // accumulator is what makes repeated flushes safe — nothing is emitted
+        // twice, and a visit chopped into many short segments does not lose a
+        // fraction of a second to rounding on every one of them.
+        const seconds = Math.floor(this.engagementAccumulatedMs / 1000);
         if (seconds > 0) {
+            // Deduct before emitting so a synchronous emitter that re-enters
+            // (or throws) can never bill the same seconds again.
+            this.engagementAccumulatedMs -= seconds * 1000;
             this.track('engagement_time', {
                 url,
                 engagementTime: seconds
             });
         }
-        this.engagementAccumulatedMs = 0;
         // NOTE: intentionally do NOT call startEngagement() here. flushEngagement
         // runs on `pagehide`, which is also the last hook before the browser
         // may freeze the page into the back-forward cache. Auto-restarting
