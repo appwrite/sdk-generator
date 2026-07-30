@@ -293,6 +293,14 @@ abstract class Base extends TestCase
         'attribute:attribute-delete-uses-attribute-waiter:passed',
         'attribute:update-guards:passed',
         'attribute:resize-hard-fail:passed',
+        'attribute:rename-in-place:passed',
+        'attribute:rename-already-applied:passed',
+        'attribute:rename-missing-both-creates:passed',
+        'attribute:rename-both-exist-deletes-old:passed',
+        'attribute:rename-plus-field-change:passed',
+        'attribute:rename-preserves-indexes:passed',
+        'attribute:rename-hard-fail-before-delete:passed',
+        'attribute:rename-schema-validation:passed',
     ];
 
     protected const CLI_LOCAL_FUNCTION_EMULATION_RESPONSES = [

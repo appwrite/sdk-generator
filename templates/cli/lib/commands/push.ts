@@ -2946,6 +2946,23 @@ export class Push {
           table.columns,
           table as Collection,
         );
+
+        // Server rewrites index column refs during rename; mirror that on the
+        // stale remote snapshot so the index pass does not spuriously recreate.
+        const renameMap = new Map(
+          columnsResult.renames.map((r) => [r.from, r.to]),
+        );
+        if (renameMap.size && Array.isArray(table.remoteVersion.indexes)) {
+          table.remoteVersion.indexes = table.remoteVersion.indexes.map(
+            (idx: any) => ({
+              ...idx,
+              columns: idx.columns?.map(
+                (c: string) => renameMap.get(c) ?? c,
+              ),
+            }),
+          );
+        }
+
         const indexesResult = await attributes.attributesToCreate(
           table.remoteVersion.indexes,
           table.indexes,
@@ -3128,6 +3145,25 @@ export class Push {
           collection.attributes ?? [],
           collection as Collection,
         );
+
+      // Server rewrites index attribute refs during rename; mirror that on the
+      // stale remote snapshot so the index pass does not spuriously recreate.
+      const renameMap = new Map(
+        collectionAttributesResult.renames.map((r) => [r.from, r.to]),
+      );
+      if (
+        renameMap.size &&
+        Array.isArray(collection.remoteVersion!.indexes)
+      ) {
+        collection.remoteVersion!.indexes =
+          collection.remoteVersion!.indexes.map((idx: any) => ({
+            ...idx,
+            attributes: idx.attributes?.map(
+              (a: string) => renameMap.get(a) ?? a,
+            ),
+          }));
+      }
+
       const indexesResult = await attributesHelper.attributesToCreate(
         collection.remoteVersion!.indexes,
         collection.indexes ?? [],
