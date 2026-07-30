@@ -938,6 +938,23 @@ export const questionsLogout: Question[] = [
   },
 ];
 
+export const questionsClientReset = (
+  accounts: Array<{ email: string; endpoint: string }>,
+): Question[] => [
+  {
+    type: "confirm",
+    name: "confirm",
+    message: `This will sign out ${accounts
+      .map((account) =>
+        account.endpoint
+          ? `${account.email} (${account.endpoint})`
+          : account.email,
+      )
+      .join(", ")}. Continue?`,
+    default: false,
+  },
+];
+
 export const questionsPushResources: Question[] = [
   {
     type: "list",

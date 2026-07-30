@@ -1,4 +1,5 @@
 import {
+  endpointsMatch,
   globalConfig,
   localConfig,
   normalizeCloudConsoleEndpoint,
@@ -21,10 +22,7 @@ import {
 
 export const assertSessionEndpointMatches = (endpoint: string): void => {
   const sessionEndpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
-  if (
-    normalizeCloudConsoleEndpoint(endpoint).replace(/\/+$/, "") !==
-    normalizeCloudConsoleEndpoint(sessionEndpoint).replace(/\/+$/, "")
-  ) {
+  if (!endpointsMatch(endpoint, sessionEndpoint)) {
     throw new Error(
       `Endpoint ${endpoint} does not match the current login session endpoint ${sessionEndpoint}. Switch to an account for this environment with \`${EXECUTABLE_NAME} login --switch\`.`,
     );
