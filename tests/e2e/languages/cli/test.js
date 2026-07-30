@@ -979,6 +979,13 @@ async function runAuthChecks() {
       regionalClient.config.endpoint,
       "https://fra.cloud.appwrite.io/v1",
     );
+
+    const consoleClient = await sdkForConsole({
+      requiresAuth: false,
+      endpointOverride: "https://fra.cloud.appwrite.io/v1",
+    });
+    assert.equal(consoleClient.config.endpoint, "https://cloud.appwrite.io/v1");
+    assert.equal(consoleClient.config.project, "console");
   });
 
   await authCheck("console-slug-region", () => {

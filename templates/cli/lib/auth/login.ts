@@ -466,15 +466,16 @@ export const loginCommand = async ({
     throw new Error("Use either --switch or --new, not both.");
   }
 
-  if (endpoint && isRegionalCloudEndpoint(endpoint)) {
-    throw new Error(
-      `Cloud login uses ${DEFAULT_ENDPOINT}. Regional Cloud endpoints are for project API calls, not account login.`,
-    );
-  }
-
   const configEndpoint = normalizeCloudConsoleEndpoint(
     (endpoint ?? globalConfig.getEndpoint()) || DEFAULT_ENDPOINT,
   );
+
+  if (endpoint && isRegionalCloudEndpoint(endpoint)) {
+    warn(
+      `Regional Cloud endpoints are for project API calls, so signing in to ${configEndpoint} instead. Set the regional endpoint in ${EXECUTABLE_NAME}.config.json.`,
+    );
+  }
+
   const shouldUseCloudLogin = isCloudLoginEndpoint(configEndpoint);
 
   if (shouldUseCloudLogin && (email || password || mfa || code)) {

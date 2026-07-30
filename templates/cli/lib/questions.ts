@@ -7,6 +7,7 @@ import { validateRequired } from "./validations.js";
 import { paginate } from "./paginate.js";
 import {
   checkDeployConditions,
+  getConsoleBaseUrl,
   getSafeDirectoryName,
   isCloud,
 } from "./utils.js";
@@ -270,7 +271,7 @@ export const questionsInitProject: Question[] = [
 
       if (choices.length == 0) {
         throw new Error(
-          `No organizations found. Please create a new organization at ${globalConfig.getEndpoint().replace("/v1", "/console/onboarding")}`,
+          `No organizations found. Please create a new organization at ${getConsoleBaseUrl(globalConfig.getEndpoint())}/console/onboarding`,
         );
       }
 
@@ -345,10 +346,9 @@ export const questionsInitProject: Question[] = [
     message: `Select your ${SDK_TITLE} Cloud region`,
     choices: async () => {
       const client = await sdkForConsole({ requiresAuth: true });
-      const endpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
       const response = (await client.call(
         "GET",
-        new URL(endpoint + "/console/regions"),
+        new URL(client.config.endpoint + "/console/regions"),
       )) as { regions: any[] };
       const regions = response.regions || [];
       if (!regions.length) {
