@@ -19,7 +19,7 @@ import {
 } from "@appwrite.io/console";
 
 export const getConsoleService = async (sdk?: Client): Promise<Console> => {
-  const client = !sdk ? await sdkForProject() : sdk;
+  const client = !sdk ? await sdkForConsole() : sdk;
   return new Console(client);
 };
 
@@ -46,7 +46,7 @@ export const getOauth2Service = async (sdk?: Client): Promise<Oauth2> => {
 export const getOrganizationsService = async (
   sdk?: Client,
 ): Promise<Organizations> => {
-  const client = !sdk ? await sdkForProject() : sdk;
+  const client = !sdk ? await sdkForConsole() : sdk;
   return new Organizations(client);
 };
 

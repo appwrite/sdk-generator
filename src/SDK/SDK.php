@@ -878,6 +878,7 @@ class SDK
                             ],
                             'methods' => $methods,
                             'isConsoleOnly' => $this->isConsoleOnly($key),
+                            'consoleOnlyMethods' => $this->getConsoleOnlyMethods($key),
                         ];
 
                         if ($this->exclude($file, $params)) {
@@ -1159,6 +1160,7 @@ class SDK
     {
         $consoleOnlyServices = [
             'account',
+            'console',
             'locale',
             'organization',
             'organizations',
@@ -1166,6 +1168,21 @@ class SDK
         ];
 
         return \in_array($serviceName, $consoleOnlyServices, true);
+    }
+
+    /**
+     * Methods on an otherwise project-scoped service that the API only serves on
+     * the console project. The `oauth2` discovery endpoints reject any other
+     * project, while the rest of the service stays bound to the caller's project.
+     *
+     * @return array<string>
+     */
+    protected function getConsoleOnlyMethods(string $serviceName): array
+    {
+        return match ($serviceName) {
+            'oauth2' => ['listOrganizations', 'listProjects'],
+            default => [],
+        };
     }
 
     /**

@@ -34,8 +34,11 @@ import {
   parseFilterQuery,
 } from "../utils/query.js";
 {% endif %}
+{% set consoleOnlyMethods = service.isConsoleOnly ? [] : service.consoleOnlyMethods | default([]) %}
 {% if service.isConsoleOnly %}
 import { sdkForConsole } from "../../sdks.js";
+{% elseif consoleOnlyMethods is not empty %}
+import { sdkForConsole, sdkForProject } from "../../sdks.js";
 {% else %}
 import { sdkForProject } from "../../sdks.js";
 {% endif %}
@@ -80,6 +83,18 @@ const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.n
   }
   return {{ service.name | caseCamel }}Client;
 };
+{% if consoleOnlyMethods is not empty %}
+
+let {{ service.name | caseCamel }}ConsoleClient: {{ service.name | caseUcfirst }} | null = null;
+
+// A few endpoints on this service are only served on the console project.
+const get{{ service.name | caseUcfirst }}ConsoleClient = async (): Promise<{{ service.name | caseUcfirst }}> => {
+  if (!{{ service.name | caseCamel }}ConsoleClient) {
+    {{ service.name | caseCamel }}ConsoleClient = new {{ service.name | caseUcfirst }}(await sdkForConsole());
+  }
+  return {{ service.name | caseCamel }}ConsoleClient;
+};
+{% endif %}
 
 export const {{ service.name | caseCamel }} = new Command("{{ service.name | caseLower }}")
 {% if service.name == 'tablesDB' %}
@@ -101,6 +116,7 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% if commandName not in seenCommands %}
 {% set seenCommands = seenCommands|merge([commandName]) %}
 {% set commandVar = service.name | caseCamel ~ method.name | caseUcfirst ~ 'Command' %}
+{% set clientGetter = 'get' ~ (service.name | caseUcfirst) ~ ((method.name | caseCamel) in consoleOnlyMethods ? 'Console' : '') ~ 'Client' %}
 {% set query = method | cliQueryConfig %}
 const {{ commandVar }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`)
@@ -166,7 +182,7 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% endfor %}
 {% if method.type == 'location' %}
       async ({{ actionParams }}) => {
-        const url = await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
+        const url = await (await {{ clientGetter }}()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
@@ -177,14 +193,14 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
       },
 {% elseif method.type == 'webAuth' %}
       async ({{ actionParams }}) => {
-        const url = (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
+        const url = (await {{ clientGetter }}()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
         if (url) console.log(url);
       },
 {% elseif hasParams %}
       async ({{ actionParams }}) =>
-        parse(await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }})),
+        parse(await (await {{ clientGetter }}()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }})),
 {% else %}
-      async () => parse(await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}()),
+      async () => parse(await (await {{ clientGetter }}()).{{ method.name | caseCamel }}()),
 {% endif %}
     ),
   );
