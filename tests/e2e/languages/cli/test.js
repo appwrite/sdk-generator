@@ -1297,6 +1297,15 @@ async function runAuthChecks() {
       assert.equal(globalConfig.getEmail(), "b@c.com");
       assert.equal(globalConfig.getSessionIds().length, 3);
 
+      // Current stub must not mask a matching authenticated session.
+      globalConfig.addSession("stub-cloud", {
+        endpoint: "https://cloud.appwrite.io/v1",
+      });
+      globalConfig.setCurrentSession("stub-cloud");
+      await runClient(["--endpoint", "https://cloud.appwrite.io/v1"]);
+      assert.equal(globalConfig.getCurrentSession(), "auth1");
+      assert.equal(hasAuthSession(), true);
+
       globalConfig.clear();
       await runClient(["--endpoint", "http://localhost/v1"]);
       const first = globalConfig.getCurrentSession();

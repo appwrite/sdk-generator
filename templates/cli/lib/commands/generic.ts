@@ -309,10 +309,12 @@ export const client = new Command("client")
 
             if (
               previous &&
-              endpointsMatch(getSession(previous)?.endpoint ?? "", endpoint)
+              endpointsMatch(getSession(previous)?.endpoint ?? "", endpoint) &&
+              (isAuthenticatedSession(previous) || !match.authenticated)
             ) {
-              // Already on a session for this endpoint — keep current, refresh
-              // the stored value so regional hosts stay as requested.
+              // Already on the best available session for this endpoint — keep
+              // current and refresh the stored value so regional hosts stay as
+              // requested.
               globalConfig.setEndpoint(endpoint);
             } else if (match.authenticated) {
               globalConfig.setCurrentSession(match.authenticated);
