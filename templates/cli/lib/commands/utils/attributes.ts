@@ -197,6 +197,11 @@ export class Attributes {
     key: string,
     immutable: boolean = false,
   ): string => {
+    // Omitted local fields mean "leave remote as-is" (e.g. encrypt not in config).
+    if (local === undefined) {
+      return reason;
+    }
+
     if (this.isEmpty(remote) && this.isEmpty(local)) {
       return reason;
     }

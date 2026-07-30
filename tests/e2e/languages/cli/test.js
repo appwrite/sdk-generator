@@ -1749,6 +1749,26 @@ async function runAttributeSyncChecks() {
     assert.equal(result.hasChanges, false);
   });
 
+  await check("omitted-encrypt-not-recreate", async () => {
+    // Remote has encrypt:false; local omits encrypt — must not recreate.
+    const { updates, deletes, result } = await sync(
+      [attr({ key: "title", type: "string", size: 255, encrypt: false })],
+      [attr({ key: "title", type: "string", size: 255 })],
+    );
+    assert.equal(updates.length, 0);
+    assert.equal(deletes.length, 0);
+    assert.equal(result.hasChanges, false);
+
+    // Explicit encrypt:true still forces recreate.
+    const changed = await sync(
+      [attr({ key: "title", type: "string", size: 255, encrypt: false })],
+      [attr({ key: "title", type: "string", size: 255, encrypt: true })],
+    );
+    assert.equal(changed.updates.length, 0);
+    assert.equal(changed.deletes.length, 1);
+    assert.equal(changed.result.attributes.length, 1);
+  });
+
   await check("index-columns-change", async () => {
     const { updates, deletes, result, waiters } = await sync(
       [{ key: "by_title", type: "key", columns: ["title"], orders: ["ASC"] }],
