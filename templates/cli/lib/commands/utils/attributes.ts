@@ -854,21 +854,25 @@ export class Attributes {
     );
 
     // Wait for both removals and recreate-driven deletes before creating.
-    const attributeKeys = [
+    const deletedKeys = [
       ...deletingAttributes,
       ...conflicts.map((change) => change.attribute),
     ].map((attribute: any) => attribute.key);
 
-    if (attributeKeys.length) {
-      const deleteAttributesPoolStatus =
-        await this.pools.waitForAttributeDeletion(
-          collection["databaseId"],
-          collection["$id"],
-          attributeKeys,
-        );
+    if (deletedKeys.length) {
+      const waitForDeletion = isIndex
+        ? this.pools.waitForIndexDeletion
+        : this.pools.waitForAttributeDeletion;
+      const deletePoolStatus = await waitForDeletion(
+        collection["databaseId"],
+        collection["$id"],
+        deletedKeys,
+      );
 
-      if (!deleteAttributesPoolStatus) {
-        throw new Error("Attribute deletion timed out.");
+      if (!deletePoolStatus) {
+        throw new Error(
+          `${isIndex ? "Index" : "Attribute"} deletion timed out.`,
+        );
       }
     }
 

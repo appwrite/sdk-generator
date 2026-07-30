@@ -290,6 +290,7 @@ abstract class Base extends TestCase
         'attribute:recreates-immutable:passed',
         'attribute:ignores-derived-fields:passed',
         'attribute:index-columns-change:passed',
+        'attribute:attribute-delete-uses-attribute-waiter:passed',
         'attribute:update-guards:passed',
         'attribute:resize-hard-fail:passed',
     ];

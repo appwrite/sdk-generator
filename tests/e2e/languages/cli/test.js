@@ -1600,8 +1600,18 @@ async function runAttributeSyncChecks() {
   const sync = async (remote, local, isIndex = false) => {
     const updates = [];
     const deletes = [];
+    const waiters = [];
     const helper = new Attributes(
-      { waitForAttributeDeletion: async () => true },
+      {
+        waitForAttributeDeletion: async (_db, _id, keys) => {
+          waiters.push({ type: "attribute", keys: [...keys] });
+          return true;
+        },
+        waitForIndexDeletion: async (_db, _id, keys) => {
+          waiters.push({ type: "index", keys: [...keys] });
+          return true;
+        },
+      },
       true,
     );
     helper.updateAttribute = async (_db, _id, a) => updates.push(a);
@@ -1613,7 +1623,7 @@ async function runAttributeSyncChecks() {
       collection,
       isIndex,
     );
-    return { updates, deletes, result };
+    return { updates, deletes, result, waiters };
   };
 
   await check("in-place-updates", async () => {
@@ -1735,7 +1745,7 @@ async function runAttributeSyncChecks() {
   });
 
   await check("index-columns-change", async () => {
-    const { updates, deletes, result } = await sync(
+    const { updates, deletes, result, waiters } = await sync(
       [{ key: "by_title", type: "key", columns: ["title"], orders: ["ASC"] }],
       [
         {
@@ -1751,6 +1761,17 @@ async function runAttributeSyncChecks() {
     assert.equal(deletes.length, 1);
     assert.equal(deletes[0].isIndex, true);
     assert.deepEqual(result.attributes[0].columns, ["title", "status"]);
+    // Index recreates must wait on index deletion, not listAttributes.
+    assert.deepEqual(waiters, [{ type: "index", keys: ["by_title"] }]);
+  });
+
+  await check("attribute-delete-uses-attribute-waiter", async () => {
+    const { deletes, waiters } = await sync(
+      [attr({ key: "old", type: "string", size: 16 })],
+      [],
+    );
+    assert.equal(deletes.length, 1);
+    assert.deepEqual(waiters, [{ type: "attribute", keys: ["old"] }]);
   });
 
   await check("update-guards", async () => {
