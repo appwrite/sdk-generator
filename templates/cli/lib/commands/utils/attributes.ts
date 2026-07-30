@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { getDatabasesService } from "../../services.js";
-import { log, success, cliConfig, drawTable } from "../../parser.js";
+import { log, warn, success, cliConfig, drawTable } from "../../parser.js";
 import { Pools } from "./pools.js";
 import inquirer from "inquirer";
 import type { Client } from "@appwrite.io/console";
@@ -99,6 +99,13 @@ export interface AttributeChange {
   action: string;
 }
 
+export interface AttributeRename {
+  from: string;
+  to: string;
+  /** Remote attribute snapshot used for the update* call (key = from). */
+  attribute: any;
+}
+
 export interface Collection {
   $id: string;
   databaseId: string;
@@ -190,6 +197,11 @@ export class Attributes {
     key: string,
     immutable: boolean = false,
   ): string => {
+    // Omitted local fields mean "leave remote as-is" (e.g. encrypt not in config).
+    if (local === undefined) {
+      return reason;
+    }
+
     if (this.isEmpty(remote) && this.isEmpty(local)) {
       return reason;
     }
@@ -489,6 +501,7 @@ export class Attributes {
     databaseId: string,
     collectionId: string,
     attribute: any,
+    newKey?: string,
   ): Promise<any> => {
     // Indexes have no update endpoint; callers must recreate them.
     if (
@@ -511,6 +524,7 @@ export class Attributes {
               key: attribute.key,
               required: attribute.required,
               xdefault: attribute.default,
+              newKey: newKey,
             });
           case "url":
             return databasesService.updateUrlAttribute({
@@ -519,6 +533,7 @@ export class Attributes {
               key: attribute.key,
               required: attribute.required,
               xdefault: attribute.default,
+              newKey: newKey,
             });
           case "ip":
             return databasesService.updateIpAttribute({
@@ -527,6 +542,7 @@ export class Attributes {
               key: attribute.key,
               required: attribute.required,
               xdefault: attribute.default,
+              newKey: newKey,
             });
           case "enum":
             return databasesService.updateEnumAttribute({
@@ -536,6 +552,7 @@ export class Attributes {
               elements: attribute.elements,
               required: attribute.required,
               xdefault: attribute.default,
+              newKey: newKey,
             });
           default:
             return databasesService.updateStringAttribute({
@@ -545,6 +562,7 @@ export class Attributes {
               required: attribute.required,
               xdefault: attribute.default,
               size: attribute.size,
+              newKey: newKey,
             });
         }
       case "varchar":
@@ -555,6 +573,7 @@ export class Attributes {
           required: attribute.required,
           xdefault: attribute.default,
           size: attribute.size,
+          newKey: newKey,
         });
       case "text":
         return databasesService.updateTextAttribute({
@@ -563,6 +582,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "mediumtext":
         return databasesService.updateMediumtextAttribute({
@@ -571,6 +591,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "longtext":
         return databasesService.updateLongtextAttribute({
@@ -579,6 +600,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "integer":
         return databasesService.updateIntegerAttribute({
@@ -589,6 +611,7 @@ export class Attributes {
           min: attribute.min,
           max: attribute.max,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "bigint":
         return databasesService.updateBigIntAttribute({
@@ -599,6 +622,7 @@ export class Attributes {
           min: attribute.min,
           max: attribute.max,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "double":
         return databasesService.updateFloatAttribute({
@@ -609,6 +633,7 @@ export class Attributes {
           min: attribute.min,
           max: attribute.max,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "boolean":
         return databasesService.updateBooleanAttribute({
@@ -617,6 +642,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "datetime":
         return databasesService.updateDatetimeAttribute({
@@ -625,6 +651,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "relationship":
         return databasesService.updateRelationshipAttribute({
@@ -632,6 +659,7 @@ export class Attributes {
           collectionId,
           key: attribute.key,
           onDelete: attribute.onDelete,
+          newKey: newKey,
         });
       case "point":
         return databasesService.updatePointAttribute({
@@ -640,6 +668,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "linestring":
         return databasesService.updateLineAttribute({
@@ -648,6 +677,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "polygon":
         return databasesService.updatePolygonAttribute({
@@ -656,6 +686,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       default:
         throw new Error(`Unsupported attribute type: ${attribute.type}`);
@@ -696,6 +727,67 @@ export class Attributes {
     attribute.type === "relationship" && attribute.side === "child";
 
   /**
+   * Resolve previousKey rename hints against the remote snapshot.
+   * Patches matched remote keys in place (before classification) so a pure
+   * rename does not surface as delete+add. API calls are executed later.
+   */
+  private resolveRenames = (
+    remoteAttributes: any[],
+    localAttributes: any[],
+    collection: Collection,
+  ): { renames: AttributeRename[]; renameChanges: AttributeChange[] } => {
+    const renames: AttributeRename[] = [];
+    const renameChanges: AttributeChange[] = [];
+
+    for (const local of localAttributes) {
+      if (!local.previousKey || local.previousKey === local.key) {
+        continue;
+      }
+
+      const remotePrevious = remoteAttributes.find(
+        (attr) => attr.key === local.previousKey,
+      );
+      const remoteCurrent = remoteAttributes.find(
+        (attr) => attr.key === local.key,
+      );
+
+      if (remotePrevious && !remoteCurrent) {
+        // Pending rename: patch remote key so classification matches by new name.
+        renames.push({
+          from: local.previousKey,
+          to: local.key,
+          attribute: { ...remotePrevious },
+        });
+        renameChanges.push({
+          key: `${chalk.yellow(local.key)} in ${collection.name} (${collection["$id"]})`,
+          attribute: { ...remotePrevious },
+          reason: `key renamed from ${chalk.red(local.previousKey)} to ${chalk.green(local.key)}`,
+          action: chalk.cyan("renaming"),
+        });
+        remotePrevious.key = local.key;
+        continue;
+      }
+
+      if (remoteCurrent && !remotePrevious) {
+        // Already renamed on the server; hint is stale and harmless.
+        continue;
+      }
+
+      if (!remotePrevious && !remoteCurrent) {
+        // Fresh create; ignore the hint and let the add path handle it.
+        continue;
+      }
+
+      // Both keys exist remotely — cannot rename without a collision.
+      warn(
+        `Ignoring previousKey "${local.previousKey}" for "${local.key}" in ${collection.name} (${collection["$id"]}): both keys already exist remotely. "${local.previousKey}" will be treated as a deletion if it is absent from the local config.`,
+      );
+    }
+
+    return { renames, renameChanges };
+  };
+
+  /**
    * Filter deleted and recreated attributes,
    * return list of attributes to create and whether any changes were made
    */
@@ -704,7 +796,11 @@ export class Attributes {
     localAttributes: any[],
     collection: Collection,
     isIndex: boolean = false,
-  ): Promise<{ attributes: any[]; hasChanges: boolean }> => {
+  ): Promise<{
+    attributes: any[];
+    hasChanges: boolean;
+    renames: AttributeRename[];
+  }> => {
     // Filter out child-side relationships from both local and remote attributes for comparison
     // Child-side relationships are auto-generated by Appwrite when creating two-way relationships
     // from the parent side, so we should not compare or try to create them directly
@@ -714,6 +810,16 @@ export class Attributes {
     let filteredRemoteAttributes = remoteAttributes.filter(
       (attr) => !this.isChildSideRelationship(attr),
     );
+
+    // Resolve previousKey hints before classification so renames do not
+    // appear as delete+add. Indexes have no rename API — skip entirely.
+    const { renames, renameChanges } = isIndex
+      ? { renames: [] as AttributeRename[], renameChanges: [] as AttributeChange[] }
+      : this.resolveRenames(
+          filteredRemoteAttributes,
+          filteredLocalAttributes,
+          collection,
+        );
 
     const deleting = filteredRemoteAttributes
       .filter(
@@ -755,9 +861,15 @@ export class Attributes {
       ) as AttributeChange[];
 
     let changedAttributes: any[] = [];
-    const changing = [...deleting, ...adding, ...conflicts, ...changes];
+    const changing = [
+      ...renameChanges,
+      ...deleting,
+      ...adding,
+      ...conflicts,
+      ...changes,
+    ];
     if (changing.length === 0) {
-      return { attributes: changedAttributes, hasChanges: false };
+      return { attributes: changedAttributes, hasChanges: false, renames: [] };
     }
 
     log(
@@ -803,7 +915,51 @@ export class Attributes {
       }
 
       if ((await this.getConfirmation()) !== true) {
-        return { attributes: changedAttributes, hasChanges: false };
+        return { attributes: changedAttributes, hasChanges: false, renames: [] };
+      }
+    }
+
+    // Apply renames before field updates / deletions so a failed rename
+    // never leaves data half-destroyed.
+    if (renames.length > 0) {
+      const renameResults = await Promise.allSettled(
+        renames.map((rename) =>
+          this.updateAttribute(
+            collection["databaseId"],
+            collection["$id"],
+            rename.attribute,
+            rename.to,
+          ),
+        ),
+      );
+
+      const renameFailures = renameResults
+        .map((result, index) =>
+          result.status === "rejected"
+            ? this.formatUpdateError(
+                { key: renames[index].to },
+                result.reason,
+              )
+            : null,
+        )
+        .filter((message): message is string => message !== null);
+
+      if (renameFailures.length > 0) {
+        throw new Error(
+          `Error renaming attribute for ${collection["$id"]}:\n${renameFailures.join("\n")}`,
+        );
+      }
+
+      const renameReady = await this.pools.expectAttributes(
+        collection["databaseId"],
+        collection["$id"],
+        renames.map((rename) => rename.to),
+      );
+
+      if (!renameReady) {
+        throw new Error(
+          `Attribute rename timed out waiting for keys: ${renames.map((r) => r.to).join(", ")}`,
+        );
       }
     }
 
@@ -880,7 +1036,7 @@ export class Attributes {
       (attribute) =>
         !this.attributesContains(attribute, filteredRemoteAttributes),
     );
-    return { attributes: newAttributes, hasChanges: true };
+    return { attributes: newAttributes, hasChanges: true, renames };
   };
 
   public createIndexes = async (

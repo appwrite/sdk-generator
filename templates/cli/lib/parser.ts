@@ -6,6 +6,7 @@ BigInt.prototype.toJSON = function () {
 import chalk from "chalk";
 import { InvalidArgumentError } from "commander";
 import Table from "cli-table3";
+import stringWidth from "string-width";
 import packageJson from "../package.json" with { type: "json" };
 const { description } = packageJson;
 import { globalConfig } from "./config.js";
@@ -367,6 +368,33 @@ export const parse = (data: unknown): void => {
 const MAX_COL_WIDTH = 40;
 const MAX_COLUMNS = 6;
 
+/** Visible-width cap for table cells; scales with terminal size. */
+const getMaxColWidth = (): number => {
+  const columns = process.stdout.columns || 120;
+  // Leave room for Key + Action + borders; give Reason most of the rest.
+  return Math.max(MAX_COL_WIDTH, Math.min(120, Math.floor(columns * 0.5)));
+};
+
+/**
+ * Truncate by visible width so chalk ANSI codes do not eat the budget and
+ * cut off readable text while the terminal still has space.
+ */
+const truncateToVisibleWidth = (str: string, max: number): string => {
+  if (stringWidth(str) <= max) {
+    return str;
+  }
+
+  let result = "";
+  for (const char of str) {
+    const next = result + char;
+    if (stringWidth(next) > max - 1) {
+      break;
+    }
+    result = next;
+  }
+  return `${result}…`;
+};
+
 type NamedTableOptions = {
   indent?: string;
   sectionName?: string;
@@ -397,7 +425,7 @@ const formatCellValue = (value: unknown): string => {
       )
     ) {
       const joinedValue = value.map((item) => String(item)).join(", ");
-      if (joinedValue.length <= MAX_COL_WIDTH) {
+      if (stringWidth(joinedValue) <= getMaxColWidth()) {
         return joinedValue;
       }
     }
@@ -409,11 +437,7 @@ const formatCellValue = (value: unknown): string => {
     if (keys.length === 0) return "{}";
     return `{${keys.length} keys}`;
   }
-  const str = String(value);
-  if (str.length > MAX_COL_WIDTH) {
-    return str.slice(0, MAX_COL_WIDTH - 1) + "…";
-  }
-  return str;
+  return truncateToVisibleWidth(String(value), getMaxColWidth());
 };
 
 const formatKeyValue = (key: string, value: unknown): string => {
@@ -614,7 +638,8 @@ export const drawTable = (
     const table = new Table({
       head: columns.map((c) => chalk.cyan.italic.bold(c)),
       colWidths: columns.map(() => null) as (number | null)[],
-      wordWrap: false,
+      wordWrap: true,
+      wrapOnWordBoundary: true,
       chars: {
         top: " ",
         "top-mid": " ",

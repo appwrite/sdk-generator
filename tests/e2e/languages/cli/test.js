@@ -1611,10 +1611,15 @@ async function runAttributeSyncChecks() {
           waiters.push({ type: "index", keys: [...keys] });
           return true;
         },
+        expectAttributes: async (_db, _id, keys) => {
+          waiters.push({ type: "expect", keys: [...keys] });
+          return true;
+        },
       },
       true,
     );
-    helper.updateAttribute = async (_db, _id, a) => updates.push(a);
+    helper.updateAttribute = async (_db, _id, a, newKey) =>
+      updates.push(newKey !== undefined ? { ...a, newKey } : a);
     helper.deleteAttribute = async (_c, a, index = false) =>
       deletes.push({ key: a.key, isIndex: index });
     const result = await helper.attributesToCreate(
@@ -1744,6 +1749,26 @@ async function runAttributeSyncChecks() {
     assert.equal(result.hasChanges, false);
   });
 
+  await check("omitted-encrypt-not-recreate", async () => {
+    // Remote has encrypt:false; local omits encrypt — must not recreate.
+    const { updates, deletes, result } = await sync(
+      [attr({ key: "title", type: "string", size: 255, encrypt: false })],
+      [attr({ key: "title", type: "string", size: 255 })],
+    );
+    assert.equal(updates.length, 0);
+    assert.equal(deletes.length, 0);
+    assert.equal(result.hasChanges, false);
+
+    // Explicit encrypt:true still forces recreate.
+    const changed = await sync(
+      [attr({ key: "title", type: "string", size: 255, encrypt: false })],
+      [attr({ key: "title", type: "string", size: 255, encrypt: true })],
+    );
+    assert.equal(changed.updates.length, 0);
+    assert.equal(changed.deletes.length, 1);
+    assert.equal(changed.result.attributes.length, 1);
+  });
+
   await check("index-columns-change", async () => {
     const { updates, deletes, result, waiters } = await sync(
       [{ key: "by_title", type: "key", columns: ["title"], orders: ["ASC"] }],
@@ -1825,6 +1850,282 @@ async function runAttributeSyncChecks() {
       /existing values exceed the new size/,
     );
     assert.equal(deletes.length, 0);
+  });
+
+  await check("rename-in-place", async () => {
+    const { updates, deletes, result, waiters } = await sync(
+      [attr({ key: "title", type: "string", size: 255 })],
+      [
+        attr({
+          key: "headline",
+          previousKey: "title",
+          type: "string",
+          size: 255,
+        }),
+      ],
+    );
+    assert.equal(updates.length, 1);
+    assert.equal(updates[0].key, "title");
+    assert.equal(updates[0].newKey, "headline");
+    assert.equal(deletes.length, 0);
+    assert.deepEqual(result.attributes, []);
+    assert.deepEqual(result.renames, [
+      {
+        from: "title",
+        to: "headline",
+        attribute: attr({ key: "title", type: "string", size: 255 }),
+      },
+    ]);
+    assert.deepEqual(waiters, [{ type: "expect", keys: ["headline"] }]);
+  });
+
+  await check("rename-already-applied", async () => {
+    const { updates, deletes, result } = await sync(
+      [attr({ key: "headline", type: "string", size: 255 })],
+      [
+        attr({
+          key: "headline",
+          previousKey: "title",
+          type: "string",
+          size: 255,
+        }),
+      ],
+    );
+    assert.equal(updates.length, 0);
+    assert.equal(deletes.length, 0);
+    assert.equal(result.hasChanges, false);
+    assert.deepEqual(result.renames, []);
+  });
+
+  await check("rename-missing-both-creates", async () => {
+    const { updates, deletes, result } = await sync(
+      [],
+      [
+        attr({
+          key: "headline",
+          previousKey: "title",
+          type: "string",
+          size: 255,
+        }),
+      ],
+    );
+    assert.equal(updates.length, 0);
+    assert.equal(deletes.length, 0);
+    assert.equal(result.attributes.length, 1);
+    assert.equal(result.attributes[0].key, "headline");
+    assert.deepEqual(result.renames, []);
+  });
+
+  await check("rename-both-exist-deletes-old", async () => {
+    const { updates, deletes, result } = await sync(
+      [
+        attr({ key: "title", type: "string", size: 255 }),
+        attr({ key: "headline", type: "string", size: 255 }),
+      ],
+      [
+        attr({
+          key: "headline",
+          previousKey: "title",
+          type: "string",
+          size: 255,
+        }),
+      ],
+    );
+    assert.equal(updates.length, 0);
+    assert.equal(deletes.length, 1);
+    assert.equal(deletes[0].key, "title");
+    assert.deepEqual(result.attributes, []);
+    assert.deepEqual(result.renames, []);
+  });
+
+  await check("rename-plus-field-change", async () => {
+    const { updates, deletes, result, waiters } = await sync(
+      [attr({ key: "title", type: "string", size: 50 })],
+      [
+        attr({
+          key: "headline",
+          previousKey: "title",
+          type: "string",
+          size: 120,
+        }),
+      ],
+    );
+    assert.equal(updates.length, 2);
+    assert.equal(updates[0].key, "title");
+    assert.equal(updates[0].newKey, "headline");
+    assert.equal(updates[1].key, "headline");
+    assert.equal(updates[1].size, 120);
+    assert.equal(updates[1].newKey, undefined);
+    assert.equal(deletes.length, 0);
+    assert.deepEqual(result.attributes, []);
+    assert.deepEqual(waiters, [{ type: "expect", keys: ["headline"] }]);
+  });
+
+  await check("rename-preserves-indexes", async () => {
+    const remoteColumns = [attr({ key: "title", type: "string", size: 255 })];
+    const localColumns = [
+      attr({
+        key: "headline",
+        previousKey: "title",
+        type: "string",
+        size: 255,
+      }),
+    ];
+    const { result: columnsResult } = await sync(remoteColumns, localColumns);
+    assert.equal(columnsResult.renames.length, 1);
+
+    // Mirror push.ts: rewrite remote index refs with the rename map.
+    const renameMap = new Map(
+      columnsResult.renames.map((r) => [r.from, r.to]),
+    );
+    const remoteIndexes = [
+      { key: "by_title", type: "key", columns: ["title"], orders: ["ASC"] },
+    ].map((idx) => ({
+      ...idx,
+      columns: idx.columns.map((c) => renameMap.get(c) ?? c),
+    }));
+    const localIndexes = [
+      {
+        key: "by_title",
+        type: "key",
+        columns: ["headline"],
+        orders: ["ASC"],
+      },
+    ];
+    const { updates, deletes, result } = await sync(
+      remoteIndexes,
+      localIndexes,
+      true,
+    );
+    assert.equal(updates.length, 0);
+    assert.equal(deletes.length, 0);
+    assert.equal(result.hasChanges, false);
+  });
+
+  await check("rename-hard-fail-before-delete", async () => {
+    const deletes = [];
+    const helper = new Attributes(
+      {
+        waitForAttributeDeletion: async () => true,
+        expectAttributes: async () => true,
+      },
+      true,
+    );
+    helper.updateAttribute = async (_db, _id, _a, newKey) => {
+      if (newKey) {
+        throw new Error("rename_failed: conflict");
+      }
+    };
+    helper.deleteAttribute = async (_c, a) => deletes.push(a.key);
+
+    await assert.rejects(
+      () =>
+        helper.attributesToCreate(
+          [
+            attr({ key: "title", type: "string", size: 255 }),
+            attr({ key: "legacy", type: "string", size: 16 }),
+          ],
+          [
+            attr({
+              key: "headline",
+              previousKey: "title",
+              type: "string",
+              size: 255,
+            }),
+            attr({ key: "legacy", type: "integer" }),
+          ],
+          collection,
+        ),
+      /Error renaming attribute/,
+    );
+    assert.equal(deletes.length, 0);
+  });
+
+  await check("rename-schema-validation", async () => {
+    const {
+      ColumnSchema,
+      IndexSchema,
+      TableSchema,
+    } = require("./lib/commands/config.ts");
+
+    // previousKey is allowed on columns.
+    assert.equal(
+      ColumnSchema.safeParse(
+        attr({
+          key: "headline",
+          previousKey: "title",
+          type: "string",
+          size: 255,
+        }),
+      ).success,
+      true,
+    );
+
+    // previousKey is rejected on indexes (.strict()).
+    assert.equal(
+      IndexSchema.safeParse({
+        key: "by_title",
+        type: "key",
+        attributes: ["title"],
+        previousKey: "old",
+      }).success,
+      false,
+    );
+
+    // previousKey === key is rejected.
+    const sameKey = TableSchema.safeParse({
+      $id: "posts",
+      databaseId: "blog",
+      name: "Posts",
+      columns: [
+        attr({
+          key: "title",
+          previousKey: "title",
+          type: "string",
+          size: 255,
+        }),
+      ],
+    });
+    assert.equal(sameKey.success, false);
+
+    // Collision: another column already uses previousKey as its key.
+    const collision = TableSchema.safeParse({
+      $id: "posts",
+      databaseId: "blog",
+      name: "Posts",
+      columns: [
+        attr({ key: "title", type: "string", size: 255 }),
+        attr({
+          key: "headline",
+          previousKey: "title",
+          type: "string",
+          size: 255,
+        }),
+      ],
+    });
+    assert.equal(collision.success, false);
+
+    // Duplicate previousKey across columns is rejected.
+    const duplicatePrevious = TableSchema.safeParse({
+      $id: "posts",
+      databaseId: "blog",
+      name: "Posts",
+      columns: [
+        attr({
+          key: "headline",
+          previousKey: "title",
+          type: "string",
+          size: 255,
+        }),
+        attr({
+          key: "heading",
+          previousKey: "title",
+          type: "string",
+          size: 255,
+        }),
+      ],
+    });
+    assert.equal(duplicatePrevious.success, false);
   });
 }
 
