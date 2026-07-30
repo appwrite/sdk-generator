@@ -98,7 +98,7 @@ export class Pools {
   public waitForAttributeDeletion = async (
     databaseId: string,
     collectionId: string,
-    attributeKeys: any[],
+    attributeKeys: string[],
     iteration: number = 1,
   ): Promise<boolean> => {
     if (iteration > this.pollMaxDebounces) {
@@ -138,11 +138,11 @@ export class Pools {
       "attributes",
     );
 
-    const ready = attributeKeys.filter((attribute: any) =>
-      attributes.some((a: any) => a.key === attribute.key),
+    const remaining = attributeKeys.filter((key) =>
+      attributes.some((a: any) => a.key === key),
     );
 
-    if (ready.length === 0) {
+    if (remaining.length === 0) {
       return true;
     }
 
@@ -152,6 +152,64 @@ export class Pools {
       databaseId,
       collectionId,
       attributeKeys,
+      iteration + 1,
+    );
+  };
+
+  public waitForIndexDeletion = async (
+    databaseId: string,
+    collectionId: string,
+    indexKeys: string[],
+    iteration: number = 1,
+  ): Promise<boolean> => {
+    if (iteration > this.pollMaxDebounces) {
+      return false;
+    }
+
+    if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
+      const steps = Math.max(1, Math.ceil(indexKeys.length / this.STEP_SIZE));
+      if (steps > 1 && iteration === 1) {
+        this.pollMaxDebounces *= steps;
+
+        log(
+          "Found a large number of indexes to be deleted. Increasing timeout to " +
+            (this.pollMaxDebounces * this.POLL_DEBOUNCE) / 1000 / 60 +
+            " minutes",
+        );
+      }
+    }
+
+    const { indexes } = await paginate(
+      async (args: any) => {
+        const databasesService = await getDatabasesService(this.client);
+        return await databasesService.listIndexes(
+          args.databaseId,
+          args.collectionId,
+          args.queries || [],
+        );
+      },
+      {
+        databaseId,
+        collectionId,
+      },
+      100,
+      "indexes",
+    );
+
+    const remaining = indexKeys.filter((key) =>
+      indexes.some((index: any) => index.key === key),
+    );
+
+    if (remaining.length === 0) {
+      return true;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, this.POLL_DEBOUNCE));
+
+    return await this.waitForIndexDeletion(
+      databaseId,
+      collectionId,
+      indexKeys,
       iteration + 1,
     );
   };

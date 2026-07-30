@@ -50,6 +50,7 @@ final class CLIBun10Test extends Base
         ...Base::CLI_QUERY_HELPER_RESPONSES,
         ...Base::CLI_TYPEGEN_RESPONSES,
         ...Base::AUTH_LOGIC_RESPONSES,
+        ...Base::CLI_ATTRIBUTE_SYNC_RESPONSES,
     ];
 
     #[Override]

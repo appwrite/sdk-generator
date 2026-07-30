@@ -827,6 +827,7 @@ void (async () => {
   console.log("CLI_TYPEGEN:passed");
 })()
   .then(runAuthChecks)
+  .then(runAttributeSyncChecks)
   .then(runDeploymentSymlinkChecks)
   .catch((error) => {
     throw error;
@@ -1573,6 +1574,258 @@ async function runAuthChecks() {
   restoreKeyringEntryFactory();
   if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
   else process.env.NODE_ENV = previousNodeEnv;
+}
+
+/** Push attribute sync: in-place updates vs recreate, indexes, resize hard-fail. */
+async function runAttributeSyncChecks() {
+  const { Attributes } = require("./lib/commands/utils/attributes.ts");
+  const collection = { $id: "posts", databaseId: "blog", name: "Posts" };
+  const attr = (overrides) => ({
+    required: false,
+    default: null,
+    array: false,
+    ...overrides,
+  });
+
+  const check = async (name, fn) => {
+    try {
+      await muteStdout(fn);
+      console.log(`attribute:${name}:passed`);
+    } catch (error) {
+      console.log(`attribute:${name}:failed`);
+      console.error(`attribute:${name}`, error?.message ?? error);
+    }
+  };
+
+  const sync = async (remote, local, isIndex = false) => {
+    const updates = [];
+    const deletes = [];
+    const waiters = [];
+    const helper = new Attributes(
+      {
+        waitForAttributeDeletion: async (_db, _id, keys) => {
+          waiters.push({ type: "attribute", keys: [...keys] });
+          return true;
+        },
+        waitForIndexDeletion: async (_db, _id, keys) => {
+          waiters.push({ type: "index", keys: [...keys] });
+          return true;
+        },
+      },
+      true,
+    );
+    helper.updateAttribute = async (_db, _id, a) => updates.push(a);
+    helper.deleteAttribute = async (_c, a, index = false) =>
+      deletes.push({ key: a.key, isIndex: index });
+    const result = await helper.attributesToCreate(
+      remote,
+      local,
+      collection,
+      isIndex,
+    );
+    return { updates, deletes, result, waiters };
+  };
+
+  await check("in-place-updates", async () => {
+    const cases = [
+      {
+        remote: [attr({ key: "title", type: "varchar", size: 50 })],
+        local: [attr({ key: "title", type: "varchar", size: 120 })],
+        expect: { updates: 1, deletes: 0 },
+      },
+      {
+        remote: [attr({ key: "slug", type: "string", size: 32 })],
+        local: [attr({ key: "slug", type: "string", size: 64 })],
+        expect: { updates: 1, deletes: 0 },
+      },
+      {
+        remote: [
+          attr({
+            key: "author",
+            type: "relationship",
+            relatedCollection: "users",
+            relationType: "manyToOne",
+            twoWay: false,
+            onDelete: "cascade",
+            side: "parent",
+          }),
+        ],
+        local: [
+          attr({
+            key: "author",
+            type: "relationship",
+            relatedCollection: "users",
+            relationType: "manyToOne",
+            twoWay: false,
+            onDelete: "restrict",
+          }),
+        ],
+        expect: { updates: 1, deletes: 0 },
+      },
+      {
+        remote: [
+          attr({
+            key: "status",
+            type: "string",
+            format: "enum",
+            elements: ["draft"],
+            default: "draft",
+          }),
+          attr({ key: "score", type: "integer", default: 0, min: 0, max: 10 }),
+        ],
+        local: [
+          attr({
+            key: "status",
+            type: "string",
+            format: "enum",
+            elements: ["draft", "live"],
+            required: true,
+          }),
+          attr({ key: "score", type: "integer", default: 1, min: 1, max: 100 }),
+        ],
+        expect: { updates: 2, deletes: 0 },
+      },
+    ];
+
+    for (const { remote, local, expect } of cases) {
+      const { updates, deletes, result } = await sync(remote, local);
+      assert.equal(updates.length, expect.updates);
+      assert.equal(deletes.length, expect.deletes);
+      assert.deepEqual(result.attributes, []);
+    }
+  });
+
+  await check("recreates-immutable", async () => {
+    const { updates, deletes, result } = await sync(
+      [
+        attr({ key: "count", type: "string", size: 16 }),
+        attr({ key: "tags", type: "string", size: 32, encrypt: false }),
+        attr({ key: "secret", type: "string", size: 64, encrypt: false }),
+      ],
+      [
+        attr({ key: "count", type: "integer" }),
+        attr({ key: "tags", type: "string", size: 32, array: true }),
+        attr({ key: "secret", type: "string", size: 64, encrypt: true }),
+      ],
+    );
+    assert.equal(updates.length, 0);
+    assert.equal(deletes.length, 3);
+    assert.equal(result.attributes.length, 3);
+  });
+
+  await check("ignores-derived-fields", async () => {
+    const { updates, deletes, result } = await sync(
+      [
+        attr({ key: "body", type: "text", size: 65535 }),
+        attr({
+          key: "author",
+          type: "relationship",
+          relatedCollection: "users",
+          relationType: "manyToOne",
+          twoWay: false,
+          onDelete: "cascade",
+          side: "parent",
+        }),
+      ],
+      [
+        attr({ key: "body", type: "text" }),
+        attr({
+          key: "author",
+          type: "relationship",
+          relatedCollection: "users",
+          relationType: "manyToOne",
+          twoWay: false,
+          onDelete: "cascade",
+        }),
+      ],
+    );
+    assert.equal(updates.length, 0);
+    assert.equal(deletes.length, 0);
+    assert.equal(result.hasChanges, false);
+  });
+
+  await check("index-columns-change", async () => {
+    const { updates, deletes, result, waiters } = await sync(
+      [{ key: "by_title", type: "key", columns: ["title"], orders: ["ASC"] }],
+      [
+        {
+          key: "by_title",
+          type: "key",
+          columns: ["title", "status"],
+          orders: ["ASC"],
+        },
+      ],
+      true,
+    );
+    assert.equal(updates.length, 0);
+    assert.equal(deletes.length, 1);
+    assert.equal(deletes[0].isIndex, true);
+    assert.deepEqual(result.attributes[0].columns, ["title", "status"]);
+    // Index recreates must wait on index deletion, not listAttributes.
+    assert.deepEqual(waiters, [{ type: "index", keys: ["by_title"] }]);
+  });
+
+  await check("attribute-delete-uses-attribute-waiter", async () => {
+    const { deletes, waiters } = await sync(
+      [attr({ key: "old", type: "string", size: 16 })],
+      [],
+    );
+    assert.equal(deletes.length, 1);
+    assert.deepEqual(waiters, [{ type: "attribute", keys: ["old"] }]);
+  });
+
+  await check("update-guards", async () => {
+    const helper = new Attributes(
+      { waitForAttributeDeletion: async () => true },
+      true,
+    );
+    await assert.rejects(
+      () =>
+        helper.updateAttribute("blog", "posts", {
+          key: "by_title",
+          type: "key",
+          columns: ["title"],
+        }),
+      /Indexes cannot be updated in place/,
+    );
+
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "lib/commands/utils/attributes.ts"),
+      "utf8",
+    );
+    const match = source.match(/updateStringAttribute\(\{([\s\S]*?)\}\)/);
+    assert.ok(match);
+    assert.match(match[1], /size:\s*attribute\.size/);
+  });
+
+  await check("resize-hard-fail", async () => {
+    const deletes = [];
+    const helper = new Attributes(
+      { waitForAttributeDeletion: async () => true },
+      true,
+    );
+    helper.updateAttribute = async () => {
+      throw new Error("attribute_invalid_resize: Resize would truncate data");
+    };
+    helper.deleteAttribute = async (_c, a) => deletes.push(a.key);
+
+    await assert.rejects(
+      () =>
+        helper.attributesToCreate(
+          [
+            attr({ key: "title", type: "varchar", size: 100 }),
+            attr({ key: "legacy", type: "string", size: 16 }),
+          ],
+          [
+            attr({ key: "title", type: "varchar", size: 10 }),
+            attr({ key: "legacy", type: "integer" }),
+          ],
+          collection,
+        ),
+      /existing values exceed the new size/,
+    );
+    assert.equal(deletes.length, 0);
+  });
 }
 
 // A function that shares code through a symlink (appwrite/sdk-for-cli#253).

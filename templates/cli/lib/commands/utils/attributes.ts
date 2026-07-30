@@ -1,21 +1,96 @@
 import chalk from "chalk";
 import { getDatabasesService } from "../../services.js";
-import { KeysAttributes } from "../../config.js";
-import { log, success, error, cliConfig, drawTable } from "../../parser.js";
+import { log, success, cliConfig, drawTable } from "../../parser.js";
 import { Pools } from "./pools.js";
 import inquirer from "inquirer";
 import type { Client } from "@appwrite.io/console";
 
-const changeableKeys = [
-  "status",
-  "required",
-  "xdefault",
-  "elements",
-  "min",
-  "max",
-  "default",
-  "error",
-];
+/**
+ * Per-type field rules for push diffing.
+ * - updatable: can be changed in place via update*Attribute / update*Column
+ * - recreate: require delete + recreate (no update API accepts them)
+ * Fields in neither set are ignored (server-derived or irrelevant).
+ */
+interface FieldRules {
+  updatable: string[];
+  recreate: string[];
+}
+
+const COMMON_RECREATE_KEYS = ["type", "array", "encrypt", "format"];
+
+const getAttributeFieldRules = (attribute: any): FieldRules => {
+  const type = attribute?.type;
+  const format = attribute?.format || "";
+
+  switch (type) {
+    case "string":
+      switch (format) {
+        case "enum":
+          return {
+            updatable: ["required", "default", "elements"],
+            recreate: COMMON_RECREATE_KEYS,
+          };
+        case "email":
+        case "url":
+        case "ip":
+          return {
+            updatable: ["required", "default"],
+            recreate: COMMON_RECREATE_KEYS,
+          };
+        default:
+          return {
+            updatable: ["required", "default", "size"],
+            recreate: COMMON_RECREATE_KEYS,
+          };
+      }
+    case "varchar":
+      return {
+        updatable: ["required", "default", "size"],
+        recreate: COMMON_RECREATE_KEYS,
+      };
+    case "text":
+    case "mediumtext":
+    case "longtext":
+    case "boolean":
+    case "datetime":
+    case "point":
+    case "linestring":
+    case "polygon":
+      return {
+        updatable: ["required", "default"],
+        recreate: COMMON_RECREATE_KEYS,
+      };
+    case "integer":
+    case "bigint":
+    case "double":
+      return {
+        updatable: ["required", "default", "min", "max"],
+        recreate: COMMON_RECREATE_KEYS,
+      };
+    case "relationship":
+      return {
+        updatable: ["onDelete"],
+        recreate: [
+          "type",
+          "relatedTable",
+          "relatedCollection",
+          "relationType",
+          "twoWay",
+          "twoWayKey",
+        ],
+      };
+    default:
+      return {
+        updatable: ["required", "default"],
+        recreate: COMMON_RECREATE_KEYS,
+      };
+  }
+};
+
+const INDEX_FIELD_RULES: FieldRules = {
+  updatable: [],
+  recreate: ["type", "attributes", "columns", "orders"],
+};
 
 export interface AttributeChange {
   key: string;
@@ -113,33 +188,45 @@ export class Attributes {
     local: any,
     reason: string,
     key: string,
+    immutable: boolean = false,
   ): string => {
     if (this.isEmpty(remote) && this.isEmpty(local)) {
       return reason;
     }
 
+    const suffix = immutable
+      ? " (cannot be changed in place, requires recreation)"
+      : "";
+
     if (Array.isArray(remote) && Array.isArray(local)) {
       if (JSON.stringify(remote) !== JSON.stringify(local)) {
         const bol = reason === "" ? "" : "\n";
-        reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
+        reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}${suffix}`;
       }
     } else if (!this.isEqual(remote, local)) {
       const bol = reason === "" ? "" : "\n";
-      reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
+      reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}${suffix}`;
     }
 
     return reason;
   };
 
+  private getFieldRules = (
+    entity: any,
+    isIndex: boolean = false,
+  ): FieldRules => (isIndex ? INDEX_FIELD_RULES : getAttributeFieldRules(entity));
+
   /**
-   * Check if attribute non-changeable fields has been changed
-   * If so return the differences as an object.
+   * Check if attribute fields have changed.
+   * When recreating=true, only immutable (recreate-forcing) fields are compared.
+   * When recreating=false, only updatable fields are compared.
    */
   private checkAttributeChanges = (
     remote: any,
     local: any,
     collection: Collection,
     recreating: boolean = true,
+    isIndex: boolean = false,
   ): AttributeChange | undefined => {
     if (local === undefined) {
       return undefined;
@@ -149,24 +236,17 @@ export class Attributes {
     const action = chalk.cyan(recreating ? "recreating" : "changing");
     let reason = "";
     const attribute = recreating ? remote : local;
+    const rules = this.getFieldRules(local, isIndex);
+    const keys = recreating ? rules.recreate : rules.updatable;
 
-    for (const key of Object.keys(remote)) {
-      if (!KeysAttributes.has(key)) {
-        continue;
-      }
-
-      if (changeableKeys.includes(key)) {
-        if (!recreating) {
-          reason = this.compareAttribute(remote[key], local[key], reason, key);
-        }
-        continue;
-      }
-
-      if (!recreating) {
-        continue;
-      }
-
-      reason = this.compareAttribute(remote[key], local[key], reason, key);
+    for (const key of keys) {
+      reason = this.compareAttribute(
+        remote[key],
+        local[key],
+        reason,
+        key,
+        recreating,
+      );
     }
 
     return reason === ""
@@ -386,11 +466,40 @@ export class Attributes {
     }
   };
 
+  private formatUpdateError = (attribute: any, err: unknown): string => {
+    const message = String(err);
+    const key = attribute?.key ?? "unknown";
+    const isResize =
+      message.includes("attribute_invalid_resize") ||
+      message.includes("column_invalid_resize") ||
+      message.includes("invalid_resize");
+
+    if (isResize) {
+      return (
+        `Failed to update "${key}": existing values exceed the new size. ` +
+        `Increase the size, shorten existing data, or recreate the attribute. ` +
+        `(${message})`
+      );
+    }
+
+    return `Failed to update "${key}": ${message}`;
+  };
+
   public updateAttribute = async (
     databaseId: string,
     collectionId: string,
     attribute: any,
   ): Promise<any> => {
+    // Indexes have no update endpoint; callers must recreate them.
+    if (
+      Array.isArray(attribute.attributes) ||
+      Array.isArray(attribute.columns)
+    ) {
+      throw new Error(
+        `Indexes cannot be updated in place (key: ${attribute.key}). Recreate the index instead.`,
+      );
+    }
+
     const databasesService = await getDatabasesService(this.client);
     switch (attribute.type) {
       case "string":
@@ -435,6 +544,7 @@ export class Attributes {
               key: attribute.key,
               required: attribute.required,
               xdefault: attribute.default,
+              size: attribute.size,
             });
         }
       case "varchar":
@@ -623,6 +733,8 @@ export class Attributes {
           attribute,
           this.attributesContains(attribute, filteredLocalAttributes),
           collection,
+          true,
+          isIndex,
         ),
       )
       .filter((attribute) => attribute !== undefined) as AttributeChange[];
@@ -633,6 +745,7 @@ export class Attributes {
           this.attributesContains(attribute, filteredLocalAttributes),
           collection,
           false,
+          isIndex,
         ),
       )
       .filter((attribute) => attribute !== undefined)
@@ -694,6 +807,33 @@ export class Attributes {
       }
     }
 
+    // Apply in-place updates first so failures abort before any deletions.
+    if (changes.length > 0) {
+      const updateResults = await Promise.allSettled(
+        changes.map((change) =>
+          this.updateAttribute(
+            collection["databaseId"],
+            collection["$id"],
+            change.attribute,
+          ),
+        ),
+      );
+
+      const failures = updateResults
+        .map((result, index) =>
+          result.status === "rejected"
+            ? this.formatUpdateError(changes[index].attribute, result.reason)
+            : null,
+        )
+        .filter((message): message is string => message !== null);
+
+      if (failures.length > 0) {
+        throw new Error(
+          `Error updating ${isIndex ? "index" : "attribute"} for ${collection["$id"]}:\n${failures.join("\n")}`,
+        );
+      }
+    }
+
     if (conflicts.length > 0) {
       changedAttributes = conflicts.map((change) => change.attribute);
       await Promise.all(
@@ -706,45 +846,33 @@ export class Attributes {
       );
     }
 
-    if (changes.length > 0) {
-      changedAttributes = changes.map((change) => change.attribute);
-      try {
-        await Promise.all(
-          changedAttributes.map((changed) =>
-            this.updateAttribute(
-              collection["databaseId"],
-              collection["$id"],
-              changed,
-            ),
-          ),
-        );
-      } catch (err) {
-        error(
-          `Error updating attribute for ${collection["$id"]}: ${String(err)}`,
-        );
-      }
-    }
-
     const deletingAttributes = deleting.map((change) => change.attribute);
     await Promise.all(
       deletingAttributes.map((attribute) =>
         this.deleteAttribute(collection, attribute, isIndex),
       ),
     );
-    const attributeKeys = deletingAttributes.map(
-      (attribute: any) => attribute.key,
-    );
 
-    if (attributeKeys.length) {
-      const deleteAttributesPoolStatus =
-        await this.pools.waitForAttributeDeletion(
-          collection["databaseId"],
-          collection["$id"],
-          attributeKeys,
+    // Wait for both removals and recreate-driven deletes before creating.
+    const deletedKeys = [
+      ...deletingAttributes,
+      ...conflicts.map((change) => change.attribute),
+    ].map((attribute: any) => attribute.key);
+
+    if (deletedKeys.length) {
+      const waitForDeletion = isIndex
+        ? this.pools.waitForIndexDeletion
+        : this.pools.waitForAttributeDeletion;
+      const deletePoolStatus = await waitForDeletion(
+        collection["databaseId"],
+        collection["$id"],
+        deletedKeys,
+      );
+
+      if (!deletePoolStatus) {
+        throw new Error(
+          `${isIndex ? "Index" : "Attribute"} deletion timed out.`,
         );
-
-      if (!deleteAttributesPoolStatus) {
-        throw new Error("Attribute deletion timed out.");
       }
     }
 
