@@ -44,6 +44,9 @@ const {
   planSessionLogout,
   isLocalOnlySession,
   isLegacySession,
+  isAuthenticatedSession,
+  findSessionForEndpoint,
+  getSignedInAccounts,
   getSessionAccountKey,
   hasAuthSession,
   restoreCurrentSessionFallback,
@@ -59,12 +62,17 @@ const {
 const { isFlagEnabled } = require("./lib/flags.ts");
 const {
   normalizeCloudConsoleEndpoint,
+  endpointsMatch,
   globalConfig,
 } = require("./lib/config.ts");
 const { listenForBrowserOpen, loginCommand } = require("./lib/auth/login.ts");
 const { applyConfigFilters } = require("./lib/config-filters.ts");
-const { questionsLogout } = require("./lib/questions.ts");
-const { logout } = require("./lib/commands/generic.ts");
+const {
+  questionsLogout,
+  questionsClientReset,
+} = require("./lib/questions.ts");
+const { logout, client, whoami } = require("./lib/commands/generic.ts");
+const { cliConfig } = require("./lib/parser.ts");
 const inquirerModule = require("inquirer");
 const inquirer = inquirerModule.default ?? inquirerModule;
 
@@ -1186,6 +1194,216 @@ async function runAuthChecks() {
     assert.equal(globalConfig.getCurrentSession(), "s2");
     restoreCurrentSessionFallback("missing", ["alsoMissing"]);
     assert.equal(globalConfig.getCurrentSession(), "");
+  });
+
+  // Commander keeps option values across parseAsync calls on the same Command.
+  const runClient = async (args) => {
+    for (const name of [
+      "endpoint",
+      "projectId",
+      "key",
+      "selfSigned",
+      "debug",
+      "reset",
+    ]) {
+      client.setOptionValue(name, undefined);
+    }
+    return muteStdout(() => client.parseAsync(args, { from: "user" }));
+  };
+
+  const withMockedHealthVersion = async (fn) => {
+    const { Client } = await import("@appwrite.io/console");
+    const originalCall = Client.prototype.call;
+    Client.prototype.call = async () => ({ version: "1.0.0" });
+    try {
+      return await fn();
+    } finally {
+      Client.prototype.call = originalCall;
+    }
+  };
+
+  const captureConsole = async (fn) => {
+    const logs = [];
+    const errors = [];
+    const originalLog = console.log;
+    const originalError = console.error;
+    console.log = (...args) => logs.push(stripAnsi(args.map(String).join(" ")));
+    console.error = (...args) =>
+      errors.push(stripAnsi(args.map(String).join(" ")));
+    try {
+      await fn();
+    } finally {
+      console.log = originalLog;
+      console.error = originalError;
+    }
+    return { logs, errors };
+  };
+
+  const withProcessExitStub = async (fn) => {
+    const originalExit = process.exit;
+    let exitCode;
+    process.exit = (code) => {
+      exitCode = code;
+      throw new Error(`process.exit:${code}`);
+    };
+    try {
+      return await fn(() => exitCode);
+    } finally {
+      process.exit = originalExit;
+    }
+  };
+
+  await authCheck("client-endpoint-session-reuse", async () => {
+    assert.equal(
+      endpointsMatch(
+        "https://fra.cloud.appwrite.io/v1",
+        "https://cloud.appwrite.io/v1",
+      ),
+      true,
+    );
+    assert.equal(
+      endpointsMatch("http://localhost/v1", "https://cloud.appwrite.io/v1"),
+      false,
+    );
+
+    globalConfig.clear();
+    globalConfig.addSession("auth1", {
+      endpoint: "https://cloud.appwrite.io/v1",
+      email: "a@b.com",
+      accessToken: "tok",
+    });
+    globalConfig.addSession("auth2", {
+      endpoint: "http://localhost/v1",
+      email: "b@c.com",
+      accessToken: "tok2",
+    });
+    globalConfig.addSession("stub1", { endpoint: "http://localhost/v1" });
+    assert.equal(isAuthenticatedSession("auth1"), true);
+    assert.equal(isAuthenticatedSession("stub1"), false);
+    assert.deepEqual(findSessionForEndpoint("https://fra.cloud.appwrite.io/v1"), {
+      authenticated: "auth1",
+      endpointOnly: undefined,
+    });
+    assert.equal(getSignedInAccounts().length, 2);
+
+    globalConfig.setCurrentSession("auth1");
+    await withMockedHealthVersion(async () => {
+      await runClient(["--endpoint", "https://cloud.appwrite.io/v1"]);
+      assert.equal(globalConfig.getCurrentSession(), "auth1");
+      assert.equal(hasAuthSession(), true);
+
+      await runClient(["--endpoint", "http://localhost/v1"]);
+      assert.equal(globalConfig.getCurrentSession(), "auth2");
+      assert.equal(globalConfig.getEmail(), "b@c.com");
+      assert.equal(globalConfig.getSessionIds().length, 3);
+
+      globalConfig.clear();
+      await runClient(["--endpoint", "http://localhost/v1"]);
+      const first = globalConfig.getCurrentSession();
+      await runClient(["--endpoint", "http://localhost/v1"]);
+      assert.equal(globalConfig.getCurrentSession(), first);
+      assert.equal(globalConfig.getSessionIds().length, 1);
+
+      globalConfig.clear();
+      globalConfig.addSession("auth1", {
+        endpoint: "https://cloud.appwrite.io/v1",
+        email: "a@b.com",
+        accessToken: "tok",
+      });
+      globalConfig.setCurrentSession("auth1");
+      await runClient(["--endpoint", "http://localhost/v1"]);
+      assert.notEqual(globalConfig.getCurrentSession(), "auth1");
+      assert.notEqual(globalConfig.get("auth1"), undefined);
+      assert.equal(hasAuthSession(), false);
+      assert.equal(getSignedInAccounts()[0].email, "a@b.com");
+    });
+  });
+
+  await authCheck("whoami-signed-in-account-hint", async () => {
+    globalConfig.clear();
+    let { logs, errors } = await captureConsole(() =>
+      whoami.parseAsync([], { from: "user" }),
+    );
+    assert.ok(errors.some((line) => line.includes("No user is signed in")));
+    assert.equal(
+      logs.some((line) => line.includes("Signed-in accounts are still available")),
+      false,
+    );
+
+    globalConfig.addSession("auth1", {
+      endpoint: "https://cloud.appwrite.io/v1",
+      email: "a@b.com",
+      accessToken: "tok",
+    });
+    globalConfig.addSession("stub1", { endpoint: "http://localhost/v1" });
+    globalConfig.setCurrentSession("stub1");
+    ({ logs, errors } = await captureConsole(() =>
+      whoami.parseAsync([], { from: "user" }),
+    ));
+    assert.ok(errors.some((line) => line.includes("No user is signed in")));
+    assert.ok(logs.some((line) => line.includes("a@b.com")));
+    assert.ok(logs.some((line) => line.includes("login --switch")));
+  });
+
+  await authCheck("client-reset-confirmation", async () => {
+    const question = questionsClientReset([
+      { email: "a@b.com", endpoint: "https://cloud.appwrite.io/v1" },
+    ])[0];
+    assert.equal(question.type, "confirm");
+    assert.match(question.message, /a@b.com.*cloud\.appwrite\.io/);
+    assert.equal(question.default, false);
+
+    globalConfig.clear();
+    globalConfig.addSession("auth1", {
+      endpoint: "https://cloud.appwrite.io/v1",
+      email: "a@b.com",
+      accessToken: "tok",
+    });
+    globalConfig.setCurrentSession("auth1");
+    cliConfig.force = false;
+
+    const originalIsTTY = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
+    Object.defineProperty(process.stdin, "isTTY", {
+      configurable: true,
+      enumerable: true,
+      get: () => false,
+    });
+    try {
+      const { errors } = await captureConsole(() =>
+        withProcessExitStub(async (getExitCode) => {
+          try {
+            await runClient(["--reset"]);
+            assert.fail("expected reset to fail without --force on a non-TTY");
+          } catch (error) {
+            assert.match(String(error && error.message), /process\.exit:1/);
+            assert.equal(getExitCode(), 1);
+          }
+        }),
+      );
+      assert.ok(
+        errors.some((line) => line.includes("Re-run with --force to confirm")),
+      );
+      assert.equal(globalConfig.getCurrentSession(), "auth1");
+    } finally {
+      if (originalIsTTY) {
+        Object.defineProperty(process.stdin, "isTTY", originalIsTTY);
+      } else {
+        delete process.stdin.isTTY;
+      }
+    }
+
+    globalConfig.clear();
+    keyringTokens.clear();
+    globalConfig.addSession("stub1", { endpoint: "http://localhost/v1" });
+    globalConfig.setCurrentSession("stub1");
+    cliConfig.force = true;
+    try {
+      await withProcessExitStub(() => runClient(["--reset"]));
+      assert.equal(globalConfig.get("stub1"), undefined);
+      assert.equal(globalConfig.getCurrentSession(), "");
+    } finally {
+      cliConfig.force = false;
+    }
   });
 
   await authCheck("poll-device-token-success", async () => {

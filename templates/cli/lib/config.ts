@@ -118,6 +118,18 @@ export function normalizeCloudConsoleEndpoint(endpoint: string): string {
   return endpoint;
 }
 
+/**
+ * Compare two endpoints for session matching: normalize cloud regional hosts
+ * and ignore trailing slashes so `https://fra.cloud.appwrite.io/v1` matches
+ * `https://cloud.appwrite.io/v1`.
+ */
+export function endpointsMatch(a: string, b: string): boolean {
+  return (
+    normalizeCloudConsoleEndpoint(a).replace(/\/+$/, "") ===
+    normalizeCloudConsoleEndpoint(b).replace(/\/+$/, "")
+  );
+}
+
 function ensureDirectoryForFile(filePath: string): void {
   const dir = _path.dirname(filePath);
   if (!fs.existsSync(dir)) {

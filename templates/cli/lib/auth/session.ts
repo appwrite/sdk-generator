@@ -1,4 +1,8 @@
-import { globalConfig, normalizeCloudConsoleEndpoint } from "../config.js";
+import {
+  endpointsMatch,
+  globalConfig,
+  normalizeCloudConsoleEndpoint,
+} from "../config.js";
 import type { SessionData } from "../types.js";
 import ClientLegacy from "../client.js";
 import { OAUTH2_CLIENT_ID } from "../constants.js";
@@ -31,6 +35,81 @@ export const createLegacyConsoleClient = (
 
 export const hasAuthSession = (): boolean =>
   globalConfig.getAccessToken() !== "" || globalConfig.getCookie() !== "";
+
+/**
+ * Whether a stored session record has console auth material (token or cookie),
+ * independent of which session is currently active.
+ */
+export const isAuthenticatedSession = (sessionId: string): boolean => {
+  const session = getSession(sessionId);
+  return Boolean(session?.accessToken || session?.cookie);
+};
+
+/**
+ * Find existing sessions that match an endpoint. Prefers authenticated
+ * sessions over endpoint-only stubs so `client --endpoint` can reuse login
+ * state instead of minting a new unauthenticated record.
+ */
+export const findSessionForEndpoint = (
+  endpoint: string,
+): { authenticated?: string; endpointOnly?: string } => {
+  let authenticated: string | undefined;
+  let endpointOnly: string | undefined;
+
+  for (const sessionId of globalConfig.getSessionIds()) {
+    const session = getSession(sessionId);
+    if (!session?.endpoint || !endpointsMatch(session.endpoint, endpoint)) {
+      continue;
+    }
+
+    if (isAuthenticatedSession(sessionId)) {
+      if (!authenticated) {
+        authenticated = sessionId;
+      }
+    } else if (!endpointOnly) {
+      endpointOnly = sessionId;
+    }
+  }
+
+  return { authenticated, endpointOnly };
+};
+
+/**
+ * Deduped signed-in accounts (email + auth material) for recoverable
+ * messaging when the current session pointer is unauthenticated.
+ */
+export const getSignedInAccounts = (): Array<{
+  id: string;
+  email: string;
+  endpoint: string;
+}> => {
+  const accounts = new Map<
+    string,
+    { id: string; email: string; endpoint: string }
+  >();
+  const current = globalConfig.getCurrentSession();
+
+  for (const sessionId of globalConfig.getSessionIds()) {
+    const session = getSession(sessionId);
+    if (!session?.email || !isAuthenticatedSession(sessionId)) {
+      continue;
+    }
+
+    const endpoint = normalizeCloudConsoleEndpoint(session.endpoint ?? "");
+    const key = `${session.email}|${endpoint}`;
+    const existing = accounts.get(key);
+
+    if (!existing || sessionId === current || existing.id !== current) {
+      accounts.set(key, {
+        id: sessionId,
+        email: session.email,
+        endpoint: session.endpoint ?? endpoint,
+      });
+    }
+  }
+
+  return Array.from(accounts.values());
+};
 
 /**
  * A session that exists only in local config (no server-side credential to
