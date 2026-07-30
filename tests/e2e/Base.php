@@ -285,6 +285,15 @@ abstract class Base extends TestCase
         'auth:config-filters-project-header:passed',
     ];
 
+    protected const CLI_ATTRIBUTE_SYNC_RESPONSES = [
+        'attribute:in-place-updates:passed',
+        'attribute:recreates-immutable:passed',
+        'attribute:ignores-derived-fields:passed',
+        'attribute:index-columns-change:passed',
+        'attribute:update-guards:passed',
+        'attribute:resize-hard-fail:passed',
+    ];
+
     protected const CLI_LOCAL_FUNCTION_EMULATION_RESPONSES = [
         'CLI_LOCAL_FUNCTION_RUNNER_CONFIG:passed',
         'CLI_LOCAL_SOURCE_PREFLIGHT:passed',
