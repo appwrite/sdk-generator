@@ -1161,7 +1161,10 @@ class SDK
         $consoleOnlyServices = [
             'account',
             'console',
+            'domains',
             'locale',
+            'manager',
+            'notifications',
             'organization',
             'organizations',
             'projects',
