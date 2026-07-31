@@ -270,6 +270,7 @@ try {
                     ['name' => 'compute'],
                     ['name' => 'apps'],
                     ['name' => 'oauth'],
+                    ['name' => 'organizations'],
                 ],
             ],
         ]);
