@@ -26,6 +26,17 @@ export const resolveProjectId = (override?: string): string =>
   globalConfig.getProject() ||
   "";
 
+/**
+ * The organization known without contacting the API: environment, then
+ * appwrite.config.json. Empty when it could only be derived from the project,
+ * so callers that must not perform I/O — `client --debug` — can report what is
+ * configured without triggering a lookup.
+ */
+export const configuredOrganizationId = (): string =>
+  process.env[ENV_ORGANIZATION_ID] ||
+  localConfig.getProject().organizationId ||
+  "";
+
 let derivedOrganizationWarned = false;
 
 /**
@@ -68,10 +79,7 @@ export const resolveOrganizationId = async ({
   override?: string;
   consoleClient?: Client;
 } = {}): Promise<string> => {
-  const direct =
-    override ||
-    process.env[ENV_ORGANIZATION_ID] ||
-    localConfig.getProject().organizationId;
+  const direct = override || configuredOrganizationId();
 
   if (direct) {
     return direct;

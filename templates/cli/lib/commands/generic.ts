@@ -2,6 +2,7 @@ import inquirer from "inquirer";
 import { Command } from "commander";
 import { Client } from "@appwrite.io/console";
 import { endpointsMatch, globalConfig, localConfig } from "../config.js";
+import { configuredOrganizationId } from "../context.js";
 import { EXECUTABLE_NAME } from "../constants.js";
 import {
   actionRunner,
@@ -279,6 +280,7 @@ export const client = new Command("client")
             key: maskedKey,
             accessToken: maskedAccessToken,
             selfSigned: globalConfig.getSelfSigned(),
+            organizationId: configuredOrganizationId(),
             projectId: project.projectId ?? "",
             projectName: project.projectName ?? "",
           };
