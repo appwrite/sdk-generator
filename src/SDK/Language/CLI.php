@@ -280,15 +280,37 @@ class CLI extends Node
      * Top-level root aliases for a service, used by `cli.ts` to import and
      * register the promoted commands.
      *
+     * Only methods that survive exclusion filtering (and are therefore emitted
+     * by the service template) are returned, so `cli.ts` never imports a
+     * nonexistent export.
+     *
      * @return list<array{method: string, command: string, export: string}>
      */
     private function getCliTopLevelAliases(array $service): array
     {
         $serviceName = $service['name'] ?? '';
-        $methods = self::TOP_LEVEL_COMMANDS[$serviceName] ?? [];
+        $configured = self::TOP_LEVEL_COMMANDS[$serviceName] ?? [];
+
+        if ($configured === []) {
+            return [];
+        }
+
+        $available = [];
+        foreach ($service['methods'] ?? [] as $method) {
+            $name = $method['name'] ?? '';
+
+            if ($name !== '') {
+                $available[$name] = true;
+            }
+        }
+
         $aliases = [];
 
-        foreach ($methods as $methodName) {
+        foreach ($configured as $methodName) {
+            if (!isset($available[$methodName])) {
+                continue;
+            }
+
             $aliases[] = [
                 'method' => $methodName,
                 'command' => $this->toKebabCase($methodName),
