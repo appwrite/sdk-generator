@@ -35,7 +35,10 @@ import {
 } from "../utils/query.js";
 {% endif %}
 {% set consoleOnlyMethods = service.isConsoleOnly ? [] : service.consoleOnlyMethods | default([]) %}
-{% if service.isConsoleOnly %}
+{% set orgScoped = service.requiresOrganization | default(false) %}
+{% if orgScoped %}
+import { sdkForConsoleWithOrganization } from "../../sdks.js";
+{% elseif service.isConsoleOnly %}
 import { sdkForConsole } from "../../sdks.js";
 {% elseif consoleOnlyMethods is not empty %}
 import { sdkForConsole, sdkForProject } from "../../sdks.js";
@@ -62,6 +65,14 @@ import {
 import { {{ service.name | caseUcfirst }} } from "@appwrite.io/console";
 {% endif %}
 
+{% if orgScoped %}
+// Every endpoint here targets one organization, so the client is built per
+// command rather than cached across differing --organization-id values.
+const get{{ service.name | caseUcfirst }}Client = async (
+  organizationId?: string,
+): Promise<{{ service.name | caseUcfirst }}> =>
+  new {{ service.name | caseUcfirst }}(await sdkForConsoleWithOrganization(organizationId));
+{% else %}
 let {{ service.name | caseCamel }}Client: {{ service.name | caseUcfirst }} | null = null;
 
 const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.name | caseUcfirst }}> => {
@@ -83,6 +94,7 @@ const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.n
   }
   return {{ service.name | caseCamel }}Client;
 };
+{% endif %}
 {% if consoleOnlyMethods is not empty %}
 
 let {{ service.name | caseCamel }}ConsoleClient: {{ service.name | caseUcfirst }} | null = null;
@@ -117,6 +129,14 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% set seenCommands = seenCommands|merge([commandName]) %}
 {% set commandVar = service.name | caseCamel ~ method.name | caseUcfirst ~ 'Command' %}
 {% set clientGetter = 'get' ~ (service.name | caseUcfirst) ~ ((method.name | caseCamel) in consoleOnlyMethods ? 'Console' : '') ~ 'Client' %}
+{% set hasOrganizationIdParam = false %}
+{% for parameter in method.parameters.all %}
+{% if parameter.name == 'organizationId' %}
+{% set hasOrganizationIdParam = true %}
+{% endif %}
+{% endfor %}
+{% set orgFlag = orgScoped and not hasOrganizationIdParam %}
+{% set clientCall = clientGetter ~ (orgScoped ? '(organizationId)' : '()') %}
 {% set query = method | cliQueryConfig %}
 const {{ commandVar }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`)
@@ -161,6 +181,9 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% if method.type == 'location' %}
   .requiredOption(`--destination <destination>`, `Path to save the file to.`)
 {% endif %}
+{% if orgFlag %}
+  .option(`--organization-id <organization-id>`, `Organization to act on. Defaults to the organization linked in {{ language.params.executableName|caseLower }}.config.json.`)
+{% endif %}
   .action(
     actionRunner(
 {% set params = [] %}
@@ -169,6 +192,9 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% endfor %}
 {% if query.hasQueries %}
 {% set params = params|merge(query.extraParams) %}
+{% endif %}
+{% if orgFlag %}
+{% set params = params|merge(['organizationId']) %}
 {% endif %}
 {% set hasParams = params | length > 0 %}
 {% set actionParams = hasParams ? '{ ' ~ params | join(', ') ~ (method.type == 'location' ? ', destination' : '') ~ ' }' : (method.type == 'location' ? '{ destination }' : '') %}
@@ -182,7 +208,7 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% endfor %}
 {% if method.type == 'location' %}
       async ({{ actionParams }}) => {
-        const url = await (await {{ clientGetter }}()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
+        const url = await (await {{ clientCall }}).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
@@ -193,14 +219,14 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
       },
 {% elseif method.type == 'webAuth' %}
       async ({{ actionParams }}) => {
-        const url = (await {{ clientGetter }}()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
+        const url = (await {{ clientCall }}).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
         if (url) console.log(url);
       },
 {% elseif hasParams %}
       async ({{ actionParams }}) =>
-        parse(await (await {{ clientGetter }}()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }})),
+        parse(await (await {{ clientCall }}).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }})),
 {% else %}
-      async () => parse(await (await {{ clientGetter }}()).{{ method.name | caseCamel }}()),
+      async () => parse(await (await {{ clientCall }}).{{ method.name | caseCamel }}()),
 {% endif %}
     ),
   );

@@ -14,6 +14,7 @@ import {
   SDK_VERSION,
 } from "./constants.js";
 import { warn } from "./parser.js";
+import { applyConfigFilters } from "./config-filters.js";
 import { isCloudHostname } from "./utils.js";
 import {
   getStoredRefreshToken,
@@ -159,6 +160,35 @@ export const sdkForConsole = async ({
 
   if (organizationId) {
     client.headers["X-Appwrite-Organization"] = organizationId;
+  }
+
+  return client;
+};
+
+/**
+ * The `/organization` endpoints carry no organization ID in their path and act
+ * on whichever organization `X-Appwrite-Organization` names, so resolve it from
+ * the current directory's config unless the caller names one explicitly.
+ */
+export const sdkForConsoleWithOrganization = async (
+  organizationId?: string,
+): Promise<Client> => {
+  const client = await sdkForConsole();
+
+  if (organizationId) {
+    client.headers["X-Appwrite-Organization"] = organizationId;
+    return client;
+  }
+
+  await applyConfigFilters({
+    config: localConfig.getProject(),
+    consoleClient: client,
+  });
+
+  if (!client.headers["X-Appwrite-Organization"]) {
+    throw new Error(
+      `Organization is not set. Pass --organization-id <id>, or run \`${EXECUTABLE_NAME} init project\` to link this directory to a project.`,
+    );
   }
 
   return client;

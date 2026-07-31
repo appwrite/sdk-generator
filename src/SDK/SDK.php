@@ -879,6 +879,7 @@ class SDK
                             'methods' => $methods,
                             'isConsoleOnly' => $this->isConsoleOnly($key),
                             'consoleOnlyMethods' => $this->getConsoleOnlyMethods($key),
+                            'requiresOrganization' => $this->requiresOrganizationHeader($key),
                         ];
 
                         if ($this->exclude($file, $params)) {
@@ -1186,6 +1187,16 @@ class SDK
             'oauth2' => ['listOrganizations', 'listProjects'],
             default => [],
         };
+    }
+
+    /**
+     * Services whose endpoints take no organization ID and instead act on the
+     * organization named by the `X-Appwrite-Organization` header. Without that
+     * header the API resolves an empty organization and answers 404.
+     */
+    protected function requiresOrganizationHeader(string $serviceName): bool
+    {
+        return $serviceName === 'organization';
     }
 
     /**

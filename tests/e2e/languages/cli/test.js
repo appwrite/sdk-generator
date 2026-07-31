@@ -31,6 +31,7 @@ const {
   assertSessionEndpointMatches,
   getValidAccessToken,
   sdkForConsole,
+  sdkForConsoleWithOrganization,
   sdkForProject,
 } = require("./lib/sdks.ts");
 const {
@@ -1604,6 +1605,44 @@ async function runAuthChecks() {
       );
     } finally {
       localConfig.getEndpoint = originalGetEndpoint;
+      localConfig.getProject = originalGetProject;
+    }
+  });
+
+  await authCheck("organization-header", async () => {
+    globalConfig.clear();
+    globalConfig.addSession("org-tok", {
+      endpoint: "http://localhost/v1",
+      accessToken: "cached-token",
+      tokenExpiry: Date.now() + 3600000,
+    });
+    globalConfig.setCurrentSession("org-tok");
+
+    const originalGetProject = localConfig.getProject;
+    localConfig.getProject = () => ({
+      projectId: "project-id",
+      organizationId: "org-from-config",
+    });
+
+    try {
+      const fromConfig = await sdkForConsoleWithOrganization();
+      assert.equal(
+        fromConfig.headers["X-Appwrite-Organization"],
+        "org-from-config",
+      );
+
+      const fromFlag = await sdkForConsoleWithOrganization("org-from-flag");
+      assert.equal(
+        fromFlag.headers["X-Appwrite-Organization"],
+        "org-from-flag",
+      );
+
+      localConfig.getProject = () => ({});
+      await assert.rejects(
+        () => sdkForConsoleWithOrganization(),
+        /Organization is not set/,
+      );
+    } finally {
       localConfig.getProject = originalGetProject;
     }
   });
