@@ -16,6 +16,7 @@ import {
   cliConfig,
 } from "../parser.js";
 import ID from "../id.js";
+import { formatAccountList } from "../utils.js";
 import { questionsClientReset, questionsLogout } from "../questions.js";
 import { getCurrentAccount, loginCommand } from "../auth/login.js";
 import {
@@ -371,11 +372,13 @@ export const client = new Command("client")
           if (accounts.length > 0 && !cliConfig.force) {
             if (!process.stdin.isTTY) {
               throw new Error(
-                `Resetting will sign out ${accounts.map((account) => account.email).join(", ")}. Re-run with --force to confirm.`,
+                `Resetting will sign out:\n${formatAccountList(accounts)}\nRe-run with --force to confirm.`,
               );
             }
 
-            const answers = await inquirer.prompt(questionsClientReset(accounts));
+            const answers = await inquirer.prompt(
+              questionsClientReset(accounts),
+            );
             if (!answers.confirm) {
               log("Reset cancelled.");
               return;

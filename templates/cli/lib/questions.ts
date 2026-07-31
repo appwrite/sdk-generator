@@ -7,6 +7,7 @@ import { validateRequired } from "./validations.js";
 import { paginate } from "./paginate.js";
 import {
   checkDeployConditions,
+  formatAccountList,
   getConsoleBaseUrl,
   getSafeDirectoryName,
   isCloud,
@@ -944,13 +945,7 @@ export const questionsClientReset = (
   {
     type: "confirm",
     name: "confirm",
-    message: `This will sign out ${accounts
-      .map((account) =>
-        account.endpoint
-          ? `${account.email} (${account.endpoint})`
-          : account.email,
-      )
-      .join(", ")}. Continue?`,
+    message: `This will sign out:\n${formatAccountList(accounts)}\nContinue?`,
     default: false,
   },
 ];
