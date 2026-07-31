@@ -429,8 +429,8 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'lib/config-filters.ts',
-                'template'      => 'cli/lib/config-filters.ts',
+                'destination'   => 'lib/context.ts',
+                'template'      => 'cli/lib/context.ts',
             ],
             [
                 'scope'         => 'copy',

@@ -879,8 +879,8 @@ class SDK
                             'methods' => $methods,
                             'isConsoleOnly' => $this->isConsoleOnly($key),
                             'consoleOnlyMethods' => $this->getConsoleOnlyMethods($key),
-                            'requiresOrganization' => $this->requiresOrganizationHeader($key),
-                            'requiresProject' => $this->requiresProjectHeader($key),
+                            'requiresOrganization' => $this->resourceHeaderScheme($key, $methods) === 'Organization',
+                            'requiresProject' => $this->resourceHeaderScheme($key, $methods) === 'Project',
                         ];
 
                         if ($this->exclude($file, $params)) {
@@ -1191,23 +1191,40 @@ class SDK
     }
 
     /**
-     * Services whose endpoints take no organization ID and instead act on the
-     * organization named by the `X-Appwrite-Organization` header. Without that
-     * header the API resolves an empty organization and answers 404.
+     * The security scheme naming a service's own resource, or null when the
+     * service takes its target in the path like everything else.
+     *
+     * `/project` and `/organization` carry no ID: they act on whatever
+     * `X-Appwrite-Project` or `X-Appwrite-Organization` names, and without that
+     * header the API resolves an empty resource and answers 404. The spec says
+     * which those are — a header security scheme named after the service, and
+     * declared on that service's own methods:
+     *
+     *   project      -> Project        declared on its methods  => scoped
+     *   organization -> Organization   declared on its methods  => scoped
+     *   locale       -> Locale         NOT declared on them     => not scoped
+     *   projects     -> no such scheme                          => not scoped
+     *
+     * The `Locale` case is why the scheme has to appear in the method security
+     * and not merely exist: every service would otherwise match on name alone.
      */
-    protected function requiresOrganizationHeader(string $serviceName): bool
+    protected function resourceHeaderScheme(string $serviceName, array $methods): ?string
     {
-        return $serviceName === 'organization';
-    }
+        foreach ($this->spec->getGlobalHeaders() as $header) {
+            $key = $header['key'] ?? '';
 
-    /**
-     * Services whose endpoints take no project ID and instead act on the project
-     * named by the `X-Appwrite-Project` header. Every other service sends that
-     * header too, but as context rather than as the resource being acted on.
-     */
-    protected function requiresProjectHeader(string $serviceName): bool
-    {
-        return $serviceName === 'project';
+            if (\strtolower((string) $key) !== \strtolower($serviceName)) {
+                continue;
+            }
+
+            foreach ($methods as $method) {
+                if (\in_array($key, $method['security'] ?? [], true)) {
+                    return $key;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -14,7 +14,7 @@ import {
   SDK_VERSION,
 } from "./constants.js";
 import { warn } from "./parser.js";
-import { applyConfigFilters } from "./config-filters.js";
+import { resolveOrganizationId, resolveProjectId } from "./context.js";
 import { isCloudHostname } from "./utils.js";
 import {
   getStoredRefreshToken,
@@ -175,21 +175,10 @@ export const sdkForConsoleWithOrganization = async (
 ): Promise<Client> => {
   const client = await sdkForConsole();
 
-  if (organizationId) {
-    client.headers["X-Appwrite-Organization"] = organizationId;
-    return client;
-  }
-
-  await applyConfigFilters({
-    config: localConfig.getProject(),
+  client.headers["X-Appwrite-Organization"] = await resolveOrganizationId({
+    override: organizationId,
     consoleClient: client,
   });
-
-  if (!client.headers["X-Appwrite-Organization"]) {
-    throw new Error(
-      `Organization is not set. Pass --organization-id <id>, or run \`${EXECUTABLE_NAME} init project\` to link this directory to a project.`,
-    );
-  }
 
   return client;
 };
@@ -203,11 +192,7 @@ export const sdkForProject = async (
     localConfig.getEndpoint() || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
   const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
 
-  const project =
-    projectIdOverride ||
-    (localConfig.getProject().projectId
-      ? localConfig.getProject().projectId
-      : globalConfig.getProject());
+  const project = resolveProjectId(projectIdOverride);
 
   const key = globalConfig.getKey();
   const accessToken = globalConfig.getAccessToken();

@@ -21,7 +21,7 @@ import {
 import { getFunctionsService, getSitesService } from "../services.js";
 import { sdkForProject, sdkForConsole } from "../sdks.js";
 import { localConfig } from "../config.js";
-import { applyConfigFilters } from "../config-filters.js";
+import { resolveOrganizationId } from "../context.js";
 import {
   canUseConsole,
   requireConsoleAuth,
@@ -274,13 +274,11 @@ export class Pull {
   ): Promise<PullSettingsResult> {
     this.log("Pulling project settings ...");
 
-    await applyConfigFilters({
-      config: {
-        organizationId,
-        projectId,
-      },
-      consoleClient: this.consoleClient,
-    });
+    this.consoleClient.headers["X-Appwrite-Organization"] =
+      await resolveOrganizationId({
+        override: organizationId,
+        consoleClient: this.consoleClient,
+      });
     const organizationService = new Organization(this.consoleClient);
     const projectService = new Project(this.projectClient);
     const project = await organizationService.getProject({
