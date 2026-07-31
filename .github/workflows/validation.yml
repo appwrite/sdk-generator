@@ -329,7 +329,10 @@ jobs:
         run: |
           BIN=build/appwrite-cli-linux-x64
           "./$BIN" --version
-          "./$BIN" --help | grep -q "Usage:"
+          # The root screen is grouped by intent, so assert a section renders
+          # rather than just that some help was produced.
+          "./$BIN" --help | grep -q "USAGE"
+          "./$BIN" --help | grep -q "GET STARTED"
           SHELL=bash "./$BIN" completion bash >/dev/null
 
       - name: Verify npm package entry points

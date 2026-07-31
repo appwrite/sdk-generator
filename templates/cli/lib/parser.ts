@@ -1029,7 +1029,9 @@ export const commandDescriptions: Record<string, string> = {
   tokens: `The tokens command allows you to create and manage resource tokens for secure file access.`,
   vcs: `The vcs command allows you to interact with VCS providers and manage your code repositories.`,
   webhooks: `The webhooks command allows you to manage your project webhooks.`,
-  main: chalk.redBright(`${logo}${description}`),
+  // The logo is rendered by the help formatter, so this stays plain prose and
+  // can be reused wherever the CLI needs a one-paragraph description.
+  main: description,
 };
 
 export { cliConfig };

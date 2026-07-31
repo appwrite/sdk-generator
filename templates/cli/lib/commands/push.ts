@@ -4267,6 +4267,16 @@ const pushMessagingTopic = async (): Promise<void> => {
 
 export const push = new Command("push")
   .description(commandDescriptions["push"])
+  // Also registered on the root program so `appwrite --all push` keeps working;
+  // declared here too so they are documented where they actually apply.
+  .option("-a, --all", "Push every resource in the project config")
+  .option("--id [id...]", "Limit the push to these resource ids")
+  .on("option:all", () => {
+    cliConfig.all = true;
+  })
+  .on("option:id", function (this: Command) {
+    cliConfig.ids = this.opts()["id"] as string[];
+  })
   .action(actionRunner(() => pushResources({ skipDeprecated: true })));
 
 push
@@ -4368,13 +4378,3 @@ push
   .alias("topics")
   .description("Push messaging topics in the current project.")
   .action(actionRunner(pushMessagingTopic));
-
-export const deploy = new Command("deploy")
-  .description(`Removed. Use ${EXECUTABLE_NAME} push instead`)
-  .action(
-    actionRunner(async () => {
-      warn(
-        `${EXECUTABLE_NAME} deploy has been removed. Please use '${EXECUTABLE_NAME} push' instead`,
-      );
-    }),
-  );

@@ -1116,6 +1116,16 @@ const pullMessagingTopic = async (): Promise<void> => {
 
 export const pull = new Command("pull")
   .description(commandDescriptions["pull"])
+  // Also registered on the root program so `appwrite --all pull` keeps working;
+  // declared here too so they are documented where they actually apply.
+  .option("-a, --all", "Pull every resource in the project")
+  .option("--id [id...]", "Limit the pull to these resource ids")
+  .on("option:all", () => {
+    cliConfig.all = true;
+  })
+  .on("option:id", function (this: Command) {
+    cliConfig.ids = this.opts()["id"] as string[];
+  })
   .action(actionRunner(() => pullResources({ skipDeprecated: true })));
 
 pull
