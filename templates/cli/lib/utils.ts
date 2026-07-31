@@ -521,6 +521,21 @@ export const getConsoleProjectSlug = (
   }
 };
 
+/**
+ * One indented `email (endpoint)` per line, so a prompt or error listing several
+ * accounts stays readable instead of wrapping as one comma-joined run.
+ */
+export const formatAccountList = (
+  accounts: Array<{ email: string; endpoint?: string }>,
+): string =>
+  accounts
+    .map((account) =>
+      account.endpoint
+        ? `  ${account.email} (${account.endpoint})`
+        : `  ${account.email}`,
+    )
+    .join("\n");
+
 export const getFunctionDeploymentConsoleUrl = (
   endpoint: string,
   projectId: string,

@@ -31,6 +31,7 @@ const {
   assertSessionEndpointMatches,
   getValidAccessToken,
   sdkForConsole,
+  sdkForConsoleWithOrganization,
   sdkForProject,
 } = require("./lib/sdks.ts");
 const {
@@ -66,7 +67,10 @@ const {
   globalConfig,
 } = require("./lib/config.ts");
 const { listenForBrowserOpen, loginCommand } = require("./lib/auth/login.ts");
-const { applyConfigFilters } = require("./lib/config-filters.ts");
+const {
+  resolveOrganizationId,
+  resolveProjectId,
+} = require("./lib/context.ts");
 const {
   questionsLogout,
   questionsClientReset,
@@ -979,6 +983,13 @@ async function runAuthChecks() {
       regionalClient.config.endpoint,
       "https://fra.cloud.appwrite.io/v1",
     );
+
+    const consoleClient = await sdkForConsole({
+      requiresAuth: false,
+      endpointOverride: "https://fra.cloud.appwrite.io/v1",
+    });
+    assert.equal(consoleClient.config.endpoint, "https://cloud.appwrite.io/v1");
+    assert.equal(consoleClient.config.project, "console");
   });
 
   await authCheck("console-slug-region", () => {
@@ -1601,6 +1612,76 @@ async function runAuthChecks() {
     }
   });
 
+  await authCheck("organization-header", async () => {
+    globalConfig.clear();
+    globalConfig.addSession("org-tok", {
+      endpoint: "http://localhost/v1",
+      accessToken: "cached-token",
+      tokenExpiry: Date.now() + 3600000,
+    });
+    globalConfig.setCurrentSession("org-tok");
+
+    const originalGetProject = localConfig.getProject;
+    localConfig.getProject = () => ({
+      projectId: "project-id",
+      organizationId: "org-from-config",
+    });
+
+    try {
+      const fromConfig = await sdkForConsoleWithOrganization();
+      assert.equal(
+        fromConfig.headers["X-Appwrite-Organization"],
+        "org-from-config",
+      );
+
+      const fromFlag = await sdkForConsoleWithOrganization("org-from-flag");
+      assert.equal(
+        fromFlag.headers["X-Appwrite-Organization"],
+        "org-from-flag",
+      );
+
+      localConfig.getProject = () => ({});
+      await assert.rejects(
+        () => sdkForConsoleWithOrganization(),
+        /Organization is not set/,
+      );
+    } finally {
+      localConfig.getProject = originalGetProject;
+    }
+  });
+
+  await authCheck("project-id-override", async () => {
+    globalConfig.clear();
+    globalConfig.addSession("proj-tok", {
+      endpoint: "http://localhost/v1",
+      accessToken: "cached-token",
+      tokenExpiry: Date.now() + 3600000,
+    });
+    globalConfig.setCurrentSession("proj-tok");
+
+    const originalGetProject = localConfig.getProject;
+    const originalGetEndpoint = localConfig.getEndpoint;
+    localConfig.getEndpoint = () => "http://localhost/v1";
+    localConfig.getProject = () => ({ projectId: "from-config" });
+
+    try {
+      const fromConfig = await sdkForProject();
+      assert.equal(fromConfig.config.project, "from-config");
+
+      const fromFlag = await sdkForProject("from-flag");
+      assert.equal(fromFlag.config.project, "from-flag");
+
+      localConfig.getProject = () => ({});
+      await assert.rejects(() => sdkForProject(), /Project is not set/);
+
+      const unlinked = await sdkForProject("from-flag");
+      assert.equal(unlinked.config.project, "from-flag");
+    } finally {
+      localConfig.getProject = originalGetProject;
+      localConfig.getEndpoint = originalGetEndpoint;
+    }
+  });
+
   await authCheck("cloud-login-rejects-credentials", async () => {
     const prev = process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
     delete process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
@@ -1754,11 +1835,12 @@ async function runAuthChecks() {
     }
   });
 
-  await authCheck("config-filters-project-header", async () => {
-    // organizationId missing: the org is resolved via a raw projects lookup.
-    // That call bypasses the generated service methods, so it must set
-    // X-Appwrite-Project itself — without it the API treats the request as a
-    // guest and rejects it with a missing-scopes 401.
+  await authCheck("context-organization-lookup", async () => {
+    // organizationId missing: the org is derived via a raw projects lookup.
+    // GET /projects/{projectId} is not published in the spec, so there is no
+    // generated service method and the call must set X-Appwrite-Project itself
+    // — without it the API treats the request as a guest and rejects it with a
+    // missing-scopes 401.
     const calls = [];
     const consoleClient = {
       headers: {},
@@ -1769,32 +1851,63 @@ async function runAuthChecks() {
       },
     };
 
-    await muteStdout(() =>
-      applyConfigFilters({
-        config: { projectId: "project-1" },
-        consoleClient,
-      }),
-    );
+    const previousEnv = process.env.APPWRITE_PROJECT_ID;
+    process.env.APPWRITE_PROJECT_ID = "project-1";
 
-    assert.equal(calls.length, 1);
-    assert.equal(calls[0].method, "get");
-    assert.equal(calls[0].url, "http://mockapi/v1/projects/project-1");
-    assert.equal(calls[0].headers["X-Appwrite-Project"], "console");
-    assert.equal(consoleClient.headers["X-Appwrite-Organization"], "team-1");
+    try {
+      const organizationId = await muteStdout(() =>
+        resolveOrganizationId({ consoleClient }),
+      );
 
-    // organizationId present: applied directly, no lookup request.
-    const directClient = {
-      headers: {},
-      config: { endpoint: "http://mockapi/v1" },
-      call: async () => {
-        throw new Error("unexpected API call when organizationId is set");
-      },
-    };
-    await applyConfigFilters({
-      config: { organizationId: "org-1", projectId: "project-1" },
-      consoleClient: directClient,
-    });
-    assert.equal(directClient.headers["X-Appwrite-Organization"], "org-1");
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].method, "get");
+      assert.equal(calls[0].url, "http://mockapi/v1/projects/project-1");
+      assert.equal(calls[0].headers["X-Appwrite-Project"], "console");
+      assert.equal(organizationId, "team-1");
+
+      // An explicit --organization-id is used directly, with no lookup request.
+      const directClient = {
+        headers: {},
+        config: { endpoint: "http://mockapi/v1" },
+        call: async () => {
+          throw new Error("unexpected API call when organizationId is set");
+        },
+      };
+      assert.equal(
+        await resolveOrganizationId({
+          override: "org-1",
+          consoleClient: directClient,
+        }),
+        "org-1",
+      );
+    } finally {
+      if (previousEnv === undefined) delete process.env.APPWRITE_PROJECT_ID;
+      else process.env.APPWRITE_PROJECT_ID = previousEnv;
+    }
+  });
+
+  await authCheck("context-project-precedence", async () => {
+    // --project-id must beat the environment, which must beat the linked
+    // project, so the same ID cannot apply to some commands and be ignored by
+    // others.
+    const previousEnv = process.env.APPWRITE_PROJECT_ID;
+
+    try {
+      delete process.env.APPWRITE_PROJECT_ID;
+      const configured = resolveProjectId();
+
+      process.env.APPWRITE_PROJECT_ID = "from-env";
+      assert.equal(resolveProjectId(), "from-env");
+
+      assert.equal(resolveProjectId("from-flag"), "from-flag");
+
+      // Falls back to the linked project once the override is gone.
+      delete process.env.APPWRITE_PROJECT_ID;
+      assert.equal(resolveProjectId(), configured);
+    } finally {
+      if (previousEnv === undefined) delete process.env.APPWRITE_PROJECT_ID;
+      else process.env.APPWRITE_PROJECT_ID = previousEnv;
+    }
   });
 
   globalConfig.clear();

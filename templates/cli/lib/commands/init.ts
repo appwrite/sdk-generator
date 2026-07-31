@@ -7,7 +7,11 @@ import chalk from "chalk";
 import { getOrganizationService, getSitesService } from "../services.js";
 import { pullResources } from "./pull.js";
 import ID from "../id.js";
-import { localConfig, globalConfig } from "../config.js";
+import {
+  localConfig,
+  globalConfig,
+  normalizeCloudConsoleEndpoint,
+} from "../config.js";
 import {
   questionsCreateFunction,
   questionsCreateFunctionSelectTemplate,
@@ -124,7 +128,13 @@ const getExistingProjectSummary = async (
 };
 
 const getRegionalCloudEndpoint = (region: string): string => {
-  const url = new URL(globalConfig.getEndpoint() || DEFAULT_ENDPOINT);
+  // The session endpoint may already be regional, so start from the base host to
+  // avoid producing something like `fra.sgp.cloud.appwrite.io`.
+  const url = new URL(
+    normalizeCloudConsoleEndpoint(
+      globalConfig.getEndpoint() || DEFAULT_ENDPOINT,
+    ),
+  );
   url.hostname = `${region}.${url.hostname}`;
   return url.toString().replace(/\/$/, "");
 };

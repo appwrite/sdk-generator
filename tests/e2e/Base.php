@@ -283,9 +283,12 @@ abstract class Base extends TestCase
         'auth:valid-access-token-missing-expiry:passed',
         'auth:valid-access-token-session-endpoint:passed',
         'auth:project-session-endpoint-mismatch:passed',
+        'auth:organization-header:passed',
+        'auth:project-id-override:passed',
         'auth:cloud-login-rejects-credentials:passed',
         'auth:open-browser:passed',
-        'auth:config-filters-project-header:passed',
+        'auth:context-organization-lookup:passed',
+        'auth:context-project-precedence:passed',
     ];
 
     protected const CLI_ATTRIBUTE_SYNC_RESPONSES = [

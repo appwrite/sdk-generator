@@ -221,6 +221,47 @@ class CLI extends Node
         return false;
     }
 
+    /**
+     * Client factory per scheme that names a service's own resource.
+     * Organization scopes the console client, Project is the project client, so
+     * the names cannot be derived from the scheme.
+     */
+    private const array SCOPE_FACTORIES = [
+        'Organization' => 'sdkForConsoleWithOrganization',
+        'Project' => 'sdkForProject',
+    ];
+
+    /**
+     * How a header-scoped service is spelled in the generated CLI.
+     *
+     * `service.resourceHeader` says which security scheme names the service's
+     * own resource; this turns that into the label, variable, flag and factory
+     * the template emits. Returns null for the usual case where the target is a
+     * path parameter.
+     *
+     * @return array{label: string, idVar: string, flag: string, factory: string}|null
+     */
+    private function getCliServiceScope(array $service): ?array
+    {
+        // Defaults to '' rather than null: most services are unscoped, and null
+        // is not a valid array offset.
+        $scheme = $service['resourceHeader'] ?? '';
+        $factory = self::SCOPE_FACTORIES[$scheme] ?? null;
+
+        if ($factory === null) {
+            return null;
+        }
+
+        $idVar = \lcfirst($scheme) . 'Id';
+
+        return [
+            'label' => $scheme,
+            'idVar' => $idVar,
+            'flag' => $this->getCliOptionName($idVar),
+            'factory' => $factory,
+        ];
+    }
+
     private function hasCliQueryParam(array $service): bool
     {
         foreach ($service['methods'] ?? [] as $method) {
@@ -429,8 +470,8 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'lib/config-filters.ts',
-                'template'      => 'cli/lib/config-filters.ts',
+                'destination'   => 'lib/context.ts',
+                'template'      => 'cli/lib/context.ts',
             ],
             [
                 'scope'         => 'copy',
@@ -853,6 +894,7 @@ class CLI extends Node
     {
         return array_merge(parent::getFilters(), [
             new TwigFilter('hasCliQueryParam', fn (array $service): bool => $this->hasCliQueryParam($service)),
+            new TwigFilter('cliServiceScope', fn (array $service): ?array => $this->getCliServiceScope($service)),
             new TwigFilter('cliQueryConfig', fn (array $method): array => $this->getCliQueryConfig($method)),
         ]);
     }

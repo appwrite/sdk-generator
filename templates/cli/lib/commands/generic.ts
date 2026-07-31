@@ -2,6 +2,7 @@ import inquirer from "inquirer";
 import { Command } from "commander";
 import { Client } from "@appwrite.io/console";
 import { endpointsMatch, globalConfig, localConfig } from "../config.js";
+import { configuredOrganizationId } from "../context.js";
 import { EXECUTABLE_NAME } from "../constants.js";
 import {
   actionRunner,
@@ -16,6 +17,7 @@ import {
   cliConfig,
 } from "../parser.js";
 import ID from "../id.js";
+import { formatAccountList } from "../utils.js";
 import { questionsClientReset, questionsLogout } from "../questions.js";
 import { getCurrentAccount, loginCommand } from "../auth/login.js";
 import {
@@ -278,6 +280,7 @@ export const client = new Command("client")
             key: maskedKey,
             accessToken: maskedAccessToken,
             selfSigned: globalConfig.getSelfSigned(),
+            organizationId: configuredOrganizationId(),
             projectId: project.projectId ?? "",
             projectName: project.projectName ?? "",
           };
@@ -371,11 +374,13 @@ export const client = new Command("client")
           if (accounts.length > 0 && !cliConfig.force) {
             if (!process.stdin.isTTY) {
               throw new Error(
-                `Resetting will sign out ${accounts.map((account) => account.email).join(", ")}. Re-run with --force to confirm.`,
+                `Resetting will sign out:\n${formatAccountList(accounts)}\nRe-run with --force to confirm.`,
               );
             }
 
-            const answers = await inquirer.prompt(questionsClientReset(accounts));
+            const answers = await inquirer.prompt(
+              questionsClientReset(accounts),
+            );
             if (!answers.confirm) {
               log("Reset cancelled.");
               return;

@@ -14,6 +14,7 @@ import {
   SDK_VERSION,
 } from "./constants.js";
 import { warn } from "./parser.js";
+import { resolveOrganizationId, resolveProjectId } from "./context.js";
 import { isCloudHostname } from "./utils.js";
 import {
   getStoredRefreshToken,
@@ -164,16 +165,34 @@ export const sdkForConsole = async ({
   return client;
 };
 
-export const sdkForProject = async (): Promise<Client> => {
+/**
+ * The `/organization` endpoints carry no organization ID in their path and act
+ * on whichever organization `X-Appwrite-Organization` names, so resolve it from
+ * the current directory's config unless the caller names one explicitly.
+ */
+export const sdkForConsoleWithOrganization = async (
+  organizationId?: string,
+): Promise<Client> => {
+  const client = await sdkForConsole();
+
+  client.headers["X-Appwrite-Organization"] = await resolveOrganizationId({
+    override: organizationId,
+    consoleClient: client,
+  });
+
+  return client;
+};
+
+export const sdkForProject = async (
+  projectIdOverride?: string,
+): Promise<Client> => {
   const client = new Client();
 
   const endpoint =
     localConfig.getEndpoint() || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
   const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
 
-  const project = localConfig.getProject().projectId
-    ? localConfig.getProject().projectId
-    : globalConfig.getProject();
+  const project = resolveProjectId(projectIdOverride);
 
   const key = globalConfig.getKey();
   const accessToken = globalConfig.getAccessToken();

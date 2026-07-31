@@ -878,6 +878,8 @@ class SDK
                             ],
                             'methods' => $methods,
                             'isConsoleOnly' => $this->isConsoleOnly($key),
+                            'consoleOnlyMethods' => $this->isConsoleOnly($key) ? [] : $this->getConsoleOnlyMethods($key),
+                            'resourceHeader' => $this->resourceHeaderScheme($key, $methods),
                         ];
 
                         if ($this->exclude($file, $params)) {
@@ -1159,13 +1161,69 @@ class SDK
     {
         $consoleOnlyServices = [
             'account',
+            'console',
+            'domains',
             'locale',
+            'manager',
+            'notifications',
             'organization',
             'organizations',
             'projects',
         ];
 
         return \in_array($serviceName, $consoleOnlyServices, true);
+    }
+
+    /**
+     * Methods on an otherwise project-scoped service that the API only serves on
+     * the console project. The `oauth2` discovery endpoints reject any other
+     * project, while the rest of the service stays bound to the caller's project.
+     *
+     * @return array<string>
+     */
+    protected function getConsoleOnlyMethods(string $serviceName): array
+    {
+        return match ($serviceName) {
+            'oauth2' => ['listOrganizations', 'listProjects'],
+            default => [],
+        };
+    }
+
+    /**
+     * The security scheme naming a service's own resource, or null when the
+     * service takes its target in the path like everything else.
+     *
+     * `/project` and `/organization` carry no ID: they act on whatever
+     * `X-Appwrite-Project` or `X-Appwrite-Organization` names, and without that
+     * header the API resolves an empty resource and answers 404. The spec says
+     * which those are — a header security scheme named after the service, and
+     * declared on that service's own methods:
+     *
+     *   project      -> Project        declared on its methods  => scoped
+     *   organization -> Organization   declared on its methods  => scoped
+     *   locale       -> Locale         NOT declared on them     => not scoped
+     *   projects     -> no such scheme                          => not scoped
+     *
+     * The `Locale` case is why the scheme has to appear in the method security
+     * and not merely exist: every service would otherwise match on name alone.
+     */
+    protected function resourceHeaderScheme(string $serviceName, array $methods): ?string
+    {
+        foreach ($this->spec->getGlobalHeaders() as $header) {
+            $key = $header['key'] ?? '';
+
+            if (\strtolower((string) $key) !== \strtolower($serviceName)) {
+                continue;
+            }
+
+            foreach ($methods as $method) {
+                if (\in_array($key, $method['security'] ?? [], true)) {
+                    return $key;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
