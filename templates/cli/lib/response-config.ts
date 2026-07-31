@@ -175,8 +175,13 @@ export const humanizeSeconds = (seconds: number): string => {
   return parts.slice(0, 2).join(" ");
 };
 
+/**
+ * The offset is mandatory: ECMAScript reads an offset-less date-time as local
+ * time, so accepting one would mean labelling a local instant UTC. Values
+ * without an offset fall through and render as they arrived.
+ */
 const ISO_DATE_TIME =
-  /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.\d+)?(Z|[+-]\d{2}:\d{2})?$/;
+  /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 
 /** Coarsest-unit-wins tiers; approximate on purpose, this is a readability aid. */
 const RELATIVE_TIERS: Array<[string, number]> = [
@@ -214,10 +219,7 @@ export const formatTimestamp = (value: string): string | null => {
   }
 
   const [, date, time, offset] = match;
-  const zone =
-    offset == null || offset === "Z" || offset === "+00:00"
-      ? " UTC"
-      : ` ${offset}`;
+  const zone = offset === "Z" || offset === "+00:00" ? " UTC" : ` ${offset}`;
   const stamp = `${date} ${time}${zone}`;
   const parsed = new Date(value);
 
