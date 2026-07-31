@@ -221,6 +221,37 @@ class CLI extends Node
         return false;
     }
 
+    /**
+     * How a header-scoped service is spelled in the generated CLI.
+     *
+     * `service.resourceHeader` says which security scheme names the service's
+     * own resource; this turns that into the flag, variable, label and client
+     * factory the template emits. Returns null for the usual case where the
+     * target is a path parameter.
+     *
+     * @return array{scheme: string, idVar: string, flag: string, label: string, factory: string}|null
+     */
+    private function getCliServiceScope(array $service): ?array
+    {
+        return match ($service['resourceHeader'] ?? null) {
+            'Organization' => [
+                'scheme' => 'Organization',
+                'idVar' => 'organizationId',
+                'flag' => 'organization-id',
+                'label' => 'Organization',
+                'factory' => 'sdkForConsoleWithOrganization',
+            ],
+            'Project' => [
+                'scheme' => 'Project',
+                'idVar' => 'projectId',
+                'flag' => 'project-id',
+                'label' => 'Project',
+                'factory' => 'sdkForProject',
+            ],
+            default => null,
+        };
+    }
+
     private function hasCliQueryParam(array $service): bool
     {
         foreach ($service['methods'] ?? [] as $method) {
@@ -853,6 +884,7 @@ class CLI extends Node
     {
         return array_merge(parent::getFilters(), [
             new TwigFilter('hasCliQueryParam', fn (array $service): bool => $this->hasCliQueryParam($service)),
+            new TwigFilter('cliServiceScope', fn (array $service): ?array => $this->getCliServiceScope($service)),
             new TwigFilter('cliQueryConfig', fn (array $method): array => $this->getCliQueryConfig($method)),
         ]);
     }

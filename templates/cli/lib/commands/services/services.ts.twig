@@ -34,16 +34,10 @@ import {
   parseFilterQuery,
 } from "../utils/query.js";
 {% endif %}
-{% set consoleOnlyMethods = service.isConsoleOnly ? [] : service.consoleOnlyMethods | default([]) %}
-{% set orgScoped = service.requiresOrganization | default(false) %}
-{% set projectScoped = service.requiresProject | default(false) %}
-{# These services name their target in a header instead of the path, so they take an ID flag. #}
-{% set scoped = orgScoped or projectScoped %}
-{% set scopedIdVar = orgScoped ? 'organizationId' : 'projectId' %}
-{% set scopedIdFlag = orgScoped ? 'organization-id' : 'project-id' %}
-{% set scopedIdLabel = orgScoped ? 'Organization' : 'Project' %}
-{% set scopedFactory = orgScoped ? 'sdkForConsoleWithOrganization' : 'sdkForProject' %}
-{% if orgScoped %}
+{% set consoleOnlyMethods = service.consoleOnlyMethods | default([]) %}
+{# Set when the service names its target in a header instead of the path, so it takes an ID flag. #}
+{% set scope = service | cliServiceScope %}
+{% if scope and scope.scheme == 'Organization' %}
 import { sdkForConsoleWithOrganization } from "../../sdks.js";
 {% elseif service.isConsoleOnly %}
 import { sdkForConsole } from "../../sdks.js";
@@ -72,13 +66,13 @@ import {
 import { {{ service.name | caseUcfirst }} } from "@appwrite.io/console";
 {% endif %}
 
-{% if scoped %}
-// Every endpoint here targets one {{ scopedIdLabel | lower }}, so the client is built per
-// command rather than cached across differing --{{ scopedIdFlag }} values.
+{% if scope %}
+// Every endpoint here targets one {{ scope.label | lower }}, so the client is built per
+// command rather than cached across differing --{{ scope.flag }} values.
 const get{{ service.name | caseUcfirst }}Client = async (
-  {{ scopedIdVar }}?: string,
+  {{ scope.idVar }}?: string,
 ): Promise<{{ service.name | caseUcfirst }}> =>
-  new {{ service.name | caseUcfirst }}(await {{ scopedFactory }}({{ scopedIdVar }}));
+  new {{ service.name | caseUcfirst }}(await {{ scope.factory }}({{ scope.idVar }}));
 {% else %}
 let {{ service.name | caseCamel }}Client: {{ service.name | caseUcfirst }} | null = null;
 
@@ -138,12 +132,12 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% set clientGetter = 'get' ~ (service.name | caseUcfirst) ~ ((method.name | caseCamel) in consoleOnlyMethods ? 'Console' : '') ~ 'Client' %}
 {% set hasScopedIdParam = false %}
 {% for parameter in method.parameters.all %}
-{% if parameter.name == scopedIdVar %}
+{% if scope and parameter.name == scope.idVar %}
 {% set hasScopedIdParam = true %}
 {% endif %}
 {% endfor %}
-{% set scopedFlag = scoped and not hasScopedIdParam %}
-{% set clientCall = clientGetter ~ (scoped ? '(' ~ scopedIdVar ~ ')' : '()') %}
+{% set scopedFlag = scope and not hasScopedIdParam %}
+{% set clientCall = clientGetter ~ (scope ? '(' ~ scope.idVar ~ ')' : '()') %}
 {% set query = method | cliQueryConfig %}
 const {{ commandVar }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`)
@@ -189,7 +183,7 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
   .requiredOption(`--destination <destination>`, `Path to save the file to.`)
 {% endif %}
 {% if scopedFlag %}
-  .option(`--{{ scopedIdFlag }} <{{ scopedIdFlag }}>`, `{{ scopedIdLabel }} to act on. Defaults to the {{ scopedIdLabel | lower }} linked in {{ language.params.executableName|caseLower }}.config.json.`)
+  .option(`--{{ scope.flag }} <{{ scope.flag }}>`, `{{ scope.label }} to act on. Defaults to the {{ scope.label | lower }} linked in {{ language.params.executableName|caseLower }}.config.json.`)
 {% endif %}
   .action(
     actionRunner(
@@ -201,7 +195,7 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% set params = params|merge(query.extraParams) %}
 {% endif %}
 {% if scopedFlag %}
-{% set params = params|merge([scopedIdVar]) %}
+{% set params = params|merge([scope.idVar]) %}
 {% endif %}
 {% set hasParams = params | length > 0 %}
 {% set actionParams = hasParams ? '{ ' ~ params | join(', ') ~ (method.type == 'location' ? ', destination' : '') ~ ' }' : (method.type == 'location' ? '{ destination }' : '') %}

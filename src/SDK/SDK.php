@@ -878,9 +878,8 @@ class SDK
                             ],
                             'methods' => $methods,
                             'isConsoleOnly' => $this->isConsoleOnly($key),
-                            'consoleOnlyMethods' => $this->getConsoleOnlyMethods($key),
-                            'requiresOrganization' => $this->resourceHeaderScheme($key, $methods) === 'Organization',
-                            'requiresProject' => $this->resourceHeaderScheme($key, $methods) === 'Project',
+                            'consoleOnlyMethods' => $this->isConsoleOnly($key) ? [] : $this->getConsoleOnlyMethods($key),
+                            'resourceHeader' => $this->resourceHeaderScheme($key, $methods),
                         ];
 
                         if ($this->exclude($file, $params)) {

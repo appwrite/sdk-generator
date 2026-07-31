@@ -1894,12 +1894,16 @@ async function runAuthChecks() {
 
     try {
       delete process.env.APPWRITE_PROJECT_ID;
-      assert.equal(resolveProjectId(), "");
+      const configured = resolveProjectId();
 
       process.env.APPWRITE_PROJECT_ID = "from-env";
       assert.equal(resolveProjectId(), "from-env");
 
       assert.equal(resolveProjectId("from-flag"), "from-flag");
+
+      // Falls back to the linked project once the override is gone.
+      delete process.env.APPWRITE_PROJECT_ID;
+      assert.equal(resolveProjectId(), configured);
     } finally {
       if (previousEnv === undefined) delete process.env.APPWRITE_PROJECT_ID;
       else process.env.APPWRITE_PROJECT_ID = previousEnv;
