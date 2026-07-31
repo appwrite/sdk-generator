@@ -11,6 +11,7 @@ import inquirer from 'inquirer';
 
 import packageJson from './package.json' with { type: 'json' };
 import { commandDescriptions, cliConfig } from './lib/parser.js';
+import { followUpHintFor } from './lib/hints.js';
 import {
     getLatestVersionForCurrentInstallation,
     compareVersions,
@@ -158,6 +159,7 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
                 cliConfig.displayFields = Array.isArray(commandConfig.outputFields)
                     ? commandConfig.outputFields
                     : [];
+                cliConfig.followUpHint = followUpHintFor(actionCommand);
             })
             .on('option:json', () => {
                 cliConfig.json = true;

@@ -505,6 +505,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/hints.ts',
+                'template'      => 'cli/lib/hints.ts',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/questions.ts',
                 'template'      => 'cli/lib/questions.ts',
             ],

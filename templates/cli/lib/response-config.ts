@@ -33,6 +33,8 @@ const toTitleCase = (value: string): string =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
 
+const COLUMN_GAP = "  ";
+
 const padColumn = (value: string, width: number): string => {
   const valueWidth = stringWidth(value);
   if (valueWidth >= width) return value;
@@ -65,7 +67,7 @@ const renderAlignedColumns = (
       return padColumn(value, widths[columnIndex]);
     });
 
-    console.log(`${indent}${headerParts.join("  ")}`.trimEnd());
+    console.log(`${indent}${headerParts.join(COLUMN_GAP)}`.trimEnd());
   }
 
   for (let idx = 0; idx < columns[0].length; idx++) {
@@ -78,8 +80,154 @@ const renderAlignedColumns = (
       return padColumn(value, widths[columnIndex]);
     });
 
-    console.log(`${indent}${parts.join("  ")}`.trimEnd());
+    console.log(`${indent}${parts.join(COLUMN_GAP)}`.trimEnd());
   }
+};
+
+const wrapValues = (values: string[], width: number): string[] => {
+  const lines: string[] = [];
+  let current = "";
+
+  values.forEach((value, index) => {
+    const piece = index === values.length - 1 ? value : `${value},`;
+
+    if (current === "") {
+      current = piece;
+      return;
+    }
+
+    if (stringWidth(`${current} ${piece}`) > width) {
+      lines.push(current);
+      current = piece;
+      return;
+    }
+
+    current = `${current} ${piece}`;
+  });
+
+  if (current !== "") {
+    lines.push(current);
+  }
+
+  return lines;
+};
+
+/** Plan quotas are quoted in decimal units, matching how the console reads them. */
+const SIZE_UNITS = ["MB", "GB", "TB", "PB"] as const;
+type SizeUnit = (typeof SIZE_UNITS)[number];
+
+const trimTrailingZeros = (value: number): string =>
+  String(Number(value.toFixed(2)));
+
+const formatSize = (amount: number, unit: SizeUnit): string => {
+  const base = `${amount} ${unit}`;
+  let index = SIZE_UNITS.indexOf(unit);
+  let scaled = amount;
+
+  while (scaled >= 1000 && index < SIZE_UNITS.length - 1) {
+    scaled /= 1000;
+    index++;
+  }
+
+  if (SIZE_UNITS[index] === unit) {
+    return base;
+  }
+
+  return `${base} ${chalk.dim(`(${trimTrailingZeros(scaled)} ${SIZE_UNITS[index]})`)}`;
+};
+
+const compactNumber = new Intl.NumberFormat("en", {
+  notation: "compact",
+  maximumFractionDigits: 2,
+});
+
+const formatCount = (amount: number): string => {
+  if (Math.abs(amount) < 10000) {
+    return String(amount);
+  }
+
+  return `${amount} ${chalk.dim(`(${compactNumber.format(amount)})`)}`;
+};
+
+export const humanizeSeconds = (seconds: number): string => {
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return "";
+  }
+
+  const units: Array<[string, number]> = [
+    ["d", 86400],
+    ["h", 3600],
+    ["m", 60],
+    ["s", 1],
+  ];
+
+  const parts: string[] = [];
+  let remaining = Math.round(seconds);
+
+  for (const [suffix, size] of units) {
+    const amount = Math.floor(remaining / size);
+    if (amount > 0) {
+      parts.push(`${amount}${suffix}`);
+      remaining -= amount * size;
+    }
+  }
+
+  return parts.slice(0, 2).join(" ");
+};
+
+/**
+ * The offset is mandatory: ECMAScript reads an offset-less date-time as local
+ * time, so accepting one would mean labelling a local instant UTC. Values
+ * without an offset fall through and render as they arrived.
+ */
+const ISO_DATE_TIME =
+  /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
+/** Coarsest-unit-wins tiers; approximate on purpose, this is a readability aid. */
+const RELATIVE_TIERS: Array<[string, number]> = [
+  ["y", 31536000],
+  ["mo", 2592000],
+  ["d", 86400],
+  ["h", 3600],
+  ["m", 60],
+];
+
+const relativeTime = (date: Date): string => {
+  const deltaSeconds = (Date.now() - date.getTime()) / 1000;
+  const magnitude = Math.abs(deltaSeconds);
+
+  if (magnitude < 45) {
+    return "just now";
+  }
+
+  const [suffix, size] =
+    RELATIVE_TIERS.find(([, tierSize]) => magnitude >= tierSize) ??
+    RELATIVE_TIERS[RELATIVE_TIERS.length - 1];
+  const label = `${Math.floor(magnitude / size)}${suffix}`;
+
+  return deltaSeconds > 0 ? `${label} ago` : `in ${label}`;
+};
+
+/**
+ * Turns `2026-07-31T02:49:41.895+00:00` into `2026-07-31 02:49:41 UTC (2h ago)`.
+ * Returns null when the value is not an ISO timestamp, so callers can fall back.
+ */
+export const formatTimestamp = (value: string): string | null => {
+  const match = ISO_DATE_TIME.exec(value.trim());
+  if (!match) {
+    return null;
+  }
+
+  const [, date, time, offset] = match;
+  const zone = offset === "Z" || offset === "+00:00" ? " UTC" : ` ${offset}`;
+  const stamp = `${date} ${time}${zone}`;
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return stamp;
+  }
+
+  return `${stamp} ${chalk.dim(`(${relativeTime(parsed)})`)}`;
 };
 
 const compactDate = (value: unknown): string => {
@@ -603,18 +751,171 @@ const structuredCollectionRenderers: Record<
   ]),
 };
 
+/**
+ * How a field's bare number should be annotated. Units belong to the section,
+ * not to the key: a plan's `fileSize` is megabytes, a bucket's is bytes.
+ */
+type FieldFormat =
+  /** Decimal size in the given unit, scaled up when that reads better. */
+  | { kind: "size"; unit: SizeUnit }
+  /** Large tallies get a compact magnitude hint: 3500000 (3.5M). */
+  | { kind: "count" }
+  /** A literal trailing label, e.g. `168 days`. */
+  | { kind: "label"; label: string };
+
+type SectionField = {
+  key: string;
+  format?: FieldFormat;
+};
+
+/**
+ * Embedded models that arrive with far more fields than a reader asked for.
+ * These are allowlists rather than denylists on purpose: the API keeps adding
+ * capability flags, and an allowlist stays correct without maintenance. Order
+ * here is the render order; anything absent is summarised as a footer count.
+ *
+ * Units are verified against how the console interprets the same plan fields —
+ * `bandwidth`/`storage` in GB, `fileSize` in MB.
+ */
+const sectionFields: Record<string, SectionField[]> = {
+  billingPlanDetails: [
+    { key: "$id" },
+    { key: "name" },
+    { key: "group" },
+    { key: "price" },
+    { key: "currency" },
+    { key: "trial", format: { kind: "label", label: "days" } },
+    { key: "bandwidth", format: { kind: "size", unit: "GB" } },
+    { key: "storage", format: { kind: "size", unit: "GB" } },
+    { key: "fileSize", format: { kind: "size", unit: "MB" } },
+    { key: "users", format: { kind: "count" } },
+    { key: "executions", format: { kind: "count" } },
+    { key: "GBHours", format: { kind: "label", label: "GB-hours" } },
+    { key: "databasesReads", format: { kind: "count" } },
+    { key: "databasesWrites", format: { kind: "count" } },
+    { key: "realtime", format: { kind: "count" } },
+    { key: "realtimeMessages", format: { kind: "count" } },
+    { key: "messages", format: { kind: "count" } },
+    { key: "domains", format: { kind: "count" } },
+  ],
+};
+
+export const sectionFieldKeys = (
+  sectionName: string | undefined,
+): string[] | undefined =>
+  sectionName
+    ? sectionFields[sectionName]?.map((field) => field.key)
+    : undefined;
+
+export const formatSectionField = (
+  sectionName: string | undefined,
+  key: string,
+  value: unknown,
+): unknown => {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return value;
+  }
+
+  const format = sectionName
+    ? sectionFields[sectionName]?.find((field) => field.key === key)?.format
+    : undefined;
+
+  if (!format) {
+    return value;
+  }
+
+  switch (format.kind) {
+    case "size":
+      return formatSize(value, format.unit);
+    case "count":
+      return formatCount(value);
+    case "label":
+      return `${value} ${format.label}`;
+  }
+};
+
+/**
+ * Rows that carry nothing but a name and an on/off switch — `authMethods`,
+ * `services`, `protocols` and friends. A two column table wastes a screen on
+ * them, so they collapse into wrapped enabled/disabled lists instead.
+ */
+const ToggleRowSchema = z
+  .strictObject({
+    $id: z.string().optional(),
+    name: z.string().optional(),
+    key: z.string().optional(),
+    enabled: z.boolean(),
+  })
+  .refine(
+    (row) => isPresent(row.$id) || isPresent(row.key) || isPresent(row.name),
+    { message: "Expected a toggle row with a name" },
+  );
+
+const toggleLabel = (row: JsonObject): string =>
+  compactText(
+    valueFrom(row, "$id") ?? valueFrom(row, "key") ?? valueFrom(row, "name"),
+  );
+
+const renderToggleCollection = (
+  rows: JsonObject[],
+  options: StructuredCollectionRenderOptions = {},
+): boolean => {
+  if (rows.length === 0) {
+    return false;
+  }
+
+  if (!rows.every((row) => ToggleRowSchema.safeParse(row).success)) {
+    return false;
+  }
+
+  const groups: Array<[string, string[], (value: string) => string]> = [
+    ["enabled", [], chalk.green],
+    ["disabled", [], chalk.dim],
+  ];
+
+  for (const row of rows) {
+    groups[row.enabled === true ? 0 : 1][1].push(toggleLabel(row));
+  }
+
+  const populated = groups.filter(([, labels]) => labels.length > 0);
+  const indent = options.indent ?? "";
+  const headings = populated.map(
+    ([group, labels]) => `${group} (${labels.length})`,
+  );
+  const headingWidth = Math.max(
+    ...headings.map((heading) => stringWidth(heading)),
+  );
+  const available = Math.max(
+    40,
+    (process.stdout.columns || 100) -
+      stringWidth(indent) -
+      headingWidth -
+      COLUMN_GAP.length,
+  );
+
+  populated.forEach(([, labels, paint], groupIndex) => {
+    const heading = padColumn(paint(headings[groupIndex]), headingWidth);
+
+    wrapValues(labels, available).forEach((line, lineIndex) => {
+      const prefix = lineIndex === 0 ? heading : " ".repeat(headingWidth);
+      console.log(`${indent}${prefix}${COLUMN_GAP}${line}`);
+    });
+  });
+
+  return true;
+};
+
 export const renderStructuredCollection = (
   sectionName: string | undefined,
   rows: JsonObject[],
   options: StructuredCollectionRenderOptions = {},
 ): boolean => {
-  if (!sectionName) {
-    return false;
-  }
+  const renderer = sectionName
+    ? structuredCollectionRenderers[sectionName]
+    : undefined;
 
-  const renderer = structuredCollectionRenderers[sectionName];
   if (!renderer) {
-    return false;
+    return renderToggleCollection(rows, options);
   }
 
   const allRowsMatch = rows.every(
@@ -622,7 +923,7 @@ export const renderStructuredCollection = (
   );
 
   if (!allRowsMatch) {
-    return false;
+    return renderToggleCollection(rows, options);
   }
 
   const columns = renderer.columns.map((column) =>
