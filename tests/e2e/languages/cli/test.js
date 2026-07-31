@@ -1647,6 +1647,38 @@ async function runAuthChecks() {
     }
   });
 
+  await authCheck("project-id-override", async () => {
+    globalConfig.clear();
+    globalConfig.addSession("proj-tok", {
+      endpoint: "http://localhost/v1",
+      accessToken: "cached-token",
+      tokenExpiry: Date.now() + 3600000,
+    });
+    globalConfig.setCurrentSession("proj-tok");
+
+    const originalGetProject = localConfig.getProject;
+    const originalGetEndpoint = localConfig.getEndpoint;
+    localConfig.getEndpoint = () => "http://localhost/v1";
+    localConfig.getProject = () => ({ projectId: "from-config" });
+
+    try {
+      const fromConfig = await sdkForProject();
+      assert.equal(fromConfig.config.project, "from-config");
+
+      const fromFlag = await sdkForProject("from-flag");
+      assert.equal(fromFlag.config.project, "from-flag");
+
+      localConfig.getProject = () => ({});
+      await assert.rejects(() => sdkForProject(), /Project is not set/);
+
+      const unlinked = await sdkForProject("from-flag");
+      assert.equal(unlinked.config.project, "from-flag");
+    } finally {
+      localConfig.getProject = originalGetProject;
+      localConfig.getEndpoint = originalGetEndpoint;
+    }
+  });
+
   await authCheck("cloud-login-rejects-credentials", async () => {
     const prev = process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
     delete process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;

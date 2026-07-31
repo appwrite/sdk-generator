@@ -194,16 +194,20 @@ export const sdkForConsoleWithOrganization = async (
   return client;
 };
 
-export const sdkForProject = async (): Promise<Client> => {
+export const sdkForProject = async (
+  projectIdOverride?: string,
+): Promise<Client> => {
   const client = new Client();
 
   const endpoint =
     localConfig.getEndpoint() || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
   const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
 
-  const project = localConfig.getProject().projectId
-    ? localConfig.getProject().projectId
-    : globalConfig.getProject();
+  const project =
+    projectIdOverride ||
+    (localConfig.getProject().projectId
+      ? localConfig.getProject().projectId
+      : globalConfig.getProject());
 
   const key = globalConfig.getKey();
   const accessToken = globalConfig.getAccessToken();

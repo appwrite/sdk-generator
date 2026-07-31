@@ -880,6 +880,7 @@ class SDK
                             'isConsoleOnly' => $this->isConsoleOnly($key),
                             'consoleOnlyMethods' => $this->getConsoleOnlyMethods($key),
                             'requiresOrganization' => $this->requiresOrganizationHeader($key),
+                            'requiresProject' => $this->requiresProjectHeader($key),
                         ];
 
                         if ($this->exclude($file, $params)) {
@@ -1197,6 +1198,16 @@ class SDK
     protected function requiresOrganizationHeader(string $serviceName): bool
     {
         return $serviceName === 'organization';
+    }
+
+    /**
+     * Services whose endpoints take no project ID and instead act on the project
+     * named by the `X-Appwrite-Project` header. Every other service sends that
+     * header too, but as context rather than as the resource being acted on.
+     */
+    protected function requiresProjectHeader(string $serviceName): bool
+    {
+        return $serviceName === 'project';
     }
 
     /**
