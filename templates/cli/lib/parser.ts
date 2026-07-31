@@ -1022,7 +1022,7 @@ export const commandDescriptions: Record<string, string> = {
   messaging: `The messaging command allows you to manage topics and targets and send messages.`,
   migrations: `The migrations command allows you to migrate data between services.`,
   notifications: `The notifications command allows you to read and manage your Appwrite Console notifications.`,
-  oauth2: `The oauth2 command allows you to authorize apps and issue standards-based OAuth2 and OpenID Connect tokens. The 'list-organizations' and 'list-projects' commands are console-level and report the organizations and projects your current session can access.`,
+  oauth2: `The oauth2 command allows you to authorize apps and issue standards-based OAuth2 and OpenID Connect tokens.`,
   organization: `The organization command allows you to manage organization-level projects.`,
   organizations: `The organizations command allows you to manage organization billing, plans, invoices, and add-ons.`,
   presences: `The presences command allows you to track and manage real-time user presence in your project.`,

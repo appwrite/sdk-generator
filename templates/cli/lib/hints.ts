@@ -7,11 +7,14 @@ import { EXECUTABLE_NAME } from "./constants.js";
  * so they can be checked against `--help` output directly.
  */
 const followUpHints: Record<string, string> = {
+  "list-projects": `Run \`${EXECUTABLE_NAME} project get --project-id <project-id>\` to see a project's details.`,
+  "list-organizations": `Run \`${EXECUTABLE_NAME} organization get --organization-id <organization-id>\` to see an organization's details.`,
+  // Hidden oauth2 paths kept so the legacy invocations still get a hint.
   "oauth2 list-projects": `Run \`${EXECUTABLE_NAME} project get --project-id <project-id>\` to see a project's details.`,
   "oauth2 list-organizations": `Run \`${EXECUTABLE_NAME} organization get --organization-id <organization-id>\` to see an organization's details.`,
 };
 
-/** Command path without the executable name, e.g. `oauth2 list-projects`. */
+/** Command path without the executable name, e.g. `list-projects`. */
 const commandPath = (command: Command): string => {
   const segments: string[] = [];
 
