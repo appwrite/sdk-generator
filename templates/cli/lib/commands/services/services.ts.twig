@@ -37,8 +37,8 @@ import {
 {% set consoleOnlyMethods = service.consoleOnlyMethods | default([]) %}
 {# Set when the service names its target in a header instead of the path, so it takes an ID flag. #}
 {% set scope = service | cliServiceScope %}
-{% if scope and scope.scheme == 'Organization' %}
-import { sdkForConsoleWithOrganization } from "../../sdks.js";
+{% if scope %}
+import { {{ scope.factory }} } from "../../sdks.js";
 {% elseif service.isConsoleOnly %}
 import { sdkForConsole } from "../../sdks.js";
 {% elseif consoleOnlyMethods is not empty %}

@@ -222,34 +222,44 @@ class CLI extends Node
     }
 
     /**
+     * Client factory per scheme that names a service's own resource.
+     * Organization scopes the console client, Project is the project client, so
+     * the names cannot be derived from the scheme.
+     */
+    private const array SCOPE_FACTORIES = [
+        'Organization' => 'sdkForConsoleWithOrganization',
+        'Project' => 'sdkForProject',
+    ];
+
+    /**
      * How a header-scoped service is spelled in the generated CLI.
      *
      * `service.resourceHeader` says which security scheme names the service's
-     * own resource; this turns that into the flag, variable, label and client
-     * factory the template emits. Returns null for the usual case where the
-     * target is a path parameter.
+     * own resource; this turns that into the label, variable, flag and factory
+     * the template emits. Returns null for the usual case where the target is a
+     * path parameter.
      *
-     * @return array{scheme: string, idVar: string, flag: string, label: string, factory: string}|null
+     * @return array{label: string, idVar: string, flag: string, factory: string}|null
      */
     private function getCliServiceScope(array $service): ?array
     {
-        return match ($service['resourceHeader'] ?? null) {
-            'Organization' => [
-                'scheme' => 'Organization',
-                'idVar' => 'organizationId',
-                'flag' => 'organization-id',
-                'label' => 'Organization',
-                'factory' => 'sdkForConsoleWithOrganization',
-            ],
-            'Project' => [
-                'scheme' => 'Project',
-                'idVar' => 'projectId',
-                'flag' => 'project-id',
-                'label' => 'Project',
-                'factory' => 'sdkForProject',
-            ],
-            default => null,
-        };
+        // Defaults to '' rather than null: most services are unscoped, and null
+        // is not a valid array offset.
+        $scheme = $service['resourceHeader'] ?? '';
+        $factory = self::SCOPE_FACTORIES[$scheme] ?? null;
+
+        if ($factory === null) {
+            return null;
+        }
+
+        $idVar = \lcfirst($scheme) . 'Id';
+
+        return [
+            'label' => $scheme,
+            'idVar' => $idVar,
+            'flag' => $this->getCliOptionName($idVar),
+            'factory' => $factory,
+        ];
     }
 
     private function hasCliQueryParam(array $service): bool
