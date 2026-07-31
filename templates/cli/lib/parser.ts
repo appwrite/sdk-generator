@@ -20,7 +20,13 @@ import {
   SDK_LOGO,
   EXECUTABLE_NAME,
 } from "./constants.js";
-import { renderStructuredCollection } from "./response-config.js";
+import {
+  formatSectionField,
+  formatTimestamp,
+  humanizeSeconds,
+  renderStructuredCollection,
+  sectionFieldKeys,
+} from "./response-config.js";
 
 const cliConfig: CliConfig = {
   verbose: false,
@@ -33,6 +39,7 @@ const cliConfig: CliConfig = {
   report: false,
   reportData: {},
   displayFields: [],
+  followUpHint: "",
 };
 
 type JsonObject = Record<string, unknown>;
@@ -67,8 +74,14 @@ const toJsonObject = (value: unknown): JsonObject | null => {
   return null;
 };
 
+/**
+ * Internal bookkeeping that carries no meaning for a CLI reader, plus fields
+ * the API returns twice under two names (`billingPlanId` === `billingPlan`).
+ */
+const NORMAL_VIEW_HIDDEN_KEYS = new Set(["onboarding", "billingPlanId"]);
+
 const isNormalViewHiddenKey = (key: string): boolean =>
-  key.startsWith("$") && key !== "$id";
+  (key.startsWith("$") && key !== "$id") || NORMAL_VIEW_HIDDEN_KEYS.has(key);
 const printSpacerLine = (): void => {
   process.stdout.write(" \n");
 };
@@ -113,6 +126,17 @@ const endRender = (): void => {
       hint(message);
     }
   }
+
+  // Machine-readable output stays free of prose. Cleared once shown so commands
+  // that render more than once do not repeat themselves.
+  if (renderDepth === 0 && cliConfig.followUpHint !== "") {
+    const message = cliConfig.followUpHint;
+    cliConfig.followUpHint = "";
+
+    if (!cliConfig.json && !cliConfig.raw) {
+      hint(message);
+    }
+  }
 };
 
 const withRender = <T>(callback: () => T): T => {
@@ -134,8 +158,10 @@ const isSensitiveKey = (key: string): boolean => {
   );
 };
 
-const maskSensitiveString = (value: string): string => {
-  if (value.length <= 16) {
+const maskSensitiveString = (value: string, key: string): string => {
+  // A key or token tail helps identify which credential is in play; a password
+  // tail is just a leak, so those are masked whole.
+  if (value.length <= 16 || /password/i.test(key)) {
     return HIDDEN_VALUE;
   }
 
@@ -160,7 +186,7 @@ const maskSensitiveData = (
     }
 
     if (typeof value === "string") {
-      return maskSensitiveString(value);
+      return maskSensitiveString(value, key);
     }
 
     if (value == null) {
@@ -357,6 +383,7 @@ export const parse = (data: unknown): void => {
         drawTable([section.value as JsonObject], {
           indent: "  ",
           sectionName: section.key,
+          keyValue: true,
         });
       }
 
@@ -398,6 +425,8 @@ const truncateToVisibleWidth = (str: string, max: number): string => {
 type NamedTableOptions = {
   indent?: string;
   sectionName?: string;
+  /** Render as stacked key/value lines rather than a column table. */
+  keyValue?: boolean;
 };
 
 type EntryRenderOptions = {
@@ -442,7 +471,26 @@ const formatCellValue = (value: unknown): string => {
 
 const formatKeyValue = (key: string, value: unknown): string => {
   if (key === "status" && typeof value === "boolean") {
-    return value ? "active" : "inactive";
+    return value ? chalk.green("active") : chalk.dim("inactive");
+  }
+
+  if (typeof value === "boolean") {
+    return value ? chalk.green("true") : chalk.dim("false");
+  }
+
+  // Durations come over the wire as raw seconds, which nobody reads at a glance.
+  if (typeof value === "number" && /duration$/i.test(key)) {
+    const humanized = humanizeSeconds(value);
+    if (humanized !== "") {
+      return `${value} ${chalk.dim(`(${humanized})`)}`;
+    }
+  }
+
+  if (typeof value === "string") {
+    const timestamp = formatTimestamp(value);
+    if (timestamp !== null) {
+      return timestamp;
+    }
   }
 
   return String(value);
@@ -524,14 +572,19 @@ const drawKeyValueEntries = (
   }
 };
 
+const printWithheldFieldNote = (count: number, indent?: string): void => {
+  if (count <= 0) return;
+
+  const label = count === 1 ? "field" : "fields";
+  console.log(
+    `${indent ?? ""}${chalk.dim(`… ${count} more ${label} — pass --raw to show all`)}`,
+  );
+};
+
 const drawNamedObjectCollection = (
   rows: JsonObject[],
   options: NamedTableOptions = {},
 ): boolean => {
-  if (renderStructuredCollection(options.sectionName, rows, options)) {
-    return true;
-  }
-
   const scalarEntries = rows.map((row) => toScalarEntries(row));
   const flatScalarEntries = scalarEntries.flat();
 
@@ -589,7 +642,7 @@ export const drawTable = (
       return;
     }
 
-    const rows = applyDisplayFilter(
+    const visibleRows = applyDisplayFilter(
       data.map((item): JsonObject => {
         const maskedItem = maskSensitiveData(item, undefined, false);
         const row = toJsonObject(maskedItem) ?? {};
@@ -604,6 +657,43 @@ export const drawTable = (
       }),
     );
 
+    // An explicit --display selection wins; the reader already said what they want.
+    const allowlist =
+      cliConfig.displayFields.length > 0
+        ? undefined
+        : sectionFieldKeys(options.sectionName);
+    let withheldFields = 0;
+
+    const rows = allowlist
+      ? visibleRows.map((row) => {
+          const kept: JsonObject = {};
+
+          for (const key of allowlist) {
+            if (Object.prototype.hasOwnProperty.call(row, key)) {
+              kept[key] = formatSectionField(
+                options.sectionName,
+                key,
+                row[key],
+              );
+            }
+          }
+
+          withheldFields += Object.keys(row).length - Object.keys(kept).length;
+
+          return kept;
+        })
+      : visibleRows;
+
+    if (renderStructuredCollection(options.sectionName, rows, options)) {
+      printWithheldFieldNote(withheldFields, options.indent);
+      return;
+    }
+
+    if (options.keyValue && drawNamedObjectCollection(rows, options)) {
+      printWithheldFieldNote(withheldFields, options.indent);
+      return;
+    }
+
     // Create an object with all the keys in it
     const obj = rows.reduce((res, item) => ({ ...res, ...item }), {});
     // Get those keys as an array
@@ -616,6 +706,7 @@ export const drawTable = (
     // If too many columns, show condensed key-value output with only scalar, non-empty fields
     if (allKeys.length > MAX_COLUMNS) {
       if (drawNamedObjectCollection(rows, options)) {
+        printWithheldFieldNote(withheldFields, options.indent);
         return;
       }
 
@@ -667,6 +758,7 @@ export const drawTable = (
       table.push(rowValues);
     });
     console.log(table.toString());
+    printWithheldFieldNote(withheldFields, options.indent);
   });
 };
 

@@ -60,6 +60,8 @@ export interface CliConfig {
   report: boolean;
   reportData: Record<string, unknown>;
   displayFields: string[];
+  /** Follow-up suggestion printed once after the active command's output. */
+  followUpHint: string;
 }
 
 export interface SessionData {

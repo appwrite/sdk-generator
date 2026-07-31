@@ -35,6 +35,11 @@ import {
 } from "../utils/query.js";
 {% endif %}
 {% set consoleOnlyMethods = service.consoleOnlyMethods | default([]) %}
+{# Commands that only return identifiers, keyed by service.method, pointed at the command that shows the full resource. #}
+{% set followUpHints = {
+  'oauth2.listProjects': 'Run `' ~ (language.params.executableName|caseLower) ~ ' project get --project-id <project-id>` to see a project\'s details.',
+  'oauth2.listOrganizations': 'Run `' ~ (language.params.executableName|caseLower) ~ ' organization get --organization-id <organization-id>` to see an organization\'s details.'
+} %}
 {# Set when the service names its target in a header instead of the path, so it takes an ID flag. #}
 {% set scope = service | cliServiceScope %}
 {% if scope %}
@@ -139,6 +144,7 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% set scopedFlag = scope and not hasScopedIdParam %}
 {% set clientCall = clientGetter ~ (scope ? '(' ~ scope.idVar ~ ')' : '()') %}
 {% set query = method | cliQueryConfig %}
+{% set followUpHint = followUpHints[service.name ~ '.' ~ (method.name | caseCamel)] | default('') %}
 const {{ commandVar }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`)
   .description(`{{ method.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
@@ -234,6 +240,9 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 
 {% if service.name == 'projects' and method.name == 'list' %}
 ({{ commandVar }} as Command & { outputFields?: string[] }).outputFields = ["name", "$id", "region", "status"];
+{% endif %}
+{% if followUpHint %}
+({{ commandVar }} as Command & { followUpHint?: string }).followUpHint = {{ followUpHint | json_encode | raw }};
 {% endif %}
 
 {% endif %}

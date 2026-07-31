@@ -154,10 +154,14 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
             .hook('preAction', (_thisCommand, actionCommand) => {
                 const commandConfig = actionCommand as typeof actionCommand & {
                     outputFields?: string[];
+                    followUpHint?: string;
                 };
                 cliConfig.displayFields = Array.isArray(commandConfig.outputFields)
                     ? commandConfig.outputFields
                     : [];
+                cliConfig.followUpHint = typeof commandConfig.followUpHint === 'string'
+                    ? commandConfig.followUpHint
+                    : '';
             })
             .on('option:json', () => {
                 cliConfig.json = true;
