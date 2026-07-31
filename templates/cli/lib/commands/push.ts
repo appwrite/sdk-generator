@@ -4368,13 +4368,3 @@ push
   .alias("topics")
   .description("Push messaging topics in the current project.")
   .action(actionRunner(pushMessagingTopic));
-
-export const deploy = new Command("deploy")
-  .description(`Removed. Use ${EXECUTABLE_NAME} push instead`)
-  .action(
-    actionRunner(async () => {
-      warn(
-        `${EXECUTABLE_NAME} deploy has been removed. Please use '${EXECUTABLE_NAME} push' instead`,
-      );
-    }),
-  );

@@ -12,6 +12,7 @@ import inquirer from 'inquirer';
 import packageJson from './package.json' with { type: 'json' };
 import { commandDescriptions, cliConfig } from './lib/parser.js';
 import { followUpHintFor } from './lib/hints.js';
+import { formatMainHelp } from './lib/help.js';
 import {
     getLatestVersionForCurrentInstallation,
     compareVersions,
@@ -32,7 +33,7 @@ import { init } from './lib/commands/init.js';
 import { types } from './lib/commands/types.js';
 import { pull } from './lib/commands/pull.js';
 import { run } from './lib/commands/run.js';
-import { push, deploy } from './lib/commands/push.js';
+import { push } from './lib/commands/push.js';
 import { update } from './lib/commands/update.js';
 import { generate } from './lib/commands/generate.js';
 {% else %}
@@ -133,14 +134,14 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
             .description(commandDescriptions['main'])
             .configureHelp({
                 helpWidth: process.stdout.columns || 80,
-                sortSubcommands: true,
+                formatHelp: formatMainHelp,
             })
-            .helpOption('-h, --help', 'Display help for command')
-            .version(version, '-v, --version', 'Output the version number')
-            .option('-V, --verbose', 'Show complete error log')
-            .option('-j, --json', 'Output filtered JSON without empty values')
-            .option('-R, --raw', 'Output full JSON response (secrets still redacted unless --show-secrets is set)')
-            .option('--show-secrets', 'Display sensitive values like secrets and tokens in output')
+            .helpOption('-h, --help', 'Display help for a command')
+            .version(version, '-v, --version', 'Output the CLI version')
+            .option('-V, --verbose', 'Show full error stack traces')
+            .option('-j, --json', 'Output filtered JSON (empty values omitted)')
+            .option('-R, --raw', 'Output the full raw JSON response')
+            .option('--show-secrets', 'Reveal secrets and tokens in output (redacted by default)')
             .hook('preAction', async (_thisCommand, actionCommand) => {
                 if (isCompletionCommand(actionCommand)) {
                     return;
@@ -148,10 +149,10 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
 
                 await migrate();
             })
-            .option('-f,--force', 'Flag to confirm all warnings')
-            .option('-a,--all', 'Flag to push all resources')
-            .option('--id [id...]', 'Flag to pass a list of ids for a given action')
-            .option('--report', 'Enable reporting in case of CLI errors')
+            .option('-f, --force', 'Skip confirmation prompts')
+            .option('-a, --all', 'Push or pull every resource')
+            .option('--id [id...]', 'Limit the action to these resource ids')
+            .option('--report', 'Print a prefilled bug report link on error')
             .hook('preAction', (_thisCommand, actionCommand) => {
                 const commandConfig = actionCommand as typeof actionCommand & {
                     outputFields?: string[];
@@ -189,13 +190,13 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
             .showSuggestionAfterError()
 {% if sdk.test != "true" %}
             .addCommand(whoami)
-            .addCommand(register)
+            // `login` is the entry point; `register` only prints a signup link.
+            .addCommand(register, { hidden: true })
             .addCommand(login)
             .addCommand(init)
             .addCommand(pull)
             .addCommand(push)
             .addCommand(types)
-            .addCommand(deploy)
             .addCommand(run)
             .addCommand(update)
             .addCommand(generate)
