@@ -261,6 +261,8 @@ try {
 
         $sdk  = new SDK($language, buildSpec($specFormat, $spec));
         $sdk->setTest(false);
+        // Keep in sync with the CLI exclusions applied by the release pipeline,
+        // so examples/cli matches the SDK that actually ships.
         configureSDK($sdk, [
             'exclude' => [
                 'services' => [
@@ -271,6 +273,37 @@ try {
                     ['name' => 'apps'],
                     ['name' => 'oauth'],
                     ['name' => 'organizations'],
+                    ['name' => 'console'],
+                    ['name' => 'projects'],
+                    ['name' => 'waf'],
+                    ['name' => 'domains'],
+                    ['name' => 'manager'],
+                    ['name' => 'mysql'],
+                    ['name' => 'postgresql'],
+                    ['name' => 'mongo'],
+                    ['name' => 'usage'],
+                ],
+                'methods' => [
+                    ['name' => 'createBillingAddress'],
+                    ['name' => 'createPaymentMethod'],
+                    ['name' => 'deleteBillingAddress'],
+                    ['name' => 'deletePaymentMethod'],
+                    ['name' => 'getBillingAddress'],
+                    ['name' => 'getCoupon'],
+                    ['name' => 'getPaymentMethod'],
+                    ['name' => 'listBillingAddresses'],
+                    ['name' => 'listInvoices'],
+                    ['name' => 'listPaymentMethods'],
+                    ['name' => 'updateBillingAddress'],
+                    ['name' => 'updateConsoleAccess'],
+                    ['name' => 'updatePaymentMethod'],
+                    ['name' => 'updatePaymentMethodMandateOptions'],
+                    ['name' => 'updatePaymentMethodProvider'],
+                    ['name' => 'createPlanEstimation'],
+                    // Not yet available in the released @appwrite.io/console package
+                    ['name' => 'listStages'],
+                    ['name' => 'updateStage'],
+                    ['name' => 'approve'],
                 ],
             ],
         ]);
