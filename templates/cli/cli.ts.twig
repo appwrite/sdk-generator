@@ -5,7 +5,7 @@ const oldWidth = process.stdout.columns;
 process.stdout.columns = 100;
 /** ---------------------------------------------- */
 
-import { program } from 'commander';
+import { program, Option } from 'commander';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 
@@ -150,8 +150,10 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
                 await migrate();
             })
             .option('-f, --force', 'Skip confirmation prompts')
-            .option('-a, --all', 'Push or pull every resource')
-            .option('--id [id...]', 'Limit the action to these resource ids')
+            // Parsed at the root so `appwrite --all push` keeps working, but
+            // documented on `push` and `pull`, which are what they act on.
+            .addOption(new Option('-a, --all', 'Push or pull every resource').hideHelp())
+            .addOption(new Option('--id [id...]', 'Limit the action to these resource ids').hideHelp())
             .option('--report', 'Print a prefilled bug report link on error')
             .hook('preAction', (_thisCommand, actionCommand) => {
                 const commandConfig = actionCommand as typeof actionCommand & {
