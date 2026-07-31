@@ -99,20 +99,43 @@ const extractFirstValue = (output) => {
 
 const stripAnsi = (value) => value.replace(/\u001b\[[0-9;]*m/g, "");
 
-const extractHelpCommands = (helpOutput) => {
-  const commandsIndex = helpOutput.indexOf("Commands:");
+// The root help screen groups commands under uppercase headings rather than a
+// single `Commands:` block, so collect every command section and ignore the
+// two that do not list commands.
+const NON_COMMAND_HELP_SECTIONS = new Set(["USAGE", "OPTIONS"]);
 
-  if (commandsIndex === -1) {
+const extractHelpCommands = (helpOutput) => {
+  const commands = new Set();
+  let inCommandSection = false;
+
+  for (const line of stripAnsi(helpOutput).split("\n")) {
+    const heading = line.match(/^([A-Z][A-Z ]*[A-Z])$/)?.[1];
+
+    if (heading) {
+      inCommandSection = !NON_COMMAND_HELP_SECTIONS.has(heading);
+      continue;
+    }
+
+    if (!inCommandSection) {
+      continue;
+    }
+
+    // Rows are `  <command>  <summary>`; paths such as `oauth2 list-projects`
+    // contribute their top-level command only.
+    const commandName = line.match(/^ {2}([a-zA-Z0-9-]+)\b/)?.[1];
+
+    if (commandName && commandName !== "help") {
+      commands.add(commandName);
+    }
+  }
+
+  if (commands.size === 0) {
     throw new Error(
-      `Expected help output to include a Commands section.\n${helpOutput}`,
+      `Expected help output to list commands under a section heading.\n${helpOutput}`,
     );
   }
 
-  return helpOutput
-    .slice(commandsIndex)
-    .split("\n")
-    .map((line) => line.match(/^\s{2}([a-zA-Z0-9-]+)\b/)?.[1])
-    .filter((commandName) => commandName && commandName !== "help");
+  return [...commands];
 };
 
 const extractLineContaining = (output, token) => {

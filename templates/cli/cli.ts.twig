@@ -134,6 +134,10 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
             .description(commandDescriptions['main'])
             .configureHelp({
                 helpWidth: process.stdout.columns || 80,
+                // The grouped screen sets its own order, but `sortSubcommands`
+                // also drives Help.visibleCommands, which the completion
+                // scripts enumerate — keep it so their output stays stable.
+                sortSubcommands: true,
                 formatHelp: formatMainHelp,
             })
             .helpOption('-h, --help', 'Display help for a command')

@@ -236,7 +236,10 @@ export const formatMainHelp = (command: Command, helper: Help): string => {
 
   const claimed = new Set(groups.flatMap((group) => group.commands));
 
-  const other = command.commands
+  // Via the helper so this inherits commander's hidden-command filtering and
+  // the configured subcommand sort, rather than raw declaration order.
+  const other = helper
+    .visibleCommands(command)
     .filter((child) => isListed(child) && !claimed.has(child.name()))
     .map((child) => ({
       name: child.name(),
@@ -248,6 +251,7 @@ export const formatMainHelp = (command: Command, helper: Help): string => {
   }
 
   const nameWidth = Math.max(
+    0,
     ...sections.flatMap((group) => group.rows.map((row) => row.name.length)),
   );
 
