@@ -20,7 +20,7 @@ import {
   KeysCollection,
   KeysTable,
 } from "../config.js";
-import { applyConfigFilters } from "../config-filters.js";
+import { resolveOrganizationId } from "../context.js";
 import {
   canUseConsole,
   isAuthScopeError,
@@ -1307,10 +1307,11 @@ export class Push {
     settings?: SettingsType;
   }): Promise<void> {
     requireConsoleAuth("Pushing project settings");
-    await applyConfigFilters({
-      config,
-      consoleClient: this.consoleClient,
-    });
+    this.consoleClient.headers["X-Appwrite-Organization"] =
+      await resolveOrganizationId({
+        override: config.organizationId,
+        consoleClient: this.consoleClient,
+      });
     const organizationService = await getOrganizationService(
       this.consoleClient,
     );
@@ -3363,11 +3364,11 @@ const pushSettings = async (): Promise<void> => {
   try {
     const project = localConfig.getProject();
     const consoleClient = await sdkForConsole({ requiresAuth: true });
-    await applyConfigFilters({
-      config: project,
+    resolvedOrganizationId = await resolveOrganizationId({
+      override: project.organizationId,
       consoleClient,
     });
-    resolvedOrganizationId = consoleClient.headers["X-Appwrite-Organization"];
+    consoleClient.headers["X-Appwrite-Organization"] = resolvedOrganizationId;
     const organizationService = await getOrganizationService(consoleClient);
     const projectService = await getProjectService();
     const projectId = project.projectId;

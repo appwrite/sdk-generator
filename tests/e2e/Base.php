@@ -285,7 +285,8 @@ abstract class Base extends TestCase
         'auth:project-session-endpoint-mismatch:passed',
         'auth:cloud-login-rejects-credentials:passed',
         'auth:open-browser:passed',
-        'auth:config-filters-project-header:passed',
+        'auth:context-organization-lookup:passed',
+        'auth:context-project-precedence:passed',
     ];
 
     protected const CLI_ATTRIBUTE_SYNC_RESPONSES = [

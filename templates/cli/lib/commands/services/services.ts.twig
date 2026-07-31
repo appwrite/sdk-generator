@@ -3,6 +3,7 @@ import { Command } from "commander";
 {% set hasFileParam = false %}
 {% set hasObjectParam = false %}
 {% set hasQueryParam = service | hasCliQueryParam %}
+{% set hasContextParam = service | hasCliContextParam %}
 {% set enumNames = [] %}
 {% for method in service.methods %}
 {% if method.type == 'location' %}
@@ -53,6 +54,9 @@ import {
   hint,
 {% endif %}
 } from "../../parser.js";
+{% if hasContextParam %}
+import { resolveOrganizationId } from "../../context.js";
+{% endif %}
 {% if sdk.test %}
 {{ include('cli/base/mock.twig') }}
 {% else %}
@@ -61,6 +65,28 @@ import { {{ service.name | caseUcfirst }} } from "@appwrite.io/console";
 
 let {{ service.name | caseCamel }}Client: {{ service.name | caseUcfirst }} | null = null;
 
+{% if hasContextParam %}
+/**
+ * Resource context this service can be pointed at, overriding the values
+ * resolved from appwrite.config.json. Derived from the security schemes the
+ * spec declares on these methods.
+ */
+type ContextOverrides = {
+  organizationId?: string;
+};
+
+const get{{ service.name | caseUcfirst }}Client = async (context: ContextOverrides = {}): Promise<{{ service.name | caseUcfirst }}> => {
+  if (!{{ service.name | caseCamel }}Client) {
+    const sdkClient = await sdkForConsole();
+    sdkClient.headers["X-Appwrite-Organization"] = await resolveOrganizationId({
+      override: context.organizationId,
+      consoleClient: sdkClient,
+    });
+    {{ service.name | caseCamel }}Client = new {{ service.name | caseUcfirst }}(sdkClient);
+  }
+  return {{ service.name | caseCamel }}Client;
+};
+{% else %}
 const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.name | caseUcfirst }}> => {
   if (!{{ service.name | caseCamel }}Client) {
 {% if service.name == 'teams' %}
@@ -80,6 +106,7 @@ const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.n
   }
   return {{ service.name | caseCamel }}Client;
 };
+{% endif %}
 
 export const {{ service.name | caseCamel }} = new Command("{{ service.name | caseLower }}")
 {% if service.name == 'tablesDB' %}
@@ -102,6 +129,7 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% set seenCommands = seenCommands|merge([commandName]) %}
 {% set commandVar = service.name | caseCamel ~ method.name | caseUcfirst ~ 'Command' %}
 {% set query = method | cliQueryConfig %}
+{% set contextOptions = getContextOptions(method) %}
 const {{ commandVar }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`)
   .description(`{{ method.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
@@ -145,6 +173,9 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% if method.type == 'location' %}
   .requiredOption(`--destination <destination>`, `Path to save the file to.`)
 {% endif %}
+{% for context in contextOptions %}
+  .option(`--{{ context.option }} <{{ context.option }}>`, `{{ context.description }}`)
+{% endfor %}
   .action(
     actionRunner(
 {% set params = [] %}
@@ -154,6 +185,12 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% if query.hasQueries %}
 {% set params = params|merge(query.extraParams) %}
 {% endif %}
+{% set contextArgs = [] %}
+{% for context in contextOptions %}
+{% set params = params|merge([context.variable]) %}
+{% set contextArgs = contextArgs|merge([context.variable]) %}
+{% endfor %}
+{% set clientArgs = contextArgs | length > 0 ? '{ ' ~ contextArgs | join(', ') ~ ' }' : '' %}
 {% set hasParams = params | length > 0 %}
 {% set actionParams = hasParams ? '{ ' ~ params | join(', ') ~ (method.type == 'location' ? ', destination' : '') ~ ' }' : (method.type == 'location' ? '{ destination }' : '') %}
 {% set argExpressions = [] %}
@@ -166,7 +203,7 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% endfor %}
 {% if method.type == 'location' %}
       async ({{ actionParams }}) => {
-        const url = await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
+        const url = await (await get{{ service.name | caseUcfirst }}Client({{ clientArgs | raw }})).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
@@ -177,14 +214,14 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
       },
 {% elseif method.type == 'webAuth' %}
       async ({{ actionParams }}) => {
-        const url = (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
+        const url = (await get{{ service.name | caseUcfirst }}Client({{ clientArgs | raw }})).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
         if (url) console.log(url);
       },
 {% elseif hasParams %}
       async ({{ actionParams }}) =>
-        parse(await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }})),
+        parse(await (await get{{ service.name | caseUcfirst }}Client({{ clientArgs | raw }})).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }})),
 {% else %}
-      async () => parse(await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}()),
+      async () => parse(await (await get{{ service.name | caseUcfirst }}Client({{ clientArgs | raw }})).{{ method.name | caseCamel }}()),
 {% endif %}
     ),
   );

@@ -33,6 +33,7 @@ const cliConfig: CliConfig = {
   report: false,
   reportData: {},
   displayFields: [],
+  projectId: undefined,
 };
 
 type JsonObject = Record<string, unknown>;

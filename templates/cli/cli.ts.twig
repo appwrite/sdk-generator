@@ -140,6 +140,7 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
             .option('-j, --json', 'Output filtered JSON without empty values')
             .option('-R, --raw', 'Output full JSON response (secrets still redacted unless --show-secrets is set)')
             .option('--show-secrets', 'Display sensitive values like secrets and tokens in output')
+            .option('--project-id <project-id>', 'Project to run this command against, overriding appwrite.config.json')
             .hook('preAction', async (_thisCommand, actionCommand) => {
                 if (isCompletionCommand(actionCommand)) {
                     return;
@@ -167,6 +168,9 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
             })
             .on('option:show-secrets', () => {
                 cliConfig.showSecrets = true;
+            })
+            .on('option:project-id', function () {
+                cliConfig.projectId = this.opts().projectId as string;
             })
             .on('option:verbose', () => {
                 cliConfig.verbose = true;

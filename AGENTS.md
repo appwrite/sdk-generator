@@ -50,12 +50,12 @@ The script strips Twig expressions before running `npm install`/`bun install`, t
 - **Purpose:** Generate Appwrite SDKs and tooling targets for 20+ languages/platforms from Swagger/OpenAPI specs using Twig templates
 - **Language:** PHP (generator engine) + Twig (templates)
 - **Entry point:** `example.php` — runs generation for all or a specific SDK
-- **Output:** `examples/<lang>/` — checked-in generated SDK output for verification
+- **Output:** `examples/<lang>/` — generated SDK output for local verification. **Not checked in** — `.gitignore` excludes `examples/*`, so it is a scratch area you regenerate, never a diff baseline
 
 ```
 src/SDK/Language/<Lang>.php   ← Language class: defines files, types, keywords
 templates/<lang>/             ← Twig templates for that language
-examples/<lang>/              ← Generated SDK output (checked in for verification)
+examples/<lang>/              ← Generated SDK output (gitignored; regenerate to verify)
 example.php                   ← Entry point: regenerates all SDKs from specs
 ```
 
@@ -70,7 +70,7 @@ example.php                   ← Entry point: regenerates all SDKs from specs
    ```bash
    php example.php <lang>
    ```
-3. Diff `examples/<lang>/` to verify the output is correct
+3. Inspect `examples/<lang>/` to verify the output is correct. `git diff` will **not** show it — `examples/*` is gitignored. To compare before/after, copy `examples/` aside, `git stash` your template changes, regenerate, and `diff -r` the two trees
 4. Run linters and refactor check:
    ```bash
    composer refactor:check
@@ -131,7 +131,7 @@ public function getFiles(): array
 | How specs are parsed | `src/Spec/OpenAPI3.php`, `src/Spec/Swagger2.php` |
 | Generation orchestration | `src/SDK/SDK.php` → `generate()` |
 | Example generation script | `example.php` |
-| Generated output for review | `examples/<lang>/` |
+| Generated output for review (gitignored) | `examples/<lang>/` |
 
 ## Available SDK Names for `example.php`
 
@@ -218,7 +218,7 @@ If local PHP is missing, is not the required version, or has extension issues, u
 Before submitting changes that touch templates or language classes:
 
 - [ ] Regenerated the affected SDK(s) with `example.php`
-- [ ] Inspected `examples/<lang>/` output looks correct
+- [ ] Inspected `examples/<lang>/` output looks correct (gitignored — inspect the files directly, `git status` will not list them)
 - [ ] Any new template files are listed in `getFiles()` of the language class
 - [ ] Any new language class is added to `example.php`
 - [ ] Rector check passes (`composer refactor:check`)

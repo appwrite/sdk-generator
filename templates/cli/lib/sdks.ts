@@ -4,6 +4,7 @@ import {
   localConfig,
   normalizeCloudConsoleEndpoint,
 } from "./config.js";
+import { resolveProjectId } from "./context.js";
 import { Client, Oauth2 } from "@appwrite.io/console";
 import os from "os";
 import {
@@ -158,6 +159,9 @@ export const sdkForConsole = async ({
   }
 
   if (organizationId) {
+    // TODO: Replace with client.setOrganization() once the console SDK is
+    // republished from a spec that declares the Organization security scheme
+    // (appwrite/appwrite#13053). Until then the header has no generated setter.
     client.headers["X-Appwrite-Organization"] = organizationId;
   }
 
@@ -171,9 +175,7 @@ export const sdkForProject = async (): Promise<Client> => {
     localConfig.getEndpoint() || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
   const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
 
-  const project = localConfig.getProject().projectId
-    ? localConfig.getProject().projectId
-    : globalConfig.getProject();
+  const project = resolveProjectId();
 
   const key = globalConfig.getKey();
   const accessToken = globalConfig.getAccessToken();

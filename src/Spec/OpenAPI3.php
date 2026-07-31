@@ -242,6 +242,9 @@ class OpenAPI3 extends Spec
             'title' => $method['summary'] ?? '',
             'description' => $method['description'] ?? '',
             'auth' => [$methodAuth] ?? [],
+            // Every security scheme the method declares. `auth` is sliced to the
+            // platform's auth count, so it cannot be used to test for a scheme.
+            'security' => \array_keys($methodSecurity),
             'securityHeaders' => $methodSecurityHeaders,
             'securityQueries' => $methodSecurityQueries,
             'securityPathParams' => $methodSecurityPathParams,

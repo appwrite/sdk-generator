@@ -15,6 +15,26 @@ class CLI extends Node
     ];
 
     /**
+     * Security schemes that scope a request to a resource rather than
+     * authenticate it. Commands whose spec security declares one of these get a
+     * flag to override the value resolved from appwrite.config.json.
+     *
+     * Project is deliberately absent: it is the unconditional seed of every
+     * method's security, so a per-command flag would land on all ~700 commands.
+     * It is exposed once as a global option instead.
+     *
+     * TODO: Move this to an `x-appwrite.cli` block on the security scheme so the
+     * spec, not the generator, decides which schemes are overridable.
+     */
+    private const array CONTEXT_SCHEMES = [
+        'Organization' => [
+            'option' => 'organization-id',
+            'variable' => 'organizationId',
+            'description' => 'Organization ID. Defaults to the organization linked in appwrite.config.json.',
+        ],
+    ];
+
+    /**
      * List of functions to ignore for console preview.
      */
     private array $consoleIgnoreFunctions = [
@@ -215,6 +235,19 @@ class CLI extends Node
 
             if (str_contains(strtolower($parameter['description'] ?? ''), 'only supported methods are limit and offset')) {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasCliContextParam(array $service): bool
+    {
+        foreach ($service['methods'] ?? [] as $method) {
+            foreach ($method['security'] ?? [] as $scheme) {
+                if (isset(self::CONTEXT_SCHEMES[$scheme])) {
+                    return true;
+                }
             }
         }
 
@@ -429,8 +462,8 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'lib/config-filters.ts',
-                'template'      => 'cli/lib/config-filters.ts',
+                'destination'   => 'lib/context.ts',
+                'template'      => 'cli/lib/context.ts',
             ],
             [
                 'scope'         => 'copy',
@@ -853,6 +886,7 @@ class CLI extends Node
     {
         return array_merge(parent::getFilters(), [
             new TwigFilter('hasCliQueryParam', fn (array $service): bool => $this->hasCliQueryParam($service)),
+            new TwigFilter('hasCliContextParam', fn (array $service): bool => $this->hasCliContextParam($service)),
             new TwigFilter('cliQueryConfig', fn (array $method): array => $this->getCliQueryConfig($method)),
         ]);
     }
@@ -930,6 +964,24 @@ class CLI extends Node
                         'parser' => null,
                     ];
                 }
+            }),
+
+            /**
+             * Get the context overrides a command should expose, derived from the
+             * security schemes the method declares in the spec.
+             *
+             * Returns a list of ['option' => ..., 'variable' => ..., 'description' => ...].
+             */
+            new TwigFunction('getContextOptions', function (array $method): array {
+                $options = [];
+
+                foreach ($method['security'] ?? [] as $scheme) {
+                    if (isset(self::CONTEXT_SCHEMES[$scheme])) {
+                        $options[] = self::CONTEXT_SCHEMES[$scheme];
+                    }
+                }
+
+                return $options;
             }),
 
             /**

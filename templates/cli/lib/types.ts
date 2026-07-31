@@ -60,6 +60,8 @@ export interface CliConfig {
   report: boolean;
   reportData: Record<string, unknown>;
   displayFields: string[];
+  /** Overrides the project resolved from appwrite.config.json. */
+  projectId?: string;
 }
 
 export interface SessionData {
