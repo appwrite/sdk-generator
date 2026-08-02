@@ -372,6 +372,11 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/output/render.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/sdk/sdk.go',
+                'template'      => 'go-cli/internal/sdk/sdk.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/services/register.go',
                 'template'      => 'go-cli/internal/cmd/services/register.go.twig',

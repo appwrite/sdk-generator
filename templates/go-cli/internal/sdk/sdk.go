@@ -1,0 +1,184 @@
+package sdk
+
+import (
+	"errors"
+	"fmt"
+	"runtime"
+
+	sdkclient "github.com/appwrite/sdk-for-go/client"
+	"github.com/appwrite/appwrite-cli-go/internal/auth"
+	"github.com/appwrite/appwrite-cli-go/internal/config"
+)
+
+// Ports templates/cli/lib/sdks.ts onto the generated Go SDK's client.
+//
+// The CLI's own internal/client stays for the OAuth endpoints, which are hit
+// before a session exists; everything a service command does goes through the
+// SDK so request building, multipart upload and chunking are not reimplemented.
+
+// ErrNotLoggedIn is returned when a command needs a session and none is stored.
+var ErrNotLoggedIn = errors.New("no active session. Run `appwrite login` to sign in")
+
+// ErrProjectNotSet is returned when a project-scoped command runs outside a
+// project directory and no project is configured.
+var ErrProjectNotSet = errors.New("project is not set. Run `appwrite init project` or pass --project-id")
+
+// Context carries what every client needs.
+type Context struct {
+	Global     *config.Global
+	SDKVersion string
+}
+
+// Load reads the user's preferences.
+func Load(executableName, sdkVersion string) (*Context, error) {
+	path, err := config.GlobalPath(executableName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Context{Global: config.LoadGlobal(path), SDKVersion: sdkVersion}, nil
+}
+
+// base builds a client pointed at the session's endpoint with the CLI's
+// identifying headers.
+//
+// The SDK stamps its own x-sdk-* headers; they are overwritten here so requests
+// are attributed to the CLI rather than to the SDK, matching what the
+// TypeScript CLI sends.
+func (c *Context) base(endpoint string) sdkclient.Client {
+	client := sdkclient.New()
+	client.Endpoint = endpoint
+	client.AddHeader("x-sdk-name", "Command Line")
+	client.AddHeader("x-sdk-platform", "console")
+	client.AddHeader("x-sdk-language", "cli")
+	client.AddHeader("x-sdk-version", c.SDKVersion)
+	client.AddHeader("user-agent",
+		fmt.Sprintf("AppwriteCLI/%s (%s; %s)", c.SDKVersion, runtime.GOOS, runtime.GOARCH))
+
+	return client
+}
+
+// authenticate attaches the session credential, refreshing an expired access
+// token first.
+func (c *Context) authenticate(client *sdkclient.Client) error {
+	session := c.Global.Current()
+	if session == nil {
+		return ErrNotLoggedIn
+	}
+
+	if session.GetString(config.PreferenceAccessToken) != "" {
+		token, err := auth.NewAuthenticator(c.Global, c.SDKVersion).AccessToken(false)
+		if err != nil {
+			return err
+		}
+		client.AddHeader("Authorization", "Bearer "+token)
+
+		return nil
+	}
+
+	if cookie := session.GetString(config.PreferenceCookie); cookie != "" {
+		client.AddHeader("Cookie", cookie)
+
+		return nil
+	}
+
+	return ErrNotLoggedIn
+}
+
+// endpoint returns the active session's endpoint.
+func (c *Context) endpoint() (string, error) {
+	session := c.Global.Current()
+	if session == nil {
+		return "", ErrNotLoggedIn
+	}
+	endpoint := session.GetString(config.PreferenceEndpoint)
+	if endpoint == "" {
+		return "", ErrNotLoggedIn
+	}
+
+	return endpoint, nil
+}
+
+// ForConsole builds a client against the console project.
+//
+// Ports sdkForConsole().
+func (c *Context) ForConsole() (sdkclient.Client, error) {
+	endpoint, err := c.endpoint()
+	if err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	client := c.base(endpoint)
+	client.Config["project"] = config.ProjectConsole
+	client.AddHeader("X-Appwrite-Project", config.ProjectConsole)
+	if err := c.authenticate(&client); err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	return client, nil
+}
+
+// ForConsoleWithOrganization builds a console client scoped to an organization.
+//
+// The `/organization` endpoints carry no organization ID in their path and act
+// on whichever organization the header names, so it is resolved from the
+// project config unless the caller passes one.
+//
+// Ports sdkForConsoleWithOrganization().
+func (c *Context) ForConsoleWithOrganization(organizationID string) (sdkclient.Client, error) {
+	client, err := c.ForConsole()
+	if err != nil {
+		return client, err
+	}
+
+	if organizationID == "" {
+		organizationID = c.localValue("organizationId")
+	}
+	if organizationID != "" {
+		client.AddHeader("X-Appwrite-Organization", organizationID)
+	}
+
+	return client, nil
+}
+
+// ForProject builds a client against the project in the working directory's
+// config.
+//
+// Ports sdkForProject().
+func (c *Context) ForProject(projectID string) (sdkclient.Client, error) {
+	endpoint, err := c.endpoint()
+	if err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	if projectID == "" {
+		projectID = c.localValue("projectId")
+	}
+	if projectID == "" {
+		return sdkclient.Client{}, ErrProjectNotSet
+	}
+
+	client := c.base(endpoint)
+	client.Config["project"] = projectID
+	client.AddHeader("X-Appwrite-Project", projectID)
+	if err := c.authenticate(&client); err != nil {
+		return sdkclient.Client{}, err
+	}
+	// An access token authenticates a console user rather than an API key, so
+	// scopes are resolved in admin mode -- ports the setMode("admin") branch.
+	client.AddHeader("X-Appwrite-Mode", config.ModeAdmin)
+
+	return client, nil
+}
+
+// localValue reads a top-level string from appwrite.config.json in the working
+// directory, returning "" when there is no config -- running outside a project
+// is normal for many commands.
+func (c *Context) localValue(key string) string {
+	local, err := config.LoadLocal(config.LocalPath("."))
+	if err != nil {
+		return ""
+	}
+
+	return local.Data.GetString(key)
+}

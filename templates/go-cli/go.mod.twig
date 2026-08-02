@@ -6,8 +6,16 @@ go 1.24
 // indirect set and refresh go.sum -- go.mod is regenerated from this template,
 // so anything added by hand to the generated file is lost on the next run.
 require (
+	github.com/appwrite/sdk-for-go v0.0.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.9
 	github.com/zalando/go-keyring v0.2.6
 )
+
+// The published SDK is the real dependency. This replace points at the SDK this
+// same generator produces, so `examples/go-cli` can be built and tested without
+// waiting for an SDK release -- which is exactly the coupling that keeps three
+// methods excluded from the TypeScript CLI today (see example.php).
+// Drop it in the shipped repository and pin a released version instead.
+replace github.com/appwrite/sdk-for-go => ../go
