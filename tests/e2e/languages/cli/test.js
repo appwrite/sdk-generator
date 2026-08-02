@@ -1275,7 +1275,6 @@ async function runAuthChecks() {
   };
 
   const withMockedHealthVersion = async (fn) => {
-    const { Client } = await import("@appwrite.io/console");
     const originalCall = Client.prototype.call;
     Client.prototype.call = async () => ({ version: "1.0.0" });
     try {
