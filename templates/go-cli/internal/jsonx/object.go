@@ -280,6 +280,33 @@ func marshalUnescaped(value any) ([]byte, error) {
 	return bytes.TrimRight(buffer.Bytes(), "\n"), nil
 }
 
+// DecodeValue parses any JSON document, preserving object key order and keeping
+// numbers as json.Number.
+//
+// Use this rather than json.Unmarshal into an any: that produces map[string]any
+// for objects, which re-emits keys sorted, and float64 for numbers, which loses
+// digits past 2^53.
+func DecodeValue(payload []byte) (any, error) {
+	trimmed := bytes.TrimSpace(payload)
+	if len(trimmed) == 0 {
+		return nil, nil
+	}
+
+	if trimmed[0] == '{' {
+		object := NewObject()
+		if err := object.UnmarshalJSON(trimmed); err != nil {
+			return nil, err
+		}
+
+		return object, nil
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(trimmed))
+	decoder.UseNumber()
+
+	return decodeValue(decoder)
+}
+
 // Marshal renders the object the way the TypeScript CLI writes config files:
 // four-space indentation, no HTML escaping, and a trailing newline left off.
 //
