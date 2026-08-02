@@ -1,8 +1,16 @@
 package services
 
 {% set scope = service | cliServiceScope %}
+{% set hasQueryParam = service | hasCliQueryParam %}
 import (
 	"github.com/spf13/cobra"
+
+	"github.com/appwrite/sdk-for-go/{{ service.name | goPackage }}"
+
+	"github.com/appwrite/appwrite-cli-go/internal/app"
+{% if hasQueryParam %}
+	"github.com/appwrite/appwrite-cli-go/internal/query"
+{% endif %}
 )
 
 // New{{ service.name | caseUcfirst }}Command builds the `{{ service.name | caseLower }}` command tree.
@@ -102,13 +110,74 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 		Hidden: true,
 {% endif %}
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return errNotImplemented("{{ service.name | caseLower }} {{ method.name | caseKebab }}")
+{% set plan = getGoCallPlan(method, service) %}
+{% if scope %}
+			client, err := app.ClientFor{{ scope.label }}({{ scopedFlag ? scope.idVar : '""' }})
+{% elseif service.isConsoleOnly %}
+			client, err := app.ClientForConsole()
+{% else %}
+			client, err := app.ClientForProject("")
+{% endif %}
+			if err != nil {
+				return err
+			}
+			service := {{ plan.package }}.New(client)
+{% for decode in plan.decodes %}
+			{{ decode.var }}, err := app.{{ decode.helper }}({{ decode.source }})
+			if err != nil {
+				return err
+			}
+{% endfor %}
+{% if query.hasQueries %}
+
+			queries, err := query.Build(query.Options{
+				Queries: queries,
+{% if query.hasFiltering %}
+				Filter:   filter,
+				Where:    where,
+				SortAsc:  sortAsc,
+				SortDesc: sortDesc,
+{% endif %}
+{% if query.hasPagination %}
+				Limit:  app.FlagInt(cmd, "limit", limit),
+				Offset: app.FlagInt(cmd, "offset", offset),
+{% endif %}
+{% if query.hasCursors %}
+				CursorAfter:  app.FlagString(cmd, "cursor-after", cursorAfter),
+				CursorBefore: app.FlagString(cmd, "cursor-before", cursorBefore),
+{% endif %}
+{% if query.hasSelect %}
+				Select: selectAttributes,
+{% endif %}
+			})
+			if err != nil {
+				return err
+			}
+{% endif %}
+{% if plan.optional is not empty %}
+
+			// An unset flag must be omitted, not sent as its zero value: the
+			// TypeScript passes undefined and the SDK drops it.
+			options := []{{ plan.package }}.{{ plan.optionType }}{}
+{% for option in plan.optional %}
+			if cmd.Flags().Changed("{{ option.flag }}") {
+				options = append(options, service.{{ option.setter }}({{ option.expression }}))
+			}
+{% endfor %}
+{% endif %}
+
+			result, err := service.{{ plan.method }}({% for argument in plan.required %}{{ argument.expression }}, {% endfor %}{% if plan.optional is not empty %}options...{% endif %})
+			if err != nil {
+				return err
+			}
+
+			return app.Render(result)
 		},
 	}
 
 {% for parameter in method.parameters.all %}
 {% set opt = getGoCliOption(parameter) %}
-	cmd.Flags().{{ opt.register }}Var(&{{ opt.var }}, "{{ opt.flag }}", {% if opt.goType == '[]string' %}nil{% elseif opt.goType == 'bool' %}false{% elseif opt.goType == 'int' %}0{% else %}""{% endif %}, {{ parameter.description | stripMarkdown | goString | raw }})
+	cmd.Flags().{{ opt.register }}Var(&{{ opt.var }}, "{{ opt.flag }}", {% if opt.goType == '[]string' %}nil{% elseif opt.goType == 'bool' %}false{% elseif opt.goType == 'int' %}0{% elseif opt.goType == 'float64' %}0{% else %}""{% endif %}, {{ parameter.description | stripMarkdown | goString | raw }})
 {% if opt.noOptDefault %}
 	cmd.Flags().Lookup("{{ opt.flag }}").NoOptDefVal = "{{ opt.noOptDefault }}"
 {% endif %}

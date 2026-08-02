@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/appwrite/appwrite-cli-go/internal/app"
 	"github.com/appwrite/appwrite-cli-go/internal/auth"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
 	"github.com/spf13/cobra"
@@ -32,7 +33,7 @@ func newLoginCommand() *cobra.Command {
 				endpoint = config.DefaultEndpoint
 			}
 
-			flow := auth.NewDeviceFlow(endpoint, Version)
+			flow := auth.NewDeviceFlow(endpoint, app.Version)
 			authorization, err := flow.Authorize()
 			if err != nil {
 				return err

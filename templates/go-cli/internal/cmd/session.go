@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 
+	"github.com/appwrite/appwrite-cli-go/internal/app"
 	"github.com/appwrite/appwrite-cli-go/internal/auth"
 	"github.com/appwrite/appwrite-cli-go/internal/client"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
@@ -13,11 +14,11 @@ import (
 // in templates/cli/lib/commands/generic.ts.
 
 // ErrNotLoggedIn is returned when a command needs a session and none is stored.
-var ErrNotLoggedIn = errors.New("no active session. Run `" + ExecutableName + " login` to sign in")
+var ErrNotLoggedIn = errors.New("no active session. Run `" + app.ExecutableName + " login` to sign in")
 
 // preferences loads the user's global preferences.
 func preferences() (*config.Global, error) {
-	path, err := config.GlobalPath(ExecutableName)
+	path, err := config.GlobalPath(app.ExecutableName)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +46,7 @@ func consoleClient() (*client.Client, *config.Global, error) {
 		return nil, nil, ErrNotLoggedIn
 	}
 
-	api := client.New(endpoint, Version).
+	api := client.New(endpoint, app.Version).
 		SetProject(config.ProjectConsole).
 		SetLocale("en-US")
 
@@ -54,7 +55,7 @@ func consoleClient() (*client.Client, *config.Global, error) {
 
 	switch {
 	case hasAccessToken:
-		token, err := auth.NewAuthenticator(global, Version).AccessToken(false)
+		token, err := auth.NewAuthenticator(global, app.Version).AccessToken(false)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -137,10 +138,10 @@ func newLogoutCommand() *cobra.Command {
 			}
 
 			// --all is a persistent root flag. Declaring a local one here would
-			// shadow it: the local flag would be set and globals.All would not,
+			// shadow it: the local flag would be set and app.Flags().All would not,
 			// which happens to work only while both mean the same thing.
 			targets := []string{global.CurrentSessionID()}
-			if globals.All {
+			if app.Flags().All {
 				targets = global.SessionIDs()
 			}
 			if len(targets) == 0 || targets[0] == "" {

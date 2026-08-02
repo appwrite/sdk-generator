@@ -1,0 +1,50 @@
+package app
+
+import (
+	sdkclient "github.com/appwrite/sdk-for-go/client"
+
+	"github.com/appwrite/appwrite-cli-go/internal/sdk"
+)
+
+// Client constructors the generated commands call.
+//
+// Thin wrappers over internal/sdk that supply the executable name and version,
+// so a generated call site is one expression with no configuration in it.
+
+func context() (*sdk.Context, error) {
+	return sdk.Load(ExecutableName, Version)
+}
+
+// ClientForConsole builds a client against the console project.
+func ClientForConsole() (sdkclient.Client, error) {
+	ctx, err := context()
+	if err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	return ctx.ForConsole()
+}
+
+// ClientForProject builds a client against a project.
+//
+// An empty projectID falls back to the one in the working directory's
+// appwrite.config.json, which is what an unscoped command wants; a
+// header-scoped service passes its --project-id flag through instead.
+func ClientForProject(projectID string) (sdkclient.Client, error) {
+	ctx, err := context()
+	if err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	return ctx.ForProject(projectID)
+}
+
+// ClientForOrganization builds a console client scoped to an organization.
+func ClientForOrganization(organizationID string) (sdkclient.Client, error) {
+	ctx, err := context()
+	if err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	return ctx.ForConsoleWithOrganization(organizationID)
+}
