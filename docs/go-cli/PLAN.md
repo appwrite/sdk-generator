@@ -19,7 +19,7 @@ The CLI is generated into `examples/cli/` from `templates/cli/` by
 |---|---|
 | Hand-written TypeScript in `templates/cli/` | ~27,000 LOC |
 | Of which `lib/commands/` | ~12,900 LOC |
-| Generated service files | 24 services, 720 KB, **606 commands** |
+| Generated service files | 23 services, 720 KB, **608 commands**, 2,912 flags |
 | Runtime npm dependencies | 23, including one native module |
 | Shipped bundle (`dist/`) | 9.5 MB |
 | Distribution | npm (`dist/cli.cjs` on Node 18) + `bun build --compile` binaries |
@@ -44,7 +44,7 @@ Largest hand-written units, in descending order — these are the rewrite's real
 
 Be honest about the bound on the upside. Three buckets:
 
-1. **Process startup — dominant for the common case.** A 9.5 MB bundle, 606 commander
+1. **Process startup — dominant for the common case.** A 9.5 MB bundle, 608 commander
    registrations at import time, to run one subcommand. Also why tab-completion lags:
    every completion request pays full startup.
 2. **`push` — the only real compute.** `packageDirectory()` in `deployment.ts:565`
@@ -57,7 +57,7 @@ Be honest about the bound on the upside. Three buckets:
 ### 1.3 Why Go and not Rust
 
 On startup — the headline metric — they tie: ~1 ms (Rust) vs ~2–3 ms (Go runtime init).
-Both are indistinguishable from the 40–150 ms being replaced. Rust's real advantages
+Both are indistinguishable from the 206 ms being replaced. Rust's real advantages
 (no GC pauses, zero-cost abstractions over CPU-bound loops) target workloads this CLI
 does not have.
 
@@ -81,16 +81,17 @@ the current Bun binaries, so it does not decide anything.
 
 ### 1.4 Expected impact
 
-State these as targets, not as achieved facts, until Phase 6 measures them.
+Phase 0 has now measured the first two rows against a real spike — see
+[BENCHMARKS.md](BENCHMARKS.md). The rest stay targets until Phase 6.
 
-| Metric | Today | Target |
-|---|---|---|
-| `appwrite --help` | ~40–150 ms | < 10 ms |
-| Tab-completion round trip | full startup per request | < 10 ms |
-| `push` of a large site (wall clock) | baseline | −20 to −40 % |
-| `push` peak RSS | O(archive size) | O(chunk size) |
-| Binary size | ~60–90 MB (Bun) | ~20–25 MB |
-| Native modules to codesign | 1 (`@napi-rs/keyring`) | 0 |
+| Metric | Today | Target | Phase 0 spike |
+|---|---|---|---|
+| `appwrite --help` | 206 ms | < 10 ms | **5.0 ms** (41×) |
+| Tab-completion round trip | full startup per request | < 10 ms | 5.1 ms |
+| `push` of a large site (wall clock) | 7.00 s / 369 MB tree | −20 to −40 % | **−56 %** |
+| `push` peak RSS | 421 MB, grows with archive | O(chunk size) | **102 MB, flat** |
+| Binary size | ~60–90 MB (Bun) | ~20–25 MB | 2.9 MB (no logic yet) |
+| Native modules to codesign | 1 (`@napi-rs/keyring`) | 0 | 0 |
 
 Unchanged: `pull`, `types`, `generate`, and anything paginating the API.
 
@@ -176,7 +177,7 @@ Pin every one. Do not add anything not on this list without a note in the PR.
 | `cli-progress`, `lib/spinner.ts` | `charmbracelet/bubbles` | |
 | `undici` + `@appwrite.io/console` | stdlib `net/http` + generated Appwrite Go SDK | |
 | `Pools`, `Promise.all` | `golang.org/x/sync/errgroup` with `SetLimit` | |
-| `tar` | `archive/tar` + `klauspost/compress/pgzip` | Parallel gzip, streams via `io.Pipe` |
+| `tar` | `archive/tar` + `klauspost/pgzip` | Parallel gzip, streams via `io.Pipe` |
 | `ignore` | `go-git/go-git/v5/plumbing/format/gitignore` | |
 | `@napi-rs/keyring` | `zalando/go-keyring` | Pure Go; removes the per-platform `require` hack in `lib/auth/refresh-token.ts:23–54` |
 | `handlebars` + `.hbs` | stdlib `text/template` | |
@@ -190,7 +191,7 @@ Pin every one. Do not add anything not on this list without a note in the PR.
 These must not change. A rewrite that improves the UX is a rewrite nobody can adopt.
 Any deliberate break needs its own PR, its own changelog entry, and sign-off.
 
-1. **Every flag name, shorthand, and alias.** 606 commands' worth. Phase 1 produces a
+1. **Every flag name, shorthand, and alias.** 608 commands and 2,912 flags worth. Phase 1 produces a
    machine-checkable snapshot of these; Phase 4 diffs against it.
 2. **`appwrite.config.json` schema.** Read and written byte-compatibly. Existing project
    files must work untouched, in both directions (a Go `push` after a TS `pull`).
@@ -220,16 +221,21 @@ phase whose entry criteria are unmet — say so and stop instead.
 
 ---
 
-### Phase 0 — Spike and decision record
+### Phase 0 — Spike and decision record ✅ COMPLETE
 
 **Goal:** prove the startup and `push` numbers before committing months. Kill the
 project cheaply if they do not hold.
 
 **Entry:** none.
 
+**Outcome:** both gates cleared by a wide margin — startup 41× (gate: 5×), `push`
+−56 % (gate: −20 %) with peak RSS flat in archive size. Zero Go SDK gaps. Full results
+and reproduction commands in [BENCHMARKS.md](BENCHMARKS.md); corrections the spike
+forced on this document are listed in its §5.
+
 **Work:**
 
-1. Throwaway Go binary, Cobra, 606 no-op commands generated by a script from
+1. Throwaway Go binary, Cobra, 608 no-op commands generated by a script from
    `examples/cli/lib/commands/services/*.ts`. Measure `--help` and a leaf command with
    `hyperfine`. Compare against the current npm and Bun paths on the same machine.
 2. Throwaway streaming `tar.gz` + multipart uploader. Compare wall clock and peak RSS
@@ -244,12 +250,15 @@ project cheaply if they do not hold.
    Produce a gap list.
 
 **Exit:**
-- `docs/go-cli/BENCHMARKS.md` with reproducible commands and a results table.
-- Startup ≥ 5× better and `push` ≥ 20 % better, or an explicit written decision to stop.
-- Go SDK gap list, with each gap assigned to a phase.
+- [x] `docs/go-cli/BENCHMARKS.md` with reproducible commands and a results table.
+- [x] Startup ≥ 5× better and `push` ≥ 20 % better — **41×** and **−56 %**.
+- [x] Go SDK gap list — **none**. All 603 CLI method calls across 23 services are
+      covered. The only CLI-only surface is three `console-fallback` helpers, already
+      scoped to `internal/client` in Phase 2.
 
-**Risk:** the Go SDK gap list is large. It is generated from the same spec, so gaps are
-likely CLI-only conveniences rather than missing endpoints — but check, do not assume.
+**Risk (resolved):** the gap list was expected to be the schedule risk. It is empty —
+both SDKs are generated from the same spec at platform `console`, so the Go SDK needs no
+hardening before the CLI is built on it.
 
 ---
 
@@ -283,7 +292,7 @@ likely CLI-only conveniences rather than missing endpoints — but check, do not
 - `php example.php go-cli` succeeds.
 - `cd examples/go-cli && go build ./... && ./go-cli --help` works.
 - `composer refactor:check` and `composer lint-twig` pass.
-- `command-surface.json` committed, with 606 commands in it.
+- `command-surface.json` committed, with 608 commands and 2,912 flags in it.
 
 **Risk:** `GoCLI extends Go` inherits `Go::getFiles()`. Override it completely; do not
 merge. Check `Go.php:63` for what you are replacing.
@@ -324,7 +333,7 @@ after Phase 4 proves parity.
 
 ### Phase 3 — Generated service commands
 
-**Goal:** all 606 commands generated, compiling, and calling the Go SDK.
+**Goal:** all 608 commands generated, compiling, and calling the Go SDK.
 
 **Entry:** Phase 2 exit met.
 
@@ -341,11 +350,12 @@ after Phase 4 proves parity.
 3. Header-scoped services and their ID flags, per `cliServiceScope`.
 4. Top-level aliases and hidden subcommands, per `cliCommandTargets`.
 5. `tablesDB` → `tables-db` alias; `projects list` `outputFields`.
-6. Lazy command construction. **This is the startup budget.** Do not build 606 cobra
-   commands eagerly if the profile says it costs. Measure before optimising.
+6. Register commands **eagerly**. Phase 0 measured the full 608-command tree at 5.0 ms
+   and a leaf command at 5.1 ms — building it costs nothing. Do not add lazy
+   registration; it buys no time and complicates generated code.
 
 **Exit:**
-- Every one of the 606 commands exists, with flags matching `command-surface.json`.
+- Every one of the 608 commands exists, with flags matching `command-surface.json`.
   A test asserts this by walking the cobra tree.
 - `go vet ./...` clean.
 - `--help` startup still under the Phase 0 target with all commands registered.
@@ -448,11 +458,13 @@ implementation.
 
 **Work:**
 
-1. `pprof` the startup path. If cobra tree construction dominates, make command
-   registration lazy per top-level group.
+1. `pprof` the startup path only if it regressed past the Phase 0 measurement of
+   5.0 ms. Cobra tree construction is **not** the bottleneck — that is settled; do not
+   re-litigate it with lazy registration.
 2. Streaming deploy: `archive/tar` → `pgzip` → `io.Pipe` → multipart body. No temp
-   file, no full-archive buffer. This is the change that moves peak RSS from
-   O(archive) to O(chunk).
+   file, no full-archive buffer. Phase 0 proved this holds peak RSS flat at ~102 MB
+   while the archive doubles from 95 MB to 190 MB. **Use gzip level 9** — `node-tar`
+   effectively defaults to 9, and level 6 silently uploads ~3 % more bytes.
 3. Tune `errgroup.SetLimit` against the polling behaviour. The TS `Pools` debounce
    logic (`push.ts:2864`) encodes tuning that was learned the hard way — read it before
    picking a number.
@@ -537,8 +549,8 @@ Progress table, kept current:
 
 | Phase | Status | Owner | Tracking |
 |---|---|---|---|
-| 0 — Spike | Not started | | |
-| 1 — Generator scaffolding | Not started | | |
+| 0 — Spike | ✅ Complete — [BENCHMARKS.md](BENCHMARKS.md) | | |
+| 1 — Generator scaffolding | In progress — `command-surface.json` done | | |
 | 2 — Runtime foundation | Not started | | |
 | 3 — Generated commands | Not started | | |
 | 4 — Conformance harness | Not started | | |
