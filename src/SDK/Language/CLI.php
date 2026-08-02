@@ -232,6 +232,20 @@ class CLI extends Node
     ];
 
     /**
+     * Methods that are also registered as top-level root commands.
+     *
+     * The service subcommand stays (hidden from help) for backwards
+     * compatibility; the root command is what `--help` advertises.
+     *
+     * TODO: Move CLI alias configuration to the API spec.
+     *
+     * @var array<string, list<string>>
+     */
+    private const array TOP_LEVEL_COMMANDS = [
+        'oauth2' => ['listOrganizations', 'listProjects'],
+    ];
+
+    /**
      * How a header-scoped service is spelled in the generated CLI.
      *
      * `service.resourceHeader` says which security scheme names the service's
@@ -260,6 +274,83 @@ class CLI extends Node
             'flag' => $this->getCliOptionName($idVar),
             'factory' => $factory,
         ];
+    }
+
+    /**
+     * Top-level root aliases for a service, used by `cli.ts` to import and
+     * register the promoted commands.
+     *
+     * Only methods that survive exclusion filtering (and are therefore emitted
+     * by the service template) are returned, so `cli.ts` never imports a
+     * nonexistent export.
+     *
+     * @return list<array{method: string, command: string, export: string}>
+     */
+    private function getCliTopLevelAliases(array $service): array
+    {
+        $serviceName = $service['name'] ?? '';
+        $configured = self::TOP_LEVEL_COMMANDS[$serviceName] ?? [];
+
+        if ($configured === []) {
+            return [];
+        }
+
+        $available = [];
+        foreach ($service['methods'] ?? [] as $method) {
+            $name = $method['name'] ?? '';
+
+            if ($name !== '') {
+                $available[$name] = true;
+            }
+        }
+
+        $aliases = [];
+
+        foreach ($configured as $methodName) {
+            if (!isset($available[$methodName])) {
+                continue;
+            }
+
+            $aliases[] = [
+                'method' => $methodName,
+                'command' => $this->toKebabCase($methodName),
+                'export' => lcfirst($serviceName) . ucfirst($methodName) . 'RootCommand',
+            ];
+        }
+
+        return $aliases;
+    }
+
+    /**
+     * Emission targets for one method: the normal (possibly hidden) service
+     * subcommand, plus a standalone root command when the method is aliased.
+     *
+     * @return list<array{var: string, standalone: bool, hidden: bool}>
+     */
+    private function getCliCommandTargets(array $method, array $service): array
+    {
+        $serviceName = $service['name'] ?? '';
+        $methodName = $method['name'] ?? '';
+        $commandVar = lcfirst($serviceName) . ucfirst($methodName) . 'Command';
+        $isTopLevel = in_array($methodName, self::TOP_LEVEL_COMMANDS[$serviceName] ?? [], true);
+
+        $targets = [
+            [
+                'var' => $commandVar,
+                'standalone' => false,
+                'hidden' => $isTopLevel,
+            ],
+        ];
+
+        if ($isTopLevel) {
+            $targets[] = [
+                'var' => lcfirst($serviceName) . ucfirst($methodName) . 'RootCommand',
+                'standalone' => true,
+                'hidden' => false,
+            ];
+        }
+
+        return $targets;
     }
 
     private function hasCliQueryParam(array $service): bool
@@ -906,6 +997,13 @@ class CLI extends Node
             new TwigFilter('hasCliQueryParam', fn (array $service): bool => $this->hasCliQueryParam($service)),
             new TwigFilter('cliServiceScope', fn (array $service): ?array => $this->getCliServiceScope($service)),
             new TwigFilter('cliQueryConfig', fn (array $method): array => $this->getCliQueryConfig($method)),
+            new TwigFilter('cliTopLevelAliases', fn (array $service): array => $this->getCliTopLevelAliases($service)),
+            new TwigFilter('cliCommandTargets', fn (array $method, array $service): array => $this->getCliCommandTargets($method, $service)),
+            new TwigFilter('cliIsTopLevelAlias', fn (array $method, array $service): bool => in_array(
+                $method['name'] ?? '',
+                self::TOP_LEVEL_COMMANDS[$service['name'] ?? ''] ?? [],
+                true,
+            )),
         ]);
     }
 

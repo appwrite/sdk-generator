@@ -4,8 +4,8 @@ import { EXECUTABLE_NAME, SDK_LOGO, SDK_TITLE } from "./constants.js";
 
 /**
  * The main help screen is grouped by intent rather than listed alphabetically.
- * Entries are command paths as typed, so `oauth2 list-projects` can be
- * surfaced next to `login` without moving it out of the oauth2 service.
+ * Entries are command paths as typed, so a root alias such as
+ * `list-projects` can sit next to `login` in GET STARTED.
  *
  * Anything not named here still shows up, under `OTHER`, so a service added
  * to the spec can never silently disappear from `--help`.
@@ -19,8 +19,8 @@ const groups: ReadonlyArray<{
     title: "GET STARTED",
     commands: [
       "login",
-      "oauth2 list-organizations",
-      "oauth2 list-projects",
+      "list-organizations",
+      "list-projects",
       "init",
       "pull",
       "push",
@@ -81,8 +81,8 @@ const groups: ReadonlyArray<{
  */
 const summaries: Record<string, string> = {
   login: `Authenticate with your ${SDK_TITLE} account`,
-  "oauth2 list-organizations": "Organizations your session can access",
-  "oauth2 list-projects": "Projects your session can access",
+  "list-organizations": "Organizations your session can access",
+  "list-projects": "Projects your session can access",
   init: "Scaffold a project, function, site, or resource",
   pull: "Pull remote project resources into this directory",
   push: "Push local project resources",

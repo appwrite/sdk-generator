@@ -41,7 +41,7 @@ import { migrate } from './lib/commands/generic.js';
 {% endif %}
 
 {% for service in spec.services %}
-import { {{ service.name }} } from './lib/commands/services/{{ service.name | caseLower }}.js';
+import { {{ service.name }}{% for alias in service | cliTopLevelAliases %}, {{ alias.export }}{% endfor %} } from './lib/commands/services/{{ service.name | caseLower }}.js';
 {% endfor %}
 
 const { version } = packageJson;
@@ -210,6 +210,9 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
 {% endif %}
 {% for service in spec.services %}
             .addCommand({{ service.name }})
+{% for alias in service | cliTopLevelAliases %}
+            .addCommand({{ alias.export }})
+{% endfor %}
 {% endfor %}
             .addCommand(createCompletionCommand(program))
             .addCommand(client)
