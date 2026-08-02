@@ -27,6 +27,11 @@ const (
 	PreferenceClientID     = "clientId"
 )
 
+// DefaultEndpoint is used when a session records none.
+//
+// Ports DEFAULT_ENDPOINT from templates/cli/lib/constants.ts:30.
+const DefaultEndpoint = "https://cloud.appwrite.io/v1"
+
 const (
 	ModeAdmin      = "admin"
 	ModeDefault    = "default"
@@ -151,6 +156,16 @@ func (g *Global) Session(id string) (Session, bool) {
 		Endpoint: entry.GetString(PreferenceEndpoint),
 		Email:    entry.GetString(PreferenceEmail),
 	}, true
+}
+
+// SessionData returns the raw stored values for one session, or nil when the
+// session does not exist.
+func (g *Global) SessionData(id string) *Object {
+	if id == "" {
+		return nil
+	}
+
+	return g.data.GetObject(id)
 }
 
 // Current returns the active session's stored values.

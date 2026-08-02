@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 
+	"github.com/appwrite/appwrite-cli-go/internal/auth"
 	"github.com/appwrite/appwrite-cli-go/internal/client"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
 	"github.com/spf13/cobra"
@@ -26,9 +27,8 @@ func preferences() (*config.Global, error) {
 
 // consoleClient builds a client authenticated against the console project.
 //
-// Ports sdkForConsole(). Token refresh is deliberately not implemented here --
-// that arrives with internal/auth in the rest of Phase 2; until then an expired
-// token surfaces as a normal API error rather than being silently renewed.
+// Ports sdkForConsole(). The access token is refreshed first when it is expired
+// or within a minute of expiring.
 func consoleClient() (*client.Client, *config.Global, error) {
 	global, err := preferences()
 	if err != nil {
@@ -49,12 +49,16 @@ func consoleClient() (*client.Client, *config.Global, error) {
 		SetProject(config.ProjectConsole).
 		SetLocale("en-US")
 
-	accessToken := session.GetString(config.PreferenceAccessToken)
+	hasAccessToken := session.GetString(config.PreferenceAccessToken) != ""
 	cookie := session.GetString(config.PreferenceCookie)
 
 	switch {
-	case accessToken != "":
-		api.SetBearer(accessToken)
+	case hasAccessToken:
+		token, err := auth.NewAuthenticator(global, Version).AccessToken(false)
+		if err != nil {
+			return nil, nil, err
+		}
+		api.SetBearer(token)
 	case cookie != "":
 		api.SetCookie(cookie)
 	default:
@@ -122,8 +126,55 @@ func newSessionsCommand() *cobra.Command {
 	}
 }
 
+func newLogoutCommand() *cobra.Command {
+	var all bool
+
+	command := &cobra.Command{
+		Use:   "logout",
+		Short: "Sign out and remove the stored session",
+		RunE: func(command *cobra.Command, args []string) error {
+			global, err := preferences()
+			if err != nil {
+				return err
+			}
+
+			targets := []string{global.CurrentSessionID()}
+			if all {
+				targets = global.SessionIDs()
+			}
+			if len(targets) == 0 || targets[0] == "" {
+				command.Println("No active session.")
+
+				return nil
+			}
+
+			// Clear the refresh token before removing the session entry:
+			// DeleteRefresh needs the session to still exist to drop the prefs
+			// fallback copy.
+			store := &auth.TokenStore{Global: global}
+			for _, id := range targets {
+				if err := store.DeleteRefresh(id); err != nil {
+					return err
+				}
+				global.DeleteSession(id)
+			}
+			if err := global.Write(); err != nil {
+				return err
+			}
+
+			command.Printf("Signed out of %d session(s).\n", len(targets))
+
+			return nil
+		},
+	}
+	command.Flags().BoolVar(&all, "all", false, "Sign out of every stored session.")
+
+	return command
+}
+
 // registerSessionCommands attaches the commands that do not come from the spec.
 func registerSessionCommands(root *cobra.Command) {
 	root.AddCommand(newWhoamiCommand())
 	root.AddCommand(newSessionsCommand())
+	root.AddCommand(newLogoutCommand())
 }

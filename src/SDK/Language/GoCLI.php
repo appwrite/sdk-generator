@@ -292,6 +292,21 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/session.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/auth/keyring.go',
+                'template'      => 'go-cli/internal/auth/keyring.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/auth/refresh.go',
+                'template'      => 'go-cli/internal/auth/refresh.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/auth/refresh_test.go',
+                'template'      => 'go-cli/internal/auth/refresh_test.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/services/register.go',
                 'template'      => 'go-cli/internal/cmd/services/register.go.twig',
