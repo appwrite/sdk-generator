@@ -8,6 +8,11 @@ import type { Models } from "@appwrite.io/console";
 import { ProjectPolicyId } from "@appwrite.io/console";
 import { z } from "zod";
 import { globalConfig } from "./config.js";
+import {
+  describeHttpFailure,
+  looksLikeHtml,
+  sanitizeErrorText,
+} from "./errors.js";
 import { isFlagEnabled } from "./flags.js";
 import type { SettingsType } from "./commands/config.js";
 import {
@@ -138,20 +143,46 @@ export const siteRequiresBuildCommand = (site: SiteBuildConfig): boolean => {
   return !(site.framework === "other" && site.adapter === "static");
 };
 
+/** Beyond this, a message is a response body rather than a message. */
+const MAX_ERROR_MESSAGE_LENGTH = 2000;
+
+/**
+ * Turns a body that carried no usable message into a printable one. Server
+ * markup — from a proxy, or from a request that missed the API entirely — is
+ * reduced to the signal it contains instead of being printed verbatim.
+ */
+const describeErrorBody = (body: string, code?: number): string => {
+  if (looksLikeHtml(body)) {
+    return code
+      ? describeHttpFailure(code, body).message
+      : "The server returned an HTML error page.";
+  }
+
+  return sanitizeErrorText(body);
+};
+
 export const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
+    const code = (error as { code?: number }).code;
     const message =
       typeof error.message === "string" ? error.message.trim() : "";
+
+    // Errors raised outside our own client can carry a whole response body as
+    // their message, so summarize markup and runaway bodies before printing.
+    if (looksLikeHtml(message) || message.length > MAX_ERROR_MESSAGE_LENGTH) {
+      return describeErrorBody(message, code);
+    }
+
     if (message) {
       return message;
     }
 
     // Some error responses carry no `message` field, leaving the exception
-    // message empty. Fall back to the raw response body so users see more
-    // than a bare "✗ Error:".
+    // message empty. Fall back to the response body so users see more than a
+    // bare "✗ Error:".
     const response = (error as { response?: unknown }).response;
     if (typeof response === "string" && response.trim() !== "") {
-      return response.trim();
+      return describeErrorBody(response, code);
     }
 
     return "An unknown error occurred.";

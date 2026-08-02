@@ -246,6 +246,24 @@ class CLI extends Node
     ];
 
     /**
+     * Methods whose endpoint only exists on Cloud, mapped to the
+     * `lib/console-fallback.ts` helper the command calls instead of the service
+     * method. The helper keeps the Cloud call and falls back to the console
+     * endpoints that self-hosted installs do serve.
+     *
+     * @var array<string, array<string, string>>
+     */
+    private const array CONSOLE_FALLBACK_METHODS = [
+        'oauth2' => [
+            'listOrganizations' => 'listOrganizationsForSession',
+            'listProjects'      => 'listProjectsForSession',
+        ],
+        'organization' => [
+            'get' => 'getOrganizationForSession',
+        ],
+    ];
+
+    /**
      * How a header-scoped service is spelled in the generated CLI.
      *
      * `service.resourceHeader` says which security scheme names the service's
@@ -325,7 +343,7 @@ class CLI extends Node
      * Emission targets for one method: the normal (possibly hidden) service
      * subcommand, plus a standalone root command when the method is aliased.
      *
-     * @return list<array{var: string, standalone: bool, hidden: bool}>
+     * @return list<array{var: string, standalone: bool, hidden: bool, implementation: string|null}>
      */
     private function getCliCommandTargets(array $method, array $service): array
     {
@@ -333,12 +351,14 @@ class CLI extends Node
         $methodName = $method['name'] ?? '';
         $commandVar = lcfirst($serviceName) . ucfirst($methodName) . 'Command';
         $isTopLevel = in_array($methodName, self::TOP_LEVEL_COMMANDS[$serviceName] ?? [], true);
+        $implementation = self::CONSOLE_FALLBACK_METHODS[$serviceName][$methodName] ?? null;
 
         $targets = [
             [
                 'var' => $commandVar,
                 'standalone' => false,
                 'hidden' => $isTopLevel,
+                'implementation' => $implementation,
             ],
         ];
 
@@ -347,10 +367,35 @@ class CLI extends Node
                 'var' => lcfirst($serviceName) . ucfirst($methodName) . 'RootCommand',
                 'standalone' => true,
                 'hidden' => false,
+                'implementation' => $implementation,
             ];
         }
 
         return $targets;
+    }
+
+    /**
+     * Console fallback helpers this service's emitted commands call, so the
+     * template imports exactly what it uses.
+     *
+     * @return list<string>
+     */
+    private function getCliFallbackHelpers(array $service): array
+    {
+        $configured = self::CONSOLE_FALLBACK_METHODS[$service['name'] ?? ''] ?? [];
+        $helpers = [];
+
+        foreach ($service['methods'] ?? [] as $method) {
+            $helper = $configured[$method['name'] ?? ''] ?? null;
+
+            if ($helper !== null && !in_array($helper, $helpers, true)) {
+                $helpers[] = $helper;
+            }
+        }
+
+        sort($helpers);
+
+        return $helpers;
     }
 
     private function hasCliQueryParam(array $service): bool
@@ -548,6 +593,16 @@ class CLI extends Node
                 'scope'         => 'copy',
                 'destination'   => 'lib/client.ts',
                 'template'      => 'cli/lib/client.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/errors.ts',
+                'template'      => 'cli/lib/errors.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/console-fallback.ts',
+                'template'      => 'cli/lib/console-fallback.ts',
             ],
             [
                 'scope'         => 'copy',
@@ -999,6 +1054,7 @@ class CLI extends Node
             new TwigFilter('cliQueryConfig', fn (array $method): array => $this->getCliQueryConfig($method)),
             new TwigFilter('cliTopLevelAliases', fn (array $service): array => $this->getCliTopLevelAliases($service)),
             new TwigFilter('cliCommandTargets', fn (array $method, array $service): array => $this->getCliCommandTargets($method, $service)),
+            new TwigFilter('cliFallbackHelpers', fn (array $service): array => $this->getCliFallbackHelpers($service)),
             new TwigFilter('cliIsTopLevelAlias', fn (array $method, array $service): bool => in_array(
                 $method['name'] ?? '',
                 self::TOP_LEVEL_COMMANDS[$service['name'] ?? ''] ?? [],

@@ -1,5 +1,7 @@
 import type { Command } from "commander";
+import { globalConfig } from "./config.js";
 import { EXECUTABLE_NAME } from "./constants.js";
+import { looksLikeHtml } from "./errors.js";
 
 /**
  * Commands whose response carries identifiers but no detail, mapped to the
@@ -28,3 +30,54 @@ const commandPath = (command: Command): string => {
 
 export const followUpHintFor = (command: Command): string =>
   followUpHints[commandPath(command)] ?? "";
+
+const isQueryFailure = (message: string): boolean =>
+  /Invalid query(?: method)?/i.test(message) ||
+  /query[^.:\n]*syntax error|syntax error[^.:\n]*query/i.test(message);
+
+/** Endpoints without a path are missing the `/v1` the API is served under. */
+const endpointMissingApiPath = (endpoint: string): boolean => {
+  try {
+    return new URL(endpoint).pathname.replace(/\/+$/, "") === "";
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * The hints that apply to a failure. Requests made with an explicit
+ * `--endpoint` record it on the exception, so prefer that over whatever
+ * endpoint happens to be configured.
+ */
+export const errorHintsFor = (err: Error, endpoint?: string): string[] => {
+  const failure = err as Error & {
+    endpoint?: string;
+    code?: number;
+    type?: string;
+    response?: unknown;
+  };
+
+  const hints: string[] = [];
+  const requestEndpoint =
+    endpoint ?? failure.endpoint ?? globalConfig.getEndpoint();
+
+  if (isQueryFailure(failure.message ?? "")) {
+    hints.push(
+      `For common list filters, use flags like --limit 25, --sort-desc '$createdAt', or --filter 'status=active'. Raw --queries values must be Appwrite JSON query strings, for example: ${EXECUTABLE_NAME} tablesdb list-rows --queries '{"method":"limit","values":[25]}'`,
+    );
+  }
+
+  const response = typeof failure.response === "string" ? failure.response : "";
+  const routeMissing =
+    failure.code === 404 ||
+    failure.type === "general_route_not_found" ||
+    looksLikeHtml(response);
+
+  if (routeMissing && endpointMissingApiPath(requestEndpoint)) {
+    hints.push(
+      `Appwrite's API is served under /v1. Try --endpoint ${new URL(requestEndpoint).origin}/v1`,
+    );
+  }
+
+  return hints;
+};

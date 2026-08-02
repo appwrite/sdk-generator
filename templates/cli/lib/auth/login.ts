@@ -30,6 +30,7 @@ import {
   removeLegacySessionsExcept,
   restoreCurrentSession,
   deleteServerSession,
+  verifyEndpoint,
 } from "./session.js";
 import { setStoredRefreshToken } from "./refresh-token.js";
 
@@ -340,7 +341,10 @@ const loginWithOAuthDevice = async ({
 }): Promise<void> => {
   const clientId = OAUTH2_CLIENT_ID;
   const oauth2 = await getOauth2Service(
-    await sdkForConsole({ requiresAuth: false, endpointOverride: configEndpoint }),
+    await sdkForConsole({
+      requiresAuth: false,
+      endpointOverride: configEndpoint,
+    }),
   );
 
   globalConfig.addSession(id, { endpoint: configEndpoint, clientId });
@@ -477,6 +481,12 @@ export const loginCommand = async ({
   }
 
   const shouldUseCloudLogin = isCloudLoginEndpoint(configEndpoint);
+
+  // Check the endpoint before anything is prompted for, so a wrong endpoint
+  // fails immediately instead of after the email and password are typed.
+  if (endpoint && !shouldUseCloudLogin) {
+    await verifyEndpoint(configEndpoint);
+  }
 
   if (shouldUseCloudLogin && (email || password || mfa || code)) {
     throw new Error(

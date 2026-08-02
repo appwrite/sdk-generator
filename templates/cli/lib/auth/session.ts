@@ -33,6 +33,55 @@ export const createLegacyConsoleClient = (
   return legacyClient;
 };
 
+/**
+ * Confirms an endpoint really is an Appwrite API root before anything is stored
+ * or prompted for. Failures carry the underlying response's code and type so
+ * error hints (e.g. a missing `/v1`) can still fire.
+ */
+export const verifyEndpoint = async (
+  endpoint: string,
+  selfSigned: boolean = globalConfig.getSelfSigned(),
+): Promise<void> => {
+  let protocol = "";
+  try {
+    protocol = new URL(endpoint).protocol;
+  } catch {
+    throw new Error(`Invalid endpoint URL: ${endpoint}`);
+  }
+
+  if (protocol !== "http:" && protocol !== "https:") {
+    throw new Error(`Invalid endpoint URL: ${endpoint}`);
+  }
+
+  let caught: { code?: number; type?: string; response?: unknown } = {};
+
+  try {
+    const response = (await createLegacyConsoleClient(
+      endpoint,
+      selfSigned,
+    ).call("GET", "/health/version")) as { version?: string };
+
+    if (response.version) {
+      return;
+    }
+  } catch (e) {
+    caught = e as { code?: number; type?: string; response?: unknown };
+  }
+
+  const failure = new Error(
+    "Invalid endpoint or your Appwrite server is not running as expected.",
+  );
+  Object.assign(
+    failure,
+    { endpoint },
+    caught.code === undefined ? {} : { code: caught.code },
+    caught.type === undefined ? {} : { type: caught.type },
+    caught.response === undefined ? {} : { response: caught.response },
+  );
+
+  throw failure;
+};
+
 export const hasAuthSession = (): boolean =>
   globalConfig.getAccessToken() !== "" || globalConfig.getCookie() !== "";
 
@@ -117,7 +166,9 @@ export const getSignedInAccounts = (): Array<{
  */
 export const isLocalOnlySession = (sessionId: string): boolean => {
   const session = getSession(sessionId);
-  return Boolean(session && !hasStoredRefreshToken(sessionId) && !session.cookie);
+  return Boolean(
+    session && !hasStoredRefreshToken(sessionId) && !session.cookie,
+  );
 };
 
 /**

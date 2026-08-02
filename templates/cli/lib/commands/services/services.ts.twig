@@ -46,6 +46,10 @@ import { sdkForConsole, sdkForProject } from "../../sdks.js";
 {% else %}
 import { sdkForProject } from "../../sdks.js";
 {% endif %}
+{% set fallbackHelpers = service | cliFallbackHelpers %}
+{% if fallbackHelpers is not empty %}
+import { {{ fallbackHelpers | join(', ') }} } from "../../console-fallback.js";
+{% endif %}
 import {
   actionRunner,
   commandDescriptions,
@@ -231,6 +235,11 @@ const {{ target.var }} = {{ service.name | caseCamel }}
         const url = (await {{ clientCall }}).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
         if (url) console.log(url);
       },
+{% elseif target.implementation %}
+{# The helper resolves the scoped resource itself, so it takes the ID directly. #}
+{% set implementationArgs = (scopedFlag ? [scope.idVar] : [])|merge(argExpressions) %}
+      async ({{ actionParams }}) =>
+        parse(await {{ target.implementation }}({{ implementationArgs | join(', ') | raw }})),
 {% elseif hasParams %}
       async ({{ actionParams }}) =>
         parse(await (await {{ clientCall }}).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }})),
