@@ -3,6 +3,8 @@ package output
 import (
 	"encoding/json"
 	"strings"
+
+	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
 )
 
 // Ports the redaction half of templates/cli/lib/parser.ts.
@@ -112,6 +114,15 @@ func (r *Redactor) Mask(value any, key string) any {
 		masked := make([]any, len(typed))
 		for i, item := range typed {
 			masked[i] = r.Mask(item, "")
+		}
+
+		return masked
+	case *jsonx.Object:
+		// Rebuilt in the same key order, so masking never reorders a response.
+		masked := jsonx.NewObject()
+		for _, name := range typed.Keys() {
+			item, _ := typed.Get(name)
+			masked.Set(name, r.Mask(item, name))
 		}
 
 		return masked

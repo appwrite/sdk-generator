@@ -564,7 +564,7 @@ Progress table, kept current:
 |---|---|---|---|
 | 0 — Spike | ✅ Complete — [BENCHMARKS.md](BENCHMARKS.md) | | |
 | 1 — Generator scaffolding | ✅ Complete — surface matches TS exactly (608/608) | | |
-| 2 — Runtime foundation | 🔄 In progress — config, redaction, client, session done | | |
+| 2 — Runtime foundation | 🔄 In progress — config, jsonx, redaction, JSON output, client, auth, session | #1718 |
 | 3 — Generated commands | Not started | | |
 | 4 — Conformance harness | Not started | | |
 | 5 — Stateful commands | Not started | | |

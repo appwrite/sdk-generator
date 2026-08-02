@@ -1,4 +1,4 @@
-package config
+package jsonx
 
 import (
 	"bytes"
@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+// Package jsonx provides JSON handling shared by config and output.
+//
 // Object is a JSON object that remembers the order its keys were read in.
 //
 // Go's map[string]any marshals keys sorted; JavaScript preserves insertion
@@ -152,7 +154,7 @@ func (o *Object) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	if delim, ok := token.(json.Delim); !ok || delim != '{' {
-		return fmt.Errorf("config: expected object, got %v", token)
+		return fmt.Errorf("jsonx: expected object, got %v", token)
 	}
 
 	o.keys = nil
@@ -169,7 +171,7 @@ func (o *Object) decodeInto(decoder *json.Decoder) error {
 		}
 		key, ok := token.(string)
 		if !ok {
-			return fmt.Errorf("config: expected object key, got %v", token)
+			return fmt.Errorf("jsonx: expected object key, got %v", token)
 		}
 
 		value, err := decodeValue(decoder)
@@ -222,7 +224,7 @@ func decodeValue(decoder *json.Decoder) (any, error) {
 		return items, nil
 	}
 
-	return nil, fmt.Errorf("config: unexpected delimiter %v", delim)
+	return nil, fmt.Errorf("jsonx: unexpected delimiter %v", delim)
 }
 
 // MarshalJSON re-encodes the object in its recorded key order.
@@ -237,14 +239,14 @@ func (o *Object) MarshalJSON() ([]byte, error) {
 		if i > 0 {
 			buffer.WriteByte(',')
 		}
-		encoded, err := json.Marshal(key)
+		encoded, err := marshalUnescaped(key)
 		if err != nil {
 			return nil, err
 		}
 		buffer.Write(encoded)
 		buffer.WriteByte(':')
 
-		encoded, err = json.Marshal(o.values[key])
+		encoded, err = marshalUnescaped(o.values[key])
 		if err != nil {
 			return nil, err
 		}
@@ -253,6 +255,29 @@ func (o *Object) MarshalJSON() ([]byte, error) {
 	buffer.WriteByte('}')
 
 	return buffer.Bytes(), nil
+}
+
+// marshalUnescaped encodes a value without Go's HTML escaping.
+//
+// json.Marshal always escapes <, > and & to \u003c and friends, and there is no
+// option to turn that off -- only json.Encoder has one. Nested values have to
+// go through an encoder too, because the outer encoder's SetEscapeHTML(false)
+// does not reach inside a custom MarshalJSON's output: it is copied through
+// compact(), which does not undo escapes already written.
+//
+// Without this, any URL with a query string comes out as `?a=1\u0026b=2` --
+// valid JSON, but not the bytes JSON.stringify produces, which breaks
+// invariant 4 and rewrites URLs in config files.
+func marshalUnescaped(value any) ([]byte, error) {
+	var buffer bytes.Buffer
+	encoder := json.NewEncoder(&buffer)
+	encoder.SetEscapeHTML(false)
+
+	if err := encoder.Encode(value); err != nil {
+		return nil, err
+	}
+
+	return bytes.TrimRight(buffer.Bytes(), "\n"), nil
 }
 
 // Marshal renders the object the way the TypeScript CLI writes config files:

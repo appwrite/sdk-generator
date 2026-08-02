@@ -64,24 +64,6 @@ func TestGlobalPreservesLargeIntegers(t *testing.T) {
 	}
 }
 
-// Overwriting an existing key must not move it to the end -- that is what keeps
-// a rewritten config diff-free.
-func TestSetPreservesKeyPosition(t *testing.T) {
-	object := NewObject()
-	object.Set("a", "1")
-	object.Set("b", "2")
-	object.Set("c", "3")
-	object.Set("a", "changed")
-
-	keys := object.Keys()
-	want := []string{"a", "b", "c"}
-	for i := range want {
-		if keys[i] != want[i] {
-			t.Fatalf("keys = %v, want %v", keys, want)
-		}
-	}
-}
-
 func TestGlobalSessionsIgnoreSettingKeys(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "prefs.json")
 	if err := os.WriteFile(path, []byte(realPrefs), 0o600); err != nil {

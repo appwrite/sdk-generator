@@ -258,11 +258,6 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'internal/config/ordered.go',
-                'template'      => 'go-cli/internal/config/ordered.go',
-            ],
-            [
-                'scope'         => 'copy',
                 'destination'   => 'internal/config/global.go',
                 'template'      => 'go-cli/internal/config/global.go',
             ],
@@ -305,6 +300,31 @@ class GoCLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/auth/refresh_test.go',
                 'template'      => 'go-cli/internal/auth/refresh_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/jsonx/object.go',
+                'template'      => 'go-cli/internal/jsonx/object.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/jsonx/object_test.go',
+                'template'      => 'go-cli/internal/jsonx/object_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/json.go',
+                'template'      => 'go-cli/internal/config/json.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/json.go',
+                'template'      => 'go-cli/internal/output/json.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/json_test.go',
+                'template'      => 'go-cli/internal/output/json_test.go',
             ],
             [
                 'scope'         => 'default',
