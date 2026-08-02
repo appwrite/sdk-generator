@@ -3,6 +3,18 @@ const fs = require("fs");
 const assert = require("node:assert/strict");
 const os = require("os");
 const path = require("path");
+
+process.env.NODE_ENV = "test";
+const sandboxHome = fs.mkdtempSync(
+  path.join(os.tmpdir(), "appwrite-cli-test-"),
+);
+os.homedir = () => sandboxHome;
+process.env.HOME = sandboxHome;
+process.env.USERPROFILE = sandboxHome;
+process.on("exit", () => {
+  fs.rmSync(sandboxHome, { recursive: true, force: true });
+});
+
 const Client = require("./lib/client.ts").default;
 const { localConfig } = require("./lib/config.ts");
 const { types } = require("./lib/commands/types.ts");
@@ -76,9 +88,24 @@ const {
   questionsClientReset,
 } = require("./lib/questions.ts");
 const { logout, client, whoami } = require("./lib/commands/generic.ts");
+const {
+  getOrganizationForSession,
+  listOrganizationsForSession,
+  listProjectsForSession,
+} = require("./lib/console-fallback.ts");
+const { formatErrorForLog } = require("./lib/parser.ts");
+const http = require("http");
 const { cliConfig } = require("./lib/parser.ts");
 const inquirerModule = require("inquirer");
 const inquirer = inquirerModule.default ?? inquirerModule;
+
+assert.ok(globalConfig.path.startsWith(sandboxHome));
+const sandboxKeyringTokens = new Map();
+setRefreshTokenEntryFactoryForTests((_service, account) => ({
+  setPassword: (password) => sandboxKeyringTokens.set(account, password),
+  getPassword: () => sandboxKeyringTokens.get(account) ?? null,
+  deletePassword: () => sandboxKeyringTokens.delete(account),
+}));
 
 const extractFirstValue = (output) => {
   const firstLine =
@@ -862,6 +889,8 @@ void (async () => {
   console.log("CLI_TYPEGEN:passed");
 })()
   .then(runAuthChecks)
+  .then(runErrorHandlingChecks)
+  .then(runConsoleFallbackChecks)
   .then(runAttributeSyncChecks)
   .then(runDeploymentSymlinkChecks)
   .catch((error) => {
@@ -1246,7 +1275,6 @@ async function runAuthChecks() {
   };
 
   const withMockedHealthVersion = async (fn) => {
-    const { Client } = await import("@appwrite.io/console");
     const originalCall = Client.prototype.call;
     Client.prototype.call = async () => ({ version: "1.0.0" });
     try {
@@ -2581,4 +2609,146 @@ async function runDeploymentSymlinkChecks() {
     fs.rmSync(root, { recursive: true, force: true });
     fs.rmSync(outside, { recursive: true, force: true });
   }
+}
+
+const HTML_ERROR_PAGE =
+  "<!DOCTYPE html><html><body><h1>Page not found</h1></body></html>";
+
+async function withStubServer(run) {
+  const paths = [];
+  const server = http.createServer((request, response) => {
+    paths.push(request.url);
+    response.writeHead(404, { "content-type": "text/html" });
+    response.end(HTML_ERROR_PAGE);
+  });
+
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const endpoint = `http://127.0.0.1:${server.address().port}`;
+
+  try {
+    await run({ endpoint, paths });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+async function runErrorHandlingChecks() {
+  await withStubServer(async ({ endpoint, paths }) => {
+    const failure = await new Client()
+      .setEndpoint(`${endpoint}/`)
+      .call("GET", "/health/version")
+      .catch((error) => error);
+
+    assert.equal(failure.message, "HTTP 404 Not Found");
+    assert.equal(failure.response, HTML_ERROR_PAGE);
+    assert.deepEqual(paths, ["/health/version"]);
+    assert.doesNotMatch(stripAnsi(formatErrorForLog(failure)), /<!DOCTYPE/);
+  });
+
+  await withStubServer(async ({ endpoint }) => {
+    const prompts = [];
+    const originalPrompt = inquirer.prompt;
+    inquirer.prompt = async (questions) => {
+      prompts.push(questions);
+      return {};
+    };
+
+    try {
+      const failure = await muteStdout(() =>
+        loginCommand({ endpoint }).catch((error) => error),
+      );
+      assert.equal(
+        failure.message,
+        "Invalid endpoint or your Appwrite server is not running as expected.",
+      );
+      assert.deepEqual(prompts, []);
+    } finally {
+      inquirer.prompt = originalPrompt;
+    }
+  });
+
+  console.log("CLI_ERROR_HANDLING:passed");
+}
+
+async function runConsoleFallbackChecks() {
+  const { Oauth2, Organization, Teams } = await import("@appwrite.io/console");
+  const originals = {
+    listProjects: Oauth2.prototype.listProjects,
+    listOrganizations: Oauth2.prototype.listOrganizations,
+    listTeams: Teams.prototype.list,
+    getTeam: Teams.prototype.get,
+    getOrganization: Organization.prototype.get,
+    listOrganizationProjects: Organization.prototype.listProjects,
+  };
+  const calls = { oauth2: 0, team: [] };
+  const routeMissing = () => {
+    throw Object.assign(new Error("Not Found"), {
+      code: 404,
+      type: "general_route_not_found",
+    });
+  };
+
+  Oauth2.prototype.listProjects = async () => {
+    calls.oauth2++;
+    return routeMissing();
+  };
+  Oauth2.prototype.listOrganizations = async () => {
+    calls.oauth2++;
+    return routeMissing();
+  };
+  Teams.prototype.list = async () => ({
+    total: 1,
+    teams: [{ $id: "org1", name: "Self-hosted org" }],
+  });
+  Teams.prototype.get = async function (teamId) {
+    calls.team.push(teamId);
+    return { $id: teamId, name: "Self-hosted org" };
+  };
+  Organization.prototype.get = routeMissing;
+  Organization.prototype.listProjects = async () => ({
+    total: 1,
+    projects: [{ $id: "p1", region: "default", name: "Project" }],
+  });
+
+  globalConfig.clear();
+  globalConfig.addSession("session1", {
+    endpoint: "http://localhost/v1",
+    email: "test@example.com",
+    cookie: "a_session_console=stub",
+  });
+  globalConfig.setCurrentSession("session1");
+  globalConfig.setEndpoint("http://localhost/v1");
+
+  try {
+    assert.deepEqual(await listOrganizationsForSession(), {
+      total: 1,
+      organizations: [{ $id: "org1" }],
+    });
+    assert.deepEqual(await listProjectsForSession(), {
+      total: 1,
+      projects: [
+        {
+          $id: "p1",
+          region: "default",
+          endpoint: "http://localhost/v1",
+        },
+      ],
+    });
+    assert.deepEqual(await getOrganizationForSession("org1"), {
+      $id: "org1",
+      name: "Self-hosted org",
+    });
+    assert.equal(calls.oauth2, 0);
+    assert.deepEqual(calls.team, ["org1"]);
+  } finally {
+    Oauth2.prototype.listProjects = originals.listProjects;
+    Oauth2.prototype.listOrganizations = originals.listOrganizations;
+    Teams.prototype.list = originals.listTeams;
+    Teams.prototype.get = originals.getTeam;
+    Organization.prototype.get = originals.getOrganization;
+    Organization.prototype.listProjects = originals.listOrganizationProjects;
+    globalConfig.clear();
+  }
+
+  console.log("CLI_CONSOLE_FALLBACKS:passed");
 }

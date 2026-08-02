@@ -13,6 +13,12 @@ import { globalConfig } from "./config.js";
 import os from "os";
 import { Client } from "@appwrite.io/console";
 import { getErrorMessage, isCloud } from "./utils.js";
+import {
+  MAX_REPORT_BODY_LENGTH,
+  sanitizeErrorText,
+  summarizeErrorBody,
+} from "./errors.js";
+import { errorHintsFor } from "./hints.js";
 import type { CliConfig } from "./types.js";
 import {
   SDK_VERSION,
@@ -766,18 +772,10 @@ export const drawJSON = (data: unknown): void => {
   console.log(JSON.stringify(data, null, 2));
 };
 
-const isQueryError = (message: string): boolean =>
-  /Invalid query(?: method)?/i.test(message) ||
-  /query[^.:\n]*syntax error|syntax error[^.:\n]*query/i.test(message);
-
-const printQueryErrorHint = (err: Error): void => {
-  if (!isQueryError(err.message)) {
-    return;
+const printErrorHints = (err: Error): void => {
+  for (const message of errorHintsFor(err)) {
+    hint(message);
   }
-
-  hint(
-    `For common list filters, use flags like --limit 25, --sort-desc '$createdAt', or --filter 'status=active'. Raw --queries values must be Appwrite JSON query strings, for example: ${EXECUTABLE_NAME} tablesdb list-rows --queries '{"method":"limit","values":[25]}'`,
-  );
 };
 
 const ERROR_DETAIL_KEYS = ["code", "type", "response"] as const;
@@ -794,7 +792,8 @@ const formatErrorDetail = (value: unknown): string => {
         value = parsed;
       }
     } catch {
-      return text;
+      // Not JSON — summarize HTML and oversized proxy responses.
+      return summarizeErrorBody(text);
     }
   }
 
@@ -808,6 +807,42 @@ const formatErrorDetail = (value: unknown): string => {
     return String(value);
   }
 };
+
+/** Keeps a summarized message from dominating a bug report title. */
+const MAX_REPORT_TITLE_LENGTH = 120;
+
+/**
+ * Plain (uncolored, bounded) error details for a bug report body.
+ */
+const reportErrorDetails = (err: Error): string[] => {
+  const lines: string[] = [];
+
+  for (const key of ERROR_DETAIL_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(err, key)) {
+      continue;
+    }
+
+    const value = (err as unknown as Record<string, unknown>)[key];
+    const rendered =
+      typeof value === "string"
+        ? sanitizeErrorText(value, MAX_REPORT_BODY_LENGTH)
+        : String(value);
+
+    lines.push(`${key}: ${rendered}`);
+  }
+
+  return lines;
+};
+
+/**
+ * Stack frames only — the message line is rendered separately and, unlike a raw
+ * stack, frames can never carry a response body.
+ */
+const errorStackFrames = (err: Error): string[] =>
+  (err.stack ?? "")
+    .split("\n")
+    .filter((line) => line.trim().startsWith("at "))
+    .map((line) => line.trim());
 
 export const formatErrorForLog = (err: Error): string => {
   const lines = [
@@ -825,15 +860,13 @@ export const formatErrorForLog = (err: Error): string => {
     );
   }
 
-  const frames = (err.stack ?? "")
-    .split("\n")
-    .filter((line) => line.trim().startsWith("at "));
+  const frames = errorStackFrames(err);
   if (frames.length > 0) {
     lines.push(
       "",
       chalk.dim(`${ERROR_DETAIL_INDENT}Stack trace:`),
       ...frames.map((frame) =>
-        chalk.dim(`${ERROR_DETAIL_INDENT.repeat(2)}${frame.trim()}`),
+        chalk.dim(`${ERROR_DETAIL_INDENT.repeat(2)}${frame}`),
       ),
     );
   }
@@ -863,7 +896,14 @@ export const parseError = (err: Error): void => {
       const stepsToReproduce = `Running \`${EXECUTABLE_NAME} ${commandArgs.join(" ")}\``;
       const yourEnvironment = `CLI version: ${version}\nOperation System: ${os.type()}\nAppwrite version: ${appwriteVersion}\nIs Cloud: ${isCloud()}`;
 
-      const stack = "```\n" + (err.stack || err.message) + "\n```";
+      // Response bodies are summarized and frames are listed separately, so an
+      // HTML error page can never blow the issue URL past what GitHub accepts.
+      const details = [
+        `${err.name || "Error"}: ${getErrorMessage(err)}`,
+        ...reportErrorDetails(err),
+        ...errorStackFrames(err),
+      ].join("\n");
+      const stack = "```\n" + details + "\n```";
 
       const githubIssueUrl = new URL(
         "https://github.com/appwrite/appwrite/issues/new",
@@ -872,7 +912,7 @@ export const parseError = (err: Error): void => {
       githubIssueUrl.searchParams.append("template", "bug.yaml");
       githubIssueUrl.searchParams.append(
         "title",
-        `🐛 Bug Report: ${getErrorMessage(err)}`,
+        `🐛 Bug Report: ${sanitizeErrorText(getErrorMessage(err), MAX_REPORT_TITLE_LENGTH)}`,
       );
       githubIssueUrl.searchParams.append(
         "actual-behavior",
@@ -887,7 +927,7 @@ export const parseError = (err: Error): void => {
       log(
         `To report this error you can:\n - Create a support ticket in our Discord server https://appwrite.io/discord \n - Create an issue in our Github\n   ${githubIssueUrl.href}\n`,
       );
-      printQueryErrorHint(err);
+      printErrorHints(err);
 
       error("\n Stack Trace: \n");
       console.error(formatErrorForLog(err));
@@ -896,11 +936,11 @@ export const parseError = (err: Error): void => {
   } else {
     if (cliConfig.verbose) {
       console.error(formatErrorForLog(err));
-      printQueryErrorHint(err);
+      printErrorHints(err);
     } else {
       log("For detailed error pass the --verbose or --report flag");
       error(getErrorMessage(err));
-      printQueryErrorHint(err);
+      printErrorHints(err);
     }
     process.exit(1);
   }

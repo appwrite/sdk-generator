@@ -1,6 +1,5 @@
 import inquirer from "inquirer";
 import { Command } from "commander";
-import { Client } from "@appwrite.io/console";
 import { endpointsMatch, globalConfig, localConfig } from "../config.js";
 import { configuredOrganizationId } from "../context.js";
 import { EXECUTABLE_NAME } from "../constants.js";
@@ -29,6 +28,7 @@ import {
   logoutSessions,
   planSessionLogout,
   restoreCurrentSessionFallback,
+  verifyEndpoint,
 } from "../auth/session.js";
 
 export { loginCommand };
@@ -288,62 +288,43 @@ export const client = new Command("client")
         }
 
         if (endpoint !== undefined) {
-          try {
-            const url = new URL(endpoint);
-            if (url.protocol !== "http:" && url.protocol !== "https:") {
-              throw new Error();
-            }
+          await verifyEndpoint(
+            endpoint,
+            selfSigned || globalConfig.getSelfSigned(),
+          );
 
-            const clientInstance = new Client().setEndpoint(endpoint);
-            clientInstance.setProject("console");
-            if (selfSigned || globalConfig.getSelfSigned()) {
-              clientInstance.setSelfSigned(true);
-            }
-            const response = (await clientInstance.call(
-              "GET",
-              new URL(endpoint + "/health/version"),
-            )) as { version?: string };
-            if (!response.version) {
-              throw new Error();
-            }
+          const previous = globalConfig.getCurrentSession();
+          const match = findSessionForEndpoint(endpoint);
 
-            const previous = globalConfig.getCurrentSession();
-            const match = findSessionForEndpoint(endpoint);
-
-            if (
-              previous &&
-              endpointsMatch(getSession(previous)?.endpoint ?? "", endpoint) &&
-              (isAuthenticatedSession(previous) || !match.authenticated)
-            ) {
-              // Already on the best available session for this endpoint — keep
-              // current and refresh the stored value so regional hosts stay as
-              // requested.
-              globalConfig.setEndpoint(endpoint);
-            } else if (match.authenticated) {
-              globalConfig.setCurrentSession(match.authenticated);
-              globalConfig.setEndpoint(endpoint);
-              const email = getSession(match.authenticated)?.email;
-              if (email) {
-                log(`Using signed-in account ${email}`);
-              }
-            } else if (match.endpointOnly) {
-              globalConfig.setCurrentSession(match.endpointOnly);
-              globalConfig.setEndpoint(endpoint);
-              warnDetachedAuthenticatedSession(previous);
-            } else if (previous && !isAuthenticatedSession(previous)) {
-              // Update an existing endpoint-only stub in place.
-              globalConfig.setEndpoint(endpoint);
-            } else {
-              const id = ID.unique();
-              globalConfig.addSession(id, { endpoint });
-              globalConfig.setCurrentSession(id);
-              globalConfig.setEndpoint(endpoint);
-              warnDetachedAuthenticatedSession(previous);
+          if (
+            previous &&
+            endpointsMatch(getSession(previous)?.endpoint ?? "", endpoint) &&
+            (isAuthenticatedSession(previous) || !match.authenticated)
+          ) {
+            // Already on the best available session for this endpoint — keep
+            // current and refresh the stored value so regional hosts stay as
+            // requested.
+            globalConfig.setEndpoint(endpoint);
+          } else if (match.authenticated) {
+            globalConfig.setCurrentSession(match.authenticated);
+            globalConfig.setEndpoint(endpoint);
+            const email = getSession(match.authenticated)?.email;
+            if (email) {
+              log(`Using signed-in account ${email}`);
             }
-          } catch (_) {
-            throw new Error(
-              "Invalid endpoint or your Appwrite server is not running as expected.",
-            );
+          } else if (match.endpointOnly) {
+            globalConfig.setCurrentSession(match.endpointOnly);
+            globalConfig.setEndpoint(endpoint);
+            warnDetachedAuthenticatedSession(previous);
+          } else if (previous && !isAuthenticatedSession(previous)) {
+            // Update an existing endpoint-only stub in place.
+            globalConfig.setEndpoint(endpoint);
+          } else {
+            const id = ID.unique();
+            globalConfig.addSession(id, { endpoint });
+            globalConfig.setCurrentSession(id);
+            globalConfig.setEndpoint(endpoint);
+            warnDetachedAuthenticatedSession(previous);
           }
         }
 

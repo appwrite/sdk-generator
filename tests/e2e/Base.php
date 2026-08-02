@@ -291,6 +291,11 @@ abstract class Base extends TestCase
         'auth:context-project-precedence:passed',
     ];
 
+    protected const CLI_REGRESSION_RESPONSES = [
+        'CLI_ERROR_HANDLING:passed',
+        'CLI_CONSOLE_FALLBACKS:passed',
+    ];
+
     protected const CLI_ATTRIBUTE_SYNC_RESPONSES = [
         'attribute:in-place-updates:passed',
         'attribute:recreates-immutable:passed',
