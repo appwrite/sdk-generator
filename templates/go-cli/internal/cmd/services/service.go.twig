@@ -45,11 +45,20 @@ func New{{ service.name | caseUcfirst }}Command() *cobra.Command {
 // top-level commands. The service subcommand stays registered but hidden, so
 // both spellings keep working.
 func New{{ service.name | caseUcfirst }}RootCommands() []*cobra.Command {
-	return []*cobra.Command{
+	commands := []*cobra.Command{
 {% for alias in rootAliases %}
 		new{{ service.name | caseUcfirst }}{{ alias.method | caseUcfirst }}Command(),
 {% endfor %}
 	}
+
+	// The same constructor builds both spellings, and it marks the command
+	// hidden so it does not appear twice under its service. The promoted copy is
+	// the one --help is meant to advertise, so it is made visible here.
+	for _, command := range commands {
+		command.Hidden = false
+	}
+
+	return commands
 }
 
 {% endif %}
@@ -67,9 +76,17 @@ func New{{ service.name | caseUcfirst }}RootCommands() []*cobra.Command {
 {% endfor %}
 {% set scopedFlag = scope and not hasScopedIdParam %}
 {% set isTopLevel = false %}
+{# `implementation` names a console-fallback helper this method routes through
+   instead of the SDK. Captured here rather than read inside RunE, where the
+   target loop variable is out of scope -- a branch on it there silently never
+   fires and still compiles. #}
+{% set implementation = null %}
 {% for target in method | cliCommandTargets(service) %}
 {% if target.standalone %}
 {% set isTopLevel = true %}
+{% endif %}
+{% if target.implementation %}
+{% set implementation = target.implementation %}
 {% endif %}
 {% endfor %}
 func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command() *cobra.Command {
@@ -111,6 +128,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 {% endif %}
 		RunE: func(cmd *cobra.Command, args []string) error {
 {% set plan = getGoCallPlan(method, service) %}
+{% if not implementation %}
 {% if scope %}
 			client, err := app.ClientFor{{ scope.label }}({{ scopedFlag ? scope.idVar : '""' }})
 {% elseif service.isConsoleOnly %}
@@ -122,6 +140,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 				return err
 			}
 			service := {{ plan.package }}.New(client)
+{% endif %}
 {% for decode in plan.decodes %}
 			{{ decode.var }}, err := app.{{ decode.helper }}({{ decode.source }})
 			if err != nil {
@@ -154,7 +173,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 				return err
 			}
 {% endif %}
-{% if plan.optional is not empty %}
+{% if plan.optional is not empty and not implementation %}
 
 			// An unset flag must be omitted, not sent as its zero value: the
 			// TypeScript passes undefined and the SDK drops it.
@@ -166,12 +185,29 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 {% endfor %}
 {% endif %}
 
+{% if implementation == 'listOrganizationsForSession' %}
+			result, err := app.ListOrganizationsForSession(
+				app.FlagInt(cmd, "limit", limit), app.FlagInt(cmd, "offset", offset), search)
+{% elseif implementation == 'listProjectsForSession' %}
+			result, err := app.ListProjectsForSession({{ scopedFlag ? scope.idVar : '""' }},
+				app.FlagInt(cmd, "limit", limit), app.FlagInt(cmd, "offset", offset), search)
+{% elseif implementation == 'getOrganizationForSession' %}
+			result, err := app.GetOrganizationForSession({{ scopedFlag ? scope.idVar : '""' }})
+{% else %}
 			result, err := service.{{ plan.method }}({% for argument in plan.required %}{{ argument.expression }}, {% endfor %}{% if plan.optional is not empty %}options...{% endif %})
+{% endif %}
 			if err != nil {
 				return err
 			}
+{% if method.type == 'location' %}
+
+			// A location method returns the file bytes, not a URL. The
+			// TypeScript fetches the URL itself; the SDK has already done that.
+			return app.WriteFile(destination, result)
+{% else %}
 
 			return app.Render(result)
+{% endif %}
 		},
 	}
 

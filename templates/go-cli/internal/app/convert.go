@@ -123,3 +123,25 @@ func DecodeSlice[T any](raws []string) ([]T, error) {
 
 	return decoded, nil
 }
+
+// WriteFile saves a downloaded file.
+//
+// `location` methods return the bytes rather than a URL, so there is nothing to
+// fetch -- the SDK already did. The parent directory is created so a
+// --destination pointing into a new folder works without a prior mkdir.
+func WriteFile(destination string, content *[]byte) error {
+	if destination == "" {
+		return fmt.Errorf("a --destination is required")
+	}
+	if content == nil {
+		return fmt.Errorf("the server returned no content")
+	}
+
+	if directory := filepath.Dir(destination); directory != "." {
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			return err
+		}
+	}
+
+	return os.WriteFile(destination, *content, 0o644)
+}

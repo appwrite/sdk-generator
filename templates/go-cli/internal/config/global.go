@@ -269,6 +269,21 @@ func baseCloudHostname(hostname string) string {
 	return ""
 }
 
+// CloudBaseHost returns the Appwrite Cloud base hostname behind an endpoint,
+// and false when the endpoint is self-hosted.
+//
+// Exported so callers that need to build a regional URL do not re-derive the
+// region rules and drift from baseCloudHostname().
+func CloudBaseHost(endpoint string) (string, bool) {
+	parsed, err := url.Parse(endpoint)
+	if err != nil || parsed.Hostname() == "" {
+		return "", false
+	}
+	base := baseCloudHostname(parsed.Hostname())
+
+	return base, base != ""
+}
+
 // NormalizeCloudConsoleEndpoint collapses a regional Cloud endpoint onto its
 // base host, leaving self-hosted endpoints untouched.
 //

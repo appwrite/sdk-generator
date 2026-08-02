@@ -548,6 +548,21 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/app/convert.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/fallback.go',
+                'template'      => 'go-cli/internal/app/fallback.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/surface_test.go',
+                'template'      => 'go-cli/internal/cmd/surface_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/testdata/command-surface.json',
+                'template'      => 'go-cli/internal/cmd/testdata/command-surface.json',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/services/register.go',
                 'template'      => 'go-cli/internal/cmd/services/register.go.twig',

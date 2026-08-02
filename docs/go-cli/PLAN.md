@@ -344,7 +344,7 @@ after Phase 4 proves parity.
 
 ---
 
-### Phase 3 — Generated service commands
+### Phase 3 — Generated service commands ✅ COMPLETE
 
 **Goal:** all 608 commands generated, compiling, and calling the Go SDK.
 
@@ -565,7 +565,7 @@ Progress table, kept current:
 | 0 — Spike | ✅ Complete — [BENCHMARKS.md](BENCHMARKS.md) | | |
 | 1 — Generator scaffolding | ✅ Complete — surface matches TS exactly (608/608) | | |
 | 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
-| 3 — Generated commands | Not started | | |
+| 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
 | 4 — Conformance harness | Not started | | |
 | 5 — Stateful commands | Not started | | |
 | 6 — Performance | Not started | | |
