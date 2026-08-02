@@ -28,6 +28,7 @@ var ErrSessionExpired = errors.New("session expired. Run `appwrite login` to cre
 type tokenResponse struct {
 	AccessToken  string      `json:"access_token"`
 	RefreshToken string      `json:"refresh_token"`
+	IDToken      string      `json:"id_token"`
 	ExpiresIn    json.Number `json:"expires_in"`
 }
 
