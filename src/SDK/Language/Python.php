@@ -10,7 +10,6 @@ use Twig\TwigFilter;
 
 class Python extends Language
 {
-    #[Override]
     protected $params = [
         'pipPackage' => 'packageName',
     ];
@@ -155,6 +154,11 @@ class Python extends Language
                 'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/client.py',
                 'template' => 'python/package/client.py.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'test/test_client.py',
+                'template' => 'python/test/test_client.py.twig',
             ],
             [
                 'scope' => 'default',
@@ -304,6 +308,27 @@ class Python extends Language
         ];
     }
 
+    protected function isModelDefined(string $name, array $spec): bool
+    {
+        if (empty($name) || $spec === []) {
+            return false;
+        }
+        $pascal = $this->toPascalCase($name);
+        foreach (($spec['definitions'] ?? []) as $key => $definition) {
+            $modelName = \is_array($definition) && isset($definition['name']) ? $definition['name'] : (string) $key;
+            if ($this->toPascalCase($modelName) === $pascal) {
+                return true;
+            }
+        }
+        foreach (($spec['requestModels'] ?? []) as $key => $requestModel) {
+            $modelName = \is_array($requestModel) && isset($requestModel['name']) ? $requestModel['name'] : (string) $key;
+            if ($this->toPascalCase($modelName) === $pascal) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * @throws Exception
      */
@@ -319,11 +344,11 @@ class Python extends Language
                 ? \ucfirst($parameter['enumName'])
                 : \ucfirst((string) $parameter['name']);
 
-            $typeName = 'List[' . $enumType . ']';
+            $typeName = 'List[' . $enumType . 'Enum]';
         } elseif (isset($parameter['enumName'])) {
-            $typeName = \ucfirst($parameter['enumName']);
+            $typeName = \ucfirst($parameter['enumName']) . 'Enum';
         } elseif (!empty($parameter['enumValues'])) {
-            $typeName = \ucfirst((string) $parameter['name']);
+            $typeName = \ucfirst((string) $parameter['name']) . 'Enum';
         } elseif (!empty($parameter['array']['model'])) {
             $typeName = 'List[' . $this->toPascalCase($parameter['array']['model']) . ']';
         } elseif (!empty($parameter['model'])) {
@@ -647,7 +672,7 @@ class Python extends Language
         return $modelType;
     }
 
-    protected function getServicePropertyType(array $parameter, string $serviceName): string
+    protected function getServicePropertyType(array $parameter, string $serviceName, array $spec = []): string
     {
         if (!empty($parameter['array']['model'])) {
             $typeName = 'List[' . $this->getServiceModelTypeName($parameter['array']['model'], $serviceName) . ']';
@@ -655,7 +680,7 @@ class Python extends Language
             $modelType = $this->getServiceModelTypeName($parameter['model'], $serviceName);
             $typeName = ($parameter['type'] ?? '') === self::TYPE_ARRAY ? 'List[' . $modelType . ']' : $modelType;
         } else {
-            return $this->getTypeName($parameter);
+            return $this->getTypeName($parameter, $spec);
         }
 
         if (!($parameter['required'] ?? true) || ($parameter['nullable'] ?? false)) {
@@ -762,7 +787,8 @@ class Python extends Language
             new TwigFilter('getPropertyType', fn(array $value, array $method = []): string => $this->getTypeName($value, $method)),
             new TwigFilter('hasGenericType', fn(string $model, array $spec): bool => $this->hasGenericType($model, $spec)),
             new TwigFilter('hasGenericTypeProperty', fn(array $properties, array $spec): bool => array_any($properties, fn($property): bool => !empty($property['sub_schema']) && $this->hasGenericType($property['sub_schema'], $spec))),
-            new TwigFilter('getServicePropertyType', fn(array $value, string $serviceName): string => $this->getServicePropertyType($value, $serviceName)),
+            new TwigFilter('hasModelDefinition', fn(string $name, array $spec): bool => $this->isModelDefined($name, $spec)),
+            new TwigFilter('getServicePropertyType', fn(array $value, string $serviceName, array $spec = []): string => $this->getServicePropertyType($value, $serviceName, $spec)),
             new TwigFilter('getModelPropertyType', fn(array $value, string $ownerName = ''): string => $this->getModelPropertyType($value, $ownerName)),
             new TwigFilter('getModelFieldName', fn(array $value, array $properties): string => $this->getModelFieldName($value, $properties)),
             new TwigFilter('getResponseType', fn(array $method, string $serviceName = ''): string => $this->getResponseType($method, $serviceName)),

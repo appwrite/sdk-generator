@@ -1,0 +1,348 @@
+import asyncio
+import warnings
+import unittest
+import httpx
+import respx
+from appwrite.client import Client
+from appwrite.input_file import InputFile
+
+class TestClientMethods(unittest.TestCase):
+
+    def test_sync_context_manager(self):
+        with Client() as client:
+            http_client = client._get_http_client()
+            self.assertFalse(http_client.is_closed)
+        self.assertTrue(http_client.is_closed)
+
+    def test_async_context_manager(self):
+        async def run_test():
+            async with Client() as client:
+                async_client = client._get_async_http_client()
+                self.assertFalse(async_client.is_closed)
+            self.assertTrue(async_client.is_closed)
+
+        asyncio.run(run_test())
+
+    def test_explicit_close(self):
+        client = Client()
+        http_client = client._get_http_client()
+        self.assertFalse(http_client.is_closed)
+        client.close()
+        self.assertTrue(http_client.is_closed)
+
+    def test_explicit_aclose(self):
+        async def run_test():
+            client = Client()
+            async_client = client._get_async_http_client()
+            self.assertFalse(async_client.is_closed)
+            await client.aclose()
+            self.assertTrue(async_client.is_closed)
+
+        asyncio.run(run_test())
+
+    def test_mixed_pool_close(self):
+        client = Client()
+        sync_client = client._get_http_client()
+        async_client = client._get_async_http_client()
+        self.assertFalse(sync_client.is_closed)
+        self.assertFalse(async_client.is_closed)
+        client.close()
+        self.assertTrue(sync_client.is_closed)
+        self.assertTrue(async_client.is_closed)
+
+    def test_mixed_pool_aclose(self):
+        async def run_test():
+            client = Client()
+            sync_client = client._get_http_client()
+            async_client = client._get_async_http_client()
+            self.assertFalse(sync_client.is_closed)
+            self.assertFalse(async_client.is_closed)
+            await client.aclose()
+            self.assertTrue(sync_client.is_closed)
+            self.assertTrue(async_client.is_closed)
+
+        asyncio.run(run_test())
+
+    def test_set_self_signed_async_cleanup_no_loop(self):
+        client = Client()
+        async_client = client._get_async_http_client()
+        self.assertFalse(async_client.is_closed)
+        client.set_self_signed(True)
+        self.assertTrue(async_client.is_closed)
+
+    def test_set_self_signed_in_loop_warns(self):
+        """set_self_signed() called from the owning loop's thread emits a ResourceWarning and resets client reference.
+
+        run_coroutine_threadsafe + future.result() would deadlock (same thread drives
+        the loop); asyncio.run() raises RuntimeError for a nested loop.
+        A ResourceWarning is emitted, and the client reference is cleared so GC can reclaim it.
+        """
+        import warnings
+
+        async def run_test():
+            client = Client()
+            client._get_async_http_client()
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                client.set_self_signed(True)
+                self.assertTrue(any(issubclass(warn.category, ResourceWarning) for warn in w))
+            self.assertTrue(client._self_signed)
+            self.assertIsNone(client._async_http_client)
+
+        asyncio.run(run_test())
+
+    def test_sync_close_in_loop_warns(self):
+        """close() called from the owning loop's thread emits a ResourceWarning and resets client reference.
+
+        run_coroutine_threadsafe + future.result() would deadlock (same thread drives
+        the loop); asyncio.run() raises RuntimeError for a nested loop.
+        A ResourceWarning is emitted, and the client reference is cleared so GC can reclaim it.
+        """
+        import warnings
+
+        async def run_test():
+            client = Client()
+            client._get_async_http_client()
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                client.close()
+                self.assertTrue(any(issubclass(warn.category, ResourceWarning) for warn in w))
+            self.assertIsNone(client._async_http_client)
+
+        asyncio.run(run_test())
+
+    def test_sync_close_after_loop_exit_succeeds(self):
+        """close() called AFTER asyncio.run() exits emits ResourceWarning (or closes if no loop attached).
+
+        When the owning loop is closed/dead, asyncio.run() or loop-check emits ResourceWarning
+        and clears the reference safely for GC reclamation.
+        """
+        import warnings
+
+        client = Client()
+
+        async def setup():
+            client._get_async_http_client()
+
+        asyncio.run(setup())
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            client.close()
+        self.assertIsNone(client._async_http_client)
+
+    def test_sync_close_after_active_pool(self):
+        """close() clears async pool reference after serving real requests."""
+        import warnings
+
+        client = Client()
+
+        async def make_request():
+            with respx.mock() as mock:
+                mock.get(client._endpoint + "/health/version").mock(
+                    return_value=httpx.Response(200, json={"version": "test"})
+                )
+                await client.call_async(
+                    "get", "/health/version",
+                    headers={"content-type": "application/json"}
+                )
+            return client._get_async_http_client()
+
+        async_http_client = asyncio.run(make_request())
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            client.close()
+        self.assertIsNone(client._async_http_client)
+
+    def test_sync_close_from_different_thread_succeeds(self):
+        """close() called from a *different* thread than the one running the
+        owning loop can safely use run_coroutine_threadsafe -- no deadlock,
+        deterministic cleanup, since the calling thread isn't the one that
+        needs to drive the loop forward."""
+        import threading
+
+        loop_ready = threading.Event()
+        close_done = threading.Event()
+        captured = {}
+
+        def loop_thread():
+            async def keep_loop_alive():
+                client = Client()
+                captured['client'] = client
+                captured['async_client'] = client._get_async_http_client()
+                loop_ready.set()
+                while not close_done.is_set():
+                    await asyncio.sleep(0.01)
+
+            asyncio.run(keep_loop_alive())
+
+        t = threading.Thread(target=loop_thread, daemon=True)
+        t.start()
+        loop_ready.wait(timeout=5)
+
+        self.assertFalse(captured['async_client'].is_closed)
+        captured['client'].close()  # called from main thread, not the loop's thread
+        self.assertTrue(captured['async_client'].is_closed)
+
+        close_done.set()
+        t.join(timeout=5)
+
+    def test_sync_close_from_async_context_warns(self):
+        """close() called from within a running loop emits ResourceWarning and resets client reference."""
+        import warnings
+
+        async def run_test():
+            client = Client()
+            with respx.mock() as mock:
+                mock.get(client._endpoint + "/health/version").mock(
+                    return_value=httpx.Response(200, json={"version": "test"})
+                )
+                await client.call_async(
+                    "get", "/health/version",
+                    headers={"content-type": "application/json"}
+                )
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                client.close()
+                self.assertTrue(any(issubclass(warn.category, ResourceWarning) for warn in w))
+
+            self.assertIsNone(client._async_http_client)
+
+        asyncio.run(run_test())
+
+    def test_chunked_upload_async_concurrency(self):
+        async def run_test():
+            client = Client()
+            active_calls = 0
+            max_active_calls = 0
+            lock = asyncio.Lock()
+
+            async def mock_call_async(method, path='', headers=None, params=None, response_type='json'):
+                nonlocal active_calls, max_active_calls
+                if method == 'get':
+                    return {'chunksUploaded': 0}
+                async with lock:
+                    active_calls += 1
+                    if active_calls > max_active_calls:
+                        max_active_calls = active_calls
+                await asyncio.sleep(0.01)
+                async with lock:
+                    active_calls -= 1
+                return {'$id': 'test_id', 'chunksUploaded': 1, 'chunksTotal': 15}
+
+            client.call_async = mock_call_async
+
+            dummy_data = b'x' * (client._chunk_size * 12)
+            input_file = InputFile.from_bytes(dummy_data, 'test.bin')
+
+            await client.chunked_upload_async(
+                '/storage/files',
+                params={'file': input_file},
+                param_name='file',
+                upload_id='unique()'
+            )
+            self.assertLessEqual(max_active_calls, 8)
+            self.assertGreater(max_active_calls, 1)
+
+        asyncio.run(run_test())
+
+    def test_set_self_signed_recreates_clients(self):
+        client = Client()
+        sync_client1 = client._get_http_client()
+        async_client1 = client._get_async_http_client()
+        client.set_self_signed(True)
+        sync_client2 = client._get_http_client()
+        async_client2 = client._get_async_http_client()
+        self.assertIsNot(sync_client1, sync_client2)
+        self.assertIsNot(async_client1, async_client2)
+
+    def test_chunked_upload_sync_concurrency(self):
+        import time
+        import threading
+
+        client = Client()
+        active_calls = 0
+        max_active_calls = 0
+        lock = threading.Lock()
+
+        def mock_call(method, path='', headers=None, params=None, response_type='json'):
+            nonlocal active_calls, max_active_calls
+            if method == 'get':
+                return {'chunksUploaded': 0}
+            with lock:
+                active_calls += 1
+                if active_calls > max_active_calls:
+                    max_active_calls = active_calls
+            time.sleep(0.01)
+            with lock:
+                active_calls -= 1
+            return {'$id': 'test_id', 'chunksUploaded': 1, 'chunksTotal': 15}
+
+        client.call = mock_call
+
+        dummy_data = b'x' * (client._chunk_size * 12)
+        input_file = InputFile.from_bytes(dummy_data, 'test.bin')
+
+        client.chunked_upload(
+            '/storage/files',
+            params={'file': input_file},
+            param_name='file',
+            upload_id='unique()'
+        )
+        self.assertLessEqual(max_active_calls, 8)
+        self.assertGreater(max_active_calls, 1)
+
+    def test_multiple_asyncio_run_calls_share_client(self):
+        """Sharing a Client across multiple sequential asyncio.run() calls must succeed cleanly."""
+        client = Client()
+        c1 = None
+        c2 = None
+
+        async def run_first():
+            nonlocal c1
+            with respx.mock() as mock:
+                mock.get(client._endpoint + "/health/version").mock(
+                    return_value=httpx.Response(200, json={"version": "1.0.0"})
+                )
+                res = await client.call_async("get", "/health/version")
+                c1 = client._async_http_client
+                return res
+
+        async def run_second():
+            nonlocal c2
+            with respx.mock() as mock:
+                mock.get(client._endpoint + "/health/version").mock(
+                    return_value=httpx.Response(200, json={"version": "1.0.1"})
+                )
+                res = await client.call_async("get", "/health/version")
+                c2 = client._async_http_client
+                return res
+
+        res1 = asyncio.run(run_first())
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            res2 = asyncio.run(run_second())
+
+        self.assertEqual(res1, {"version": "1.0.0"})
+        self.assertEqual(res2, {"version": "1.0.1"})
+        self.assertIsNot(c1, c2)
+
+        client.close()
+
+    def test_loop_change_warns_when_old_pool_open(self):
+        """Switching event loops while the previous AsyncClient is still open
+        emits a ResourceWarning instead of silently orphaning the pool."""
+        import warnings
+
+        client = Client()
+
+        async def first_loop():
+            client._get_async_http_client()
+
+        asyncio.run(first_loop())
+
+        async def second_loop():
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                client._get_async_http_client()
+                self.assertTrue(any(issubclass(warn.category, ResourceWarning) for warn in w))
+        asyncio.run(second_loop())

@@ -12,17 +12,24 @@
 {% endif %}
 {% endfor %}
 
-        response = self.client.chunked_upload(api_path, {
+        response = await self.client.chunked_upload_async(
+            api_path,
+            {
 {%~ for key, security in method.securityHeaders %}
-            '{{ security.name }}': self.client.get_config('{{ key | caseLower }}'),
+                '{{ security.name }}': self.client.get_config('{{ key | caseLower }}'),
 {%~ endfor %}
 {% for parameter in method.parameters.header %}
-            '{{ parameter.name }}': self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }}),
+                '{{ parameter.name }}': self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }}),
 {% endfor %}
 {% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
+                '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, api_params, param_name, on_progress, upload_id)
+            },
+            api_params,
+            param_name,
+            on_progress,
+            upload_id
+        )
 {% if method.responseModels is defined and method.responseModels|length > 1 %}
 {% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
 {% set responseDiscriminator = method.responseDiscriminator ?? {} %}
@@ -44,7 +51,7 @@
 {% set isGenericResponse = method.responseModel | hasGenericType(spec) %}
 {% if isGenericResponse %}
 
-        return {% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}.with_data(response, model_type)
+        return {{ method.responseModel | caseUcfirst }}.with_data(response, model_type)
 {% else %}
 
         return self._parse_response(response, model={% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %})

@@ -13,6 +13,7 @@ from appwrite.enums.mock_type import MockType
 from appwrite.models.player import Player
 
 import os.path
+import asyncio
 
 client = Client()
 foo = Foo(client)
@@ -254,3 +255,115 @@ print(Operator.date_set_now())
 
 response = general.headers()
 print(response.result)
+
+# Async Foo Tests
+
+response = asyncio.run(foo.get_async('string', 123, ['string in array']))
+print(response.result)
+
+response = asyncio.run(foo.post_async('string', 123, ['string in array']))
+print(response.result)
+
+response = asyncio.run(foo.put_async('string', 123, ['string in array']))
+print(response.result)
+
+response = asyncio.run(foo.patch_async('string', 123, ['string in array']))
+print(response.result)
+
+response = asyncio.run(foo.delete_async('string', 123, ['string in array']))
+print(response.result)
+
+# Async Bar Tests
+
+response = asyncio.run(bar.get_async('string', 123, ['string in array']))
+print(response.result)
+
+response = asyncio.run(bar.post_async('string', 123, ['string in array']))
+print(response.result)
+
+response = asyncio.run(bar.put_async('string', 123, ['string in array']))
+print(response.result)
+
+response = asyncio.run(bar.patch_async('string', 123, ['string in array']))
+print(response.result)
+
+response = asyncio.run(bar.delete_async('string', 123, ['string in array']))
+print(response.result)
+
+# Async General Tests
+
+response = asyncio.run(general.redirect_async())
+print(response['result'])
+
+response = asyncio.run(general.upload_async('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png')))
+print(response.result)
+
+response = asyncio.run(general.upload_async('string', 123, ['string in array'], InputFile.from_path('./tests/resources/large_file.mp4')))
+print(response.result)
+
+data = open('./tests/resources/file.png', 'rb').read()
+response = asyncio.run(general.upload_async('string', 123, ['string in array'], InputFile.from_bytes(data, 'file.png', 'image/png')))
+print(response.result)
+
+data = open('./tests/resources/large_file.mp4', 'rb').read()
+response = asyncio.run(general.upload_async('string', 123, ['string in array'], InputFile.from_bytes(data, 'large_file.mp4', 'video/mp4')))
+print(response.result)
+
+response = asyncio.run(general.enum_async(MockType.FIRST))
+print(response.result)
+
+# Async Request model tests
+response = asyncio.run(general.create_player_async(Player(id='player1', name='John Doe', score=100)))
+print(response.result)
+
+response = asyncio.run(general.create_players_async([
+    {'id': 'player1', 'name': 'John Doe', 'score': 100},
+    {'id': 'player2', 'name': 'Jane Doe', 'score': 200}
+]))
+print(response.result)
+
+try:
+    response = asyncio.run(general.error400_async())
+except AppwriteException as e:
+    print(e.message)
+    print(e.response)
+
+try:
+    response = asyncio.run(general.error500_async())
+except AppwriteException as e:
+    print(e.message)
+    print(e.response)
+
+try:
+    response = asyncio.run(general.error502_async())
+except AppwriteException as e:
+    print(e.message)
+    print(e.response)
+
+try:
+    client.set_endpoint("htp://cloud.appwrite.io/v1")
+except AppwriteException as e:
+    print(e.message)
+
+asyncio.run(general.empty_async())
+
+response = asyncio.run(general.headers_async())
+print(response.result)
+
+url = asyncio.run(general.oauth2_async(
+    'clientId',
+    ['test'],
+    '123456',
+    'https://localhost',
+    'https://localhost'
+))
+print(url)
+
+# Async context manager cleanup test
+async def test_async_context_manager_cleanup():
+    async with Client() as async_client:
+        async_foo = Foo(async_client)
+        await async_foo.get_async('string', 123, ['string in array'])
+    print("ASYNC_CLEANUP_PASSED" if (async_client._async_http_client is None or async_client._async_http_client.is_closed) else "ASYNC_CLEANUP_FAILED")
+
+asyncio.run(test_async_context_manager_cleanup())

@@ -1,18 +1,4 @@
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
-        param_name = '{{ parameter.name }}'
-
-{% endif %}
-{% endfor %}
-
-        upload_id = ''
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
-        upload_id = {{ parameter.name | escapeKeyword | caseSnake }}
-{% endif %}
-{% endfor %}
-
-        response = self.client.chunked_upload(api_path, {
+        response = await self.client.call_async('{{ method.method | caseLower }}', api_path, {
 {%~ for key, security in method.securityHeaders %}
             '{{ security.name }}': self.client.get_config('{{ key | caseLower }}'),
 {%~ endfor %}
@@ -22,7 +8,7 @@
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, api_params, param_name, on_progress, upload_id)
+        }, api_params{% if method.type == 'webAuth' %}, response_type='location'{% endif %})
 {% if method.responseModels is defined and method.responseModels|length > 1 %}
 {% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
 {% set responseDiscriminator = method.responseDiscriminator ?? {} %}

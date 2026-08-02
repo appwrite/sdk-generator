@@ -321,7 +321,7 @@ try {
     // Python
     if (!$requestedSdk || $requestedSdk === 'python') {
         $sdk  = new SDK(new Python(), buildSpec($specFormat, $spec));
-        configureSDK($sdk);
+        configureSDK($sdk, ['platform' => $platform]);
         $sdk->generate(__DIR__ . '/examples/python');
     }
 
