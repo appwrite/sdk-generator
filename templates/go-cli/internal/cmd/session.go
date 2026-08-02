@@ -127,9 +127,7 @@ func newSessionsCommand() *cobra.Command {
 }
 
 func newLogoutCommand() *cobra.Command {
-	var all bool
-
-	command := &cobra.Command{
+	return &cobra.Command{
 		Use:   "logout",
 		Short: "Sign out and remove the stored session",
 		RunE: func(command *cobra.Command, args []string) error {
@@ -138,8 +136,11 @@ func newLogoutCommand() *cobra.Command {
 				return err
 			}
 
+			// --all is a persistent root flag. Declaring a local one here would
+			// shadow it: the local flag would be set and globals.All would not,
+			// which happens to work only while both mean the same thing.
 			targets := []string{global.CurrentSessionID()}
-			if all {
+			if globals.All {
 				targets = global.SessionIDs()
 			}
 			if len(targets) == 0 || targets[0] == "" {
@@ -167,9 +168,6 @@ func newLogoutCommand() *cobra.Command {
 			return nil
 		},
 	}
-	command.Flags().BoolVar(&all, "all", false, "Sign out of every stored session.")
-
-	return command
 }
 
 // registerSessionCommands attaches the commands that do not come from the spec.

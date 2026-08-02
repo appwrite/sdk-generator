@@ -377,6 +377,21 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/sdk/sdk.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/query/query.go',
+                'template'      => 'go-cli/internal/query/query.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/query/query_test.go',
+                'template'      => 'go-cli/internal/query/query_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/globals.go',
+                'template'      => 'go-cli/internal/cmd/globals.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/services/register.go',
                 'template'      => 'go-cli/internal/cmd/services/register.go.twig',

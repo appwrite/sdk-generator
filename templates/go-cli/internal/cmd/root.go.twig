@@ -28,6 +28,7 @@ func NewRootCommand() *cobra.Command {
 		SilenceErrors: true,
 	}
 
+	registerGlobalFlags(root)
 	services.Register(root)
 	registerSessionCommands(root)
 
