@@ -352,6 +352,21 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/login.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/filter.go',
+                'template'      => 'go-cli/internal/output/filter.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/filter_test.go',
+                'template'      => 'go-cli/internal/output/filter_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/render.go',
+                'template'      => 'go-cli/internal/output/render.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/services/register.go',
                 'template'      => 'go-cli/internal/cmd/services/register.go.twig',
