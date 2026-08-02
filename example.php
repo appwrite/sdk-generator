@@ -11,6 +11,7 @@ use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\Language\Node;
 use Appwrite\SDK\Language\CLI;
+use Appwrite\SDK\Language\GoCLI;
 use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
@@ -155,6 +156,7 @@ try {
         'web',
         'node',
         'cli',
+        'go-cli',
         'ruby',
         'python',
         'dart',
@@ -309,6 +311,64 @@ try {
         ]);
 
         $sdk->generate(__DIR__ . '/examples/cli');
+    }
+
+    // Go CLI (rewrite in progress -- see docs/go-cli/PLAN.md)
+    if (!$requestedSdk || $requestedSdk === 'go-cli') {
+        $language = new GoCLI();
+        $language->setModulePath('github.com/appwrite/appwrite-cli-go');
+        $language->setExecutableName('appwrite');
+
+        $sdk = new SDK($language, buildSpec($specFormat, $spec));
+        $sdk->setTest(false);
+        // Must stay identical to the CLI block above: the Go CLI has to expose
+        // the same command surface as the TypeScript one.
+        configureSDK($sdk, [
+            'exclude' => [
+                'services' => [
+                    ['name' => 'assistant'],
+                    ['name' => 'avatars'],
+                    ['name' => 'advisor'],
+                    ['name' => 'compute'],
+                    ['name' => 'apps'],
+                    ['name' => 'oauth'],
+                    ['name' => 'organizations'],
+                    ['name' => 'console'],
+                    ['name' => 'projects'],
+                    ['name' => 'waf'],
+                    ['name' => 'domains'],
+                    ['name' => 'manager'],
+                    ['name' => 'mysql'],
+                    ['name' => 'postgresql'],
+                    ['name' => 'mongo'],
+                    ['name' => 'usage'],
+                ],
+                'methods' => [
+                    ['name' => 'createBillingAddress'],
+                    ['name' => 'createPaymentMethod'],
+                    ['name' => 'deleteBillingAddress'],
+                    ['name' => 'deletePaymentMethod'],
+                    ['name' => 'getBillingAddress'],
+                    ['name' => 'getCoupon'],
+                    ['name' => 'getPaymentMethod'],
+                    ['name' => 'listBillingAddresses'],
+                    ['name' => 'listInvoices'],
+                    ['name' => 'listPaymentMethods'],
+                    ['name' => 'updateBillingAddress'],
+                    ['name' => 'updateConsoleAccess'],
+                    ['name' => 'updatePaymentMethod'],
+                    ['name' => 'updatePaymentMethodMandateOptions'],
+                    ['name' => 'updatePaymentMethodProvider'],
+                    ['name' => 'createPlanEstimation'],
+                    // Not yet available in the released @appwrite.io/console package
+                    ['name' => 'listStages'],
+                    ['name' => 'updateStage'],
+                    ['name' => 'approve'],
+                ],
+            ],
+        ]);
+
+        $sdk->generate(__DIR__ . '/examples/go-cli');
     }
 
     // Ruby

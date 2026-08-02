@@ -262,7 +262,7 @@ hardening before the CLI is built on it.
 
 ---
 
-### Phase 1 — Generator scaffolding
+### Phase 1 — Generator scaffolding ✅ COMPLETE
 
 **Goal:** `php example.php go-cli` produces a Go module that compiles and runs
 `--help`. No real commands yet.
@@ -292,7 +292,20 @@ hardening before the CLI is built on it.
 - `php example.php go-cli` succeeds.
 - `cd examples/go-cli && go build ./... && ./go-cli --help` works.
 - `composer refactor:check` and `composer lint-twig` pass.
-- `command-surface.json` committed, with 608 commands and 2,912 flags in it.
+- [x] `command-surface.json` committed, with 608 commands and 2,912 flags in it.
+- [x] The generated Go tree matches it **exactly**: 608/608 command paths, zero flag
+      differences, zero required-flag differences, zero hidden-state mismatches.
+
+**Findings:**
+- The nine helpers are now a shared trait, `Language\Concern\CliCommandSurface`, used by
+  both `CLI` and `GoCLI`. Drift is structurally impossible rather than merely discouraged.
+- Flag names and Go identifiers need **separate** keyword lists. `FLAG_RESERVED_KEYWORDS`
+  in the trait is frozen and shared, because a flag name is public surface;
+  `GO_RESERVED_IDENTIFIERS` in `GoCLI` only renames private variables. Deriving flags from
+  Go's keywords would have silently changed the CLI's flag surface.
+- Generated Go is **formatted after generation** with `gofmt -w`, not emitted
+  pre-formatted. Twig cannot reproduce gofmt's struct-field alignment, and gofmt is
+  idempotent, so formatting belongs in the build rather than the template.
 
 **Risk:** `GoCLI extends Go` inherits `Go::getFiles()`. Override it completely; do not
 merge. Check `Go.php:63` for what you are replacing.
@@ -550,7 +563,7 @@ Progress table, kept current:
 | Phase | Status | Owner | Tracking |
 |---|---|---|---|
 | 0 — Spike | ✅ Complete — [BENCHMARKS.md](BENCHMARKS.md) | | |
-| 1 — Generator scaffolding | In progress — `command-surface.json` done | | |
+| 1 — Generator scaffolding | ✅ Complete — surface matches TS exactly (608/608) | | |
 | 2 — Runtime foundation | Not started | | |
 | 3 — Generated commands | Not started | | |
 | 4 — Conformance harness | Not started | | |

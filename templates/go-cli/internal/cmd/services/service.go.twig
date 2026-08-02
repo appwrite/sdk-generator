@@ -1,0 +1,150 @@
+package services
+
+{% set scope = service | cliServiceScope %}
+import (
+	"github.com/spf13/cobra"
+)
+
+// New{{ service.name | caseUcfirst }}Command builds the `{{ service.name | caseLower }}` command tree.
+func New{{ service.name | caseUcfirst }}Command() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "{{ service.name | caseLower }}",
+{% if service.name == 'tablesDB' %}
+		Aliases: []string{"tables-db"},
+{% endif %}
+		Short: {{ service.description | default('') | stripMarkdown | goString | raw }},
+	}
+
+{% set seenCommands = [] %}
+{% for method in service.methods %}
+{% set commandName = method.name | caseKebab %}
+{% if commandName not in seenCommands %}
+{% set seenCommands = seenCommands|merge([commandName]) %}
+{% for target in method | cliCommandTargets(service) %}
+{% if not target.standalone %}
+	cmd.AddCommand(new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command())
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+	return cmd
+}
+
+{% set rootAliases = service | cliTopLevelAliases %}
+{% if rootAliases is not empty %}
+// New{{ service.name | caseUcfirst }}RootCommands returns the methods promoted to
+// top-level commands. The service subcommand stays registered but hidden, so
+// both spellings keep working.
+func New{{ service.name | caseUcfirst }}RootCommands() []*cobra.Command {
+	return []*cobra.Command{
+{% for alias in rootAliases %}
+		new{{ service.name | caseUcfirst }}{{ alias.method | caseUcfirst }}Command(),
+{% endfor %}
+	}
+}
+
+{% endif %}
+{% set seenCommands = [] %}
+{% for method in service.methods %}
+{% set commandName = method.name | caseKebab %}
+{% if commandName not in seenCommands %}
+{% set seenCommands = seenCommands|merge([commandName]) %}
+{% set query = method | cliQueryConfig %}
+{% set hasScopedIdParam = false %}
+{% for parameter in method.parameters.all %}
+{% if scope and parameter.name == scope.idVar %}
+{% set hasScopedIdParam = true %}
+{% endif %}
+{% endfor %}
+{% set scopedFlag = scope and not hasScopedIdParam %}
+{% set isTopLevel = false %}
+{% for target in method | cliCommandTargets(service) %}
+{% if target.standalone %}
+{% set isTopLevel = true %}
+{% endif %}
+{% endfor %}
+func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command() *cobra.Command {
+{% for parameter in method.parameters.all %}
+{% set opt = getGoCliOption(parameter) %}
+	var {{ opt.var }} {{ opt.goType }}
+{% endfor %}
+{% if query.hasQueries %}
+{% if query.hasFiltering %}
+	var filter []string
+	var where []string
+	var sortAsc []string
+	var sortDesc []string
+{% endif %}
+{% if query.hasPagination %}
+	var limit int
+	var offset int
+{% endif %}
+{% if query.hasCursors %}
+	var cursorAfter string
+	var cursorBefore string
+{% endif %}
+{% if query.hasSelect %}
+	var selectAttributes []string
+{% endif %}
+{% endif %}
+{% if method.type == 'location' %}
+	var destination string
+{% endif %}
+{% if scopedFlag %}
+	var {{ scope.idVar }} string
+{% endif %}
+
+	cmd := &cobra.Command{
+		Use:   "{{ method.name | caseKebab }}",
+		Short: {{ method.description | stripMarkdown | goString | raw }},
+{% if isTopLevel %}
+		Hidden: true,
+{% endif %}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return errNotImplemented("{{ service.name | caseLower }} {{ method.name | caseKebab }}")
+		},
+	}
+
+{% for parameter in method.parameters.all %}
+{% set opt = getGoCliOption(parameter) %}
+	cmd.Flags().{{ opt.register }}Var(&{{ opt.var }}, "{{ opt.flag }}", {% if opt.goType == '[]string' %}nil{% elseif opt.goType == 'bool' %}false{% elseif opt.goType == 'int' %}0{% else %}""{% endif %}, {{ parameter.description | stripMarkdown | goString | raw }})
+{% if opt.noOptDefault %}
+	cmd.Flags().Lookup("{{ opt.flag }}").NoOptDefVal = "{{ opt.noOptDefault }}"
+{% endif %}
+{% if opt.required %}
+	_ = cmd.MarkFlagRequired("{{ opt.flag }}")
+{% endif %}
+{% endfor %}
+{% if query.hasQueries %}
+{% if query.hasFiltering %}
+	cmd.Flags().StringArrayVar(&filter, "filter", nil, "Filter using a simple comparison expression. Repeat for multiple filters. Supports field=value, field!=value, field>value, field>=value, field<value, and field<=value.")
+	cmd.Flags().StringArrayVar(&where, "where", nil, "Deprecated. Use --filter instead. Filter using a simple comparison expression. Repeat for multiple filters.")
+	cmd.Flags().StringArrayVar(&sortAsc, "sort-asc", nil, "Sort results by an attribute in ascending order. Repeat for multiple sort fields.")
+	cmd.Flags().StringArrayVar(&sortDesc, "sort-desc", nil, "Sort results by an attribute in descending order. Repeat for multiple sort fields.")
+{% endif %}
+{% if query.hasPagination %}
+	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum number of results to return.")
+	cmd.Flags().IntVar(&offset, "offset", 0, "Number of results to skip.")
+{% endif %}
+{% if query.hasCursors %}
+	cmd.Flags().StringVar(&cursorAfter, "cursor-after", "", "Return results after this cursor ID.")
+	cmd.Flags().StringVar(&cursorBefore, "cursor-before", "", "Return results before this cursor ID.")
+{% endif %}
+{% if query.hasSelect %}
+	cmd.Flags().StringArrayVar(&selectAttributes, "select", nil, "Attribute to include in the response. Repeat for multiple attributes.")
+{% endif %}
+{% endif %}
+{% if method.type == 'location' %}
+	cmd.Flags().StringVar(&destination, "destination", "", "Path to save the file to.")
+	_ = cmd.MarkFlagRequired("destination")
+{% endif %}
+{% if scopedFlag %}
+	cmd.Flags().StringVar(&{{ scope.idVar }}, "{{ scope.flag }}", "", "{{ scope.label }} to act on. Defaults to the {{ scope.label | lower }} linked in {{ language.params.executableName }}.config.json.")
+{% endif %}
+
+	return cmd
+}
+
+{% endif %}
+{% endfor %}

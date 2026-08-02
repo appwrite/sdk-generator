@@ -1,0 +1,3 @@
+/{{ language.params.executableName }}
+/build/
+/dist/
