@@ -749,6 +749,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pullall.go',
+                'template'      => 'go-cli/internal/cmd/pullall.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/client/paginate.go',
                 'template'      => 'go-cli/internal/client/paginate.go',
             ],

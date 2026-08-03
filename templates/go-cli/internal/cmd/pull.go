@@ -24,8 +24,6 @@ import (
 // which is why a removal is confirmed before the write.
 //
 // `pull collection` and `pull table` live in pulldatabase.go.
-//
-// NOT YET PORTED: `pull all`.
 
 // flatResource describes one list-and-replace pull.
 type flatResource struct {
@@ -93,6 +91,7 @@ func newPullCommand() *cobra.Command {
 	for _, resource := range databaseResources {
 		command.AddCommand(newPullDatabaseCommand(resource))
 	}
+	command.AddCommand(newPullAllCommand())
 	command.AddCommand(newPullSettingsCommand())
 	for _, resource := range codeResources {
 		command.AddCommand(newPullCodeCommand(resource))
