@@ -1,6 +1,9 @@
 package jsonx
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 // Overwriting an existing key must not move it to the end -- that is what keeps
 // a rewritten config diff-free.
@@ -63,4 +66,36 @@ func contains(haystack, needle string) bool {
 	}
 
 	return false
+}
+
+// TestGetInt64AcceptsProgrammaticValues pins the widening that a paginated walk
+// exposed: a decoded document holds json.Number, but a value Set in code holds
+// whatever Go type the caller had, and reading those back as zero is silent.
+func TestGetInt64AcceptsProgrammaticValues(t *testing.T) {
+	object := NewObject()
+	object.Set("decoded", json.Number("250"))
+	object.Set("int64", int64(250))
+	object.Set("int", 250)
+	object.Set("float", float64(250))
+
+	for _, key := range []string{"decoded", "int64", "int", "float"} {
+		if got := object.GetInt64(key); got != 250 {
+			t.Errorf("GetInt64(%q) = %d, want 250", key, got)
+		}
+	}
+
+	// A fractional value is not an integer; truncating would be worse than
+	// reporting zero.
+	object.Set("fraction", 1.5)
+	if got := object.GetInt64("fraction"); got != 0 {
+		t.Errorf("GetInt64(\"fraction\") = %d, want 0", got)
+	}
+
+	object.Set("text", "250")
+	if got := object.GetInt64("text"); got != 0 {
+		t.Errorf("GetInt64(\"text\") = %d, want 0", got)
+	}
+	if got := object.GetInt64("absent"); got != 0 {
+		t.Errorf("GetInt64(\"absent\") = %d, want 0", got)
+	}
 }

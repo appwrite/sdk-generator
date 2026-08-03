@@ -32,16 +32,16 @@ import (
 // without dragging $createdAt and friends into the config. A typed struct does
 // the same thing by construction.
 type Bucket struct {
-	ID                 string   `json:"$id"`
-	Name               string   `json:"name"`
-	Enabled            *bool    `json:"enabled,omitempty"`
-	MaximumFileSize    *int64   `json:"maximumFileSize,omitempty"`
+	ID                    string   `json:"$id"`
+	Name                  string   `json:"name"`
+	Enabled               *bool    `json:"enabled,omitempty"`
+	MaximumFileSize       *int64   `json:"maximumFileSize,omitempty"`
 	AllowedFileExtensions []string `json:"allowedFileExtensions,omitempty"`
-	Compression        string   `json:"compression,omitempty"`
-	Encryption         *bool    `json:"encryption,omitempty"`
-	Antivirus          *bool    `json:"antivirus,omitempty"`
-	FileSecurity       *bool    `json:"fileSecurity,omitempty"`
-	Permissions        []string `json:"$permissions,omitempty"`
+	Compression           string   `json:"compression,omitempty"`
+	Encryption            *bool    `json:"encryption,omitempty"`
+	Antivirus             *bool    `json:"antivirus,omitempty"`
+	FileSecurity          *bool    `json:"fileSecurity,omitempty"`
+	Permissions           []string `json:"$permissions,omitempty"`
 }
 
 // Team is a team as the config records it.

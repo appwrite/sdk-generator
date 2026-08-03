@@ -518,6 +518,11 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/sdk/sdk.go.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'internal/sdk/sdk_test.go',
+                'template'      => 'go-cli/internal/sdk/sdk_test.go.twig',
+            ],
+            [
                 'scope'         => 'copy',
                 'destination'   => 'internal/query/query.go',
                 'template'      => 'go-cli/internal/query/query.go',
@@ -706,6 +711,16 @@ class GoCLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/init.go',
                 'template'      => 'go-cli/internal/cmd/init.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/client/paginate.go',
+                'template'      => 'go-cli/internal/client/paginate.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/client/paginate_test.go',
+                'template'      => 'go-cli/internal/client/paginate_test.go',
             ],
             [
                 'scope'         => 'copy',
