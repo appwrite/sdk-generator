@@ -9,7 +9,11 @@
             '{{ key }}': '{{ header }}',
 {% endfor %}
         }, api_params{% if method.type == 'webAuth' %}, response_type='location'{% endif %})
-{% if method.responseModels is defined and method.responseModels|length > 1 %}
+{% if method.type == 'location' %}
+{# Signature says bytes. A responseModel may still be declared, but hydrating it would call to_dict() on the body. #}
+
+        return response
+{% elseif method.responseModels is defined and method.responseModels|length > 1 %}
 {% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
 {% set responseDiscriminator = method.responseDiscriminator ?? {} %}
 {% if hasResponseDiscriminator %}
