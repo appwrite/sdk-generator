@@ -637,6 +637,16 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/typegen/templates_test.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/casing.go',
+                'template'      => 'go-cli/internal/typegen/casing.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/casing_test.go',
+                'template'      => 'go-cli/internal/typegen/casing_test.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/services/register.go',
                 'template'      => 'go-cli/internal/cmd/services/register.go.twig',
