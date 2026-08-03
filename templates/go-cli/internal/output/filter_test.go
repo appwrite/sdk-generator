@@ -47,7 +47,7 @@ func TestIsNormalViewHiddenKey(t *testing.T) {
 }
 
 // Ports filterData()'s decision table: nulls, nested objects and blank strings
-// are dropped; numbers become strings; arrays keep their elements with objects
+// are dropped; numbers stay numbers; arrays keep their elements with objects
 // flattened.
 func TestFilterData(t *testing.T) {
 	input := decode(t, `{
@@ -66,14 +66,14 @@ func TestFilterData(t *testing.T) {
 	got := render(t, FilterData(input))
 	want := `{
   "name": "proj",
-  "count": "42",
+  "count": 42,
   "rows": [
     {
       "id": "1",
-      "n": "7"
+      "n": 7
     },
     "scalar",
-    "9"
+    9
   ]
 }
 `
@@ -93,5 +93,83 @@ func TestFilterDataPreservesOrder(t *testing.T) {
 		if keys[i] != want[i] {
 			t.Fatalf("keys = %v, want %v", keys, want)
 		}
+	}
+}
+
+// --json is scripted against, so a number has to stay a number. This shipped
+// stringifying every one of them -- `jq '.total'` answered "0" instead of 0 --
+// because the port read json-bigint's BigNumber handling as applying to all
+// numbers rather than to the ones outside JavaScript's exact-integer range.
+func TestFilterDataKeepsNumbersAsNumbers(t *testing.T) {
+	input := decode(t, `{
+		"total": 42,
+		"zero": 0,
+		"negative": -17,
+		"ratio": 1.5,
+		"exponent": 1e3,
+		"flag": true
+	}`)
+
+	got := render(t, FilterData(input))
+	want := `{
+  "total": 42,
+  "zero": 0,
+  "negative": -17,
+  "ratio": 1.5,
+  "exponent": 1e3,
+  "flag": true
+}
+`
+
+	if got != want {
+		t.Errorf("FilterData output.\n--- want ---\n%s\n--- got ---\n%s", want, got)
+	}
+}
+
+// Past 2^53 JavaScript cannot hold the integer exactly, json-bigint hands the
+// TypeScript a BigNumber, and filterData renders it with String(). Emitting a
+// number there would silently round the id.
+func TestFilterDataStringifiesIntegersPastTheSafeRange(t *testing.T) {
+	input := decode(t, `{
+		"safe": 9007199254740991,
+		"unsafe": 9007199254740993,
+		"negativeUnsafe": -9007199254740993,
+		"huge": 123456789012345678901234567890
+	}`)
+
+	got := render(t, FilterData(input))
+	want := `{
+  "safe": 9007199254740991,
+  "unsafe": "9007199254740993",
+  "negativeUnsafe": "-9007199254740993",
+  "huge": "123456789012345678901234567890"
+}
+`
+
+	if got != want {
+		t.Errorf("FilterData output.\n--- want ---\n%s\n--- got ---\n%s", want, got)
+	}
+}
+
+// The same rule inside arrays and inside the objects they hold, which is where
+// list responses put every number a script reads.
+func TestFilterDataAppliesTheNumberRuleInsideArrays(t *testing.T) {
+	input := decode(t, `{"rows": [7, 9007199254740993, {"n": 3, "big": 9007199254740993}]}`)
+
+	got := render(t, FilterData(input))
+	want := `{
+  "rows": [
+    7,
+    "9007199254740993",
+    {
+      "n": 3,
+      "big": "9007199254740993"
+    }
+  ]
+}
+`
+
+	if got != want {
+		t.Errorf("FilterData output.\n--- want ---\n%s\n--- got ---\n%s", want, got)
 	}
 }
