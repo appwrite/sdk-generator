@@ -6,11 +6,12 @@ same way the TypeScript CLI is today.
 Read [README.md](README.md) before touching anything. It is the operating manual;
 this file is the roadmap.
 
-[AUDIT.md](AUDIT.md) is the conformance audit of 2026-08-03: 13 confirmed
+[AUDIT.md](AUDIT.md) is the conformance audit of 2026-08-03: 15 confirmed
 divergences from the TypeScript CLI, three more awaiting a live server, and the
 list of what is still untested. **Nothing in it is fixed.** Read it before
-declaring any phase complete — finding 2 (boolean flags invert when given a
-space-separated value) blocks Phase 8, and findings 1 and 3 are bugs in the
+declaring any phase complete. Three findings block Phase 8 — boolean flags
+invert when given a space-separated value (`--enabled false` sends `true`), and
+`--json`/`--raw` both violate invariant 4. Findings 1 and 3 are bugs in the
 published `sdk-for-go`, not in the CLI.
 
 ---
