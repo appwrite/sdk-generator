@@ -694,6 +694,31 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/appwrite/id.go',
+                'template'      => 'go-cli/internal/appwrite/id.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/resource.go',
+                'template'      => 'go-cli/internal/config/resource.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/init.go',
+                'template'      => 'go-cli/internal/cmd/init.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/appwrite/id_test.go',
+                'template'      => 'go-cli/internal/appwrite/id_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/resource_test.go',
+                'template'      => 'go-cli/internal/config/resource_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/run.go',
                 'template'      => 'go-cli/internal/cmd/run.go',
             ],

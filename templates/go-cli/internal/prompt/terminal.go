@@ -64,11 +64,23 @@ func (t *Terminal) output() io.Writer {
 	return os.Stderr
 }
 
+// minimumWidth is the narrowest form this will render.
+//
+// Not cosmetic. bubbles panics with "makeslice: len out of range" drawing a
+// placeholder into zero columns, and a terminal reports zero more often than
+// one would like -- inside a pty opened without a window size, and briefly
+// during a resize. A CLI must not crash because of that.
+const minimumWidth = 40
+
 // run executes a single-field form and normalises cancellation.
 func (t *Terminal) run(field huh.Field) error {
 	form := huh.NewForm(huh.NewGroup(field)).
 		WithInput(t.input()).
 		WithOutput(t.output())
+
+	if width, _, err := term.GetSize(int(os.Stderr.Fd())); err != nil || width < minimumWidth {
+		form = form.WithWidth(minimumWidth)
+	}
 
 	err := form.Run()
 	if errors.Is(err, huh.ErrUserAborted) {
@@ -79,22 +91,41 @@ func (t *Terminal) run(field huh.Field) error {
 }
 
 // Text implements Prompter.
+//
+// The default is a PLACEHOLDER, not pre-filled text. inquirer shows its default
+// greyed out and replaces it the moment the user types; huh's Value() seeds the
+// editable buffer instead, so typing would append to it -- answering "QA Team"
+// against a default of "My Awesome Team" produced "My Awesome TeamQA Team".
+// Submitting an empty field takes the default, which is what inquirer does.
 func (t *Terminal) Text(question Text) (string, error) {
-	value := question.Default
+	var value string
 
 	field := huh.NewInput().
 		Title(question.Message).
+		Placeholder(question.Default).
 		Value(&value)
 
 	if question.Secret {
 		field = field.EchoMode(huh.EchoModePassword)
 	}
 	if question.Validate != nil {
-		field = field.Validate(question.Validate)
+		// The validator has to see the resolved value, or a required field
+		// with a default would reject an empty submission the default answers.
+		field = field.Validate(func(typed string) error {
+			if typed == "" {
+				typed = question.Default
+			}
+
+			return question.Validate(typed)
+		})
 	}
 
 	if err := t.run(field); err != nil {
 		return "", err
+	}
+
+	if value == "" {
+		return question.Default, nil
 	}
 
 	return value, nil

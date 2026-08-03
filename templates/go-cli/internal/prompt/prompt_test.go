@@ -175,6 +175,22 @@ func TestNonNegativeInteger(t *testing.T) {
 	}
 }
 
+// TestScriptedTreatsDefaultAsAPlaceholder mirrors the Terminal contract that a
+// live comparison against the TypeScript exposed: inquirer replaces its default
+// when the user types, it does not prepend it. huh's Value() seeds the editable
+// buffer, so the first port produced "My Awesome TeamQA Team".
+func TestScriptedTreatsDefaultAsAPlaceholder(t *testing.T) {
+	scripted := &Scripted{Texts: map[string]string{"Name?": "QA Team"}}
+
+	value, err := scripted.Text(Text{Message: "Name?", Default: "My Awesome Team"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if value != "QA Team" {
+		t.Errorf("value = %q, want the typed answer alone", value)
+	}
+}
+
 func TestOptionsBuildsLabelValuePairs(t *testing.T) {
 	options := Options("a", "b")
 
