@@ -211,11 +211,42 @@ func renderTable(rows []*jsonx.Object) string {
 		data = append(data, cells)
 	}
 
+	// No outer box. cli-table3 in the TypeScript is configured with every
+	// edge character blanked (parser.ts:740) and only `mid`, `mid-mid` and
+	// `middle` kept, so a row is a value rather than a value wrapped in pipes.
+	// That is not decoration: double-clicking an id in a boxed table selects
+	// the borders with it, which is exactly what you do with an id.
+	//
+	// A single-column table therefore has no vertical rule at all -- `middle`
+	// only appears BETWEEN columns.
 	return table.New().
 		Border(lipgloss.NormalBorder()).
+		BorderTop(false).
+		BorderBottom(false).
+		BorderLeft(false).
+		BorderRight(false).
+		BorderColumn(true).
+		BorderHeader(true).
+		BorderStyle(tableBorderStyle).
+		StyleFunc(tableCellStyle).
 		Headers(headers...).
 		Rows(data...).
 		Render()
+}
+
+// tableBorderStyle paints the remaining rules the cyan the TypeScript uses.
+var tableBorderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+
+// tableCellStyle pads each cell by one column, which cli-table3 does by
+// default and which the border configuration does not change. Without it the
+// values sit flush against the separators and are hard to read.
+func tableCellStyle(row, _ int) lipgloss.Style {
+	style := lipgloss.NewStyle().Padding(0, 1)
+	if row == table.HeaderRow {
+		return style.Bold(true).Italic(true).Foreground(lipgloss.Color("6"))
+	}
+
+	return style
 }
 
 // formatKeyValue renders one value for display, using the key to decide
