@@ -61,6 +61,9 @@ func newRunFunctionCommand() *cobra.Command {
 		Use:     "function",
 		Aliases: []string{"functions"},
 		Short:   "Run functions in the current directory.",
+		PreRunE: func(command *cobra.Command, args []string) error {
+			return applyNegatedFlags(command)
+		},
 		RunE: func(command *cobra.Command, args []string) error {
 			return runFunction(command, runOptions{
 				FunctionID:    functionID,
@@ -77,11 +80,8 @@ func newRunFunctionCommand() *cobra.Command {
 	command.Flags().StringVar(&userID, "user-id", "", "ID of user to impersonate")
 	command.Flags().BoolVar(&withVariables, "with-variables", false,
 		"Run with function variables from function settings")
-	// `--no-reload` in commander is a boolean that defaults on; pflag spells
-	// the same thing as a --reload flag defaulting to true, which cobra then
-	// also accepts as --reload=false.
-	command.Flags().BoolVar(&reload, "reload", true,
-		"Prevent live reloading of server when changes are made to function files")
+	negatableBool(command.Flags(), &reload, "reload",
+		"Live reload the server when function files change")
 
 	return command
 }
@@ -144,6 +144,11 @@ func runFunction(command *cobra.Command, options runOptions) error {
 	defer stop()
 
 	keys, variables := collectVariables(command, local, function, options)
+
+	// The credentials collectVariables minted last an hour. A run outliving
+	// them keeps serving, so the warning is the only sign that its API calls
+	// have started failing.
+	defer warnOnCredentialExpiry(out)()
 
 	// Announced before it starts. A runtime image is hundreds of megabytes
 	// and `docker pull` runs with its output piped, so without this line the
@@ -398,13 +403,25 @@ func collectVariables(
 		variables[key] = value
 	}
 
+	// The project client is shared by the two things here that talk to the API,
+	// and neither is fatal: a run that cannot reach the API still starts the
+	// function, it just starts it without production variables or credentials.
+	api, apiErr := runProjectAPI(local)
+
 	if options.WithVariables {
-		// NOT YET PORTED: the remote fetch needs the functions service, which
-		// arrives with the SDK wiring. The TypeScript degrades to a warning
-		// when it fails, so the same warning is the honest placeholder.
-		output.Warn(out, "Remote variables not fetched. "+
-			"Production environment variables will not be available. "+
-			"Reason: fetching remote variables is not implemented yet.")
+		switch {
+		case apiErr != nil:
+			warnNoVariables(out, apiErr)
+		default:
+			variables, err := listFunctionVariables(api, function.ID)
+			if err != nil {
+				warnNoVariables(out, err)
+			} else {
+				for _, variable := range variables {
+					set(variable.GetString("key"), variable.GetString("value"))
+				}
+			}
+		}
 	}
 
 	envPath := filepath.Join(local.ResolveResourcePath("functions", function.Path), ".env")
@@ -427,15 +444,28 @@ func collectVariables(
 	set("APPWRITE_FUNCTION_RUNTIME_NAME", docker.RuntimeNames[function.RuntimeName()])
 	set("APPWRITE_FUNCTION_RUNTIME_VERSION", function.Runtime)
 
-	// NOT YET PORTED: JwtManager. Without it x-appwrite-key is empty and the
-	// function cannot call the API as itself, which is what the TypeScript
-	// also does when the key cannot be minted.
+	// The credentials the function authenticates with. A failure here is a
+	// warning, not an error: the TypeScript runs the function anyway, and one
+	// that never calls the API does not need them.
+	credentials := runCredentials{}
+	if apiErr != nil {
+		output.Warn(out, "Dynamic API key not generated. Header x-appwrite-key "+
+			"will not be set. Reason: %s", apiErr)
+	} else {
+		minted, err := mintRunCredentials(api, options.UserID, function.Scopes)
+		if err != nil {
+			output.Warn(out, "Dynamic API key not generated. Header "+
+				"x-appwrite-key will not be set. Reason: %s", err)
+		}
+		credentials = minted
+	}
+
 	headers := map[string]string{
-		"x-appwrite-key":      "",
+		"x-appwrite-key":      credentials.FunctionKey,
 		"x-appwrite-trigger":  "http",
 		"x-appwrite-event":    "",
 		"x-appwrite-user-id":  options.UserID,
-		"x-appwrite-user-jwt": "",
+		"x-appwrite-user-jwt": credentials.UserJWT,
 	}
 	if encoded, err := json.Marshal(headers); err == nil {
 		set("OPEN_RUNTIMES_HEADERS", string(encoded))

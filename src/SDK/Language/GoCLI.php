@@ -661,6 +661,16 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/runjwt.go',
+                'template'      => 'go-cli/internal/cmd/runjwt.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/runjwt_test.go',
+                'template'      => 'go-cli/internal/cmd/runjwt_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/login_test.go',
                 'template'      => 'go-cli/internal/cmd/login_test.go',
             ],
