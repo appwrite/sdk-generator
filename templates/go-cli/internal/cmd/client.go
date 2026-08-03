@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/appwrite/appwrite-cli-go/internal/output"
 	"github.com/appwrite/appwrite-cli-go/internal/sdk"
 	"github.com/spf13/cobra"
 )
@@ -48,11 +51,17 @@ func newClientCommand() *cobra.Command {
 			}
 
 			if reset {
-				for _, id := range global.SessionIDs() {
-					global.DeleteSession(id)
-				}
+				// Same server-side revocation as `logout`: resetting the
+				// configuration is how someone signs out of everything, and
+				// dropping the entries alone left every session live.
+				result := logoutSessions(global, global.SessionIDs())
 				if err := global.Write(); err != nil {
 					return err
+				}
+				if len(result.Failed) > 0 {
+					return fmt.Errorf(
+						"could not sign out of %d session(s), which are still stored: %s",
+						len(result.Failed), strings.Join(result.Errors, "; "))
 				}
 				command.Println("Configuration reset.")
 
@@ -72,6 +81,13 @@ func newClientCommand() *cobra.Command {
 			}
 
 			if flags.Changed("endpoint") {
+				// Checked before it is stored. Saving an unreachable endpoint
+				// silently made every later command fail somewhere less
+				// obvious than the typo that caused it, and the TypeScript
+				// saves nothing at all when the check fails.
+				if err := verifyEndpoint(endpoint); err != nil {
+					return err
+				}
 				global.SetCurrentValue(config.PreferenceEndpoint, endpoint)
 			}
 			// The project belongs to the DIRECTORY, not to the session: it is
@@ -95,7 +111,13 @@ func newClientCommand() *cobra.Command {
 				global.SetCurrentValue(config.PreferenceSelfSigned, parsed)
 			}
 
-			return global.Write()
+			if err := global.Write(); err != nil {
+				return err
+			}
+
+			output.Success(command.OutOrStdout(), "Client configuration updated")
+
+			return nil
 		},
 	}
 

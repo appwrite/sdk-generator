@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
 	"github.com/appwrite/appwrite-cli-go/internal/auth"
@@ -163,21 +165,23 @@ func newLogoutCommand() *cobra.Command {
 				return nil
 			}
 
-			// Clear the refresh token before removing the session entry:
-			// DeleteRefresh needs the session to still exist to drop the prefs
-			// fallback copy.
-			store := &auth.TokenStore{Global: global}
-			for _, id := range targets {
-				if err := store.DeleteRefresh(id); err != nil {
-					return err
-				}
-				global.DeleteSession(id)
-			}
+			// Revoked at the server first. Deleting the local entry alone
+			// left the credential working until it expired on its own.
+			result := logoutSessions(global, targets)
 			if err := global.Write(); err != nil {
 				return err
 			}
 
-			command.Printf("Signed out of %d session(s).\n", len(targets))
+			if len(result.SignedOut) > 0 {
+				command.Printf("Signed out of %d session(s).\n", len(result.SignedOut))
+			}
+			if len(result.Failed) > 0 {
+				// Kept, not removed: a live server session with no local record
+				// of it is the one state the user cannot recover from.
+				return fmt.Errorf(
+					"could not sign out of %d session(s), which are still stored: %s",
+					len(result.Failed), strings.Join(result.Errors, "; "))
+			}
 
 			return nil
 		},
