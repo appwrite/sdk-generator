@@ -679,6 +679,16 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/archive/targz.go',
+                'template'      => 'go-cli/internal/archive/targz.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/archive/targz_test.go',
+                'template'      => 'go-cli/internal/archive/targz_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/watch/watch.go',
                 'template'      => 'go-cli/internal/watch/watch.go',
             ],
@@ -731,6 +741,11 @@ class GoCLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/pullsettings.go',
                 'template'      => 'go-cli/internal/cmd/pullsettings.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pullfunction.go',
+                'template'      => 'go-cli/internal/cmd/pullfunction.go',
             ],
             [
                 'scope'         => 'copy',

@@ -25,8 +25,7 @@ import (
 //
 // `pull collection` and `pull table` live in pulldatabase.go.
 //
-// NOT YET PORTED: `pull all`, `function` and `site`. All three need deployment
-// download.
+// NOT YET PORTED: `pull all`.
 
 // flatResource describes one list-and-replace pull.
 type flatResource struct {
@@ -95,6 +94,9 @@ func newPullCommand() *cobra.Command {
 		command.AddCommand(newPullDatabaseCommand(resource))
 	}
 	command.AddCommand(newPullSettingsCommand())
+	for _, resource := range codeResources {
+		command.AddCommand(newPullCodeCommand(resource))
+	}
 
 	return command
 }
@@ -200,7 +202,17 @@ func projectAPI(global *config.Global, local *config.Local) (*client.Client, err
 			endpoint, sessionEndpoint, app.ExecutableName)
 	}
 
-	api := client.New(endpoint, app.Version).SetProject(projectID).SetLocale("en-US")
+	// WithoutResponseFormat, and this is load bearing. The TypeScript's
+	// sdkForProject() builds an @appwrite.io/console Client -- not its own
+	// client.ts -- so no pull request carries x-appwrite-response-format. With
+	// the header the API answers in the pinned version's shape, and newer
+	// fields (buildSpecification, runtimeSpecification, the project settings
+	// arrays) are absent rather than wrong, so the output looks plausible and
+	// is quietly incomplete.
+	api := client.New(endpoint, app.Version).
+		WithoutResponseFormat().
+		SetProject(projectID).
+		SetLocale("en-US")
 
 	switch {
 	case session.GetString(config.PreferenceAccessToken) != "":

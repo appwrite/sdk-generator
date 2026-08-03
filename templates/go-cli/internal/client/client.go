@@ -61,6 +61,46 @@ func New(endpoint, sdkVersion string) *Client {
 	}
 }
 
+// Download fetches a path and returns the raw body.
+//
+// Separate from Call because a deployment archive is not JSON, and decoding a
+// gzip stream as JSON fails with a message about the first byte rather than
+// about the archive.
+func (c *Client) Download(path string) ([]byte, error) {
+	request, err := http.NewRequest("GET", c.Endpoint+path, nil)
+	if err != nil {
+		return nil, err
+	}
+	for name, value := range c.headers {
+		request.Header.Set(name, value)
+	}
+	if c.cookie != "" {
+		request.Header.Set("Cookie", c.cookie)
+	}
+
+	response, err := c.HTTP.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	payload, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		apiError := &APIError{Status: response.StatusCode}
+		// A failed download still answers with JSON, so the message is
+		// recoverable even though the success path is binary.
+		_ = json.Unmarshal(payload, apiError)
+
+		return nil, apiError
+	}
+
+	return payload, nil
+}
+
 // WithoutResponseFormat drops the x-appwrite-response-format header.
 //
 // That header does not merely declare a version -- it asks the API for THAT

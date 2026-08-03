@@ -206,6 +206,12 @@ func (l *Local) upsert(resource string, value any, matches identity) error {
 // declaration order is what ends up in the file, and it is chosen to match the
 // order the TypeScript writes.
 func toObject(value any) (*jsonx.Object, error) {
+	// Already ordered: the pulls build their entry with FilterBySchema and
+	// must not have it re-ordered by a round trip through a struct.
+	if object, ok := value.(*jsonx.Object); ok {
+		return object, nil
+	}
+
 	encoded, err := json.Marshal(value)
 	if err != nil {
 		return nil, err
@@ -372,3 +378,12 @@ var (
 	// IndexKeys orders a pulled collection index.
 	IndexKeys = []string{"key", "type", "status", "attributes", "orders"}
 )
+
+// UpsertByID adds or replaces an entry in a resource array, keyed on $id.
+//
+// Used by the pulls that write per-resource entries rather than replacing the
+// whole array -- `pull function` may be given a subset, and the entries it does
+// not touch have to survive.
+func (l *Local) UpsertByID(resource string, entry *jsonx.Object) {
+	_ = l.upsert(resource, entry, identityByID(entry.GetString("$id")))
+}
