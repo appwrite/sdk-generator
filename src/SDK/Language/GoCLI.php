@@ -639,6 +639,51 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/config/function.go',
+                'template'      => 'go-cli/internal/config/function.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/runtime.go',
+                'template'      => 'go-cli/internal/docker/runtime.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/source.go',
+                'template'      => 'go-cli/internal/docker/source.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/docker.go',
+                'template'      => 'go-cli/internal/docker/docker.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/emulate.go',
+                'template'      => 'go-cli/internal/docker/emulate.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/queue.go',
+                'template'      => 'go-cli/internal/docker/queue.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/docker_test.go',
+                'template'      => 'go-cli/internal/docker/docker_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/watch/watch.go',
+                'template'      => 'go-cli/internal/watch/watch.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/run.go',
+                'template'      => 'go-cli/internal/cmd/run.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/app/install_test.go',
                 'template'      => 'go-cli/internal/app/install_test.go',
             ],
