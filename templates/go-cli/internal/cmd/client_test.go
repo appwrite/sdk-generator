@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/appwrite/appwrite-cli-go/internal/config"
+	"github.com/spf13/cobra"
 )
 
 // `client --project-id X` is the non-interactive setup path CI uses. Writing
@@ -77,4 +80,113 @@ func inDirectory(t *testing.T, directory string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chdir(previous) })
+}
+
+// Pointing the CLI at a different endpoint must select the session that
+// belongs to it. Setting the endpoint on whatever session happened to be
+// current re-pointed a signed-in session at another instance, so one server's
+// credentials were sent to the other until the next login.
+func TestEndpointChangeSelectsTheSignedInSessionForIt(t *testing.T) {
+	global := preferencesWith(t, `{
+		"current": "cloud",
+		"cloud": {"endpoint": "https://cloud.appwrite.io/v1", "cookie": "a=1", "email": "me@cloud"},
+		"selfhosted": {"endpoint": "https://self.hosted/v1", "cookie": "b=2", "email": "me@self"}
+	}`)
+
+	command, out := captureCommand()
+	selectSessionForEndpoint(command, global, "cloud", "https://self.hosted/v1")
+
+	if got := global.CurrentSessionID(); got != "selfhosted" {
+		t.Errorf("current session = %q, want selfhosted", got)
+	}
+	if !strings.Contains(out.String(), "me@self") {
+		t.Errorf("did not report the account it switched to:\n%s", out)
+	}
+}
+
+// A signed-in session for the endpoint beats an endpoint-only stub for it.
+func TestEndpointChangePrefersASignedInSession(t *testing.T) {
+	global := preferencesWith(t, `{
+		"current": "other",
+		"other": {"endpoint": "https://elsewhere/v1"},
+		"stub": {"endpoint": "https://self.hosted/v1"},
+		"real": {"endpoint": "https://self.hosted/v1", "cookie": "b=2", "email": "me@self"}
+	}`)
+
+	command, _ := captureCommand()
+	selectSessionForEndpoint(command, global, "other", "https://self.hosted/v1")
+
+	if got := global.CurrentSessionID(); got != "real" {
+		t.Errorf("current session = %q, want the signed-in one", got)
+	}
+}
+
+// Leaving a signed-in account behind is worth saying: it is still stored, and
+// the user needs to know how to get back to it.
+func TestEndpointChangeWarnsWhenItLeavesAnAccount(t *testing.T) {
+	global := preferencesWith(t, `{
+		"current": "cloud",
+		"cloud": {"endpoint": "https://cloud.appwrite.io/v1", "cookie": "a=1", "email": "me@cloud"}
+	}`)
+
+	command, out := captureCommand()
+	selectSessionForEndpoint(command, global, "cloud", "https://brand.new/v1")
+
+	if !strings.Contains(out.String(), "me@cloud") {
+		t.Errorf("did not name the account left behind:\n%s", out)
+	}
+	if !strings.Contains(out.String(), "login --switch") {
+		t.Errorf("did not say how to return to it:\n%s", out)
+	}
+	if global.CurrentSessionID() == "cloud" {
+		t.Error("stayed on the old session")
+	}
+	if _, ok := global.Session("cloud"); !ok {
+		t.Error("the signed-in session was discarded rather than detached")
+	}
+}
+
+// Already on the right session: nothing to switch, nothing to announce.
+func TestEndpointChangeStaysOnAMatchingSession(t *testing.T) {
+	global := preferencesWith(t, `{
+		"current": "cloud",
+		"cloud": {"endpoint": "https://cloud.appwrite.io/v1", "cookie": "a=1", "email": "me@cloud"}
+	}`)
+
+	command, out := captureCommand()
+	selectSessionForEndpoint(command, global, "cloud", "https://fra.cloud.appwrite.io/v1")
+
+	if got := global.CurrentSessionID(); got != "cloud" {
+		t.Errorf("current session = %q, want to stay on cloud", got)
+	}
+	if out.Len() != 0 {
+		t.Errorf("announced a switch that did not happen:\n%s", out)
+	}
+	if got := sessionEndpoint(global, "cloud"); got != "https://fra.cloud.appwrite.io/v1" {
+		t.Errorf("endpoint = %q, want the regional host as typed", got)
+	}
+}
+
+// An endpoint-only stub is repointed, not multiplied: `client --endpoint` run
+// twice must not leave two sessions behind.
+func TestEndpointChangeReusesAnEndpointOnlyStub(t *testing.T) {
+	global := preferencesWith(t, `{"current": "default", "default": {"endpoint": "https://one/v1"}}`)
+
+	command, _ := captureCommand()
+	selectSessionForEndpoint(command, global, "default", "https://two/v1")
+
+	if got := len(global.SessionIDs()); got != 1 {
+		t.Errorf("%d sessions stored, want the stub reused", got)
+	}
+	if got := sessionEndpoint(global, "default"); got != "https://two/v1" {
+		t.Errorf("endpoint = %q, want it repointed", got)
+	}
+}
+
+func captureCommand() (*cobra.Command, *bytes.Buffer) {
+	out := &bytes.Buffer{}
+	command := &cobra.Command{Use: "client"}
+	command.SetOut(out)
+
+	return command, out
 }
