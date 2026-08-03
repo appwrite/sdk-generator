@@ -99,7 +99,23 @@ no way to know if you broke it.
 
 If entry criteria are unmet, say so and stop. Do not improvise around them.
 
-### 2.6 Reference the TypeScript by file and line
+### 2.6 Capture baselines; never assert your own expectations
+
+Sixteen defects during Phases 0–5 looked correct and were not. Every one caught cheaply
+was caught by the Go compiler or by output captured from the TypeScript — none by a test
+written from someone's reading of the source.
+
+So: before porting anything whose output matters, **run the TypeScript and record what it
+actually does** (see §10). Read the regexes afterwards, to understand the baseline you
+already have — not instead of getting one. Several results are genuinely unpredictable:
+`MiXeD_Case-99` kebab-cases to `mi-xe-d-case-99`, and `{{var}}` HTML-escapes so an
+endpoint containing `&` lands in generated TypeScript as `&amp;`.
+
+**When a new test passes on the first run, break it once on purpose** and confirm it
+fails. A green test nobody has watched fail is worth very little; this caught a
+vacuous differential check that would otherwise have passed forever.
+
+### 2.7 Reference the TypeScript by file and line
 
 When porting, cite the source: `// ports lib/commands/push.ts:2864 — poll debounce`.
 Reviewers need to diff against the original, and so will you in three weeks.
@@ -187,6 +203,25 @@ cd mock-server && docker compose down
 | Current generated output | `examples/cli/` — 23 services, 608 commands, 2,912 flags |
 | Service command template | `templates/cli/lib/commands/services/services.ts.twig` |
 | Entry point template | `templates/cli/cli.ts.twig` |
+
+### The Go runtime as it stands
+
+Everything under `templates/go-cli/internal/`. Plain `.go` at `copy` scope unless it
+needs spec data or has to differ in the conformance build, in which case it is `.twig`
+at `default` scope.
+
+| Package | Holds | Contract it protects |
+|---|---|---|
+| `jsonx` | Order-preserving JSON `Object`, `json.Number`, non-escaping marshal | Go maps sort keys; that would churn every user's config and reorder `--json` |
+| `config` | Global prefs + `appwrite.config.json`, `CONFIG_KEY_ORDER`, includes | Invariants 2 and 6 — both round-trip byte-identically |
+| `output` | Redaction, `RenderJSON`, `FilterData`, lipgloss tables | Invariants 4 and 5 |
+| `query` | `buildQueries` port, filter parsing | Query JSON goes on the wire |
+| `client` | The CLI's own HTTP client | Used for OAuth, which happens before a session exists |
+| `auth` | Keyring + prefs fallback, token refresh, device-code login | |
+| `sdk` | Builds configured Appwrite SDK clients | Ports `sdks.ts` |
+| `app` | Global flags, `Render`, client constructors, type conversions, console fallbacks, install detection | Exists to break a cycle: `cmd` registers the generated commands, so generated code cannot import `cmd` |
+| `typegen` | Handlebars subset renderer, embedded `.hbs`, case helpers | Generated user-facing code |
+| `cmd` | Root, `login`/`logout`/`whoami`/`sessions`/`client`/`update`, and the generated services | |
 
 ### Conformance
 
@@ -329,13 +364,81 @@ This is an environment problem, not a code problem. Note that reading credential
 written by the TypeScript binary is *not* required — if that is what is failing, leave
 it and make sure the fallback login prompt is clean.
 
+**A Twig branch you added silently never fires.** `{% if target.foo %}` where `target`
+is a `{% for %}` loop variable used *outside* that loop. Twig neither warns nor errors,
+the generated code compiles, and it quietly takes the wrong branch. The only way to
+catch it is to read the generated output. This cost a full cycle; assume nothing
+compiled means nothing wrong.
+
+**A Twig `if`/`elseif` chain fails to parse.** It takes **one** `{% endif %}`, not one
+per branch.
+
+**Unrelated Go files show up in `git status`.** You ran `gofmt -w .` from the repo root.
+It rewrites `tests/e2e/languages/go*/tests.go`. Only ever gofmt inside `examples/go-cli`
+or a scratch directory, and always `git status --short` before committing — generated
+residue (an `appwrite.config.json` the harness writes) has been committed by accident.
+
+**A command fails with "no such file or directory" for a path that exists.** The shell
+working directory **persists between calls**. Several failures came from running a
+repo-root command while still inside `examples/go-cli`. `cd` explicitly at the start of
+every compound command.
+
+**`go test` reports "updates to go.mod needed".** `go.mod` is regenerated from its
+template on every `php example.php go-cli`, so `go mod tidy` has to run after
+regenerating. This looks like a test failure and is not one.
+
+**A new hand-written root command breaks the surface test.** Add it to the
+`handWritten` allowlist in `templates/go-cli/internal/cmd/surface_test.go.twig`. The
+contract is spec-derived, so it cannot know about commands the spec does not describe —
+which is also why it could not catch `client` being missing entirely.
+
+**The conformance build fails but the real build is fine (or vice versa).** They diverge:
+`sdk.test` swaps the SDK for a generated mock and stubs the SDK-dependent runtime files.
+Check both after any change to `internal/sdk`, `internal/app` or the service template.
+
 **A benchmark improved suspiciously much.** You are probably measuring a binary that
 does not do the work yet. Verify against the conformance suite before believing a
 number.
 
 ---
 
-## 10. Escalate rather than guess
+## 10. The e2e harness contract
+
+None of this is documented in the repo and each item cost a run to discover.
+`tests/e2e/Base.php` compares output **positionally**:
+
+- It **discards every line up to and including a literal `Test Started`**. A harness that
+  never prints it has its entire output consumed and fails with a null mismatch that
+  points nowhere near the cause.
+- Comparison is by index, not by set. A command whose output is **not** in
+  `expectedOutput` must be run for its exit status **without printing**, or every later
+  index shifts.
+- `expectedOutput[0]` is `Base::getExpectedSdkHeaders()` — the header string *without*
+  its trailing `; accept: …`. `shared-cli.js` derives it by trimming the binary's own
+  `general headers` output; keep it derived, so it fails if the CLI stops sending them.
+- The two CLIs render key/value differently — Go prints `result : value`, TypeScript
+  prints `result  value` (padded, no colon). The extractor strips only a leading
+  `result` label, colon optional. **Do not split on the first colon**: every fixture
+  contains one (`GET:/v1/…`, `x-sdk-name: cli`).
+
+`APPWRITE_CLI_BIN` is whitespace-split so it accepts a launcher (`bun dist/cli.cjs`) as
+well as a binary (`./appwrite`).
+
+### Capturing baselines from the TypeScript
+
+The single most valuable habit in this project. To run TypeScript CLI internals through
+node, the script **must** live inside `templates/cli` (it needs that `node_modules`) and
+**must** use a `.cjs` extension (`package.json` there is `"type": "module"`). Delete it
+in the same command so it is never committed:
+
+```bash
+cd templates/cli && cat > probe.cjs <<'JS'
+...
+JS
+node probe.cjs; rm -f probe.cjs
+```
+
+## 11. Escalate rather than guess
 
 Most decisions are yours. These are not — stop and ask:
 

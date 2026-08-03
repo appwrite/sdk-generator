@@ -440,7 +440,35 @@ docker compose down` before re-running.
 
 ---
 
-### Phase 5 — Stateful commands
+### Phase 5 — Stateful commands 🔄 IN PROGRESS
+
+**Resume here.** Done so far, all on #1722:
+
+- **5a `update`** — complete. `internal/app/install.go` (install-method detection, release
+  asset names matching the TypeScript exactly so a Go build can replace one in place) and
+  `internal/cmd/update.go` (npm/brew delegate; standalone writes a temp file beside the
+  target and renames atomically).
+- **5b `types`/`generate`** — roughly 400 of ~2,650 lines. `internal/typegen` has the
+  Handlebars subset renderer, the four `.hbs` files embedded (sourced from the TypeScript
+  CLI's own directory — one source, two outputs; do **not** commit a second copy), and the
+  case helpers, all pinned to node-captured baselines and sabotage-verified.
+
+Still to port, in the order the sub-phases below give:
+
+| Piece | LOC |
+|---|---|
+| Nine typegen language modules + generators + the two commands | ~2,250 |
+| `run.ts` + docker emulation | ~700 |
+| `questions.ts` → `internal/prompt` (blocks `init` **and** `push`) | 1,363 |
+| `init.ts` | 1,133 |
+| `pull.ts` + `attributes.ts` + `database-sync.ts` + `schema.ts` | 2,719 |
+| `push.ts` + its five helpers | 7,129 |
+| `response-config.ts` (human output only, not contractual) | 940 |
+
+Two things asserted but never actually verified, worth closing early: keyring
+round-trips on Linux and Windows (only macOS was tested), and `CLIBun13Test` after the
+Phase 4 changes (it should be untouched — `CLISharedBun13Test` was added alongside it —
+but nobody re-ran it).
 
 **Goal:** `init`, `pull`, `push`, `run`, `types`, `generate`, `update`. The bulk of the
 remaining work, and the part with real behavioural risk.
@@ -608,7 +636,7 @@ Progress table, kept current:
 | 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
 | 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
 | 4 — Conformance harness | ✅ Complete — the Go CLI's own suite green in CI | #1721 |
-| 5 — Stateful commands | **Next** — harness now in place | | |
+| 5 — Stateful commands | 🔄 **In progress** — `update` done; typegen ~400/2,650 | #1722 |
 | 6 — Performance | Not started | | |
 | 7 — Distribution | Not started | | |
 | 8 — Rollout | Not started | | |
