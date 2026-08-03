@@ -745,6 +745,31 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/typegen/testdata/kotlin.strict.BooksZines.kt',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/swift.go',
+                'template'      => 'go-cli/internal/typegen/swift.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/swift.loose.Authors.swift',
+                'template'      => 'go-cli/internal/typegen/testdata/swift.loose.Authors.swift',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/swift.loose.BooksZines.swift',
+                'template'      => 'go-cli/internal/typegen/testdata/swift.loose.BooksZines.swift',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/swift.strict.Authors.swift',
+                'template'      => 'go-cli/internal/typegen/testdata/swift.strict.Authors.swift',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/swift.strict.BooksZines.swift',
+                'template'      => 'go-cli/internal/typegen/testdata/swift.strict.BooksZines.swift',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/services/register.go',
                 'template'      => 'go-cli/internal/cmd/services/register.go.twig',
