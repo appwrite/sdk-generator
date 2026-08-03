@@ -764,7 +764,22 @@ implementation.
 4. `scoop/appwrite.config.json.twig`.
 5. Homebrew tap formula — `homebrewTapOwner`/`Name`/`Branch` params already exist on the
    language class (`CLI.php:166`).
-0. **Resolve the SDK release ordering.** The Go CLI depends on the generated Go SDK,
+0. **SDK release ordering — DECIDED: the SDK ships first and the CLI pins a released
+   version.** The `replace` directive in `templates/go-cli/go.mod.twig` is dropped for
+   shipped builds in favour of a pinned `github.com/appwrite/sdk-for-go` version.
+
+   The accepted cost is that the CLI trails the spec: exposing a new endpoint takes two
+   releases, the SDK's and then the CLI's. That is the same coupling that keeps
+   `listStages`, `updateStage` and `approve` out of the TypeScript CLI today, so this
+   decision does not introduce the problem — it declines to solve it, in exchange for
+   reproducible builds and a working `go install`.
+
+   The alternative considered and rejected was vendoring the SDK from the same commit,
+   which removes the lag but lets the published module and the CLI's copy drift.
+
+   The original framing follows.
+
+   The Go CLI depends on the generated Go SDK,
    so the SDK has to ship before the CLI can expose a new endpoint. This is not
    hypothetical: `listStages`, `updateStage` and `approve` are excluded from the
    TypeScript CLI today purely because the released npm package trails the spec

@@ -1,0 +1,102 @@
+version: 2
+
+# Release build for the {{ spec.title | caseUcfirst }} CLI.
+#
+# THE ASSET NAMES ARE A CONTRACT. install.sh, install.ps1, the scoop manifest and
+# the npm shim all construct a download URL by hand, so a rename here breaks
+# every existing install path at once. The six names this must produce are:
+#
+#   {{ language.params.executableName }}-cli-darwin-x64      {{ language.params.executableName }}-cli-darwin-arm64
+#   {{ language.params.executableName }}-cli-linux-x64       {{ language.params.executableName }}-cli-linux-arm64
+#   {{ language.params.executableName }}-cli-win-x64.exe   {{ language.params.executableName }}-cli-win-arm64.exe
+#
+# Note the Windows spelling is `win`, not `windows`, and that every asset is a
+# BARE BINARY rather than an archive -- install.sh curls the URL straight into
+# place and runs `codesign -dv` on it.
+
+project_name: {{ language.params.executableName }}-cli
+
+before:
+  hooks:
+    # The generated go.mod carries direct dependencies only; see go.mod.twig.
+    - go mod tidy
+
+builds:
+  - id: {{ language.params.executableName }}
+    main: .
+    binary: {{ language.params.executableName }}
+    # No cgo anywhere, which is what lets all six targets build from one host.
+    # go-keyring shells out to the platform's own tooling instead of linking
+    # against it, so a static binary keeps a working secret store.
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      # -s -w drop the symbol table and DWARF data. The CLI has no use for a Go
+      # stack trace in a user's terminal, and this is most of the difference
+      # between a ~19 MB and a ~13 MB download.
+      - -s -w
+      # The version lives in internal/app, NOT in main. Getting this path wrong
+      # does not fail the build -- the linker silently ignores an -X for a
+      # symbol that does not exist, and every release then reports the
+      # hardcoded default. `appwrite --version` after a snapshot build is the
+      # check that catches it.
+      - -X {{ language.params.modulePath }}/internal/app.Version={{ '{{ .Version }}' }}
+
+archives:
+  # `binary` uploads the executable itself with no tar.gz around it. The
+  # installers predate this build and expect exactly that.
+  - id: {{ language.params.executableName }}
+    formats: [binary]
+    name_template: >-
+      {{ '{{ if eq .Os "windows" }}' }}{{ language.params.executableName }}-cli-win-{{ '{{ else }}' }}{{ language.params.executableName }}-cli-{{ '{{ .Os }}' }}-{{ '{{ end }}' }}
+      {{- '{{ if eq .Arch "amd64" }}x64{{ else }}{{ .Arch }}{{ end }}' }}
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ '{{ incpatch .Version }}' }}-next"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  github:
+    owner: {{ sdk.gitUserName }}
+    name: {{ sdk.gitRepoName | caseDash }}
+  draft: true
+
+# macOS signing and notarisation.
+#
+# Left commented out because it cannot run without an Apple Developer identity,
+# and a signing block that references absent secrets fails the whole release
+# rather than skipping. Uncomment once the secrets below exist -- and do not
+# ship a macOS build without it: install.sh:105 runs `codesign -dv` on the
+# downloaded file and refuses an unsigned one, so an unsigned release does not
+# fail at install time, it fails for every macOS user at once.
+#
+# notarize:
+#   macos:
+#     - enabled: true
+#       sign:
+#         certificate: "{{ '{{ .Env.MACOS_SIGN_P12 }}' }}"
+#         password: "{{ '{{ .Env.MACOS_SIGN_PASSWORD }}' }}"
+#       notarize:
+#         issuer_id: "{{ '{{ .Env.MACOS_NOTARY_ISSUER_ID }}' }}"
+#         key_id: "{{ '{{ .Env.MACOS_NOTARY_KEY_ID }}' }}"
+#         key: "{{ '{{ .Env.MACOS_NOTARY_KEY }}' }}"

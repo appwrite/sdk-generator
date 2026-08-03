@@ -728,6 +728,11 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/initproject.go',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '.goreleaser.yaml',
+                'template'      => 'go-cli/.goreleaser.yaml.twig',
+            ],
+            [
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/initscaffold.go',
                 'template'      => 'go-cli/internal/cmd/initscaffold.go',
