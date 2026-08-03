@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -89,4 +90,60 @@ func (e *stubAPIError) GetStatusCode() int { return e.status }
 
 func appwriteError(status int, message string) error {
 	return &stubAPIError{status: status, message: message}
+}
+
+// Both CLIs' error output tells the user to "pass the --verbose or --report
+// flag". In Go the second half of that sentence was a lie -- the flag did not
+// exist -- so an error offered help it could not give.
+func TestReportURLCarriesTheFailure(t *testing.T) {
+	link := ReportURL(appwriteError(404, "user_not_found"))
+
+	parsed, err := url.Parse(link)
+	if err != nil {
+		t.Fatalf("not a URL: %v", err)
+	}
+	if parsed.Host != "github.com" {
+		t.Errorf("host = %q, want github.com", parsed.Host)
+	}
+
+	query := parsed.Query()
+	for field, want := range map[string]string{
+		"labels":   "bug",
+		"template": "bug.yaml",
+	} {
+		if query.Get(field) != want {
+			t.Errorf("%s = %q, want %q", field, query.Get(field), want)
+		}
+	}
+	if !strings.Contains(query.Get("title"), "user_not_found") {
+		t.Errorf("title %q does not name the failure", query.Get("title"))
+	}
+	if !strings.Contains(query.Get("actual-behavior"), "user_not_found") {
+		t.Errorf("body %q does not carry the error", query.Get("actual-behavior"))
+	}
+	if query.Get("environment") == "" {
+		t.Error("no environment reported")
+	}
+}
+
+// An 8,000-byte error page must not be pasted whole into a URL: GitHub rejects
+// the request and the user gets nothing.
+func TestReportURLIsBounded(t *testing.T) {
+	page := "<!DOCTYPE html>" + strings.Repeat("<div>padding</div>", 2000)
+
+	link := ReportURL(appwriteError(502, page))
+
+	if len(link) > 8000 {
+		t.Errorf("report URL is %d bytes, too long to open", len(link))
+	}
+	if strings.Contains(link, "padding") {
+		t.Error("the page body was pasted into the URL")
+	}
+}
+
+// Nothing failed, nothing to report.
+func TestReportURLIsEmptyWithoutAnError(t *testing.T) {
+	if got := ReportURL(nil); got != "" {
+		t.Errorf("ReportURL(nil) = %q, want empty", got)
+	}
 }

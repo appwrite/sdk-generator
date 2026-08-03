@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
+	"github.com/appwrite/appwrite-cli-go/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -24,13 +25,28 @@ import (
 // releaseBaseURL is where standalone binaries are published.
 const releaseBaseURL = "https://github.com/appwrite/appwrite-cli/releases/latest/download/"
 
+// releasesPageURL is where someone downloads a build by hand.
+const releasesPageURL = "https://github.com/appwrite/appwrite-cli/releases"
+
 func newUpdateCommand() *cobra.Command {
-	var force bool
+	var (
+		force  bool
+		manual bool
+	)
 
 	command := &cobra.Command{
 		Use:   "update",
 		Short: "Update the CLI to the latest version",
 		RunE: func(command *cobra.Command, args []string) error {
+			// Asked for instructions rather than an update: someone who
+			// installed through a package manager the CLI cannot drive, or who
+			// wants to see what an update would run before it runs.
+			if manual {
+				printManualInstructions(command)
+
+				return nil
+			}
+
 			method := app.DetectInstallMethod()
 
 			switch method {
@@ -59,8 +75,48 @@ func newUpdateCommand() *cobra.Command {
 	}
 	command.Flags().BoolVarP(&force, "force", "f", false,
 		"Replace the binary even if its location looks unexpected.")
+	command.Flags().BoolVar(&manual, "manual", false,
+		"Show manual update instructions instead of auto-updating")
 
 	return command
+}
+
+// printManualInstructions lists every way to update by hand.
+//
+// Ports showManualInstructions (update.ts:288). The one case this is for is an
+// install the CLI cannot drive itself -- a distro package, a vendored copy, a
+// binary someone put on PATH -- where the useful answer is the command to run
+// rather than an attempt that fails.
+func printManualInstructions(command *cobra.Command) {
+	out := command.OutOrStdout()
+
+	formula := app.HomebrewFormula()
+	if formula == "" {
+		formula = app.ExecutableName
+	}
+
+	output.Log(out, "Manual update options:")
+	fmt.Fprintln(out)
+
+	output.Log(out, "Option 1: NPM")
+	fmt.Fprintf(out, "  npm install -g %s@latest\n\n", app.NPMPackageName)
+
+	output.Log(out, "Option 2: Homebrew")
+	fmt.Fprintf(out, "  brew upgrade %s\n\n", formula)
+
+	// Only where a downloaded binary can be swapped in from a shell; the
+	// Windows equivalent is the installer, not a curl one-liner.
+	if runtime.GOOS != "windows" {
+		if asset, err := app.ReleaseAssetName(); err == nil {
+			output.Log(out, "Option 3: Install Script / Standalone Binary")
+			fmt.Fprintf(out, "  curl -fsSL %s%s -o %s\n",
+				releaseBaseURL, asset,
+				filepath.Join(os.TempDir(), app.ExecutableName))
+			fmt.Fprintln(out)
+		}
+	}
+
+	output.Hint(out, "Download the latest release manually at: %s", releasesPageURL)
 }
 
 // runUpdater shells out to the package manager that owns this install.

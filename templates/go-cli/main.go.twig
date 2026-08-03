@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"{{ language.params.modulePath }}/internal/app"
 	"{{ language.params.modulePath }}/internal/cmd"
 )
 
@@ -15,6 +16,9 @@ func main() {
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, cmd.FormatError(err))
+		if app.Flags().Report {
+			fmt.Fprintln(os.Stderr, cmd.ReportBlock(err))
+		}
 		os.Exit(1)
 	}
 }

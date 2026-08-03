@@ -3,6 +3,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"os"
+	"runtime"
 	"strings"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
@@ -85,4 +88,65 @@ func documentKind(message string) string {
 	}
 
 	return "long text"
+}
+
+// maximumReportTitleLength keeps a summarised message from dominating the
+// issue title. Ports MAX_REPORT_TITLE_LENGTH.
+const maximumReportTitleLength = 100
+
+// ReportURL builds a prefilled GitHub issue for a failed command.
+//
+// Ports the --report branch of parseError (parser.ts:878). Both CLIs tell the
+// user to "pass the --verbose or --report flag" on every error; in Go the
+// second half of that sentence was a lie, because the flag did not exist.
+func ReportURL(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	message := FormatError(err)
+
+	environment := fmt.Sprintf("CLI version: %s\nOperation System: %s\nArchitecture: %s",
+		app.Version, runtime.GOOS, runtime.GOARCH)
+
+	query := url.Values{}
+	query.Set("labels", "bug")
+	query.Set("template", "bug.yaml")
+	query.Set("title", "🐛 Bug Report: "+truncate(message, maximumReportTitleLength))
+	query.Set("actual-behavior", "CLI Error:\n```\n"+truncate(message, 2000)+"\n```")
+	query.Set("steps-to-reproduce",
+		"Running `"+app.ExecutableName+" "+strings.Join(commandArguments(), " ")+"`")
+	query.Set("environment", environment)
+
+	return "https://github.com/appwrite/appwrite/issues/new?" + query.Encode()
+}
+
+// ReportBlock is what the CLI prints under an error when --report is given.
+func ReportBlock(err error) string {
+	return "To report this error you can:\n" +
+		" - Create a support ticket in our Discord server https://appwrite.io/discord\n" +
+		" - Create an issue in our Github\n   " + ReportURL(err)
+}
+
+// commandArguments is the invocation, minus the flag that asked for the report.
+func commandArguments() []string {
+	arguments := make([]string, 0, len(os.Args))
+	for _, argument := range os.Args[1:] {
+		if argument == "--report" {
+			continue
+		}
+		arguments = append(arguments, argument)
+	}
+
+	return arguments
+}
+
+// truncate shortens text to a limit, on a rune boundary.
+func truncate(text string, limit int) string {
+	runes := []rune(text)
+	if len(runes) <= limit {
+		return text
+	}
+
+	return string(runes[:limit]) + "..."
 }

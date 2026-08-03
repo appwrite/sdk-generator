@@ -24,6 +24,7 @@ type Globals struct {
 	Verbose     bool
 	Force       bool
 	All         bool
+	Report      bool
 }
 
 var globals = &Globals{}
@@ -38,9 +39,13 @@ func RegisterGlobalFlags(root *cobra.Command) {
 	flags.BoolVarP(&globals.Raw, "raw", "R", false, "Output the unfiltered response as JSON.")
 	flags.BoolVar(&globals.ShowSecrets, "show-secrets", false,
 		"Show secret values in full instead of masking them.")
-	flags.BoolVar(&globals.Verbose, "verbose", false, "Show detailed output for debugging.")
+	flags.BoolVarP(&globals.Verbose, "verbose", "V", false, "Show detailed output for debugging.")
 	flags.BoolVarP(&globals.Force, "force", "f", false, "Skip confirmation prompts.")
-	flags.BoolVar(&globals.All, "all", false, "Apply the command to every matching resource.")
+	// -a is the TypeScript's shorthand on push and pull. Registering it here
+	// rather than there costs nothing and keeps one spelling of --all.
+	flags.BoolVarP(&globals.All, "all", "a", false, "Apply the command to every matching resource.")
+	flags.BoolVar(&globals.Report, "report", false,
+		"Print a prefilled bug report link on error.")
 }
 
 // Renderer builds an output renderer from the current global flags.
