@@ -602,6 +602,40 @@ class GoCLI extends Go
                 'destination'   => 'internal/typegen/handlebars_test.go',
                 'template'      => 'go-cli/internal/typegen/handlebars_test.go',
             ],
+            // The typegen templates are sourced from the TypeScript CLI's own
+            // template directory rather than copied into templates/go-cli. One
+            // source, two outputs: the alternative is two .hbs copies that
+            // drift, which is exactly what internal/typegen exists to avoid.
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/templates/constants.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/constants.ts.hbs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/templates/databases.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/databases.ts.hbs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/templates/index.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/index.ts.hbs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/templates/types.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/types.ts.hbs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/templates.go',
+                'template'      => 'go-cli/internal/typegen/templates.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/templates_test.go',
+                'template'      => 'go-cli/internal/typegen/templates_test.go',
+            ],
             [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/services/register.go',
