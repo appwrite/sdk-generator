@@ -31,7 +31,10 @@ type pushAction struct {
 }
 
 // pushActions returns the fan-out entries in EXECUTION order.
-func pushActions() []pushAction {
+//
+// logs is the fan-out's --no-logs, which reaches the deployable resources and
+// means nothing to the others.
+func pushActions(logs bool) []pushAction {
 	simple := func(name string) func(*cobra.Command) error {
 		for _, resource := range simpleResources() {
 			if resource.Name == name {
@@ -59,6 +62,7 @@ func pushActions() []pushAction {
 					Code:        true,
 					Activate:    true,
 					ActivateSet: app.Flags().Force,
+					Logs:        logs,
 				})
 			}
 		}
@@ -100,7 +104,7 @@ var promptOrder = []string{
 }
 
 func newPushAllCommand() *cobra.Command {
-	return &cobra.Command{
+	command := &cobra.Command{
 		Use:   "all",
 		Short: "Push all resources in the current project",
 		RunE: func(command *cobra.Command, args []string) error {
@@ -111,6 +115,10 @@ func newPushAllCommand() *cobra.Command {
 			return runPush(command, true)
 		},
 	}
+
+	command.Flags().Bool("logs", true, "Don't stream deployment build logs")
+
+	return command
 }
 
 // runPush is the body of both `push` and `push all`.
@@ -120,7 +128,19 @@ func newPushAllCommand() *cobra.Command {
 // everything case: they are the legacy databases API, and pushing both writes
 // two representations of the same data to one project.
 func runPush(command *cobra.Command, everything bool) error {
-	actions := pushActions()
+	// Only `push all` carries --no-logs; the bare `push` inherits the default,
+	// as it does in the TypeScript where the flag is declared on the
+	// subcommand alone (push.ts:4285).
+	logs := true
+	if command.Flags().Lookup("logs") != nil {
+		parsed, err := command.Flags().GetBool("logs")
+		if err != nil {
+			return err
+		}
+		logs = parsed
+	}
+
+	actions := pushActions(logs)
 
 	if everything {
 		// Collections are skipped: they are the legacy databases API,

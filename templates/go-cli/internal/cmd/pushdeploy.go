@@ -34,12 +34,13 @@ import (
 // That also makes the request sequence deterministic, which is what the
 // differential harness compares (docs/go-cli/conformance/).
 //
-// The TypeScript also opens a realtime WebSocket to stream build logs and falls
-// back to polling when it cannot -- in the recorded trace `GET /realtime`
-// answers 400 and it polls anyway. Only the polling half is ported: the
-// fallback is the path that always works, log streaming needs the whole
-// realtime client, and the deployment's outcome is decided by the poll either
-// way. `--no-logs` is accepted so the flag surface is unchanged.
+// The TypeScript reads build logs over a realtime WebSocket and falls back to
+// polling when it cannot -- in the recorded trace `GET /realtime` answers 400
+// and it polls anyway. Only the polling half is ported. Build logs ARE
+// streamed, from the same poll that decides the deployment's outcome, so the
+// visible difference is latency: a line appears within one pollDebounce rather
+// than the moment it is written. That also drops the TypeScript's `l` keypress
+// toggle, which exists to pause a firehose the poll cannot produce.
 
 const (
 	// pollDebounce is POLL_DEBOUNCE (push.ts:117), the gap between deployment
@@ -541,10 +542,13 @@ type deployOptions struct {
 	ActivateSet bool
 	// WithVariables replaces the resource's variables from its .env file.
 	WithVariables bool
+	// Logs streams the deployment's build log while it builds; --no-logs
+	// reports status transitions only.
+	Logs bool
 }
 
 func newPushDeployableCommand(resource deployable) *cobra.Command {
-	options := deployOptions{Code: true}
+	options := deployOptions{Code: true, Logs: true}
 	var activate string
 
 	command := &cobra.Command{
@@ -583,7 +587,7 @@ func newPushDeployableCommand(resource deployable) *cobra.Command {
 	// `--no-code` and `--no-logs` in commander are booleans defaulting on;
 	// pflag spells the same thing as the positive flag defaulting to true.
 	flags.BoolVar(&options.Code, "code", true, "Don't push the "+resource.Singular+"'s code")
-	flags.Bool("logs", true, "Don't stream deployment build logs")
+	flags.BoolVar(&options.Logs, "logs", true, "Don't stream deployment build logs")
 	flags.StringVar(&activate, "activate", "",
 		"Activate the "+resource.Singular+"'s deployment after it is ready.")
 	flags.Lookup("activate").NoOptDefVal = "true"
@@ -697,6 +701,11 @@ func runPushDeployable(
 			Code:          pushCode,
 			Activate:      activate,
 			WithVariables: options.WithVariables,
+			// `logs && !asyncDeploy` (push.ts:1751): an async push returns
+			// before the build starts, so there is no log to stream.
+			Logs: options.Logs && !options.Async,
+			// The label is only worth the width when two logs could interleave.
+			LabelLogs: len(entries) > 1,
 		}, &summary)
 	}
 
@@ -711,6 +720,8 @@ type deployRun struct {
 	Code          bool
 	Activate      bool
 	WithVariables bool
+	Logs          bool
+	LabelLogs     bool
 }
 
 // failedDeployment names a deployment that did not become ready.
@@ -1122,6 +1133,16 @@ func (c *pushContext) awaitDeployment(
 	consoleURL := c.deploymentConsoleURL(resource, id, deploymentID)
 
 	tracker := newProgressTracker(deployment)
+	// A discarded printer is cheaper than branching at every call site: with
+	// --no-logs nothing is ever ingested, so nothing is ever printed.
+	logPrinter := output.NewBuildLogPrinter(out,
+		resource.Name+":"+name, run.LabelLogs)
+	ingest := func(deployment *jsonx.Object) {
+		if run.Logs {
+			logPrinter.Ingest(deployment.GetString("buildLogs"))
+		}
+	}
+
 	var (
 		waitingSince     time.Time
 		readySince       time.Time
@@ -1131,6 +1152,7 @@ func (c *pushContext) awaitDeployment(
 
 	for {
 		if tracker.stalled() {
+			logPrinter.Complete()
 			summary.Failed = append(summary.Failed, failedDeployment{
 				Name: name, Reason: "timeout", ConsoleURL: consoleURL,
 			})
@@ -1141,11 +1163,13 @@ func (c *pushContext) awaitDeployment(
 		var err error
 		deployment, err = c.fetchDeployment(resource, id, deploymentID)
 		if err != nil {
+			logPrinter.Complete()
 			output.Failure(out, "Failed to deploy %s %s: %s", resource.Singular, name, err)
 
 			return
 		}
 		tracker.touch(deployment)
+		ingest(deployment)
 
 		status := deployment.GetString("status")
 		if status == "waiting" {
@@ -1187,12 +1211,14 @@ func (c *pushContext) awaitDeployment(
 				}
 			}
 
+			logPrinter.Complete()
 			summary.Deployed++
 			c.reportDeployment(command, resource, id, consoleURL)
 
 			return
 
 		case deploy.StatusFailed:
+			logPrinter.Complete()
 			summary.Failed = append(summary.Failed, failedDeployment{
 				Name: name, Reason: "failed", ConsoleURL: consoleURL,
 			})
