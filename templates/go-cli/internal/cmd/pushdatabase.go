@@ -161,9 +161,16 @@ func runPushTable(command *cobra.Command, resource pushDatabaseResource) error {
 
 	output.Log(out, "Pushing tables ...")
 
-	attempts, err := command.Flags().GetInt("attempts")
-	if err != nil {
-		return err
+	// Looked up rather than read directly: `push all` fans out to this
+	// function through its own command, which does not declare --attempts, and
+	// GetInt on an undeclared flag is an error rather than a zero.
+	attempts := 0
+	if flag := command.Flags().Lookup("attempts"); flag != nil {
+		parsed, err := command.Flags().GetInt("attempts")
+		if err != nil {
+			return err
+		}
+		attempts = parsed
 	}
 
 	pushed, err := context.pushDatabaseChildren(command, resource, tables, attempts)

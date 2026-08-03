@@ -764,6 +764,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pushall.go',
+                'template'      => 'go-cli/internal/cmd/pushall.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/pushdatabase.go',
                 'template'      => 'go-cli/internal/cmd/pushdatabase.go',
             ],

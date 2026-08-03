@@ -398,6 +398,7 @@ func newPushCommand() *cobra.Command {
 		},
 	}
 
+	command.AddCommand(newPushAllCommand())
 	command.AddCommand(newPushSettingsCommand())
 	for _, resource := range simpleResources() {
 		command.AddCommand(newPushSimpleCommand(resource))
