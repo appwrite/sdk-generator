@@ -754,6 +754,21 @@ class GoCLI extends Go
                 'template'      => 'go-cli/scripts/adhoc-sign.sh',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'scripts/build-npm-packages.mjs',
+                'template'      => 'go-cli/scripts/build-npm-packages.mjs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'npm/package.json',
+                'template'      => 'go-cli/npm/package.json.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'npm/run.js',
+                'template'      => 'go-cli/npm/run.js.twig',
+            ],
+            [
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/initscaffold.go',
                 'template'      => 'go-cli/internal/cmd/initscaffold.go',
