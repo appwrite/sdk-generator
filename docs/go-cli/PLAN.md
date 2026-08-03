@@ -509,8 +509,26 @@ docker compose down` before re-running.
   Do that again after any change here — it found three defects a unit test could not, one
   of them a regression in the client wiring landed minutes earlier.
 
-  Still to do: `init function`, `init site`, `init skill`, plus `init project`'s autopull
-  prompt and `installInitProjectSkills`. All need `pull` or a template download.
+  `init function`, `init site` and `init skill` are done, and were verified the same
+  way: driven through a pty against the shipping TypeScript with the same answers, then
+  compared. For `function` and `site` the config entry matches in key ORDER and in every
+  value bar the generated `$id`, and the downloaded tree — retitled README included — is
+  byte-identical under `diff -r`.
+
+  Two traps a source read alone would have missed, both now covered by unit tests
+  because a live run only exercises whichever runtime the API happens to list first:
+
+  - a runtime id yields **two** names. The template directory is the FIRST
+    dash-separated segment; the entrypoint and install command are looked up by the id
+    with its LAST segment dropped. Identical for `node-22`, divergent for
+    `python-ml-3.11`.
+  - `ignore` is an array, never null. The TypeScript's `runtime.ignore || null` looks
+    like it can produce null, but `[]` is truthy in JavaScript so that branch is dead.
+
+  When driving huh through a pty, **Enter is `\r`, not `\n`** — bubbletea reads the raw
+  key, while inquirer accepted either. Multi-select toggles on `x`, not space.
+
+  Still to do: `init project`'s autopull prompt and `installInitProjectSkills`.
 
   The five local subcommands. They only prompt and write `appwrite.config.json`, and all five
   were driven through a pty against the shipping TypeScript with the same keystrokes and
@@ -518,8 +536,7 @@ docker compose down` before re-running.
   is a ~30-line pty harness; rebuild it when needed and **set the window size**, or bubbles
   panics rendering into zero columns.
 
-  Still to do: `init project`, `init function`, `init site`, `init skill`. All four need the
-  API or a template download, so they wait on the SDK wiring.
+  The whole `init` tree is now ported.
 
   **Field order in `internal/config/resource.go` is part of the output.** The TypeScript's
   `whitelistKeys()` iterates the CALLER's keys, so its order is per-call-site; a Go struct
@@ -618,14 +635,17 @@ Still to port, in the order the sub-phases below give:
 
 | Piece | LOC |
 |---|---|
-| question definitions, with the commands that own them | — |
-| `init function|site|skill` (needs template downloads) | ~600 |
+| question definitions, with the commands that own them | ✅ done |
+| `init function|site|skill` (needs template downloads) | ✅ done |
 | `response-config.ts` (human output only, not contractual) | 940 |
 
-Two things asserted but never actually verified, worth closing early: keyring
-round-trips on Linux and Windows (only macOS was tested), and `CLIBun13Test` after the
-Phase 4 changes (it should be untouched — `CLISharedBun13Test` was added alongside it —
-but nobody re-ran it).
+Keyring round-trips are now verified on Linux as well as macOS: in a container with
+no D-Bus, `keyring.Set` fails with `exec: "dbus-launch": executable file not found`
+and the backend-agnostic round-trip test still passes, so the prefs fallback is
+exercised rather than assumed. **Windows is still unverified** — there is no host to
+test it on, and the fallback there is inferred from the same code path, not observed.
+
+`CLIBun13Test` after the Phase 4 changes is also still un-rerun.
 
 **Goal:** `init`, `pull`, `push`, `run`, `types`, `generate`, `update`. The bulk of the
 remaining work, and the part with real behavioural risk.
@@ -722,6 +742,21 @@ implementation.
 
 1. `goreleaser` config for all six targets: `linux-x64`, `linux-arm64`, `darwin-x64`,
    `darwin-arm64`, `windows-x64`, `windows-arm64`.
+
+   All six are confirmed to build from a macOS host with `CGO_ENABLED=0` and no
+   per-target toolchain, which is what §1.3 claimed but had never been run:
+
+   | Target | Binary |
+   |---|---|
+   | linux/amd64 | 19.5 MB |
+   | linux/arm64 | 18.0 MB |
+   | darwin/amd64 | 19.5 MB |
+   | darwin/arm64 | 18.1 MB |
+   | windows/amd64 | 19.5 MB |
+   | windows/arm64 | 17.8 MB |
+
+   A static build is where a keyring quietly degrades to a no-op, so compiling is
+   not on its own evidence that it works — see the Linux round-trip note in Phase 5.
 2. macOS codesign + notarise. `install.sh.twig:106` already checks for an embedded
    signature and hard-fails without one — keep that check working.
 3. `install.sh.twig` and `install.ps1.twig` updated for the new asset names. Same
