@@ -40,6 +40,12 @@ class GoCLI extends Go
     protected $params = [
         'modulePath' => self::MODULE_PATH,
         'executableName' => 'appwrite',
+        // Names the npm package AND every release asset. install.sh and
+        // install.ps1 build their download URL from this same param, so the
+        // release build has to derive asset names from it rather than from
+        // executableName -- they happen to agree today, and a rename would
+        // silently break every installer if they did not.
+        'npmPackage' => 'appwrite-cli',
         'homebrewTapOwner' => 'appwrite',
         'homebrewTapName' => 'appwrite',
         'homebrewTapBranch' => 'main',
@@ -57,6 +63,16 @@ class GoCLI extends Go
     public function setExecutableName(string $executableName): self
     {
         $this->setParam('executableName', $executableName);
+
+        return $this;
+    }
+
+    /**
+     * Name of the npm package, which also names every release asset.
+     */
+    public function setNPMPackage(string $name): self
+    {
+        $this->setParam('npmPackage', $name);
 
         return $this;
     }
@@ -731,6 +747,11 @@ class GoCLI extends Go
                 'scope'         => 'default',
                 'destination'   => '.goreleaser.yaml',
                 'template'      => 'go-cli/.goreleaser.yaml.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'scripts/adhoc-sign.sh',
+                'template'      => 'go-cli/scripts/adhoc-sign.sh',
             ],
             [
                 'scope'         => 'copy',

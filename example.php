@@ -317,6 +317,10 @@ try {
     if (!$requestedSdk || $requestedSdk === 'go-cli') {
         $language = new GoCLI();
         $language->setExecutableName('appwrite');
+        // Same package name as the TypeScript CLI: `npm i -g appwrite-cli`
+        // has to keep working across the switch. It also names every release
+        // asset, which install.sh and install.ps1 construct by hand.
+        $language->setNPMPackage('appwrite-cli');
 
         $sdk = new SDK($language, buildSpec($specFormat, $spec));
         $sdk->setTest(false);
