@@ -118,7 +118,14 @@ final class CLIDifferentialTest extends TestCase
             "{$bun} bun run build:lib:runtime",
             "{$bun} bun run build:cli",
             "{$go} go mod tidy",
-            "{$go} go build -o appwrite .",
+            // -buildvcs=false because the SDK is generated inside this
+            // repository's work tree, so `go build` tries to stamp the binary
+            // with its git revision. In CI the checkout is owned by the runner
+            // user while the container runs as root, git refuses with "dubious
+            // ownership", and the build fails with "error obtaining VCS status:
+            // exit status 128". Docker Desktop remaps ownership, so this only
+            // ever reproduces on Linux. The stamp is worthless to a test binary.
+            "{$go} go build -buildvcs=false -o appwrite .",
         ];
     }
 }

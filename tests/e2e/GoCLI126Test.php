@@ -39,7 +39,14 @@ final class GoCLI126Test extends Base
     #[Override]
     protected array $build = [
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/go-cli golang:1.26 go mod tidy',
-        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/go-cli golang:1.26 go build -o appwrite .',
+        // -buildvcs=false because the SDK is generated inside this repository's
+        // work tree, so `go build` tries to stamp the binary with its git
+        // revision. In CI the checkout is owned by the runner user while the
+        // container runs as root, git refuses with "dubious ownership", and the
+        // build fails with "error obtaining VCS status: exit status 128".
+        // Docker Desktop remaps ownership, so this only ever reproduces on
+        // Linux. The stamp is worthless to a test binary.
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/go-cli golang:1.26 go build -buildvcs=false -o appwrite .',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/go-cli golang:1.26 go vet ./...',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/go-cli golang:1.26 go test ./internal/...',
         'cp tests/e2e/languages/cli/shared-cli.js tests/e2e/sdks/go-cli/shared-cli.js',
