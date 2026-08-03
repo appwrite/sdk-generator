@@ -284,7 +284,7 @@ hardening before the CLI is built on it.
 5. Add the `go-cli` block to `example.php`, mirroring the CLI block's exclusion list
    (`example.php:267–308`) exactly.
 6. **Flag snapshot tool.** A script that walks `examples/cli/lib/commands/services/*.ts`
-   and emits `docs/go-cli/command-surface.json`: every command path, flag, shorthand,
+   and emits `templates/go-cli/internal/cmd/testdata/command-surface.json`: every command path, flag, shorthand,
    default, required-ness, alias, and hidden state. This artifact is the contract for
    Phase 4. Build it now, from the TypeScript, while the TypeScript is still the truth.
 

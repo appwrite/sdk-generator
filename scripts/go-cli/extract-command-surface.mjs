@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const servicesDir = process.argv[2] ?? 'examples/cli/lib/commands/services';
-const outFile = process.argv[3] ?? 'docs/go-cli/command-surface.json';
+const outFile = process.argv[3] ?? 'templates/go-cli/internal/cmd/testdata/command-surface.json';
 
 // `.command(`name`)` and `.command(`name`, { hidden: true })`
 const SUBCOMMAND = /^\s*\.command\(`([^`]+)`(?:,\s*\{\s*hidden:\s*(true|false)\s*\})?\)/;

@@ -54,29 +54,6 @@ func JSONObject(raw string) (interface{}, error) {
 	return value, nil
 }
 
-// JSONObjectSlice decodes repeated JSON objects, used by parameters the SDK
-// declares as []map[string]any.
-func JSONObjectSlice(raws []string) ([]map[string]any, error) {
-	if len(raws) == 0 {
-		return nil, nil
-	}
-
-	decoded := make([]map[string]any, 0, len(raws))
-	for _, raw := range raws {
-		value, err := JSONObject(raw)
-		if err != nil {
-			return nil, err
-		}
-		object, ok := value.(map[string]any)
-		if !ok {
-			return nil, fmt.Errorf("expected a JSON object, got %q", raw)
-		}
-		decoded = append(decoded, object)
-	}
-
-	return decoded, nil
-}
-
 // InputFile turns a path into the SDK's upload type.
 //
 // The path is checked here rather than at upload time so a typo fails before
