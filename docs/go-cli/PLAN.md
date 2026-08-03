@@ -488,16 +488,28 @@ docker compose down` before re-running.
   found `filepath.Join` standing in for `path.resolve`, which Docker reports as a
   volume-naming error that says nothing about the path.
 
-  Three things are deferred and marked `NOT YET PORTED` where they sit: the
-  remote-variable fetch and `JwtManager` both need the functions service, and
-  function selection without `--function-id` reports the flag instead of prompting.
-  Close the first two when the SDK wiring lands, the third with 5d.
+  Two things are deferred and marked `NOT YET PORTED` where they sit: the
+  remote-variable fetch and `JwtManager` both need the functions service. Close them
+  when the SDK wiring lands.
+
+- **`internal/prompt`** — **done.** The runtime under `questions.ts`: field types,
+  validators, and a `Prompter` interface with three implementations — `Terminal` (huh),
+  `NonInteractive`, and `Scripted` for tests.
+
+  The question *definitions* are deliberately NOT here. They belong to one command each
+  and are written alongside `init`, `pull` and `push`; porting 1,363 lines of question data
+  against commands that do not exist yet would be guesswork.
+
+  Two properties to preserve when adding questions: give every one a `Flag`, so a CI run
+  gets "pass --x instead" rather than a hang; and never check `--force` at a call site --
+  `Forced` already answers confirmations, and it deliberately does not answer anything that
+  needs a value.
 
 Still to port, in the order the sub-phases below give:
 
 | Piece | LOC |
 |---|---|
-| `questions.ts` → `internal/prompt` (blocks `init` **and** `push`) | 1,363 |
+| question definitions, with the commands that own them | — |
 | `init.ts` | 1,133 |
 | `pull.ts` + `attributes.ts` + `database-sync.ts` + `schema.ts` | 2,719 |
 | `push.ts` + its five helpers | 7,129 |
@@ -674,7 +686,7 @@ Progress table, kept current:
 | 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
 | 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
 | 4 — Conformance harness | ✅ Complete — the Go CLI's own suite green in CI | #1721 |
-| 5 — Stateful commands | 🔄 **In progress** — `update`, `types`, `generate`, `run` done | #1722 |
+| 5 — Stateful commands | 🔄 **In progress** — `update`, `types`, `generate`, `run`, prompt layer done | #1722 |
 | 6 — Performance | Not started | | |
 | 7 — Distribution | Not started | | |
 | 8 — Rollout | Not started | | |
