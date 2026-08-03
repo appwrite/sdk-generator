@@ -10,11 +10,13 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/appwrite/appwrite-cli-go/internal/app"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
 	"github.com/appwrite/appwrite-cli-go/internal/docker"
 	"github.com/appwrite/appwrite-cli-go/internal/dotenv"
 	"github.com/appwrite/appwrite-cli-go/internal/ignore"
 	"github.com/appwrite/appwrite-cli-go/internal/output"
+	"github.com/appwrite/appwrite-cli-go/internal/prompt"
 	"github.com/appwrite/appwrite-cli-go/internal/watch"
 	"github.com/spf13/cobra"
 )
@@ -309,17 +311,28 @@ func selectFunction(command *cobra.Command, local *config.Local, id string) (con
 		return functions[0], nil
 	}
 
-	// The full prompt layer (questions.ts) is not ported yet. Rather than
-	// block `run` on it, an ambiguous selection is reported with the flag that
-	// resolves it -- which is also what a non-interactive shell needs.
-	names := make([]string, 0, len(functions))
+	// Ports questionsRunFunctions. Without a terminal this reports
+	// --function-id rather than blocking, which is what the prompt package's
+	// NonInteractive does with the Flag below.
+	options := make([]prompt.Option, 0, len(functions))
 	for _, function := range functions {
-		names = append(names, function.ID)
+		options = append(options, prompt.Option{
+			Label: function.Name + " (" + function.ID + ")",
+			Value: function.ID,
+		})
 	}
 
-	return config.Function{}, fmt.Errorf(
-		"more than one function is configured; choose one with --function-id (%s)",
-		strings.Join(names, ", "))
+	selected, err := prompt.New(app.Flags().Force).Choice(prompt.Choice{
+		Message: "Which function would you like to run?",
+		Options: options,
+		Flag:    "--function-id",
+		Filter:  true,
+	})
+	if err != nil {
+		return config.Function{}, err
+	}
+
+	return local.Function(selected)
 }
 
 // resolvePort validates an explicit port or finds a free one.

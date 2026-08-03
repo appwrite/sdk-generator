@@ -679,6 +679,21 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/prompt/prompt.go',
+                'template'      => 'go-cli/internal/prompt/prompt.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/prompt/terminal.go',
+                'template'      => 'go-cli/internal/prompt/terminal.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/prompt/prompt_test.go',
+                'template'      => 'go-cli/internal/prompt/prompt_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/run.go',
                 'template'      => 'go-cli/internal/cmd/run.go',
             ],
