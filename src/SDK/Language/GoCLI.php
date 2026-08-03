@@ -647,6 +647,54 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/typegen/casing_test.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/language.go',
+                'template'      => 'go-cli/internal/typegen/language.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/typescript.go',
+                'template'      => 'go-cli/internal/typegen/typescript.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/javascript.go',
+                'template'      => 'go-cli/internal/typegen/javascript.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/language_test.go',
+                'template'      => 'go-cli/internal/typegen/language_test.go',
+            ],
+            // Baselines captured by running the TypeScript emitters under node.
+            // Copied rather than rendered: a Twig pass over them would treat
+            // their braces as template syntax.
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/collections.json',
+                'template'      => 'go-cli/internal/typegen/testdata/collections.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/ts.loose.appwrite.d.ts',
+                'template'      => 'go-cli/internal/typegen/testdata/ts.loose.appwrite.d.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/ts.strict.appwrite.d.ts',
+                'template'      => 'go-cli/internal/typegen/testdata/ts.strict.appwrite.d.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/js.loose.appwrite-types.js',
+                'template'      => 'go-cli/internal/typegen/testdata/js.loose.appwrite-types.js',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/js.strict.appwrite-types.js',
+                'template'      => 'go-cli/internal/typegen/testdata/js.strict.appwrite-types.js',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/services/register.go',
                 'template'      => 'go-cli/internal/cmd/services/register.go.twig',

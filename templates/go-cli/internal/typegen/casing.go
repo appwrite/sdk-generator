@@ -87,13 +87,18 @@ func SanitizeEnumKey(value string) string {
 // as "double": the constant name and the wire value differ, and matching the
 // wire value is what matters.
 const (
-	AttributeTypeString       = "string"
-	AttributeTypeText         = "text"
-	AttributeTypeVarchar      = "varchar"
-	AttributeTypeMediumText   = "mediumtext"
-	AttributeTypeLongText     = "longtext"
-	AttributeTypeInteger      = "integer"
-	AttributeTypeFloat        = "double"
+	AttributeTypeString     = "string"
+	AttributeTypeText       = "text"
+	AttributeTypeVarchar    = "varchar"
+	AttributeTypeMediumText = "mediumtext"
+	AttributeTypeLongText   = "longtext"
+	AttributeTypeInteger    = "integer"
+	AttributeTypeFloat      = "double"
+	// AttributeTypeBigInt is accepted by the config schema but has no entry in
+	// attribute.ts's AttributeType map, so only the languages that switch on
+	// the raw string -- TypeScript -- handle it. The rest reject it as unknown,
+	// which is the existing behaviour and not corrected here.
+	AttributeTypeBigInt       = "bigint"
 	AttributeTypeBoolean      = "boolean"
 	AttributeTypeDateTime     = "datetime"
 	AttributeTypeEmail        = "email"

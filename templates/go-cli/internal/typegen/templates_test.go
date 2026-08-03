@@ -33,10 +33,10 @@ func TestEmbeddedTemplatesLoad(t *testing.T) {
 // both a plain variable and an {{#if}} block.
 func TestRenderConstantsTemplate(t *testing.T) {
 	rendered, err := RenderTemplate(TemplateConstants, Values{
-		"sdkTitle":        "Appwrite",
-		"projectId":       "my-project",
-		"endpoint":        "https://cloud.appwrite.io/v1",
-		"requiresApiKey":  true,
+		"sdkTitle":       "Appwrite",
+		"projectId":      "my-project",
+		"endpoint":       "https://cloud.appwrite.io/v1",
+		"requiresApiKey": true,
 	})
 	if err != nil {
 		t.Fatal(err)
