@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"os"
 	"strconv"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
+	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/appwrite/appwrite-cli-go/internal/sdk"
 	"github.com/spf13/cobra"
 )
 
@@ -71,8 +74,15 @@ func newClientCommand() *cobra.Command {
 			if flags.Changed("endpoint") {
 				global.SetCurrentValue(config.PreferenceEndpoint, endpoint)
 			}
+			// The project belongs to the DIRECTORY, not to the session: it is
+			// the same value `init project` and `pull` write, and the same one
+			// every project-scoped command reads. Writing it into the global
+			// preferences instead left the flag inert -- `client --project-id X`
+			// followed by any command answered "project is not set".
 			if flags.Changed("project-id") {
-				global.SetCurrentValue(config.PreferenceProject, projectID)
+				if err := setLocalProject(projectID); err != nil {
+					return err
+				}
 			}
 			if flags.Changed("key") {
 				global.SetCurrentValue(config.PreferenceKey, key)
@@ -101,6 +111,23 @@ func newClientCommand() *cobra.Command {
 	return command
 }
 
+// setLocalProject records the project in appwrite.config.json.
+//
+// Ports the `--project-id` branch of the TypeScript's client command
+// (generic.ts:341), which calls localConfig.setProject. An existing config
+// anywhere up the tree is updated in place rather than shadowed by a new one
+// in the working directory.
+func setLocalProject(projectID string) error {
+	local, err := config.LoadOrCreateLocal(config.FindLocalPath())
+	if err != nil {
+		return err
+	}
+
+	local.SetProject(projectID, "")
+
+	return local.Write()
+}
+
 // printClientDebug reports the active configuration with credentials masked.
 //
 // This is a diagnostic users paste into bug reports, so the key and access
@@ -118,12 +145,41 @@ func printClientDebug(command *cobra.Command, global *config.Global) error {
 		return "********"
 	}
 
-	command.Printf("endpoint     : %s\n", global.CurrentValue(config.PreferenceEndpoint))
-	command.Printf("key          : %s\n", mask(global.CurrentValue(config.PreferenceKey)))
-	command.Printf("accessToken  : %s\n", mask(global.CurrentValue(config.PreferenceAccessToken)))
-	command.Printf("selfSigned   : %s\n", global.CurrentValue(config.PreferenceSelfSigned))
-	command.Printf("projectId    : %s\n", global.CurrentValue(config.PreferenceProject))
-	command.Printf("version      : %s\n", app.Version)
+	// The project and organization come from the PROJECT CONFIG, which is where
+	// they live. Reading them off the global preferences reported an empty
+	// projectId while sitting in a directory whose config named one -- the
+	// least useful thing a diagnostic can do.
+	projectID, projectName, organizationID := "", "", ""
+	if local, err := config.LoadLocal(config.FindLocalPath()); err == nil {
+		projectID = local.Data.GetString("projectId")
+		projectName = local.Data.GetString("projectName")
+		organizationID = local.Data.GetString("organizationId")
+	}
+	if environment := os.Getenv(sdk.EnvProjectID); environment != "" {
+		projectID = environment
+	}
+	if environment := os.Getenv(sdk.EnvOrganizationID); environment != "" {
+		organizationID = environment
+	}
 
-	return nil
+	// Rendered rather than printed, so --json and --raw work here as they do
+	// everywhere else and the redaction hint comes from the same place.
+	report := jsonx.NewObject()
+	report.Set("endpoint", global.CurrentValue(config.PreferenceEndpoint))
+	report.Set("key", mask(global.CurrentValue(config.PreferenceKey)))
+	report.Set("accessToken", mask(global.CurrentValue(config.PreferenceAccessToken)))
+	// A real boolean, not the string form: the renderer drops blank strings, so
+	// an unset selfSigned would vanish from the report rather than read false.
+	selfSignedValue := false
+	if session := global.Current(); session != nil {
+		if raw, ok := session.Get(config.PreferenceSelfSigned); ok {
+			selfSignedValue, _ = raw.(bool)
+		}
+	}
+	report.Set("selfSigned", selfSignedValue)
+	report.Set("organizationId", organizationID)
+	report.Set("projectId", projectID)
+	report.Set("projectName", projectName)
+
+	return app.Render(report)
 }
