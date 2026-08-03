@@ -259,10 +259,12 @@ func (g *Global) DeleteSession(id string) {
 	g.SetCurrentSessionID(remaining[0])
 }
 
-// TODO: Derive this list from the regions in the API spec.
-//
 // Ports CLOUD_REGION_CODES and CLOUD_BASE_HOSTNAMES from
 // templates/cli/lib/utils.ts:449.
+//
+// Hardcoded rather than derived from the spec because the TypeScript hardcodes
+// it too, and this list decides which endpoints count as Cloud. Deriving it
+// would let a spec change silently reclassify a user's endpoint.
 var (
 	cloudRegionCodes = map[string]bool{
 		"fra": true, "nyc": true, "syd": true, "sfo": true, "sgp": true, "tor": true,

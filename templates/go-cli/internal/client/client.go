@@ -151,6 +151,10 @@ func (c *Client) SetProject(project string) *Client { return c.SetHeader(headerP
 func (c *Client) SetKey(key string) *Client { return c.SetHeader(headerKey, key) }
 
 // SetJWT authenticates with a JWT.
+//
+// Deliberately unreachable for now: it completes the setter surface of
+// templates/cli/lib/client.ts:95, and the only caller will be the JwtManager
+// that `run` still lacks. Kept so that port is a wiring change, not a rewrite.
 func (c *Client) SetJWT(jwt string) *Client { return c.SetHeader(headerJWT, jwt) }
 
 // SetLocale sets the response locale.
