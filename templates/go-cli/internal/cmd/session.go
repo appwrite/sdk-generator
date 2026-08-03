@@ -180,4 +180,6 @@ func registerSessionCommands(root *cobra.Command) {
 	root.AddCommand(newUpdateCommand())
 	root.AddCommand(newLoginCommand())
 	root.AddCommand(newLogoutCommand())
+	root.AddCommand(newTypesCommand())
+	root.AddCommand(newGenerateCommand())
 }

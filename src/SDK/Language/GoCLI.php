@@ -589,6 +589,26 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/types.go',
+                'template'      => 'go-cli/internal/cmd/types.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/generate.go',
+                'template'      => 'go-cli/internal/cmd/generate.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/typegen_commands_test.go',
+                'template'      => 'go-cli/internal/cmd/typegen_commands_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/message.go',
+                'template'      => 'go-cli/internal/output/message.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/app/install_test.go',
                 'template'      => 'go-cli/internal/app/install_test.go',
             ],
