@@ -4,7 +4,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"{{ language.params.modulePath }}/internal/app"
+	"{{ language.params.modulePath }}/internal/client"
 	"{{ language.params.modulePath }}/internal/cmd/services"
+	"{{ language.params.modulePath }}/internal/output"
 )
 
 // NewRootCommand builds the full command tree.
@@ -21,6 +23,20 @@ func NewRootCommand() *cobra.Command {
 		// Errors and usage are rendered by the output package, not by cobra.
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PersistentPreRun: func(command *cobra.Command, arguments []string) {
+			// --verbose was registered and read by nothing. What it is FOR is
+			// answering "why is this slow", so it traces each request with its
+			// status and how long it took.
+			//
+			// The CLI's OWN requests, which is push, pull and auth. The
+			// generated service commands go through the Go SDK's client and
+			// are not traced.
+			if app.Flags().Verbose {
+				client.RequestLog = func(format string, arguments ...any) {
+					output.Trace(command.ErrOrStderr(), format, arguments...)
+				}
+			}
+		},
 	}
 
 	app.RegisterGlobalFlags(root)

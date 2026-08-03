@@ -51,6 +51,7 @@ type BuildLogPrinter struct {
 	printed string
 
 	headerPrinted bool
+	footerPrinted bool
 	printedAny    bool
 }
 
@@ -91,6 +92,14 @@ func (p *BuildLogPrinter) Ingest(logs string) {
 // grow again, so the line that was being held back is all there is.
 func (p *BuildLogPrinter) Complete() {
 	p.flush(true)
+
+	// Close the block the way it opened, with a blank line. Without it the
+	// deployment's verdict butts straight up against the last line of build
+	// output and reads as part of it.
+	if p.headerPrinted && !p.footerPrinted {
+		p.emit("")
+		p.footerPrinted = true
+	}
 }
 
 // HasPrinted reports whether any build log reached the terminal, which decides

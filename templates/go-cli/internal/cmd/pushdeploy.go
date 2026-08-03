@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -28,12 +29,12 @@ import (
 //
 // Two deliberate divergences, both named once here rather than at each site.
 //
-// The TypeScript pushes every selected resource concurrently behind a
-// live-updating Spinner. There is no spinner in the Go runtime and human
-// output is explicitly outside the contract (docs/go-cli/PLAN.md §3), so
-// resources are pushed one at a time and progress is printed as plain lines.
-// That also makes the request sequence deterministic, which is what the
-// differential harness compares (docs/go-cli/conformance/).
+// The TypeScript pushes every selected resource concurrently, each with its own
+// spinner row. This pushes them one at a time behind a single row, which keeps
+// the request sequence deterministic -- that is what the differential harness
+// compares (docs/go-cli/conformance/) -- and keeps interleaved build logs
+// attributable. Independent writes that no trace orders, like the settings
+// fan-out in applyEnabled, ARE sent concurrently.
 //
 // The TypeScript reads build logs over a realtime WebSocket and falls back to
 // polling when it cannot -- in the recorded trace `GET /realtime` answers 400
@@ -199,14 +200,18 @@ func (c *pushContext) applySettings(command *cobra.Command, settings *jsonx.Obje
 
 	if services := settings.GetObject("services"); services != nil {
 		output.Log(out, "Applying service statuses ...")
-		if err := c.applyEnabled("/project/services/", services); err != nil {
+		if err := timed(out, len(services.Keys()), "service statuses", func() error {
+			return c.applyEnabled("/project/services/", services)
+		}); err != nil {
 			return err
 		}
 	}
 
 	if protocols := settings.GetObject("protocols"); protocols != nil {
 		output.Log(out, "Applying protocol statuses ...")
-		if err := c.applyEnabled("/project/protocols/", protocols); err != nil {
+		if err := timed(out, len(protocols.Keys()), "protocol statuses", func() error {
+			return c.applyEnabled("/project/protocols/", protocols)
+		}); err != nil {
 			return err
 		}
 	}
@@ -218,17 +223,39 @@ func (c *pushContext) applySettings(command *cobra.Command, settings *jsonx.Obje
 
 	if security := auth.GetObject("security"); security != nil {
 		output.Log(out, "Applying auth security settings ...")
-		if err := c.applySecurity(security); err != nil {
+		if err := timed(out, len(security.Keys()), "auth security settings", func() error {
+			return c.applySecurity(security)
+		}); err != nil {
 			return err
 		}
 	}
 
 	if methods := auth.GetObject("methods"); methods != nil {
 		output.Log(out, "Applying auth methods statuses ...")
-		if err := c.applyEnabled("/project/auth-methods/", methods); err != nil {
+		if err := timed(out, len(methods.Keys()), "auth method statuses", func() error {
+			return c.applyEnabled("/project/auth-methods/", methods)
+		}); err != nil {
 			return err
 		}
 	}
+
+	return nil
+}
+
+// timed reports what a settings step did and how long it took.
+//
+// A settings push is four steps of one line each and can take the better part
+// of a minute, which leaves no way to tell a slow step from a hung one. The
+// count and the duration turn "it is stuck" into "the auth methods took
+// forty seconds", which is the question anyone actually has.
+func timed(out io.Writer, count int, what string, run func() error) error {
+	started := time.Now()
+	if err := run(); err != nil {
+		return err
+	}
+
+	output.Log(out, "Applied %d %s in %s",
+		count, what, time.Since(started).Round(time.Millisecond))
 
 	return nil
 }

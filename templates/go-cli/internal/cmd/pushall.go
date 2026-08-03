@@ -152,6 +152,11 @@ func runPush(command *cobra.Command, everything bool) error {
 // test can hand it actions that record instead of calling the API.
 func runPushActions(command *cobra.Command, actions []pushAction, everything bool) error {
 	if everything {
+		// `cliConfig.all = true` (push.ts:4288), for the same reason as pull:
+		// each resource reads it to decide whether to ask which functions or
+		// sites to push.
+		app.Flags().All = true
+
 		// Collections are skipped: they are the legacy databases API,
 		// and pushing both writes two representations of the same
 		// data to one project.

@@ -48,6 +48,28 @@ type Client struct {
 }
 
 // New returns a client with the headers every request carries.
+// RequestLog receives one line per HTTP request when --verbose is on.
+//
+// A package variable rather than a field on Client because clients are built
+// in a dozen places and diagnostics should not have to be threaded through
+// every one of them. Set once during start-up, before any request is made, and
+// only read afterwards -- concurrent requests read it, none of them write it.
+var RequestLog func(format string, arguments ...any)
+
+func logRequest(method, path string, status int, elapsed time.Duration) {
+	if RequestLog == nil {
+		return
+	}
+
+	if status == 0 {
+		RequestLog("%s %s failed after %s", method, path, elapsed.Round(time.Millisecond))
+
+		return
+	}
+
+	RequestLog("%s %s %d in %s", method, path, status, elapsed.Round(time.Millisecond))
+}
+
 func New(endpoint, sdkVersion string) *Client {
 	return &Client{
 		Endpoint:   strings.TrimRight(endpoint, "/"),
@@ -341,11 +363,17 @@ func escapeQuotes(value string) string {
 
 // send performs a prepared request and decodes the JSON response into out.
 func (c *Client) send(request *http.Request, out any) error {
+	started := time.Now()
+
 	response, err := c.HTTP.Do(request)
 	if err != nil {
+		logRequest(request.Method, request.URL.Path, 0, time.Since(started))
+
 		return err
 	}
 	defer response.Body.Close()
+
+	logRequest(request.Method, request.URL.Path, response.StatusCode, time.Since(started))
 
 	payload, err := io.ReadAll(response.Body)
 	if err != nil {

@@ -50,7 +50,8 @@ func TestBuildLogCompleteFlushesThePartialLine(t *testing.T) {
 	printer.Ingest("built in 3s\nno newline at the end")
 	printer.Complete()
 
-	if got, want := body(buffer), "built in 3s\nno newline at the end\n"; got != want {
+	// Complete also closes the block, hence the trailing blank line.
+	if got, want := body(buffer), "built in 3s\nno newline at the end\n\n"; got != want {
 		t.Errorf("logs = %q, want the trailing fragment flushed", got)
 	}
 }
@@ -70,7 +71,6 @@ func TestBuildLogStaysQuietWithoutProgress(t *testing.T) {
 	printer.Ingest("compiling\n")
 	before := buffer.String()
 	printer.Ingest("compiling\n")
-	printer.Complete()
 
 	if buffer.String() != before {
 		t.Errorf("an unchanged log printed again: %q", buffer.String())
@@ -146,6 +146,39 @@ func TestBuildLogNormalisesCarriageReturns(t *testing.T) {
 
 	if got, want := body(buffer), "first\nsecond\n"; got != want {
 		t.Errorf("logs = %q, want the carriage returns dropped", got)
+	}
+}
+
+// The block closes the way it opened. Without the trailing blank line the
+// deployment's verdict butts against the last line of build output and reads
+// as part of it.
+func TestBuildLogClosesTheBlockWithABlankLine(t *testing.T) {
+	buffer := &bytes.Buffer{}
+	printer := NewBuildLogPrinter(Lines(buffer), "function:api", false)
+
+	printer.Ingest("Build finished.\n")
+	printer.Complete()
+
+	if got, want := body(buffer), "Build finished.\n\n"; got != want {
+		t.Errorf("logs = %q, want a blank line after the last one", got)
+	}
+
+	// Complete is reached from several exits; the spacing must not accumulate.
+	printer.Complete()
+	if got, want := body(buffer), "Build finished.\n\n"; got != want {
+		t.Errorf("logs = %q after a second Complete, want one blank line", got)
+	}
+}
+
+// A deployment that logged nothing has no block to close.
+func TestBuildLogAddsNoBlankLineWithoutLogs(t *testing.T) {
+	buffer := &bytes.Buffer{}
+	printer := NewBuildLogPrinter(Lines(buffer), "function:api", false)
+
+	printer.Complete()
+
+	if buffer.Len() != 0 {
+		t.Errorf("printed %q for a deployment with no logs", buffer.String())
 	}
 }
 

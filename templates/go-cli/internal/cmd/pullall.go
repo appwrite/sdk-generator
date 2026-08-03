@@ -120,6 +120,13 @@ func newPullAllCommand() *cobra.Command {
 // two representations of the same data into one config.
 func runPull(command *cobra.Command, actions []pullAction, everything bool) error {
 	if everything {
+		// `cliConfig.all = true` (pull.ts:850). It is not only the fan-out's
+		// own choice: each resource reads the same flag to decide whether to
+		// ask WHICH functions, sites or buckets to pull. Running the fan-out
+		// without setting it pulls every resource type and then stops to ask
+		// about the contents of each one, which is not what `all` means.
+		app.Flags().All = true
+
 		for _, action := range actions {
 			if action.Deprecated {
 				continue

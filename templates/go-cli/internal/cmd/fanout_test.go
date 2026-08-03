@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/appwrite/appwrite-cli-go/internal/app"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +17,22 @@ import (
 // TypeScript sets cliConfig.all itself before delegating (pull.ts:1136,
 // push.ts:4288), so neither ever reaches the question.
 
+// isolateGlobalAll restores the --all flag when the test ends.
+//
+// The flag is PROCESS state -- it stands in for the TypeScript's cliConfig --
+// so a test that runs a fan-out sets it for every test that runs afterwards,
+// and a later prompt test then silently takes the "all" path and never
+// prompts. Anything here that touches the fan-out has to put it back.
+func isolateGlobalAll(t *testing.T) {
+	t.Helper()
+
+	restore := app.Flags().All
+	t.Cleanup(func() { app.Flags().All = restore })
+}
+
 func TestPullEverythingRunsEveryNonDeprecatedAction(t *testing.T) {
+	isolateGlobalAll(t)
+
 	var ran []string
 
 	actions := []pullAction{
@@ -33,6 +49,8 @@ func TestPullEverythingRunsEveryNonDeprecatedAction(t *testing.T) {
 }
 
 func TestPushEverythingRunsEveryNonDeprecatedAction(t *testing.T) {
+	isolateGlobalAll(t)
+
 	var ran []string
 
 	actions := []pushAction{
@@ -48,12 +66,50 @@ func TestPushEverythingRunsEveryNonDeprecatedAction(t *testing.T) {
 	assertRanEverything(t, ran)
 }
 
+// `all` has to reach INSIDE each resource.
+//
+// The fan-out running every resource type is only half of it: each one then
+// reads the same global flag to decide whether to ask which functions, sites
+// or buckets to act on. Run without setting it, `pull all` pulled the settings
+// and then stopped to ask which functions to pull -- every resource type, one
+// question at a time. The TypeScript sets cliConfig.all before delegating
+// (pull.ts:850, push.ts:4288), which is what suppresses those.
+func TestEverythingSetsTheGlobalAllFlag(t *testing.T) {
+	for _, run := range []struct {
+		name string
+		call func() error
+	}{
+		{"pull", func() error { return runPull(&cobra.Command{}, nil, true) }},
+		{"push", func() error { return runPushActions(&cobra.Command{}, nil, true) }},
+	} {
+		t.Run(run.name, func(t *testing.T) {
+			restore := app.Flags().All
+			app.Flags().All = false
+			defer func() { app.Flags().All = restore }()
+
+			if err := run.call(); err != nil {
+				t.Fatal(err)
+			}
+			if !app.Flags().All {
+				t.Error("`all` did not set the flag, so each resource will ask " +
+					"which of its entries to use")
+			}
+		})
+	}
+}
+
 // The regression as the user met it: `pull all` on a machine with no terminal
 // stopped to ask a question instead of pulling. Whatever this fails with, it
 // must not be the prompt -- the fan-out has no question to ask.
 func TestAllSubcommandsNeverPrompt(t *testing.T) {
 	for _, name := range []string{"pull", "push"} {
 		t.Run(name, func(t *testing.T) {
+			// The fan-out sets the global --all, which is process state that
+			// outlives this test and would otherwise decide whether a LATER
+			// test's prompt is asked at all.
+			restore := app.Flags().All
+			defer func() { app.Flags().All = restore }()
+
 			root := NewRootCommand()
 			root.SetArgs([]string{name, "all"})
 			root.SetOut(&strings.Builder{})

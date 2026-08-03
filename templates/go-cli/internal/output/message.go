@@ -18,6 +18,7 @@ var (
 	warningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
 	successStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	failureStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
+	traceStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 )
 
 // Log writes an informational line.
@@ -37,6 +38,14 @@ func Warn(writer io.Writer, format string, arguments ...any) {
 // can tell the follow-up apart from the report.
 func Hint(writer io.Writer, format string, arguments ...any) {
 	writeMessage(writer, infoStyle, "♥ Hint:", format, arguments...)
+}
+
+// Trace writes a diagnostic line under --verbose.
+//
+// Faint and on stderr: it is for the person watching, not for whatever is
+// reading the command's output.
+func Trace(writer io.Writer, format string, arguments ...any) {
+	fmt.Fprintf(writer, "%s\n", traceStyle.Render("· "+fmt.Sprintf(format, arguments...)))
 }
 
 // Success writes a success line.
