@@ -448,16 +448,31 @@ docker compose down` before re-running.
   asset names matching the TypeScript exactly so a Go build can replace one in place) and
   `internal/cmd/update.go` (npm/brew delegate; standalone writes a temp file beside the
   target and renames atomically).
-- **5b `types`/`generate`** — roughly 400 of ~2,650 lines. `internal/typegen` has the
+- **5b `types`/`generate`** — roughly 1,800 of ~2,650 lines. `internal/typegen` has the
   Handlebars subset renderer, the four `.hbs` files embedded (sourced from the TypeScript
-  CLI's own directory — one source, two outputs; do **not** commit a second copy), and the
-  case helpers, all pinned to node-captured baselines and sabotage-verified.
+  CLI's own directory — one source, two outputs; do **not** commit a second copy), the case
+  helpers, and **all eight language emitters** — TypeScript, JavaScript, PHP, Kotlin,
+  Swift, Java, Dart, C#.
+
+  The emitters do not port EJS. Each `LanguageMeta` subclass holds its template as an
+  inline string nothing else reads, so there is no shared artifact to preserve; each
+  emits directly in Go and is pinned to output captured from node. Regenerate the
+  baselines with `docs/go-cli/capture-typegen-baselines.ts` — never hand-edit a file under
+  `internal/typegen/testdata`. (The `.hbs` files under `commands/generators` are the
+  opposite case: real files both CLIs read, which is why those go through the Handlebars
+  subset.)
+
+  Roughly a dozen defects in the TypeScript emitters are reproduced rather than fixed, each
+  named in a comment where it lives. `types` output is checked into users' repositories, so
+  a correction would land as an unexplained diff in their next commit. If any of them is
+  ever fixed, fix it in the TypeScript first and recapture.
 
 Still to port, in the order the sub-phases below give:
 
 | Piece | LOC |
 |---|---|
-| Nine typegen language modules + generators + the two commands | ~2,250 |
+| `generators/{base,index,language-detector}.ts` + `typescript/databases.ts` | ~700 |
+| `types.ts` + `generate.ts` (the two commands themselves) | ~440 |
 | `run.ts` + docker emulation | ~700 |
 | `questions.ts` → `internal/prompt` (blocks `init` **and** `push`) | 1,363 |
 | `init.ts` | 1,133 |
@@ -636,7 +651,7 @@ Progress table, kept current:
 | 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
 | 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
 | 4 — Conformance harness | ✅ Complete — the Go CLI's own suite green in CI | #1721 |
-| 5 — Stateful commands | 🔄 **In progress** — `update` done; typegen ~400/2,650 | #1722 |
+| 5 — Stateful commands | 🔄 **In progress** — `update` done; typegen ~1,800/2,650, all 8 emitters ported | #1722 |
 | 6 — Performance | Not started | | |
 | 7 — Distribution | Not started | | |
 | 8 — Rollout | Not started | | |
