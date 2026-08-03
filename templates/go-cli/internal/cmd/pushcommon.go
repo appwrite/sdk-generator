@@ -294,6 +294,7 @@ func printChanges(command *cobra.Command, changes []change) {
 // and a non-interactive shell is told to pass --all rather than left guessing.
 func (c *pushContext) selectResources(
 	resource string,
+	singular string,
 	entries []*jsonx.Object,
 ) ([]*jsonx.Object, error) {
 	if app.Flags().All {
@@ -317,6 +318,12 @@ func (c *pushContext) selectResources(
 		Options: options,
 		Filter:  true,
 		Flag:    "--all",
+		// Ports the checkbox's `validate: validateRequired(...)`
+		// (questions.ts:999). A multi-select starts with nothing ticked and
+		// Enter accepts that, so without this the prompt returns an empty
+		// list -- and the caller then reports the resources as missing, which
+		// sends the reader to `init` for something that already exists.
+		Validate: prompt.RequiredSelection(singular),
 	})
 	if err != nil {
 		return nil, err

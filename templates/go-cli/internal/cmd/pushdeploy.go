@@ -792,7 +792,7 @@ func (c *pushContext) selectDeployables(
 		return nil, nil
 	}
 
-	return c.selectResources(resource.Label, entries)
+	return c.selectResources(resource.Label, resource.Singular, entries)
 }
 
 // completeDeployables asks for the fields a push cannot proceed without.
