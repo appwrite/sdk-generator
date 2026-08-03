@@ -177,6 +177,7 @@ func registerSessionCommands(root *cobra.Command) {
 	root.AddCommand(newWhoamiCommand())
 	root.AddCommand(newSessionsCommand())
 	root.AddCommand(newClientCommand())
+	root.AddCommand(newUpdateCommand())
 	root.AddCommand(newLoginCommand())
 	root.AddCommand(newLogoutCommand())
 }
