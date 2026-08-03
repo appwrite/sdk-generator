@@ -337,13 +337,8 @@ func chooseRegion(api *client.Client, prompter prompt.Prompter) (string, error) 
 // call to an organization not yet chosen.
 func listing(api *client.Client, path string, organizationID ...string) client.Lister {
 	return func(queries []string) (*jsonx.Object, error) {
-		values := url.Values{}
-		for _, query := range queries {
-			values.Add("queries[]", query)
-		}
-
 		request := path
-		if encoded := values.Encode(); encoded != "" {
+		if encoded := client.EncodeQueries(queries); encoded != "" {
 			request += "?" + encoded
 		}
 

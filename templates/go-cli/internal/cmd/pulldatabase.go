@@ -191,13 +191,9 @@ func filterEach(row *jsonx.Object, name string, keys []string) []any {
 // page walks one list endpoint.
 func (p *projectPull) page(path, wrapper string, queries []string) ([]*jsonx.Object, error) {
 	rows, _, err := client.PaginateInto(func(paged []string) (*jsonx.Object, error) {
-		values := url.Values{}
-		for _, query := range paged {
-			values.Add("queries[]", query)
-		}
-
 		var response jsonx.Object
-		if err := p.api.Call("GET", path+"?"+values.Encode(), nil, &response); err != nil {
+		if err := p.api.Call("GET",
+			path+"?"+client.EncodeQueries(paged), nil, &response); err != nil {
 			return nil, err
 		}
 

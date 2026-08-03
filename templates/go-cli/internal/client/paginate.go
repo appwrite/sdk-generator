@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
 )
@@ -116,4 +117,19 @@ func PaginateInto(list Lister, wrapper string, queries []string, pageSize int) (
 	}
 
 	return rows, total, nil
+}
+
+// EncodeQueries renders query strings as the API expects them.
+//
+// `queries[0]=`, indexed -- NOT `queries[]=`. Both happen to work on the list
+// endpoints, but the TypeScript sends the indexed form and a request trace is
+// how the two CLIs are compared, so the wire has to match too. Found by
+// diffing traces on a command whose config output was already identical.
+func EncodeQueries(queries []string) string {
+	values := url.Values{}
+	for index, query := range queries {
+		values.Add(fmt.Sprintf("queries[%d]", index), query)
+	}
+
+	return values.Encode()
 }

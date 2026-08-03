@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 
@@ -263,25 +262,44 @@ func newProjectPull() (*projectPull, error) {
 	return &projectPull{api: api, local: local}, nil
 }
 
+// probeEmpty issues the limit(1) request the TypeScript makes before paging.
+//
+// Redundant on its face -- the paginated walk would return the same emptiness
+// -- but it is a request the two CLIs must both make, because a request trace
+// is how they are compared. It also lets an empty resource report "No X found"
+// without a full page.
+func (p *projectPull) probeEmpty(path, wrapper string) (bool, error) {
+	var response jsonx.Object
+	err := p.api.Call("GET",
+		path+"?"+client.EncodeQueries([]string{`{"method":"limit","values":[1]}`}),
+		nil, &response)
+	if err != nil {
+		return false, err
+	}
+
+	items, _ := response.Get(wrapper)
+	rows, _ := items.([]any)
+
+	return len(rows) == 0, nil
+}
+
 // list pages a resource and shapes each entry to the config schema.
 func (p *projectPull) list(resource flatResource) ([]*jsonx.Object, error) {
-	rows, _, err := client.PaginateInto(func(queries []string) (*jsonx.Object, error) {
-		values := url.Values{}
-		for _, query := range queries {
-			values.Add("queries[]", query)
-		}
+	empty, err := p.probeEmpty(resource.Path, resource.Wrapper)
+	if err != nil {
+		return nil, err
+	}
+	if empty {
+		return nil, nil
+	}
 
-		var response jsonx.Object
-		if err := p.api.Call("GET", resource.Path+"?"+values.Encode(), nil, &response); err != nil {
-			return nil, err
-		}
-
-		return &response, nil
-	}, resource.Wrapper, nil, 0)
+	rows, err := p.page(resource.Path, resource.Wrapper, nil)
 	if err != nil {
 		return nil, err
 	}
 
+	// A nil Keys means "store the API response unfiltered" -- see the teams
+	// entry in flatResources.
 	if resource.Keys == nil {
 		return rows, nil
 	}
