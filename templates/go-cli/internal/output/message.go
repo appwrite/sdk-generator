@@ -30,6 +30,15 @@ func Warn(writer io.Writer, format string, arguments ...any) {
 	writeMessage(writer, warningStyle, "ℹ Warning:", format, arguments...)
 }
 
+// Hint writes a suggested next command.
+//
+// Distinct from Log because it is advice rather than status: the TypeScript
+// gives it its own prefix and colour so a user who just saw "No buckets found."
+// can tell the follow-up apart from the report.
+func Hint(writer io.Writer, format string, arguments ...any) {
+	writeMessage(writer, infoStyle, "♥ Hint:", format, arguments...)
+}
+
 // Success writes a success line.
 func Success(writer io.Writer, format string, arguments ...any) {
 	writeMessage(writer, successStyle, "✓ Success:", format, arguments...)

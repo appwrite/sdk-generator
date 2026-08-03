@@ -197,4 +197,5 @@ func registerSessionCommands(root *cobra.Command) {
 	root.AddCommand(newRunCommand())
 	root.AddCommand(newInitCommand())
 	root.AddCommand(newPullCommand())
+	root.AddCommand(newPushCommand())
 }
