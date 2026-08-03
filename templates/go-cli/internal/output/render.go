@@ -130,7 +130,14 @@ func (r *Renderer) renderHuman(writer io.Writer, value any) error {
 			rows := objectRows(typed)
 			if len(rows) > 0 {
 				fmt.Fprintln(writer, sectionStyle.Render(fmt.Sprintf("%s (%d)", item.key, len(typed))))
-				fmt.Fprintln(writer, renderTable(rows))
+				// A section with a renderer of its own, or one whose rows are
+				// plain on/off toggles, gets a shape built for it. Everything
+				// else falls back to the generic table.
+				if rendered, ok := RenderStructuredCollection(item.key, rows, "  "); ok {
+					fmt.Fprintln(writer, rendered)
+				} else {
+					fmt.Fprintln(writer, renderTable(rows))
+				}
 			} else {
 				fmt.Fprintln(writer, sectionStyle.Render(item.key))
 				for _, entry := range typed {

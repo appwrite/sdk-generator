@@ -281,8 +281,8 @@ func reloadOnce(
 func sourceMatcher(local *config.Local, function config.Function) watch.Ignored {
 	matcher := ignore.New().Add(docker.AppwriteDirectory).Add("code.tar.gz")
 
-	if function.Ignore != "" {
-		matcher.Add(function.Ignore)
+	if !function.Ignore.IsEmpty() {
+		matcher.AddAll(function.Ignore.Rules())
 	} else {
 		directory := local.ResolveResourcePath("functions", function.Path)
 		if contents, err := os.ReadFile(filepath.Join(directory, ".gitignore")); err == nil {

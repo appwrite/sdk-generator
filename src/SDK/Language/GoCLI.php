@@ -646,6 +646,21 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/output/collections.go',
+                'template'      => 'go-cli/internal/output/collections.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/ignore.go',
+                'template'      => 'go-cli/internal/config/ignore.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/ignore_test.go',
+                'template'      => 'go-cli/internal/config/ignore_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/output/valueformat_test.go',
                 'template'      => 'go-cli/internal/output/valueformat_test.go',
             ],
