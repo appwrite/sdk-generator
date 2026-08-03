@@ -393,8 +393,12 @@ func newPushCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "push",
 		Short: "Push your Appwrite project resources from appwrite.config.json",
+		// Not Help(). The TypeScript's `push` has an action of its own
+		// (push.ts:4280) that pushes -- prompting for one resource, or
+		// everything under --all. Showing help instead made `push --all` a
+		// no-op that looked like a usage error.
 		RunE: func(command *cobra.Command, args []string) error {
-			return command.Help()
+			return runPush(command, app.Flags().All)
 		},
 	}
 
