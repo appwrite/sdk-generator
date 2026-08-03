@@ -555,6 +555,9 @@ func newPushDeployableCommand(resource deployable) *cobra.Command {
 		Use:     resource.Name,
 		Aliases: resource.Aliases,
 		Short:   "Push " + resource.Label + " in the current directory.",
+		PreRunE: func(command *cobra.Command, args []string) error {
+			return applyNegatedFlags(command)
+		},
 		RunE: func(command *cobra.Command, args []string) error {
 			if command.Flags().Changed("force") {
 				app.Flags().Force = true
@@ -584,10 +587,10 @@ func newPushDeployableCommand(resource deployable) *cobra.Command {
 	flags.Bool("force", false, "Skip confirmation prompts.")
 	flags.BoolVarP(&options.Async, "async", "A", false,
 		"Don't wait for "+resource.Label+" deployments status")
-	// `--no-code` and `--no-logs` in commander are booleans defaulting on;
-	// pflag spells the same thing as the positive flag defaulting to true.
-	flags.BoolVar(&options.Code, "code", true, "Don't push the "+resource.Singular+"'s code")
-	flags.BoolVar(&options.Logs, "logs", true, "Don't stream deployment build logs")
+	negatableBool(flags, &options.Code, "code",
+		"Push the "+resource.Singular+"'s code")
+	negatableBool(flags, &options.Logs, "logs",
+		"Stream deployment build logs")
 	flags.StringVar(&activate, "activate", "",
 		"Activate the "+resource.Singular+"'s deployment after it is ready.")
 	flags.Lookup("activate").NoOptDefVal = "true"

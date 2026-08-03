@@ -104,9 +104,14 @@ var promptOrder = []string{
 }
 
 func newPushAllCommand() *cobra.Command {
+	logs := true
+
 	command := &cobra.Command{
 		Use:   "all",
 		Short: "Push all resources in the current project",
+		PreRunE: func(command *cobra.Command, args []string) error {
+			return applyNegatedFlags(command)
+		},
 		RunE: func(command *cobra.Command, args []string) error {
 			// `push all` means all, with or without --all. The TypeScript sets
 			// cliConfig.all itself before delegating (push.ts:4288), so it
@@ -116,7 +121,7 @@ func newPushAllCommand() *cobra.Command {
 		},
 	}
 
-	command.Flags().Bool("logs", true, "Don't stream deployment build logs")
+	negatableBool(command.Flags(), &logs, "logs", "Stream deployment build logs")
 
 	return command
 }

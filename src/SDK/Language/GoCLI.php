@@ -651,6 +651,16 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/flags.go',
+                'template'      => 'go-cli/internal/cmd/flags.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/flags_test.go',
+                'template'      => 'go-cli/internal/cmd/flags_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/output/deploylog.go',
                 'template'      => 'go-cli/internal/output/deploylog.go',
             ],

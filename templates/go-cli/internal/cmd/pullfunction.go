@@ -81,6 +81,9 @@ func newPullCodeCommand(resource codeResource) *cobra.Command {
 		Use:     resource.Name,
 		Aliases: resource.Aliases,
 		Short:   "Pull " + resource.Label + " from your Appwrite project",
+		PreRunE: func(command *cobra.Command, args []string) error {
+			return applyNegatedFlags(command)
+		},
 		RunE: func(command *cobra.Command, args []string) error {
 			return runPullCode(command, resource, code, withVariables)
 		},
@@ -88,9 +91,7 @@ func newPullCodeCommand(resource codeResource) *cobra.Command {
 
 	command.Flags().BoolVar(&withVariables, "with-variables", false,
 		"Pull "+resource.Label+" variables into a .env file")
-	// `--no-code` in commander is a boolean defaulting on; pflag spells the
-	// same thing as --code defaulting to true.
-	command.Flags().BoolVar(&code, "code", true,
+	negatableBool(command.Flags(), &code, "code",
 		"Pull the source code of the latest deployment")
 
 	return command
