@@ -571,8 +571,9 @@ docker compose down` before re-running.
   - **Policy ids are kebab-case** (`session-duration`). The TypeScript's `ProjectPolicyId`
     enum has run-together MEMBER names; transcribe the values, not the members.
 
-  `pull function` and `pull site` are done, including the deployment download and the
-  `.env` write. Still to do: `pull all`, which is only a fan-out over the rest.
+  **`pull` is complete**: all, settings, bucket, team, topic, webhook, table, collection,
+  function, site. Every one verified byte-identical against the TypeScript on real staging
+  projects.
 
   **Every pull must use `Client.WithoutResponseFormat()`.** The TypeScript's
   `sdkForProject()` builds an `@appwrite.io/console` Client rather than its own
@@ -590,7 +591,6 @@ Still to port, in the order the sub-phases below give:
 |---|---|
 | question definitions, with the commands that own them | — |
 | `init function|site|skill` (needs template downloads) | ~600 |
-| `pull all` (fan-out only) | ~100 |
 | `push.ts` + its five helpers | 7,129 |
 | `response-config.ts` (human output only, not contractual) | 940 |
 
@@ -766,7 +766,7 @@ Progress table, kept current:
 | 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
 | 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
 | 4 — Conformance harness | ✅ Complete — both suites green, differential diff empty | #1721 |
-| 5 — Stateful commands | 🔄 **In progress** — everything but `pull all` and `push` | #1722 |
+| 5 — Stateful commands | 🔄 **In progress** — everything but `push` | #1722 |
 | 6 — Performance | Not started | | |
 | 7 — Distribution | Not started | | |
 | 8 — Rollout | Not started | | |
