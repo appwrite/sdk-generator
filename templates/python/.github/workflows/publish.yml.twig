@@ -3,6 +3,10 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish, e.g. 1.2.3'
+        required: true
 
 jobs:
   publish:
@@ -15,6 +19,11 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # A release build must come from the tag, never from a branch that may
+          # have moved on. On a release event github.ref is already the tag; on a
+          # manual retry the tag has to be named explicitly.
+          ref: {{ '${{ inputs.tag || github.ref }}' }}
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
