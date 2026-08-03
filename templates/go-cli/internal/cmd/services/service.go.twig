@@ -170,11 +170,22 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 {% endif %}
 {% if query.hasQueries %}
 
+{% if query.hasFiltering %}
+			parsedFilter, err := query.ParseFilters(filter)
+			if err != nil {
+				return err
+			}
+			parsedWhere, err := query.ParseFilters(where)
+			if err != nil {
+				return err
+			}
+{% endif %}
+
 			queries, err := query.Build(query.Options{
 				Queries: queries,
 {% if query.hasFiltering %}
-				Filter:   filter,
-				Where:    where,
+				Filter:   parsedFilter,
+				Where:    parsedWhere,
 				SortAsc:  sortAsc,
 				SortDesc: sortDesc,
 {% endif %}

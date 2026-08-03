@@ -553,9 +553,9 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/app/fallback.go.twig',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/surface_test.go',
-                'template'      => 'go-cli/internal/cmd/surface_test.go',
+                'template'      => 'go-cli/internal/cmd/surface_test.go.twig',
             ],
             [
                 'scope'         => 'copy',
@@ -566,6 +566,11 @@ class GoCLI extends Go
                 'scope'         => 'default',
                 'destination'   => 'internal/app/inputfile.go',
                 'template'      => 'go-cli/internal/app/inputfile.go.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/client.go',
+                'template'      => 'go-cli/internal/cmd/client.go',
             ],
             [
                 'scope'         => 'default',
