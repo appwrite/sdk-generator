@@ -145,8 +145,12 @@ func runPush(command *cobra.Command, everything bool) error {
 		logs = parsed
 	}
 
-	actions := pushActions(logs)
+	return runPushActions(command, pushActions(logs), everything)
+}
 
+// runPushActions is the fan-out itself, separated from reading the flags so a
+// test can hand it actions that record instead of calling the API.
+func runPushActions(command *cobra.Command, actions []pushAction, everything bool) error {
 	if everything {
 		// Collections are skipped: they are the legacy databases API,
 		// and pushing both writes two representations of the same

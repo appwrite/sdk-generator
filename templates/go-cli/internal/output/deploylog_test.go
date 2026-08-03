@@ -10,7 +10,7 @@ import (
 // that is new, or a build that logs twenty lines prints them twenty times over.
 func TestBuildLogPrintsOnlyWhatIsNew(t *testing.T) {
 	buffer := &bytes.Buffer{}
-	printer := NewBuildLogPrinter(buffer, "function:api", false)
+	printer := NewBuildLogPrinter(Lines(buffer), "function:api", false)
 
 	printer.Ingest("cloning\n")
 	printer.Ingest("cloning\ninstalling\n")
@@ -28,7 +28,7 @@ func TestBuildLogPrintsOnlyWhatIsNew(t *testing.T) {
 // next read would split one log line across two lines of terminal.
 func TestBuildLogHoldsBackAPartialLine(t *testing.T) {
 	buffer := &bytes.Buffer{}
-	printer := NewBuildLogPrinter(buffer, "function:api", false)
+	printer := NewBuildLogPrinter(Lines(buffer), "function:api", false)
 
 	printer.Ingest("done\ninstalling depend")
 	if got, want := body(buffer), "done\n"; got != want {
@@ -45,7 +45,7 @@ func TestBuildLogHoldsBackAPartialLine(t *testing.T) {
 // is all of it there will ever be.
 func TestBuildLogCompleteFlushesThePartialLine(t *testing.T) {
 	buffer := &bytes.Buffer{}
-	printer := NewBuildLogPrinter(buffer, "function:api", false)
+	printer := NewBuildLogPrinter(Lines(buffer), "function:api", false)
 
 	printer.Ingest("built in 3s\nno newline at the end")
 	printer.Complete()
@@ -59,7 +59,7 @@ func TestBuildLogCompleteFlushesThePartialLine(t *testing.T) {
 // nothing new. None of them may print anything -- not even the heading.
 func TestBuildLogStaysQuietWithoutProgress(t *testing.T) {
 	buffer := &bytes.Buffer{}
-	printer := NewBuildLogPrinter(buffer, "function:api", false)
+	printer := NewBuildLogPrinter(Lines(buffer), "function:api", false)
 
 	printer.Ingest("")
 	printer.Complete()
@@ -87,7 +87,7 @@ func TestBuildLogStaysQuietWithoutProgress(t *testing.T) {
 // keeping the bookmark ahead of the log -- silently swallows a genuine rebuild.
 func TestBuildLogRewindsWhenTheLogShrinks(t *testing.T) {
 	buffer := &bytes.Buffer{}
-	printer := NewBuildLogPrinter(buffer, "function:api", false)
+	printer := NewBuildLogPrinter(Lines(buffer), "function:api", false)
 
 	printer.Ingest("step one\nstep two\n")
 	buffer.Reset()
@@ -107,7 +107,7 @@ func TestBuildLogRewindsWhenTheLogShrinks(t *testing.T) {
 // REPLACED. There is no shared prefix to skip, so all of it is new.
 func TestBuildLogReprintsALogThatWasReplaced(t *testing.T) {
 	buffer := &bytes.Buffer{}
-	printer := NewBuildLogPrinter(buffer, "function:api", false)
+	printer := NewBuildLogPrinter(Lines(buffer), "function:api", false)
 
 	printer.Ingest("first attempt\n")
 	buffer.Reset()
@@ -123,13 +123,13 @@ func TestBuildLogReprintsALogThatWasReplaced(t *testing.T) {
 // spent on the log.
 func TestBuildLogLabelsLinesOnlyWhenAsked(t *testing.T) {
 	labelled := &bytes.Buffer{}
-	NewBuildLogPrinter(labelled, "function:api", true).Ingest("compiling\n")
+	NewBuildLogPrinter(Lines(labelled), "function:api", true).Ingest("compiling\n")
 	if got, want := body(labelled), "[function:api] compiling\n"; got != want {
 		t.Errorf("logs = %q, want the label", got)
 	}
 
 	plain := &bytes.Buffer{}
-	NewBuildLogPrinter(plain, "function:api", false).Ingest("compiling\n")
+	NewBuildLogPrinter(Lines(plain), "function:api", false).Ingest("compiling\n")
 	if got, want := body(plain), "compiling\n"; got != want {
 		t.Errorf("logs = %q, want no label", got)
 	}
@@ -140,7 +140,7 @@ func TestBuildLogLabelsLinesOnlyWhenAsked(t *testing.T) {
 // overwrites it.
 func TestBuildLogNormalisesCarriageReturns(t *testing.T) {
 	buffer := &bytes.Buffer{}
-	printer := NewBuildLogPrinter(buffer, "function:api", false)
+	printer := NewBuildLogPrinter(Lines(buffer), "function:api", false)
 
 	printer.Ingest("first\r\nsecond\r\n")
 
@@ -153,7 +153,7 @@ func TestBuildLogNormalisesCarriageReturns(t *testing.T) {
 // to explain itself or the reader has already seen why.
 func TestBuildLogReportsWhetherItPrinted(t *testing.T) {
 	buffer := &bytes.Buffer{}
-	printer := NewBuildLogPrinter(buffer, "function:api", false)
+	printer := NewBuildLogPrinter(Lines(buffer), "function:api", false)
 
 	printer.Ingest("only a fragment")
 	if printer.HasPrinted() {

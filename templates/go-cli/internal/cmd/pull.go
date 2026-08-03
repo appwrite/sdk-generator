@@ -80,7 +80,10 @@ func newPullCommand() *cobra.Command {
 		Use:   "pull",
 		Short: "Pull your Appwrite project resources into appwrite.config.json",
 		RunE: func(command *cobra.Command, args []string) error {
-			return command.Help()
+			// The TypeScript's bare `pull` runs pullResources (pull.ts:1129),
+			// the same picker `pull all` used to reach -- it does not print
+			// help. --all takes the everything path, as it does for `push`.
+			return runPull(command, pullActions(), app.Flags().All)
 		},
 	}
 

@@ -18,6 +18,7 @@ import (
 	"github.com/appwrite/appwrite-cli-go/internal/output"
 	"github.com/appwrite/appwrite-cli-go/internal/prompt"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 // Ports pushFunction (templates/cli/lib/commands/push.ts:3603), pushSite
@@ -232,20 +233,29 @@ func (c *pushContext) applySettings(command *cobra.Command, settings *jsonx.Obje
 	return nil
 }
 
-// applyEnabled writes an `{id: enabled}` object one PATCH at a time.
+// applyEnabled writes an `{id: enabled}` object, one PATCH per entry.
+//
+// CONCURRENTLY, as the TypeScript's Promise.all does (push.ts:1332). Each entry
+// is a separate route that neither reads nor writes what the others touch, so
+// the only thing serialising them bought was a predictable request ORDER -- at
+// the cost of a full round trip each. A settings push is twenty-two of these
+// across services, protocols and auth methods, which on a remote project is the
+// difference between a quarter of a minute and about a second.
 func (c *pushContext) applyEnabled(base string, states *jsonx.Object) error {
+	group := &errgroup.Group{}
+
 	for _, key := range states.Keys() {
 		value, _ := states.Get(key)
 
-		body := jsonx.NewObject()
-		body.Set("enabled", value)
+		group.Go(func() error {
+			body := jsonx.NewObject()
+			body.Set("enabled", value)
 
-		if err := c.api.Call("PATCH", base+url.PathEscape(key), body, nil); err != nil {
-			return err
-		}
+			return c.api.Call("PATCH", base+url.PathEscape(key), body, nil)
+		})
 	}
 
-	return nil
+	return group.Wait()
 }
 
 // applySecurity writes the auth.security block.
@@ -253,25 +263,31 @@ func (c *pushContext) applyEnabled(base string, states *jsonx.Object) error {
 // Each key is its own policy route, and a key the config omits is left alone --
 // absent means "no opinion", not "reset it".
 func (c *pushContext) applySecurity(security *jsonx.Object) error {
+	// Collected and awaited together, as securityUpdates is (push.ts:1355).
+	group := &errgroup.Group{}
+
 	for _, policy := range settingsPolicies {
 		value, ok := security.Get(policy.Key)
 		if !ok {
 			continue
 		}
 
-		body := jsonx.NewObject()
-		if policy.Field == "total" {
-			// nullablePolicyTotal (push.ts:754): zero and null both mean "no
-			// limit", and the API takes null.
-			body.Set(policy.Field, nullablePolicyTotal(security, policy.Key))
-		} else {
-			body.Set(policy.Field, value)
-		}
+		group.Go(func() error {
+			body := jsonx.NewObject()
+			if policy.Field == "total" {
+				// nullablePolicyTotal (push.ts:754): zero and null both mean
+				// "no limit", and the API takes null.
+				body.Set(policy.Field, nullablePolicyTotal(security, policy.Key))
+			} else {
+				body.Set(policy.Field, value)
+			}
 
-		err := c.api.Call("PATCH", "/project/policies/"+policy.Route, body, nil)
-		if err != nil {
-			return err
-		}
+			return c.api.Call("PATCH", "/project/policies/"+policy.Route, body, nil)
+		})
+	}
+
+	if err := group.Wait(); err != nil {
+		return err
 	}
 
 	if _, ok := security.Get("mockNumbers"); ok {
@@ -1136,9 +1152,18 @@ func (c *pushContext) awaitDeployment(
 	consoleURL := c.deploymentConsoleURL(resource, id, deploymentID)
 
 	tracker := newProgressTracker(deployment)
+
+	// The status line, redrawn in place while the build runs. Off a terminal it
+	// prints the same plain lines this did before there was a spinner.
+	spinner := output.NewSpinner(out, output.SpinnerState{
+		Status: "Deploying", Resource: name, ID: id,
+		End: "Checking deployment status...",
+	})
+
 	// A discarded printer is cheaper than branching at every call site: with
-	// --no-logs nothing is ever ingested, so nothing is ever printed.
-	logPrinter := output.NewBuildLogPrinter(out,
+	// --no-logs nothing is ever ingested, so nothing is ever printed. Logs go
+	// through the spinner so each line lands above the status row.
+	logPrinter := output.NewBuildLogPrinter(spinner.Log,
 		resource.Name+":"+name, run.LabelLogs)
 	ingest := func(deployment *jsonx.Object) {
 		if run.Logs {
@@ -1147,15 +1172,18 @@ func (c *pushContext) awaitDeployment(
 	}
 
 	var (
-		waitingSince     time.Time
-		readySince       time.Time
-		activationDone   bool
-		lastProgressText string
+		waitingSince   time.Time
+		readySince     time.Time
+		activationDone bool
 	)
 
 	for {
 		if tracker.stalled() {
 			logPrinter.Complete()
+			// getDeploymentTimeoutErrorMessage (push.ts:156). The summary
+			// repeats it with the console link; this is the line in place.
+			spinner.Fail("Error", fmt.Sprintf(
+				"Deployment got stuck for more than %d minutes", deploymentTimeoutMinutes))
 			summary.Failed = append(summary.Failed, failedDeployment{
 				Name: name, Reason: "timeout", ConsoleURL: consoleURL,
 			})
@@ -1167,6 +1195,7 @@ func (c *pushContext) awaitDeployment(
 		deployment, err = c.fetchDeployment(resource, id, deploymentID)
 		if err != nil {
 			logPrinter.Complete()
+			spinner.Stop()
 			output.Failure(out, "Failed to deploy %s %s: %s", resource.Singular, name, err)
 
 			return
@@ -1192,6 +1221,8 @@ func (c *pushContext) awaitDeployment(
 				err := c.api.Call("PATCH",
 					resource.Path+"/"+url.PathEscape(id)+"/deployment", body, nil)
 				if err != nil {
+					logPrinter.Complete()
+					spinner.Stop()
 					output.Failure(out, "Failed to activate %s %s: %s",
 						resource.Singular, name, err)
 
@@ -1215,6 +1246,7 @@ func (c *pushContext) awaitDeployment(
 			}
 
 			logPrinter.Complete()
+			spinner.Succeed("Deployed", "")
 			summary.Deployed++
 			c.reportDeployment(command, resource, id, consoleURL)
 
@@ -1222,6 +1254,7 @@ func (c *pushContext) awaitDeployment(
 
 		case deploy.StatusFailed:
 			logPrinter.Complete()
+			spinner.Fail("Error", "Deployment failed")
 			summary.Failed = append(summary.Failed, failedDeployment{
 				Name: name, Reason: "failed", ConsoleURL: consoleURL,
 			})
@@ -1229,10 +1262,8 @@ func (c *pushContext) awaitDeployment(
 			return
 
 		default:
-			if text := progressText(status, waitingSince); text != lastProgressText {
-				lastProgressText = text
-				output.Log(out, "%s ( %s ) %s", name, id, text)
-			}
+			// Update is a no-op when nothing changed, which is most polls.
+			spinner.Update("Deploying", progressText(status, waitingSince))
 		}
 
 		time.Sleep(pollDebounce)

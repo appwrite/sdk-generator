@@ -651,6 +651,26 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/output/spinner.go',
+                'template'      => 'go-cli/internal/output/spinner.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/spinner_test.go',
+                'template'      => 'go-cli/internal/output/spinner_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/settings_test.go',
+                'template'      => 'go-cli/internal/cmd/settings_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/fanout_test.go',
+                'template'      => 'go-cli/internal/cmd/fanout_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/pullpushkeys_test.go',
                 'template'      => 'go-cli/internal/cmd/pullpushkeys_test.go',
             ],

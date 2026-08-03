@@ -34,7 +34,10 @@ var buildLogLabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
 // Not safe for concurrent use. Each deployment gets its own printer, and the
 // push loop drives them one at a time.
 type BuildLogPrinter struct {
-	writer io.Writer
+	// emit takes one finished line. A push with a spinner running passes the
+	// spinner's Log so the line lands ABOVE the status row rather than fighting
+	// it for the same one.
+	emit func(string)
 
 	// label names the deployment, shown per line when more than one is being
 	// pushed and two logs would otherwise interleave unattributably.
@@ -56,8 +59,16 @@ type BuildLogPrinter struct {
 // showPrefix is the TypeScript's `functions.length > 1`: with a single
 // deployment the label is noise, with several it is the only way to tell whose
 // line is whose.
-func NewBuildLogPrinter(writer io.Writer, label string, showPrefix bool) *BuildLogPrinter {
-	return &BuildLogPrinter{writer: writer, label: label, showPrefix: showPrefix}
+func NewBuildLogPrinter(emit func(string), label string, showPrefix bool) *BuildLogPrinter {
+	return &BuildLogPrinter{emit: emit, label: label, showPrefix: showPrefix}
+}
+
+// Lines returns a sink that writes whole lines to writer, for callers with no
+// spinner to print through.
+func Lines(writer io.Writer) func(string) {
+	return func(line string) {
+		fmt.Fprintln(writer, line)
+	}
 }
 
 // Ingest takes the build log as of the latest read and prints what is new.
@@ -133,7 +144,9 @@ func (p *BuildLogPrinter) writeChunk(chunk string, includePartial bool) string {
 	// The header waits until there is something to put under it: a deployment
 	// that never logs should not leave an empty "Build logs" heading behind.
 	if !p.headerPrinted {
-		fmt.Fprintf(p.writer, "\n%s\n\n", buildLogHeadingStyle.Render("Build logs"))
+		p.emit("")
+		p.emit(buildLogHeadingStyle.Render("Build logs"))
+		p.emit("")
 		p.headerPrinted = true
 	}
 
@@ -149,7 +162,7 @@ func (p *BuildLogPrinter) writeChunk(chunk string, includePartial bool) string {
 	}
 
 	for _, line := range lines {
-		fmt.Fprintf(p.writer, "%s%s\n", prefix, line)
+		p.emit(prefix + line)
 	}
 
 	return printable

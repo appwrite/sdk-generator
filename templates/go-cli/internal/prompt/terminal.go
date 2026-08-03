@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 	"golang.org/x/term"
 )
 
@@ -222,8 +223,13 @@ func (t *Terminal) MultiChoice(question MultiChoice) ([]string, error) {
 func (t *Terminal) Confirm(question Question) (bool, error) {
 	value := question.Default
 
+	// Inline and left-aligned: huh stacks the buttons under the question and
+	// centres them by default, which floats them in the middle of an otherwise
+	// left-aligned terminal. A yes/no belongs beside the question it answers.
 	field := huh.NewConfirm().
 		Title(question.Message).
+		Inline(true).
+		WithButtonAlignment(lipgloss.Left).
 		Value(&value)
 
 	if err := t.run(field); err != nil {
