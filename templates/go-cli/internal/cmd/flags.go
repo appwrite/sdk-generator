@@ -116,11 +116,19 @@ func RewriteBooleanValues(root *cobra.Command, args []string) []string {
 func negatableBool(flags *pflag.FlagSet, target *bool, name, usage string) {
 	flags.BoolVar(target, name, true, usage)
 
-	flags.Bool("no-"+name, false, "Alias for --"+name+"=false")
+	flags.Bool("no-"+name, false, negativeUsage(usage))
 	negative := flags.Lookup("no-" + name)
 	// Bare `--no-code`, with no value, is how commander spells it.
 	negative.NoOptDefVal = "true"
-	negative.Hidden = true
+}
+
+// negativeUsage describes the `--no-x` form the way commander describes it.
+//
+// Documented rather than hidden: the TypeScript lists these in --help, so
+// hiding them meant a user reading Go's help could not discover the spelling
+// their existing scripts already use.
+func negativeUsage(usage string) string {
+	return "Don't " + strings.ToLower(usage[:1]) + strings.TrimSuffix(usage[1:], ".")
 }
 
 // applyNegatedFlags folds every `--no-x` the user typed into its positive flag.

@@ -52,17 +52,30 @@ func TestNegatedFlagSetToFalseLeavesItOn(t *testing.T) {
 	}
 }
 
-// One flag, documented once. The alias exists for compatibility, not as a
-// second way to spell the same option in the help output.
-func TestNegatedFlagIsHiddenFromHelp(t *testing.T) {
+// Both spellings are documented, because the TypeScript documents both. Hiding
+// the negation meant someone reading Go's help could not discover the spelling
+// their existing scripts already use.
+func TestBothFlagSpellingsAreDocumented(t *testing.T) {
 	code := true
 	command := negatableCommand(&code)
 
-	if flag := command.Flags().Lookup("no-code"); flag == nil || !flag.Hidden {
-		t.Error("--no-code should exist and be hidden")
+	for _, name := range []string{"code", "no-code"} {
+		flag := command.Flags().Lookup(name)
+		if flag == nil {
+			t.Errorf("--%s does not exist", name)
+
+			continue
+		}
+		if flag.Hidden {
+			t.Errorf("--%s is hidden from help", name)
+		}
+		if flag.Usage == "" {
+			t.Errorf("--%s has no description", name)
+		}
 	}
-	if flag := command.Flags().Lookup("code"); flag == nil || flag.Hidden {
-		t.Error("--code should exist and be documented")
+
+	if got := command.Flags().Lookup("no-code").Usage; got != "Don't push the code" {
+		t.Errorf("--no-code usage = %q", got)
 	}
 }
 
