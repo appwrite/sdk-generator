@@ -462,9 +462,14 @@ base. Roughly 2,650 LOC in total, not the ~1,200 the two command files suggest.
 
 Output must be byte-identical; `CLI_TYPEGEN_RESPONSES` asserts this.
 
-The Handlebars renderer and the templates are done (see #1722). Worth considering
-whether every target language has to land at once, or whether TypeScript alone is
-enough to close 5b with the rest following — the e2e fixture only exercises one.
+The Handlebars renderer and the templates are done (see #1722).
+
+**Decided: all nine languages land together.** The e2e fixture only exercises
+TypeScript, so shipping that alone would have closed 5b against the tests while
+leaving a feature gap the suite could not see — and a gap that has to close before
+Phase 8 flips the default anyway. Eight of the nine have no coverage to port against,
+so each needs baselines captured from the TypeScript generator the same way the
+Handlebars semantics were.
 
 **5c — `run`** (`run.ts` 434, `emulation/docker.ts`, `emulation/utils.ts`). Docker
 subprocess orchestration. Shells out either way, so it is mostly plumbing.
