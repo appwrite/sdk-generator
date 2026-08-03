@@ -164,3 +164,33 @@ func FilterData(data *jsonx.Object) *jsonx.Object {
 
 	return result
 }
+
+// quoteBigIntegers walks a decoded response and renders integers past 2^53 as
+// strings, leaving every other value alone.
+//
+// --raw keeps whatever the API sent, so unlike FilterData this drops nothing
+// and reshapes nothing; it only makes the same precision decision json-bigint
+// makes for the TypeScript.
+func quoteBigIntegers(value any) any {
+	switch typed := value.(type) {
+	case json.Number:
+		return filteredNumber(typed)
+	case *jsonx.Object:
+		result := jsonx.NewObject()
+		for _, key := range typed.Keys() {
+			nested, _ := typed.Get(key)
+			result.Set(key, quoteBigIntegers(nested))
+		}
+
+		return result
+	case []any:
+		items := make([]any, 0, len(typed))
+		for _, item := range typed {
+			items = append(items, quoteBigIntegers(item))
+		}
+
+		return items
+	}
+
+	return value
+}

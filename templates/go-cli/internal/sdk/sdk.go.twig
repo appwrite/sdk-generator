@@ -55,6 +55,9 @@ func Load(executableName, sdkVersion string) (*Context, error) {
 func (c *Context) base(endpoint string) sdkclient.Client {
 	client := sdkclient.New()
 	client.Endpoint = endpoint
+	// Keeps the response body for --raw and --json, which must show what the
+	// API sent rather than the typed model re-encoded. See capture.go.
+	client.Client = recordingHTTPClient(client.Timeout)
 	// `client --self-signed true` is what a user running Appwrite behind its own
 	// certificate sets. The SDK honours this field; storing the preference and
 	// never passing it on left the flag inert and every request rejected on

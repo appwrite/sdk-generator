@@ -173,3 +173,43 @@ func TestFilterDataAppliesTheNumberRuleInsideArrays(t *testing.T) {
 		t.Errorf("FilterData output.\n--- want ---\n%s\n--- got ---\n%s", want, got)
 	}
 }
+
+// --raw keeps every field, including ones no generated model declares -- that
+// is what "raw" means and why the body is captured rather than re-encoded from
+// the struct. Big integers are still quoted, because the TypeScript's
+// json-bigint round trip quotes them and a bare literal reads back as a
+// rounded float.
+func TestRawModeKeepsEverythingAndQuotesBigIntegers(t *testing.T) {
+	input := decode(t, `{
+		"total": 42,
+		"undeclared": "kept",
+		"nested": {"big": 9007199254740993, "small": 7},
+		"rows": [9007199254740993, 7],
+		"big": 9007199254740993
+	}`)
+
+	buffer := &bytes.Buffer{}
+	renderer := &Renderer{Mode: ModeRaw, Writer: buffer}
+	if err := renderer.Render(input); err != nil {
+		t.Fatal(err)
+	}
+
+	want := `{
+  "total": 42,
+  "undeclared": "kept",
+  "nested": {
+    "big": "9007199254740993",
+    "small": 7
+  },
+  "rows": [
+    "9007199254740993",
+    7
+  ],
+  "big": "9007199254740993"
+}
+`
+
+	if got := buffer.String(); got != want {
+		t.Errorf("raw output.\n--- want ---\n%s\n--- got ---\n%s", want, got)
+	}
+}

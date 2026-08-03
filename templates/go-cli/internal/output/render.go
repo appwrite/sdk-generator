@@ -39,7 +39,12 @@ func (r *Renderer) Render(value any) error {
 
 	switch r.Mode {
 	case ModeRaw:
-		return RenderJSON(writer, redactor.Mask(value, ""))
+		// Big integers are quoted here too. --raw is not "the bytes verbatim"
+		// on either CLI: the TypeScript parses with json-bigint and
+		// re-stringifies, so a BigNumber comes out quoted. Leaving it a bare
+		// number would read back through most JSON parsers as a rounded float,
+		// which is the loss the quoting exists to prevent.
+		return RenderJSON(writer, quoteBigIntegers(redactor.Mask(value, "")))
 	case ModeJSON:
 		masked := redactor.Mask(value, "")
 		if object, ok := masked.(*jsonx.Object); ok {
