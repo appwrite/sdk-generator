@@ -624,6 +624,21 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/dotenv/dotenv.go',
+                'template'      => 'go-cli/internal/dotenv/dotenv.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/dotenv/dotenv_test.go',
+                'template'      => 'go-cli/internal/dotenv/dotenv_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/dotenv/testdata/cases.json',
+                'template'      => 'go-cli/internal/dotenv/testdata/cases.json',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/app/install_test.go',
                 'template'      => 'go-cli/internal/app/install_test.go',
             ],
