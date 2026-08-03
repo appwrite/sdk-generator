@@ -478,20 +478,25 @@ docker compose down` before re-running.
   baselines pass a dependency in explicitly and so cannot see a wiring bug in the command
   that resolves it.
 
-- **5c `run`** — in progress. Two shared foundations are done, both pinned to captured
-  baselines: `internal/ignore` (the `ignore` npm package, 684 verdicts — **also needed by
-  5f**) and `internal/dotenv`. Still to do: `internal/docker` (the emulation, ~510 lines),
-  the `run` command itself (~434), file watching, and the tar hot-swap path.
+- **5c `run`** — **complete.** `internal/ignore` (the `ignore` npm package, 684 captured
+  verdicts — **also needed by 5f**), `internal/dotenv`, `internal/docker`, `internal/watch`
+  and `internal/cmd/run.go`.
 
-  Note `run` needs a function-selection prompt when `--function-id` is absent. That is one
-  question out of `questions.ts`; implement just that one rather than blocking 5c on the
-  whole prompt port.
+  Verified against a real Docker engine, not only by unit test: build, start, serve,
+  hot-swap on a source edit, full rebuild on a package.json edit, and SIGINT leaving no
+  container and no `.appwrite` behind. **Do this again after any change here** — it is what
+  found `filepath.Join` standing in for `path.resolve`, which Docker reports as a
+  volume-naming error that says nothing about the path.
+
+  Three things are deferred and marked `NOT YET PORTED` where they sit: the
+  remote-variable fetch and `JwtManager` both need the functions service, and
+  function selection without `--function-id` reports the flag instead of prompting.
+  Close the first two when the SDK wiring lands, the third with 5d.
 
 Still to port, in the order the sub-phases below give:
 
 | Piece | LOC |
 |---|---|
-| `internal/docker` + `run.ts` (the rest of 5c) | ~950 |
 | `questions.ts` → `internal/prompt` (blocks `init` **and** `push`) | 1,363 |
 | `init.ts` | 1,133 |
 | `pull.ts` + `attributes.ts` + `database-sync.ts` + `schema.ts` | 2,719 |
@@ -669,7 +674,7 @@ Progress table, kept current:
 | 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
 | 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
 | 4 — Conformance harness | ✅ Complete — the Go CLI's own suite green in CI | #1721 |
-| 5 — Stateful commands | 🔄 **In progress** — `update`, `types`, `generate` done | #1722 |
+| 5 — Stateful commands | 🔄 **In progress** — `update`, `types`, `generate`, `run` done | #1722 |
 | 6 — Performance | Not started | | |
 | 7 — Distribution | Not started | | |
 | 8 — Rollout | Not started | | |
