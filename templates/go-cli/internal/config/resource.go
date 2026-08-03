@@ -262,3 +262,76 @@ func (l *Local) Clear() error {
 
 	return writeJSONFile(l.Path(), l.Data)
 }
+
+// Schema key orders, used by `pull` to shape an API response into the config.
+//
+// Ports filterBySchema(), which iterates the SCHEMA's keys and keeps only those
+// present in the response. Two consequences worth stating:
+//
+//   - the emitted order is the SCHEMA's, not the response's. That is a
+//     different rule from the add helpers above, which follow the caller --
+//     `pull` and `init` really do order a bucket differently, and both are
+//     reproduced rather than reconciled.
+//   - a key the API omits is omitted here too, not written as null.
+var (
+	// BucketKeys orders a pulled bucket.
+	BucketKeys = []string{
+		"$id", "$permissions", "fileSecurity", "name", "enabled",
+		"maximumFileSize", "allowedFileExtensions", "compression",
+		"encryption", "antivirus",
+	}
+	// TeamKeys orders a pulled team.
+	TeamKeys = []string{"$id", "name"}
+	// TopicKeys orders a pulled messaging topic.
+	TopicKeys = []string{"$id", "name", "subscribe"}
+	// WebhookKeys orders a pulled webhook.
+	WebhookKeys = []string{"$id", "name", "url", "events", "enabled", "tls"}
+)
+
+// FilterBySchema keeps the named keys, in the order given.
+func FilterBySchema(source *jsonx.Object, keys []string) *jsonx.Object {
+	filtered := jsonx.NewObject()
+	for _, key := range keys {
+		if value, ok := source.Get(key); ok {
+			filtered.Set(key, value)
+		}
+	}
+
+	return filtered
+}
+
+// ReplaceResource swaps a whole top-level array.
+//
+// `pull` replaces rather than merges: the remote is the source of truth, and a
+// resource deleted remotely has to disappear locally. The command confirms that
+// with the user first.
+func (l *Local) ReplaceResource(resource string, entries []*jsonx.Object) {
+	values := make([]any, 0, len(entries))
+	for _, entry := range entries {
+		values = append(values, entry)
+	}
+
+	l.Data.Set(resource, values)
+}
+
+// ResourceEntries reads a top-level array as objects.
+func (l *Local) ResourceEntries(resource string) []*jsonx.Object {
+	value, ok := l.Data.Get(resource)
+	if !ok {
+		return nil
+	}
+
+	items, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+
+	entries := make([]*jsonx.Object, 0, len(items))
+	for _, item := range items {
+		if object, ok := item.(*jsonx.Object); ok {
+			entries = append(entries, object)
+		}
+	}
+
+	return entries
+}
