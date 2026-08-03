@@ -478,11 +478,20 @@ docker compose down` before re-running.
   baselines pass a dependency in explicitly and so cannot see a wiring bug in the command
   that resolves it.
 
+- **5c `run`** — in progress. Two shared foundations are done, both pinned to captured
+  baselines: `internal/ignore` (the `ignore` npm package, 684 verdicts — **also needed by
+  5f**) and `internal/dotenv`. Still to do: `internal/docker` (the emulation, ~510 lines),
+  the `run` command itself (~434), file watching, and the tar hot-swap path.
+
+  Note `run` needs a function-selection prompt when `--function-id` is absent. That is one
+  question out of `questions.ts`; implement just that one rather than blocking 5c on the
+  whole prompt port.
+
 Still to port, in the order the sub-phases below give:
 
 | Piece | LOC |
 |---|---|
-| `run.ts` + docker emulation | ~700 |
+| `internal/docker` + `run.ts` (the rest of 5c) | ~950 |
 | `questions.ts` → `internal/prompt` (blocks `init` **and** `push`) | 1,363 |
 | `init.ts` | 1,133 |
 | `pull.ts` + `attributes.ts` + `database-sync.ts` + `schema.ts` | 2,719 |
