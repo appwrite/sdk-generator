@@ -448,7 +448,7 @@ docker compose down` before re-running.
   asset names matching the TypeScript exactly so a Go build can replace one in place) and
   `internal/cmd/update.go` (npm/brew delegate; standalone writes a temp file beside the
   target and renames atomically).
-- **5b `types`/`generate`** — roughly 1,800 of ~2,650 lines. `internal/typegen` has the
+- **5b `types`/`generate`** — **complete.** `internal/typegen` has the
   Handlebars subset renderer, the four `.hbs` files embedded (sourced from the TypeScript
   CLI's own directory — one source, two outputs; do **not** commit a second copy), the case
   helpers, and **all eight language emitters** — TypeScript, JavaScript, PHP, Kotlin,
@@ -467,12 +467,21 @@ docker compose down` before re-running.
   a correction would land as an unexplained diff in their next commit. If any of them is
   ever fixed, fix it in the TypeScript first and recapture.
 
+  `generate` lives in `internal/generator`, with its own baselines and its own capture
+  script (`docs/go-cli/capture-generate-baselines.ts`). Two ordering details there are
+  load-bearing and have tests: grouping by database is a JS `Map` and iterates in insertion
+  order, and dedup is `Map.set` — first position, last value.
+
+  Both commands were compared end to end against the built TypeScript CLI over the same
+  config and are byte-identical: `types` across all eight languages in loose and strict
+  mode, `generate` including its usage hints. Do this again after any change here; the unit
+  baselines pass a dependency in explicitly and so cannot see a wiring bug in the command
+  that resolves it.
+
 Still to port, in the order the sub-phases below give:
 
 | Piece | LOC |
 |---|---|
-| `generators/{base,index,language-detector}.ts` + `typescript/databases.ts` | ~700 |
-| `types.ts` + `generate.ts` (the two commands themselves) | ~440 |
 | `run.ts` + docker emulation | ~700 |
 | `questions.ts` → `internal/prompt` (blocks `init` **and** `push`) | 1,363 |
 | `init.ts` | 1,133 |
@@ -651,7 +660,7 @@ Progress table, kept current:
 | 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
 | 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
 | 4 — Conformance harness | ✅ Complete — the Go CLI's own suite green in CI | #1721 |
-| 5 — Stateful commands | 🔄 **In progress** — `update` done; typegen ~1,800/2,650, all 8 emitters ported | #1722 |
+| 5 — Stateful commands | 🔄 **In progress** — `update`, `types`, `generate` done | #1722 |
 | 6 — Performance | Not started | | |
 | 7 — Distribution | Not started | | |
 | 8 — Rollout | Not started | | |
