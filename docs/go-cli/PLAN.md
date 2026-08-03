@@ -492,6 +492,21 @@ docker compose down` before re-running.
   remote-variable fetch and `JwtManager` both need the functions service. Close them
   when the SDK wiring lands.
 
+- **5d `init`** — the five LOCAL subcommands are done: `bucket`, `team`, `topic`,
+  `collection`, `table`. They only prompt and write `appwrite.config.json`, and all five
+  were driven through a pty against the shipping TypeScript with the same keystrokes and
+  write a byte-identical config. `docs/go-cli/` has no capture script for this — the driver
+  is a ~30-line pty harness; rebuild it when needed and **set the window size**, or bubbles
+  panics rendering into zero columns.
+
+  Still to do: `init project`, `init function`, `init site`, `init skill`. All four need the
+  API or a template download, so they wait on the SDK wiring.
+
+  **Field order in `internal/config/resource.go` is part of the output.** The TypeScript's
+  `whitelistKeys()` iterates the CALLER's keys, so its order is per-call-site; a Go struct
+  has one order for every caller. Each struct matches its `init` call site, which is today
+  the only caller. When `pull` starts writing these, compare against the TypeScript again.
+
 - **`internal/prompt`** — **done.** The runtime under `questions.ts`: field types,
   validators, and a `Prompter` interface with three implementations — `Terminal` (huh),
   `NonInteractive`, and `Scripted` for tests.
@@ -510,7 +525,7 @@ Still to port, in the order the sub-phases below give:
 | Piece | LOC |
 |---|---|
 | question definitions, with the commands that own them | — |
-| `init.ts` | 1,133 |
+| `init project|function|site|skill` (needs the API) | ~800 |
 | `pull.ts` + `attributes.ts` + `database-sync.ts` + `schema.ts` | 2,719 |
 | `push.ts` + its five helpers | 7,129 |
 | `response-config.ts` (human output only, not contractual) | 940 |
@@ -686,7 +701,7 @@ Progress table, kept current:
 | 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
 | 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
 | 4 — Conformance harness | ✅ Complete — the Go CLI's own suite green in CI | #1721 |
-| 5 — Stateful commands | 🔄 **In progress** — `update`, `types`, `generate`, `run`, prompt layer done | #1722 |
+| 5 — Stateful commands | 🔄 **In progress** — `update`, `types`, `generate`, `run`, prompts, local `init` done | #1722 |
 | 6 — Performance | Not started | | |
 | 7 — Distribution | Not started | | |
 | 8 — Rollout | Not started | | |
