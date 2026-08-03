@@ -3,7 +3,7 @@ from urllib.parse import quote
 from typing import Any, Dict, List, Optional, Union{% set hasGenericModel = false %}{% for method in service.methods %}{% if method.responseModel and method.responseModel != 'any' and method.responseModel | hasGenericType(spec) %}{% set hasGenericModel = true %}{% endif %}{% endfor %}{% if hasGenericModel %}, Type, TypeVar{% endif %}
 
 from ..exception import AppwriteException
-from appwrite.utils.deprecated import deprecated
+from {{ spec.namespace | caseSnake }}.utils.deprecated import deprecated
 {% set added = [] %}
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}

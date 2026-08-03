@@ -1,17 +1,17 @@
 ```python
-from {{ spec.title | caseSnake }}.client import Client
-from {{ spec.title | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
+from {{ spec.namespace | caseSnake }}.client import Client
+from {{ spec.namespace | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
-from {{ spec.title | caseSnake }}.input_file import InputFile
+from {{ spec.namespace | caseSnake }}.input_file import InputFile
 {% endif %}
 {% set serviceClassName = service.name | caseUcfirst %}
 {% set added = [] %}
 {% if method.responseModel and method.responseModel != 'any' %}
 {% if (method.responseModel | caseUcfirst) == serviceClassName %}
-from {{ spec.title | caseSnake }}.models import {{ method.responseModel | caseUcfirst }} as {{ method.responseModel | caseUcfirst }}Model
+from {{ spec.namespace | caseSnake }}.models import {{ method.responseModel | caseUcfirst }} as {{ method.responseModel | caseUcfirst }}Model
 {% set added = added|merge([(method.responseModel | caseUcfirst) ~ 'Model']) %}
 {% else %}
-from {{ spec.title | caseSnake }}.models import {{ method.responseModel | caseUcfirst }}
+from {{ spec.namespace | caseSnake }}.models import {{ method.responseModel | caseUcfirst }}
 {% set added = added|merge([method.responseModel | caseUcfirst]) %}
 {% endif %}
 {% endif %}
@@ -20,9 +20,9 @@ from {{ spec.title | caseSnake }}.models import {{ method.responseModel | caseUc
 {% set responseImportName = (responseModel | caseUcfirst) == serviceClassName ? ((responseModel | caseUcfirst) ~ 'Model') : (responseModel | caseUcfirst) %}
 {% if responseModel and responseModel != 'any' and responseImportName not in added %}
 {% if (responseModel | caseUcfirst) == serviceClassName %}
-from {{ spec.title | caseSnake }}.models import {{ responseModel | caseUcfirst }} as {{ responseModel | caseUcfirst }}Model
+from {{ spec.namespace | caseSnake }}.models import {{ responseModel | caseUcfirst }} as {{ responseModel | caseUcfirst }}Model
 {% else %}
-from {{ spec.title | caseSnake }}.models import {{ responseModel | caseUcfirst }}
+from {{ spec.namespace | caseSnake }}.models import {{ responseModel | caseUcfirst }}
 {% endif %}
 {% set added = added|merge([responseImportName]) %}
 {% endif %}
@@ -42,7 +42,7 @@ from typing import Union
 {% for parameter in method.parameters.all %}
 {% if parameter.enumValues is not empty %}
 {% if parameter.enumName not in added %}
-from {{ spec.title | caseSnake }}.enums import {{parameter.enumName | caseUcfirst}}
+from {{ spec.namespace | caseSnake }}.enums import {{parameter.enumName | caseUcfirst}}
 {% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
@@ -50,16 +50,16 @@ from {{ spec.title | caseSnake }}.enums import {{parameter.enumName | caseUcfirs
 {% set modelImportName = modelName ? ((modelName | caseUcfirst) == serviceClassName ? ((modelName | caseUcfirst) ~ 'Model') : (modelName | caseUcfirst)) : null %}
 {% if modelName and modelImportName not in added %}
 {% if (modelName | caseUcfirst) == serviceClassName %}
-from {{ spec.title | caseSnake }}.models import {{ modelName | caseUcfirst }} as {{ modelName | caseUcfirst }}Model
+from {{ spec.namespace | caseSnake }}.models import {{ modelName | caseUcfirst }} as {{ modelName | caseUcfirst }}Model
 {% else %}
-from {{ spec.title | caseSnake }}.models import {{ modelName | caseUcfirst }}
+from {{ spec.namespace | caseSnake }}.models import {{ modelName | caseUcfirst }}
 {% endif %}
 {% set added = added|merge([modelImportName]) %}
 {% endif %}
 {% endfor %}
 {% if method.parameters.all | hasPermissionParam %}
-from {{ spec.title | caseSnake }}.permission import Permission
-from {{ spec.title | caseSnake }}.role import Role
+from {{ spec.namespace | caseSnake }}.permission import Permission
+from {{ spec.namespace | caseSnake }}.role import Role
 {% endif %}
 
 client = Client()

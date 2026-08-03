@@ -133,7 +133,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/__init__.py',
                 'template' => 'python/package/__init__.py.twig',
             ],
             [
@@ -143,22 +143,22 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/utils/deprecated.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/utils/deprecated.py',
                 'template' => 'python/package/utils/deprecated.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/utils/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/utils/__init__.py',
                 'template' => 'python/package/utils/__init__.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/client.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/client.py',
                 'template' => 'python/package/client.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/permission.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/permission.py',
                 'template' => 'python/package/permission.py.twig',
             ],
             [
@@ -168,7 +168,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/role.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/role.py',
                 'template' => 'python/package/role.py.twig',
             ],
             [
@@ -178,7 +178,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/id.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/id.py',
                 'template' => 'python/package/id.py.twig',
             ],
             [
@@ -188,7 +188,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/query.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/query.py',
                 'template' => 'python/package/query.py.twig',
             ],
             [
@@ -198,7 +198,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/operator.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/operator.py',
                 'template' => 'python/package/operator.py.twig',
             ],
             [
@@ -208,42 +208,42 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/exception.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/exception.py',
                 'template' => 'python/package/exception.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/input_file.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/input_file.py',
                 'template' => 'python/package/input_file.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/service.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/service.py',
                 'template' => 'python/package/service.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/models/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/models/__init__.py',
                 'template' => 'python/package/models/__init__.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/models/base_model.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/models/base_model.py',
                 'template' => 'python/package/models/base_model.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/services/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/services/__init__.py',
                 'template' => 'python/package/services/__init__.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/encoders/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/encoders/__init__.py',
                 'template' => 'python/package/services/__init__.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/enums/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/enums/__init__.py',
                 'template' => 'python/package/services/__init__.py.twig',
             ],
             [
@@ -253,17 +253,17 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/encoders/value_class_encoder.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/encoders/value_class_encoder.py',
                 'template' => 'python/package/encoders/value_class_encoder.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/encoders/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/encoders/__init__.py',
                 'template' => 'python/package/encoders/__init__.py.twig',
             ],
             [
                 'scope' => 'service',
-                'destination' => '{{ spec.title | caseSnake}}/services/{{service.name | caseSnake}}.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/services/{{service.name | caseSnake}}.py',
                 'template' => 'python/package/services/service.py.twig',
             ],
             [
@@ -283,22 +283,22 @@ class Python extends Language
             ],
             [
                 'scope' => 'enum',
-                'destination' => '{{ spec.title | caseSnake}}/enums/{{ enum.name | caseSnake }}.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/enums/{{ enum.name | caseSnake }}.py',
                 'template' => 'python/package/enums/enum.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/enums/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/enums/__init__.py',
                 'template' => 'python/package/enums/__init__.py.twig',
             ],
             [
                 'scope' => 'requestModel',
-                'destination' => '{{ spec.title | caseSnake}}/models/{{ requestModel.name | caseSnake }}.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/models/{{ requestModel.name | caseSnake }}.py',
                 'template' => 'python/package/models/request_model.py.twig',
             ],
             [
                 'scope' => 'definition',
-                'destination' => '{{ spec.title | caseSnake}}/models/{{ definition.name | caseSnake }}.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/models/{{ definition.name | caseSnake }}.py',
                 'template' => 'python/package/models/model.py.twig',
             ],
         ];
