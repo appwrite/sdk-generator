@@ -22,6 +22,53 @@ func TestRenderMatchesHandlebars(t *testing.T) {
 		{"if missing", "A{{#if b}}Y{{/if}}B", Values{}, "AB"},
 		{"if empty string", "A{{#if b}}Y{{/if}}B", Values{"b": ""}, "AB"},
 		{"missing var", "[{{nope}}]", Values{}, "[]"},
+
+		// A block tag alone on a line is "standalone": Handlebars deletes the
+		// whole line, not just the tag. Every one of the four typegen templates
+		// writes its {{#if}} that way, so without this a true condition leaves
+		// a stray blank line and a false one leaves two. Caught by the
+		// generator baselines -- the earlier tests here only checked that the
+		// rendered output *contained* the right text, which this passes either
+		// way. Byte comparison, always.
+		{
+			"standalone if is removed with its line",
+			"a\n{{#if b}}\nc\n{{/if}}\nd\n",
+			Values{"b": true},
+			"a\nc\nd\n",
+		},
+		{
+			"standalone if drops the whole block",
+			"a\n{{#if b}}\nc\n{{/if}}\nd\n",
+			Values{"b": false},
+			"a\nd\n",
+		},
+		{
+			"standalone else",
+			"a\n{{#if b}}\nc\n{{else}}\ne\n{{/if}}\nd\n",
+			Values{"b": false},
+			"a\ne\nd\n",
+		},
+		{
+			"indented standalone tags lose their indentation too",
+			"a\n    {{#if b}}\nc\n    {{/if}}\nd\n",
+			Values{"b": true},
+			"a\nc\nd\n",
+		},
+		// An inline tag is not standalone and keeps everything around it.
+		{
+			"inline if keeps its line",
+			"a {{#if b}}c{{/if}} d\n",
+			Values{"b": true},
+			"a c d\n",
+		},
+		// A plain variable alone on a line is not a block tag, so its line
+		// stays even when the value is empty.
+		{
+			"standalone variable keeps its line",
+			"a\n{{b}}\nc\n",
+			Values{},
+			"a\n\nc\n",
+		},
 	}
 
 	for _, tc := range cases {

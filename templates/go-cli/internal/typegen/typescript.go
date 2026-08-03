@@ -104,6 +104,15 @@ func resolveRelated(attribute Attribute, collections []Collection) (Collection, 
 	return Collection{}, fmt.Errorf("related entity with ID '%s' not found", id)
 }
 
+// CreateType is the type literal for an input position.
+//
+// Used by `generate`, not by `types`: in a create payload a relationship
+// accepts either a nested create object or the id of an existing row, so it
+// widens to `((XCreate & { $id?: string; ... }) | string)`.
+func (t TypeScript) CreateType(attribute Attribute, collections []Collection, entityName string) (string, error) {
+	return typeScriptType(attribute, collections, entityName, true)
+}
+
 // SingleFile implements Language.
 func (t TypeScript) SingleFile() bool { return true }
 

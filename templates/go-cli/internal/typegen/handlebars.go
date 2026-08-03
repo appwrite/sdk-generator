@@ -26,7 +26,38 @@ var (
 	ifBlockPattern = regexp.MustCompile(`(?s)\{\{#if\s+([a-zA-Z0-9_.]+)\s*\}\}(.*?)\{\{/if\}\}`)
 	triplePattern  = regexp.MustCompile(`\{\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}\}`)
 	doublePattern  = regexp.MustCompile(`\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}`)
+
+	// standaloneTag matches a block tag that is the only thing on its line.
+	standaloneTag = regexp.MustCompile(`^\s*(\{\{#if\s+[a-zA-Z0-9_.]+\s*\}\}|\{\{else\}\}|\{\{/if\}\})\s*$`)
 )
+
+// stripStandaloneTags removes the line a lone block tag sits on.
+//
+// Handlebars treats a block open, close or else tag that shares its line with
+// nothing but whitespace as "standalone" and deletes the surrounding whitespace
+// and the newline. Without this every `{{#if}}` leaves a blank line behind, and
+// a false condition leaves two.
+//
+// Only block tags are standalone; a lone `{{var}}` keeps its line.
+func stripStandaloneTags(template string) string {
+	lines := strings.Split(template, "\n")
+	var out strings.Builder
+
+	for index, line := range lines {
+		if match := standaloneTag.FindStringSubmatch(line); match != nil {
+			out.WriteString(match[1])
+
+			continue
+		}
+
+		out.WriteString(line)
+		if index < len(lines)-1 {
+			out.WriteString("\n")
+		}
+	}
+
+	return out.String()
+}
 
 // htmlEscaper matches Handlebars' escaping exactly.
 //
@@ -46,6 +77,8 @@ var htmlEscaper = strings.NewReplacer(
 
 // Render expands a Handlebars template against values.
 func Render(template string, values Values) string {
+	template = stripStandaloneTags(template)
+
 	// Blocks first, innermost-last: the regex is non-greedy, so nested blocks
 	// resolve from the inside out across repeated passes.
 	for {

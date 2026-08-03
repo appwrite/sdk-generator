@@ -1,0 +1,60 @@
+{
+  "projectId": "my-project",
+  "endpoint": "https://cloud.appwrite.io/v1?region=fra&debug=1",
+  "tables": [
+    {
+      "$id": "authors",
+      "databaseId": "main",
+      "name": "Authors",
+      "columns": [
+        { "key": "full name", "type": "string", "required": true, "size": 128 },
+        { "key": "bio", "type": "text", "required": false, "default": null },
+        { "key": "age", "type": "integer", "required": false, "default": null },
+        { "key": "rating", "type": "double", "required": true },
+        { "key": "verified", "type": "boolean", "required": false, "default": null },
+        { "key": "tags", "type": "string", "required": false, "array": true, "size": 32, "default": null },
+        {
+          "key": "status",
+          "type": "string",
+          "required": true,
+          "size": 16,
+          "format": "enum",
+          "elements": ["active", "in-active", "in active"]
+        },
+        {
+          "key": "books",
+          "type": "relationship",
+          "required": false,
+          "default": null,
+          "relatedTable": "books",
+          "relationType": "oneToMany",
+          "side": "parent"
+        }
+      ]
+    },
+    {
+      "$id": "books",
+      "databaseId": "main",
+      "name": "Books & Zines",
+      "columns": [
+        { "key": "title", "type": "string", "required": true, "size": 128 },
+        { "key": "pages", "type": "integer", "required": false, "default": null }
+      ]
+    },
+    {
+      "$id": "events",
+      "databaseId": "analytics",
+      "name": "Events",
+      "columns": [
+        { "key": "name", "type": "string", "required": true, "size": 64 },
+        { "key": "at", "type": "datetime", "required": true }
+      ]
+    },
+    {
+      "$id": "empty",
+      "databaseId": "analytics",
+      "name": "Empty",
+      "columns": []
+    }
+  ]
+}

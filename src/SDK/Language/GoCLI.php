@@ -845,6 +845,91 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/typegen/testdata/cs.strict.BooksZines.cs',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/generator.go',
+                'template'      => 'go-cli/internal/generator/generator.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/detector.go',
+                'template'      => 'go-cli/internal/generator/detector.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/typescript.go',
+                'template'      => 'go-cli/internal/generator/typescript.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/generator_test.go',
+                'template'      => 'go-cli/internal/generator/generator_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/config.json',
+                'template'      => 'go-cli/internal/generator/testdata/config.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/server.databases.ts',
+                'template'      => 'go-cli/internal/generator/testdata/server.databases.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/server.types.ts',
+                'template'      => 'go-cli/internal/generator/testdata/server.types.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/server.index.ts',
+                'template'      => 'go-cli/internal/generator/testdata/server.index.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/server.constants.ts',
+                'template'      => 'go-cli/internal/generator/testdata/server.constants.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/client.databases.ts',
+                'template'      => 'go-cli/internal/generator/testdata/client.databases.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/client.types.ts',
+                'template'      => 'go-cli/internal/generator/testdata/client.types.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/client.index.ts',
+                'template'      => 'go-cli/internal/generator/testdata/client.index.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/client.constants.ts',
+                'template'      => 'go-cli/internal/generator/testdata/client.constants.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/empty.databases.ts',
+                'template'      => 'go-cli/internal/generator/testdata/empty.databases.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/empty.types.ts',
+                'template'      => 'go-cli/internal/generator/testdata/empty.types.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/empty.index.ts',
+                'template'      => 'go-cli/internal/generator/testdata/empty.index.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/empty.constants.ts',
+                'template'      => 'go-cli/internal/generator/testdata/empty.constants.ts',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/services/register.go',
                 'template'      => 'go-cli/internal/cmd/services/register.go.twig',
