@@ -651,6 +651,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pullpushkeys_test.go',
+                'template'      => 'go-cli/internal/cmd/pullpushkeys_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/flags.go',
                 'template'      => 'go-cli/internal/cmd/flags.go',
             ],
