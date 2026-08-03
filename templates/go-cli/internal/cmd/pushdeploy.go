@@ -118,7 +118,12 @@ func runPushSettings(command *cobra.Command) error {
 	}
 
 	projectID := context.local.Data.GetString("projectId")
-	organizationID := context.local.Data.GetString("organizationId")
+
+	organizationID, err := resolveOrganizationID(
+		out, console, context.local.Data.GetString("organizationId"), projectID)
+	if err != nil {
+		return err
+	}
 	scoped := console.Clone().WithoutResponseFormat().SetOrganization(organizationID)
 
 	project := jsonx.NewObject()
@@ -1619,9 +1624,18 @@ func (c *pushContext) projectRegion(projectID string) string {
 		return ""
 	}
 
+	// Best effort, like the rest of this function: io.Discard because the
+	// "resolved from project" notice belongs to the command the user ran, not
+	// to a lookup done to decorate a URL.
+	organizationID, err := resolveOrganizationID(
+		io.Discard, console, c.local.Data.GetString("organizationId"), projectID)
+	if err != nil {
+		return ""
+	}
+
 	project := jsonx.NewObject()
 	err = console.Clone().WithoutResponseFormat().
-		SetOrganization(c.local.Data.GetString("organizationId")).
+		SetOrganization(organizationID).
 		Call("GET", pathProjects+"/"+url.PathEscape(projectID), nil, project)
 	if err != nil {
 		return ""

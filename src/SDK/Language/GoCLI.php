@@ -966,6 +966,16 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/organization.go',
+                'template'      => 'go-cli/internal/cmd/organization.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/organization_test.go',
+                'template'      => 'go-cli/internal/cmd/organization_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/pullfunction.go',
                 'template'      => 'go-cli/internal/cmd/pullfunction.go',
             ],
