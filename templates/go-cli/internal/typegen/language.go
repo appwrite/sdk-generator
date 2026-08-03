@@ -92,9 +92,13 @@ type Language interface {
 	FileName(collection *Collection) string
 	// Render writes the complete file contents.
 	//
+	// current is the collection being written, and is nil for single-file
+	// languages -- matching types.ts, which only puts `collection` in the
+	// template locals on the multi-file branch.
+	//
 	// strict switches attribute keys to camelCase, matching the `--strict`
 	// flag on `appwrite types`.
-	Render(collections []Collection, strict bool, invocation string) (string, error)
+	Render(collections []Collection, current *Collection, strict bool, invocation string) (string, error)
 }
 
 // ErrEnumUnsupported is returned by languages that do not generate enums,

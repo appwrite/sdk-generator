@@ -122,7 +122,7 @@ func (t TypeScript) Enum(entityName, attributeKey string, elements []string) Enu
 //
 // Layout is pinned to the EJS template's output, including the blank line after
 // each enum and the blank line between collections but not after the last.
-func (t TypeScript) Render(collections []Collection, strict bool, invocation string) (string, error) {
+func (t TypeScript) Render(collections []Collection, _ *Collection, strict bool, invocation string) (string, error) {
 	var out strings.Builder
 
 	dependency := t.Dependency

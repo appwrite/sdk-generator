@@ -695,6 +695,56 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/typegen/testdata/js.strict.appwrite-types.js',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/php.go',
+                'template'      => 'go-cli/internal/typegen/php.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/kotlin.go',
+                'template'      => 'go-cli/internal/typegen/kotlin.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/php.loose.Authors.php',
+                'template'      => 'go-cli/internal/typegen/testdata/php.loose.Authors.php',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/php.loose.BooksZines.php',
+                'template'      => 'go-cli/internal/typegen/testdata/php.loose.BooksZines.php',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/php.strict.Authors.php',
+                'template'      => 'go-cli/internal/typegen/testdata/php.strict.Authors.php',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/php.strict.BooksZines.php',
+                'template'      => 'go-cli/internal/typegen/testdata/php.strict.BooksZines.php',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/kotlin.loose.Authors.kt',
+                'template'      => 'go-cli/internal/typegen/testdata/kotlin.loose.Authors.kt',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/kotlin.loose.BooksZines.kt',
+                'template'      => 'go-cli/internal/typegen/testdata/kotlin.loose.BooksZines.kt',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/kotlin.strict.Authors.kt',
+                'template'      => 'go-cli/internal/typegen/testdata/kotlin.strict.Authors.kt',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/kotlin.strict.BooksZines.kt',
+                'template'      => 'go-cli/internal/typegen/testdata/kotlin.strict.BooksZines.kt',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/services/register.go',
                 'template'      => 'go-cli/internal/cmd/services/register.go.twig',

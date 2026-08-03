@@ -47,10 +47,12 @@ func loadBaseline(t *testing.T, name string) string {
 
 // assertRendersBaseline compares rendered output byte for byte, reporting the
 // first differing line rather than dumping both files.
-func assertRendersBaseline(t *testing.T, language Language, strict bool, baseline string) {
+//
+// current is nil for single-file languages.
+func assertRendersBaseline(t *testing.T, language Language, current *Collection, strict bool, baseline string) {
 	t.Helper()
 
-	rendered, err := language.Render(loadCollections(t), strict, baselineInvocation)
+	rendered, err := language.Render(loadCollections(t), current, strict, baselineInvocation)
 	if err != nil {
 		t.Fatalf("render: %v", err)
 	}
@@ -98,10 +100,10 @@ func TestTypeScriptMatchesBaseline(t *testing.T) {
 	language := TypeScript{Dependency: "@appwrite.io/console"}
 
 	t.Run("loose", func(t *testing.T) {
-		assertRendersBaseline(t, language, false, "ts.loose.appwrite.d.ts")
+		assertRendersBaseline(t, language, nil, false, "ts.loose.appwrite.d.ts")
 	})
 	t.Run("strict", func(t *testing.T) {
-		assertRendersBaseline(t, language, true, "ts.strict.appwrite.d.ts")
+		assertRendersBaseline(t, language, nil, true, "ts.strict.appwrite.d.ts")
 	})
 }
 
@@ -109,11 +111,64 @@ func TestJavaScriptMatchesBaseline(t *testing.T) {
 	language := JavaScript{Dependency: "appwrite"}
 
 	t.Run("loose", func(t *testing.T) {
-		assertRendersBaseline(t, language, false, "js.loose.appwrite-types.js")
+		assertRendersBaseline(t, language, nil, false, "js.loose.appwrite-types.js")
 	})
 	t.Run("strict", func(t *testing.T) {
-		assertRendersBaseline(t, language, true, "js.strict.appwrite-types.js")
+		assertRendersBaseline(t, language, nil, true, "js.strict.appwrite-types.js")
 	})
+}
+
+// assertMultiFileBaselines renders every collection and compares each against
+// its own baseline, named `<prefix>.<mode>.<FileName()>`.
+func assertMultiFileBaselines(t *testing.T, language Language, prefix string) {
+	t.Helper()
+
+	for _, strict := range []bool{false, true} {
+		mode := "loose"
+		if strict {
+			mode = "strict"
+		}
+
+		t.Run(mode, func(t *testing.T) {
+			collections := loadCollections(t)
+			for index := range collections {
+				current := &collections[index]
+				name := prefix + "." + mode + "." + language.FileName(current)
+
+				t.Run(current.Name, func(t *testing.T) {
+					assertRendersBaseline(t, language, current, strict, name)
+				})
+			}
+		})
+	}
+}
+
+func TestPHPMatchesBaseline(t *testing.T) {
+	assertMultiFileBaselines(t, PHP{}, "php")
+}
+
+func TestKotlinMatchesBaseline(t *testing.T) {
+	assertMultiFileBaselines(t, Kotlin{}, "kotlin")
+}
+
+// TestPHPArrayNeverGainsNullBranch pins the early return in PHP.Type: an
+// optional array attribute is `array`, not `array|null`, because the array
+// check precedes the nullable suffix.
+func TestPHPArrayNeverGainsNullBranch(t *testing.T) {
+	attribute := Attribute{
+		Key:     "tags",
+		Type:    AttributeTypeString,
+		Array:   true,
+		Default: json.RawMessage("null"),
+	}
+
+	literal, err := (PHP{}).Type(attribute, nil, "Thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if literal != "array" {
+		t.Errorf("PHP array type = %q, want %q", literal, "array")
+	}
 }
 
 // TestBigIntIsTypeScriptOnly pins a divergence the baselines cannot show,

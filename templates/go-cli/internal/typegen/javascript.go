@@ -81,7 +81,7 @@ func (j JavaScript) SingleFile() bool { return true }
 func (j JavaScript) FileName(*Collection) string { return "appwrite-types.js" }
 
 // Render implements Language.
-func (j JavaScript) Render(collections []Collection, strict bool, invocation string) (string, error) {
+func (j JavaScript) Render(collections []Collection, _ *Collection, strict bool, invocation string) (string, error) {
 	var out strings.Builder
 
 	dependency := j.Dependency
