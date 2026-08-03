@@ -17,10 +17,14 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const binary = process.env.APPWRITE_CLI_BIN;
-if (!binary) {
-  throw new Error("APPWRITE_CLI_BIN must name the CLI binary under test");
+// Whitespace-separated so a launcher works as well as a binary: the Go CLI is
+// `./appwrite`, the TypeScript one is `bun dist/cli.cjs`. Both spellings have to
+// be drivable or "shared harness" would only mean "shared in principle".
+const invocation = (process.env.APPWRITE_CLI_BIN ?? "").trim().split(/\s+/).filter(Boolean);
+if (invocation.length === 0) {
+  throw new Error("APPWRITE_CLI_BIN must name the CLI binary or launcher under test");
 }
+const [binary, ...launcherArgs] = invocation;
 
 // A sandboxed home keeps the run from reading or writing the developer's real
 // credentials, and keeps repeat runs independent of each other.
@@ -37,22 +41,32 @@ const environment = {
 /**
  * Pull the bare value out of the CLI's rendered output.
  *
- * Commands print `result : <value>` in table mode. Base.php compares against
- * the value alone, so the label is stripped here rather than the expectations
- * being loosened.
+ * The two implementations label it differently -- Go's table renderer prints
+ * `result : <value>`, the TypeScript pads without a colon as `result  <value>`
+ * -- so only a leading `result` label is stripped, colon optional. Human
+ * output is explicitly not part of the contract (PLAN.md section 3), which is
+ * why the harness tolerates both rather than either being wrong. Splitting on the first colon would eat
+ * into values that contain one, and every fixture here does: `GET:/v1/...` and
+ * `x-sdk-name: cli; ...`.
+ *
+ * Base.php compares against the value, so the label is removed here rather
+ * than the shared expectations being loosened.
  */
 function value(output) {
-  const line = output.split("\n").find((candidate) => candidate.includes(":"));
+  const line = output
+    .split("\n")
+    .map((candidate) => candidate.trim())
+    .find((candidate) => candidate !== "");
   if (!line) {
     throw new Error(`no value in CLI output: ${output}`);
   }
 
-  return line.slice(line.indexOf(":") + 1).trim();
+  return line.replace(/^result\s*:?\s+/, "").trim();
 }
 
 /** Run the CLI and return its stdout, trimmed. */
 function cli(...args) {
-  return execFileSync(binary, args, {
+  return execFileSync(binary, [...launcherArgs, ...args], {
     encoding: "utf8",
     env: environment,
     cwd: __dirname,
@@ -62,7 +76,9 @@ function cli(...args) {
 /** Run the CLI expecting a non-zero exit, and return stdout+stderr. */
 function cliExpectingFailure(...args) {
   try {
-    execFileSync(binary, args, { encoding: "utf8", env: environment, cwd: __dirname });
+    execFileSync(binary, [...launcherArgs, ...args], {
+      encoding: "utf8", env: environment, cwd: __dirname,
+    });
   } catch (error) {
     return `${error.stdout ?? ""}${error.stderr ?? ""}`;
   }
