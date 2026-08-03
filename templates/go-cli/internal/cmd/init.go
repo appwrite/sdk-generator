@@ -35,6 +35,9 @@ func newInitCommand() *cobra.Command {
 
 	command.AddCommand(
 		newInitProjectCommand(),
+		newInitFunctionCommand(),
+		newInitSiteCommand(),
+		newInitSkillCommand(),
 		newInitBucketCommand(),
 		newInitTeamCommand(),
 		newInitTopicCommand(),

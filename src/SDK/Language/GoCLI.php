@@ -729,6 +729,31 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initscaffold.go',
+                'template'      => 'go-cli/internal/cmd/initscaffold.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initscaffold_test.go',
+                'template'      => 'go-cli/internal/cmd/initscaffold_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initfunction.go',
+                'template'      => 'go-cli/internal/cmd/initfunction.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initsite.go',
+                'template'      => 'go-cli/internal/cmd/initsite.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initskill.go',
+                'template'      => 'go-cli/internal/cmd/initskill.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/pull.go',
                 'template'      => 'go-cli/internal/cmd/pull.go',
             ],

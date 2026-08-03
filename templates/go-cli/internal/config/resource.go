@@ -98,6 +98,35 @@ func (l *Local) AddTable(table Table) error {
 	return l.upsert("tables", table, identityByIDAndDatabase(table.ID, table.DatabaseID))
 }
 
+// AddFunction adds or replaces a function.
+//
+// The entry type lives in internal/cmd beside the command that builds it, so
+// this takes `any` and relies on toObject's JSON round trip for both the key
+// names and their order.
+func (l *Local) AddFunction(function any) error {
+	return l.upsert("functions", function, identityByID(entryID(function)))
+}
+
+// AddSite adds or replaces a site.
+func (l *Local) AddSite(site any) error {
+	return l.upsert("sites", site, identityByID(entryID(site)))
+}
+
+// entryID reads the $id off a value that is about to be upserted.
+//
+// A failure here yields "", which matches nothing and so appends rather than
+// replaces. That is the safe direction: a duplicated entry is visible in the
+// config and fixable, whereas matching the wrong one overwrites a resource the
+// user did not name.
+func entryID(value any) string {
+	object, err := toObject(value)
+	if err != nil {
+		return ""
+	}
+
+	return object.GetString("$id")
+}
+
 // orEmpty replaces a nil slice with an empty one.
 func orEmpty(values []any) []any {
 	if values == nil {
