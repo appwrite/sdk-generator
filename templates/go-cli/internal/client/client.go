@@ -61,6 +61,22 @@ func New(endpoint, sdkVersion string) *Client {
 	}
 }
 
+// WithoutResponseFormat drops the x-appwrite-response-format header.
+//
+// That header does not merely declare a version -- it asks the API for THAT
+// version's response shape. The console routes still answer it with a legacy
+// flat project (serviceStatusForAccount, authEmailPassword, ...) instead of the
+// `services`/`protocols`/`authMethods` arrays the config is built from.
+//
+// The TypeScript never hits this because its console calls go through
+// @appwrite.io/console, which sends no such header; only its own client.ts
+// sends one. This is how a call reproduces the console SDK.
+func (c *Client) WithoutResponseFormat() *Client {
+	delete(c.headers, headerFormat)
+
+	return c
+}
+
 // Clone returns a copy with its own header map.
 //
 // Needed because one console client lists organizations and then acts within

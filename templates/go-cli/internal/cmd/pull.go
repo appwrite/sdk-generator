@@ -25,8 +25,8 @@ import (
 //
 // `pull collection` and `pull table` live in pulldatabase.go.
 //
-// NOT YET PORTED: `pull all`, `settings`, `function` and `site`. All four need
-// deployment download.
+// NOT YET PORTED: `pull all`, `function` and `site`. All three need deployment
+// download.
 
 // flatResource describes one list-and-replace pull.
 type flatResource struct {
@@ -94,6 +94,7 @@ func newPullCommand() *cobra.Command {
 	for _, resource := range databaseResources {
 		command.AddCommand(newPullDatabaseCommand(resource))
 	}
+	command.AddCommand(newPullSettingsCommand())
 
 	return command
 }

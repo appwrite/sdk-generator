@@ -349,7 +349,7 @@ func listing(api *client.Client, path string, organizationID ...string) client.L
 
 		scoped := api
 		if len(organizationID) > 0 && organizationID[0] != "" {
-			scoped = api.Clone().SetOrganization(organizationID[0])
+			scoped = api.Clone().WithoutResponseFormat().SetOrganization(organizationID[0])
 		}
 
 		var response jsonx.Object
@@ -364,7 +364,7 @@ func listing(api *client.Client, path string, organizationID ...string) client.L
 // fetchProject reads one project through its organization.
 func fetchProject(api *client.Client, organizationID, projectID string) (*jsonx.Object, error) {
 	var project jsonx.Object
-	err := api.Clone().SetOrganization(organizationID).
+	err := api.Clone().WithoutResponseFormat().SetOrganization(organizationID).
 		Call("GET", pathProjects+"/"+url.PathEscape(projectID), nil, &project)
 	if err != nil {
 		return nil, err
@@ -381,7 +381,7 @@ func createProject(api *client.Client, organizationID, projectID, projectName, r
 	}
 
 	var created jsonx.Object
-	err := api.Clone().SetOrganization(organizationID).
+	err := api.Clone().WithoutResponseFormat().SetOrganization(organizationID).
 		Call("POST", pathProjects, body, &created)
 	if err != nil {
 		return nil, err
