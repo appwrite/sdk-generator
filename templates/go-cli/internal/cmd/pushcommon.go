@@ -383,3 +383,30 @@ func stringsOf(value any) ([]string, bool) {
 
 	return nil, false
 }
+
+// newPushCommand builds the `push` tree.
+//
+// Every subcommand registers here rather than in the file that implements it:
+// the tree is one thing, and three files each adding to it is how two of them
+// end up disagreeing about the parent's description.
+func newPushCommand() *cobra.Command {
+	command := &cobra.Command{
+		Use:   "push",
+		Short: "Push your Appwrite project resources from appwrite.config.json",
+		RunE: func(command *cobra.Command, args []string) error {
+			return command.Help()
+		},
+	}
+
+	command.AddCommand(newPushSettingsCommand())
+	for _, resource := range simpleResources() {
+		command.AddCommand(newPushSimpleCommand(resource))
+	}
+	command.AddCommand(newPushTableCommand())
+	command.AddCommand(newPushCollectionCommand())
+	for _, resource := range deployables {
+		command.AddCommand(newPushDeployableCommand(resource))
+	}
+
+	return command
+}

@@ -764,6 +764,61 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pushdatabase.go',
+                'template'      => 'go-cli/internal/cmd/pushdatabase.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pushdeploy.go',
+                'template'      => 'go-cli/internal/cmd/pushdeploy.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/deploy/deploy.go',
+                'template'      => 'go-cli/internal/deploy/deploy.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/deploy/deploy_test.go',
+                'template'      => 'go-cli/internal/deploy/deploy_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/attributes.go',
+                'template'      => 'go-cli/internal/schema/attributes.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/attributes_test.go',
+                'template'      => 'go-cli/internal/schema/attributes_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/database.go',
+                'template'      => 'go-cli/internal/schema/database.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/operations.go',
+                'template'      => 'go-cli/internal/schema/operations.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/poll.go',
+                'template'      => 'go-cli/internal/schema/poll.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/render.go',
+                'template'      => 'go-cli/internal/schema/render.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/value.go',
+                'template'      => 'go-cli/internal/schema/value.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/client/paginate.go',
                 'template'      => 'go-cli/internal/client/paginate.go',
             ],

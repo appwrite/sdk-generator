@@ -197,23 +197,6 @@ func simpleResources() []simpleResource {
 	}
 }
 
-func newPushCommand() *cobra.Command {
-	command := &cobra.Command{
-		Use: "push",
-		Short: "The push command provides a convenient wrapper for pushing your " +
-			"functions, collections, buckets, teams, and messaging-topics.",
-		RunE: func(command *cobra.Command, args []string) error {
-			return command.Help()
-		},
-	}
-
-	for _, resource := range simpleResources() {
-		command.AddCommand(newPushSimpleCommand(resource))
-	}
-
-	return command
-}
-
 func newPushSimpleCommand(resource simpleResource) *cobra.Command {
 	return &cobra.Command{
 		Use:     resource.Name,

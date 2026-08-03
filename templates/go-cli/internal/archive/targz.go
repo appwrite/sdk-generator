@@ -103,6 +103,79 @@ func writeEntry(target string, reader io.Reader, mode os.FileMode) error {
 	return err
 }
 
+// CreateTarGzFiles packs the named files, relative to directory, into a
+// gzipped archive.
+//
+// Only the listed files are packed, and no directory entries are written --
+// `tar.create(..., files)` with an explicit list behaves the same way, and the
+// build unpacks with the parents created on demand. Symlinks are resolved and
+// stored as the file they point at, matching node-tar's `follow: true`, so a
+// function sharing code through a link deploys the code rather than a dangling
+// link.
+//
+// The archive is streamed to disk one file at a time. Nothing accumulates in
+// memory, which is what keeps a large site's peak RSS flat -- see the note on
+// deploy.Upload.
+func CreateTarGzFiles(path, directory string, files []string) error {
+	target, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer target.Close()
+
+	compressed := gzip.NewWriter(target)
+	writer := tar.NewWriter(compressed)
+
+	for _, file := range files {
+		if err := appendFile(writer, directory, file); err != nil {
+			writer.Close()
+			compressed.Close()
+
+			return err
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return err
+	}
+	if err := compressed.Close(); err != nil {
+		return err
+	}
+
+	return target.Close()
+}
+
+// appendFile writes one regular file into an open tar stream.
+func appendFile(writer *tar.Writer, directory, name string) error {
+	source := filepath.Join(directory, filepath.FromSlash(name))
+
+	// Stat, not Lstat: a symlink is followed rather than recorded.
+	info, err := os.Stat(source)
+	if err != nil {
+		return err
+	}
+
+	header, err := tar.FileInfoHeader(info, "")
+	if err != nil {
+		return err
+	}
+	header.Name = name
+
+	if err := writer.WriteHeader(header); err != nil {
+		return err
+	}
+
+	file, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(writer, file)
+
+	return err
+}
+
 // CreateTarGz packs a directory into a gzipped archive.
 //
 // Written to a temporary file and renamed, so an interrupted repack cannot

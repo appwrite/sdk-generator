@@ -214,9 +214,25 @@ func translate(pattern string) string {
 	return out.String()
 }
 
+// Result is one path's verdict, as `ignore`'s test() reports it.
+//
+// Ignored and Unignored are both false when no rule mentioned the path at all.
+// That third state is what lets several matchers combine: a matcher with no
+// opinion leaves an earlier matcher's verdict standing, while one that
+// explicitly re-includes the path overrules it.
+type Result struct {
+	Ignored   bool
+	Unignored bool
+}
+
 // Ignores reports whether a path is excluded.
 //
 // The path must be relative to the ignore root and slash-separated.
+func (m *Matcher) Ignores(path string) bool {
+	return m.Test(path).Ignored
+}
+
+// Test returns the full verdict for a path.
 //
 // Two rules combine here, and the second is easy to miss. Within one path the
 // LAST matching pattern wins, so a negation after the rule that caught a path
@@ -228,19 +244,21 @@ func translate(pattern string) string {
 // The directory rule was found by comparing against the `ignore` package
 // rather than reasoned about: last-match-wins alone gets temp/keep.txt wrong,
 // and the baseline is what says so.
-func (m *Matcher) Ignores(path string) bool {
+func (m *Matcher) Test(path string) Result {
 	path = strings.TrimPrefix(path, "./")
 	if path == "" {
-		return false
+		return Result{}
 	}
 
-	// Ancestors first, shortest to longest. An excluded one settles it.
+	// Ancestors first, shortest to longest. An excluded one settles it, and it
+	// settles it as ignored rather than as unignored -- a rescued child of an
+	// excluded directory is still excluded.
 	for index, character := range path {
 		if character != '/' {
 			continue
 		}
-		if m.matches(path[:index+1]) {
-			return true
+		if m.matches(path[:index+1]).Ignored {
+			return Result{Ignored: true}
 		}
 	}
 
@@ -251,20 +269,16 @@ func (m *Matcher) Ignores(path string) bool {
 //
 // A directory is passed with its trailing slash, which is what lets a
 // directory-only pattern match it.
-func (m *Matcher) matches(path string) bool {
-	ignored := false
+func (m *Matcher) matches(path string) Result {
+	var result Result
 	for _, rule := range m.rules {
-		// A rule that cannot change the outcome is skipped, which is what
-		// makes the pass cheap on long ignore files.
-		if rule.negative == !ignored {
+		if !rule.pattern.MatchString(path) {
 			continue
 		}
-		if rule.pattern.MatchString(path) {
-			ignored = !rule.negative
-		}
+		result = Result{Ignored: !rule.negative, Unignored: rule.negative}
 	}
 
-	return ignored
+	return result
 }
 
 // Filter returns the paths that are not ignored, preserving order.
