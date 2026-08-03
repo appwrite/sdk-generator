@@ -568,8 +568,18 @@ docker compose down` before re-running.
   **not** need `utils/attributes.ts` — that file is the PUSH-side reconciliation. Pull is a
   two-level walk plus `filterBySchema`.
 
-  Still to do: `pull all`, `settings`, `function`, `site` — all four need deployment
-  download.
+  `pull settings` is done too — the one pulled resource that is reshaped rather than
+  filtered. Two traps live there, both invisible without a live comparison:
+
+  - **`x-appwrite-response-format` selects a response SHAPE, not just a version.** With the
+    header, console routes return a legacy flat project and the arrays the settings block
+    is built from are absent entirely. The TypeScript avoids it by routing console calls
+    through `@appwrite.io/console`, which sends no such header. Use
+    `Client.WithoutResponseFormat()` for anything that mirrors the console SDK.
+  - **Policy ids are kebab-case** (`session-duration`). The TypeScript's `ProjectPolicyId`
+    enum has run-together MEMBER names; transcribe the values, not the members.
+
+  Still to do: `pull all`, `function`, `site` — all three need deployment download.
 
 Still to port, in the order the sub-phases below give:
 
