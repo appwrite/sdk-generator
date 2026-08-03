@@ -585,6 +585,15 @@ docker compose down` before re-running.
   When a pull is changed, re-verify ALL of them against the TypeScript, not just the one
   touched. This trap invalidated four earlier comparisons at once.
 
+- **Request tracing** — `docs/go-cli/record-requests.py` is a forwarding proxy that records
+  every API call to JSONL, plus `--compare` to diff two traces. **Use it before and while
+  porting `push`**: push's contract is the sequence of requests it issues, and nothing else
+  covers a state machine whose observable effect is what it sends.
+
+  It is not only for push. Run on `pull` — already verified byte-identical on output — it
+  found a missing `limit(1)` probe and the wrong query encoding (`queries[]` for
+  `queries[0]`). **Identical output does not mean identical behaviour.**
+
 Still to port, in the order the sub-phases below give:
 
 | Piece | LOC |

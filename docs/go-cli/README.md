@@ -129,7 +129,18 @@ and not the next. `types` writes into the user's repository, so a fix would surf
 unexplained diff in their next commit. Reproduce, name it in a comment, and fix it in the
 TypeScript first if it should be fixed at all.
 
-### 2.7 Reference the TypeScript by file and line
+### 2.7 For anything stateful, compare REQUESTS, not output
+
+A command whose job is to change a remote has no output worth diffing. Record what it
+sends: `docs/go-cli/record-requests.py` proxies a CLI to a real instance, writes every
+call to JSONL, and `--compare` reports the first request two traces disagree on.
+
+Run it on a command you have already verified. On `pull` — byte-identical output, checked
+against real staging — it immediately found a missing `limit(1)` probe and `queries[]`
+where the TypeScript sends `queries[0]`. Both were invisible in the config and both are
+wire behaviour a user could depend on.
+
+### 2.8 Reference the TypeScript by file and line
 
 When porting, cite the source: `// ports lib/commands/push.ts:2864 — poll debounce`.
 Reviewers need to diff against the original, and so will you in three weeks.
