@@ -387,6 +387,21 @@ mock server. This phase is the reason the rewrite is safe. Do not defer it.
 
 **Entry:** Phase 3 exit met.
 
+> **Reordered 2026-08-02, by decision.** This phase originally sat after Phase 5.
+> It now runs immediately after Phase 3, so the stateful commands -- `push` alone is
+> 4,380 lines -- are ported *against* a working differential harness rather than
+> before one exists.
+>
+> The reason is evidence, not caution. Eight defects during Phases 0-3 looked correct
+> and were not: a stale `examples/cli` hiding two commands, a round-trip fixture with
+> no ampersand hiding an HTML-escaping bug, two inverted test assertions, an
+> `expires_in` of zero defaulting instead of expiring, a query array serialised one
+> level too deep, four classes of flag-to-SDK type mismatch, and a Twig branch that
+> silently never fired. The ones that were caught cheaply were caught by the Go
+> compiler or by a baseline captured from the TypeScript. `push` has neither: it is
+> business logic, so the compiler cannot help, and its behaviour is only defined by
+> what the TypeScript already does.
+
 **Work:**
 
 1. `tests/e2e/GoCLI124Test.php`, modelled on `CLIBun13Test.php`. `$build` compiles the
@@ -423,7 +438,7 @@ docker compose down` before re-running.
 remaining work, and the part with real behavioural risk.
 
 **Entry:** Phase 4 exit met. Do not start earlier — you need the harness to catch what
-you break.
+you break. (Phase 4 now precedes this phase; see the note there.)
 
 Sequence deliberately, easiest first, so the hardest lands with the most infrastructure
 in place:
@@ -508,6 +523,12 @@ implementation.
 4. `scoop/appwrite.config.json.twig`.
 5. Homebrew tap formula — `homebrewTapOwner`/`Name`/`Branch` params already exist on the
    language class (`CLI.php:166`).
+0. **Resolve the SDK release ordering.** The Go CLI depends on the generated Go SDK,
+   so the SDK has to ship before the CLI can expose a new endpoint. This is not
+   hypothetical: `listStages`, `updateStage` and `approve` are excluded from the
+   TypeScript CLI today purely because the released npm package trails the spec
+   (`example.php`). Decide the ordering here, and drop the `replace` directive in
+   `templates/go-cli/go.mod.twig` in favour of a pinned release.
 6. **npm shim.** `appwrite-cli` on npm must keep working: a thin package whose
    `postinstall` fetches the right binary. Breaking `npm i -g appwrite-cli` breaks CI
    for a large number of users.
@@ -566,8 +587,8 @@ Progress table, kept current:
 | 1 — Generator scaffolding | ✅ Complete — surface matches TS exactly (608/608) | | |
 | 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
 | 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
-| 4 — Conformance harness | Not started | | |
-| 5 — Stateful commands | Not started | | |
+| 4 — Conformance harness | **Next** — pulled ahead of Phase 5 by decision | | |
+| 5 — Stateful commands | Blocked on Phase 4 (deliberately) | | |
 | 6 — Performance | Not started | | |
 | 7 — Distribution | Not started | | |
 | 8 — Rollout | Not started | | |
