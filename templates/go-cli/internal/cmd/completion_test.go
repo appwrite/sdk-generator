@@ -11,9 +11,23 @@ import (
 // installed, and whichever the shell found first would win.
 //
 // Captured by running the shipping TypeScript CLI with a sandboxed HOME.
-func TestCompletionInstallPathsMatchTheTypeScript(t *testing.T) {
+// setHome points os.UserHomeDir at a temporary directory on every platform.
+//
+// t.Setenv("HOME", ...) alone is a Unix-only assumption: os.UserHomeDir reads
+// USERPROFILE on Windows and ignores HOME entirely, so the test would silently
+// assert against the real user profile and fail with a path it never chose.
+func setHome(t *testing.T) string {
+	t.Helper()
+
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	return home
+}
+
+func TestCompletionInstallPathsMatchTheTypeScript(t *testing.T) {
+	home := setHome(t)
 
 	cases := map[string]string{
 		"zsh":  filepath.Join(home, ".zfunc", "_appwrite"),
@@ -35,8 +49,7 @@ func TestCompletionInstallPathsMatchTheTypeScript(t *testing.T) {
 // Each shell has its own override rather than one shared variable, so setting
 // one must not move the others.
 func TestCompletionInstallPathHonoursOneOverrideAtATime(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
+	home := setHome(t)
 	t.Setenv("ZSH_COMPLETION_DIR", "/somewhere/else")
 
 	zsh, err := completionInstallPath("zsh")
@@ -83,8 +96,7 @@ func TestNormalizeShell(t *testing.T) {
 // an empty file would install cleanly and silently break completion.
 func TestInstallCompletionWritesEachShell(t *testing.T) {
 	for _, shell := range completionShells {
-		home := t.TempDir()
-		t.Setenv("HOME", home)
+		setHome(t)
 
 		path, err := installCompletion(NewRootCommand(), shell)
 		if err != nil {

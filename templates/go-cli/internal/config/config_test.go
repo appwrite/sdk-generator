@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -174,7 +175,10 @@ func TestWriteCreatesPrivateFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if perm := info.Mode().Perm(); perm != 0o600 {
+	// Windows has no Unix permission bits and reports 0666 for every file. The
+	// token still needs protecting there; the OS keyring is what provides it,
+	// and prefs.json is only the fallback.
+	if perm := info.Mode().Perm(); runtime.GOOS != "windows" && perm != 0o600 {
 		t.Errorf("prefs.json mode = %o, want 600 -- it holds access tokens", perm)
 	}
 }

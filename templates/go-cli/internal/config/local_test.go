@@ -424,7 +424,10 @@ func TestLocalWriteIsPrivate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if perm := info.Mode().Perm(); perm != 0o600 {
+	// Windows has no Unix permission bits and reports 0666 for every file, so
+	// there is nothing to assert there. The 0600 is a real protection on the
+	// platforms that have it.
+	if perm := info.Mode().Perm(); runtime.GOOS != "windows" && perm != 0o600 {
 		t.Errorf("config mode = %o, want 600", perm)
 	}
 }

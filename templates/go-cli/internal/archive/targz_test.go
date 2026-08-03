@@ -3,6 +3,7 @@ package archive
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -36,7 +37,11 @@ func TestTarRoundTripPreservesContentAndMode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0o755 {
+	// Windows has no Unix permission bits -- it reports 0666 for every file --
+	// so the executable bit is only meaningful, and only assertable, elsewhere.
+	// The round-trip above still runs there, which is the part that could break
+	// on a path separator.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o755 {
 		t.Errorf("run.sh mode = %v, want 0755", info.Mode().Perm())
 	}
 }

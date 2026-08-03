@@ -435,6 +435,11 @@ class GoCLI extends Go
                 'template'      => 'go-cli/.gitignore',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => '.gitattributes',
+                'template'      => 'go-cli/.gitattributes',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/root.go',
                 'template'      => 'go-cli/internal/cmd/root.go.twig',
