@@ -454,9 +454,17 @@ in place:
 **5a — `update`** (`update.ts`, 460). Self-update. Small, self-contained, and it must
 handle updating *from* a TS install *to* a Go binary.
 
-**5b — `types` and `generate`** (`types.ts` 236, `generate.ts` 206, `generators/` ~750,
-four `.hbs` templates). Handlebars → `text/template`. Output must be byte-identical;
-`CLI_TYPEGEN_RESPONSES` asserts this.
+**5b — `types` and `generate`.** Larger than it first appears: `types.ts` (236) and
+`generate.ts` (206) sit on top of `generators/` (~750) **and** a 1,428-line
+multi-language meta system under `lib/type-generation/languages/` covering nine target
+languages — TypeScript, JavaScript, Swift, Kotlin, Java, C#, Dart, PHP, plus the shared
+base. Roughly 2,650 LOC in total, not the ~1,200 the two command files suggest.
+
+Output must be byte-identical; `CLI_TYPEGEN_RESPONSES` asserts this.
+
+The Handlebars renderer and the templates are done (see #1722). Worth considering
+whether every target language has to land at once, or whether TypeScript alone is
+enough to close 5b with the rest following — the e2e fixture only exercises one.
 
 **5c — `run`** (`run.ts` 434, `emulation/docker.ts`, `emulation/utils.ts`). Docker
 subprocess orchestration. Shells out either way, so it is mostly plumbing.
