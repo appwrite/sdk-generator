@@ -46,6 +46,14 @@ class GoCLI extends Go
         // executableName -- they happen to agree today, and a rename would
         // silently break every installer if they did not.
         'npmPackage' => 'appwrite-cli',
+        // Released version of the Go SDK the CLI depends on. Raise this after
+        // publishing sdk-for-go; until then a shipped build resolves nothing,
+        // which is the loud failure rather than the quiet one.
+        'sdkVersion' => 'v0.0.0',
+        // Empty by default, so the shipped repository gets the pinned version
+        // above. example.php sets it to build examples/go-cli against the SDK
+        // this generator produces, without waiting for a release.
+        'localSdkPath' => '',
         'homebrewTapOwner' => 'appwrite',
         'homebrewTapName' => 'appwrite',
         'homebrewTapBranch' => 'main',
@@ -63,6 +71,29 @@ class GoCLI extends Go
     public function setExecutableName(string $executableName): self
     {
         $this->setParam('executableName', $executableName);
+
+        return $this;
+    }
+
+    /**
+     * Pin the released Go SDK version the generated `go.mod` requires.
+     */
+    public function setSDKVersion(string $version): self
+    {
+        $this->setParam('sdkVersion', $version);
+
+        return $this;
+    }
+
+    /**
+     * Build against a local SDK checkout instead of the released one.
+     *
+     * Emits a `replace` directive. For local example generation only -- a
+     * shipped repository must resolve the pinned version.
+     */
+    public function setLocalSDKPath(string $path): self
+    {
+        $this->setParam('localSdkPath', $path);
 
         return $this;
     }
@@ -597,6 +628,16 @@ class GoCLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/client.go',
                 'template'      => 'go-cli/internal/cmd/client.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/completion.go',
+                'template'      => 'go-cli/internal/cmd/completion.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/completion_test.go',
+                'template'      => 'go-cli/internal/cmd/completion_test.go',
             ],
             [
                 'scope'         => 'copy',

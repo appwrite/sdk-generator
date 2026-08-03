@@ -27,5 +27,7 @@ func NewRootCommand() *cobra.Command {
 	services.Register(root)
 	registerSessionCommands(root)
 
+	registerCompletionInstall(root)
+
 	return root
 }
