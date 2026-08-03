@@ -145,6 +145,11 @@ func runFunction(command *cobra.Command, options runOptions) error {
 
 	keys, variables := collectVariables(command, local, function, options)
 
+	// Announced before it starts. A runtime image is hundreds of megabytes
+	// and `docker pull` runs with its output piped, so without this line the
+	// CLI sits silent for however long the download takes and reads as hung.
+	// Ports the log in dockerPull (emulation/docker.ts:188).
+	output.Log(out, "Verifying Docker image ...")
 	if err := client.Pull(ctx, docker.ImageName(function)); err != nil {
 		return err
 	}
