@@ -641,6 +641,21 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/output/valueformat.go',
+                'template'      => 'go-cli/internal/output/valueformat.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/valueformat_test.go',
+                'template'      => 'go-cli/internal/output/valueformat_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/testdata/valueformat.json',
+                'template'      => 'go-cli/internal/output/testdata/valueformat.json',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/completion_test.go',
                 'template'      => 'go-cli/internal/cmd/completion_test.go',
             ],

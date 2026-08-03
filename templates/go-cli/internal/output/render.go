@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
@@ -95,9 +96,12 @@ func (r *Renderer) renderHuman(writer io.Writer, value any) error {
 			if strings.TrimSpace(typed) == "" {
 				continue
 			}
-			scalars = append(scalars, [2]string{key, typed})
+			// Through formatKeyValue, not appended raw: a string is where the
+			// timestamps live, and this branch bypassing it is why they used
+			// to print as the API sent them.
+			scalars = append(scalars, [2]string{key, formatKeyValue(key, typed)})
 		default:
-			scalars = append(scalars, [2]string{key, formatScalar(item)})
+			scalars = append(scalars, [2]string{key, formatKeyValue(key, item)})
 		}
 	}
 
@@ -195,7 +199,7 @@ func renderTable(rows []*jsonx.Object) string {
 		cells := make([]string, 0, len(headers))
 		for _, header := range headers {
 			value, _ := row.Get(header)
-			cells = append(cells, formatScalar(value))
+			cells = append(cells, formatKeyValue(header, value))
 		}
 		data = append(data, cells)
 	}
@@ -206,6 +210,46 @@ func renderTable(rows []*jsonx.Object) string {
 		Rows(data...).
 		Render()
 }
+
+// formatKeyValue renders one value for display, using the key to decide
+// whether it deserves more than its raw form.
+//
+// Ports templates/cli/lib/parser.ts:478. The key matters: `status` reads as
+// active/inactive rather than true/false, and a `*duration` number is seconds
+// that nobody parses at a glance. Anything else falls through to formatScalar.
+func formatKeyValue(key string, value any) string {
+	switch typed := value.(type) {
+	case bool:
+		if key == "status" {
+			if typed {
+				return "active"
+			}
+
+			return "inactive"
+		}
+	case json.Number:
+		// Durations come over the wire as raw seconds. The raw value stays --
+		// it is what the API returned and what a reader may need to pass back
+		// -- with the readable form beside it.
+		if durationKey.MatchString(key) {
+			if seconds, err := typed.Float64(); err == nil {
+				if humanized := HumanizeSeconds(seconds); humanized != "" {
+					return typed.String() + " (" + humanized + ")"
+				}
+			}
+		}
+	case string:
+		if stamp, ok := FormatTimestamp(typed); ok {
+			return stamp
+		}
+	}
+
+	return formatScalar(value)
+}
+
+// Matches the TypeScript's /duration$/i, which is a suffix test rather than a
+// contains test: `durationLimit` is not a duration.
+var durationKey = regexp.MustCompile(`(?i)duration$`)
 
 // formatScalar renders one value for display.
 func formatScalar(value any) string {
