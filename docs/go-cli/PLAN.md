@@ -587,7 +587,7 @@ Progress table, kept current:
 | 1 — Generator scaffolding | ✅ Complete — surface matches TS exactly (608/608) | | |
 | 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
 | 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
-| 4 — Conformance harness | **Next** — pulled ahead of Phase 5 by decision | | |
+| 4 — Conformance harness | 🔄 In progress — Go suite green under Docker (828 assertions) | #1721 |
 | 5 — Stateful commands | Blocked on Phase 4 (deliberately) | | |
 | 6 — Performance | Not started | | |
 | 7 — Distribution | Not started | | |
