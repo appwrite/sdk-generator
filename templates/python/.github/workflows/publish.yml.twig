@@ -2,11 +2,16 @@ name: Publish to PyPI
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   publish:
     name: Release build and publish
     runs-on: ubuntu-latest
+    permissions:
+      # Mints the short-lived OIDC token PyPI exchanges for an upload token, so
+      # no long-lived API token has to be stored on the repository.
+      id-token: write
     steps:
       - name: Check out code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -22,10 +27,4 @@ jobs:
           python setup.py sdist bdist_wheel
 
       - name: Publish package
-        run: |
-          python -m pip install twine
-          python -m twine upload -r pypi dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: {{ '${{ secrets.PYPI_TOKEN }}' }}
-          TWINE_NON_INTERACTIVE: true
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
