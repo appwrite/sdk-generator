@@ -19,7 +19,6 @@ import (
 	"github.com/appwrite/appwrite-cli-go/internal/output"
 	"github.com/appwrite/appwrite-cli-go/internal/prompt"
 	"github.com/spf13/cobra"
-	"golang.org/x/sync/errgroup"
 )
 
 // Ports pushFunction (templates/cli/lib/commands/push.ts:3603), pushSite
@@ -33,8 +32,8 @@ import (
 // spinner row. This pushes them one at a time behind a single row, which keeps
 // the request sequence deterministic -- that is what the differential harness
 // compares (docs/go-cli/conformance/) -- and keeps interleaved build logs
-// attributable. Independent writes that no trace orders, like the settings
-// fan-out in applyEnabled, ARE sent concurrently.
+// attributable. The settings writes are sequential for a different and
+// stronger reason -- see applyEnabled.
 //
 // The TypeScript reads build logs over a realtime WebSocket and falls back to
 // polling when it cannot -- in the recorded trace `GET /realtime` answers 400
@@ -262,27 +261,36 @@ func timed(out io.Writer, count int, what string, run func() error) error {
 
 // applyEnabled writes an `{id: enabled}` object, one PATCH per entry.
 //
-// CONCURRENTLY, as the TypeScript's Promise.all does (push.ts:1332). Each entry
-// is a separate route that neither reads nor writes what the others touch, so
-// the only thing serialising them bought was a predictable request ORDER -- at
-// the cost of a full round trip each. A settings push is twenty-two of these
-// across services, protocols and auth methods, which on a remote project is the
-// difference between a quarter of a minute and about a second.
+// ONE AT A TIME, and deliberately so -- this is a divergence from the
+// TypeScript's Promise.all (push.ts:1332), which has the same defect.
+//
+// These look like independent routes and are not. Every one of them
+// read-modify-writes a nested field of the SAME `projects` row
+// (Project/Services/Update.php:76). Sending them together is unsafe: each
+// handler builds its new `services` array from the snapshot it read, and
+// although updateDocument re-reads the row under `SELECT ... FOR UPDATE`, the
+// supplied nested array REPLACES the freshly read one. Two concurrent writes
+// then lose one of the two changes.
+//
+// It is also not faster. The row lock serialises them server-side regardless,
+// measured at ~1.25s per waiter across all four batches, so concurrency buys
+// contention and a lost-update window in exchange for nothing.
+//
+// The real fix is a bulk settings endpoint that merges every change under one
+// transaction; until that exists, the honest client behaviour is to queue.
 func (c *pushContext) applyEnabled(base string, states *jsonx.Object) error {
-	group := &errgroup.Group{}
-
 	for _, key := range states.Keys() {
 		value, _ := states.Get(key)
 
-		group.Go(func() error {
-			body := jsonx.NewObject()
-			body.Set("enabled", value)
+		body := jsonx.NewObject()
+		body.Set("enabled", value)
 
-			return c.api.Call("PATCH", base+url.PathEscape(key), body, nil)
-		})
+		if err := c.api.Call("PATCH", base+url.PathEscape(key), body, nil); err != nil {
+			return err
+		}
 	}
 
-	return group.Wait()
+	return nil
 }
 
 // applySecurity writes the auth.security block.
@@ -290,31 +298,27 @@ func (c *pushContext) applyEnabled(base string, states *jsonx.Object) error {
 // Each key is its own policy route, and a key the config omits is left alone --
 // absent means "no opinion", not "reset it".
 func (c *pushContext) applySecurity(security *jsonx.Object) error {
-	// Collected and awaited together, as securityUpdates is (push.ts:1355).
-	group := &errgroup.Group{}
-
+	// One at a time, for the reason given on applyEnabled: these write the same
+	// project row. The TypeScript collects them into securityUpdates and awaits
+	// them together (push.ts:1355), which has the same lost-update window.
 	for _, policy := range settingsPolicies {
 		value, ok := security.Get(policy.Key)
 		if !ok {
 			continue
 		}
 
-		group.Go(func() error {
-			body := jsonx.NewObject()
-			if policy.Field == "total" {
-				// nullablePolicyTotal (push.ts:754): zero and null both mean
-				// "no limit", and the API takes null.
-				body.Set(policy.Field, nullablePolicyTotal(security, policy.Key))
-			} else {
-				body.Set(policy.Field, value)
-			}
+		body := jsonx.NewObject()
+		if policy.Field == "total" {
+			// nullablePolicyTotal (push.ts:754): zero and null both mean "no
+			// limit", and the API takes null.
+			body.Set(policy.Field, nullablePolicyTotal(security, policy.Key))
+		} else {
+			body.Set(policy.Field, value)
+		}
 
-			return c.api.Call("PATCH", "/project/policies/"+policy.Route, body, nil)
-		})
-	}
-
-	if err := group.Wait(); err != nil {
-		return err
+		if err := c.api.Call("PATCH", "/project/policies/"+policy.Route, body, nil); err != nil {
+			return err
+		}
 	}
 
 	if _, ok := security.Get("mockNumbers"); ok {

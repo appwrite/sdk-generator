@@ -13,37 +13,31 @@ import (
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
 )
 
-// `push settings` was reported as "really really slow", and it was: twenty-two
-// separate PATCHes -- twelve services, three protocols, seven auth methods --
-// sent one after another, each waiting a full round trip. On a remote project
-// that is most of a minute spent idle.
+// Settings writes must go out ONE AT A TIME.
 //
-// The TypeScript sends each group with Promise.all (push.ts:1332). These are
-// independent routes; serialising them bought a predictable request order and
-// nothing else.
-func TestServiceStatusesGoOutConcurrently(t *testing.T) {
-	const (
-		services = 12
-		// How long a request waits for the rest to show up. Sent together they
-		// all arrive and the gate opens at once; sent one at a time each pays
-		// this in full, which is what makes the difference measurable.
-		gateWait = 200 * time.Millisecond
-	)
-
-	gate := make(chan struct{})
-	var arrived atomic.Int32
+// They look independent -- a route per service -- and are not: every one
+// read-modify-writes a nested field of the same `projects` row
+// (Project/Services/Update.php:76). Sent together, each handler builds its new
+// array from the snapshot it read, and updateDocument's re-read under
+// `SELECT ... FOR UPDATE` does not save it, because the supplied nested array
+// replaces the freshly read one. Two concurrent writes lose one of the changes.
+//
+// This was briefly made concurrent to match the TypeScript's Promise.all and
+// to chase a slow settings push. It was wrong twice over: the row lock
+// serialises them server-side anyway (~1.25s per waiter, measured), so it was
+// not faster, and it opened a lost-update window that the sequential version
+// does not have.
+func TestSettingsWritesDoNotOverlap(t *testing.T) {
+	var live atomic.Int32
+	var overlapped atomic.Bool
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if arrived.Add(1) == services {
-			close(gate)
+		if live.Add(1) > 1 {
+			overlapped.Store(true)
 		}
-
-		// Bounded, so a serialised run fails on the assertion below rather
-		// than hanging the suite.
-		select {
-		case <-gate:
-		case <-time.After(gateWait):
-		}
+		// Long enough that anything sent concurrently is still in flight.
+		time.Sleep(20 * time.Millisecond)
+		live.Add(-1)
 
 		w.Write([]byte(`{}`))
 	}))
@@ -58,18 +52,47 @@ func TestServiceStatusesGoOutConcurrently(t *testing.T) {
 	}
 
 	context := &pushContext{api: client.New(server.URL, "test")}
-
-	started := time.Now()
 	if err := context.applyEnabled("/project/services/", states); err != nil {
 		t.Fatal(err)
 	}
-	elapsed := time.Since(started)
 
-	// Sent together this finishes as soon as the last one arrives. Sent one at
-	// a time it cannot finish in under twelve gateWaits.
-	if elapsed > 2*gateWait {
-		t.Errorf("%d service writes took %s, so they are still going out one "+
-			"at a time", services, elapsed.Round(time.Millisecond))
+	if overlapped.Load() {
+		t.Error("two settings writes were in flight at once, so one change can " +
+			"overwrite the other on the shared project row")
+	}
+}
+
+// The same holds for the auth security policies, which write the same row.
+func TestSecurityPolicyWritesDoNotOverlap(t *testing.T) {
+	var live atomic.Int32
+	var overlapped atomic.Bool
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if live.Add(1) > 1 {
+			overlapped.Store(true)
+		}
+		time.Sleep(20 * time.Millisecond)
+		live.Add(-1)
+
+		w.Write([]byte(`{}`))
+	}))
+	defer server.Close()
+
+	security := jsonx.NewObject()
+	security.Set("duration", 3600)
+	security.Set("limit", 100)
+	security.Set("sessionsLimit", 10)
+	security.Set("passwordDictionary", true)
+	security.Set("passwordHistory", 5)
+	security.Set("personalDataCheck", true)
+
+	context := &pushContext{api: client.New(server.URL, "test")}
+	if err := context.applySecurity(security); err != nil {
+		t.Fatal(err)
+	}
+
+	if overlapped.Load() {
+		t.Error("two policy writes were in flight at once")
 	}
 }
 
