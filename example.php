@@ -357,7 +357,12 @@ try {
     // GO
     if (!$requestedSdk || $requestedSdk === 'go') {
         $sdk  = new SDK(new Go(), buildSpec($specFormat, $spec));
-        configureSDK($sdk);
+        // Real module path: a `replace` only resolves when the target module
+        // declares the path being replaced.
+        configureSDK($sdk, [
+            'gitUserName' => 'appwrite',
+            'gitRepoName' => 'sdk-for-go',
+        ]);
         $sdk->generate(__DIR__ . '/examples/go');
     }
 
