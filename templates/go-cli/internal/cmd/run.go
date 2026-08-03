@@ -97,7 +97,7 @@ type runOptions struct {
 func runFunction(command *cobra.Command, options runOptions) error {
 	out := command.OutOrStdout()
 
-	local, err := config.LoadLocal(config.LocalPath("."))
+	local, err := config.LoadLocal(config.FindLocalPath())
 	if err != nil {
 		return err
 	}

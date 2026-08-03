@@ -250,7 +250,7 @@ func newProjectPull() (*projectPull, error) {
 		return nil, err
 	}
 
-	local, err := config.LoadLocal(config.LocalPath("."))
+	local, err := config.LoadLocal(config.FindLocalPath())
 	if err != nil {
 		return nil, fmt.Errorf(
 			"no %s found. Run `%s init project` first: %w",

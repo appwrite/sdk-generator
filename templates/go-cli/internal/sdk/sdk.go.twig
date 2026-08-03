@@ -282,7 +282,7 @@ func osGetenv(name string) string { return os.Getenv(name) }
 // directory, returning "" when there is no config -- running outside a project
 // is normal for many commands.
 func (c *Context) localValue(key string) string {
-	local, err := config.LoadLocal(config.LocalPath("."))
+	local, err := config.LoadLocal(config.FindLocalPath())
 	if err != nil {
 		return ""
 	}

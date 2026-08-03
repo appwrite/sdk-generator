@@ -55,7 +55,7 @@ type initContext struct {
 }
 
 func newInitContext() (*initContext, error) {
-	local, err := config.LoadLocal(config.LocalPath("."))
+	local, err := config.LoadLocal(config.FindLocalPath())
 	if err != nil {
 		return nil, err
 	}

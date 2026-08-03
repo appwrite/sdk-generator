@@ -431,3 +431,103 @@ func TestLocalWriteIsPrivate(t *testing.T) {
 		t.Errorf("config mode = %o, want 600", perm)
 	}
 }
+
+// A project is a tree, and people run `push` from inside `functions/<name>/`.
+// Looking only in the working directory answered those with "project is not
+// set" while the TypeScript CLI walked up and found the config.
+func TestFindLocalPathSearchesUpwards(t *testing.T) {
+	root := t.TempDir()
+	wanted := filepath.Join(root, LocalFileName)
+	if err := os.WriteFile(wanted, []byte(`{"projectId":"p"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	nested := filepath.Join(root, "functions", "my-function")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	chdir(t, nested)
+
+	if got := FindLocalPath(); resolve(t, got) != resolve(t, wanted) {
+		t.Errorf("FindLocalPath() = %q, want %q", got, wanted)
+	}
+}
+
+// The nearest config wins: a subdirectory that is its own project must not be
+// captured by an ancestor's config.
+func TestFindLocalPathPrefersTheNearestConfig(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, LocalFileName),
+		[]byte(`{"projectId":"outer"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	inner := filepath.Join(root, "inner")
+	if err := os.MkdirAll(inner, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	wanted := filepath.Join(inner, LocalFileName)
+	if err := os.WriteFile(wanted, []byte(`{"projectId":"inner"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	chdir(t, inner)
+
+	if got := FindLocalPath(); resolve(t, got) != resolve(t, wanted) {
+		t.Errorf("FindLocalPath() = %q, want the nearest config %q", got, wanted)
+	}
+}
+
+// Projects created by older CLIs still carry the pre-rename filename.
+func TestFindLocalPathAcceptsTheLegacyName(t *testing.T) {
+	root := t.TempDir()
+	wanted := filepath.Join(root, LegacyLocalFileName)
+	if err := os.WriteFile(wanted, []byte(`{"projectId":"p"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	chdir(t, root)
+
+	if got := FindLocalPath(); resolve(t, got) != resolve(t, wanted) {
+		t.Errorf("FindLocalPath() = %q, want %q", got, wanted)
+	}
+}
+
+// With no config anywhere, the reported path is the working directory's, so
+// the error names where the user is rather than where the search gave up.
+func TestFindLocalPathFallsBackToTheWorkingDirectory(t *testing.T) {
+	root := t.TempDir()
+	chdir(t, root)
+
+	got := FindLocalPath()
+	if filepath.Base(got) != LocalFileName {
+		t.Fatalf("FindLocalPath() = %q, want a %s path", got, LocalFileName)
+	}
+	if directory := filepath.Dir(got); !strings.HasSuffix(resolve(t, directory), resolve(t, root)) {
+		t.Errorf("FindLocalPath() = %q, want it under %q", got, root)
+	}
+}
+
+func chdir(t *testing.T, directory string) {
+	t.Helper()
+
+	previous, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(directory); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(previous) })
+}
+
+// resolve follows symlinks, because macOS temp directories are behind one:
+// t.TempDir() hands back /var/... while os.Getwd reports /private/var/...
+func resolve(t *testing.T, path string) string {
+	t.Helper()
+
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return path
+	}
+
+	return resolved
+}

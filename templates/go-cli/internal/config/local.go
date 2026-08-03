@@ -19,6 +19,12 @@ import (
 // LocalFileName is the project config the CLI reads from the working directory.
 const LocalFileName = "appwrite.config.json"
 
+// LegacyLocalFileName is the name the config had before it was renamed.
+//
+// Ports CONFIG_FILE_PATH_LEGACY (templates/cli/lib/config.ts:632). Projects
+// created by older CLIs still carry it.
+const LegacyLocalFileName = "appwrite.json"
+
 // configKeyOrder is the order top-level keys are written in.
 //
 // Ports CONFIG_KEY_ORDER (templates/cli/lib/config.ts:83). Without it every
@@ -86,6 +92,50 @@ type Local struct {
 // LocalPath returns the config path for a directory.
 func LocalPath(directory string) string {
 	return filepath.Join(directory, LocalFileName)
+}
+
+// FindLocalPath locates the project config, searching upwards from the working
+// directory.
+//
+// Ports Local.findConfigFile (templates/cli/lib/config.ts). A project is a
+// directory tree, and people run `push` from inside `functions/<name>/` as
+// readily as from the root; looking only in the working directory answered
+// those with "project is not set".
+//
+// The walk stops at the home directory so a stray config there cannot capture
+// every unrelated project, and stops at the filesystem root. When nothing is
+// found the working directory's path is returned, so callers report a missing
+// config where the user is rather than where the search ended.
+func FindLocalPath() string {
+	working, err := os.Getwd()
+	if err != nil {
+		return LocalPath(".")
+	}
+
+	home, _ := os.UserHomeDir()
+
+	for directory := working; ; {
+		// A config in the home directory counts only when that is where the
+		// command was run.
+		if home != "" && directory == home && working != home {
+			break
+		}
+
+		for _, name := range []string{LocalFileName, LegacyLocalFileName} {
+			candidate := filepath.Join(directory, name)
+			if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+				return candidate
+			}
+		}
+
+		parent := filepath.Dir(directory)
+		if parent == directory {
+			break
+		}
+		directory = parent
+	}
+
+	return LocalPath(working)
 }
 
 // LoadLocal reads a project config, resolving `includes`.
