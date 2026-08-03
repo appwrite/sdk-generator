@@ -6,6 +6,13 @@ same way the TypeScript CLI is today.
 Read [README.md](README.md) before touching anything. It is the operating manual;
 this file is the roadmap.
 
+[AUDIT.md](AUDIT.md) is the conformance audit of 2026-08-03: 13 confirmed
+divergences from the TypeScript CLI, three more awaiting a live server, and the
+list of what is still untested. **Nothing in it is fixed.** Read it before
+declaring any phase complete — finding 2 (boolean flags invert when given a
+space-separated value) blocks Phase 8, and findings 1 and 3 are bugs in the
+published `sdk-for-go`, not in the CLI.
+
 ---
 
 ## 1. Why
@@ -193,6 +200,10 @@ Any deliberate break needs its own PR, its own changelog entry, and sign-off.
 
 1. **Every flag name, shorthand, and alias.** 608 commands and 2,912 flags worth. Phase 1 produces a
    machine-checkable snapshot of these; Phase 4 diffs against it.
+   > Audited 2026-08-03: command tree and required-flag sets are at parity across
+   > 671 and 604 commands respectively. Six flags remain missing — `--report`,
+   > `-V`, `-a`, `update --manual`, `push/pull --id`, `client -ss`. See
+   > [AUDIT.md](AUDIT.md) finding 9.
 2. **`appwrite.config.json` schema.** Read and written byte-compatibly. Existing project
    files must work untouched, in both directions (a Go `push` after a TS `pull`).
 3. **Exit codes.**
@@ -434,6 +445,15 @@ rewrite is safe. Do not defer it.
 - `vendor/bin/phpunit tests/e2e/GoCLI126Test.php` green.
 - Flag-surface test from Phase 3 green in CI.
 - The Go CLI's suite runs in CI on every PR, independently of the TypeScript CLI's.
+
+> **Not met as of 2026-08-03.** A standalone differential harness was run
+> outside the suite — both CLIs pointed at a recording server, every generated
+> service command invoked with its required flags filled — and 369 of 606
+> commands sent different requests. See [AUDIT.md](AUDIT.md). The e2e suites
+> themselves did not run (no Docker daemon), and the `--json` stdout diff was
+> written but not executed. The four items above remain open, and item 4's
+> "any diff fails the build" is the check that would have caught findings 1-3
+> months ago.
 
 **Risk:** the Bun test harness leaks containers on interrupt. `cd mock-server &&
 docker compose down` before re-running.
@@ -816,7 +836,9 @@ implementation.
 
 **Goal:** switch over without stranding anyone.
 
-**Entry:** Phase 7 exit met.
+**Entry:** Phase 7 exit met, **and** every finding in [AUDIT.md](AUDIT.md) either
+fixed or accepted in writing. Finding 2 in particular is a data-corruption bug —
+`--enabled false` sends `true` — and must not reach a default install.
 
 **Work:**
 
