@@ -95,37 +95,3 @@ func TestFilterDataPreservesOrder(t *testing.T) {
 		}
 	}
 }
-
-func TestApplyDisplayFields(t *testing.T) {
-	rows := []*jsonx.Object{
-		decode(t, `{"$id":"1","name":"a","region":"fra"}`),
-		decode(t, `{"$id":"2","name":"b","region":"nyc"}`),
-	}
-
-	narrowed := ApplyDisplayFields(rows, []string{"name", "$id"})
-	if got := narrowed[0].Keys(); len(got) != 2 || got[0] != "name" || got[1] != "$id" {
-		t.Errorf("keys = %v, want [name $id] in the requested order", got)
-	}
-}
-
-// A row with none of the requested fields comes back whole: showing nothing
-// would look like the row does not exist.
-func TestApplyDisplayFieldsKeepsRowsWithNoMatch(t *testing.T) {
-	rows := []*jsonx.Object{decode(t, `{"other":"value"}`)}
-
-	narrowed := ApplyDisplayFields(rows, []string{"name"})
-	if narrowed[0].Len() != 1 {
-		t.Errorf("row was blanked instead of preserved: %v", narrowed[0].Keys())
-	}
-	if _, ok := narrowed[0].Get("other"); !ok {
-		t.Error("original field was lost")
-	}
-}
-
-func TestApplyDisplayFieldsIsIdentityWithoutFields(t *testing.T) {
-	rows := []*jsonx.Object{decode(t, `{"a":"1"}`)}
-
-	if got := ApplyDisplayFields(rows, nil); len(got) != 1 || got[0] != rows[0] {
-		t.Error("no display fields should return the rows untouched")
-	}
-}

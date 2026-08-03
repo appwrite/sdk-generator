@@ -1,10 +1,7 @@
 package typegen
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
@@ -93,69 +90,6 @@ func requiredFirst(attributes []Attribute) []Attribute {
 	})
 
 	return ordered
-}
-
-// PubspecPackage is the Appwrite package a Dart project depends on.
-//
-// Ports Dart.getPackageName(): it scans the `dependencies:` block of
-// pubspec.yaml by indentation rather than parsing YAML, stopping at the first
-// line indented no further than the key itself.
-func PubspecPackage(directory string) string {
-	file, err := os.Open(filepath.Join(directory, "pubspec.yaml"))
-	if err != nil {
-		return "appwrite"
-	}
-	defer file.Close()
-
-	var dependencies []string
-	indent, inBlock := 0, false
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		trimmed := strings.TrimSpace(line)
-
-		if !inBlock {
-			if trimmed == "dependencies:" {
-				indent, inBlock = leadingSpaces(line), true
-			}
-
-			continue
-		}
-
-		// Blank lines do not end the block.
-		if trimmed == "" {
-			continue
-		}
-		if leadingSpaces(line) <= indent {
-			break
-		}
-
-		dependencies = append(dependencies, trimmed)
-	}
-
-	// dart_appwrite wins over appwrite when both are declared.
-	for _, name := range []string{"dart_appwrite:", "appwrite:"} {
-		for _, dependency := range dependencies {
-			if strings.HasPrefix(dependency, name) {
-				return strings.TrimSuffix(name, ":")
-			}
-		}
-	}
-
-	return "appwrite"
-}
-
-// leadingSpaces counts the indentation of a line, matching the TypeScript's
-// `line.search(/\S|$/)` -- which returns the line length for a blank line.
-func leadingSpaces(line string) int {
-	for index, character := range line {
-		if character != ' ' && character != '\t' {
-			return index
-		}
-	}
-
-	return len(line)
 }
 
 // Render implements Language.

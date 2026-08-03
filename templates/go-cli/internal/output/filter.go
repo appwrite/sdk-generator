@@ -122,33 +122,3 @@ func FilterData(data *jsonx.Object) *jsonx.Object {
 
 	return result
 }
-
-// ApplyDisplayFields narrows rows to the fields named by --display-field.
-//
-// A row that has none of the requested fields is returned whole rather than
-// blank: showing nothing would look like the row does not exist.
-//
-// Ports applyDisplayFilter().
-func ApplyDisplayFields(rows []*jsonx.Object, fields []string) []*jsonx.Object {
-	if len(fields) == 0 {
-		return rows
-	}
-
-	filtered := make([]*jsonx.Object, 0, len(rows))
-	for _, row := range rows {
-		narrowed := jsonx.NewObject()
-		for _, field := range fields {
-			if value, ok := row.Get(field); ok {
-				narrowed.Set(field, value)
-			}
-		}
-		if narrowed.Len() == 0 {
-			filtered = append(filtered, row)
-
-			continue
-		}
-		filtered = append(filtered, narrowed)
-	}
-
-	return filtered
-}

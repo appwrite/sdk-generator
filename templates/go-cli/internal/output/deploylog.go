@@ -1,8 +1,6 @@
 package output
 
 import (
-	"fmt"
-	"io"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -52,7 +50,6 @@ type BuildLogPrinter struct {
 
 	headerPrinted bool
 	footerPrinted bool
-	printedAny    bool
 }
 
 // NewBuildLogPrinter returns a printer for one deployment's build log.
@@ -62,14 +59,6 @@ type BuildLogPrinter struct {
 // line is whose.
 func NewBuildLogPrinter(emit func(string), label string, showPrefix bool) *BuildLogPrinter {
 	return &BuildLogPrinter{emit: emit, label: label, showPrefix: showPrefix}
-}
-
-// Lines returns a sink that writes whole lines to writer, for callers with no
-// spinner to print through.
-func Lines(writer io.Writer) func(string) {
-	return func(line string) {
-		fmt.Fprintln(writer, line)
-	}
 }
 
 // Ingest takes the build log as of the latest read and prints what is new.
@@ -102,12 +91,6 @@ func (p *BuildLogPrinter) Complete() {
 	}
 }
 
-// HasPrinted reports whether any build log reached the terminal, which decides
-// whether a failure needs to say "no logs" or the reader has already seen why.
-func (p *BuildLogPrinter) HasPrinted() bool {
-	return p.printedAny
-}
-
 func (p *BuildLogPrinter) flush(includePartial bool) {
 	if p.last == "" || p.last == p.printed {
 		return
@@ -135,7 +118,6 @@ func (p *BuildLogPrinter) flush(includePartial bool) {
 	}
 
 	p.printed += written
-	p.printedAny = true
 }
 
 // writeChunk prints the complete lines of chunk and returns the part of it that

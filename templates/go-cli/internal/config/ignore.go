@@ -22,12 +22,6 @@ type IgnoreRules struct {
 	rules []string
 }
 
-// NewIgnoreRules builds a rule set, for tests and callers that already have a
-// list.
-func NewIgnoreRules(rules ...string) IgnoreRules {
-	return IgnoreRules{rules: rules}
-}
-
 // Rules is the patterns, in order. Never nil-checked by callers, so an absent
 // field yields an empty slice rather than a surprise.
 func (i IgnoreRules) Rules() []string {
