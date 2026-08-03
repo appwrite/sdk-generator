@@ -2,10 +2,10 @@ import json
 import requests_mock
 import unittest
 
-from appwrite.client import Client
-from appwrite.input_file import InputFile
-from appwrite.models import *
-from appwrite.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
+from {{ spec.namespace | caseSnake }}.client import Client
+from {{ spec.namespace | caseSnake }}.input_file import InputFile
+from {{ spec.namespace | caseSnake }}.models import *
+from {{ spec.namespace | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
 
 class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
 
