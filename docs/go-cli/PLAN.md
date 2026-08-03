@@ -492,6 +492,23 @@ docker compose down` before re-running.
   remote-variable fetch and `JwtManager` both need the functions service. Close them
   when the SDK wiring lands.
 
+- **Client wiring** — `internal/sdk` is the one place a client is built, for generated and
+  hand-written commands alike. Three defects were fixed there this phase, all found by
+  watching a real request against a local listener rather than by reading:
+
+  | Defect | Effect |
+  |---|---|
+  | An API key was not accepted | Every project command failed in CI, which authenticates with `client --key` |
+  | `APPWRITE_PROJECT_ID` / `_ORGANIZATION_ID` unread | A CI job's export silently lost to a checked-in config |
+  | A project's own `endpoint` unread and unchecked | A self-hosted repo would be pushed to the last endpoint logged into |
+
+  **Do not add a second client constructor.** The first attempt at this was a parallel
+  implementation in `internal/cmd`; it was deleted. Anything a command needs goes into
+  `internal/sdk` so all 608 generated commands get it too.
+
+  `internal/client/paginate.go` ports `paginate.ts`. Both termination conditions are load
+  bearing — see the tests before changing either.
+
 - **5d `init`** — the five LOCAL subcommands are done: `bucket`, `team`, `topic`,
   `collection`, `table`. They only prompt and write `appwrite.config.json`, and all five
   were driven through a pty against the shipping TypeScript with the same keystrokes and
