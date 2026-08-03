@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -109,6 +110,21 @@ func LoadLocal(path string) (*Local, error) {
 	}
 
 	return local, nil
+}
+
+// LoadOrCreateLocal is LoadLocal, but an ABSENT file yields an empty config
+// rather than an error.
+//
+// For `init project`, which is the command a user runs in a directory that has
+// no config yet. A malformed file is still an error: silently starting fresh
+// would discard whatever the user had.
+func LoadOrCreateLocal(path string) (*Local, error) {
+	local, err := LoadLocal(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return &Local{path: path, Data: jsonx.NewObject(), includes: map[string]string{}}, nil
+	}
+
+	return local, err
 }
 
 // Path returns the file backing this config.

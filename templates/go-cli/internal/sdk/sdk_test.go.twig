@@ -191,6 +191,22 @@ func TestOrganizationHeaderHonoursTheEnvironment(t *testing.T) {
 	}
 }
 
+// TestConsoleCallsAreNotAdminMode pins a regression a live delete-project call
+// caught: `X-Appwrite-Mode: admin` on a console request is rejected with "Admin
+// mode is not allowed for console project", so the console and project paths
+// cannot share the header even though they share the credential.
+func TestConsoleCallsAreNotAdminMode(t *testing.T) {
+	context := withSession(t, map[string]any{"endpoint": localEndpoint, "cookie": "session=1"})
+
+	client, err := context.ForConsole()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mode := client.Headers["X-Appwrite-Mode"]; mode != "" {
+		t.Errorf("console mode = %q, want it unset", mode)
+	}
+}
+
 // TestCookieSessionGetsAdminMode covers the branch an API key must not take.
 func TestCookieSessionGetsAdminMode(t *testing.T) {
 	context := withSession(t, map[string]any{"endpoint": localEndpoint, "cookie": "session=1"})

@@ -218,3 +218,47 @@ func toObject(value any) (*jsonx.Object, error) {
 
 	return object, nil
 }
+
+// SetProject records the linked project.
+//
+// projectName is written only when non-empty, matching setProject(): linking to
+// a project whose name the API did not return must not blank an existing one.
+func (l *Local) SetProject(projectID, projectName string) {
+	l.Data.Set("projectId", projectID)
+	if projectName != "" {
+		l.Data.Set("projectName", projectName)
+	}
+}
+
+// SetOrganizationID records the owning organization.
+func (l *Local) SetOrganizationID(organizationID string) {
+	l.Data.Set("organizationId", organizationID)
+}
+
+// SetEndpoint records the endpoint this project lives on.
+func (l *Local) SetEndpoint(endpoint string) {
+	l.Data.Set("endpoint", endpoint)
+}
+
+// Clear empties the config, and empties every file `includes` points at.
+//
+// Ports Local.clear(), which `init project` calls before linking so a directory
+// previously linked elsewhere cannot keep another project's resources. The
+// include files are emptied rather than deleted: the user's `includes` map is
+// rewritten too, but a file left behind full of a different project's
+// collections is worse than an empty one.
+func (l *Local) Clear() error {
+	for resource, include := range l.Includes() {
+		path, err := l.resolveIncludePath(resource, include)
+		if err != nil {
+			return err
+		}
+		if err := writeJSONFile(path, []any{}); err != nil {
+			return err
+		}
+	}
+
+	l.Data = jsonx.NewObject()
+
+	return writeJSONFile(l.Path(), l.Data)
+}

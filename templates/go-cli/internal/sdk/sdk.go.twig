@@ -76,6 +76,10 @@ func (c *Context) base(endpoint string) sdkclient.Client {
 // -- that is how CI authenticates, via `appwrite client --key`. A console call
 // does not: an API key is scoped to one project and the console endpoints are
 // not, which is why the TypeScript's message for that case says so explicitly.
+// The mode header is set only for a PROJECT call. `X-Appwrite-Mode: admin` on
+// a console request is rejected outright -- "Admin mode is not allowed for
+// console project" -- so the two paths cannot share it, which an earlier
+// refactor here got wrong and a live delete-project call caught.
 func (c *Context) authenticate(client *sdkclient.Client, allowAPIKey bool) error {
 	session := c.Global.Current()
 	if session == nil {
@@ -88,14 +92,18 @@ func (c *Context) authenticate(client *sdkclient.Client, allowAPIKey bool) error
 			return err
 		}
 		client.AddHeader("Authorization", "Bearer "+token)
-		client.AddHeader("X-Appwrite-Mode", config.ModeAdmin)
+		if allowAPIKey {
+			client.AddHeader("X-Appwrite-Mode", config.ModeAdmin)
+		}
 
 		return nil
 	}
 
 	if cookie := session.GetString(config.PreferenceCookie); cookie != "" {
 		client.AddHeader("Cookie", cookie)
-		client.AddHeader("X-Appwrite-Mode", config.ModeAdmin)
+		if allowAPIKey {
+			client.AddHeader("X-Appwrite-Mode", config.ModeAdmin)
+		}
 
 		return nil
 	}

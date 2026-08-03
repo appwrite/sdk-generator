@@ -34,6 +34,7 @@ func newInitCommand() *cobra.Command {
 	}
 
 	command.AddCommand(
+		newInitProjectCommand(),
 		newInitBucketCommand(),
 		newInitTeamCommand(),
 		newInitTopicCommand(),

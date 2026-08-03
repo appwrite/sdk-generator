@@ -61,6 +61,21 @@ func New(endpoint, sdkVersion string) *Client {
 	}
 }
 
+// Clone returns a copy with its own header map.
+//
+// Needed because one console client lists organizations and then acts within
+// one: setting X-Appwrite-Organization on the shared client would scope the
+// next unrelated call as well.
+func (c *Client) Clone() *Client {
+	copied := *c
+	copied.headers = make(map[string]string, len(c.headers))
+	for name, value := range c.headers {
+		copied.headers[name] = value
+	}
+
+	return &copied
+}
+
 // SetHeader sets one header.
 func (c *Client) SetHeader(name, value string) *Client {
 	c.headers[name] = value
