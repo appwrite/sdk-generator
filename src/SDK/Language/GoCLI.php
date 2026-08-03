@@ -770,6 +770,81 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/typegen/testdata/swift.strict.BooksZines.swift',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/java.go',
+                'template'      => 'go-cli/internal/typegen/java.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/java.loose.Authors.java',
+                'template'      => 'go-cli/internal/typegen/testdata/java.loose.Authors.java',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/java.loose.BooksZines.java',
+                'template'      => 'go-cli/internal/typegen/testdata/java.loose.BooksZines.java',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/java.strict.Authors.java',
+                'template'      => 'go-cli/internal/typegen/testdata/java.strict.Authors.java',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/java.strict.BooksZines.java',
+                'template'      => 'go-cli/internal/typegen/testdata/java.strict.BooksZines.java',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/dart.go',
+                'template'      => 'go-cli/internal/typegen/dart.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/csharp.go',
+                'template'      => 'go-cli/internal/typegen/csharp.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/dart.loose.authors.dart',
+                'template'      => 'go-cli/internal/typegen/testdata/dart.loose.authors.dart',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/dart.loose.books_zines.dart',
+                'template'      => 'go-cli/internal/typegen/testdata/dart.loose.books_zines.dart',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/dart.strict.authors.dart',
+                'template'      => 'go-cli/internal/typegen/testdata/dart.strict.authors.dart',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/dart.strict.books_zines.dart',
+                'template'      => 'go-cli/internal/typegen/testdata/dart.strict.books_zines.dart',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/cs.loose.Authors.cs',
+                'template'      => 'go-cli/internal/typegen/testdata/cs.loose.Authors.cs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/cs.loose.BooksZines.cs',
+                'template'      => 'go-cli/internal/typegen/testdata/cs.loose.BooksZines.cs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/cs.strict.Authors.cs',
+                'template'      => 'go-cli/internal/typegen/testdata/cs.strict.Authors.cs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/cs.strict.BooksZines.cs',
+                'template'      => 'go-cli/internal/typegen/testdata/cs.strict.BooksZines.cs',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/services/register.go',
                 'template'      => 'go-cli/internal/cmd/services/register.go.twig',

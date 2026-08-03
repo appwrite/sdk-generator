@@ -159,6 +159,26 @@ func PropertyName(attribute Attribute, strict bool) string {
 	return attribute.Key
 }
 
+// xmlEscaper reproduces EJS's escapeXML, which `<%= %>` applies and `<%- %>`
+// does not.
+//
+// Several templates use both forms for the same identifier, so an attribute key
+// containing `&` or `<` is written one way as a field declaration and another
+// as a constructor parameter -- in the same generated file. Note the numeric
+// entities for quotes: this is EJS's table, not Handlebars', and the two differ.
+var xmlEscaper = strings.NewReplacer(
+	"&", "&amp;",
+	"<", "&lt;",
+	">", "&gt;",
+	`"`, "&#34;",
+	"'", "&#39;",
+)
+
+// EscapeXML applies the escaping an EJS `<%= %>` tag would.
+func EscapeXML(value string) string {
+	return xmlEscaper.Replace(value)
+}
+
 // generateEnumMembers builds enum members, disambiguating collisions.
 //
 // Two elements that sanitise to the same key would otherwise emit a duplicate

@@ -155,6 +155,18 @@ func TestSwiftMatchesBaseline(t *testing.T) {
 	assertMultiFileBaselines(t, Swift{}, "swift")
 }
 
+func TestJavaMatchesBaseline(t *testing.T) {
+	assertMultiFileBaselines(t, Java{}, "java")
+}
+
+func TestDartMatchesBaseline(t *testing.T) {
+	assertMultiFileBaselines(t, Dart{}, "dart")
+}
+
+func TestCSharpMatchesBaseline(t *testing.T) {
+	assertMultiFileBaselines(t, CSharp{}, "cs")
+}
+
 // TestPHPArrayNeverGainsNullBranch pins the early return in PHP.Type: an
 // optional array attribute is `array`, not `array|null`, because the array
 // check precedes the nullable suffix.

@@ -118,6 +118,7 @@
         "relationType": "manyToOne",
         "side": "child"
       },
+      { "key": "r&d<flag>", "type": "string", "required": true, "size": 8 },
       {
         "key": "kind",
         "type": "string",

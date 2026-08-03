@@ -36,6 +36,7 @@
  * @typedef {Row & {
  *   title: string;
  *   author: Authors[];
+ *   rdflag: string;
  *   kind: Kind;
  * }} BooksZines
  */

@@ -15,15 +15,18 @@ enum BooksZinesKind: string {
 class BooksZines {
     private string $title;
     private array $author;
+    private string $rdflag;
     private BooksZinesKind $kind;
 
     public function __construct(
         string $title,
         array $author,
+        string $rdflag,
         BooksZinesKind $kind
     ) {
         $this->title = $title;
         $this->author = $author;
+        $this->rdflag = $rdflag;
         $this->kind = $kind;
     }
 
@@ -41,6 +44,14 @@ class BooksZines {
 
     public function setAuthor(array $author): void {
         $this->author = $author;
+    }
+
+    public function getRdflag(): string {
+        return $this->rdflag;
+    }
+
+    public function setRdflag(string $rdflag): void {
+        $this->rdflag = $rdflag;
     }
 
     public function getKind(): BooksZinesKind {

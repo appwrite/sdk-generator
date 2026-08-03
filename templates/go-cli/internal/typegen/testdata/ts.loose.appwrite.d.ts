@@ -37,5 +37,6 @@ export type Authors = Models.Row & {
 export type BooksZines = Models.Row & {
     title: string;
     author: Authors[];
+    "r&d<flag>": string;
     kind: BooksZinesKind;
 }

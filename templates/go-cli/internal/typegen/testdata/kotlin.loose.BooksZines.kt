@@ -16,5 +16,6 @@ enum class BooksZinesKind {
 data class BooksZines(
     val title: String,
     val author: List<Authors>,
+    val r&d<flag>: String,
     val kind: BooksZinesKind
 )

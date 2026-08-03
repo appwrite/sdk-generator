@@ -12,21 +12,25 @@ public enum BooksZinesKind: String, Codable, CaseIterable {
 public class BooksZines: Codable {
     public let title: String
     public let author: [Authors]
+    public let r&d<flag>: String
     public let kind: BooksZinesKind
 
     enum CodingKeys: String, CodingKey {
         case title = "title"
         case author = "author"
+        case r&d<flag> = "r&d<flag>"
         case kind = "kind"
     }
 
     public init(
         title: String,
         author: [Authors],
+        r&d<flag>: String,
         kind: BooksZinesKind
     ) {
         self.title = title
         self.author = author
+        self.r&d<flag> = r&d<flag>
         self.kind = kind
     }
 
@@ -35,6 +39,7 @@ public class BooksZines: Codable {
 
         self.title = try container.decode(String.self, forKey: .title)
         self.author = try container.decode([Authors].self, forKey: .author)
+        self.r&d<flag> = try container.decode(String.self, forKey: .r&d<flag>)
         self.kind = try container.decode(BooksZinesKind.self, forKey: .kind)
     }
 
@@ -43,6 +48,7 @@ public class BooksZines: Codable {
 
         try container.encode(title, forKey: .title)
         try container.encode(author, forKey: .author)
+        try container.encode(r&d<flag>, forKey: .r&d<flag>)
         try container.encode(kind, forKey: .kind)
     }
 
@@ -50,6 +56,7 @@ public class BooksZines: Codable {
         return [
             "title": title as Any,
             "author": author as Any,
+            "r&d<flag>": r&d<flag> as Any,
             "kind": kind as Any
         ]
     }
@@ -58,6 +65,7 @@ public class BooksZines: Codable {
         return BooksZines(
             title: map["title"] as! String,
             author: map["author"] as! [Authors],
+            r&d<flag>: map["r&d<flag>"] as! String,
             kind: BooksZinesKind(rawValue: map["kind"] as! String)!
         )
     }
