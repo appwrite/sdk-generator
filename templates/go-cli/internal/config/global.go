@@ -335,6 +335,37 @@ func NormalizeCloudConsoleEndpoint(endpoint string) string {
 	return "https://" + base + "/v1"
 }
 
+// IsCloudLoginEndpoint reports whether an endpoint signs in through the
+// browser rather than with an email and a password.
+//
+// Ports isCloudLoginEndpoint (utils.ts:503). The TypeScript also accepts
+// localhost behind the `devCloudLogin` feature flag; there is no flag registry
+// in this port, so localhost is treated as self-hosted -- which is what it is
+// for everyone outside Appwrite.
+func IsCloudLoginEndpoint(endpoint string) bool {
+	parsed, err := url.Parse(endpoint)
+	if err != nil {
+		return false
+	}
+
+	return strings.HasSuffix(parsed.Hostname(), ".appwrite.io")
+}
+
+// IsRegionalCloudEndpoint reports whether an endpoint names a Cloud REGION,
+// like fra.cloud.appwrite.io, rather than the base host.
+//
+// Ports isRegionalCloudEndpoint (utils.ts:472).
+func IsRegionalCloudEndpoint(endpoint string) bool {
+	parsed, err := url.Parse(endpoint)
+	if err != nil || parsed.Hostname() == "" {
+		return false
+	}
+
+	base := baseCloudHostname(parsed.Hostname())
+
+	return base != "" && base != parsed.Hostname()
+}
+
 // EndpointsMatch compares two endpoints for session matching, normalising
 // regional Cloud hosts and ignoring trailing slashes.
 //

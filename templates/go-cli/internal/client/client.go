@@ -45,9 +45,11 @@ type Client struct {
 	headers    map[string]string
 	cookie     string
 	SDKVersion string
+	// SessionCookie is the console session cookie the server last set, which
+	// an email-and-password sign-in has to persist.
+	SessionCookie string
 }
 
-// New returns a client with the headers every request carries.
 // RequestLog receives one line per HTTP request when --verbose is on.
 //
 // A package variable rather than a field on Client because clients are built
@@ -70,6 +72,7 @@ func logRequest(method, path string, status int, elapsed time.Duration) {
 	RequestLog("%s %s %d in %s", method, path, status, elapsed.Round(time.Millisecond))
 }
 
+// New returns a client with the headers every request carries.
 func New(endpoint, sdkVersion string) *Client {
 	return &Client{
 		Endpoint:   strings.TrimRight(endpoint, "/"),
@@ -193,6 +196,24 @@ func (c *Client) SetOrganization(id string) *Client { return c.SetHeader(headerO
 func (c *Client) SetBearer(token string) *Client {
 	return c.SetHeader("Authorization", "Bearer "+token)
 }
+
+// consoleSessionCookie is the cookie an email-and-password sign-in returns.
+// Only this one is kept; a response may also set unrelated cookies, and
+// storing those would send them back on every later request.
+const consoleSessionCookie = "a_session_console="
+
+// captureSessionCookie remembers a console session cookie the server set.
+//
+// Ports the Set-Cookie handling in the TypeScript client (client.ts:327). The
+// email-and-password flow has no other way to learn its session: the cookie IS
+// the credential, and it arrives on the response to POST /account/sessions/email.
+func (c *Client) captureSessionCookie(response *http.Response) {
+	for _, cookie := range response.Header.Values("Set-Cookie") {
+		if strings.HasPrefix(cookie, consoleSessionCookie) {
+			c.cookie = cookie
+			c.SessionCookie = cookie
+		}
+	}
 
 // SetSelfSigned accepts a self-signed TLS certificate.
 //
@@ -374,6 +395,7 @@ func (c *Client) send(request *http.Request, out any) error {
 	defer response.Body.Close()
 
 	logRequest(request.Method, request.URL.Path, response.StatusCode, time.Since(started))
+	c.captureSessionCookie(response)
 
 	payload, err := io.ReadAll(response.Body)
 	if err != nil {
