@@ -594,13 +594,32 @@ docker compose down` before re-running.
   found a missing `limit(1)` probe and the wrong query encoding (`queries[]` for
   `queries[0]`). **Identical output does not mean identical behaviour.**
 
+- **5f `push`** — **complete**: all, settings, bucket, team, webhook, topic, table,
+  collection, function, site.
+
+  Verified against live staging by REQUEST TRACE, not just output: buckets, teams, topics
+  and a table with columns and an index reproduce the TypeScript's 20 requests exactly, and
+  a function packaged, uploaded, built and activated with an identical sequence. `push all`
+  round-trips — everything it creates pulls back unchanged.
+
+  Three things to keep in mind here:
+
+  - **The upload streams.** Temp file, `io.SectionReader` per chunk, exact
+    `Content-Length`. Peak memory is the HTTP write buffer whatever the archive size —
+    §1.4's 102 MB flat against the TypeScript's 421 MB. Do not "simplify" it into a
+    `ReadAll`.
+  - **On the PUSH path `.appwrite` is NOT excluded**, and a resource's `ignore` field ADDS
+    TO `.gitignore` rather than replacing it. That is the opposite of the emulation path in
+    `docker/source.go`. Both are tested; do not unify them.
+  - **`push all`'s execution order and its prompt order differ** and both are
+    user-visible.
+
 Still to port, in the order the sub-phases below give:
 
 | Piece | LOC |
 |---|---|
 | question definitions, with the commands that own them | — |
 | `init function|site|skill` (needs template downloads) | ~600 |
-| `push.ts` + its five helpers | 7,129 |
 | `response-config.ts` (human output only, not contractual) | 940 |
 
 Two things asserted but never actually verified, worth closing early: keyring
@@ -775,7 +794,7 @@ Progress table, kept current:
 | 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
 | 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
 | 4 — Conformance harness | ✅ Complete — both suites green, differential diff empty | #1721 |
-| 5 — Stateful commands | 🔄 **In progress** — everything but `push` | #1722 |
+| 5 — Stateful commands | ✅ **Complete** — `init` bar templates, `pull`, `push`, `run`, `types`, `generate`, `update` | #1722 |
 | 6 — Performance | Not started | | |
 | 7 — Distribution | Not started | | |
 | 8 — Rollout | Not started | | |
