@@ -247,14 +247,6 @@ const compactText = (value: unknown, fallback: string = "—"): string => {
   return trimmed === "" ? fallback : trimmed;
 };
 
-const compactAmount = (value: unknown): string => {
-  if (typeof value === "number" || typeof value === "string") {
-    return String(value);
-  }
-
-  return "—";
-};
-
 const compactBytes = (value: unknown): string => {
   const bytes =
     typeof value === "number"
@@ -343,25 +335,6 @@ const createColumnRenderer = (
   columns,
 });
 
-const PaymentMethodSummarySchema = createSummarySchema(
-  {
-    providerUserId: z.string().nullable().optional(),
-    providerMethodId: z.string().nullable().optional(),
-    mandateId: z.string().nullable().optional(),
-    mandateStatus: z.string().nullable().optional(),
-    last4: z.string().nullable().optional(),
-    brand: z.string().nullable().optional(),
-    country: z.string().nullable().optional(),
-    expiryMonth: z.union([z.string(), z.number()]).nullable().optional(),
-    expiryYear: z.union([z.string(), z.number()]).nullable().optional(),
-    default: z.boolean().optional(),
-    expired: z.boolean().optional(),
-    failed: z.boolean().optional(),
-  },
-  ["providerUserId", "providerMethodId", "mandateId", "last4"],
-  "Expected a payment method summary row",
-);
-
 const IdentitySummarySchema = createSummarySchema(
   {
     provider: z.string().nullable().optional(),
@@ -403,21 +376,6 @@ const LogSummarySchema = createSummarySchema(
   "Expected a log summary row",
 );
 
-const InvoiceSummarySchema = createSummarySchema(
-  {
-    plan: z.string().nullable().optional(),
-    currency: z.string().nullable().optional(),
-    amount: z.union([z.string(), z.number()]).nullable().optional(),
-    grossAmount: z.union([z.string(), z.number()]).nullable().optional(),
-    status: z.string().nullable().optional(),
-    dueAt: z.string().nullable().optional(),
-    from: z.string().nullable().optional(),
-    to: z.string().nullable().optional(),
-  },
-  ["plan", "status", "dueAt"],
-  "Expected an invoice summary row",
-);
-
 const RuntimeSummarySchema = createSummarySchema(
   {
     $id: z.string().nullable().optional(),
@@ -442,56 +400,6 @@ const DeploymentSummarySchema = z
     buildDuration: z.union([z.string(), z.number()]).nullable().optional(),
   })
   .passthrough();
-
-const paymentMethodLabel = (row: JsonObject): string => {
-  const brand = valueFrom<string>(row, "brand") ?? "";
-  const last4 = valueFrom<string>(row, "last4") ?? "";
-
-  if (brand && last4) {
-    return `${toTitleCase(brand)} •••• ${last4}`;
-  }
-
-  if (last4) {
-    return `Card •••• ${last4}`;
-  }
-
-  return "Setup only";
-};
-
-const paymentMethodDetails = (row: JsonObject): string => {
-  const expiryMonth = valueFrom<string | number>(row, "expiryMonth");
-  const expiryYear = valueFrom<string | number>(row, "expiryYear");
-
-  if (expiryMonth != null && expiryYear != null) {
-    return `exp ${String(expiryMonth).padStart(2, "0")}/${String(expiryYear)}`;
-  }
-
-  return "no card data";
-};
-
-const paymentMethodStatus = (row: JsonObject): string => {
-  const mandateStatus = valueFrom<string>(row, "mandateStatus");
-  if (mandateStatus && mandateStatus.trim() !== "") {
-    return `mandate: ${mandateStatus}`;
-  }
-
-  if (row.failed === true) {
-    return "status: failed";
-  }
-
-  if (row.expired === true) {
-    return "status: expired";
-  }
-
-  if (
-    isPresent(valueFrom(row, "providerMethodId")) ||
-    isPresent(valueFrom(row, "last4"))
-  ) {
-    return "status: active";
-  }
-
-  return "status: pending";
-};
 
 const runtimeLabel = (row: JsonObject): string => {
   const name = compactText(valueFrom(row, "name"), "");
@@ -695,58 +603,6 @@ const structuredCollectionRenderers: Record<
     {
       header: "location",
       value: (row) => compactText(row.countryName ?? row.countryCode, "—"),
-    },
-  ]),
-  invoices: createColumnRenderer(InvoiceSummarySchema, [
-    {
-      header: "status",
-      value: (row, context) =>
-        indexedLabel(compactText(valueFrom(row, "status"), "pending"), context),
-    },
-    {
-      header: "plan",
-      value: (row) => compactText(valueFrom(row, "plan")),
-    },
-    {
-      header: "amount",
-      value: (row) => {
-        const currency = compactText(valueFrom(row, "currency"), "—");
-        const grossAmount = valueFrom<string | number>(row, "grossAmount");
-        const amount = valueFrom<string | number>(row, "amount");
-
-        return `${currency} ${grossAmount != null ? compactAmount(grossAmount) : compactAmount(amount)}`.trim();
-      },
-    },
-    {
-      header: "due",
-      value: (row) => `due ${compactDate(valueFrom(row, "dueAt"))}`,
-    },
-    {
-      header: "period",
-      value: (row) =>
-        `${compactDate(valueFrom(row, "from"))} -> ${compactDate(valueFrom(row, "to"))}`,
-    },
-  ]),
-  paymentMethods: createColumnRenderer(PaymentMethodSummarySchema, [
-    {
-      header: "method",
-      value: (row, context) => indexedLabel(paymentMethodLabel(row), context),
-    },
-    {
-      header: "country",
-      value: (row) => compactText(valueFrom(row, "country"), "—"),
-    },
-    {
-      header: "details",
-      value: (row) => paymentMethodDetails(row),
-    },
-    {
-      header: "default",
-      value: (row) => `default: ${Boolean(row.default) ? "yes" : "no"}`,
-    },
-    {
-      header: "status",
-      value: (row) => paymentMethodStatus(row),
     },
   ]),
 };
