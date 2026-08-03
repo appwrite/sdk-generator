@@ -14,7 +14,7 @@ func main() {
 	root.SetArgs(cmd.RewriteBooleanValues(root, os.Args[1:]))
 
 	if err := root.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, cmd.FormatError(err))
 		os.Exit(1)
 	}
 }

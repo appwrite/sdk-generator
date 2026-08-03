@@ -981,6 +981,16 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/errors.go',
+                'template'      => 'go-cli/internal/cmd/errors.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/errors_test.go',
+                'template'      => 'go-cli/internal/cmd/errors_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/client_test.go',
                 'template'      => 'go-cli/internal/cmd/client_test.go',
             ],
