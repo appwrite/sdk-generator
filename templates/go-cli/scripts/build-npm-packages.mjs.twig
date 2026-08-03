@@ -1,26 +1,23 @@
 #!/usr/bin/env node
-// Build the six per-platform npm packages from the goreleaser output.
+// Build the six per-platform npm packages from the staged release assets.
 //
-// Run after `goreleaser release` and before publishing. Each package holds one
-// binary plus a package.json whose `os`/`cpu` fields let npm pick exactly one
-// of them at install time; npm/run.js explains why the distribution is shaped
-// this way rather than downloading in a postinstall.
+// Run after scripts/stage-assets.mjs and before publishing. Each package holds
+// one binary plus a package.json whose `os`/`cpu` fields let npm pick exactly
+// one of them at install time; npm/run.js explains why the distribution is
+// shaped this way rather than downloading in a postinstall.
 //
-// THE RELEASE ASSET NAMES ARE NOT FILENAMES ON DISK. With `formats: [binary]`
-// goreleaser leaves each build where it built it -- dist/appwrite_darwin_amd64_v1/appwrite --
-// and carries the asset name (appwrite-cli-darwin-x64) only as metadata,
-// applying it when it uploads. So this reads dist/artifacts.json and maps name
-// to path. Globbing dist/ for the asset names finds nothing.
+// Reads the staged directory rather than dist/, because the release asset
+// names are not filenames in dist/ -- see scripts/stage-assets.mjs.
 //
-// Usage: node scripts/build-npm-packages.mjs <distDir> <outDir> <version>
+// Usage: node scripts/build-npm-packages.mjs <stagingDir> <outDir> <version>
 
 import fs from "node:fs";
 import path from "node:path";
 
-const [distDir = "dist", outDir = "npm-packages", version] = process.argv.slice(2);
+const [stagingDir = "staging", outDir = "npm-packages", version] = process.argv.slice(2);
 
 if (!version) {
-  console.error("usage: build-npm-packages.mjs <distDir> <outDir> <version>");
+  console.error("usage: build-npm-packages.mjs <stagingDir> <outDir> <version>");
   process.exit(1);
 }
 
@@ -39,21 +36,16 @@ const TARGETS = [
 const packageName = "{{ language.params.npmPackage }}";
 const executable = "{{ language.params.executableName }}";
 
-const artifacts = JSON.parse(fs.readFileSync(path.join(distDir, "artifacts.json"), "utf8"));
-const paths = new Map(artifacts.map((artifact) => [artifact.name, artifact.path]));
-
 fs.mkdirSync(outDir, { recursive: true });
 
 for (const target of TARGETS) {
   const windows = target.os === "win32";
-  const asset = `${packageName}-${target.suffix}${windows ? ".exe" : ""}`;
-  const source = paths.get(asset);
+  const source = path.join(stagingDir, `${packageName}-${target.suffix}${windows ? ".exe" : ""}`);
 
-  // Fail rather than skip. A missing artifact means goreleaser did not build
-  // that target, and publishing the remaining five would leave the parent
+  // Fail rather than skip. Publishing five of six would leave the parent
   // package resolving an optional dependency that does not exist.
-  if (!source || !fs.existsSync(source)) {
-    console.error(`no release artifact named ${asset} in ${distDir}/artifacts.json`);
+  if (!fs.existsSync(source)) {
+    console.error(`missing staged asset: ${source}`);
     process.exit(1);
   }
 

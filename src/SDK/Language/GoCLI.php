@@ -755,8 +755,18 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'scripts/stage-assets.mjs',
+                'template'      => 'go-cli/scripts/stage-assets.mjs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'scripts/build-npm-packages.mjs',
                 'template'      => 'go-cli/scripts/build-npm-packages.mjs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'go-cli/.github/workflows/publish.yml.twig',
             ],
             [
                 'scope'         => 'default',

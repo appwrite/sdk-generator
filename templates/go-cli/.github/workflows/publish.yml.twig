@@ -1,0 +1,263 @@
+name: Publish
+
+# Builds the six release binaries, signs them, and publishes to GitHub
+# Releases, npm and the Homebrew tap.
+#
+# CREDENTIALS THIS NEEDS. None are wired up yet; each is named where it is
+# used and the release fails loudly rather than silently skipping a step.
+#
+#   secrets.GH_TOKEN                     push to the tap repo and upload assets
+#   secrets.WINDOWS_SIGNING_API_TOKEN    SignPath, same account as the TS CLI
+#   vars.WINDOWS_SIGNING_ORGANIZATION_ID SignPath organisation
+#   vars.APPWRITE_BOT_APP_ID             GitHub App that writes to the tap
+#   secrets.APPWRITE_BOT_PRIVATE_KEY     its private key
+#
+# npm needs no token: publishing uses npm trusted publishing, which is what
+# `id-token: write` and `--provenance` below are for. The npm project has to
+# be configured to trust this workflow before the first run.
+#
+# There is deliberately NO Apple credential here. install.sh requires an
+# embedded signature, not a trusted one, and .goreleaser.yaml ad-hoc signs the
+# darwin builds -- which is also all the TypeScript CLI has ever shipped.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      HOMEBREW_TAP_REPO: {{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}
+      WINDOWS_SIGNING_PROJECT_SLUG: {{ '${{ vars.WINDOWS_SIGNING_PROJECT_SLUG || \'' }}{{ sdk.gitRepoName | caseDash }}{{ '\' }}' }}
+      WINDOWS_SIGNING_POLICY_SLUG: {{ '${{ vars.WINDOWS_SIGNING_POLICY_SLUG || \'release-signing\' }}' }}
+      WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG: {{ '${{ vars.WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG || \'initial\' }}' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # Before the staging step, not just before publishing: the release
+      # scripts are node, and picking up whatever node the runner image happens
+      # to ship means a runner update can change what built the release.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      # goreleaser ad-hoc signs the darwin builds. Linux runners have no
+      # codesign, so scripts/adhoc-sign.sh falls back to ldid -- without this
+      # the build fails rather than producing an unsigned macOS binary that
+      # install.sh would later refuse.
+      - name: Install ldid
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ldid
+
+      # --skip=publish because the Windows binaries have to be signed before
+      # anything is uploaded. The upload happens further down, once they are.
+      - name: Build
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          args: release --clean --skip=publish
+
+      - name: Stage release assets
+        run: node scripts/stage-assets.mjs dist staging
+
+      - name: Upload unsigned Windows binaries
+        id: upload-windows-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-unsigned
+          path: |
+            staging/{{ language.params.npmPackage }}-win-x64.exe
+            staging/{{ language.params.npmPackage }}-win-arm64.exe
+
+      - name: Submit Windows binaries for signing
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: {{ '${{ secrets.WINDOWS_SIGNING_API_TOKEN }}' }}
+          organization-id: {{ '${{ vars.WINDOWS_SIGNING_ORGANIZATION_ID }}' }}
+          project-slug: {{ '${{ env.WINDOWS_SIGNING_PROJECT_SLUG }}' }}
+          signing-policy-slug: {{ '${{ env.WINDOWS_SIGNING_POLICY_SLUG }}' }}
+          artifact-configuration-slug: {{ '${{ env.WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG }}' }}
+          github-artifact-id: {{ '${{ steps.upload-windows-unsigned.outputs.artifact-id }}' }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+          parameters: |
+            version: "{{ '${{ github.event.release.tag_name }}' }}"
+
+      - name: Replace unsigned Windows binaries
+        run: |
+          set -euo pipefail
+
+          for arch in x64 arm64; do
+            asset="{{ language.params.npmPackage }}-win-${arch}.exe"
+            signed="$(find signed -type f -name "$asset" -print -quit)"
+
+            if [ -z "$signed" ]; then
+              echo "signed $asset not found"
+              find signed -type f -print
+              exit 1
+            fi
+
+            cp "$signed" "staging/$asset"
+          done
+
+      # Recomputed after signing. goreleaser checksummed the unsigned Windows
+      # builds, and signing changes the bytes -- shipping the pre-signing
+      # checksums would make every Windows verification fail.
+      - name: Recompute checksums
+        working-directory: staging
+        run: sha256sum {{ language.params.npmPackage }}-* > checksums.txt
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: {{ '${{ secrets.GH_TOKEN }}' }}
+        run: |
+          set -euo pipefail
+          gh release upload "{{ '${{ github.event.release.tag_name }}' }}" staging/* --clobber
+
+      - name: Determine npm tag
+        id: npm_tag
+        run: |
+          if [[ "{{ '${{ github.event.release.tag_name }}' }}" == *-rc* ]] || [[ "{{ '${{ github.event.release.tag_name }}' }}" == *-RC* ]]; then
+            echo "tag=next" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build npm packages
+        env:
+          RELEASE_TAG: {{ '${{ github.event.release.tag_name }}' }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          node scripts/build-npm-packages.mjs staging npm-packages "$version"
+          # The parent's version and its optionalDependencies are generated at
+          # SDK-generation time from a placeholder, so pin them to the tag here.
+          node -e '
+            const fs = require("node:fs");
+            const version = process.argv[1];
+            const manifest = JSON.parse(fs.readFileSync("npm/package.json", "utf8"));
+            manifest.version = version;
+            for (const name of Object.keys(manifest.optionalDependencies)) {
+              manifest.optionalDependencies[name] = version;
+            }
+            fs.writeFileSync("npm/package.json", JSON.stringify(manifest, null, 2) + "\n");
+          ' "$version"
+
+      # Platform packages FIRST. The parent lists them as optionalDependencies
+      # at an exact version, so publishing it first leaves a window where an
+      # install resolves packages that do not exist yet.
+      - name: Publish platform packages
+        run: |
+          set -euo pipefail
+          for directory in npm-packages/*/; do
+            npm publish "$directory" --provenance --access public --tag {{ '${{ steps.npm_tag.outputs.tag }}' }}
+          done
+
+      - name: Publish {{ language.params.npmPackage }}
+        run: npm publish ./npm --provenance --access public --tag {{ '${{ steps.npm_tag.outputs.tag }}' }}
+
+      - name: Generate token for the Homebrew tap
+        id: bot-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: {{ '${{ vars.APPWRITE_BOT_APP_ID }}' }}
+          private-key: {{ '${{ secrets.APPWRITE_BOT_PRIVATE_KEY }}' }}
+          owner: {{ language.params.homebrewTapOwner }}
+          repositories: homebrew-{{ language.params.homebrewTapName }}
+
+      - name: Check out the Homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: {{ '${{ env.HOMEBREW_TAP_REPO }}' }}
+          token: {{ '${{ steps.bot-token.outputs.token }}' }}
+          path: homebrew-tap
+          ref: {{ language.params.homebrewTapBranch }}
+
+      # The formula already exists in the tap and is hand-maintained; this only
+      # rewrites its version and the four checksums, the same way the
+      # TypeScript CLI's release does. Deliberately not generated from a
+      # template here -- the tap is the source of truth for its own formula.
+      - name: Update the Homebrew formula
+        id: tap
+        working-directory: homebrew-tap
+        env:
+          RELEASE_TAG: {{ '${{ github.event.release.tag_name }}' }}
+        run: |
+          set -euo pipefail
+
+          FORMULA_PATH="$(find Formula -maxdepth 1 -name '*.rb' | head -n 1)"
+          if [ -z "$FORMULA_PATH" ]; then
+            echo "no formula found in the tap"
+            exit 1
+          fi
+
+          export FORMULA_PATH
+          export ASSET_PREFIX="{{ language.params.npmPackage }}"
+          for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
+            checksum="$(sha256sum "../staging/${ASSET_PREFIX}-${target}" | awk '{print $1}')"
+            export "SHA256_${target//-/_}=$checksum"
+          done
+
+          ruby <<'RUBY'
+          formula_path = ENV.fetch("FORMULA_PATH")
+          prefix = ENV.fetch("ASSET_PREFIX")
+          release_tag = ENV.fetch("RELEASE_TAG")
+          checksums = {
+            "#{prefix}-darwin-arm64" => ENV.fetch("SHA256_darwin_arm64"),
+            "#{prefix}-darwin-x64" => ENV.fetch("SHA256_darwin_x64"),
+            "#{prefix}-linux-arm64" => ENV.fetch("SHA256_linux_arm64"),
+            "#{prefix}-linux-x64" => ENV.fetch("SHA256_linux_x64"),
+          }
+
+          text = File.read(formula_path)
+
+          unless text.sub!(/^(\s*version ")([^"]+)(")$/) { "#{$1}#{release_tag}#{$3}" }
+            abort("failed to update the formula version")
+          end
+
+          checksums.each do |artifact, checksum|
+            pattern = /(#{Regexp.escape(artifact)}"\n\s+sha256 ")([0-9a-f]{64})(")/
+            unless text.sub!(pattern) { "#{$1}#{checksum}#{$3}" }
+              abort("failed to update the checksum for #{artifact}")
+            end
+          end
+
+          File.write(formula_path, text)
+          RUBY
+
+          ruby -c "$FORMULA_PATH"
+          echo "formula_path=${FORMULA_PATH}" >> "$GITHUB_OUTPUT"
+
+      - name: Commit the Homebrew formula
+        working-directory: homebrew-tap
+        env:
+          RELEASE_TAG: {{ '${{ github.event.release.tag_name }}' }}
+          FORMULA_PATH: {{ '${{ steps.tap.outputs.formula_path }}' }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- "$FORMULA_PATH"; then
+            echo "formula already up to date for ${RELEASE_TAG}"
+            exit 0
+          fi
+
+          git config user.name "appwrite-bot[bot]"
+          git config user.email "217594562+appwrite-bot[bot]@users.noreply.github.com"
+          git add "$FORMULA_PATH"
+          git commit -m "{{ language.params.executableName }} ${RELEASE_TAG}"
+          git pull --rebase origin "{{ language.params.homebrewTapBranch }}"
+          git push origin "HEAD:{{ language.params.homebrewTapBranch }}"
