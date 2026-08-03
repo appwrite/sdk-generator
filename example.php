@@ -320,7 +320,9 @@ try {
 
     // Python
     if (!$requestedSdk || $requestedSdk === 'python') {
-        $sdk  = new SDK(new Python(), buildSpec($specFormat, $spec));
+        $python = new Python();
+        $python->setPipPackage('appwrite');
+        $sdk  = new SDK($python, buildSpec($specFormat, $spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/python');
     }
