@@ -724,6 +724,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pulldatabase.go',
+                'template'      => 'go-cli/internal/cmd/pulldatabase.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/client/paginate.go',
                 'template'      => 'go-cli/internal/client/paginate.go',
             ],

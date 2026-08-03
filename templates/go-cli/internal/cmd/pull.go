@@ -16,17 +16,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports the flat-resource half of templates/cli/lib/commands/pull.ts.
+// Ports templates/cli/lib/commands/pull.ts.
 //
 // `pull bucket|team|topic|webhook` each list a resource, shape it to the config
 // schema, and REPLACE the local array. Replace, not merge: the remote is the
 // source of truth, so a resource deleted remotely has to disappear locally --
 // which is why a removal is confirmed before the write.
 //
-// NOT YET PORTED: `pull all`, `settings`, `function`, `site`, `collection` and
-// `table`. The first four need deployment download, and the last two need the
-// attribute reconciliation in utils/attributes.ts -- the largest single piece
-// left in Phase 5.
+// `pull collection` and `pull table` live in pulldatabase.go.
+//
+// NOT YET PORTED: `pull all`, `settings`, `function` and `site`. All four need
+// deployment download.
 
 // flatResource describes one list-and-replace pull.
 type flatResource struct {
@@ -90,6 +90,9 @@ func newPullCommand() *cobra.Command {
 
 	for _, resource := range flatResources {
 		command.AddCommand(newPullResourceCommand(resource))
+	}
+	for _, resource := range databaseResources {
+		command.AddCommand(newPullDatabaseCommand(resource))
 	}
 
 	return command

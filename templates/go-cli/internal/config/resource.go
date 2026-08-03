@@ -335,3 +335,40 @@ func (l *Local) ResourceEntries(resource string) []*jsonx.Object {
 
 	return entries
 }
+
+// Schema key orders for the database resources.
+var (
+	// DatabaseKeys orders a pulled database or tablesDB entry.
+	DatabaseKeys = []string{"$id", "name", "enabled"}
+	// TableKeys orders a pulled table.
+	TableKeys = []string{
+		"$id", "$permissions", "databaseId", "name", "enabled", "rowSecurity",
+		"columns", "indexes",
+	}
+	// ColumnKeys orders a pulled column.
+	ColumnKeys = []string{
+		"key", "type", "required", "array", "size", "default", "min", "max",
+		"format", "elements", "relatedTable", "relationType", "twoWay",
+		"twoWayKey", "onDelete", "side", "columns", "orders", "encrypt",
+		"previousKey",
+	}
+	// IndexTableKeys orders a pulled table index.
+	IndexTableKeys = []string{"key", "type", "status", "columns", "orders"}
+	// CollectionKeys orders a pulled collection.
+	CollectionKeys = []string{
+		"$id", "$permissions", "databaseId", "name", "enabled",
+		"documentSecurity", "attributes", "indexes",
+	}
+	// AttributeKeys orders a pulled attribute.
+	//
+	// Note both relatedCollection AND relatedTable: the collection schema
+	// accepts either, and dropping one would lose a relationship on pull.
+	AttributeKeys = []string{
+		"key", "type", "required", "array", "size", "default", "min", "max",
+		"format", "elements", "relatedCollection", "relatedTable",
+		"relationType", "twoWay", "twoWayKey", "onDelete", "side",
+		"attributes", "orders", "encrypt", "previousKey",
+	}
+	// IndexKeys orders a pulled collection index.
+	IndexKeys = []string{"key", "type", "status", "attributes", "orders"}
+)
