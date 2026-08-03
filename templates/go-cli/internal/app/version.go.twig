@@ -1,7 +1,32 @@
 package app
 
-// Version is stamped at build time with -ldflags.
+import "runtime/debug"
+
+// Version is stamped at release time with -ldflags. See .goreleaser.yaml.
 var Version = "{{ sdk.version }}"
 
 // ExecutableName is the binary name, and the directory preferences live under.
 const ExecutableName = "{{ language.params.executableName }}"
+
+// The ldflag only exists on a release build. `go install <module>@<version>`
+// does not apply it, so that path would otherwise report the hardcoded default
+// and every source install would answer `--version` with {{ sdk.version }} --
+// which looks broken, and makes a bug report impossible to place against a
+// build.
+//
+// Go stamps the module version into build info for any install from a tagged
+// version, so fall back to that when the ldflag did not fire. A plain
+// `go build` in a working tree reads "(devel)", which is honest: that build
+// has no version to report.
+func init() {
+	if Version != "{{ sdk.version }}" {
+		return
+	}
+
+	info, ok := debug.ReadBuildInfo()
+	if !ok || info.Main.Version == "" {
+		return
+	}
+
+	Version = info.Main.Version
+}
