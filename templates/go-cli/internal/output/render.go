@@ -184,6 +184,15 @@ func allEmptyObjects(items []any) bool {
 	return true
 }
 
+// RenderTable draws a headers-and-rows table in the CLI's one table style.
+//
+// Exported so the hand-built tables -- the push change list, which is not a
+// list of API objects -- render the same way as everything else instead of
+// each aligning columns their own way.
+func RenderTable(headers []string, rows [][]string) string {
+	return drawTable(headers, rows)
+}
+
 // renderTable lays rows out as a table, using the union of their keys in
 // first-seen order so a field missing from the first row is not dropped.
 func renderTable(rows []*jsonx.Object) string {
@@ -211,6 +220,10 @@ func renderTable(rows []*jsonx.Object) string {
 		data = append(data, cells)
 	}
 
+	return drawTable(headers, data)
+}
+
+func drawTable(headers []string, data [][]string) string {
 	// No outer box. cli-table3 in the TypeScript is configured with every
 	// edge character blanked (parser.ts:740) and only `mid`, `mid-mid` and
 	// `middle` kept, so a row is a value rather than a value wrapped in pipes.

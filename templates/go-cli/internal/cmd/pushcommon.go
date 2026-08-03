@@ -247,43 +247,22 @@ func (c *pushContext) approveChanges(command *cobra.Command, request approvalReq
 
 // printChanges renders the change table.
 func printChanges(command *cobra.Command, changes []change) {
-	widths := []int{2, 3, 6, 5}
+	// Through the shared renderer, so this table carries the header rule and
+	// column separators every other table has. It used to align its own
+	// columns with spaces alone, which left the reader guessing where one
+	// column ended -- especially with an empty cell in the last one.
+	//
+	// Multi-line cells -- a permissions list -- are handled by the renderer
+	// rather than split here.
+	data := make([][]string, 0, len(changes))
 	for _, entry := range changes {
-		for index, value := range []string{entry.ID, entry.Key, entry.Remote, entry.Local} {
-			for _, line := range strings.Split(value, "\n") {
-				widths[index] = max(widths[index], len([]rune(line)))
-			}
-		}
-	}
-
-	row := func(cells []string) {
-		// A multi-line cell -- a permissions list -- prints one line per
-		// entry with the other columns blank, so the rows stay aligned.
-		lines := 1
-		split := make([][]string, len(cells))
-		for index, cell := range cells {
-			split[index] = strings.Split(cell, "\n")
-			lines = max(lines, len(split[index]))
-		}
-
-		for line := range lines {
-			parts := make([]string, len(cells))
-			for index := range cells {
-				value := ""
-				if line < len(split[index]) {
-					value = split[index][line]
-				}
-				parts[index] = value + strings.Repeat(" ",
-					widths[index]-len([]rune(value)))
-			}
-			command.Printf("  %s\n", strings.TrimRight(strings.Join(parts, "  "), " "))
-		}
+		data = append(data, []string{entry.ID, entry.Key, entry.Remote, entry.Local})
 	}
 
 	command.Println()
-	row([]string{"id", "key", "remote", "local"})
-	for _, entry := range changes {
-		row([]string{entry.ID, entry.Key, entry.Remote, entry.Local})
+	for _, line := range strings.Split(
+		output.RenderTable([]string{"id", "key", "remote", "local"}, data), "\n") {
+		command.Printf("  %s\n", line)
 	}
 	command.Println()
 }

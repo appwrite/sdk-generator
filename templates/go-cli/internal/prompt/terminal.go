@@ -76,7 +76,8 @@ const minimumWidth = 40
 func (t *Terminal) run(field huh.Field) error {
 	form := huh.NewForm(huh.NewGroup(field)).
 		WithInput(t.input()).
-		WithOutput(t.output())
+		WithOutput(t.output()).
+		WithTheme(theme)
 
 	if width, _, err := term.GetSize(int(os.Stderr.Fd())); err != nil || width < minimumWidth {
 		form = form.WithWidth(minimumWidth)

@@ -656,6 +656,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/prompt/theme.go',
+                'template'      => 'go-cli/internal/prompt/theme.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/pushselect_test.go',
                 'template'      => 'go-cli/internal/cmd/pushselect_test.go',
             ],
