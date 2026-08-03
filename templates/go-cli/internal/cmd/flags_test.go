@@ -66,6 +66,98 @@ func TestNegatedFlagIsHiddenFromHelp(t *testing.T) {
 	}
 }
 
+// `--enabled false` must mean false. pflag gives a NoOptDefVal flag the default
+// and drops the value as a positional, so this asked the API to VERIFY an
+// account whose operator typed `--email-verification false`.
+func TestBooleanFlagTakesASpaceSeparatedValue(t *testing.T) {
+	for _, spelling := range [][]string{
+		{"--verified", "false"},
+		{"--verified=false"},
+		{"-v", "false"},
+	} {
+		verified, root := booleanCommand()
+
+		root.SetArgs(RewriteBooleanValues(root, append([]string{"probe"}, spelling...)))
+		if err := root.Execute(); err != nil {
+			t.Fatalf("%v: %v", spelling, err)
+		}
+		if *verified {
+			t.Errorf("%v set the flag true", spelling)
+		}
+	}
+}
+
+// The bare spelling still means true -- that is what NoOptDefVal is for, and
+// commander's `--flag [value]` behaves the same way.
+func TestBareBooleanFlagIsStillTrue(t *testing.T) {
+	verified, root := booleanCommand()
+
+	root.SetArgs(RewriteBooleanValues(root, []string{"probe", "--verified"}))
+	if err := root.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if !*verified {
+		t.Error("a bare --verified did not set the flag")
+	}
+}
+
+// Only a boolean literal is claimed. A path following a boolean flag is a
+// positional argument, and joining it would break `types --strict ./out`.
+func TestBooleanRewriteLeavesPositionalsAlone(t *testing.T) {
+	_, root := booleanCommand()
+
+	got := RewriteBooleanValues(root, []string{"probe", "--verified", "./out"})
+	want := []string{"probe", "--verified", "./out"}
+
+	if len(got) != len(want) || got[1] != want[1] || got[2] != want[2] {
+		t.Errorf("rewrote to %v, want %v", got, want)
+	}
+}
+
+// A non-boolean flag's value must never be joined, or `--name false` would
+// become a flag nobody registered.
+func TestBooleanRewriteIgnoresNonBooleanFlags(t *testing.T) {
+	_, root := booleanCommand()
+
+	got := RewriteBooleanValues(root, []string{"probe", "--name", "false"})
+	if len(got) != 3 || got[1] != "--name" || got[2] != "false" {
+		t.Errorf("rewrote a string flag to %v", got)
+	}
+}
+
+// Everything after `--` is positional, including a word that looks like a flag.
+func TestBooleanRewriteStopsAtTheTerminator(t *testing.T) {
+	_, root := booleanCommand()
+
+	got := RewriteBooleanValues(root, []string{"probe", "--", "--verified", "false"})
+	if len(got) != 4 || got[2] != "--verified" || got[3] != "false" {
+		t.Errorf("rewrote past the terminator: %v", got)
+	}
+}
+
+// booleanCommand builds a root with one subcommand carrying an optional
+// boolean, registered the way the generated service commands register theirs.
+func booleanCommand() (*bool, *cobra.Command) {
+	var (
+		verified bool
+		name     string
+	)
+
+	probe := &cobra.Command{
+		Use:  "probe",
+		Args: cobra.ArbitraryArgs,
+		RunE: func(command *cobra.Command, args []string) error { return nil },
+	}
+	probe.Flags().BoolVarP(&verified, "verified", "v", false, "Verified")
+	probe.Flags().Lookup("verified").NoOptDefVal = "true"
+	probe.Flags().StringVar(&name, "name", "", "Name")
+
+	root := &cobra.Command{Use: "appwrite", SilenceUsage: true, SilenceErrors: true}
+	root.AddCommand(probe)
+
+	return &verified, root
+}
+
 func negatableCommand(code *bool) *cobra.Command {
 	command := &cobra.Command{
 		Use: "probe",
