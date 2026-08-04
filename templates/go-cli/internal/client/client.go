@@ -214,6 +214,7 @@ func (c *Client) captureSessionCookie(response *http.Response) {
 			c.SessionCookie = cookie
 		}
 	}
+}
 
 // SetSelfSigned accepts a self-signed TLS certificate.
 //

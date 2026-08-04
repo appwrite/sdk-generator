@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
@@ -100,7 +101,8 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 	// Checked BEFORE anything is prompted for, so a wrong endpoint fails
 	// immediately rather than after the email and password are typed.
 	if options.Endpoint != "" && !cloud {
-		if err := verifyEndpoint(configEndpoint); err != nil {
+		if err := verifyEndpoint(configEndpoint,
+			global.CurrentBool(config.PreferenceSelfSigned)); err != nil {
 			return err
 		}
 	}
@@ -163,14 +165,18 @@ func currentAccount() *jsonx.Object {
 // password is typed into it.
 //
 // Ports verifyEndpoint (session.ts:41).
-func verifyEndpoint(endpoint string) error {
+func verifyEndpoint(endpoint string, selfSigned bool) error {
 	parsed, err := url.Parse(endpoint)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return fmt.Errorf("invalid endpoint URL: %s", endpoint)
 	}
 
 	version := jsonx.NewObject()
-	err = client.New(endpoint, app.Version).Call("GET", "/health/version", nil, version)
+	// selfSigned is threaded in rather than read from preferences: `client
+	// --endpoint X --self-signed true` has to verify X under the setting given in
+	// the same invocation, not the one stored from a previous run.
+	err = client.New(endpoint, app.Version).SetSelfSigned(selfSigned).
+		Call("GET", "/health/version", nil, version)
 	if err == nil && version.GetString("version") != "" {
 		return nil
 	}

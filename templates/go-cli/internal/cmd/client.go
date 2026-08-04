@@ -81,12 +81,27 @@ func newClientCommand() *cobra.Command {
 			// was current when the command started.
 			previous := global.CurrentSessionID()
 
+			// Applied BEFORE the endpoint is verified. `client --endpoint
+			// https://self-hosted/v1 --self-signed true` is one invocation, and
+			// verifying the endpoint under the stored setting rather than the
+			// given one rejected the certificate the user had just said to
+			// accept -- so the first command someone with a self-signed
+			// certificate runs could never succeed.
+			trustSelfSigned := global.CurrentBool(config.PreferenceSelfSigned)
+			if flags.Changed("self-signed") {
+				parsed, err := strconv.ParseBool(selfSigned)
+				if err != nil {
+					return err
+				}
+				trustSelfSigned = parsed
+			}
+
 			if flags.Changed("endpoint") {
 				// Checked before it is stored. Saving an unreachable endpoint
 				// silently made every later command fail somewhere less
 				// obvious than the typo that caused it, and the TypeScript
 				// saves nothing at all when the check fails.
-				if err := verifyEndpoint(endpoint); err != nil {
+				if err := verifyEndpoint(endpoint, trustSelfSigned); err != nil {
 					return err
 				}
 				selectSessionForEndpoint(command, global, previous, endpoint)
@@ -113,11 +128,7 @@ func newClientCommand() *cobra.Command {
 				global.SetCurrentValue(config.PreferenceKey, key)
 			}
 			if flags.Changed("self-signed") {
-				parsed, err := strconv.ParseBool(selfSigned)
-				if err != nil {
-					return err
-				}
-				global.SetCurrentValue(config.PreferenceSelfSigned, parsed)
+				global.SetCurrentValue(config.PreferenceSelfSigned, trustSelfSigned)
 			}
 
 			if err := global.Write(); err != nil {

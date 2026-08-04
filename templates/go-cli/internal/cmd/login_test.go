@@ -57,7 +57,7 @@ func TestVerifyEndpointRejectsAServerThatIsNotAppwrite(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := verifyEndpoint(server.URL); err == nil {
+	if err := verifyEndpoint(server.URL, false); err == nil {
 		t.Error("a server with no version was accepted as an Appwrite instance")
 	}
 }
@@ -71,14 +71,14 @@ func TestVerifyEndpointAcceptsAnAppwriteServer(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := verifyEndpoint(server.URL); err != nil {
+	if err := verifyEndpoint(server.URL, false); err != nil {
 		t.Errorf("a healthy server was rejected: %v", err)
 	}
 }
 
 func TestVerifyEndpointRejectsAMalformedURL(t *testing.T) {
 	for _, endpoint := range []string{"not a url", "ftp://example.com/v1", ""} {
-		if err := verifyEndpoint(endpoint); err == nil {
+		if err := verifyEndpoint(endpoint, false); err == nil {
 			t.Errorf("%q was accepted as an endpoint", endpoint)
 		}
 	}
