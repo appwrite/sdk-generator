@@ -691,11 +691,6 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'internal/cmd/login_test.go',
-                'template'      => 'go-cli/internal/cmd/login_test.go',
-            ],
-            [
-                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/settings_test.go',
                 'template'      => 'go-cli/internal/cmd/settings_test.go',
             ],
