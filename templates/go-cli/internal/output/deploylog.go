@@ -153,8 +153,27 @@ func (p *BuildLogPrinter) writeChunk(chunk string, includePartial bool) string {
 	}
 
 	for _, line := range lines {
-		p.emit(prefix + line)
+		p.emit(prefix + lastCarriageReturnSegment(line))
 	}
 
 	return printable
+}
+
+
+// lastCarriageReturnSegment keeps only what a terminal would still be showing
+// after the line finished printing.
+//
+// Build tools redraw progress in place with a bare carriage return -- `vite
+// build` does, so does npm and docker. Passing one through moves the cursor to
+// column zero and the rest of the line overwrites whatever was already there,
+// which is how a half-erased status line ended up superimposed on the spinner.
+//
+// The last segment is the progress line's final state, which is the only part
+// worth keeping in a log that scrolls rather than redraws.
+func lastCarriageReturnSegment(line string) string {
+	if index := strings.LastIndexByte(line, '\r'); index >= 0 {
+		return line[index+1:]
+	}
+
+	return line
 }

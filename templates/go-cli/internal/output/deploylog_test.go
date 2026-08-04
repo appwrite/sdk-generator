@@ -199,3 +199,36 @@ func lines(buffer *bytes.Buffer) func(string) {
 		buffer.WriteString(line + "\n")
 	}
 }
+
+// Build tools redraw progress in place with a bare carriage return -- `vite
+// build`, npm and docker all do. Passing one through moves the terminal cursor
+// to column zero, so the rest of the line overwrites whatever was already
+// there. That is how a half-erased progress line ended up superimposed on the
+// spinner's status row.
+func TestBuildLogCollapsesCarriageReturnProgress(t *testing.T) {
+	buffer := &bytes.Buffer{}
+	printer := NewBuildLogPrinter(lines(buffer), "site:web", false)
+
+	printer.Ingest("transforming (1) index.js\rtransforming (57) app.js\rdone in 3s\n")
+
+	got := body(buffer)
+	if strings.Contains(got, "\r") {
+		t.Errorf("a carriage return reached the terminal: %q", got)
+	}
+	if got != "done in 3s\n" {
+		t.Errorf("logs = %q, want only the final state of the progress line", got)
+	}
+}
+
+// A line with no carriage return is untouched, and the CRLF normalisation that
+// was already there still applies.
+func TestBuildLogLeavesOrdinaryLinesAlone(t *testing.T) {
+	buffer := &bytes.Buffer{}
+	printer := NewBuildLogPrinter(lines(buffer), "site:web", false)
+
+	printer.Ingest("building\r\ncompiled\nready\n")
+
+	if got, want := body(buffer), "building\ncompiled\nready\n"; got != want {
+		t.Errorf("logs = %q, want %q", got, want)
+	}
+}
