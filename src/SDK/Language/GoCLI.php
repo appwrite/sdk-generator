@@ -419,6 +419,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/client/selfsigned_test.go',
+                'template'      => 'go-cli/internal/client/selfsigned_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/session.go',
                 'template'      => 'go-cli/internal/cmd/session.go',
             ],

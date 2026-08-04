@@ -87,6 +87,10 @@ type DeviceFlow struct {
 	Endpoint   string
 	ClientID   string
 	SDKVersion string
+	// SelfSigned accepts a self-signed certificate on the endpoint, for a
+	// self-hosted instance behind its own. Set from the stored preference by the
+	// caller, which is the only place that reads preferences.
+	SelfSigned bool
 
 	// Sleep and Now are injectable so the poll loop is testable without
 	// waiting real seconds.
@@ -106,7 +110,9 @@ func NewDeviceFlow(endpoint, sdkVersion string) *DeviceFlow {
 }
 
 func (f *DeviceFlow) api() *client.Client {
-	return client.New(f.Endpoint, f.SDKVersion).SetProject(config.ProjectConsole)
+	return client.New(f.Endpoint, f.SDKVersion).
+		SetProject(config.ProjectConsole).
+		SetSelfSigned(f.SelfSigned)
 }
 
 // Authorize requests a device code and user code.

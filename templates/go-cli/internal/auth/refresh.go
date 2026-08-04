@@ -109,7 +109,8 @@ func (a *Authenticator) refresh(session *config.Object, sessionID, refreshToken 
 	// The token endpoint is served by the console project and is not regional,
 	// so the endpoint is normalised before use.
 	api := client.New(config.NormalizeCloudConsoleEndpoint(endpoint), a.SDKVersion).
-		SetProject(config.ProjectConsole)
+		SetProject(config.ProjectConsole).
+		SetSelfSigned(a.Global.CurrentBool(config.PreferenceSelfSigned))
 
 	var token tokenResponse
 	err := api.Call("POST", "/oauth2/"+config.ProjectConsole+"/token", map[string]any{

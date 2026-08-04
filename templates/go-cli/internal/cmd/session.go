@@ -48,6 +48,7 @@ func consoleClient() (*client.Client, *config.Global, error) {
 
 	api := client.New(endpoint, app.Version).
 		SetProject(config.ProjectConsole).
+		SetSelfSigned(global.CurrentBool(config.PreferenceSelfSigned)).
 		SetLocale("en-US")
 
 	hasAccessToken := session.GetString(config.PreferenceAccessToken) != ""

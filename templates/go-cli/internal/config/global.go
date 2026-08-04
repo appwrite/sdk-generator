@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -186,6 +187,36 @@ func (g *Global) CurrentValue(key string) string {
 	}
 
 	return current.GetString(key)
+}
+
+// CurrentBool reads a boolean field off the active session.
+//
+// The value is written by `client --self-signed` as a real JSON boolean, but a
+// prefs.json edited by hand -- or written by the TypeScript CLI, which stores
+// whatever the user typed -- can hold the string "true" instead. Both are
+// accepted, because rejecting the string form would silently disable a setting
+// the user believes is on.
+func (g *Global) CurrentBool(key string) bool {
+	current := g.Current()
+	if current == nil {
+		return false
+	}
+
+	value, ok := current.Get(key)
+	if !ok {
+		return false
+	}
+
+	switch typed := value.(type) {
+	case bool:
+		return typed
+	case string:
+		parsed, err := strconv.ParseBool(typed)
+
+		return err == nil && parsed
+	default:
+		return false
+	}
 }
 
 // SetCurrentValue writes one field on the active session, creating the session
