@@ -91,17 +91,24 @@ the current Bun binaries, so it does not decide anything.
 
 ### 1.4 Expected impact
 
-Phase 0 has now measured the first two rows against a real spike — see
-[BENCHMARKS.md](BENCHMARKS.md). The rest stay targets until Phase 6.
+Measured twice: against the Phase 0 spike, and against the finished CLI. Both
+sets are in [BENCHMARKS.md](BENCHMARKS.md), which explains why the spike's
+startup is *faster* than the product's — it had almost no command tree.
 
-| Metric | Today | Target | Phase 0 spike |
-|---|---|---|---|
-| `appwrite --help` | 206 ms | < 10 ms | **5.0 ms** (41×) |
-| Tab-completion round trip | full startup per request | < 10 ms | 5.1 ms |
-| `push` of a large site (wall clock) | 7.00 s / 369 MB tree | −20 to −40 % | **−56 %** |
-| `push` peak RSS | 421 MB, grows with archive | O(chunk size) | **102 MB, flat** |
-| Binary size | ~60–90 MB (Bun) | ~20–25 MB | 2.9 MB (no logic yet) |
-| Native modules to codesign | 1 (`@napi-rs/keyring`) | 0 | 0 |
+| Metric | Today | Target | Phase 0 spike | As shipped |
+|---|---|---|---|---|
+| `appwrite --help` | 206 ms | < 10 ms | **5.0 ms** (41×) | 11.3 ms (18×) — miss, accepted |
+| Tab-completion round trip | full startup per request | < 10 ms | 5.1 ms | 11.9 ms — miss, accepted |
+| `push` of a large site (wall clock) | 7.00 s / 369 MB tree | −20 to −40 % | **−56 %** | not re-measured |
+| `push` peak RSS | 421 MB, grows with archive | O(chunk size) | **102 MB, flat** | O(chunk size) — met |
+| Binary size | ~60–90 MB (Bun) | ~20–25 MB | 2.9 MB (no logic yet) | **13.8 MB** — beats it |
+| Native modules to codesign | 1 (`@napi-rs/keyring`) | 0 | 0 | **0** — met |
+
+The two startup rows miss by about a millisecond, and both are accepted rather
+than chased: the 10 ms was written against a spike with a handful of commands,
+the remaining gap is cobra building a 608-command tree, and the gate that decided
+the rewrite was the relative one — ≥ 5× — which 18× clears. `Checks / Go CLI
+startup` holds the line at 60 ms, where a real regression would show up.
 
 Unchanged: `pull`, `types`, `generate`, and anything paginating the API.
 
