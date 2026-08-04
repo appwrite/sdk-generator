@@ -24,6 +24,7 @@ namespace AppwriteTests
         {
             var client = new Client()
                 .AddHeader("Origin", "http://localhost")
+                .SetProject("console")
                 .SetSelfSigned(true);
             var sdkHeaders = client.GetHeaders();
             TestContext.WriteLine($"x-sdk-name: {sdkHeaders["x-sdk-name"]}; x-sdk-platform: {sdkHeaders["x-sdk-platform"]}; x-sdk-language: {sdkHeaders["x-sdk-language"]}; x-sdk-version: {sdkHeaders["x-sdk-version"]}");
