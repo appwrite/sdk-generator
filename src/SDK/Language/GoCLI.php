@@ -34,6 +34,11 @@ class GoCLI extends Go
     public const string MODULE_PATH = 'github.com/appwrite/appwrite-cli-go';
 
     /**
+     * Go module the generated SDK is published under, without a version suffix.
+     */
+    public const string SDK_MODULE = 'github.com/appwrite/sdk-for-go';
+
+    /**
      * @var array
      */
     #[Override]
@@ -50,6 +55,11 @@ class GoCLI extends Go
         // publishing sdk-for-go; until then a shipped build resolves nothing,
         // which is the loud failure rather than the quiet one.
         'sdkVersion' => 'v0.0.0',
+        // Import path for the SDK, which carries a /vN suffix from v2 onward --
+        // Go requires it in the module path, so `sdk-for-go v6.2.0` is imported
+        // as `sdk-for-go/v6`. Derived from sdkVersion by setSDKVersion() so the
+        // two can never disagree; the default matches the default version.
+        'sdkImportPath' => self::SDK_MODULE,
         // Empty by default, so the shipped repository gets the pinned version
         // above. example.php sets it to build examples/go-cli against the SDK
         // this generator produces, without waiting for a release.
@@ -81,6 +91,7 @@ class GoCLI extends Go
     public function setSDKVersion(string $version): self
     {
         $this->setParam('sdkVersion', $version);
+        $this->setParam('sdkImportPath', self::SDK_MODULE . $this->getMajorVersionSuffix($version));
 
         return $this;
     }

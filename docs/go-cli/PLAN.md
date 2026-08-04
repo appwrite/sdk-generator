@@ -855,6 +855,25 @@ implementation.
    The alternative considered and rejected was vendoring the SDK from the same commit,
    which removes the lag but lets the published module and the CLI's copy drift.
 
+   **Two things measured against the real release, `sdk-for-go v6.2.0`.**
+
+   First, the import path. Go requires the major version in the module path from
+   v2 on, so v6 is imported as `github.com/appwrite/sdk-for-go/v6` -- requesting it
+   without the suffix returns `invalid version: go.mod has post-v6 module path`.
+   The templates now derive that suffix from the pinned version
+   (`GoCLI::setSDKVersion`), so it cannot disagree with what is required. The local
+   `replace` target has to match the suffix too, which is why `examples/go` is
+   generated at the same version: a replace only resolves when the target module
+   declares the path being replaced.
+
+   Second, the lag is not hypothetical. v6.2.0 resolves and ships 33 packages, but
+   the CLI imports three it does not have: `migrations`, `notifications` and `vcs`.
+   So a shipped build cannot compile against it until the SDK is regenerated from
+   the spec the CLI is generated from. That is the cost this decision accepted,
+   stated as a fact rather than a risk -- and the reason the pin is worth carrying
+   anyway is that the failure is now specific ("does not contain package
+   .../vcs") rather than the placeholder's "unknown revision v0.0.0".
+
    The original framing follows.
 
    The Go CLI depends on the generated Go SDK,

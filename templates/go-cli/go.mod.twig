@@ -11,7 +11,7 @@ go 1.26.5
 // so anything added by hand to the generated file is lost on the next run.
 require (
 {% if not sdk.test %}
-	github.com/appwrite/sdk-for-go {{ language.params.sdkVersion }}
+	{{ language.params.sdkImportPath }} {{ language.params.sdkVersion }}
 {% endif %}
 	github.com/charmbracelet/huh v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.0
@@ -33,5 +33,5 @@ require (
 // That coupling is not hypothetical -- it is what keeps three methods excluded
 // from the TypeScript CLI today, waiting on a published package (see
 // example.php). Publish the SDK first, then raise sdkVersion here.
-replace github.com/appwrite/sdk-for-go => {{ language.params.localSdkPath }}
+replace {{ language.params.sdkImportPath }} => {{ language.params.localSdkPath }}
 {% endif %}
