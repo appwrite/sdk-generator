@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -110,5 +111,60 @@ func TestInstallCompletionWritesEachShell(t *testing.T) {
 		if len(contents) == 0 {
 			t.Errorf("%s: wrote an empty completion script", shell)
 		}
+	}
+}
+
+// Writing the file is not installing it. zsh autoloads completions only from a
+// directory on its fpath, and ~/.zfunc is not on it, so `completion install`
+// reported success while Tab did nothing -- and after an earlier install had
+// been removed, Tab reported `_appwrite: function definition file not found`
+// from compinit's cached index.
+func TestZshInstallSaysWhatIsStillNeeded(t *testing.T) {
+	home := setHome(t)
+
+	path, err := installCompletion(NewRootCommand(), "zsh")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	follow := completionFollowUp("zsh", filepath.Dir(path))
+
+	for _, required := range []string{
+		"fpath",
+		filepath.Join(home, ".zfunc"),
+		"compinit",
+		".zcompdump",
+	} {
+		if !strings.Contains(follow, required) {
+			t.Errorf("the zsh follow-up does not mention %q:\n%s", required, follow)
+		}
+	}
+}
+
+// The directory is the one that was actually written to, so an override is
+// reflected in the advice rather than the default being printed back.
+func TestZshFollowUpNamesTheOverriddenDirectory(t *testing.T) {
+	setHome(t)
+	t.Setenv("ZSH_COMPLETION_DIR", filepath.Join(t.TempDir(), "elsewhere"))
+
+	path, err := completionInstallPath("zsh")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	follow := completionFollowUp("zsh", filepath.Dir(path))
+
+	if !strings.Contains(follow, filepath.Dir(path)) {
+		t.Errorf("the follow-up does not name %q:\n%s", filepath.Dir(path), follow)
+	}
+	if strings.Contains(follow, ".zfunc") {
+		t.Errorf("the follow-up names the default directory, not the one written:\n%s", follow)
+	}
+}
+
+// fish loads its completions directory itself, so there is nothing to say.
+func TestFishNeedsNoFollowUp(t *testing.T) {
+	if follow := completionFollowUp("fish", "/anywhere"); follow != "" {
+		t.Errorf("fish was given setup instructions it does not need:\n%s", follow)
 	}
 }
