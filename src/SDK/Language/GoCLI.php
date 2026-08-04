@@ -991,6 +991,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/sdk/env.go',
+                'template'      => 'go-cli/internal/sdk/env.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/sdk/capture.go',
                 'template'      => 'go-cli/internal/sdk/capture.go',
             ],
