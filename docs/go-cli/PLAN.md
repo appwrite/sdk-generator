@@ -6,15 +6,15 @@ same way the TypeScript CLI is today.
 Read [README.md](README.md) before touching anything. It is the operating manual;
 this file is the roadmap.
 
-[AUDIT.md](AUDIT.md) is the conformance audit of 2026-08-03: 18 confirmed
-divergences from the TypeScript CLI, all re-checked against a live staging
-instance, plus the list of what is still untested. **Nothing in it is fixed.**
-Read it before declaring any phase complete. Four findings block Phase 8 —
-boolean flags invert when given a space-separated value (`--enabled false`
-sends `true`, proven on live data), `--json`/`--raw` both violate invariant 4,
-project commands fail from any subdirectory, and `pull settings` fails outright
-without `organizationId`. Findings 1 and 3 are bugs in the published
-`sdk-for-go`, not in the CLI.
+[AUDIT.md](AUDIT.md) is the conformance audit of 2026-08-03, and its own
+status header is the current one: **17 of 22 findings fixed, every rollout
+blocker among them.** The differential sweep it describes now reports 532 of
+606 commands byte-identical, up from 237.
+
+What is left needs a live server (findings 10 and 21), is cosmetic (22 and
+query-parameter ordering), or is a product decision (`--id`, which is
+written-but-never-read in the TypeScript too). Read the audit before declaring
+any phase complete.
 
 ---
 
@@ -840,9 +840,13 @@ implementation.
 **Goal:** switch over without stranding anyone.
 
 **Entry:** Phase 7 exit met, **and** every finding in [AUDIT.md](AUDIT.md) either
-fixed or accepted in writing. Finding 2 in particular is a data-corruption bug —
-`--enabled false` sends `true`, demonstrated against a live instance by flipping
-a real account's email to verified — and must not reach a default install.
+fixed or accepted in writing.
+
+> As of 2026-08-03 the blocking findings are fixed, including finding 2 — the
+> data-corruption bug where `--enabled false` sent `true`, demonstrated against
+> a live instance by flipping a real account's email to verified. The entry bar
+> is now the four remaining findings being decided rather than fixed: two need
+> a live check, two are cosmetic.
 
 **Work:**
 
