@@ -166,7 +166,7 @@ func Report(writer io.Writer, executed *cobra.Command, err error) int {
 	}
 
 	// Skipped once the user has already asked for the detail it points at.
-	if !app.Flags().Verbose && !app.Flags().Report {
+	if !detailWasRequested() {
 		output.Log(writer, "For detailed error pass the --verbose or --report flag")
 	}
 
@@ -177,6 +177,36 @@ func Report(writer io.Writer, executed *cobra.Command, err error) int {
 	}
 
 	return 1
+}
+
+// detailWasRequested reports whether the user asked for the detail the advice
+// line points at.
+//
+// The parsed flags are not enough. A command that fails DURING parsing never
+// reaches the later flags: `appwrite users get --bogus --verbose` stops at
+// --bogus, so Verbose is still false and the CLI advised passing a flag that is
+// already in the invocation. The arguments are what the user actually typed.
+func detailWasRequested() bool {
+	if app.Flags().Verbose || app.Flags().Report {
+		return true
+	}
+
+	for _, argument := range os.Args[1:] {
+		// A `--` ends the flags; anything after it is a value.
+		if argument == "--" {
+			return false
+		}
+		if argument == "--verbose" || argument == "--report" {
+			return true
+		}
+		// -V, and clusters such as -jV. Not a long flag, and not a bare "-".
+		if len(argument) > 1 && argument[0] == '-' && argument[1] != '-' &&
+			strings.ContainsRune(argument, 'V') {
+			return true
+		}
+	}
+
+	return false
 }
 
 // CancellationNotice is the line printed for a cancelled prompt.

@@ -170,6 +170,11 @@ func completionInstallPath(shell string) (string, error) {
 func completionFollowUp(shell, directory string) string {
 	name := app.ExecutableName
 
+	// Quoted: these lines are meant to be pasted into a shell, and a home
+	// directory with a space in it -- "/Users/My Name" -- would otherwise turn
+	// one fpath entry into three broken ones.
+	quoted := shellQuote(directory)
+
 	switch shell {
 	case "zsh":
 		return fmt.Sprintf(`zsh loads completions from its fpath, which does not include %s by default.
@@ -182,7 +187,7 @@ If Tab then reports "_%s: function definition file not found", compinit is
 using a cached index from an earlier install -- clear it with:
 
   rm -f ~/.zcompdump*
-`, directory, directory, name)
+`, directory, quoted, name)
 	case "bash":
 		return fmt.Sprintf(`This directory is loaded by bash-completion. If Tab does nothing, either
 bash-completion is not installed, or ~/.bashrc does not source it:
@@ -191,12 +196,27 @@ bash-completion is not installed, or ~/.bashrc does not source it:
 
 You can also source the script directly:
 
-  source %s/%s
-`, directory, name)
+  source %s
+`, shellQuote(filepath.Join(directory, name)))
 	default:
 		// fish loads ~/.config/fish/completions itself, with no setup.
 		return ""
 	}
+}
+
+// shellQuote makes a path safe to paste into zsh or bash.
+//
+// Only when it needs it: the overwhelming majority of paths need no quoting,
+// and wrapping every one of them would put quotes around the single line most
+// users copy for no reason at all.
+func shellQuote(path string) string {
+	if path != "" && !strings.ContainsAny(path, " \t\n'\"\\$`*?()[]{};&|<>#~!") {
+		return path
+	}
+
+	// Single quotes suppress every expansion; the only character they cannot
+	// hold is a single quote, which is closed, escaped and reopened.
+	return "'" + strings.ReplaceAll(path, "'", `'\''`) + "'"
 }
 
 func overridePath(variable, fallback string) string {

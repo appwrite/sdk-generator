@@ -244,3 +244,47 @@ func TestReportDistinguishesCancellationFromFailure(t *testing.T) {
 		t.Errorf("no error exited %d, want 0", status)
 	}
 }
+
+// A command that fails DURING parsing never reaches the later flags, so the
+// parsed globals cannot answer "did the user ask for detail". `users get
+// --bogus --verbose` stopped at --bogus and then advised passing --verbose.
+func TestDetailIsRecognisedFromTheArgumentsWhenParsingFailed(t *testing.T) {
+	cases := map[string]bool{
+		"users get --bogus --verbose": true,
+		"users get --bogus --report":  true,
+		"users get --bogus -V":        true,
+		"users get --bogus -jV":       true,
+		"users get --bogus":           false,
+		"users get --bogus -j":        false,
+		// After `--` it is a value, not a flag.
+		"users get -- --verbose": false,
+		"users get -":            false,
+	}
+
+	for invocation, want := range cases {
+		restore := os.Args
+		os.Args = append([]string{"appwrite"}, strings.Fields(invocation)...)
+
+		got := detailWasRequested()
+		os.Args = restore
+
+		if got != want {
+			t.Errorf("detailWasRequested() = %v for `appwrite %s`, want %v",
+				got, invocation, want)
+		}
+	}
+}
+
+// And the hint really does disappear from the rendered output.
+func TestTheHintIsNotPrintedWhenTheUserAlreadyAskedForDetail(t *testing.T) {
+	restore := os.Args
+	os.Args = []string{"appwrite", "users", "get", "--bogus", "--verbose"}
+	t.Cleanup(func() { os.Args = restore })
+
+	buffer := &bytes.Buffer{}
+	Report(buffer, nil, errors.New("unknown flag: --bogus"))
+
+	if strings.Contains(buffer.String(), "For detailed error") {
+		t.Errorf("advised passing a flag that is already in the invocation:\n%s", buffer.String())
+	}
+}

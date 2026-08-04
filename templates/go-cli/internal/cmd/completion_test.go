@@ -168,3 +168,47 @@ func TestFishNeedsNoFollowUp(t *testing.T) {
 		t.Errorf("fish was given setup instructions it does not need:\n%s", follow)
 	}
 }
+
+// These lines are meant to be pasted into a shell. A home directory with a
+// space in it -- "/Users/My Name" -- turned one fpath entry into three broken
+// ones, so the advice for fixing completion was itself unusable.
+func TestFollowUpQuotesPathsAShellWouldSplit(t *testing.T) {
+	awkward := "/tmp/my home/.zfunc"
+
+	zsh := completionFollowUp("zsh", awkward)
+	if !strings.Contains(zsh, "fpath=('"+awkward+"' $fpath)") {
+		t.Errorf("the zsh fpath line is unquoted:\n%s", zsh)
+	}
+
+	bash := completionFollowUp("bash", "/tmp/my home/completions")
+	if !strings.Contains(bash, "source '/tmp/my home/completions/appwrite'") {
+		t.Errorf("the bash source line is unquoted:\n%s", bash)
+	}
+}
+
+// Quoting every path would put quotes around the one line most users copy.
+func TestOrdinaryPathsAreNotQuoted(t *testing.T) {
+	follow := completionFollowUp("zsh", "/home/someone/.zfunc")
+
+	if strings.Contains(follow, "'") {
+		t.Errorf("an ordinary path was quoted for no reason:\n%s", follow)
+	}
+}
+
+func TestShellQuote(t *testing.T) {
+	cases := map[string]string{
+		"/home/a/.zfunc":    "/home/a/.zfunc",
+		"/tmp/my home/x":    "'/tmp/my home/x'",
+		"/tmp/it's/x":       `'/tmp/it'\''s/x'`,
+		"/tmp/$HOME/x":      "'/tmp/$HOME/x'",
+		"/tmp/a;rm -rf ~/x": "'/tmp/a;rm -rf ~/x'",
+		"/tmp/glob*/x":      "'/tmp/glob*/x'",
+		"":                  "''",
+	}
+
+	for path, want := range cases {
+		if got := shellQuote(path); got != want {
+			t.Errorf("shellQuote(%q) = %q, want %q", path, got, want)
+		}
+	}
+}
