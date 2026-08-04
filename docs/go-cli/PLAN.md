@@ -598,10 +598,11 @@ preserve and how it was verified.
   When a pull is changed, re-verify ALL of them against the TypeScript, not just the one
   touched. This trap invalidated four earlier comparisons at once.
 
-- **Request tracing** — `docs/go-cli/record-requests.py` is a forwarding proxy that records
-  every API call to JSONL, plus `--compare` to diff two traces. **Use it before and while
-  porting `push`**: push's contract is the sequence of requests it issues, and nothing else
-  covers a state machine whose observable effect is what it sends.
+- **Request tracing** — record every API call and diff the sequence. **Do this before and
+  while porting `push`**: push's contract *is* the sequence of requests it issues, and
+  nothing else covers a state machine whose only observable effect is what it sends.
+  `docs/go-cli/conformance/` does it against a stub (`recorder.py` writes the JSONL,
+  `drive.py` diffs two runs); against a live instance, put any recording proxy in front.
 
   It is not only for push. Run on `pull` — already verified byte-identical on output — it
   found a missing `limit(1)` probe and the wrong query encoding (`queries[]` for

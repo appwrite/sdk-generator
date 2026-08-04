@@ -131,14 +131,20 @@ TypeScript first if it should be fixed at all.
 
 ### 2.7 For anything stateful, compare REQUESTS, not output
 
-A command whose job is to change a remote has no output worth diffing. Record what it
-sends: `docs/go-cli/record-requests.py` proxies a CLI to a real instance, writes every
-call to JSONL, and `--compare` reports the first request two traces disagree on.
+A command whose job is to change a remote has no output worth diffing. Its contract is the
+sequence of requests it issues, so that is what you compare — method, path, query, body,
+headers, in order.
 
-Run it on a command you have already verified. On `pull` — byte-identical output, checked
-against real staging — it immediately found a missing `limit(1)` probe and `queries[]`
-where the TypeScript sends `queries[0]`. Both were invisible in the config and both are
-wire behaviour a user could depend on.
+`docs/go-cli/conformance/` does this against a stub server: `recorder.py` logs every call
+to JSONL and `drive.py` reports the first request two runs disagree on. To compare against
+a real instance instead, put any recording proxy in front of it and point both CLIs at the
+proxy; there is nothing Appwrite-specific about that half.
+
+Do it on a command you have already verified. On `pull` — byte-identical output, checked
+against real staging — it immediately turned up a missing `limit(1)` probe and `queries[]`
+where the TypeScript sends `queries[0]`. Both were invisible in the config, and both are
+wire behaviour a user could depend on. **Identical output does not mean identical
+behaviour.**
 
 ### 2.8 Reference the TypeScript by file and line
 

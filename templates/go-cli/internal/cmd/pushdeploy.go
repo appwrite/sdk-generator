@@ -31,8 +31,8 @@ import (
 // live-updating Spinner. There is no spinner in the Go runtime and human
 // output is explicitly outside the contract (docs/go-cli/PLAN.md §3), so
 // resources are pushed one at a time and progress is printed as plain lines.
-// That also makes the request sequence deterministic, which is what
-// docs/go-cli/record-requests.py compares.
+// That also makes the request sequence deterministic, which is what the
+// differential harness compares (docs/go-cli/conformance/).
 //
 // The TypeScript also opens a realtime WebSocket to stream build logs and falls
 // back to polling when it cannot -- in the recorded trace `GET /realtime`
