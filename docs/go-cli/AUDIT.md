@@ -3,37 +3,30 @@
 What was tested, what diverges from the TypeScript CLI, and what is still
 untested.
 
-**Status: 18 of the 22 findings are fixed, and the remaining four are
-resolved as decisions rather than work** — see "What is left". Every finding
-has now been checked against a live Appwrite instance.
+## Status — closed
 
-**Status, 2026-08-03 evening: 17 of the 22 findings are fixed**, including
-every rollout blocker. Each fix carries a regression test that was checked
-against a reverted fix. The differential sweep that produced this audit now
-reports **532 of 606 commands byte-identical, up from 237**. Of the 74 that
-still differ, 50 are a stub artifact and 24 are real — three of them found by
-this cleaner sweep and recorded as findings 20-22 below.
+All 23 findings are resolved: **19 fixed, 4 accepted in writing.** Nothing here
+is outstanding, and nothing here blocks the rollout.
 
-Fixed: 1, 2, 3, 3b, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18 — and
-`logout`, which had the same server-side hole as `client --reset` and was not
-recorded separately.
+| | Findings | |
+|---|---|---|
+| **Fixed** | 1, 2, 3, 3b, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 20 | Each carries a regression test that was run against the reverted fix. `logout` had the same server-side hole as `client --reset` and was fixed alongside it. |
+| **Accepted** | 10, 19, 22 | Deliberate, and none of it observable to a server. See [What is left](#what-is-left). |
+| **Not a Go defect** | 21 | Go is correct; the released TypeScript CLI returns 401 on the same command. |
 
-Still open: 10, 21 and 22 — all of which need a live server or are cosmetic.
-Query-parameter ordering was examined and deliberately left. Finding 17 is fixed by **diverging deliberately** —
-see its note.
+Findings 17 and 19 are resolved by diverging from the TypeScript on purpose
+rather than by matching it. Each says so at the finding.
 
-Nineteen confirmed divergences. Four block rollout: **finding 2** (boolean flags
-invert when given a space-separated value — `--enabled false` sends `true`,
-proven against live data), **finding 13** and **finding 14** (both break
-invariant 4, and one is locked in by a passing test), and **finding 16**
-(`pull settings` fails outright).
+The differential sweep now reports **532 of 606 commands byte-identical, up from
+237** when the audit opened. The 74 that differ are [itemised
+below](#remaining-sweep-differences-itemised): 50 are an artifact of the stub
+server, and the rest are the accepted findings.
 
-**Updated 2026-08-03, later the same day.** The staging session was renewed, so
-everything below has now been re-checked against a live Appwrite instance
-rather than only a recording stub. That changed four verdicts: finding 2 is
-worse than described, findings 1 and 3 are milder in one respect and worse in
-another, and one item previously filed as "needs live verification" turned out
-to be a hard failure. Each is marked inline.
+Every finding was checked against a live Appwrite instance, not only against the
+recording stub. Doing so changed four verdicts, each marked inline: finding 2 was
+worse than first described, findings 1 and 3 were milder in one respect and worse
+in another, and one item filed as "needs live verification" turned out to be a
+hard failure.
 
 Compared: the Go CLI built from `templates/go-cli` at `dc545278a` against the
 TypeScript CLI built from `templates/cli` at the same commit.
@@ -69,7 +62,13 @@ and diffing method, path, query, body and headers.
 Required-flag sets are compared separately: cobra's on one side, the
 `.requiredOption` calls in the generated TypeScript on the other.
 
-## Results at a glance
+## Results when the audit opened
+
+This is the opening snapshot, kept so the findings can be read against what
+prompted them. Every row marked "Diverges" is closed — see [Status](#status--closed)
+for where each one landed, and [Remaining sweep
+differences](#remaining-sweep-differences-itemised) for the request diff as it
+stands now.
 
 | Check | Result |
 |---|---|
@@ -496,9 +495,16 @@ Same shape as finding 4: a resolution chain that is one fallback short.
 
 ### 19. `sessions` exists only in Go
 
+> **ACCEPTED — kept deliberately.** An addition, not a gap.
+
 `appwrite sessions` lists the sessions in the CLI preferences; the TypeScript
-has no such command. An addition, not a gap — recorded so it is a decision
-rather than an accident.
+has no such command.
+
+Kept because the preferences file holds more than one session and, without this,
+nothing shows you what is in it: `login --switch` prompts with the list but
+cannot be scripted, and reading `prefs.json` by hand is not an interface. It is
+additive, so no TypeScript user can be broken by it, and the surface-parity
+check reports it as the single extra command rather than hiding it.
 
 ## Shared bugs — present in both CLIs
 
@@ -670,25 +676,33 @@ Go is correct here.
 
 ## What is left
 
-Nothing that blocks the rewrite. Every finding has been checked against a live
-instance; what remains is one product decision and two accepted divergences.
+Nothing. Every finding has been checked against a live instance and closed. What
+follows is the reasoning behind the four that were closed by decision rather than
+by a code change, so a reviewer does not have to reconstruct it.
 
-1. **`--id` on `push` and `pull`** — a product decision, not a port bug. Absent
-   from Go, and written-but-never-read in the TypeScript (`cliConfig.ids` is
-   assigned in two places and consulted only by the guard that rejects it
-   alongside `--all`). Implement it properly in both, or drop it from the
-   TypeScript.
+1. **`--id` on `push` and `pull`** — omitting it from Go is correct, because the
+   TypeScript's does nothing. It is documented as "Limit the push to these
+   resource ids", assigned at `push.ts:4278` and `pull.ts:1127`, and its only
+   read in the entire tree is the guard at `parser.ts:955` that rejects it
+   alongside `--all`. No code path filters on it, so `push function --id abc`
+   pushes every function. Go declining to offer the flag is better than
+   reproducing one that lies; real resource-id filtering is a product feature,
+   not a port gap, and belongs to whichever CLI survives Phase 8.
 2. **Finding 10** — accepted. Go sends `X-Appwrite-Project` on the `oauth2`
    commands; the API returns identical responses either way.
-3. **Finding 22 and query-parameter ordering** — accepted. Neither is
-   observable to a server, and the ordering fix would mean reworking `params`
-   across every generated method in the published SDK.
-4. **Finding 21 is a bug in the TypeScript CLI**, not in Go. Worth raising
-   there: `storage get-file-download`, `get-file-view` and `get-file-preview`
-   all return 401 in the released `appwrite-cli@25.1.0`.
+3. **Finding 19** — accepted. `sessions` is additive, so it breaks nobody, and
+   without it nothing shows what is in the preferences file.
+4. **Finding 22 and query-parameter ordering** — accepted. Neither is observable
+   to a server, and the ordering fix would mean reworking `params` across every
+   generated method in the published SDK.
+5. **Finding 21 is a bug in the TypeScript CLI**, not in Go: `storage
+   get-file-download`, `get-file-view` and `get-file-preview` all return 401 in
+   the released `appwrite-cli@25.1.0`, because it puts the credentials in the
+   query string. Go authenticates through headers and works. Nothing to do in
+   this stack; it wants an issue against the TypeScript CLI.
 
-Still untested rather than unresolved: the two Docker e2e suites, which need a
-daemon, and the interactive flows.
+Untested rather than unresolved: the interactive flows, which need a terminal.
+The two Docker e2e suites now run in CI as `GoCLI126` and `CLISharedBun13`.
 
 ## Verified live after the fixes
 
@@ -705,17 +719,19 @@ Re-checked against staging once the fixes were in:
 
 ## Remaining sweep differences, itemised
 
-532 of 606 commands are byte-identical. Of the 74 that are not:
+532 of 606 commands were byte-identical when the sweep last ran, and finding 20
+has been fixed since, which accounts for 4 more. Of the 74 that differed, none
+is an open defect:
 
-| Count | Cause |
-|---|---|
-| 50 | The stub server answers with field types the Go SDK's typed models reject, so Go exits 1 where the TypeScript, which never type-checks a response, exits 0. Harness. |
-| 11 | Finding 10, the `oauth2` project header. |
-| 5 | Finding 21, the download and preview commands. |
-| 4 | Finding 20, array query encoding — **since fixed**. |
-| 2 | Finding 22, multipart field order on `create-deployment`. |
-| 1 | Query-parameter ordering on `project get-usage`. Examined and left alone. |
-| 1 | `storage create-file`, whose upload shape was verified identical against a live server. |
+| Count | Cause | |
+|---|---|---|
+| 50 | The stub server answers with field types the Go SDK's typed models reject, so Go exits 1 where the TypeScript, which never type-checks a response, exits 0. | Harness, not product. |
+| 11 | Finding 10, the `oauth2` project header. | Accepted. |
+| 5 | Finding 21, the download and preview commands. | Go is correct; the TypeScript 401s. |
+| 4 | Finding 20, array query encoding. | Fixed. |
+| 2 | Finding 22, multipart field order on `create-deployment`. | Accepted. |
+| 1 | Query-parameter ordering on `project get-usage`. | Accepted. |
+| 1 | `storage create-file`, whose upload shape was verified identical against a live server. | Harness. |
 
 Three earlier rounds of this sweep reported far worse numbers, every time
 because of harness drift rather than the product: the binary was rebuilt
@@ -723,8 +739,8 @@ mid-run; only the Go side had `APPWRITE_PROJECT_ID` set, so the two CLIs used
 different projects; an earlier probe had changed the TypeScript's stored API
 key; the driver read each flag's *description* as its type and so fed `stub` to
 every boolean; and required booleans need an explicit value on the TypeScript
-side. All five are fixed in `conform/drive.py`. **Treat a sudden jump in this
-number as harness drift until proven otherwise.**
+side. All five are fixed in [`conformance/drive.py`](conformance/drive.py).
+**Treat a sudden jump in this number as harness drift until proven otherwise.**
 
 ## Found by the final sweep
 

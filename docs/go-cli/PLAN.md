@@ -449,14 +449,22 @@ rewrite is safe. Do not defer it.
 - Flag-surface test from Phase 3 green in CI.
 - The Go CLI's suite runs in CI on every PR, independently of the TypeScript CLI's.
 
-> **Not met as of 2026-08-03.** A standalone differential harness was run
-> outside the suite — both CLIs pointed at a recording server, every generated
-> service command invoked with its required flags filled — and 369 of 606
-> commands sent different requests. See [AUDIT.md](AUDIT.md). The e2e suites
-> themselves did not run (no Docker daemon), and the `--json` stdout diff was
-> written but not executed. The four items above remain open, and item 4's
-> "any diff fails the build" is the check that would have caught findings 1-3
-> months ago.
+> **Met.** All five items landed, and CI runs three jobs for them on every PR:
+> `GoCLI126` (item 1, the Go conformance run), `CLISharedBun13` (item 2, the same
+> harness driving the TypeScript CLI), and `CLIDifferential` (item 4, which fails
+> the build on any `--json` difference between the two binaries).
+>
+> Item 3 is met with one documented narrowing: `GoCLI126Test` reuses
+> `FOO_RESPONSES`, `BAR_RESPONSES`, `UPLOAD_RESPONSES` and
+> `CLI_HEADERS_RESPONSES` unchanged, and does not assert the constants the
+> TypeScript run produces from its `require("./lib/*.ts")` half — typegen,
+> emulation and prompt behaviour describe TypeScript internals rather than CLI
+> output, and the Go equivalents are covered by `go test ./internal/...`, which
+> the same test's build step runs.
+>
+> The wider sweep this phase was reordered for did its job: it found 369 of 606
+> commands sending different requests, and every one of those is now accounted
+> for in [AUDIT.md](AUDIT.md).
 
 **Risk:** the Bun test harness leaks containers on interrupt. `cd mock-server &&
 docker compose down` before re-running.
@@ -861,6 +869,13 @@ fixed or accepted in writing.
 5. Deprecate: remove `templates/cli/`, `src/SDK/Language/CLI.php`, the three
    `CLIBun*Test.php` files, and the `cli` block in `example.php`. Rename `go-cli` → `cli`
    throughout, so the ecosystem sees no rename.
+
+   Two more things retire in the same change, because both exist only to compare
+   the two implementations and have nothing to compare afterwards:
+   `tests/e2e/CLIDifferentialTest.php` with `tests/e2e/languages/cli/differential.js`,
+   and `docs/go-cli/conformance/` with `docs/go-cli/traces/`. Run the conformance
+   sweep one last time before step 4 flips the default — it covers the whole
+   command surface, which the scripted CI differential does not.
 
 **Exit:**
 - Go CLI is the default install on every channel.
