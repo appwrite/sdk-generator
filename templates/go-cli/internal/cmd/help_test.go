@@ -333,3 +333,131 @@ func TestWrapMatchesCommanderAtEveryWidth(t *testing.T) {
 		}
 	}
 }
+
+// The paragraph the CLI actually ships has no word longer than a column, no
+// double spaces and no leading space, so checking the wrap against it alone left
+// three branches unexercised -- and one of them was wrong: a run of consecutive
+// spaces produced a blank line that commander does not produce.
+//
+// Captured the same way as commanderWrapped, from commander's own Help.wrap.
+var commanderWrappedAwkward = []struct {
+	name    string
+	text    string
+	wrapped map[int]string
+}{
+	{
+		name: "longword",
+		text: "Runs the appwrite-cli-with-an-extremely-long-hyphenated-token and then stops",
+		wrapped: map[int]string{
+			80: "  Runs the appwrite-cli-with-an-extremely-long-hyphenated-token and then stops",
+			44: "  Runs the\n  appwrite-cli-with-an-extremely-long-hyphenated-token\n  and then stops",
+			30: "  Runs the\n  appwrite-cli-with-an-extremely-long-hyphenated-token\n  and then stops",
+			20: "  Runs the\n  appwrite-cli-with-an-extremely-long-hyphenated-token\n  and then stops",
+			12: "  Runs the\n  appwrite-cli-with-an-extremely-long-hyphenated-token\n  and\n  then\n  stops",
+			8:  "  Runs\n  the\n  appwrite-cli-with-an-extremely-long-hyphenated-token\n  and\n  then\n  stops",
+			6:  "  Runs\n  the\n  appwrite-cli-with-an-extremely-long-hyphenated-token\n  and\n  then\n  stops",
+		},
+	},
+	{
+		name: "allonelongword",
+		text: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		wrapped: map[int]string{
+			80: "  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			44: "  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			30: "  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			20: "  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			12: "  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			8:  "  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			6:  "  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		},
+	},
+	{
+		name: "doublespace",
+		text: "Two  spaces  between  every  word  here  in  this  sentence",
+		wrapped: map[int]string{
+			80: "  Two  spaces  between  every  word  here  in  this  sentence",
+			44: "  Two  spaces  between  every  word  here\n  in  this  sentence",
+			30: "  Two  spaces  between  every\n   word  here  in  this\n  sentence",
+			20: "  Two  spaces\n  between  every\n  word  here  in\n  this  sentence",
+			12: "  Two\n  spaces\n  between\n   every\n  word\n  here\n  in\n  this\n  sentence",
+			8:  "  Two\n  spaces\n  between\n  every\n  word\n  here\n   in\n  this\n  sentence",
+			6:  "  Two\n  spaces\n  between\n  every\n  word\n  here\n  in\n  this\n  sentence",
+		},
+	},
+	{
+		name: "trailing",
+		text: "Trailing space at the end ",
+		wrapped: map[int]string{
+			80: "  Trailing space at the end",
+			44: "  Trailing space at the end",
+			30: "  Trailing space at the end",
+			20: "  Trailing space at\n  the end",
+			12: "  Trailing\n  space\n  at the\n  end",
+			8:  "  Trailing\n  space\n  at\n  the\n  end",
+			6:  "  Trailing\n  space\n  at\n  the\n  end",
+		},
+	},
+	{
+		name: "leading",
+		text: " Leading space at the start",
+		wrapped: map[int]string{
+			80: "   Leading space at the start",
+			44: "   Leading space at the start",
+			30: "   Leading space at the start",
+			20: "   Leading space at\n  the start",
+			12: "   Leading\n  space\n  at the\n  start",
+			8:  "   Leading\n  space\n  at\n  the\n  start",
+			6:  "   Leading\n  space\n  at\n  the\n  start",
+		},
+	},
+	{
+		name: "short",
+		text: "Hi",
+		wrapped: map[int]string{
+			80: "  Hi",
+			44: "  Hi",
+			30: "  Hi",
+			20: "  Hi",
+			12: "  Hi",
+			8:  "  Hi",
+			6:  "  Hi",
+		},
+	},
+	{
+		name: "exactfit",
+		text: "abcd efgh ijkl mnop qrst uvwx yzab cdef ghij klmn opqr stuv",
+		wrapped: map[int]string{
+			80: "  abcd efgh ijkl mnop qrst uvwx yzab cdef ghij klmn opqr stuv",
+			44: "  abcd efgh ijkl mnop qrst uvwx yzab cdef\n  ghij klmn opqr stuv",
+			30: "  abcd efgh ijkl mnop qrst\n  uvwx yzab cdef ghij klmn\n  opqr stuv",
+			20: "  abcd efgh ijkl\n  mnop qrst uvwx\n  yzab cdef ghij\n  klmn opqr stuv",
+			12: "  abcd efgh\n  ijkl\n  mnop\n  qrst\n  uvwx\n  yzab\n  cdef\n  ghij\n  klmn\n  opqr\n  stuv",
+			8:  "  abcd\n  efgh\n  ijkl\n  mnop\n  qrst\n  uvwx\n  yzab\n  cdef\n  ghij\n  klmn\n  opqr\n  stuv",
+			6:  "  abcd\n  efgh\n  ijkl\n  mnop\n  qrst\n  uvwx\n  yzab\n  cdef\n  ghij\n  klmn\n  opqr\n  stuv",
+		},
+	},
+}
+
+func TestWrapMatchesCommanderOnAwkwardText(t *testing.T) {
+	for _, testCase := range commanderWrappedAwkward {
+		for width, want := range testCase.wrapped {
+			got := wrapHelpText(testCase.text, width-helpGap-helpGap, helpIndent)
+			if got != want {
+				t.Errorf("%s at width %d:\n got: %q\nwant: %q",
+					testCase.name, width, got, want)
+			}
+		}
+	}
+}
+
+// The one deliberate deviation. commander returns the bare indent for an empty
+// or all-whitespace description, which puts a line of trailing spaces on the
+// screen; nothing generated has an empty description, and no line is better than
+// a blank one.
+func TestAnEmptyDescriptionProducesNoLine(t *testing.T) {
+	for _, text := range []string{"", "   ", "\t\n"} {
+		if got := wrapHelpText(text, 76, helpIndent); got != "" {
+			t.Errorf("wrapHelpText(%q) = %q, want an empty string", text, got)
+		}
+	}
+}

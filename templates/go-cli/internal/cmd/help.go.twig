@@ -418,6 +418,10 @@ const helpMinimumColumns = 2
 // instead of only at 80 -- checked against commander itself for every width from
 // 6 to 80.
 func wrapHelpText(text string, columns int, indent string) string {
+	// A DELIBERATE deviation: commander returns the indent for an empty or
+	// all-whitespace description, which puts a line of trailing spaces on the
+	// screen. Nothing generated has an empty description, and a blank line is
+	// worse than no line.
 	if strings.TrimSpace(text) == "" {
 		return ""
 	}
@@ -468,7 +472,12 @@ func wrapChunks(text string, limit int) []string {
 			}
 		}
 
-		chunks = append(chunks, strings.TrimRight(text[position:position+length], " "))
+		// A run of consecutive spaces yields a chunk that is nothing but
+		// whitespace. commander never emits a blank line for one, so neither
+		// does this.
+		if chunk := strings.TrimRight(text[position:position+length], " "); chunk != "" {
+			chunks = append(chunks, chunk)
+		}
 
 		// The break character itself is consumed.
 		position += length + 1
