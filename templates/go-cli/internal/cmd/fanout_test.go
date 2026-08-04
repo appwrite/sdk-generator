@@ -2,12 +2,15 @@ package cmd
 
 import (
 	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
+	"github.com/appwrite/appwrite-cli-go/internal/client"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
 	"github.com/appwrite/appwrite-cli-go/internal/prompt"
@@ -245,32 +248,14 @@ func TestPushAllNeverAsksForAMissingEntrypoint(t *testing.T) {
 	app.Flags().All = true
 	t.Cleanup(func() { app.Flags().All = restore })
 
-	complete := jsonx.NewObject()
-	complete.Set("$id", "ready")
-	complete.Set("name", "Ready")
-	complete.Set("entrypoint", "src/main.js")
+	// 404: neither function exists yet, so the entrypoint is required.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"not found","code":404}`))
+	}))
+	t.Cleanup(server.Close)
 
-	incomplete := jsonx.NewObject()
-	incomplete.Set("$id", "bare")
-	incomplete.Set("name", "Bare")
-
-	local, err := config.LoadOrCreateLocal(filepath.Join(t.TempDir(), config.LocalFileName))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	context := &pushContext{local: local, prompter: refusingPrompter{t: t}}
-
-	out := &bytes.Buffer{}
-	usable, err := context.completeDeployables(out, deployable{
-		Name:      "function",
-		Singular:  "Function",
-		Label:     "functions",
-		ConfigKey: "functions",
-	}, []*jsonx.Object{complete, incomplete})
-	if err != nil {
-		t.Fatal(err)
-	}
+	usable, out := completeFunctions(t, server.URL, refusingPrompter{t: t})
 
 	if len(usable) != 1 || usable[0].GetString("$id") != "ready" {
 		t.Errorf("push kept %d of 2 functions, want only the complete one", len(usable))
@@ -285,6 +270,105 @@ func TestPushAllNeverAsksForAMissingEntrypoint(t *testing.T) {
 	}
 }
 
+// The API requires an entrypoint for neither create nor update -- `functions
+// create` asks for function-id, name and runtime only. So a blank entrypoint on
+// a function that already exists is not an error: it has nothing to say about
+// the field, and the value on the server stands.
+func TestAnExistingFunctionNeedsNoEntrypoint(t *testing.T) {
+	restore := app.Flags().All
+	app.Flags().All = false
+	t.Cleanup(func() { app.Flags().All = restore })
+
+	// 200: both functions are already there, so neither is a create.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"$id":"bare","entrypoint":"src/main.js"}`))
+	}))
+	t.Cleanup(server.Close)
+
+	usable, out := completeFunctions(t, server.URL, refusingPrompter{t: t})
+
+	if len(usable) != 2 {
+		t.Errorf("push kept %d of 2 functions, want both -- an update needs no entrypoint", len(usable))
+	}
+	if !strings.Contains(out.String(), "Keeping the one on the server") {
+		t.Errorf("the reason for not asking was not explained:\n%s", out.String())
+	}
+}
+
+// completeFunctions runs the validation step over one complete and one
+// entrypoint-less function.
+func completeFunctions(
+	t *testing.T,
+	endpoint string,
+	prompter prompt.Prompter,
+) ([]*jsonx.Object, *bytes.Buffer) {
+	t.Helper()
+
+	complete := jsonx.NewObject()
+	complete.Set("$id", "ready")
+	complete.Set("name", "Ready")
+	complete.Set("entrypoint", "src/main.js")
+
+	incomplete := jsonx.NewObject()
+	incomplete.Set("$id", "bare")
+	incomplete.Set("name", "Bare")
+
+	local, err := config.LoadOrCreateLocal(filepath.Join(t.TempDir(), config.LocalFileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	context := &pushContext{
+		api:      client.New(endpoint, "test"),
+		local:    local,
+		prompter: prompter,
+	}
+
+	out := &bytes.Buffer{}
+	usable, err := context.completeDeployables(out, deployable{
+		Name:      "function",
+		Singular:  "function",
+		Label:     "functions",
+		ConfigKey: "functions",
+		Path:      "/functions",
+	}, []*jsonx.Object{complete, incomplete})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return usable, out
+}
+
+// An empty entrypoint means "unchanged", so it must not be sent -- the server
+// would take "" as the new value and clear what is already there. Not every
+// blank field: an empty `schedule` really does mean "unschedule it".
+func TestAnEmptyEntrypointIsNotSent(t *testing.T) {
+	entry := jsonx.NewObject()
+	entry.Set("name", "Bare")
+	entry.Set("entrypoint", "")
+	entry.Set("schedule", "")
+
+	body := writeBody(entry, []string{"name", "entrypoint", "schedule"},
+		[]string{"entrypoint"}, "", "")
+
+	if _, ok := body.Get("entrypoint"); ok {
+		t.Error("an empty entrypoint was sent, which clears the one on the server")
+	}
+	if _, ok := body.Get("schedule"); !ok {
+		t.Error("an empty schedule was dropped, but clearing a schedule is meaningful")
+	}
+	if body.GetString("name") != "Bare" {
+		t.Error("a non-empty field was dropped")
+	}
+
+	// A real entrypoint still goes.
+	entry.Set("entrypoint", "src/main.js")
+	if got := writeBody(entry, []string{"entrypoint"}, []string{"entrypoint"}, "", "").
+		GetString("entrypoint"); got != "src/main.js" {
+		t.Errorf("entrypoint = %q, want it sent", got)
+	}
+}
+
 // refusingPrompter fails the test if anything asks it a question.
 type refusingPrompter struct {
 	prompt.Prompter
@@ -292,7 +376,7 @@ type refusingPrompter struct {
 }
 
 func (r refusingPrompter) Text(question prompt.Text) (string, error) {
-	r.t.Errorf("prompted for %q under --all", question.Message)
+	r.t.Errorf("prompted for %q", question.Message)
 
 	return "", nil
 }

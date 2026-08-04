@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -519,6 +520,14 @@ type deployable struct {
 	ApproveKeys []string
 	// DeploymentKeys are the config fields sent alongside the archive.
 	DeploymentKeys []string
+	// OmitWhenEmpty are fields left out of a request when the config leaves
+	// them blank, rather than sent as "".
+	//
+	// An entrypoint is the case: it is required on create and optional on
+	// update, so a blank one in the config means "unchanged". Sending "" would
+	// clear the value already on the server. Deliberately NOT every field --
+	// an empty `schedule` really does mean "unschedule it".
+	OmitWhenEmpty []string
 	// ConsoleURL renders the deployment's console page.
 	ConsoleURL func(base, slug, resourceID, deploymentID string) string
 }
@@ -542,6 +551,7 @@ var deployables = []deployable{
 			"vars", "ignore",
 		},
 		DeploymentKeys: []string{"entrypoint", "commands"},
+		OmitWhenEmpty:  []string{"entrypoint"},
 		ConsoleURL: func(base, slug, resourceID, deploymentID string) string {
 			return fmt.Sprintf("%s/console/%s/functions/function-%s/deployment-%s",
 				base, slug, resourceID, deploymentID)
@@ -906,6 +916,19 @@ func (c *pushContext) completeDeployables(
 			name = entry.GetString("$id")
 		}
 
+		// Required on CREATE only. The API asks for none of these -- `functions
+		// create` requires function-id, name and runtime, and nothing else --
+		// so an update that happens to leave the field blank locally is not an
+		// error, it just has nothing to say about it. The value already on the
+		// server is kept, which writeBody arranges by omitting the key.
+		if c.resourceExists(resource, entry.GetString("$id")) {
+			output.Log(out, "%s %s has no %s set locally. Keeping the one on the server.",
+				capitalizeFirst(resource.Singular), name, field)
+			usable = append(usable, entry)
+
+			continue
+		}
+
 		// Which one, and what is missing. The TypeScript logs this before it
 		// prompts (push.ts:3656); without it the question arrives as a bare
 		// "Enter the entrypoint" with no clue which of ten functions it is for.
@@ -944,6 +967,28 @@ func (c *pushContext) completeDeployables(
 	}
 
 	return usable, c.local.Write()
+}
+
+// resourceExists reports whether the resource is already on the server.
+//
+// Only asked for a resource whose config leaves a create-required field blank,
+// so it costs one extra request in the one case that needs the answer.
+//
+// A 404 means "not there", so the field is required. Any OTHER failure --
+// offline, an expired session, a 500 -- leaves the question unanswered, and the
+// safe answer is the stricter one: treat it as a create and ask.
+func (c *pushContext) resourceExists(resource deployable, id string) bool {
+	// No id to ask about, or nothing to ask: both mean the answer is unknown,
+	// and unknown takes the strict branch.
+	if id == "" || c.api == nil {
+		return false
+	}
+
+	if _, err := c.fetchResource(resource, id); err != nil {
+		return false
+	}
+
+	return true
 }
 
 // capitalizeFirst starts a sentence with the resource name, which is stored
@@ -1016,10 +1061,11 @@ func (c *pushContext) pushDeployable(
 		}
 
 		err = c.api.Call("PUT", resource.Path+"/"+url.PathEscape(id),
-			writeBody(entry, resource.WriteKeys, "", ""), nil)
+			writeBody(entry, resource.WriteKeys, resource.OmitWhenEmpty, "", ""), nil)
 	} else {
 		err = c.api.Call("POST", resource.Path,
-			writeBody(entry, resource.WriteKeys, resource.IDField, id), nil)
+			writeBody(entry, resource.WriteKeys, resource.OmitWhenEmpty,
+				resource.IDField, id), nil)
 	}
 	if err != nil {
 		output.Failure(out, "Failed to push %s %s: %s", resource.Singular, name, err)
@@ -1071,16 +1117,28 @@ func (c *pushContext) pushDeployable(
 // Only keys the config actually carries are sent. The TypeScript passes the
 // rest as undefined and JSON.stringify drops them, so sending an explicit null
 // would be a behaviour change -- it would clear the field on the remote.
-func writeBody(entry *jsonx.Object, keys []string, idField, id string) *jsonx.Object {
+func writeBody(
+	entry *jsonx.Object,
+	keys []string,
+	omitWhenEmpty []string,
+	idField, id string,
+) *jsonx.Object {
 	body := jsonx.NewObject()
 	if idField != "" {
 		body.Set(idField, id)
 	}
 
 	for _, key := range keys {
-		if value, ok := entry.Get(key); ok {
-			body.Set(key, value)
+		value, ok := entry.Get(key)
+		if !ok {
+			continue
 		}
+		if text, isText := value.(string); isText && text == "" &&
+			slices.Contains(omitWhenEmpty, key) {
+			continue
+		}
+
+		body.Set(key, value)
 	}
 
 	return body
@@ -1158,12 +1216,21 @@ func (c *pushContext) createDeployment(
 
 	fields := make([]client.FormField, 0, len(resource.DeploymentKeys)+1)
 	for _, key := range resource.DeploymentKeys {
-		if value, ok := entry.Get(key); ok {
-			fields = append(fields, client.FormField{
-				Name:  key,
-				Value: fmt.Sprint(scalarOf(value)),
-			})
+		value, ok := entry.Get(key)
+		if !ok {
+			continue
 		}
+		// Same rule as writeBody: a blank entrypoint means "use the one the
+		// function already has", not "deploy with none".
+		if text, isText := value.(string); isText && text == "" &&
+			slices.Contains(resource.OmitWhenEmpty, key) {
+			continue
+		}
+
+		fields = append(fields, client.FormField{
+			Name:  key,
+			Value: fmt.Sprint(scalarOf(value)),
+		})
 	}
 	fields = append(fields, client.FormField{
 		Name: "activate", Value: fmt.Sprint(activate),
