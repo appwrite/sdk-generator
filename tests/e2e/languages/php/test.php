@@ -139,6 +139,7 @@ readonly class AdditionalPropsMapped
 
 $client = (new Client())
     ->addHeader("Origin", "http://localhost")
+    ->setProject('console')
     ->setSelfSigned();
 
 $foo = new Foo($client);
@@ -206,6 +207,8 @@ echo $response->result . "\n";
 
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../../resources/large_file.mp4'));
 echo $response->result . "\n";
+
+echo $general->download() . "\n";
 
 $response = $general->enum(MockType::FIRST());
 echo $response->result . "\n";
