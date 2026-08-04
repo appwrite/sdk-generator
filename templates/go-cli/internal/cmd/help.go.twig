@@ -217,7 +217,14 @@ func RenderMainHelp(root *cobra.Command) string {
 	for _, section := range sections {
 		lines = append(lines, "", helpTitleStyle.Render(section.title))
 		for _, row := range section.rows {
-			line := helpIndent + pad(row.name, nameWidth) + strings.Repeat(" ", helpGap) + row.summary
+			// TrimRight because a command whose description the spec leaves empty
+			// has no summary, and the padded name would then end the line in
+			// whitespace. The TypeScript pads unconditionally, but it has a
+			// summary for everything it lists, so this cannot make the two
+			// screens differ -- it only keeps the Go one clean where a service
+			// arrives without a description.
+			line := strings.TrimRight(
+				helpIndent+pad(row.name, nameWidth)+strings.Repeat(" ", helpGap)+row.summary, " ")
 			if section.dim {
 				line = helpDimStyle.Render(line)
 			}
@@ -371,8 +378,8 @@ func renderHelpOptions(root *cobra.Command) string {
 
 	lines := make([]string, 0, len(options))
 	for _, entry := range options {
-		lines = append(lines,
-			helpIndent+pad(entry.term, termWidth)+strings.Repeat(" ", helpGap)+entry.usage)
+		lines = append(lines, strings.TrimRight(
+			helpIndent+pad(entry.term, termWidth)+strings.Repeat(" ", helpGap)+entry.usage, " "))
 	}
 
 	return strings.Join(lines, "\n")

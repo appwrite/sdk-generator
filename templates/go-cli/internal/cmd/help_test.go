@@ -461,3 +461,14 @@ func TestAnEmptyDescriptionProducesNoLine(t *testing.T) {
 		}
 	}
 }
+
+// A service whose spec description is empty has no summary, and the padded name
+// then ends the line in whitespace -- which is what the six-service mock spec
+// produces, and what any real service arriving without a description would.
+func TestNoRowEndsInWhitespace(t *testing.T) {
+	for index, line := range strings.Split(RenderMainHelp(NewRootCommand()), "\n") {
+		if line != strings.TrimRight(line, " \t") {
+			t.Errorf("line %d ends in whitespace: %q", index+1, line)
+		}
+	}
+}
