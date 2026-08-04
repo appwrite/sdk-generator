@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	"bytes"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
+	"github.com/appwrite/appwrite-cli-go/internal/config"
+	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/appwrite/appwrite-cli-go/internal/prompt"
 	"github.com/spf13/cobra"
 )
 
@@ -226,4 +231,68 @@ func assertRanEverything(t *testing.T, ran []string) {
 	if slices.Contains(ran, "collections") {
 		t.Error("collections ran, but `all` skips the legacy databases API")
 	}
+}
+
+// `push function --all` asked "Enter the entrypoint" for any function whose
+// config had none. --all says "every resource, do not ask me", and it is how a
+// pipeline pushes, so a question there is the opposite of what was asked -- and
+// the answer is data the CLI cannot invent.
+//
+// The function is reported and skipped now, and the rest of the push proceeds.
+// The prompter here fails the test if it is reached at all.
+func TestPushAllNeverAsksForAMissingEntrypoint(t *testing.T) {
+	restore := app.Flags().All
+	app.Flags().All = true
+	t.Cleanup(func() { app.Flags().All = restore })
+
+	complete := jsonx.NewObject()
+	complete.Set("$id", "ready")
+	complete.Set("name", "Ready")
+	complete.Set("entrypoint", "src/main.js")
+
+	incomplete := jsonx.NewObject()
+	incomplete.Set("$id", "bare")
+	incomplete.Set("name", "Bare")
+
+	local, err := config.LoadOrCreateLocal(filepath.Join(t.TempDir(), config.LocalFileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	context := &pushContext{local: local, prompter: refusingPrompter{t: t}}
+
+	out := &bytes.Buffer{}
+	usable, err := context.completeDeployables(out, deployable{
+		Name:      "function",
+		Singular:  "Function",
+		Label:     "functions",
+		ConfigKey: "functions",
+	}, []*jsonx.Object{complete, incomplete})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(usable) != 1 || usable[0].GetString("$id") != "ready" {
+		t.Errorf("push kept %d of 2 functions, want only the complete one", len(usable))
+	}
+
+	printed := out.String()
+	if !strings.Contains(printed, "Bare") || !strings.Contains(printed, "entrypoint") {
+		t.Errorf("the skipped function was not explained:\n%s", printed)
+	}
+	if !strings.Contains(printed, config.LocalFileName) {
+		t.Errorf("the message does not say where to set it:\n%s", printed)
+	}
+}
+
+// refusingPrompter fails the test if anything asks it a question.
+type refusingPrompter struct {
+	prompt.Prompter
+	t *testing.T
+}
+
+func (r refusingPrompter) Text(question prompt.Text) (string, error) {
+	r.t.Errorf("prompted for %q under --all", question.Message)
+
+	return "", nil
 }

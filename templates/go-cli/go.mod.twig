@@ -13,6 +13,13 @@ require (
 {% if not sdk.test %}
 	{{ language.params.sdkImportPath }} {{ language.params.sdkVersion }}
 {% endif %}
+	// Not imported directly -- huh pulls it in -- but named here to raise its
+	// floor above the v1.3.6 huh v1.0.0 asks for. Resizing the terminal during a
+	// prompt left fragments of the previous frame on screen, because bubbletea's
+	// inline renderer repaints by moving up the height of the last frame and the
+	// terminal had already reflowed it. v1.3.7 carries "fix(renderer): properly
+	// reset cursor position to start of line" (#1472) and three later patches.
+	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/huh v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/fsnotify/fsnotify v1.10.1

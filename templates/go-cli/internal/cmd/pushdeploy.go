@@ -693,7 +693,8 @@ func runPushDeployable(
 	// Validation runs BEFORE anything is sent, so a missing entrypoint is one
 	// question at the start rather than a failure halfway through.
 	output.Log(out, "Validating %s ...", resource.Label)
-	if err := context.completeDeployables(resource, entries); err != nil {
+	entries, err = context.completeDeployables(out, resource, entries)
+	if err != nil {
 		return err
 	}
 
@@ -868,19 +869,48 @@ func (c *pushContext) selectDeployables(
 //
 // The answer is written back to the config, so the question is asked once per
 // resource rather than once per push.
-func (c *pushContext) completeDeployables(resource deployable, entries []*jsonx.Object) error {
+func (c *pushContext) completeDeployables(
+	out io.Writer,
+	resource deployable,
+	entries []*jsonx.Object,
+) ([]*jsonx.Object, error) {
 	changed := false
+	usable := make([]*jsonx.Object, 0, len(entries))
 
 	for _, entry := range entries {
-		field, message := "", ""
+		field, message, label := "", "", ""
 
 		switch {
 		case resource.Name == "function" && entry.GetString("entrypoint") == "":
-			field, message = "entrypoint", "Enter the entrypoint"
+			field, message, label = "entrypoint", "Enter the entrypoint", "an entrypoint"
 		case resource.Name == "site" && entry.GetString("buildCommand") == "" &&
 			siteRequiresBuildCommand(entry):
-			field, message = "buildCommand", "Enter the build command"
+			field, message, label = "buildCommand", "Enter the build command", "a build command"
 		default:
+			usable = append(usable, entry)
+
+			continue
+		}
+
+		name := entry.GetString("name")
+		if name == "" {
+			name = entry.GetString("$id")
+		}
+
+		// Which one, and what is missing. The TypeScript logs this before it
+		// prompts (push.ts:3656); without it the question arrives as a bare
+		// "Enter the entrypoint" with no clue which of ten functions it is for.
+		output.Log(out, "%s %s is missing %s.", resource.Singular, name, label)
+
+		// --all says "every resource, do not ask me". It is also how a pipeline
+		// pushes, so stopping on a question there is the opposite of what was
+		// asked -- and the answer is data the CLI cannot invent. The resource is
+		// reported and skipped; the rest of the push proceeds.
+		if app.Flags().All {
+			output.Log(out,
+				"Skipping it: set %q in %s, or push it without --all to be asked.",
+				field, config.LocalFileName)
+
 			continue
 		}
 
@@ -890,19 +920,20 @@ func (c *pushContext) completeDeployables(resource deployable, entries []*jsonx.
 			Validate: prompt.Required(field),
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		entry.Set(field, answer)
 		c.local.UpsertByID(resource.ConfigKey, entry)
 		changed = true
+		usable = append(usable, entry)
 	}
 
 	if !changed {
-		return nil
+		return usable, nil
 	}
 
-	return c.local.Write()
+	return usable, c.local.Write()
 }
 
 // siteRequiresBuildCommand reports whether a site has to be built.
