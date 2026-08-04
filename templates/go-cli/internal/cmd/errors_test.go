@@ -217,9 +217,13 @@ func TestReportDistinguishesCancellationFromFailure(t *testing.T) {
 	if status := Report(cancelled, login, prompt.ErrAborted); status != ExitCancelled {
 		t.Errorf("cancellation exited %d, want %d", status, ExitCancelled)
 	}
-	if got := cancelled.String(); strings.Contains(got, "--verbose") ||
-		strings.Contains(got, "--report") || strings.Contains(got, "Error") {
-		t.Errorf("a cancelled prompt reads as a failure:\n%s", got)
+	// Nothing that reads as a diagnostic: no advice about flags, no "Error",
+	// and no "Warning" either -- the user cancelled on purpose.
+	for _, unwanted := range []string{"--verbose", "--report", "Error", "Warning", "Info"} {
+		if strings.Contains(cancelled.String(), unwanted) {
+			t.Errorf("a cancelled prompt reads as a problem (%q):\n%s",
+				unwanted, cancelled.String())
+		}
 	}
 	if !strings.Contains(cancelled.String(), "Cancelled") {
 		t.Errorf("cancellation notice missing:\n%s", cancelled.String())

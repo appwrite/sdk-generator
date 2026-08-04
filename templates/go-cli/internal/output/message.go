@@ -53,6 +53,17 @@ func Success(writer io.Writer, format string, arguments ...any) {
 	writeMessage(writer, successStyle, "✓ Success:", format, arguments...)
 }
 
+// Note writes a plain line, dimmed and with no prefix.
+//
+// For something the CLI is telling the user about the user's own action rather
+// than about an operation. A cancelled prompt is the case: it is not
+// information, not a warning and not an error, and giving it one of those
+// prefixes miscategorises a deliberate decision as a problem. The user pressed
+// Ctrl-C a moment ago, so the line only has to confirm what happened.
+func Note(writer io.Writer, format string, arguments ...any) {
+	fmt.Fprintf(writer, "%s\n", traceStyle.Render(fmt.Sprintf(format, arguments...)))
+}
+
 // Failure writes an error line.
 //
 // Named Failure rather than Error so it does not read as constructing an error

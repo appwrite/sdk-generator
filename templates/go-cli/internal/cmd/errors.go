@@ -160,7 +160,9 @@ func Report(writer io.Writer, executed *cobra.Command, err error) int {
 	}
 
 	if IsCancelled(err) {
-		output.Warn(writer, "%s", CancellationNotice(executed))
+		// Note, not Warn: nothing is wrong. Prefixing a deliberate Ctrl-C with
+		// "Warning" told the user off for their own decision.
+		output.Note(writer, "%s", CancellationNotice(executed))
 
 		return ExitCancelled
 	}
