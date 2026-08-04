@@ -388,6 +388,13 @@ func newPushCommand() *cobra.Command {
 		},
 	}
 
+	// The -a shorthand for --all lives here rather than on the root: see
+	// app.RegisterGlobalFlags. Declared locally, so the persistent --all is not
+	// merged over it and `push table`'s own -a stays free.
+	command.Flags().BoolVarP(
+		app.Flags().AllPointer(), "all", "a", false,
+		"Apply the command to every matching resource.")
+
 	command.AddCommand(newPushAllCommand())
 	command.AddCommand(newPushSettingsCommand())
 	for _, resource := range simpleResources() {

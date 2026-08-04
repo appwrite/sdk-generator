@@ -87,6 +87,12 @@ func newPullCommand() *cobra.Command {
 		},
 	}
 
+	// See newPushCommand: the -a shorthand is local so it cannot collide with a
+	// subcommand's own -a.
+	command.Flags().BoolVarP(
+		app.Flags().AllPointer(), "all", "a", false,
+		"Apply the command to every matching resource.")
+
 	for _, resource := range flatResources {
 		command.AddCommand(newPullResourceCommand(resource))
 	}

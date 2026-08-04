@@ -32,6 +32,12 @@ var globals = &Globals{}
 // Flags exposes the parsed global flags.
 func Flags() *Globals { return globals }
 
+// AllPointer exposes --all for binding a second, shorthand-carrying definition.
+//
+// `push` and `pull` declare their own -a and must write the same variable the
+// persistent --all writes, or the two spellings would disagree.
+func (g *Globals) AllPointer() *bool { return &g.All }
+
 // RegisterGlobalFlags adds the persistent flags to the root command.
 func RegisterGlobalFlags(root *cobra.Command) {
 	flags := root.PersistentFlags()
@@ -41,9 +47,14 @@ func RegisterGlobalFlags(root *cobra.Command) {
 		"Show secret values in full instead of masking them.")
 	flags.BoolVarP(&globals.Verbose, "verbose", "V", false, "Show detailed output for debugging.")
 	flags.BoolVarP(&globals.Force, "force", "f", false, "Skip confirmation prompts.")
-	// -a is the TypeScript's shorthand on push and pull. Registering it here
-	// rather than there costs nothing and keeps one spelling of --all.
-	flags.BoolVarP(&globals.All, "all", "a", false, "Apply the command to every matching resource.")
+	// --all is persistent so every command that honours it reads one value, but
+	// WITHOUT the -a shorthand. cobra merges a root persistent flag into every
+	// subcommand, and `push table` and `push collection` define their own -a for
+	// --attempts -- pflag panics on a shorthand collision, so registering -a here
+	// crashed those two commands outright. The shorthand is added locally on
+	// `push` and `pull`, which is where the TypeScript has it (push.ts:4272,
+	// pull.ts:1121); commander options do not inherit, so it never had to choose.
+	flags.BoolVar(&globals.All, "all", false, "Apply the command to every matching resource.")
 	flags.BoolVar(&globals.Report, "report", false,
 		"Print a prefilled bug report link on error.")
 }

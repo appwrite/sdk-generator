@@ -551,6 +551,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/shorthand_test.go',
+                'template'      => 'go-cli/internal/cmd/shorthand_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/output/filter.go',
                 'template'      => 'go-cli/internal/output/filter.go',
             ],
