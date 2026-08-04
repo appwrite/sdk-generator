@@ -79,7 +79,12 @@ var helpOptionOrder = []string{
 const helpLogo = {{ language.params.logo | goString | raw }}
 
 // helpDescription is the paragraph under the logo.
-const helpDescription = {{ sdk.description | goString | raw }}
+//
+// shortDescription, not description: the TypeScript screen renders
+// `packageJson.description`, and package.json.twig fills that from
+// `sdk.shortDescription`. Reading the other one put a different paragraph on
+// the two screens.
+const helpDescription = {{ sdk.shortDescription | goString | raw }}
 
 const (
 	// helpMaxWidth caps the screen on a wide terminal: a summary column that
