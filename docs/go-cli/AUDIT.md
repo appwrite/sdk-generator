@@ -37,8 +37,13 @@ commands) the local spec has no trace of, and its `teams
 update-membership-status` and `storage get-file-download` are likewise spec
 drift, not port gaps. Comparing preview-Go against released-TS conflates two
 unrelated things, so **every finding below comes from the same-spec
-comparison**. That the released TypeScript CLI is ahead of the spec the
-generator pins is itself worth resolving before release.
+comparison**.
+
+That gap is release timing, not a defect and nothing for this stack to fix: the
+published package was generated from whatever spec was current when it shipped,
+while `example.php` fetches `main`. It matters here only as a reason not to
+compare a released binary against a locally generated one -- still true today,
+since the spec the generator fetches has no `apps` service.
 
 ## How it was tested
 
@@ -722,8 +727,10 @@ by a code change, so a reviewer does not have to reconstruct it.
 5. **Finding 21 is a bug in the TypeScript CLI**, not in Go: `storage
    get-file-download`, `get-file-view` and `get-file-preview` all return 401 in
    the released `appwrite-cli@25.1.0`, because it puts the credentials in the
-   query string. Go authenticates through headers and works. Nothing to do in
-   this stack; it wants an issue against the TypeScript CLI.
+   query string. Go authenticates through headers and works. Closed here as "Go
+   is correct"; the TypeScript defect is a separate product bug and out of scope
+   for the rewrite, so it needs raising against that CLI rather than tracked in
+   this document.
 
 Untested rather than unresolved: the interactive flows, which need a terminal.
 The Docker e2e suite runs in CI as `GoCLI126`.
@@ -821,7 +828,8 @@ $ appwrite storage get-file-download --bucket-id b --file-id f --destination out
 Same for `get-file-view` and `get-file-preview`, and the same in the
 **released `appwrite-cli@25.1.0`** — so `storage get-file-download` and its two
 siblings are broken in the shipped TypeScript CLI. Go authenticates through
-headers and works. Worth an issue against the TypeScript CLI.
+headers and works, so there is nothing to fix on this side -- recorded because a
+sweep looking for Go defects found a TypeScript one, and somebody should know.
 
 ### 22. `create-deployment` orders its multipart fields differently
 
