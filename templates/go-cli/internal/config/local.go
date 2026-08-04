@@ -176,12 +176,18 @@ func (l *Local) resolveIncludePath(resource, includePath string) (string, error)
 	if err != nil {
 		return "", err
 	}
+	// Both sides are resolved, not just the include. A project directory is
+	// often reached through a symlink -- macOS puts temp directories behind one,
+	// and so does any checkout under a symlinked home -- and comparing a
+	// resolved include against an unresolved root would read every ordinary
+	// include as an escape.
+	root = resolveSymlinks(root)
 
 	resolved := filepath.Join(root, includePath)
 	if filepath.IsAbs(includePath) {
 		resolved = includePath
 	}
-	resolved = filepath.Clean(resolved)
+	resolved = resolveSymlinks(filepath.Clean(resolved))
 
 	relative, err := filepath.Rel(root, resolved)
 	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
@@ -190,6 +196,31 @@ func (l *Local) resolveIncludePath(resource, includePath string) (string, error)
 	}
 
 	return resolved, nil
+}
+
+// resolveSymlinks resolves path as far as it exists on disk.
+//
+// Comparing cleaned path strings is not containment: a link named
+// `functions.json` sitting in the project can point anywhere, and both the read
+// and the write that follow would go to the target rather than to the project.
+//
+// filepath.EvalSymlinks fails outright when the leaf does not exist, which is
+// the ordinary case for an include being written for the first time, so the
+// deepest existing ancestor is resolved and the missing tail rejoined onto it.
+func resolveSymlinks(path string) string {
+	tail := ""
+	for current := path; ; {
+		if resolved, err := filepath.EvalSymlinks(current); err == nil {
+			return filepath.Join(resolved, tail)
+		}
+
+		parent := filepath.Dir(current)
+		if parent == current {
+			return path
+		}
+		tail = filepath.Join(filepath.Base(current), tail)
+		current = parent
+	}
 }
 
 // Write persists the config, splitting `includes` back out, dropping empty

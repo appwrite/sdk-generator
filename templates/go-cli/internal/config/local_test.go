@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -304,6 +305,97 @@ func TestIncludesCannotEscapeTheProjectDirectory(t *testing.T) {
 
 	if _, err := LoadLocal(path); err == nil {
 		t.Fatal("expected an error for an include outside the project directory")
+	}
+}
+
+// The containment check compared cleaned path strings, which a symlink does not
+// have to agree with. An include that is lexically inside the project but
+// resolves outside it passed, and the next write followed the link and replaced
+// whatever it pointed at.
+func TestIncludesCannotEscapeThroughASymlink(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("creating a symlink on Windows needs privileges the test runner may not have")
+	}
+
+	project := t.TempDir()
+	outside := filepath.Join(t.TempDir(), "outside.json")
+	// A valid resource array, so nothing rejects it on the way in and the only
+	// thing standing between the config and this file is the containment check.
+	const sensitive = `[{"do":"not touch"}]`
+	if err := os.WriteFile(outside, []byte(sensitive), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Lexically "functions.json", inside the project. Actually the file above.
+	if err := os.Symlink(outside, filepath.Join(project, "functions.json")); err != nil {
+		t.Fatal(err)
+	}
+
+	path := filepath.Join(project, LocalFileName)
+	if err := os.WriteFile(path, []byte(`{
+    "projectId": "abc",
+    "includes": {
+        "functions": "functions.json"
+    }
+}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	local, err := LoadLocal(path)
+	if err == nil {
+		// Whatever the config holds is what a write sends to the include, so
+		// give it something unmistakable.
+		local.Data.Set("functions", []any{"overwritten"})
+		err = local.Write()
+	}
+
+	survived, readErr := os.ReadFile(outside)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if string(survived) != sensitive {
+		t.Errorf("the file outside the project was rewritten to %q", survived)
+	}
+	if err == nil {
+		t.Error("an include resolving outside the project was accepted")
+	}
+}
+
+// The project directory itself is often reached through a symlink -- macOS puts
+// temp directories behind one -- so resolving includes must not turn an
+// ordinary include into an escape.
+func TestIncludesResolveInsideASymlinkedProject(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("creating a symlink on Windows needs privileges the test runner may not have")
+	}
+
+	real := filepath.Join(t.TempDir(), "project")
+	if err := os.Mkdir(real, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(t.TempDir(), "linked")
+	if err := os.Symlink(real, link); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(filepath.Join(real, "functions.json"), []byte(`[]`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(real, LocalFileName), []byte(`{
+    "projectId": "abc",
+    "includes": {
+        "functions": "functions.json"
+    }
+}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	local, err := LoadLocal(filepath.Join(link, LocalFileName))
+	if err != nil {
+		t.Fatalf("an include inside a symlinked project was rejected: %v", err)
+	}
+	if err := local.Write(); err != nil {
+		t.Fatalf("writing an include inside a symlinked project failed: %v", err)
 	}
 }
 

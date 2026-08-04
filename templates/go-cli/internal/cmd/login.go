@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"net/url"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -48,14 +49,7 @@ func newLoginCommand() *cobra.Command {
 			}
 
 			email, name, subject := auth.DecodeIDToken(token.IDToken)
-			sessionID := subject
-			if sessionID == "" {
-				// Without a subject claim there is nothing stable to key the
-				// session on, so fall back to the login time. Two logins to the
-				// same account would then create two entries rather than
-				// overwrite one, which is noisy but not wrong.
-				sessionID = strconv.FormatInt(time.Now().UnixMilli(), 10)
-			}
+			sessionID := cloudSessionID(endpoint, subject)
 
 			session := config.NewObject()
 			// Key order matches what the TypeScript CLI writes, so a prefs.json
@@ -98,6 +92,36 @@ func newLoginCommand() *cobra.Command {
 		"Appwrite endpoint to sign in to. Defaults to "+config.DefaultEndpoint+".")
 
 	return command
+}
+
+// cloudSessionID keys a browser-flow session on the endpoint as well as the
+// account.
+//
+// The subject alone is not unique. Every `*.appwrite.io` host takes this flow,
+// and a staging deployment seeded from a production dump hands out the very
+// same account IDs, so keying on the subject alone lets a second sign-in
+// overwrite the first endpoint's session -- and, because the same string names
+// the keyring entry, its refresh token with it.
+//
+// The TypeScript avoids this by keying on `ID.unique()` (login.ts:548), which
+// is collision-free but accumulates a fresh entry every time you sign in to an
+// account you are already signed in to. Composing the two keeps the
+// deduplication and drops the collision. The key is internal, so its spelling
+// is free.
+func cloudSessionID(endpoint, subject string) string {
+	if subject == "" {
+		// No subject claim leaves nothing stable to key on, so fall back to the
+		// sign-in time. Repeated sign-ins then accumulate entries rather than
+		// overwrite one, which is noisy but never wrong.
+		return strconv.FormatInt(time.Now().UnixMilli(), 10)
+	}
+
+	host := endpoint
+	if parsed, err := url.Parse(endpoint); err == nil && parsed.Host != "" {
+		host = parsed.Host
+	}
+
+	return subject + "@" + host
 }
 
 // openBrowser is best-effort: a headless or locked-down environment simply
