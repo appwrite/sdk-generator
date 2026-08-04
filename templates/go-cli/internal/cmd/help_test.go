@@ -258,3 +258,78 @@ func TestFooterTellsTheUserWhereToGoNext(t *testing.T) {
 		t.Errorf("the screen does not end with %q", want)
 	}
 }
+
+// help.ts passes minColumnWidth 2 to commander's wrap rather than taking its
+// default of 40, so the TypeScript screen keeps wrapping into a narrow terminal
+// instead of emitting one line that runs off the edge. Verified against
+// commander itself at screen widths 44, 39, 20 and 10.
+func TestNarrowTerminalsStillWrap(t *testing.T) {
+	// Screen width 20 -> 16 columns. commander produces 11 breaks here.
+	narrow := wrapHelpText(theRealDescription, 20-helpGap-helpGap, helpIndent)
+	if strings.Count(narrow, "\n") == 0 {
+		t.Errorf("a 20-column terminal was not wrapped at all:\n%s", narrow)
+	}
+	for _, line := range strings.Split(narrow, "\n") {
+		if !strings.HasPrefix(line, helpIndent) {
+			t.Errorf("a wrapped line lost its indent: %q", line)
+		}
+	}
+
+	// Below commander's floor of 2 columns it returns the string as it is, which
+	// is also what stops a terminal reporting 3 columns from reaching the loop
+	// with a negative width.
+	for _, columns := range []int{1, 0, -4} {
+		got := wrapHelpText(theRealDescription, columns, helpIndent)
+		if got != helpIndent+theRealDescription {
+			t.Errorf("at %d columns the paragraph was altered:\n%s", columns, got)
+		}
+	}
+
+	// And the 80-column screen still wraps to the three lines the TypeScript
+	// prints.
+	if wide := wrapHelpText(theRealDescription, helpMaxWidth-helpGap-helpGap, helpIndent); strings.Count(wide, "\n") != 2 {
+		t.Errorf("the 80-column screen no longer wraps to three lines:\n%s", wide)
+	}
+}
+
+// commander's wrap is not a plain greedy word wrap, and the difference is
+// visible on the screen: a line holds columnWidth-1 characters rather than
+// columnWidth, and the first line carries two characters that were never
+// measured because commander wraps `str.slice(indent)` and prefixes
+// `str.slice(0, indent)` back on.
+//
+// A from-scratch greedy wrap agreed at 80 columns and disagreed at 15, 17, 18,
+// 30, 41, 42, 49, 50, 56, 57, 62 and 71 -- which is why this compares against
+// captured commander output rather than against a rule.
+//
+// Captured by calling commander's own Help.wrap with the arguments help.ts
+// passes it: `wrap(description, width - 2, 2, 2)`, prefixed with the two-space
+// indent, for every screen width from 6 to 80. The spread below is the boundary,
+// the cap, the floor, and every width the greedy version got wrong.
+var commanderWrapped = map[int]string{
+	80: "  Appwrite is an open-source self-hosted backend server that abstracts and\n  simplifies complex and repetitive development tasks behind a very simple\n  REST API",
+	71: "  Appwrite is an open-source self-hosted backend server that abstracts\n  and simplifies complex and repetitive development tasks behind a\n  very simple REST API",
+	62: "  Appwrite is an open-source self-hosted backend server that\n  abstracts and simplifies complex and repetitive\n  development tasks behind a very simple REST API",
+	57: "  Appwrite is an open-source self-hosted backend server\n  that abstracts and simplifies complex and repetitive\n  development tasks behind a very simple REST API",
+	56: "  Appwrite is an open-source self-hosted backend server\n  that abstracts and simplifies complex and\n  repetitive development tasks behind a very simple\n  REST API",
+	50: "  Appwrite is an open-source self-hosted backend\n  server that abstracts and simplifies complex\n  and repetitive development tasks behind a\n  very simple REST API",
+	49: "  Appwrite is an open-source self-hosted backend\n  server that abstracts and simplifies complex\n  and repetitive development tasks behind a\n  very simple REST API",
+	42: "  Appwrite is an open-source self-hosted\n  backend server that abstracts and\n  simplifies complex and repetitive\n  development tasks behind a very\n  simple REST API",
+	41: "  Appwrite is an open-source self-hosted\n  backend server that abstracts and\n  simplifies complex and repetitive\n  development tasks behind a very\n  simple REST API",
+	30: "  Appwrite is an open-source\n  self-hosted backend\n  server that abstracts and\n  simplifies complex and\n  repetitive development\n  tasks behind a very\n  simple REST API",
+	20: "  Appwrite is an\n  open-source\n  self-hosted\n  backend server\n  that abstracts\n  and simplifies\n  complex and\n  repetitive\n  development\n  tasks behind a\n  very simple\n  REST API",
+	18: "  Appwrite is an\n  open-source\n  self-hosted\n  backend\n  server that\n  abstracts and\n  simplifies\n  complex and\n  repetitive\n  development\n  tasks behind\n  a very simple\n  REST API",
+	17: "  Appwrite is an\n  open-source\n  self-hosted\n  backend\n  server that\n  abstracts\n  and\n  simplifies\n  complex and\n  repetitive\n  development\n  tasks behind\n  a very\n  simple REST\n  API",
+	15: "  Appwrite is\n  an\n  open-source\n  self-hosted\n  backend\n  server\n  that\n  abstracts\n  and\n  simplifies\n  complex\n  and\n  repetitive\n  development\n  tasks\n  behind a\n  very\n  simple\n  REST API",
+	10: "  Appwrite\n  is an\n  open-source\n  self-hosted\n  backend\n  server\n  that\n  abstracts\n  and\n  simplifies\n  complex\n  and\n  repetitive\n  development\n  tasks\n  behind\n  a\n  very\n  simple\n  REST\n  API",
+	6:  "  Appwrite\n  is\n  an\n  open-source\n  self-hosted\n  backend\n  server\n  that\n  abstracts\n  and\n  simplifies\n  complex\n  and\n  repetitive\n  development\n  tasks\n  behind\n  a\n  very\n  simple\n  REST\n  API",
+}
+
+func TestWrapMatchesCommanderAtEveryWidth(t *testing.T) {
+	for width, want := range commanderWrapped {
+		got := wrapHelpText(theRealDescription, width-helpGap-helpGap, helpIndent)
+		if got != want {
+			t.Errorf("width %d differs\n got:\n%s\nwant:\n%s", width, got, want)
+		}
+	}
+}
