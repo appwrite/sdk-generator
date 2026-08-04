@@ -2,15 +2,26 @@ package app
 
 import "runtime/debug"
 
+// devVersion is what gets compiled in when no release stamped a version.
+//
+// A literal, deliberately, and NOT {{ '{{ sdk.version }}' }}: the check in init
+// distinguishes "the ldflag fired" from "it did not" by comparing against this
+// value, so a release must never stamp the same string. Templating it made the
+// two indistinguishable -- a release stamped 0.7.5 over a compiled-in 0.7.5,
+// the comparison saw no change, and the build-info fallback then overwrote the
+// correct version with the build checkout's VCS tag. `appwrite --version`
+// reported the PREVIOUS release.
+const devVersion = "0.0.0"
+
 // Version is stamped at release time with -ldflags. See .goreleaser.yaml.
-var Version = "{{ sdk.version }}"
+var Version = devVersion
 
 // ExecutableName is the binary name, and the directory preferences live under.
 const ExecutableName = "{{ language.params.executableName }}"
 
 // The ldflag only exists on a release build. `go install <module>@<version>`
 // does not apply it, so that path would otherwise report the hardcoded default
-// and every source install would answer `--version` with {{ sdk.version }} --
+// and every source install would answer `--version` with devVersion --
 // which looks broken, and makes a bug report impossible to place against a
 // build.
 //
@@ -19,7 +30,7 @@ const ExecutableName = "{{ language.params.executableName }}"
 // `go build` in a working tree reads "(devel)", which is honest: that build
 // has no version to report.
 func init() {
-	if Version != "{{ sdk.version }}" {
+	if Version != devVersion {
 		return
 	}
 

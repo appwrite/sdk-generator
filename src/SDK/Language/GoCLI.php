@@ -606,6 +606,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/app/version_test.go',
+                'template'      => 'go-cli/internal/app/version_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/app/convert.go',
                 'template'      => 'go-cli/internal/app/convert.go',
             ],
