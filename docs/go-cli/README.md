@@ -70,8 +70,8 @@ To see what your change actually did to the output:
 
 ```bash
 cp -r examples/go-cli /tmp/before
-git stash
-php example.php go-cli
+git stash -u          # -u matters: a new template file is untracked, and a
+php example.php go-cli #    plain `git stash` would leave it in the baseline
 cp -r examples/go-cli /tmp/after
 git stash pop
 diff -r /tmp/before /tmp/after
