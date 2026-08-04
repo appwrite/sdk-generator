@@ -110,6 +110,16 @@ func TestAllSubcommandsNeverPrompt(t *testing.T) {
 			restore := app.Flags().All
 			defer func() { app.Flags().All = restore }()
 
+			// Hermetic, or this tests the developer's machine. With a real
+			// session and a discoverable appwrite.config.json -- which the
+			// parent-directory search makes far more likely -- the fan-out gets
+			// past the credential check and reaches prompts that are perfectly
+			// legitimate, and the assertion below fires on the wrong thing.
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			inDirectory(t, t.TempDir())
+
 			root := NewRootCommand()
 			root.SetArgs([]string{name, "all"})
 			root.SetOut(&strings.Builder{})
