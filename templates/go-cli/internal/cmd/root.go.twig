@@ -22,6 +22,7 @@ func NewRootCommand() *cobra.Command {
 	root := &cobra.Command{
 		Use:     "{{ language.params.executableName }}",
 		Short:   {{ sdk.shortDescription | goString | raw }},
+		Long:    helpDescription,
 		Version: app.Version,
 		// Errors and usage are rendered by the output package, not by cobra.
 		SilenceUsage:  true,
@@ -49,6 +50,9 @@ func NewRootCommand() *cobra.Command {
 	registerSessionCommands(root)
 
 	registerCompletionInstall(root)
+
+	// Last, so the grouped screen sees the whole tree.
+	registerMainHelp(root)
 
 	return root
 }

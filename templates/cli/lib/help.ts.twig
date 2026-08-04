@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import type { Command, Help } from "commander";
-import { EXECUTABLE_NAME, SDK_LOGO, SDK_TITLE } from "./constants.js";
+import { EXECUTABLE_NAME, SDK_LOGO } from "./constants.js";
 
 /**
  * The main help screen is grouped by intent rather than listed alphabetically.
@@ -9,67 +9,28 @@ import { EXECUTABLE_NAME, SDK_LOGO, SDK_TITLE } from "./constants.js";
  *
  * Anything not named here still shows up, under `OTHER`, so a service added
  * to the spec can never silently disappear from `--help`.
+ *
+ * Generated from CliCommandSurface::HELP_GROUPS, the same table the Go CLI's
+ * help screen is built from, so the two cannot drift.
  */
 const groups: ReadonlyArray<{
   title: string;
   commands: readonly string[];
   dim?: boolean;
 }> = [
+{% for group in cliHelpGroups() %}
   {
-    title: "GET STARTED",
-    commands: [
-      "login",
-      "list-organizations",
-      "list-projects",
-      "init",
-      "pull",
-      "push",
-      "run",
-      "whoami",
-    ],
-  },
-  {
-    title: "PROJECT",
-    commands: ["organization", "project", "apps", "proxy", "vcs", "webhooks"],
-  },
-  {
-    title: "RESOURCES",
-    commands: [
-      "account",
-      "users",
-      "teams",
-      "tablesdb",
-      "storage",
-      "functions",
-      "sites",
-      "messaging",
-      "tokens",
-      "backups",
-      "presences",
-    ],
-  },
-  {
-    title: "UTILITIES",
-    commands: [
-      "graphql",
-      "generate",
-      "types",
-      "locale",
-      "activities",
-      "migrations",
-      "notifications",
-      "oauth2",
-      "client",
-      "completion",
-      "logout",
-      "update",
-    ],
-  },
-  {
-    title: "DEPRECATED",
+    title: {{ group.title | json_encode | raw }},
+{% if group.dim %}
     dim: true,
-    commands: ["databases"],
+{% endif %}
+    commands: [
+{% for command in group.commands %}
+      {{ command | json_encode | raw }},
+{% endfor %}
+    ],
   },
+{% endfor %}
 ];
 
 /**
@@ -78,64 +39,24 @@ const groups: ReadonlyArray<{
  *
  * Written to fit one terminal line — keep them under 51 characters, in the
  * imperative, with no trailing period.
+ *
+ * Generated from CliCommandSurface::HELP_SUMMARIES.
  */
 const summaries: Record<string, string> = {
-  login: `Authenticate with your ${SDK_TITLE} account`,
-  "list-organizations": "Organizations your session can access",
-  "list-projects": "Projects your session can access",
-  init: "Scaffold a project, function, site, or resource",
-  pull: "Pull remote project resources into this directory",
-  push: "Push local project resources",
-  run: "Run the project locally for development",
-  whoami: "Show the currently authenticated account",
-
-  organization: "Manage organization-level projects",
-  project: "Usage, variables, and project-level settings",
-  apps: "OAuth2 applications, keys, scopes, installations",
-  proxy: "Domain configuration beyond DNS",
-  vcs: "Connect and manage VCS repositories",
-  webhooks: "Project webhooks",
-
-  account: "Manage your own user account",
-  users: "Manage project users",
-  teams: "Group users to share resource access",
-  tablesdb: "Structured tables of rows and columns",
-  storage: "Files and buckets",
-  functions: "Serverless functions, deployments, and executions",
-  sites: "Static and SSR sites and their deployments",
-  messaging: "Topics, subscribers, and message delivery",
-  tokens: "Resource tokens for secure file access",
-  backups: "Backup policies, archives, and restorations",
-  presences: "Real-time user presence tracking",
-
-  graphql: "Query and mutate any resource via GraphQL",
-  generate: "Generate a type-safe SDK from your project config",
-  types: "Generate TypeScript types for your project",
-  locale: "Localize your app based on user location",
-  activities: "List and inspect project activity events",
-  migrations: "Migrate data between services",
-  notifications: "Console notifications",
-  oauth2: "Authorize apps and issue OAuth2 and OIDC tokens",
-  client: "Configure the CLI itself",
-  completion: "Generate shell completion scripts",
-  logout: `Log out of your ${SDK_TITLE} account`,
-  update: "Update the CLI to the latest version",
-
-  databases: "Use `tablesdb` instead",
+{% for command, summary in cliHelpSummaries(spec.title | caseUcfirst) %}
+  {% if command matches '/^[A-Za-z_$][A-Za-z0-9_$]*$/' %}{{ command }}{% else %}{{ command | json_encode | raw }}{% endif %}: {{ summary | json_encode | raw }},
+{% endfor %}
 };
 
-/** Order of the global flags, by long flag. Unlisted options are appended. */
+/**
+ * Order of the global flags, by long flag. Unlisted options are appended.
+ *
+ * Generated from CliCommandSurface::HELP_OPTION_ORDER.
+ */
 const optionOrder: readonly string[] = [
-  "--version",
-  "--help",
-  "--json",
-  "--raw",
-  "--show-secrets",
-  "--verbose",
-  "--force",
-  "--all",
-  "--id",
-  "--report",
+{% for flag in cliHelpOptionOrder() %}
+  {{ flag | json_encode | raw }},
+{% endfor %}
 ];
 
 const MAX_WIDTH = 80;

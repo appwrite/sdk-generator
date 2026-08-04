@@ -1,0 +1,430 @@
+package cmd
+
+import (
+	"fmt"
+	"os"
+	"sort"
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"golang.org/x/term"
+)
+
+// The main help screen, ported from templates/cli/lib/help.ts.
+//
+// cobra's default screen lists every command alphabetically with its full API
+// description, which for this CLI is 40-odd services and a paragraph each. The
+// TypeScript CLI groups them by intent instead and gives each a one-line
+// summary, so the first thing a new user sees is the eight commands that
+// actually get them started.
+//
+// The groups, the summaries and the option order below are generated from
+// CliCommandSurface::HELP_GROUPS, ::HELP_SUMMARIES and ::HELP_OPTION_ORDER --
+// the same tables help.ts is generated from, so the two screens cannot drift.
+
+// helpGroup is one titled section of the listing.
+type helpGroup struct {
+	title string
+	// dim greys the whole section, which is what DEPRECATED is for.
+	dim bool
+	// commands are paths as typed, so a promoted root command such as
+	// `list-projects` can sit beside `login`.
+	commands []string
+}
+
+var helpGroups = []helpGroup{
+{% for group in cliHelpGroups() %}
+	{
+		title: {{ group.title | goString | raw }},
+{% if group.dim %}
+		dim:   true,
+{% endif %}
+		commands: []string{
+{% for command in group.commands %}
+			{{ command | goString | raw }},
+{% endfor %}
+		},
+	},
+{% endfor %}
+}
+
+// helpSummaries are the one-line summaries for the listing. A command's own
+// Short and Long stay the longer form shown on its own help page.
+{#
+    Keys are padded to gofmt's column so the generated file is already
+    formatted -- `gofmt -l` is part of the Go CLI's checks, and it aligns the
+    values of a map literal.
+#}
+{% set keyWidth = 0 %}
+{% for command in cliHelpSummaries(spec.title | caseUcfirst) | keys %}
+{% if command | length > keyWidth %}{% set keyWidth = command | length %}{% endif %}
+{% endfor %}
+var helpSummaries = map[string]string{
+{% for command, summary in cliHelpSummaries(spec.title | caseUcfirst) %}
+	{{ ('%-' ~ (keyWidth + 3) ~ 's') | format((command | goString | raw) ~ ':') | raw }} {{ summary | goString | raw }},
+{% endfor %}
+}
+
+// helpOptionOrder is the order of the global flags, by long flag. Anything
+// unlisted is appended, alphabetically.
+var helpOptionOrder = []string{
+{% for flag in cliHelpOptionOrder() %}
+	{{ flag | goString | raw }},
+{% endfor %}
+}
+
+// helpLogo is the ASCII art above the screen.
+const helpLogo = {{ language.params.logo | goString | raw }}
+
+// helpDescription is the paragraph under the logo.
+const helpDescription = {{ sdk.description | goString | raw }}
+
+const (
+	// helpMaxWidth caps the screen on a wide terminal: a summary column that
+	// runs to 200 columns is harder to read, not easier.
+	helpMaxWidth = 80
+	helpGap      = 2
+	helpIndent   = "  "
+)
+
+var (
+	helpLogoStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+	helpTitleStyle = lipgloss.NewStyle().Bold(true)
+	helpDimStyle   = lipgloss.NewStyle().Faint(true)
+)
+
+// registerMainHelp replaces cobra's help screen for the ROOT command only.
+//
+// A help function is inherited, so this has to fall back to the one cobra
+// installed for anything below the root -- `appwrite users --help` is a listing
+// of that service, which cobra already renders well.
+func registerMainHelp(root *cobra.Command) {
+	// Captured before the override, so it is cobra's own implementation rather
+	// than this function calling itself.
+	fallback := root.HelpFunc()
+
+	// cobra adds both of these lazily, and their generated usage text reads
+	// "help for appwrite". Force them now so the wording is ours and so
+	// --version and --help appear in OPTIONS at all.
+	root.InitDefaultHelpFlag()
+	root.InitDefaultVersionFlag()
+	if flag := root.Flags().Lookup("help"); flag != nil {
+		flag.Usage = "Display help for a command"
+	}
+	if flag := root.Flags().Lookup("version"); flag != nil {
+		flag.Usage = "Output the CLI version"
+	}
+
+	root.SetHelpFunc(func(command *cobra.Command, arguments []string) {
+		if command != root {
+			fallback(command, arguments)
+
+			return
+		}
+
+		fmt.Fprint(command.OutOrStdout(), RenderMainHelp(root))
+	})
+}
+
+// helpRow is one line of a section: the command as typed and its summary.
+type helpRow struct {
+	name    string
+	summary string
+}
+
+type helpSection struct {
+	title string
+	dim   bool
+	rows  []helpRow
+}
+
+// RenderMainHelp builds the screen. Exported so a test can assert it without
+// going through cobra's help plumbing.
+func RenderMainHelp(root *cobra.Command) string {
+	width := helpWidth()
+
+	sections := make([]helpSection, 0, len(helpGroups)+1)
+	claimed := map[string]bool{}
+
+	for _, group := range helpGroups {
+		rows := make([]helpRow, 0, len(group.commands))
+		for _, path := range group.commands {
+			claimed[path] = true
+
+			// A group names commands the spec may not produce -- an exclusion
+			// list, or an older API version -- so a missing one is skipped
+			// rather than printed as an empty row.
+			child := resolveCommand(root, path)
+			if child == nil || !isListedInHelp(child) {
+				continue
+			}
+
+			rows = append(rows, helpRow{name: path, summary: summaryOf(child, path)})
+		}
+
+		if len(rows) > 0 {
+			sections = append(sections, helpSection{title: group.title, dim: group.dim, rows: rows})
+		}
+	}
+
+	// Anything the tables do not name still appears, so a command added to the
+	// CLI or a service added to the spec can never silently vanish from --help.
+	other := make([]helpRow, 0)
+	for _, child := range root.Commands() {
+		if !isListedInHelp(child) || claimed[child.Name()] {
+			continue
+		}
+
+		other = append(other, helpRow{name: child.Name(), summary: summaryOf(child, child.Name())})
+	}
+	if len(other) > 0 {
+		sections = append(sections, helpSection{title: "OTHER", rows: other})
+	}
+
+	// One column across every section, so the summaries line up down the whole
+	// screen rather than per group.
+	nameWidth := 0
+	for _, section := range sections {
+		for _, row := range section.rows {
+			if length := len(row.name); length > nameWidth {
+				nameWidth = length
+			}
+		}
+	}
+
+	lines := []string{
+		renderLogo(),
+		"",
+		wrapHelpText(helpDescription, width-helpGap-helpGap, helpIndent),
+		"",
+		helpTitleStyle.Render("USAGE"),
+		helpIndent + root.Name() + " [options] <command> [subcommand]",
+	}
+
+	for _, section := range sections {
+		lines = append(lines, "", helpTitleStyle.Render(section.title))
+		for _, row := range section.rows {
+			line := helpIndent + pad(row.name, nameWidth) + strings.Repeat(" ", helpGap) + row.summary
+			if section.dim {
+				line = helpDimStyle.Render(line)
+			}
+			lines = append(lines, line)
+		}
+	}
+
+	lines = append(lines,
+		"",
+		helpTitleStyle.Render("OPTIONS"),
+		renderHelpOptions(root),
+		"",
+		helpDimStyle.Render(fmt.Sprintf(
+			"Run `%s <command> --help` for details on a specific command.", root.Name())),
+		"",
+	)
+
+	return strings.Join(lines, "\n")
+}
+
+// renderLogo colours the ASCII art a line at a time.
+//
+// Not one Render of the whole block: lipgloss pads every line of a multi-line
+// block out to the width of the widest one, which leaves trailing spaces on
+// most of the art. Invisible on a terminal, but it makes the screen impossible
+// to compare against the TypeScript CLI's byte for byte.
+func renderLogo() string {
+	lines := strings.Split(strings.TrimRight(helpLogo, "\n"), "\n")
+	for index, line := range lines {
+		lines[index] = helpLogoStyle.Render(line)
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+// resolveCommand walks a space-separated path against the tree, matching a name
+// or any alias, and returns nil if any segment is missing.
+func resolveCommand(root *cobra.Command, path string) *cobra.Command {
+	current := root
+
+	for _, segment := range strings.Split(path, " ") {
+		var found *cobra.Command
+		for _, child := range current.Commands() {
+			if child.Name() == segment {
+				found = child
+
+				break
+			}
+			for _, alias := range child.Aliases {
+				if alias == segment {
+					found = child
+
+					break
+				}
+			}
+			if found != nil {
+				break
+			}
+		}
+
+		if found == nil {
+			return nil
+		}
+		current = found
+	}
+
+	if current == root {
+		return nil
+	}
+
+	return current
+}
+
+// isListedInHelp mirrors cobra's IsAvailableCommand, minus its own `help`.
+func isListedInHelp(command *cobra.Command) bool {
+	return command.Name() != "help" && !command.Hidden && !command.IsAdditionalHelpTopicCommand()
+}
+
+// summaryOf prefers the declared summary, then the command's own Short, then
+// the first sentence of its Long -- so a command with no summary still reads as
+// one line rather than as a paragraph.
+func summaryOf(command *cobra.Command, path string) string {
+	if declared, ok := helpSummaries[path]; ok {
+		return declared
+	}
+
+	if command.Short != "" {
+		return firstSentence(command.Short)
+	}
+
+	return firstSentence(command.Long)
+}
+
+func firstSentence(text string) string {
+	if index := strings.Index(text, ". "); index >= 0 {
+		text = text[:index]
+	}
+
+	return strings.TrimSuffix(strings.TrimSpace(text), ".")
+}
+
+// renderHelpOptions lists the root's flags in helpOptionOrder.
+func renderHelpOptions(root *cobra.Command) string {
+	type option struct {
+		term  string
+		usage string
+		rank  int
+		name  string
+	}
+
+	options := make([]option, 0)
+	collect := func(flag *pflag.Flag) {
+		if flag.Hidden {
+			return
+		}
+
+		rank := len(helpOptionOrder)
+		for index, long := range helpOptionOrder {
+			if long == "--"+flag.Name {
+				rank = index
+
+				break
+			}
+		}
+
+		options = append(options, option{
+			term:  optionTerm(flag),
+			usage: flag.Usage,
+			rank:  rank,
+			name:  flag.Name,
+		})
+	}
+	root.PersistentFlags().VisitAll(collect)
+	// --version and --help are local to the root rather than persistent.
+	root.LocalNonPersistentFlags().VisitAll(collect)
+
+	sort.SliceStable(options, func(left, right int) bool {
+		if options[left].rank != options[right].rank {
+			return options[left].rank < options[right].rank
+		}
+
+		return options[left].name < options[right].name
+	})
+
+	termWidth := 0
+	for _, entry := range options {
+		if length := len(entry.term); length > termWidth {
+			termWidth = length
+		}
+	}
+
+	lines := make([]string, 0, len(options))
+	for _, entry := range options {
+		lines = append(lines,
+			helpIndent+pad(entry.term, termWidth)+strings.Repeat(" ", helpGap)+entry.usage)
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+// optionTerm is how a flag is spelled in the listing: `-j, --json` with a
+// shorthand, `--show-secrets` without, and the value placeholder for a flag
+// that takes one.
+func optionTerm(flag *pflag.Flag) string {
+	term := "--" + flag.Name
+	if flag.Shorthand != "" {
+		term = "-" + flag.Shorthand + ", " + term
+	}
+
+	if name, _ := pflag.UnquoteUsage(flag); name != "" {
+		term += " <" + name + ">"
+	}
+
+	return term
+}
+
+// wrapHelpText greedily wraps to columns and indents every line, including the
+// first. Mirrors commander's Help.wrap, which is what produces the paragraph
+// under the logo.
+func wrapHelpText(text string, columns int, indent string) string {
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return ""
+	}
+
+	lines := []string{words[0]}
+	for _, word := range words[1:] {
+		last := len(lines) - 1
+		if len(lines[last])+1+len(word) <= columns {
+			lines[last] += " " + word
+
+			continue
+		}
+		lines = append(lines, word)
+	}
+
+	for index := range lines {
+		lines[index] = indent + lines[index]
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func pad(value string, width int) string {
+	if len(value) >= width {
+		return value
+	}
+
+	return value + strings.Repeat(" ", width-len(value))
+}
+
+// helpWidth is the terminal's width, capped at helpMaxWidth. A terminal that
+// reports nothing -- a pipe, a CI log -- gets the cap.
+func helpWidth() int {
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil || width <= 0 || width > helpMaxWidth {
+		return helpMaxWidth
+	}
+
+	return width
+}

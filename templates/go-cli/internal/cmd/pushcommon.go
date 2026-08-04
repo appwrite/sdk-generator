@@ -393,7 +393,7 @@ func newPushCommand() *cobra.Command {
 	// merged over it and `push table`'s own -a stays free.
 	command.Flags().BoolVarP(
 		app.Flags().AllPointer(), "all", "a", false,
-		"Apply the command to every matching resource.")
+		"Push every resource in the project config")
 
 	command.AddCommand(newPushAllCommand())
 	command.AddCommand(newPushSettingsCommand())

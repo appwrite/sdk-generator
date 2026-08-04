@@ -40,13 +40,15 @@ func (g *Globals) AllPointer() *bool { return &g.All }
 
 // RegisterGlobalFlags adds the persistent flags to the root command.
 func RegisterGlobalFlags(root *cobra.Command) {
+	// Wording is the TypeScript CLI's, verbatim (cli.ts.twig:145) -- these lines
+	// are what `--help` shows, so a difference here is a difference users read.
 	flags := root.PersistentFlags()
-	flags.BoolVarP(&globals.JSON, "json", "j", false, "Output the response as JSON.")
-	flags.BoolVarP(&globals.Raw, "raw", "R", false, "Output the unfiltered response as JSON.")
+	flags.BoolVarP(&globals.JSON, "json", "j", false, "Output filtered JSON (empty values omitted)")
+	flags.BoolVarP(&globals.Raw, "raw", "R", false, "Output the full raw JSON response")
 	flags.BoolVar(&globals.ShowSecrets, "show-secrets", false,
-		"Show secret values in full instead of masking them.")
-	flags.BoolVarP(&globals.Verbose, "verbose", "V", false, "Show detailed output for debugging.")
-	flags.BoolVarP(&globals.Force, "force", "f", false, "Skip confirmation prompts.")
+		"Reveal secrets and tokens in output (redacted by default)")
+	flags.BoolVarP(&globals.Verbose, "verbose", "V", false, "Show full error stack traces")
+	flags.BoolVarP(&globals.Force, "force", "f", false, "Skip confirmation prompts")
 	// --all is persistent so every command that honours it reads one value, but
 	// WITHOUT the -a shorthand. cobra merges a root persistent flag into every
 	// subcommand, and `push table` and `push collection` define their own -a for
@@ -54,9 +56,17 @@ func RegisterGlobalFlags(root *cobra.Command) {
 	// crashed those two commands outright. The shorthand is added locally on
 	// `push` and `pull`, which is where the TypeScript has it (push.ts:4272,
 	// pull.ts:1121); commander options do not inherit, so it never had to choose.
-	flags.BoolVar(&globals.All, "all", false, "Apply the command to every matching resource.")
+	//
+	// Hidden at the root for the same reason it is hidden there in the
+	// TypeScript (`new Option('-a, --all', ...).hideHelp()`): it is parsed
+	// globally so `appwrite --all push` keeps working, but it acts on `push` and
+	// `pull`, which is where it is documented.
+	flags.BoolVar(&globals.All, "all", false, "Push or pull every resource")
+	if flag := flags.Lookup("all"); flag != nil {
+		flag.Hidden = true
+	}
 	flags.BoolVar(&globals.Report, "report", false,
-		"Print a prefilled bug report link on error.")
+		"Print a prefilled bug report link on error")
 }
 
 // Renderer builds an output renderer from the current global flags.

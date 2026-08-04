@@ -64,6 +64,11 @@ class GoCLI extends Go
         // above. example.php sets it to build examples/go-cli against the SDK
         // this generator produces, without waiting for a release.
         'localSdkPath' => '',
+        // ASCII art above the main help screen, held RAW rather than escaped:
+        // the TypeScript CLI's `logo` param is JSON-encoded, and JSON escapes
+        // `/` as `\/`, which is not a valid Go escape. Each template escapes it
+        // for its own language instead.
+        'logo' => '',
         'homebrewTapOwner' => 'appwrite',
         'homebrewTapName' => 'appwrite',
         'homebrewTapBranch' => 'main',
@@ -105,6 +110,16 @@ class GoCLI extends Go
     public function setLocalSDKPath(string $path): self
     {
         $this->setParam('localSdkPath', $path);
+
+        return $this;
+    }
+
+    /**
+     * ASCII art printed above the main help screen, unescaped.
+     */
+    public function setLogo(string $logo): self
+    {
+        $this->setParam('logo', $logo);
 
         return $this;
     }
@@ -413,12 +428,12 @@ class GoCLI extends Go
     #[Override]
     public function getFunctions(): array
     {
-        return [
+        return array_merge($this->getCliHelpFunctions(), [
             new TwigFunction('getGoCliOption', fn (array $parameter): array => $this->getGoCliOption($parameter)),
             new TwigFunction('getGoVarName', fn (array $parameter): string => $this->getGoVarName($parameter['name'])),
             new TwigFunction('getGoCliArgExpression', fn (array $parameter): string => $this->getGoCliArgExpression($parameter)),
             new TwigFunction('getGoCallPlan', fn (array $method, array $service): array => $this->getGoCallPlan($method, $service)),
-        ];
+        ]);
     }
 
     #[Override]
@@ -454,6 +469,16 @@ class GoCLI extends Go
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/root.go',
                 'template'      => 'go-cli/internal/cmd/root.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/help.go',
+                'template'      => 'go-cli/internal/cmd/help.go.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/help_test.go',
+                'template'      => 'go-cli/internal/cmd/help_test.go',
             ],
             [
                 'scope'         => 'copy',

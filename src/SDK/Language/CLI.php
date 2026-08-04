@@ -366,9 +366,9 @@ class CLI extends Node
                 'template'      => 'cli/lib/hints.ts',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'lib/help.ts',
-                'template'      => 'cli/lib/help.ts',
+                'template'      => 'cli/lib/help.ts.twig',
             ],
             [
                 'scope'         => 'copy',
@@ -780,7 +780,7 @@ class CLI extends Node
     #[Override]
     public function getFunctions(): array
     {
-        return [
+        return array_merge($this->getCliHelpFunctions(), [
             /** Return true if the entered service->method is enabled for a console preview link */
             new TwigFunction('hasConsolePreview', fn($method, $service): bool => preg_match('/^([Gg]et|[Ll]ist)/', (string) $method)
                 && !in_array(strtolower((string) $method), $this->consoleIgnoreFunctions)
@@ -875,6 +875,6 @@ class CLI extends Node
                     return $varName;
                 }
             }),
-        ];
+        ]);
     }
 }
