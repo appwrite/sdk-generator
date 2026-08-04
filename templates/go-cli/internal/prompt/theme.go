@@ -43,10 +43,15 @@ func newTheme() *huh.Theme {
 	// Reversed rather than filled with a brand colour: the focused button then
 	// reads as focused on a light terminal as well as a dark one, which a
 	// fixed background does not.
+	//
+	// MarginLeft on the first button, because Inline(true) butts it straight
+	// against the question mark -- "apply these changes?Yes" reads as one word.
 	base.Focused.FocusedButton = base.Focused.FocusedButton.
-		Foreground(lipgloss.Color("0")).Background(accentColor).Bold(true)
+		Foreground(lipgloss.Color("0")).Background(accentColor).Bold(true).
+		MarginLeft(1)
 	base.Focused.BlurredButton = base.Focused.BlurredButton.
-		Foreground(mutedColor).Background(lipgloss.NoColor{})
+		Foreground(mutedColor).Background(lipgloss.NoColor{}).
+		MarginLeft(1)
 
 	base.Focused.ErrorIndicator = base.Focused.ErrorIndicator.Foreground(errorColor)
 	base.Focused.ErrorMessage = base.Focused.ErrorMessage.Foreground(errorColor)

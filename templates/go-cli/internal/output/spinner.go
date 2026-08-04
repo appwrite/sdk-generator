@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"golang.org/x/term"
 )
 
@@ -78,6 +79,8 @@ type Spinner struct {
 	frame   int
 	drawn   bool
 	stopped bool
+	// hidCursor tracks whether the terminal cursor is currently hidden.
+	hidCursor bool
 
 	done chan struct{}
 	wait sync.WaitGroup
@@ -208,6 +211,15 @@ func (s *Spinner) halt() {
 
 	close(s.done)
 	s.wait.Wait()
+
+	// Restored unconditionally: leaving a terminal without a cursor is a worse
+	// failure than the one hiding it avoided.
+	s.mutex.Lock()
+	if s.hidCursor {
+		fmt.Fprint(s.writer, "\033[?25h")
+		s.hidCursor = false
+	}
+	s.mutex.Unlock()
 }
 
 func (s *Spinner) animate() {
@@ -235,6 +247,14 @@ func (s *Spinner) animate() {
 func (s *Spinner) draw() {
 	if !s.enabled {
 		return
+	}
+
+	// The line is redrawn in place with no newline, so the terminal cursor
+	// parks at the end of it and blinks there. Hidden for the duration, and
+	// restored by halt().
+	if !s.drawn && !s.hidCursor {
+		fmt.Fprint(s.writer, "\033[?25l")
+		s.hidCursor = true
 	}
 
 	s.clear()
@@ -291,6 +311,15 @@ func spinnerLine(mark, status, middle, end string, endStyle lipgloss.Style, widt
 
 	if end != "" {
 		line += " " + separator + " " + end
+	}
+
+	// A line that reaches the terminal's width wraps, and clear() erases only
+	// the row the cursor is on -- so the wrapped remainder stayed on screen as
+	// debris under the spinner. minMiddleWidth above is a floor that can push
+	// past the width on a narrow terminal, and the trailing note is appended
+	// after it, so the total is bounded here rather than assumed.
+	if width > 1 && lipgloss.Width(line) >= width {
+		line = ansi.Truncate(line, width-1, "")
 	}
 
 	return line

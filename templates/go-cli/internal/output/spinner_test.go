@@ -1,6 +1,7 @@
 package output
 
 import (
+	"github.com/charmbracelet/lipgloss"
 	"bytes"
 	"strings"
 	"testing"
@@ -99,5 +100,22 @@ func TestSpinnerLogsALineVerbatim(t *testing.T) {
 
 	if got, want := buffer.String(), "npm install\n"; got != want {
 		t.Errorf("logged %q, want %q", got, want)
+	}
+}
+
+// clear() erases only the row the cursor is on, so a line that reaches the
+// terminal's width wraps and leaves its remainder on screen as debris under
+// the spinner. The line must always fit.
+func TestSpinnerLineNeverReachesTheTerminalWidth(t *testing.T) {
+	long := strings.Repeat("very-long-resource-name-", 8)
+
+	for _, width := range []int{10, 20, 40, 80, 120} {
+		line := spinnerLine("⠋", pad("building", statusWidth),
+			long+" ("+long+")", "Checking deployment status...",
+			spinnerTrailingStyle, width)
+
+		if got := lipgloss.Width(line); got >= width {
+			t.Errorf("width %d: line is %d columns, so it wraps:\n%s", width, got, line)
+		}
 	}
 }

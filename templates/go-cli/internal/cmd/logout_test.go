@@ -1,13 +1,17 @@
 package cmd
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/appwrite/appwrite-cli-go/internal/app"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
+	"github.com/spf13/cobra"
 )
 
 // Signing out deleted the stored session and stopped there, so the credential
@@ -139,4 +143,27 @@ func preferencesWith(t *testing.T, contents string) *config.Global {
 	}
 
 	return config.LoadGlobal(path)
+}
+
+// The version banner is context, not data. On stdout it would land inside the
+// JSON and break `whoami --json | jq`, so under --json it goes to stderr --
+// the same rule the update notice follows.
+func TestWhoamiBannerAvoidsStdoutWhenParsed(t *testing.T) {
+	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
+	command := &cobra.Command{Use: "whoami"}
+	command.SetOut(stdout)
+	command.SetErr(stderr)
+
+	restore := app.Flags().JSON
+	defer func() { app.Flags().JSON = restore }()
+
+	app.Flags().JSON = false
+	if bannerWriter(command) != io.Writer(stdout) {
+		t.Error("the banner avoided stdout when nothing was parsing it")
+	}
+
+	app.Flags().JSON = true
+	if bannerWriter(command) != io.Writer(stderr) {
+		t.Error("the banner went to stdout under --json, where it breaks jq")
+	}
 }

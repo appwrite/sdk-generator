@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 	"runtime"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/appwrite/appwrite-cli-go/internal/client"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 )
 
@@ -113,13 +115,18 @@ func newWhoamiCommand() *cobra.Command {
 			// MFA is deliberately absent: the OAuth login the CLI uses does not
 			// exercise it, so reporting it invited a conclusion it cannot
 			// support.
+			// A banner rather than a field, the way `vercel whoami` opens with
+			// "Vercel CLI 58.4.4 (Node.js 22.19.0)". Dim, because it is context
+			// for the answer rather than part of it.
+			//
+			// To stderr when the output is being parsed -- same rule as the
+			// update notice, so `whoami --json | jq` still gets only JSON.
+			fmt.Fprintln(bannerWriter(command), bannerStyle.Render(fmt.Sprintf(
+				"Appwrite CLI %s (Go %s, %s/%s)", app.Version,
+				strings.TrimPrefix(runtime.Version(), "go"),
+				runtime.GOOS, runtime.GOARCH)))
+
 			report := jsonx.NewObject()
-			// One line, the way `vercel whoami` opens with "Vercel CLI 58.4.4
-			// (Node.js 22.19.0)". Version and runtime are read together or not
-			// at all, so two rows spent a line on a single fact.
-			report.Set("CLI", fmt.Sprintf("%s (%s, %s/%s)",
-				app.Version, runtime.Version(), runtime.GOOS, runtime.GOARCH))
-			report.Set("User ID", account.GetString("$id"))
 			report.Set("Name", account.GetString("name"))
 			report.Set("Email", account.GetString("email"))
 			report.Set("Endpoint", session.GetString(config.PreferenceEndpoint))
@@ -213,6 +220,21 @@ func newLogoutCommand() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+// bannerStyle is the dim grey the CLI uses for context lines.
+var bannerStyle = lipgloss.NewStyle().Faint(true)
+
+// bannerWriter is stderr whenever stdout is being parsed.
+//
+// The banner is context, not data. On stdout under --json it would land inside
+// the document and break `whoami --json | jq`.
+func bannerWriter(command *cobra.Command) io.Writer {
+	if app.Flags().JSON || app.Flags().Raw {
+		return command.ErrOrStderr()
+	}
+
+	return command.OutOrStdout()
 }
 
 // registerSessionCommands attaches the commands that do not come from the spec.
