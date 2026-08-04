@@ -30,9 +30,8 @@ import (
 //
 // The TypeScript pushes every selected resource concurrently, each with its own
 // spinner row. This pushes them one at a time behind a single row, which keeps
-// the request sequence deterministic -- that is what the differential harness
-// compares (docs/go-cli/conformance/) -- and keeps interleaved build logs
-// attributable. The settings writes are sequential for a different and
+// the request sequence deterministic -- which is what makes a recorded trace of a
+// push worth comparing at all -- and keeps interleaved build logs attributable. The settings writes are sequential for a different and
 // stronger reason -- see applyEnabled.
 //
 // The TypeScript reads build logs over a realtime WebSocket and falls back to

@@ -17,8 +17,8 @@ is outstanding, and nothing here blocks the rollout.
 Findings 17 and 19 are resolved by diverging from the TypeScript on purpose
 rather than by matching it. Each says so at the finding.
 
-The differential sweep now reports **532 of 606 commands byte-identical, up from
-237** when the audit opened. The 74 that differ are [itemised
+The sweep that produced this audit ended at **532 of 606 commands byte-identical,
+up from 237** when it opened. The 74 that differ are [itemised
 below](#remaining-sweep-differences-itemised): 50 are an artifact of the stub
 server, and the rest are the accepted findings.
 
@@ -682,10 +682,9 @@ Go is correct here.
 
 ## Not tested — and why
 
-1. **The Docker e2e suites.** `tests/e2e/GoCLI126Test.php` and
-   `tests/e2e/CLIDifferentialTest.php` are the authoritative conformance tests
-   and neither ran: no Docker daemon on this machine. This is now the biggest
-   remaining gap.
+1. **The Docker e2e suite.** `tests/e2e/GoCLI126Test.php` is the authoritative
+   conformance test and it did not run here: no Docker daemon on this machine. It
+   runs in CI on every PR, which is where that gap is closed.
 2. **Interactive flows.** Login device flow, `init` prompts, the push/pull
    resource pickers, every confirmation prompt.
 3. **`push site`.** Functions and tables are verified; the project used for the
@@ -727,7 +726,7 @@ by a code change, so a reviewer does not have to reconstruct it.
    this stack; it wants an issue against the TypeScript CLI.
 
 Untested rather than unresolved: the interactive flows, which need a terminal.
-The two Docker e2e suites now run in CI as `GoCLI126` and `CLISharedBun13`.
+The Docker e2e suite runs in CI as `GoCLI126`.
 
 ## Verified live after the fixes
 
@@ -764,8 +763,9 @@ mid-run; only the Go side had `APPWRITE_PROJECT_ID` set, so the two CLIs used
 different projects; an earlier probe had changed the TypeScript's stored API
 key; the driver read each flag's *description* as its type and so fed `stub` to
 every boolean; and required booleans need an explicit value on the TypeScript
-side. All five are fixed in [`conformance/drive.py`](conformance/drive.py).
-**Treat a sudden jump in this number as harness drift until proven otherwise.**
+side. All five were fixed in the sweep harness before the numbers above were
+taken. **Treat a sudden jump in this number as harness drift until proven
+otherwise.**
 
 ## Found by the final sweep
 
