@@ -698,6 +698,15 @@ func runPushDeployable(
 		return err
 	}
 
+	// Everything was skipped for missing a required field, so there is nothing
+	// left to push. Without this the push carried on with an empty list and
+	// still asked whether to create a deployment.
+	if len(entries) == 0 {
+		output.Log(out, "No %s left to push.", resource.Label)
+
+		return nil
+	}
+
 	approved, err := context.approveChanges(command, approvalRequest{
 		Resources: entries,
 		Fetch: func(local *jsonx.Object) (*jsonx.Object, error) {
@@ -900,7 +909,8 @@ func (c *pushContext) completeDeployables(
 		// Which one, and what is missing. The TypeScript logs this before it
 		// prompts (push.ts:3656); without it the question arrives as a bare
 		// "Enter the entrypoint" with no clue which of ten functions it is for.
-		output.Log(out, "%s %s is missing %s.", resource.Singular, name, label)
+		output.Log(out, "%s %s is missing %s.",
+			capitalizeFirst(resource.Singular), name, label)
 
 		// --all says "every resource, do not ask me". It is also how a pipeline
 		// pushes, so stopping on a question there is the opposite of what was
@@ -934,6 +944,16 @@ func (c *pushContext) completeDeployables(
 	}
 
 	return usable, c.local.Write()
+}
+
+// capitalizeFirst starts a sentence with the resource name, which is stored
+// lowercase for use mid-sentence.
+func capitalizeFirst(value string) string {
+	if value == "" {
+		return value
+	}
+
+	return strings.ToUpper(value[:1]) + value[1:]
 }
 
 // siteRequiresBuildCommand reports whether a site has to be built.
