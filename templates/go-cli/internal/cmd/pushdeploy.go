@@ -823,6 +823,10 @@ func (s *pushSummary) report(
 	seconds := fmt.Sprintf("%.1fs", elapsed.Seconds())
 
 	switch {
+	// Info when nothing failed: nothing to push, or everything already matched.
+	// Each failure that did happen has already been printed with its reason.
+	case s.Pushed == 0 && len(s.Failed) == 0:
+		output.Log(out, "No %s were pushed. Everything is already up to date.", resource.Label)
 	case s.Pushed == 0:
 		output.Failure(out, "No %s were pushed.", resource.Label)
 	case s.Deployed != s.Pushed:

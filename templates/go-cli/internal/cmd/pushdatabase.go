@@ -179,7 +179,7 @@ func runPushTable(command *cobra.Command, resource pushDatabaseResource) error {
 	}
 
 	if pushed == 0 {
-		output.Warn(out, "No tables were pushed.")
+		output.Log(out, "No tables were pushed. Everything is already up to date.")
 	} else {
 		output.Success(out, "Successfully pushed %d tables.", pushed)
 	}
@@ -241,7 +241,7 @@ func runPushCollection(command *cobra.Command, resource pushDatabaseResource) er
 	}
 
 	if pushed == 0 {
-		output.Warn(out, "No collections were pushed.")
+		output.Log(out, "No collections were pushed. Everything is already up to date.")
 	} else {
 		output.Success(out, "Successfully pushed %d collections.", pushed)
 	}
