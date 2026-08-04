@@ -194,14 +194,20 @@ func RenderMainHelp(root *cobra.Command) string {
 		}
 	}
 
-	lines := []string{
-		renderLogo(),
-		"",
+	lines := make([]string, 0, 8)
+
+	// A generation that passes no logo gets no blank lines where it would have
+	// been. The conformance build is one.
+	if logo := renderLogo(); logo != "" {
+		lines = append(lines, logo, "")
+	}
+
+	lines = append(lines,
 		wrapHelpText(helpDescription, width-helpGap-helpGap, helpIndent),
 		"",
 		helpTitleStyle.Render("USAGE"),
-		helpIndent + root.Name() + " [options] <command> [subcommand]",
-	}
+		helpIndent+root.Name()+" [options] <command> [subcommand]",
+	)
 
 	for _, section := range sections {
 		lines = append(lines, "", helpTitleStyle.Render(section.title))

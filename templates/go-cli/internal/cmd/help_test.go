@@ -38,20 +38,44 @@ func TestDescriptionWrapsTheSameWayCommanderDoes(t *testing.T) {
 func TestHelpSectionsAppearInOrder(t *testing.T) {
 	screen := RenderMainHelp(NewRootCommand())
 
-	// USAGE first, then every group that has rows, then OPTIONS last.
-	want := []string{"USAGE"}
+	// USAGE first, then the groups that have rows, then OTHER, then OPTIONS.
+	// A group with no rows is omitted rather than printed empty -- which is the
+	// usual case for the six-service mock spec the conformance build uses -- so
+	// what is asserted is the order of the headings that ARE there.
+	order := []string{"USAGE"}
 	for _, group := range helpGroups {
-		want = append(want, group.title)
+		order = append(order, group.title)
 	}
-	want = append(want, "OPTIONS")
+	order = append(order, "OTHER", "OPTIONS")
 
-	position := 0
-	for _, heading := range want {
-		index := strings.Index(screen[position:], "\n"+heading+"\n")
-		if index < 0 {
-			t.Fatalf("%q is missing from the screen, or is out of order", heading)
+	rank := map[string]int{}
+	for index, heading := range order {
+		rank[heading] = index
+	}
+
+	previous := -1
+	seen := 0
+	for _, line := range strings.Split(screen, "\n") {
+		at, ok := rank[line]
+		if !ok {
+			continue
 		}
-		position += index + 1
+		if at <= previous {
+			t.Errorf("%q is out of order on the screen", line)
+		}
+		previous = at
+		seen++
+	}
+
+	// USAGE and OPTIONS are unconditional, and at least one group has to have
+	// rows or the screen lists nothing at all.
+	if seen < 3 {
+		t.Errorf("only %d of the expected headings are on the screen", seen)
+	}
+	for _, required := range []string{"USAGE", "OPTIONS"} {
+		if !strings.Contains(screen, "\n"+required+"\n") {
+			t.Errorf("%q is missing from the screen", required)
+		}
 	}
 }
 
