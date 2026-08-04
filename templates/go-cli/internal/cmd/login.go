@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/appwrite/appwrite-cli-go/internal/auth"
@@ -108,6 +109,12 @@ func newLoginCommand() *cobra.Command {
 // account you are already signed in to. Composing the two keeps the
 // deduplication and drops the collision. The key is internal, so its spelling
 // is free.
+//
+// The WHOLE endpoint goes into the key, not just its host. Two self-hosted
+// instances can share a host and differ only by scheme or base path -- one
+// reverse-proxied at /staging/v1 and another at /prod/v1, or an http and an https
+// URL for the same box during a migration -- and reducing them to the host would
+// reintroduce exactly the collision this function exists to remove.
 func cloudSessionID(endpoint, subject string) string {
 	if subject == "" {
 		// No subject claim leaves nothing stable to key on, so fall back to the
@@ -116,12 +123,25 @@ func cloudSessionID(endpoint, subject string) string {
 		return strconv.FormatInt(time.Now().UnixMilli(), 10)
 	}
 
-	host := endpoint
-	if parsed, err := url.Parse(endpoint); err == nil && parsed.Host != "" {
-		host = parsed.Host
-	}
+	return subject + "@" + canonicalEndpoint(endpoint)
+}
 
-	return subject + "@" + host
+// canonicalEndpoint reduces an endpoint to one spelling per instance, so the same
+// instance keys to the same session however it was typed.
+//
+// Hostnames are case-insensitive and a trailing slash is not meaningful; paths
+// are case-sensitive, so only the host is folded.
+func canonicalEndpoint(endpoint string) string {
+	trimmed := strings.TrimRight(endpoint, "/")
+
+	parsed, err := url.Parse(trimmed)
+	if err != nil || parsed.Host == "" {
+		return trimmed
+	}
+	parsed.Host = strings.ToLower(parsed.Host)
+	parsed.Scheme = strings.ToLower(parsed.Scheme)
+
+	return parsed.String()
 }
 
 // openBrowser is best-effort: a headless or locked-down environment simply

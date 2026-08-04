@@ -29,6 +29,41 @@ func TestCloudSessionIDIsStableForOneAccountAndEndpoint(t *testing.T) {
 	}
 }
 
+// Two self-hosted instances can share a host and differ only by scheme or base
+// path -- one reverse-proxied at /staging/v1 and another at /prod/v1, or an http
+// and an https URL for the same box during a migration. Keying on the host alone
+// collapsed those onto one session.
+func TestCloudSessionIDSeparatesEndpointsSharingAHost(t *testing.T) {
+	for _, pair := range [][2]string{
+		{"http://appwrite.example/v1", "https://appwrite.example/v1"},
+		{"https://appwrite.example/staging/v1", "https://appwrite.example/prod/v1"},
+		{"https://appwrite.example:8080/v1", "https://appwrite.example:9090/v1"},
+	} {
+		first := cloudSessionID(pair[0], "68a1b2c3d4e5f6")
+		second := cloudSessionID(pair[1], "68a1b2c3d4e5f6")
+
+		if first == second {
+			t.Errorf("%s and %s both keyed to %q", pair[0], pair[1], first)
+		}
+	}
+}
+
+// The same instance typed differently must still be one session, or a trailing
+// slash would strand the credentials of the session it already has.
+func TestCloudSessionIDIgnoresSpellingOfTheSameEndpoint(t *testing.T) {
+	for _, pair := range [][2]string{
+		{"https://cloud.appwrite.io/v1", "https://cloud.appwrite.io/v1/"},
+		{"https://Cloud.Appwrite.IO/v1", "https://cloud.appwrite.io/v1"},
+	} {
+		first := cloudSessionID(pair[0], "68a1b2c3d4e5f6")
+		second := cloudSessionID(pair[1], "68a1b2c3d4e5f6")
+
+		if first != second {
+			t.Errorf("%s keyed to %q but %s keyed to %q", pair[0], first, pair[1], second)
+		}
+	}
+}
+
 // No subject claim leaves nothing stable to key on. The fallback still has to
 // produce a usable key rather than one that starts at the separator.
 func TestCloudSessionIDFallsBackWithoutASubject(t *testing.T) {
