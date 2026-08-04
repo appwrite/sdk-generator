@@ -84,7 +84,7 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 	if local.Data.GetString("projectId") != "" && organizationID == "" && projectID == "" && projectName == "" {
 		override, err := prompter.Confirm(prompt.Question{
 			Message: "This directory is already linked to a project. Overwrite the configuration?",
-			Default: false,
+			Default: true,
 			Flag:    "--project-id",
 		})
 		if err != nil {

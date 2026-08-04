@@ -163,7 +163,7 @@ func runPushSettings(command *cobra.Command) error {
 
 		approved, err := context.prompter.Confirm(prompt.Question{
 			Message: "Would you like to apply these changes?",
-			Default: false,
+			Default: true,
 			Flag:    "--force",
 		})
 		if err != nil {
@@ -718,7 +718,7 @@ func runPushDeployable(
 	if pushCode {
 		confirmed, err := context.prompter.Confirm(prompt.Question{
 			Message: "Do you want to create a deployment for your " + resource.Label + "?",
-			Default: false,
+			Default: true,
 			Flag:    "--force",
 		})
 		if err != nil {

@@ -253,6 +253,26 @@ func RequiredSelection(resource string) func([]string) error {
 	}
 }
 
+// skipFirstCall discards a validator's first verdict.
+//
+// huh calls a MultiSelect's validator from Focus(), before the user has touched
+// anything, so a rule like RequiredSelection rendered in red the instant the
+// prompt appeared. The first call describes the initial state rather than a
+// choice; every call after it is a toggle or a submit.
+func skipFirstCall(validate func([]string) error) func([]string) error {
+	called := false
+
+	return func(values []string) error {
+		if !called {
+			called = true
+
+			return nil
+		}
+
+		return validate(values)
+	}
+}
+
 // NonNegativeInteger rejects anything that is not a run of digits.
 //
 // Ports validateNonNegativeInteger(). Deliberately not strconv.Atoi: that

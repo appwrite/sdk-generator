@@ -229,7 +229,7 @@ func (c *pushContext) approveChanges(command *cobra.Command, request approvalReq
 
 	approved, err := c.prompter.Confirm(prompt.Question{
 		Message: "Would you like to apply these changes?",
-		Default: false,
+		Default: true,
 		Flag:    "--force",
 	})
 	if err != nil {

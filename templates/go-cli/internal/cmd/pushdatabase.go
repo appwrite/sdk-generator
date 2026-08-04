@@ -362,7 +362,7 @@ func (c *pushContext) deleteRemovedTables(
 
 	confirmed, err := c.prompter.Confirm(prompt.Question{
 		Message: "Would you like to apply these changes?",
-		Default: false,
+		Default: true,
 		Flag:    "--force",
 	})
 	if err != nil {

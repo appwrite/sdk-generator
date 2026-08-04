@@ -195,7 +195,7 @@ func (t *Terminal) MultiChoice(question MultiChoice) ([]string, error) {
 		Options(options...).
 		Filterable(question.Filter).
 		Value(&values).
-		Validate(func(selected []string) error {
+		Validate(skipFirstCall(func(selected []string) error {
 			for _, value := range selected {
 				if reason, ok := disabled[value]; ok {
 					if reason != "" {
@@ -210,7 +210,7 @@ func (t *Terminal) MultiChoice(question MultiChoice) ([]string, error) {
 			}
 
 			return nil
-		})
+		}))
 
 	if err := t.run(field); err != nil {
 		return nil, err

@@ -198,3 +198,25 @@ func TestOptionsBuildsLabelValuePairs(t *testing.T) {
 		t.Fatalf("Options = %v", options)
 	}
 }
+
+// huh runs the validator from Focus(), before the user has touched anything.
+// A "select at least one" rule therefore rendered in red the instant the
+// prompt appeared -- an error about a mistake nobody had made yet.
+func TestMultiSelectStaysQuietUntilTheUserActs(t *testing.T) {
+	validate := skipFirstCall(RequiredSelection("site"))
+
+	// What Focus() asks: the initial, empty state.
+	if err := validate(nil); err != nil {
+		t.Errorf("complained before the user acted: %v", err)
+	}
+
+	// A toggle that selects something is fine either way.
+	if err := validate([]string{"one"}); err != nil {
+		t.Errorf("rejected a valid selection: %v", err)
+	}
+
+	// Submitting with nothing selected is a real mistake and must be reported.
+	if err := validate(nil); err == nil {
+		t.Error("an empty submission was accepted")
+	}
+}

@@ -121,20 +121,6 @@ func runPullCode(command *cobra.Command, resource codeResource, code, withVariab
 		return nil
 	}
 
-	if code {
-		// Downloading overwrites whatever is in the resource's directory, so
-		// it is confirmed rather than assumed.
-		confirmed, err := prompt.New(app.Flags().Force).Confirm(prompt.Question{
-			Message: "Pull the source code of the latest deployment?",
-			Default: false,
-			Flag:    "--force",
-		})
-		if err != nil {
-			return err
-		}
-		code = confirmed
-	}
-
 	// Without --all the TypeScript asks WHICH resources to pull, so pulling
 	// everything by default would silently do more than asked.
 	if !app.Flags().All {
@@ -142,6 +128,23 @@ func runPullCode(command *cobra.Command, resource codeResource, code, withVariab
 		if err != nil {
 			return err
 		}
+	}
+
+	// AFTER the selection, which is the order the TypeScript asks in
+	// (pull.ts:901 then :905). Asking about the code first made the user answer
+	// a question about resources they had not chosen yet.
+	if code {
+		// Downloading overwrites whatever is in the resource's directory, so
+		// it is confirmed rather than assumed.
+		confirmed, err := prompt.New(app.Flags().Force).Confirm(prompt.Question{
+			Message: "Pull the source code of the latest deployment?",
+			Default: true,
+			Flag:    "--force",
+		})
+		if err != nil {
+			return err
+		}
+		code = confirmed
 	}
 
 	directory := context.local.ResourceDirname(resource.ConfigKey)
