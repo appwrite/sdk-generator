@@ -512,6 +512,31 @@ These are not port gaps. The Go CLI reproduces the TypeScript's behaviour
 exactly, which is the point; they are recorded because they are real bugs
 someone should fix in both.
 
+### `client --project-id` does not follow the project to its region
+
+> **FIXED in Go by diverging.** Still present in the TypeScript.
+
+```
+$ appwrite client --project-id <a project in syd>
+$ appwrite databases list
+✗ Error: Project is not accessible in this region
+```
+
+On Cloud a project lives in one region and answers only on that region's host.
+Both CLIs' `client --project-id` wrote the id and stopped there — the TypeScript
+at `generic.ts:341`, which is one `localConfig.setProject(projectId, "")` — so
+the endpoint kept pointing at whichever host was configured and the next command
+was refused. Nothing in the config explained why, even though the CLI had been
+handed the project id and could have asked.
+
+Both CLIs already do the right thing through the other door: `init project`
+resolves the region and pins the regional endpoint (`init.ts:433`,
+`initproject.go`). Go now does the same from `client --project-id`, reporting the
+change because it is one the user did not type. Every failure — offline, no
+session, a project id that does not exist yet, a self-hosted endpoint with no
+regions at all — falls back to setting just the project, which is what the
+TypeScript does in every case.
+
 ### `pull settings` writes a config that `push settings` cannot push back
 
 ```

@@ -2,11 +2,14 @@ package cmd
 
 import (
 	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/appwrite/appwrite-cli-go/internal/client"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +21,10 @@ func TestClientProjectIDIsWrittenWhereCommandsReadIt(t *testing.T) {
 	directory := t.TempDir()
 	inDirectory(t, directory)
 
-	if err := setLocalProject("chosen-project"); err != nil {
+	command, _ := captureCommand()
+	// No session, so the region lookup is skipped and only the project is set --
+	// see TestClientProjectIDPinsTheRegionalEndpoint for the other path.
+	if err := setLocalProject(command, preferencesWith(t, `{}`), "chosen-project"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -48,7 +54,8 @@ func TestClientProjectIDUpdatesTheExistingConfig(t *testing.T) {
 	}
 	inDirectory(t, nested)
 
-	if err := setLocalProject("new"); err != nil {
+	command, _ := captureCommand()
+	if err := setLocalProject(command, preferencesWith(t, `{}`), "new"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -66,6 +73,88 @@ func TestClientProjectIDUpdatesTheExistingConfig(t *testing.T) {
 	// Setting the id must not discard the rest of the file.
 	if got := local.Data.GetString("projectName"); got != "Kept" {
 		t.Errorf("projectName = %q, want it preserved", got)
+	}
+}
+
+// A Cloud project lives in ONE region and is reachable only through that
+// region's host. Naming a project in another region and leaving the endpoint
+// alone made the next command fail with "Project is not accessible in this
+// region" -- while the CLI held the project id and could have asked.
+func TestClientProjectIDPinsTheRegionalEndpoint(t *testing.T) {
+	var asked string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked = r.URL.Path
+		w.Write([]byte(`{"$id":"syd-project","region":"syd"}`))
+	}))
+	defer server.Close()
+
+	api := client.New(server.URL, "test")
+
+	// Staging as well as production: it is a known Cloud base host, and the
+	// report that prompted this fix came from `syd.cloud.staging.appwrite.io`.
+	for _, endpoint := range []struct{ given, want string }{
+		{"https://cloud.appwrite.io/v1", "https://syd.cloud.appwrite.io/v1"},
+		{"https://cloud.staging.appwrite.io/v1", "https://syd.cloud.staging.appwrite.io/v1"},
+	} {
+		out := &bytes.Buffer{}
+		regional := regionalEndpointForProject(out, api, endpoint.given, "syd-project")
+
+		if regional != endpoint.want {
+			t.Errorf("from %s: endpoint = %q, want %q", endpoint.given, regional, endpoint.want)
+		}
+		if asked != "/projects/syd-project" {
+			t.Errorf("asked for %q, want /projects/syd-project", asked)
+		}
+		// The endpoint changed under the user, so it has to be reported.
+		if !strings.Contains(out.String(), "syd") {
+			t.Errorf("did not say which region it picked:\n%s", out)
+		}
+	}
+}
+
+// An endpoint already serving the project's region must be left alone, or every
+// invocation would re-announce a change that is not happening.
+func TestClientProjectIDLeavesAMatchingRegionalEndpointAlone(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"region":"syd"}`))
+	}))
+	defer server.Close()
+
+	out := &bytes.Buffer{}
+	regional := regionalEndpointForProject(out, client.New(server.URL, "test"),
+		"https://syd.cloud.appwrite.io/v1", "syd-project")
+
+	if regional != "" {
+		t.Errorf("endpoint = %q, want it left alone", regional)
+	}
+	if out.Len() != 0 {
+		t.Errorf("said something about an unchanged endpoint:\n%s", out)
+	}
+}
+
+// Setting the project is the job the user asked for. A server that refuses the
+// lookup, or a project that does not exist yet, must not fail the command.
+func TestClientProjectIDSurvivesAFailedRegionLookup(t *testing.T) {
+	for _, body := range []string{
+		`{"message":"Project not found","code":404}`,
+		`{}`,
+		`not json`,
+	} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.Contains(body, "404") {
+				w.WriteHeader(http.StatusNotFound)
+			}
+			w.Write([]byte(body))
+		}))
+
+		out := &bytes.Buffer{}
+		regional := regionalEndpointForProject(out, client.New(server.URL, "test"),
+			"https://cloud.appwrite.io/v1", "whatever")
+		server.Close()
+
+		if regional != "" {
+			t.Errorf("body %q produced endpoint %q, want none", body, regional)
+		}
 	}
 }
 

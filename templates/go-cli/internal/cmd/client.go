@@ -3,12 +3,14 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
+	"github.com/appwrite/appwrite-cli-go/internal/client"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
 	"github.com/appwrite/appwrite-cli-go/internal/output"
@@ -103,7 +105,7 @@ func newClientCommand() *cobra.Command {
 			// preferences instead left the flag inert -- `client --project-id X`
 			// followed by any command answered "project is not set".
 			if flags.Changed("project-id") {
-				if err := setLocalProject(projectID); err != nil {
+				if err := setLocalProject(command, global, projectID); err != nil {
 					return err
 				}
 			}
@@ -266,7 +268,16 @@ func warnDetachedSession(out io.Writer, global *config.Global, previous string) 
 // (generic.ts:341), which calls localConfig.setProject. An existing config
 // anywhere up the tree is updated in place rather than shadowed by a new one
 // in the working directory.
-func setLocalProject(projectID string) error {
+//
+// It also pins the project's REGIONAL endpoint, which the TypeScript does not.
+// On Cloud a project lives in one region and is reachable only through that
+// region's host, so naming a project in another region and leaving the endpoint
+// alone produced "Project is not accessible in this region" from the next
+// command -- with nothing in the config to explain why, since the CLI had been
+// told the project and could have looked the region up. `init project` already
+// does exactly this (initproject.go), so this is the same behaviour arriving
+// through the other door rather than a new idea.
+func setLocalProject(command *cobra.Command, global *config.Global, projectID string) error {
 	local, err := config.LoadOrCreateLocal(config.FindLocalPath())
 	if err != nil {
 		return err
@@ -274,7 +285,73 @@ func setLocalProject(projectID string) error {
 
 	local.SetProject(projectID, "")
 
+	// Regions only have hostnames of their own on Cloud; everywhere else one
+	// endpoint serves every project, so there is nothing to look up and no
+	// reason to spend a request finding that out.
+	session := global.Current()
+	if session != nil {
+		endpoint := session.GetString(config.PreferenceEndpoint)
+		if endpoint != "" && isCloudEndpoint(endpoint) {
+			if api, _, err := consoleClient(); err == nil {
+				if regional := regionalEndpointForProject(
+					command.OutOrStdout(), api, endpoint, projectID,
+				); regional != "" {
+					local.SetEndpoint(regional)
+				}
+			}
+		}
+	}
+
 	return local.Write()
+}
+
+// regionalEndpointForProject asks the API which region a project is in and
+// returns the endpoint that serves it, or "" to leave the endpoint alone.
+//
+// Every failure returns "" rather than an error. Setting the project is the job
+// the user asked for, and it has to keep working offline, against an instance
+// that does not answer, and for a project id that does not exist yet -- so a
+// region that cannot be determined leaves the config exactly as the TypeScript
+// would have left it.
+func regionalEndpointForProject(
+	out io.Writer,
+	api *client.Client,
+	endpoint string,
+	projectID string,
+) string {
+	region, err := fetchProjectRegion(api, projectID)
+	if err != nil || region == "" {
+		return ""
+	}
+
+	regional := regionalEndpoint(endpoint, region)
+	if strings.EqualFold(strings.TrimSuffix(regional, "/"),
+		strings.TrimSuffix(endpoint, "/")) {
+		// Already pointing at the region that serves it, so say nothing.
+		return ""
+	}
+
+	output.Log(out, "Project %s is in %s, so this directory will use %s.",
+		projectID, region, regional)
+
+	return regional
+}
+
+// fetchProjectRegion reads the region off a project.
+//
+// `GET /projects/{projectId}` is not in the spec, so the call is issued by hand
+// -- the same console-scoped read fetchOrganizationForProject uses, and for the
+// same reason it must not carry an organization header: the caller has a project
+// id and nothing else.
+func fetchProjectRegion(api *client.Client, projectID string) (string, error) {
+	var project jsonx.Object
+	err := api.Clone().WithoutResponseFormat().Call(
+		"GET", "/projects/"+url.PathEscape(projectID), nil, &project)
+	if err != nil {
+		return "", err
+	}
+
+	return project.GetString("region"), nil
 }
 
 // printClientDebug reports the active configuration with credentials masked.
