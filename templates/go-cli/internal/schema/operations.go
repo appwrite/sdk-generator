@@ -15,12 +15,16 @@ import (
 //
 // Every one of them goes through the LEGACY /databases route, including the
 // columns and indexes of a TABLE. That reads like a mistake and is not: the
-// TypeScript's Attributes class calls getDatabasesService() unconditionally,
-// and a request trace of `push table` confirms the CLI posts to
-// /databases/{databaseId}/collections/{tableId}/attributes/string for a table's
-// column (docs/go-cli/traces/push-typescript.jsonl). Tables and collections are
-// the same objects behind two route prefixes, so both work -- but the trace is
-// the contract, and it says /databases.
+// TypeScript's Attributes class calls getDatabasesService() unconditionally, and
+// a recorded `push table` confirms it -- adding a string column to a table posts
+// to
+//
+//	POST /databases/{databaseId}/collections/{tableId}/attributes/string
+//
+// not to the /tables route the resource name would suggest. Tables and
+// collections are the same objects behind two route prefixes, so both work, but
+// what the TypeScript sends is the contract and it sends /databases. Re-record
+// with docs/go-cli/conformance/ before changing this.
 //
 // A field ABSENT from the config is absent from the request body. The
 // TypeScript passes `xdefault: attribute.default` and the JavaScript SDK drops
