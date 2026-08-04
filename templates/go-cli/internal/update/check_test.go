@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -51,15 +52,16 @@ func TestAFreshCacheMakesNoRequest(t *testing.T) {
 
 	checker := &Checker{RegistryURL: server, CachePath: path, Current: "1.0.0"}
 
-	if got := checker.UpdateAvailable(); got != "2.0.0" {
-		t.Fatalf("first check = %q", got)
-	}
-	if got := checker.UpdateAvailable(); got != "2.0.0" {
-		t.Fatalf("second check = %q", got)
-	}
+	// The second run is silent -- that is the notice throttle, covered
+	// separately. What matters here is that it did not go to the network.
+	checker.UpdateAvailable()
+	checker.UpdateAvailable()
 
 	if requests != 1 {
 		t.Errorf("made %d requests, want the second answered from cache", requests)
+	}
+	if got := checker.Latest(time.Second); got != "2.0.0" {
+		t.Errorf("cached version = %q, want 2.0.0", got)
 	}
 }
 
@@ -160,4 +162,51 @@ func registry(t *testing.T, body string, requests *int) string {
 	t.Cleanup(server.Close)
 
 	return server.URL
+}
+
+// The lookup was cached and the telling was not, so the notice printed on
+// every single command. That is nagging, not informing.
+func TestTheNoticeIsShownOncePerInterval(t *testing.T) {
+	server := registry(t, `{"version":"2.0.0"}`, nil)
+	path := filepath.Join(t.TempDir(), "update-check.json")
+
+	now := time.Now()
+	checker := &Checker{
+		RegistryURL: server, CachePath: path, Current: "1.0.0",
+		Now: func() time.Time { return now },
+	}
+
+	if got := checker.UpdateAvailable(); got != "2.0.0" {
+		t.Fatalf("first run = %q, want the notice", got)
+	}
+	for run := range 5 {
+		if got := checker.UpdateAvailable(); got != "" {
+			t.Errorf("run %d repeated the notice: %q", run+2, got)
+		}
+	}
+
+	// A day later it is worth saying again -- the user may have forgotten, and
+	// there may be a newer version still.
+	now = now.Add(Interval + time.Minute)
+	if got := checker.UpdateAvailable(); got != "2.0.0" {
+		t.Errorf("after the interval = %q, want the notice again", got)
+	}
+}
+
+// The notice needs a blank line after it, or the command's own output starts
+// on the next line and the notice reads as a heading for it.
+func TestTheNoticeIsSetOffFromTheOutput(t *testing.T) {
+	notice := Notice("appwrite", "1.0.0", "2.0.0")
+
+	if !strings.HasPrefix(notice, "\n") {
+		t.Errorf("no blank line before the notice: %q", notice)
+	}
+	if !strings.HasSuffix(notice, "\n\n") {
+		t.Errorf("no blank line after the notice: %q", notice)
+	}
+	for _, want := range []string{"1.0.0", "2.0.0", "appwrite update"} {
+		if !strings.Contains(notice, want) {
+			t.Errorf("notice does not mention %q: %q", want, notice)
+		}
+	}
 }

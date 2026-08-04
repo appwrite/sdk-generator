@@ -3,13 +3,14 @@ package update
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 // Ports the update check in templates/cli/cli.ts.twig and the cache helpers in
@@ -54,9 +55,15 @@ type Checker struct {
 }
 
 // cache is what gets written between runs.
+//
+// checkedAt and notifiedAt are separate on purpose. The first throttles the
+// network lookup; the second throttles the message. Without it the notice
+// printed on every single command -- the lookup was cached, the telling was
+// not -- which is nagging rather than informing.
 type cache struct {
-	CheckedAt string `json:"checkedAt"`
-	Latest    string `json:"latest"`
+	CheckedAt  string `json:"checkedAt"`
+	Latest     string `json:"latest"`
+	NotifiedAt string `json:"notifiedAt,omitempty"`
 }
 
 // Latest returns the newest published version, from cache when it is fresh.
@@ -64,32 +71,51 @@ type cache struct {
 // An error is never worth surfacing: a failed update check must not change what
 // the command was asked to do. Callers get "" and carry on.
 func (c *Checker) Latest(timeout time.Duration) string {
-	if os.Getenv(DisableEnvironmentVariable) != "" {
-		return ""
-	}
-
-	stored, fresh := c.read()
-	if fresh {
-		return stored.Latest
-	}
-
-	latest := c.fetch(timeout)
-	if latest == "" {
-		// Stale beats nothing: a version from yesterday still answers the
-		// question, and the network may be down for a while.
-		return stored.Latest
-	}
-	c.write(latest)
+	latest, _ := c.resolve(timeout)
 
 	return latest
 }
 
-// UpdateAvailable reports the newer version, or "" when there is none.
+// resolve returns the newest version and the cache entry it came from,
+// refreshing the entry when it is stale.
+func (c *Checker) resolve(timeout time.Duration) (string, cache) {
+	if os.Getenv(DisableEnvironmentVariable) != "" {
+		return "", cache{}
+	}
+
+	stored, fresh := c.read()
+	if fresh {
+		return stored.Latest, stored
+	}
+
+	fetched := c.fetch(timeout)
+	if fetched == "" {
+		// Stale beats nothing: a version from yesterday still answers the
+		// question, and the network may be down for a while.
+		return stored.Latest, stored
+	}
+
+	stored.Latest = fetched
+	stored.CheckedAt = c.now().UTC().Format(time.RFC3339)
+	c.write(stored)
+
+	return fetched, stored
+}
+
+// UpdateAvailable reports the newer version, or "" when there is none or when
+// the user has already been told within the interval.
 func (c *Checker) UpdateAvailable() string {
-	latest := c.Latest(startupTimeout)
+	latest, stored := c.resolve(startupTimeout)
 	if latest == "" || Compare(c.Current, latest) >= 0 {
 		return ""
 	}
+
+	if withinInterval(stored.NotifiedAt, c.now()) {
+		return ""
+	}
+
+	stored.NotifiedAt = c.now().UTC().Format(time.RFC3339)
+	c.write(stored)
 
 	return latest
 }
@@ -108,15 +134,24 @@ func (c *Checker) read() (cache, bool) {
 		return cache{}, false
 	}
 
-	checkedAt, err := time.Parse(time.RFC3339, stored.CheckedAt)
-	if err != nil {
-		return stored, false
-	}
-
-	return stored, c.now().Sub(checkedAt) < Interval
+	return stored, withinInterval(stored.CheckedAt, c.now())
 }
 
-func (c *Checker) write(latest string) {
+// withinInterval reports whether a stored RFC3339 stamp is less than a day old.
+func withinInterval(stamp string, now time.Time) bool {
+	if strings.TrimSpace(stamp) == "" {
+		return false
+	}
+
+	parsed, err := time.Parse(time.RFC3339, stamp)
+	if err != nil {
+		return false
+	}
+
+	return now.Sub(parsed) < Interval
+}
+
+func (c *Checker) write(entry cache) {
 	if c.CachePath == "" {
 		return
 	}
@@ -124,10 +159,7 @@ func (c *Checker) write(latest string) {
 		return
 	}
 
-	contents, err := json.Marshal(cache{
-		CheckedAt: c.now().UTC().Format(time.RFC3339),
-		Latest:    latest,
-	})
+	contents, err := json.Marshal(entry)
 	if err != nil {
 		return
 	}
@@ -248,10 +280,24 @@ func prerelease(version string) string {
 	return suffix
 }
 
+var (
+	// The same yellow and cyan internal/output uses, so the notice looks like
+	// the rest of the CLI rather than like something bolted on.
+	noticeStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
+	hintStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+	boldStyle   = lipgloss.NewStyle().Bold(true)
+)
+
 // Notice is what the user reads when a newer version exists.
+//
+// Blank lines top and bottom. Without the trailing one the command's own output
+// starts on the line after the hint, and the notice reads as a heading for it.
 func Notice(executable, current, latest string) string {
-	return fmt.Sprintf(
-		"\n⚠️  A newer version is available: %s → %s\n"+
-			"💡 Run '%s update' to update to the latest version.\n",
-		current, latest, executable)
+	return "\n" +
+		noticeStyle.Render("⚠️  A newer version is available: "+
+			boldStyle.Render(current)+" "+
+			boldStyle.Render("→")+" "+
+			boldStyle.Render(latest)) + "\n" +
+		hintStyle.Render("💡 Run '"+boldStyle.Render(executable+" update")+
+			"' to update to the latest version.") + "\n\n"
 }

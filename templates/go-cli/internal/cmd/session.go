@@ -114,9 +114,11 @@ func newWhoamiCommand() *cobra.Command {
 			// exercise it, so reporting it invited a conclusion it cannot
 			// support.
 			report := jsonx.NewObject()
-			report.Set("CLI version", app.Version)
-			report.Set("Runtime", fmt.Sprintf("%s (%s/%s)",
-				runtime.Version(), runtime.GOOS, runtime.GOARCH))
+			// One line, the way `vercel whoami` opens with "Vercel CLI 58.4.4
+			// (Node.js 22.19.0)". Version and runtime are read together or not
+			// at all, so two rows spent a line on a single fact.
+			report.Set("CLI", fmt.Sprintf("%s (%s, %s/%s)",
+				app.Version, runtime.Version(), runtime.GOOS, runtime.GOARCH))
 			report.Set("User ID", account.GetString("$id"))
 			report.Set("Name", account.GetString("name"))
 			report.Set("Email", account.GetString("email"))
