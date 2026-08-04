@@ -646,6 +646,16 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/update/check.go',
+                'template'      => 'go-cli/internal/update/check.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/update/check_test.go',
+                'template'      => 'go-cli/internal/update/check_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/output/sections.go',
                 'template'      => 'go-cli/internal/output/sections.go',
             ],

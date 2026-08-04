@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"{{ language.params.modulePath }}/internal/app"
 	"{{ language.params.modulePath }}/internal/client"
 	"{{ language.params.modulePath }}/internal/cmd/services"
 	"{{ language.params.modulePath }}/internal/output"
+	"{{ language.params.modulePath }}/internal/update"
 )
 
 // NewRootCommand builds the full command tree.
@@ -36,6 +39,8 @@ func NewRootCommand() *cobra.Command {
 					output.Trace(command.ErrOrStderr(), format, arguments...)
 				}
 			}
+
+			noticeUpdateAvailable(command)
 		},
 	}
 
@@ -46,4 +51,30 @@ func NewRootCommand() *cobra.Command {
 	registerCompletionInstall(root)
 
 	return root
+}
+
+// noticeUpdateAvailable tells the user when a newer version exists.
+//
+// Ports maybeShowUpdateNotice (cli.ts.twig). Reads a cache and only reaches the
+// network once a day, because the whole point of this binary is that it starts
+// in single-digit milliseconds.
+func noticeUpdateAvailable(command *cobra.Command) {
+	checker := app.UpdateChecker()
+	if checker == nil {
+		return
+	}
+
+	latest := checker.UpdateAvailable()
+	if latest == "" {
+		return
+	}
+
+	// stderr whenever the output is being parsed, or the notice lands in the
+	// middle of what a script is reading.
+	writer := command.OutOrStdout()
+	if app.Flags().JSON || app.Flags().Raw {
+		writer = command.ErrOrStderr()
+	}
+
+	fmt.Fprint(writer, update.Notice(app.ExecutableName, app.Version, latest))
 }
