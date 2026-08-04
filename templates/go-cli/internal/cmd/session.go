@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
@@ -104,11 +105,21 @@ func newWhoamiCommand() *cobra.Command {
 			// they do on every generated command. Printing directly meant
 			// `whoami --json` emitted the human table.
 			session := global.Current()
+			// The CLI identifies itself first, the way `vercel whoami` does.
+			// Both lines are what a bug report needs and what someone chasing
+			// "works on my machine" asks for, so they are fields rather than a
+			// banner -- that way `--json` carries them too.
+			//
+			// MFA is deliberately absent: the OAuth login the CLI uses does not
+			// exercise it, so reporting it invited a conclusion it cannot
+			// support.
 			report := jsonx.NewObject()
-			report.Set("ID", account.GetString("$id"))
+			report.Set("CLI version", app.Version)
+			report.Set("Runtime", fmt.Sprintf("%s (%s/%s)",
+				runtime.Version(), runtime.GOOS, runtime.GOARCH))
+			report.Set("User ID", account.GetString("$id"))
 			report.Set("Name", account.GetString("name"))
 			report.Set("Email", account.GetString("email"))
-			report.Set("MFA enabled", yesOrNo(account, "mfa"))
 			report.Set("Endpoint", session.GetString(config.PreferenceEndpoint))
 
 			return app.Render(report)
@@ -200,17 +211,6 @@ func newLogoutCommand() *cobra.Command {
 			return nil
 		},
 	}
-}
-
-// yesOrNo renders a boolean field the way the TypeScript's whoami table does.
-func yesOrNo(object *jsonx.Object, key string) string {
-	if value, ok := object.Get(key); ok {
-		if enabled, isBool := value.(bool); isBool && enabled {
-			return "Yes"
-		}
-	}
-
-	return "No"
 }
 
 // registerSessionCommands attaches the commands that do not come from the spec.
