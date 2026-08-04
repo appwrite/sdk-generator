@@ -47,18 +47,29 @@ const commands = [
   ["general", "list-rows", "--cursor-after", "abc"],
 ];
 
+// Returns the output AND the exit status. Exit codes are an invariant
+// (PLAN.md §3) because scripts branch on them, so a command that prints the same
+// bytes and exits differently is a divergence -- returning output alone made that
+// case indistinguishable from agreement.
 function run(command, args, home) {
   const [binary, ...prefix] = command;
   try {
-    return execFileSync(binary, [...prefix, ...args], {
+    const output = execFileSync(binary, [...prefix, ...args], {
       encoding: "utf8",
       cwd: __dirname,
       env: { ...process.env, HOME: home, USERPROFILE: home, NODE_ENV: "test" },
     });
+
+    return { output, status: 0 };
   } catch (error) {
     // A command that fails in both implementations is still a valid
     // comparison -- the error text is part of what users see.
-    return `${error.stdout ?? ""}${error.stderr ?? ""}`;
+    return {
+      output: `${error.stdout ?? ""}${error.stderr ?? ""}`,
+      // A signal-killed process has a null status; report it as such rather
+      // than coercing it to a number that means something else.
+      status: error.status ?? `signal:${error.signal ?? "unknown"}`,
+    };
   }
 }
 
@@ -84,17 +95,31 @@ configure(candidate, candidateHome);
 
 const differences = [];
 for (const args of commands) {
-  const expected = run(reference, [...args, "--json"], referenceHome).trim();
-  const actual = run(candidate, [...args, "--json"], candidateHome).trim();
+  const reference_ = run(reference, [...args, "--json"], referenceHome);
+  const candidate_ = run(candidate, [...args, "--json"], candidateHome);
+  const expected = reference_.output.trim();
+  const actual = candidate_.output.trim();
 
-  if (expected !== actual) {
-    differences.push({ command: args.join(" "), expected, actual });
+  if (expected !== actual || reference_.status !== candidate_.status) {
+    differences.push({
+      command: args.join(" "),
+      expected,
+      actual,
+      expectedStatus: reference_.status,
+      actualStatus: candidate_.status,
+    });
   }
 }
 
 if (differences.length > 0) {
   for (const difference of differences) {
     process.stderr.write(`\n--- ${difference.command}\n`);
+    if (difference.expectedStatus !== difference.actualStatus) {
+      process.stderr.write(
+        `exit status: reference ${difference.expectedStatus}, ` +
+          `candidate ${difference.actualStatus}\n`,
+      );
+    }
     process.stderr.write(`reference:\n${difference.expected}\n`);
     process.stderr.write(`candidate:\n${difference.actual}\n`);
   }
