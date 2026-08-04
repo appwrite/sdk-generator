@@ -97,18 +97,20 @@ startup is *faster* than the product's — it had almost no command tree.
 
 | Metric | Today | Target | Phase 0 spike | As shipped |
 |---|---|---|---|---|
-| `appwrite --help` | 206 ms | < 10 ms | **5.0 ms** (41×) | 11.3 ms (18×) — miss, accepted |
-| Tab-completion round trip | full startup per request | < 10 ms | 5.1 ms | 11.9 ms — miss, accepted |
+| `appwrite --help` | 206 ms | < 10 ms | **5.0 ms** (41×) | **5.6 ms** Linux — met; 11.3 ms macOS — miss |
+| Tab-completion round trip | full startup per request | < 10 ms | 5.1 ms | 11.9 ms macOS |
 | `push` of a large site (wall clock) | 7.00 s / 369 MB tree | −20 to −40 % | **−56 %** | not re-measured |
 | `push` peak RSS | 421 MB, grows with archive | O(chunk size) | **102 MB, flat** | O(chunk size) — met |
 | Binary size | ~60–90 MB (Bun) | ~20–25 MB | 2.9 MB (no logic yet) | **13.8 MB** — beats it |
 | Native modules to codesign | 1 (`@napi-rs/keyring`) | 0 | 0 | **0** — met |
 
-The two startup rows miss by about a millisecond, and both are accepted rather
-than chased: the 10 ms was written against a spike with a handful of commands,
-the remaining gap is cobra building a 608-command tree, and the gate that decided
-the rewrite was the relative one — ≥ 5× — which 18× clears. `Checks / Go CLI
-startup` holds the line at 60 ms, where a real regression would show up.
+Startup meets the target on Linux and misses it by about a millisecond on macOS,
+where ~4.4 ms of the total is what that machine costs to start *any* Go binary.
+Accepted rather than chased: over half the gap sits below our code, the rest is
+cobra building the 608-command tree, and the gate that decided the rewrite was
+the relative one — ≥ 5× — which 18× clears even on the slower platform.
+`Checks / Go CLI startup` holds the line at 60 ms, where a real regression shows
+up.
 
 Unchanged: `pull`, `types`, `generate`, and anything paginating the API.
 
