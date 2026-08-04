@@ -5,12 +5,13 @@ untested.
 
 ## Status — closed
 
-All 23 findings are resolved: **19 fixed, 4 accepted in writing.** Nothing here
-is outstanding, and nothing here blocks the rollout.
+All 23 findings are resolved: **19 fixed, 3 accepted in writing, and 1 that turned
+out to be a defect in the TypeScript CLI rather than in this one.** Nothing here is
+outstanding, and nothing here blocks the rollout.
 
 | | Findings | |
 |---|---|---|
-| **Fixed** | 1, 2, 3, 3b, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 20 | Each carries a regression test that was run against the reverted fix. `logout` had the same server-side hole as `client --reset` and was fixed alongside it. |
+| **Fixed** | 1, 2, 3, 3b, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 20 | Each carries a regression test that was run against the reverted fix. `logout` had the same server-side hole as `client --reset` and was fixed alongside it. Finding 9 is fixed except for `--id`, which is declined rather than missed — see [What is left](#what-is-left). |
 | **Accepted** | 10, 19, 22 | Deliberate, and none of it observable to a server. See [What is left](#what-is-left). |
 | **Not a Go defect** | 21 | Go is correct; the released TypeScript CLI returns 401 on the same command. |
 
