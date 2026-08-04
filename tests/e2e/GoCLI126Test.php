@@ -10,9 +10,10 @@ use Appwrite\SDK\Language\GoCLI;
 /**
  * Conformance run for the Go CLI.
  *
- * Shares tests/e2e/languages/cli/shared-cli.js with the TypeScript CLI and
- * reuses Base::CLI_* expectations unchanged: if an expectation has to move to
- * accommodate Go, that is a parity bug in Go, not a stale expectation.
+ * Runs on its own: the harness is tests/e2e/languages/go-cli/main.go, written
+ * for this CLI only, and it reuses Base::CLI_* expectations unchanged. If an
+ * expectation has to move to accommodate Go, that is a parity bug in Go, not a
+ * stale expectation -- which is the whole point of not owning the expectations.
  *
  * The build needs no Appwrite SDK. `setTest("true")` makes the generator emit
  * mock services, the same way the TypeScript CLI's conformance build does, so a
@@ -49,16 +50,19 @@ final class GoCLI126Test extends Base
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/go-cli golang:1.26 go build -buildvcs=false -o appwrite .',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/go-cli golang:1.26 go vet ./...',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/go-cli golang:1.26 go test ./internal/...',
-        'cp tests/e2e/languages/cli/shared-cli.js tests/e2e/sdks/go-cli/shared-cli.js',
+        'mkdir -p tests/e2e/sdks/go-cli/conformance',
+        'cp tests/e2e/languages/go-cli/main.go tests/e2e/sdks/go-cli/conformance/main.go',
     ];
 
+    // Runs in the same golang image that built the binary, so the conformance
+    // run needs nothing installed that the build did not already need.
     #[Override]
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/go-cli '
-        . '-e APPWRITE_CLI_BIN=/app/tests/e2e/sdks/go-cli/appwrite node:22 node shared-cli.js';
+        . 'golang:1.26 go run ./conformance';
 
     /**
-     * Only the fixtures the shared harness produces.
+     * Only the fixtures the harness produces.
      *
      * The TypeScript run additionally asserts constants printed by its
      * `require("./lib/*.ts")` half -- typegen, emulation, prompt behaviour. Those

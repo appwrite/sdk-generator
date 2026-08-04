@@ -275,7 +275,7 @@ Conventional commits, scoped:
 ```
 feat(go-cli): generate query flags from cliQueryConfig
 fix(go-cli): match TS redaction for nested apiKey fields
-test(go-cli): differential --json harness against the TS binary
+test(go-cli): assert --json output against the Base.php expectations
 ```
 
 Every PR:

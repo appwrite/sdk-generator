@@ -24,8 +24,6 @@ jobs:
           CLIBun10,
           CLIBun11,
           CLIBun13,
-          CLIDifferential,
-          CLISharedBun13,
           GoCLI126,
           DartBeta,
           DartStable,
