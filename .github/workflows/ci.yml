@@ -163,6 +163,45 @@ jobs:
         # Pinned: djlint 1.41.0+ false-positives T038 on multi-line {% if %} tags
         run: uvx djlint==1.40.10 templates/ --lint
 
+  go-cli-startup:
+    name: Checks / Go CLI startup
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.5'
+          extensions: curl
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26'
+
+      - name: Install
+        run: composer install
+
+      # The real spec, not tests/resources: the guard is only worth anything
+      # against the full 608-command tree, since what it catches is per-command
+      # work at registration time.
+      - name: Generate the Go CLI and the SDK it builds against
+        run: |
+          php example.php go
+          php example.php go-cli
+
+      - name: Build
+        working-directory: examples/go-cli
+        run: |
+          go mod tidy
+          go build -ldflags="-s -w" -o appwrite .
+
+      - name: Check startup
+        run: ./.github/scripts/go-cli-startup.sh examples/go-cli/appwrite
+
   max-line-length:
     name: Checks / Twig line length
     runs-on: ubuntu-latest

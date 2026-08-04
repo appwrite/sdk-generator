@@ -741,19 +741,63 @@ satisfy them. Do not port 4,380 lines on faith.
 **Entry:** Phase 5 exit met. Correctness first. Do not optimise into an unverified
 implementation.
 
+> **Folded into Phases 5 and 7 rather than run as its own phase.** Items 3 and 4
+> landed with the code that needed them, and items 1 and 2 turned out to need no
+> work — see each below. What was genuinely outstanding was the exit criterion, a
+> CI job that fails on a startup regression, and that is now `Checks / Go CLI
+> startup`. There is no `phase-6` branch, and Phase 7 is stacked directly on
+> Phase 5.
+
 **Work:**
 
 1. `pprof` the startup path only if it regressed past the Phase 0 measurement of
    5.0 ms. Cobra tree construction is **not** the bottleneck — that is settled; do not
    re-litigate it with lazy registration.
+
+   **Not needed.** The real CLI starts in 11.4 ms (median of 15, `--help`,
+   stripped binary), against the spike's 5.0 ms — but the spike had a handful of
+   commands where this has 608, so that is the cost of the command surface rather
+   than a regression to hunt. The §1.4 gate is relative and passes with room:
+   205.9 ms Bun ÷ 11.4 ms is **18×**, against a target of 5×.
 2. Streaming deploy: `archive/tar` → `pgzip` → `io.Pipe` → multipart body. No temp
    file, no full-archive buffer. Phase 0 proved this holds peak RSS flat at ~102 MB
-   while the archive doubles from 95 MB to 190 MB. **Use gzip level 9** — `node-tar`
-   effectively defaults to 9, and level 6 silently uploads ~3 % more bytes.
+   while the archive doubles from 95 MB to 190 MB.
+
+   **The memory target is met by a different route, and the gzip advice here was
+   wrong.** `CreateTarGzFiles` writes the archive to a temporary file one file at a
+   time, and `Upload` reads it back in 5 MB windows through
+   `io.NewSectionReader`, so nothing ever holds the whole archive and peak RSS is
+   bounded by the chunk rather than by the payload. A pipe would remove the
+   temporary file, which is a disk-space and tidiness win, not a memory one.
+   `pgzip`'s parallelism remains unclaimed; that is a wall-clock optimisation, and
+   the 56 % measured in Phase 0 was against the buffered TypeScript, not against
+   this.
+
+   The instruction to **use gzip level 9** rested on `node-tar` "effectively
+   defaulting to 9". It does not. Measured on the same 5.9 MB tree:
+
+   | Writer | Archive |
+   |---|---|
+   | `node-tar` `gzip: true` — what the TypeScript ships | 749,553 B |
+   | `node-tar` `gzip: {level: 9}` | 716,519 B |
+   | Go `gzip.NewWriter` — what this ships | 750,434 B |
+   | Go `gzip.NewWriterLevel(…, 9)` | 715,731 B |
+
+   Both default to zlib level 6, and the shipped Go archive is within 0.1 % of the
+   shipped TypeScript one. Moving Go to level 9 would make it *diverge* by
+   uploading ~4.6 % fewer bytes and spending more CPU to do it. Left at the
+   default, deliberately.
 3. Tune `errgroup.SetLimit` against the polling behaviour. The TS `Pools` debounce
    logic (`push.ts:2864`) encodes tuning that was learned the hard way — read it before
    picking a number.
+
+   **Done in Phase 5.** `deploy.UploadConcurrency` is 8, which is the console
+   SDK's `CONCURRENCY`, and the first chunk goes up alone to establish the upload
+   id before the rest follow.
 4. Trim binary size: `-ldflags="-s -w"`, audit the dependency tree.
+
+   **Done in Phase 7.** `.goreleaser.yaml` passes `-s -w`; the stripped binary is
+   13.8 MB against the shipped Bun binary's 66 MB.
 5. Extend `BENCHMARKS.md` with before/after for every §1.4 row, on the same hardware
    as Phase 0.
 
