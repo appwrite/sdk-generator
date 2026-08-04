@@ -921,6 +921,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'scoop/appwrite.config.json',
+                'template'      => 'go-cli/scoop/appwrite.config.json.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'scripts/stage-assets.mjs',
                 'template'      => 'go-cli/scripts/stage-assets.mjs.twig',
             ],
