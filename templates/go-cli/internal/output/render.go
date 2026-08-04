@@ -26,6 +26,9 @@ import (
 var (
 	sectionStyle = lipgloss.NewStyle().Bold(true).Underline(true).Foreground(lipgloss.Color("3"))
 	labelStyle   = lipgloss.NewStyle().Bold(true)
+	// hintStyle is the "N more fields" footer: present, but not competing with
+	// the values above it.
+	hintStyle = lipgloss.NewStyle().Faint(true)
 )
 
 // Render writes a response in whichever mode the renderer is set to.
@@ -112,16 +115,7 @@ func (r *Renderer) renderHuman(writer io.Writer, value any) error {
 
 	printed := false
 	if len(scalars) > 0 {
-		width := 0
-		for _, entry := range scalars {
-			if len(entry[0]) > width {
-				width = len(entry[0])
-			}
-		}
-		for _, entry := range scalars {
-			fmt.Fprintf(writer, "%s %s\n",
-				labelStyle.Render(fmt.Sprintf("%-*s :", width, entry[0])), entry[1])
-		}
+		writeKeyValues(writer, scalars, "")
 		printed = true
 	}
 
@@ -137,9 +131,13 @@ func (r *Renderer) renderHuman(writer io.Writer, value any) error {
 				fmt.Fprintln(writer, sectionStyle.Render(fmt.Sprintf("%s (%d)", item.key, len(typed))))
 				// A section with a renderer of its own, or one whose rows are
 				// plain on/off toggles, gets a shape built for it. Everything
-				// else falls back to the generic table.
+				// else falls back to the generic table -- unless that table
+				// would be too wide to read, in which case each row is printed
+				// as key/value instead.
 				if rendered, ok := RenderStructuredCollection(item.key, rows, "  "); ok {
 					fmt.Fprintln(writer, rendered)
+				} else if columnCount(rows) > maximumColumns {
+					writeRowsAsKeyValues(writer, item.key, rows, "  ")
 				} else {
 					fmt.Fprintln(writer, renderTable(rows))
 				}
@@ -151,7 +149,9 @@ func (r *Renderer) renderHuman(writer io.Writer, value any) error {
 			}
 		case *jsonx.Object:
 			fmt.Fprintln(writer, sectionStyle.Render(item.key))
-			fmt.Fprintln(writer, renderTable([]*jsonx.Object{FilterObject(typed)}))
+			kept, withheld := sectionFields(item.key, FilterObject(typed))
+			writeKeyValues(writer, kept, "  ")
+			writeWithheldNote(writer, withheld, "  ")
 		}
 		printed = true
 	}
@@ -325,4 +325,75 @@ func formatScalar(value any) string {
 	}
 
 	return fmt.Sprint(value)
+}
+
+
+// maximumColumns is where a table stops being readable.
+//
+// Ports MAX_COLUMNS (parser.ts:402). `organization get` embeds a plan with 69
+// fields, and rendering that as one row of 69 columns produced a line no
+// terminal could show. Past this width each row is printed as key/value
+// instead, which stays readable at any size.
+const maximumColumns = 6
+
+// columnCount is the number of distinct keys across a section's rows.
+func columnCount(rows []*jsonx.Object) int {
+	seen := map[string]bool{}
+	for _, row := range rows {
+		for _, key := range row.Keys() {
+			seen[key] = true
+		}
+	}
+
+	return len(seen)
+}
+
+// writeKeyValues prints aligned `label : value` lines.
+func writeKeyValues(writer io.Writer, entries [][2]string, indent string) {
+	width := 0
+	for _, entry := range entries {
+		if len(entry[0]) > width {
+			width = len(entry[0])
+		}
+	}
+
+	for _, entry := range entries {
+		fmt.Fprintf(writer, "%s%s %s\n", indent,
+			labelStyle.Render(fmt.Sprintf("%-*s :", width, entry[0])), entry[1])
+	}
+}
+
+// writeRowsAsKeyValues prints each row of a too-wide section as its own block.
+func writeRowsAsKeyValues(writer io.Writer, section string, rows []*jsonx.Object, indent string) {
+	for index, row := range rows {
+		if index > 0 {
+			fmt.Fprintln(writer)
+		}
+		rowIndent := indent
+		// Numbered only when there is more than one, so a single embedded
+		// object reads as a plain block.
+		if len(rows) > 1 {
+			fmt.Fprintf(writer, "%s%s\n", indent, sectionStyle.Render(fmt.Sprintf("[%d]", index+1)))
+			rowIndent = indent + "  "
+		}
+
+		kept, withheld := sectionFields(section, row)
+		writeKeyValues(writer, kept, rowIndent)
+		writeWithheldNote(writer, withheld, rowIndent)
+	}
+}
+
+// writeWithheldNote says how many fields were left out, and how to see them.
+func writeWithheldNote(writer io.Writer, count int, indent string) {
+	if count <= 0 {
+		return
+	}
+
+	label := "fields"
+	if count == 1 {
+		label = "field"
+	}
+
+	fmt.Fprintf(writer, "%s%s\n", indent,
+		hintStyle.Render(fmt.Sprintf("… %d more %s — pass --raw to show all", count, label)))
 }
