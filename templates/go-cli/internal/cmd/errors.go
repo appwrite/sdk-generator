@@ -3,12 +3,16 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"runtime"
 	"strings"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
+	"github.com/appwrite/appwrite-cli-go/internal/output"
+	"github.com/appwrite/appwrite-cli-go/internal/prompt"
+	"github.com/spf13/cobra"
 )
 
 // apiError is what the SDK's AppwriteError provides.
@@ -126,6 +130,67 @@ func ReportBlock(err error) string {
 	return "To report this error you can:\n" +
 		" - Create a support ticket in our Discord server https://appwrite.io/discord\n" +
 		" - Create an issue in our Github\n   " + ReportURL(err)
+}
+
+// ExitCancelled is the status a cancelled prompt exits with: 128 + SIGINT,
+// which is what a shell reports for a program the user interrupted.
+//
+// Distinct from 1 on purpose. Answering "no" to a prompt, or walking away from
+// one, is not the same outcome as a command that failed, and a script driving
+// the CLI should be able to tell them apart.
+const ExitCancelled = 130
+
+// IsCancelled reports whether a command stopped because the user cancelled a
+// prompt rather than because anything went wrong.
+func IsCancelled(err error) bool {
+	return errors.Is(err, prompt.ErrAborted)
+}
+
+// Report renders a command failure and returns the status the process should
+// exit with.
+//
+// Lives here rather than in main so it can be exercised: the difference between
+// what a user sees for a cancelled prompt and for a failed request is the whole
+// point of it, and main() is not reachable from a test.
+//
+// Ports the tail of parseError (parser.ts:936).
+func Report(writer io.Writer, executed *cobra.Command, err error) int {
+	if err == nil {
+		return 0
+	}
+
+	if IsCancelled(err) {
+		output.Warn(writer, "%s", CancellationNotice(executed))
+
+		return ExitCancelled
+	}
+
+	// Skipped once the user has already asked for the detail it points at.
+	if !app.Flags().Verbose && !app.Flags().Report {
+		output.Log(writer, "For detailed error pass the --verbose or --report flag")
+	}
+
+	output.Failure(writer, "%s", FormatError(err))
+
+	if app.Flags().Report {
+		fmt.Fprintln(writer, ReportBlock(err))
+	}
+
+	return 1
+}
+
+// CancellationNotice is the line printed for a cancelled prompt.
+//
+// Names the command, because a prompt can be several screens into a flow --
+// `push` asks three questions -- so "Cancelled." alone leaves the user to work
+// out what they just abandoned. The command's PATH, not the arguments: those
+// can carry an API key, and this line may end up in a log.
+func CancellationNotice(command *cobra.Command) string {
+	if command == nil {
+		return "Cancelled. Nothing further was sent."
+	}
+
+	return fmt.Sprintf("Cancelled `%s`. Nothing further was sent.", command.CommandPath())
 }
 
 // commandArguments is the invocation, minus the flag that asked for the report.
