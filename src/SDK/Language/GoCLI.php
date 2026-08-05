@@ -1137,6 +1137,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/auth/keyringbackend_test.go',
+                'template'      => 'go-cli/internal/auth/keyringbackend_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/auth/store_test.go',
                 'template'      => 'go-cli/internal/auth/store_test.go',
             ],

@@ -19,9 +19,12 @@ import (
 // then one section per nested value -- without chasing the TypeScript's exact
 // spacing.
 //
-// NOT YET PORTED: response-config.ts, which supplies per-resource field
-// selection, timestamp formatting and duration humanising. Values render as
-// their raw JSON scalars until that lands.
+// PARTIALLY PORTED from response-config.ts. Its scalar half is done and lives
+// in valueformat.go -- timestamp formatting and duration humanising both apply
+// here -- and its `sectionFields` half is in sections.go. What is still missing
+// is per-resource selection of the TOP-LEVEL fields, and the aligned-column
+// renderers (renderAlignedColumns, padColumn, wrapValues) that lay several
+// values out side by side.
 
 var (
 	sectionStyle = lipgloss.NewStyle().Bold(true).Underline(true).Foreground(lipgloss.Color("3"))
