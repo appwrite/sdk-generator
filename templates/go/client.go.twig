@@ -153,7 +153,7 @@ func withSelfSigned(httpClient *http.Client) (*http.Client, error) {
 		return httpClient, nil
 	}
 
-	transport = cloneTransport(transport)
+	transport = transport.Clone()
 	if transport.TLSClientConfig == nil {
 		transport.TLSClientConfig = &tls.Config{}
 	}

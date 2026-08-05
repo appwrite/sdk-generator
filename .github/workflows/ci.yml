@@ -31,7 +31,7 @@ jobs:
           DotNet90,
           FlutterStable,
           FlutterBeta,
-          Go112,
+          Go113,
           Go118,
           KotlinJava17,
           Node26,

@@ -48,7 +48,6 @@ func selfSignedServer(t *testing.T) *httptest.Server {
 		w.Header().Set("content-type", "application/json")
 		w.Write([]byte("{}"))
 	}))
-	t.Cleanup(server.Close)
 
 	return server
 }
@@ -57,6 +56,7 @@ func selfSignedServer(t *testing.T) *httptest.Server {
 // asked of: the process default is what every other http.Client falls back to.
 func TestSelfSignedAcceptsTheCertificateWithoutTouchingTheDefaultTransport(t *testing.T) {
 	server := selfSignedServer(t)
+	defer server.Close()
 
 	c := New()
 	c.Endpoint = server.URL
@@ -77,6 +77,7 @@ func TestSelfSignedAcceptsTheCertificateWithoutTouchingTheDefaultTransport(t *te
 
 func TestSelfSignedDoesNotLeakToAnotherClient(t *testing.T) {
 	server := selfSignedServer(t)
+	defer server.Close()
 
 	trusting := New()
 	trusting.Endpoint = server.URL
@@ -149,6 +150,7 @@ func TestSelfSignedDoesNotReplaceCustomTransport(t *testing.T) {
 
 func TestSelfSignedConcurrentCalls(t *testing.T) {
 	server := selfSignedServer(t)
+	defer server.Close()
 
 	c := New()
 	c.Endpoint = server.URL
