@@ -684,12 +684,6 @@ const initFunction = async (): Promise<void> => {
     );
   }
 
-  if (!answers.runtime.commands) {
-    log(
-      `Installation command for this runtime not found. You will be asked to configure the install command when you first push the function.`,
-    );
-  }
-
   fs.mkdirSync(functionDir, { mode: 0o777 });
   fs.mkdirSync(templatesDir, { mode: 0o777 });
   const repo = "https://github.com/appwrite/templates";
