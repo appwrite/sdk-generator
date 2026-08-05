@@ -33,8 +33,11 @@ const releasesPageURL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepo
 // updating itself would silently walk backwards onto the last stable build.
 // The version comes from the same registry lookup that decided an update was
 // available, so the binary that lands is the one the user was told about.
+//
+// The tag is the bare version: releases are tagged `25.1.0`, not `v25.1.0`, so
+// prefixing one here 404s on every asset.
 func releaseAssetURL(version, asset string) string {
-	return fmt.Sprintf("%s/download/v%s/%s", releasesPageURL, strings.TrimPrefix(version, "v"), asset)
+	return fmt.Sprintf("%s/download/%s/%s", releasesPageURL, strings.TrimPrefix(version, "v"), asset)
 }
 
 // resolveReleaseVersion is the version a standalone update would install, or

@@ -44,7 +44,7 @@ class GoCLI extends Go
         // which is the loud failure rather than the quiet one.
         'sdkVersion' => 'v0.0.0',
         // Import path for the SDK, which carries a /vN suffix from v2 onward --
-        // Go requires it in the module path, so `sdk-for-go v6.2.0` is imported
+        // Go requires it in the module path, so `sdk-for-go v6.3.0` is imported
         // as `sdk-for-go/v6`. Derived from sdkVersion by setSDKVersion() so the
         // two can never disagree; the default matches the default version.
         'sdkImportPath' => self::SDK_MODULE,
@@ -57,6 +57,9 @@ class GoCLI extends Go
         // `/` as `\/`, which is not a valid Go escape. Each template escapes it
         // for its own language instead.
         'logo' => '',
+        // The same art indented for install.sh and install.ps1, which are shared
+        // verbatim with the TypeScript CLI and interpolate this param directly.
+        'logoUnescaped' => '',
         'homebrewTapOwner' => 'appwrite',
         'homebrewTapName' => 'appwrite',
         'homebrewTapBranch' => 'main',
@@ -108,6 +111,16 @@ class GoCLI extends Go
     public function setLogo(string $logo): self
     {
         $this->setParam('logo', $logo);
+
+        return $this;
+    }
+
+    /**
+     * ASCII art printed by the installer scripts.
+     */
+    public function setLogoUnescaped(string $logo): self
+    {
+        $this->setParam('logoUnescaped', $logo);
 
         return $this;
     }
@@ -790,6 +803,11 @@ class GoCLI extends Go
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/update.go',
                 'template'      => 'go-cli/internal/cmd/update.go.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/updateasset_test.go',
+                'template'      => 'go-cli/internal/cmd/updateasset_test.go',
             ],
             [
                 'scope'         => 'default',

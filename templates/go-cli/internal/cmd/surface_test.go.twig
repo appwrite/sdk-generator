@@ -48,6 +48,70 @@ var handWritten = map[string]bool{
 	"completion": true,
 }
 
+// withheldServices are services the TypeScript CLI exposes and this one does
+// not, because the published Go SDK has no package to call. `sdk-for-go` is
+// generated from the server spec, so `affiliates`, `notifications` and `vcs`
+// are console-only and will never appear in it; `migrations` has never been
+// published. example.php excludes the same four names.
+//
+// Listed here rather than dropped from the contract so the contract stays a
+// faithful record of the TypeScript surface: it still counts every command,
+// and a service disappearing for any *other* reason still fails the test.
+var withheldServices = map[string]bool{
+	"affiliates":    true,
+	"migrations":    true,
+	"notifications": true,
+	"vcs":           true,
+}
+
+// withheldCommands are individual commands withheld for the same reason, where
+// the gap is one endpoint rather than a whole service: the published SDK either
+// has no function for it or declares a different signature, because it was
+// generated from an older spec than the one these commands come from.
+//
+// example.php excludes the matching method names. Each one was read off the
+// compiler rather than chosen, so this list shrinks as the SDK catches up.
+var withheldCommands = map[string]bool{
+	"account create-key":              true,
+	"account list-keys":               true,
+	"account get-key":                 true,
+	"account update-key":              true,
+	"account delete-key":              true,
+	"account create-push-target":      true,
+	"account update-push-target":      true,
+	"account delete-push-target":      true,
+	"account create-o-auth-2-session": true,
+	"account delete":                  true,
+	"oauth2 logout":                   true,
+	"oauth2 logout-post":              true,
+	"functions list-templates":        true,
+	"functions get-template":          true,
+	"sites list-templates":            true,
+	"sites get-template":              true,
+	"tablesdb create-migration":       true,
+	"tablesdb list-migrations":        true,
+	"tablesdb get-migration":          true,
+	"tablesdb delete-migration":       true,
+	"presences upsert":                true,
+	"presences update":                true,
+	"presences get-usage":             true,
+	"project get-usage":               true,
+	"users get-usage":                 true,
+	"teams list-logs":                 true,
+}
+
+// withheld reports whether a contract path is withheld, as a whole service or
+// as a single command.
+func withheld(path string) bool {
+	if withheldCommands[path] {
+		return true
+	}
+
+	service, _, found := strings.Cut(path, " ")
+
+	return found && withheldServices[service]
+}
+
 type contractOption struct {
 	Name      string `json:"name"`
 	Shorthand string `json:"shorthand"`
@@ -152,6 +216,15 @@ func TestCommandSurfaceMatchesTypeScript(t *testing.T) {
 	actual := walkTree(NewRootCommand())
 
 	for path := range expected {
+		if withheld(path) {
+			// Absence is the expectation here, so a command reappearing is what
+			// fails: it means the SDK gap closed and this list is now stale.
+			if _, ok := actual[path]; ok {
+				t.Errorf("withheld command is present: %q -- drop its service from withheldServices", path)
+			}
+
+			continue
+		}
 		if _, ok := actual[path]; !ok {
 			t.Errorf("command missing from the Go CLI: %q", path)
 		}
@@ -183,6 +256,33 @@ func TestContractIsNotEmpty(t *testing.T) {
 
 	if len(expected) < 600 {
 		t.Fatalf("contract has %d commands, expected the full surface", len(expected))
+	}
+}
+
+// A withheld entry that no longer appears in the contract has stopped excusing
+// anything, and a misspelled one never did. Either way it is dead and the next
+// real omission would be waved through by it.
+func TestWithheldEntriesAreStillInTheContract(t *testing.T) {
+	expected := loadContract(t)
+
+	for service := range withheldServices {
+		found := false
+		for path := range expected {
+			if strings.HasPrefix(path, service+" ") {
+				found = true
+
+				break
+			}
+		}
+		if !found {
+			t.Errorf("withheld service %q is not in the contract -- remove it", service)
+		}
+	}
+
+	for command := range withheldCommands {
+		if _, ok := expected[command]; !ok {
+			t.Errorf("withheld command %q is not in the contract -- remove it", command)
+		}
 	}
 }
 {% endif %}

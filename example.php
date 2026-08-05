@@ -252,6 +252,18 @@ try {
 
 ";
 
+    // The same art again, indented for the installer scripts rather than the
+    // help screen. Shared by both CLIs because they generate `install.sh` and
+    // `install.ps1` from one template -- setting it on only one of them leaves
+    // the other's installer printing an empty banner.
+    $cliLogoUnescaped = "
+     _                            _ _           ___   __   _____
+    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
+   //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
+  /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_
+  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
+        |_|   |_|                                                ";
+
     // Services and methods the shipped CLIs do not expose. Shared by both:
     // the Go CLI has to present the same command surface as the TypeScript
     // one, so a divergence here is a bug rather than a choice.
@@ -298,19 +310,78 @@ try {
                 ],
             ];
 
+    // The Go CLI hides four services on top of those, because the published Go
+    // SDK cannot provide them. `sdk-for-go` is generated from the server spec,
+    // so `affiliates`, `notifications` and `vcs` -- console-only services --
+    // will never appear in it, and `migrations` has never been published.
+    // Generating their commands imports packages that do not exist, so a
+    // shipped build (one without the local `replace` below) cannot resolve its
+    // own dependency.
+    //
+    // This is the one place the two CLIs are allowed to diverge by omission.
+    // internal/cmd/surface_test.go records the same four names, so the surface
+    // contract still holds rather than being weakened to accommodate them.
+    $goCliExcludes             = $cliExcludes;
+    $goCliExcludes['services'] = [
+        ...$goCliExcludes['services'],
+        ['name' => 'affiliates'],
+        ['name' => 'migrations'],
+        ['name' => 'notifications'],
+        ['name' => 'vcs'],
+    ];
+    // And the methods that same SDK does not carry. The four services above are
+    // absent as whole packages; these are individual endpoints the server SDK
+    // has no function for, so generating them would not compile either.
+    //
+    // Every name here was read off the compiler: build the generated tree with
+    // the `replace` dropped and each undefined symbol names one of these. Keep
+    // it that way -- a guess produces an exclude that silently matches nothing.
+    $goCliExcludes['methods'] = [
+        ...$goCliExcludes['methods'],
+        // Account API keys and push targets, and account deletion.
+        ['service' => 'account', 'name' => 'createKey'],
+        ['service' => 'account', 'name' => 'listKeys'],
+        ['service' => 'account', 'name' => 'getKey'],
+        ['service' => 'account', 'name' => 'updateKey'],
+        ['service' => 'account', 'name' => 'deleteKey'],
+        ['service' => 'account', 'name' => 'createPushTarget'],
+        ['service' => 'account', 'name' => 'updatePushTarget'],
+        ['service' => 'account', 'name' => 'deletePushTarget'],
+        ['service' => 'account', 'name' => 'createOAuth2Session'],
+        ['service' => 'account', 'name' => 'delete'],
+        // OIDC logout.
+        ['service' => 'oauth2', 'name' => 'logout'],
+        ['service' => 'oauth2', 'name' => 'logoutPost'],
+        // Function and site templates.
+        ['service' => 'functions', 'name' => 'listTemplates'],
+        ['service' => 'functions', 'name' => 'getTemplate'],
+        ['service' => 'sites', 'name' => 'listTemplates'],
+        ['service' => 'sites', 'name' => 'getTemplate'],
+        // Table migrations -- the `migrations` service is excluded above, but
+        // tablesDB carries four of its own.
+        ['service' => 'tablesDB', 'name' => 'createMigration'],
+        ['service' => 'tablesDB', 'name' => 'listMigrations'],
+        ['service' => 'tablesDB', 'name' => 'getMigration'],
+        ['service' => 'tablesDB', 'name' => 'deleteMigration'],
+        // Presences takes a further path parameter in the released SDK, so these
+        // two are a signature mismatch rather than a missing function -- the
+        // same spec skew, and excluded for the same reason.
+        ['service' => 'presences', 'name' => 'upsert'],
+        ['service' => 'presences', 'name' => 'update'],
+        // Usage and log reporting.
+        ['service' => 'presences', 'name' => 'getUsage'],
+        ['service' => 'project', 'name' => 'getUsage'],
+        ['service' => 'users', 'name' => 'getUsage'],
+        ['service' => 'teams', 'name' => 'listLogs'],
+    ];
+
     // CLI
     if (!$requestedSdk || $requestedSdk === 'cli') {
         $language  = new CLI();
         $language->setNPMPackage('appwrite-cli');
         $language->setExecutableName('appwrite');
         $language->setLogo(json_encode($cliLogo));
-        $language->setLogoUnescaped("
-     _                            _ _           ___   __   _____
-    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
-   //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
-  /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_
-  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
-        |_|   |_|                                                ");
+        $language->setLogoUnescaped($cliLogoUnescaped);
 
         $sdk  = new SDK($language, buildSpec($specFormat, $spec));
         $sdk->setTest(false);
@@ -326,6 +397,7 @@ try {
         $language = new GoCLI();
         $language->setExecutableName('appwrite');
         $language->setLogo($cliLogo);
+        $language->setLogoUnescaped($cliLogoUnescaped);
         // Same package name as the TypeScript CLI: `npm i -g appwrite-cli`
         // has to keep working across the switch. It also names every release
         // asset, which install.sh and install.ps1 construct by hand.
@@ -333,7 +405,7 @@ try {
         // The released SDK a shipped build resolves. Go requires the major
         // version in the module path from v2 on, so this also decides whether the
         // imports carry a /vN suffix -- setSDKVersion derives both.
-        $language->setSDKVersion('v6.2.0');
+        $language->setSDKVersion('v6.3.0');
         // Local example generation only: builds examples/go-cli against the
         // SDK generated alongside it. The shipped repository leaves this
         // unset and resolves the pinned release instead.
@@ -342,7 +414,7 @@ try {
         $sdk = new SDK($language, buildSpec($specFormat, $spec));
         $sdk->setTest(false);
         configureSDK($sdk, [
-            'exclude' => $cliExcludes,
+            'exclude' => $goCliExcludes,
         ]);
 
         $sdk->generate(__DIR__ . '/examples/go-cli');
