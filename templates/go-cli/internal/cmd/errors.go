@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +14,7 @@ import (
 	"github.com/appwrite/appwrite-cli-go/internal/app"
 	"github.com/appwrite/appwrite-cli-go/internal/output"
 	"github.com/appwrite/appwrite-cli-go/internal/prompt"
+	"github.com/appwrite/appwrite-cli-go/internal/sdk"
 	"github.com/spf13/cobra"
 )
 
@@ -174,11 +177,92 @@ func Report(writer io.Writer, executed *cobra.Command, err error) int {
 
 	output.Failure(writer, "%s", FormatError(err))
 
+	// --verbose was documented as "Show full error stack traces" and showed
+	// none: it suppressed the advice line above and changed nothing else, so on
+	// the failure it is most needed for -- a response the SDK could not decode --
+	// it added exactly nothing to
+	//
+	//   ✗ Error: json: cannot unmarshal array into Go struct field
+	//     UsageProject.embeddingsText of type models.Metric
+	//
+	// which names a field and a type and gives no way to see what actually
+	// arrived. Ports the `cliConfig.verbose` branch of parseError
+	// (parser.ts:937), which prints formatErrorForLog(err).
+	if app.Flags().Verbose {
+		if detail := ErrorDetail(err); detail != "" {
+			fmt.Fprint(writer, detail)
+		}
+	}
+
 	if app.Flags().Report {
 		fmt.Fprintln(writer, ReportBlock(err))
 	}
 
 	return 1
+}
+
+// ErrorDetail is everything known about a failure, for --verbose.
+//
+// Ports formatErrorForLog (parser.ts:847) and its ERROR_DETAIL_KEYS -- `code`,
+// `type`, `response` -- to what Go actually has. A Go error carries no stack, so
+// the UNWRAP CHAIN stands in for one: each layer names where the failure was
+// wrapped, which is the same question a stack answers.
+//
+// The response body is the reason this exists. internal/sdk records the last
+// one, and a decode failure never renders, so the body that could not be decoded
+// is still sitting there when this runs -- and it is the only thing that tells
+// the user whether the API changed shape or the CLI has the model wrong.
+func ErrorDetail(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	var builder strings.Builder
+	builder.WriteString("\n" + output.Heading("Error detail") + "\n\n")
+
+	fmt.Fprintf(&builder, "  %-10s %T\n", "type:", err)
+
+	var appwrite apiError
+	if errors.As(err, &appwrite) {
+		fmt.Fprintf(&builder, "  %-10s %d\n", "status:", appwrite.GetStatusCode())
+	}
+
+	// The chain, outermost first, skipping the layer already printed as the
+	// message above.
+	for wrapped := errors.Unwrap(err); wrapped != nil; wrapped = errors.Unwrap(wrapped) {
+		fmt.Fprintf(&builder, "  %-10s %s\n", "wrapped:", wrapped)
+	}
+
+	if response := sdk.LastResponse.Take(); len(response) > 0 {
+		builder.WriteString("\n" + output.Heading("Response") + "\n\n")
+		builder.WriteString(indentBlock(prettyJSON(response)))
+	}
+
+	return builder.String() + "\n"
+}
+
+// prettyJSON re-indents a body, and returns it untouched when it is not JSON.
+//
+// A body that is not JSON is exactly the case that matters most -- an HTML error
+// page, a proxy's plain-text refusal -- so failing to parse it must print it,
+// not swallow it.
+func prettyJSON(body []byte) string {
+	var indented bytes.Buffer
+	if err := json.Indent(&indented, body, "", "  "); err != nil {
+		return string(body)
+	}
+
+	return indented.String()
+}
+
+// indentBlock shifts a block two spaces right, to sit under its heading.
+func indentBlock(text string) string {
+	lines := strings.Split(strings.TrimRight(text, "\n"), "\n")
+	for index, line := range lines {
+		lines[index] = "  " + line
+	}
+
+	return strings.Join(lines, "\n") + "\n"
 }
 
 // detailWasRequested reports whether the user asked for the detail the advice
