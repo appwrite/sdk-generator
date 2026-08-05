@@ -211,34 +211,6 @@ const getInstallCommand = (runtime: string): string | undefined => {
   return undefined;
 };
 
-/**
- * Build specification choices, with the rows below the plan's allowlist dropped.
- *
- * The endpoint answers with a bare `enabled` and no reason for it, and on the
- * build list the disabled rows are two different things: the small
- * specifications are never valid for a build on any plan, while the large ones
- * are the tier gate. Marking both "Upgrade to use" offered an upgrade that does
- * not exist. Nothing server-side distinguishes them — Validator/Specification.php
- * intersects the plan's list with the env CPU and memory caps and keeps no notion
- * of a build floor — so the response's own order does: the allowlist is a
- * contiguous band, and anything before it is below the floor.
- *
- * When the plan allows none of them, nothing is hidden. A prompt with every row
- * disabled at least shows what the account has, where an empty one would read as
- * a fault in the CLI.
- */
-const buildSpecificationChoices = (specifications: any[]) => {
-  const floor = specifications.findIndex((spec: any) => spec.enabled !== false);
-
-  return specifications
-    .filter((_spec: any, index: number) => floor <= 0 || index >= floor)
-    .map((spec: any) => ({
-      name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
-      value: spec.slug,
-      disabled: spec.enabled === false ? "Upgrade to use" : false,
-    }));
-};
-
 export const questionsInitProject: Question[] = [
   {
     type: "confirm",
@@ -578,15 +550,18 @@ export const questionsCreateFunction: Question[] = [
     name: "buildSpecification",
     message: "What build specification would you like to use?",
     choices: async () => {
-      // `builds`, because a plan allows a different set for each type and it is
-      // `type` that decides which set `enabled` is computed from. Asking for the
-      // default offered every runtime specification as available, and `push` was
-      // the first thing to disagree -- rejecting a buildSpecification that
-      // `init function` had just written into appwrite.config.json.
       const response = await (
         await getFunctionsService()
       ).listSpecifications({ type: "builds" });
-      return buildSpecificationChoices(response["specifications"]);
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any, _idx: number) => {
+        return {
+          name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
+          value: spec.slug,
+          disabled: spec.enabled === false ? "Upgrade to use" : false,
+        };
+      });
+      return choices;
     },
   },
   {
@@ -1349,7 +1324,15 @@ export const questionsCreateSite: Question[] = [
       const response = await (
         await getSitesService()
       ).listSpecifications({ type: "builds" });
-      return buildSpecificationChoices(response["specifications"]);
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any) => {
+        return {
+          name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
+          value: spec.slug,
+          disabled: spec.enabled === false ? "Upgrade to use" : false,
+        };
+      });
+      return choices;
     },
   },
   {
