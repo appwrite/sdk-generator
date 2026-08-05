@@ -7,7 +7,7 @@ namespace Tests\E2E;
 use Override;
 use Appwrite\SDK\Language\Go;
 
-final class Go112Test extends Base
+final class Go113Test extends Base
 {
     #[Override]
     protected string $sdkName = 'go';
@@ -29,7 +29,7 @@ final class Go112Test extends Base
     ];
     #[Override]
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app golang:1.12 sh -c "cd tests/e2e/languages/go/ && ./test.sh"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app golang:1.13 sh -c "cd tests/e2e/languages/go/ && ./test.sh"';
     #[Override]
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

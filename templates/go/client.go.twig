@@ -104,6 +104,15 @@ func New(optionalSetters ...ClientOption) Client {
 		}
 	}
 
+	// After the options, so WithSelfSigned is applied whichever order it was
+	// passed in and whether or not WithTimeout replaced the http.Client.
+	if client.SelfSigned {
+		client.Client, err = withSelfSigned(client.Client)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	return client
 }
 
@@ -120,6 +129,40 @@ func GetDefaultClient(timeout time.Duration) (*http.Client, error) {
 		Jar:     jar,
 		Timeout: timeout,
 	}, nil
+}
+
+// withSelfSigned returns an HTTP client with certificate verification disabled.
+// It clones the client, transport, and TLS configuration before changing them so
+// caller-owned and process-global HTTP configuration remains untouched.
+func withSelfSigned(httpClient *http.Client) (*http.Client, error) {
+	if httpClient == nil {
+		return nil, errors.New("cannot configure self-signed certificates on a nil HTTP client")
+	}
+
+	roundTripper := httpClient.Transport
+	if roundTripper == nil {
+		roundTripper = http.DefaultTransport
+	}
+
+	transport, ok := roundTripper.(*http.Transport)
+	if !ok {
+		return nil, fmt.Errorf("cannot configure self-signed certificates on HTTP transport %T", roundTripper)
+	}
+
+	if transport.TLSClientConfig != nil && transport.TLSClientConfig.InsecureSkipVerify {
+		return httpClient, nil
+	}
+
+	transport = transport.Clone()
+	if transport.TLSClientConfig == nil {
+		transport.TLSClientConfig = &tls.Config{}
+	}
+	transport.TLSClientConfig.InsecureSkipVerify = true
+
+	configuredClient := *httpClient
+	configuredClient.Transport = transport
+
+	return &configuredClient, nil
 }
 
 type ClientOption func(*Client) error
@@ -395,8 +438,13 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 		client.Client = httpClient
 	}
 
+	httpClient := client.Client
 	if client.SelfSigned {
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		var err error
+		httpClient, err = withSelfSigned(httpClient)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	urlPath := client.Endpoint + path
@@ -506,7 +554,7 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 	}
 
 	// Make request
-	resp, err := client.Client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
