@@ -24,11 +24,21 @@ The generator does not auto-discover templates. Every output file must have an e
 
 Modifying a parent's template or `getFiles()` affects all children. Regenerate and verify child SDKs too.
 
-**One coupling is not visible in the hierarchy.** `Concern/CliCommandSurface.php` is a
-trait used by **both** `CLI` and `GoCLI`. It holds the nine helpers that decide what a
-generated command looks like — flag syntax, query flags, promoted root commands, service
-scopes. It is shared precisely so the two CLIs cannot drift, which means a change there
-alters the TypeScript CLI and the Go CLI at once. Regenerate both:
+**Two couplings are not visible in the hierarchy.**
+
+`Concern/CliCommandSurface.php` is a trait used by **both** `CLI` and `GoCLI`. It holds
+the nine helpers that decide what a generated command looks like — flag syntax, query
+flags, promoted root commands, service scopes. It is shared precisely so the two CLIs
+cannot drift, which means a change there alters the TypeScript CLI and the Go CLI at once.
+
+`templates/cli/install.sh.twig` and `templates/cli/install.ps1.twig` live under
+`templates/cli/` but are registered in **both** `CLI::getFiles()` and `GoCLI::getFiles()`.
+They build every download URL from `language.params.npmPackage`, which also names every
+release asset produced by `.goreleaser.yaml` and consumed by the scoop manifest and the
+npm platform packages. Change the asset naming in one place and all four must move
+together, for both CLIs.
+
+Either way, regenerate both:
 
 ```bash
 php example.php cli && php example.php go-cli

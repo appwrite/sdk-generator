@@ -263,37 +263,6 @@ class GoCLI extends Go
     }
 
     /**
-     * Expression passed to the SDK call for one parameter.
-     */
-    protected function getGoCliArgExpression(array $parameter): string
-    {
-        $var = $this->getGoVarName($parameter['name']);
-
-        return match ($parameter['type'] ?? self::TYPE_STRING) {
-            self::TYPE_OBJECT => "parseJSONObject({$var})",
-            self::TYPE_FILE => "openInputFile({$var})",
-            default => $var,
-        };
-    }
-
-
-    /**
-     * How one method is called on the generated Go SDK.
-     *
-     * The SDK takes required parameters positionally in spec order and optional
-     * ones as functional options that are methods on the service, named
-     * `With<Method><Param>`. Splitting them here keeps the Twig template free of
-     * that convention.
-     *
-     * @return array{
-     *     package: string,
-     *     method: string,
-     *     optionType: string,
-     *     required: list<array{expression: string, goType: string}>,
-     *     optional: list<array{flag: string, setter: string, expression: string}>
-     * }
-     */
-    /**
      * How one method is called on the generated Go SDK.
      *
      * The SDK takes required parameters positionally in spec order and optional
@@ -304,8 +273,7 @@ class GoCLI extends Go
      * repeatable flag is []string but an untyped array parameter is
      * []interface{}, and an object arrives as a JSON string that has to be
      * decoded. Go::getTypeName() is the authority on what the SDK declares, so
-     * conversions are derived from it rather than guessed -- guessing is what
-     * the compiler caught across 600 call sites.
+     * conversions are derived from it rather than guessed.
      *
      * @return array{
      *     package: string,
@@ -431,7 +399,6 @@ class GoCLI extends Go
         return array_merge($this->getCliHelpFunctions(), [
             new TwigFunction('getGoCliOption', fn (array $parameter): array => $this->getGoCliOption($parameter)),
             new TwigFunction('getGoVarName', fn (array $parameter): string => $this->getGoVarName($parameter['name'])),
-            new TwigFunction('getGoCliArgExpression', fn (array $parameter): string => $this->getGoCliArgExpression($parameter)),
             new TwigFunction('getGoCallPlan', fn (array $method, array $service): array => $this->getGoCallPlan($method, $service)),
         ]);
     }
@@ -454,6 +421,22 @@ class GoCLI extends Go
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'go-cli/README.md.twig',
+            ],
+
+            // Shared verbatim with the TypeScript CLI. Both build their download
+            // URL from `npmPackage`, which names every release asset, so the one
+            // script serves whichever CLI is generated -- and a change to asset
+            // naming cannot move one without the other. `curl | bash` has no
+            // route to this binary without these two entries.
+            [
+                'scope'         => 'default',
+                'destination'   => 'install.sh',
+                'template'      => 'cli/install.sh.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'install.ps1',
+                'template'      => 'cli/install.ps1.twig',
             ],
             [
                 'scope'         => 'default',
@@ -806,14 +789,14 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/completion_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/app/install.go',
-                'template'      => 'go-cli/internal/app/install.go',
+                'template'      => 'go-cli/internal/app/install.go.twig',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/update.go',
-                'template'      => 'go-cli/internal/cmd/update.go',
+                'template'      => 'go-cli/internal/cmd/update.go.twig',
             ],
             [
                 'scope'         => 'copy',
