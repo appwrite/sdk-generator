@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -191,7 +192,8 @@ func runFunction(command *cobra.Command, options runOptions) error {
 	output.Log(out, "Function automatically restarts when you edit your code.")
 	command.Println()
 
-	if _, err := emulator.Start(ctx, port, keys, variables); err != nil {
+	wait, err := emulator.Start(ctx, port, keys, variables)
+	if err != nil {
 		return err
 	}
 
@@ -201,10 +203,35 @@ func runFunction(command *cobra.Command, options runOptions) error {
 
 	queue.Unlock()
 
-	return serve(ctx, command, emulator, tool, queue, port, keys, variables)
+	return serve(ctx, command, emulator, tool, queue, port, keys, variables, wait)
 }
 
-// serve reloads on every debounced change until the context is cancelled.
+// watchExit reports a container's own exit, once.
+//
+// Buffered by one so the goroutine always finishes, whether or not anyone is
+// still listening: a deliberate restart also makes wait return, and serve stops
+// listening across that so the expected exit is dropped rather than reported as
+// a crash. A nil wait means no container is running, and a nil channel blocks in
+// select, which is exactly the right behaviour there.
+func watchExit(wait func() error) <-chan error {
+	if wait == nil {
+		return nil
+	}
+
+	exited := make(chan error, 1)
+	go func() { exited <- wait() }()
+
+	return exited
+}
+
+// serve reloads on every debounced change until the context is cancelled, or
+// until the container stops on its own.
+//
+// That second case is why wait is threaded through here. Without it a container
+// that died after startup -- a runtime panic on the first import, an OOM kill --
+// left "Visit http://localhost:<port>/" on screen and waited on a dead port
+// forever, because the only thing that reports the exit is the value both Start
+// call sites used to discard.
 func serve(
 	ctx context.Context,
 	command *cobra.Command,
@@ -214,8 +241,10 @@ func serve(
 	port int,
 	keys []string,
 	variables map[string]string,
+	wait func() error,
 ) error {
 	out := command.OutOrStdout()
+	exited := watchExit(wait)
 
 	for {
 		select {
@@ -228,19 +257,43 @@ func serve(
 
 			return nil
 
+		case err := <-exited:
+			// Nobody asked for this, so it is a failure rather than a shutdown:
+			// say so and stop, instead of leaving a URL on screen that nothing
+			// is listening on.
+			output.Failure(command.ErrOrStderr(), "The function stopped running.")
+			_ = emulator.Cleanup(context.WithoutCancel(ctx))
+
+			if err != nil {
+				return fmt.Errorf("the function's container stopped: %w", err)
+			}
+
+			return errors.New("the function's container stopped")
+
 		case files := <-queue.Events():
 			queue.Lock()
 
-			if err := reloadOnce(ctx, command, emulator, tool, queue, port, keys, variables, files); err != nil {
+			// The reload stops the container, so its exit is expected. Dropping
+			// the channel first means that exit is not reported as a crash.
+			exited = nil
+
+			restarted, err := reloadOnce(ctx, command, emulator, tool, queue, port, keys, variables, files)
+			if err != nil {
 				output.Failure(command.ErrOrStderr(), "Failed to reload function with error: %v", err)
 			}
+			exited = watchExit(restarted)
 
 			queue.Unlock()
 		}
 	}
 }
 
-// reloadOnce rebuilds or hot-swaps, then restarts.
+// reloadOnce rebuilds or hot-swaps, then restarts, returning the wait function
+// for the container it started.
+//
+// A nil wait means nothing is running: either the build failed, or it was
+// cancelled because another change had already queued, in which case the next
+// event reloads again.
 func reloadOnce(
 	ctx context.Context,
 	command *cobra.Command,
@@ -251,13 +304,13 @@ func reloadOnce(
 	keys []string,
 	variables map[string]string,
 	files []string,
-) error {
+) (func() error, error) {
 	out := command.OutOrStdout()
 
 	emulator.Client.Stop(ctx, emulator.Function.ID)
 
 	if err := docker.AssertSource(emulator.Local, emulator.Function); err != nil {
-		return err
+		return nil, err
 	}
 
 	// A compiled runtime, or a change to a file the build step consumes, needs
@@ -268,22 +321,20 @@ func reloadOnce(
 
 		cancelled, err := emulator.Build(ctx, keys, variables, func() bool { return !queue.Empty() })
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if cancelled {
-			return nil
+			return nil, nil
 		}
 	} else {
 		output.Log(out, "Hot-swapping function.. Files with change are %s", strings.Join(files, ", "))
 
 		if err := emulator.HotSwap(); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	_, err := emulator.Start(ctx, port, keys, variables)
-
-	return err
+	return emulator.Start(ctx, port, keys, variables)
 }
 
 // sourceMatcher is the watcher's ignore predicate.

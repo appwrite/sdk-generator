@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 // `run` printed one URL and nothing about how it got there, so a function that
@@ -45,5 +47,44 @@ func TestPortNoticeAgreesWithTheChosenPort(t *testing.T) {
 	}
 	if strings.Contains(notice, "3005 is in use") {
 		t.Errorf("notice claims the chosen port is in use: %q", notice)
+	}
+}
+
+// A container that dies after startup -- a runtime panic on the first import, an
+// OOM kill -- is only observable through the wait function that both Start call
+// sites used to discard. Without it `run` left "Visit http://localhost:<port>/"
+// on screen and waited on a dead port until the user gave up.
+func TestWatchExitReportsTheContainerStopping(t *testing.T) {
+	failure := errors.New("exit status 1")
+
+	exited := watchExit(func() error { return failure })
+
+	select {
+	case err := <-exited:
+		if !errors.Is(err, failure) {
+			t.Errorf("reported %v, want %v", err, failure)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the container's exit was never reported")
+	}
+}
+
+// No container running is not an exit to report. serve selects on this channel,
+// and a nil channel blocks, which is what keeps it waiting for the next file
+// change rather than reporting a crash that did not happen.
+func TestWatchExitOfNothingNeverFires(t *testing.T) {
+	if exited := watchExit(nil); exited != nil {
+		t.Error("watchExit(nil) returned a channel, which would report a phantom exit")
+	}
+}
+
+// A deliberate restart also makes wait return, and serve stops listening across
+// it. The channel has to be buffered for that goroutine to finish anyway, or
+// every reload would strand one for the lifetime of the command.
+func TestWatchExitIsBufferedSoADiscardedWatcherFinishes(t *testing.T) {
+	exited := watchExit(func() error { return nil })
+
+	if cap(exited) < 1 {
+		t.Errorf("capacity %d: a watcher nobody reads would block forever", cap(exited))
 	}
 }
