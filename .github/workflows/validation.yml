@@ -298,14 +298,6 @@ jobs:
               go test ./...
               ;;
             go-cli)
-              # Against the PUBLISHED sdk-for-go, not the tree example.php
-              # generates beside it. Dropping the replace is the whole point: the
-              # CLI resolving its own generated SDK can never disagree with it,
-              # so a spec that has moved ahead of the released SDK -- a new
-              # service, or a new method on one -- stays invisible until a
-              # release tries to build from the shipped repository. A failure
-              # here is real: raise the SDK pin or exclude the service. See
-              # docs/go-cli/RELEASING.md.
               go mod edit -dropreplace=github.com/appwrite/sdk-for-go/v6
               go mod tidy
               go build ./...
