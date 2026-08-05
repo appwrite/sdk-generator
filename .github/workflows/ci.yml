@@ -1,5 +1,9 @@
 name: CI
 
+# Every job here builds, tests or lints and writes nothing back to the repo.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -163,8 +167,8 @@ jobs:
         # Pinned: djlint 1.41.0+ false-positives T038 on multi-line {% if %} tags
         run: uvx djlint==1.40.10 templates/ --lint
 
-  go-cli-startup:
-    name: Checks / Go CLI startup
+  go-cli:
+    name: Checks / Go CLI
     runs-on: ubuntu-latest
 
     steps:
@@ -185,9 +189,11 @@ jobs:
       - name: Install
         run: composer install
 
-      # The real spec, not tests/resources: the guard is only worth anything
-      # against the full 608-command tree, since what it catches is per-command
-      # work at registration time.
+      # The real spec, not tests/resources: both the startup guard and the
+      # command surface contract are only worth anything against the full
+      # command tree. This is also the only job that generates with
+      # `sdk.test` false, which is what makes the surface test exist at all --
+      # under the e2e suite it renders to an empty package.
       - name: Generate the Go CLI and the SDK it builds against
         run: |
           php example.php go
@@ -198,6 +204,35 @@ jobs:
         run: |
           go mod tidy
           go build -ldflags="-s -w" -o appwrite .
+
+      - name: Vet
+        working-directory: examples/go-cli
+        run: go vet ./...
+
+      # The templates emit gofmt-clean Go, including the struct-literal
+      # alignment that varies with which optional fields a command has. Without
+      # this the shipped repository drifts and every contributor who formats on
+      # save produces an unrelated diff.
+      - name: Check formatting
+        working-directory: examples/go-cli
+        run: |
+          set -euo pipefail
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "these generated files are not gofmt-clean:"
+            echo "$unformatted"
+            gofmt -d .
+            exit 1
+          fi
+
+      # Guards every command path, hidden flag and flag name against the
+      # TypeScript contract. Regenerate the contract with
+      # `node scripts/go-cli/extract-command-surface.mjs` when the spec adds
+      # commands -- a failure here means the two CLIs have drifted, not that
+      # the test is stale.
+      - name: Check the command surface against the TypeScript contract
+        working-directory: examples/go-cli
+        run: go test ./internal/cmd/ -run 'TestCommandSurfaceMatchesTypeScript|TestContractIsNotEmpty'
 
       - name: Check startup
         run: ./.github/scripts/go-cli-startup.sh examples/go-cli/appwrite

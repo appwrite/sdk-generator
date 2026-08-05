@@ -6,15 +6,22 @@ name: Publish
 # CREDENTIALS THIS NEEDS. None are wired up yet; each is named where it is
 # used and the release fails loudly rather than silently skipping a step.
 #
-#   secrets.GH_TOKEN                     push to the tap repo and upload assets
 #   secrets.WINDOWS_SIGNING_API_TOKEN    SignPath, same account as the TS CLI
 #   vars.WINDOWS_SIGNING_ORGANIZATION_ID SignPath organisation
 #   vars.APPWRITE_BOT_APP_ID             GitHub App that writes to the tap
 #   secrets.APPWRITE_BOT_PRIVATE_KEY     its private key
 #
+# Asset upload uses the job's own GITHUB_TOKEN, covered by `contents: write`.
+#
 # npm needs no token: publishing uses npm trusted publishing, which is what
 # `id-token: write` and `--provenance` below are for. The npm project has to
-# be configured to trust this workflow before the first run.
+# be configured to trust this workflow before the first run -- and because
+# trust is configured per package that already exists, the six platform
+# packages need one manual token-based publish before this ever runs. See the
+# release runbook.
+#
+# A prerelease publishes to npm's `next` tag and skips the Homebrew tap
+# entirely; only a full release moves `latest` and the formula.
 #
 # There is deliberately NO Apple credential here. install.sh requires an
 # embedded signature, not a trusted one, and .goreleaser.yaml ad-hoc signs the
@@ -28,6 +35,13 @@ permissions:
   contents: write
   id-token: write
 
+# Two releases published close together would otherwise race on `gh release
+# upload` and on the tap push. Never cancel a run in flight: a half-published
+# release is worse than a queued one.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -37,21 +51,32 @@ jobs:
       WINDOWS_SIGNING_POLICY_SLUG: {{ '${{ vars.WINDOWS_SIGNING_POLICY_SLUG || \'release-signing\' }}' }}
       WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG: {{ '${{ vars.WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG || \'initial\' }}' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          # This job runs goreleaser, `go mod tidy` and node scripts, all of
+          # which execute third-party code. Leaving the token in .git/config
+          # would put it within reach of any of them. The tap checkout below
+          # keeps its credentials -- it has to push.
+          persist-credentials: false
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
 
       # Before the staging step, not just before publishing: the release
       # scripts are node, and picking up whatever node the runner image happens
       # to ship means a runner update can change what built the release.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '22'
+          node-version: '24.14.1'
           registry-url: 'https://registry.npmjs.org'
+
+      # npm's OIDC trusted publishing needs npm >= 11.5.1, and no node release
+      # bundles one yet. Without this every `npm publish` below fails with
+      # ENEEDAUTH, because this workflow deliberately carries no npm token.
+      - name: Pin npm for trusted publishing
+        run: npm install -g npm@11.10.0
 
       # goreleaser ad-hoc signs the darwin builds. Linux runners have no
       # codesign, so scripts/adhoc-sign.sh falls back to ldid -- without this
@@ -66,17 +91,21 @@ jobs:
       # --skip=publish because the Windows binaries have to be signed before
       # anything is uploaded. The upload happens further down, once they are.
       - name: Build
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
         with:
           version: '~> v2'
           args: release --clean --skip=publish
+        env:
+          # .goreleaser.yaml builds its changelog from the GitHub API, which
+          # needs a token even though publishing is skipped.
+          GITHUB_TOKEN: {{ '${{ secrets.GITHUB_TOKEN }}' }}
 
       - name: Stage release assets
         run: node scripts/stage-assets.mjs dist staging
 
       - name: Upload unsigned Windows binaries
         id: upload-windows-unsigned
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-unsigned
           path: |
@@ -84,7 +113,7 @@ jobs:
             staging/{{ language.params.npmPackage }}-win-arm64.exe
 
       - name: Submit Windows binaries for signing
-        uses: signpath/github-action-submit-signing-request@v2
+        uses: signpath/github-action-submit-signing-request@b9d91eadd323de506c0c81cf0c7fe7438f3360fd # v2.2
         with:
           api-token: {{ '${{ secrets.WINDOWS_SIGNING_API_TOKEN }}' }}
           organization-id: {{ '${{ vars.WINDOWS_SIGNING_ORGANIZATION_ID }}' }}
@@ -121,17 +150,27 @@ jobs:
         working-directory: staging
         run: sha256sum {{ language.params.npmPackage }}-* > checksums.txt
 
+      # The job's own `contents: write` covers this, so no PAT is needed; the
+      # tag goes through env rather than straight into the script, like every
+      # other step that reads it.
       - name: Upload release assets
         env:
-          GH_TOKEN: {{ '${{ secrets.GH_TOKEN }}' }}
+          GH_TOKEN: {{ '${{ secrets.GITHUB_TOKEN }}' }}
+          RELEASE_TAG: {{ '${{ github.event.release.tag_name }}' }}
         run: |
           set -euo pipefail
-          gh release upload "{{ '${{ github.event.release.tag_name }}' }}" staging/* --clobber
+          gh release upload "$RELEASE_TAG" staging/* --clobber
 
+      # Keyed off the release's own prerelease flag rather than a tag glob: a
+      # `-beta` or `-preview` tag is just as much a prerelease as `-rc`, and a
+      # glob that only knows about `-rc` would publish those as `latest`.
       - name: Determine npm tag
         id: npm_tag
+        env:
+          PRERELEASE: {{ '${{ github.event.release.prerelease }}' }}
         run: |
-          if [[ "{{ '${{ github.event.release.tag_name }}' }}" == *-rc* ]] || [[ "{{ '${{ github.event.release.tag_name }}' }}" == *-RC* ]]; then
+          set -euo pipefail
+          if [ "$PRERELEASE" = "true" ]; then
             echo "tag=next" >> "$GITHUB_OUTPUT"
           else
             echo "tag=latest" >> "$GITHUB_OUTPUT"
@@ -171,8 +210,9 @@ jobs:
         run: npm publish ./npm --provenance --access public --tag {{ '${{ steps.npm_tag.outputs.tag }}' }}
 
       - name: Generate token for the Homebrew tap
+        if: {{ '${{ !github.event.release.prerelease }}' }}
         id: bot-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           app-id: {{ '${{ vars.APPWRITE_BOT_APP_ID }}' }}
           private-key: {{ '${{ secrets.APPWRITE_BOT_PRIVATE_KEY }}' }}
@@ -180,7 +220,8 @@ jobs:
           repositories: homebrew-{{ language.params.homebrewTapName }}
 
       - name: Check out the Homebrew tap
-        uses: actions/checkout@v4
+        if: {{ '${{ !github.event.release.prerelease }}' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: {{ '${{ env.HOMEBREW_TAP_REPO }}' }}
           token: {{ '${{ steps.bot-token.outputs.token }}' }}
@@ -192,6 +233,7 @@ jobs:
       # TypeScript CLI's release does. Deliberately not generated from a
       # template here -- the tap is the source of truth for its own formula.
       - name: Update the Homebrew formula
+        if: {{ '${{ !github.event.release.prerelease }}' }}
         id: tap
         working-directory: homebrew-tap
         env:
@@ -243,6 +285,7 @@ jobs:
           echo "formula_path=${FORMULA_PATH}" >> "$GITHUB_OUTPUT"
 
       - name: Commit the Homebrew formula
+        if: {{ '${{ !github.event.release.prerelease }}' }}
         working-directory: homebrew-tap
         env:
           RELEASE_TAG: {{ '${{ github.event.release.tag_name }}' }}
