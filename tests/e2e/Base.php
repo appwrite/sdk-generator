@@ -507,7 +507,17 @@ abstract class Base extends TestCase
         foreach ($this->build as $command) {
             echo "Build Executing: {$command}\n";
 
-            exec($command);
+            $buildOutput = [];
+            $status = 0;
+
+            exec($command . ' 2>&1', $buildOutput, $status);
+
+            echo \implode("\n", $buildOutput) . "\n";
+
+            // A build step that produces no artifact -- `go test`, a linter --
+            // used to fail in silence, because only the exit codes of steps
+            // that something later reads were ever noticed.
+            $this->assertSame(0, $status, "Build command failed: {$command}");
         }
 
         $output = [];
