@@ -159,7 +159,6 @@ func (p *BuildLogPrinter) writeChunk(chunk string, includePartial bool) string {
 	return printable
 }
 
-
 // lastCarriageReturnSegment keeps only what a terminal would still be showing
 // after the line finished printing.
 //

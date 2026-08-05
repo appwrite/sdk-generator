@@ -15,9 +15,9 @@ type {{ service.name | caseUcfirst }}MockService struct{}
 func new{{ service.name | caseUcfirst }}MockService() *{{ service.name | caseUcfirst }}MockService {
 	return &{{ service.name | caseUcfirst }}MockService{}
 }
-
 {% for method in service.methods %}
 {% set query = method | cliQueryConfig %}
+
 // {{ method.name | caseUcfirst }} is a mock.
 func (srv *{{ service.name | caseUcfirst }}MockService) {{ method.name | caseUcfirst }}(args ...any) (*mockResult, error) {
 {% if query.hasQueries %}
@@ -47,5 +47,4 @@ func (srv *{{ service.name | caseUcfirst }}MockService) {{ method.name | caseUcf
 	return &mockResult{Result: "{{ method.method | upper }}:/v1{{ method.path }}:passed"}, nil
 {% endif %}
 }
-
 {% endfor %}

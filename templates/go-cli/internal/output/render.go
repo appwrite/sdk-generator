@@ -330,7 +330,6 @@ func formatScalar(value any) string {
 	return fmt.Sprint(value)
 }
 
-
 // maximumColumns is where a table stops being readable.
 //
 // Ports MAX_COLUMNS (parser.ts:402). `organization get` embeds a plan with 69

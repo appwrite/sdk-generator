@@ -10,7 +10,8 @@ import (
 
 // The generated client hard-codes the endpoint it connects to, and `pull` never
 // writes an `endpoint` key. Reading only the project config emitted
-// `export const ENDPOINT = ''` -- a client that cannot reach anything.
+// `export const ENDPOINT` set to an empty string -- a client that cannot
+// reach anything.
 func TestGenerateEndpointFallsBackToTheSession(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

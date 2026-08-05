@@ -172,10 +172,10 @@ func TestAccessTokenWithoutRefreshTokenFailsCleanly(t *testing.T) {
 
 	message := err.Error()
 	for _, want := range []string{
-		"someone@example.com",              // which account
-		"https://cloud.appwrite.io/v1",     // and which environment
-		"session-1",                        // the id the store was asked for
-		"login",                            // and what to do about it
+		"someone@example.com",          // which account
+		"https://cloud.appwrite.io/v1", // and which environment
+		"session-1",                    // the id the store was asked for
+		"login",                        // and what to do about it
 	} {
 		if !strings.Contains(message, want) {
 			t.Errorf("the message does not mention %q: %s", want, message)
