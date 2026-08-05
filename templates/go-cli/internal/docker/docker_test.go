@@ -1,8 +1,10 @@
 package docker
 
 import (
+	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -299,5 +301,113 @@ func TestQuoteShellArgumentEscapesQuotes(t *testing.T) {
 	// so an unescaped quote ends the argument and the rest becomes shell.
 	if got := quoteShellArgument(`npm run "build"`); got != `npm run \"build\"` {
 		t.Errorf("got %q", got)
+	}
+}
+
+// `localhost` is not one address. A dev server bound only to [::1] leaves the
+// v4 loopback free, so a v4-only probe called the port available; docker then
+// published it on 0.0.0.0 without complaint and the browser, resolving localhost
+// to ::1 first, reached the other service instead of the function.
+func TestPortAvailableSeesAPortHeldOnIPv6Only(t *testing.T) {
+	listener, err := net.Listen("tcp6", "[::1]:0")
+	if err != nil {
+		t.Skipf("no IPv6 loopback on this host: %v", err)
+	}
+	defer listener.Close()
+
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	// The v4 loopback really is free, which is what made this invisible.
+	v4, err := net.Listen("tcp4", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+	if err != nil {
+		t.Skipf("port %d is not v4-free, so this is not the case under test", port)
+	}
+	v4.Close()
+
+	if PortAvailable(port) {
+		t.Errorf("port %d reported available while held on [::1]", port)
+	}
+}
+
+// And a free port is still free -- the v6 probe must not reject everything on a
+// host where that family is unavailable.
+func TestPortAvailableAcceptsAFreePort(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	listener.Close()
+
+	if !PortAvailable(port) {
+		t.Errorf("port %d reported in use after being released", port)
+	}
+}
+
+// FindPort has to walk past what is taken.
+func TestFindPortSkipsAPortInUse(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+
+	taken := listener.Addr().(*net.TCPAddr).Port
+	found, ok := FindPort(taken, taken+10)
+	if !ok {
+		t.Fatal("no port found in the range")
+	}
+	if found == taken {
+		t.Errorf("returned the port that is in use (%d)", taken)
+	}
+}
+
+// The readiness probe requires a REPLY, not just an accept. docker's published
+// port is proxied, and the proxy accepts while the runtime behind it is still
+// unpacking code -- which is how `run` announced its URL in the middle of the
+// container's startup log.
+func TestReadinessProbeRejectsAnAcceptWithNoReply(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+
+	// Accepts and closes without answering, as a proxy with no backend does.
+	go func() {
+		for {
+			connection, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			connection.Close()
+		}
+	}()
+
+	if err := probe(listener.Addr().String()); err == nil {
+		t.Error("a connection that never answered was treated as ready")
+	}
+}
+
+func TestReadinessProbeAcceptsAnyReply(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+
+	// 500 is what the dev server answers without the runtime secret, and it is
+	// still proof that something is listening.
+	go func() {
+		connection, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer connection.Close()
+		_, _ = connection.Write([]byte("HTTP/1.0 500 Internal Server Error\r\n\r\n"))
+	}()
+
+	if err := probe(listener.Addr().String()); err != nil {
+		t.Errorf("a listening runtime was treated as not ready: %v", err)
 	}
 }

@@ -283,7 +283,21 @@ func (c *Client) Start(ctx context.Context, options StartOptions) (wait func() e
 	return func() error { return <-exited }, nil
 }
 
-// waitForPort polls until the port accepts a connection.
+// waitForPort polls until the runtime inside the container answers.
+//
+// A bare TCP connect is not enough. docker publishes the port by starting a
+// proxy in front of the container, and that proxy accepts connections while the
+// runtime behind it is still unpacking code -- so `run` announced
+//
+//	✓ Success: Visit http://localhost:3000/ to execute your function.
+//
+// in the middle of the container's own startup log, several seconds before
+// anything could actually be executed. Writing a request and requiring a reply
+// moves the announcement to where it is true.
+//
+// ANY reply counts, including a refusal: without the runtime secret the dev
+// server answers 500, and that is still proof it is listening. Only a connection
+// that closes without a response is treated as not-ready-yet.
 //
 // 100 attempts at 100ms, matching the TypeScript's iteration cap -- about ten
 // seconds, which covers a cold runtime start without hanging a broken one
@@ -299,10 +313,8 @@ func waitForPort(ctx context.Context, port int) error {
 		default:
 		}
 
-		connection, err := net.DialTimeout("tcp", address, time.Second)
+		err := probe(address)
 		if err == nil {
-			connection.Close()
-
 			return nil
 		}
 		lastErr = err
@@ -313,19 +325,99 @@ func waitForPort(ctx context.Context, port int) error {
 	return fmt.Errorf("timed out waiting for port %d: %w", port, lastErr)
 }
 
-// PortAvailable reports whether a port can be bound.
+// probe sends the smallest well-formed request that gets an answer.
+func probe(address string) error {
+	connection, err := net.DialTimeout("tcp", address, time.Second)
+	if err != nil {
+		return err
+	}
+	defer connection.Close()
+
+	if err := connection.SetDeadline(time.Now().Add(time.Second)); err != nil {
+		return err
+	}
+
+	// HTTP/1.0 so the server closes rather than holding the connection open for
+	// a keep-alive that nothing here will use.
+	if _, err := connection.Write([]byte("GET / HTTP/1.0\r\n\r\n")); err != nil {
+		return err
+	}
+
+	// One byte is the whole signal. Reading the status line would mean parsing
+	// it, and the reply's CONTENT is not what is being checked.
+	answer := make([]byte, 1)
+	if _, err := connection.Read(answer); err != nil {
+		return fmt.Errorf("no reply from the runtime: %w", err)
+	}
+
+	return nil
+}
+
+// PortAvailable reports whether a port can be published.
 //
 // Binding is the test rather than dialling: a port with nothing listening yet
 // still fails to bind if another process holds it, and that is the case the
 // caller needs to avoid.
+//
+// BOTH loopback addresses are checked, because `localhost` is not one address.
+// A dev server bound only to [::1]:3000 leaves 127.0.0.1:3000 free, so probing
+// v4 alone called the port available; docker published it without complaint, and
+// the browser -- which resolves localhost to ::1 first -- reached the other
+// service instead of the function. The search never moved off 3000 either,
+// because as far as the CLI could see nothing was wrong with it.
+//
+// Dialling AND binding, because neither alone is sufficient. Go sets
+// SO_REUSEADDR on its listeners, which on BSD lets a wildcard bind succeed while
+// a specific address on the same port is held -- so a bind can report a port
+// free that something is actively serving. A dial catches those; a bind catches
+// the ones held but not yet listening.
 func PortAvailable(port int) bool {
-	listener, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+	address := func(host string) string {
+		return net.JoinHostPort(host, strconv.Itoa(port))
+	}
+
+	// Loopback refuses instantly when nothing is there, so this does not pay
+	// the timeout except against a port being actively dropped.
+	for _, host := range []string{"127.0.0.1", "::1"} {
+		connection, err := net.DialTimeout("tcp", address(host), 100*time.Millisecond)
+		if err == nil {
+			connection.Close()
+
+			return false
+		}
+	}
+
+	// A host with IPv6 disabled fails this probe for a reason that is not a
+	// conflict, and reading that as "in use" would reject the whole range, so
+	// only an address already in use counts.
+	if held(net.Listen("tcp6", address("::1"))) {
+		return false
+	}
+
+	listener, err := net.Listen("tcp4", address("127.0.0.1"))
 	if err != nil {
 		return false
 	}
 	listener.Close()
 
 	return true
+}
+
+// held reports whether a probe failed because something already has the
+// address, closing the listener when it did not.
+//
+// The distinction matters: `tcp6` on a host with IPv6 disabled fails with
+// EAFNOSUPPORT, which says nothing about the port, and reading that as a
+// conflict would reject the whole search range and leave `run` insisting there
+// is no free port at all.
+func held(listener net.Listener, err error) bool {
+	if err == nil {
+		listener.Close()
+
+		return false
+	}
+
+	return errors.Is(err, syscall.EADDRINUSE)
 }
 
 // FindPort returns the first free port in [start, end).
