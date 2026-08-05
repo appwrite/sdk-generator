@@ -108,18 +108,39 @@ func (c *Client) Pull(ctx context.Context, image string) error {
 	return describe(command.Run(), fmt.Sprintf("Unable to pull Docker image '%s'.", image))
 }
 
-// environmentArguments renders variables as repeated -e flags.
+// environmentArguments names the variables to forward, without their values.
 //
-// Order is taken from keys rather than from a map, so the command line is
-// stable between runs. Passing them as `-e KEY=VALUE` rather than through the
-// environment keeps a secret out of the CLI's own process environment.
-func environmentArguments(keys []string, variables map[string]string) []string {
+// Bare `-e KEY` tells docker to read the value from its own environment, which
+// is where environmentEntries puts it. `-e KEY=VALUE` would put the value on the
+// command line instead, and argv is world-readable through /proc/<pid>/cmdline:
+// `run` forwards a one-hour project key and a user JWT, so any local account
+// could read a live credential for as long as the container ran. The process
+// environment they move to, /proc/<pid>/environ, is readable only by its owner.
+//
+// Order is taken from keys rather than from a map, so the command line is stable
+// between runs.
+func environmentArguments(keys []string) []string {
 	arguments := make([]string, 0, len(keys)*2)
 	for _, key := range keys {
-		arguments = append(arguments, "-e", key+"="+variables[key])
+		arguments = append(arguments, "-e", key)
 	}
 
 	return arguments
+}
+
+// environmentEntries renders the same variables as KEY=VALUE, for the docker
+// process's own environment rather than for its command line.
+//
+// Appended after os.Environ() deliberately: exec resolves a duplicate key to the
+// last entry, so a variable of the same name in the CLI's environment does not
+// shadow the one the function asked for.
+func environmentEntries(keys []string, variables map[string]string) []string {
+	entries := make([]string, 0, len(keys))
+	for _, key := range keys {
+		entries = append(entries, key+"="+variables[key])
+	}
+
+	return entries
 }
 
 // BuildOptions is one function build.
@@ -150,7 +171,7 @@ func (c *Client) Build(ctx context.Context, options BuildOptions) (cancelled boo
 		"-e", "OPEN_RUNTIMES_SECRET=",
 		"-e", "OPEN_RUNTIMES_ENTRYPOINT=" + options.Entrypoint,
 	}
-	arguments = append(arguments, environmentArguments(options.VariableKeys, options.Variables)...)
+	arguments = append(arguments, environmentArguments(options.VariableKeys)...)
 	arguments = append(arguments, options.Image, "sh", "-c",
 		fmt.Sprintf(`helpers/build.sh "%s"`, quoteShellArgument(options.Commands)))
 
@@ -158,6 +179,7 @@ func (c *Client) Build(ctx context.Context, options BuildOptions) (cancelled boo
 	defer cancel()
 
 	command := c.command(buildContext, arguments...)
+	command.Env = append(command.Env, environmentEntries(options.VariableKeys, options.Variables)...)
 	command.Dir = options.WorkingDirectory
 	command.Stdout = c.Stdout
 	command.Stderr = c.Stderr
@@ -242,7 +264,7 @@ func (c *Client) Start(ctx context.Context, options StartOptions) (wait func() e
 		"-e", "OPEN_RUNTIMES_SECRET=",
 		"-e", "OPEN_RUNTIMES_ENTRYPOINT=" + options.Entrypoint,
 	}
-	arguments = append(arguments, environmentArguments(options.VariableKeys, options.Variables)...)
+	arguments = append(arguments, environmentArguments(options.VariableKeys)...)
 	arguments = append(arguments,
 		"-v", scratch("logs.txt")+":/mnt/logs/dev_logs.log:rw",
 		"-v", scratch("errors.txt")+":/mnt/logs/dev_errors.log:rw",
@@ -251,6 +273,7 @@ func (c *Client) Start(ctx context.Context, options StartOptions) (wait func() e
 		fmt.Sprintf(`helpers/start.sh "%s"`, quoteShellArgument(options.StartCommand)))
 
 	command := c.command(ctx, arguments...)
+	command.Env = append(command.Env, environmentEntries(options.VariableKeys, options.Variables)...)
 	command.Dir = options.FunctionDirectory
 	command.Stdout = c.Stdout
 	command.Stderr = c.Stderr

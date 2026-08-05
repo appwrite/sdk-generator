@@ -411,3 +411,77 @@ func TestReadinessProbeAcceptsAnyReply(t *testing.T) {
 		t.Errorf("a listening runtime was treated as not ready: %v", err)
 	}
 }
+
+// A function's variables carry a one-hour project key and a user JWT, packed
+// into OPEN_RUNTIMES_HEADERS by `run`. argv is world-readable through
+// /proc/<pid>/cmdline, so no value may appear there; the process environment is
+// readable only by its owner, which is where they belong.
+func TestEnvironmentArgumentsCarryNoValues(t *testing.T) {
+	const secret = "standard_1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d"
+
+	keys := []string{"OPEN_RUNTIMES_HEADERS", "APPWRITE_FUNCTION_API_KEY"}
+	variables := map[string]string{
+		"OPEN_RUNTIMES_HEADERS":     secret,
+		"APPWRITE_FUNCTION_API_KEY": secret,
+	}
+
+	arguments := environmentArguments(keys)
+	for _, argument := range arguments {
+		if strings.Contains(argument, secret) {
+			t.Errorf("credential reached argv: %q", argument)
+		}
+		if strings.Contains(argument, "=") {
+			t.Errorf("argv carries a value: %q", argument)
+		}
+	}
+
+	// Bare `-e KEY` only forwards anything if docker can find KEY in its own
+	// environment, so the two halves have to agree for the function to work.
+	entries := environmentEntries(keys, variables)
+	for _, key := range keys {
+		forwarded := false
+		for index, argument := range arguments {
+			if argument == key && index > 0 && arguments[index-1] == "-e" {
+				forwarded = true
+			}
+		}
+		if !forwarded {
+			t.Errorf("%s is not forwarded as `-e %s`", key, key)
+		}
+
+		present := false
+		for _, entry := range entries {
+			if entry == key+"="+secret {
+				present = true
+			}
+		}
+		if !present {
+			t.Errorf("%s is missing from the environment entries", key)
+		}
+	}
+}
+
+// Order comes from keys rather than from map iteration, so a rerun with the same
+// function produces the same command line.
+func TestEnvironmentArgumentsKeepKeyOrder(t *testing.T) {
+	arguments := environmentArguments([]string{"BRAVO", "ALPHA", "CHARLIE"})
+	want := []string{"-e", "BRAVO", "-e", "ALPHA", "-e", "CHARLIE"}
+
+	if strings.Join(arguments, " ") != strings.Join(want, " ") {
+		t.Errorf("got %v, want %v", arguments, want)
+	}
+}
+
+// An empty value must still be exported. Docker skips a bare `-e KEY` that is
+// unset in its environment, so an empty entry is what keeps OPEN_RUNTIMES_SECRET
+// set-but-empty in the container rather than absent.
+func TestEnvironmentEntriesKeepsAnEmptyValue(t *testing.T) {
+	entries := environmentEntries(
+		[]string{"OPEN_RUNTIMES_SECRET"},
+		map[string]string{"OPEN_RUNTIMES_SECRET": ""},
+	)
+
+	if len(entries) != 1 || entries[0] != "OPEN_RUNTIMES_SECRET=" {
+		t.Errorf("got %v, want [OPEN_RUNTIMES_SECRET=]", entries)
+	}
+}
