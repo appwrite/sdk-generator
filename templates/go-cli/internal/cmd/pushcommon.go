@@ -30,6 +30,9 @@ type pushContext struct {
 	api      *client.Client
 	local    *config.Local
 	prompter prompt.Prompter
+	// screenshots is built on first use by pushpreview.go, and only by a site
+	// push -- it needs a console session the other resources never ask for.
+	screenshots *screenshots
 }
 
 func newPushContext() (*pushContext, error) {

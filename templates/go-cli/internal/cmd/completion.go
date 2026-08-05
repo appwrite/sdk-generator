@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -189,6 +190,11 @@ using a cached index from an earlier install -- clear it with:
   rm -f ~/.zcompdump*
 `, directory, quoted, name)
 	case "bash":
+		// path.Join, not filepath.Join. This line is pasted into a SHELL, and on
+		// Windows filepath.Join produced `source '...\appwrite'` -- a backslash
+		// is an escape to bash, not a separator, so the one line that has to be
+		// copyable was the one that would not work. Both bashes that exist on
+		// Windows take forward slashes.
 		return fmt.Sprintf(`This directory is loaded by bash-completion. If Tab does nothing, either
 bash-completion is not installed, or ~/.bashrc does not source it:
 
@@ -197,7 +203,7 @@ bash-completion is not installed, or ~/.bashrc does not source it:
 You can also source the script directly:
 
   source %s
-`, shellQuote(filepath.Join(directory, name)))
+`, shellQuote(path.Join(directory, name)))
 	default:
 		// fish loads ~/.config/fish/completions itself, with no setup.
 		return ""

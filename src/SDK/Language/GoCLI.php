@@ -1127,6 +1127,36 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pushpreview.go',
+                'template'      => 'go-cli/internal/cmd/pushpreview.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pushpreview_test.go',
+                'template'      => 'go-cli/internal/cmd/pushpreview_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/preview/render.go',
+                'template'      => 'go-cli/internal/preview/render.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/preview/render_test.go',
+                'template'      => 'go-cli/internal/preview/render_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/preview/frame.go',
+                'template'      => 'go-cli/internal/preview/frame.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/preview/frame_test.go',
+                'template'      => 'go-cli/internal/preview/frame_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/deploy/deploy.go',
                 'template'      => 'go-cli/internal/deploy/deploy.go',
             ],

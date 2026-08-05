@@ -1390,12 +1390,16 @@ func (c *pushContext) awaitDeployment(
 
 			// A ready site is given a moment to finish its preview
 			// screenshots. The deployment is already live; this only decides
-			// whether the console page has an image on it yet.
+			// whether there is a picture to show for it.
 			if resource.Name == "site" && !hasScreenshots(deployment) {
 				if readySince.IsZero() {
 					readySince = time.Now()
 				}
 				if time.Since(readySince) < screenshotFinalizationTimeout {
+					// Named, not silent. The build has finished, so "Deploying"
+					// is no longer true, and a row that stops changing for half
+					// a minute after the last log line looks stuck.
+					spinner.Update("Finalizing", "Finalizing deployment preview...")
 					time.Sleep(pollDebounce)
 
 					continue
@@ -1405,7 +1409,7 @@ func (c *pushContext) awaitDeployment(
 			logPrinter.Complete()
 			spinner.Succeed("Deployed", "")
 			summary.Deployed++
-			c.reportDeployment(command, resource, id, consoleURL)
+			c.reportDeployment(command, resource, id, consoleURL, deployment)
 
 			return
 
@@ -1443,16 +1447,24 @@ func (c *pushContext) fetchDeployment(
 	return deployment, nil
 }
 
-// reportDeployment prints the links a finished deployment produced.
+// reportDeployment prints what a finished deployment produced.
+//
+// For a site that is a picture of the page as well as the links to it -- see
+// pushpreview.go for why a screenshot is worth the bytes.
 func (c *pushContext) reportDeployment(
 	command *cobra.Command,
 	resource deployable,
 	id, consoleURL string,
+	deployment *jsonx.Object,
 ) {
 	out := command.OutOrStdout()
 
-	if preview := c.previewURL(resource, id); preview != "" {
-		output.Log(out, "Preview link: %s", preview)
+	if resource.Name == "site" {
+		c.reportScreenshot(out, deployment)
+	}
+
+	if link := c.previewURL(resource, id); link != "" {
+		output.Log(out, "Preview link: %s", link)
 	}
 	output.Log(out, "Deployment page: %s", consoleURL)
 }

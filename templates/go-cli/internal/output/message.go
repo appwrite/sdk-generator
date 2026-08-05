@@ -64,6 +64,15 @@ func Note(writer io.Writer, format string, arguments ...any) {
 	fmt.Fprintf(writer, "%s\n", traceStyle.Render(fmt.Sprintf(format, arguments...)))
 }
 
+// Heading styles a label that introduces a block rather than a line.
+//
+// Cyan and bold, which is `chalk.cyan.bold` in the TypeScript. Returned rather
+// than written because the caller decides the blank lines around it -- a
+// heading with nothing under it is worse than no heading.
+func Heading(text string) string {
+	return infoStyle.Bold(true).Render(text)
+}
+
 // Failure writes an error line.
 //
 // Named Failure rather than Error so it does not read as constructing an error
