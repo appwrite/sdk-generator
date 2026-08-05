@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -149,13 +150,14 @@ func TestAccessTokenPersistsRotatedRefreshToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if stored := authenticator.Store.Refresh("session-1"); stored != "rotated-refresh" {
+	if stored, _ := authenticator.Store.Refresh("session-1"); stored != "rotated-refresh" {
 		t.Errorf("stored refresh token = %q, want %q", stored, "rotated-refresh")
 	}
 }
 
-// No refresh token and an expired access token is an unrecoverable state; the
-// user has to log in again, and the message must say so.
+// No refresh token and an expired access token means the session cannot be
+// renewed. The message has to say WHICH session and WHERE the CLI looked, not
+// merely assert that it expired -- see cannotRefresh.
 func TestAccessTokenWithoutRefreshTokenFailsCleanly(t *testing.T) {
 	global := newTestGlobal(t, "https://cloud.appwrite.io/v1",
 		fixedNow.Add(-time.Hour).UnixMilli(), "expired")
@@ -167,8 +169,23 @@ func TestAccessTokenWithoutRefreshTokenFailsCleanly(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error")
 	}
-	if err != ErrSessionExpired {
-		t.Errorf("err = %v, want ErrSessionExpired", err)
+
+	message := err.Error()
+	for _, want := range []string{
+		"someone@example.com",              // which account
+		"https://cloud.appwrite.io/v1",     // and which environment
+		"session-1",                        // the id the store was asked for
+		"login",                            // and what to do about it
+	} {
+		if !strings.Contains(message, want) {
+			t.Errorf("the message does not mention %q: %s", want, message)
+		}
+	}
+
+	// The lookup is recoverable by a caller, not just printed.
+	var missing *MissingRefreshToken
+	if !errors.As(err, &missing) {
+		t.Errorf("err does not carry a MissingRefreshToken: %v", err)
 	}
 }
 
@@ -192,7 +209,9 @@ func TestAccessTokenWithZeroExpiryAndNoRefreshTokenIsUsedAsIs(t *testing.T) {
 func TestAccessTokenWithoutSessionFails(t *testing.T) {
 	global := config.LoadGlobal(filepath.Join(t.TempDir(), "absent.json"))
 
-	if _, err := NewAuthenticator(global, "0.0.1").AccessToken(false); err != ErrSessionExpired {
+	// No session at all is the one case with no lookup behind it, so the
+	// sentinel is still what a caller gets.
+	if _, err := NewAuthenticator(global, "0.0.1").AccessToken(false); !errors.Is(err, ErrSessionExpired) {
 		t.Errorf("err = %v, want ErrSessionExpired", err)
 	}
 }

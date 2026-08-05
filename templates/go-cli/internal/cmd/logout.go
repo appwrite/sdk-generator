@@ -81,7 +81,10 @@ func logoutSessions(global *config.Global, ids []string) logoutResult {
 // hasServerCredential reports whether a session holds something the server
 // would still honour.
 func hasServerCredential(global *config.Global, store *auth.TokenStore, id string) bool {
-	if store.Refresh(id) != "" {
+	// Why there is no token does not change the answer here, so the failed
+	// lookup is dropped rather than reported: logout is about removing local
+	// state, and it must work whether or not the keyring cooperates.
+	if token, _ := store.Refresh(id); token != "" {
 		return true
 	}
 
@@ -107,7 +110,9 @@ func revokeSession(global *config.Global, store *auth.TokenStore, id string) err
 
 	api := client.New(endpoint, app.Version)
 
-	if refresh := store.Refresh(id); refresh != "" {
+	// As in hasServerCredential: a token that cannot be read cannot be revoked
+	// at the server either, and the local session is removed regardless.
+	if refresh, _ := store.Refresh(id); refresh != "" {
 		clientID := session.GetString(config.PreferenceClientID)
 		if clientID == "" {
 			clientID = consoleClientID

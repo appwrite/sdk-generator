@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -245,6 +246,22 @@ func (c *Client) SetCookie(cookie string) *Client {
 	return c
 }
 
+// ExecutableName is the CLI's own name, for messages that name a command.
+//
+// A package variable for the same reason RequestLog is one: internal/app owns
+// the name, and app reaches this package through internal/sdk, so importing it
+// would be a cycle. root.go sets it during start-up; the default is only what a
+// test that never sets it reads.
+var ExecutableName = "appwrite"
+
+// unauthorizedScopeType is the error type the API uses for a request it did not
+// consider authenticated.
+const unauthorizedScopeType = "general_unauthorized_scope"
+
+// guestRole matches the API's own way of saying the request arrived with no
+// credentials it recognised.
+var guestRole = regexp.MustCompile(`(?i)role:\s*guests`)
+
 // APIError is a non-2xx response from the API.
 type APIError struct {
 	Status  int
@@ -253,12 +270,34 @@ type APIError struct {
 	Type    string `json:"type"`
 }
 
+// Error is what the user reads. Message keeps the API's own wording, so
+// --verbose and a bug report still carry it.
 func (e *APIError) Error() string {
+	if e.unauthenticated() {
+		return "you are not authenticated. Run `" + ExecutableName +
+			" login` to authenticate and try again"
+	}
+
 	if e.Message != "" {
 		return e.Message
 	}
 
 	return fmt.Sprintf("request failed with status %d", e.Status)
+}
+
+// unauthenticated reports whether this is the API refusing an unauthenticated
+// request, rather than refusing a real account something.
+//
+// Ports the isUnauthorized branch of client.ts:292. Without it the CLI repeats
+// the API verbatim -- `User (role: guests) missing scopes (["account"])` --
+// which describes a permission model the user did not ask about and names no way
+// out of it.
+//
+// All three parts are matched, exactly as the TypeScript matches them, and Code
+// rather than Status: a 401 of any other type is a different problem, and
+// rewriting those would hide them behind a message about signing in.
+func (e *APIError) unauthenticated() bool {
+	return e.Code == 401 && e.Type == unauthorizedScopeType && guestRole.MatchString(e.Message)
 }
 
 // Call performs a request and decodes the JSON response into out.
