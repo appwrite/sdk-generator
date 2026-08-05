@@ -1,9 +1,5 @@
 name: CI
 
-# Every job here builds, tests or lints and writes nothing back to the repo.
-permissions:
-  contents: read
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
