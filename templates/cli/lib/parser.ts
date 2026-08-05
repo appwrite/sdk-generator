@@ -938,17 +938,7 @@ export const parseError = (err: Error): void => {
       console.error(formatErrorForLog(err));
       printErrorHints(err);
     } else {
-      // Only where the flag has something to add. --verbose prints `code`,
-      // `type` and `response`, all of which come from a request; a usage error
-      // -- an unsupported -l value, a config file with no tables in it --
-      // carries none of them, so the advice promised detail that did not exist
-      // and re-running printed the same single line again.
-      //
-      // The stack is not the missing half: it names CLI internals, not what the
-      // user got wrong.
-      if (reportErrorDetails(err).length > 0) {
-        log("For detailed error pass the --verbose or --report flag");
-      }
+      log("For detailed error pass the --verbose or --report flag");
       error(getErrorMessage(err));
       printErrorHints(err);
     }
