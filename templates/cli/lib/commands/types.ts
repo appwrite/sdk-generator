@@ -18,37 +18,108 @@ import { Dart } from "../type-generation/languages/dart.js";
 import { JavaScript } from "../type-generation/languages/javascript.js";
 import { CSharp } from "../type-generation/languages/csharp.js";
 
-type SupportedLanguage =
-  | "ts"
-  | "js"
-  | "php"
-  | "kotlin"
-  | "swift"
-  | "java"
-  | "dart"
-  | "cs";
+type LanguageFactory = () => LanguageMeta;
 
-function createLanguageMeta(language: SupportedLanguage): LanguageMeta {
-  switch (language) {
-    case "ts":
-      return new TypeScript();
-    case "js":
-      return new JavaScript();
-    case "php":
-      return new PHP();
-    case "kotlin":
-      return new Kotlin();
-    case "swift":
-      return new Swift();
-    case "java":
-      return new Java();
-    case "dart":
-      return new Dart();
-    case "cs":
-      return new CSharp();
-    default:
-      throw new Error(`Language '${language}' is not supported`);
+/**
+ * The emitters `types` can generate for, keyed by the `-l` value that selects
+ * one. This table is the only list: the accepted flag values, the rejection
+ * message and the alias suggestions are all read from it, so a language cannot
+ * be half-added.
+ */
+const languages = {
+  ts: () => new TypeScript(),
+  js: () => new JavaScript(),
+  php: () => new PHP(),
+  kotlin: () => new Kotlin(),
+  swift: () => new Swift(),
+  java: () => new Java(),
+  dart: () => new Dart(),
+  cs: () => new CSharp(),
+} satisfies Record<string, LanguageFactory>;
+
+type SupportedLanguage = keyof typeof languages;
+
+/**
+ * Names a user is likely to reach for, mapped to the value the CLI accepts.
+ *
+ * `dotnet` is not a guess: `detectLanguage` returns it for a directory holding
+ * a .csproj, so `types` in a C# project resolves to a value the table has no
+ * key for, and the answer is always `cs`.
+ */
+const languageAliases: Record<string, SupportedLanguage> = {
+  "c#": "cs",
+  csharp: "cs",
+  dotnet: "cs",
+  javascript: "js",
+  node: "js",
+  nodejs: "js",
+  typescript: "ts",
+};
+
+/**
+ * The accepted `-l` values, minus `auto` — a mode rather than a language, and
+ * so not an answer to "pass one of these instead".
+ */
+function languageNames(): string {
+  return Object.keys(languages).join(", ");
+}
+
+/**
+ * Explains a language nothing generates for.
+ *
+ * The list is the useful half of the message. The accepted values are short
+ * names, several of which are not the language's usual spelling, so a rejection
+ * naming none of them leaves the user guessing at eight possibilities — which
+ * is why `typescript` gets a suggestion rather than only a list.
+ *
+ * Detection reaches this too, and there the list is the only thing that says
+ * what to do next: a Python or Ruby project resolves to a language the CLI has
+ * no emitter for, so no spelling of it would have worked.
+ */
+function unsupportedLanguage(requested: string): Error {
+  const suggestion = languageAliases[requested.toLowerCase()];
+
+  if (suggestion) {
+    return new Error(
+      `Language '${requested}' is not supported -- did you mean '${suggestion}'? The supported languages are ${languageNames()}`,
+    );
   }
+
+  return new Error(
+    `Language '${requested}' is not supported. The supported languages are ${languageNames()}`,
+  );
+}
+
+/**
+ * Picks the emitter, detecting from the project when the user passed `auto`.
+ */
+function resolveLanguage(requested: string): {
+  language: string;
+  meta: LanguageMeta;
+} {
+  let language = requested;
+
+  if (language === "auto") {
+    try {
+      language = detectLanguage();
+    } catch (err) {
+      // detectLanguage's own message is shared with anything else that calls
+      // it; the list of what to pass instead is added here, where it is known.
+      throw new Error(
+        `${(err as Error).message}. The supported languages are ${languageNames()}`,
+      );
+    }
+
+    log(`Detected language: ${language}`);
+  }
+
+  const create = languages[language as SupportedLanguage];
+
+  if (!create) {
+    throw unsupportedLanguage(language);
+  }
+
+  return { language, meta: create() };
 }
 
 const templateHelpers = {
@@ -70,7 +141,7 @@ const typesLanguageOption = new Option(
   "-l, --language <language>",
   "The language of the types",
 )
-  .choices(["auto", "ts", "js", "php", "kotlin", "swift", "java", "dart", "cs"])
+  .choices(["auto", ...Object.keys(languages)])
   .default("auto");
 
 const typesStrictOption = new Option(
@@ -95,18 +166,14 @@ type TypeDataItem = Record<string, unknown> & {
 
 const typesCommand = actionRunner(
   async (rawOutputDirectory: string, { language, strict }: TypesOptions) => {
-    if (language === "auto") {
-      language = detectLanguage();
-      log(`Detected language: ${language}`);
-    }
+    const { language: resolved, meta } = resolveLanguage(language);
 
     if (strict) {
       warn(
-        `Strict mode enabled: Field names will be converted to follow ${language} conventions`,
+        `Strict mode enabled: Field names will be converted to follow ${resolved} conventions`,
       );
     }
 
-    const meta = createLanguageMeta(language as SupportedLanguage);
     const templatingHelpers = {
       ...templateHelpers,
       generateEnum: meta.generateEnum.bind(meta),
