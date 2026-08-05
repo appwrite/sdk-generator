@@ -147,6 +147,14 @@ func HomebrewFormula() string {
 // Ports NPM_REGISTRY_URL. Homebrew installs are updated through brew, but the
 // version published to npm is the same release, so one source answers for both
 // and the check costs one request rather than shelling out to brew.
+//
+// This is also the constraint on how this CLI is VERSIONED. Both CLIs publish to
+// the same npm package, so a Go build numbered below the TypeScript CLI's
+// current version would tell every user an upgrade is available and then replace
+// their Go binary with the TypeScript one. The version line has to continue the
+// TypeScript CLI's -- an rc is `26.0.0-rc.1`, the next major of the same
+// product, not `1.0.0-rc.1`. Check what the registry currently serves as
+// `latest` before picking a number.
 const NPMRegistryURL = "https://registry.npmjs.org/" + NPMPackageName + "/latest"
 
 // UpdateChecker builds the once-a-day version check, or nil when there is

@@ -21,8 +21,9 @@ name: Publish
 # `id-token: write` and `--provenance` below are for. The npm project has to
 # be configured to trust this workflow before the first run -- and because
 # trust is configured per package that already exists, the six platform
-# packages need one manual token-based publish before this ever runs. See the
-# release runbook.
+# packages need one manual token-based publish before this ever runs. Skipping
+# that does not degrade gracefully: it fails the release after the GitHub assets
+# have already been uploaded.
 #
 # A prerelease publishes to npm's `next` tag and skips the Homebrew tap
 # entirely; only a full release moves `latest` and the formula.
