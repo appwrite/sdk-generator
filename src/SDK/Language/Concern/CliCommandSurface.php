@@ -46,11 +46,9 @@ trait CliCommandSurface
     }
 
     /**
-     * The method's array `queries` parameter, or null when it has none.
-     *
-     * Its description is what says whether the endpoint accepts only limit and
-     * offset, so the parameter is returned rather than a pair of predicates
-     * that would each have to find it again.
+     * The method's array `queries` parameter, or null when it has none. Its
+     * description is what says whether the endpoint accepts only limit and
+     * offset, so the parameter is returned rather than just its presence.
      */
     protected function findQueriesParameter(array $method): ?array
     {
@@ -61,12 +59,6 @@ trait CliCommandSurface
         }
 
         return null;
-    }
-
-    protected function acceptsOnlyLimitOffsetQueries(?array $queries): bool
-    {
-        return $queries !== null
-            && str_contains(strtolower($queries['description'] ?? ''), 'only supported methods are limit and offset');
     }
 
     /**
@@ -433,7 +425,8 @@ trait CliCommandSurface
             $method['parameters']['all'] ?? []
         );
         $collides = fn (string $group): bool => array_intersect(self::QUERY_FLAG_PARAMS[$group], $parameterNames) !== [];
-        $hasOnlyLimitOffsetQueries = $this->acceptsOnlyLimitOffsetQueries($queries);
+        $hasOnlyLimitOffsetQueries = $hasQueries
+            && str_contains(strtolower($queries['description'] ?? ''), 'only supported methods are limit and offset');
         $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true) && !$collides('select');
         $hasSelectionOnlyQueries = $hasQueries && in_array($methodName, ['getDocument', 'getRow'], true);
         $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries && !$collides('filtering');
