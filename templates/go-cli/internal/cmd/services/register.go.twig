@@ -1,0 +1,27 @@
+package services
+
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
+
+// errNotImplemented marks a generated command whose action has not been wired
+// to the SDK yet. Phase 3 of docs/go-cli/PLAN.md replaces these.
+func errNotImplemented(command string) error {
+	return fmt.Errorf("%s: not implemented yet", command)
+}
+
+// Register attaches every generated service command to root, plus the methods
+// promoted to top-level commands.
+func Register(root *cobra.Command) {
+{% for service in spec.services %}
+	root.AddCommand(New{{ service.name | caseUcfirst }}Command())
+{% endfor %}
+
+{% for service in spec.services %}
+{% if service | cliTopLevelAliases is not empty %}
+	root.AddCommand(New{{ service.name | caseUcfirst }}RootCommands()...)
+{% endif %}
+{% endfor %}
+}
