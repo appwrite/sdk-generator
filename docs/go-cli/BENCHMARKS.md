@@ -55,9 +55,10 @@ work, and the gate that decided the rewrite was the **relative** one — ≥ 5×
 which 18× clears even on the slower platform. Nobody perceives 10 ms against
 11 ms; everybody perceived the 195 ms that went away.
 
-`Checks / Go CLI startup` fails the build past 60 ms, which is where a real
-regression lives — an `init()` reaching the network, or a keyring read before a
-flag is parsed. It runs on Linux, so it reads against the 5.6 ms figure.
+Nothing in CI holds this line. The check that failed the build past 60 ms was
+removed, so the regressions it was there to catch — an `init()` reaching the
+network, or a keyring read before a flag is parsed — now surface only when
+someone measures again.
 
 ### `push` peak RSS
 

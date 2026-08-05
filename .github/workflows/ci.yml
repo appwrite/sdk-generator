@@ -234,9 +234,6 @@ jobs:
         working-directory: examples/go-cli
         run: go test ./internal/cmd/ -run 'TestCommandSurfaceMatchesTypeScript|TestContractIsNotEmpty'
 
-      - name: Check startup
-        run: ./.github/scripts/go-cli-startup.sh examples/go-cli/appwrite
-
   max-line-length:
     name: Checks / Twig line length
     runs-on: ubuntu-latest

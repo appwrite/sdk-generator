@@ -104,8 +104,8 @@ where ~4.4 ms of the total is what that machine costs to start *any* Go binary.
 Accepted rather than chased: over half the gap sits below our code, the rest is
 cobra building the 608-command tree, and the gate that decided the rewrite was
 the relative one — ≥ 5× — which 18× clears even on the slower platform.
-`Checks / Go CLI startup` holds the line at 60 ms, where a real regression shows
-up.
+No CI job holds this line: the 60 ms startup check was removed, so a regression
+surfaces only when someone measures again.
 
 Unchanged: `pull`, `types`, `generate`, and anything paginating the API.
 
@@ -747,9 +747,9 @@ implementation.
 > **Folded into Phases 5 and 7 rather than run as its own phase.** Items 3 and 4
 > landed with the code that needed them, and items 1 and 2 turned out to need no
 > work — see each below. What was genuinely outstanding was the exit criterion, a
-> CI job that fails on a startup regression, and that is now `Checks / Go CLI
-> startup`. There is no `phase-6` branch, and Phase 7 is stacked directly on
-> Phase 5.
+> CI job that fails on a startup regression; it was added as `Checks / Go CLI
+> startup` and has since been removed, so that criterion is dropped rather than
+> met. There is no `phase-6` branch, and Phase 7 is stacked directly on Phase 5.
 
 **Work:**
 
@@ -806,7 +806,8 @@ implementation.
 
 **Exit:**
 - Every §1.4 target met, or a written explanation of which was not and why.
-- A CI benchmark job that fails on a startup regression beyond a threshold.
+- ~~A CI benchmark job that fails on a startup regression beyond a threshold.~~
+  Dropped: the job shipped as `Checks / Go CLI startup` and was later removed.
 
 ---
 
