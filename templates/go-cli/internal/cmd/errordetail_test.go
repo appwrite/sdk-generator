@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 // A year of usage answers with fourteen metrics of 365 entries. Printing them
@@ -129,5 +131,49 @@ func TestErrorDetailNamesTheErrorType(t *testing.T) {
 func TestErrorDetailOfNothingIsNothing(t *testing.T) {
 	if got := ErrorDetail(nil); got != "" {
 		t.Errorf("ErrorDetail(nil) = %q", got)
+	}
+}
+
+// cobra's own message is `accepts 1 arg(s), received 0`, which names neither the
+// argument, nor the command, nor a way to find out.
+func TestRequiredArgumentNamesWhatIsMissing(t *testing.T) {
+	command := &cobra.Command{Use: "types"}
+	validate := RequiredArgument("<output-directory>", "The directory to write the types to")
+
+	err := validate(command, nil)
+	if err == nil {
+		t.Fatal("a missing argument was accepted")
+	}
+
+	message := err.Error()
+	for _, want := range []string{"<output-directory>", "directory to write the types to", "types"} {
+		if !strings.Contains(message, want) {
+			t.Errorf("the message does not mention %q: %s", want, message)
+		}
+	}
+	if strings.Contains(message, "arg(s)") {
+		t.Errorf("cobra's plural hedge survived: %s", message)
+	}
+}
+
+// Too many says how many, because the usual cause is an unquoted path with a
+// space in it and the count is the clue.
+func TestRequiredArgumentRejectsTooMany(t *testing.T) {
+	validate := RequiredArgument("<output-directory>", "The directory")
+
+	err := validate(&cobra.Command{Use: "types"}, []string{"a", "b"})
+	if err == nil {
+		t.Fatal("two arguments were accepted for a one-argument command")
+	}
+	if !strings.Contains(err.Error(), "given 2") {
+		t.Errorf("the count is missing: %s", err)
+	}
+}
+
+func TestRequiredArgumentAcceptsExactlyOne(t *testing.T) {
+	validate := RequiredArgument("<output-directory>", "The directory")
+
+	if err := validate(&cobra.Command{Use: "types"}, []string{"./types"}); err != nil {
+		t.Errorf("one argument was rejected: %s", err)
 	}
 }

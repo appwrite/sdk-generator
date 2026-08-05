@@ -135,6 +135,38 @@ func ReportBlock(err error) string {
 		" - Create an issue in our Github\n   " + ReportURL(err)
 }
 
+// RequiredArgument validates a command that takes exactly one argument, and
+// says which one when it is missing.
+//
+// cobra's own message for this is
+//
+//	accepts 1 arg(s), received 0
+//
+// which names neither the argument, nor the command, nor a way to find out --
+// and `arg(s)` is a plural hedge in a sentence that already knows the number is
+// one. `appwrite types` is the command that hits it, where the missing value is
+// a directory the user has to choose, so the message has to say so.
+//
+// description is the argument's own help text, which the TypeScript declares
+// beside the argument ("The directory to write the types to") -- naming it is
+// what turns the error into an instruction.
+func RequiredArgument(name, description string) cobra.PositionalArgs {
+	return func(command *cobra.Command, arguments []string) error {
+		if len(arguments) == 1 {
+			return nil
+		}
+
+		if len(arguments) > 1 {
+			return fmt.Errorf(
+				"`%s` takes one argument, %s, and was given %d. Run `%s --help` for the usage",
+				command.CommandPath(), name, len(arguments), command.CommandPath())
+		}
+
+		return fmt.Errorf("missing %s -- %s. Run `%s %s`",
+			name, strings.ToLower(description), command.CommandPath(), name)
+	}
+}
+
 // ExitCancelled is the status a cancelled prompt exits with: 128 + SIGINT,
 // which is what a shell reports for a program the user interrupted.
 //
