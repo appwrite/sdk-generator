@@ -241,18 +241,163 @@ func ErrorDetail(err error) string {
 	return builder.String() + "\n"
 }
 
-// prettyJSON re-indents a body, and returns it untouched when it is not JSON.
+// arrayPreview is how many elements of a long array --verbose prints.
 //
-// A body that is not JSON is exactly the case that matters most -- an HTML error
-// page, a proxy's plain-text refusal -- so failing to parse it must print it,
-// not swallow it.
+// Two, because the question a reader has is what SHAPE the elements are -- one
+// is enough to answer it and the second confirms it was not a fluke. `project
+// get-usage` over a year answers with fourteen metrics of 365 entries each: six
+// thousand lines to say "an array of {value, date}".
+const arrayPreview = 2
+
+// prettyJSON re-indents a body and collapses its long arrays.
+//
+// A body that is not JSON is printed untouched, which is the case that matters
+// most: an HTML error page or a proxy's plain-text refusal is the whole
+// diagnosis.
+//
+// Collapsing ARRAYS rather than truncating lines, and this is the difference
+// between a useful dump and a useless one. The field that fails to decode can be
+// anywhere in the response -- `embeddingsText` comes after fourteen other
+// metrics -- so a line or byte cap cuts off exactly the part the user needs. An
+// array is where the volume is, and its length is not what anyone is reading.
 func prettyJSON(body []byte) string {
-	var indented bytes.Buffer
-	if err := json.Indent(&indented, body, "", "  "); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	// Numbers stay as written: an id that arrived as 20 digits must not be
+	// reprinted in scientific notation by the tool explaining what arrived.
+	decoder.UseNumber()
+
+	var builder strings.Builder
+	if err := writeJSONValue(decoder, &builder, 0); err != nil {
+		// Not JSON, or truncated mid-stream. Either way the bytes are the
+		// evidence, so they are printed as they came.
+		var indented bytes.Buffer
+		if json.Indent(&indented, body, "", "  ") == nil {
+			return indented.String()
+		}
+
 		return string(body)
 	}
 
-	return indented.String()
+	return builder.String()
+}
+
+func jsonIndent(depth int) string { return strings.Repeat("  ", depth) }
+
+// writeJSONValue re-emits one value, in the order it was read.
+//
+// Re-emitted from tokens rather than decoded into a map, because a map loses key
+// order -- and a response printed with its fields shuffled is harder to compare
+// against a model than one printed as it arrived.
+func writeJSONValue(decoder *json.Decoder, builder *strings.Builder, depth int) error {
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+
+	delimiter, isDelimiter := token.(json.Delim)
+	if !isDelimiter {
+		encoded, err := json.Marshal(token)
+		if err != nil {
+			return err
+		}
+		builder.Write(encoded)
+
+		return nil
+	}
+
+	switch delimiter {
+	case '{':
+		return writeJSONObject(decoder, builder, depth)
+	case '[':
+		return writeJSONArray(decoder, builder, depth)
+	default:
+		return fmt.Errorf("unexpected %v", delimiter)
+	}
+}
+
+func writeJSONObject(decoder *json.Decoder, builder *strings.Builder, depth int) error {
+	builder.WriteString("{")
+
+	empty := true
+	for first := true; decoder.More(); first = false {
+		empty = false
+		if !first {
+			builder.WriteString(",")
+		}
+
+		key, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		encoded, err := json.Marshal(key)
+		if err != nil {
+			return err
+		}
+
+		builder.WriteString("\n" + jsonIndent(depth+1))
+		builder.Write(encoded)
+		builder.WriteString(": ")
+
+		if err := writeJSONValue(decoder, builder, depth+1); err != nil {
+			return err
+		}
+	}
+
+	if _, err := decoder.Token(); err != nil {
+		return err
+	}
+
+	// `{}` on one line, not an empty pair of braces two lines apart, which is
+	// how an empty object read before -- as though a field had been cut.
+	if !empty {
+		builder.WriteString("\n" + jsonIndent(depth))
+	}
+	builder.WriteString("}")
+
+	return nil
+}
+
+func writeJSONArray(decoder *json.Decoder, builder *strings.Builder, depth int) error {
+	builder.WriteString("[")
+
+	total := 0
+	for ; decoder.More(); total++ {
+		// Past the preview the elements are still DECODED -- the tokens have to
+		// be consumed to reach the closing bracket -- just not kept.
+		target := builder
+		if total >= arrayPreview {
+			target = &strings.Builder{}
+		}
+
+		if total > 0 && total < arrayPreview {
+			builder.WriteString(",")
+		}
+		if total < arrayPreview {
+			builder.WriteString("\n" + jsonIndent(depth+1))
+		}
+
+		if err := writeJSONValue(decoder, target, depth+1); err != nil {
+			return err
+		}
+	}
+
+	if _, err := decoder.Token(); err != nil {
+		return err
+	}
+
+	if omitted := total - arrayPreview; omitted > 0 {
+		// Not valid JSON, deliberately: this block is read by a person deciding
+		// whether the response matches the model, and the count is the part a
+		// truncation must not hide.
+		fmt.Fprintf(builder, ",\n%s... %d more of %d",
+			jsonIndent(depth+1), omitted, total)
+	}
+	if total > 0 {
+		builder.WriteString("\n" + jsonIndent(depth))
+	}
+	builder.WriteString("]")
+
+	return nil
 }
 
 // indentBlock shifts a block two spaces right, to sit under its heading.
