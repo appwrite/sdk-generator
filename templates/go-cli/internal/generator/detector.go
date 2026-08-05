@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-// Ports templates/cli/lib/commands/generators/language-detector.ts.
-//
 // Distinct from typegen.DetectLanguage, which serves `appwrite types` and knows
 // eight languages. This one serves `appwrite generate`, knows only TypeScript,
 // and reports a confidence level -- so a project identified only by a stray

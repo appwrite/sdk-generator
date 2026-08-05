@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-// Ports templates/cli/lib/commands/utils/query.ts.
-//
 // The output is Appwrite query JSON, so it goes on the wire: the shapes here
 // are a contract, not a formatting choice.
 
@@ -189,8 +187,6 @@ func ParseFilter(expression string) (string, error) {
 // raw queries first, then --filter, then the deprecated --where, then sorts,
 // pagination, cursors and select. Returns nil when nothing was requested, so
 // the caller omits the parameter rather than sending an empty list.
-//
-// Ports buildQueries().
 func Build(options Options) ([]string, error) {
 	queries := append([]string(nil), options.Queries...)
 

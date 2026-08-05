@@ -103,7 +103,7 @@ const maximumReportTitleLength = 100
 
 // ReportURL builds a prefilled GitHub issue for a failed command.
 //
-// Ports the --report branch of parseError (parser.ts:878). Both CLIs tell the
+// Both CLIs tell the
 // user to "pass the --verbose or --report flag" on every error; in Go the
 // second half of that sentence was a lie, because the flag did not exist.
 func ReportURL(err error) string {
@@ -187,8 +187,6 @@ func IsCancelled(err error) bool {
 // Lives here rather than in main so it can be exercised: the difference between
 // what a user sees for a cancelled prompt and for a failed request is the whole
 // point of it, and main() is not reachable from a test.
-//
-// Ports the tail of parseError (parser.ts:936).
 func Report(writer io.Writer, executed *cobra.Command, err error) int {
 	if err == nil {
 		return 0

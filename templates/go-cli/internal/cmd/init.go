@@ -12,8 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports the local half of templates/cli/lib/commands/init.ts.
-//
 // `init bucket|team|topic|collection|table` only prompt and write
 // appwrite.config.json -- nothing here touches the API, which is why they land
 // before `init project|function|site|skill`. Those four create resources

@@ -16,8 +16,6 @@ import (
 // line in a form that is easier to read, and must not compete with it.
 var dimStyle = lipgloss.NewStyle().Faint(true)
 
-// Ports the `sectionFields` half of templates/cli/lib/response-config.ts.
-//
 // Some embedded models arrive with far more fields than a reader asked for.
 // `organization get` carries a 69-field billing plan, and printing all of it --
 // as this used to, in a 69-column table -- produced a line no terminal could
@@ -122,8 +120,6 @@ var sizeUnits = []string{"MB", "GB", "TB", "PB"}
 
 // FormatSize renders a size in the unit the API reports, adding a larger unit
 // in parentheses when the number is big enough to be hard to read.
-//
-// Ports formatSize (response-config.ts:122).
 func FormatSize(amount float64, unit string) string {
 	base := fmt.Sprintf("%s %s", trimTrailingZeros(amount), unit)
 

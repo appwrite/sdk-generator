@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-// Ports templates/cli/lib/type-generation/languages/dart.ts.
-//
 // Dart is the only emitter that reorders attributes: required ones come first,
 // because a Dart named-parameter constructor puts `required this.x` before the
 // optional ones. The sort is stable, so attributes keep their relative order

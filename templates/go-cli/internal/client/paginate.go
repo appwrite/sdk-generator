@@ -7,8 +7,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
-// Ports templates/cli/lib/paginate.ts.
-//
 // Every list endpoint caps a page at 100 rows, so `pull` and the interactive
 // choice loaders have to walk. The walk is here rather than at each call site
 // because the two termination conditions are easy to get subtly wrong, and

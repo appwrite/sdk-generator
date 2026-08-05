@@ -1,7 +1,5 @@
 package docker
 
-// Ports templates/cli/lib/emulation/utils.ts.
-//
 // The runtime tables the emulation consults. Copied verbatim rather than
 // derived: the image tag and the version prefix are a published contract with
 // the open-runtimes images, and inferring them would break the first time a

@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-// Ports templates/cli/lib/config.ts -- the `Config` base class and `Global`.
-
 // Preference keys stored in prefs.json. Names match the TypeScript CLI exactly:
 // the same file is read and written by both binaries during the migration.
 const (
@@ -29,8 +27,6 @@ const (
 )
 
 // DefaultEndpoint is used when a session records none.
-//
-// Ports DEFAULT_ENDPOINT from templates/cli/lib/constants.ts:30.
 const DefaultEndpoint = "https://cloud.appwrite.io/v1"
 
 const (
@@ -41,8 +37,6 @@ const (
 
 // ignoredAttributes are top-level keys in prefs.json that are settings rather
 // than sessions. Everything else at the top level is a session ID.
-//
-// Ports Global.IGNORE_ATTRIBUTES.
 var ignoredAttributes = map[string]bool{
 	PreferenceCurrent:      true,
 	PreferenceSelfSigned:   true,
@@ -294,7 +288,7 @@ var (
 // including one an attacker controls, and normalising it would let a session
 // stored for real Cloud be selected for that endpoint.
 //
-// Ports getCloudBaseHostname(). JavaScript's URL parser lower-cases hostnames
+// JavaScript's URL parser lower-cases hostnames
 // and Go's does not, hence the explicit fold.
 func baseCloudHostname(hostname string) string {
 	hostname = strings.ToLower(hostname)
@@ -330,8 +324,6 @@ func CloudBaseHost(endpoint string) (string, bool) {
 
 // NormalizeCloudConsoleEndpoint collapses a regional Cloud endpoint onto its
 // base host, leaving self-hosted endpoints untouched.
-//
-// Ports normalizeCloudConsoleEndpoint().
 func NormalizeCloudConsoleEndpoint(endpoint string) string {
 	parsed, err := url.Parse(endpoint)
 	if err != nil || parsed.Hostname() == "" {
@@ -349,7 +341,7 @@ func NormalizeCloudConsoleEndpoint(endpoint string) string {
 // IsCloudLoginEndpoint reports whether an endpoint signs in through the
 // browser rather than with an email and a password.
 //
-// Ports isCloudLoginEndpoint (utils.ts:503). The TypeScript also accepts
+// The TypeScript also accepts
 // localhost behind the `devCloudLogin` feature flag; there is no flag registry
 // in this port, so localhost is treated as self-hosted -- which is what it is
 // for everyone outside Appwrite.
@@ -364,8 +356,6 @@ func IsCloudLoginEndpoint(endpoint string) bool {
 
 // IsRegionalCloudEndpoint reports whether an endpoint names a Cloud REGION,
 // like fra.cloud.appwrite.io, rather than the base host.
-//
-// Ports isRegionalCloudEndpoint (utils.ts:472).
 func IsRegionalCloudEndpoint(endpoint string) bool {
 	parsed, err := url.Parse(endpoint)
 	if err != nil || parsed.Hostname() == "" {
@@ -379,8 +369,6 @@ func IsRegionalCloudEndpoint(endpoint string) bool {
 
 // EndpointsMatch compares two endpoints for session matching, normalising
 // regional Cloud hosts and ignoring trailing slashes.
-//
-// Ports endpointsMatch().
 func EndpointsMatch(a, b string) bool {
 	trim := func(value string) string {
 		return strings.TrimRight(NormalizeCloudConsoleEndpoint(value), "/")

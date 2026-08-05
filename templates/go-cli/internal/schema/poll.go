@@ -10,8 +10,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
 )
 
-// Ports templates/cli/lib/commands/utils/pools.ts.
-//
 // Schema changes are asynchronous. Creating an attribute answers 202 with
 // status "processing"; deleting one answers immediately and the row disappears
 // some time later. Nothing downstream may proceed until the change has landed
@@ -84,15 +82,13 @@ func (p *Poller) scaleTimeout(iteration, count int, message string) {
 
 // ExpectAttributes waits until every key reports status "available".
 //
-// Ports expectAttributes (pools.ts:217). A key that reports "stuck" or "failed"
+// A key that reports "stuck" or "failed"
 // is an error, not something to keep waiting on -- the API will never change it.
 func (p *Poller) ExpectAttributes(container Container, keys []string) (bool, error) {
 	return p.expect(container, keys, false)
 }
 
 // ExpectIndexes waits until every index reports status "available".
-//
-// Ports expectIndexes (pools.ts:288).
 func (p *Poller) ExpectIndexes(container Container, keys []string) (bool, error) {
 	return p.expect(container, keys, true)
 }

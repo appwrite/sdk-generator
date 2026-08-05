@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-// Ports templates/cli/lib/type-generation/languages/kotlin.ts.
-//
 // Two things differ from the PHP emitter in ways worth stating, because they
 // read as if they should match:
 //

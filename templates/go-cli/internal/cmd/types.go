@@ -13,8 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports templates/cli/lib/commands/types.ts.
-
 // typeLanguages maps the `-l` value to its emitter. The keys are the CLI's
 // public surface, so they stay as they are even where they are not the
 // language's usual short name (`cs`, not `csharp`).

@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-// Ports templates/cli/lib/type-generation/languages/javascript.ts.
-//
 // JavaScript is not TypeScript with the types erased -- the two emitters differ
 // in ways that are easy to assume away:
 //

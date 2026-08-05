@@ -18,8 +18,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports the `client` command from templates/cli/lib/commands/generic.ts.
-//
 // Configures an endpoint, project and API key without going through the
 // browser login. Scripts and CI use it, and the conformance harness points the
 // CLI at the mock API with it, so it is not optional.
@@ -201,8 +199,6 @@ func selectSessionForEndpoint(
 
 // findSessionForEndpoint returns the first signed-in session for an endpoint
 // and the first endpoint-only one.
-//
-// Ports findSessionForEndpoint (session.ts).
 func findSessionForEndpoint(global *config.Global, endpoint string) (string, string) {
 	authenticated, endpointOnly := "", ""
 

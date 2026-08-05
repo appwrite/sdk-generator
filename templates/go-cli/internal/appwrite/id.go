@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-// Ports the ID helper in the Appwrite SDKs.
-//
 // `init` writes `unique()` into appwrite.config.json when the user does not
 // supply an id, and resolves it locally so the config is complete before
 // anything is pushed.

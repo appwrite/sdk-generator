@@ -6,8 +6,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports pullResources (templates/cli/lib/commands/pull.ts:819).
-//
 // `pull all` is a fan-out: with --all it runs every pull in turn, and without
 // it asks which single resource to pull. It is `pull all` rather than a bare
 // `pull` because the parent command prints help.
@@ -114,7 +112,7 @@ func newPullAllCommand() *cobra.Command {
 
 // runPull is the body of both `pull` and `pull all`.
 //
-// Ports pullResources(). With everything selected it runs every non-deprecated
+// With everything selected it runs every non-deprecated
 // action; otherwise it asks which one. Collections are always skipped in the
 // everything case: they are the legacy databases API, and pulling both writes
 // two representations of the same data into one config.

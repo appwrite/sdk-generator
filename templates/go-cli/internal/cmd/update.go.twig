@@ -19,8 +19,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports templates/cli/lib/commands/update.ts.
-//
 // The update path has to work for someone whose current install is the
 // TypeScript CLI: an npm or Homebrew install is updated through that tool, and
 // a standalone binary is replaced in place. The release asset names match the
@@ -109,7 +107,7 @@ func newUpdateCommand() *cobra.Command {
 
 // printManualInstructions lists every way to update by hand.
 //
-// Ports showManualInstructions (update.ts:288). The one case this is for is an
+// The one case this is for is an
 // install the CLI cannot drive itself -- a distro package, a vendored copy, a
 // binary someone put on PATH -- where the useful answer is the command to run
 // rather than an attempt that fails.

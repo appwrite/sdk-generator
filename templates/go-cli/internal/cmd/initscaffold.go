@@ -65,7 +65,7 @@ func gitError(message string) error {
 
 // copyTree copies a directory recursively.
 //
-// Ports copyRecursiveSync(). Symlinks are copied as symlinks: a template that
+// Symlinks are copied as symlinks: a template that
 // ships one is describing its own layout, and resolving it would silently turn
 // a link into a duplicate of its target.
 func copyTree(source, destination string) error {

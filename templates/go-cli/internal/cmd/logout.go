@@ -10,8 +10,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
-// Ports logoutSessions and deleteServerSession (templates/cli/lib/auth/session.ts).
-//
 // Signing out deleted the stored session and stopped there, so the session
 // stayed alive on the server: the credential the user asked to destroy kept
 // working until it expired on its own. `client --reset` had the same hole.

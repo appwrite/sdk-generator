@@ -11,8 +11,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports the `completion install` half of templates/cli/lib/completions.ts.
-//
 // install.sh runs `<executable> completion install` as step 4 of every
 // install, so this subcommand has to exist or shell completion quietly stops
 // working on upgrade -- the installer treats a failure there as non-fatal and

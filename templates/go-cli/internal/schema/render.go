@@ -29,7 +29,7 @@ func printChanges(writer io.Writer, changes []Change) {
 
 // printBanner writes one of the boxed data-loss warnings.
 //
-// Ports the console.log blocks at attributes.ts:893 and :904. They are shouted
+// They are shouted
 // rather than logged because the confirmation that follows is the last point at
 // which a column's data can be saved.
 func printBanner(writer io.Writer, message string) {

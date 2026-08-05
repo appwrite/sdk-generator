@@ -11,8 +11,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/ignore"
 )
 
-// Ports the source-collection half of templates/cli/lib/emulation/docker.ts.
-
 // AppwriteDirectory is the per-function scratch directory the emulation uses
 // for logs, the built bundle and hot-swap staging.
 const AppwriteDirectory = ".appwrite"

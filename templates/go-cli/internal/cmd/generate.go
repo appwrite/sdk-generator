@@ -14,8 +14,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports templates/cli/lib/commands/generate.ts.
-
 // serverSideModes are the accepted --server values.
 var serverSideModes = []string{"auto", "true", "false"}
 

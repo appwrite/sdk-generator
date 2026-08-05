@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-// Ports templates/cli/lib/type-generation/languages/csharp.ts.
-//
 // Two things set this emitter apart from the rest:
 //
 //   - it ignores --strict completely. Property names are always PascalCase and

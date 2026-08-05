@@ -281,7 +281,7 @@ func (c *pushContext) resyncTables(command *cobra.Command) error {
 // deleteRemovedTables offers to delete tables that exist remotely but not in
 // the config.
 //
-// Ports the "Checking for deleted tables" block at push.ts:3803. A failure to
+// A failure to
 // delete one table is reported and the rest continue -- matching the TypeScript,
 // which catches per table.
 func (c *pushContext) deleteRemovedTables(
@@ -458,7 +458,7 @@ func (c *pushContext) localDatabase(
 // pushDatabaseChildren creates or updates the tables and collections, then
 // reconciles their schema.
 //
-// Ports pushTables (push.ts:2855) and pushCollections (push.ts:3015). Their one
+// Their one
 // structural difference is preserved: a newly created COLLECTION carries its
 // attributes and indexes in the create body and is therefore complete, while a
 // newly created TABLE does not and has its columns pushed afterwards.

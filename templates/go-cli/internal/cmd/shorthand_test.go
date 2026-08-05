@@ -8,21 +8,9 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// A root persistent flag is merged into every subcommand's flagset, and pflag
-// PANICS on a shorthand collision rather than returning an error. cobra does that
-// merge lazily -- on execute, or on the first help render -- so a collision is
-// invisible until someone runs the one command that has it.
-//
-// That is exactly how `-a` for --all shipped: it was registered persistently on
-// the root, `push table` and `push collection` define their own `-a` for
-// --attempts, and both crashed with
-//
-//	panic: unable to redefine 'a' shorthand in "table" flagset
-//
-// while every other command worked and every test passed.
-//
-// This walks the whole tree and forces the merge on each command, so the next one
-// fails here instead of in a user's terminal.
+// pflag panics on a shorthand collision, and cobra merges root persistent flags
+// into a subcommand lazily -- so a collision stays invisible until someone runs
+// the one command that has it. This forces the merge on every command.
 func TestNoCommandHasAShorthandCollision(t *testing.T) {
 	root := NewRootCommand()
 

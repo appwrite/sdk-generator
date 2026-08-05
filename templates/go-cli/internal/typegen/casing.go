@@ -83,7 +83,7 @@ func SanitizeEnumKey(value string) string {
 
 // AttributeType values as the API reports them.
 //
-// Ports templates/cli/lib/type-generation/attribute.ts. Note FLOAT is reported
+// Note FLOAT is reported
 // as "double": the constant name and the wire value differ, and matching the
 // wire value is what matters.
 const (

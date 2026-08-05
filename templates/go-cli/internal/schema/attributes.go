@@ -66,7 +66,7 @@ const sideChild = "child"
 
 // FieldRules splits an attribute's fields by how a change to them is applied.
 //
-// Ports the FieldRules interface (attributes.ts:14). A field in neither list is
+// A field in neither list is
 // ignored: it is either server-derived ($createdAt, status) or irrelevant to the
 // schema.
 type FieldRules struct {
@@ -83,7 +83,7 @@ var commonRecreateKeys = []string{"type", "array", "encrypt", "format"}
 
 // AttributeFieldRules returns the rules for one attribute.
 //
-// Ports getAttributeFieldRules (attributes.ts:21). The switch is on the
+// The switch is on the
 // attribute's own type and, for strings, its format -- an enum can have its
 // `elements` updated where a plain string can have its `size` updated, and
 // neither accepts the other's field.
@@ -143,7 +143,7 @@ func AttributeFieldRules(attribute *jsonx.Object) FieldRules {
 
 // IndexFieldRules is the rule set for an index.
 //
-// Ports INDEX_FIELD_RULES (attributes.ts:90). Nothing about an index is
+// Nothing about an index is
 // updatable -- there is no update endpoint at all -- so every difference is a
 // recreation. Both `attributes` and `columns` appear because a collection index
 // names the first and a table index the second.
@@ -239,7 +239,6 @@ func (p Plan) Empty() bool { return len(p.All()) == 0 }
 
 // BuildPlan classifies a remote snapshot against the config.
 //
-// Ports the classification half of attributesToCreate (attributes.ts:794).
 // warn receives the one situation the plan cannot resolve on its own.
 func BuildPlan(
 	remote, local []*jsonx.Object,
@@ -314,8 +313,6 @@ func BuildPlan(
 
 // withoutChildRelationships drops the auto-generated half of every two-way
 // relationship.
-//
-// Ports isChildSideRelationship (attributes.ts:726).
 func withoutChildRelationships(attributes []*jsonx.Object) []*jsonx.Object {
 	filtered := make([]*jsonx.Object, 0, len(attributes))
 	for _, attribute := range attributes {
@@ -331,7 +328,7 @@ func withoutChildRelationships(attributes []*jsonx.Object) []*jsonx.Object {
 
 // contains finds the entry with the same key, or nil.
 //
-// Ports attributesContains (attributes.ts:272). The key is the identity: an
+// The key is the identity: an
 // attribute has no id of its own.
 func contains(attributes []*jsonx.Object, attribute *jsonx.Object) *jsonx.Object {
 	key := attribute.GetString("key")
@@ -346,7 +343,7 @@ func contains(attributes []*jsonx.Object, attribute *jsonx.Object) *jsonx.Object
 
 // resolveRenames matches previousKey hints against the remote snapshot.
 //
-// Ports resolveRenames (attributes.ts:734). The matched remote entry is PATCHED
+// The matched remote entry is PATCHED
 // IN PLACE with the new key before classification runs, which is what stops the
 // rename reading as a delete plus an add. The API calls happen later.
 func resolveRenames(
@@ -424,8 +421,6 @@ func label(key string, container Container) string {
 }
 
 // changeFor builds the entry for an attribute that exists on only one side.
-//
-// Ports generateChangesObject (attributes.ts:275).
 func changeFor(attribute *jsonx.Object, container Container, isAdding bool) Change {
 	reason := "Field isn't present on the appwrite.config.json file"
 	action := "deleting"
@@ -492,8 +487,6 @@ func checkChanges(
 }
 
 // compareField appends one field's difference to the accumulated reason.
-//
-// Ports compareAttribute (attributes.ts:193).
 func compareField(remote, local any, reason, key string, immutable bool) string {
 	// An omitted local field means "leave the remote as it is". A config that
 	// does not mention `encrypt` is not asking for it to be turned off.
@@ -548,7 +541,7 @@ type Reconciler struct {
 // Reconcile diffs a remote snapshot against the config and applies everything
 // that is not a creation, returning what still has to be created.
 //
-// Ports attributesToCreate (attributes.ts:794). The application order is the
+// The application order is the
 // contract, and each step exists because the one before it can fail:
 //
 //  1. renames, so a failed rename cannot leave data half-destroyed;
@@ -822,7 +815,7 @@ func (r *Reconciler) CreateAttributes(
 // CreateIndexes creates every index and waits for all of them to become
 // available.
 //
-// Ports createIndexes (attributes.ts:1042). Always called AFTER the attributes
+// Always called AFTER the attributes
 // pass: an index over an attribute that is still processing is rejected.
 func (r *Reconciler) CreateIndexes(indexes []*jsonx.Object, container Container) error {
 	output.Log(r.Out, "Creating indexes ...")
@@ -852,7 +845,7 @@ func (r *Reconciler) CreateIndexes(indexes []*jsonx.Object, container Container)
 
 // formatUpdateError explains the one update failure a user can act on.
 //
-// Ports formatUpdateError (attributes.ts:481). Shrinking a string attribute
+// Shrinking a string attribute
 // fails when a stored value is longer than the new size, and the API's
 // `attribute_invalid_resize` says nothing about what to do next.
 func formatUpdateError(key string, err error) string {

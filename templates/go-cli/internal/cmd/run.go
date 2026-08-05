@@ -22,8 +22,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports templates/cli/lib/commands/run.ts.
-//
 // `appwrite run function` builds a function in its open-runtimes image, starts
 // it, and rebuilds or hot-swaps it as the sources change. Nothing here talks to
 // the Appwrite API except the optional remote-variable fetch and the JWT setup,
@@ -157,7 +155,6 @@ func runFunction(command *cobra.Command, options runOptions) error {
 	// Announced before it starts. A runtime image is hundreds of megabytes
 	// and `docker pull` runs with its output piped, so without this line the
 	// CLI sits silent for however long the download takes and reads as hung.
-	// Ports the log in dockerPull (emulation/docker.ts:188).
 	output.Log(out, "Verifying Docker image ...")
 	if err := client.Pull(ctx, docker.ImageName(function)); err != nil {
 		return err
@@ -375,7 +372,7 @@ func selectFunction(command *cobra.Command, local *config.Local, id string) (con
 		return functions[0], nil
 	}
 
-	// Ports questionsRunFunctions. Without a terminal this reports
+	// Without a terminal this reports
 	// --function-id rather than blocking, which is what the prompt package's
 	// NonInteractive does with the Flag below.
 	options := make([]prompt.Option, 0, len(functions))

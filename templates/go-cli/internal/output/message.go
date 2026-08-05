@@ -7,8 +7,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Ports the log/warn/success/error helpers at templates/cli/lib/parser.ts:1006.
-//
 // Status lines, not data. Like the rest of the human-readable output these are
 // explicitly outside the parity contract -- but the prefixes
 // are reproduced verbatim, because they are what a user scanning a terminal

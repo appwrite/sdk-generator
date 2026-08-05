@@ -16,8 +16,6 @@ import (
 	"time"
 )
 
-// Ports templates/cli/lib/client.ts.
-
 // ResponseFormat pins the API response shape the CLI is written against.
 //
 // Hard-coded in the TypeScript client too (client.ts:40). It tracks the API
@@ -280,7 +278,7 @@ const consoleSessionCookie = "a_session_console="
 
 // captureSessionCookie remembers a console session cookie the server set.
 //
-// Ports the Set-Cookie handling in the TypeScript client (client.ts:327). The
+// The
 // email-and-password flow has no other way to learn its session: the cookie IS
 // the credential, and it arrives on the response to POST /account/sessions/email.
 func (c *Client) captureSessionCookie(response *http.Response) {
@@ -380,7 +378,7 @@ func (e *APIError) Error() string {
 // unauthenticated reports whether this is the API refusing an unauthenticated
 // request, rather than refusing a real account something.
 //
-// Ports the isUnauthorized branch of client.ts:292. Without it the CLI repeats
+// Without it the CLI repeats
 // the API verbatim -- `User (role: guests) missing scopes (["account"])` --
 // which describes a permission model the user did not ask about and names no way
 // out of it.

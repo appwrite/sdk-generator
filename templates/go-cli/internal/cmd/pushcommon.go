@@ -129,7 +129,7 @@ type change struct {
 
 // isEmpty reports whether a value counts as absent for comparison.
 //
-// Ports isEmpty(). Null, an all-whitespace string and an empty array are all
+// Null, an all-whitespace string and an empty array are all
 // "nothing", so a field the API omits does not read as a change against a
 // config that leaves it blank.
 func isEmpty(value any) bool {
@@ -403,7 +403,7 @@ func (c *pushContext) selectResources(
 
 // arrayEqualsUnordered compares two arrays ignoring order.
 //
-// Ports arrayEqualsUnordered(). Used when DECIDING whether to send an update:
+// Used when DECIDING whether to send an update:
 // the API returns permissions in its own order, and reordering alone is not a
 // change worth a request.
 func arrayEqualsUnordered(first, second any) bool {

@@ -10,8 +10,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
-// Ports the `Local` half of templates/cli/lib/config.ts -- appwrite.config.json.
-//
 // This file lives in user repositories and is code-reviewed, so reading and
 // rewriting it must not change a byte that the user did not ask to change.
 
@@ -20,13 +18,13 @@ const LocalFileName = "appwrite.config.json"
 
 // LegacyLocalFileName is the name the config had before it was renamed.
 //
-// Ports CONFIG_FILE_PATH_LEGACY (templates/cli/lib/config.ts:632). Projects
+// Projects
 // created by older CLIs still carry it.
 const LegacyLocalFileName = "appwrite.json"
 
 // configKeyOrder is the order top-level keys are written in.
 //
-// Ports CONFIG_KEY_ORDER (templates/cli/lib/config.ts:83). Without it every
+// Without it every
 // write would reorder the file according to whatever order the data happened to
 // be built in, producing a diff on every command that touches the config.
 var configKeyOrder = []string{
@@ -51,8 +49,6 @@ var configKeyOrder = []string{
 
 // resourceKeys are the top-level arrays that can be split into their own files
 // and that are dropped from the root document when empty.
-//
-// Ports CONFIG_RESOURCE_KEYS (templates/cli/lib/constants.ts:37).
 var resourceKeys = []string{
 	"databases",
 	"functions",
@@ -96,7 +92,7 @@ func LocalPath(directory string) string {
 // FindLocalPath locates the project config, searching upwards from the working
 // directory.
 //
-// Ports Local.findConfigFile (templates/cli/lib/config.ts). A project is a
+// A project is a
 // directory tree, and people run `push` from inside `functions/<name>/` as
 // readily as from the root; looking only in the working directory answered
 // those with "project is not set".
@@ -233,7 +229,7 @@ func (l *Local) resolveIncludes() error {
 // resolveIncludePath resolves an include relative to the config file and
 // refuses to escape the project directory.
 //
-// Ports assertIncludePathInsideProject(). A config that points at
+// A config that points at
 // `../../.ssh/id_rsa` would otherwise have that file overwritten on the next
 // write.
 func (l *Local) resolveIncludePath(resource, includePath string) (string, error) {
@@ -290,8 +286,6 @@ func resolveSymlinks(path string) string {
 
 // Write persists the config, splitting `includes` back out, dropping empty
 // resource arrays and restoring the canonical key order.
-//
-// Ports writeResolvedLocalConfig().
 func (l *Local) Write() error {
 	root := jsonx.NewObject()
 	for _, key := range l.Data.Keys() {
@@ -340,7 +334,7 @@ func (l *Local) Write() error {
 
 // pruneEmptyResourceArrays drops resource keys whose array is empty.
 //
-// Ports pruneEmptyTopLevelResourceArrays(). An empty array and an absent key
+// An empty array and an absent key
 // mean the same thing to the CLI, and writing `"teams": []` into a config the
 // user never gave teams to is noise in their diff.
 func pruneEmptyResourceArrays(data *jsonx.Object) *jsonx.Object {
@@ -361,7 +355,7 @@ func pruneEmptyResourceArrays(data *jsonx.Object) *jsonx.Object {
 // orderConfigKeys emits known keys in canonical order, then anything else in
 // its existing order.
 //
-// Ports orderConfigKeys(). Unknown keys are preserved rather than dropped: a
+// Unknown keys are preserved rather than dropped: a
 // newer CLI may have written a field this build does not know about, and losing
 // it on the next write would be data loss.
 func orderConfigKeys(data *jsonx.Object) *jsonx.Object {

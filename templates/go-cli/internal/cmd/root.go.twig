@@ -83,7 +83,7 @@ func NewRootCommand() *cobra.Command {
 
 // noticeUpdateAvailable tells the user when a newer version exists.
 //
-// Ports maybeShowUpdateNotice (cli.ts.twig). Reads a cache and only reaches the
+// Reads a cache and only reaches the
 // network once a day, because the whole point of this binary is that it starts
 // in single-digit milliseconds.
 func noticeUpdateAvailable(command *cobra.Command) {

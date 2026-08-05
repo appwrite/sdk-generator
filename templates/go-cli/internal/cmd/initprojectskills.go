@@ -49,7 +49,7 @@ var skillAgents = []string{".agents", ".claude"}
 
 // hasSkillsInstalled reports whether a project already carries skills.
 //
-// Ports hasSkillsInstalled. A non-empty directory is enough: this runs during
+// A non-empty directory is enough: this runs during
 // `init project`, and a project that has already installed skills has made a
 // choice that a scaffolding step must not silently redo.
 func hasSkillsInstalled(root string) bool {

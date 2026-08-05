@@ -442,7 +442,7 @@ func desiredMockNumbers(security *jsonx.Object) (map[string]string, []string) {
 
 // settingsChanges compares one nested settings group.
 //
-// Ports getObjectChanges (change-approval.ts:63). It iterates the REMOTE keys,
+// It iterates the REMOTE keys,
 // so a setting the config invents but the project does not have is not a
 // change -- there is nothing to overwrite.
 func settingsChanges(remote, local *jsonx.Object, group, label string) []change {
@@ -649,7 +649,7 @@ func newPushDeployableCommand(resource deployable) *cobra.Command {
 
 // parseFlagBool reads the value of `--activate [value]`.
 //
-// Ports parseBool(). A bare `--activate` is true; anything else has to say so.
+// A bare `--activate` is true; anything else has to say so.
 func parseFlagBool(value string) (bool, error) {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "", "true", "1", "yes", "y":
@@ -991,7 +991,7 @@ func capitalizeFirst(value string) string {
 
 // siteRequiresBuildCommand reports whether a site has to be built.
 //
-// Ports siteRequiresBuildCommand (utils.ts:142). A static site on the `other`
+// A static site on the `other`
 // framework is served as it stands, so it is the one that needs no command.
 func siteRequiresBuildCommand(site *jsonx.Object) bool {
 	return !(site.GetString("framework") == "other" && site.GetString("adapter") == "static")
@@ -1246,7 +1246,7 @@ func (c *pushContext) createDeployment(
 
 // normalizeIgnoreRules reads a resource's `ignore` field as a pattern list.
 //
-// Ports normalizeIgnoreRules (push.ts:757). The schema declares a single
+// The schema declares a single
 // string, but a config written by hand may carry an array, and both are
 // accepted.
 func normalizeIgnoreRules(entry *jsonx.Object) []string {
@@ -1484,7 +1484,7 @@ func progressText(status string, waitingSince time.Time) string {
 
 // progressTracker decides when a deployment has stopped making progress.
 //
-// Ports createDeploymentTimeoutTracker (push.ts:184). The clock resets whenever
+// The clock resets whenever
 // the deployment CHANGES, so a ten-minute build that keeps logging is fine and
 // a two-minute one that goes silent is not.
 type progressTracker struct {
@@ -1673,8 +1673,6 @@ func (c *pushContext) regionalRuleDomain(domain string) string {
 
 // endpointRegion is the region label of a Cloud endpoint, empty when
 // self-hosted or when the endpoint is the base host.
-//
-// Ports getCloudEndpointRegion().
 func endpointRegion(endpoint string) string {
 	base, ok := config.CloudBaseHost(endpoint)
 	if !ok {
@@ -1710,7 +1708,7 @@ func (c *pushContext) deploymentConsoleURL(
 
 // consoleProjectSlug is the project segment of a console URL.
 //
-// Ports getConsoleProjectSlug (utils.ts:534). A self-hosted project needs its
+// A self-hosted project needs its
 // region, which is only knowable by asking the console -- hence a request in
 // the middle of a push that otherwise touches nothing but the project.
 func (c *pushContext) consoleProjectSlug(endpoint, projectID string) string {

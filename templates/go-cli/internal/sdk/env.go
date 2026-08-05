@@ -2,7 +2,7 @@ package sdk
 
 // Environment variables that override the configured context.
 //
-// Ports templates/cli/lib/context.ts. A CI job sets these expecting them to
+// A CI job sets these expecting them to
 // beat a checked-in appwrite.config.json, so they are consulted first.
 //
 // These live outside sdk.go because that file is emitted as a stub in the

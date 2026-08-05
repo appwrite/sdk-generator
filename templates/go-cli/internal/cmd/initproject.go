@@ -16,8 +16,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports initProject (templates/cli/lib/commands/init.ts:296).
-//
 // Links the working directory to a project, creating one if asked. Everything
 // here goes through the console client -- an API key cannot list organizations,
 // which is why the session check is the first thing that happens.
@@ -446,7 +444,7 @@ func isNotFound(err error) bool {
 
 // selectionLabel renders "Name (id)", or just the id when there is no name.
 //
-// Ports buildSelectionLabel(). A project created by the API with no name would
+// A project created by the API with no name would
 // otherwise render as " (id)".
 func selectionLabel(name, id string) string {
 	if strings.TrimSpace(name) == "" {

@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-// Ports templates/cli/lib/type-generation/languages/swift.ts.
-//
 // The largest emitter: each collection becomes a Codable class with an
 // initialiser, CodingKeys, hand-written encode/decode, toMap() and from(map:).
 //

@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-// Ports templates/cli/lib/type-generation/languages/java.ts.
-//
 // The Java template mixes EJS's two interpolation forms for the same value:
 // `<%- %>` writes the field declaration, `<%= %>` writes the constructor
 // parameter, the assignment and toString(). An attribute key containing `&` or

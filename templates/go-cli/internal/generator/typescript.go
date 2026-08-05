@@ -8,8 +8,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/typegen"
 )
 
-// Ports templates/cli/lib/commands/generators/typescript/databases.ts.
-//
 // Four files come out: types.ts, databases.ts, index.ts and constants.ts. Each
 // is one of the embedded .hbs templates with large pre-rendered strings
 // substituted in -- the templates hold the fixed scaffolding, this file builds

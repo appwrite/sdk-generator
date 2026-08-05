@@ -137,7 +137,7 @@ func (s *Spinner) Update(status, end string) {
 
 // Log prints a line ABOVE the spinner, which then redraws below it.
 //
-// Ports Spinner.log (spinner.ts:57). Without this a build log line and the
+// Without this a build log line and the
 // status line would fight over the same row.
 func (s *Spinner) Log(line string) {
 	s.mutex.Lock()

@@ -5,8 +5,6 @@ import (
 	"time"
 )
 
-// Ports the Queue in templates/cli/lib/emulation/utils.ts.
-//
 // A debounced, lockable set of changed files. Three behaviours matter and none
 // is obvious from the name:
 //

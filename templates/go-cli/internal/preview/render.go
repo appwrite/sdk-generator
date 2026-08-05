@@ -72,7 +72,7 @@ const ansiReset = "\x1b[0m"
 
 // Columns is the width to draw into, for a terminal of the given width.
 //
-// Ports getSiteTerminalPreviewWidth. The -4 leaves room for the frame and a
+// The -4 leaves room for the frame and a
 // margin; the floor is what keeps a very narrow terminal producing a small
 // picture rather than a zero-width one.
 func Columns(terminalColumns int) int {
@@ -85,7 +85,7 @@ func Columns(terminalColumns int) int {
 
 // Rows is the height to draw into, for a terminal of the given height.
 //
-// Ports getSiteTerminalPreviewHeight. The -10 is the summary that has to stay
+// The -10 is the summary that has to stay
 // on screen with it: the status row, the two links, and the blank lines around
 // them.
 func Rows(terminalRows int) int {

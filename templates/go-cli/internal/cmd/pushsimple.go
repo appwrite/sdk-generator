@@ -342,7 +342,7 @@ func requestBody(local *jsonx.Object, fields []requestField) *jsonx.Object {
 
 // bucketChanged reports whether a bucket is worth an update request.
 //
-// Ports hasBucketChanges (push.ts:1497). Buckets are the only one of the four
+// Buckets are the only one of the four
 // with this check; the other three send an update unconditionally.
 func bucketChanged(remote, local *jsonx.Object) bool {
 	scalars := []string{

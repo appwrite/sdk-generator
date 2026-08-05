@@ -13,8 +13,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
-// Ports the human-readable half of templates/cli/lib/parser.ts:parse().
-//
 // Unlike --json and --raw this output is explicitly NOT part of the parity
 // contract, so the structure is reproduced -- scalars first,
 // then one section per nested value -- without chasing the TypeScript's exact
@@ -274,7 +272,7 @@ func tableCellStyle(row, _ int) lipgloss.Style {
 // formatKeyValue renders one value for display, using the key to decide
 // whether it deserves more than its raw form.
 //
-// Ports templates/cli/lib/parser.ts:478. The key matters: `status` reads as
+// The key matters: `status` reads as
 // active/inactive rather than true/false, and a `*duration` number is seconds
 // that nobody parses at a glance. Anything else falls through to formatScalar.
 func formatKeyValue(key string, value any) string {

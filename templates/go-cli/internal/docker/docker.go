@@ -14,8 +14,6 @@ import (
 	"time"
 )
 
-// Ports the process-management half of templates/cli/lib/emulation/docker.ts.
-//
 // Every call shells out to the `docker` binary rather than speaking to the
 // daemon socket. That is what the TypeScript does, and it is the right choice
 // here too: it inherits the user's Docker context, credentials and remote-host

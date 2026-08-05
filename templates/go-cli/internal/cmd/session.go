@@ -42,7 +42,7 @@ func preferences() (*config.Global, error) {
 
 // consoleClient builds a client authenticated against the console project.
 //
-// Ports sdkForConsole(). The access token is refreshed first when it is expired
+// The access token is refreshed first when it is expired
 // or within a minute of expiring.
 func consoleClient() (*client.Client, *config.Global, error) {
 	return consoleClientAt("")
@@ -50,7 +50,7 @@ func consoleClient() (*client.Client, *config.Global, error) {
 
 // consoleClientAt is consoleClient against a given endpoint.
 //
-// Ports sdkForConsole's `endpointOverride` with `preserveRegion: true`. The
+// The
 // session's endpoint is the region-less one -- login normalises it, so a Cloud
 // session is stored as cloud.appwrite.io however the user reached it -- and a
 // resource that lives in ONE region is not there. The screenshot bucket is the

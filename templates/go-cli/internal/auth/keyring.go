@@ -9,8 +9,6 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-// Ports templates/cli/lib/auth/refresh-token.ts.
-
 // refreshTokenService is the keyring service refresh tokens are filed under.
 //
 // Matches the TypeScript CLI's `${EXECUTABLE_NAME}-oauth-refresh-token` exactly.

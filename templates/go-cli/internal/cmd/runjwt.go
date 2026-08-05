@@ -11,8 +11,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
 )
 
-// Ports JwtManager (templates/cli/lib/emulation/utils.ts:98).
-//
 // A function running locally still talks to the real API, and it needs two
 // credentials to do it: an ephemeral API key scoped to the function's own
 // scopes, which the runtime sends as `x-appwrite-key`, and -- when the run
@@ -42,7 +40,7 @@ type runCredentials struct {
 
 // mintRunCredentials creates the credentials for one local run.
 //
-// Ports JwtManager.setup. A failure is the CALLER's to report and not fatal:
+// A failure is the CALLER's to report and not fatal:
 // the TypeScript warns and runs the function anyway, because a function that
 // does not touch the API runs perfectly well without either credential.
 func mintRunCredentials(
@@ -104,8 +102,6 @@ func runProjectAPI(local *config.Local) (*client.Client, error) {
 }
 
 // listFunctionVariables reads a function's production variables.
-//
-// Ports the listVariables call in run.ts:175.
 func listFunctionVariables(api *client.Client, functionID string) ([]*jsonx.Object, error) {
 	listing := jsonx.NewObject()
 	err := api.Call("GET",
@@ -135,7 +131,7 @@ func warnNoVariables(out io.Writer, err error) {
 
 // warnOnCredentialExpiry announces the end of the credentials' hour.
 //
-// Ports the two setTimeout calls in JwtManager.setup. The timers are goroutines
+// The timers are goroutines
 // on a stop channel rather than a stored handle: a run that ends first simply
 // closes the channel, where the TypeScript clears the timeout by id.
 func warnOnCredentialExpiry(out io.Writer) (stop func()) {

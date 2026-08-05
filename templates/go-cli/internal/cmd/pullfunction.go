@@ -187,7 +187,7 @@ func runPullCode(command *cobra.Command, resource codeResource, code, withVariab
 
 // selectResources asks which resources to pull.
 //
-// Ports questionsPullFunctions. Every resource is offered unselected, matching
+// Every resource is offered unselected, matching
 // the TypeScript's checkbox, and choosing none is a valid answer that pulls
 // nothing.
 func selectResources(rows []*jsonx.Object, resource codeResource) ([]*jsonx.Object, error) {
@@ -333,7 +333,7 @@ func existingPath(local *config.Local, resource, id string) string {
 
 // SafeDirectoryName turns a resource name into a directory name.
 //
-// Ports getSafeDirectoryName(). Accents are stripped, everything outside
+// Accents are stripped, everything outside
 // [a-z0-9] collapses to a single hyphen, and a name that reduces to nothing
 // falls back to the id -- otherwise two unnamed resources would share a
 // directory.

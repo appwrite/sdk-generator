@@ -11,8 +11,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 )
 
-// Ports getValidAccessToken() from templates/cli/lib/sdks.ts:33.
-
 // DefaultClientID is the OAuth2 client the CLI identifies as.
 const DefaultClientID = "appwrite-cli"
 

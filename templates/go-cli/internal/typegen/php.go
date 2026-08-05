@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-// Ports templates/cli/lib/type-generation/languages/php.ts.
-//
 // PHP is the first multi-file emitter: one class per collection, named after
 // it. Three behaviours here look like bugs and are reproduced anyway, because
 // `types` output is checked into users' repositories and changing it would show

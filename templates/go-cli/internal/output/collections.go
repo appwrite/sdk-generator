@@ -15,8 +15,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
-// Ports the structured-collection half of templates/cli/lib/response-config.ts.
-//
 // A nested array in a response renders as a table of whatever keys the rows
 // happen to carry, which for a deployment or a session is a dozen columns of
 // mostly noise. These renderers replace that with a fixed, readable set of
@@ -48,7 +46,7 @@ type column struct {
 
 // summarySchema decides whether a set of rows is the shape a renderer expects.
 //
-// Ports the zod schemas. Only two things actually gate rendering: a declared
+// Only two things actually gate rendering: a declared
 // field must hold the type it declares when it is present, and at least one of
 // requireAny must be present. Everything else passes through, matching zod's
 // `.passthrough()`.

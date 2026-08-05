@@ -49,8 +49,6 @@ func filteredNumber(number json.Number) any {
 	return number
 }
 
-// Ports the field-selection half of templates/cli/lib/parser.ts.
-//
 // FilterData decides what --json shows, so it is part of invariant 4 rather
 // than cosmetic.
 
@@ -58,8 +56,6 @@ func filteredNumber(number json.Number) any {
 //
 // Internal bookkeeping that carries no meaning for a CLI reader, plus fields
 // the API returns twice under two names (`billingPlanId` === `billingPlan`).
-//
-// Ports NORMAL_VIEW_HIDDEN_KEYS (templates/cli/lib/parser.ts:84).
 var normalViewHiddenKeys = map[string]bool{
 	"onboarding":    true,
 	"billingPlanId": true,
@@ -79,8 +75,6 @@ func IsNormalViewHiddenKey(key string) bool {
 
 // FilterObject flattens one object for display: scalars survive, nested objects
 // and blank strings are dropped.
-//
-// Ports filterObject().
 func FilterObject(object *jsonx.Object) *jsonx.Object {
 	result := jsonx.NewObject()
 
@@ -116,8 +110,6 @@ func FilterObject(object *jsonx.Object) *jsonx.Object {
 // FilterObject. Nested objects, nulls and blank strings are dropped. Integers
 // past 2^53 become strings, matching what json-bigint hands the TypeScript;
 // see renderedAsString.
-//
-// Ports filterData().
 func FilterData(data *jsonx.Object) *jsonx.Object {
 	result := jsonx.NewObject()
 

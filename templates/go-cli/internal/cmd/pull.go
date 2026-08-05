@@ -16,8 +16,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports templates/cli/lib/commands/pull.ts.
-//
 // `pull bucket|team|topic|webhook` each list a resource, shape it to the config
 // schema, and REPLACE the local array. Replace, not merge: the remote is the
 // source of truth, so a resource deleted remotely has to disappear locally --

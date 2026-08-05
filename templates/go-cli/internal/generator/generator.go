@@ -9,8 +9,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/typegen"
 )
 
-// Ports templates/cli/lib/commands/generators/base.ts and index.ts.
-//
 // `appwrite generate` writes a small typed SDK into the user's project. Only
 // TypeScript is implemented, in the TypeScript CLI as here -- base.ts is an
 // interface plus a shared writeFiles(), and index.ts a one-entry registry.
@@ -217,7 +215,7 @@ func DetectImportExtension(directory string) string {
 
 // SupportsServerSideMethods reports whether server-only methods are emitted.
 //
-// Ports supportsServerSideMethods(). The override wins over the dependency, so
+// The override wins over the dependency, so
 // a project can force bulk methods on or off.
 func SupportsServerSideMethods(dependency, override string) bool {
 	switch override {

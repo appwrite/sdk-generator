@@ -39,7 +39,7 @@ func field(object *jsonx.Object, key string) any {
 
 // isEmpty reports whether a value counts as absent for comparison.
 //
-// Ports isEmpty (attributes.ts:174). Null, undefined, an all-whitespace string
+// Null, undefined, an all-whitespace string
 // and an empty array all read as "nothing", so a field the API omits does not
 // register as a change against a config that leaves it blank.
 func isEmpty(value any) bool {

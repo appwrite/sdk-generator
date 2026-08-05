@@ -15,8 +15,6 @@ import (
 // lib/auth/login.ts -- RFC 8628 device authorization.
 
 // OAuth2Scopes are the scopes the CLI requests.
-//
-// Ports OAUTH2_SCOPES (templates/cli/lib/constants.ts:34).
 const OAuth2Scopes = "openid email profile all"
 
 // defaultPollInterval is used when the server omits one.

@@ -229,7 +229,7 @@ func (s *Scripted) Confirm(question Question) (bool, error) {
 
 // Required rejects an empty value.
 //
-// Ports validateRequired(). The message is built from the resource name and is
+// The message is built from the resource name and is
 // what the user reads, so the two forms are kept exactly: a list says "select
 // at least one", a scalar says "is required".
 func Required(resource string) func(string) error {
@@ -275,7 +275,7 @@ func skipFirstCall(validate func([]string) error) func([]string) error {
 
 // NonNegativeInteger rejects anything that is not a run of digits.
 //
-// Ports validateNonNegativeInteger(). Deliberately not strconv.Atoi: that
+// Deliberately not strconv.Atoi: that
 // accepts a leading `+` or `-`, and the message promises non-negative.
 func NonNegativeInteger(value string) error {
 	if value == "" {

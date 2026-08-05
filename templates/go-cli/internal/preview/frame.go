@@ -7,7 +7,7 @@ import (
 
 // Frame draws a box around rendered art.
 //
-// Ports frameTerminalPreview (push.ts:383), border characters included. The box
+// The box
 // is what separates a picture of a web page from the terminal it is printed in:
 // without it a screenshot with a white background bleeds into a light terminal
 // and there is no telling where the page ends.

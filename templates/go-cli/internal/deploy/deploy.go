@@ -150,7 +150,7 @@ type matcher struct {
 
 // listDeployableFiles walks a directory and applies its ignore rules.
 //
-// Ports listDeployableFiles (deployment.ts:422). A .gitignore in a
+// A .gitignore in a
 // SUBDIRECTORY applies to that subtree only, which is why the matchers are a
 // stack rather than one merged rule set.
 func listDeployableFiles(
@@ -321,7 +321,7 @@ func isIgnored(relativePath string, matchers []matcher, isDirectory bool) bool {
 
 // resolveSymlinkBoundary bounds how far a symlink may be followed.
 //
-// Ports resolveSymlinkBoundary (utils.ts:898). Sharing `functions/common`
+// Sharing `functions/common`
 // between two functions stays possible; reaching `~/.ssh` does not.
 func resolveSymlinkBoundary(directory, projectRoot string) (string, error) {
 	resolved, err := filepath.EvalSymlinks(directory)
@@ -541,7 +541,7 @@ type Result struct {
 
 // Push packages a directory, creates the deployment and optionally waits.
 //
-// Ports pushDeployment (deployment.ts:736). The archive is removed whatever
+// The archive is removed whatever
 // happens: it lives in a temporary directory, and a failed push that leaves one
 // behind costs the size of the deployment on every retry.
 func Push(options Options) (Result, error) {

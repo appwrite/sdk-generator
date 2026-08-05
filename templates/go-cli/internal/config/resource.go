@@ -7,8 +7,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
-// Ports the addX helpers on Local (templates/cli/lib/config.ts:909+).
-//
 // Each adds or replaces one entry in a top-level resource array. Two properties
 // matter and both come from invariant 2 -- this file lives in the user's
 // repository and is code-reviewed:

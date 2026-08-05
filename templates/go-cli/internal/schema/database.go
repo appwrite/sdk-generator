@@ -12,8 +12,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 )
 
-// Ports templates/cli/lib/commands/utils/database-sync.ts.
-//
 // `push table` reconciles the DATABASES before the tables, because a table
 // cannot be pushed into a database that does not exist and a database deleted
 // locally has to take its tables with it. Deleting a database is the one
@@ -34,8 +32,6 @@ const TablesDBPath = "/tablesdb"
 
 // SyncTablesDBs reconciles the tablesDB entries in the config against the
 // project.
-//
-// Ports checkAndApplyTablesDBChanges (database-sync.ts:51).
 func SyncTablesDBs(
 	api *client.Client,
 	out io.Writer,

@@ -9,8 +9,6 @@ import (
 	"strings"
 )
 
-// Ports templates/cli/lib/type-generation/languages/language.ts.
-//
 // The TypeScript builds each language's output from an EJS template held as an
 // inline string in its class. Those strings are not shared artifacts -- nothing
 // else reads them -- so there is nothing to preserve by porting EJS itself.

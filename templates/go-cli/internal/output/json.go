@@ -9,8 +9,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
-// Ports the --json and --raw output paths from templates/cli/lib/parser.ts.
-//
 // These two modes are scripted against, so the bytes must match the TypeScript
 // CLI's exactly.
 

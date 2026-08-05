@@ -21,8 +21,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports templates/cli/lib/auth/login.ts.
-//
 // TWO SIGN-IN FLOWS, chosen by the endpoint. Cloud signs in through the
 // browser with a device code; a self-hosted instance signs in with an email
 // and a password, and may then ask for a second factor. isCloudLoginEndpoint
@@ -146,7 +144,7 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 
 // currentAccount reads the signed-in account.
 //
-// Ports getCurrentAccount (login.ts:124). The error is RETURNED rather than
+// The error is RETURNED rather than
 // folded into a nil account, because the two callers ask different questions of
 // it. `login` asks "is someone signed in already?", where every failure means
 // no and the reason does not matter. `login --switch` asks "does this stored
@@ -170,8 +168,6 @@ func currentAccount() (*jsonx.Object, error) {
 
 // verifyEndpoint checks that an endpoint is an Appwrite server before a
 // password is typed into it.
-//
-// Ports verifyEndpoint (session.ts:41).
 func verifyEndpoint(endpoint string, selfSigned bool) error {
 	parsed, err := url.Parse(endpoint)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
@@ -195,7 +191,7 @@ func verifyEndpoint(endpoint string, selfSigned bool) error {
 
 // switchAccount makes a different signed-in account current.
 //
-// Ports switchToAccount (login.ts:291). The switch is applied first and rolled
+// The switch is applied first and rolled
 // back if the account turns out to be unusable, because whether a stored
 // session still works can only be answered by using it.
 func switchAccount(command *cobra.Command, global *config.Global, previous string) error {
@@ -277,7 +273,7 @@ func unusableSessionError(reason error) error {
 
 // loginWithPassword signs in to a self-hosted instance.
 //
-// Ports loginWithEmailPassword (login.ts:207). The session is written BEFORE
+// The session is written BEFORE
 // the request and removed if it fails, because the client that makes the
 // request reads its endpoint from the session -- and a half-written session
 // left behind on a bad password would make the next command think it was
@@ -387,7 +383,7 @@ func loginWithPassword(
 
 // completeMFA answers a second-factor challenge.
 //
-// Ports completeMfaLogin (login.ts:159). The challenge is created against the
+// The challenge is created against the
 // half-authenticated session the password already established, which is why it
 // reuses the same client and its cookie.
 func completeMFA(command *cobra.Command, api *client.Client, options loginOptions) error {

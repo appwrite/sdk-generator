@@ -13,8 +13,6 @@ import (
 // It exists to break a cycle: internal/cmd registers the generated commands, so
 // the generated package cannot import internal/cmd to reach the global flags or
 // the renderer. Both sides import this instead.
-//
-// Ports the `cliConfig` singleton in templates/cli/lib/parser.ts:37.
 
 // Globals are the flags every command honours.
 type Globals struct {

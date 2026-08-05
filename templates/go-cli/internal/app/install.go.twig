@@ -10,8 +10,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/update"
 )
 
-// Ports the installation-method detection in templates/cli/lib/utils.ts:302.
-//
 // `update` has to know how the CLI got onto the machine, because updating a
 // Homebrew install with npm leaves two copies and updates neither the one on
 // PATH.
@@ -76,7 +74,7 @@ func DetectInstallMethod() InstallMethod {
 
 // ReleaseAssetName is the release artifact for the running platform.
 //
-// Ports getStandaloneBinaryArtifactName(). Kept identical to the TypeScript's
+// Kept identical to the TypeScript's
 // naming so a Go build can replace a TypeScript one in place: the asset a user
 // already has installed and the asset they upgrade to have the same name.
 func ReleaseAssetName() (string, error) {
@@ -144,7 +142,7 @@ func HomebrewFormula() string {
 
 // NPMRegistryURL is where the newest published version is looked up.
 //
-// Ports NPM_REGISTRY_URL. Homebrew installs are updated through brew, but the
+// Homebrew installs are updated through brew, but the
 // version published to npm is the same release, so one source answers for both
 // and the check costs one request rather than shelling out to brew.
 //

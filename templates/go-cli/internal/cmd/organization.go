@@ -11,8 +11,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
 )
 
-// Ports resolveOrganizationId (templates/cli/lib/context.ts).
-//
 // The console endpoints that take no organization in their path read it from a
 // header instead, and a config written by `pull` does not carry one -- `pull`
 // records projectId and projectName, not organizationId. Sending the header
