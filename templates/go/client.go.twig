@@ -608,6 +608,31 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 	}, nil
 }
 
+// EncodePath percent-encodes one path segment.
+//
+// Not url.PathEscape: that leaves the sub-delimiters legal in a path segment
+// alone, so an id containing `&` or `=` passes through unescaped and the request
+// reaches a different route than the one asked for. This matches
+// encodeURIComponent, which is what the other Appwrite SDKs use, so the same id
+// produces the same URL in every language.
+func EncodePath(value string) string {
+	const unreserved = "-_.!~*'()"
+
+	var encoded strings.Builder
+	for index := 0; index < len(value); index++ {
+		char := value[index]
+		if char >= 'A' && char <= 'Z' || char >= 'a' && char <= 'z' ||
+			char >= '0' && char <= '9' || strings.IndexByte(unreserved, char) >= 0 {
+			encoded.WriteByte(char)
+
+			continue
+		}
+		fmt.Fprintf(&encoded, "%%%02X", char)
+	}
+
+	return encoded.String()
+}
+
 // toString changes arg to string
 func toString(arg interface{}) string {
 	var tmp = reflect.Indirect(reflect.ValueOf(arg)).Interface()
