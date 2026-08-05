@@ -109,10 +109,12 @@ func (g *Global) Path() string {
 // Write persists preferences, creating the directory if needed.
 //
 // 0600 on the file and 0700 on the directory: this holds access and refresh
-// tokens. Both are set explicitly afterwards, because neither MkdirAll nor
-// WriteFile changes the mode of something that already exists -- and this file
-// is shared with the TypeScript CLI, so on most machines both already do.
-// Creating them with the right mode only protects a fresh install.
+// tokens. The directory has to be tightened explicitly, because MkdirAll leaves
+// an existing one alone and this file is shared with the TypeScript CLI, so on
+// most machines it is already there -- a TypeScript user upgrading has it at
+// 0755 and prefs.json at 0644. The file needs no such fix-up: the atomic write
+// renames a fresh 0600 file into place, which discards the old mode along with
+// the old contents.
 func (g *Global) Write() error {
 	directory := filepath.Dir(g.path)
 	if err := os.MkdirAll(directory, 0o700); err != nil {
@@ -129,13 +131,7 @@ func (g *Global) Write() error {
 		return err
 	}
 
-	if err := os.WriteFile(g.path, encoded, 0o600); err != nil {
-		return err
-	}
-
-	// Not best-effort: the write above just succeeded, so this file is ours, and
-	// leaving a token readable by every account on the machine is a real failure.
-	return os.Chmod(g.path, 0o600)
+	return writeFileAtomically(g.path, encoded, 0o600)
 }
 
 // CurrentSessionID returns the active session ID, or "" if none is set.

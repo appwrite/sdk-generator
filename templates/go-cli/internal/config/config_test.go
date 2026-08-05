@@ -237,3 +237,89 @@ func assertPermissions(t *testing.T, path string, want os.FileMode) {
 		t.Errorf("%s has mode %04o, want %04o", path, got, want)
 	}
 }
+
+// A write that cannot complete must leave the previous file exactly as it was.
+// prefs.json holds every stored session, and LoadGlobal reads an unparseable one
+// as empty preferences -- so a half-written file does not report an error, it
+// silently logs the user out of everything.
+func TestWriteFileAtomicallyKeepsTheOldFileWhenItFails(t *testing.T) {
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("relies on directory permissions being enforced")
+	}
+
+	directory := t.TempDir()
+	path := filepath.Join(directory, "prefs.json")
+	if err := os.WriteFile(path, []byte(realPrefs), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// No temporary file can be created here, so the write fails before it could
+	// have replaced anything.
+	if err := os.Chmod(directory, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(directory, 0o700) })
+
+	if err := writeFileAtomically(path, []byte(`{"current":"replaced"}`), 0o600); err == nil {
+		t.Error("a write into an unwritable directory reported success")
+	}
+
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(contents) != realPrefs {
+		t.Errorf("a failed write damaged the previous preferences:\n%s", contents)
+	}
+}
+
+// The temporary file must never outlive the call, on either path. Left behind in
+// ~/.appwrite it would be a stray copy of the user's tokens.
+func TestWriteFileAtomicallyLeavesNoTemporaryFile(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "prefs.json")
+
+	if err := writeFileAtomically(path, []byte(realPrefs), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "prefs.json" {
+		names := make([]string, 0, len(entries))
+		for _, entry := range entries {
+			names = append(names, entry.Name())
+		}
+		t.Errorf("directory holds %v, want only prefs.json", names)
+	}
+}
+
+// Replacing an existing file must carry the requested mode rather than inherit
+// the old one -- the rename installs a new inode, which is what lets a
+// TypeScript CLI user's 0644 prefs.json become 0600 without a chmod.
+func TestWriteFileAtomicallyReplacesContentsAndMode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX permission bits")
+	}
+
+	directory := t.TempDir()
+	path := filepath.Join(directory, "prefs.json")
+	if err := os.WriteFile(path, []byte("stale"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := writeFileAtomically(path, []byte(realPrefs), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(contents) != realPrefs {
+		t.Errorf("contents = %q", contents)
+	}
+	assertPermissions(t, path, 0o600)
+}

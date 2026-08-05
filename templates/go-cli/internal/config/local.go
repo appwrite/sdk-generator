@@ -395,5 +395,5 @@ func writeJSONFile(path string, data any) error {
 		return err
 	}
 
-	return os.WriteFile(path, encoded, 0o600)
+	return writeFileAtomically(path, encoded, 0o600)
 }

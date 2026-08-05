@@ -471,6 +471,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/config/write.go',
+                'template'      => 'go-cli/internal/config/write.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/config/config_test.go',
                 'template'      => 'go-cli/internal/config/config_test.go',
             ],
