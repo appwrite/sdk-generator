@@ -1137,6 +1137,16 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initprojectskills_test.go',
+                'template'      => 'go-cli/internal/cmd/initprojectskills_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initprojectskills.go',
+                'template'      => 'go-cli/internal/cmd/initprojectskills.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/auth/keyringbackend_test.go',
                 'template'      => 'go-cli/internal/auth/keyringbackend_test.go',
             ],

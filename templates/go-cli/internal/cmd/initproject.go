@@ -209,6 +209,25 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 		}
 	}
 
+	// Asked BEFORE the success line, the way the TypeScript asks it. The answer
+	// decides what happens in the seconds after that line, and a question
+	// printed underneath "Project linked" reads as though the linking were not
+	// finished yet.
+	//
+	// inquirer's confirm defaults to false when no default is given, which is
+	// what this question has -- a pull overwrites local files, so the safe
+	// answer is the default one.
+	autopull := false
+	if !creating {
+		autopull, err = prompter.Confirm(prompt.Question{
+			Message: "Pull all resources from this project?",
+			Default: false,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	if err := local.Write(); err != nil {
 		return err
 	}
@@ -220,12 +239,42 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 		output.Success(out, "Project linked → %s", config.LocalFileName)
 	}
 
-	// NOT YET PORTED: the autopull prompt and installInitProjectSkills. Both
-	// need `pull`, which lands with 5e. Saying so beats silently doing less
-	// than the TypeScript does.
+	installInitProjectSkills(out, local.Dirname())
+
+	// Only a LINKED project is offered the pull. A project created a moment ago
+	// has nothing to fetch, and asking would be asking about an empty result.
+	if !creating && autopull {
+		command.Println()
+
+		if err := pullEverything(command); err != nil {
+			// The project is linked and its config is written, so this is not a
+			// failed init -- it is a failed follow-up with its own command.
+			output.Failure(out, "Failed to pull the project's resources: %s", err)
+			output.Hint(out, "Run '%s pull all' to try again.", app.ExecutableName)
+		}
+
+		return nil
+	}
+
 	output.Log(out, "Run '%s pull all' to fetch this project's resources.", app.ExecutableName)
 
 	return nil
+}
+
+// pullEverything runs `pull all` in place, the way the autopull answer does.
+//
+// --all and --force are forced on, as the TypeScript sets `cliConfig.all` and
+// `cliConfig.force` before calling pullResources: the user has just answered the
+// only question there was, so a pull that then asked which resources and whether
+// to overwrite would be asking twice. The previous values are restored, because
+// this process may go on to do something else that reads them.
+func pullEverything(command *cobra.Command) error {
+	flags := app.Flags()
+	all, force := flags.All, flags.Force
+	flags.All, flags.Force = true, true
+	defer func() { flags.All, flags.Force = all, force }()
+
+	return runPull(command, pullActions(), true)
 }
 
 // chooseOrganization lists the organizations the account belongs to.
