@@ -390,7 +390,7 @@ try {
         $sdk->generate(__DIR__ . '/examples/cli');
     }
 
-    // Go CLI -- see docs/go-cli/PLAN.md for the invariants it has to preserve.
+    // Go CLI -- shares the TypeScript CLI's command surface via CliCommandSurface.
     if (!$requestedSdk || $requestedSdk === 'go-cli') {
         $language = new GoCLI();
         $language->setExecutableName('appwrite');

@@ -2,15 +2,14 @@
 //
 // Companion to capture-typegen-baselines.ts, same discipline: the Go port is
 // checked against output this script produced from the real implementation,
-// never against expectations someone wrote down. See docs/go-cli/README.md
-// section 2.6.
+// never against expectations someone wrote down.
 //
 // Copied into the generated CLI to run, the same way the other capture
 // scripts are -- the `./lib/...` import has to resolve against the CLI's own
-// tree, not against docs/:
+// tree, not against scripts/:
 //
 //     php example.php cli
-//     cp docs/go-cli/capture-valueformat-baselines.ts examples/cli/
+//     cp scripts/go-cli/capture-valueformat-baselines.ts examples/cli/
 //     cd examples/cli && FORCE_COLOR=0 bun run capture-valueformat-baselines.ts \
 //         ../../templates/go-cli/internal/output/testdata/valueformat.json
 //     rm examples/cli/capture-valueformat-baselines.ts

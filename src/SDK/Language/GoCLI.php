@@ -14,9 +14,6 @@ use Twig\TwigFunction;
  * filter all carry over, while the command surface comes from
  * CliCommandSurface -- the same trait the TypeScript CLI uses, so the two
  * cannot drift on flags, scopes, aliases or fallbacks.
- *
- * See docs/go-cli/PLAN.md for the phased plan and the invariants this has to
- * preserve.
  */
 class GoCLI extends Go
 {

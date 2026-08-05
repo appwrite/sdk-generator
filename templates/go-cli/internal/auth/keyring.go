@@ -14,8 +14,8 @@ import (
 // refreshTokenService is the keyring service refresh tokens are filed under.
 //
 // Matches the TypeScript CLI's `${EXECUTABLE_NAME}-oauth-refresh-token` exactly.
-// Interop is not an invariant -- docs/go-cli/PLAN.md §3 says re-authenticating
-// once on upgrade is acceptable -- but matching costs nothing and spares users
+// Interop is not an invariant -- re-authenticating once on upgrade is
+// acceptable -- but matching costs nothing and spares users
 // a login if the platform keyring cooperates.
 const refreshTokenService = "appwrite-oauth-refresh-token"
 

@@ -12,8 +12,7 @@ use Twig\TwigFunction;
  * services are scoped by a header, which methods are promoted to root
  * commands, and which console fallbacks a service needs. They are pure
  * functions of the API spec, so the TypeScript and Go CLIs have to agree on
- * every one of them -- docs/go-cli/PLAN.md lists the flag surface as
- * invariant 1.
+ * every one of them -- the flag surface is public API.
  *
  * Sharing them here instead of reimplementing per language is the mechanism
  * that stops the two CLIs drifting apart.
@@ -30,7 +29,7 @@ trait CliCommandSurface
      * `x`, so this list is part of the CLI's public flag surface rather than a
      * property of the target language. Deriving it from the language's own
      * keywords would make the Go CLI emit different flags from the TypeScript
-     * one, breaking invariant 1 in docs/go-cli/PLAN.md.
+     * one.
      *
      * @var list<string>
      */

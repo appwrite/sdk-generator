@@ -2,13 +2,13 @@
 //
 // Companion to capture-typegen-baselines.ts, same discipline: the Go port of
 // `appwrite generate` is pinned to what TypeScriptDatabasesGenerator actually
-// produces. See docs/go-cli/README.md section 2.6.
+// produces.
 //
 // Run it from a generated CLI, which is where handlebars and the compiled
 // generator live:
 //
 //     php example.php cli
-//     cp docs/go-cli/capture-generate-baselines.ts examples/cli/
+//     cp scripts/go-cli/capture-generate-baselines.ts examples/cli/
 //     cd examples/cli && bun run capture-generate-baselines.ts \
 //         ../../templates/go-cli/internal/generator/testdata
 //     rm examples/cli/capture-generate-baselines.ts

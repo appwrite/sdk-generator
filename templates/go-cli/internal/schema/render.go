@@ -11,8 +11,8 @@ import (
 // Ports drawTable (templates/cli/lib/parser.ts) for the two tables this package
 // shows before asking for approval.
 //
-// Human-readable output is explicitly outside the parity contract
-// (docs/go-cli/PLAN.md §3), so this is a plain aligned grid rather than a port
+// Human-readable output is explicitly outside the parity contract, so this is
+// a plain aligned grid rather than a port
 // of cli-table3's box drawing. What IS reproduced is the column set and the
 // wording of each cell: those are what tells a user their `title` column is
 // about to be dropped and rebuilt.

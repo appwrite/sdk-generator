@@ -9,8 +9,8 @@ import (
 // document below -- captured from `JSON.stringify(value, null, 2)`, which is
 // what parser.ts:772 calls.
 //
-// docs/go-cli/PLAN.md invariant 4: --json and --raw are scripted against, so
-// this has to match byte for byte. The interesting parts are the ampersand in
+// --json and --raw are scripted against, so this has to match byte for byte.
+// The interesting parts are the ampersand in
 // the URL, which Go's encoder escapes by default and JSON.stringify does not,
 // and the field order, which a Go map would sort.
 const nodeBaseline = `{

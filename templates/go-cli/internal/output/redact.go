@@ -9,9 +9,9 @@ import (
 
 // Ports the redaction half of templates/cli/lib/parser.ts.
 //
-// docs/go-cli/PLAN.md lists this as invariant 5: a regression here leaks
-// credentials into terminal scrollback, CI logs and bug reports. The rules are
-// reproduced exactly, including the parts that look arbitrary.
+// A regression here leaks credentials into terminal scrollback, CI logs and
+// bug reports. The rules are reproduced exactly, including the parts that look
+// arbitrary.
 
 // HiddenValue replaces a redacted value.
 const HiddenValue = "[hidden]"

@@ -1,8 +1,8 @@
 // Recapture the typegen baselines in templates/go-cli/internal/typegen/testdata.
 //
 // The Go port of `appwrite types` is pinned to what the TypeScript emitters
-// actually produce, not to what their EJS templates look like -- see
-// docs/go-cli/README.md section 2.6. This is the script that produces the pins,
+// actually produce, not to what their EJS templates look like.
+// This is the script that produces the pins,
 // kept in the repository so a baseline can be regenerated rather than
 // hand-edited when the TypeScript changes.
 //
@@ -10,7 +10,7 @@
 // live:
 //
 //     php example.php cli
-//     cp docs/go-cli/capture-typegen-baselines.ts examples/cli/
+//     cp scripts/go-cli/capture-typegen-baselines.ts examples/cli/
 //     cd examples/cli && bun run capture-typegen-baselines.ts \
 //         ../../templates/go-cli/internal/typegen/testdata
 //     rm examples/cli/capture-typegen-baselines.ts

@@ -24,6 +24,7 @@ go build -ldflags="-s -w" -o {{ language.params.executableName }} .
 
 ## Status
 
-Work in progress. See `docs/go-cli/PLAN.md` in the generator repository for the
-phased plan, current progress, and the invariants this CLI has to preserve
-against the TypeScript implementation.
+Work in progress. This CLI preserves the TypeScript implementation's command
+surface exactly -- every command path, flag name, shorthand and alias -- and
+its `--json`/`--raw` output byte for byte, so scripts written against one keep
+working against the other.

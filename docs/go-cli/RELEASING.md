@@ -100,27 +100,16 @@ credential: `install.sh` requires an embedded signature rather than a trusted
 one, and goreleaser ad-hoc signs the darwin builds in the build hook — which is
 all the TypeScript CLI has ever shipped, and needs no external service.
 
-## Known blocker: the published Go SDK is behind the CLI
+## The published Go SDK must carry every package the CLI imports
 
 `go.mod` requires `github.com/appwrite/sdk-for-go/v6` at the version
-`GoCLI::setSDKVersion` pins. Four packages the CLI imports do not exist in
-v6.2.0:
-
-    affiliates    migrations    notifications    vcs
-
-`affiliates` is new in the spec and no SDK release carries it yet. The other
-three have never been in the published module. So a build from the shipped
-repository — one without the local `replace` that `example.php` adds for the
-examples tree — cannot resolve its own dependency.
-
-The `go-cli (console)` validation job builds with the replace dropped precisely
-to keep this visible, and it fails today. That failure is accurate, not a
-misconfigured check: **a release cannot be cut until those four packages are
-published**, or until the CLI vendors the SDK the way the preview fork does.
-
-The preview fork at `ChiragAgg5k/appwrite-cli-go` is unaffected because it
-vendors a console-platform SDK into `internal/appwritesdk` rather than resolving
-the published module. That vendoring is structural, not a shortcut.
+`GoCLI::setSDKVersion` pins, and a build from the shipped repository — one
+without the local `replace` that `example.php` adds for the examples tree —
+has to resolve every service package from that release. The `go-cli (console)`
+validation job builds with the replace dropped precisely to keep this visible:
+if the spec gains a service before the SDK release does, that job fails, and
+the failure is accurate. Raise the pin (or exclude the service) before cutting
+a release.
 
 ## Version numbers
 

@@ -10,8 +10,7 @@ import (
 //
 // This is not a cosmetic concern: the matcher decides what gets uploaded. A
 // pattern that fails to match ships a secret; one that over-matches drops a
-// source file and the deployment fails to build. docs/go-cli/PLAN.md invariant
-// 6.
+// source file and the deployment fails to build.
 //
 // Ported rather than taken from an existing Go gitignore library because the
 // libraries disagree with `ignore` in exactly the corners that matter --

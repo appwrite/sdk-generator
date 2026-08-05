@@ -10,7 +10,7 @@ import (
 // Ports the log/warn/success/error helpers at templates/cli/lib/parser.ts:1006.
 //
 // Status lines, not data. Like the rest of the human-readable output these are
-// explicitly outside the contract (docs/go-cli/PLAN.md §3) -- but the prefixes
+// explicitly outside the parity contract -- but the prefixes
 // are reproduced verbatim, because they are what a user scanning a terminal
 // recognises and what a script grepping stderr may match on.
 var (

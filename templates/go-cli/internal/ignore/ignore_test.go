@@ -9,9 +9,9 @@ import (
 )
 
 // testdata/cases.json holds verdicts produced by running the `ignore` npm
-// package itself. Regenerate with docs/go-cli/capture-ignore-baselines.ts; do
-// not hand-edit it. A disagreement here is a real difference in which files
-// would be deployed.
+// package itself. Regenerate with scripts/go-cli/capture-ignore-baselines.ts
+// in the generator repository; do not hand-edit it. A disagreement here is a
+// real difference in which files would be deployed.
 
 type ignoreCase struct {
 	Name     string          `json:"name"`

@@ -17,8 +17,7 @@ import (
 //
 // Registration is deliberately eager. Phase 0 measured the complete tree at
 // 5.0ms against 206ms for the TypeScript CLI, so lazy construction would add
-// complexity to generated code for no measurable gain -- see
-// docs/go-cli/BENCHMARKS.md.
+// complexity to generated code for no measurable gain.
 func NewRootCommand() *cobra.Command {
 	root := &cobra.Command{
 		Use:     "{{ language.params.executableName }}",

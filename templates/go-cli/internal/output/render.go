@@ -15,8 +15,8 @@ import (
 
 // Ports the human-readable half of templates/cli/lib/parser.ts:parse().
 //
-// Unlike --json and --raw this output is explicitly NOT part of the contract
-// (docs/go-cli/PLAN.md §3), so the structure is reproduced -- scalars first,
+// Unlike --json and --raw this output is explicitly NOT part of the parity
+// contract, so the structure is reproduced -- scalars first,
 // then one section per nested value -- without chasing the TypeScript's exact
 // spacing.
 //

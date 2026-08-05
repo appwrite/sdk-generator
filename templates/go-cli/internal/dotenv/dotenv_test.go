@@ -9,7 +9,8 @@ import (
 )
 
 // testdata/cases.json holds the output of dotenv 16.x over each source.
-// Regenerate with docs/go-cli/capture-dotenv-baselines.ts; do not hand-edit it.
+// Regenerate with scripts/go-cli/capture-dotenv-baselines.ts in the generator
+// repository; do not hand-edit it.
 
 type parseCase struct {
 	Name     string            `json:"name"`

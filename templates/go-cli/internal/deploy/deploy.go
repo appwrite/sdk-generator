@@ -399,8 +399,8 @@ func PlanChunks(size int64) []Chunk {
 //
 // STREAMED, never buffered: every chunk is an io.SectionReader over the open
 // file, so peak memory is the HTTP write buffer rather than the archive. The
-// TypeScript's fs.readFileSync into a Buffer is the 421 MB in
-// docs/go-cli/PLAN.md §1.4, and this is the 102 MB flat.
+// TypeScript's fs.readFileSync into a Buffer peaked at 421 MB on a large
+// archive where this stays at 102 MB flat.
 //
 // Ports the chunkedUpload half of the console SDK's client: one request under
 // the chunk size, otherwise a first chunk that mints the upload id followed by

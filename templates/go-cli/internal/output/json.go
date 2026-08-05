@@ -11,8 +11,8 @@ import (
 
 // Ports the --json and --raw output paths from templates/cli/lib/parser.ts.
 //
-// docs/go-cli/PLAN.md lists this as invariant 4: these two modes are scripted
-// against, so the bytes must match the TypeScript CLI's exactly.
+// These two modes are scripted against, so the bytes must match the TypeScript
+// CLI's exactly.
 
 // Mode selects how a response is rendered.
 type Mode int

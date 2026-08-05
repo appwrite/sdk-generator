@@ -12,9 +12,8 @@ import (
 
 // Ports the `Local` half of templates/cli/lib/config.ts -- appwrite.config.json.
 //
-// docs/go-cli/PLAN.md invariant 2: this file lives in user repositories and is
-// code-reviewed, so reading and rewriting it must not change a byte that the
-// user did not ask to change.
+// This file lives in user repositories and is code-reviewed, so reading and
+// rewriting it must not change a byte that the user did not ask to change.
 
 // LocalFileName is the project config the CLI reads from the working directory.
 const LocalFileName = "appwrite.config.json"

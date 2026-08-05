@@ -4,12 +4,12 @@
 // `run` reads a function's .env with dotenv 16.x and passes every pair into the
 // container as an environment variable. A parse difference changes what the
 // function sees at runtime, so the parser is pinned to the package rather than
-// to its documentation. See README.md section 2.6.
+// to its documentation.
 //
 // Run it from a generated CLI, which is where dotenv is installed:
 //
 //     php example.php cli
-//     cp docs/go-cli/capture-dotenv-baselines.ts examples/cli/
+//     cp scripts/go-cli/capture-dotenv-baselines.ts examples/cli/
 //     cd examples/cli && bun run capture-dotenv-baselines.ts \
 //         ../../templates/go-cli/internal/dotenv/testdata/cases.json
 //     rm examples/cli/capture-dotenv-baselines.ts

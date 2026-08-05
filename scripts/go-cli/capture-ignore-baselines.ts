@@ -4,12 +4,12 @@
 // internal/ignore ports the `ignore` npm package, which decides which files
 // reach a function build and a deployment. Getting it wrong ships a secret or
 // drops a source file, so it is pinned to what the package actually does rather
-// than to a reading of gitignore's documentation. See README.md section 2.6.
+// than to a reading of gitignore's documentation.
 //
 // Run it from a generated CLI, which is where `ignore` is installed:
 //
 //     php example.php cli
-//     cp docs/go-cli/capture-ignore-baselines.ts examples/cli/
+//     cp scripts/go-cli/capture-ignore-baselines.ts examples/cli/
 //     cd examples/cli && bun run capture-ignore-baselines.ts \
 //         ../../templates/go-cli/internal/ignore/testdata/cases.json
 //     rm examples/cli/capture-ignore-baselines.ts
