@@ -46,6 +46,20 @@ func trace(format string, arguments ...any) {
 	}
 }
 
+// Warn receives a message the user should see whether or not --verbose is on.
+//
+// Separate from Trace because falling back to plaintext is not diagnostics: it
+// changes where the user's refresh token is stored, and staying quiet about it
+// meant a headless Linux box or a locked keychain wrote a long-lived credential
+// to disk with nothing said. Wired the same way Trace is, for the same reason.
+var Warn func(format string, arguments ...any)
+
+func warn(format string, arguments ...any) {
+	if Warn != nil {
+		Warn(format, arguments...)
+	}
+}
+
 // storeName is what the platform calls its credential store, so a message about
 // one names the thing the user would go and look at.
 func storeName() string {
@@ -155,7 +169,9 @@ func (s *TokenStore) prefsPath() string {
 // SetRefresh stores a refresh token, preferring the keyring.
 //
 // On success the prefs copy is removed, so a token never lingers in plaintext
-// after the keyring starts working. On failure it is written to prefs instead.
+// after the keyring starts working. On failure it is written to prefs instead,
+// and the user is told -- the fallback is the documented behaviour for headless
+// Linux and CI, but which store holds a long-lived credential is theirs to know.
 func (s *TokenStore) SetRefresh(sessionID, token string) error {
 	if sessionID == "" {
 		return nil
@@ -164,15 +180,31 @@ func (s *TokenStore) SetRefresh(sessionID, token string) error {
 		return s.DeleteRefresh(sessionID)
 	}
 
-	if err := keyring.Set(refreshTokenService, sessionID, token); err == nil {
+	storeErr := keyring.Set(refreshTokenService, sessionID, token)
+	if storeErr == nil {
+		trace("stored the refresh token for %s in %s", sessionID, storeName())
 		s.clearPrefsToken(sessionID)
 
 		return s.Global.Write()
 	}
 
-	if session := s.Global.SessionData(sessionID); session != nil {
-		session.Set(prefsRefreshTokenKey, token)
+	trace("%s would not store the refresh token for %s: %s", storeName(), sessionID, storeErr)
+
+	session := s.Global.SessionData(sessionID)
+	if session == nil {
+		// Nothing to write the token into, so reporting success would be a lie:
+		// the caller has just rotated the token, the old one is already dead
+		// server-side, and silence here means the next command finds no
+		// credential and cannot say why.
+		return fmt.Errorf(
+			"%s would not store the refresh token and session %s is not in %s: %w",
+			storeName(), sessionID, s.prefsPath(), storeErr)
 	}
+
+	warn("%s is unavailable, so the refresh token was written to %s instead.",
+		storeName(), s.prefsPath())
+
+	session.Set(prefsRefreshTokenKey, token)
 
 	return s.Global.Write()
 }

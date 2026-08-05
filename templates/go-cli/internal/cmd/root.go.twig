@@ -53,6 +53,14 @@ func NewRootCommand() *cobra.Command {
 				}
 			}
 
+			// Deliberately outside the --verbose branch above: which store
+			// holds a long-lived refresh token is not a diagnostic, and the
+			// user cannot opt into hearing about it after the fact. Stderr, so
+			// it never lands in --json output.
+			auth.Warn = func(format string, arguments ...any) {
+				output.Warn(command.ErrOrStderr(), format, arguments...)
+			}
+
 			// Before anything reads a session, and on every command, because
 			// that is when an upgrading user's prefs.json is still in the old
 			// shape. The TypeScript runs it in the same place.
