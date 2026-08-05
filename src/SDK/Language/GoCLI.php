@@ -23,11 +23,22 @@ class GoCLI extends Go
     use CliCommandSurface;
 
     /**
+     * Go module path the CLI is published under.
+     *
+     * A constant rather than a settable param: Go has no relative imports, so
+     * this string is baked into every import in the runtime packages. Those
+     * files are `copy` scope -- plain Go that can be edited, vetted and tested
+     * in place -- which is only safe while the path cannot change underneath
+     * them.
+     */
+    public const string MODULE_PATH = 'github.com/appwrite/appwrite-cli-go';
+
+    /**
      * @var array
      */
     #[Override]
     protected $params = [
-        'modulePath' => 'github.com/appwrite/appwrite-cli-go',
+        'modulePath' => self::MODULE_PATH,
         'executableName' => 'appwrite',
         'homebrewTapOwner' => 'appwrite',
         'homebrewTapName' => 'appwrite',
@@ -38,16 +49,6 @@ class GoCLI extends Go
     public function getName(): string
     {
         return 'GoCLI';
-    }
-
-    /**
-     * Go module path the generated CLI is published under.
-     */
-    public function setModulePath(string $modulePath): self
-    {
-        $this->setParam('modulePath', $modulePath);
-
-        return $this;
     }
 
     /**
@@ -254,6 +255,121 @@ class GoCLI extends Go
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/root.go',
                 'template'      => 'go-cli/internal/cmd/root.go.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/global.go',
+                'template'      => 'go-cli/internal/config/global.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/config_test.go',
+                'template'      => 'go-cli/internal/config/config_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/redact.go',
+                'template'      => 'go-cli/internal/output/redact.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/redact_test.go',
+                'template'      => 'go-cli/internal/output/redact_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/client/client.go',
+                'template'      => 'go-cli/internal/client/client.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/session.go',
+                'template'      => 'go-cli/internal/cmd/session.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/auth/keyring.go',
+                'template'      => 'go-cli/internal/auth/keyring.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/auth/refresh.go',
+                'template'      => 'go-cli/internal/auth/refresh.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/auth/refresh_test.go',
+                'template'      => 'go-cli/internal/auth/refresh_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/jsonx/object.go',
+                'template'      => 'go-cli/internal/jsonx/object.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/jsonx/object_test.go',
+                'template'      => 'go-cli/internal/jsonx/object_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/json.go',
+                'template'      => 'go-cli/internal/config/json.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/json.go',
+                'template'      => 'go-cli/internal/output/json.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/json_test.go',
+                'template'      => 'go-cli/internal/output/json_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/local.go',
+                'template'      => 'go-cli/internal/config/local.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/local_test.go',
+                'template'      => 'go-cli/internal/config/local_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/auth/device.go',
+                'template'      => 'go-cli/internal/auth/device.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/auth/device_test.go',
+                'template'      => 'go-cli/internal/auth/device_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/login.go',
+                'template'      => 'go-cli/internal/cmd/login.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/login_test.go',
+                'template'      => 'go-cli/internal/cmd/login_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/filter.go',
+                'template'      => 'go-cli/internal/output/filter.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/filter_test.go',
+                'template'      => 'go-cli/internal/output/filter_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/render.go',
+                'template'      => 'go-cli/internal/output/render.go',
             ],
             [
                 'scope'         => 'default',

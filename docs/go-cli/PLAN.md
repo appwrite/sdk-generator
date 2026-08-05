@@ -312,7 +312,7 @@ merge. Check `Go.php:63` for what you are replacing.
 
 ---
 
-### Phase 2 — Runtime foundation
+### Phase 2 — Runtime foundation ✅ COMPLETE
 
 **Goal:** the non-generated core, with unit tests. No service commands, no stateful
 commands.
@@ -564,7 +564,7 @@ Progress table, kept current:
 |---|---|---|---|
 | 0 — Spike | ✅ Complete — [BENCHMARKS.md](BENCHMARKS.md) | | |
 | 1 — Generator scaffolding | ✅ Complete — surface matches TS exactly (608/608) | | |
-| 2 — Runtime foundation | Not started | | |
+| 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
 | 3 — Generated commands | Not started | | |
 | 4 — Conformance harness | Not started | | |
 | 5 — Stateful commands | Not started | | |

@@ -316,7 +316,6 @@ try {
     // Go CLI (rewrite in progress -- see docs/go-cli/PLAN.md)
     if (!$requestedSdk || $requestedSdk === 'go-cli') {
         $language = new GoCLI();
-        $language->setModulePath('github.com/appwrite/appwrite-cli-go');
         $language->setExecutableName('appwrite');
 
         $sdk = new SDK($language, buildSpec($specFormat, $spec));

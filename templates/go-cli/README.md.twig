@@ -17,6 +17,7 @@ idempotent, so formatting is a build step rather than a template concern.
 
 ```bash
 gofmt -w .
+go mod tidy
 go build -ldflags="-s -w" -o {{ language.params.executableName }} .
 ./{{ language.params.executableName }} --help
 ```

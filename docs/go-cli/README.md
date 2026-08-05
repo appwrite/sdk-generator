@@ -302,6 +302,11 @@ Ranked by how often they will bite you.
 
 **Your change did nothing.** No `getFiles()` entry. Check `GoCLI::getFiles()`.
 
+**You removed a `getFiles()` entry but the file is still there.** Generation writes
+files; it never deletes them. `examples/` keeps the old output, and the build fails with
+a redeclaration error that points at code you thought was gone. Delete the stale file
+from `examples/go-cli/` by hand, or regenerate into a clean directory.
+
 **Your Twig syntax appears literally in the output.** The file is `'scope' => 'copy'`.
 Change the scope or remove the variable.
 

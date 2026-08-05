@@ -9,6 +9,9 @@ import (
 // Version is stamped at build time with -ldflags.
 var Version = "{{ sdk.version }}"
 
+// ExecutableName is the binary name, and the directory preferences live under.
+const ExecutableName = "{{ language.params.executableName }}"
+
 // NewRootCommand builds the full command tree.
 //
 // Registration is deliberately eager. Phase 0 measured the complete tree at
@@ -26,6 +29,7 @@ func NewRootCommand() *cobra.Command {
 	}
 
 	services.Register(root)
+	registerSessionCommands(root)
 
 	return root
 }
