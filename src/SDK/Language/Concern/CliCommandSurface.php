@@ -45,30 +45,28 @@ trait CliCommandSurface
         return strtolower((string) $value);
     }
 
-    protected function hasArrayQueriesParameter(array $method): bool
+    /**
+     * The method's array `queries` parameter, or null when it has none.
+     *
+     * Its description is what says whether the endpoint accepts only limit and
+     * offset, so the parameter is returned rather than a pair of predicates
+     * that would each have to find it again.
+     */
+    protected function findQueriesParameter(array $method): ?array
     {
         foreach ($method['parameters']['all'] ?? [] as $parameter) {
             if (($parameter['name'] ?? '') === 'queries' && ($parameter['type'] ?? '') === self::TYPE_ARRAY) {
-                return true;
+                return $parameter;
             }
         }
 
-        return false;
+        return null;
     }
 
-    protected function hasOnlyLimitOffsetQueries(array $method): bool
+    protected function acceptsOnlyLimitOffsetQueries(?array $queries): bool
     {
-        foreach ($method['parameters']['all'] ?? [] as $parameter) {
-            if (($parameter['name'] ?? '') !== 'queries' || ($parameter['type'] ?? '') !== self::TYPE_ARRAY) {
-                continue;
-            }
-
-            if (str_contains(strtolower($parameter['description'] ?? ''), 'only supported methods are limit and offset')) {
-                return true;
-            }
-        }
-
-        return false;
+        return $queries !== null
+            && str_contains(strtolower($queries['description'] ?? ''), 'only supported methods are limit and offset');
     }
 
     /**
@@ -409,7 +407,7 @@ trait CliCommandSurface
     protected function hasCliQueryParam(array $service): bool
     {
         foreach ($service['methods'] ?? [] as $method) {
-            if ($this->hasArrayQueriesParameter($method)) {
+            if ($this->findQueriesParameter($method) !== null) {
                 return true;
             }
         }
@@ -427,14 +425,15 @@ trait CliCommandSurface
 
     protected function getCliQueryConfig(array $method): array
     {
-        $hasQueries = $this->hasArrayQueriesParameter($method);
+        $queries = $this->findQueriesParameter($method);
+        $hasQueries = $queries !== null;
         $methodName = $method['name'] ?? '';
         $parameterNames = array_map(
             fn (array $parameter): string => $parameter['name'] ?? '',
             $method['parameters']['all'] ?? []
         );
         $collides = fn (string $group): bool => array_intersect(self::QUERY_FLAG_PARAMS[$group], $parameterNames) !== [];
-        $hasOnlyLimitOffsetQueries = $hasQueries && $this->hasOnlyLimitOffsetQueries($method);
+        $hasOnlyLimitOffsetQueries = $this->acceptsOnlyLimitOffsetQueries($queries);
         $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true) && !$collides('select');
         $hasSelectionOnlyQueries = $hasQueries && in_array($methodName, ['getDocument', 'getRow'], true);
         $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries && !$collides('filtering');
