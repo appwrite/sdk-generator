@@ -36,32 +36,6 @@ trait CliCommandSurface
     ];
 
     /**
-     * Convert string to kebab-case.
-     */
-    protected function toKebabCase(string $value): string
-    {
-        $value = preg_replace('/([a-z])([A-Z])/', '$1-$2', $value);
-        $value = preg_replace('/[\s_]+/', '-', (string) $value);
-        return strtolower((string) $value);
-    }
-
-    /**
-     * The method's array `queries` parameter, or null when it has none. Its
-     * description is what says whether the endpoint accepts only limit and
-     * offset, so the parameter is returned rather than just its presence.
-     */
-    protected function findQueriesParameter(array $method): ?array
-    {
-        foreach ($method['parameters']['all'] ?? [] as $parameter) {
-            if (($parameter['name'] ?? '') === 'queries' && ($parameter['type'] ?? '') === self::TYPE_ARRAY) {
-                return $parameter;
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * Client factory per scheme that names a service's own resource.
      * Organization scopes the console client, Project is the project client, so
      * the names cannot be derived from the scheme.
@@ -83,6 +57,24 @@ trait CliCommandSurface
      */
     protected const array TOP_LEVEL_COMMANDS = [
         'oauth2' => ['listOrganizations', 'listProjects'],
+    ];
+
+    /**
+     * Methods whose endpoint only exists on Cloud, mapped to the
+     * `lib/console-fallback.ts` helper the command calls instead of the service
+     * method. The helper keeps the Cloud call and falls back to the console
+     * endpoints that self-hosted installs do serve.
+     *
+     * @var array<string, array<string, string>>
+     */
+    protected const array CONSOLE_FALLBACK_METHODS = [
+        'oauth2' => [
+            'listOrganizations' => 'listOrganizationsForSession',
+            'listProjects'      => 'listProjectsForSession',
+        ],
+        'organization' => [
+            'get' => 'getOrganizationForSession',
+        ],
     ];
 
     /**
@@ -193,73 +185,30 @@ trait CliCommandSurface
     ];
 
     /**
-     * @return list<array{title: string, dim: bool, commands: list<string>}>
+     * Convert string to kebab-case.
      */
-    protected function getCliHelpGroups(): array
+    protected function toKebabCase(string $value): string
     {
-        return array_map(
-            static fn (array $group): array => [
-                'title' => $group['title'],
-                'dim' => $group['dim'] ?? false,
-                'commands' => $group['commands'],
-            ],
-            self::HELP_GROUPS,
-        );
+        $value = preg_replace('/([a-z])([A-Z])/', '$1-$2', $value);
+        $value = preg_replace('/[\s_]+/', '-', (string) $value);
+        return strtolower((string) $value);
     }
 
     /**
-     * Summaries with `%title%` resolved, so a template emits a plain literal.
-     *
-     * @return array<string, string>
+     * The method's array `queries` parameter, or null when it has none. Its
+     * description is what says whether the endpoint accepts only limit and
+     * offset, so the parameter is returned rather than just its presence.
      */
-    protected function getCliHelpSummaries(string $title): array
+    protected function findQueriesParameter(array $method): ?array
     {
-        return array_map(
-            static fn (string $summary): string => str_replace('%title%', $title, $summary),
-            self::HELP_SUMMARIES,
-        );
-    }
+        foreach ($method['parameters']['all'] ?? [] as $parameter) {
+            if (($parameter['name'] ?? '') === 'queries' && ($parameter['type'] ?? '') === self::TYPE_ARRAY) {
+                return $parameter;
+            }
+        }
 
-    /**
-     * @return list<string>
-     */
-    protected function getCliHelpOptionOrder(): array
-    {
-        return self::HELP_OPTION_ORDER;
+        return null;
     }
-
-    /**
-     * Help metadata for the templates of every CLI that renders the grouped
-     * main help screen.
-     *
-     * @return list<TwigFunction>
-     */
-    protected function getCliHelpFunctions(): array
-    {
-        return [
-            new TwigFunction('cliHelpGroups', fn (): array => $this->getCliHelpGroups()),
-            new TwigFunction('cliHelpSummaries', fn (string $title): array => $this->getCliHelpSummaries($title)),
-            new TwigFunction('cliHelpOptionOrder', fn (): array => $this->getCliHelpOptionOrder()),
-        ];
-    }
-
-    /**
-     * Methods whose endpoint only exists on Cloud, mapped to the
-     * `lib/console-fallback.ts` helper the command calls instead of the service
-     * method. The helper keeps the Cloud call and falls back to the console
-     * endpoints that self-hosted installs do serve.
-     *
-     * @var array<string, array<string, string>>
-     */
-    protected const array CONSOLE_FALLBACK_METHODS = [
-        'oauth2' => [
-            'listOrganizations' => 'listOrganizationsForSession',
-            'listProjects'      => 'listProjectsForSession',
-        ],
-        'organization' => [
-            'get' => 'getOrganizationForSession',
-        ],
-    ];
 
     /**
      * How a header-scoped service is spelled in the generated CLI.
@@ -468,6 +417,57 @@ trait CliCommandSurface
             'builderParams' => $builderParams,
             'extraParams' => array_values(array_filter($builderParams, fn (string $param): bool => $param !== 'queries')),
             'rawDescriptionPrefix' => $rawDescriptionPrefix,
+        ];
+    }
+
+    /**
+     * @return list<array{title: string, dim: bool, commands: list<string>}>
+     */
+    protected function getCliHelpGroups(): array
+    {
+        return array_map(
+            static fn (array $group): array => [
+                'title' => $group['title'],
+                'dim' => $group['dim'] ?? false,
+                'commands' => $group['commands'],
+            ],
+            self::HELP_GROUPS,
+        );
+    }
+
+    /**
+     * Summaries with `%title%` resolved, so a template emits a plain literal.
+     *
+     * @return array<string, string>
+     */
+    protected function getCliHelpSummaries(string $title): array
+    {
+        return array_map(
+            static fn (string $summary): string => str_replace('%title%', $title, $summary),
+            self::HELP_SUMMARIES,
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function getCliHelpOptionOrder(): array
+    {
+        return self::HELP_OPTION_ORDER;
+    }
+
+    /**
+     * Help metadata for the templates of every CLI that renders the grouped
+     * main help screen.
+     *
+     * @return list<TwigFunction>
+     */
+    protected function getCliHelpFunctions(): array
+    {
+        return [
+            new TwigFunction('cliHelpGroups', fn (): array => $this->getCliHelpGroups()),
+            new TwigFunction('cliHelpSummaries', fn (string $title): array => $this->getCliHelpSummaries($title)),
+            new TwigFunction('cliHelpOptionOrder', fn (): array => $this->getCliHelpOptionOrder()),
         ];
     }
 }
