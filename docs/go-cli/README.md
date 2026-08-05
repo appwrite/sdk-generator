@@ -184,7 +184,7 @@ cd mock-server && docker compose down
 |---|---|
 | Current language class | `src/SDK/Language/CLI.php` (1,169 lines) |
 | Current templates | `templates/cli/` |
-| Current generated output | `examples/cli/` — 24 services, 606 commands |
+| Current generated output | `examples/cli/` — 23 services, 608 commands, 2,912 flags |
 | Service command template | `templates/cli/lib/commands/services/services.ts.twig` |
 | Entry point template | `templates/cli/cli.ts.twig` |
 
