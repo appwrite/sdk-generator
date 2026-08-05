@@ -7,6 +7,44 @@ workflow into the shipped CLI repository. It fires on `release: published` and
 handles goreleaser, signing, GitHub assets, npm and Homebrew. Everything below
 is either a prerequisite it assumes, or a decision it reads off the release.
 
+## Which repository
+
+**`appwrite/sdk-for-cli`** — the same repository the TypeScript CLI ships from.
+
+The Go module path derives from `gitUserName`/`gitRepoName`, so that decision
+alone gives `github.com/appwrite/sdk-for-cli` in `go.mod`, in every import, and
+in the goreleaser ldflags. Nothing is configured twice.
+
+Two things come for free from reusing that repository:
+
+**Windows signing.** The TypeScript CLI's workflow falls back to the project
+slug `sdk-for-cli`, and the Go CLI's falls back to `gitRepoName`, which is the
+same string. The policy and artifact-configuration slugs default identically
+(`release-signing`, `initial`), the SignPath secrets are already present, and
+the uploaded artifact has the same shape — `upload-artifact` strips the common
+ancestor directory, so `staging/` and `build/` both yield two `.exe` files at
+the artifact root. Signing switches itself on because it keys off the token
+being present.
+
+**npm trust for the parent package.** Trusted publishing is scoped to a
+repository plus a workflow file path, and both CLIs generate
+`.github/workflows/publish.yml` into `appwrite/sdk-for-cli`. Whatever trust
+`appwrite-cli` already has carries over. The six platform packages do not
+exist, so they still need the bootstrap below.
+
+### This is a cutover, not coexistence
+
+Both CLIs generate to identical destinations — `publish.yml`, `package.json`,
+`install.sh`, `install.ps1`, the scoop manifest. Generating the Go CLI into
+`sdk-for-cli` replaces the TypeScript CLI there; they cannot both live in that
+repository.
+
+So the repository's default branch becomes the Go CLI at the moment the sdks
+task is repointed, while `appwrite-cli@latest` on npm is still TypeScript until
+a stable release moves it. That gap is fine, but it is a sequencing decision
+rather than something to discover during a release. An rc can be cut from a
+branch to keep the default branch on TypeScript until the cutover is intended.
+
 ## Prerequisites, once per repository
 
 ### 1. Create the six npm platform packages by hand
@@ -74,6 +112,28 @@ node scripts/go-cli/extract-command-surface.mjs
 
 If `internal/cmd/surface_test.go` then fails, the two CLIs have genuinely
 drifted and that is a bug to fix, not a snapshot to refresh.
+
+## Known blocker: the published Go SDK is behind the CLI
+
+`go.mod` requires `github.com/appwrite/sdk-for-go/v6` at the version
+`GoCLI::setSDKVersion` pins. Four packages the CLI imports do not exist in
+v6.2.0:
+
+    affiliates    migrations    notifications    vcs
+
+`affiliates` is new in the spec and no SDK release carries it yet. The other
+three have never been in the published module. So a build from the shipped
+repository — one without the local `replace` that `example.php` adds for the
+examples tree — cannot resolve its own dependency.
+
+The `go-cli (console)` validation job builds with the replace dropped precisely
+to keep this visible, and it fails today. That failure is accurate, not a
+misconfigured check: **a release cannot be cut until those four packages are
+published**, or until the CLI vendors the SDK the way the preview fork does.
+
+The preview fork at `ChiragAgg5k/appwrite-cli-go` is unaffected because it
+vendors a console-platform SDK into `internal/appwritesdk` rather than resolving
+the published module. That vendoring is structural, not a shortcut.
 
 ## Version numbers
 

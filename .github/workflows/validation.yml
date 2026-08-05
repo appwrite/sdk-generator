@@ -75,6 +75,9 @@ jobs:
           # Console SDKs
           - sdk: cli
             platform: console
+
+          - sdk: go-cli
+            platform: console
           
           - sdk: web
             platform: console
@@ -176,7 +179,7 @@ jobs:
           sdk: 'stable'
 
       - name: Setup Go
-        if: matrix.sdk == 'go' || matrix.sdk == 'dart' || matrix.sdk == 'flutter'
+        if: matrix.sdk == 'go' || matrix.sdk == 'go-cli' || matrix.sdk == 'dart' || matrix.sdk == 'flutter'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26.5'
@@ -292,6 +295,23 @@ jobs:
               go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
               govulncheck ./...
               go build ./...
+              go test ./...
+              ;;
+            go-cli)
+              # Against the PUBLISHED sdk-for-go, not the tree example.php
+              # generates beside it. Dropping the replace is the whole point: the
+              # CLI resolving its own generated SDK can never disagree with it,
+              # so a spec that has moved ahead of the released SDK -- a new
+              # service, or a new method on one -- stays invisible until a
+              # release tries to build from the shipped repository.
+              #
+              # This currently FAILS, and the failure is real: v6.2.0 has no
+              # affiliates, migrations, notifications or vcs package. See
+              # docs/go-cli/RELEASING.md.
+              go mod edit -dropreplace=github.com/appwrite/sdk-for-go/v6
+              go mod tidy
+              go build ./...
+              go vet ./...
               go test ./...
               ;;
             dotnet)
