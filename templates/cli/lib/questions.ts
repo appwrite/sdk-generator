@@ -550,7 +550,9 @@ export const questionsCreateFunction: Question[] = [
     name: "buildSpecification",
     message: "What build specification would you like to use?",
     choices: async () => {
-      const response = await (await getFunctionsService()).listSpecifications();
+      const response = await (
+        await getFunctionsService()
+      ).listSpecifications({ type: "builds" });
       const specifications = response["specifications"];
       const choices = specifications.map((spec: any, _idx: number) => {
         return {
@@ -567,7 +569,9 @@ export const questionsCreateFunction: Question[] = [
     name: "runtimeSpecification",
     message: "What runtime specification would you like to use?",
     choices: async () => {
-      const response = await (await getFunctionsService()).listSpecifications();
+      const response = await (
+        await getFunctionsService()
+      ).listSpecifications({ type: "runtimes" });
       const specifications = response["specifications"];
       const choices = specifications.map((spec: any, _idx: number) => {
         return {
@@ -1317,7 +1321,9 @@ export const questionsCreateSite: Question[] = [
     name: "buildSpecification",
     message: "What build specification would you like to use?",
     choices: async () => {
-      const response = await (await getSitesService()).listSpecifications();
+      const response = await (
+        await getSitesService()
+      ).listSpecifications({ type: "builds" });
       const specifications = response["specifications"];
       const choices = specifications.map((spec: any) => {
         return {
@@ -1334,7 +1340,9 @@ export const questionsCreateSite: Question[] = [
     name: "runtimeSpecification",
     message: "What runtime specification would you like to use?",
     choices: async () => {
-      const response = await (await getSitesService()).listSpecifications();
+      const response = await (
+        await getSitesService()
+      ).listSpecifications({ type: "runtimes" });
       const specifications = response["specifications"];
       const choices = specifications.map((spec: any) => {
         return {
