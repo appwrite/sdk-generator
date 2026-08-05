@@ -104,10 +104,42 @@ func logRequest(method, path string, status int, elapsed time.Duration) {
 }
 
 // New returns a client with the headers every request carries.
+// responseHeaderTimeout bounds the wait for response headers.
+//
+// Measured from the moment the request body finishes, so it constrains a server
+// that accepted everything and then went quiet, without constraining how long
+// sending takes.
+const responseHeaderTimeout = 60 * time.Second
+
+// baseTransport is the process default's tuning plus a bound on response
+// headers.
+//
+// Timeouts are per phase here rather than one budget for the whole request,
+// which is what http.Client.Timeout would be: it covers connect, write, read and
+// body streaming together. `push` sends deploy.ChunkSize per request, and at
+// 5 MB a 60 second ceiling failed every chunk on less than roughly 90 KB/s of
+// upstream -- reported as a server error, with no retry, so a slow connection
+// looked like a broken API. Bounding each phase catches a connection that is
+// stuck without punishing one that is merely slow.
+//
+// A dependency replacing http.DefaultTransport is not a reason to panic on a
+// type assertion, so that case falls back to a plain transport.
+func baseTransport() *http.Transport {
+	transport := &http.Transport{}
+	if standard, ok := http.DefaultTransport.(*http.Transport); ok {
+		// Keeps the default dial and TLS handshake timeouts, and the connection
+		// pooling, rather than restating them here.
+		transport = standard.Clone()
+	}
+	transport.ResponseHeaderTimeout = responseHeaderTimeout
+
+	return transport
+}
+
 func New(endpoint, sdkVersion string) *Client {
 	return &Client{
 		Endpoint:   strings.TrimRight(endpoint, "/"),
-		HTTP:       &http.Client{Timeout: 60 * time.Second},
+		HTTP:       &http.Client{Transport: baseTransport()},
 		SDKVersion: sdkVersion,
 		headers: map[string]string{
 			"content-type":   "application/json",
@@ -284,14 +316,10 @@ func (c *Client) SetSelfSigned(selfSigned bool) *Client {
 		return c
 	}
 
-	// Cloned from the default when it is the usual transport, so proxy settings
-	// and connection tuning survive. A dependency that replaces
-	// http.DefaultTransport is not a reason to panic on a type assertion, so fall
-	// back to a plain transport instead.
-	transport := &http.Transport{}
-	if standard, ok := http.DefaultTransport.(*http.Transport); ok {
-		transport = standard.Clone()
-	}
+	// Built from the same base as every other client, so opting into a
+	// self-signed certificate does not quietly discard the response-header bound
+	// along with the verification.
+	transport := baseTransport()
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	replacement := *c.HTTP

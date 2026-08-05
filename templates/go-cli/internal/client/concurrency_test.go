@@ -86,3 +86,46 @@ func TestCloneWhileCallsAreInFlight(t *testing.T) {
 	}
 	group.Wait()
 }
+
+// One http.Client.Timeout covers connect, write, read and body streaming
+// together, so the old 60 second ceiling was also the budget for uploading a
+// 5 MB chunk: below roughly 90 KB/s of upstream every chunk failed, reported as
+// a server error with no retry.
+//
+// Asserted as configuration rather than by timing. Demonstrating the fault takes
+// a minute of wall clock by definition, which is not something to put in a unit
+// suite -- but the property that broke uploads is exactly "a whole-request
+// deadline exists", so that is what this pins.
+func TestNoWholeRequestDeadline(t *testing.T) {
+	api := New("https://example.invalid", "test")
+
+	if api.HTTP.Timeout != 0 {
+		t.Errorf("http.Client.Timeout = %s, which caps how long an upload may take",
+			api.HTTP.Timeout)
+	}
+
+	transport, ok := api.HTTP.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("transport is %T, want *http.Transport", api.HTTP.Transport)
+	}
+	if transport.ResponseHeaderTimeout <= 0 {
+		t.Error("no ResponseHeaderTimeout: a server that goes quiet would hang the CLI")
+	}
+}
+
+// Opting into a self-signed certificate replaces the transport, which must not
+// take the response-header bound with it.
+func TestSelfSignedKeepsTheResponseHeaderBound(t *testing.T) {
+	api := New("https://example.invalid", "test").SetSelfSigned(true)
+
+	transport, ok := api.HTTP.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("transport is %T, want *http.Transport", api.HTTP.Transport)
+	}
+	if transport.ResponseHeaderTimeout <= 0 {
+		t.Error("--self-signed discarded the ResponseHeaderTimeout")
+	}
+	if api.HTTP.Timeout != 0 {
+		t.Errorf("--self-signed reintroduced a whole-request deadline: %s", api.HTTP.Timeout)
+	}
+}
