@@ -7,9 +7,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
 // Ports the human-readable half of templates/cli/lib/parser.ts:parse().

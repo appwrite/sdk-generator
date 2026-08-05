@@ -6,11 +6,11 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/appwrite/appwrite-cli-go/internal/app"
-	"github.com/appwrite/appwrite-cli-go/internal/client"
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
-	"github.com/appwrite/appwrite-cli-go/internal/output"
-	"github.com/appwrite/appwrite-cli-go/internal/preview"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/preview"
 	"golang.org/x/term"
 )
 

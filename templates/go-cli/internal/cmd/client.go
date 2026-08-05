@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/appwrite/appwrite-cli-go/internal/app"
-	"github.com/appwrite/appwrite-cli-go/internal/client"
-	"github.com/appwrite/appwrite-cli-go/internal/config"
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
-	"github.com/appwrite/appwrite-cli-go/internal/output"
-	"github.com/appwrite/appwrite-cli-go/internal/sdk"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 	"github.com/spf13/cobra"
 )
 

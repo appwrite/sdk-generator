@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
 // Ports the `Local` half of templates/cli/lib/config.ts -- appwrite.config.json.

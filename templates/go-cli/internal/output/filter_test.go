@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
 func decode(t *testing.T, document string) *jsonx.Object {

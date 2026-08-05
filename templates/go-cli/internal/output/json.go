@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
 // Ports the --json and --raw output paths from templates/cli/lib/parser.ts.

@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
 // Ports templates/cli/lib/type-generation/languages/typescript.ts and the

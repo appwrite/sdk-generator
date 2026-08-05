@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/appwrite/appwrite-cli-go/internal/typegen"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/typegen"
 )
 
 // Ports templates/cli/lib/commands/generators/base.ts and index.ts.

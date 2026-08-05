@@ -1,4 +1,4 @@
-module {{ language.params.modulePath }}
+module github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}
 
 // Matches templates/go/go.mod.twig. The CLI depends on the Go SDK this same
 // generator produces, and `go mod tidy` raises this directive to whatever that

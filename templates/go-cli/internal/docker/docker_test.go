@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/appwrite/appwrite-cli-go/internal/config"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 )
 
 // These cover the parts of the emulation that are logic rather than

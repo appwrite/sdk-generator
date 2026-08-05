@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
-	"github.com/appwrite/appwrite-cli-go/internal/typegen"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/typegen"
 )
 
 // Ports templates/cli/lib/commands/generators/typescript/databases.ts.

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/appwrite/appwrite-cli-go/internal/client"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 )
 
 // A config written by `pull` carries projectId but no organizationId, and the

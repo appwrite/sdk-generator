@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/appwrite/appwrite-cli-go/internal/archive"
-	"github.com/appwrite/appwrite-cli-go/internal/config"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/archive"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 )
 
 // The build, hot-swap and cleanup flows that sit on top of Client.

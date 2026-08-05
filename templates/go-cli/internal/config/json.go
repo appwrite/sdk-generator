@@ -1,6 +1,6 @@
 package config
 
-import "github.com/appwrite/appwrite-cli-go/internal/jsonx"
+import "github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 
 // Object and Marshal live in internal/jsonx because internal/output needs them
 // too, and an output package importing config for a JSON primitive would be

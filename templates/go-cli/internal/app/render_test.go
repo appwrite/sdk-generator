@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/appwrite/appwrite-cli-go/internal/output"
-	"github.com/appwrite/appwrite-cli-go/internal/sdk"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 )
 
 // The captured response, not the typed struct, is what --raw and --json show.

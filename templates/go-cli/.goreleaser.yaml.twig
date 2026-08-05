@@ -49,7 +49,7 @@ builds:
       # symbol that does not exist, and every release then reports the
       # hardcoded default. `appwrite --version` after a snapshot build is the
       # check that catches it.
-      - -X {{ language.params.modulePath }}/internal/app.Version={{ '{{ .Version }}' }}
+      - -X github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app.Version={{ '{{ .Version }}' }}
     hooks:
       # Ad-hoc sign darwin builds. install.sh runs `codesign -dv` on what it
       # downloads and aborts if there is no signature, and the Go linker signs

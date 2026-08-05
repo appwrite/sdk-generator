@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/appwrite/appwrite-cli-go/internal/archive"
-	"github.com/appwrite/appwrite-cli-go/internal/client"
-	"github.com/appwrite/appwrite-cli-go/internal/ignore"
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/archive"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/ignore"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -166,10 +166,12 @@ func listDeployableFiles(
 	// `.git` and the resource's own rules, then the root .gitignore as a
 	// separate matcher -- both are active, so a config with an `ignore` field
 	// keeps honouring .gitignore.
-	matchers := []matcher{{
-		baseDirectory: "",
-		rules:         ignore.New().Add(".git").AddAll(extraIgnoreRules),
-	}}
+	matchers := []matcher{
+		{
+			baseDirectory: "",
+			rules:         ignore.New().Add(".git").AddAll(extraIgnoreRules),
+		},
+	}
 	if rooted, ok := loadMatcher(directory, ""); ok {
 		matchers = append(matchers, rooted)
 	}
@@ -376,7 +378,9 @@ func (c Chunk) Range(total int64) string {
 // last, which is the remainder.
 func PlanChunks(size int64) []Chunk {
 	if size <= ChunkSize {
-		return []Chunk{{Start: 0, End: size}}
+		return []Chunk{
+			{Start: 0, End: size},
+		}
 	}
 
 	chunks := make([]Chunk, 0, (size+ChunkSize-1)/ChunkSize)

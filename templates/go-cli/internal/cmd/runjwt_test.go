@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/appwrite/appwrite-cli-go/internal/client"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 )
 
 // A function running locally still calls the real API, and it authenticates

@@ -23,17 +23,6 @@ class GoCLI extends Go
     use CliCommandSurface;
 
     /**
-     * Go module path the CLI is published under.
-     *
-     * A constant rather than a settable param: Go has no relative imports, so
-     * this string is baked into every import in the runtime packages. Those
-     * files are `copy` scope -- plain Go that can be edited, vetted and tested
-     * in place -- which is only safe while the path cannot change underneath
-     * them.
-     */
-    public const string MODULE_PATH = 'github.com/appwrite/appwrite-cli-go';
-
-    /**
      * Go module the generated SDK is published under, without a version suffix.
      */
     public const string SDK_MODULE = 'github.com/appwrite/sdk-for-go';
@@ -43,7 +32,6 @@ class GoCLI extends Go
      */
     #[Override]
     protected $params = [
-        'modulePath' => self::MODULE_PATH,
         'executableName' => 'appwrite',
         // Names the npm package AND every release asset. install.sh and
         // install.ps1 build their download URL from this same param, so the
@@ -474,7 +462,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/config/config_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/output/redact.go',
                 'template'      => 'go-cli/internal/output/redact.go',
             ],
@@ -494,22 +482,22 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/client/selfsigned_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/session.go',
                 'template'      => 'go-cli/internal/cmd/session.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/auth/keyring.go',
                 'template'      => 'go-cli/internal/auth/keyring.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/auth/refresh.go',
                 'template'      => 'go-cli/internal/auth/refresh.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/auth/refresh_test.go',
                 'template'      => 'go-cli/internal/auth/refresh_test.go',
             ],
@@ -524,12 +512,12 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/jsonx/object_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/config/json.go',
                 'template'      => 'go-cli/internal/config/json.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/output/json.go',
                 'template'      => 'go-cli/internal/output/json.go',
             ],
@@ -539,7 +527,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/output/json_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/config/local.go',
                 'template'      => 'go-cli/internal/config/local.go',
             ],
@@ -549,7 +537,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/config/local_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/auth/device.go',
                 'template'      => 'go-cli/internal/auth/device.go',
             ],
@@ -559,12 +547,12 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/auth/device_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/login.go',
                 'template'      => 'go-cli/internal/cmd/login.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/login_test.go',
                 'template'      => 'go-cli/internal/cmd/login_test.go',
             ],
@@ -574,17 +562,17 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/shorthand_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/output/filter.go',
                 'template'      => 'go-cli/internal/output/filter.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/output/filter_test.go',
                 'template'      => 'go-cli/internal/output/filter_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/output/render.go',
                 'template'      => 'go-cli/internal/output/render.go',
             ],
@@ -609,7 +597,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/query/query_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/app/globals.go',
                 'template'      => 'go-cli/internal/app/globals.go',
             ],
@@ -659,12 +647,12 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/app/inputfile.go.twig',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/client.go',
                 'template'      => 'go-cli/internal/cmd/client.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/completion.go',
                 'template'      => 'go-cli/internal/cmd/completion.go',
             ],
@@ -684,7 +672,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/update/check_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/output/sections.go',
                 'template'      => 'go-cli/internal/output/sections.go',
             ],
@@ -694,7 +682,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/output/sections_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/output/collections.go',
                 'template'      => 'go-cli/internal/output/collections.go',
             ],
@@ -709,22 +697,22 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/output/spinner_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/runjwt.go',
                 'template'      => 'go-cli/internal/cmd/runjwt.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/runjwt_test.go',
                 'template'      => 'go-cli/internal/cmd/runjwt_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/settings_test.go',
                 'template'      => 'go-cli/internal/cmd/settings_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/fanout_test.go',
                 'template'      => 'go-cli/internal/cmd/fanout_test.go',
             ],
@@ -764,7 +752,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/prompt/theme.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pushselect_test.go',
                 'template'      => 'go-cli/internal/cmd/pushselect_test.go',
             ],
@@ -799,12 +787,12 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/update.go.twig',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/types.go',
                 'template'      => 'go-cli/internal/cmd/types.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/generate.go',
                 'template'      => 'go-cli/internal/cmd/generate.go',
             ],
@@ -859,7 +847,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/docker/runtime.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/docker/source.go',
                 'template'      => 'go-cli/internal/docker/source.go',
             ],
@@ -869,7 +857,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/docker/docker.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/docker/emulate.go',
                 'template'      => 'go-cli/internal/docker/emulate.go',
             ],
@@ -879,7 +867,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/docker/queue.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/docker/docker_test.go',
                 'template'      => 'go-cli/internal/docker/docker_test.go',
             ],
@@ -919,17 +907,17 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/appwrite/id.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/config/resource.go',
                 'template'      => 'go-cli/internal/config/resource.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/init.go',
                 'template'      => 'go-cli/internal/cmd/init.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/initproject.go',
                 'template'      => 'go-cli/internal/cmd/initproject.go',
             ],
@@ -984,37 +972,37 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/initscaffold_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/initfunction.go',
                 'template'      => 'go-cli/internal/cmd/initfunction.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/initsite.go',
                 'template'      => 'go-cli/internal/cmd/initsite.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/initskill.go',
                 'template'      => 'go-cli/internal/cmd/initskill.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pull.go',
                 'template'      => 'go-cli/internal/cmd/pull.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pulldatabase.go',
                 'template'      => 'go-cli/internal/cmd/pulldatabase.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pullsettings.go',
                 'template'      => 'go-cli/internal/cmd/pullsettings.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/app/render_test.go',
                 'template'      => 'go-cli/internal/app/render_test.go',
             ],
@@ -1034,77 +1022,77 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/sdk/capture_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/generate_test.go',
                 'template'      => 'go-cli/internal/cmd/generate_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/logout.go',
                 'template'      => 'go-cli/internal/cmd/logout.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/logout_test.go',
                 'template'      => 'go-cli/internal/cmd/logout_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/errors.go',
                 'template'      => 'go-cli/internal/cmd/errors.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/errors_test.go',
                 'template'      => 'go-cli/internal/cmd/errors_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/client_test.go',
                 'template'      => 'go-cli/internal/cmd/client_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/organization.go',
                 'template'      => 'go-cli/internal/cmd/organization.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/organization_test.go',
                 'template'      => 'go-cli/internal/cmd/organization_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pullfunction.go',
                 'template'      => 'go-cli/internal/cmd/pullfunction.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pullall.go',
                 'template'      => 'go-cli/internal/cmd/pullall.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pushcommon.go',
                 'template'      => 'go-cli/internal/cmd/pushcommon.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pushsimple.go',
                 'template'      => 'go-cli/internal/cmd/pushsimple.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pushall.go',
                 'template'      => 'go-cli/internal/cmd/pushall.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pushdatabase.go',
                 'template'      => 'go-cli/internal/cmd/pushdatabase.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pushdeploy.go',
                 'template'      => 'go-cli/internal/cmd/pushdeploy.go',
             ],
@@ -1114,7 +1102,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/pushreport_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/inittemplateenv_test.go',
                 'template'      => 'go-cli/internal/cmd/inittemplateenv_test.go',
             ],
@@ -1129,7 +1117,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/errordetail_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/initprojectskills.go',
                 'template'      => 'go-cli/internal/cmd/initprojectskills.go',
             ],
@@ -1154,12 +1142,12 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/loginswitch_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pushpreview.go',
                 'template'      => 'go-cli/internal/cmd/pushpreview.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pushpreview_test.go',
                 'template'      => 'go-cli/internal/cmd/pushpreview_test.go',
             ],
@@ -1184,7 +1172,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/preview/frame_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/deploy/deploy.go',
                 'template'      => 'go-cli/internal/deploy/deploy.go',
             ],
@@ -1194,47 +1182,47 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/deploy/deploy_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/schema/attributes.go',
                 'template'      => 'go-cli/internal/schema/attributes.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/schema/attributes_test.go',
                 'template'      => 'go-cli/internal/schema/attributes_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/schema/database.go',
                 'template'      => 'go-cli/internal/schema/database.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/schema/operations.go',
                 'template'      => 'go-cli/internal/schema/operations.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/schema/poll.go',
                 'template'      => 'go-cli/internal/schema/poll.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/schema/render.go',
                 'template'      => 'go-cli/internal/schema/render.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/schema/value.go',
                 'template'      => 'go-cli/internal/schema/value.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/client/paginate.go',
                 'template'      => 'go-cli/internal/client/paginate.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/client/paginate_test.go',
                 'template'      => 'go-cli/internal/client/paginate_test.go',
             ],
@@ -1249,7 +1237,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/config/resource_test.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/run.go',
                 'template'      => 'go-cli/internal/cmd/run.go',
             ],
@@ -1318,7 +1306,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/typegen/language.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/typegen/typescript.go',
                 'template'      => 'go-cli/internal/typegen/typescript.go',
             ],
@@ -1511,7 +1499,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/typegen/testdata/cs.strict.BooksZines.cs',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/generator/generator.go',
                 'template'      => 'go-cli/internal/generator/generator.go',
             ],
@@ -1521,7 +1509,7 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/generator/detector.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/generator/typescript.go',
                 'template'      => 'go-cli/internal/generator/typescript.go',
             ],

@@ -12,9 +12,10 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/appwrite/appwrite-cli-go/internal/auth"
-	"github.com/appwrite/appwrite-cli-go/internal/config"
 	sdkclient "{{ language.params.sdkImportPath }}/client"
+
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/auth"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 )
 
 // Ports templates/cli/lib/sdks.ts onto the generated Go SDK's client.

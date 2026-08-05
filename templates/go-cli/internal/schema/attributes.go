@@ -29,10 +29,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/appwrite/appwrite-cli-go/internal/client"
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
-	"github.com/appwrite/appwrite-cli-go/internal/output"
-	"github.com/appwrite/appwrite-cli-go/internal/prompt"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 )
 
 // Attribute types, as the API reports them in an attribute's `type`.

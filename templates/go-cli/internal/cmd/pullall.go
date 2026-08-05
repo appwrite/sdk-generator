@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/appwrite/appwrite-cli-go/internal/app"
-	"github.com/appwrite/appwrite-cli-go/internal/prompt"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 	"github.com/spf13/cobra"
 )
 

@@ -10,18 +10,18 @@ import (
 {% endif %}
 	"github.com/spf13/cobra"
 
-	"github.com/appwrite/appwrite-cli-go/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 {% if hasQueryParam %}
-	"github.com/appwrite/appwrite-cli-go/internal/query"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/query"
 {% endif %}
 {% else %}
 	"github.com/spf13/cobra"
 
 	"{{ language.params.sdkImportPath }}/{{ service.name | goPackage }}"
 
-	"github.com/appwrite/appwrite-cli-go/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 {% if hasQueryParam %}
-	"github.com/appwrite/appwrite-cli-go/internal/query"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/query"
 {% endif %}
 {% endif %}
 )

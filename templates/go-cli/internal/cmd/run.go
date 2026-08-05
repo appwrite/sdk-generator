@@ -10,14 +10,14 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/appwrite/appwrite-cli-go/internal/app"
-	"github.com/appwrite/appwrite-cli-go/internal/config"
-	"github.com/appwrite/appwrite-cli-go/internal/docker"
-	"github.com/appwrite/appwrite-cli-go/internal/dotenv"
-	"github.com/appwrite/appwrite-cli-go/internal/ignore"
-	"github.com/appwrite/appwrite-cli-go/internal/output"
-	"github.com/appwrite/appwrite-cli-go/internal/prompt"
-	"github.com/appwrite/appwrite-cli-go/internal/watch"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/docker"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/dotenv"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/ignore"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/watch"
 	"github.com/spf13/cobra"
 )
 

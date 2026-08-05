@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/appwrite/appwrite-cli-go/internal/config"
-	"github.com/appwrite/appwrite-cli-go/internal/ignore"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/ignore"
 )
 
 // Ports the source-collection half of templates/cli/lib/emulation/docker.ts.

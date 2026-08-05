@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
 // jsSafeInteger is the largest integer JavaScript represents exactly, 2^53 - 1.

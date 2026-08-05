@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/appwrite/appwrite-cli-go/internal/prompt"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 )
 
 // A proxy 502 or a maintenance page is an HTML document, and the SDK puts a

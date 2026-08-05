@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/appwrite/appwrite-cli-go/internal/client"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 )
 
 // `login --switch` was reported as "unknown flag". It was not alone: the port

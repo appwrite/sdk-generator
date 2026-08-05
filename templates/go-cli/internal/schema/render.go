@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/appwrite/appwrite-cli-go/internal/output"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
 )
 
 // Ports drawTable (templates/cli/lib/parser.ts) for the two tables this package

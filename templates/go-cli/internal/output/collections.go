@@ -9,9 +9,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
 	"github.com/charmbracelet/lipgloss"
 	"golang.org/x/term"
+
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
 // Ports the structured-collection half of templates/cli/lib/response-config.ts.

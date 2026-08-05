@@ -5,12 +5,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"{{ language.params.modulePath }}/internal/app"
-	"{{ language.params.modulePath }}/internal/auth"
-	"{{ language.params.modulePath }}/internal/client"
-	"{{ language.params.modulePath }}/internal/cmd/services"
-	"{{ language.params.modulePath }}/internal/output"
-	"{{ language.params.modulePath }}/internal/update"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/auth"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/cmd/services"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/update"
 )
 
 // NewRootCommand builds the full command tree.

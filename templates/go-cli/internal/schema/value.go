@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
 // JavaScript value semantics, reproduced because the diff depends on them.
