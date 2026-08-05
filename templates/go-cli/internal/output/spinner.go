@@ -347,7 +347,6 @@ func fitMiddle(middle string, target int) string {
 	return truncated + "…"
 }
 
-// pad right-pads to width, measuring display columns rather than bytes.
 // Pad right-pads text to width.
 //
 // Measured with lipgloss.Width rather than len: a styled or non-ASCII cell
