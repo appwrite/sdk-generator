@@ -26,42 +26,32 @@ import (
 
 // codeResource describes one deployable resource.
 type codeResource struct {
-	Name    string
-	Aliases []string
-	// Path is the API route.
-	Path string
-	// Wrapper is the array key in the list response.
-	Wrapper string
-	// ConfigKey is the config array written.
-	ConfigKey string
-	// Directory is the prefix each resource's sources are written under.
+	resourceIdentity
+	// Directory is the prefix each resource's sources are written under. It
+	// matches ConfigKey for both resources today, but it names a path on the
+	// user's disk rather than a key in their config, so it stays its own field.
 	Directory string
 	// Keys is the caller order the entry is written in. NOT a schema order:
 	// addFunction goes through whitelistKeys, which follows the CALLER, and
 	// the caller is pullFunctions -- so this is the order that function builds
 	// its object in, which is not the order FunctionSchema declares.
 	Keys []string
-	// Label names the resource in log lines.
-	Label string
 }
 
 var codeResources = []codeResource{
 	{
-		Name: "function", Aliases: []string{"functions"},
-		Path: "/functions", Wrapper: "functions", ConfigKey: "functions",
-		Directory: "functions",
+		resourceIdentity: functionIdentity,
+		Directory:        "functions",
 		Keys: []string{
 			"$id", "name", "runtime", "path", "entrypoint", "execute",
 			"enabled", "logging", "events", "schedule", "timeout", "commands",
 			"scopes", "buildSpecification", "runtimeSpecification",
 			"deploymentRetention",
 		},
-		Label: "functions",
 	},
 	{
-		Name: "site", Aliases: []string{"sites"},
-		Path: "/sites", Wrapper: "sites", ConfigKey: "sites",
-		Directory: "sites",
+		resourceIdentity: siteIdentity,
+		Directory:        "sites",
 		Keys: []string{
 			"$id", "name", "path", "framework", "logging", "timeout",
 			"buildRuntime", "adapter", "installCommand", "buildCommand",
@@ -70,7 +60,6 @@ var codeResources = []codeResource{
 			"providerRootDirectory", "startCommand", "buildSpecification",
 			"runtimeSpecification", "deploymentRetention",
 		},
-		Label: "sites",
 	},
 }
 
@@ -110,7 +99,7 @@ func runPullCode(command *cobra.Command, resource codeResource, code, withVariab
 
 	output.Log(out, "Fetching %s ...", resource.Label)
 
-	rows, err := context.page(resource.Path, resource.Wrapper, nil)
+	rows, err := context.page(resource.Path, resource.ConfigKey, nil)
 	if err != nil {
 		return err
 	}

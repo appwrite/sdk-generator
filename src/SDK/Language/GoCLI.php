@@ -1113,6 +1113,16 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/cmd/resource.go',
+                'template'      => 'go-cli/internal/cmd/resource.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/pushtally_test.go',
+                'template'      => 'go-cli/internal/cmd/pushtally_test.go',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pushall.go',
                 'template'      => 'go-cli/internal/cmd/pushall.go',
             ],

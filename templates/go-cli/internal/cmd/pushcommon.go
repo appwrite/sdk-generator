@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
@@ -14,6 +15,32 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 	"github.com/spf13/cobra"
 )
+
+// pushTally is the closing count of a push.
+//
+// One policy, and it was written out three times -- in pushsimple, in
+// `push tables` and in `push collections` -- with only the deploy variant ever
+// covered by a test. The rule: zero pushed is INFORMATIONAL when nothing
+// failed, because the commonest way to push nothing is that everything already
+// matched, and reporting a good outcome as `✗ Error:` above a zero exit status
+// contradicted itself. Zero pushed with a failure is the bad outcome, and each
+// failure has already been printed with its own reason.
+type pushTally struct {
+	Pushed int
+	Failed int
+}
+
+// report prints the closing line for a push of Label resources.
+func (t pushTally) report(out io.Writer, plural string) {
+	switch {
+	case t.Pushed == 0 && t.Failed == 0:
+		output.Log(out, "No %s were pushed. Everything is already up to date.", plural)
+	case t.Pushed == 0:
+		output.Failure(out, "No %s were pushed.", plural)
+	default:
+		output.Success(out, "Successfully pushed %d %s.", t.Pushed, plural)
+	}
+}
 
 // Shared foundation for every `push` subcommand.
 //

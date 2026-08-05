@@ -33,45 +33,40 @@ import (
 // names. The same distinction pull draws (see pulldatabase.go): tablesdb/tables/
 // columns against databases/collections/attributes.
 type pushDatabaseResource struct {
-	Name    string
-	Aliases []string
-	// ConfigKey and DatabaseConfigKey are the config arrays read.
-	ConfigKey         string
+	resourceIdentity
+	// DatabaseConfigKey is the config array the containers are read from.
 	DatabaseConfigKey string
-	// Path is the databases route; ChildPath lists a database's children.
-	Path      string
+	// ChildPath lists a database's children.
 	ChildPath string
 	// ChildKeys limits the approval diff to the fields the config owns.
 	ChildKeys []string
 	// MembersKey is `columns` for a table and `attributes` for a collection --
 	// both the config array and the field an index references them by.
 	MembersKey string
-	// Label and Singular name the resource in messages.
-	Label    string
-	Singular string
 }
 
-var pushDatabaseResources = []pushDatabaseResource{
-	{
-		Name: "table", Aliases: []string{"tables"},
-		ConfigKey: "tables", DatabaseConfigKey: "tablesDB",
-		Path: "/tablesdb", ChildPath: "/tables",
-		ChildKeys:  config.TableKeys,
-		MembersKey: "columns",
-		Label:      "tables", Singular: "table",
-	},
-	{
-		Name: "collection", Aliases: []string{"collections"},
-		ConfigKey: "collections", DatabaseConfigKey: "databases",
-		Path: "/databases", ChildPath: "/collections",
-		ChildKeys:  config.CollectionKeys,
-		MembersKey: "attributes",
-		Label:      "collections", Singular: "collection",
-	},
-}
+// Named rather than a slice indexed by position: nothing iterates the pair, so
+// a table of two was three files agreeing on which row came first.
+var (
+	pushTable = pushDatabaseResource{
+		resourceIdentity:  tableIdentity,
+		DatabaseConfigKey: "tablesDB",
+		ChildPath:         "/tables",
+		ChildKeys:         config.TableKeys,
+		MembersKey:        "columns",
+	}
+
+	pushCollection = pushDatabaseResource{
+		resourceIdentity:  collectionIdentity,
+		DatabaseConfigKey: "databases",
+		ChildPath:         "/collections",
+		ChildKeys:         config.CollectionKeys,
+		MembersKey:        "attributes",
+	}
+)
 
 func newPushTableCommand() *cobra.Command {
-	resource := pushDatabaseResources[0]
+	resource := pushTable
 	command := &cobra.Command{
 		Use:     resource.Name,
 		Aliases: resource.Aliases,
@@ -87,7 +82,7 @@ func newPushTableCommand() *cobra.Command {
 }
 
 func newPushCollectionCommand() *cobra.Command {
-	resource := pushDatabaseResources[1]
+	resource := pushCollection
 	command := &cobra.Command{
 		Use:     resource.Name,
 		Aliases: resource.Aliases,
@@ -140,9 +135,8 @@ func runPushTable(command *cobra.Command, resource pushDatabaseResource) error {
 		return err
 	}
 	if len(tables) == 0 {
-		output.Log(out, "No tables found.")
-		output.Hint(out, "Use '%s pull tables' to synchronize existing one, or use "+
-			"'%s init table' to create a new one.", app.ExecutableName, app.ExecutableName)
+		output.Log(out, "No %s found.", resource.Label)
+		output.Hint(out, "%s", resource.syncHint())
 
 		return nil
 	}
@@ -179,11 +173,10 @@ func runPushTable(command *cobra.Command, resource pushDatabaseResource) error {
 		return err
 	}
 
-	if pushed == 0 {
-		output.Log(out, "No tables were pushed. Everything is already up to date.")
-	} else {
-		output.Success(out, "Successfully pushed %d tables.", pushed)
-	}
+	// No Failed count: pushDatabaseChildren returns an error rather than
+	// tallying failures, so the "no %s were pushed" failure branch is not
+	// reachable from here.
+	pushTally{Pushed: pushed}.report(out, resource.Label)
 
 	return nil
 }
@@ -205,10 +198,8 @@ func runPushCollection(command *cobra.Command, resource pushDatabaseResource) er
 		return err
 	}
 	if len(collections) == 0 {
-		output.Log(out, "No collections found.")
-		output.Hint(out, "Use '%s pull collections' to synchronize existing one, or use "+
-			"'%s init collection' to create a new one.",
-			app.ExecutableName, app.ExecutableName)
+		output.Log(out, "No %s found.", resource.Label)
+		output.Hint(out, "%s", resource.syncHint())
 
 		return nil
 	}
@@ -241,11 +232,7 @@ func runPushCollection(command *cobra.Command, resource pushDatabaseResource) er
 		return err
 	}
 
-	if pushed == 0 {
-		output.Log(out, "No collections were pushed. Everything is already up to date.")
-	} else {
-		output.Success(out, "Successfully pushed %d collections.", pushed)
-	}
+	pushTally{Pushed: pushed}.report(out, resource.Label)
 
 	return nil
 }

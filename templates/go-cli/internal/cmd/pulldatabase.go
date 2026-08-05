@@ -21,16 +21,16 @@ import (
 // share one implementation parameterised by a descriptor.
 
 // databaseResource describes one two-level pull.
+//
+// Path and ConfigKey come from the identity and name the container route and the
+// child array; DatabaseConfigKey names the container array, under the same field
+// name the push side uses.
 type databaseResource struct {
-	Name    string
-	Aliases []string
-	// Path lists the databases.
-	Path string
+	resourceIdentity
 	// ChildPath is appended to a database's path to list its children.
 	ChildPath string
-	// DatabaseKey and ChildKey are the config arrays written.
-	DatabaseKey string
-	ChildKey    string
+	// DatabaseConfigKey is the config array the containers are written to.
+	DatabaseConfigKey string
 	// ChildKeys, NestedKey and NestedKeys shape a child and its inner arrays.
 	ChildKeys []string
 	NestedKey string
@@ -38,30 +38,28 @@ type databaseResource struct {
 	NestedKeys []string
 	// IndexKeys shapes the child's `indexes` array.
 	IndexKeys []string
-	// Label names the child in log lines.
-	Label string
 	// DatabaseLabel names the container in the success line.
 	DatabaseLabel string
 }
 
 var databaseResources = []databaseResource{
 	{
-		Name: "table", Aliases: []string{"tables"},
-		Path: "/tablesdb", ChildPath: "/tables",
-		DatabaseKey: "tablesDB", ChildKey: "tables",
-		ChildKeys: config.TableKeys,
-		NestedKey: "columns", NestedKeys: config.ColumnKeys,
-		IndexKeys: config.IndexTableKeys,
-		Label:     "tables", DatabaseLabel: "tableDBs",
+		resourceIdentity:  tableIdentity,
+		ChildPath:         "/tables",
+		DatabaseConfigKey: "tablesDB",
+		ChildKeys:         config.TableKeys,
+		NestedKey:         "columns", NestedKeys: config.ColumnKeys,
+		IndexKeys:     config.IndexTableKeys,
+		DatabaseLabel: "tableDBs",
 	},
 	{
-		Name: "collection", Aliases: []string{"collections"},
-		Path: "/databases", ChildPath: "/collections",
-		DatabaseKey: "databases", ChildKey: "collections",
-		ChildKeys: config.CollectionKeys,
-		NestedKey: "attributes", NestedKeys: config.AttributeKeys,
-		IndexKeys: config.IndexKeys,
-		Label:     "collections", DatabaseLabel: "databases",
+		resourceIdentity:  collectionIdentity,
+		ChildPath:         "/collections",
+		DatabaseConfigKey: "databases",
+		ChildKeys:         config.CollectionKeys,
+		NestedKey:         "attributes", NestedKeys: config.AttributeKeys,
+		IndexKeys:     config.IndexKeys,
+		DatabaseLabel: "databases",
 	},
 }
 
@@ -102,7 +100,7 @@ func runPullDatabase(command *cobra.Command, resource databaseResource) error {
 
 		rows, err := context.page(
 			resource.Path+"/"+url.PathEscape(database.GetString("$id"))+resource.ChildPath,
-			resource.ChildKey, nil)
+			resource.ConfigKey, nil)
 		if err != nil {
 			return err
 		}
@@ -114,7 +112,7 @@ func runPullDatabase(command *cobra.Command, resource databaseResource) error {
 
 	// Only the children are checked for removal; a database that disappears
 	// takes its children with it, and the TypeScript reports the children.
-	removed := missingLocally(context.local.ResourceEntries(resource.ChildKey), children)
+	removed := missingLocally(context.local.ResourceEntries(resource.ConfigKey), children)
 	if len(removed) > 0 {
 		output.Warn(out,
 			"The following %s exist locally but not remotely and will be removed: %s",
@@ -135,8 +133,8 @@ func runPullDatabase(command *cobra.Command, resource databaseResource) error {
 		}
 	}
 
-	context.local.ReplaceResource(resource.DatabaseKey, shapedDatabases)
-	context.local.ReplaceResource(resource.ChildKey, children)
+	context.local.ReplaceResource(resource.DatabaseConfigKey, shapedDatabases)
+	context.local.ReplaceResource(resource.ConfigKey, children)
 	if err := context.local.Write(); err != nil {
 		return err
 	}

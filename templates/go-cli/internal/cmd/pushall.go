@@ -81,13 +81,13 @@ func pushActions(logs bool) []pushAction {
 		{
 			Value: "tables", Label: "Tables (TablesDB)",
 			Run: func(command *cobra.Command) error {
-				return runPushTable(command, pushDatabaseResources[0])
+				return runPushTable(command, pushTable)
 			},
 		},
 		{
 			Value: "collections", Label: "Collections (Legacy Databases)",
 			Run: func(command *cobra.Command) error {
-				return runPushCollection(command, pushDatabaseResources[1])
+				return runPushCollection(command, pushCollection)
 			},
 			Deprecated: true,
 		},

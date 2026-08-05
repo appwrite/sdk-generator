@@ -27,54 +27,26 @@ import (
 
 // flatResource describes one list-and-replace pull.
 type flatResource struct {
-	// Name is the subcommand and the config key.
-	Name string
-	// Aliases mirrors the TypeScript's plural forms.
-	Aliases []string
-	// Path is the API route.
-	Path string
-	// Wrapper is the array key in the response, which is not always the
-	// config key -- topics live under "topics" locally and are listed from
-	// /messaging/topics.
-	Wrapper string
+	resourceIdentity
 	// Keys is the schema order the entry is written in, or nil to store the
 	// API response unfiltered.
 	Keys []string
-	// Label is the human word used in log lines.
-	Label string
 }
 
 var flatResources = []flatResource{
+	{resourceIdentity: bucketIdentity, Keys: config.BucketKeys},
 	{
-		Name: "bucket", Aliases: []string{"buckets"},
-		Path: "/storage/buckets", Wrapper: "buckets",
-		Keys: config.BucketKeys, Label: "buckets",
-	},
-	{
-		Name: "team", Aliases: []string{"teams"},
-		Path: "/teams", Wrapper: "teams",
+		resourceIdentity: teamIdentity,
 		// No Keys, and that is not an oversight. pullTeams() is the one pull
 		// that does NOT call filterBySchema, so a pulled team carries
 		// $createdAt, $updatedAt, total and prefs into the config. Confirmed
 		// against the shipping CLI on a real project. It is noise in a
 		// code-reviewed file and almost certainly unintended, but `pull` output
 		// is the contract -- fix it in the TypeScript, not here.
-		Label: "teams",
 	},
-	{
-		Name: "topic", Aliases: []string{"topics"},
-		Path: "/messaging/topics", Wrapper: "topics",
-		Keys: config.TopicKeys, Label: "topics",
-	},
-	{
-		Name: "webhook", Aliases: []string{"webhooks"},
-		Path: "/webhooks", Wrapper: "webhooks",
-		Keys: config.WebhookKeys, Label: "webhooks",
-	},
+	{resourceIdentity: topicIdentity, Keys: config.TopicKeys},
+	{resourceIdentity: webhookIdentity, Keys: config.WebhookKeys},
 }
-
-// configKey is the top-level array a resource is stored under.
-func (r flatResource) configKey() string { return r.Wrapper }
 
 func newPullCommand() *cobra.Command {
 	command := &cobra.Command{
@@ -138,7 +110,7 @@ func runPullResource(command *cobra.Command, resource flatResource) error {
 	// A resource present locally and absent remotely is about to be deleted
 	// from the user's config. That is the one destructive part of a pull, so
 	// it is named and confirmed.
-	removed := missingLocally(context.local.ResourceEntries(resource.configKey()), entries)
+	removed := missingLocally(context.local.ResourceEntries(resource.ConfigKey), entries)
 	if len(removed) > 0 {
 		output.Warn(out,
 			"The following %s exist locally but not remotely and will be removed: %s",
@@ -164,7 +136,7 @@ func runPullResource(command *cobra.Command, resource flatResource) error {
 			entry.GetString("name"))
 	}
 
-	context.local.ReplaceResource(resource.configKey(), entries)
+	context.local.ReplaceResource(resource.ConfigKey, entries)
 	if err := context.local.Write(); err != nil {
 		return err
 	}
@@ -295,7 +267,7 @@ func (p *projectPull) probeEmpty(path, wrapper string) (bool, error) {
 
 // list pages a resource and shapes each entry to the config schema.
 func (p *projectPull) list(resource flatResource) ([]*jsonx.Object, error) {
-	empty, err := p.probeEmpty(resource.Path, resource.Wrapper)
+	empty, err := p.probeEmpty(resource.Path, resource.ConfigKey)
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +275,7 @@ func (p *projectPull) list(resource flatResource) ([]*jsonx.Object, error) {
 		return nil, nil
 	}
 
-	rows, err := p.page(resource.Path, resource.Wrapper, nil)
+	rows, err := p.page(resource.Path, resource.ConfigKey, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -490,18 +490,7 @@ func settingsChanges(remote, local *jsonx.Object, group, label string) []change 
 // nothing else, so the push runs once over this description rather than twice
 // over two near-identical copies.
 type deployable struct {
-	// Name is the subcommand.
-	Name string
-	// Aliases mirrors the TypeScript's plural form.
-	Aliases []string
-	// Label is the plural word used in log lines.
-	Label string
-	// Singular is the same word for one resource.
-	Singular string
-	// Path is the API route.
-	Path string
-	// ConfigKey is the config array the entries come from.
-	ConfigKey string
+	resourceIdentity
 	// IDFlag is the flag naming one resource, `--function-id`.
 	IDFlag string
 	// IDField is the body field the id is created under, `functionId`.
@@ -534,10 +523,8 @@ type deployable struct {
 
 var deployables = []deployable{
 	{
-		Name: "function", Aliases: []string{"functions"},
-		Label: "functions", Singular: "function",
-		Path: "/functions", ConfigKey: "functions",
-		IDFlag: "function-id", IDField: "functionId",
+		resourceIdentity: functionIdentity,
+		IDFlag:           "function-id", IDField: "functionId",
 		RuleResourceType: "function", MismatchKey: "runtime",
 		WriteKeys: []string{
 			"name", "runtime", "execute", "events", "schedule", "timeout",
@@ -558,10 +545,8 @@ var deployables = []deployable{
 		},
 	},
 	{
-		Name: "site", Aliases: []string{"sites"},
-		Label: "sites", Singular: "site",
-		Path: "/sites", ConfigKey: "sites",
-		IDFlag: "site-id", IDField: "siteId",
+		resourceIdentity: siteIdentity,
+		IDFlag:           "site-id", IDField: "siteId",
 		RuleResourceType: "site", MismatchKey: "framework",
 		WriteKeys: []string{
 			"name", "framework", "logging", "timeout", "installCommand",
@@ -694,9 +679,9 @@ func runPushDeployable(
 	}
 	if len(entries) == 0 {
 		output.Log(out, "No %s found.", resource.Label)
-		output.Log(out,
-			"Use '%s pull %s' to synchronize existing one, or use '%s init %s' to create a new one.",
-			app.ExecutableName, resource.Label, app.ExecutableName, resource.Singular)
+		// Log, not Hint, unlike its three siblings. The TypeScript prints this
+		// one as an ordinary line and the CLIs are compared on their output.
+		output.Log(out, "%s", resource.syncHint())
 
 		return nil
 	}
@@ -842,12 +827,10 @@ func (s *pushSummary) report(
 	seconds := fmt.Sprintf("%.1fs", elapsed.Seconds())
 
 	switch {
-	// Info when nothing failed: nothing to push, or everything already matched.
-	// Each failure that did happen has already been printed with its reason.
-	case s.Pushed == 0 && len(s.Failed) == 0:
-		output.Log(out, "No %s were pushed. Everything is already up to date.", resource.Label)
+	// Nothing pushed is the shared tally, and pushTally states that policy for
+	// every push command. Everything below this line is deploy's alone.
 	case s.Pushed == 0:
-		output.Failure(out, "No %s were pushed.", resource.Label)
+		pushTally{Pushed: 0, Failed: len(s.Failed)}.report(out, resource.Label)
 	// Nothing deployed is a failure, and it used to be announced as
 	// `ℹ Warning: Successfully deployed 0 of 1 sites` -- a sentence that
 	// contradicts itself twice over. Nothing succeeded, so "successfully" is

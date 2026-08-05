@@ -27,15 +27,8 @@ import (
 
 // simpleResource describes one flat push.
 type simpleResource struct {
-	// Name is the subcommand; Aliases mirror the TypeScript's plural forms.
-	Name    string
-	Aliases []string
-	Short   string
-	// ConfigKey is the top-level array in appwrite.config.json.
-	ConfigKey string
-	// Singular and Plural word the log lines.
-	Singular string
-	Plural   string
+	resourceIdentity
+	Short string
 	// PromptNoun is what the selection prompt calls the resource. Topics read
 	// "messaging topic" rather than "topics"; the wording is user-visible and
 	// is reproduced rather than regularised.
@@ -44,9 +37,6 @@ type simpleResource struct {
 	Hint string
 	// Keys scopes the approval comparison to the fields the config owns.
 	Keys []string
-	// Collection is the create route; Item builds the per-resource route.
-	Collection string
-	Item       func(id string) string
 	// UpdateMethod is PUT for everything except a messaging topic, which the
 	// API exposes as a PATCH.
 	UpdateMethod string
@@ -76,17 +66,11 @@ type requestField struct {
 func simpleResources() []simpleResource {
 	return []simpleResource{
 		{
-			Name: "bucket", Aliases: []string{"buckets"},
-			Short:     "Push buckets in the current project.",
-			ConfigKey: "buckets", Singular: "bucket", Plural: "buckets",
-			PromptNoun: "buckets",
-			Hint: fmt.Sprintf(
-				"Use '%s pull buckets' to synchronize existing one, "+
-					"or use '%s init bucket' to create a new one.",
-				app.ExecutableName, app.ExecutableName),
-			Keys:       config.BucketKeys,
-			Collection: "/storage/buckets",
-			Item:       func(id string) string { return "/storage/buckets/" + id },
+			resourceIdentity: bucketIdentity,
+			Short:            "Push buckets in the current project.",
+			PromptNoun:       "buckets",
+			Hint:             bucketIdentity.syncHint(),
+			Keys:             config.BucketKeys,
 			// PUT, so an omitted field is reset to its default. That is the
 			// route the TypeScript calls; a partial update is not on offer.
 			UpdateMethod: "PUT",
@@ -116,18 +100,12 @@ func simpleResources() []simpleResource {
 			Changed: bucketChanged,
 		},
 		{
-			Name: "team", Aliases: []string{"teams"},
-			Short:     "Push teams in the current project.",
-			ConfigKey: "teams", Singular: "team", Plural: "teams",
-			PromptNoun: "teams",
-			Hint: fmt.Sprintf(
-				"Use '%s pull teams' to synchronize existing one, "+
-					"or use '%s init team' to create a new one.",
-				app.ExecutableName, app.ExecutableName),
-			Keys:         config.TeamKeys,
-			Collection:   "/teams",
-			Item:         func(id string) string { return "/teams/" + id },
-			UpdateMethod: "PUT",
+			resourceIdentity: teamIdentity,
+			Short:            "Push teams in the current project.",
+			PromptNoun:       "teams",
+			Hint:             teamIdentity.syncHint(),
+			Keys:             config.TeamKeys,
+			UpdateMethod:     "PUT",
 			CreateFields: []requestField{
 				{"$id", "teamId"},
 				{"name", "name"},
@@ -139,16 +117,13 @@ func simpleResources() []simpleResource {
 			},
 		},
 		{
-			Name: "webhook", Aliases: []string{"webhooks"},
-			Short:     "Push webhooks in the current project.",
-			ConfigKey: "webhooks", Singular: "webhook", Plural: "webhooks",
-			PromptNoun: "webhooks",
+			resourceIdentity: webhookIdentity,
+			Short:            "Push webhooks in the current project.",
+			PromptNoun:       "webhooks",
 			Hint: fmt.Sprintf(
 				"Use '%s pull webhooks' to synchronize existing ones.",
 				app.ExecutableName),
 			Keys:         config.WebhookKeys,
-			Collection:   "/webhooks",
-			Item:         func(id string) string { return "/webhooks/" + id },
 			UpdateMethod: "PUT",
 			CreateFields: []requestField{
 				{"$id", "webhookId"},
@@ -167,19 +142,13 @@ func simpleResources() []simpleResource {
 			},
 		},
 		{
-			Name: "topic", Aliases: []string{"topics"},
-			Short:     "Push messaging topics in the current project.",
-			ConfigKey: "topics", Singular: "topic", Plural: "topics",
+			resourceIdentity: topicIdentity,
+			Short:            "Push messaging topics in the current project.",
 			// "messaging topic", singular, matching
 			// questionsPushMessagingTopics.
 			PromptNoun: "messaging topic",
-			Hint: fmt.Sprintf(
-				"Use '%s pull topics' to synchronize existing one, "+
-					"or use '%s init topic' to create a new one.",
-				app.ExecutableName, app.ExecutableName),
+			Hint:       topicIdentity.syncHint(),
 			Keys:       config.TopicKeys,
-			Collection: "/messaging/topics",
-			Item:       func(id string) string { return "/messaging/topics/" + id },
 			// PATCH, unlike the other three. The messaging API exposes topic
 			// updates as a partial write.
 			UpdateMethod: "PATCH",
@@ -222,7 +191,7 @@ func runPushSimple(command *cobra.Command, resource simpleResource) error {
 		return err
 	}
 	if len(selected) == 0 {
-		output.Log(out, "No %s found.", resource.Plural)
+		output.Log(out, "No %s found.", resource.Label)
 		output.Hint(out, "%s", resource.Hint)
 
 		return nil
@@ -231,10 +200,10 @@ func runPushSimple(command *cobra.Command, resource simpleResource) error {
 	approved, err := context.approveChanges(command, approvalRequest{
 		Resources: selected,
 		Fetch: func(local *jsonx.Object) (*jsonx.Object, error) {
-			return context.fetch(resource.Item(local.GetString("$id")))
+			return context.fetch(resource.itemPath(local.GetString("$id")))
 		},
 		Keys:   resource.Keys,
-		Plural: resource.Plural,
+		Plural: resource.Label,
 	})
 	if err != nil {
 		return err
@@ -243,7 +212,7 @@ func runPushSimple(command *cobra.Command, resource simpleResource) error {
 		return nil
 	}
 
-	output.Log(out, "Pushing %s ...", resource.Plural)
+	output.Log(out, "Pushing %s ...", resource.Label)
 
 	pushed := 0
 	var failures []error
@@ -278,24 +247,7 @@ func runPushSimple(command *cobra.Command, resource simpleResource) error {
 
 	// A failed push is reported and counted, never returned: the TypeScript
 	// exits zero here, and a partial push has already changed the project.
-	if pushed == 0 {
-		// Info, not an error, when nothing went wrong. The commonest way to
-		// reach this line is a push where every resource already matches --
-		// see the Skipping branch above -- which is a good outcome reported
-		// as a failure. And the command exits zero either way, so an
-		// `✗ Error:` line above a zero exit status contradicted itself.
-		//
-		// A push where every attempt failed is different, and each failure has
-		// already been printed with its own reason.
-		if len(failures) > 0 {
-			output.Failure(out, "No %s were pushed.", resource.Plural)
-		} else {
-			output.Log(out, "No %s were pushed. Everything is already up to date.",
-				resource.Plural)
-		}
-	} else {
-		output.Success(out, "Successfully pushed %d %s.", pushed, resource.Plural)
-	}
+	pushTally{Pushed: pushed, Failed: len(failures)}.report(out, resource.Label)
 
 	if app.Flags().Verbose {
 		for _, failure := range failures {
@@ -341,13 +293,13 @@ func (c *pushContext) pushOne(
 ) (unchanged bool, err error) {
 	id := local.GetString("$id")
 
-	remote, err := c.fetch(resource.Item(id))
+	remote, err := c.fetch(resource.itemPath(id))
 	if err == nil {
 		if resource.Changed != nil && !resource.Changed(remote, local) {
 			return true, nil
 		}
 
-		err = c.api.Call(resource.UpdateMethod, resource.Item(id),
+		err = c.api.Call(resource.UpdateMethod, resource.itemPath(id),
 			requestBody(local, resource.UpdateFields), nil)
 	}
 	if err == nil {
@@ -357,7 +309,7 @@ func (c *pushContext) pushOne(
 		return false, err
 	}
 
-	return false, c.api.Call("POST", resource.Collection,
+	return false, c.api.Call("POST", resource.Path,
 		requestBody(local, resource.CreateFields), nil)
 }
 

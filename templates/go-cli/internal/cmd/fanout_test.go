@@ -325,13 +325,9 @@ func completeFunctions(
 	}
 
 	out := &bytes.Buffer{}
-	usable, err := context.completeDeployables(out, deployable{
-		Name:      "function",
-		Singular:  "function",
-		Label:     "functions",
-		ConfigKey: "functions",
-		Path:      "/functions",
-	}, []*jsonx.Object{complete, incomplete})
+	usable, err := context.completeDeployables(out,
+		deployable{resourceIdentity: functionIdentity},
+		[]*jsonx.Object{complete, incomplete})
 	if err != nil {
 		t.Fatal(err)
 	}
