@@ -230,7 +230,7 @@ cd mock-server && docker compose down
 |---|---|
 | Current language class | `src/SDK/Language/CLI.php` (1,169 lines) |
 | Current templates | `templates/cli/` |
-| Current generated output | `examples/cli/` — 23 services, 608 commands, 2,912 flags |
+| Current generated output | `examples/cli/` — counts move with the spec, so `node scripts/go-cli/extract-command-surface.mjs` prints the current services, commands and options rather than this table asserting them |
 | Service command template | `templates/cli/lib/commands/services/services.ts.twig` |
 | Entry point template | `templates/cli/cli.ts.twig` |
 
