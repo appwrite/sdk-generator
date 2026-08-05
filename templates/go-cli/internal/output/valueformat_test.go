@@ -11,8 +11,10 @@ import (
 )
 
 // Pinned to output captured from the TypeScript, not to expectations written
-// here. Regenerate with scripts/go-cli/capture-valueformat-baselines.ts in the
-// generator repository; do not hand-edit testdata/valueformat.json.
+// here. Recapture testdata/valueformat.json from the TypeScript rather than
+// hand-editing it; the capture must run with FORCE_COLOR=0, and with Date.now
+// frozen to the file's own frozenNow, or the relative timestamps will not
+// replay.
 type valueFormatBaseline struct {
 	FrozenNow       string             `json:"frozenNow"`
 	HumanizeSeconds map[string]string  `json:"humanizeSeconds"`

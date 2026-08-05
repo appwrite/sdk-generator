@@ -9,9 +9,8 @@ import (
 
 // The baselines under testdata/ were produced by running the shipping
 // TypeScriptDatabasesGenerator under node over testdata/config.json. They are
-// captured output, not output anyone wrote by hand -- regenerate with the
-// generator repository's scripts/go-cli/capture-generate-baselines.ts rather
-// than editing them.
+// captured output, not output anyone wrote by hand: regenerate them by
+// re-running the generator rather than editing them.
 //
 // Neither case uses serverSide "auto": it resolves from whatever package.json
 // sits in the working directory, which is exactly the ambiguity a baseline must
