@@ -160,3 +160,42 @@ func TestRedactorPreservesNullAndNonStrings(t *testing.T) {
 		t.Errorf("non-string credential = %v, want %q", masked["apiKey"], HiddenValue)
 	}
 }
+
+// A flag name is not a response field, and the two gaps below are exactly why
+// IsSensitiveKey cannot be reused for one: both of these reach a public issue
+// body through --report.
+func TestIsSensitiveFlagName(t *testing.T) {
+	sensitive := []string{
+		"key", "k", "K",
+		"password", "password-signer-key",
+		"secret", "jwt", "api-key", "access-token", "client-secret",
+	}
+	for _, name := range sensitive {
+		if !IsSensitiveFlagName(name) {
+			t.Errorf("IsSensitiveFlagName(%q) = false, it carries a credential", name)
+		}
+	}
+
+	ordinary := []string{
+		"endpoint", "project-id", "self-signed", "json", "force",
+		"verbose", "report", "email", "user-id", "keys",
+	}
+	for _, name := range ordinary {
+		if IsSensitiveFlagName(name) {
+			t.Errorf("IsSensitiveFlagName(%q) = true, it is not a credential", name)
+		}
+	}
+}
+
+// `key` is deliberately absent from the shared list: it is an ordinary field
+// name in API payloads, and masking it there would redact responses that hold
+// no credential. Asserted so the two predicates cannot be collapsed by someone
+// who reads only one of them.
+func TestIsSensitiveKeyStillIgnoresBareKey(t *testing.T) {
+	if IsSensitiveKey("key") {
+		t.Error(`IsSensitiveKey("key") = true, which would mask ordinary response fields`)
+	}
+	if !IsSensitiveFlagName("key") {
+		t.Error(`IsSensitiveFlagName("key") = false, but --key carries a credential`)
+	}
+}

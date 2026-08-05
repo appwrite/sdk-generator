@@ -177,3 +177,58 @@ func TestRequiredArgumentAcceptsExactlyOne(t *testing.T) {
 		t.Errorf("one argument was rejected: %s", err)
 	}
 }
+
+// The captured body reaches the terminal through a path that builds no
+// Redactor, so --verbose printed in full what the normal render path masks.
+// `project create-key --verbose` is the case that matters: the response holds a
+// live secret.
+func TestPrettyJSONMasksCredentials(t *testing.T) {
+	const secret = "standard_9f8e7d6c5b4a39281706152433445566778899aa"
+
+	tests := []struct {
+		name string
+		body string
+	}{
+		{name: "secret", body: `{"$id":"abc","secret":"` + secret + `"}`},
+		{name: "nested under a model", body: `{"key":{"secret":"` + secret + `"}}`},
+		{name: "array under a sensitive key", body: `{"secret":["` + secret + `","b"]}`},
+		{name: "suffix match", body: `{"providerAccessToken":"` + secret + `"}`},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			printed := prettyJSON([]byte(test.body))
+
+			if strings.Contains(printed, secret) {
+				t.Errorf("--verbose printed the credential in full:\n%s", printed)
+			}
+			if !strings.Contains(printed, "hidden") {
+				t.Errorf("nothing was masked:\n%s", printed)
+			}
+		})
+	}
+}
+
+// Masking must not damage the dump: it is the diagnosis, and an unparseable one
+// is worse than a redacted one.
+func TestPrettyJSONStaysValidJSONWhenMasking(t *testing.T) {
+	printed := prettyJSON([]byte(`{"secret":"standard_9f8e7d6c5b4a39281706152433445566","id":7}`))
+
+	var reparsed map[string]any
+	if err := json.Unmarshal([]byte(printed), &reparsed); err != nil {
+		t.Fatalf("masked dump is not valid JSON: %s\n%s", err, printed)
+	}
+	if reparsed["id"] != float64(7) {
+		t.Errorf("masking altered an unrelated field: %v", reparsed["id"])
+	}
+}
+
+// Ordinary fields must survive untouched, or the dump stops being a faithful
+// record of what arrived.
+func TestPrettyJSONLeavesOrdinaryFieldsAlone(t *testing.T) {
+	body := `{"$id":"64d1e2f3","name":"my-bucket","enabled":true}`
+
+	if printed := prettyJSON([]byte(body)); strings.Contains(printed, "hidden") {
+		t.Errorf("masked a field that holds no credential:\n%s", printed)
+	}
+}

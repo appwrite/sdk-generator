@@ -59,6 +59,33 @@ func IsSensitiveKey(key string) bool {
 	return false
 }
 
+// IsSensitiveFlagName reports whether a command-line flag carries a credential
+// as its value.
+//
+// Deliberately broader than IsSensitiveKey, and the difference matters twice:
+//
+//   - `--password-signer-key` normalises to `passwordsignerkey`, which ends in
+//     `key` rather than in any listed term, so a suffix test misses it.
+//   - `--key` and `-k` normalise to `key` and `k`, absent from the shared list
+//     because `key` is an ordinary field name in API payloads and matching it
+//     there would mask responses that are not credentials.
+//
+// A flag name carries neither ambiguity, so substring matching is safe here
+// where it would not be on a response field.
+func IsSensitiveFlagName(name string) bool {
+	normalized := normalizeKey(name)
+	if normalized == "key" || normalized == "k" {
+		return true
+	}
+	for _, sensitive := range sensitiveKeys {
+		if strings.Contains(normalized, sensitive) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // MaskString redacts a credential, keeping just enough to identify which one it
 // is.
 //

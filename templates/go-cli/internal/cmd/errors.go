@@ -301,7 +301,7 @@ func prettyJSON(body []byte) string {
 	decoder.UseNumber()
 
 	var builder strings.Builder
-	if err := writeJSONValue(decoder, &builder, 0); err != nil {
+	if err := writeJSONValue(decoder, &builder, 0, ""); err != nil {
 		// Not JSON, or truncated mid-stream. Either way the bytes are the
 		// evidence, so they are printed as they came.
 		var indented bytes.Buffer
@@ -322,7 +322,10 @@ func jsonIndent(depth int) string { return strings.Repeat("  ", depth) }
 // Re-emitted from tokens rather than decoded into a map, because a map loses key
 // order -- and a response printed with its fields shuffled is harder to compare
 // against a model than one printed as it arrived.
-func writeJSONValue(decoder *json.Decoder, builder *strings.Builder, depth int) error {
+// key is the field this value sits under, so a credential can be masked here as
+// it is on the normal render path. It is threaded through arrays as well: an
+// array of strings under a sensitive key is a list of credentials.
+func writeJSONValue(decoder *json.Decoder, builder *strings.Builder, depth int, key string) error {
 	token, err := decoder.Token()
 	if err != nil {
 		return err
@@ -330,6 +333,9 @@ func writeJSONValue(decoder *json.Decoder, builder *strings.Builder, depth int) 
 
 	delimiter, isDelimiter := token.(json.Delim)
 	if !isDelimiter {
+		if text, isText := token.(string); isText {
+			token = maskJSONString(text, key)
+		}
 		encoded, err := json.Marshal(token)
 		if err != nil {
 			return err
@@ -341,12 +347,28 @@ func writeJSONValue(decoder *json.Decoder, builder *strings.Builder, depth int) 
 
 	switch delimiter {
 	case '{':
+		// A nested object's own field names govern its values, so the key does
+		// not carry any further down.
 		return writeJSONObject(decoder, builder, depth)
 	case '[':
-		return writeJSONArray(decoder, builder, depth)
+		return writeJSONArray(decoder, builder, depth, key)
 	default:
 		return fmt.Errorf("unexpected %v", delimiter)
 	}
+}
+
+// maskJSONString redacts a value --verbose would otherwise print in full.
+//
+// The captured body reaches the terminal through a path that never built a
+// Redactor, so `project create-key --verbose` printed the live secret that the
+// normal render path masks. Same bytes, two paths -- this closes the second one.
+// --show-secrets is honoured, exactly as it is on the first.
+func maskJSONString(text, key string) string {
+	if key == "" || app.Flags().ShowSecrets || !output.IsSensitiveKey(key) {
+		return text
+	}
+
+	return output.MaskString(text, key)
 }
 
 func writeJSONObject(decoder *json.Decoder, builder *strings.Builder, depth int) error {
@@ -372,7 +394,8 @@ func writeJSONObject(decoder *json.Decoder, builder *strings.Builder, depth int)
 		builder.Write(encoded)
 		builder.WriteString(": ")
 
-		if err := writeJSONValue(decoder, builder, depth+1); err != nil {
+		keyText, _ := key.(string)
+		if err := writeJSONValue(decoder, builder, depth+1, keyText); err != nil {
 			return err
 		}
 	}
@@ -391,7 +414,7 @@ func writeJSONObject(decoder *json.Decoder, builder *strings.Builder, depth int)
 	return nil
 }
 
-func writeJSONArray(decoder *json.Decoder, builder *strings.Builder, depth int) error {
+func writeJSONArray(decoder *json.Decoder, builder *strings.Builder, depth int, key string) error {
 	builder.WriteString("[")
 
 	total := 0
@@ -410,7 +433,7 @@ func writeJSONArray(decoder *json.Decoder, builder *strings.Builder, depth int) 
 			builder.WriteString("\n" + jsonIndent(depth+1))
 		}
 
-		if err := writeJSONValue(decoder, target, depth+1); err != nil {
+		if err := writeJSONValue(decoder, target, depth+1, key); err != nil {
 			return err
 		}
 	}
@@ -488,13 +511,55 @@ func CancellationNotice(command *cobra.Command) string {
 	return fmt.Sprintf("Cancelled `%s`. Nothing further was sent.", command.CommandPath())
 }
 
-// commandArguments is the invocation, minus the flag that asked for the report.
+// commandArguments is the invocation, minus the flag that asked for the report
+// and minus any credential the invocation carried.
+//
+// This goes into a prefilled issue body on a public tracker, so a credential
+// flag's value is replaced rather than quoted. `client --key standard_...` and
+// `login --password ...` are ordinary things to hit an error on and then report,
+// which put a live credential one click from being published.
 func commandArguments() []string {
 	arguments := make([]string, 0, len(os.Args))
+	redactValue := false
 	for _, argument := range os.Args[1:] {
-		if argument == "--report" {
+		if argument == "--report" || strings.HasPrefix(argument, "--report=") {
 			continue
 		}
+
+		if redactValue {
+			arguments = append(arguments, output.HiddenValue)
+			redactValue = false
+
+			continue
+		}
+
+		isFlag := strings.HasPrefix(argument, "-")
+
+		// One token carrying both: `--key=secret`, `-k=secret`.
+		if name, _, found := strings.Cut(argument, "="); found && isFlag {
+			if output.IsSensitiveFlagName(strings.TrimLeft(name, "-")) {
+				arguments = append(arguments, name+"="+output.HiddenValue)
+
+				continue
+			}
+			arguments = append(arguments, argument)
+
+			continue
+		}
+
+		// A shorthand can carry its value attached, with no separator: `-ksecret`.
+		if isFlag && !strings.HasPrefix(argument, "--") && len(argument) > 2 &&
+			output.IsSensitiveFlagName(argument[1:2]) {
+			arguments = append(arguments, argument[:2]+output.HiddenValue)
+
+			continue
+		}
+
+		// A bare credential flag takes the next token as its value.
+		if isFlag && output.IsSensitiveFlagName(strings.TrimLeft(argument, "-")) {
+			redactValue = true
+		}
+
 		arguments = append(arguments, argument)
 	}
 
