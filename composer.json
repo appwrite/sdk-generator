@@ -15,7 +15,7 @@
         "format": "vendor/bin/phpcbf",
         "refactor": "vendor/bin/rector process",
         "refactor:check": "vendor/bin/rector process --dry-run",
-        "lint-twig": "uvx djlint templates/ --lint",
+        "lint-twig": "uvx djlint==1.40.10 templates/ --lint",
         "check": [
             "@lint",
             "@lint-twig",

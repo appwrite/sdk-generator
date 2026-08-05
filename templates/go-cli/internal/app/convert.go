@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	sdkfile "github.com/appwrite/sdk-for-go/file"
 )
 
 // Conversions between what a flag can hold and what an SDK parameter declares.
@@ -54,24 +52,26 @@ func JSONObject(raw string) (interface{}, error) {
 	return value, nil
 }
 
-// InputFile turns a path into the SDK's upload type.
+// WriteFile saves a downloaded file.
 //
-// The path is checked here rather than at upload time so a typo fails before
-// any request is made.
-func InputFile(path string) (sdkfile.InputFile, error) {
-	if path == "" {
-		return sdkfile.InputFile{}, fmt.Errorf("a file path is required")
+// `location` methods return the bytes rather than a URL, so there is nothing to
+// fetch -- the SDK already did. The parent directory is created so a
+// --destination pointing into a new folder works without a prior mkdir.
+func WriteFile(destination string, content *[]byte) error {
+	if destination == "" {
+		return fmt.Errorf("a --destination is required")
+	}
+	if content == nil {
+		return fmt.Errorf("the server returned no content")
 	}
 
-	resolved, err := filepath.Abs(path)
-	if err != nil {
-		return sdkfile.InputFile{}, err
-	}
-	if _, err := os.Stat(resolved); err != nil {
-		return sdkfile.InputFile{}, fmt.Errorf("cannot read %q: %w", path, err)
+	if directory := filepath.Dir(destination); directory != "." {
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			return err
+		}
 	}
 
-	return sdkfile.NewInputFile(resolved, filepath.Base(resolved)), nil
+	return os.WriteFile(destination, *content, 0o644)
 }
 
 // DecodeSlice parses each value of a repeatable flag into T.
@@ -99,26 +99,4 @@ func DecodeSlice[T any](raws []string) ([]T, error) {
 	}
 
 	return decoded, nil
-}
-
-// WriteFile saves a downloaded file.
-//
-// `location` methods return the bytes rather than a URL, so there is nothing to
-// fetch -- the SDK already did. The parent directory is created so a
-// --destination pointing into a new folder works without a prior mkdir.
-func WriteFile(destination string, content *[]byte) error {
-	if destination == "" {
-		return fmt.Errorf("a --destination is required")
-	}
-	if content == nil {
-		return fmt.Errorf("the server returned no content")
-	}
-
-	if directory := filepath.Dir(destination); directory != "." {
-		if err := os.MkdirAll(directory, 0o755); err != nil {
-			return err
-		}
-	}
-
-	return os.WriteFile(destination, *content, 0o644)
 }

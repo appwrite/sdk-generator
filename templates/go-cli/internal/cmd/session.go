@@ -48,6 +48,7 @@ func consoleClient() (*client.Client, *config.Global, error) {
 
 	api := client.New(endpoint, app.Version).
 		SetProject(config.ProjectConsole).
+		SetSelfSigned(global.CurrentBool(config.PreferenceSelfSigned)).
 		SetLocale("en-US")
 
 	hasAccessToken := session.GetString(config.PreferenceAccessToken) != ""
@@ -175,6 +176,7 @@ func newLogoutCommand() *cobra.Command {
 func registerSessionCommands(root *cobra.Command) {
 	root.AddCommand(newWhoamiCommand())
 	root.AddCommand(newSessionsCommand())
+	root.AddCommand(newClientCommand())
 	root.AddCommand(newLoginCommand())
 	root.AddCommand(newLogoutCommand())
 }

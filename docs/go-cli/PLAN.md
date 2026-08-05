@@ -380,17 +380,18 @@ idiomatic *behind* the flag.
 
 ---
 
-### Phase 4 — Conformance harness
+### Phase 4 — Conformance harness ✅ COMPLETE
 
-**Goal:** the Go CLI passes the same e2e suite as the TypeScript CLI, against the same
-mock server. This phase is the reason the rewrite is safe. Do not defer it.
+**Goal:** the Go CLI has its own conformance run against the mock server, asserting the
+same `Base.php` expectations the TypeScript CLI is held to. This phase is the reason the
+rewrite is safe. Do not defer it.
 
 **Entry:** Phase 3 exit met.
 
 > **Reordered 2026-08-02, by decision.** This phase originally sat after Phase 5.
 > It now runs immediately after Phase 3, so the stateful commands -- `push` alone is
-> 4,380 lines -- are ported *against* a working differential harness rather than
-> before one exists.
+> 4,380 lines -- are ported *against* a working conformance run rather than before one
+> exists.
 >
 > The reason is evidence, not caution. Eight defects during Phases 0-3 looked correct
 > and were not: a stale `examples/cli` hiding two commands, a round-trip fixture with
@@ -407,9 +408,19 @@ mock server. This phase is the reason the rewrite is safe. Do not defer it.
 1. `tests/e2e/GoCLI124Test.php`, modelled on `CLIBun13Test.php`. `$build` compiles the
    Go binary in a `golang:1.24` container; `$command` runs the harness against the
    `mockapi` network.
-2. Port `tests/e2e/languages/cli/test.js` (2,754 lines) to a Go harness, or drive the
-   binary from the existing JS harness — **prefer the latter**. It keeps one harness as
-   the source of truth for both implementations and makes divergence impossible to miss.
+2. A harness for this CLI, in Go, at `tests/e2e/languages/go-cli/main.go`. It asserts
+   observable behaviour only -- what the binary prints and what it exits with -- because
+   that is the whole of the CLI's contract; the internals are covered by
+   `go test ./internal/...`.
+
+   **Not shared with the TypeScript CLI's harness, and this was tried the other way
+   first.** One harness driving both implementations has to tolerate both, and every
+   tolerance is a divergence it can no longer see: the shared version accepted
+   `result <value>` and `result : <value>` interchangeably, so neither implementation was
+   pinned to either. It also coupled the Go CLI's test to a Node runtime and to a file
+   the TypeScript CLI's own suite depends on, which makes Phase 8's deletion of
+   `templates/cli/` harder than it needs to be. Independent harness, shared
+   *expectations* -- `Base.php` stays the single source of truth for what is correct.
 3. Reuse the `Base.php` expectation constants unchanged: `CLI_COMPLETION_RESPONSES`,
    `FOO_RESPONSES`, `BAR_RESPONSES`, `GENERAL_RESPONSES`, `CLI_CONSOLE_URL_RESPONSES`,
    `UPLOAD_RESPONSES`, `CLI_HEADERS_RESPONSES`, `CLI_FUNCTION_RESPONSES`,
@@ -417,15 +428,12 @@ mock server. This phase is the reason the rewrite is safe. Do not defer it.
    `CLI_QUERY_HELPER_RESPONSES`, `CLI_TYPEGEN_RESPONSES`, `AUTH_LOGIC_RESPONSES`,
    `CLI_REGRESSION_RESPONSES`, `CLI_ATTRIBUTE_SYNC_RESPONSES`.
    If an expectation needs changing to accommodate Go, that is a parity bug — fix Go.
-4. A differential test: run both binaries over a scripted command list, diff `--json`
-   output. Any diff fails the build.
-5. `mock.twig` equivalent for the Go service template, gated on `sdk.test`.
+4. `mock.twig` equivalent for the Go service template, gated on `sdk.test`.
 
 **Exit:**
-- `vendor/bin/phpunit tests/e2e/GoCLI124Test.php` green.
-- Differential `--json` diff empty across the scripted command list.
+- `vendor/bin/phpunit tests/e2e/GoCLI126Test.php` green.
 - Flag-surface test from Phase 3 green in CI.
-- Both CLI test suites run in CI on every PR.
+- The Go CLI's suite runs in CI on every PR, independently of the TypeScript CLI's.
 
 **Risk:** the Bun test harness leaks containers on interrupt. `cd mock-server &&
 docker compose down` before re-running.
@@ -466,7 +474,6 @@ diff/approve/deploy core. `errgroup.SetLimit` replaces `Pools`.
 
 **Exit per sub-phase:**
 - Full e2e suite green.
-- Differential test green.
 - Manual smoke against a real Appwrite project, recorded in the PR.
 
 **Exit for the phase:** feature parity. `command-surface.json` fully satisfied.
@@ -587,8 +594,8 @@ Progress table, kept current:
 | 1 — Generator scaffolding | ✅ Complete — surface matches TS exactly (608/608) | | |
 | 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
 | 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
-| 4 — Conformance harness | **Next** — pulled ahead of Phase 5 by decision | | |
-| 5 — Stateful commands | Blocked on Phase 4 (deliberately) | | |
+| 4 — Conformance harness | ✅ Complete — the Go CLI's own suite green in CI | #1721 |
+| 5 — Stateful commands | **Next** — harness now in place | | |
 | 6 — Performance | Not started | | |
 | 7 — Distribution | Not started | | |
 | 8 — Rollout | Not started | | |

@@ -3,6 +3,18 @@ package services
 {% set scope = service | cliServiceScope %}
 {% set hasQueryParam = service | hasCliQueryParam %}
 import (
+{% if sdk.test %}
+{% if hasQueryParam %}
+	"encoding/json"
+
+{% endif %}
+	"github.com/spf13/cobra"
+
+	"github.com/appwrite/appwrite-cli-go/internal/app"
+{% if hasQueryParam %}
+	"github.com/appwrite/appwrite-cli-go/internal/query"
+{% endif %}
+{% else %}
 	"github.com/spf13/cobra"
 
 	"github.com/appwrite/sdk-for-go/{{ service.name | goPackage }}"
@@ -11,7 +23,12 @@ import (
 {% if hasQueryParam %}
 	"github.com/appwrite/appwrite-cli-go/internal/query"
 {% endif %}
+{% endif %}
 )
+
+{% if sdk.test %}
+{{ include('go-cli/base/mock.go.twig') }}
+{% endif %}
 
 // New{{ service.name | caseUcfirst }}Command builds the `{{ service.name | caseLower }}` command tree.
 func New{{ service.name | caseUcfirst }}Command() *cobra.Command {
@@ -128,7 +145,9 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 {% endif %}
 		RunE: func(cmd *cobra.Command, args []string) error {
 {% set plan = getGoCallPlan(method, service) %}
-{% if not implementation %}
+{% if sdk.test %}
+			service := new{{ service.name | caseUcfirst }}MockService()
+{% elseif not implementation %}
 {% if scope %}
 			client, err := app.ClientFor{{ scope.label }}({{ scopedFlag ? scope.idVar : '""' }})
 {% elseif service.isConsoleOnly %}
@@ -141,19 +160,32 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 			}
 			service := {{ plan.package }}.New(client)
 {% endif %}
+{% if not sdk.test %}
 {% for decode in plan.decodes %}
 			{{ decode.var }}, err := app.{{ decode.helper }}({{ decode.source }})
 			if err != nil {
 				return err
 			}
 {% endfor %}
+{% endif %}
 {% if query.hasQueries %}
+
+{% if query.hasFiltering %}
+			parsedFilter, err := query.ParseFilters(filter)
+			if err != nil {
+				return err
+			}
+			parsedWhere, err := query.ParseFilters(where)
+			if err != nil {
+				return err
+			}
+{% endif %}
 
 			queries, err := query.Build(query.Options{
 				Queries: queries,
 {% if query.hasFiltering %}
-				Filter:   filter,
-				Where:    where,
+				Filter:   parsedFilter,
+				Where:    parsedWhere,
 				SortAsc:  sortAsc,
 				SortDesc: sortDesc,
 {% endif %}
@@ -173,7 +205,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 				return err
 			}
 {% endif %}
-{% if plan.optional is not empty and not implementation %}
+{% if plan.optional is not empty and not implementation and not sdk.test %}
 
 			// An unset flag must be omitted, not sent as its zero value: the
 			// TypeScript passes undefined and the SDK drops it.
@@ -193,13 +225,15 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 				app.FlagInt(cmd, "limit", limit), app.FlagInt(cmd, "offset", offset), search)
 {% elseif implementation == 'getOrganizationForSession' %}
 			result, err := app.GetOrganizationForSession({{ scopedFlag ? scope.idVar : '""' }})
+{% elseif sdk.test %}
+			result, err := service.{{ plan.method }}({% if query.hasQueries %}queries, {% endif %}{% for parameter in method.parameters.all %}{{ getGoVarName(parameter) }}, {% endfor %})
 {% else %}
 			result, err := service.{{ plan.method }}({% for argument in plan.required %}{{ argument.expression }}, {% endfor %}{% if plan.optional is not empty %}options...{% endif %})
 {% endif %}
 			if err != nil {
 				return err
 			}
-{% if method.type == 'location' %}
+{% if method.type == 'location' and not sdk.test %}
 
 			// A location method returns the file bytes, not a URL. The
 			// TypeScript fetches the URL itself; the SDK has already done that.

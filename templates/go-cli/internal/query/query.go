@@ -261,3 +261,27 @@ func Build(options Options) ([]string, error) {
 
 	return queries, nil
 }
+
+// ParseFilters turns raw --filter expressions into Appwrite query strings.
+//
+// The TypeScript parses these in commander's custom flag parser, so by the time
+// buildQueries sees them they are already serialised. Go's flag layer has no
+// equivalent hook, so the conversion happens here instead -- and it must happen
+// somewhere, or `--filter name=x` reaches the API as the literal string
+// "name=x" rather than a query.
+func ParseFilters(expressions []string) ([]string, error) {
+	if len(expressions) == 0 {
+		return nil, nil
+	}
+
+	parsed := make([]string, 0, len(expressions))
+	for _, expression := range expressions {
+		encoded, err := ParseFilter(expression)
+		if err != nil {
+			return nil, err
+		}
+		parsed = append(parsed, encoded)
+	}
+
+	return parsed, nil
+}

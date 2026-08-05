@@ -34,6 +34,7 @@ func newLoginCommand() *cobra.Command {
 			}
 
 			flow := auth.NewDeviceFlow(endpoint, app.Version)
+			flow.SelfSigned = global.CurrentBool(config.PreferenceSelfSigned)
 			authorization, err := flow.Authorize()
 			if err != nil {
 				return err

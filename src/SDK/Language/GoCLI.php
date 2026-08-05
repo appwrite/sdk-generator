@@ -419,6 +419,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/client/selfsigned_test.go',
+                'template'      => 'go-cli/internal/client/selfsigned_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/cmd/session.go',
                 'template'      => 'go-cli/internal/cmd/session.go',
             ],
@@ -508,9 +513,9 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/output/render.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/sdk/sdk.go',
-                'template'      => 'go-cli/internal/sdk/sdk.go',
+                'template'      => 'go-cli/internal/sdk/sdk.go.twig',
             ],
             [
                 'scope'         => 'copy',
@@ -528,9 +533,9 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/app/globals.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/app/client.go',
-                'template'      => 'go-cli/internal/app/client.go',
+                'template'      => 'go-cli/internal/app/client.go.twig',
             ],
             [
                 'scope'         => 'copy',
@@ -548,19 +553,29 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/app/convert.go',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/app/fallback.go',
-                'template'      => 'go-cli/internal/app/fallback.go',
+                'template'      => 'go-cli/internal/app/fallback.go.twig',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/surface_test.go',
-                'template'      => 'go-cli/internal/cmd/surface_test.go',
+                'template'      => 'go-cli/internal/cmd/surface_test.go.twig',
             ],
             [
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/testdata/command-surface.json',
                 'template'      => 'go-cli/internal/cmd/testdata/command-surface.json',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/app/inputfile.go',
+                'template'      => 'go-cli/internal/app/inputfile.go.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/client.go',
+                'template'      => 'go-cli/internal/cmd/client.go',
             ],
             [
                 'scope'         => 'default',

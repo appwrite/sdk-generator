@@ -1,3 +1,10 @@
+{% if sdk.test %}
+package cmd
+
+// The surface parity test is omitted from the conformance build: it asserts
+// against the production command contract, which a six-service mock spec cannot
+// satisfy. The real build runs it.
+{% else %}
 package cmd
 
 import (
@@ -28,6 +35,7 @@ var handWritten = map[string]bool{
 	"logout":   true,
 	"sessions": true,
 	"whoami":   true,
+	"client":   true,
 	// cobra's own.
 	"help":       true,
 	"completion": true,
@@ -170,3 +178,4 @@ func TestContractIsNotEmpty(t *testing.T) {
 		t.Fatalf("contract has %d commands, expected the full surface", len(expected))
 	}
 }
+{% endif %}

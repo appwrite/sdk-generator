@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -89,6 +90,28 @@ func (c *Client) SetOrganization(id string) *Client { return c.SetHeader(headerO
 // SetBearer authenticates with an OAuth2 access token.
 func (c *Client) SetBearer(token string) *Client {
 	return c.SetHeader("Authorization", "Bearer "+token)
+}
+
+// SetSelfSigned accepts a self-signed TLS certificate.
+//
+// Ports `rejectUnauthorized: !this.selfSigned` on the TypeScript client's HTTPS
+// agent (client.ts:236). A self-hosted instance behind its own certificate is
+// the whole reason `client --self-signed` exists, and without this the flag was
+// stored and never acted on.
+//
+// The transport is this client's own, not http.DefaultTransport: mutating the
+// shared default would turn verification off for every request the process makes
+// afterwards, including ones to Appwrite Cloud.
+func (c *Client) SetSelfSigned(selfSigned bool) *Client {
+	if !selfSigned {
+		return c
+	}
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	c.HTTP.Transport = transport
+
+	return c
 }
 
 // SetCookie authenticates with a legacy session cookie.

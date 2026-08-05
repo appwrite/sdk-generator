@@ -1,3 +1,10 @@
+{% if sdk.test %}
+package app
+
+// Console fallbacks are omitted from the conformance build. The services they
+// cover (oauth2, organization, teams) are not in the test spec, so nothing
+// references them.
+{% else %}
 package app
 
 import (
@@ -325,3 +332,4 @@ func pageQueries(offset int) []string {
 		`{"method":"offset","values":[` + strconv.Itoa(offset) + `]}`,
 	}
 }
+{% endif %}
