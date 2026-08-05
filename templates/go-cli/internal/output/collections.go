@@ -594,7 +594,7 @@ func renderAlignedColumns(columns [][]string, headers []string, indent string) s
 
 				continue
 			}
-			parts = append(parts, padColumn(rendered, widths[index]))
+			parts = append(parts, Pad(rendered, widths[index]))
 		}
 		builder.WriteString(
 			strings.TrimRight(indent+strings.Join(parts, columnGap), " ") + "\n")
@@ -611,15 +611,6 @@ func renderAlignedColumns(columns [][]string, headers []string, indent string) s
 	}
 
 	return strings.TrimRight(builder.String(), "\n")
-}
-
-func padColumn(value string, width int) string {
-	rendered := lipgloss.Width(value)
-	if rendered >= width {
-		return value
-	}
-
-	return value + strings.Repeat(" ", width-rendered)
 }
 
 // renderToggleCollection collapses rows that carry nothing but a name and an
@@ -678,7 +669,7 @@ func renderToggleCollection(rows []structuredRow, indent string) (string, bool) 
 		for lineIndex, line := range wrapValues(entry.labels, available) {
 			prefix := strings.Repeat(" ", headingWidth)
 			if lineIndex == 0 {
-				prefix = padColumn(entry.style.Render(entry.heading), headingWidth)
+				prefix = Pad(entry.style.Render(entry.heading), headingWidth)
 			}
 			builder.WriteString(indent + prefix + columnGap + line + "\n")
 		}

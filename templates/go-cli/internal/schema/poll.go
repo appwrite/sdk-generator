@@ -192,17 +192,5 @@ func (p *Poller) WaitForDeletion(container Container, keys []string, isIndex boo
 
 // list walks one of the container's schema endpoints.
 func (p *Poller) list(container Container, wrapper string) ([]*jsonx.Object, error) {
-	path := containerPath(container) + "/" + wrapper
-
-	rows, _, err := client.PaginateInto(func(queries []string) (*jsonx.Object, error) {
-		var response jsonx.Object
-		if err := p.api.Call("GET",
-			path+"?"+client.EncodeQueries(queries), nil, &response); err != nil {
-			return nil, err
-		}
-
-		return &response, nil
-	}, wrapper, nil, client.DefaultPageSize)
-
-	return rows, err
+	return p.api.List(containerPath(container)+"/"+wrapper, wrapper, nil)
 }

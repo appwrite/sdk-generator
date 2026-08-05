@@ -46,7 +46,7 @@ func SyncTablesDBs(
 
 	localDatabases := local.ResourceEntries("tablesDB")
 
-	remoteRows, err := paginate(api, TablesDBPath, "databases")
+	remoteRows, err := api.List(TablesDBPath, "databases", nil)
 	if err != nil {
 		return DatabaseSyncResult{}, err
 	}
@@ -128,7 +128,7 @@ func SyncTablesDBs(
 	}
 
 	output.Log(out, "Found changes in tablesDB resource:")
-	printTable(out, headers, rows)
+	fmt.Fprintf(out, "\n%s\n\n", output.RenderTable(headers, rows))
 
 	if len(toDelete) > 0 {
 		printBanner(out, "WARNING: Database deletion will also delete all related tables")
@@ -244,19 +244,4 @@ func byID(entries []*jsonx.Object, id string) *jsonx.Object {
 	}
 
 	return nil
-}
-
-// paginate walks a list endpoint.
-func paginate(api *client.Client, path, wrapper string) ([]*jsonx.Object, error) {
-	rows, _, err := client.PaginateInto(func(queries []string) (*jsonx.Object, error) {
-		var response jsonx.Object
-		if err := api.Call("GET",
-			path+"?"+client.EncodeQueries(queries), nil, &response); err != nil {
-			return nil, err
-		}
-
-		return &response, nil
-	}, wrapper, nil, client.DefaultPageSize)
-
-	return rows, err
 }

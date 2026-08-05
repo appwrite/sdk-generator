@@ -12,6 +12,7 @@ import (
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
 	"github.com/appwrite/appwrite-cli-go/internal/output"
 	"github.com/appwrite/appwrite-cli-go/internal/prompt"
+	"github.com/appwrite/appwrite-cli-go/internal/sdk"
 	"github.com/spf13/cobra"
 )
 
@@ -181,7 +182,7 @@ func runPullResource(command *cobra.Command, resource flatResource) error {
 // override, the project's own endpoint, and the session-endpoint guard.
 func projectAPI(global *config.Global, local *config.Local) (*client.Client, error) {
 	projectID := local.Data.GetString("projectId")
-	if value := osGetenv("APPWRITE_PROJECT_ID"); value != "" {
+	if value := osGetenv(sdk.EnvProjectID); value != "" {
 		projectID = value
 	}
 	if projectID == "" {
@@ -199,7 +200,7 @@ func projectAPI(global *config.Global, local *config.Local) (*client.Client, err
 	if value := local.Data.GetString("endpoint"); value != "" {
 		endpoint = value
 	}
-	if value := osGetenv("APPWRITE_ENDPOINT"); value != "" {
+	if value := osGetenv(sdk.EnvEndpoint); value != "" {
 		endpoint = value
 	}
 	if !config.EndpointsMatch(endpoint, sessionEndpoint) {

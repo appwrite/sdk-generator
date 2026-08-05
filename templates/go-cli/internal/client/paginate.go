@@ -109,14 +109,26 @@ func PaginateInto(list Lister, wrapper string, queries []string, pageSize int) (
 		return nil, 0, err
 	}
 
-	rows := make([]*jsonx.Object, 0, len(items))
-	for _, item := range items {
-		if object, ok := item.(*jsonx.Object); ok {
-			rows = append(rows, object)
-		}
-	}
+	return jsonx.Objects(items), total, nil
+}
 
-	return rows, total, nil
+// List walks a list endpoint through this client and returns its rows.
+//
+// wrapper names the array in the response -- "functions", "rows" and so on.
+// queries are the caller's own filters; the walk adds its own limit and offset
+// per page. Page size is DefaultPageSize, which is the only size any caller has
+// ever wanted.
+func (c *Client) List(path, wrapper string, queries []string) ([]*jsonx.Object, error) {
+	rows, _, err := PaginateInto(func(paged []string) (*jsonx.Object, error) {
+		var response jsonx.Object
+		if err := c.Call("GET", path+"?"+EncodeQueries(paged), nil, &response); err != nil {
+			return nil, err
+		}
+
+		return &response, nil
+	}, wrapper, queries, DefaultPageSize)
+
+	return rows, err
 }
 
 // EncodeQueries renders query strings as the API expects them.

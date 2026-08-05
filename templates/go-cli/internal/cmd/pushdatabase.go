@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
-	"github.com/appwrite/appwrite-cli-go/internal/client"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
 	"github.com/appwrite/appwrite-cli-go/internal/output"
@@ -561,13 +560,13 @@ func (c *pushContext) pushDatabaseChildren(
 			continue
 		}
 
-		members := objectsOf(entry, resource.MembersKey)
-		indexes := objectsOf(entry, "indexes")
+		members := entry.GetObjects(resource.MembersKey)
+		indexes := entry.GetObjects("indexes")
 		hadChanges := false
 
 		if current.existed {
 			membersResult, err := reconciler.Reconcile(
-				objectsOf(current.remote, resource.MembersKey), members, container, false)
+				current.remote.GetObjects(resource.MembersKey), members, container, false)
 			if err != nil {
 				return pushed, err
 			}
@@ -579,7 +578,7 @@ func (c *pushContext) pushDatabaseChildren(
 			applyRenamesToIndexes(current.remote, resource.MembersKey, membersResult.Renames)
 
 			indexesResult, err := reconciler.Reconcile(
-				objectsOf(current.remote, "indexes"), indexes, container, true)
+				current.remote.GetObjects("indexes"), indexes, container, true)
 			if err != nil {
 				return pushed, err
 			}
@@ -831,7 +830,7 @@ func applyRenamesToIndexes(remote *jsonx.Object, membersKey string, renames []sc
 		replacement[rename.From] = rename.To
 	}
 
-	for _, index := range objectsOf(remote, "indexes") {
+	for _, index := range remote.GetObjects("indexes") {
 		value, present := index.Get(membersKey)
 		if !present {
 			continue
@@ -858,27 +857,6 @@ func applyRenamesToIndexes(remote *jsonx.Object, membersKey string, renames []sc
 	}
 }
 
-// objectsOf reads a named array of objects.
-func objectsOf(source *jsonx.Object, name string) []*jsonx.Object {
-	value, present := source.Get(name)
-	if !present {
-		return nil
-	}
-	items, ok := value.([]any)
-	if !ok {
-		return nil
-	}
-
-	objects := make([]*jsonx.Object, 0, len(items))
-	for _, item := range items {
-		if object, ok := item.(*jsonx.Object); ok {
-			objects = append(objects, object)
-		}
-	}
-
-	return objects
-}
-
 // valueOf reads a key, yielding nil when it is absent.
 func valueOf(source *jsonx.Object, key string) any {
 	value, _ := source.Get(key)
@@ -893,15 +871,5 @@ func sameValue(remote, local *jsonx.Object, key string) bool {
 
 // page walks a list endpoint through the push client.
 func (c *pushContext) page(path, wrapper string) ([]*jsonx.Object, error) {
-	rows, _, err := client.PaginateInto(func(queries []string) (*jsonx.Object, error) {
-		var response jsonx.Object
-		if err := c.api.Call("GET",
-			path+"?"+client.EncodeQueries(queries), nil, &response); err != nil {
-			return nil, err
-		}
-
-		return &response, nil
-	}, wrapper, nil, client.DefaultPageSize)
-
-	return rows, err
+	return c.api.List(path, wrapper, nil)
 }

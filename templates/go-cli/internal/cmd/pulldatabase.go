@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
-	"github.com/appwrite/appwrite-cli-go/internal/client"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
 	"github.com/appwrite/appwrite-cli-go/internal/output"
@@ -190,15 +189,5 @@ func filterEach(row *jsonx.Object, name string, keys []string) []any {
 
 // page walks one list endpoint.
 func (p *projectPull) page(path, wrapper string, queries []string) ([]*jsonx.Object, error) {
-	rows, _, err := client.PaginateInto(func(paged []string) (*jsonx.Object, error) {
-		var response jsonx.Object
-		if err := p.api.Call("GET",
-			path+"?"+client.EncodeQueries(paged), nil, &response); err != nil {
-			return nil, err
-		}
-
-		return &response, nil
-	}, wrapper, queries, 0)
-
-	return rows, err
+	return p.api.List(path, wrapper, queries)
 }

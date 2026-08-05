@@ -1,10 +1,11 @@
 package output
 
 import (
-	"github.com/charmbracelet/lipgloss"
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 // The middle column is fixed width so the trailing note does not jitter left
@@ -110,7 +111,7 @@ func TestSpinnerLineNeverReachesTheTerminalWidth(t *testing.T) {
 	long := strings.Repeat("very-long-resource-name-", 8)
 
 	for _, width := range []int{10, 20, 40, 80, 120} {
-		line := spinnerLine("⠋", pad("building", statusWidth),
+		line := spinnerLine("⠋", Pad("building", statusWidth),
 			long+" ("+long+")", "Checking deployment status...",
 			spinnerTrailingStyle, width)
 

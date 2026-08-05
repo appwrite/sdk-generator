@@ -113,6 +113,41 @@ func (o *Object) GetInt64(key string) int64 {
 	return 0
 }
 
+// Objects keeps the entries of items that are objects.
+//
+// A list endpoint returns objects, so anything else is a malformed entry rather
+// than a value to reason about. Dropping it keeps one bad row from failing an
+// entire pull.
+func Objects(items []any) []*Object {
+	objects := make([]*Object, 0, len(items))
+	for _, item := range items {
+		if object, ok := item.(*Object); ok {
+			objects = append(objects, object)
+		}
+	}
+
+	return objects
+}
+
+// GetObjects reads a named array and keeps its object entries.
+func (o *Object) GetObjects(key string) []*Object {
+	if o == nil {
+		return nil
+	}
+
+	value, ok := o.Get(key)
+	if !ok {
+		return nil
+	}
+
+	items, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+
+	return Objects(items)
+}
+
 // Set stores a value, appending the key if it is new and leaving its position
 // untouched if it already exists. Overwriting must not move a key: that is what
 // keeps a rewritten config diff-free.

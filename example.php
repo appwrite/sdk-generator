@@ -252,26 +252,10 @@ try {
 
 ";
 
-    // CLI
-    if (!$requestedSdk || $requestedSdk === 'cli') {
-        $language  = new CLI();
-        $language->setNPMPackage('appwrite-cli');
-        $language->setExecutableName('appwrite');
-        $language->setLogo(json_encode($cliLogo));
-        $language->setLogoUnescaped("
-     _                            _ _           ___   __   _____
-    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
-   //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
-  /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_
-  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
-        |_|   |_|                                                ");
-
-        $sdk  = new SDK($language, buildSpec($specFormat, $spec));
-        $sdk->setTest(false);
-        // Keep in sync with the CLI exclusions applied by the release pipeline,
-        // so examples/cli matches the SDK that actually ships.
-        configureSDK($sdk, [
-            'exclude' => [
+    // Services and methods the shipped CLIs do not expose. Shared by both:
+    // the Go CLI has to present the same command surface as the TypeScript
+    // one, so a divergence here is a bug rather than a choice.
+    $cliExcludes = [
                 'services' => [
                     ['name' => 'assistant'],
                     ['name' => 'avatars'],
@@ -312,13 +296,32 @@ try {
                     ['name' => 'updateStage'],
                     ['name' => 'approve'],
                 ],
-            ],
+            ];
+
+    // CLI
+    if (!$requestedSdk || $requestedSdk === 'cli') {
+        $language  = new CLI();
+        $language->setNPMPackage('appwrite-cli');
+        $language->setExecutableName('appwrite');
+        $language->setLogo(json_encode($cliLogo));
+        $language->setLogoUnescaped("
+     _                            _ _           ___   __   _____
+    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
+   //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
+  /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_
+  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
+        |_|   |_|                                                ");
+
+        $sdk  = new SDK($language, buildSpec($specFormat, $spec));
+        $sdk->setTest(false);
+        configureSDK($sdk, [
+            'exclude' => $cliExcludes,
         ]);
 
         $sdk->generate(__DIR__ . '/examples/cli');
     }
 
-    // Go CLI (rewrite in progress -- see docs/go-cli/PLAN.md)
+    // Go CLI -- see docs/go-cli/PLAN.md for the invariants it has to preserve.
     if (!$requestedSdk || $requestedSdk === 'go-cli') {
         $language = new GoCLI();
         $language->setExecutableName('appwrite');
@@ -338,51 +341,8 @@ try {
 
         $sdk = new SDK($language, buildSpec($specFormat, $spec));
         $sdk->setTest(false);
-        // Must stay identical to the CLI block above: the Go CLI has to expose
-        // the same command surface as the TypeScript one.
         configureSDK($sdk, [
-            'exclude' => [
-                'services' => [
-                    ['name' => 'assistant'],
-                    ['name' => 'avatars'],
-                    ['name' => 'advisor'],
-                    ['name' => 'compute'],
-                    ['name' => 'apps'],
-                    ['name' => 'oauth'],
-                    ['name' => 'organizations'],
-                    ['name' => 'console'],
-                    ['name' => 'projects'],
-                    ['name' => 'waf'],
-                    ['name' => 'domains'],
-                    ['name' => 'manager'],
-                    ['name' => 'mysql'],
-                    ['name' => 'postgresql'],
-                    ['name' => 'mongo'],
-                    ['name' => 'usage'],
-                ],
-                'methods' => [
-                    ['name' => 'createBillingAddress'],
-                    ['name' => 'createPaymentMethod'],
-                    ['name' => 'deleteBillingAddress'],
-                    ['name' => 'deletePaymentMethod'],
-                    ['name' => 'getBillingAddress'],
-                    ['name' => 'getCoupon'],
-                    ['name' => 'getPaymentMethod'],
-                    ['name' => 'listBillingAddresses'],
-                    ['name' => 'listInvoices'],
-                    ['name' => 'listPaymentMethods'],
-                    ['name' => 'updateBillingAddress'],
-                    ['name' => 'updateConsoleAccess'],
-                    ['name' => 'updatePaymentMethod'],
-                    ['name' => 'updatePaymentMethodMandateOptions'],
-                    ['name' => 'updatePaymentMethodProvider'],
-                    ['name' => 'createPlanEstimation'],
-                    // Not yet available in the released @appwrite.io/console package
-                    ['name' => 'listStages'],
-                    ['name' => 'updateStage'],
-                    ['name' => 'approve'],
-                ],
-            ],
+            'exclude' => $cliExcludes,
         ]);
 
         $sdk->generate(__DIR__ . '/examples/go-cli');

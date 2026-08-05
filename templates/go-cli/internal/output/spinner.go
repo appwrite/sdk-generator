@@ -192,7 +192,7 @@ func (s *Spinner) finish(status, end string, style lipgloss.Style, mark string) 
 			trailing = spinnerFailTrailStyle
 		}
 		fmt.Fprintln(s.writer, spinnerLine(
-			style.Render(mark), style.Render(pad(status, statusWidth)),
+			style.Render(mark), style.Render(Pad(status, statusWidth)),
 			middleColumn(s.state), end, trailing, s.width()))
 	} else {
 		Log(s.writer, "%s ( %s ) %s", s.state.Resource, s.state.ID, status)
@@ -260,7 +260,7 @@ func (s *Spinner) draw() {
 	s.clear()
 	mark := spinnerPendingStyle.Render(spinnerFrames[s.frame%len(spinnerFrames)])
 	fmt.Fprint(s.writer, spinnerLine(
-		mark, spinnerActiveStyle.Render(pad(s.state.Status, statusWidth)),
+		mark, spinnerActiveStyle.Render(Pad(s.state.Status, statusWidth)),
 		middleColumn(s.state), s.state.End, spinnerTrailingStyle, s.width()))
 	s.drawn = true
 }
@@ -328,7 +328,7 @@ func spinnerLine(mark, status, middle, end string, endStyle lipgloss.Style, widt
 // fitMiddle pads or truncates the middle column to exactly target columns.
 func fitMiddle(middle string, target int) string {
 	if lipgloss.Width(middle) <= target {
-		return pad(middle, target)
+		return Pad(middle, target)
 	}
 	if target <= 1 {
 		return "…"
@@ -348,7 +348,12 @@ func fitMiddle(middle string, target int) string {
 }
 
 // pad right-pads to width, measuring display columns rather than bytes.
-func pad(text string, width int) string {
+// Pad right-pads text to width.
+//
+// Measured with lipgloss.Width rather than len: a styled or non-ASCII cell
+// occupies a different number of columns than it does bytes, and padding by
+// bytes misaligns every column after it.
+func Pad(text string, width int) string {
 	if gap := width - lipgloss.Width(text); gap > 0 {
 		return text + strings.Repeat(" ", gap)
 	}

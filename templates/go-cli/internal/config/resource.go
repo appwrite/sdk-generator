@@ -351,24 +351,7 @@ func (l *Local) ReplaceResource(resource string, entries []*jsonx.Object) {
 
 // ResourceEntries reads a top-level array as objects.
 func (l *Local) ResourceEntries(resource string) []*jsonx.Object {
-	value, ok := l.Data.Get(resource)
-	if !ok {
-		return nil
-	}
-
-	items, ok := value.([]any)
-	if !ok {
-		return nil
-	}
-
-	entries := make([]*jsonx.Object, 0, len(items))
-	for _, item := range items {
-		if object, ok := item.(*jsonx.Object); ok {
-			entries = append(entries, object)
-		}
-	}
-
-	return entries
+	return l.Data.GetObjects(resource)
 }
 
 // Schema key orders for the database resources.
