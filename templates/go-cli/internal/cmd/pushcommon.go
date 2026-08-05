@@ -206,7 +206,23 @@ func (c *pushContext) approveChanges(command *cobra.Command, request approvalReq
 			if !present {
 				continue
 			}
-			localValue, _ := local.Get(key)
+			localValue, hasLocal := local.Get(key)
+
+			// A key the config does not carry is never SENT. writeBody writes
+			// only the keys that are present, deliberately, so that a push does
+			// not clear a field the config is silent about -- which means
+			// listing an absent key here promised an edit the push would not
+			// make. A freshly inited site reported
+			//
+			//   id                   │ key                │ remote │ local
+			//   6a729db1003e322cbfdb │ providerSilentMode │ false  │
+			//
+			// on every push, forever: the config has no such key, so there was
+			// nothing to apply and the row never went away. Approving it did
+			// nothing, which is the worst kind of prompt.
+			if !hasLocal {
+				continue
+			}
 
 			if isEmpty(remoteValue) && isEmpty(localValue) {
 				continue
