@@ -93,6 +93,55 @@ func TestTypesRequiresAnOutputDirectory(t *testing.T) {
 	}
 }
 
+// A rejected `-l` value has to say what the accepted ones are: they are short
+// names, several of which are not the language's usual spelling, and the reject
+// is also where DETECTION lands -- a Python or Ruby project has no emitter at
+// all, so no spelling of it would have worked.
+func TestUnsupportedLanguageListsTheSupportedOnes(t *testing.T) {
+	message := unsupportedLanguage("typescript").Error()
+
+	if !strings.Contains(message, "did you mean `ts`") {
+		t.Errorf("did not suggest the accepted spelling:\n  %s", message)
+	}
+	for _, language := range typeLanguageChoices {
+		if language == "auto" {
+			// A mode, not an answer to "pass one of these instead".
+			if strings.Contains(message, "auto") {
+				t.Errorf("offered `auto` as a language:\n  %s", message)
+			}
+
+			continue
+		}
+		if !strings.Contains(message, language) {
+			t.Errorf("did not list %q:\n  %s", language, message)
+		}
+	}
+}
+
+// `dotnet` is the case that is not a guess: DetectLanguage returns it for a
+// directory holding a .csproj, so `appwrite types .` in a C# project is rejected
+// by a value the CLI chose itself.
+func TestDetectedLanguagesWithoutAnEmitterAreExplained(t *testing.T) {
+	for requested, want := range map[string]string{"dotnet": "cs", "javascript": "js"} {
+		message := unsupportedLanguage(requested).Error()
+		if !strings.Contains(message, "did you mean `"+want+"`") {
+			t.Errorf("%q was not pointed at %q:\n  %s", requested, want, message)
+		}
+	}
+
+	// Python and Ruby are detectable and genuinely unsupported, so there is
+	// nothing to suggest -- only the list.
+	for _, requested := range []string{"python", "ruby"} {
+		message := unsupportedLanguage(requested).Error()
+		if strings.Contains(message, "did you mean") {
+			t.Errorf("invented a spelling for %q, which has no emitter:\n  %s", requested, message)
+		}
+		if !strings.Contains(message, "The supported languages are") {
+			t.Errorf("left %q with no way forward:\n  %s", requested, message)
+		}
+	}
+}
+
 // TestGenerateDefaults pins the two flags that carry a default the user sees in
 // help output.
 func TestGenerateDefaults(t *testing.T) {

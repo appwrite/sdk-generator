@@ -46,6 +46,57 @@ var typeLanguages = map[string]func(directory string) typegen.Language{
 // lists them in its help.
 var typeLanguageChoices = []string{"auto", "ts", "js", "php", "kotlin", "swift", "java", "dart", "cs"}
 
+// typeLanguageAliases maps a name a user is likely to reach for to the value
+// the CLI accepts.
+//
+// `dotnet` is not a guess: DetectLanguage returns it for a directory holding a
+// .csproj, so `appwrite types .` in a C# project resolves to a value the
+// emitter table does not have a key for, and the answer is always `cs`.
+var typeLanguageAliases = map[string]string{
+	"c#":         "cs",
+	"csharp":     "cs",
+	"dotnet":     "cs",
+	"javascript": "js",
+	"node":       "js",
+	"nodejs":     "js",
+	"typescript": "ts",
+}
+
+// typeLanguageNames lists what `-l` accepts, minus `auto` -- a mode rather than
+// a language, and so not an answer to "pass one of these instead".
+func typeLanguageNames() string {
+	names := make([]string, 0, len(typeLanguageChoices))
+	for _, choice := range typeLanguageChoices {
+		if choice != "auto" {
+			names = append(names, choice)
+		}
+	}
+
+	return strings.Join(names, ", ")
+}
+
+// unsupportedLanguage explains a `-l` value nothing generates for.
+//
+// The list is the useful half of the message. The accepted values are short
+// names, several of which are not the language's usual spelling, so a rejection
+// that names none of them leaves the user guessing at eight possibilities --
+// and the full name is the obvious first guess, which is why `typescript` gets
+// a suggestion rather than only a list.
+//
+// Detection reaches this too, and there the list is the only thing that says
+// what to do next: a Python or Ruby project resolves to a language the CLI has
+// no emitter for, so no spelling of it would have worked.
+func unsupportedLanguage(requested string) error {
+	if suggestion, ok := typeLanguageAliases[strings.ToLower(requested)]; ok {
+		return fmt.Errorf(
+			"language '%s' is not supported -- did you mean `%s`? The supported languages are %s",
+			requested, suggestion, typeLanguageNames())
+	}
+
+	return fmt.Errorf("language '%s' is not supported. The supported languages are %s",
+		requested, typeLanguageNames())
+}
+
 func newTypesCommand() *cobra.Command {
 	var (
 		language string
@@ -80,7 +131,10 @@ func resolveTypeLanguage(command *cobra.Command, requested string) (string, type
 	if requested == "auto" {
 		detected, err := typegen.DetectLanguage(working)
 		if err != nil {
-			return "", nil, err
+			// typegen's message is the TypeScript's verbatim and stays that way;
+			// the list of what to pass is added here, where it is known.
+			return "", nil, fmt.Errorf("%w. The supported languages are %s",
+				err, typeLanguageNames())
 		}
 		output.Log(command.OutOrStdout(), "Detected language: %s", detected)
 		requested = detected
@@ -88,7 +142,7 @@ func resolveTypeLanguage(command *cobra.Command, requested string) (string, type
 
 	construct, ok := typeLanguages[requested]
 	if !ok {
-		return "", nil, fmt.Errorf("language '%s' is not supported", requested)
+		return "", nil, unsupportedLanguage(requested)
 	}
 
 	return requested, construct(working), nil
