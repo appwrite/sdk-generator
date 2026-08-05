@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
@@ -22,11 +23,30 @@ import (
 // a standalone binary is replaced in place. The release asset names match the
 // TypeScript's exactly, so a Go build lands where a TypeScript one was.
 
-// releaseBaseURL is where standalone binaries are published.
-const releaseBaseURL = "https://github.com/appwrite/appwrite-cli/releases/latest/download/"
-
 // releasesPageURL is where someone downloads a build by hand.
-const releasesPageURL = "https://github.com/appwrite/appwrite-cli/releases"
+const releasesPageURL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases"
+
+// releaseAssetURL builds the download URL for one asset of one release.
+//
+// Deliberately a versioned tag rather than /releases/latest/download/: GitHub
+// resolves "latest" to the newest NON-prerelease, so a release candidate
+// updating itself would silently walk backwards onto the last stable build.
+// The version comes from the same registry lookup that decided an update was
+// available, so the binary that lands is the one the user was told about.
+func releaseAssetURL(version, asset string) string {
+	return fmt.Sprintf("%s/download/v%s/%s", releasesPageURL, strings.TrimPrefix(version, "v"), asset)
+}
+
+// resolveReleaseVersion is the version a standalone update would install, or
+// "" when the registry cannot be reached.
+func resolveReleaseVersion() string {
+	checker := app.UpdateChecker()
+	if checker == nil {
+		return ""
+	}
+
+	return checker.Explicit()
+}
 
 func newUpdateCommand() *cobra.Command {
 	var (
@@ -109,8 +129,8 @@ func printManualInstructions(command *cobra.Command) {
 	if runtime.GOOS != "windows" {
 		if asset, err := app.ReleaseAssetName(); err == nil {
 			output.Log(out, "Option 3: Install Script / Standalone Binary")
-			fmt.Fprintf(out, "  curl -fsSL %s%s -o %s\n",
-				releaseBaseURL, asset,
+			fmt.Fprintf(out, "  curl -fsSL %s -o %s\n",
+				releaseAssetURL(resolveReleaseVersion(), asset),
 				filepath.Join(os.TempDir(), app.ExecutableName))
 			fmt.Fprintln(out)
 		}
@@ -170,8 +190,14 @@ func updateStandalone(command *cobra.Command, force bool) error {
 		return fmt.Errorf("cannot write to %s: %w. Re-run with elevated permissions", directory, err)
 	}
 
-	command.Printf("Downloading %s...\n", asset)
-	body, err := download(releaseBaseURL + asset)
+	version := resolveReleaseVersion()
+	if version == "" {
+		return fmt.Errorf(
+			"cannot determine the version to install. Download it manually at %s", releasesPageURL)
+	}
+
+	command.Printf("Downloading %s %s...\n", asset, version)
+	body, err := download(releaseAssetURL(version, asset))
 	if err != nil {
 		return err
 	}
