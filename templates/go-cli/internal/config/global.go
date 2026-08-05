@@ -388,3 +388,38 @@ func EndpointsMatch(a, b string) bool {
 
 	return trim(a) == trim(b)
 }
+
+// LegacyEmail marks a session recovered from the pre-sessions prefs format,
+// where there was no email to record. Ports the literal in generic.ts:migrate.
+const LegacyEmail = "legacy"
+
+// MigrateLegacySession lifts a pre-sessions prefs.json into the sessions array,
+// reporting whether it changed anything.
+//
+// Ports migrate() (generic.ts:392), which the TypeScript CLI runs on every
+// invocation. prefs.json used to hold a single endpoint and cookie at the top
+// level; sessions replaced that with a keyed array plus `current`. Without this,
+// a user upgrading from an older CLI keeps a perfectly good cookie in a shape
+// nothing reads, so the first command they run tells them they are logged out.
+//
+// Both keys have to be present. Either one alone is not a legacy session: a
+// bare endpoint is what `client --endpoint` writes before anyone signs in.
+func (g *Global) MigrateLegacySession(id string) bool {
+	if !g.data.Has(PreferenceEndpoint) || !g.data.Has(PreferenceCookie) {
+		return false
+	}
+
+	session := NewObject()
+	session.Set(PreferenceEndpoint, g.data.GetString(PreferenceEndpoint))
+	session.Set(PreferenceCookie, g.data.GetString(PreferenceCookie))
+	session.Set(PreferenceEmail, LegacyEmail)
+
+	// AddSession makes it current, which is what migrate() does by calling
+	// setCurrentSession -- a legacy prefs.json has exactly one login, so there is
+	// nothing else it could switch to.
+	g.AddSession(id, session)
+	g.data.Delete(PreferenceEndpoint)
+	g.data.Delete(PreferenceCookie)
+
+	return true
+}

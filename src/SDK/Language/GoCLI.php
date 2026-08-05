@@ -501,6 +501,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/cmd/generic.go',
+                'template'      => 'go-cli/internal/cmd/generic.go.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/session.go',
                 'template'      => 'go-cli/internal/cmd/session.go',
             ],

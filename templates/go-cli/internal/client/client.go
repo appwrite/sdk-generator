@@ -272,14 +272,31 @@ func (c *Client) captureSessionCookie(response *http.Response) {
 // The transport is this client's own, not http.DefaultTransport: mutating the
 // shared default would turn verification off for every request the process makes
 // afterwards, including ones to Appwrite Cloud.
+//
+// The http.Client is replaced rather than mutated, for the same reason one step
+// in. Clone copies the *http.Client by pointer, so assigning to c.HTTP.Transport
+// reached through every clone and every sibling of this client -- one clone
+// opting in silently disabled certificate verification for calls this client
+// never made. Swapping in a copy confines the decision to the client it was
+// asked of.
 func (c *Client) SetSelfSigned(selfSigned bool) *Client {
 	if !selfSigned {
 		return c
 	}
 
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	// Cloned from the default when it is the usual transport, so proxy settings
+	// and connection tuning survive. A dependency that replaces
+	// http.DefaultTransport is not a reason to panic on a type assertion, so fall
+	// back to a plain transport instead.
+	transport := &http.Transport{}
+	if standard, ok := http.DefaultTransport.(*http.Transport); ok {
+		transport = standard.Clone()
+	}
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	c.HTTP.Transport = transport
+
+	replacement := *c.HTTP
+	replacement.Transport = transport
+	c.HTTP = &replacement
 
 	return c
 }

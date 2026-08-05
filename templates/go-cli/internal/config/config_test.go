@@ -323,3 +323,75 @@ func TestWriteFileAtomicallyReplacesContentsAndMode(t *testing.T) {
 	}
 	assertPermissions(t, path, 0o600)
 }
+
+// prefs.json used to hold one endpoint and cookie at the top level, before
+// sessions replaced that with a keyed array. Reading a legacy file correctly is
+// not enough: without lifting it into the new shape, an upgrading user's cookie
+// sits somewhere nothing looks, and the first command tells them to log in.
+func TestMigrateLegacySessionLiftsTheOldShape(t *testing.T) {
+	const legacy = `{
+    "endpoint": "https://selfhosted.example/v1",
+    "cookie": "a_session_console=legacycookie"
+}`
+
+	path := filepath.Join(t.TempDir(), "prefs.json")
+	if err := os.WriteFile(path, []byte(legacy), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	global := LoadGlobal(path)
+	if !global.MigrateLegacySession("session1") {
+		t.Fatal("a legacy prefs.json was not migrated")
+	}
+
+	if got := global.CurrentSessionID(); got != "session1" {
+		t.Errorf("current session = %q, want the migrated one", got)
+	}
+	session := global.SessionData("session1")
+	if session == nil {
+		t.Fatal("the migrated session was not stored")
+	}
+	if got := session.GetString(PreferenceCookie); got != "a_session_console=legacycookie" {
+		t.Errorf("cookie = %q, the credential was lost", got)
+	}
+	if got := session.GetString(PreferenceEndpoint); got != "https://selfhosted.example/v1" {
+		t.Errorf("endpoint = %q", got)
+	}
+	if got := session.GetString(PreferenceEmail); got != LegacyEmail {
+		t.Errorf("email = %q, want %q", got, LegacyEmail)
+	}
+
+	// The old keys have to go, or the migration runs again on every command and
+	// adds a further session each time.
+	if global.MigrateLegacySession("session2") {
+		t.Error("the migration ran a second time")
+	}
+	if got := global.CurrentSessionID(); got != "session1" {
+		t.Errorf("a second run moved the current session to %q", got)
+	}
+}
+
+// Either key alone is not a legacy session. A bare endpoint is what
+// `client --endpoint` writes before anyone signs in, and inventing a session
+// from it would claim a login that never happened.
+func TestMigrateLegacySessionIgnoresAPartialOrModernFile(t *testing.T) {
+	for name, contents := range map[string]string{
+		"endpoint only": `{"endpoint":"https://selfhosted.example/v1"}`,
+		"cookie only":   `{"cookie":"a_session_console=x"}`,
+		"empty":         `{}`,
+		"already migrated": `{"current":"abc","abc":{` +
+			`"endpoint":"https://cloud.appwrite.io/v1","email":"someone@example.com"}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "prefs.json")
+			if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+				t.Fatal(err)
+			}
+
+			global := LoadGlobal(path)
+			if global.MigrateLegacySession("new") {
+				t.Errorf("migrated a file that is not a legacy session: %s", contents)
+			}
+		})
+	}
+}

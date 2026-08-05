@@ -53,6 +53,11 @@ func NewRootCommand() *cobra.Command {
 				}
 			}
 
+			// Before anything reads a session, and on every command, because
+			// that is when an upgrading user's prefs.json is still in the old
+			// shape. The TypeScript runs it in the same place.
+			migrateLegacyPreferences()
+
 			noticeUpdateAvailable(command)
 		},
 	}

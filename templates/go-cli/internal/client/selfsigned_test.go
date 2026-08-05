@@ -60,3 +60,48 @@ func TestSelfSignedFalseLeavesVerificationOn(t *testing.T) {
 		t.Error("a later client accepted an untrusted certificate")
 	}
 }
+
+// Clone copies the *http.Client by pointer, so opting one clone into a
+// self-signed certificate used to reach through to its parent and every sibling
+// -- including the ones talking to Appwrite Cloud. `--self-signed` is per
+// endpoint, and turning verification off for a self-hosted instance must not
+// turn it off for anything else.
+func TestSelfSignedOnACloneLeavesTheParentVerifying(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("content-type", "application/json")
+		_, _ = w.Write([]byte(`{"version":"1.0.0"}`))
+	}))
+	defer server.Close()
+
+	parent := New(server.URL, "test")
+	sibling := parent.Clone()
+
+	_ = parent.Clone().SetSelfSigned(true)
+
+	if err := parent.Call("GET", "/health/version", nil, nil); err == nil {
+		t.Error("a clone opting in disabled verification for its parent")
+	}
+	if err := sibling.Call("GET", "/health/version", nil, nil); err == nil {
+		t.Error("a clone opting in disabled verification for a sibling")
+	}
+}
+
+// The opted-in client itself still has to work, and a clone taken from it
+// afterwards should inherit the decision rather than silently re-enable
+// verification against an endpoint that cannot satisfy it.
+func TestSelfSignedSurvivesCloning(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("content-type", "application/json")
+		_, _ = w.Write([]byte(`{"version":"1.0.0"}`))
+	}))
+	defer server.Close()
+
+	accepted := New(server.URL, "test").SetSelfSigned(true)
+
+	if err := accepted.Call("GET", "/health/version", nil, nil); err != nil {
+		t.Errorf("the opted-in client rejected the certificate: %v", err)
+	}
+	if err := accepted.Clone().Call("GET", "/health/version", nil, nil); err != nil {
+		t.Errorf("a clone of the opted-in client rejected the certificate: %v", err)
+	}
+}
