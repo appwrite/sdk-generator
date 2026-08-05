@@ -197,7 +197,7 @@ cd mock-server && docker compose down
 | Test harness | `tests/e2e/languages/cli/test.js` (2,754 lines) |
 | Mock API | `mock-server/` |
 | Spec fixture | `tests/resources/spec-openapi3.json` |
-| Command surface contract | `docs/go-cli/command-surface.json` (built in Phase 1) |
+| Command surface contract | `templates/go-cli/internal/cmd/testdata/command-surface.json` |
 
 ---
 

@@ -90,3 +90,20 @@ func DecodeOrdered(payload []byte) (any, error) {
 
 	return value, nil
 }
+
+// MarshalOrdered encodes a value to JSON for re-decoding through DecodeOrdered.
+//
+// The SDK returns typed structs. Rendering them directly would use Go's struct
+// field order and lose the ordered-object handling the rest of the output path
+// relies on, so results make one round trip through JSON first.
+func MarshalOrdered(value any) ([]byte, error) {
+	var buffer bytes.Buffer
+	encoder := json.NewEncoder(&buffer)
+	encoder.SetEscapeHTML(false)
+
+	if err := encoder.Encode(value); err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
+}

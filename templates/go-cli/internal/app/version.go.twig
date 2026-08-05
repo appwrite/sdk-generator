@@ -1,0 +1,7 @@
+package app
+
+// Version is stamped at build time with -ldflags.
+var Version = "{{ sdk.version }}"
+
+// ExecutableName is the binary name, and the directory preferences live under.
+const ExecutableName = "{{ language.params.executableName }}"

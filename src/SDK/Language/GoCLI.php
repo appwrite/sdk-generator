@@ -171,7 +171,8 @@ class GoCLI extends Go
 
         [$register, $goType, $noOptDefault] = match ($type) {
             self::TYPE_BOOLEAN => ['Bool', 'bool', $required ? null : 'true'],
-            self::TYPE_INTEGER, self::TYPE_NUMBER => ['Int', 'int', null],
+            self::TYPE_INTEGER => ['Int', 'int', null],
+            self::TYPE_NUMBER => ['Float64', 'float64', null],
             self::TYPE_ARRAY => ['StringArray', '[]string', null],
             // Objects arrive as a JSON string and are decoded in the action;
             // files arrive as a path and are opened there.
@@ -202,6 +203,140 @@ class GoCLI extends Go
         };
     }
 
+
+    /**
+     * How one method is called on the generated Go SDK.
+     *
+     * The SDK takes required parameters positionally in spec order and optional
+     * ones as functional options that are methods on the service, named
+     * `With<Method><Param>`. Splitting them here keeps the Twig template free of
+     * that convention.
+     *
+     * @return array{
+     *     package: string,
+     *     method: string,
+     *     optionType: string,
+     *     required: list<array{expression: string, goType: string}>,
+     *     optional: list<array{flag: string, setter: string, expression: string}>
+     * }
+     */
+    /**
+     * How one method is called on the generated Go SDK.
+     *
+     * The SDK takes required parameters positionally in spec order and optional
+     * ones as functional options that are methods on the service, named
+     * `With<Method><Param>`.
+     *
+     * A flag and the SDK parameter it feeds are not always the same Go type: a
+     * repeatable flag is []string but an untyped array parameter is
+     * []interface{}, and an object arrives as a JSON string that has to be
+     * decoded. Go::getTypeName() is the authority on what the SDK declares, so
+     * conversions are derived from it rather than guessed -- guessing is what
+     * the compiler caught across 600 call sites.
+     *
+     * @return array{
+     *     package: string,
+     *     method: string,
+     *     optionType: string,
+     *     decodes: list<array{var: string, source: string, helper: string}>,
+     *     required: list<array{expression: string}>,
+     *     optional: list<array{flag: string, setter: string, expression: string}>
+     * }
+     */
+    protected function getGoCallPlan(array $method, array $service): array
+    {
+        // The SDK names these with `caseUcfirst`, which PascalCases through
+        // camelCase -- `client_id` becomes `ClientId`, not `Client_id`.
+        $methodName = $this->toPascalCase($method['name'] ?? '');
+        $required = [];
+        $optional = [];
+        $decodes = [];
+
+        foreach ($method['parameters']['all'] ?? [] as $parameter) {
+            $variable = $this->getGoVarName($parameter['name']);
+            $flagType = $this->getGoCliOption($parameter)['goType'];
+            $sdkType = parent::getTypeName($parameter);
+            $expression = $variable;
+
+            if ($flagType !== $sdkType) {
+                [$expression, $decode] = $this->convertToSdkType($variable, $flagType, $sdkType);
+
+                if ($decode !== null) {
+                    $decodes[] = $decode;
+                }
+            }
+
+            if ($parameter['required'] ?? false) {
+                $required[] = ['expression' => $expression];
+
+                continue;
+            }
+
+            $optional[] = [
+                'flag' => $this->getCliOptionName($parameter['name']),
+                'setter' => 'With' . $methodName . $this->toPascalCase($parameter['name']),
+                'expression' => $expression,
+            ];
+        }
+
+        return [
+            'package' => $this->getGoPackageName($service['name'] ?? ''),
+            'method' => $methodName,
+            'optionType' => $methodName . 'Option',
+            'decodes' => $decodes,
+            'required' => $required,
+            'optional' => $optional,
+        ];
+    }
+
+    /**
+     * Bridge a flag's Go type to the type the SDK parameter declares.
+     *
+     * Returns the call-site expression, plus a statement to emit before the call
+     * when the conversion can fail and its error has to surface.
+     *
+     * @return array{0: string, 1: array{var: string, source: string, helper: string}|null}
+     */
+    protected function convertToSdkType(string $variable, string $flagType, string $sdkType): array
+    {
+        // A JSON string or a file path becomes a decoded value, and either can
+        // fail on bad input, so both are decoded into their own variable first.
+        if ($sdkType === 'interface{}' && $flagType === 'string') {
+            return [$variable . 'Value', ['var' => $variable . 'Value', 'source' => $variable, 'helper' => 'JSONObject']];
+        }
+        if ($sdkType === 'file.InputFile') {
+            return [$variable . 'File', ['var' => $variable . 'File', 'source' => $variable, 'helper' => 'InputFile']];
+        }
+
+        // Widening a repeatable string flag to an untyped array cannot fail.
+        if ($sdkType === '[]interface{}' && $flagType === '[]string') {
+            return ['app.ToAnySlice(' . $variable . ')', null];
+        }
+        // Any other typed slice -- []float64, [][]interface{}, []map[string]any --
+        // needs each repetition parsed, because Go cannot hand the API a string
+        // where it declares a number the way the TypeScript does.
+        if (str_starts_with($sdkType, '[]') && $flagType === '[]string') {
+            $element = substr($sdkType, 2);
+
+            return [
+                $variable . 'Decoded',
+                [
+                    'var' => $variable . 'Decoded',
+                    'source' => $variable,
+                    'helper' => 'DecodeSlice[' . $element . ']',
+                ],
+            ];
+        }
+
+        // Numeric widening and anything else the SDK spells differently but Go
+        // can convert directly.
+        if (in_array($sdkType, ['float64', 'int'], true) && in_array($flagType, ['float64', 'int'], true)) {
+            return [$sdkType . '(' . $variable . ')', null];
+        }
+
+        return [$variable, null];
+    }
+
     #[Override]
     public function getFilters(): array
     {
@@ -224,6 +359,7 @@ class GoCLI extends Go
             new TwigFunction('getGoCliOption', fn (array $parameter): array => $this->getGoCliOption($parameter)),
             new TwigFunction('getGoVarName', fn (array $parameter): string => $this->getGoVarName($parameter['name'])),
             new TwigFunction('getGoCliArgExpression', fn (array $parameter): string => $this->getGoCliArgExpression($parameter)),
+            new TwigFunction('getGoCallPlan', fn (array $method, array $service): array => $this->getGoCallPlan($method, $service)),
         ];
     }
 
@@ -370,6 +506,61 @@ class GoCLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/output/render.go',
                 'template'      => 'go-cli/internal/output/render.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/sdk/sdk.go',
+                'template'      => 'go-cli/internal/sdk/sdk.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/query/query.go',
+                'template'      => 'go-cli/internal/query/query.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/query/query_test.go',
+                'template'      => 'go-cli/internal/query/query_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/globals.go',
+                'template'      => 'go-cli/internal/app/globals.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/client.go',
+                'template'      => 'go-cli/internal/app/client.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/flags.go',
+                'template'      => 'go-cli/internal/app/flags.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/app/version.go',
+                'template'      => 'go-cli/internal/app/version.go.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/convert.go',
+                'template'      => 'go-cli/internal/app/convert.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/fallback.go',
+                'template'      => 'go-cli/internal/app/fallback.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/surface_test.go',
+                'template'      => 'go-cli/internal/cmd/surface_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/testdata/command-surface.json',
+                'template'      => 'go-cli/internal/cmd/testdata/command-surface.json',
             ],
             [
                 'scope'         => 'default',

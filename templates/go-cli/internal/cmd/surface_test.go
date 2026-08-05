@@ -1,0 +1,172 @@
+package cmd
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"testing"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+)
+
+// Asserts the generated command tree against the contract extracted from the
+// TypeScript CLI.
+//
+// docs/go-cli/PLAN.md invariant 1: every flag name, shorthand and alias is
+// public surface. The contract in testdata was produced by
+// scripts/go-cli/extract-command-surface.mjs reading the generated TypeScript,
+// so this compares Go against the CLI users have today rather than against
+// anything written by hand.
+
+// handWritten are commands the Go CLI adds that no spec describes. They are
+// listed explicitly so a genuinely unexpected command still fails the test.
+var handWritten = map[string]bool{
+	"login":    true,
+	"logout":   true,
+	"sessions": true,
+	"whoami":   true,
+	// cobra's own.
+	"help":       true,
+	"completion": true,
+}
+
+type contractOption struct {
+	Name      string `json:"name"`
+	Shorthand string `json:"shorthand"`
+	Required  bool   `json:"required"`
+}
+
+type contractCommand struct {
+	Name       string           `json:"name"`
+	Standalone bool             `json:"standalone"`
+	Hidden     bool             `json:"hidden"`
+	Aliases    []string         `json:"aliases"`
+	Options    []contractOption `json:"options"`
+}
+
+type contractService struct {
+	Name     string            `json:"name"`
+	Aliases  []string          `json:"aliases"`
+	Commands []contractCommand `json:"commands"`
+}
+
+type contract struct {
+	Services []contractService `json:"services"`
+}
+
+type surface struct {
+	hidden bool
+	flags  []string
+}
+
+func loadContract(t *testing.T) map[string]surface {
+	t.Helper()
+
+	raw, err := os.ReadFile(filepath.Join("testdata", "command-surface.json"))
+	if err != nil {
+		t.Fatalf("contract missing: %v", err)
+	}
+
+	var parsed contract
+	if err := json.Unmarshal(raw, &parsed); err != nil {
+		t.Fatal(err)
+	}
+
+	expected := map[string]surface{}
+	for _, service := range parsed.Services {
+		for _, command := range service.Commands {
+			// A promoted method is registered at the root as well as under its
+			// service, so it is keyed by its bare name.
+			path := service.Name + " " + command.Name
+			if command.Standalone {
+				path = command.Name
+			}
+
+			flags := make([]string, 0, len(command.Options))
+			for _, option := range command.Options {
+				flags = append(flags, option.Name)
+			}
+			sort.Strings(flags)
+
+			expected[path] = surface{hidden: command.Hidden, flags: flags}
+		}
+	}
+
+	return expected
+}
+
+func walkTree(root *cobra.Command) map[string]surface {
+	actual := map[string]surface{}
+
+	collect := func(command *cobra.Command, path string) {
+		flags := []string{}
+		command.Flags().VisitAll(func(flag *pflag.Flag) {
+			// --help is cobra's, and persistent globals belong to the root.
+			if flag.Name == "help" || root.PersistentFlags().Lookup(flag.Name) != nil {
+				return
+			}
+			flags = append(flags, "--"+flag.Name)
+		})
+		sort.Strings(flags)
+		actual[path] = surface{hidden: command.Hidden, flags: flags}
+	}
+
+	for _, service := range root.Commands() {
+		if handWritten[service.Name()] {
+			continue
+		}
+		if len(service.Commands()) == 0 {
+			// A promoted root command rather than a service.
+			collect(service, service.Name())
+
+			continue
+		}
+		for _, command := range service.Commands() {
+			collect(command, service.Name()+" "+command.Name())
+		}
+	}
+
+	return actual
+}
+
+func TestCommandSurfaceMatchesTypeScript(t *testing.T) {
+	expected := loadContract(t)
+	actual := walkTree(NewRootCommand())
+
+	for path := range expected {
+		if _, ok := actual[path]; !ok {
+			t.Errorf("command missing from the Go CLI: %q", path)
+		}
+	}
+	for path := range actual {
+		if _, ok := expected[path]; !ok {
+			t.Errorf("command not in the contract: %q", path)
+		}
+	}
+
+	for path, want := range expected {
+		got, ok := actual[path]
+		if !ok {
+			continue
+		}
+		if got.hidden != want.hidden {
+			t.Errorf("%s: hidden = %v, want %v", path, got.hidden, want.hidden)
+		}
+		if strings.Join(got.flags, ",") != strings.Join(want.flags, ",") {
+			t.Errorf("%s flags differ\n got %v\nwant %v", path, got.flags, want.flags)
+		}
+	}
+}
+
+// The contract is only meaningful if it actually covers the CLI. A truncated or
+// empty testdata file would otherwise let the test above pass vacuously.
+func TestContractIsNotEmpty(t *testing.T) {
+	expected := loadContract(t)
+
+	if len(expected) < 600 {
+		t.Fatalf("contract has %d commands, expected the full surface", len(expected))
+	}
+}

@@ -3,14 +3,9 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
+	"{{ language.params.modulePath }}/internal/app"
 	"{{ language.params.modulePath }}/internal/cmd/services"
 )
-
-// Version is stamped at build time with -ldflags.
-var Version = "{{ sdk.version }}"
-
-// ExecutableName is the binary name, and the directory preferences live under.
-const ExecutableName = "{{ language.params.executableName }}"
 
 // NewRootCommand builds the full command tree.
 //
@@ -22,12 +17,13 @@ func NewRootCommand() *cobra.Command {
 	root := &cobra.Command{
 		Use:     "{{ language.params.executableName }}",
 		Short:   {{ sdk.shortDescription | goString | raw }},
-		Version: Version,
+		Version: app.Version,
 		// Errors and usage are rendered by the output package, not by cobra.
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
 
+	app.RegisterGlobalFlags(root)
 	services.Register(root)
 	registerSessionCommands(root)
 
