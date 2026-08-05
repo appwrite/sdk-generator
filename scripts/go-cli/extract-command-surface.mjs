@@ -3,8 +3,19 @@
 // contract the Go rewrite is checked against.
 //
 // The TypeScript CLI is the source of truth for flags, aliases, and hidden
-// state. Capture it here while it still is, so Phase 4 can diff the Go tree
-// against something machine-readable instead of against a reviewer's memory.
+// state, so the contract is captured from it rather than from a reviewer's
+// memory. internal/cmd/surface_test.go diffs the Go command tree against the
+// result, and the Checks / Go CLI job runs that test.
+//
+// RUN THIS when the API spec adds or removes commands: the contract is a
+// checked-in snapshot, so a spec that has moved on makes the surface test fail
+// with "command not in the contract". Regenerate from a fresh examples/cli:
+//
+//   php example.php cli
+//   node scripts/go-cli/extract-command-surface.mjs
+//
+// A failure is only ever one of two things -- a stale contract, or the two CLIs
+// genuinely drifting. Check which before regenerating.
 //
 // Usage: node scripts/go-cli/extract-command-surface.mjs [servicesDir] [outFile]
 

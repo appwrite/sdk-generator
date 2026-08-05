@@ -1545,6 +1545,340 @@
       ]
     },
     {
+      "name": "affiliates",
+      "aliases": [],
+      "commands": [
+        {
+          "name": "list-links",
+          "standalone": false,
+          "hidden": false,
+          "aliases": [],
+          "options": [
+            {
+              "required": false,
+              "name": "--queries",
+              "shorthand": null,
+              "valueRequired": false,
+              "valueOptional": true,
+              "variadic": true
+            },
+            {
+              "required": false,
+              "name": "--filter",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--where",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--sort-asc",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--sort-desc",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--limit",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--offset",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--cursor-after",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--cursor-before",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            }
+          ]
+        },
+        {
+          "name": "create-link",
+          "standalone": false,
+          "hidden": false,
+          "aliases": [],
+          "options": [
+            {
+              "required": true,
+              "name": "--link-id",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--name",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            }
+          ]
+        },
+        {
+          "name": "get-link",
+          "standalone": false,
+          "hidden": false,
+          "aliases": [],
+          "options": [
+            {
+              "required": true,
+              "name": "--link-id",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            }
+          ]
+        },
+        {
+          "name": "delete-link",
+          "standalone": false,
+          "hidden": false,
+          "aliases": [],
+          "options": [
+            {
+              "required": true,
+              "name": "--link-id",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            }
+          ]
+        },
+        {
+          "name": "list-referrals",
+          "standalone": false,
+          "hidden": false,
+          "aliases": [],
+          "options": [
+            {
+              "required": false,
+              "name": "--queries",
+              "shorthand": null,
+              "valueRequired": false,
+              "valueOptional": true,
+              "variadic": true
+            },
+            {
+              "required": false,
+              "name": "--filter",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--where",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--sort-asc",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--sort-desc",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--limit",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--offset",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--cursor-after",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--cursor-before",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            }
+          ]
+        },
+        {
+          "name": "list-rewards",
+          "standalone": false,
+          "hidden": false,
+          "aliases": [],
+          "options": [
+            {
+              "required": false,
+              "name": "--queries",
+              "shorthand": null,
+              "valueRequired": false,
+              "valueOptional": true,
+              "variadic": true
+            },
+            {
+              "required": false,
+              "name": "--filter",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--where",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--sort-asc",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--sort-desc",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--limit",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--offset",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--cursor-after",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--cursor-before",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            }
+          ]
+        },
+        {
+          "name": "update-reward",
+          "standalone": false,
+          "hidden": false,
+          "aliases": [],
+          "options": [
+            {
+              "required": true,
+              "name": "--reward-id",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": true,
+              "name": "--status",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": true,
+              "name": "--organization-id",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "backups",
       "aliases": [],
       "commands": [
@@ -6107,6 +6441,36 @@
             {
               "required": true,
               "name": "--key",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "embeddings",
+      "aliases": [],
+      "commands": [
+        {
+          "name": "create-text-embeddings",
+          "standalone": false,
+          "hidden": false,
+          "aliases": [],
+          "options": [
+            {
+              "required": true,
+              "name": "--texts",
+              "shorthand": null,
+              "valueRequired": false,
+              "valueOptional": true,
+              "variadic": true
+            },
+            {
+              "required": false,
+              "name": "--model",
               "shorthand": null,
               "valueRequired": true,
               "valueOptional": false,
@@ -18100,6 +18464,38 @@
       "aliases": [],
       "commands": [
         {
+          "name": "create-invalidation",
+          "standalone": false,
+          "hidden": false,
+          "aliases": [],
+          "options": [
+            {
+              "required": true,
+              "name": "--domain",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": true,
+              "name": "--type",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            },
+            {
+              "required": false,
+              "name": "--reference",
+              "shorthand": null,
+              "valueRequired": true,
+              "valueOptional": false,
+              "variadic": false
+            }
+          ]
+        },
+        {
           "name": "list-rules",
           "standalone": false,
           "hidden": false,
@@ -28279,8 +28675,8 @@
     }
   ],
   "totals": {
-    "services": 23,
-    "commands": 608,
-    "options": 2912
+    "services": 25,
+    "commands": 617,
+    "options": 2951
   }
 }

@@ -48,7 +48,10 @@ final class GoCLI126Test extends Base
         // Docker Desktop remaps ownership, so this only ever reproduces on
         // Linux. The stamp is worthless to a test binary.
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/go-cli golang:1.26 go build -buildvcs=false -o appwrite .',
-        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/go-cli golang:1.26 go vet ./...',
+        // `go vet` runs in the Checks / Go CLI job instead: there it reports
+        // against the real command tree and its output is readable, where a
+        // failure here would surface as an opaque PHPUnit build-command error
+        // and cost a container start to find.
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/go-cli golang:1.26 go test ./internal/...',
         'mkdir -p tests/e2e/sdks/go-cli/conformance',
         'cp tests/e2e/languages/go-cli/main.go tests/e2e/sdks/go-cli/conformance/main.go',
