@@ -99,7 +99,11 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseCamel', fn(?string $value): string => $this->helperCamelCase($value)));
         $this->twig->addFilter(new TwigFilter('removeDash', fn($value): string|array => str_replace('-', '', $value)));
         $this->twig->addFilter(new TwigFilter('caseDash', fn($value) => str_replace([' ', '_'], '-', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', (string) $value)))));
-        $this->twig->addFilter(new TwigFilter('caseKebab', fn($value) => strtolower((string) preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', (string) $value))));
+        $this->twig->addFilter(new TwigFilter('caseKebab', function ($value): string {
+            $value = preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s_]|(?<=[A-Z])\d)/', '-$1', (string) $value);
+            $value = str_replace(['_', ' '], '-', strtolower((string) $value));
+            return trim((string) preg_replace('/-+/', '-', $value), '-');
+        }));
         $this->twig->addFilter(new TwigFilter('caseSlash', fn($value) => str_replace([' ', '_', '.'], '/', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', (string) $value)))));
         $this->twig->addFilter(new TwigFilter('caseDot', fn($value) => str_replace([' ', '_'], '.', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', (string) $value)))));
         $this->twig->addFilter(new TwigFilter('caseSnake', function ($value): string {
