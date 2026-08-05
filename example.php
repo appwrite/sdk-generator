@@ -239,12 +239,10 @@ try {
         $sdk->generate(__DIR__ . '/examples/node');
     }
 
-    // CLI
-    if (!$requestedSdk || $requestedSdk === 'cli') {
-        $language  = new CLI();
-        $language->setNPMPackage('appwrite-cli');
-        $language->setExecutableName('appwrite');
-        $language->setLogo(json_encode("
+    // The ASCII art above `appwrite --help`. Shared by both CLIs, which render
+    // the same help screen -- the TypeScript one takes it JSON-encoded, the Go
+    // one raw, because JSON escapes `/` as `\/` and Go has no such escape.
+    $cliLogo = "
     _                            _ _           ___   __   _____
    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
   //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
@@ -252,7 +250,14 @@ try {
  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
        |_|   |_|
 
-"));
+";
+
+    // CLI
+    if (!$requestedSdk || $requestedSdk === 'cli') {
+        $language  = new CLI();
+        $language->setNPMPackage('appwrite-cli');
+        $language->setExecutableName('appwrite');
+        $language->setLogo(json_encode($cliLogo));
         $language->setLogoUnescaped("
      _                            _ _           ___   __   _____
     /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
@@ -317,6 +322,7 @@ try {
     if (!$requestedSdk || $requestedSdk === 'go-cli') {
         $language = new GoCLI();
         $language->setExecutableName('appwrite');
+        $language->setLogo($cliLogo);
         // Same package name as the TypeScript CLI: `npm i -g appwrite-cli`
         // has to keep working across the switch. It also names every release
         // asset, which install.sh and install.ps1 construct by hand.

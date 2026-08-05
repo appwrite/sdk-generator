@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -519,6 +520,14 @@ type deployable struct {
 	ApproveKeys []string
 	// DeploymentKeys are the config fields sent alongside the archive.
 	DeploymentKeys []string
+	// OmitWhenEmpty are fields left out of a request when the config leaves
+	// them blank, rather than sent as "".
+	//
+	// An entrypoint is the case: it is required on create and optional on
+	// update, so a blank one in the config means "unchanged". Sending "" would
+	// clear the value already on the server. Deliberately NOT every field --
+	// an empty `schedule` really does mean "unschedule it".
+	OmitWhenEmpty []string
 	// ConsoleURL renders the deployment's console page.
 	ConsoleURL func(base, slug, resourceID, deploymentID string) string
 }
@@ -542,6 +551,7 @@ var deployables = []deployable{
 			"vars", "ignore",
 		},
 		DeploymentKeys: []string{"entrypoint", "commands"},
+		OmitWhenEmpty:  []string{"entrypoint"},
 		ConsoleURL: func(base, slug, resourceID, deploymentID string) string {
 			return fmt.Sprintf("%s/console/%s/functions/function-%s/deployment-%s",
 				base, slug, resourceID, deploymentID)
@@ -693,8 +703,18 @@ func runPushDeployable(
 	// Validation runs BEFORE anything is sent, so a missing entrypoint is one
 	// question at the start rather than a failure halfway through.
 	output.Log(out, "Validating %s ...", resource.Label)
-	if err := context.completeDeployables(resource, entries); err != nil {
+	entries, err = context.completeDeployables(out, resource, entries)
+	if err != nil {
 		return err
+	}
+
+	// Everything was skipped for missing a required field, so there is nothing
+	// left to push. Without this the push carried on with an empty list and
+	// still asked whether to create a deployment.
+	if len(entries) == 0 {
+		output.Log(out, "No %s left to push.", resource.Label)
+
+		return nil
 	}
 
 	approved, err := context.approveChanges(command, approvalRequest{
@@ -801,17 +821,15 @@ func (s *pushSummary) report(
 ) {
 	out := command.OutOrStdout()
 
+	// The link, and only the link. The spinner row above it has already said
+	// which resource failed and why -- `✗ Error • Template site (id) •
+	// Deployment failed` -- so repeating the sentence here said the same thing
+	// twice in consecutive lines, and hung the URL off the end of the second
+	// one where it is hardest to select. This is the same closing line a
+	// SUCCESSFUL deploy prints, which is the point: either way the last thing on
+	// screen is the page to open.
 	for _, failure := range s.Failed {
-		if failure.Reason == "timeout" {
-			output.Failure(out,
-				"Deployment of %s got stuck for more than %d minutes. Check deployment here: %s\n",
-				failure.Name, deploymentTimeoutMinutes, failure.ConsoleURL)
-
-			continue
-		}
-
-		output.Failure(out, "Deployment of %s has failed. Check deployment here: %s\n",
-			failure.Name, failure.ConsoleURL)
+		output.Log(out, "Deployment page: %s", failure.ConsoleURL)
 	}
 
 	if async {
@@ -823,17 +841,45 @@ func (s *pushSummary) report(
 	seconds := fmt.Sprintf("%.1fs", elapsed.Seconds())
 
 	switch {
+	// Info when nothing failed: nothing to push, or everything already matched.
+	// Each failure that did happen has already been printed with its reason.
+	case s.Pushed == 0 && len(s.Failed) == 0:
+		output.Log(out, "No %s were pushed. Everything is already up to date.", resource.Label)
 	case s.Pushed == 0:
 		output.Failure(out, "No %s were pushed.", resource.Label)
+	// Nothing deployed is a failure, and it used to be announced as
+	// `ℹ Warning: Successfully deployed 0 of 1 sites` -- a sentence that
+	// contradicts itself twice over. Nothing succeeded, so "successfully" is
+	// wrong; and a push where every deployment failed is not a caveat on a good
+	// outcome, it is the bad one.
+	case s.Deployed == 0:
+		output.Failure(out, "Deployed none of the %d %s pushed, in %s.",
+			s.Pushed, plural(s.Pushed, resource), seconds)
+	// Some did deploy, so this really is a partial result -- but it is still not
+	// a "success", and saying how many failed is what the reader wants next.
 	case s.Deployed != s.Pushed:
-		output.Warn(out, "Successfully deployed %d of %d %s in %s.",
-			s.Deployed, s.Pushed, resource.Label, seconds)
+		output.Warn(out, "Deployed %d of %d %s in %s. %d failed.",
+			s.Deployed, s.Pushed, plural(s.Pushed, resource), seconds,
+			s.Pushed-s.Deployed)
 	case s.Pushed == 1:
 		output.Success(out, "Successfully deployed 1 %s in %s.", resource.Singular, seconds)
 	default:
 		output.Success(out, "Successfully deployed %d %s in %s.",
 			s.Pushed, resource.Label, seconds)
 	}
+}
+
+// plural names a resource by count.
+//
+// `0 of 1 sites` and `1 site` both matter: a count line is the last thing a
+// push prints, and getting the agreement wrong there reads as carelessness in
+// the tool that just changed a live project.
+func plural(count int, resource deployable) string {
+	if count == 1 {
+		return resource.Singular
+	}
+
+	return resource.Label
 }
 
 // selectDeployables resolves which configured resources to push.
@@ -864,19 +910,62 @@ func (c *pushContext) selectDeployables(
 //
 // The answer is written back to the config, so the question is asked once per
 // resource rather than once per push.
-func (c *pushContext) completeDeployables(resource deployable, entries []*jsonx.Object) error {
+func (c *pushContext) completeDeployables(
+	out io.Writer,
+	resource deployable,
+	entries []*jsonx.Object,
+) ([]*jsonx.Object, error) {
 	changed := false
+	usable := make([]*jsonx.Object, 0, len(entries))
 
 	for _, entry := range entries {
-		field, message := "", ""
+		field, message, label := "", "", ""
 
 		switch {
 		case resource.Name == "function" && entry.GetString("entrypoint") == "":
-			field, message = "entrypoint", "Enter the entrypoint"
+			field, message, label = "entrypoint", "Enter the entrypoint", "an entrypoint"
 		case resource.Name == "site" && entry.GetString("buildCommand") == "" &&
 			siteRequiresBuildCommand(entry):
-			field, message = "buildCommand", "Enter the build command"
+			field, message, label = "buildCommand", "Enter the build command", "a build command"
 		default:
+			usable = append(usable, entry)
+
+			continue
+		}
+
+		name := entry.GetString("name")
+		if name == "" {
+			name = entry.GetString("$id")
+		}
+
+		// Required on CREATE only. The API asks for none of these -- `functions
+		// create` requires function-id, name and runtime, and nothing else --
+		// so an update that happens to leave the field blank locally is not an
+		// error, it just has nothing to say about it. The value already on the
+		// server is kept, which writeBody arranges by omitting the key.
+		if c.resourceExists(resource, entry.GetString("$id")) {
+			output.Log(out, "%s %s has no %s set locally. Keeping the one on the server.",
+				capitalizeFirst(resource.Singular), name, field)
+			usable = append(usable, entry)
+
+			continue
+		}
+
+		// Which one, and what is missing. The TypeScript logs this before it
+		// prompts (push.ts:3656); without it the question arrives as a bare
+		// "Enter the entrypoint" with no clue which of ten functions it is for.
+		output.Log(out, "%s %s is missing %s.",
+			capitalizeFirst(resource.Singular), name, label)
+
+		// --all says "every resource, do not ask me". It is also how a pipeline
+		// pushes, so stopping on a question there is the opposite of what was
+		// asked -- and the answer is data the CLI cannot invent. The resource is
+		// reported and skipped; the rest of the push proceeds.
+		if app.Flags().All {
+			output.Log(out,
+				"Skipping it: set %q in %s, or push it without --all to be asked.",
+				field, config.LocalFileName)
+
 			continue
 		}
 
@@ -886,19 +975,52 @@ func (c *pushContext) completeDeployables(resource deployable, entries []*jsonx.
 			Validate: prompt.Required(field),
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		entry.Set(field, answer)
 		c.local.UpsertByID(resource.ConfigKey, entry)
 		changed = true
+		usable = append(usable, entry)
 	}
 
 	if !changed {
-		return nil
+		return usable, nil
 	}
 
-	return c.local.Write()
+	return usable, c.local.Write()
+}
+
+// resourceExists reports whether the resource is already on the server.
+//
+// Only asked for a resource whose config leaves a create-required field blank,
+// so it costs one extra request in the one case that needs the answer.
+//
+// A 404 means "not there", so the field is required. Any OTHER failure --
+// offline, an expired session, a 500 -- leaves the question unanswered, and the
+// safe answer is the stricter one: treat it as a create and ask.
+func (c *pushContext) resourceExists(resource deployable, id string) bool {
+	// No id to ask about, or nothing to ask: both mean the answer is unknown,
+	// and unknown takes the strict branch.
+	if id == "" || c.api == nil {
+		return false
+	}
+
+	if _, err := c.fetchResource(resource, id); err != nil {
+		return false
+	}
+
+	return true
+}
+
+// capitalizeFirst starts a sentence with the resource name, which is stored
+// lowercase for use mid-sentence.
+func capitalizeFirst(value string) string {
+	if value == "" {
+		return value
+	}
+
+	return strings.ToUpper(value[:1]) + value[1:]
 }
 
 // siteRequiresBuildCommand reports whether a site has to be built.
@@ -961,10 +1083,11 @@ func (c *pushContext) pushDeployable(
 		}
 
 		err = c.api.Call("PUT", resource.Path+"/"+url.PathEscape(id),
-			writeBody(entry, resource.WriteKeys, "", ""), nil)
+			writeBody(entry, resource.WriteKeys, resource.OmitWhenEmpty, "", ""), nil)
 	} else {
 		err = c.api.Call("POST", resource.Path,
-			writeBody(entry, resource.WriteKeys, resource.IDField, id), nil)
+			writeBody(entry, resource.WriteKeys, resource.OmitWhenEmpty,
+				resource.IDField, id), nil)
 	}
 	if err != nil {
 		output.Failure(out, "Failed to push %s %s: %s", resource.Singular, name, err)
@@ -1016,16 +1139,28 @@ func (c *pushContext) pushDeployable(
 // Only keys the config actually carries are sent. The TypeScript passes the
 // rest as undefined and JSON.stringify drops them, so sending an explicit null
 // would be a behaviour change -- it would clear the field on the remote.
-func writeBody(entry *jsonx.Object, keys []string, idField, id string) *jsonx.Object {
+func writeBody(
+	entry *jsonx.Object,
+	keys []string,
+	omitWhenEmpty []string,
+	idField, id string,
+) *jsonx.Object {
 	body := jsonx.NewObject()
 	if idField != "" {
 		body.Set(idField, id)
 	}
 
 	for _, key := range keys {
-		if value, ok := entry.Get(key); ok {
-			body.Set(key, value)
+		value, ok := entry.Get(key)
+		if !ok {
+			continue
 		}
+		if text, isText := value.(string); isText && text == "" &&
+			slices.Contains(omitWhenEmpty, key) {
+			continue
+		}
+
+		body.Set(key, value)
 	}
 
 	return body
@@ -1103,12 +1238,21 @@ func (c *pushContext) createDeployment(
 
 	fields := make([]client.FormField, 0, len(resource.DeploymentKeys)+1)
 	for _, key := range resource.DeploymentKeys {
-		if value, ok := entry.Get(key); ok {
-			fields = append(fields, client.FormField{
-				Name:  key,
-				Value: fmt.Sprint(scalarOf(value)),
-			})
+		value, ok := entry.Get(key)
+		if !ok {
+			continue
 		}
+		// Same rule as writeBody: a blank entrypoint means "use the one the
+		// function already has", not "deploy with none".
+		if text, isText := value.(string); isText && text == "" &&
+			slices.Contains(resource.OmitWhenEmpty, key) {
+			continue
+		}
+
+		fields = append(fields, client.FormField{
+			Name:  key,
+			Value: fmt.Sprint(scalarOf(value)),
+		})
 	}
 	fields = append(fields, client.FormField{
 		Name: "activate", Value: fmt.Sprint(activate),
@@ -1268,12 +1412,16 @@ func (c *pushContext) awaitDeployment(
 
 			// A ready site is given a moment to finish its preview
 			// screenshots. The deployment is already live; this only decides
-			// whether the console page has an image on it yet.
+			// whether there is a picture to show for it.
 			if resource.Name == "site" && !hasScreenshots(deployment) {
 				if readySince.IsZero() {
 					readySince = time.Now()
 				}
 				if time.Since(readySince) < screenshotFinalizationTimeout {
+					// Named, not silent. The build has finished, so "Deploying"
+					// is no longer true, and a row that stops changing for half
+					// a minute after the last log line looks stuck.
+					spinner.Update("Finalizing", "Finalizing deployment preview...")
 					time.Sleep(pollDebounce)
 
 					continue
@@ -1283,7 +1431,7 @@ func (c *pushContext) awaitDeployment(
 			logPrinter.Complete()
 			spinner.Succeed("Deployed", "")
 			summary.Deployed++
-			c.reportDeployment(command, resource, id, consoleURL)
+			c.reportDeployment(command, resource, id, consoleURL, deployment)
 
 			return
 
@@ -1321,16 +1469,24 @@ func (c *pushContext) fetchDeployment(
 	return deployment, nil
 }
 
-// reportDeployment prints the links a finished deployment produced.
+// reportDeployment prints what a finished deployment produced.
+//
+// For a site that is a picture of the page as well as the links to it -- see
+// pushpreview.go for why a screenshot is worth the bytes.
 func (c *pushContext) reportDeployment(
 	command *cobra.Command,
 	resource deployable,
 	id, consoleURL string,
+	deployment *jsonx.Object,
 ) {
 	out := command.OutOrStdout()
 
-	if preview := c.previewURL(resource, id); preview != "" {
-		output.Log(out, "Preview link: %s", preview)
+	if resource.Name == "site" {
+		c.reportScreenshot(out, deployment)
+	}
+
+	if link := c.previewURL(resource, id); link != "" {
+		output.Log(out, "Preview link: %s", link)
 	}
 	output.Log(out, "Deployment page: %s", consoleURL)
 }

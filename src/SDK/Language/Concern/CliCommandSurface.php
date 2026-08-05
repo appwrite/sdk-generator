@@ -2,6 +2,8 @@
 
 namespace Appwrite\SDK\Language\Concern;
 
+use Twig\TwigFunction;
+
 /**
  * Spec analysis shared by every generated Appwrite CLI, whatever the target
  * language.
@@ -104,6 +106,171 @@ trait CliCommandSurface
     protected const array TOP_LEVEL_COMMANDS = [
         'oauth2' => ['listOrganizations', 'listProjects'],
     ];
+
+    /**
+     * The main help screen, grouped by intent rather than listed
+     * alphabetically.
+     *
+     * Entries are command paths as typed, so a root alias such as
+     * `list-projects` can sit next to `login` in GET STARTED. A command named
+     * here that the spec does not produce is skipped, and a command the spec
+     * produces that is named nowhere still appears under OTHER -- so a service
+     * added to the spec can never silently disappear from `--help`.
+     *
+     * @var list<array{title: string, dim?: bool, commands: list<string>}>
+     */
+    protected const array HELP_GROUPS = [
+        [
+            'title' => 'GET STARTED',
+            'commands' => [
+                'login', 'list-organizations', 'list-projects', 'init', 'pull',
+                'push', 'run', 'whoami',
+            ],
+        ],
+        [
+            'title' => 'PROJECT',
+            'commands' => [
+                'organization', 'project', 'apps', 'proxy', 'vcs', 'webhooks',
+            ],
+        ],
+        [
+            'title' => 'RESOURCES',
+            'commands' => [
+                'account', 'users', 'teams', 'tablesdb', 'storage', 'functions',
+                'sites', 'messaging', 'tokens', 'backups', 'presences',
+            ],
+        ],
+        [
+            'title' => 'UTILITIES',
+            'commands' => [
+                'graphql', 'generate', 'types', 'locale', 'activities',
+                'migrations', 'notifications', 'oauth2', 'client', 'completion',
+                'logout', 'update',
+            ],
+        ],
+        [
+            'title' => 'DEPRECATED',
+            'dim' => true,
+            'commands' => ['databases'],
+        ],
+    ];
+
+    /**
+     * One-line summaries for the main help listing. A command's own
+     * description stays the long form shown on its own help page.
+     *
+     * Written to fit one terminal line -- keep them under 51 characters, in the
+     * imperative, with no trailing period. `%title%` is the SDK title.
+     *
+     * @var array<string, string>
+     */
+    protected const array HELP_SUMMARIES = [
+        'login' => 'Authenticate with your %title% account',
+        'list-organizations' => 'Organizations your session can access',
+        'list-projects' => 'Projects your session can access',
+        'init' => 'Scaffold a project, function, site, or resource',
+        'pull' => 'Pull remote project resources into this directory',
+        'push' => 'Push local project resources',
+        'run' => 'Run the project locally for development',
+        'whoami' => 'Show the currently authenticated account',
+
+        'organization' => 'Manage organization-level projects',
+        'project' => 'Usage, variables, and project-level settings',
+        'apps' => 'OAuth2 applications, keys, scopes, installations',
+        'proxy' => 'Domain configuration beyond DNS',
+        'vcs' => 'Connect and manage VCS repositories',
+        'webhooks' => 'Project webhooks',
+
+        'account' => 'Manage your own user account',
+        'users' => 'Manage project users',
+        'teams' => 'Group users to share resource access',
+        'tablesdb' => 'Structured tables of rows and columns',
+        'storage' => 'Files and buckets',
+        'functions' => 'Serverless functions, deployments, and executions',
+        'sites' => 'Static and SSR sites and their deployments',
+        'messaging' => 'Topics, subscribers, and message delivery',
+        'tokens' => 'Resource tokens for secure file access',
+        'backups' => 'Backup policies, archives, and restorations',
+        'presences' => 'Real-time user presence tracking',
+
+        'graphql' => 'Query and mutate any resource via GraphQL',
+        'generate' => 'Generate a type-safe SDK from your project config',
+        'types' => 'Generate TypeScript types for your project',
+        'locale' => 'Localize your app based on user location',
+        'activities' => 'List and inspect project activity events',
+        'migrations' => 'Migrate data between services',
+        'notifications' => 'Console notifications',
+        'oauth2' => 'Authorize apps and issue OAuth2 and OIDC tokens',
+        'client' => 'Configure the CLI itself',
+        'completion' => 'Generate shell completion scripts',
+        'logout' => 'Log out of your %title% account',
+        'update' => 'Update the CLI to the latest version',
+
+        'databases' => 'Use `tablesdb` instead',
+    ];
+
+    /**
+     * Order of the global flags on the main help screen, by long flag.
+     * Unlisted options are appended.
+     *
+     * @var list<string>
+     */
+    protected const array HELP_OPTION_ORDER = [
+        '--version', '--help', '--json', '--raw', '--show-secrets', '--verbose',
+        '--force', '--all', '--id', '--report',
+    ];
+
+    /**
+     * @return list<array{title: string, dim: bool, commands: list<string>}>
+     */
+    protected function getCliHelpGroups(): array
+    {
+        return array_map(
+            static fn (array $group): array => [
+                'title' => $group['title'],
+                'dim' => $group['dim'] ?? false,
+                'commands' => $group['commands'],
+            ],
+            self::HELP_GROUPS,
+        );
+    }
+
+    /**
+     * Summaries with `%title%` resolved, so a template emits a plain literal
+     * rather than carrying the placeholder into generated code.
+     *
+     * @return array<string, string>
+     */
+    protected function getCliHelpSummaries(string $title): array
+    {
+        return array_map(
+            static fn (string $summary): string => str_replace('%title%', $title, $summary),
+            self::HELP_SUMMARIES,
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function getCliHelpOptionOrder(): array
+    {
+        return self::HELP_OPTION_ORDER;
+    }
+
+    /**
+     * The help metadata, exposed to the templates of every CLI that renders the
+     * grouped main help screen.
+     *
+     * @return list<TwigFunction>
+     */
+    protected function getCliHelpFunctions(): array
+    {
+        return [
+            new TwigFunction('cliHelpGroups', fn (): array => $this->getCliHelpGroups()),
+            new TwigFunction('cliHelpSummaries', fn (string $title): array => $this->getCliHelpSummaries($title)),
+            new TwigFunction('cliHelpOptionOrder', fn (): array => $this->getCliHelpOptionOrder()),
+        ];
+    }
 
     /**
      * Methods whose endpoint only exists on Cloud, mapped to the

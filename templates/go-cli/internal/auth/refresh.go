@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -79,7 +80,7 @@ func (a *Authenticator) AccessToken(forceRefresh bool) (string, error) {
 		return accessToken, nil
 	}
 
-	refreshToken := a.Store.Refresh(sessionID)
+	refreshToken, missing := a.Store.Refresh(sessionID)
 
 	// An expiry of zero means the token came from a flow that does not report
 	// one. Without a refresh token there is nothing better to do than use it and
@@ -89,10 +90,52 @@ func (a *Authenticator) AccessToken(forceRefresh bool) (string, error) {
 	}
 
 	if refreshToken == "" {
-		return "", ErrSessionExpired
+		return "", a.cannotRefresh(session, missing)
 	}
 
 	return a.refresh(session, sessionID, refreshToken)
+}
+
+// cannotRefresh explains why the session could not be renewed.
+//
+// It used to be one sentence -- `session expired. Run appwrite login` -- for
+// every way of getting here, which is a conclusion where an observation was
+// available. Two things were wrong with it.
+//
+// It named no session. Preferences hold one per environment, so with a Cloud, a
+// staging and a self-hosted login stored, the user was told that "the" session
+// expired without being told whose.
+//
+// And it asserted expiry, which is the one thing the CLI does not know at this
+// point: all it observed is that it found no refresh token. If it was looking in
+// the wrong keychain -- which a redirected HOME is enough to cause -- the
+// session is fine, and the advice sends the user to re-authenticate against a
+// problem re-authenticating does not fix. So the lookup is reported, and the
+// advice comes after it rather than instead of it.
+func (a *Authenticator) cannotRefresh(session *config.Object, missing error) error {
+	if missing == nil {
+		return ErrSessionExpired
+	}
+
+	return fmt.Errorf("cannot renew the session for %s: %w. Run `%s login` to sign in again",
+		describeSession(session), missing, client.ExecutableName)
+}
+
+// describeSession identifies a session the way its owner would recognise it.
+func describeSession(session *config.Object) string {
+	email := session.GetString(config.PreferenceEmail)
+	endpoint := session.GetString(config.PreferenceEndpoint)
+
+	switch {
+	case email != "" && endpoint != "":
+		return email + " at " + endpoint
+	case endpoint != "":
+		return endpoint
+	case email != "":
+		return email
+	default:
+		return "the current account"
+	}
 }
 
 func (a *Authenticator) refresh(session *config.Object, sessionID, refreshToken string) (string, error) {

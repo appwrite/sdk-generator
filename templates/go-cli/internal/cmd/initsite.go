@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"github.com/appwrite/appwrite-cli-go/internal/app"
 	"github.com/appwrite/appwrite-cli-go/internal/appwrite"
 	"github.com/appwrite/appwrite-cli-go/internal/client"
+	"github.com/appwrite/appwrite-cli-go/internal/config"
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
 	"github.com/appwrite/appwrite-cli-go/internal/output"
 	"github.com/appwrite/appwrite-cli-go/internal/prompt"
@@ -60,6 +62,22 @@ type siteTemplate struct {
 		FallbackFile          string `json:"fallbackFile"`
 		ProviderRootDirectory string `json:"providerRootDirectory"`
 	} `json:"frameworks"`
+	// Variables are the environment variables the template's code reads. The
+	// API declares them with placeholders the CLI is expected to fill -- see
+	// writeTemplateEnv, and note that the TypeScript declares this field
+	// (init.ts:97) and then never reads it, which is the bug being fixed here.
+	Variables []siteTemplateVariable `json:"variables"`
+}
+
+// siteTemplateVariable is one environment variable a starter template needs.
+//
+// Value carries a placeholder such as `{projectId}` rather than a literal: the
+// template is generic and the CLI is the only party that knows which project it
+// is being scaffolded into.
+type siteTemplateVariable struct {
+	Name     string `json:"name"`
+	Value    string `json:"value"`
+	Required bool   `json:"required"`
 }
 
 func newInitSiteCommand() *cobra.Command {
@@ -215,6 +233,11 @@ func runInitSite(command *cobra.Command) error {
 
 			return err
 		}
+
+		// Only for a downloaded template: the variables belong to ITS code, so
+		// writing them beside a directory the user populated themselves would be
+		// guessing at what that code reads.
+		writeTemplateEnv(out, context.local, api, template, siteDir, sitePath)
 	}
 
 	entry := SiteEntry{
@@ -389,6 +412,100 @@ func starterTemplate(api *client.Client, framework string) (*siteTemplate, error
 	}
 
 	return &response.Templates[0], nil
+}
+
+// writeTemplateEnv writes the .env a scaffolded template needs to build.
+//
+// Every starter template reads its Appwrite endpoint and project from the
+// environment, and the API says so: each one declares its variables with
+// `{apiEndpoint}`, `{projectId}` and `{projectName}` placeholders for the CLI to
+// fill. Nothing filled them. The template shipped a `.env.example`, no `.env`
+// was written, `push site` had nothing to push, and the FIRST deploy of every
+// template site failed in the build -- for the Next.js starter, as
+// `TypeError: Cannot read properties of undefined (reading 'replace')` from
+// `setEndpoint(undefined)`, which says nothing about the actual cause.
+//
+// An existing .env is never touched. It is the one file in a scaffolded site
+// that may already hold secrets, and a template's generic defaults are not worth
+// overwriting them for.
+func writeTemplateEnv(
+	out io.Writer,
+	local *config.Local,
+	api *client.Client,
+	template *siteTemplate,
+	siteDir, sitePath string,
+) {
+	if template == nil || len(template.Variables) == 0 {
+		return
+	}
+
+	path := filepath.Join(siteDir, ".env")
+	if _, err := os.Stat(path); err == nil {
+		output.Hint(out, "'%s/.env' already exists, so the template's variables were left alone.",
+			sitePath)
+
+		return
+	}
+
+	endpoint := local.Data.GetString("endpoint")
+	if endpoint == "" {
+		endpoint = api.Endpoint
+	}
+	fill := strings.NewReplacer(
+		"{apiEndpoint}", endpoint,
+		"{projectId}", local.Data.GetString("projectId"),
+		"{projectName}", local.Data.GetString("projectName"),
+	)
+
+	var (
+		lines      []string
+		unresolved []string
+	)
+	for _, variable := range template.Variables {
+		if variable.Name == "" {
+			continue
+		}
+
+		value := fill.Replace(variable.Value)
+		// A placeholder this CLI does not know how to fill is left EMPTY rather
+		// than written through literally: `{apiKey}` in a .env is a value the
+		// build would use as if it were real, and an empty one fails in a way
+		// that points at the variable.
+		if strings.ContainsAny(value, "{}") {
+			value = ""
+		}
+		if value == "" && variable.Required {
+			unresolved = append(unresolved, variable.Name)
+		}
+
+		lines = append(lines, variable.Name+"="+value)
+	}
+
+	if len(lines) == 0 {
+		return
+	}
+
+	contents := strings.Join(lines, "\n") + "\n"
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		// Not fatal. The site is configured and its code is downloaded; the
+		// user can write the file themselves, and saying so is more use than
+		// unwinding a successful scaffold.
+		output.Warn(out, "Could not write '%s/.env': %s", sitePath, err)
+
+		return
+	}
+
+	output.Log(out, "Wrote '%s/.env' with %d variable(s) the template needs to build.",
+		sitePath, len(lines))
+	if len(unresolved) > 0 {
+		output.Hint(out, "Fill in %s before deploying -- the template requires them.",
+			strings.Join(unresolved, ", "))
+	}
+	// The variables are local until they are pushed, and the build runs on the
+	// server. Naming the flag here is the difference between a working first
+	// deploy and a build that fails on an undefined endpoint.
+	output.Hint(out, "Run '%s push site --with-variables' to send them to the site.",
+		app.ExecutableName)
 }
 
 // chooseFramework asks which framework the site uses.

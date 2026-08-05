@@ -91,7 +91,7 @@ func newPullCommand() *cobra.Command {
 	// subcommand's own -a.
 	command.Flags().BoolVarP(
 		app.Flags().AllPointer(), "all", "a", false,
-		"Apply the command to every matching resource.")
+		"Pull every resource in the project")
 
 	for _, resource := range flatResources {
 		command.AddCommand(newPullResourceCommand(resource))

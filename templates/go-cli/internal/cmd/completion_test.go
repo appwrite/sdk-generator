@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -109,6 +110,105 @@ func TestInstallCompletionWritesEachShell(t *testing.T) {
 		}
 		if len(contents) == 0 {
 			t.Errorf("%s: wrote an empty completion script", shell)
+		}
+	}
+}
+
+// Writing the file is not installing it. zsh autoloads completions only from a
+// directory on its fpath, and ~/.zfunc is not on it, so `completion install`
+// reported success while Tab did nothing -- and after an earlier install had
+// been removed, Tab reported `_appwrite: function definition file not found`
+// from compinit's cached index.
+func TestZshInstallSaysWhatIsStillNeeded(t *testing.T) {
+	home := setHome(t)
+
+	path, err := installCompletion(NewRootCommand(), "zsh")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	follow := completionFollowUp("zsh", filepath.Dir(path))
+
+	for _, required := range []string{
+		"fpath",
+		filepath.Join(home, ".zfunc"),
+		"compinit",
+		".zcompdump",
+	} {
+		if !strings.Contains(follow, required) {
+			t.Errorf("the zsh follow-up does not mention %q:\n%s", required, follow)
+		}
+	}
+}
+
+// The directory is the one that was actually written to, so an override is
+// reflected in the advice rather than the default being printed back.
+func TestZshFollowUpNamesTheOverriddenDirectory(t *testing.T) {
+	setHome(t)
+	t.Setenv("ZSH_COMPLETION_DIR", filepath.Join(t.TempDir(), "elsewhere"))
+
+	path, err := completionInstallPath("zsh")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	follow := completionFollowUp("zsh", filepath.Dir(path))
+
+	if !strings.Contains(follow, filepath.Dir(path)) {
+		t.Errorf("the follow-up does not name %q:\n%s", filepath.Dir(path), follow)
+	}
+	if strings.Contains(follow, ".zfunc") {
+		t.Errorf("the follow-up names the default directory, not the one written:\n%s", follow)
+	}
+}
+
+// fish loads its completions directory itself, so there is nothing to say.
+func TestFishNeedsNoFollowUp(t *testing.T) {
+	if follow := completionFollowUp("fish", "/anywhere"); follow != "" {
+		t.Errorf("fish was given setup instructions it does not need:\n%s", follow)
+	}
+}
+
+// These lines are meant to be pasted into a shell. A home directory with a
+// space in it -- "/Users/My Name" -- turned one fpath entry into three broken
+// ones, so the advice for fixing completion was itself unusable.
+func TestFollowUpQuotesPathsAShellWouldSplit(t *testing.T) {
+	awkward := "/tmp/my home/.zfunc"
+
+	zsh := completionFollowUp("zsh", awkward)
+	if !strings.Contains(zsh, "fpath=('"+awkward+"' $fpath)") {
+		t.Errorf("the zsh fpath line is unquoted:\n%s", zsh)
+	}
+
+	bash := completionFollowUp("bash", "/tmp/my home/completions")
+	if !strings.Contains(bash, "source '/tmp/my home/completions/appwrite'") {
+		t.Errorf("the bash source line is unquoted:\n%s", bash)
+	}
+}
+
+// Quoting every path would put quotes around the one line most users copy.
+func TestOrdinaryPathsAreNotQuoted(t *testing.T) {
+	follow := completionFollowUp("zsh", "/home/someone/.zfunc")
+
+	if strings.Contains(follow, "'") {
+		t.Errorf("an ordinary path was quoted for no reason:\n%s", follow)
+	}
+}
+
+func TestShellQuote(t *testing.T) {
+	cases := map[string]string{
+		"/home/a/.zfunc":    "/home/a/.zfunc",
+		"/tmp/my home/x":    "'/tmp/my home/x'",
+		"/tmp/it's/x":       `'/tmp/it'\''s/x'`,
+		"/tmp/$HOME/x":      "'/tmp/$HOME/x'",
+		"/tmp/a;rm -rf ~/x": "'/tmp/a;rm -rf ~/x'",
+		"/tmp/glob*/x":      "'/tmp/glob*/x'",
+		"":                  "''",
+	}
+
+	for path, want := range cases {
+		if got := shellQuote(path); got != want {
+			t.Errorf("shellQuote(%q) = %q, want %q", path, got, want)
 		}
 	}
 }

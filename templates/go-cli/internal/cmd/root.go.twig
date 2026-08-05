@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"{{ language.params.modulePath }}/internal/app"
+	"{{ language.params.modulePath }}/internal/auth"
 	"{{ language.params.modulePath }}/internal/client"
 	"{{ language.params.modulePath }}/internal/cmd/services"
 	"{{ language.params.modulePath }}/internal/output"
@@ -27,6 +28,11 @@ func NewRootCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRun: func(command *cobra.Command, arguments []string) {
+			// internal/client names a command in one error message and cannot
+			// import internal/app to get the name -- app reaches client through
+			// internal/sdk, so that would be a cycle.
+			client.ExecutableName = app.ExecutableName
+
 			// --verbose was registered and read by nothing. What it is FOR is
 			// answering "why is this slow", so it traces each request with its
 			// status and how long it took.
@@ -36,6 +42,13 @@ func NewRootCommand() *cobra.Command {
 			// are not traced.
 			if app.Flags().Verbose {
 				client.RequestLog = func(format string, arguments ...any) {
+					output.Trace(command.ErrOrStderr(), format, arguments...)
+				}
+				// Which credential store answered, and what it said. Without
+				// this a failed refresh printed one sentence with no evidence
+				// behind it, and the commonest cause -- looking in a keychain
+				// other than the one holding the token -- was invisible.
+				auth.Trace = func(format string, arguments ...any) {
 					output.Trace(command.ErrOrStderr(), format, arguments...)
 				}
 			}
@@ -49,6 +62,9 @@ func NewRootCommand() *cobra.Command {
 	registerSessionCommands(root)
 
 	registerCompletionInstall(root)
+
+	// Last, so the grouped screen sees the whole tree.
+	registerMainHelp(root)
 
 	return root
 }

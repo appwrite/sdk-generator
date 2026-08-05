@@ -117,7 +117,9 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 	previous := global.CurrentSessionID()
 
 	if previous != "" && !options.New {
-		if account := currentAccount(); account != nil {
+		// The error is deliberately dropped: the question here is only whether
+		// someone is already signed in, and every failure answers it with no.
+		if account, _ := currentAccount(); account != nil {
 			// Nothing was asked for and someone is already signed in, so say so
 			// rather than starting a flow they did not ask for.
 			if options.Email == "" && options.Password == "" &&
@@ -142,23 +144,28 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 	return loginWithDevice(command, configEndpoint)
 }
 
-// currentAccount reads the signed-in account, or nil if there is not one.
+// currentAccount reads the signed-in account.
 //
-// Ports getCurrentAccount (login.ts:124) in the shape its callers use: every
-// failure means "not signed in", because that is the only question asked of it
-// here.
-func currentAccount() *jsonx.Object {
+// Ports getCurrentAccount (login.ts:124). The error is RETURNED rather than
+// folded into a nil account, because the two callers ask different questions of
+// it. `login` asks "is someone signed in already?", where every failure means
+// no and the reason does not matter. `login --switch` asks "does this stored
+// session work?", and there the reason is the whole answer -- the TypeScript
+// rethrows it (login.ts:318) for exactly that reason, and reporting a locked
+// keyring or an unreachable endpoint as a dead session sends the user to
+// re-authenticate against a problem that re-authenticating does not fix.
+func currentAccount() (*jsonx.Object, error) {
 	api, _, err := consoleClient()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	account := jsonx.NewObject()
 	if err := api.Call("GET", "/account", nil, account); err != nil {
-		return nil
+		return nil, err
 	}
 
-	return account
+	return account, nil
 }
 
 // verifyEndpoint checks that an endpoint is an Appwrite server before a
@@ -220,13 +227,14 @@ func switchAccount(command *cobra.Command, global *config.Global, previous strin
 	}
 
 	if chosen == previous {
-		if account := currentAccount(); account != nil {
+		account, err := currentAccount()
+		if account != nil {
 			output.Success(out, "Already using %s", account.GetString("email"))
 
 			return nil
 		}
 
-		return staleSessionError()
+		return unusableSessionError(err)
 	}
 
 	global.SetCurrentSessionID(chosen)
@@ -234,14 +242,14 @@ func switchAccount(command *cobra.Command, global *config.Global, previous strin
 		return err
 	}
 
-	account := currentAccount()
+	account, accountErr := currentAccount()
 	if account == nil {
 		global.SetCurrentSessionID(previous)
 		if err := global.Write(); err != nil {
 			return err
 		}
 
-		return staleSessionError()
+		return unusableSessionError(accountErr)
 	}
 
 	output.Success(out, "Switched to %s", account.GetString("email"))
@@ -249,7 +257,19 @@ func switchAccount(command *cobra.Command, global *config.Global, previous strin
 	return nil
 }
 
-func staleSessionError() error {
+// unusableSessionError explains why the selected session could not be used.
+//
+// The reason is carried when there is one. Without it the only thing this could
+// say was "run `login --switch` again", which is the command that just failed --
+// so a locked keyring, an unreachable endpoint and a genuinely dead session all
+// pointed at the same dead end. The TypeScript rethrows the underlying error
+// here (login.ts:318) and keeps the generic wording for the one case that has no
+// error behind it.
+func unusableSessionError(reason error) error {
+	if reason != nil {
+		return fmt.Errorf("selected account session cannot be used: %w", reason)
+	}
+
 	return fmt.Errorf(
 		"selected account session is no longer valid. Run '%s login --switch' again",
 		app.ExecutableName)

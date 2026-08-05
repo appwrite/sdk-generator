@@ -1,6 +1,9 @@
 package app
 
-import "runtime/debug"
+import (
+	"runtime/debug"
+	"strings"
+)
 
 // devVersion is what gets compiled in when no release stamped a version.
 //
@@ -39,5 +42,20 @@ func init() {
 		return
 	}
 
-	Version = info.Main.Version
+	Version = normalizeBuildVersion(info.Main.Version)
+}
+
+// normalizeBuildVersion drops the "v" Go writes into build info.
+//
+// Build info carries the module version as Go spells it -- `v0.7.7-preview` --
+// while the release ldflag carries goreleaser's `.Version`, which has already
+// dropped it. So one release answered `--version` two different ways depending
+// on how it was installed:
+//
+//	go install <module>@latest  ->  appwrite version v0.7.7-preview
+//	a downloaded release        ->  appwrite version 0.7.7-preview
+//
+// `--version` is the first thing a bug report quotes, so the two have to agree.
+func normalizeBuildVersion(version string) string {
+	return strings.TrimPrefix(version, "v")
 }

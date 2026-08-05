@@ -44,6 +44,21 @@ func preferences() (*config.Global, error) {
 // Ports sdkForConsole(). The access token is refreshed first when it is expired
 // or within a minute of expiring.
 func consoleClient() (*client.Client, *config.Global, error) {
+	return consoleClientAt("")
+}
+
+// consoleClientAt is consoleClient against a given endpoint.
+//
+// Ports sdkForConsole's `endpointOverride` with `preserveRegion: true`. The
+// session's endpoint is the region-less one -- login normalises it, so a Cloud
+// session is stored as cloud.appwrite.io however the user reached it -- and a
+// resource that lives in ONE region is not there. The screenshot bucket is the
+// case: the file exists in nyc.cloud.appwrite.io and the region-less console
+// answers "The requested file could not be found."
+//
+// An empty endpoint keeps the session's, which is what console-wide routes such
+// as /account and /projects want.
+func consoleClientAt(override string) (*client.Client, *config.Global, error) {
 	global, err := preferences()
 	if err != nil {
 		return nil, nil, err
@@ -57,6 +72,9 @@ func consoleClient() (*client.Client, *config.Global, error) {
 	endpoint := session.GetString(config.PreferenceEndpoint)
 	if endpoint == "" {
 		return nil, nil, ErrNotLoggedIn
+	}
+	if override != "" {
+		endpoint = override
 	}
 
 	api := client.New(endpoint, app.Version).

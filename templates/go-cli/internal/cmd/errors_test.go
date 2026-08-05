@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
+
+	"github.com/appwrite/appwrite-cli-go/internal/prompt"
 )
 
 // A proxy 502 or a maintenance page is an HTML document, and the SDK puts a
@@ -145,5 +150,145 @@ func TestReportURLIsBounded(t *testing.T) {
 func TestReportURLIsEmptyWithoutAnError(t *testing.T) {
 	if got := ReportURL(nil); got != "" {
 		t.Errorf("ReportURL(nil) = %q, want empty", got)
+	}
+}
+
+// A cancelled prompt used to reach the same path as a failed request: the bare
+// error string "prompt cancelled" on stderr, under the same advice about
+// --verbose and --report. Nothing had gone wrong -- the user had pressed
+// Ctrl-C -- so the CLI was suggesting they file a bug about their own decision.
+func TestCancellationIsToldApartFromAFailure(t *testing.T) {
+	if !IsCancelled(fmt.Errorf("switching accounts: %w", prompt.ErrAborted)) {
+		t.Error("a wrapped ErrAborted is not recognised as a cancellation")
+	}
+	if IsCancelled(errors.New("network unreachable")) {
+		t.Error("an ordinary error is being treated as a cancellation")
+	}
+	if IsCancelled(appwriteError(500, "internal error")) {
+		t.Error("an API error is being treated as a cancellation")
+	}
+}
+
+// 130 is 128 + SIGINT: what a shell reports for an interrupted program, and
+// distinct from the 1 a real failure exits with.
+func TestCancellationExitsWithTheInterruptStatus(t *testing.T) {
+	if ExitCancelled != 130 {
+		t.Errorf("ExitCancelled = %d, want 130", ExitCancelled)
+	}
+}
+
+// The notice names the command but must never echo the arguments: `client
+// --key <secret>` is a prompt away from printing an API key into whatever is
+// capturing stderr.
+func TestCancellationNoticeNamesTheCommandWithoutItsArguments(t *testing.T) {
+	root := NewRootCommand()
+	login := resolveCommand(root, "login")
+	if login == nil {
+		t.Fatal("`login` is missing")
+	}
+
+	notice := CancellationNotice(login)
+
+	if !strings.Contains(notice, "appwrite login") {
+		t.Errorf("notice %q does not name the command", notice)
+	}
+	if !strings.Contains(notice, "Cancelled") {
+		t.Errorf("notice %q does not say it was cancelled", notice)
+	}
+
+	// Nothing from the invocation itself.
+	for _, argument := range os.Args[1:] {
+		if argument != "" && strings.Contains(notice, argument) {
+			t.Errorf("notice %q echoes the argument %q", notice, argument)
+		}
+	}
+
+	if fallback := CancellationNotice(nil); !strings.Contains(fallback, "Cancelled") {
+		t.Errorf("notice for an unknown command = %q", fallback)
+	}
+}
+
+// The whole point of Report is that these two outcomes do not look alike.
+func TestReportDistinguishesCancellationFromFailure(t *testing.T) {
+	root := NewRootCommand()
+	login := resolveCommand(root, "login")
+
+	cancelled := &bytes.Buffer{}
+	if status := Report(cancelled, login, prompt.ErrAborted); status != ExitCancelled {
+		t.Errorf("cancellation exited %d, want %d", status, ExitCancelled)
+	}
+	// Nothing that reads as a diagnostic: no advice about flags, no "Error",
+	// and no "Warning" either -- the user cancelled on purpose.
+	for _, unwanted := range []string{"--verbose", "--report", "Error", "Warning", "Info"} {
+		if strings.Contains(cancelled.String(), unwanted) {
+			t.Errorf("a cancelled prompt reads as a problem (%q):\n%s",
+				unwanted, cancelled.String())
+		}
+	}
+	if !strings.Contains(cancelled.String(), "Cancelled") {
+		t.Errorf("cancellation notice missing:\n%s", cancelled.String())
+	}
+
+	failed := &bytes.Buffer{}
+	if status := Report(failed, login, errors.New("network unreachable")); status != 1 {
+		t.Errorf("failure exited %d, want 1", status)
+	}
+	got := failed.String()
+	if !strings.Contains(got, "✗ Error:") {
+		t.Errorf("a failure is missing the error prefix the TypeScript prints:\n%s", got)
+	}
+	if !strings.Contains(got, "network unreachable") {
+		t.Errorf("a failure does not say what went wrong:\n%s", got)
+	}
+	if !strings.Contains(got, "--verbose") {
+		t.Errorf("a failure does not point at --verbose:\n%s", got)
+	}
+
+	if status := Report(&bytes.Buffer{}, login, nil); status != 0 {
+		t.Errorf("no error exited %d, want 0", status)
+	}
+}
+
+// A command that fails DURING parsing never reaches the later flags, so the
+// parsed globals cannot answer "did the user ask for detail". `users get
+// --bogus --verbose` stopped at --bogus and then advised passing --verbose.
+func TestDetailIsRecognisedFromTheArgumentsWhenParsingFailed(t *testing.T) {
+	cases := map[string]bool{
+		"users get --bogus --verbose": true,
+		"users get --bogus --report":  true,
+		"users get --bogus -V":        true,
+		"users get --bogus -jV":       true,
+		"users get --bogus":           false,
+		"users get --bogus -j":        false,
+		// After `--` it is a value, not a flag.
+		"users get -- --verbose": false,
+		"users get -":            false,
+	}
+
+	for invocation, want := range cases {
+		restore := os.Args
+		os.Args = append([]string{"appwrite"}, strings.Fields(invocation)...)
+
+		got := detailWasRequested()
+		os.Args = restore
+
+		if got != want {
+			t.Errorf("detailWasRequested() = %v for `appwrite %s`, want %v",
+				got, invocation, want)
+		}
+	}
+}
+
+// And the hint really does disappear from the rendered output.
+func TestTheHintIsNotPrintedWhenTheUserAlreadyAskedForDetail(t *testing.T) {
+	restore := os.Args
+	os.Args = []string{"appwrite", "users", "get", "--bogus", "--verbose"}
+	t.Cleanup(func() { os.Args = restore })
+
+	buffer := &bytes.Buffer{}
+	Report(buffer, nil, errors.New("unknown flag: --bogus"))
+
+	if strings.Contains(buffer.String(), "For detailed error") {
+		t.Errorf("advised passing a flag that is already in the invocation:\n%s", buffer.String())
 	}
 }

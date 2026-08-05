@@ -30,6 +30,9 @@ type pushContext struct {
 	api      *client.Client
 	local    *config.Local
 	prompter prompt.Prompter
+	// screenshots is built on first use by pushpreview.go, and only by a site
+	// push -- it needs a console session the other resources never ask for.
+	screenshots *screenshots
 }
 
 func newPushContext() (*pushContext, error) {
@@ -203,7 +206,23 @@ func (c *pushContext) approveChanges(command *cobra.Command, request approvalReq
 			if !present {
 				continue
 			}
-			localValue, _ := local.Get(key)
+			localValue, hasLocal := local.Get(key)
+
+			// A key the config does not carry is never SENT. writeBody writes
+			// only the keys that are present, deliberately, so that a push does
+			// not clear a field the config is silent about -- which means
+			// listing an absent key here promised an edit the push would not
+			// make. A freshly inited site reported
+			//
+			//   id                   │ key                │ remote │ local
+			//   6a729db1003e322cbfdb │ providerSilentMode │ false  │
+			//
+			// on every push, forever: the config has no such key, so there was
+			// nothing to apply and the row never went away. Approving it did
+			// nothing, which is the worst kind of prompt.
+			if !hasLocal {
+				continue
+			}
 
 			if isEmpty(remoteValue) && isEmpty(localValue) {
 				continue
@@ -393,7 +412,7 @@ func newPushCommand() *cobra.Command {
 	// merged over it and `push table`'s own -a stays free.
 	command.Flags().BoolVarP(
 		app.Flags().AllPointer(), "all", "a", false,
-		"Apply the command to every matching resource.")
+		"Push every resource in the project config")
 
 	command.AddCommand(newPushAllCommand())
 	command.AddCommand(newPushSettingsCommand())

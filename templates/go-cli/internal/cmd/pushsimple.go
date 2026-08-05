@@ -278,7 +278,20 @@ func runPushSimple(command *cobra.Command, resource simpleResource) error {
 	// A failed push is reported and counted, never returned: the TypeScript
 	// exits zero here, and a partial push has already changed the project.
 	if pushed == 0 {
-		output.Failure(out, "No %s were pushed.", resource.Plural)
+		// Info, not an error, when nothing went wrong. The commonest way to
+		// reach this line is a push where every resource already matches --
+		// see the Skipping branch above -- which is a good outcome reported
+		// as a failure. And the command exits zero either way, so an
+		// `✗ Error:` line above a zero exit status contradicted itself.
+		//
+		// A push where every attempt failed is different, and each failure has
+		// already been printed with its own reason.
+		if len(failures) > 0 {
+			output.Failure(out, "No %s were pushed.", resource.Plural)
+		} else {
+			output.Log(out, "No %s were pushed. Everything is already up to date.",
+				resource.Plural)
+		}
 	} else {
 		output.Success(out, "Successfully pushed %d %s.", pushed, resource.Plural)
 	}

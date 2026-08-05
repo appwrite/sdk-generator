@@ -55,7 +55,7 @@ func newTypesCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "types <output-directory>",
 		Short: "Generate types for your Appwrite project",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequiredArgument("<output-directory>", "The directory to write the types to"),
 		RunE: func(command *cobra.Command, args []string) error {
 			return runTypes(command, args[0], language, strict)
 		},

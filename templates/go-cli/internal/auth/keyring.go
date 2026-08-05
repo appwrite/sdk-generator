@@ -1,6 +1,10 @@
 package auth
 
 import (
+	"errors"
+	"fmt"
+	"runtime"
+
 	"github.com/appwrite/appwrite-cli-go/internal/config"
 	"github.com/zalando/go-keyring"
 )
@@ -29,27 +33,123 @@ type TokenStore struct {
 	Global *config.Global
 }
 
-// Refresh returns the stored refresh token for a session, or "" when there is
-// none.
+// Trace receives one line per credential-store read when --verbose is on.
 //
-// Keyring errors are swallowed rather than surfaced: an unavailable keyring is
-// indistinguishable from an absent entry as far as the caller is concerned, and
-// both mean "fall back to prefs".
-func (s *TokenStore) Refresh(sessionID string) string {
+// A package variable for the same reason client.RequestLog is one: the store is
+// reached deep inside the auth path and diagnostics should not have to be
+// threaded through every caller. Set during start-up, before any read.
+var Trace func(format string, arguments ...any)
+
+func trace(format string, arguments ...any) {
+	if Trace != nil {
+		Trace(format, arguments...)
+	}
+}
+
+// storeName is what the platform calls its credential store, so a message about
+// one names the thing the user would go and look at.
+func storeName() string {
+	switch runtime.GOOS {
+	case "darwin":
+		return "the macOS keychain"
+	case "windows":
+		return "the Windows credential manager"
+	default:
+		return "the system keyring"
+	}
+}
+
+// MissingRefreshToken reports that a session has no refresh token, and says
+// where the CLI looked.
+//
+// The where is the entire point. Both stores answering "nothing here" used to
+// surface as `session expired`, which is a conclusion rather than an
+// observation -- and the conclusion is wrong whenever the CLI is looking
+// somewhere other than where the token is. That is not hypothetical: a
+// redirected HOME points macOS at a different login keychain, the lookup comes
+// back empty, and a perfectly good session gets reported as expired. Naming the
+// store and the session id turns that into a one-line diagnosis.
+//
+// It cannot be told apart from a genuinely absent entry by the error alone --
+// `security` exits 44 for both and go-keyring maps both to ErrNotFound -- so
+// saying what was looked for is the only honest thing available.
+type MissingRefreshToken struct {
+	SessionID string
+	Store     string
+	// StoreErr is what the credential store said. A not-found error means it
+	// answered; anything else means it failed, which is worth wording
+	// differently because unlocking a keyring and signing in again are
+	// different actions.
+	StoreErr  error
+	PrefsPath string
+}
+
+func (e *MissingRefreshToken) Error() string {
+	if e.StoreErr != nil && !errors.Is(e.StoreErr, keyring.ErrNotFound) {
+		return fmt.Sprintf("%s could not be read (%s), and %s holds no token for session %s",
+			e.Store, e.StoreErr, e.PrefsPath, e.SessionID)
+	}
+
+	return fmt.Sprintf("%s has no entry for session %s, and neither does %s",
+		e.Store, e.SessionID, e.PrefsPath)
+}
+
+// Unwrap exposes the store's own error, so a caller can still match on it.
+func (e *MissingRefreshToken) Unwrap() error { return e.StoreErr }
+
+// Refresh returns the stored refresh token for a session.
+//
+// The failed lookup is DESCRIBED rather than reduced to "": the caller turns
+// this into advice for a user, and "no token here" and "the store would not
+// answer" are different advice -- while "I looked in the wrong place" is
+// indistinguishable from either unless the place is named. See
+// MissingRefreshToken.
+//
+// A token in prefs wins over the store's opinion. That is the fallback
+// SetRefresh writes to when the keyring is unavailable, so finding one there
+// means the store not answering does not matter.
+func (s *TokenStore) Refresh(sessionID string) (string, error) {
 	if sessionID == "" {
-		return ""
+		return "", &MissingRefreshToken{Store: storeName(), PrefsPath: s.prefsPath()}
 	}
 
-	if token, err := keyring.Get(refreshTokenService, sessionID); err == nil && token != "" {
-		return token
+	token, storeErr := keyring.Get(refreshTokenService, sessionID)
+	if storeErr == nil && token != "" {
+		trace("read the refresh token for %s from %s", sessionID, storeName())
+
+		return token, nil
 	}
 
-	session := s.Global.SessionData(sessionID)
-	if session == nil {
-		return ""
+	if storeErr != nil {
+		trace("%s returned no refresh token for %s: %s", storeName(), sessionID, storeErr)
 	}
 
-	return session.GetString(prefsRefreshTokenKey)
+	if session := s.Global.SessionData(sessionID); session != nil {
+		if fallback := session.GetString(prefsRefreshTokenKey); fallback != "" {
+			trace("read the refresh token for %s from %s", sessionID, s.prefsPath())
+
+			return fallback, nil
+		}
+	}
+
+	return "", &MissingRefreshToken{
+		SessionID: sessionID,
+		Store:     storeName(),
+		StoreErr:  storeErr,
+		PrefsPath: s.prefsPath(),
+	}
+}
+
+// prefsPath names the fallback store in a message, and falls back to the file's
+// own name when the path is not known.
+func (s *TokenStore) prefsPath() string {
+	if s.Global != nil {
+		if path := s.Global.Path(); path != "" {
+			return path
+		}
+	}
+
+	return "prefs.json"
 }
 
 // SetRefresh stores a refresh token, preferring the keyring.

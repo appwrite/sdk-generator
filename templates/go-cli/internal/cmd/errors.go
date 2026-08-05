@@ -1,14 +1,21 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"runtime"
 	"strings"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
+	"github.com/appwrite/appwrite-cli-go/internal/output"
+	"github.com/appwrite/appwrite-cli-go/internal/prompt"
+	"github.com/appwrite/appwrite-cli-go/internal/sdk"
+	"github.com/spf13/cobra"
 )
 
 // apiError is what the SDK's AppwriteError provides.
@@ -126,6 +133,357 @@ func ReportBlock(err error) string {
 	return "To report this error you can:\n" +
 		" - Create a support ticket in our Discord server https://appwrite.io/discord\n" +
 		" - Create an issue in our Github\n   " + ReportURL(err)
+}
+
+// RequiredArgument validates a command that takes exactly one argument, and
+// says which one when it is missing.
+//
+// cobra's own message for this is
+//
+//	accepts 1 arg(s), received 0
+//
+// which names neither the argument, nor the command, nor a way to find out --
+// and `arg(s)` is a plural hedge in a sentence that already knows the number is
+// one. `appwrite types` is the command that hits it, where the missing value is
+// a directory the user has to choose, so the message has to say so.
+//
+// description is the argument's own help text, which the TypeScript declares
+// beside the argument ("The directory to write the types to") -- naming it is
+// what turns the error into an instruction.
+func RequiredArgument(name, description string) cobra.PositionalArgs {
+	return func(command *cobra.Command, arguments []string) error {
+		if len(arguments) == 1 {
+			return nil
+		}
+
+		if len(arguments) > 1 {
+			return fmt.Errorf(
+				"`%s` takes one argument, %s, and was given %d. Run `%s --help` for the usage",
+				command.CommandPath(), name, len(arguments), command.CommandPath())
+		}
+
+		return fmt.Errorf("missing %s -- %s. Run `%s %s`",
+			name, strings.ToLower(description), command.CommandPath(), name)
+	}
+}
+
+// ExitCancelled is the status a cancelled prompt exits with: 128 + SIGINT,
+// which is what a shell reports for a program the user interrupted.
+//
+// Distinct from 1 on purpose. Answering "no" to a prompt, or walking away from
+// one, is not the same outcome as a command that failed, and a script driving
+// the CLI should be able to tell them apart.
+const ExitCancelled = 130
+
+// IsCancelled reports whether a command stopped because the user cancelled a
+// prompt rather than because anything went wrong.
+func IsCancelled(err error) bool {
+	return errors.Is(err, prompt.ErrAborted)
+}
+
+// Report renders a command failure and returns the status the process should
+// exit with.
+//
+// Lives here rather than in main so it can be exercised: the difference between
+// what a user sees for a cancelled prompt and for a failed request is the whole
+// point of it, and main() is not reachable from a test.
+//
+// Ports the tail of parseError (parser.ts:936).
+func Report(writer io.Writer, executed *cobra.Command, err error) int {
+	if err == nil {
+		return 0
+	}
+
+	if IsCancelled(err) {
+		// Note, not Warn: nothing is wrong. Prefixing a deliberate Ctrl-C with
+		// "Warning" told the user off for their own decision.
+		output.Note(writer, "%s", CancellationNotice(executed))
+
+		return ExitCancelled
+	}
+
+	// Skipped once the user has already asked for the detail it points at.
+	if !detailWasRequested() {
+		output.Log(writer, "For detailed error pass the --verbose or --report flag")
+	}
+
+	output.Failure(writer, "%s", FormatError(err))
+
+	// --verbose was documented as "Show full error stack traces" and showed
+	// none: it suppressed the advice line above and changed nothing else, so on
+	// the failure it is most needed for -- a response the SDK could not decode --
+	// it added exactly nothing to
+	//
+	//   ✗ Error: json: cannot unmarshal array into Go struct field
+	//     UsageProject.embeddingsText of type models.Metric
+	//
+	// which names a field and a type and gives no way to see what actually
+	// arrived. Ports the `cliConfig.verbose` branch of parseError
+	// (parser.ts:937), which prints formatErrorForLog(err).
+	if app.Flags().Verbose {
+		if detail := ErrorDetail(err); detail != "" {
+			fmt.Fprint(writer, detail)
+		}
+	}
+
+	if app.Flags().Report {
+		fmt.Fprintln(writer, ReportBlock(err))
+	}
+
+	return 1
+}
+
+// ErrorDetail is everything known about a failure, for --verbose.
+//
+// Ports formatErrorForLog (parser.ts:847) and its ERROR_DETAIL_KEYS -- `code`,
+// `type`, `response` -- to what Go actually has. A Go error carries no stack, so
+// the UNWRAP CHAIN stands in for one: each layer names where the failure was
+// wrapped, which is the same question a stack answers.
+//
+// The response body is the reason this exists. internal/sdk records the last
+// one, and a decode failure never renders, so the body that could not be decoded
+// is still sitting there when this runs -- and it is the only thing that tells
+// the user whether the API changed shape or the CLI has the model wrong.
+func ErrorDetail(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	var builder strings.Builder
+	builder.WriteString("\n" + output.Heading("Error detail") + "\n\n")
+
+	fmt.Fprintf(&builder, "  %-10s %T\n", "type:", err)
+
+	var appwrite apiError
+	if errors.As(err, &appwrite) {
+		fmt.Fprintf(&builder, "  %-10s %d\n", "status:", appwrite.GetStatusCode())
+	}
+
+	// The chain, outermost first, skipping the layer already printed as the
+	// message above.
+	for wrapped := errors.Unwrap(err); wrapped != nil; wrapped = errors.Unwrap(wrapped) {
+		fmt.Fprintf(&builder, "  %-10s %s\n", "wrapped:", wrapped)
+	}
+
+	if response := sdk.LastResponse.Take(); len(response) > 0 {
+		builder.WriteString("\n" + output.Heading("Response") + "\n\n")
+		builder.WriteString(indentBlock(prettyJSON(response)))
+	}
+
+	return builder.String() + "\n"
+}
+
+// arrayPreview is how many elements of a long array --verbose prints.
+//
+// Two, because the question a reader has is what SHAPE the elements are -- one
+// is enough to answer it and the second confirms it was not a fluke. `project
+// get-usage` over a year answers with fourteen metrics of 365 entries each: six
+// thousand lines to say "an array of {value, date}".
+const arrayPreview = 2
+
+// prettyJSON re-indents a body and collapses its long arrays.
+//
+// A body that is not JSON is printed untouched, which is the case that matters
+// most: an HTML error page or a proxy's plain-text refusal is the whole
+// diagnosis.
+//
+// Collapsing ARRAYS rather than truncating lines, and this is the difference
+// between a useful dump and a useless one. The field that fails to decode can be
+// anywhere in the response -- `embeddingsText` comes after fourteen other
+// metrics -- so a line or byte cap cuts off exactly the part the user needs. An
+// array is where the volume is, and its length is not what anyone is reading.
+func prettyJSON(body []byte) string {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	// Numbers stay as written: an id that arrived as 20 digits must not be
+	// reprinted in scientific notation by the tool explaining what arrived.
+	decoder.UseNumber()
+
+	var builder strings.Builder
+	if err := writeJSONValue(decoder, &builder, 0); err != nil {
+		// Not JSON, or truncated mid-stream. Either way the bytes are the
+		// evidence, so they are printed as they came.
+		var indented bytes.Buffer
+		if json.Indent(&indented, body, "", "  ") == nil {
+			return indented.String()
+		}
+
+		return string(body)
+	}
+
+	return builder.String()
+}
+
+func jsonIndent(depth int) string { return strings.Repeat("  ", depth) }
+
+// writeJSONValue re-emits one value, in the order it was read.
+//
+// Re-emitted from tokens rather than decoded into a map, because a map loses key
+// order -- and a response printed with its fields shuffled is harder to compare
+// against a model than one printed as it arrived.
+func writeJSONValue(decoder *json.Decoder, builder *strings.Builder, depth int) error {
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+
+	delimiter, isDelimiter := token.(json.Delim)
+	if !isDelimiter {
+		encoded, err := json.Marshal(token)
+		if err != nil {
+			return err
+		}
+		builder.Write(encoded)
+
+		return nil
+	}
+
+	switch delimiter {
+	case '{':
+		return writeJSONObject(decoder, builder, depth)
+	case '[':
+		return writeJSONArray(decoder, builder, depth)
+	default:
+		return fmt.Errorf("unexpected %v", delimiter)
+	}
+}
+
+func writeJSONObject(decoder *json.Decoder, builder *strings.Builder, depth int) error {
+	builder.WriteString("{")
+
+	empty := true
+	for first := true; decoder.More(); first = false {
+		empty = false
+		if !first {
+			builder.WriteString(",")
+		}
+
+		key, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		encoded, err := json.Marshal(key)
+		if err != nil {
+			return err
+		}
+
+		builder.WriteString("\n" + jsonIndent(depth+1))
+		builder.Write(encoded)
+		builder.WriteString(": ")
+
+		if err := writeJSONValue(decoder, builder, depth+1); err != nil {
+			return err
+		}
+	}
+
+	if _, err := decoder.Token(); err != nil {
+		return err
+	}
+
+	// `{}` on one line, not an empty pair of braces two lines apart, which is
+	// how an empty object read before -- as though a field had been cut.
+	if !empty {
+		builder.WriteString("\n" + jsonIndent(depth))
+	}
+	builder.WriteString("}")
+
+	return nil
+}
+
+func writeJSONArray(decoder *json.Decoder, builder *strings.Builder, depth int) error {
+	builder.WriteString("[")
+
+	total := 0
+	for ; decoder.More(); total++ {
+		// Past the preview the elements are still DECODED -- the tokens have to
+		// be consumed to reach the closing bracket -- just not kept.
+		target := builder
+		if total >= arrayPreview {
+			target = &strings.Builder{}
+		}
+
+		if total > 0 && total < arrayPreview {
+			builder.WriteString(",")
+		}
+		if total < arrayPreview {
+			builder.WriteString("\n" + jsonIndent(depth+1))
+		}
+
+		if err := writeJSONValue(decoder, target, depth+1); err != nil {
+			return err
+		}
+	}
+
+	if _, err := decoder.Token(); err != nil {
+		return err
+	}
+
+	if omitted := total - arrayPreview; omitted > 0 {
+		// Not valid JSON, deliberately: this block is read by a person deciding
+		// whether the response matches the model, and the count is the part a
+		// truncation must not hide.
+		fmt.Fprintf(builder, ",\n%s... %d more of %d",
+			jsonIndent(depth+1), omitted, total)
+	}
+	if total > 0 {
+		builder.WriteString("\n" + jsonIndent(depth))
+	}
+	builder.WriteString("]")
+
+	return nil
+}
+
+// indentBlock shifts a block two spaces right, to sit under its heading.
+func indentBlock(text string) string {
+	lines := strings.Split(strings.TrimRight(text, "\n"), "\n")
+	for index, line := range lines {
+		lines[index] = "  " + line
+	}
+
+	return strings.Join(lines, "\n") + "\n"
+}
+
+// detailWasRequested reports whether the user asked for the detail the advice
+// line points at.
+//
+// The parsed flags are not enough. A command that fails DURING parsing never
+// reaches the later flags: `appwrite users get --bogus --verbose` stops at
+// --bogus, so Verbose is still false and the CLI advised passing a flag that is
+// already in the invocation. The arguments are what the user actually typed.
+func detailWasRequested() bool {
+	if app.Flags().Verbose || app.Flags().Report {
+		return true
+	}
+
+	for _, argument := range os.Args[1:] {
+		// A `--` ends the flags; anything after it is a value.
+		if argument == "--" {
+			return false
+		}
+		if argument == "--verbose" || argument == "--report" {
+			return true
+		}
+		// -V, and clusters such as -jV. Not a long flag, and not a bare "-".
+		if len(argument) > 1 && argument[0] == '-' && argument[1] != '-' &&
+			strings.ContainsRune(argument, 'V') {
+			return true
+		}
+	}
+
+	return false
+}
+
+// CancellationNotice is the line printed for a cancelled prompt.
+//
+// Names the command, because a prompt can be several screens into a flow --
+// `push` asks three questions -- so "Cancelled." alone leaves the user to work
+// out what they just abandoned. The command's PATH, not the arguments: those
+// can carry an API key, and this line may end up in a log.
+func CancellationNotice(command *cobra.Command) string {
+	if command == nil {
+		return "Cancelled. Nothing further was sent."
+	}
+
+	return fmt.Sprintf("Cancelled `%s`. Nothing further was sent.", command.CommandPath())
 }
 
 // commandArguments is the invocation, minus the flag that asked for the report.
