@@ -684,12 +684,11 @@ const initFunction = async (): Promise<void> => {
     );
   }
 
-  // No companion line for a missing install command. The entrypoint one above
-  // earns its second sentence -- push really does prompt for that -- while the
-  // install-command message named an action nobody has to take: push never asks
-  // for the field, and a runtime with no command listed deploys as the starter
-  // template intends, whether because it has nothing to fetch (swift, java,
-  // kotlin, cpp) or because its build resolves dependencies itself (go).
+  if (!answers.runtime.commands) {
+    log(
+      `Installation command for this runtime not found. You will be asked to configure the install command when you first push the function.`,
+    );
+  }
 
   fs.mkdirSync(functionDir, { mode: 0o777 });
   fs.mkdirSync(templatesDir, { mode: 0o777 });

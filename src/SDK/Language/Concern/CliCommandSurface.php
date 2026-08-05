@@ -5,31 +5,20 @@ namespace Appwrite\SDK\Language\Concern;
 use Twig\TwigFunction;
 
 /**
- * Spec analysis shared by every generated Appwrite CLI, whatever the target
- * language.
+ * Spec analysis shared by every generated Appwrite CLI: which flags a method
+ * gets, which services a header scopes, which methods are promoted to root
+ * commands, which console fallbacks a service needs. The flag surface is public
+ * API, so sharing these is what stops the two CLIs drifting apart.
  *
- * These helpers decide the command surface: which flags a method gets, which
- * services are scoped by a header, which methods are promoted to root
- * commands, and which console fallbacks a service needs. They are pure
- * functions of the API spec, so the TypeScript and Go CLIs have to agree on
- * every one of them -- the flag surface is public API.
- *
- * Sharing them here instead of reimplementing per language is the mechanism
- * that stops the two CLIs drifting apart.
- *
- * Language-specific concerns stay in the Language class: how a flag is
- * declared, how a variable is named, and how an argument reaches the SDK call.
+ * How a flag is declared, a variable named, or an argument passed to the SDK
+ * stays in the Language class.
  */
 trait CliCommandSurface
 {
     /**
-     * Keyword list used to disambiguate generated flag names.
-     *
-     * Frozen deliberately. `getCliOptionName()` prefixes a colliding flag with
-     * `x`, so this list is part of the CLI's public flag surface rather than a
-     * property of the target language. Deriving it from the language's own
-     * keywords would make the Go CLI emit different flags from the TypeScript
-     * one.
+     * Keyword list used to disambiguate generated flag names. Frozen: it is
+     * part of the public flag surface, not a property of the target language,
+     * so both CLIs prefix the same flags with `x`.
      *
      * @var list<string>
      */
@@ -107,14 +96,10 @@ trait CliCommandSurface
     ];
 
     /**
-     * The main help screen, grouped by intent rather than listed
-     * alphabetically.
-     *
-     * Entries are command paths as typed, so a root alias such as
-     * `list-projects` can sit next to `login` in GET STARTED. A command named
-     * here that the spec does not produce is skipped, and a command the spec
-     * produces that is named nowhere still appears under OTHER -- so a service
-     * added to the spec can never silently disappear from `--help`.
+     * The main help screen, grouped by intent. Entries are command paths as
+     * typed, so a root alias sits beside a command. A name the spec does not
+     * produce is skipped; a command the spec produces that is named nowhere
+     * still appears under OTHER.
      *
      * @var list<array{title: string, dim?: bool, commands: list<string>}>
      */
@@ -155,11 +140,9 @@ trait CliCommandSurface
     ];
 
     /**
-     * One-line summaries for the main help listing. A command's own
-     * description stays the long form shown on its own help page.
-     *
-     * Written to fit one terminal line -- keep them under 51 characters, in the
-     * imperative, with no trailing period. `%title%` is the SDK title.
+     * One-line summaries for the main help listing; a command's own description
+     * stays the long form. Keep them under 51 characters to fit one terminal
+     * line, imperative, no trailing period. `%title%` is the SDK title.
      *
      * @var array<string, string>
      */
@@ -235,8 +218,7 @@ trait CliCommandSurface
     }
 
     /**
-     * Summaries with `%title%` resolved, so a template emits a plain literal
-     * rather than carrying the placeholder into generated code.
+     * Summaries with `%title%` resolved, so a template emits a plain literal.
      *
      * @return array<string, string>
      */
@@ -257,8 +239,8 @@ trait CliCommandSurface
     }
 
     /**
-     * The help metadata, exposed to the templates of every CLI that renders the
-     * grouped main help screen.
+     * Help metadata for the templates of every CLI that renders the grouped
+     * main help screen.
      *
      * @return list<TwigFunction>
      */
