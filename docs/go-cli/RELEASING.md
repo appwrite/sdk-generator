@@ -100,19 +100,6 @@ credential: `install.sh` requires an embedded signature rather than a trusted
 one, and goreleaser ad-hoc signs the darwin builds in the build hook — which is
 all the TypeScript CLI has ever shipped, and needs no external service.
 
-### 3. Regenerate the command surface contract
-
-The contract is a checked-in snapshot of the TypeScript CLI's command surface,
-and the spec moves. Regenerate immediately before cutting a release:
-
-```bash
-php example.php cli
-node scripts/go-cli/extract-command-surface.mjs
-```
-
-If `internal/cmd/surface_test.go` then fails, the two CLIs have genuinely
-drifted and that is a bug to fix, not a snapshot to refresh.
-
 ## Known blocker: the published Go SDK is behind the CLI
 
 `go.mod` requires `github.com/appwrite/sdk-for-go/v6` at the version

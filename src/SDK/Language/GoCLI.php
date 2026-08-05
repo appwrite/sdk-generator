@@ -656,16 +656,6 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'internal/cmd/surface_test.go',
-                'template'      => 'go-cli/internal/cmd/surface_test.go.twig',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'internal/cmd/testdata/command-surface.json',
-                'template'      => 'go-cli/internal/cmd/testdata/command-surface.json',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'internal/app/inputfile.go',
                 'template'      => 'go-cli/internal/app/inputfile.go.twig',
             ],

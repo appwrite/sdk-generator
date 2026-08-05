@@ -8,10 +8,8 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// `types` and `generate` are hand-written rather than spec-derived, so
-// surface_test.go's contract does not cover them -- they are on its handWritten
-// allowlist alongside login, client and update. Their flags are still public
-// surface (docs/go-cli/PLAN.md invariant 1), so they are pinned here instead.
+// `types` and `generate` are hand-written rather than spec-derived. Their flags
+// are still public surface, so they are pinned here.
 //
 // The expectations below were read off `appwrite types --help` and
 // `appwrite generate --help` from the built TypeScript CLI, not from its

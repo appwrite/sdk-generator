@@ -319,8 +319,6 @@ try {
     // own dependency.
     //
     // This is the one place the two CLIs are allowed to diverge by omission.
-    // internal/cmd/surface_test.go records the same four names, so the surface
-    // contract still holds rather than being weakened to accommodate them.
     $goCliExcludes             = $cliExcludes;
     $goCliExcludes['services'] = [
         ...$goCliExcludes['services'],
