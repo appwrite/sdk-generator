@@ -10,7 +10,17 @@ import (
 	"testing"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 )
+
+// requestWasMade makes a failure look like it came from the API, or like it did
+// not, and restores whichever it was.
+func requestWasMade(t *testing.T, made bool) {
+	t.Helper()
+
+	restore := sdk.SetRequestWasMade(made)
+	t.Cleanup(func() { sdk.SetRequestWasMade(restore) })
+}
 
 // A proxy 502 or a maintenance page is an HTML document, and the SDK puts a
 // non-JSON body straight into the error message. The CLI printed all 8,946
@@ -210,6 +220,10 @@ func TestCancellationNoticeNamesTheCommandWithoutItsArguments(t *testing.T) {
 
 // The whole point of Report is that these two outcomes do not look alike.
 func TestReportDistinguishesCancellationFromFailure(t *testing.T) {
+	// `network unreachable` below is a request that never completed, which is
+	// the case --verbose still has something to say about.
+	requestWasMade(t, true)
+
 	root := NewRootCommand()
 	login := resolveCommand(root, "login")
 
@@ -281,6 +295,8 @@ func TestDetailIsRecognisedFromTheArgumentsWhenParsingFailed(t *testing.T) {
 
 // And the hint really does disappear from the rendered output.
 func TestTheHintIsNotPrintedWhenTheUserAlreadyAskedForDetail(t *testing.T) {
+	requestWasMade(t, true)
+
 	restore := os.Args
 	os.Args = []string{"appwrite", "users", "get", "--bogus", "--verbose"}
 	t.Cleanup(func() { os.Args = restore })
@@ -290,5 +306,45 @@ func TestTheHintIsNotPrintedWhenTheUserAlreadyAskedForDetail(t *testing.T) {
 
 	if strings.Contains(buffer.String(), "For detailed error") {
 		t.Errorf("advised passing a flag that is already in the invocation:\n%s", buffer.String())
+	}
+}
+
+// The advice is only true of a failed request. `appwrite types . -l typescript`
+// never sends one, so --verbose has no status, no response and no chain to
+// print, and every one of these errors was preceded by an offer of detail that
+// did not exist:
+//
+//	ℹ Info: For detailed error pass the --verbose or --report flag
+//	✗ Error: language 'typescript' is not supported
+func TestTheHintIsNotPrintedWhenNothingWasSent(t *testing.T) {
+	requestWasMade(t, false)
+
+	restore := os.Args
+	os.Args = []string{"appwrite", "types", ".", "-l", "typescript"}
+	t.Cleanup(func() { os.Args = restore })
+
+	buffer := &bytes.Buffer{}
+	Report(buffer, nil, errors.New("language 'typescript' is not supported"))
+
+	if strings.Contains(buffer.String(), "For detailed error") {
+		t.Errorf("offered detail for a failure with none:\n%s", buffer.String())
+	}
+	if !strings.Contains(buffer.String(), "is not supported") {
+		t.Errorf("lost the error itself:\n%s", buffer.String())
+	}
+}
+
+func TestTheHintIsPrintedForAFailedRequest(t *testing.T) {
+	requestWasMade(t, true)
+
+	restore := os.Args
+	os.Args = []string{"appwrite", "users", "get", "--user-id", "missing"}
+	t.Cleanup(func() { os.Args = restore })
+
+	buffer := &bytes.Buffer{}
+	Report(buffer, nil, appwriteError(404, "User with the requested ID could not be found."))
+
+	if !strings.Contains(buffer.String(), "For detailed error") {
+		t.Errorf("withheld the advice from the failure it is for:\n%s", buffer.String())
 	}
 }

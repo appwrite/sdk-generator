@@ -7,6 +7,7 @@ import (
 	"net/http/cookiejar"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -56,12 +57,41 @@ func (r *responseRecorder) Record(body []byte) {
 	r.body = body
 }
 
+// requestWasMade records that the process reached the API.
+var requestWasMade atomic.Bool
+
+// RequestWasMade reports whether any request has been sent.
+//
+// It answers whether --verbose has anything to say. That flag prints the status
+// code, the unwrap chain and the captured response body, all of which come from
+// a request; a command that fails before it sends one -- a missing argument, an
+// unsupported -l value, a config file with no tables in it -- has none of them,
+// so advising the user to re-run with it promised detail that did not exist.
+//
+// Set before the round trip rather than after, so a connection that never
+// completed still counts. `dial tcp: connection refused` is a request the user
+// made, and the chain that wraps it is worth printing.
+func RequestWasMade() bool {
+	return requestWasMade.Load()
+}
+
+// SetRequestWasMade overrides the flag, and exists for tests: the difference
+// between a failure that reached the API and one that did not is what decides
+// whether the CLI advises --verbose, and nothing in a test sends a request.
+//
+// Returns the previous value, so a caller can restore it.
+func SetRequestWasMade(made bool) bool {
+	return requestWasMade.Swap(made)
+}
+
 // recordingTransport copies each JSON response body on its way past.
 type recordingTransport struct {
 	next http.RoundTripper
 }
 
 func (t *recordingTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	requestWasMade.Store(true)
+
 	response, err := t.next.RoundTrip(request)
 	if err != nil || response == nil || response.Body == nil {
 		return response, err

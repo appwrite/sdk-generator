@@ -202,8 +202,10 @@ func Report(writer io.Writer, executed *cobra.Command, err error) int {
 		return ExitCancelled
 	}
 
-	// Skipped once the user has already asked for the detail it points at.
-	if !detailWasRequested() {
+	// Skipped once the user has already asked for the detail it points at, and
+	// when there is no detail to ask for: sdk.RequestWasMade is what makes the
+	// advice true, because everything --verbose adds comes from a request.
+	if sdk.RequestWasMade() && !detailWasRequested() {
 		output.Log(writer, "For detailed error pass the --verbose or --report flag")
 	}
 
