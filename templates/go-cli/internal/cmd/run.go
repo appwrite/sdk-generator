@@ -116,6 +116,9 @@ func runFunction(command *cobra.Command, options runOptions) error {
 	if err != nil {
 		return err
 	}
+	if notice := portNotice(options.Port, port); notice != "" {
+		output.Log(out, "%s", notice)
+	}
 
 	client := &docker.Client{Stdout: out, Stderr: command.ErrOrStderr()}
 	if !client.Available() {
@@ -363,6 +366,33 @@ func resolvePort(requested int) (int, error) {
 	}
 
 	return port, nil
+}
+
+// portNotice explains a port the user did not choose.
+//
+// `run` prints one URL and nothing about how it got there, so a function that
+// came up on 3001 looked like it had always been on 3001 -- and the reader is
+// left wondering whether the port moved, or something else is holding the one
+// they expected. Naming what was skipped answers both.
+//
+// Silent when the port was asked for explicitly, and when the search settled on
+// the first port it tried: neither is a surprise worth a line.
+//
+// The skipped range is derived rather than collected, which FindPort's contract
+// allows -- it scans upward from portSearchStart and returns the FIRST free port,
+// so everything below the result was busy.
+func portNotice(requested, chosen int) string {
+	if requested > 0 || chosen <= portSearchStart {
+		return ""
+	}
+
+	if chosen == portSearchStart+1 {
+		return fmt.Sprintf("Port %d is in use, so this function is on %d.",
+			portSearchStart, chosen)
+	}
+
+	return fmt.Sprintf("Ports %d-%d are in use, so this function is on %d.",
+		portSearchStart, chosen-1, chosen)
 }
 
 // printSettings shows what the local run will use, and what it will ignore.

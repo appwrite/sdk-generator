@@ -708,6 +708,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/cmd/runport_test.go',
+                'template'      => 'go-cli/internal/cmd/runport_test.go',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/settings_test.go',
                 'template'      => 'go-cli/internal/cmd/settings_test.go',
             ],
