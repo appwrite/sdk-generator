@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -40,15 +41,44 @@ const (
 )
 
 // Client is a thin HTTP client for the Appwrite API.
+//
+// One client is shared across concurrent requests: `push` runs
+// deploy.UploadConcurrency chunk uploads through a single instance. Every
+// response can carry a Set-Cookie the client records, so the two cookie fields
+// are written while other goroutines are reading them to build requests. They
+// are the only mutable state here -- headers are set before a request is made
+// and only read afterwards -- so one mutex covers them both.
 type Client struct {
 	Endpoint   string
 	HTTP       *http.Client
 	headers    map[string]string
-	cookie     string
 	SDKVersion string
-	// SessionCookie is the console session cookie the server last set, which
-	// an email-and-password sign-in has to persist.
-	SessionCookie string
+
+	// mutex guards cookie and sessionCookie, nothing else.
+	mutex  sync.RWMutex
+	cookie string
+	// sessionCookie is the console session cookie the server last set, which an
+	// email-and-password sign-in has to persist.
+	sessionCookie string
+}
+
+// SessionCookie is the console session cookie the server last set.
+//
+// An accessor rather than a field because reading it unsynchronised while an
+// upload is in flight is a data race.
+func (c *Client) SessionCookie() string {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	return c.sessionCookie
+}
+
+// outboundCookie is the Cookie header to send, or "" for none.
+func (c *Client) outboundCookie() string {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	return c.cookie
 }
 
 // RequestLog receives one line per HTTP request when --verbose is on.
@@ -105,8 +135,8 @@ func (c *Client) Download(path string) ([]byte, error) {
 	for name, value := range c.headers {
 		request.Header.Set(name, value)
 	}
-	if c.cookie != "" {
-		request.Header.Set("Cookie", c.cookie)
+	if cookie := c.outboundCookie(); cookie != "" {
+		request.Header.Set("Cookie", cookie)
 	}
 
 	response, err := c.HTTP.Do(request)
@@ -153,14 +183,27 @@ func (c *Client) WithoutResponseFormat() *Client {
 // Needed because one console client lists organizations and then acts within
 // one: setting X-Appwrite-Organization on the shared client would scope the
 // next unrelated call as well.
+// Field by field rather than `copied := *c`, which would copy the mutex along
+// with everything else -- vet rejects that, and it would also mean taking a
+// snapshot of the cookies without holding the lock, which is the race this
+// mutex exists to prevent. The clone gets its own lock and its own cookies.
 func (c *Client) Clone() *Client {
-	copied := *c
-	copied.headers = make(map[string]string, len(c.headers))
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	copied := &Client{
+		Endpoint:      c.Endpoint,
+		HTTP:          c.HTTP,
+		SDKVersion:    c.SDKVersion,
+		headers:       make(map[string]string, len(c.headers)),
+		cookie:        c.cookie,
+		sessionCookie: c.sessionCookie,
+	}
 	for name, value := range c.headers {
 		copied.headers[name] = value
 	}
 
-	return &copied
+	return copied
 }
 
 // SetHeader sets one header.
@@ -211,8 +254,10 @@ const consoleSessionCookie = "a_session_console="
 func (c *Client) captureSessionCookie(response *http.Response) {
 	for _, cookie := range response.Header.Values("Set-Cookie") {
 		if strings.HasPrefix(cookie, consoleSessionCookie) {
+			c.mutex.Lock()
 			c.cookie = cookie
-			c.SessionCookie = cookie
+			c.sessionCookie = cookie
+			c.mutex.Unlock()
 		}
 	}
 }
@@ -241,7 +286,9 @@ func (c *Client) SetSelfSigned(selfSigned bool) *Client {
 
 // SetCookie authenticates with a legacy session cookie.
 func (c *Client) SetCookie(cookie string) *Client {
+	c.mutex.Lock()
 	c.cookie = cookie
+	c.mutex.Unlock()
 
 	return c
 }
@@ -322,8 +369,8 @@ func (c *Client) Call(method, path string, body any, out any) error {
 	for name, value := range c.headers {
 		request.Header.Set(name, value)
 	}
-	if c.cookie != "" {
-		request.Header.Set("Cookie", c.cookie)
+	if cookie := c.outboundCookie(); cookie != "" {
+		request.Header.Set("Cookie", cookie)
 	}
 
 	return c.send(request, out)
@@ -402,8 +449,8 @@ func (c *Client) Upload(part UploadPart, out any) error {
 		}
 		request.Header.Set(name, value)
 	}
-	if c.cookie != "" {
-		request.Header.Set("Cookie", c.cookie)
+	if cookie := c.outboundCookie(); cookie != "" {
+		request.Header.Set("Cookie", cookie)
 	}
 	request.Header.Set(headerContentType, writer.FormDataContentType())
 	if part.Range != "" {

@@ -234,6 +234,18 @@ jobs:
         working-directory: examples/go-cli
         run: go test ./internal/cmd/ -run 'TestCommandSurfaceMatchesTypeScript|TestContractIsNotEmpty'
 
+      # -race is the point, not a bonus. `push` shares one client across eight
+      # concurrent chunk uploads, and that class of bug is invisible without the
+      # detector: the tree built and its tests passed for months with an
+      # unsynchronised write to the session cookie on that exact path.
+      #
+      # This is also the only job that runs the whole suite against the real
+      # spec. The e2e generates with sdk.test true, where several packages render
+      # differently, so a failure here is one no other job can see.
+      - name: Test
+        working-directory: examples/go-cli
+        run: go test -race ./internal/...
+
   max-line-length:
     name: Checks / Twig line length
     runs-on: ubuntu-latest

@@ -103,10 +103,10 @@ func TestClientCapturesTheConsoleSessionCookie(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !strings.HasPrefix(api.SessionCookie, "a_session_console=") {
-		t.Errorf("SessionCookie = %q, want the console session cookie", api.SessionCookie)
+	if !strings.HasPrefix(api.SessionCookie(), "a_session_console=") {
+		t.Errorf("SessionCookie = %q, want the console session cookie", api.SessionCookie())
 	}
-	if strings.Contains(api.SessionCookie, "unrelated") {
+	if strings.Contains(api.SessionCookie(), "unrelated") {
 		t.Error("an unrelated cookie was stored as the session")
 	}
 }

@@ -815,6 +815,11 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/reportargs_test.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/client/concurrency_test.go',
+                'template'      => 'go-cli/internal/client/concurrency_test.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/types.go',
                 'template'      => 'go-cli/internal/cmd/types.go',

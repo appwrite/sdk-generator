@@ -354,12 +354,13 @@ func loginWithPassword(
 
 	// The cookie IS the credential for this flow, so a sign-in that does not
 	// produce one has not signed anyone in.
-	if api.SessionCookie == "" {
+	sessionCookie := api.SessionCookie()
+	if sessionCookie == "" {
 		abandon()
 
 		return errors.New("sign-in did not return a session")
 	}
-	session.Set(config.PreferenceCookie, api.SessionCookie)
+	session.Set(config.PreferenceCookie, sessionCookie)
 
 	account := jsonx.NewObject()
 	if err := api.Call("GET", "/account", nil, account); err != nil {
