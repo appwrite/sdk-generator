@@ -190,7 +190,12 @@ resolves `latest` to the newest *non*-prerelease.
 ## After the release
 
 - `appwrite update` on a standalone install downloads from a versioned tag, so
-  it will not walk an rc backwards onto the last stable build.
+  it will not walk an rc backwards onto the last stable build. It then verifies
+  the binary against `checksums.txt` from the same release before replacing
+  itself, and refuses to install if that file is absent or disagrees — so the
+  manifest the workflow uploads is load-bearing, not just a courtesy. Releases
+  published before the Go CLI carry no `checksums.txt`, and cannot be installed
+  this way.
 - Scoop is generated with its URLs baked in at generation time and no release
   step updates it, exactly as on the TypeScript CLI. Treat the scoop manifest
   as stale until someone regenerates it.
