@@ -2,8 +2,10 @@
 package client
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 )
 
@@ -89,6 +91,87 @@ func TestSelfSignedDoesNotLeakToAnotherClient(t *testing.T) {
 
 	if _, err := verifying.Call("GET", "/", nil, nil); err == nil {
 		t.Error("Expected a client without SelfSigned to reject the certificate")
+	}
+}
+
+func TestSelfSignedPreservesExistingTLSConfig(t *testing.T) {
+	originalTLSConfig := &tls.Config{ServerName: "example.com"}
+	originalTransport := &http.Transport{TLSClientConfig: originalTLSConfig}
+
+	c := New(func(client *Client) error {
+		client.Client.Transport = originalTransport
+		client.SelfSigned = true
+		return nil
+	})
+
+	configuredTransport, ok := c.Client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatal("Expected the configured transport to be an *http.Transport")
+	}
+	if configuredTransport == originalTransport {
+		t.Error("Expected the transport to be cloned")
+	}
+	if configuredTransport.TLSClientConfig == originalTLSConfig {
+		t.Error("Expected the TLS configuration to be cloned")
+	}
+	if configuredTransport.TLSClientConfig.ServerName != originalTLSConfig.ServerName {
+		t.Error("Expected the existing TLS configuration to be preserved")
+	}
+	if !configuredTransport.TLSClientConfig.InsecureSkipVerify {
+		t.Error("Expected certificate verification to be disabled")
+	}
+	if originalTLSConfig.InsecureSkipVerify {
+		t.Error("Expected the caller-owned TLS configuration to remain unchanged")
+	}
+}
+
+type customRoundTripper struct{}
+
+func (transport *customRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	return nil, nil
+}
+
+func TestSelfSignedDoesNotReplaceCustomTransport(t *testing.T) {
+	transport := &customRoundTripper{}
+	httpClient := &http.Client{Transport: transport}
+
+	configuredClient, err := withSelfSigned(httpClient)
+	if err == nil {
+		t.Fatal("Expected an unsupported custom transport to return an error")
+	}
+	if configuredClient != nil {
+		t.Error("Expected no configured client after an error")
+	}
+	if httpClient.Transport != transport {
+		t.Error("Expected the caller-owned transport to remain unchanged")
+	}
+}
+
+func TestSelfSignedConcurrentCalls(t *testing.T) {
+	server := selfSignedServer(t)
+
+	c := New()
+	c.Endpoint = server.URL
+	c.SelfSigned = true
+
+	const calls = 8
+	errors := make(chan error, calls)
+	var waitGroup sync.WaitGroup
+	for i := 0; i < calls; i++ {
+		waitGroup.Add(1)
+		go func() {
+			defer waitGroup.Done()
+			_, err := c.Call("GET", "/", nil, nil)
+			errors <- err
+		}()
+	}
+
+	waitGroup.Wait()
+	close(errors)
+	for err := range errors {
+		if err != nil {
+			t.Errorf("Expected concurrent calls to accept the self-signed certificate, got %v", err)
+		}
 	}
 }
 {% endautoescape %}

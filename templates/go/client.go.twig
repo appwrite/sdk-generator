@@ -107,7 +107,10 @@ func New(optionalSetters ...ClientOption) Client {
 	// After the options, so WithSelfSigned is applied whichever order it was
 	// passed in and whether or not WithTimeout replaced the http.Client.
 	if client.SelfSigned {
-		trustSelfSigned(client.Client)
+		client.Client, err = withSelfSigned(client.Client)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return client
@@ -128,39 +131,38 @@ func GetDefaultClient(timeout time.Duration) (*http.Client, error) {
 	}, nil
 }
 
-// trustSelfSigned stops verifying certificates for one http.Client.
-//
-// The transport belongs to the client passed in, never http.DefaultTransport:
-// the shared default is what every other http.Client in the process falls back
-// to, so turning verification off there would disable it for requests this SDK
-// has nothing to do with.
-//
-// Idempotent, so the call on each request is a read once the client is set up.
-func trustSelfSigned(httpClient *http.Client) {
+// withSelfSigned returns an HTTP client with certificate verification disabled.
+// It clones the client, transport, and TLS configuration before changing them so
+// caller-owned and process-global HTTP configuration remains untouched.
+func withSelfSigned(httpClient *http.Client) (*http.Client, error) {
 	if httpClient == nil {
-		return
+		return nil, errors.New("cannot configure self-signed certificates on a nil HTTP client")
 	}
 
-	if transport, ok := httpClient.Transport.(*http.Transport); ok {
-		if transport.TLSClientConfig != nil && transport.TLSClientConfig.InsecureSkipVerify {
-			return
-		}
-
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-
-		return
+	roundTripper := httpClient.Transport
+	if roundTripper == nil {
+		roundTripper = http.DefaultTransport
 	}
 
-	// No transport of our own yet. Start from a copy of the default so its dial
-	// and handshake timeouts and connection pooling are kept, and fall back to a
-	// plain transport if something replaced the default with another
-	// RoundTripper.
-	transport := &http.Transport{}
-	if standard, ok := http.DefaultTransport.(*http.Transport); ok {
-		transport = standard.Clone()
+	transport, ok := roundTripper.(*http.Transport)
+	if !ok {
+		return nil, fmt.Errorf("cannot configure self-signed certificates on HTTP transport %T", roundTripper)
 	}
-	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	httpClient.Transport = transport
+
+	if transport.TLSClientConfig != nil && transport.TLSClientConfig.InsecureSkipVerify {
+		return httpClient, nil
+	}
+
+	transport = cloneTransport(transport)
+	if transport.TLSClientConfig == nil {
+		transport.TLSClientConfig = &tls.Config{}
+	}
+	transport.TLSClientConfig.InsecureSkipVerify = true
+
+	configuredClient := *httpClient
+	configuredClient.Transport = transport
+
+	return &configuredClient, nil
 }
 
 type ClientOption func(*Client) error
@@ -436,8 +438,13 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 		client.Client = httpClient
 	}
 
+	httpClient := client.Client
 	if client.SelfSigned {
-		trustSelfSigned(client.Client)
+		var err error
+		httpClient, err = withSelfSigned(httpClient)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	urlPath := client.Endpoint + path
@@ -547,7 +554,7 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 	}
 
 	// Make request
-	resp, err := client.Client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

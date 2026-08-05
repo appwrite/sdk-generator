@@ -1,0 +1,12 @@
+{% autoescape false %}
+//go:build go1.13
+// +build go1.13
+
+package client
+
+import "net/http"
+
+func cloneTransport(transport *http.Transport) *http.Transport {
+	return transport.Clone()
+}
+{% endautoescape %}

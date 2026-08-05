@@ -159,6 +159,16 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'client/transport_go112.go',
+                'template'      => 'go/transport_go112.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'client/transport_go113.go',
+                'template'      => 'go/transport_go113.go.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'models/model_interface.go',
                 'template'      => 'go/models/model_interface.go.twig',
             ],
