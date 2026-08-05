@@ -16,6 +16,13 @@ import (
 // ErrNotLoggedIn is returned when a command needs a session and none is stored.
 var ErrNotLoggedIn = errors.New("no active session. Run `" + app.ExecutableName + " login` to sign in")
 
+// ErrConsoleNeedsSession is returned when only an API key is stored and the
+// command needs the console. Ports the two-sentence message in sdkForConsole().
+var ErrConsoleNeedsSession = errors.New(
+	"session not found. Run `" + app.ExecutableName + " login`. API keys work for project commands " +
+		"(e.g. `" + app.ExecutableName + " push functions`), not console-only commands " +
+		"(e.g. `" + app.ExecutableName + " push settings`)")
+
 // preferences loads the user's global preferences.
 func preferences() (*config.Global, error) {
 	path, err := config.GlobalPath(app.ExecutableName)
@@ -63,6 +70,11 @@ func consoleClient() (*client.Client, *config.Global, error) {
 		api.SetBearer(token)
 	case cookie != "":
 		api.SetCookie(cookie)
+	case session.GetString(config.PreferenceKey) != "":
+		// An API key is scoped to one project; the console endpoints are not.
+		// Saying so is the difference between a user adding `login` and a user
+		// re-checking a key that was never going to work here.
+		return nil, nil, ErrConsoleNeedsSession
 	default:
 		return nil, nil, ErrNotLoggedIn
 	}
@@ -177,6 +189,13 @@ func registerSessionCommands(root *cobra.Command) {
 	root.AddCommand(newWhoamiCommand())
 	root.AddCommand(newSessionsCommand())
 	root.AddCommand(newClientCommand())
+	root.AddCommand(newUpdateCommand())
 	root.AddCommand(newLoginCommand())
 	root.AddCommand(newLogoutCommand())
+	root.AddCommand(newTypesCommand())
+	root.AddCommand(newGenerateCommand())
+	root.AddCommand(newRunCommand())
+	root.AddCommand(newInitCommand())
+	root.AddCommand(newPullCommand())
+	root.AddCommand(newPushCommand())
 }

@@ -1,0 +1,271 @@
+package prompt
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
+
+// Replaces inquirer for the interactive commands.
+//
+// The TypeScript's questions.ts is mostly inquirer question objects belonging
+// to one command each. Those definitions land with the commands that use them;
+// this package is the runtime underneath -- the field types, the validators,
+// and the decision about what happens when there is nobody to answer.
+//
+// That last part is the reason this is an interface rather than direct huh
+// calls. `appwrite push` in CI has no terminal, and a prompt there must fail
+// with the flag that would have answered it, not block a pipeline until it
+// times out.
+
+// ErrAborted is returned when the user cancels a prompt.
+var ErrAborted = errors.New("prompt cancelled")
+
+// NonInteractiveError reports a prompt that could not be shown.
+//
+// Flag names the option that answers the question without prompting, so the
+// message tells a CI user what to add rather than that something went wrong.
+type NonInteractiveError struct {
+	Message string
+	Flag    string
+}
+
+func (e *NonInteractiveError) Error() string {
+	if e.Flag != "" {
+		return fmt.Sprintf(
+			"%q needs an answer but there is no interactive terminal. Pass %s instead",
+			e.Message, e.Flag)
+	}
+
+	return fmt.Sprintf(
+		"%q needs an answer but there is no interactive terminal", e.Message)
+}
+
+// Option is one choice in a select.
+//
+// Label is shown; Value is returned. They differ constantly -- an organization
+// is picked by name and used by id.
+type Option struct {
+	Label string
+	Value string
+	// Disabled greys the option out and refuses selection, matching
+	// inquirer's `disabled`. Used for a plan the account cannot pick.
+	Disabled bool
+	// Reason is shown beside a disabled option to say why.
+	Reason string
+}
+
+// Options builds a list where each label is also its value.
+func Options(values ...string) []Option {
+	options := make([]Option, 0, len(values))
+	for _, value := range values {
+		options = append(options, Option{Label: value, Value: value})
+	}
+
+	return options
+}
+
+// Text asks for a single line.
+type Text struct {
+	Message string
+	Default string
+	// Flag is named when there is no terminal.
+	Flag string
+	// Validate rejects a value with a message the user sees. Nil accepts
+	// anything.
+	Validate func(string) error
+	// Secret hides the typed characters.
+	Secret bool
+}
+
+// Choice asks for one option.
+type Choice struct {
+	Message string
+	Options []Option
+	Default string
+	Flag    string
+	// Filter shows a type-to-narrow field. The TypeScript spells this as a
+	// separate `search-list` question type; here it is a property, because the
+	// only difference is whether the filter is visible.
+	Filter bool
+}
+
+// MultiChoice asks for zero or more options.
+type MultiChoice struct {
+	Message  string
+	Options  []Option
+	Default  []string
+	Flag     string
+	Filter   bool
+	Validate func([]string) error
+}
+
+// Question asks for a yes or no.
+type Question struct {
+	Message string
+	Default bool
+	Flag    string
+}
+
+// Prompter asks the user questions.
+type Prompter interface {
+	Text(Text) (string, error)
+	Choice(Choice) (string, error)
+	MultiChoice(MultiChoice) ([]string, error)
+	Confirm(Question) (bool, error)
+}
+
+// Forced wraps a prompter so every confirmation answers true without asking.
+//
+// Ports `cliConfig.force === true ? true : <prompt>`, which the TypeScript
+// repeats at each call site. Wrapping it once means a new confirmation cannot
+// forget to honour --force.
+type Forced struct {
+	Prompter
+}
+
+// Confirm answers true without prompting.
+func (f Forced) Confirm(Question) (bool, error) { return true, nil }
+
+// NonInteractive refuses every prompt.
+//
+// Used when stdin is not a terminal. Each refusal names the flag that would
+// have answered it.
+type NonInteractive struct{}
+
+func (NonInteractive) Text(question Text) (string, error) {
+	return "", &NonInteractiveError{Message: question.Message, Flag: question.Flag}
+}
+
+func (NonInteractive) Choice(question Choice) (string, error) {
+	return "", &NonInteractiveError{Message: question.Message, Flag: question.Flag}
+}
+
+func (NonInteractive) MultiChoice(question MultiChoice) ([]string, error) {
+	return nil, &NonInteractiveError{Message: question.Message, Flag: question.Flag}
+}
+
+func (NonInteractive) Confirm(question Question) (bool, error) {
+	return false, &NonInteractiveError{Message: question.Message, Flag: question.Flag}
+}
+
+// Scripted answers from a prepared list, for tests.
+//
+// Answers are matched on the question's message, so a test reads as the
+// conversation it stands for rather than as a queue of positional values.
+type Scripted struct {
+	Texts        map[string]string
+	Choices      map[string]string
+	MultiChoices map[string][]string
+	Confirms     map[string]bool
+	// Asked records every message in order, so a test can assert that a
+	// question was skipped rather than merely answered the same way.
+	Asked []string
+}
+
+func (s *Scripted) record(message string) { s.Asked = append(s.Asked, message) }
+
+func (s *Scripted) Text(question Text) (string, error) {
+	s.record(question.Message)
+
+	value, ok := s.Texts[question.Message]
+	if !ok {
+		value = question.Default
+	}
+	if question.Validate != nil {
+		if err := question.Validate(value); err != nil {
+			return "", err
+		}
+	}
+
+	return value, nil
+}
+
+func (s *Scripted) Choice(question Choice) (string, error) {
+	s.record(question.Message)
+
+	value, ok := s.Choices[question.Message]
+	if !ok {
+		return question.Default, nil
+	}
+
+	// A scripted answer that is not on the list is a test bug, and a silent
+	// pass-through would hide it.
+	for _, option := range question.Options {
+		if option.Value == value {
+			return value, nil
+		}
+	}
+
+	return "", fmt.Errorf("scripted answer %q is not an option for %q", value, question.Message)
+}
+
+func (s *Scripted) MultiChoice(question MultiChoice) ([]string, error) {
+	s.record(question.Message)
+
+	values, ok := s.MultiChoices[question.Message]
+	if !ok {
+		values = question.Default
+	}
+	if question.Validate != nil {
+		if err := question.Validate(values); err != nil {
+			return nil, err
+		}
+	}
+
+	return values, nil
+}
+
+func (s *Scripted) Confirm(question Question) (bool, error) {
+	s.record(question.Message)
+
+	value, ok := s.Confirms[question.Message]
+	if !ok {
+		return question.Default, nil
+	}
+
+	return value, nil
+}
+
+// Required rejects an empty value.
+//
+// Ports validateRequired(). The message is built from the resource name and is
+// what the user reads, so the two forms are kept exactly: a list says "select
+// at least one", a scalar says "is required".
+func Required(resource string) func(string) error {
+	return func(value string) error {
+		if strings.TrimSpace(value) == "" {
+			return fmt.Errorf("%s is required", resource)
+		}
+
+		return nil
+	}
+}
+
+// RequiredSelection rejects an empty list.
+func RequiredSelection(resource string) func([]string) error {
+	return func(values []string) error {
+		if len(values) == 0 {
+			return fmt.Errorf("Please select at least one %s", resource)
+		}
+
+		return nil
+	}
+}
+
+// NonNegativeInteger rejects anything that is not a run of digits.
+//
+// Ports validateNonNegativeInteger(). Deliberately not strconv.Atoi: that
+// accepts a leading `+` or `-`, and the message promises non-negative.
+func NonNegativeInteger(value string) error {
+	if value == "" {
+		return errors.New("Please enter a non-negative integer.")
+	}
+	for _, character := range value {
+		if character < '0' || character > '9' {
+			return errors.New("Please enter a non-negative integer.")
+		}
+	}
+
+	return nil
+}

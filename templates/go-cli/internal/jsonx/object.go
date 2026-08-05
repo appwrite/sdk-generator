@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"strings"
 )
 
@@ -78,21 +79,38 @@ func (o *Object) GetObject(key string) *Object {
 }
 
 // GetInt64 returns an integer value, or 0 when absent or not a number.
+//
+// A decoded document holds json.Number, but a value Set programmatically holds
+// whatever Go type the caller had. Handling only json.Number made those read
+// back as zero -- silently, which is how a paginated walk stopped after one
+// page against a hand-built response.
 func (o *Object) GetInt64(key string) int64 {
 	value, ok := o.Get(key)
 	if !ok {
 		return 0
 	}
-	number, ok := value.(json.Number)
-	if !ok {
-		return 0
-	}
-	parsed, err := number.Int64()
-	if err != nil {
-		return 0
+
+	switch typed := value.(type) {
+	case json.Number:
+		parsed, err := typed.Int64()
+		if err != nil {
+			return 0
+		}
+
+		return parsed
+	case int64:
+		return typed
+	case int:
+		return int64(typed)
+	case float64:
+		// Only exact integers. A fractional value is not an integer, and
+		// truncating one would be worse than reporting zero.
+		if typed == math.Trunc(typed) {
+			return int64(typed)
+		}
 	}
 
-	return parsed
+	return 0
 }
 
 // Set stores a value, appending the key if it is new and leaving its position

@@ -221,7 +221,7 @@ phase whose entry criteria are unmet — say so and stop instead.
 
 ---
 
-### Phase 0 — Spike and decision record ✅ COMPLETE
+### Phase 0 — Spike and decision record
 
 **Goal:** prove the startup and `push` numbers before committing months. Kill the
 project cheaply if they do not hold.
@@ -250,11 +250,11 @@ forced on this document are listed in its §5.
    Produce a gap list.
 
 **Exit:**
-- [x] `docs/go-cli/BENCHMARKS.md` with reproducible commands and a results table.
-- [x] Startup ≥ 5× better and `push` ≥ 20 % better — **41×** and **−56 %**.
-- [x] Go SDK gap list — **none**. All 603 CLI method calls across 23 services are
-      covered. The only CLI-only surface is three `console-fallback` helpers, already
-      scoped to `internal/client` in Phase 2.
+- `docs/go-cli/BENCHMARKS.md` with reproducible commands and a results table.
+- Startup ≥ 5× better and `push` ≥ 20 % better — **41×** and **−56 %**.
+- Go SDK gap list — **none**. All 603 CLI method calls across 23 services are
+  covered. The only CLI-only surface is three `console-fallback` helpers, already
+  scoped to `internal/client` in Phase 2.
 
 **Risk (resolved):** the gap list was expected to be the schedule risk. It is empty —
 both SDKs are generated from the same spec at platform `console`, so the Go SDK needs no
@@ -262,7 +262,7 @@ hardening before the CLI is built on it.
 
 ---
 
-### Phase 1 — Generator scaffolding ✅ COMPLETE
+### Phase 1 — Generator scaffolding
 
 **Goal:** `php example.php go-cli` produces a Go module that compiles and runs
 `--help`. No real commands yet.
@@ -292,9 +292,9 @@ hardening before the CLI is built on it.
 - `php example.php go-cli` succeeds.
 - `cd examples/go-cli && go build ./... && ./go-cli --help` works.
 - `composer refactor:check` and `composer lint-twig` pass.
-- [x] `command-surface.json` committed, with 608 commands and 2,912 flags in it.
-- [x] The generated Go tree matches it **exactly**: 608/608 command paths, zero flag
-      differences, zero required-flag differences, zero hidden-state mismatches.
+- `command-surface.json` committed, with 608 commands and 2,912 flags in it.
+- The generated Go tree matches it **exactly**: 608/608 command paths, zero flag
+  differences, zero required-flag differences, zero hidden-state mismatches.
 
 **Findings:**
 - The nine helpers are now a shared trait, `Language\Concern\CliCommandSurface`, used by
@@ -312,7 +312,7 @@ merge. Check `Go.php:63` for what you are replacing.
 
 ---
 
-### Phase 2 — Runtime foundation ✅ COMPLETE
+### Phase 2 — Runtime foundation
 
 **Goal:** the non-generated core, with unit tests. No service commands, no stateful
 commands.
@@ -344,7 +344,7 @@ after Phase 4 proves parity.
 
 ---
 
-### Phase 3 — Generated service commands ✅ COMPLETE
+### Phase 3 — Generated service commands
 
 **Goal:** all 608 commands generated, compiling, and calling the Go SDK.
 
@@ -380,7 +380,7 @@ idiomatic *behind* the flag.
 
 ---
 
-### Phase 4 — Conformance harness ✅ COMPLETE
+### Phase 4 — Conformance harness
 
 **Goal:** the Go CLI has its own conformance run against the mock server, asserting the
 same `Base.php` expectations the TypeScript CLI is held to. This phase is the reason the
@@ -417,8 +417,8 @@ rewrite is safe. Do not defer it.
    first.** One harness driving both implementations has to tolerate both, and every
    tolerance is a divergence it can no longer see: the shared version accepted
    `result <value>` and `result : <value>` interchangeably, so neither implementation was
-   pinned to either. It also coupled the Go CLI's test to a Node runtime and to a file
-   the TypeScript CLI's own suite depends on, which makes Phase 8's deletion of
+   pinned to either. It also coupled the Go CLI's test to a Node runtime and to a file the
+   TypeScript CLI's own suite depends on, which makes Phase 8's deletion of
    `templates/cli/` harder than it needs to be. Independent harness, shared
    *expectations* -- `Base.php` stays the single source of truth for what is correct.
 3. Reuse the `Base.php` expectation constants unchanged: `CLI_COMPLETION_RESPONSES`,
@@ -442,6 +442,214 @@ docker compose down` before re-running.
 
 ### Phase 5 — Stateful commands
 
+The order below is the order to port in; each item records what the port must
+preserve and how it was verified.
+
+- **5a `update`** — `internal/app/install.go` (install-method detection, release
+  asset names matching the TypeScript exactly so a Go build can replace one in place) and
+  `internal/cmd/update.go` (npm/brew delegate; standalone writes a temp file beside the
+  target and renames atomically).
+- **5b `types`/`generate`** — `internal/typegen` holds the
+  Handlebars subset renderer, the four `.hbs` files embedded (sourced from the TypeScript
+  CLI's own directory — one source, two outputs; do **not** commit a second copy), the case
+  helpers, and **all eight language emitters** — TypeScript, JavaScript, PHP, Kotlin,
+  Swift, Java, Dart, C#.
+
+  The emitters do not port EJS. Each `LanguageMeta` subclass holds its template as an
+  inline string nothing else reads, so there is no shared artifact to preserve; each
+  emits directly in Go and is pinned to output captured from node. Regenerate the
+  baselines with `docs/go-cli/capture-typegen-baselines.ts` — never hand-edit a file under
+  `internal/typegen/testdata`. (The `.hbs` files under `commands/generators` are the
+  opposite case: real files both CLIs read, which is why those go through the Handlebars
+  subset.)
+
+  Roughly a dozen defects in the TypeScript emitters are reproduced rather than fixed, each
+  named in a comment where it lives. `types` output is checked into users' repositories, so
+  a correction would land as an unexplained diff in their next commit. If any of them is
+  ever fixed, fix it in the TypeScript first and recapture.
+
+  `generate` lives in `internal/generator`, with its own baselines and its own capture
+  script (`docs/go-cli/capture-generate-baselines.ts`). Two ordering details there are
+  load-bearing and have tests: grouping by database is a JS `Map` and iterates in insertion
+  order, and dedup is `Map.set` — first position, last value.
+
+  Both commands were compared end to end against the built TypeScript CLI over the same
+  config and are byte-identical: `types` across all eight languages in loose and strict
+  mode, `generate` including its usage hints. Do this again after any change here; the unit
+  baselines pass a dependency in explicitly and so cannot see a wiring bug in the command
+  that resolves it.
+
+- **5c `run`** — `internal/ignore` (the `ignore` npm package, 684 captured
+  verdicts — **also needed by 5f**), `internal/dotenv`, `internal/docker`, `internal/watch`
+  and `internal/cmd/run.go`.
+
+  Verified against a real Docker engine, not only by unit test: build, start, serve,
+  hot-swap on a source edit, full rebuild on a package.json edit, and SIGINT leaving no
+  container and no `.appwrite` behind. **Do this again after any change here** — it is what
+  found `filepath.Join` standing in for `path.resolve`, which Docker reports as a
+  volume-naming error that says nothing about the path.
+
+  Two things are deferred and marked `NOT YET PORTED` where they sit: the
+  remote-variable fetch and `JwtManager` both need the functions service. Close them
+  when the SDK wiring lands.
+
+- **Client wiring** — `internal/sdk` is the one place a client is built, for generated and
+  hand-written commands alike. Three defects were fixed there this phase, all found by
+  watching a real request against a local listener rather than by reading:
+
+  | Defect | Effect |
+  |---|---|
+  | An API key was not accepted | Every project command failed in CI, which authenticates with `client --key` |
+  | `APPWRITE_PROJECT_ID` / `_ORGANIZATION_ID` unread | A CI job's export silently lost to a checked-in config |
+  | A project's own `endpoint` unread and unchecked | A self-hosted repo would be pushed to the last endpoint logged into |
+
+  **Do not add a second client constructor.** The first attempt at this was a parallel
+  implementation in `internal/cmd`; it was deleted. Anything a command needs goes into
+  `internal/sdk` so all 608 generated commands get it too.
+
+  `internal/client/paginate.go` ports `paginate.ts`. Both termination conditions are load
+  bearing — see the tests before changing either.
+
+- **5d `init`** — `project`, the five local subcommands (`bucket`, `team`, `topic`,
+  `collection`, `table`), and `function`/`site`/`skill`.
+
+  `init project` was verified against **real staging**: a project created, a second
+  directory linked to it, a project command run through the link, then the project deleted.
+  Do that again after any change here — it found three defects a unit test could not, one
+  of them a regression in the client wiring landed minutes earlier.
+
+  `init function`, `init site` and `init skill` were verified the same
+  way: driven through a pty against the shipping TypeScript with the same answers, then
+  compared. For `function` and `site` the config entry matches in key ORDER and in every
+  value bar the generated `$id`, and the downloaded tree — retitled README included — is
+  byte-identical under `diff -r`.
+
+  Two traps a source read alone would have missed, both now covered by unit tests
+  because a live run only exercises whichever runtime the API happens to list first:
+
+  - a runtime id yields **two** names. The template directory is the FIRST
+    dash-separated segment; the entrypoint and install command are looked up by the id
+    with its LAST segment dropped. Identical for `node-22`, divergent for
+    `python-ml-3.11`.
+  - `ignore` is an array, never null. The TypeScript's `runtime.ignore || null` looks
+    like it can produce null, but `[]` is truthy in JavaScript so that branch is dead.
+
+  When driving huh through a pty, **Enter is `\r`, not `\n`** — bubbletea reads the raw
+  key, while inquirer accepted either. Multi-select toggles on `x`, not space.
+
+  `init project`'s autopull prompt and `installInitProjectSkills` are not ported.
+
+  The five local subcommands only prompt and write `appwrite.config.json`, and all five
+  were driven through a pty against the shipping TypeScript with the same keystrokes and
+  write a byte-identical config. `docs/go-cli/` has no capture script for this — the driver
+  is a ~30-line pty harness; rebuild it when needed and **set the window size**, or bubbles
+  panics rendering into zero columns.
+
+  **Field order in `internal/config/resource.go` is part of the output.** The TypeScript's
+  `whitelistKeys()` iterates the CALLER's keys, so its order is per-call-site; a Go struct
+  has one order for every caller. Each struct matches its `init` call site, which is today
+  the only caller. When `pull` starts writing these, compare against the TypeScript again.
+
+- **`internal/prompt`** — the runtime under `questions.ts`: field types,
+  validators, and a `Prompter` interface with three implementations — `Terminal` (huh),
+  `NonInteractive`, and `Scripted` for tests.
+
+  The question *definitions* are deliberately NOT here. They belong to one command each
+  and are written alongside `init`, `pull` and `push`; porting 1,363 lines of question data
+  against commands that do not exist yet would be guesswork.
+
+  Two properties to preserve when adding questions: give every one a `Flag`, so a CI run
+  gets "pass --x instead" rather than a hang; and never check `--force` at a call site --
+  `Forced` already answers confirmations, and it deliberately does not answer anything that
+  needs a value.
+
+- **5e `pull`** — all of: settings, bucket, team, topic, webhook, table, collection,
+  function, site. Every one verified byte-identical against the TypeScript on real
+  staging projects.
+
+  Two ordering rules are in play and they are NOT the same:
+
+  | Helper | Order | Used by |
+  |---|---|---|
+  | `whitelistKeys()` | the CALLER's keys | the `add*` helpers, so `init` |
+  | `filterBySchema()` | the SCHEMA's keys | `pull` |
+
+  So a pulled bucket and an init-created bucket order their keys differently, on purpose.
+
+  **`pull team` does not filter at all** — `pullTeams()` is the one pull that skips
+  `filterBySchema`, so a pulled team carries `$createdAt`, `$updatedAt`, `total` and
+  `prefs`. Reproduced deliberately; do not "fix" it here.
+
+  `pull table` and `pull collection` are byte-identical against a real
+  staging project carrying a database, a table, three columns and an index. Note pull does
+  **not** need `utils/attributes.ts` — that file is the PUSH-side reconciliation. Pull is a
+  two-level walk plus `filterBySchema`.
+
+  `pull settings` is the one pulled resource that is reshaped rather than
+  filtered. Two traps live there, both invisible without a live comparison:
+
+  - **`x-appwrite-response-format` selects a response SHAPE, not just a version.** With the
+    header, console routes return a legacy flat project and the arrays the settings block
+    is built from are absent entirely. The TypeScript avoids it by routing console calls
+    through `@appwrite.io/console`, which sends no such header. Use
+    `Client.WithoutResponseFormat()` for anything that mirrors the console SDK.
+  - **Policy ids are kebab-case** (`session-duration`). The TypeScript's `ProjectPolicyId`
+    enum has run-together MEMBER names; transcribe the values, not the members.
+
+  **Every pull must use `Client.WithoutResponseFormat()`.** The TypeScript's
+  `sdkForProject()` builds an `@appwrite.io/console` Client rather than its own
+  `client.ts`, so no pull request carries `x-appwrite-response-format`. Sending it pins the
+  API to that version's shape and newer fields simply vanish —
+  `buildSpecification`/`runtimeSpecification` on a function, the whole settings block on a
+  project. They come back **absent, not wrong**, so the output looks plausible.
+
+  When a pull is changed, re-verify ALL of them against the TypeScript, not just the one
+  touched. This trap invalidated four earlier comparisons at once.
+
+- **Request tracing** — record every API call and diff the sequence. **Do this before and
+  while porting `push`**: push's contract *is* the sequence of requests it issues, and
+  nothing else covers a state machine whose only observable effect is what it sends.
+  Put any recording proxy between the CLI and the instance, log each call to JSONL, and
+  diff two runs; there is nothing Appwrite-specific about it, which is why no script for
+  it is kept in this repository.
+
+  It is not only for push. Run on `pull` — already verified byte-identical on output — it
+  found a missing `limit(1)` probe and the wrong query encoding (`queries[]` for
+  `queries[0]`). **Identical output does not mean identical behaviour.**
+
+- **5f `push`** — all of: settings, bucket, team, webhook, topic, table, collection,
+  function, site.
+
+  Verified against live staging by REQUEST TRACE, not just output: buckets, teams, topics
+  and a table with columns and an index reproduce the TypeScript's 20 requests exactly, and
+  a function packaged, uploaded, built and activated with an identical sequence. `push all`
+  round-trips — everything it creates pulls back unchanged.
+
+  Three things to keep in mind here:
+
+  - **The upload streams.** Temp file, `io.SectionReader` per chunk, exact
+    `Content-Length`. Peak memory is the HTTP write buffer whatever the archive size —
+    §1.4's 102 MB flat against the TypeScript's 421 MB. Do not "simplify" it into a
+    `ReadAll`.
+  - **On the PUSH path `.appwrite` is NOT excluded**, and a resource's `ignore` field ADDS
+    TO `.gitignore` rather than replacing it. That is the opposite of the emulation path in
+    `docker/source.go`. Both are tested; do not unify them.
+  - **`push all`'s execution order and its prompt order differ** and both are
+    user-visible.
+
+Still to port:
+
+| Piece | LOC |
+|---|---|
+| `response-config.ts` (human output only, not contractual) | 940 |
+
+**Keyring on Windows is unverified.** Round-trips are confirmed on macOS and on
+Linux — in a container with no D-Bus, `keyring.Set` fails with
+`exec: "dbus-launch": executable file not found` and the backend-agnostic
+round-trip test still passes, so the prefs fallback is exercised rather than
+assumed. There is no Windows host to run the same check on, so the fallback
+there is inferred from a shared code path, not observed.
+
 **Goal:** `init`, `pull`, `push`, `run`, `types`, `generate`, `update`. The bulk of the
 remaining work, and the part with real behavioural risk.
 
@@ -454,9 +662,20 @@ in place:
 **5a — `update`** (`update.ts`, 460). Self-update. Small, self-contained, and it must
 handle updating *from* a TS install *to* a Go binary.
 
-**5b — `types` and `generate`** (`types.ts` 236, `generate.ts` 206, `generators/` ~750,
-four `.hbs` templates). Handlebars → `text/template`. Output must be byte-identical;
-`CLI_TYPEGEN_RESPONSES` asserts this.
+**5b — `types` and `generate`.** Larger than it first appears: `types.ts` (236) and
+`generate.ts` (206) sit on top of `generators/` (~750) **and** a 1,428-line
+multi-language meta system under `lib/type-generation/languages/` covering nine target
+languages — TypeScript, JavaScript, Swift, Kotlin, Java, C#, Dart, PHP, plus the shared
+base. Roughly 2,650 LOC in total, not the ~1,200 the two command files suggest.
+
+Output must be byte-identical; `CLI_TYPEGEN_RESPONSES` asserts this.
+
+**Decided: all nine languages land together.** The e2e fixture only exercises
+TypeScript, so shipping that alone would have closed 5b against the tests while
+leaving a feature gap the suite could not see — and a gap that has to close before
+Phase 8 flips the default anyway. Eight of the nine have no coverage to port against,
+so each needs baselines captured from the TypeScript generator the same way the
+Handlebars semantics were.
 
 **5c — `run`** (`run.ts` 434, `emulation/docker.ts`, `emulation/utils.ts`). Docker
 subprocess orchestration. Shells out either way, so it is mostly plumbing.
@@ -523,6 +742,21 @@ implementation.
 
 1. `goreleaser` config for all six targets: `linux-x64`, `linux-arm64`, `darwin-x64`,
    `darwin-arm64`, `windows-x64`, `windows-arm64`.
+
+   All six are confirmed to build from a macOS host with `CGO_ENABLED=0` and no
+   per-target toolchain, which is what §1.3 claimed but had never been run:
+
+   | Target | Binary |
+   |---|---|
+   | linux/amd64 | 19.5 MB |
+   | linux/arm64 | 18.0 MB |
+   | darwin/amd64 | 19.5 MB |
+   | darwin/arm64 | 18.1 MB |
+   | windows/amd64 | 19.5 MB |
+   | windows/arm64 | 17.8 MB |
+
+   A static build is where a keyring quietly degrades to a no-op, so compiling is
+   not on its own evidence that it works — see the Linux round-trip note in Phase 5.
 2. macOS codesign + notarise. `install.sh.twig:106` already checks for an embedded
    signature and hard-fails without one — keep that check working.
 3. `install.sh.twig` and `install.ps1.twig` updated for the new asset names. Same
@@ -540,6 +774,20 @@ implementation.
    `postinstall` fetches the right binary. Breaking `npm i -g appwrite-cli` breaks CI
    for a large number of users.
 7. Shell completions generated by cobra, installed by the installers.
+
+   The generating half is already done and needs no code: cobra ships a
+   `completion` subcommand for all four shells, and it reflects the real command
+   tree rather than a static list — `appwrite __complete init ""` returns all nine
+   init subcommands with their descriptions.
+
+   | Shell | Script |
+   |---|---|
+   | bash | 16,272 bytes |
+   | zsh | 7,819 bytes |
+   | fish | 9,876 bytes |
+   | powershell | 10,875 bytes |
+
+   What remains is only having the installers place these on disk.
 8. `.github/workflows/` for build, sign, and release.
 
 **Exit:**
@@ -579,23 +827,3 @@ implementation.
 CLI has been the default for a full release cycle with no rollback.
 
 ---
-
-## 5. Tracking
-
-Each phase is a milestone. Each numbered work item is an issue. A phase closes only when
-every exit criterion is checked off in its tracking issue, with links to the evidence —
-CI runs, benchmark output, manual smoke notes.
-
-Progress table, kept current:
-
-| Phase | Status | Owner | Tracking |
-|---|---|---|---|
-| 0 — Spike | ✅ Complete — [BENCHMARKS.md](BENCHMARKS.md) | | |
-| 1 — Generator scaffolding | ✅ Complete — surface matches TS exactly (608/608) | | |
-| 2 — Runtime foundation | ✅ Complete — exit criteria met; `response-config.ts` formatting and `internal/prompt` deferred | #1718 |
-| 3 — Generated commands | ✅ Complete — 608/608 wired, parity asserted by a committed test | #1719 | |
-| 4 — Conformance harness | ✅ Complete — the Go CLI's own suite green in CI | #1721 |
-| 5 — Stateful commands | **Next** — harness now in place | | |
-| 6 — Performance | Not started | | |
-| 7 — Distribution | Not started | | |
-| 8 — Rollout | Not started | | |

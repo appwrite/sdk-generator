@@ -9,6 +9,7 @@ package sdk
 import (
 	"errors"
 	"fmt"
+	"os"
 	"runtime"
 
 	"github.com/appwrite/appwrite-cli-go/internal/auth"
@@ -71,10 +72,18 @@ func (c *Context) base(endpoint string) sdkclient.Client {
 
 // authenticate attaches the session credential, refreshing an expired access
 // token first.
-func (c *Context) authenticate(client *sdkclient.Client) error {
+// allowAPIKey distinguishes the two callers. A project call accepts an API key
+// -- that is how CI authenticates, via `appwrite client --key`. A console call
+// does not: an API key is scoped to one project and the console endpoints are
+// not, which is why the TypeScript's message for that case says so explicitly.
+// The mode header is set only for a PROJECT call. `X-Appwrite-Mode: admin` on
+// a console request is rejected outright -- "Admin mode is not allowed for
+// console project" -- so the two paths cannot share it, which an earlier
+// refactor here got wrong and a live delete-project call caught.
+func (c *Context) authenticate(client *sdkclient.Client, allowAPIKey bool) error {
 	session := c.Global.Current()
 	if session == nil {
-		return ErrNotLoggedIn
+		return c.noCredentials(allowAPIKey, "")
 	}
 
 	if session.GetString(config.PreferenceAccessToken) != "" {
@@ -83,18 +92,58 @@ func (c *Context) authenticate(client *sdkclient.Client) error {
 			return err
 		}
 		client.AddHeader("Authorization", "Bearer "+token)
+		if allowAPIKey {
+			client.AddHeader("X-Appwrite-Mode", config.ModeAdmin)
+		}
 
 		return nil
 	}
 
 	if cookie := session.GetString(config.PreferenceCookie); cookie != "" {
 		client.AddHeader("Cookie", cookie)
+		if allowAPIKey {
+			client.AddHeader("X-Appwrite-Mode", config.ModeAdmin)
+		}
 
 		return nil
 	}
 
+	key := session.GetString(config.PreferenceKey)
+	if allowAPIKey && key != "" {
+		client.AddHeader("X-Appwrite-Key", key)
+		client.AddHeader("X-Appwrite-Mode", config.ModeDefault)
+
+		return nil
+	}
+
+	return c.noCredentials(allowAPIKey, key)
+}
+
+// noCredentials builds the message for a call with nothing to authenticate it.
+func (c *Context) noCredentials(allowAPIKey bool, key string) error {
+	if !allowAPIKey && key != "" {
+		return errors.New(
+			"session not found. Run `appwrite login`. API keys work for project commands " +
+				"(e.g. `appwrite push functions`), not console-only commands " +
+				"(e.g. `appwrite push settings`)")
+	}
+	if allowAPIKey {
+		return errors.New(
+			"authentication not found. Run `appwrite login` or `appwrite client --key <API_KEY>`")
+	}
+
 	return ErrNotLoggedIn
 }
+
+// Environment variables that override the configured context.
+//
+// Ports templates/cli/lib/context.ts. A CI job sets these expecting them to
+// beat a checked-in appwrite.config.json, so they are consulted first.
+const (
+	EnvProjectID      = "APPWRITE_PROJECT_ID"
+	EnvOrganizationID = "APPWRITE_ORGANIZATION_ID"
+	EnvEndpoint       = "APPWRITE_ENDPOINT"
+)
 
 // endpoint returns the active session's endpoint.
 func (c *Context) endpoint() (string, error) {
@@ -105,6 +154,40 @@ func (c *Context) endpoint() (string, error) {
 	endpoint := session.GetString(config.PreferenceEndpoint)
 	if endpoint == "" {
 		return "", ErrNotLoggedIn
+	}
+
+	return endpoint, nil
+}
+
+// projectEndpoint returns the endpoint a PROJECT-scoped call should use.
+//
+// Ports the `localConfig.getEndpoint() || globalConfig.getEndpoint() ||
+// DEFAULT_ENDPOINT` chain in sdkForProject(). This is not the same as
+// endpoint(): a repository pinned to a self-hosted instance must not be pushed
+// to whichever endpoint the user last logged into.
+//
+// A session is bound to the endpoint it was created against, so when the two
+// disagree the call is refused rather than sending one instance's credentials
+// to another.
+func (c *Context) projectEndpoint() (string, error) {
+	sessionEndpoint, err := c.endpoint()
+	if err != nil {
+		return "", err
+	}
+
+	endpoint := sessionEndpoint
+	switch {
+	case osGetenv(EnvEndpoint) != "":
+		endpoint = osGetenv(EnvEndpoint)
+	case c.localValue("endpoint") != "":
+		endpoint = c.localValue("endpoint")
+	}
+
+	if !config.EndpointsMatch(endpoint, sessionEndpoint) {
+		return "", fmt.Errorf(
+			"endpoint %s does not match the current login session endpoint %s. "+
+				"Switch to an account for this environment with `appwrite login --switch`",
+			endpoint, sessionEndpoint)
 	}
 
 	return endpoint, nil
@@ -122,7 +205,7 @@ func (c *Context) ForConsole() (sdkclient.Client, error) {
 	client := c.base(endpoint)
 	client.Config["project"] = config.ProjectConsole
 	client.AddHeader("X-Appwrite-Project", config.ProjectConsole)
-	if err := c.authenticate(&client); err != nil {
+	if err := c.authenticate(&client, false); err != nil {
 		return sdkclient.Client{}, err
 	}
 
@@ -143,6 +226,9 @@ func (c *Context) ForConsoleWithOrganization(organizationID string) (sdkclient.C
 	}
 
 	if organizationID == "" {
+		organizationID = osGetenv(EnvOrganizationID)
+	}
+	if organizationID == "" {
 		organizationID = c.localValue("organizationId")
 	}
 	if organizationID != "" {
@@ -157,11 +243,17 @@ func (c *Context) ForConsoleWithOrganization(organizationID string) (sdkclient.C
 //
 // Ports sdkForProject().
 func (c *Context) ForProject(projectID string) (sdkclient.Client, error) {
-	endpoint, err := c.endpoint()
+	endpoint, err := c.projectEndpoint()
 	if err != nil {
 		return sdkclient.Client{}, err
 	}
 
+	// Flag, then environment, then the project config. The environment has to
+	// beat the config: a CI job that exports APPWRITE_PROJECT_ID over a
+	// checked-in one expects to act on the project it named.
+	if projectID == "" {
+		projectID = osGetenv(EnvProjectID)
+	}
 	if projectID == "" {
 		projectID = c.localValue("projectId")
 	}
@@ -172,15 +264,19 @@ func (c *Context) ForProject(projectID string) (sdkclient.Client, error) {
 	client := c.base(endpoint)
 	client.Config["project"] = projectID
 	client.AddHeader("X-Appwrite-Project", projectID)
-	if err := c.authenticate(&client); err != nil {
+	// The mode is set by authenticate: admin for a console session, default
+	// for an API key. Setting it here unconditionally would put an API key in
+	// admin mode, which the API rejects.
+	if err := c.authenticate(&client, true); err != nil {
 		return sdkclient.Client{}, err
 	}
-	// An access token authenticates a console user rather than an API key, so
-	// scopes are resolved in admin mode -- ports the setMode("admin") branch.
-	client.AddHeader("X-Appwrite-Mode", config.ModeAdmin)
 
 	return client, nil
 }
+
+// osGetenv is os.Getenv, named so every environment read in this file is
+// greppable as one symbol.
+func osGetenv(name string) string { return os.Getenv(name) }
 
 // localValue reads a top-level string from appwrite.config.json in the working
 // directory, returning "" when there is no config -- running outside a project

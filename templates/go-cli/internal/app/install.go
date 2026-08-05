@@ -1,0 +1,139 @@
+package app
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+)
+
+// Ports the installation-method detection in templates/cli/lib/utils.ts:302.
+//
+// `update` has to know how the CLI got onto the machine, because updating a
+// Homebrew install with npm leaves two copies and updates neither the one on
+// PATH.
+
+// InstallMethod is how this binary was installed.
+type InstallMethod string
+
+const (
+	// InstallNPM is a global npm install (`npm i -g appwrite-cli`).
+	InstallNPM InstallMethod = "npm"
+	// InstallHomebrew is a Homebrew formula.
+	InstallHomebrew InstallMethod = "homebrew"
+	// InstallStandalone is a downloaded binary on PATH.
+	InstallStandalone InstallMethod = "standalone"
+	// InstallUnknown means none of the above could be established.
+	InstallUnknown InstallMethod = ""
+)
+
+// NPMPackageName is the package a legacy install came from.
+const NPMPackageName = "appwrite-cli"
+
+// executablePath resolves the running binary, following a symlink.
+//
+// Homebrew and npm both put a symlink on PATH pointing into their own store, so
+// the link target is what identifies the install.
+func executablePath() string {
+	path, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		return resolved
+	}
+
+	return path
+}
+
+// DetectInstallMethod reports how this binary was installed.
+//
+// Order matters and matches the TypeScript: npm and Homebrew both leave the
+// binary somewhere identifiable, and anything else on PATH is standalone.
+func DetectInstallMethod() InstallMethod {
+	path := strings.ToLower(executablePath())
+	if path == "" {
+		return InstallUnknown
+	}
+
+	switch {
+	case strings.Contains(path, string(filepath.Separator)+"node_modules"+string(filepath.Separator)):
+		return InstallNPM
+	case strings.Contains(path, string(filepath.Separator)+"cellar"+string(filepath.Separator)),
+		strings.Contains(path, string(filepath.Separator)+"homebrew"+string(filepath.Separator)):
+		return InstallHomebrew
+	case path != "":
+		return InstallStandalone
+	}
+
+	return InstallUnknown
+}
+
+// ReleaseAssetName is the release artifact for the running platform.
+//
+// Ports getStandaloneBinaryArtifactName(). Kept identical to the TypeScript's
+// naming so a Go build can replace a TypeScript one in place: the asset a user
+// already has installed and the asset they upgrade to have the same name.
+func ReleaseAssetName() (string, error) {
+	var platform string
+	switch runtime.GOOS {
+	case "windows":
+		platform = "win"
+	case "darwin":
+		platform = "darwin"
+	case "linux":
+		platform = "linux"
+	default:
+		return "", &UnsupportedPlatformError{What: runtime.GOOS}
+	}
+
+	var architecture string
+	switch runtime.GOARCH {
+	case "amd64":
+		architecture = "x64"
+	case "arm64":
+		architecture = "arm64"
+	default:
+		return "", &UnsupportedPlatformError{What: runtime.GOARCH}
+	}
+
+	name := NPMPackageName + "-" + platform + "-" + architecture
+	if platform == "win" {
+		name += ".exe"
+	}
+
+	return name, nil
+}
+
+// UnsupportedPlatformError reports a platform with no published binary.
+type UnsupportedPlatformError struct {
+	What string
+}
+
+func (e *UnsupportedPlatformError) Error() string {
+	return "standalone binary updates are not supported on " + e.What
+}
+
+// HomebrewFormula returns the installed formula name, or "" when Homebrew does
+// not know about this binary.
+func HomebrewFormula() string {
+	brew, err := exec.LookPath("brew")
+	if err != nil {
+		return ""
+	}
+
+	output, err := exec.Command(brew, "list", "--formula").Output()
+	if err != nil {
+		return ""
+	}
+
+	for _, line := range strings.Split(string(output), "\n") {
+		formula := strings.TrimSpace(line)
+		if formula == ExecutableName || formula == NPMPackageName {
+			return formula
+		}
+	}
+
+	return ""
+}

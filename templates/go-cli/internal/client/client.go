@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"runtime"
 	"strings"
 	"time"
@@ -31,6 +33,9 @@ const (
 	headerMode         = "X-Appwrite-Mode"
 	headerOrganization = "X-Appwrite-Organization"
 	headerFormat       = "X-Appwrite-Response-Format"
+	headerUploadID     = "x-appwrite-id"
+	headerRange        = "content-range"
+	headerContentType  = "content-type"
 )
 
 // Client is a thin HTTP client for the Appwrite API.
@@ -61,6 +66,77 @@ func New(endpoint, sdkVersion string) *Client {
 	}
 }
 
+// Download fetches a path and returns the raw body.
+//
+// Separate from Call because a deployment archive is not JSON, and decoding a
+// gzip stream as JSON fails with a message about the first byte rather than
+// about the archive.
+func (c *Client) Download(path string) ([]byte, error) {
+	request, err := http.NewRequest("GET", c.Endpoint+path, nil)
+	if err != nil {
+		return nil, err
+	}
+	for name, value := range c.headers {
+		request.Header.Set(name, value)
+	}
+	if c.cookie != "" {
+		request.Header.Set("Cookie", c.cookie)
+	}
+
+	response, err := c.HTTP.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	payload, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		apiError := &APIError{Status: response.StatusCode}
+		// A failed download still answers with JSON, so the message is
+		// recoverable even though the success path is binary.
+		_ = json.Unmarshal(payload, apiError)
+
+		return nil, apiError
+	}
+
+	return payload, nil
+}
+
+// WithoutResponseFormat drops the x-appwrite-response-format header.
+//
+// That header does not merely declare a version -- it asks the API for THAT
+// version's response shape. The console routes still answer it with a legacy
+// flat project (serviceStatusForAccount, authEmailPassword, ...) instead of the
+// `services`/`protocols`/`authMethods` arrays the config is built from.
+//
+// The TypeScript never hits this because its console calls go through
+// @appwrite.io/console, which sends no such header; only its own client.ts
+// sends one. This is how a call reproduces the console SDK.
+func (c *Client) WithoutResponseFormat() *Client {
+	delete(c.headers, headerFormat)
+
+	return c
+}
+
+// Clone returns a copy with its own header map.
+//
+// Needed because one console client lists organizations and then acts within
+// one: setting X-Appwrite-Organization on the shared client would scope the
+// next unrelated call as well.
+func (c *Client) Clone() *Client {
+	copied := *c
+	copied.headers = make(map[string]string, len(c.headers))
+	for name, value := range c.headers {
+		copied.headers[name] = value
+	}
+
+	return &copied
+}
+
 // SetHeader sets one header.
 func (c *Client) SetHeader(name, value string) *Client {
 	c.headers[name] = value
@@ -75,6 +151,10 @@ func (c *Client) SetProject(project string) *Client { return c.SetHeader(headerP
 func (c *Client) SetKey(key string) *Client { return c.SetHeader(headerKey, key) }
 
 // SetJWT authenticates with a JWT.
+//
+// Deliberately unreachable for now: it completes the setter surface of
+// templates/cli/lib/client.ts:95, and the only caller will be the JwtManager
+// that `run` still lacks. Kept so that port is a wiring change, not a rewrite.
 func (c *Client) SetJWT(jwt string) *Client { return c.SetHeader(headerJWT, jwt) }
 
 // SetLocale sets the response locale.
@@ -163,6 +243,104 @@ func (c *Client) Call(method, path string, body any, out any) error {
 		request.Header.Set("Cookie", c.cookie)
 	}
 
+	return c.send(request, out)
+}
+
+// FormField is one text field of a multipart upload.
+//
+// Ordered rather than a map: the request body is what a recorded trace
+// compares, and Go map iteration would reorder the parts on every run.
+type FormField struct {
+	Name  string
+	Value string
+}
+
+// UploadPart is one multipart request of a chunked upload.
+//
+// Content is read as the request body rather than buffered, so the caller
+// decides how much of a file is in memory at once -- for a deployment archive
+// that is a section reader over the file and the answer is "none of it".
+type UploadPart struct {
+	Path   string
+	Fields []FormField
+	// FileField is the form field the file is sent under, `code` for a
+	// deployment.
+	FileField     string
+	FileName      string
+	ContentType   string
+	Content       io.Reader
+	ContentLength int64
+	// Range is the content-range header. Empty for an upload that fits in one
+	// request, which the API answers without minting an upload id.
+	Range string
+	// UploadID pins this part to the upload the first chunk created.
+	UploadID string
+}
+
+// Upload POSTs one multipart part and decodes the JSON response into out.
+//
+// The body is assembled as three readers -- the form prefix, the file content,
+// the closing boundary -- so its exact length is known without holding it.
+// Content-Length matters here: without it Go falls back to chunked
+// transfer-encoding, and the API sizes an upload from the header.
+func (c *Client) Upload(part UploadPart, out any) error {
+	var prefix bytes.Buffer
+	writer := multipart.NewWriter(&prefix)
+
+	for _, field := range part.Fields {
+		if err := writer.WriteField(field.Name, field.Value); err != nil {
+			return err
+		}
+	}
+
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", fmt.Sprintf(
+		`form-data; name="%s"; filename="%s"`,
+		escapeQuotes(part.FileField), escapeQuotes(part.FileName)))
+	header.Set("Content-Type", part.ContentType)
+	if _, err := writer.CreatePart(header); err != nil {
+		return err
+	}
+
+	// Written by hand rather than by writer.Close(), which would append it to
+	// the prefix ahead of the content.
+	closing := "\r\n--" + writer.Boundary() + "--\r\n"
+
+	body := io.MultiReader(
+		bytes.NewReader(prefix.Bytes()), part.Content, strings.NewReader(closing))
+
+	request, err := http.NewRequest("POST", c.Endpoint+part.Path, body)
+	if err != nil {
+		return err
+	}
+	for name, value := range c.headers {
+		if strings.EqualFold(name, headerContentType) {
+			continue
+		}
+		request.Header.Set(name, value)
+	}
+	if c.cookie != "" {
+		request.Header.Set("Cookie", c.cookie)
+	}
+	request.Header.Set(headerContentType, writer.FormDataContentType())
+	if part.Range != "" {
+		request.Header.Set(headerRange, part.Range)
+	}
+	if part.UploadID != "" {
+		request.Header.Set(headerUploadID, part.UploadID)
+	}
+	request.ContentLength = int64(prefix.Len()) + part.ContentLength + int64(len(closing))
+
+	return c.send(request, out)
+}
+
+// escapeQuotes protects a form field name or filename in a header.
+func escapeQuotes(value string) string {
+	return strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(value)
+}
+
+// send performs a prepared request and decodes the JSON response into out.
+func (c *Client) send(request *http.Request, out any) error {
 	response, err := c.HTTP.Do(request)
 	if err != nil {
 		return err

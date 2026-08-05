@@ -1,0 +1,379 @@
+package docker
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"os"
+	"os/exec"
+	"strconv"
+	"sync"
+	"syscall"
+	"time"
+)
+
+// Ports the process-management half of templates/cli/lib/emulation/docker.ts.
+//
+// Every call shells out to the `docker` binary rather than speaking to the
+// daemon socket. That is what the TypeScript does, and it is the right choice
+// here too: it inherits the user's Docker context, credentials and remote-host
+// configuration for free, all of which a direct socket client would have to
+// reimplement to work on Docker Desktop, Colima and a remote engine alike.
+
+// hintsOff suppresses Docker's interactive CLI hints, which would otherwise
+// interleave with function output.
+const hintsOff = "DOCKER_CLI_HINTS=false"
+
+// Client runs docker commands.
+type Client struct {
+	// Binary is the docker executable. Empty means look it up on PATH.
+	Binary string
+	// Stdout and Stderr receive container output.
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
+// Available reports whether docker is on PATH.
+func (c *Client) Available() bool {
+	_, err := exec.LookPath(c.binary())
+
+	return err == nil
+}
+
+func (c *Client) binary() string {
+	if c.Binary != "" {
+		return c.Binary
+	}
+
+	return "docker"
+}
+
+// command builds a docker invocation with the CLI hints suppressed.
+func (c *Client) command(ctx context.Context, arguments ...string) *exec.Cmd {
+	command := exec.CommandContext(ctx, c.binary(), arguments...)
+	command.Env = append(os.Environ(), hintsOff)
+
+	return command
+}
+
+// ExitError reports a docker process that did not exit cleanly.
+type ExitError struct {
+	Context string
+	Code    int
+	Signal  string
+}
+
+func (e *ExitError) Error() string {
+	if e.Signal != "" {
+		return fmt.Sprintf("%s Docker process exited with signal %s.", e.Context, e.Signal)
+	}
+
+	return fmt.Sprintf("%s Docker process exited with code %d.", e.Context, e.Code)
+}
+
+// describe turns a process result into an ExitError, or nil on success.
+func describe(err error, context string) error {
+	if err == nil {
+		return nil
+	}
+
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		status := exitError.ProcessState
+		if signal := signalName(status); signal != "" {
+			return &ExitError{Context: context, Signal: signal}
+		}
+
+		return &ExitError{Context: context, Code: status.ExitCode()}
+	}
+
+	return fmt.Errorf("%s %w", context, err)
+}
+
+// Stop removes a container, ignoring the outcome.
+//
+// Called on every path including cleanup, where the container may already be
+// gone; a failure here must never mask the error that led to the cleanup.
+func (c *Client) Stop(ctx context.Context, id string) {
+	command := c.command(ctx, "rm", "--force", id)
+	_ = command.Run()
+}
+
+// Pull fetches a runtime image.
+func (c *Client) Pull(ctx context.Context, image string) error {
+	command := c.command(ctx, "pull", image)
+
+	return describe(command.Run(), fmt.Sprintf("Unable to pull Docker image '%s'.", image))
+}
+
+// environmentArguments renders variables as repeated -e flags.
+//
+// Order is taken from keys rather than from a map, so the command line is
+// stable between runs. Passing them as `-e KEY=VALUE` rather than through the
+// environment keeps a secret out of the CLI's own process environment.
+func environmentArguments(keys []string, variables map[string]string) []string {
+	arguments := make([]string, 0, len(keys)*2)
+	for _, key := range keys {
+		arguments = append(arguments, "-e", key+"="+variables[key])
+	}
+
+	return arguments
+}
+
+// BuildOptions is one function build.
+type BuildOptions struct {
+	ID string
+	// StagePath holds the copied sources; it is bind-mounted at /mnt/code.
+	StagePath  string
+	Image      string
+	Entrypoint string
+	Commands   string
+	// WorkingDirectory is the function directory the docker process runs from.
+	WorkingDirectory string
+	VariableKeys     []string
+	Variables        map[string]string
+	// Cancelled is polled while the build runs; returning true kills it. This
+	// is how an edit made mid-build aborts a build that is already stale.
+	Cancelled func() bool
+}
+
+// Build compiles a function inside its runtime image.
+//
+// Returns cancelled=true when Cancelled fired, in which case no error is
+// reported: a build abandoned on purpose is not a failure.
+func (c *Client) Build(ctx context.Context, options BuildOptions) (cancelled bool, err error) {
+	arguments := []string{"run", "--name", options.ID,
+		"-v", options.StagePath + "/:/mnt/code:rw",
+		"-e", "OPEN_RUNTIMES_ENV=development",
+		"-e", "OPEN_RUNTIMES_SECRET=",
+		"-e", "OPEN_RUNTIMES_ENTRYPOINT=" + options.Entrypoint,
+	}
+	arguments = append(arguments, environmentArguments(options.VariableKeys, options.Variables)...)
+	arguments = append(arguments, options.Image, "sh", "-c",
+		fmt.Sprintf(`helpers/build.sh "%s"`, quoteShellArgument(options.Commands)))
+
+	buildContext, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	command := c.command(buildContext, arguments...)
+	command.Dir = options.WorkingDirectory
+	command.Stdout = c.Stdout
+	command.Stderr = c.Stderr
+
+	if err := command.Start(); err != nil {
+		return false, err
+	}
+
+	// Polled rather than event-driven because the signal is "a file changed",
+	// which arrives on a different goroutine and has no channel here.
+	var aborted bool
+	var once sync.Once
+	done := make(chan struct{})
+
+	if options.Cancelled != nil {
+		go func() {
+			ticker := time.NewTicker(100 * time.Millisecond)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-done:
+					return
+				case <-ticker.C:
+					if options.Cancelled() {
+						once.Do(func() { aborted = true })
+						cancel()
+
+						return
+					}
+				}
+			}
+		}()
+	}
+
+	waitErr := command.Wait()
+	close(done)
+
+	if aborted {
+		c.Stop(context.WithoutCancel(ctx), options.ID)
+
+		return true, nil
+	}
+
+	return false, describe(waitErr, "Unable to build function.")
+}
+
+// CopyOut copies a path out of a stopped container.
+func (c *Client) CopyOut(ctx context.Context, id, containerPath, hostPath, workingDirectory string) error {
+	command := c.command(ctx, "cp", id+":"+containerPath, hostPath)
+	command.Dir = workingDirectory
+
+	return describe(command.Run(), "Unable to copy built bundle.")
+}
+
+// StartOptions is one function container.
+type StartOptions struct {
+	ID    string
+	Image string
+	Port  int
+	// FunctionDirectory holds the .appwrite directory bind-mounted for logs
+	// and the built bundle.
+	FunctionDirectory string
+	Entrypoint        string
+	StartCommand      string
+	VariableKeys      []string
+	Variables         map[string]string
+}
+
+// Start runs a built function and waits until it is serving.
+//
+// Returns once the port accepts a connection. The container keeps running; the
+// returned wait function blocks until it exits.
+func (c *Client) Start(ctx context.Context, options StartOptions) (wait func() error, err error) {
+	scratch := func(name string) string {
+		return options.FunctionDirectory + "/" + AppwriteDirectory + "/" + name
+	}
+
+	arguments := []string{"run", "--rm", "--name", options.ID,
+		"-p", strconv.Itoa(options.Port) + ":3000",
+		"-e", "OPEN_RUNTIMES_ENV=development",
+		"-e", "OPEN_RUNTIMES_SECRET=",
+		"-e", "OPEN_RUNTIMES_ENTRYPOINT=" + options.Entrypoint,
+	}
+	arguments = append(arguments, environmentArguments(options.VariableKeys, options.Variables)...)
+	arguments = append(arguments,
+		"-v", scratch("logs.txt")+":/mnt/logs/dev_logs.log:rw",
+		"-v", scratch("errors.txt")+":/mnt/logs/dev_errors.log:rw",
+		"-v", scratch("build.tar.gz")+":/mnt/code/code.tar.gz:ro",
+		options.Image, "sh", "-c",
+		fmt.Sprintf(`helpers/start.sh "%s"`, quoteShellArgument(options.StartCommand)))
+
+	command := c.command(ctx, arguments...)
+	command.Dir = options.FunctionDirectory
+	command.Stdout = c.Stdout
+	command.Stderr = c.Stderr
+
+	if err := command.Start(); err != nil {
+		return nil, err
+	}
+
+	exited := make(chan error, 1)
+	go func() { exited <- command.Wait() }()
+
+	// Whichever happens first decides. A container that dies during startup
+	// must be reported as such rather than as a port timeout, which says
+	// nothing about the cause.
+	opened := make(chan error, 1)
+	go func() { opened <- waitForPort(ctx, options.Port) }()
+
+	select {
+	case waitErr := <-exited:
+		return nil, describe(waitErr,
+			fmt.Sprintf("Function container exited before opening port %d.", options.Port))
+	case err := <-opened:
+		if err != nil {
+			c.Stop(context.WithoutCancel(ctx), options.ID)
+
+			return nil, err
+		}
+	}
+
+	return func() error { return <-exited }, nil
+}
+
+// waitForPort polls until the port accepts a connection.
+//
+// 100 attempts at 100ms, matching the TypeScript's iteration cap -- about ten
+// seconds, which covers a cold runtime start without hanging a broken one
+// forever.
+func waitForPort(ctx context.Context, port int) error {
+	address := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+
+	var lastErr error
+	for attempt := 0; attempt <= 100; attempt++ {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		connection, err := net.DialTimeout("tcp", address, time.Second)
+		if err == nil {
+			connection.Close()
+
+			return nil
+		}
+		lastErr = err
+
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	return fmt.Errorf("timed out waiting for port %d: %w", port, lastErr)
+}
+
+// PortAvailable reports whether a port can be bound.
+//
+// Binding is the test rather than dialling: a port with nothing listening yet
+// still fails to bind if another process holds it, and that is the case the
+// caller needs to avoid.
+func PortAvailable(port int) bool {
+	listener, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+	if err != nil {
+		return false
+	}
+	listener.Close()
+
+	return true
+}
+
+// FindPort returns the first free port in [start, end).
+func FindPort(start, end int) (int, bool) {
+	for port := start; port < end; port++ {
+		if PortAvailable(port) {
+			return port, true
+		}
+	}
+
+	return 0, false
+}
+
+// signalNames renders the signals a docker process realistically dies from.
+//
+// Named rather than numbered because the message is user-facing and the
+// TypeScript reports Node's names -- someone who has seen "SIGKILL" before
+// should see it again. Go's syscall.Signal.String() gives "killed" instead,
+// which is why this table exists.
+var signalNames = map[syscall.Signal]string{
+	syscall.SIGHUP:  "SIGHUP",
+	syscall.SIGINT:  "SIGINT",
+	syscall.SIGQUIT: "SIGQUIT",
+	syscall.SIGKILL: "SIGKILL",
+	syscall.SIGSEGV: "SIGSEGV",
+	syscall.SIGTERM: "SIGTERM",
+}
+
+// signalName reports the signal that killed a process, or "".
+//
+// Interface assertions rather than a direct syscall.WaitStatus conversion:
+// Windows' WaitStatus carries neither method, and this must compile and behave
+// there too -- it simply reports no signal.
+func signalName(state *os.ProcessState) string {
+	status, ok := state.Sys().(interface{ Signaled() bool })
+	if !ok || !status.Signaled() {
+		return ""
+	}
+
+	signaller, ok := state.Sys().(interface{ Signal() syscall.Signal })
+	if !ok {
+		return "unknown"
+	}
+
+	signal := signaller.Signal()
+	if name, ok := signalNames[signal]; ok {
+		return name
+	}
+
+	return strconv.Itoa(int(signal))
+}

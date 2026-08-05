@@ -518,6 +518,11 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/sdk/sdk.go.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'internal/sdk/sdk_test.go',
+                'template'      => 'go-cli/internal/sdk/sdk_test.go.twig',
+            ],
+            [
                 'scope'         => 'copy',
                 'destination'   => 'internal/query/query.go',
                 'template'      => 'go-cli/internal/query/query.go',
@@ -576,6 +581,638 @@ class GoCLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/client.go',
                 'template'      => 'go-cli/internal/cmd/client.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/install.go',
+                'template'      => 'go-cli/internal/app/install.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/update.go',
+                'template'      => 'go-cli/internal/cmd/update.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/types.go',
+                'template'      => 'go-cli/internal/cmd/types.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/generate.go',
+                'template'      => 'go-cli/internal/cmd/generate.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/typegen_commands_test.go',
+                'template'      => 'go-cli/internal/cmd/typegen_commands_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/message.go',
+                'template'      => 'go-cli/internal/output/message.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/ignore/ignore.go',
+                'template'      => 'go-cli/internal/ignore/ignore.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/ignore/ignore_test.go',
+                'template'      => 'go-cli/internal/ignore/ignore_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/ignore/testdata/cases.json',
+                'template'      => 'go-cli/internal/ignore/testdata/cases.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/dotenv/dotenv.go',
+                'template'      => 'go-cli/internal/dotenv/dotenv.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/dotenv/dotenv_test.go',
+                'template'      => 'go-cli/internal/dotenv/dotenv_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/dotenv/testdata/cases.json',
+                'template'      => 'go-cli/internal/dotenv/testdata/cases.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/function.go',
+                'template'      => 'go-cli/internal/config/function.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/runtime.go',
+                'template'      => 'go-cli/internal/docker/runtime.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/source.go',
+                'template'      => 'go-cli/internal/docker/source.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/docker.go',
+                'template'      => 'go-cli/internal/docker/docker.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/emulate.go',
+                'template'      => 'go-cli/internal/docker/emulate.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/queue.go',
+                'template'      => 'go-cli/internal/docker/queue.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/docker_test.go',
+                'template'      => 'go-cli/internal/docker/docker_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/archive/targz.go',
+                'template'      => 'go-cli/internal/archive/targz.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/archive/targz_test.go',
+                'template'      => 'go-cli/internal/archive/targz_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/watch/watch.go',
+                'template'      => 'go-cli/internal/watch/watch.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/prompt/prompt.go',
+                'template'      => 'go-cli/internal/prompt/prompt.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/prompt/terminal.go',
+                'template'      => 'go-cli/internal/prompt/terminal.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/prompt/prompt_test.go',
+                'template'      => 'go-cli/internal/prompt/prompt_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/appwrite/id.go',
+                'template'      => 'go-cli/internal/appwrite/id.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/resource.go',
+                'template'      => 'go-cli/internal/config/resource.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/init.go',
+                'template'      => 'go-cli/internal/cmd/init.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initproject.go',
+                'template'      => 'go-cli/internal/cmd/initproject.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initscaffold.go',
+                'template'      => 'go-cli/internal/cmd/initscaffold.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initscaffold_test.go',
+                'template'      => 'go-cli/internal/cmd/initscaffold_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initfunction.go',
+                'template'      => 'go-cli/internal/cmd/initfunction.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initsite.go',
+                'template'      => 'go-cli/internal/cmd/initsite.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initskill.go',
+                'template'      => 'go-cli/internal/cmd/initskill.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pull.go',
+                'template'      => 'go-cli/internal/cmd/pull.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pulldatabase.go',
+                'template'      => 'go-cli/internal/cmd/pulldatabase.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pullsettings.go',
+                'template'      => 'go-cli/internal/cmd/pullsettings.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pullfunction.go',
+                'template'      => 'go-cli/internal/cmd/pullfunction.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pullall.go',
+                'template'      => 'go-cli/internal/cmd/pullall.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pushcommon.go',
+                'template'      => 'go-cli/internal/cmd/pushcommon.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pushsimple.go',
+                'template'      => 'go-cli/internal/cmd/pushsimple.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pushall.go',
+                'template'      => 'go-cli/internal/cmd/pushall.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pushdatabase.go',
+                'template'      => 'go-cli/internal/cmd/pushdatabase.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pushdeploy.go',
+                'template'      => 'go-cli/internal/cmd/pushdeploy.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/deploy/deploy.go',
+                'template'      => 'go-cli/internal/deploy/deploy.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/deploy/deploy_test.go',
+                'template'      => 'go-cli/internal/deploy/deploy_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/attributes.go',
+                'template'      => 'go-cli/internal/schema/attributes.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/attributes_test.go',
+                'template'      => 'go-cli/internal/schema/attributes_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/database.go',
+                'template'      => 'go-cli/internal/schema/database.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/operations.go',
+                'template'      => 'go-cli/internal/schema/operations.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/poll.go',
+                'template'      => 'go-cli/internal/schema/poll.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/render.go',
+                'template'      => 'go-cli/internal/schema/render.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/schema/value.go',
+                'template'      => 'go-cli/internal/schema/value.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/client/paginate.go',
+                'template'      => 'go-cli/internal/client/paginate.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/client/paginate_test.go',
+                'template'      => 'go-cli/internal/client/paginate_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/appwrite/id_test.go',
+                'template'      => 'go-cli/internal/appwrite/id_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/resource_test.go',
+                'template'      => 'go-cli/internal/config/resource_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/run.go',
+                'template'      => 'go-cli/internal/cmd/run.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/install_test.go',
+                'template'      => 'go-cli/internal/app/install_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/handlebars.go',
+                'template'      => 'go-cli/internal/typegen/handlebars.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/handlebars_test.go',
+                'template'      => 'go-cli/internal/typegen/handlebars_test.go',
+            ],
+            // The typegen templates are sourced from the TypeScript CLI's own
+            // template directory rather than copied into templates/go-cli. One
+            // source, two outputs: the alternative is two .hbs copies that
+            // drift, which is exactly what internal/typegen exists to avoid.
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/templates/constants.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/constants.ts.hbs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/templates/databases.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/databases.ts.hbs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/templates/index.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/index.ts.hbs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/templates/types.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/types.ts.hbs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/templates.go',
+                'template'      => 'go-cli/internal/typegen/templates.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/templates_test.go',
+                'template'      => 'go-cli/internal/typegen/templates_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/casing.go',
+                'template'      => 'go-cli/internal/typegen/casing.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/casing_test.go',
+                'template'      => 'go-cli/internal/typegen/casing_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/language.go',
+                'template'      => 'go-cli/internal/typegen/language.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/typescript.go',
+                'template'      => 'go-cli/internal/typegen/typescript.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/javascript.go',
+                'template'      => 'go-cli/internal/typegen/javascript.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/language_test.go',
+                'template'      => 'go-cli/internal/typegen/language_test.go',
+            ],
+            // Baselines captured by running the TypeScript emitters under node.
+            // Copied rather than rendered: a Twig pass over them would treat
+            // their braces as template syntax.
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/collections.json',
+                'template'      => 'go-cli/internal/typegen/testdata/collections.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/ts.loose.appwrite.d.ts',
+                'template'      => 'go-cli/internal/typegen/testdata/ts.loose.appwrite.d.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/ts.strict.appwrite.d.ts',
+                'template'      => 'go-cli/internal/typegen/testdata/ts.strict.appwrite.d.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/js.loose.appwrite-types.js',
+                'template'      => 'go-cli/internal/typegen/testdata/js.loose.appwrite-types.js',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/js.strict.appwrite-types.js',
+                'template'      => 'go-cli/internal/typegen/testdata/js.strict.appwrite-types.js',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/php.go',
+                'template'      => 'go-cli/internal/typegen/php.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/kotlin.go',
+                'template'      => 'go-cli/internal/typegen/kotlin.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/php.loose.Authors.php',
+                'template'      => 'go-cli/internal/typegen/testdata/php.loose.Authors.php',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/php.loose.BooksZines.php',
+                'template'      => 'go-cli/internal/typegen/testdata/php.loose.BooksZines.php',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/php.strict.Authors.php',
+                'template'      => 'go-cli/internal/typegen/testdata/php.strict.Authors.php',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/php.strict.BooksZines.php',
+                'template'      => 'go-cli/internal/typegen/testdata/php.strict.BooksZines.php',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/kotlin.loose.Authors.kt',
+                'template'      => 'go-cli/internal/typegen/testdata/kotlin.loose.Authors.kt',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/kotlin.loose.BooksZines.kt',
+                'template'      => 'go-cli/internal/typegen/testdata/kotlin.loose.BooksZines.kt',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/kotlin.strict.Authors.kt',
+                'template'      => 'go-cli/internal/typegen/testdata/kotlin.strict.Authors.kt',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/kotlin.strict.BooksZines.kt',
+                'template'      => 'go-cli/internal/typegen/testdata/kotlin.strict.BooksZines.kt',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/swift.go',
+                'template'      => 'go-cli/internal/typegen/swift.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/swift.loose.Authors.swift',
+                'template'      => 'go-cli/internal/typegen/testdata/swift.loose.Authors.swift',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/swift.loose.BooksZines.swift',
+                'template'      => 'go-cli/internal/typegen/testdata/swift.loose.BooksZines.swift',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/swift.strict.Authors.swift',
+                'template'      => 'go-cli/internal/typegen/testdata/swift.strict.Authors.swift',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/swift.strict.BooksZines.swift',
+                'template'      => 'go-cli/internal/typegen/testdata/swift.strict.BooksZines.swift',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/java.go',
+                'template'      => 'go-cli/internal/typegen/java.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/java.loose.Authors.java',
+                'template'      => 'go-cli/internal/typegen/testdata/java.loose.Authors.java',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/java.loose.BooksZines.java',
+                'template'      => 'go-cli/internal/typegen/testdata/java.loose.BooksZines.java',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/java.strict.Authors.java',
+                'template'      => 'go-cli/internal/typegen/testdata/java.strict.Authors.java',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/java.strict.BooksZines.java',
+                'template'      => 'go-cli/internal/typegen/testdata/java.strict.BooksZines.java',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/dart.go',
+                'template'      => 'go-cli/internal/typegen/dart.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/csharp.go',
+                'template'      => 'go-cli/internal/typegen/csharp.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/dart.loose.authors.dart',
+                'template'      => 'go-cli/internal/typegen/testdata/dart.loose.authors.dart',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/dart.loose.books_zines.dart',
+                'template'      => 'go-cli/internal/typegen/testdata/dart.loose.books_zines.dart',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/dart.strict.authors.dart',
+                'template'      => 'go-cli/internal/typegen/testdata/dart.strict.authors.dart',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/dart.strict.books_zines.dart',
+                'template'      => 'go-cli/internal/typegen/testdata/dart.strict.books_zines.dart',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/cs.loose.Authors.cs',
+                'template'      => 'go-cli/internal/typegen/testdata/cs.loose.Authors.cs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/cs.loose.BooksZines.cs',
+                'template'      => 'go-cli/internal/typegen/testdata/cs.loose.BooksZines.cs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/cs.strict.Authors.cs',
+                'template'      => 'go-cli/internal/typegen/testdata/cs.strict.Authors.cs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/cs.strict.BooksZines.cs',
+                'template'      => 'go-cli/internal/typegen/testdata/cs.strict.BooksZines.cs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/generator.go',
+                'template'      => 'go-cli/internal/generator/generator.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/detector.go',
+                'template'      => 'go-cli/internal/generator/detector.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/typescript.go',
+                'template'      => 'go-cli/internal/generator/typescript.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/generator_test.go',
+                'template'      => 'go-cli/internal/generator/generator_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/config.json',
+                'template'      => 'go-cli/internal/generator/testdata/config.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/server.databases.ts',
+                'template'      => 'go-cli/internal/generator/testdata/server.databases.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/server.types.ts',
+                'template'      => 'go-cli/internal/generator/testdata/server.types.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/server.index.ts',
+                'template'      => 'go-cli/internal/generator/testdata/server.index.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/server.constants.ts',
+                'template'      => 'go-cli/internal/generator/testdata/server.constants.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/client.databases.ts',
+                'template'      => 'go-cli/internal/generator/testdata/client.databases.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/client.types.ts',
+                'template'      => 'go-cli/internal/generator/testdata/client.types.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/client.index.ts',
+                'template'      => 'go-cli/internal/generator/testdata/client.index.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/client.constants.ts',
+                'template'      => 'go-cli/internal/generator/testdata/client.constants.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/empty.databases.ts',
+                'template'      => 'go-cli/internal/generator/testdata/empty.databases.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/empty.types.ts',
+                'template'      => 'go-cli/internal/generator/testdata/empty.types.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/empty.index.ts',
+                'template'      => 'go-cli/internal/generator/testdata/empty.index.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/empty.constants.ts',
+                'template'      => 'go-cli/internal/generator/testdata/empty.constants.ts',
             ],
             [
                 'scope'         => 'default',

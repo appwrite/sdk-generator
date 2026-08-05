@@ -1,0 +1,58 @@
+package output
+
+import (
+	"fmt"
+	"io"
+
+	"github.com/charmbracelet/lipgloss"
+)
+
+// Ports the log/warn/success/error helpers at templates/cli/lib/parser.ts:1006.
+//
+// Status lines, not data. Like the rest of the human-readable output these are
+// explicitly outside the contract (docs/go-cli/PLAN.md §3) -- but the prefixes
+// are reproduced verbatim, because they are what a user scanning a terminal
+// recognises and what a script grepping stderr may match on.
+var (
+	infoStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+	warningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
+	successStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
+	failureStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
+)
+
+// Log writes an informational line.
+func Log(writer io.Writer, format string, arguments ...any) {
+	writeMessage(writer, infoStyle, "ℹ Info:", format, arguments...)
+}
+
+// Warn writes a warning line.
+func Warn(writer io.Writer, format string, arguments ...any) {
+	writeMessage(writer, warningStyle, "ℹ Warning:", format, arguments...)
+}
+
+// Hint writes a suggested next command.
+//
+// Distinct from Log because it is advice rather than status: the TypeScript
+// gives it its own prefix and colour so a user who just saw "No buckets found."
+// can tell the follow-up apart from the report.
+func Hint(writer io.Writer, format string, arguments ...any) {
+	writeMessage(writer, infoStyle, "♥ Hint:", format, arguments...)
+}
+
+// Success writes a success line.
+func Success(writer io.Writer, format string, arguments ...any) {
+	writeMessage(writer, successStyle, "✓ Success:", format, arguments...)
+}
+
+// Failure writes an error line.
+//
+// Named Failure rather than Error so it does not read as constructing an error
+// value, which is what an `Error` function conventionally does in Go.
+func Failure(writer io.Writer, format string, arguments ...any) {
+	writeMessage(writer, failureStyle, "✗ Error:", format, arguments...)
+}
+
+func writeMessage(writer io.Writer, style lipgloss.Style, prefix, format string, arguments ...any) {
+	message := fmt.Sprintf(format, arguments...)
+	fmt.Fprintf(writer, "%s %s\n", style.Bold(true).Render(prefix), style.Render(message))
+}
