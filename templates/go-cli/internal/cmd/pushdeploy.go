@@ -616,6 +616,7 @@ func newPushDeployableCommand(resource deployable) *cobra.Command {
 		Use:     resource.Name,
 		Aliases: resource.Aliases,
 		Short:   "Push " + resource.Label + " in the current directory.",
+		Args:    everyResourceArgument(),
 		PreRunE: func(command *cobra.Command, args []string) error {
 			return applyNegatedFlags(command)
 		},

@@ -76,6 +76,7 @@ func newPushTableCommand() *cobra.Command {
 		Use:     resource.Name,
 		Aliases: resource.Aliases,
 		Short:   "Push tables in the current project.",
+		Args:    everyResourceArgument(),
 		RunE: func(command *cobra.Command, arguments []string) error {
 			return runPushTable(command, resource)
 		},
@@ -92,6 +93,7 @@ func newPushCollectionCommand() *cobra.Command {
 		Aliases: resource.Aliases,
 		Short: "Push collections in the current project. " +
 			"(deprecated, please use 'push tables' instead)",
+		Args: everyResourceArgument(),
 		RunE: func(command *cobra.Command, arguments []string) error {
 			return runPushCollection(command, resource)
 		},

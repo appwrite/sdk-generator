@@ -25,6 +25,44 @@ import (
 // exists because push OVERWRITES a live project, and a user who mistyped a name
 // or pulled from the wrong project needs to see that before it happens.
 
+// everyResourceArgument accepts the literal `all` as a positional, meaning what
+// --all means.
+//
+// `appwrite push site all` reads as English, and both CLIs threw the word away:
+// cobra and commander accept surplus positionals by default, so the command
+// carried on and prompted for a selection anyway. `push function all` looked
+// like it worked only because that project had no functions to prompt about --
+// the word was ignored there too.
+//
+// `push all` is already a command, so `all` is a word the CLI has taught the
+// user. Accepting it on the resource subcommands is cheaper than explaining why
+// it means something one level up and nothing here.
+//
+// Anything else is rejected rather than ignored, which is the half of this that
+// silently swallowing an argument cost: `push site my-site` looked like it
+// pushed one site and pushed whatever the prompt was left on.
+func everyResourceArgument() cobra.PositionalArgs {
+	return func(command *cobra.Command, arguments []string) error {
+		if len(arguments) == 0 {
+			return nil
+		}
+
+		if len(arguments) == 1 && strings.EqualFold(arguments[0], "all") {
+			// Exactly what --all sets, so everything downstream reads one flag
+			// and does not need to know the word was typed instead.
+			app.Flags().All = true
+
+			return nil
+		}
+
+		return fmt.Errorf(
+			"`%s` takes no arguments except `all`, and was given `%s`. "+
+				"Run `%s all` to push every one, or `%s` on its own to choose from a list",
+			command.CommandPath(), strings.Join(arguments, " "),
+			command.CommandPath(), command.CommandPath())
+	}
+}
+
 // pushContext is a project client plus the config being pushed.
 type pushContext struct {
 	api      *client.Client

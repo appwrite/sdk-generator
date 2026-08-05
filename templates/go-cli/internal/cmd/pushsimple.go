@@ -202,6 +202,7 @@ func newPushSimpleCommand(resource simpleResource) *cobra.Command {
 		Use:     resource.Name,
 		Aliases: resource.Aliases,
 		Short:   resource.Short,
+		Args:    everyResourceArgument(),
 		RunE: func(command *cobra.Command, args []string) error {
 			return runPushSimple(command, resource)
 		},

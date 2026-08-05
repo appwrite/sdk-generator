@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 )
@@ -64,6 +65,56 @@ func TestPushSelectionKeepsTheChosenEntries(t *testing.T) {
 	}
 	if len(chosen) != 1 || chosen[0].GetString("$id") != "web" {
 		t.Errorf("chosen = %v, want the one site", chosen)
+	}
+}
+
+// `appwrite push site all` prompted for a selection, because cobra accepts
+// surplus positionals by default and the word was thrown away. `push function
+// all` looked like it worked only because that project had no functions.
+func TestPushResourcesAcceptAllAsAnArgument(t *testing.T) {
+	root := NewRootCommand()
+
+	for _, path := range []string{
+		"push site", "push function", "push bucket", "push team",
+		"push webhook", "push topic", "push table", "push collection",
+	} {
+		command := resolveCommand(root, path)
+		if command == nil {
+			t.Fatalf("`%s` is not in the tree", path)
+		}
+		if command.Args == nil {
+			t.Errorf("`%s` validates no arguments, so `all` is still discarded", path)
+
+			continue
+		}
+
+		restore := app.Flags().All
+		app.Flags().All = false
+
+		if err := command.Args(command, []string{"all"}); err != nil {
+			t.Errorf("`%s all` was rejected: %v", path, err)
+		}
+		if !app.Flags().All {
+			t.Errorf("`%s all` did not select every resource", path)
+		}
+
+		app.Flags().All = restore
+	}
+}
+
+// And anything that is not `all` is refused rather than ignored, naming both
+// forms that work.
+func TestPushResourcesRejectAnUnknownArgument(t *testing.T) {
+	command := resolveCommand(NewRootCommand(), "push site")
+
+	err := command.Args(command, []string{"marketing"})
+	if err == nil {
+		t.Fatal("`push site marketing` was accepted, and pushes whatever the prompt is left on")
+	}
+	for _, want := range []string{"`all`", "marketing", "choose from a list"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error does not mention %s:\n  %s", want, err)
+		}
 	}
 }
 
