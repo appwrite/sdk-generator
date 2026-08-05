@@ -155,7 +155,11 @@ func (c *Checker) write(entry cache) {
 	if c.CachePath == "" {
 		return
 	}
-	if err := os.MkdirAll(filepath.Dir(c.CachePath), 0o755); err != nil {
+	// 0700, not 0755: this is the same directory that holds prefs.json, and so
+	// access and refresh tokens. MkdirAll never tightens a directory that already
+	// exists, and this runs from PersistentPreRun on every command -- so a 0755
+	// here wins the race on a fresh machine and config's 0700 never applies.
+	if err := os.MkdirAll(filepath.Dir(c.CachePath), 0o700); err != nil {
 		return
 	}
 

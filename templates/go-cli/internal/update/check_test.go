@@ -3,7 +3,9 @@ package update
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -208,5 +210,34 @@ func TestTheNoticeIsSetOffFromTheOutput(t *testing.T) {
 		if !strings.Contains(notice, want) {
 			t.Errorf("notice does not mention %q: %q", want, notice)
 		}
+	}
+}
+
+// The cache lives in ~/.appwrite, beside prefs.json and the tokens in it. This
+// check runs from PersistentPreRun on every command, so on a fresh machine it is
+// what creates that directory -- `appwrite --version` gets there long before
+// `login` does. Since MkdirAll never tightens a directory that already exists,
+// whatever mode it picks is the mode the credential store keeps for good.
+func TestTheCacheDirectoryIsNotWorldReadable(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX permission bits")
+	}
+
+	server := registry(t, `{"version":"2.0.0"}`, nil)
+	directory := filepath.Join(t.TempDir(), ".appwrite")
+	checker := &Checker{
+		RegistryURL: server,
+		CachePath:   filepath.Join(directory, "update-check.json"),
+		Current:     "1.0.0",
+	}
+
+	checker.UpdateAvailable()
+
+	info, err := os.Stat(directory)
+	if err != nil {
+		t.Fatalf("the cache directory was never created: %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0o700 {
+		t.Errorf("%s has mode %04o, want 0700 -- it holds credentials", directory, got)
 	}
 }

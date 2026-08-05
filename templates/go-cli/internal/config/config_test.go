@@ -182,3 +182,58 @@ func TestWriteCreatesPrivateFile(t *testing.T) {
 		t.Errorf("prefs.json mode = %o, want 600 -- it holds access tokens", perm)
 	}
 }
+
+// prefs.json holds access and refresh tokens, so neither it nor the directory
+// around it may be readable by other accounts.
+//
+// Both cases matter, and the second is the common one: this file is shared with
+// the TypeScript CLI, so on most machines the directory and the file already
+// exist -- and neither MkdirAll nor WriteFile changes the mode of something that
+// is already there. Creating them correctly only protects a fresh install.
+func TestGlobalWriteTightensPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX permission bits")
+	}
+
+	t.Run("fresh install", func(t *testing.T) {
+		directory := filepath.Join(t.TempDir(), ".appwrite")
+		path := filepath.Join(directory, "prefs.json")
+
+		if err := LoadGlobal(path).Write(); err != nil {
+			t.Fatal(err)
+		}
+
+		assertPermissions(t, directory, 0o700)
+		assertPermissions(t, path, 0o600)
+	})
+
+	t.Run("already created with looser modes", func(t *testing.T) {
+		directory := filepath.Join(t.TempDir(), ".appwrite")
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(directory, "prefs.json")
+		if err := os.WriteFile(path, []byte(realPrefs), 0o644); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := LoadGlobal(path).Write(); err != nil {
+			t.Fatal(err)
+		}
+
+		assertPermissions(t, directory, 0o700)
+		assertPermissions(t, path, 0o600)
+	})
+}
+
+func assertPermissions(t *testing.T, path string, want os.FileMode) {
+	t.Helper()
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != want {
+		t.Errorf("%s has mode %04o, want %04o", path, got, want)
+	}
+}

@@ -109,18 +109,33 @@ func (g *Global) Path() string {
 // Write persists preferences, creating the directory if needed.
 //
 // 0600 on the file and 0700 on the directory: this holds access and refresh
-// tokens.
+// tokens. Both are set explicitly afterwards, because neither MkdirAll nor
+// WriteFile changes the mode of something that already exists -- and this file
+// is shared with the TypeScript CLI, so on most machines both already do.
+// Creating them with the right mode only protects a fresh install.
 func (g *Global) Write() error {
-	if err := os.MkdirAll(filepath.Dir(g.path), 0o700); err != nil {
+	directory := filepath.Dir(g.path)
+	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return err
 	}
+
+	// Best-effort: the directory may predate this CLI and belong to someone else,
+	// and failing to tighten it is not a reason to refuse to save a session --
+	// which would leave the user unable to log in at all.
+	_ = os.Chmod(directory, 0o700)
 
 	encoded, err := Marshal(g.data)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(g.path, encoded, 0o600)
+	if err := os.WriteFile(g.path, encoded, 0o600); err != nil {
+		return err
+	}
+
+	// Not best-effort: the write above just succeeded, so this file is ours, and
+	// leaving a token readable by every account on the machine is a real failure.
+	return os.Chmod(g.path, 0o600)
 }
 
 // CurrentSessionID returns the active session ID, or "" if none is set.
