@@ -938,7 +938,9 @@ export const parseError = (err: Error): void => {
       console.error(formatErrorForLog(err));
       printErrorHints(err);
     } else {
-      log("For detailed error pass the --verbose or --report flag");
+      if (reportErrorDetails(err).length > 0) {
+        log("For detailed error pass the --verbose or --report flag");
+      }
       error(getErrorMessage(err));
       printErrorHints(err);
     }
