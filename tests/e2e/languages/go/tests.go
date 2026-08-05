@@ -20,6 +20,7 @@ func main() {
 
 	client := appwrite.NewClient(
 		appwrite.WithTimeout(60 * time.Second),
+		appwrite.WithProject("console"),
 	)
 	client.AddHeader("Origin", "http://localhost")
 	sdkHeaders := client.GetHeaders()

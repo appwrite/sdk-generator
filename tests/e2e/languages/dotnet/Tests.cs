@@ -24,6 +24,7 @@ namespace AppwriteTests
         {
             var client = new Client()
                 .AddHeader("Origin", "http://localhost")
+                .SetProject("console")
                 .SetSelfSigned(true);
             var sdkHeaders = client.GetHeaders();
             TestContext.WriteLine($"x-sdk-name: {sdkHeaders["x-sdk-name"]}; x-sdk-platform: {sdkHeaders["x-sdk-platform"]}; x-sdk-language: {sdkHeaders["x-sdk-language"]}; x-sdk-version: {sdkHeaders["x-sdk-version"]}");
@@ -82,6 +83,8 @@ namespace AppwriteTests
             info = new FileInfo("../../../../../../../resources/large_file.mp4");
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
             TestContext.WriteLine(mock.Result);
+
+            TestContext.WriteLine(System.Text.Encoding.UTF8.GetString(await general.Download()));
 
             mock = await general.Enum(MockType.First);
             TestContext.WriteLine(mock.Result);

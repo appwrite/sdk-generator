@@ -125,6 +125,8 @@ class ServiceTest {
                 writeToFile(ex.toString())
             }
 
+            writeToFile(String(general.download()))
+
             mock = general.enum(MockType.FIRST)
             writeToFile(mock.result)
 

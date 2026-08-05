@@ -288,6 +288,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
             '{{ method.method | caseLower }}',
             apiPath,
             {
+                {%~ for key, security in method.securityHeaders %}
+                '{{ security.name }}': this.client.config['{{ key | caseLower }}'],
+                {%~ endfor %}
                 {%~ for parameter in method.parameters.header -%}
                 '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
                 {%~ endfor -%}

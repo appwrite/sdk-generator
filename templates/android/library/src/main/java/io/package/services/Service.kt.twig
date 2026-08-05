@@ -80,7 +80,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
         {%~ endfor %}
-        {%~ if method.type == 'location' or method.type == 'webAuth' %}
+        {%~ if method.type == 'webAuth' %}
         {%~ if method.auth | length > 0 %}
         {%~ for node in method.auth %}
         {%~ for key,header in node | keys %}
@@ -136,9 +136,18 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             )
         }
         {%~ elseif method.type == 'location' %}
+        val apiHeaders = mutableMapOf<String, String>(
+        {%~ for key, security in method.securityHeaders %}
+            "{{ security.name }}" to client.config["{{ key | caseCamel }}"].orEmpty(),
+        {%~ endfor %}
+        {%~ for key, header in method.headers %}
+            "{{ key }}" to "{{ header }}",
+        {%~ endfor %}
+        )
         return client.call(
             "{{ method.method | caseUpper }}",
             apiPath,
+            headers = apiHeaders,
             params = apiParams,
             responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java
         )

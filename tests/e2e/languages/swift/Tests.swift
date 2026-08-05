@@ -115,6 +115,9 @@ class Tests: XCTestCase {
             print(error.localizedDescription)
         }
 
+        var downloaded = try await general.download()
+        print(downloaded.readString(length: downloaded.readableBytes) ?? "")
+
         mock = try await general.xenum(mockType: .first)
         print(mock.result)
 

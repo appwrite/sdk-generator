@@ -311,8 +311,16 @@ App::get('/v1/mock/tests/general/download')
     ->label('sdk.response.type', '*/*')
     ->label('sdk.response.code', Response::STATUS_CODE_OK)
     ->label('sdk.mock', true)
+    ->inject('request')
     ->inject('response')
-    ->action(function (UtopiaSwooleResponse $response) {
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+
+        // Location methods render from their own request template, so they are the
+        // easiest place to lose the project header. The real API pairs an API key
+        // against this header and rejects the request without it.
+        if (empty($request->getHeader('x-appwrite-project', ''))) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Missing project ID');
+        }
 
         $response
             ->setContentType('text/plain')
