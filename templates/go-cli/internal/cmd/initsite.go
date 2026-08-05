@@ -138,13 +138,15 @@ func runInitSite(command *cobra.Command) error {
 	}
 
 	buildSpecification, err := chooseSpecification(api, context.prompter,
-		"/sites/specifications", "What build specification would you like to use?")
+		"/sites/specifications", buildSpecifications,
+		"What build specification would you like to use?")
 	if err != nil {
 		return err
 	}
 
 	runtimeSpecification, err := chooseSpecification(api, context.prompter,
-		"/sites/specifications", "What runtime specification would you like to use?")
+		"/sites/specifications", runtimeSpecifications,
+		"What runtime specification would you like to use?")
 	if err != nil {
 		return err
 	}

@@ -550,7 +550,14 @@ export const questionsCreateFunction: Question[] = [
     name: "buildSpecification",
     message: "What build specification would you like to use?",
     choices: async () => {
-      const response = await (await getFunctionsService()).listSpecifications();
+      // `builds`, because a plan allows a different set for each type and it is
+      // `type` that decides which set `enabled` is computed from. Asking for the
+      // default offered every runtime specification as available, and `push` was
+      // the first thing to disagree -- rejecting a buildSpecification that
+      // `init function` had just written into appwrite.config.json.
+      const response = await (
+        await getFunctionsService()
+      ).listSpecifications({ type: "builds" });
       const specifications = response["specifications"];
       const choices = specifications.map((spec: any, _idx: number) => {
         return {
@@ -567,7 +574,9 @@ export const questionsCreateFunction: Question[] = [
     name: "runtimeSpecification",
     message: "What runtime specification would you like to use?",
     choices: async () => {
-      const response = await (await getFunctionsService()).listSpecifications();
+      const response = await (
+        await getFunctionsService()
+      ).listSpecifications({ type: "runtimes" });
       const specifications = response["specifications"];
       const choices = specifications.map((spec: any, _idx: number) => {
         return {
@@ -1317,7 +1326,9 @@ export const questionsCreateSite: Question[] = [
     name: "buildSpecification",
     message: "What build specification would you like to use?",
     choices: async () => {
-      const response = await (await getSitesService()).listSpecifications();
+      const response = await (
+        await getSitesService()
+      ).listSpecifications({ type: "builds" });
       const specifications = response["specifications"];
       const choices = specifications.map((spec: any) => {
         return {
@@ -1334,7 +1345,9 @@ export const questionsCreateSite: Question[] = [
     name: "runtimeSpecification",
     message: "What runtime specification would you like to use?",
     choices: async () => {
-      const response = await (await getSitesService()).listSpecifications();
+      const response = await (
+        await getSitesService()
+      ).listSpecifications({ type: "runtimes" });
       const specifications = response["specifications"];
       const choices = specifications.map((spec: any) => {
         return {

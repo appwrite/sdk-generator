@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -240,13 +241,15 @@ func runInitFunction(command *cobra.Command) error {
 	selected := newRuntimeChoice(runtimeID)
 
 	buildSpecification, err := chooseSpecification(api, context.prompter,
-		"/functions/specifications", "What build specification would you like to use?")
+		"/functions/specifications", buildSpecifications,
+		"What build specification would you like to use?")
 	if err != nil {
 		return err
 	}
 
 	runtimeSpecification, err := chooseSpecification(api, context.prompter,
-		"/functions/specifications", "What runtime specification would you like to use?")
+		"/functions/specifications", runtimeSpecifications,
+		"What runtime specification would you like to use?")
 	if err != nil {
 		return err
 	}
@@ -269,7 +272,13 @@ func runInitFunction(command *cobra.Command) error {
 		output.Log(out, "Entrypoint for this runtime not found. You will be "+
 			"asked to configure entrypoint when you first push the function.")
 	}
-	if selected.Commands == "" {
+	// CommandsKnown, not an empty Commands. swift, java, kotlin and cpp map to
+	// an empty install command deliberately -- there is nothing to fetch before
+	// a build -- and both CLIs read that emptiness as "not found", so a Java
+	// function was told an install command was missing and that push would ask
+	// for it. Neither half was true: the empty string is written to
+	// appwrite.config.json and push is content with it.
+	if !selected.CommandsKnown {
 		output.Log(out, "Installation command for this runtime not found. You "+
 			"will be asked to configure the install command when you first push the function.")
 	}
@@ -369,6 +378,24 @@ func chooseRuntime(api *client.Client, prompter prompt.Prompter) (string, error)
 	})
 }
 
+// Specification types the list endpoint distinguishes.
+//
+// A plan allows a different set for each -- `buildSpecifications` against
+// `runtimeSpecifications` server-side -- and `type` is what selects which set
+// `enabled` is computed from. Both CLIs asked for the default, `runtimes`, for
+// both questions, so the build prompt offered every runtime specification as
+// available and `push` was the first thing to disagree:
+//
+//	✗ Error: Failed to push function Test function 400: Invalid
+//	  `buildSpecification` param: Specification must be one of:
+//	  s-2vcpu-2gb, s-2vcpu-4gb, s-4vcpu-4gb
+//
+// on a value `init function` had just written into appwrite.config.json.
+const (
+	buildSpecifications   = "builds"
+	runtimeSpecifications = "runtimes"
+)
+
 // chooseSpecification asks for a CPU/memory pairing.
 //
 // A specification the account's plan does not allow is listed and disabled
@@ -377,6 +404,7 @@ func chooseSpecification(
 	api *client.Client,
 	prompter prompt.Prompter,
 	path string,
+	specificationType string,
 	message string,
 ) (string, error) {
 	var response struct {
@@ -391,7 +419,8 @@ func chooseSpecification(
 		} `json:"specifications"`
 	}
 
-	if err := api.Call("GET", path, nil, &response); err != nil {
+	query := url.Values{"type": []string{specificationType}}
+	if err := api.Call("GET", path+"?"+query.Encode(), nil, &response); err != nil {
 		return "", err
 	}
 
