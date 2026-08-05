@@ -89,6 +89,14 @@ final class GoTemplateTest extends TestCase
         $this->assertStringNotContainsString('params["pathId"]', $method);
     }
 
+    public function testArrayQueryParametersAreIndexed(): void
+    {
+        $client = $this->generated('client/client.go');
+
+        $this->assertStringContainsString('fmt.Sprintf("%s[%d]", key, i)', $client);
+        $this->assertStringNotContainsString('fmt.Sprintf("%s[]", key)', $client);
+    }
+
     public function testBodyParametersAreStillSent(): void
     {
         $general = $this->generated('general/general.go');
