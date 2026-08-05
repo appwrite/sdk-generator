@@ -684,16 +684,12 @@ const initFunction = async (): Promise<void> => {
     );
   }
 
-  // Undefined, not falsy. swift, java, kotlin and cpp map to an empty install
-  // command deliberately -- there is nothing to fetch before a build -- and an
-  // empty string is falsy, so a Java function was told an install command was
-  // missing and that push would ask for it. Neither half was true: the empty
-  // string is written to appwrite.config.json and push is content with it.
-  if (answers.runtime.commands === undefined) {
-    log(
-      `Installation command for this runtime not found. You will be asked to configure the install command when you first push the function.`,
-    );
-  }
+  // No companion line for a missing install command. The entrypoint one above
+  // earns its second sentence -- push really does prompt for that -- while the
+  // install-command message named an action nobody has to take: push never asks
+  // for the field, and a runtime with no command listed deploys as the starter
+  // template intends, whether because it has nothing to fetch (swift, java,
+  // kotlin, cpp) or because its build resolves dependencies itself (go).
 
   fs.mkdirSync(functionDir, { mode: 0o777 });
   fs.mkdirSync(templatesDir, { mode: 0o777 });

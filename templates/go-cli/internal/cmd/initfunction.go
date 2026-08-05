@@ -37,13 +37,7 @@ type runtimeChoice struct {
 	Language   string
 	Entrypoint string
 	Commands   string
-	// CommandsKnown separates a runtime with no install step from one this CLI
-	// does not recognise. Both leave Commands empty and both warn, so the
-	// distinction does not change behaviour today -- it is kept so that adding
-	// a runtime cannot silently start warning about a language that genuinely
-	// has nothing to install.
-	CommandsKnown bool
-	Ignore        []string
+	Ignore     []string
 }
 
 func newRuntimeChoice(id string) runtimeChoice {
@@ -57,16 +51,13 @@ func newRuntimeChoice(id string) runtimeChoice {
 		language = id[:index]
 	}
 
-	commands, commandsKnown := installCommandFor(language)
-
 	return runtimeChoice{
-		ID:            id,
-		Directory:     directory,
-		Language:      language,
-		Entrypoint:    entrypointFor(language),
-		Commands:      commands,
-		CommandsKnown: commandsKnown,
-		Ignore:        ignoresFor(language),
+		ID:         id,
+		Directory:  directory,
+		Language:   language,
+		Entrypoint: entrypointFor(language),
+		Commands:   installCommandFor(language),
+		Ignore:     ignoresFor(language),
 	}
 }
 
@@ -107,35 +98,37 @@ func entrypointFor(language string) string {
 	return ""
 }
 
-// installCommandFor is getInstallCommand().
+// installCommandFor is getInstallCommand(), and prefills `commands` for the
+// runtimes that fetch dependencies before a build.
 //
-// The second return distinguishes the compiled languages, which map to an empty
-// command on purpose, from an unrecognised runtime.
-func installCommandFor(language string) (string, bool) {
+// An empty result is not a gap to report. swift, java, kotlin and cpp have
+// nothing to fetch; `go` is not listed at all and its runtime resolves modules
+// during the build itself. Both cases deploy exactly as the starter template
+// intends, and `push` never asks for this field -- it prompts for a missing
+// entrypoint, and for a site's build command, and nothing else.
+func installCommandFor(language string) string {
 	switch language {
 	case "dart":
-		return "dart pub get", true
+		return "dart pub get"
 	case "deno":
-		return "deno cache src/main.ts", true
+		return "deno cache src/main.ts"
 	case "node":
-		return "npm install", true
+		return "npm install"
 	case "bun":
-		return "bun install", true
+		return "bun install"
 	case "php":
-		return "composer install", true
+		return "composer install"
 	case "python", "python-ml":
-		return "pip install -r requirements.txt", true
+		return "pip install -r requirements.txt"
 	case "ruby":
-		return "bundle install", true
+		return "bundle install"
 	case "rust":
-		return "cargo install", true
+		return "cargo install"
 	case "dotnet":
-		return "dotnet restore", true
-	case "swift", "java", "kotlin", "cpp":
-		return "", true
+		return "dotnet restore"
 	}
 
-	return "", false
+	return ""
 }
 
 // ignoresFor is getIgnores().
@@ -272,16 +265,13 @@ func runInitFunction(command *cobra.Command) error {
 		output.Log(out, "Entrypoint for this runtime not found. You will be "+
 			"asked to configure entrypoint when you first push the function.")
 	}
-	// CommandsKnown, not an empty Commands. swift, java, kotlin and cpp map to
-	// an empty install command deliberately -- there is nothing to fetch before
-	// a build -- and both CLIs read that emptiness as "not found", so a Java
-	// function was told an install command was missing and that push would ask
-	// for it. Neither half was true: the empty string is written to
-	// appwrite.config.json and push is content with it.
-	if !selected.CommandsKnown {
-		output.Log(out, "Installation command for this runtime not found. You "+
-			"will be asked to configure the install command when you first push the function.")
-	}
+	// No companion line for a missing install command. The entrypoint one above
+	// earns its second sentence -- push really does prompt for that -- while the
+	// install-command message named an action nobody has to take: push never
+	// asks for the field, and a runtime with no command listed deploys as the
+	// starter template intends, whether because it has nothing to fetch
+	// (swift, java, kotlin, cpp) or because its build resolves dependencies
+	// itself (go).
 
 	if err := os.MkdirAll(functionDir, 0o777); err != nil {
 		return err
@@ -399,7 +389,23 @@ const (
 // chooseSpecification asks for a CPU/memory pairing.
 //
 // A specification the account's plan does not allow is listed and disabled
-// rather than hidden, so the upgrade is discoverable.
+// rather than hidden, so the upgrade is discoverable -- but only where an
+// upgrade is what it would take.
+//
+// The API answers with a bare `enabled` and no reason for it, and on the BUILD
+// list the disabled rows are two different things. The small specifications are
+// never valid for a build on any plan; the large ones are the tier gate. Marking
+// both "Upgrade to use" offered an upgrade that does not exist:
+//
+//	┃   0.5 CPU, 512MB RAM (Upgrade to use)
+//	┃   2 CPU, 2048MB RAM
+//	┃   8 CPU, 8192MB RAM (Upgrade to use)
+//
+// Nothing server-side distinguishes them -- Validator/Specification.php
+// intersects the plan's list with the env CPU and memory caps and keeps no
+// notion of a build floor -- so the response's own order is what separates
+// them: the allowlist is a contiguous band, and anything before it is below the
+// floor.
 func chooseSpecification(
 	api *client.Client,
 	prompter prompt.Prompter,
@@ -424,8 +430,25 @@ func chooseSpecification(
 		return "", err
 	}
 
+	// Where the band starts. Left at -1 when the plan allows none of them, in
+	// which case nothing is hidden: a prompt with every row disabled at least
+	// shows what the account has, where an empty one would look like a fault in
+	// the CLI.
+	floor := -1
+	for index, entry := range response.Specifications {
+		if entry.Enabled == nil || *entry.Enabled {
+			floor = index
+
+			break
+		}
+	}
+
 	options := make([]prompt.Option, 0, len(response.Specifications))
-	for _, entry := range response.Specifications {
+	for index, entry := range response.Specifications {
+		if specificationType == buildSpecifications && floor > 0 && index < floor {
+			continue
+		}
+
 		option := prompt.Option{
 			Label: fmt.Sprintf("%s CPU, %sMB RAM", entry.CPUs, entry.Memory),
 			Value: entry.Slug,

@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -66,14 +67,32 @@ func TestIgnoresIsAlwaysAnArrayNeverNil(t *testing.T) {
 	}
 }
 
-// A compiled language has no install step, which is a different fact from a
-// runtime this CLI has never heard of. Both render as "" and both warn.
-func TestInstallCommandSeparatesEmptyFromUnknown(t *testing.T) {
-	if command, known := installCommandFor("swift"); command != "" || !known {
-		t.Errorf("swift = (%q, %v), want (\"\", true)", command, known)
+// An empty install command is not a gap to report, and `init function` no longer
+// reports one. A compiled language has nothing to fetch, `go` resolves its
+// modules during the build, and an unrecognised runtime has nothing the CLI
+// could offer -- while `push` asks for a missing entrypoint and never for this.
+func TestInstallCommandIsEmptyWhereNothingNeedsFetching(t *testing.T) {
+	for _, language := range []string{"swift", "java", "kotlin", "cpp", "go", "brainfuck"} {
+		if command := installCommandFor(language); command != "" {
+			t.Errorf("%s = %q, want no install command", language, command)
+		}
 	}
-	if command, known := installCommandFor("brainfuck"); command != "" || known {
-		t.Errorf("unknown = (%q, %v), want (\"\", false)", command, known)
+
+	if command := installCommandFor("node"); command != "npm install" {
+		t.Errorf("node = %q, want `npm install`", command)
+	}
+}
+
+// And the message itself is gone: a Go function was told an install command was
+// missing and that push would ask for it, on a template that deploys as-is.
+func TestInitFunctionDoesNotWarnAboutAnInstallCommand(t *testing.T) {
+	source, err := os.ReadFile("initfunction.go")
+	if err != nil {
+		t.Skipf("reading own source: %v", err)
+	}
+
+	if strings.Contains(string(source), "Installation command for this runtime not found") {
+		t.Error("the install-command warning is back; push still never asks for the field")
 	}
 }
 
