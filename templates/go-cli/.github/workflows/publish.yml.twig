@@ -6,10 +6,14 @@ name: Publish
 # CREDENTIALS THIS NEEDS. None are wired up yet; each is named where it is
 # used and the release fails loudly rather than silently skipping a step.
 #
-#   secrets.WINDOWS_SIGNING_API_TOKEN    SignPath, same account as the TS CLI
-#   vars.WINDOWS_SIGNING_ORGANIZATION_ID SignPath organisation
 #   vars.APPWRITE_BOT_APP_ID             GitHub App that writes to the tap
 #   secrets.APPWRITE_BOT_PRIVATE_KEY     its private key
+#
+# Windows signing is OPTIONAL. Set secrets.WINDOWS_SIGNING_API_TOKEN and
+# vars.WINDOWS_SIGNING_ORGANIZATION_ID to enable it; leave them unset and the
+# .exe assets ship unsigned with a warning in the run summary. The three slug
+# variables below only matter once signing is on, and each falls back to a
+# convention, so a SignPath project following it needs none of them set.
 #
 # Asset upload uses the job's own GITHUB_TOKEN, covered by `contents: write`.
 #
@@ -103,8 +107,29 @@ jobs:
       - name: Stage release assets
         run: node scripts/stage-assets.mjs dist staging
 
+      # Signing is optional so a release is not blocked on an external service
+      # being configured. Keyed off the token rather than a flag, so wiring the
+      # secret up is all it takes to start signing -- there is no second switch
+      # to remember.
+      - name: Detect Windows code signing
+        id: signing
+        env:
+          SIGNING_TOKEN: {{ '${{ secrets.WINDOWS_SIGNING_API_TOKEN }}' }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${SIGNING_TOKEN}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Windows binaries are unsigned::\
+          WINDOWS_SIGNING_API_TOKEN is not set, so the .exe assets ship unsigned \
+          and Windows SmartScreen will warn on first run. Set the secret to sign them."
+          fi
+
       - name: Upload unsigned Windows binaries
         id: upload-windows-unsigned
+        if: {{ '${{ steps.signing.outputs.enabled == \'true\' }}' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-unsigned
@@ -113,6 +138,7 @@ jobs:
             staging/{{ language.params.npmPackage }}-win-arm64.exe
 
       - name: Submit Windows binaries for signing
+        if: {{ '${{ steps.signing.outputs.enabled == \'true\' }}' }}
         uses: signpath/github-action-submit-signing-request@b9d91eadd323de506c0c81cf0c7fe7438f3360fd # v2.2
         with:
           api-token: {{ '${{ secrets.WINDOWS_SIGNING_API_TOKEN }}' }}
@@ -127,6 +153,7 @@ jobs:
             version: "{{ '${{ github.event.release.tag_name }}' }}"
 
       - name: Replace unsigned Windows binaries
+        if: {{ '${{ steps.signing.outputs.enabled == \'true\' }}' }}
         run: |
           set -euo pipefail
 
@@ -143,9 +170,11 @@ jobs:
             cp "$signed" "staging/$asset"
           done
 
-      # Recomputed after signing. goreleaser checksummed the unsigned Windows
+      # Recomputed unconditionally. goreleaser checksummed the unsigned Windows
       # builds, and signing changes the bytes -- shipping the pre-signing
-      # checksums would make every Windows verification fail.
+      # checksums would make every Windows verification fail. When signing is
+      # skipped this recomputes the same values, which costs nothing and keeps
+      # one code path.
       - name: Recompute checksums
         working-directory: staging
         run: sha256sum {{ language.params.npmPackage }}-* > checksums.txt

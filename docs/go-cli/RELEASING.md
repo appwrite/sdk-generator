@@ -32,18 +32,35 @@ GitHub assets have already been uploaded.
 
 ### 2. Wire the credentials
 
-| Secret / variable | Used for |
-|---|---|
-| `secrets.WINDOWS_SIGNING_API_TOKEN` | SignPath, same account as the TypeScript CLI |
-| `vars.WINDOWS_SIGNING_ORGANIZATION_ID` | SignPath organisation |
-| `vars.APPWRITE_BOT_APP_ID` | GitHub App that writes to the Homebrew tap |
-| `secrets.APPWRITE_BOT_PRIVATE_KEY` | its private key |
+| Secret / variable | Used for | Required |
+|---|---|---|
+| `vars.APPWRITE_BOT_APP_ID` | GitHub App that writes to the Homebrew tap | for a stable release |
+| `secrets.APPWRITE_BOT_PRIVATE_KEY` | its private key | for a stable release |
+| `secrets.WINDOWS_SIGNING_API_TOKEN` | SignPath | no |
+| `vars.WINDOWS_SIGNING_ORGANIZATION_ID` | SignPath organisation | no |
+
+**Windows signing is optional.** The workflow keys off
+`WINDOWS_SIGNING_API_TOKEN`: set it and the `.exe` assets are sent to SignPath
+and their checksums recomputed afterwards; leave it unset and the three signing
+steps are skipped, the binaries ship unsigned, and the run summary carries a
+warning. Unsigned means Windows SmartScreen warns on first run — acceptable for
+a release candidate, not for a stable release.
+
+Nothing else changes when it is off. The Windows assets are still uploaded, and
+the npm `win32` packages and the scoop manifest still resolve.
+
+Three further slug variables — `WINDOWS_SIGNING_PROJECT_SLUG`,
+`WINDOWS_SIGNING_POLICY_SLUG`, `WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG` —
+only matter once signing is on. Each falls back to a convention
+(`gitRepoName`, `release-signing`, `initial`), so a SignPath project following
+it needs none of them set. The fallback is a guess at a naming convention, not
+a way to skip the lookup: if the project is named something else, signing fails.
 
 Asset upload uses the job's own `GITHUB_TOKEN`, covered by `contents: write`.
 npm uses trusted publishing and needs no token. There is deliberately no Apple
 credential: `install.sh` requires an embedded signature rather than a trusted
-one, and goreleaser ad-hoc signs the darwin builds — which is all the
-TypeScript CLI has ever shipped.
+one, and goreleaser ad-hoc signs the darwin builds in the build hook — which is
+all the TypeScript CLI has ever shipped, and needs no external service.
 
 ### 3. Regenerate the command surface contract
 
@@ -76,8 +93,8 @@ product. Check the registry's current `latest` before picking the number.
    is what routes the release.
 2. The workflow then:
    - builds all six targets and ad-hoc signs the darwin ones,
-   - sends the Windows binaries to SignPath and **recomputes checksums after
-     signing** — signing changes the bytes,
+   - sends the Windows binaries to SignPath **if that is configured**, and
+     recomputes checksums afterwards either way — signing changes the bytes,
    - uploads every asset plus `checksums.txt` to the release,
    - publishes npm under the **`next`** tag, platform packages first,
    - **skips the Homebrew tap entirely.**
