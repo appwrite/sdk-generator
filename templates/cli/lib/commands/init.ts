@@ -684,7 +684,12 @@ const initFunction = async (): Promise<void> => {
     );
   }
 
-  if (!answers.runtime.commands) {
+  // Undefined, not falsy. swift, java, kotlin and cpp map to an empty install
+  // command deliberately -- there is nothing to fetch before a build -- and an
+  // empty string is falsy, so a Java function was told an install command was
+  // missing and that push would ask for it. Neither half was true: the empty
+  // string is written to appwrite.config.json and push is content with it.
+  if (answers.runtime.commands === undefined) {
     log(
       `Installation command for this runtime not found. You will be asked to configure the install command when you first push the function.`,
     );
