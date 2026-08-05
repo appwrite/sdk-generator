@@ -80,9 +80,18 @@ func newPullCommand() *cobra.Command {
 		Use:   "pull",
 		Short: "Pull your Appwrite project resources into appwrite.config.json",
 		RunE: func(command *cobra.Command, args []string) error {
-			return command.Help()
+			// The TypeScript's bare `pull` runs pullResources (pull.ts:1129),
+			// the same picker `pull all` used to reach -- it does not print
+			// help. --all takes the everything path, as it does for `push`.
+			return runPull(command, pullActions(), app.Flags().All)
 		},
 	}
+
+	// See newPushCommand: the -a shorthand is local so it cannot collide with a
+	// subcommand's own -a.
+	command.Flags().BoolVarP(
+		app.Flags().AllPointer(), "all", "a", false,
+		"Apply the command to every matching resource.")
 
 	for _, resource := range flatResources {
 		command.AddCommand(newPullResourceCommand(resource))
@@ -247,7 +256,7 @@ func newProjectPull() (*projectPull, error) {
 		return nil, err
 	}
 
-	local, err := config.LoadLocal(config.LocalPath("."))
+	local, err := config.LoadLocal(config.FindLocalPath())
 	if err != nil {
 		return nil, fmt.Errorf(
 			"no %s found. Run `%s init project` first: %w",

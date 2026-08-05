@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
@@ -25,6 +26,9 @@ import (
 var (
 	sectionStyle = lipgloss.NewStyle().Bold(true).Underline(true).Foreground(lipgloss.Color("3"))
 	labelStyle   = lipgloss.NewStyle().Bold(true)
+	// hintStyle is the "N more fields" footer: present, but not competing with
+	// the values above it.
+	hintStyle = lipgloss.NewStyle().Faint(true)
 )
 
 // Render writes a response in whichever mode the renderer is set to.
@@ -38,7 +42,12 @@ func (r *Renderer) Render(value any) error {
 
 	switch r.Mode {
 	case ModeRaw:
-		return RenderJSON(writer, redactor.Mask(value, ""))
+		// Big integers are quoted here too. --raw is not "the bytes verbatim"
+		// on either CLI: the TypeScript parses with json-bigint and
+		// re-stringifies, so a BigNumber comes out quoted. Leaving it a bare
+		// number would read back through most JSON parsers as a rounded float,
+		// which is the loss the quoting exists to prevent.
+		return RenderJSON(writer, quoteBigIntegers(redactor.Mask(value, "")))
 	case ModeJSON:
 		masked := redactor.Mask(value, "")
 		if object, ok := masked.(*jsonx.Object); ok {
@@ -95,24 +104,18 @@ func (r *Renderer) renderHuman(writer io.Writer, value any) error {
 			if strings.TrimSpace(typed) == "" {
 				continue
 			}
-			scalars = append(scalars, [2]string{key, typed})
+			// Through formatKeyValue, not appended raw: a string is where the
+			// timestamps live, and this branch bypassing it is why they used
+			// to print as the API sent them.
+			scalars = append(scalars, [2]string{key, formatKeyValue(key, typed)})
 		default:
-			scalars = append(scalars, [2]string{key, formatScalar(item)})
+			scalars = append(scalars, [2]string{key, formatKeyValue(key, item)})
 		}
 	}
 
 	printed := false
 	if len(scalars) > 0 {
-		width := 0
-		for _, entry := range scalars {
-			if len(entry[0]) > width {
-				width = len(entry[0])
-			}
-		}
-		for _, entry := range scalars {
-			fmt.Fprintf(writer, "%s %s\n",
-				labelStyle.Render(fmt.Sprintf("%-*s :", width, entry[0])), entry[1])
-		}
+		writeKeyValues(writer, scalars, "")
 		printed = true
 	}
 
@@ -126,7 +129,18 @@ func (r *Renderer) renderHuman(writer io.Writer, value any) error {
 			rows := objectRows(typed)
 			if len(rows) > 0 {
 				fmt.Fprintln(writer, sectionStyle.Render(fmt.Sprintf("%s (%d)", item.key, len(typed))))
-				fmt.Fprintln(writer, renderTable(rows))
+				// A section with a renderer of its own, or one whose rows are
+				// plain on/off toggles, gets a shape built for it. Everything
+				// else falls back to the generic table -- unless that table
+				// would be too wide to read, in which case each row is printed
+				// as key/value instead.
+				if rendered, ok := RenderStructuredCollection(item.key, rows, "  "); ok {
+					fmt.Fprintln(writer, rendered)
+				} else if columnCount(rows) > maximumColumns {
+					writeRowsAsKeyValues(writer, item.key, rows, "  ")
+				} else {
+					fmt.Fprintln(writer, renderTable(rows))
+				}
 			} else {
 				fmt.Fprintln(writer, sectionStyle.Render(item.key))
 				for _, entry := range typed {
@@ -135,7 +149,9 @@ func (r *Renderer) renderHuman(writer io.Writer, value any) error {
 			}
 		case *jsonx.Object:
 			fmt.Fprintln(writer, sectionStyle.Render(item.key))
-			fmt.Fprintln(writer, renderTable([]*jsonx.Object{FilterObject(typed)}))
+			kept, withheld := sectionFields(item.key, FilterObject(typed))
+			writeKeyValues(writer, kept, "  ")
+			writeWithheldNote(writer, withheld, "  ")
 		}
 		printed = true
 	}
@@ -173,6 +189,15 @@ func allEmptyObjects(items []any) bool {
 	return true
 }
 
+// RenderTable draws a headers-and-rows table in the CLI's one table style.
+//
+// Exported so the hand-built tables -- the push change list, which is not a
+// list of API objects -- render the same way as everything else instead of
+// each aligning columns their own way.
+func RenderTable(headers []string, rows [][]string) string {
+	return drawTable(headers, rows)
+}
+
 // renderTable lays rows out as a table, using the union of their keys in
 // first-seen order so a field missing from the first row is not dropped.
 func renderTable(rows []*jsonx.Object) string {
@@ -195,17 +220,92 @@ func renderTable(rows []*jsonx.Object) string {
 		cells := make([]string, 0, len(headers))
 		for _, header := range headers {
 			value, _ := row.Get(header)
-			cells = append(cells, formatScalar(value))
+			cells = append(cells, formatKeyValue(header, value))
 		}
 		data = append(data, cells)
 	}
 
+	return drawTable(headers, data)
+}
+
+func drawTable(headers []string, data [][]string) string {
+	// No outer box. cli-table3 in the TypeScript is configured with every
+	// edge character blanked (parser.ts:740) and only `mid`, `mid-mid` and
+	// `middle` kept, so a row is a value rather than a value wrapped in pipes.
+	// That is not decoration: double-clicking an id in a boxed table selects
+	// the borders with it, which is exactly what you do with an id.
+	//
+	// A single-column table therefore has no vertical rule at all -- `middle`
+	// only appears BETWEEN columns.
 	return table.New().
 		Border(lipgloss.NormalBorder()).
+		BorderTop(false).
+		BorderBottom(false).
+		BorderLeft(false).
+		BorderRight(false).
+		BorderColumn(true).
+		BorderHeader(true).
+		BorderStyle(tableBorderStyle).
+		StyleFunc(tableCellStyle).
 		Headers(headers...).
 		Rows(data...).
 		Render()
 }
+
+// tableBorderStyle paints the remaining rules the cyan the TypeScript uses.
+var tableBorderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+
+// tableCellStyle pads each cell by one column, which cli-table3 does by
+// default and which the border configuration does not change. Without it the
+// values sit flush against the separators and are hard to read.
+func tableCellStyle(row, _ int) lipgloss.Style {
+	style := lipgloss.NewStyle().Padding(0, 1)
+	if row == table.HeaderRow {
+		return style.Bold(true).Italic(true).Foreground(lipgloss.Color("6"))
+	}
+
+	return style
+}
+
+// formatKeyValue renders one value for display, using the key to decide
+// whether it deserves more than its raw form.
+//
+// Ports templates/cli/lib/parser.ts:478. The key matters: `status` reads as
+// active/inactive rather than true/false, and a `*duration` number is seconds
+// that nobody parses at a glance. Anything else falls through to formatScalar.
+func formatKeyValue(key string, value any) string {
+	switch typed := value.(type) {
+	case bool:
+		if key == "status" {
+			if typed {
+				return "active"
+			}
+
+			return "inactive"
+		}
+	case json.Number:
+		// Durations come over the wire as raw seconds. The raw value stays --
+		// it is what the API returned and what a reader may need to pass back
+		// -- with the readable form beside it.
+		if durationKey.MatchString(key) {
+			if seconds, err := typed.Float64(); err == nil {
+				if humanized := HumanizeSeconds(seconds); humanized != "" {
+					return typed.String() + " (" + humanized + ")"
+				}
+			}
+		}
+	case string:
+		if stamp, ok := FormatTimestamp(typed); ok {
+			return stamp
+		}
+	}
+
+	return formatScalar(value)
+}
+
+// Matches the TypeScript's /duration$/i, which is a suffix test rather than a
+// contains test: `durationLimit` is not a duration.
+var durationKey = regexp.MustCompile(`(?i)duration$`)
 
 // formatScalar renders one value for display.
 func formatScalar(value any) string {
@@ -225,4 +325,75 @@ func formatScalar(value any) string {
 	}
 
 	return fmt.Sprint(value)
+}
+
+
+// maximumColumns is where a table stops being readable.
+//
+// Ports MAX_COLUMNS (parser.ts:402). `organization get` embeds a plan with 69
+// fields, and rendering that as one row of 69 columns produced a line no
+// terminal could show. Past this width each row is printed as key/value
+// instead, which stays readable at any size.
+const maximumColumns = 6
+
+// columnCount is the number of distinct keys across a section's rows.
+func columnCount(rows []*jsonx.Object) int {
+	seen := map[string]bool{}
+	for _, row := range rows {
+		for _, key := range row.Keys() {
+			seen[key] = true
+		}
+	}
+
+	return len(seen)
+}
+
+// writeKeyValues prints aligned `label : value` lines.
+func writeKeyValues(writer io.Writer, entries [][2]string, indent string) {
+	width := 0
+	for _, entry := range entries {
+		if len(entry[0]) > width {
+			width = len(entry[0])
+		}
+	}
+
+	for _, entry := range entries {
+		fmt.Fprintf(writer, "%s%s %s\n", indent,
+			labelStyle.Render(fmt.Sprintf("%-*s :", width, entry[0])), entry[1])
+	}
+}
+
+// writeRowsAsKeyValues prints each row of a too-wide section as its own block.
+func writeRowsAsKeyValues(writer io.Writer, section string, rows []*jsonx.Object, indent string) {
+	for index, row := range rows {
+		if index > 0 {
+			fmt.Fprintln(writer)
+		}
+		rowIndent := indent
+		// Numbered only when there is more than one, so a single embedded
+		// object reads as a plain block.
+		if len(rows) > 1 {
+			fmt.Fprintf(writer, "%s%s\n", indent, sectionStyle.Render(fmt.Sprintf("[%d]", index+1)))
+			rowIndent = indent + "  "
+		}
+
+		kept, withheld := sectionFields(section, row)
+		writeKeyValues(writer, kept, rowIndent)
+		writeWithheldNote(writer, withheld, rowIndent)
+	}
+}
+
+// writeWithheldNote says how many fields were left out, and how to see them.
+func writeWithheldNote(writer io.Writer, count int, indent string) {
+	if count <= 0 {
+		return
+	}
+
+	label := "fields"
+	if count == 1 {
+		label = "field"
+	}
+
+	fmt.Fprintf(writer, "%s%s\n", indent,
+		hintStyle.Render(fmt.Sprintf("… %d more %s — pass --raw to show all", count, label)))
 }

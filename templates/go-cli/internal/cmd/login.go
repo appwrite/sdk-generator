@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/url"
 	"os/exec"
 	"runtime"
@@ -11,90 +13,495 @@ import (
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
 	"github.com/appwrite/appwrite-cli-go/internal/auth"
+	"github.com/appwrite/appwrite-cli-go/internal/client"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
+	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/appwrite/appwrite-cli-go/internal/output"
+	"github.com/appwrite/appwrite-cli-go/internal/prompt"
 	"github.com/spf13/cobra"
 )
 
-// Ports the device-code path of templates/cli/lib/auth/login.ts.
+// Ports templates/cli/lib/auth/login.ts.
+//
+// TWO SIGN-IN FLOWS, chosen by the endpoint. Cloud signs in through the
+// browser with a device code; a self-hosted instance signs in with an email
+// and a password, and may then ask for a second factor. isCloudLoginEndpoint
+// (utils.ts:503) is what decides, so the same `login` command does either.
+
+// loginOptions are the flags `login` was given. Mirrors loginCommand's
+// parameter object (login.ts:452).
+type loginOptions struct {
+	Endpoint string
+	Email    string
+	Password string
+	MFA      string
+	Code     string
+	// Switch changes which signed-in account is current, without signing in.
+	Switch bool
+	// New signs in again even when an account is already signed in.
+	New bool
+}
 
 func newLoginCommand() *cobra.Command {
-	var endpoint string
+	options := loginOptions{}
 
 	command := &cobra.Command{
 		Use:   "login",
 		Short: "Sign in to an Appwrite endpoint",
 		RunE: func(command *cobra.Command, args []string) error {
-			global, err := preferences()
-			if err != nil {
-				return err
-			}
-
-			if endpoint == "" {
-				endpoint = config.DefaultEndpoint
-			}
-
-			flow := auth.NewDeviceFlow(endpoint, app.Version)
-			flow.SelfSigned = global.CurrentBool(config.PreferenceSelfSigned)
-			authorization, err := flow.Authorize()
-			if err != nil {
-				return err
-			}
-
-			url := authorization.VerificationURL()
-			command.Printf("\nTo sign in, confirm the code below in your browser:\n\n")
-			command.Printf("  Code: %s\n", authorization.UserCode)
-			command.Printf("  URL:  %s\n\n", url)
-			openBrowser(url)
-
-			token, err := flow.Poll(authorization)
-			if err != nil {
-				return err
-			}
-
-			email, name, subject := auth.DecodeIDToken(token.IDToken)
-			sessionID := cloudSessionID(endpoint, subject)
-
-			session := config.NewObject()
-			// Key order matches what the TypeScript CLI writes, so a prefs.json
-			// touched by both binaries does not churn.
-			session.Set(config.PreferenceEndpoint, endpoint)
-			session.Set(config.PreferenceClientID, auth.DefaultClientID)
-			session.Set(config.PreferenceAccessToken, token.AccessToken)
-			// json.Number so the timestamp is written as an integer literal, not a
-			// float in scientific notation.
-			session.Set(config.PreferenceTokenExpiry,
-				json.Number(strconv.FormatInt(token.ExpiresAt.UnixMilli(), 10)))
-			if email != "" {
-				session.Set(config.PreferenceEmail, email)
-			}
-			global.AddSession(sessionID, session)
-
-			if err := global.Write(); err != nil {
-				return err
-			}
-
-			// Written after the session exists: the store needs the entry to
-			// fall back to prefs when no keyring is available.
-			if token.RefreshToken != "" {
-				store := &auth.TokenStore{Global: global}
-				if err := store.SetRefresh(sessionID, token.RefreshToken); err != nil {
-					return err
-				}
-			}
-
-			who := email
-			if who == "" {
-				who = name
-			}
-			command.Printf("Signed in as %s on %s\n", who, endpoint)
-
-			return nil
+			return runLogin(command, options)
 		},
 	}
-	command.Flags().StringVar(&endpoint, "endpoint", "",
+
+	flags := command.Flags()
+	flags.StringVar(&options.Endpoint, "endpoint", "",
 		"Appwrite endpoint to sign in to. Defaults to "+config.DefaultEndpoint+".")
+	flags.StringVar(&options.Email, "email", "", "Email, for self hosted instances")
+	flags.StringVar(&options.Password, "password", "", "Password, for self hosted instances")
+	flags.StringVar(&options.MFA, "mfa", "",
+		"Factor used for MFA on self hosted instances. "+
+			"Must be one of: email, phone, totp, recoveryCode")
+	flags.StringVar(&options.Code, "code", "", "Code used for MFA on self hosted instances")
+	flags.BoolVar(&options.Switch, "switch", false, "Switch to another signed-in account")
+	flags.BoolVar(&options.New, "new", false, "Sign in to another account")
 
 	return command
+}
+
+// runLogin ports loginCommand (login.ts:452).
+func runLogin(command *cobra.Command, options loginOptions) error {
+	out := command.OutOrStdout()
+
+	if options.Switch && options.New {
+		return errors.New("use either --switch or --new, not both")
+	}
+
+	global, err := preferences()
+	if err != nil {
+		return err
+	}
+
+	endpoint := options.Endpoint
+	if endpoint == "" {
+		endpoint = global.CurrentValue(config.PreferenceEndpoint)
+	}
+	if endpoint == "" {
+		endpoint = config.DefaultEndpoint
+	}
+	configEndpoint := config.NormalizeCloudConsoleEndpoint(endpoint)
+
+	if options.Endpoint != "" && config.IsRegionalCloudEndpoint(options.Endpoint) {
+		output.Warn(out, "Regional Cloud endpoints are for project API calls, so "+
+			"signing in to %s instead. Set the regional endpoint in %s.config.json.",
+			configEndpoint, app.ExecutableName)
+	}
+
+	cloud := config.IsCloudLoginEndpoint(configEndpoint)
+
+	// Checked BEFORE anything is prompted for, so a wrong endpoint fails
+	// immediately rather than after the email and password are typed.
+	if options.Endpoint != "" && !cloud {
+		if err := verifyEndpoint(configEndpoint,
+			global.CurrentBool(config.PreferenceSelfSigned)); err != nil {
+			return err
+		}
+	}
+
+	if cloud && (options.Email != "" || options.Password != "" ||
+		options.MFA != "" || options.Code != "") {
+		return fmt.Errorf("cloud sign-in happens in your browser. Run '%s login' "+
+			"without --email, --password, --mfa or --code -- those options are "+
+			"for self-hosted instances", app.ExecutableName)
+	}
+
+	previous := global.CurrentSessionID()
+
+	if previous != "" && !options.New {
+		if account := currentAccount(); account != nil {
+			// Nothing was asked for and someone is already signed in, so say so
+			// rather than starting a flow they did not ask for.
+			if options.Email == "" && options.Password == "" &&
+				options.Endpoint == "" && !options.Switch {
+				output.Success(out, "Already logged in as %s", account.GetString("email"))
+				output.Hint(out, "Use '%s login --new' to add another account",
+					app.ExecutableName)
+
+				return nil
+			}
+		}
+	}
+
+	if options.Switch {
+		return switchAccount(command, global, previous)
+	}
+
+	if !cloud {
+		return loginWithPassword(command, global, configEndpoint, previous, options)
+	}
+
+	return loginWithDevice(command, configEndpoint)
+}
+
+// currentAccount reads the signed-in account, or nil if there is not one.
+//
+// Ports getCurrentAccount (login.ts:124) in the shape its callers use: every
+// failure means "not signed in", because that is the only question asked of it
+// here.
+func currentAccount() *jsonx.Object {
+	api, _, err := consoleClient()
+	if err != nil {
+		return nil
+	}
+
+	account := jsonx.NewObject()
+	if err := api.Call("GET", "/account", nil, account); err != nil {
+		return nil
+	}
+
+	return account
+}
+
+// verifyEndpoint checks that an endpoint is an Appwrite server before a
+// password is typed into it.
+//
+// Ports verifyEndpoint (session.ts:41).
+func verifyEndpoint(endpoint string, selfSigned bool) error {
+	parsed, err := url.Parse(endpoint)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return fmt.Errorf("invalid endpoint URL: %s", endpoint)
+	}
+
+	version := jsonx.NewObject()
+	// selfSigned is threaded in rather than read from preferences: `client
+	// --endpoint X --self-signed true` has to verify X under the setting given in
+	// the same invocation, not the one stored from a previous run.
+	err = client.New(endpoint, app.Version).SetSelfSigned(selfSigned).
+		Call("GET", "/health/version", nil, version)
+	if err == nil && version.GetString("version") != "" {
+		return nil
+	}
+
+	return fmt.Errorf(
+		"invalid endpoint or your Appwrite server is not running as expected: %s",
+		endpoint)
+}
+
+// switchAccount makes a different signed-in account current.
+//
+// Ports switchToAccount (login.ts:291). The switch is applied first and rolled
+// back if the account turns out to be unusable, because whether a stored
+// session still works can only be answered by using it.
+func switchAccount(command *cobra.Command, global *config.Global, previous string) error {
+	out := command.OutOrStdout()
+
+	options := make([]prompt.Option, 0)
+	for _, id := range global.SessionIDs() {
+		session, _ := global.Session(id)
+		if session.Email == "" {
+			continue
+		}
+		options = append(options, prompt.Option{
+			Label: session.Email + " (" + session.Endpoint + ")",
+			Value: id,
+		})
+	}
+
+	if len(options) == 0 {
+		return fmt.Errorf("no signed-in accounts found. Run '%s login' to sign in",
+			app.ExecutableName)
+	}
+
+	chosen, err := prompt.New(app.Flags().Force).Choice(prompt.Choice{
+		Message: "Select an account to use",
+		Options: options,
+	})
+	if err != nil {
+		return err
+	}
+
+	if chosen == previous {
+		if account := currentAccount(); account != nil {
+			output.Success(out, "Already using %s", account.GetString("email"))
+
+			return nil
+		}
+
+		return staleSessionError()
+	}
+
+	global.SetCurrentSessionID(chosen)
+	if err := global.Write(); err != nil {
+		return err
+	}
+
+	account := currentAccount()
+	if account == nil {
+		global.SetCurrentSessionID(previous)
+		if err := global.Write(); err != nil {
+			return err
+		}
+
+		return staleSessionError()
+	}
+
+	output.Success(out, "Switched to %s", account.GetString("email"))
+
+	return nil
+}
+
+func staleSessionError() error {
+	return fmt.Errorf(
+		"selected account session is no longer valid. Run '%s login --switch' again",
+		app.ExecutableName)
+}
+
+// loginWithPassword signs in to a self-hosted instance.
+//
+// Ports loginWithEmailPassword (login.ts:207). The session is written BEFORE
+// the request and removed if it fails, because the client that makes the
+// request reads its endpoint from the session -- and a half-written session
+// left behind on a bad password would make the next command think it was
+// signed in.
+func loginWithPassword(
+	command *cobra.Command,
+	global *config.Global,
+	endpoint, previous string,
+	options loginOptions,
+) error {
+	out := command.OutOrStdout()
+
+	email, password := options.Email, options.Password
+	if email == "" || password == "" {
+		prompter := prompt.New(app.Flags().Force)
+
+		answer, err := prompter.Text(prompt.Text{Message: "Enter your email", Flag: "--email"})
+		if err != nil {
+			return err
+		}
+		email = answer
+
+		answer, err = prompter.Text(prompt.Text{
+			Message: "Enter your password", Secret: true, Flag: "--password",
+		})
+		if err != nil {
+			return err
+		}
+		password = answer
+	}
+
+	sessionID := strconv.FormatInt(time.Now().UnixMilli(), 10)
+	session := config.NewObject()
+	session.Set(config.PreferenceEndpoint, endpoint)
+	session.Set(config.PreferenceEmail, email)
+	global.AddSession(sessionID, session)
+	global.SetCurrentSessionID(sessionID)
+	if err := global.Write(); err != nil {
+		return err
+	}
+
+	abandon := func() {
+		global.DeleteSession(sessionID)
+		global.SetCurrentSessionID(previous)
+		_ = global.Write()
+	}
+
+	api := client.New(endpoint, app.Version).
+		SetProject(config.ProjectConsole).
+		SetLocale("en-US")
+
+	credentials := jsonx.NewObject()
+	credentials.Set("email", email)
+	credentials.Set("password", password)
+
+	err := api.Call("POST", "/account/sessions/email", credentials, nil)
+	if err != nil {
+		if !isMFARequired(err) {
+			abandon()
+
+			if endpoint != config.DefaultEndpoint && isInvalidCredentials(err) {
+				output.Log(out, "Use the --endpoint option for self-hosted instances")
+			}
+
+			return err
+		}
+
+		if err := completeMFA(command, api, options); err != nil {
+			abandon()
+
+			return err
+		}
+	}
+
+	// The cookie IS the credential for this flow, so a sign-in that does not
+	// produce one has not signed anyone in.
+	if api.SessionCookie == "" {
+		abandon()
+
+		return errors.New("sign-in did not return a session")
+	}
+	session.Set(config.PreferenceCookie, api.SessionCookie)
+
+	account := jsonx.NewObject()
+	if err := api.Call("GET", "/account", nil, account); err != nil {
+		abandon()
+
+		return err
+	}
+
+	if actual := account.GetString("email"); actual != "" {
+		session.Set(config.PreferenceEmail, actual)
+		email = actual
+	}
+	global.AddSession(sessionID, session)
+	if err := global.Write(); err != nil {
+		return err
+	}
+
+	output.Success(out, "Successfully signed in as %s", email)
+	output.Hint(out, "Next you can create or link to your project using '%s init project'",
+		app.ExecutableName)
+
+	return nil
+}
+
+// completeMFA answers a second-factor challenge.
+//
+// Ports completeMfaLogin (login.ts:159). The challenge is created against the
+// half-authenticated session the password already established, which is why it
+// reuses the same client and its cookie.
+func completeMFA(command *cobra.Command, api *client.Client, options loginOptions) error {
+	prompter := prompt.New(app.Flags().Force)
+
+	factor := options.MFA
+	if factor == "" {
+		chosen, err := prompter.Choice(prompt.Choice{
+			Message: "Choose the factor to be used to complete the MFA challenge",
+			Options: []prompt.Option{
+				{Label: "Email", Value: "email"},
+				{Label: "Phone", Value: "phone"},
+				{Label: "Authenticator app", Value: "totp"},
+				{Label: "Recovery code", Value: "recoveryCode"},
+			},
+			Flag: "--mfa",
+		})
+		if err != nil {
+			return err
+		}
+		factor = chosen
+	}
+
+	request := jsonx.NewObject()
+	request.Set("factor", factor)
+
+	challenge := jsonx.NewObject()
+	if err := api.Call("POST", "/account/mfa/challenges", request, challenge); err != nil {
+		return err
+	}
+
+	code := options.Code
+	if code == "" {
+		answer, err := prompter.Text(prompt.Text{
+			Message: "Enter the code from your authentication factor",
+			Flag:    "--code",
+		})
+		if err != nil {
+			return err
+		}
+		code = answer
+	}
+
+	answer := jsonx.NewObject()
+	answer.Set("challengeId", challenge.GetString("$id"))
+	answer.Set("otp", code)
+
+	return api.Call("PUT", "/account/mfa/challenges", answer, nil)
+}
+
+// isMFARequired reports whether a sign-in stopped to ask for a second factor.
+func isMFARequired(err error) bool {
+	var apiError *client.APIError
+	if !errors.As(err, &apiError) {
+		return false
+	}
+
+	return apiError.Type == "user_more_factors_required"
+}
+
+// isInvalidCredentials reports a wrong email or password, which on a
+// non-default endpoint usually means the endpoint is wrong rather than the
+// password.
+func isInvalidCredentials(err error) bool {
+	var apiError *client.APIError
+	if !errors.As(err, &apiError) {
+		return false
+	}
+
+	return apiError.Type == "user_invalid_credentials"
+}
+
+// loginWithDevice signs in through the browser. Ports loginWithOAuthDevice
+// (login.ts:333).
+func loginWithDevice(command *cobra.Command, endpoint string) error {
+	global, err := preferences()
+	if err != nil {
+		return err
+	}
+
+	flow := auth.NewDeviceFlow(endpoint, app.Version)
+	authorization, err := flow.Authorize()
+	if err != nil {
+		return err
+	}
+
+	url := authorization.VerificationURL()
+	command.Printf("\nTo sign in, confirm the code below in your browser:\n\n")
+	command.Printf("  Code: %s\n", authorization.UserCode)
+	command.Printf("  URL:  %s\n\n", url)
+	openBrowser(url)
+
+	token, err := flow.Poll(authorization)
+	if err != nil {
+		return err
+	}
+
+	email, name, subject := auth.DecodeIDToken(token.IDToken)
+	sessionID := cloudSessionID(endpoint, subject)
+
+	session := config.NewObject()
+	// Key order matches what the TypeScript CLI writes, so a prefs.json
+	// touched by both binaries does not churn.
+	session.Set(config.PreferenceEndpoint, endpoint)
+	session.Set(config.PreferenceClientID, auth.DefaultClientID)
+	session.Set(config.PreferenceAccessToken, token.AccessToken)
+	// json.Number so the timestamp is written as an integer literal, not a
+	// float in scientific notation.
+	session.Set(config.PreferenceTokenExpiry,
+		json.Number(strconv.FormatInt(token.ExpiresAt.UnixMilli(), 10)))
+	if email != "" {
+		session.Set(config.PreferenceEmail, email)
+	}
+	global.AddSession(sessionID, session)
+
+	if err := global.Write(); err != nil {
+		return err
+	}
+
+	// Written after the session exists: the store needs the entry to
+	// fall back to prefs when no keyring is available.
+	if token.RefreshToken != "" {
+		store := &auth.TokenStore{Global: global}
+		if err := store.SetRefresh(sessionID, token.RefreshToken); err != nil {
+			return err
+		}
+	}
+
+	who := email
+	if who == "" {
+		who = name
+	}
+	command.Printf("Signed in as %s on %s\n", who, endpoint)
+
+	return nil
 }
 
 // cloudSessionID keys a browser-flow session on the endpoint as well as the
@@ -109,7 +516,8 @@ func newLoginCommand() *cobra.Command {
 // The TypeScript avoids this by keying on `ID.unique()` (login.ts:548), which
 // is collision-free but accumulates a fresh entry every time you sign in to an
 // account you are already signed in to. Composing the two keeps the
-// deduplication and drops the collision. The key is internal, so its spelling
+// deduplication and drops the collision. The key is internal -- `session list`
+// and `login --switch` label sessions by email and endpoint -- so its spelling
 // is free.
 //
 // The WHOLE endpoint goes into the key, not just its host. Two self-hosted

@@ -317,6 +317,18 @@ try {
     if (!$requestedSdk || $requestedSdk === 'go-cli') {
         $language = new GoCLI();
         $language->setExecutableName('appwrite');
+        // Same package name as the TypeScript CLI: `npm i -g appwrite-cli`
+        // has to keep working across the switch. It also names every release
+        // asset, which install.sh and install.ps1 construct by hand.
+        $language->setNPMPackage('appwrite-cli');
+        // The released SDK a shipped build resolves. Go requires the major
+        // version in the module path from v2 on, so this also decides whether the
+        // imports carry a /vN suffix -- setSDKVersion derives both.
+        $language->setSDKVersion('v6.2.0');
+        // Local example generation only: builds examples/go-cli against the
+        // SDK generated alongside it. The shipped repository leaves this
+        // unset and resolves the pinned release instead.
+        $language->setLocalSDKPath('../go');
 
         $sdk = new SDK($language, buildSpec($specFormat, $spec));
         $sdk->setTest(false);
@@ -417,10 +429,14 @@ try {
     if (!$requestedSdk || $requestedSdk === 'go') {
         $sdk  = new SDK(new Go(), buildSpec($specFormat, $spec));
         // Real module path: a `replace` only resolves when the target module
-        // declares the path being replaced.
+        // declares the path being replaced. That includes the major-version
+        // suffix Go requires from v2 on, so the version has to match the one the
+        // Go CLI pins -- otherwise it replaces `sdk-for-go/v6` with a module
+        // calling itself `sdk-for-go` and resolves neither.
         configureSDK($sdk, [
             'gitUserName' => 'appwrite',
             'gitRepoName' => 'sdk-for-go',
+            'version' => '6.2.0',
         ]);
         $sdk->generate(__DIR__ . '/examples/go');
     }

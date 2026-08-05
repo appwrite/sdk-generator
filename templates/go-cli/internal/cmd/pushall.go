@@ -31,7 +31,10 @@ type pushAction struct {
 }
 
 // pushActions returns the fan-out entries in EXECUTION order.
-func pushActions() []pushAction {
+//
+// logs is the fan-out's --no-logs, which reaches the deployable resources and
+// means nothing to the others.
+func pushActions(logs bool) []pushAction {
 	simple := func(name string) func(*cobra.Command) error {
 		for _, resource := range simpleResources() {
 			if resource.Name == name {
@@ -59,6 +62,7 @@ func pushActions() []pushAction {
 					Code:        true,
 					Activate:    true,
 					ActivateSet: app.Flags().Force,
+					Logs:        logs,
 				})
 			}
 		}
@@ -100,56 +104,100 @@ var promptOrder = []string{
 }
 
 func newPushAllCommand() *cobra.Command {
-	return &cobra.Command{
+	logs := true
+
+	command := &cobra.Command{
 		Use:   "all",
 		Short: "Push all resources in the current project",
+		PreRunE: func(command *cobra.Command, args []string) error {
+			return applyNegatedFlags(command)
+		},
 		RunE: func(command *cobra.Command, args []string) error {
-			actions := pushActions()
-
-			if app.Flags().All {
-				// Collections are skipped: they are the legacy databases API,
-				// and pushing both writes two representations of the same
-				// data to one project.
-				for _, action := range actions {
-					if action.Deprecated || action.Run == nil {
-						continue
-					}
-					if err := action.Run(command); err != nil {
-						return err
-					}
-				}
-
-				return nil
-			}
-
-			byValue := make(map[string]pushAction, len(actions))
-			for _, action := range actions {
-				byValue[action.Value] = action
-			}
-
-			options := make([]prompt.Option, 0, len(promptOrder))
-			for _, value := range promptOrder {
-				if action, ok := byValue[value]; ok {
-					options = append(options,
-						prompt.Option{Label: action.Label, Value: action.Value})
-				}
-			}
-
-			chosen, err := prompt.New(app.Flags().Force).Choice(prompt.Choice{
-				Message: "Which resources would you like to push?",
-				Options: options,
-				Flag:    "--all",
-			})
-			if err != nil {
-				return err
-			}
-
-			action, ok := byValue[chosen]
-			if !ok || action.Run == nil {
-				return nil
-			}
-
-			return action.Run(command)
+			// `push all` means all, with or without --all. The TypeScript sets
+			// cliConfig.all itself before delegating (push.ts:4288), so it
+			// never reaches the picker; gating on the flag here turned the
+			// subcommand into a one-resource chooser.
+			return runPush(command, true)
 		},
 	}
+
+	negatableBool(command.Flags(), &logs, "logs", "Stream deployment build logs")
+
+	return command
+}
+
+// runPush is the body of both `push` and `push all`.
+//
+// Ports pushResources(). With everything selected it runs every non-deprecated
+// action; otherwise it asks which one. Collections are always skipped in the
+// everything case: they are the legacy databases API, and pushing both writes
+// two representations of the same data to one project.
+func runPush(command *cobra.Command, everything bool) error {
+	// Only `push all` carries --no-logs; the bare `push` inherits the default,
+	// as it does in the TypeScript where the flag is declared on the
+	// subcommand alone (push.ts:4285).
+	logs := true
+	if command.Flags().Lookup("logs") != nil {
+		parsed, err := command.Flags().GetBool("logs")
+		if err != nil {
+			return err
+		}
+		logs = parsed
+	}
+
+	return runPushActions(command, pushActions(logs), everything)
+}
+
+// runPushActions is the fan-out itself, separated from reading the flags so a
+// test can hand it actions that record instead of calling the API.
+func runPushActions(command *cobra.Command, actions []pushAction, everything bool) error {
+	if everything {
+		// `cliConfig.all = true` (push.ts:4288), for the same reason as pull:
+		// each resource reads it to decide whether to ask which functions or
+		// sites to push.
+		app.Flags().All = true
+
+		// Collections are skipped: they are the legacy databases API,
+		// and pushing both writes two representations of the same
+		// data to one project.
+		for _, action := range actions {
+			if action.Deprecated || action.Run == nil {
+				continue
+			}
+			if err := action.Run(command); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	byValue := make(map[string]pushAction, len(actions))
+	for _, action := range actions {
+		byValue[action.Value] = action
+	}
+
+	options := make([]prompt.Option, 0, len(promptOrder))
+	for _, value := range promptOrder {
+		if action, ok := byValue[value]; ok {
+			options = append(options,
+				prompt.Option{Label: action.Label, Value: action.Value})
+		}
+	}
+
+	chosen, err := prompt.New(app.Flags().Force).Choice(prompt.Choice{
+		Message: "Which resources would you like to push?",
+		Options: options,
+		Flag:    "--all",
+	})
+	if err != nil {
+		return err
+	}
+
+	action, ok := byValue[chosen]
+	if !ok || action.Run == nil {
+		return nil
+	}
+
+	return action.Run(command)
 }

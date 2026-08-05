@@ -26,9 +26,8 @@ type Function struct {
 	Path       string   `json:"path"`
 	Commands   string   `json:"commands"`
 	Scopes     []string `json:"scopes"`
-	// Ignore is a newline-separated pattern list, matching the schema's single
-	// optional string.
-	Ignore string `json:"ignore"`
+	// Ignore accepts both shapes the field appears in; see IgnoreRules.
+	Ignore IgnoreRules `json:"ignore"`
 }
 
 // RuntimeName is the runtime without its version suffix.

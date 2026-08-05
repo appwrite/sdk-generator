@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -27,19 +28,19 @@ import (
 //
 // Two deliberate divergences, both named once here rather than at each site.
 //
-// The TypeScript pushes every selected resource concurrently behind a
-// live-updating Spinner. There is no spinner in the Go runtime and human
-// output is explicitly outside the contract (docs/go-cli/PLAN.md §3), so
-// resources are pushed one at a time and progress is printed as plain lines.
-// That also makes the request sequence deterministic, which is what the
-// differential harness compares (docs/go-cli/conformance/).
+// The TypeScript pushes every selected resource concurrently, each with its own
+// spinner row. This pushes them one at a time behind a single row, which keeps
+// the request sequence deterministic -- which is what makes a recorded trace of a
+// push worth comparing at all -- and keeps interleaved build logs attributable. The settings writes are sequential for a different and
+// stronger reason -- see applyEnabled.
 //
-// The TypeScript also opens a realtime WebSocket to stream build logs and falls
-// back to polling when it cannot -- in the recorded trace `GET /realtime`
-// answers 400 and it polls anyway. Only the polling half is ported: the
-// fallback is the path that always works, log streaming needs the whole
-// realtime client, and the deployment's outcome is decided by the poll either
-// way. `--no-logs` is accepted so the flag surface is unchanged.
+// The TypeScript reads build logs over a realtime WebSocket and falls back to
+// polling when it cannot -- in the recorded trace `GET /realtime` answers 400
+// and it polls anyway. Only the polling half is ported. Build logs ARE
+// streamed, from the same poll that decides the deployment's outcome, so the
+// visible difference is latency: a line appears within one pollDebounce rather
+// than the moment it is written. That also drops the TypeScript's `l` keypress
+// toggle, which exists to pause a firehose the poll cannot produce.
 
 const (
 	// pollDebounce is POLL_DEBOUNCE (push.ts:117), the gap between deployment
@@ -116,7 +117,12 @@ func runPushSettings(command *cobra.Command) error {
 	}
 
 	projectID := context.local.Data.GetString("projectId")
-	organizationID := context.local.Data.GetString("organizationId")
+
+	organizationID, err := resolveOrganizationID(
+		out, console, context.local.Data.GetString("organizationId"), projectID)
+	if err != nil {
+		return err
+	}
 	scoped := console.Clone().WithoutResponseFormat().SetOrganization(organizationID)
 
 	project := jsonx.NewObject()
@@ -156,7 +162,7 @@ func runPushSettings(command *cobra.Command) error {
 
 		approved, err := context.prompter.Confirm(prompt.Question{
 			Message: "Would you like to apply these changes?",
-			Default: false,
+			Default: true,
 			Flag:    "--force",
 		})
 		if err != nil {
@@ -197,14 +203,18 @@ func (c *pushContext) applySettings(command *cobra.Command, settings *jsonx.Obje
 
 	if services := settings.GetObject("services"); services != nil {
 		output.Log(out, "Applying service statuses ...")
-		if err := c.applyEnabled("/project/services/", services); err != nil {
+		if err := timed(out, len(services.Keys()), "service statuses", func() error {
+			return c.applyEnabled("/project/services/", services)
+		}); err != nil {
 			return err
 		}
 	}
 
 	if protocols := settings.GetObject("protocols"); protocols != nil {
 		output.Log(out, "Applying protocol statuses ...")
-		if err := c.applyEnabled("/project/protocols/", protocols); err != nil {
+		if err := timed(out, len(protocols.Keys()), "protocol statuses", func() error {
+			return c.applyEnabled("/project/protocols/", protocols)
+		}); err != nil {
 			return err
 		}
 	}
@@ -216,14 +226,18 @@ func (c *pushContext) applySettings(command *cobra.Command, settings *jsonx.Obje
 
 	if security := auth.GetObject("security"); security != nil {
 		output.Log(out, "Applying auth security settings ...")
-		if err := c.applySecurity(security); err != nil {
+		if err := timed(out, len(security.Keys()), "auth security settings", func() error {
+			return c.applySecurity(security)
+		}); err != nil {
 			return err
 		}
 	}
 
 	if methods := auth.GetObject("methods"); methods != nil {
 		output.Log(out, "Applying auth methods statuses ...")
-		if err := c.applyEnabled("/project/auth-methods/", methods); err != nil {
+		if err := timed(out, len(methods.Keys()), "auth method statuses", func() error {
+			return c.applyEnabled("/project/auth-methods/", methods)
+		}); err != nil {
 			return err
 		}
 	}
@@ -231,7 +245,43 @@ func (c *pushContext) applySettings(command *cobra.Command, settings *jsonx.Obje
 	return nil
 }
 
-// applyEnabled writes an `{id: enabled}` object one PATCH at a time.
+// timed reports what a settings step did and how long it took.
+//
+// A settings push is four steps of one line each and can take the better part
+// of a minute, which leaves no way to tell a slow step from a hung one. The
+// count and the duration turn "it is stuck" into "the auth methods took
+// forty seconds", which is the question anyone actually has.
+func timed(out io.Writer, count int, what string, run func() error) error {
+	started := time.Now()
+	if err := run(); err != nil {
+		return err
+	}
+
+	output.Log(out, "Applied %d %s in %s",
+		count, what, time.Since(started).Round(time.Millisecond))
+
+	return nil
+}
+
+// applyEnabled writes an `{id: enabled}` object, one PATCH per entry.
+//
+// ONE AT A TIME, and deliberately so -- this is a divergence from the
+// TypeScript's Promise.all (push.ts:1332), which has the same defect.
+//
+// These look like independent routes and are not. Every one of them
+// read-modify-writes a nested field of the SAME `projects` row
+// (Project/Services/Update.php:76). Sending them together is unsafe: each
+// handler builds its new `services` array from the snapshot it read, and
+// although updateDocument re-reads the row under `SELECT ... FOR UPDATE`, the
+// supplied nested array REPLACES the freshly read one. Two concurrent writes
+// then lose one of the two changes.
+//
+// It is also not faster. The row lock serialises them server-side regardless,
+// measured at ~1.25s per waiter across all four batches, so concurrency buys
+// contention and a lost-update window in exchange for nothing.
+//
+// The real fix is a bulk settings endpoint that merges every change under one
+// transaction; until that exists, the honest client behaviour is to queue.
 func (c *pushContext) applyEnabled(base string, states *jsonx.Object) error {
 	for _, key := range states.Keys() {
 		value, _ := states.Get(key)
@@ -252,6 +302,9 @@ func (c *pushContext) applyEnabled(base string, states *jsonx.Object) error {
 // Each key is its own policy route, and a key the config omits is left alone --
 // absent means "no opinion", not "reset it".
 func (c *pushContext) applySecurity(security *jsonx.Object) error {
+	// One at a time, for the reason given on applyEnabled: these write the same
+	// project row. The TypeScript collects them into securityUpdates and awaits
+	// them together (push.ts:1355), which has the same lost-update window.
 	for _, policy := range settingsPolicies {
 		value, ok := security.Get(policy.Key)
 		if !ok {
@@ -267,8 +320,7 @@ func (c *pushContext) applySecurity(security *jsonx.Object) error {
 			body.Set(policy.Field, value)
 		}
 
-		err := c.api.Call("PATCH", "/project/policies/"+policy.Route, body, nil)
-		if err != nil {
+		if err := c.api.Call("PATCH", "/project/policies/"+policy.Route, body, nil); err != nil {
 			return err
 		}
 	}
@@ -541,16 +593,22 @@ type deployOptions struct {
 	ActivateSet bool
 	// WithVariables replaces the resource's variables from its .env file.
 	WithVariables bool
+	// Logs streams the deployment's build log while it builds; --no-logs
+	// reports status transitions only.
+	Logs bool
 }
 
 func newPushDeployableCommand(resource deployable) *cobra.Command {
-	options := deployOptions{Code: true}
+	options := deployOptions{Code: true, Logs: true}
 	var activate string
 
 	command := &cobra.Command{
 		Use:     resource.Name,
 		Aliases: resource.Aliases,
 		Short:   "Push " + resource.Label + " in the current directory.",
+		PreRunE: func(command *cobra.Command, args []string) error {
+			return applyNegatedFlags(command)
+		},
 		RunE: func(command *cobra.Command, args []string) error {
 			if command.Flags().Changed("force") {
 				app.Flags().Force = true
@@ -580,10 +638,10 @@ func newPushDeployableCommand(resource deployable) *cobra.Command {
 	flags.Bool("force", false, "Skip confirmation prompts.")
 	flags.BoolVarP(&options.Async, "async", "A", false,
 		"Don't wait for "+resource.Label+" deployments status")
-	// `--no-code` and `--no-logs` in commander are booleans defaulting on;
-	// pflag spells the same thing as the positive flag defaulting to true.
-	flags.BoolVar(&options.Code, "code", true, "Don't push the "+resource.Singular+"'s code")
-	flags.Bool("logs", true, "Don't stream deployment build logs")
+	negatableBool(flags, &options.Code, "code",
+		"Push the "+resource.Singular+"'s code")
+	negatableBool(flags, &options.Logs, "logs",
+		"Stream deployment build logs")
 	flags.StringVar(&activate, "activate", "",
 		"Activate the "+resource.Singular+"'s deployment after it is ready.")
 	flags.Lookup("activate").NoOptDefVal = "true"
@@ -659,7 +717,7 @@ func runPushDeployable(
 	if pushCode {
 		confirmed, err := context.prompter.Confirm(prompt.Question{
 			Message: "Do you want to create a deployment for your " + resource.Label + "?",
-			Default: false,
+			Default: true,
 			Flag:    "--force",
 		})
 		if err != nil {
@@ -697,6 +755,11 @@ func runPushDeployable(
 			Code:          pushCode,
 			Activate:      activate,
 			WithVariables: options.WithVariables,
+			// `logs && !asyncDeploy` (push.ts:1751): an async push returns
+			// before the build starts, so there is no log to stream.
+			Logs: options.Logs && !options.Async,
+			// The label is only worth the width when two logs could interleave.
+			LabelLogs: len(entries) > 1,
 		}, &summary)
 	}
 
@@ -711,6 +774,8 @@ type deployRun struct {
 	Code          bool
 	Activate      bool
 	WithVariables bool
+	Logs          bool
+	LabelLogs     bool
 }
 
 // failedDeployment names a deployment that did not become ready.
@@ -792,7 +857,7 @@ func (c *pushContext) selectDeployables(
 		return nil, nil
 	}
 
-	return c.selectResources(resource.Label, entries)
+	return c.selectResources(resource.Label, resource.Singular, entries)
 }
 
 // completeDeployables asks for the fields a push cannot proceed without.
@@ -1122,15 +1187,38 @@ func (c *pushContext) awaitDeployment(
 	consoleURL := c.deploymentConsoleURL(resource, id, deploymentID)
 
 	tracker := newProgressTracker(deployment)
+
+	// The status line, redrawn in place while the build runs. Off a terminal it
+	// prints the same plain lines this did before there was a spinner.
+	spinner := output.NewSpinner(out, output.SpinnerState{
+		Status: "Deploying", Resource: name, ID: id,
+		End: "Checking deployment status...",
+	})
+
+	// A discarded printer is cheaper than branching at every call site: with
+	// --no-logs nothing is ever ingested, so nothing is ever printed. Logs go
+	// through the spinner so each line lands above the status row.
+	logPrinter := output.NewBuildLogPrinter(spinner.Log,
+		resource.Name+":"+name, run.LabelLogs)
+	ingest := func(deployment *jsonx.Object) {
+		if run.Logs {
+			logPrinter.Ingest(deployment.GetString("buildLogs"))
+		}
+	}
+
 	var (
-		waitingSince     time.Time
-		readySince       time.Time
-		activationDone   bool
-		lastProgressText string
+		waitingSince   time.Time
+		readySince     time.Time
+		activationDone bool
 	)
 
 	for {
 		if tracker.stalled() {
+			logPrinter.Complete()
+			// getDeploymentTimeoutErrorMessage (push.ts:156). The summary
+			// repeats it with the console link; this is the line in place.
+			spinner.Fail("Error", fmt.Sprintf(
+				"Deployment got stuck for more than %d minutes", deploymentTimeoutMinutes))
 			summary.Failed = append(summary.Failed, failedDeployment{
 				Name: name, Reason: "timeout", ConsoleURL: consoleURL,
 			})
@@ -1141,11 +1229,14 @@ func (c *pushContext) awaitDeployment(
 		var err error
 		deployment, err = c.fetchDeployment(resource, id, deploymentID)
 		if err != nil {
+			logPrinter.Complete()
+			spinner.Stop()
 			output.Failure(out, "Failed to deploy %s %s: %s", resource.Singular, name, err)
 
 			return
 		}
 		tracker.touch(deployment)
+		ingest(deployment)
 
 		status := deployment.GetString("status")
 		if status == "waiting" {
@@ -1165,6 +1256,8 @@ func (c *pushContext) awaitDeployment(
 				err := c.api.Call("PATCH",
 					resource.Path+"/"+url.PathEscape(id)+"/deployment", body, nil)
 				if err != nil {
+					logPrinter.Complete()
+					spinner.Stop()
 					output.Failure(out, "Failed to activate %s %s: %s",
 						resource.Singular, name, err)
 
@@ -1187,12 +1280,16 @@ func (c *pushContext) awaitDeployment(
 				}
 			}
 
+			logPrinter.Complete()
+			spinner.Succeed("Deployed", "")
 			summary.Deployed++
 			c.reportDeployment(command, resource, id, consoleURL)
 
 			return
 
 		case deploy.StatusFailed:
+			logPrinter.Complete()
+			spinner.Fail("Error", "Deployment failed")
 			summary.Failed = append(summary.Failed, failedDeployment{
 				Name: name, Reason: "failed", ConsoleURL: consoleURL,
 			})
@@ -1200,10 +1297,8 @@ func (c *pushContext) awaitDeployment(
 			return
 
 		default:
-			if text := progressText(status, waitingSince); text != lastProgressText {
-				lastProgressText = text
-				output.Log(out, "%s ( %s ) %s", name, id, text)
-			}
+			// Update is a no-op when nothing changed, which is most polls.
+			spinner.Update("Deploying", progressText(status, waitingSince))
 		}
 
 		time.Sleep(pollDebounce)
@@ -1528,9 +1623,18 @@ func (c *pushContext) projectRegion(projectID string) string {
 		return ""
 	}
 
+	// Best effort, like the rest of this function: io.Discard because the
+	// "resolved from project" notice belongs to the command the user ran, not
+	// to a lookup done to decorate a URL.
+	organizationID, err := resolveOrganizationID(
+		io.Discard, console, c.local.Data.GetString("organizationId"), projectID)
+	if err != nil {
+		return ""
+	}
+
 	project := jsonx.NewObject()
 	err = console.Clone().WithoutResponseFormat().
-		SetOrganization(c.local.Data.GetString("organizationId")).
+		SetOrganization(organizationID).
 		Call("GET", pathProjects+"/"+url.PathEscape(projectID), nil, project)
 	if err != nil {
 		return ""

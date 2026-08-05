@@ -65,6 +65,21 @@ func newGenerateCommand() *cobra.Command {
 }
 
 // resolveGenerator picks the generator, either from --language or by detection.
+// resolveGenerateEndpoint fills in the endpoint the generated client will use.
+func resolveGenerateEndpoint(configured string) string {
+	if configured != "" {
+		return configured
+	}
+
+	if global, err := preferences(); err == nil {
+		if endpoint := global.CurrentValue(config.PreferenceEndpoint); endpoint != "" {
+			return endpoint
+		}
+	}
+
+	return config.DefaultEndpoint
+}
+
 func resolveGenerator(command *cobra.Command, requested, working string) (generator.Generator, string, error) {
 	if requested != "" {
 		created, err := generator.New(generator.Language(requested))
@@ -112,10 +127,17 @@ func runGenerate(
 		return err
 	}
 
-	project, err := generator.LoadConfig(config.LocalFileName)
+	project, err := generator.LoadConfig(config.FindLocalPath())
 	if err != nil || project.ProjectID == "" {
 		return fmt.Errorf("no project found. Please run '%s init project' first", app.ExecutableName)
 	}
+
+	// The generated client hard-codes the endpoint it talks to, and `pull`
+	// never writes an `endpoint` key -- so reading only the project config
+	// emitted `export const ENDPOINT = ''` and produced a client that cannot
+	// connect. Ports the localConfig || globalConfig || DEFAULT_ENDPOINT chain
+	// in generate.ts:100.
+	project.Endpoint = resolveGenerateEndpoint(project.Endpoint)
 
 	if !contains(serverSideModes, serverSide) {
 		return fmt.Errorf("invalid --server value: %s", serverSide)

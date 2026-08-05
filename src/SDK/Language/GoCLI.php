@@ -34,12 +34,36 @@ class GoCLI extends Go
     public const string MODULE_PATH = 'github.com/appwrite/appwrite-cli-go';
 
     /**
+     * Go module the generated SDK is published under, without a version suffix.
+     */
+    public const string SDK_MODULE = 'github.com/appwrite/sdk-for-go';
+
+    /**
      * @var array
      */
     #[Override]
     protected $params = [
         'modulePath' => self::MODULE_PATH,
         'executableName' => 'appwrite',
+        // Names the npm package AND every release asset. install.sh and
+        // install.ps1 build their download URL from this same param, so the
+        // release build has to derive asset names from it rather than from
+        // executableName -- they happen to agree today, and a rename would
+        // silently break every installer if they did not.
+        'npmPackage' => 'appwrite-cli',
+        // Released version of the Go SDK the CLI depends on. Raise this after
+        // publishing sdk-for-go; until then a shipped build resolves nothing,
+        // which is the loud failure rather than the quiet one.
+        'sdkVersion' => 'v0.0.0',
+        // Import path for the SDK, which carries a /vN suffix from v2 onward --
+        // Go requires it in the module path, so `sdk-for-go v6.2.0` is imported
+        // as `sdk-for-go/v6`. Derived from sdkVersion by setSDKVersion() so the
+        // two can never disagree; the default matches the default version.
+        'sdkImportPath' => self::SDK_MODULE,
+        // Empty by default, so the shipped repository gets the pinned version
+        // above. example.php sets it to build examples/go-cli against the SDK
+        // this generator produces, without waiting for a release.
+        'localSdkPath' => '',
         'homebrewTapOwner' => 'appwrite',
         'homebrewTapName' => 'appwrite',
         'homebrewTapBranch' => 'main',
@@ -57,6 +81,40 @@ class GoCLI extends Go
     public function setExecutableName(string $executableName): self
     {
         $this->setParam('executableName', $executableName);
+
+        return $this;
+    }
+
+    /**
+     * Pin the released Go SDK version the generated `go.mod` requires.
+     */
+    public function setSDKVersion(string $version): self
+    {
+        $this->setParam('sdkVersion', $version);
+        $this->setParam('sdkImportPath', self::SDK_MODULE . $this->getMajorVersionSuffix($version));
+
+        return $this;
+    }
+
+    /**
+     * Build against a local SDK checkout instead of the released one.
+     *
+     * Emits a `replace` directive. For local example generation only -- a
+     * shipped repository must resolve the pinned version.
+     */
+    public function setLocalSDKPath(string $path): self
+    {
+        $this->setParam('localSdkPath', $path);
+
+        return $this;
+    }
+
+    /**
+     * Name of the npm package, which also names every release asset.
+     */
+    public function setNPMPackage(string $name): self
+    {
+        $this->setParam('npmPackage', $name);
 
         return $this;
     }
@@ -388,6 +446,11 @@ class GoCLI extends Go
                 'template'      => 'go-cli/.gitignore',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => '.gitattributes',
+                'template'      => 'go-cli/.gitattributes',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/root.go',
                 'template'      => 'go-cli/internal/cmd/root.go.twig',
@@ -499,6 +562,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/cmd/shorthand_test.go',
+                'template'      => 'go-cli/internal/cmd/shorthand_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/output/filter.go',
                 'template'      => 'go-cli/internal/output/filter.go',
             ],
@@ -554,6 +622,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/app/version_test.go',
+                'template'      => 'go-cli/internal/app/version_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/app/convert.go',
                 'template'      => 'go-cli/internal/app/convert.go',
             ],
@@ -581,6 +654,131 @@ class GoCLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/client.go',
                 'template'      => 'go-cli/internal/cmd/client.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/completion.go',
+                'template'      => 'go-cli/internal/cmd/completion.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/valueformat.go',
+                'template'      => 'go-cli/internal/output/valueformat.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/update/check.go',
+                'template'      => 'go-cli/internal/update/check.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/update/check_test.go',
+                'template'      => 'go-cli/internal/update/check_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/sections.go',
+                'template'      => 'go-cli/internal/output/sections.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/sections_test.go',
+                'template'      => 'go-cli/internal/output/sections_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/collections.go',
+                'template'      => 'go-cli/internal/output/collections.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/spinner.go',
+                'template'      => 'go-cli/internal/output/spinner.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/spinner_test.go',
+                'template'      => 'go-cli/internal/output/spinner_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/runjwt.go',
+                'template'      => 'go-cli/internal/cmd/runjwt.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/runjwt_test.go',
+                'template'      => 'go-cli/internal/cmd/runjwt_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/settings_test.go',
+                'template'      => 'go-cli/internal/cmd/settings_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/fanout_test.go',
+                'template'      => 'go-cli/internal/cmd/fanout_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pullpushkeys_test.go',
+                'template'      => 'go-cli/internal/cmd/pullpushkeys_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/flags.go',
+                'template'      => 'go-cli/internal/cmd/flags.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/flags_test.go',
+                'template'      => 'go-cli/internal/cmd/flags_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/deploylog.go',
+                'template'      => 'go-cli/internal/output/deploylog.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/deploylog_test.go',
+                'template'      => 'go-cli/internal/output/deploylog_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/ignore.go',
+                'template'      => 'go-cli/internal/config/ignore.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/prompt/theme.go',
+                'template'      => 'go-cli/internal/prompt/theme.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/pushselect_test.go',
+                'template'      => 'go-cli/internal/cmd/pushselect_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/ignore_test.go',
+                'template'      => 'go-cli/internal/config/ignore_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/valueformat_test.go',
+                'template'      => 'go-cli/internal/output/valueformat_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/output/testdata/valueformat.json',
+                'template'      => 'go-cli/internal/output/testdata/valueformat.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/completion_test.go',
+                'template'      => 'go-cli/internal/cmd/completion_test.go',
             ],
             [
                 'scope'         => 'copy',
@@ -728,6 +926,46 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/initproject.go',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '.goreleaser.yaml',
+                'template'      => 'go-cli/.goreleaser.yaml.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'scripts/adhoc-sign.sh',
+                'template'      => 'go-cli/scripts/adhoc-sign.sh',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'scoop/appwrite.config.json',
+                'template'      => 'go-cli/scoop/appwrite.config.json.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'scripts/stage-assets.mjs',
+                'template'      => 'go-cli/scripts/stage-assets.mjs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'scripts/build-npm-packages.mjs',
+                'template'      => 'go-cli/scripts/build-npm-packages.mjs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'go-cli/.github/workflows/publish.yml.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'npm/package.json',
+                'template'      => 'go-cli/npm/package.json.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'npm/run.js',
+                'template'      => 'go-cli/npm/run.js.twig',
+            ],
+            [
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/initscaffold.go',
                 'template'      => 'go-cli/internal/cmd/initscaffold.go',
@@ -766,6 +1004,66 @@ class GoCLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/pullsettings.go',
                 'template'      => 'go-cli/internal/cmd/pullsettings.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/render_test.go',
+                'template'      => 'go-cli/internal/app/render_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/sdk/env.go',
+                'template'      => 'go-cli/internal/sdk/env.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/sdk/capture.go',
+                'template'      => 'go-cli/internal/sdk/capture.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/sdk/capture_test.go',
+                'template'      => 'go-cli/internal/sdk/capture_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/generate_test.go',
+                'template'      => 'go-cli/internal/cmd/generate_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/logout.go',
+                'template'      => 'go-cli/internal/cmd/logout.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/logout_test.go',
+                'template'      => 'go-cli/internal/cmd/logout_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/errors.go',
+                'template'      => 'go-cli/internal/cmd/errors.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/errors_test.go',
+                'template'      => 'go-cli/internal/cmd/errors_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/client_test.go',
+                'template'      => 'go-cli/internal/cmd/client_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/organization.go',
+                'template'      => 'go-cli/internal/cmd/organization.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/organization_test.go',
+                'template'      => 'go-cli/internal/cmd/organization_test.go',
             ],
             [
                 'scope'         => 'copy',

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/appwrite/appwrite-cli-go/internal/update"
 )
 
 // Ports the installation-method detection in templates/cli/lib/utils.ts:302.
@@ -136,4 +138,27 @@ func HomebrewFormula() string {
 	}
 
 	return ""
+}
+
+// NPMRegistryURL is where the newest published version is looked up.
+//
+// Ports NPM_REGISTRY_URL. Homebrew installs are updated through brew, but the
+// version published to npm is the same release, so one source answers for both
+// and the check costs one request rather than shelling out to brew.
+const NPMRegistryURL = "https://registry.npmjs.org/" + NPMPackageName + "/latest"
+
+// UpdateChecker builds the once-a-day version check, or nil when there is
+// nowhere to cache its answer.
+func UpdateChecker() *update.Checker {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+
+	return &update.Checker{
+		RegistryURL: NPMRegistryURL,
+		// Beside the preferences, which is already the directory this CLI owns.
+		CachePath: filepath.Join(home, "."+ExecutableName, "update-check.json"),
+		Current:   Version,
+	}
 }

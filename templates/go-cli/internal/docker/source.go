@@ -34,8 +34,8 @@ type Source struct {
 func matcherFor(function config.Function, directory string) *ignore.Matcher {
 	matcher := ignore.New().Add(AppwriteDirectory)
 
-	if function.Ignore != "" {
-		return matcher.Add(function.Ignore)
+	if !function.Ignore.IsEmpty() {
+		return matcher.AddAll(function.Ignore.Rules())
 	}
 
 	if contents, err := os.ReadFile(filepath.Join(directory, ".gitignore")); err == nil {

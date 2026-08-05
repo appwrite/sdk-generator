@@ -38,7 +38,7 @@ func newPushContext() (*pushContext, error) {
 		return nil, err
 	}
 
-	local, err := config.LoadLocal(config.LocalPath("."))
+	local, err := config.LoadLocal(config.FindLocalPath())
 	if err != nil {
 		return nil, fmt.Errorf(
 			"no %s found. Run `%s init project` first: %w",
@@ -229,7 +229,7 @@ func (c *pushContext) approveChanges(command *cobra.Command, request approvalReq
 
 	approved, err := c.prompter.Confirm(prompt.Question{
 		Message: "Would you like to apply these changes?",
-		Default: false,
+		Default: true,
 		Flag:    "--force",
 	})
 	if err != nil {
@@ -247,43 +247,22 @@ func (c *pushContext) approveChanges(command *cobra.Command, request approvalReq
 
 // printChanges renders the change table.
 func printChanges(command *cobra.Command, changes []change) {
-	widths := []int{2, 3, 6, 5}
+	// Through the shared renderer, so this table carries the header rule and
+	// column separators every other table has. It used to align its own
+	// columns with spaces alone, which left the reader guessing where one
+	// column ended -- especially with an empty cell in the last one.
+	//
+	// Multi-line cells -- a permissions list -- are handled by the renderer
+	// rather than split here.
+	data := make([][]string, 0, len(changes))
 	for _, entry := range changes {
-		for index, value := range []string{entry.ID, entry.Key, entry.Remote, entry.Local} {
-			for _, line := range strings.Split(value, "\n") {
-				widths[index] = max(widths[index], len([]rune(line)))
-			}
-		}
-	}
-
-	row := func(cells []string) {
-		// A multi-line cell -- a permissions list -- prints one line per
-		// entry with the other columns blank, so the rows stay aligned.
-		lines := 1
-		split := make([][]string, len(cells))
-		for index, cell := range cells {
-			split[index] = strings.Split(cell, "\n")
-			lines = max(lines, len(split[index]))
-		}
-
-		for line := range lines {
-			parts := make([]string, len(cells))
-			for index := range cells {
-				value := ""
-				if line < len(split[index]) {
-					value = split[index][line]
-				}
-				parts[index] = value + strings.Repeat(" ",
-					widths[index]-len([]rune(value)))
-			}
-			command.Printf("  %s\n", strings.TrimRight(strings.Join(parts, "  "), " "))
-		}
+		data = append(data, []string{entry.ID, entry.Key, entry.Remote, entry.Local})
 	}
 
 	command.Println()
-	row([]string{"id", "key", "remote", "local"})
-	for _, entry := range changes {
-		row([]string{entry.ID, entry.Key, entry.Remote, entry.Local})
+	for _, line := range strings.Split(
+		output.RenderTable([]string{"id", "key", "remote", "local"}, data), "\n") {
+		command.Printf("  %s\n", line)
 	}
 	command.Println()
 }
@@ -294,6 +273,7 @@ func printChanges(command *cobra.Command, changes []change) {
 // and a non-interactive shell is told to pass --all rather than left guessing.
 func (c *pushContext) selectResources(
 	resource string,
+	singular string,
 	entries []*jsonx.Object,
 ) ([]*jsonx.Object, error) {
 	if app.Flags().All {
@@ -317,6 +297,12 @@ func (c *pushContext) selectResources(
 		Options: options,
 		Filter:  true,
 		Flag:    "--all",
+		// Ports the checkbox's `validate: validateRequired(...)`
+		// (questions.ts:999). A multi-select starts with nothing ticked and
+		// Enter accepts that, so without this the prompt returns an empty
+		// list -- and the caller then reports the resources as missing, which
+		// sends the reader to `init` for something that already exists.
+		Validate: prompt.RequiredSelection(singular),
 	})
 	if err != nil {
 		return nil, err
@@ -393,10 +379,21 @@ func newPushCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "push",
 		Short: "Push your Appwrite project resources from appwrite.config.json",
+		// Not Help(). The TypeScript's `push` has an action of its own
+		// (push.ts:4280) that pushes -- prompting for one resource, or
+		// everything under --all. Showing help instead made `push --all` a
+		// no-op that looked like a usage error.
 		RunE: func(command *cobra.Command, args []string) error {
-			return command.Help()
+			return runPush(command, app.Flags().All)
 		},
 	}
+
+	// The -a shorthand for --all lives here rather than on the root: see
+	// app.RegisterGlobalFlags. Declared locally, so the persistent --all is not
+	// merged over it and `push table`'s own -a stays free.
+	command.Flags().BoolVarP(
+		app.Flags().AllPointer(), "all", "a", false,
+		"Apply the command to every matching resource.")
 
 	command.AddCommand(newPushAllCommand())
 	command.AddCommand(newPushSettingsCommand())

@@ -6,6 +6,11 @@ same way the TypeScript CLI is today.
 Read [README.md](README.md) before touching anything. It is the operating manual;
 this file is the roadmap.
 
+[AUDIT.md](AUDIT.md) is the conformance audit that compared this CLI against the
+TypeScript one across the whole command surface. It is **closed: all 23 findings
+resolved, 19 fixed and 4 accepted in writing.** Read it before declaring any
+phase complete -- it is also where the deliberate divergences are recorded.
+
 ---
 
 ## 1. Why
@@ -81,17 +86,26 @@ the current Bun binaries, so it does not decide anything.
 
 ### 1.4 Expected impact
 
-Phase 0 has now measured the first two rows against a real spike — see
-[BENCHMARKS.md](BENCHMARKS.md). The rest stay targets until Phase 6.
+Measured twice: against the Phase 0 spike, and against the finished CLI. Both
+sets are in [BENCHMARKS.md](BENCHMARKS.md), which explains why the spike's
+startup is *faster* than the product's — it had almost no command tree.
 
-| Metric | Today | Target | Phase 0 spike |
-|---|---|---|---|
-| `appwrite --help` | 206 ms | < 10 ms | **5.0 ms** (41×) |
-| Tab-completion round trip | full startup per request | < 10 ms | 5.1 ms |
-| `push` of a large site (wall clock) | 7.00 s / 369 MB tree | −20 to −40 % | **−56 %** |
-| `push` peak RSS | 421 MB, grows with archive | O(chunk size) | **102 MB, flat** |
-| Binary size | ~60–90 MB (Bun) | ~20–25 MB | 2.9 MB (no logic yet) |
-| Native modules to codesign | 1 (`@napi-rs/keyring`) | 0 | 0 |
+| Metric | Today | Target | Phase 0 spike | As shipped |
+|---|---|---|---|---|
+| `appwrite --help` | 206 ms | < 10 ms | **5.0 ms** (41×) | **5.6 ms** Linux — met; 11.3 ms macOS — miss |
+| Tab-completion round trip | full startup per request | < 10 ms | 5.1 ms | 11.9 ms macOS |
+| `push` of a large site (wall clock) | 7.00 s / 369 MB tree | −20 to −40 % | **−56 %** | not re-measured |
+| `push` peak RSS | 421 MB, grows with archive | O(chunk size) | **102 MB, flat** | O(chunk size) — met |
+| Binary size | ~60–90 MB (Bun) | ~20–25 MB | 2.9 MB (no logic yet) | **13.8 MB** — beats it |
+| Native modules to codesign | 1 (`@napi-rs/keyring`) | 0 | 0 | **0** — met |
+
+Startup meets the target on Linux and misses it by about a millisecond on macOS,
+where ~4.4 ms of the total is what that machine costs to start *any* Go binary.
+Accepted rather than chased: over half the gap sits below our code, the rest is
+cobra building the 608-command tree, and the gate that decided the rewrite was
+the relative one — ≥ 5× — which 18× clears even on the slower platform.
+`Checks / Go CLI startup` holds the line at 60 ms, where a real regression shows
+up.
 
 Unchanged: `pull`, `types`, `generate`, and anything paginating the API.
 
@@ -193,6 +207,10 @@ Any deliberate break needs its own PR, its own changelog entry, and sign-off.
 
 1. **Every flag name, shorthand, and alias.** 608 commands and 2,912 flags worth. Phase 1 produces a
    machine-checkable snapshot of these; Phase 4 diffs against it.
+   > Audited 2026-08-03: command tree and required-flag sets are at parity across
+   > 671 and 604 commands respectively. Six flags remain missing — `--report`,
+   > `-V`, `-a`, `update --manual`, `push/pull --id`, `client -ss`. See
+   > [AUDIT.md](AUDIT.md) finding 9.
 2. **`appwrite.config.json` schema.** Read and written byte-compatibly. Existing project
    files must work untouched, in both directions (a Go `push` after a TS `pull`).
 3. **Exit codes.**
@@ -434,6 +452,22 @@ rewrite is safe. Do not defer it.
 - `vendor/bin/phpunit tests/e2e/GoCLI126Test.php` green.
 - Flag-surface test from Phase 3 green in CI.
 - The Go CLI's suite runs in CI on every PR, independently of the TypeScript CLI's.
+
+> **Met.** Every item landed, and CI runs `GoCLI126` on every PR -- the Go CLI's own
+> conformance run, built and driven by its own harness with no dependency on the
+> TypeScript CLI being present.
+>
+> Item 3 is met with one documented narrowing: `GoCLI126Test` reuses
+> `FOO_RESPONSES`, `BAR_RESPONSES`, `UPLOAD_RESPONSES` and
+> `CLI_HEADERS_RESPONSES` unchanged, and does not assert the constants the
+> TypeScript run produces from its `require("./lib/*.ts")` half — typegen,
+> emulation and prompt behaviour describe TypeScript internals rather than CLI
+> output, and the Go equivalents are covered by `go test ./internal/...`, which
+> the same test's build step runs.
+>
+> The wider sweep this phase was reordered for did its job: it found 369 of 606
+> commands sending different requests, and every one of those is now accounted
+> for in [AUDIT.md](AUDIT.md).
 
 **Risk:** the Bun test harness leaks containers on interrupt. `cd mock-server &&
 docker compose down` before re-running.
@@ -710,19 +744,63 @@ satisfy them. Do not port 4,380 lines on faith.
 **Entry:** Phase 5 exit met. Correctness first. Do not optimise into an unverified
 implementation.
 
+> **Folded into Phases 5 and 7 rather than run as its own phase.** Items 3 and 4
+> landed with the code that needed them, and items 1 and 2 turned out to need no
+> work — see each below. What was genuinely outstanding was the exit criterion, a
+> CI job that fails on a startup regression, and that is now `Checks / Go CLI
+> startup`. There is no `phase-6` branch, and Phase 7 is stacked directly on
+> Phase 5.
+
 **Work:**
 
 1. `pprof` the startup path only if it regressed past the Phase 0 measurement of
    5.0 ms. Cobra tree construction is **not** the bottleneck — that is settled; do not
    re-litigate it with lazy registration.
+
+   **Not needed.** The real CLI starts in 11.4 ms (median of 15, `--help`,
+   stripped binary), against the spike's 5.0 ms — but the spike had a handful of
+   commands where this has 608, so that is the cost of the command surface rather
+   than a regression to hunt. The §1.4 gate is relative and passes with room:
+   205.9 ms Bun ÷ 11.4 ms is **18×**, against a target of 5×.
 2. Streaming deploy: `archive/tar` → `pgzip` → `io.Pipe` → multipart body. No temp
    file, no full-archive buffer. Phase 0 proved this holds peak RSS flat at ~102 MB
-   while the archive doubles from 95 MB to 190 MB. **Use gzip level 9** — `node-tar`
-   effectively defaults to 9, and level 6 silently uploads ~3 % more bytes.
+   while the archive doubles from 95 MB to 190 MB.
+
+   **The memory target is met by a different route, and the gzip advice here was
+   wrong.** `CreateTarGzFiles` writes the archive to a temporary file one file at a
+   time, and `Upload` reads it back in 5 MB windows through
+   `io.NewSectionReader`, so nothing ever holds the whole archive and peak RSS is
+   bounded by the chunk rather than by the payload. A pipe would remove the
+   temporary file, which is a disk-space and tidiness win, not a memory one.
+   `pgzip`'s parallelism remains unclaimed; that is a wall-clock optimisation, and
+   the 56 % measured in Phase 0 was against the buffered TypeScript, not against
+   this.
+
+   The instruction to **use gzip level 9** rested on `node-tar` "effectively
+   defaulting to 9". It does not. Measured on the same 5.9 MB tree:
+
+   | Writer | Archive |
+   |---|---|
+   | `node-tar` `gzip: true` — what the TypeScript ships | 749,553 B |
+   | `node-tar` `gzip: {level: 9}` | 716,519 B |
+   | Go `gzip.NewWriter` — what this ships | 750,434 B |
+   | Go `gzip.NewWriterLevel(…, 9)` | 715,731 B |
+
+   Both default to zlib level 6, and the shipped Go archive is within 0.1 % of the
+   shipped TypeScript one. Moving Go to level 9 would make it *diverge* by
+   uploading ~4.6 % fewer bytes and spending more CPU to do it. Left at the
+   default, deliberately.
 3. Tune `errgroup.SetLimit` against the polling behaviour. The TS `Pools` debounce
    logic (`push.ts:2864`) encodes tuning that was learned the hard way — read it before
    picking a number.
+
+   **Done in Phase 5.** `deploy.UploadConcurrency` is 8, which is the console
+   SDK's `CONCURRENCY`, and the first chunk goes up alone to establish the upload
+   id before the rest follow.
 4. Trim binary size: `-ldflags="-s -w"`, audit the dependency tree.
+
+   **Done in Phase 7.** `.goreleaser.yaml` passes `-s -w`; the stripped binary is
+   13.8 MB against the shipped Bun binary's 66 MB.
 5. Extend `BENCHMARKS.md` with before/after for every §1.4 row, on the same hardware
    as Phase 0.
 
@@ -764,7 +842,41 @@ implementation.
 4. `scoop/appwrite.config.json.twig`.
 5. Homebrew tap formula — `homebrewTapOwner`/`Name`/`Branch` params already exist on the
    language class (`CLI.php:166`).
-0. **Resolve the SDK release ordering.** The Go CLI depends on the generated Go SDK,
+0. **SDK release ordering — DECIDED: the SDK ships first and the CLI pins a released
+   version.** The `replace` directive in `templates/go-cli/go.mod.twig` is dropped for
+   shipped builds in favour of a pinned `github.com/appwrite/sdk-for-go` version.
+
+   The accepted cost is that the CLI trails the spec: exposing a new endpoint takes two
+   releases, the SDK's and then the CLI's. That is the same coupling that keeps
+   `listStages`, `updateStage` and `approve` out of the TypeScript CLI today, so this
+   decision does not introduce the problem — it declines to solve it, in exchange for
+   reproducible builds and a working `go install`.
+
+   The alternative considered and rejected was vendoring the SDK from the same commit,
+   which removes the lag but lets the published module and the CLI's copy drift.
+
+   **Two things measured against the real release, `sdk-for-go v6.2.0`.**
+
+   First, the import path. Go requires the major version in the module path from
+   v2 on, so v6 is imported as `github.com/appwrite/sdk-for-go/v6` -- requesting it
+   without the suffix returns `invalid version: go.mod has post-v6 module path`.
+   The templates now derive that suffix from the pinned version
+   (`GoCLI::setSDKVersion`), so it cannot disagree with what is required. The local
+   `replace` target has to match the suffix too, which is why `examples/go` is
+   generated at the same version: a replace only resolves when the target module
+   declares the path being replaced.
+
+   Second, the lag is not hypothetical. v6.2.0 resolves and ships 33 packages, but
+   the CLI imports three it does not have: `migrations`, `notifications` and `vcs`.
+   So a shipped build cannot compile against it until the SDK is regenerated from
+   the spec the CLI is generated from. That is the cost this decision accepted,
+   stated as a fact rather than a risk -- and the reason the pin is worth carrying
+   anyway is that the failure is now specific ("does not contain package
+   .../vcs") rather than the placeholder's "unknown revision v0.0.0".
+
+   The original framing follows.
+
+   The Go CLI depends on the generated Go SDK,
    so the SDK has to ship before the CLI can expose a new endpoint. This is not
    hypothetical: `listStages`, `updateStage` and `approve` are excluded from the
    TypeScript CLI today purely because the released npm package trails the spec
@@ -801,7 +913,14 @@ implementation.
 
 **Goal:** switch over without stranding anyone.
 
-**Entry:** Phase 7 exit met.
+**Entry:** Phase 7 exit met, **and** every finding in [AUDIT.md](AUDIT.md) either
+fixed or accepted in writing.
+
+> As of 2026-08-03 the blocking findings are fixed, including finding 2 — the
+> data-corruption bug where `--enabled false` sent `true`, demonstrated against
+> a live instance by flipping a real account's email to verified. The entry bar
+> is now the four remaining findings being decided rather than fixed: two need
+> a live check, two are cosmetic.
 
 **Work:**
 
@@ -816,6 +935,10 @@ implementation.
 5. Deprecate: remove `templates/cli/`, `src/SDK/Language/CLI.php`, the three
    `CLIBun*Test.php` files, and the `cli` block in `example.php`. Rename `go-cli` → `cli`
    throughout, so the ecosystem sees no rename.
+
+   Nothing in the Go CLI's own test path has to go with them: its harness is
+   `tests/e2e/languages/go-cli/main.go` and depends on no TypeScript file, which is
+   the point of keeping the two independent.
 
 **Exit:**
 - Go CLI is the default install on every channel.

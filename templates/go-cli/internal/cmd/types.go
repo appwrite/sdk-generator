@@ -25,8 +25,8 @@ import (
 // @appwrite.io/console or react-native-appwrite, the JavaScript one only ever
 // chooses between node-appwrite and appwrite.
 //
-// (typegen.PubspecPackage is the Dart equivalent and is deliberately unused:
-// dart.ts declares getPackageName() but its template never calls it.)
+// Dart has no equivalent: dart.ts declares getPackageName() and nothing calls
+// it, so there is nothing to resolve and nothing was ported.
 var typeLanguages = map[string]func(directory string) typegen.Language{
 	"ts": func(directory string) typegen.Language {
 		return typegen.TypeScript{Dependency: typegen.AppwriteDependency(directory)}

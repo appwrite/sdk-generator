@@ -20,7 +20,7 @@ func ClientForOrganization(string) (any, error) { return nil, errNoClientInTestB
 package app
 
 import (
-	sdkclient "github.com/appwrite/sdk-for-go/client"
+	sdkclient "{{ language.params.sdkImportPath }}/client"
 
 	"github.com/appwrite/appwrite-cli-go/internal/sdk"
 )

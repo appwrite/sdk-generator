@@ -63,9 +63,12 @@ var codeResources = []codeResource{
 		Path: "/sites", Wrapper: "sites", ConfigKey: "sites",
 		Directory: "sites",
 		Keys: []string{
-			"$id", "name", "path", "enabled", "logging", "timeout",
-			"installCommand", "buildCommand", "outputDirectory", "buildRuntime",
-			"adapter", "fallbackFile", "framework", "specification",
+			"$id", "name", "path", "framework", "logging", "timeout",
+			"buildRuntime", "adapter", "installCommand", "buildCommand",
+			"outputDirectory", "fallbackFile", "installationId",
+			"providerRepositoryId", "providerBranch", "providerSilentMode",
+			"providerRootDirectory", "startCommand", "buildSpecification",
+			"runtimeSpecification", "deploymentRetention",
 		},
 		Label: "sites",
 	},
@@ -81,6 +84,9 @@ func newPullCodeCommand(resource codeResource) *cobra.Command {
 		Use:     resource.Name,
 		Aliases: resource.Aliases,
 		Short:   "Pull " + resource.Label + " from your Appwrite project",
+		PreRunE: func(command *cobra.Command, args []string) error {
+			return applyNegatedFlags(command)
+		},
 		RunE: func(command *cobra.Command, args []string) error {
 			return runPullCode(command, resource, code, withVariables)
 		},
@@ -88,9 +94,7 @@ func newPullCodeCommand(resource codeResource) *cobra.Command {
 
 	command.Flags().BoolVar(&withVariables, "with-variables", false,
 		"Pull "+resource.Label+" variables into a .env file")
-	// `--no-code` in commander is a boolean defaulting on; pflag spells the
-	// same thing as --code defaulting to true.
-	command.Flags().BoolVar(&code, "code", true,
+	negatableBool(command.Flags(), &code, "code",
 		"Pull the source code of the latest deployment")
 
 	return command
@@ -117,20 +121,6 @@ func runPullCode(command *cobra.Command, resource codeResource, code, withVariab
 		return nil
 	}
 
-	if code {
-		// Downloading overwrites whatever is in the resource's directory, so
-		// it is confirmed rather than assumed.
-		confirmed, err := prompt.New(app.Flags().Force).Confirm(prompt.Question{
-			Message: "Pull the source code of the latest deployment?",
-			Default: false,
-			Flag:    "--force",
-		})
-		if err != nil {
-			return err
-		}
-		code = confirmed
-	}
-
 	// Without --all the TypeScript asks WHICH resources to pull, so pulling
 	// everything by default would silently do more than asked.
 	if !app.Flags().All {
@@ -138,6 +128,23 @@ func runPullCode(command *cobra.Command, resource codeResource, code, withVariab
 		if err != nil {
 			return err
 		}
+	}
+
+	// AFTER the selection, which is the order the TypeScript asks in
+	// (pull.ts:901 then :905). Asking about the code first made the user answer
+	// a question about resources they had not chosen yet.
+	if code {
+		// Downloading overwrites whatever is in the resource's directory, so
+		// it is confirmed rather than assumed.
+		confirmed, err := prompt.New(app.Flags().Force).Confirm(prompt.Question{
+			Message: "Pull the source code of the latest deployment?",
+			Default: true,
+			Flag:    "--force",
+		})
+		if err != nil {
+			return err
+		}
+		code = confirmed
 	}
 
 	directory := context.local.ResourceDirname(resource.ConfigKey)

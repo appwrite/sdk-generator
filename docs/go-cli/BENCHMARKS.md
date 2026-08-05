@@ -1,4 +1,86 @@
-# Phase 0 — Spike Results
+# Benchmarks
+
+Two sets of numbers, and it matters which you are reading:
+
+- [**As shipped**](#as-shipped) — the finished CLI, all 608 commands. What to
+  quote, and what CI guards.
+- [**Phase 0 spike**](#phase-0--spike-results) — a throwaway binary with a handful
+  of commands, measured to decide whether to attempt the rewrite at all. Its
+  startup number is *better* than the shipped one because it had almost no
+  command tree, so do not read it as a regression.
+
+## As shipped
+
+**Binary:** `go build -ldflags="-s -w"`, 13.8 MB
+**Method:** median of 15 runs per row, page cache warmed first
+**Machines:** Apple M2 Pro, 12 cores, 32 GB, macOS 26.5.2 · and `ubuntu-latest`,
+via the `Checks / Go CLI startup` job
+
+Startup is **platform-dependent by more than the target's margin**, so both are
+given. Quoting only one would be picking a number.
+
+| Metric | Today (Bun) | Target | Linux (CI) | macOS (M2 Pro) |
+|---|---|---|---|---|
+| `appwrite --help` | 205.9 ms | < 10 ms | **5.6 ms** — met (37×) | 11.3 ms — miss (18×) |
+| `appwrite databases --help` | 205.3 ms | < 10 ms | — | 11.1 ms |
+| Tab-completion round trip | full startup per request | < 10 ms | — | 11.9 ms |
+
+| Metric | Today | Target | As shipped | |
+|---|---|---|---|---|
+| Binary size | 66 MB shipped Bun binary | 20–25 MB | **13.8 MB** | beats it |
+| Native modules to codesign | 1 (`@napi-rs/keyring`) | 0 | **0** | met |
+| `push` peak RSS | 421 MB, grows with archive | O(chunk size) | **O(chunk size)** | met, by a different route |
+
+### Why macOS is twice Linux, and why it is accepted
+
+Most of the difference is the platform, not the CLI. Measured on the same Mac:
+
+| | median |
+|---|---|
+| `/usr/bin/true` | 2.65 ms |
+| An empty Go binary, `func main() {}`, 1.1 MB | 4.35 ms |
+| `appwrite --help`, 13.8 MB, 608 commands | 11.11 ms |
+
+So ~4.4 ms is what it costs this machine to start *any* Go binary — dyld and
+signature validation on every exec — before a line of our code runs. The CLI's
+own share is ~6.7 ms, and cobra building the 608-command tree is most of it.
+Phase 0 already measured lazy registration against exactly this and found the win
+did not justify the complexity; that conclusion still holds.
+
+Linux pays a much smaller exec cost and comes in at 5.6 ms, inside the target.
+
+Accepted on macOS rather than chased, for three reasons: over half the gap is
+below our code, the remainder is the command surface itself rather than avoidable
+work, and the gate that decided the rewrite was the **relative** one — ≥ 5× —
+which 18× clears even on the slower platform. Nobody perceives 10 ms against
+11 ms; everybody perceived the 195 ms that went away.
+
+`Checks / Go CLI startup` fails the build past 60 ms, which is where a real
+regression lives — an `init()` reaching the network, or a keyring read before a
+flag is parsed. It runs on Linux, so it reads against the 5.6 ms figure.
+
+### `push` peak RSS
+
+Met, but not the way Phase 0 predicted. The spike streamed
+`tar` → `pgzip` → `io.Pipe` → multipart with no temp file. The shipped code writes
+the archive to a temporary file one file at a time and `Upload` reads it back in
+5 MB windows through `io.NewSectionReader`, so nothing ever holds the whole
+archive and peak RSS is bounded by the chunk rather than the payload. Same
+guarantee, different mechanism. See PLAN.md Phase 6 item 2 for why the pipe and
+`pgzip` were left unclaimed.
+
+### `push` wall clock
+
+Not re-measured as shipped. The −56 % below is the spike against the buffered
+TypeScript; the shipped code uses single-threaded stdlib gzip rather than
+`pgzip`, so treat that figure as the ceiling rather than the current number. What
+*is* verified against a live server is that deployments work end to end and that
+a 16 MB chunked upload produces a byte-identical request signature — see
+[AUDIT.md](AUDIT.md).
+
+---
+
+## Phase 0 — Spike Results
 
 Measurements backing the decision to rewrite the CLI in Go. Every number here is
 reproducible with the commands given; re-run them before trusting them on other
@@ -14,6 +96,9 @@ Verdict: **both gates cleared by a wide margin.** Proceed to Phase 1.
 |---|---|---|---|
 | Startup | ≥ 5× faster | **41×** | pass |
 | `push` packaging | ≥ 20 % faster | **56 % faster** | pass |
+
+> The 41× is the spike's 5.0 ms, not the shipped CLI's 11.3 ms. See [As
+> shipped](#as-shipped).
 
 ---
 

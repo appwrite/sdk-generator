@@ -2,10 +2,52 @@ package output
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
 )
+
+// jsSafeInteger is the largest integer JavaScript represents exactly, 2^53 - 1.
+//
+// The TypeScript parses responses with json-bigint, which leaves anything
+// inside this range a plain number and promotes anything outside it to a
+// BigNumber. filterData then renders only the BigNumbers with String().
+const jsSafeInteger = 1<<53 - 1
+
+// renderedAsString reports whether the TypeScript would have stringified this
+// number.
+//
+// An earlier port read "json-bigint yields BigNumber and String(value) renders
+// it" as "every number becomes a string", because with UseNumber() every number
+// arrives as a json.Number. That turned `"total": 0` into `"total": "0"` and
+// broke any consumer doing arithmetic on --json output.
+func renderedAsString(number json.Number) bool {
+	text := number.String()
+
+	// Only integer literals are ever promoted; a float stays a float however
+	// large it is.
+	if strings.ContainsAny(text, ".eE") {
+		return false
+	}
+
+	value, err := strconv.ParseInt(text, 10, 64)
+	if err != nil {
+		// Too many digits for an int64, so certainly past 2^53.
+		return true
+	}
+
+	return value > jsSafeInteger || value < -jsSafeInteger
+}
+
+// filteredNumber returns a number as --json should carry it.
+func filteredNumber(number json.Number) any {
+	if renderedAsString(number) {
+		return number.String()
+	}
+
+	return number
+}
 
 // Ports the field-selection half of templates/cli/lib/parser.ts.
 //
@@ -48,7 +90,7 @@ func FilterObject(object *jsonx.Object) *jsonx.Object {
 			continue
 		}
 		if number, ok := value.(json.Number); ok {
-			result.Set(key, number.String())
+			result.Set(key, filteredNumber(number))
 
 			continue
 		}
@@ -71,9 +113,9 @@ func FilterObject(object *jsonx.Object) *jsonx.Object {
 // FilterData prepares a response for --json.
 //
 // Scalars survive. Arrays survive with their object elements flattened by
-// FilterObject. Nested objects, nulls and blank strings are dropped. Numbers
-// become strings, which looks odd but is what the TypeScript does: json-bigint
-// yields BigNumber instances and `String(value)` is how they are rendered.
+// FilterObject. Nested objects, nulls and blank strings are dropped. Integers
+// past 2^53 become strings, matching what json-bigint hands the TypeScript;
+// see renderedAsString.
 //
 // Ports filterData().
 func FilterData(data *jsonx.Object) *jsonx.Object {
@@ -86,7 +128,7 @@ func FilterData(data *jsonx.Object) *jsonx.Object {
 		}
 
 		if number, ok := value.(json.Number); ok {
-			result.Set(key, number.String())
+			result.Set(key, filteredNumber(number))
 
 			continue
 		}
@@ -96,7 +138,7 @@ func FilterData(data *jsonx.Object) *jsonx.Object {
 			items := make([]any, 0, len(typed))
 			for _, item := range typed {
 				if number, ok := item.(json.Number); ok {
-					items = append(items, number.String())
+					items = append(items, filteredNumber(number))
 
 					continue
 				}
@@ -123,32 +165,32 @@ func FilterData(data *jsonx.Object) *jsonx.Object {
 	return result
 }
 
-// ApplyDisplayFields narrows rows to the fields named by --display-field.
+// quoteBigIntegers walks a decoded response and renders integers past 2^53 as
+// strings, leaving every other value alone.
 //
-// A row that has none of the requested fields is returned whole rather than
-// blank: showing nothing would look like the row does not exist.
-//
-// Ports applyDisplayFilter().
-func ApplyDisplayFields(rows []*jsonx.Object, fields []string) []*jsonx.Object {
-	if len(fields) == 0 {
-		return rows
+// --raw keeps whatever the API sent, so unlike FilterData this drops nothing
+// and reshapes nothing; it only makes the same precision decision json-bigint
+// makes for the TypeScript.
+func quoteBigIntegers(value any) any {
+	switch typed := value.(type) {
+	case json.Number:
+		return filteredNumber(typed)
+	case *jsonx.Object:
+		result := jsonx.NewObject()
+		for _, key := range typed.Keys() {
+			nested, _ := typed.Get(key)
+			result.Set(key, quoteBigIntegers(nested))
+		}
+
+		return result
+	case []any:
+		items := make([]any, 0, len(typed))
+		for _, item := range typed {
+			items = append(items, quoteBigIntegers(item))
+		}
+
+		return items
 	}
 
-	filtered := make([]*jsonx.Object, 0, len(rows))
-	for _, row := range rows {
-		narrowed := jsonx.NewObject()
-		for _, field := range fields {
-			if value, ok := row.Get(field); ok {
-				narrowed.Set(field, value)
-			}
-		}
-		if narrowed.Len() == 0 {
-			filtered = append(filtered, row)
-
-			continue
-		}
-		filtered = append(filtered, narrowed)
-	}
-
-	return filtered
+	return value
 }

@@ -23,8 +23,8 @@ import (
 //
 // not to the /tables route the resource name would suggest. Tables and
 // collections are the same objects behind two route prefixes, so both work, but
-// what the TypeScript sends is the contract and it sends /databases. Re-record
-// with docs/go-cli/conformance/ before changing this.
+// what the TypeScript sends is the contract and it sends /databases. Re-record a
+// push against a recording proxy before changing this.
 //
 // A field ABSENT from the config is absent from the request body. The
 // TypeScript passes `xdefault: attribute.default` and the JavaScript SDK drops

@@ -312,7 +312,7 @@ func (c *pushContext) selectSimple(resource simpleResource) ([]*jsonx.Object, er
 		return nil, nil
 	}
 
-	return c.selectResources(resource.PromptNoun, entries)
+	return c.selectResources(resource.PromptNoun, resource.Singular, entries)
 }
 
 // pushOne creates or updates a single resource, reporting whether it was

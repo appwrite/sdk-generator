@@ -11,7 +11,7 @@ go 1.26.5
 // so anything added by hand to the generated file is lost on the next run.
 require (
 {% if not sdk.test %}
-	github.com/appwrite/sdk-for-go v0.0.0
+	{{ language.params.sdkImportPath }} {{ language.params.sdkVersion }}
 {% endif %}
 	github.com/charmbracelet/huh v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.0
@@ -22,12 +22,16 @@ require (
 	golang.org/x/sync v0.19.0
 	golang.org/x/term v0.33.0
 )
+{% if not sdk.test and language.params.localSdkPath %}
 
-{% if not sdk.test %}
-// The published SDK is the real dependency. This replace points at the SDK this
-// same generator produces, so `examples/go-cli` can be built and tested without
-// waiting for an SDK release -- which is exactly the coupling that keeps three
-// methods excluded from the TypeScript CLI today (see example.php).
-// Drop it in the shipped repository and pin a released version instead.
-replace github.com/appwrite/sdk-for-go => ../go
+// Only emitted when a local SDK path is configured, which example.php does so
+// that `examples/go-cli` builds and tests without waiting for an SDK release.
+// A shipped repository sets no path and gets the pinned version above, which
+// is the safe default: forgetting to configure this yields an ordinary
+// dependency rather than a release that cannot resolve.
+//
+// That coupling is not hypothetical -- it is what keeps three methods excluded
+// from the TypeScript CLI today, waiting on a published package (see
+// example.php). Publish the SDK first, then raise sdkVersion here.
+replace {{ language.params.sdkImportPath }} => {{ language.params.localSdkPath }}
 {% endif %}

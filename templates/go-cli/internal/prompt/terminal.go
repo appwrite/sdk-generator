@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 	"golang.org/x/term"
 )
 
@@ -76,7 +77,8 @@ const minimumWidth = 40
 func (t *Terminal) run(field huh.Field) error {
 	form := huh.NewForm(huh.NewGroup(field)).
 		WithInput(t.input()).
-		WithOutput(t.output())
+		WithOutput(t.output()).
+		WithTheme(theme)
 
 	if width, _, err := term.GetSize(int(os.Stderr.Fd())); err != nil || width < minimumWidth {
 		form = form.WithWidth(minimumWidth)
@@ -193,7 +195,7 @@ func (t *Terminal) MultiChoice(question MultiChoice) ([]string, error) {
 		Options(options...).
 		Filterable(question.Filter).
 		Value(&values).
-		Validate(func(selected []string) error {
+		Validate(skipFirstCall(func(selected []string) error {
 			for _, value := range selected {
 				if reason, ok := disabled[value]; ok {
 					if reason != "" {
@@ -208,7 +210,7 @@ func (t *Terminal) MultiChoice(question MultiChoice) ([]string, error) {
 			}
 
 			return nil
-		})
+		}))
 
 	if err := t.run(field); err != nil {
 		return nil, err
@@ -221,8 +223,13 @@ func (t *Terminal) MultiChoice(question MultiChoice) ([]string, error) {
 func (t *Terminal) Confirm(question Question) (bool, error) {
 	value := question.Default
 
+	// Inline and left-aligned: huh stacks the buttons under the question and
+	// centres them by default, which floats them in the middle of an otherwise
+	// left-aligned terminal. A yes/no belongs beside the question it answers.
 	field := huh.NewConfirm().
 		Title(question.Message).
+		Inline(true).
+		WithButtonAlignment(lipgloss.Left).
 		Value(&value)
 
 	if err := t.run(field); err != nil {

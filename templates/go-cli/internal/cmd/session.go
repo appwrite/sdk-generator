@@ -2,11 +2,17 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
+	"io"
+	"runtime"
+	"strings"
 
 	"github.com/appwrite/appwrite-cli-go/internal/app"
 	"github.com/appwrite/appwrite-cli-go/internal/auth"
 	"github.com/appwrite/appwrite-cli-go/internal/client"
 	"github.com/appwrite/appwrite-cli-go/internal/config"
+	"github.com/appwrite/appwrite-cli-go/internal/jsonx"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 )
 
@@ -92,18 +98,40 @@ func newWhoamiCommand() *cobra.Command {
 				return err
 			}
 
-			var account map[string]any
-			if err := api.Call("GET", "/account", nil, &account); err != nil {
+			account := jsonx.NewObject()
+			if err := api.Call("GET", "/account", nil, account); err != nil {
 				return err
 			}
 
+			// Rendered rather than printed, so --json and --raw work here as
+			// they do on every generated command. Printing directly meant
+			// `whoami --json` emitted the human table.
 			session := global.Current()
-			command.Printf("Endpoint : %s\n", session.GetString(config.PreferenceEndpoint))
-			command.Printf("Email    : %v\n", account["email"])
-			command.Printf("Name     : %v\n", account["name"])
-			command.Printf("ID       : %v\n", account["$id"])
+			// The CLI identifies itself first, the way `vercel whoami` does.
+			// Both lines are what a bug report needs and what someone chasing
+			// "works on my machine" asks for, so they are fields rather than a
+			// banner -- that way `--json` carries them too.
+			//
+			// MFA is deliberately absent: the OAuth login the CLI uses does not
+			// exercise it, so reporting it invited a conclusion it cannot
+			// support.
+			// A banner rather than a field, the way `vercel whoami` opens with
+			// "Vercel CLI 58.4.4 (Node.js 22.19.0)". Dim, because it is context
+			// for the answer rather than part of it.
+			//
+			// To stderr when the output is being parsed -- same rule as the
+			// update notice, so `whoami --json | jq` still gets only JSON.
+			fmt.Fprintln(bannerWriter(command), bannerStyle.Render(fmt.Sprintf(
+				"Appwrite CLI %s (Go %s, %s/%s)", app.Version,
+				strings.TrimPrefix(runtime.Version(), "go"),
+				runtime.GOOS, runtime.GOARCH)))
 
-			return nil
+			report := jsonx.NewObject()
+			report.Set("Name", account.GetString("name"))
+			report.Set("Email", account.GetString("email"))
+			report.Set("Endpoint", session.GetString(config.PreferenceEndpoint))
+
+			return app.Render(report)
 		},
 	}
 }
@@ -125,17 +153,25 @@ func newSessionsCommand() *cobra.Command {
 				return nil
 			}
 
+			// Rendered like everything else so --json is machine-readable.
+			// The active session is a field rather than a leading asterisk,
+			// because a marker in a table cannot survive JSON.
 			current := global.CurrentSessionID()
+			rows := make([]any, 0, len(ids))
 			for _, id := range ids {
 				session, _ := global.Session(id)
-				marker := " "
-				if id == current {
-					marker = "*"
-				}
-				command.Printf("%s %s  %s  %s\n", marker, id, session.Email, session.Endpoint)
+				row := jsonx.NewObject()
+				row.Set("ID", id)
+				row.Set("Email", session.Email)
+				row.Set("Endpoint", session.Endpoint)
+				row.Set("Active", id == current)
+				rows = append(rows, row)
 			}
 
-			return nil
+			report := jsonx.NewObject()
+			report.Set("sessions", rows)
+
+			return app.Render(report)
 		},
 	}
 }
@@ -163,25 +199,42 @@ func newLogoutCommand() *cobra.Command {
 				return nil
 			}
 
-			// Clear the refresh token before removing the session entry:
-			// DeleteRefresh needs the session to still exist to drop the prefs
-			// fallback copy.
-			store := &auth.TokenStore{Global: global}
-			for _, id := range targets {
-				if err := store.DeleteRefresh(id); err != nil {
-					return err
-				}
-				global.DeleteSession(id)
-			}
+			// Revoked at the server first. Deleting the local entry alone
+			// left the credential working until it expired on its own.
+			result := logoutSessions(global, targets)
 			if err := global.Write(); err != nil {
 				return err
 			}
 
-			command.Printf("Signed out of %d session(s).\n", len(targets))
+			if len(result.SignedOut) > 0 {
+				command.Printf("Signed out of %d session(s).\n", len(result.SignedOut))
+			}
+			if len(result.Failed) > 0 {
+				// Kept, not removed: a live server session with no local record
+				// of it is the one state the user cannot recover from.
+				return fmt.Errorf(
+					"could not sign out of %d session(s), which are still stored: %s",
+					len(result.Failed), strings.Join(result.Errors, "; "))
+			}
 
 			return nil
 		},
 	}
+}
+
+// bannerStyle is the dim grey the CLI uses for context lines.
+var bannerStyle = lipgloss.NewStyle().Faint(true)
+
+// bannerWriter is stderr whenever stdout is being parsed.
+//
+// The banner is context, not data. On stdout under --json it would land inside
+// the document and break `whoami --json | jq`.
+func bannerWriter(command *cobra.Command) io.Writer {
+	if app.Flags().JSON || app.Flags().Raw {
+		return command.ErrOrStderr()
+	}
+
+	return command.OutOrStdout()
 }
 
 // registerSessionCommands attaches the commands that do not come from the spec.

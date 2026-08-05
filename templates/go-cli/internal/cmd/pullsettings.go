@@ -79,7 +79,12 @@ func runPullSettings(command *cobra.Command) error {
 	output.Log(out, "Pulling project settings ...")
 
 	projectID := context.local.Data.GetString("projectId")
-	organizationID := context.local.Data.GetString("organizationId")
+
+	organizationID, err := resolveOrganizationID(
+		out, api, context.local.Data.GetString("organizationId"), projectID)
+	if err != nil {
+		return err
+	}
 
 	var project jsonx.Object
 	// WithoutResponseFormat is required, not cosmetic: with the header the

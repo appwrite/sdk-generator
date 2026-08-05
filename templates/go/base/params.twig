@@ -5,7 +5,14 @@
 	}
 {% endif %}
 	params := map[string]interface{}{}
-{% for parameter in method.parameters.all %}
+{#
+   Query and body only. `parameters.all` also holds the PATH parameters, which
+   are already substituted into the URL -- sending them again put userId in the
+   query string of a GET and in the body of a PATCH, where no other Appwrite
+   SDK sends them. Header parameters are built into `headers` below, so they
+   are excluded here for the same reason.
+#}
+{% for parameter in method.parameters.query|merge(method.parameters.body|default([]))|merge(method.parameters.formData|default([])) %}
 {% if parameter.required %}
 	params["{{ parameter.name }}"] = {{ parameter.name | caseUcfirst }}
 {% else %}
