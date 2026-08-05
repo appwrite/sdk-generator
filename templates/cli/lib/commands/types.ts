@@ -19,7 +19,14 @@ import { JavaScript } from "../type-generation/languages/javascript.js";
 import { CSharp } from "../type-generation/languages/csharp.js";
 
 type SupportedLanguage =
-  "ts" | "js" | "php" | "kotlin" | "swift" | "java" | "dart" | "cs";
+  | "ts"
+  | "js"
+  | "php"
+  | "kotlin"
+  | "swift"
+  | "java"
+  | "dart"
+  | "cs";
 
 function createLanguageMeta(language: SupportedLanguage): LanguageMeta {
   switch (language) {
@@ -40,44 +47,8 @@ function createLanguageMeta(language: SupportedLanguage): LanguageMeta {
     case "cs":
       return new CSharp();
     default:
-      throw new Error(unsupportedLanguageMessage(language));
+      throw new Error(`Language '${language}' is not supported`);
   }
-}
-
-/**
- * The accepted `-l` values, minus `auto` — a mode rather than a language, and so
- * not an answer to "pass one of these instead".
- */
-const SUPPORTED_LANGUAGES: SupportedLanguage[] = [
-  "ts",
-  "js",
-  "php",
-  "kotlin",
-  "swift",
-  "java",
-  "dart",
-  "cs",
-];
-
-/**
- * `-l` itself is validated by commander's `.choices()`, which already lists what
- * it accepts, so this branch is reached by DETECTION: a directory holding a
- * .csproj resolves to `dotnet` while the emitter is keyed `cs`, and a Python or
- * Ruby project resolves to a language nothing generates for at all. The value
- * was chosen by the CLI, so naming what to pass instead is the whole message.
- */
-function unsupportedLanguageMessage(language: string): string {
-  const supported = SUPPORTED_LANGUAGES.join(", ");
-  const alias: Record<string, SupportedLanguage> = {
-    dotnet: "cs",
-  };
-
-  const suggestion = alias[language.toLowerCase()];
-  if (suggestion) {
-    return `Language '${language}' is not supported -- did you mean '${suggestion}'? The supported languages are ${supported}`;
-  }
-
-  return `Language '${language}' is not supported. The supported languages are ${supported}`;
 }
 
 const templateHelpers = {
@@ -125,15 +96,7 @@ type TypeDataItem = Record<string, unknown> & {
 const typesCommand = actionRunner(
   async (rawOutputDirectory: string, { language, strict }: TypesOptions) => {
     if (language === "auto") {
-      try {
-        language = detectLanguage();
-      } catch (err) {
-        // detectLanguage's own message is shared with anything else that calls
-        // it; the list of what to pass instead is added here, where it is known.
-        throw new Error(
-          `${(err as Error).message}. The supported languages are ${SUPPORTED_LANGUAGES.join(", ")}`,
-        );
-      }
+      language = detectLanguage();
       log(`Detected language: ${language}`);
     }
 
