@@ -6,51 +6,23 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 )
 
-// What a resource IS, as opposed to what pull or push does with it.
-//
-// The two directions need genuinely different descriptors: a pull shapes a
-// response into the config schema, a push builds a request body in the SDK's
-// parameter order, and neither field set is a subset of the other. What they
-// must not disagree about is the resource's name, its route, and which config
-// array holds it -- so that is stated once here and embedded by both.
-//
-// Before this, `table` carried its route and key names in two tables under
-// different field names (DatabaseKey against DatabaseConfigKey, ChildKey
-// against ConfigKey), and answering "where do tables live" meant reading both.
-
 // resourceIdentity is the half of a descriptor that pull and push share.
 type resourceIdentity struct {
-	// Name is the subcommand; Aliases mirror the TypeScript's plural forms.
 	Name    string
 	Aliases []string
-	// Path is the API route that lists the resource.
-	Path string
-	// ConfigKey is the top-level array in appwrite.config.json. It doubles as
-	// the array key in a list response -- the API and the config agree on the
-	// plural for every resource here, which is why `pull` can write what it
-	// read without renaming it.
+	Path    string
+	// ConfigKey is the config array, and also the array key in a list response:
+	// the API and the config agree on the plural for every resource here.
 	ConfigKey string
-	// Label is the plural word used in log lines; Singular is the same word for
-	// one resource.
-	Label    string
-	Singular string
+	Label     string
+	Singular  string
 }
 
-// itemPath is the route for one resource.
-//
-// Every resource's item route is its collection route plus the id. It was four
-// identical closures stored as data before, one per simple resource.
 func (r resourceIdentity) itemPath(id string) string { return r.Path + "/" + id }
 
-// syncHint is the line shown when a push finds nothing configured.
-//
-// Seven of the eight resources word this identically -- `push` wrote it out four
-// times and `pushdeploy` built it from the same two words this does. A webhook
-// is the exception, because it cannot be created by `init`, so its push
-// descriptor keeps its own text.
-//
-// The sentence is user-visible output the two CLIs are compared on, so the
-// wording here is transcribed, including "existing one" rather than "ones".
+// syncHint is the line shown when a push finds nothing configured. Webhooks
+// word it differently because `init webhook` does not exist; the wording is
+// transcribed from the TypeScript, "existing one" included.
 func (r resourceIdentity) syncHint() string {
 	return fmt.Sprintf(
 		"Use '%s pull %s' to synchronize existing one, "+

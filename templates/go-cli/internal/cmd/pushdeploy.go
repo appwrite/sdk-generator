@@ -807,13 +807,8 @@ func (s *pushSummary) report(
 ) {
 	out := command.OutOrStdout()
 
-	// The link, and only the link. The spinner row above it has already said
-	// which resource failed and why -- `✗ Error • Template site (id) •
-	// Deployment failed` -- so repeating the sentence here said the same thing
-	// twice in consecutive lines, and hung the URL off the end of the second
-	// one where it is hardest to select. This is the same closing line a
-	// SUCCESSFUL deploy prints, which is the point: either way the last thing on
-	// screen is the page to open.
+	// The link and nothing else: the spinner row above has already named the
+	// resource and the reason.
 	for _, failure := range s.Failed {
 		output.Log(out, "Deployment page: %s", failure.ConsoleURL)
 	}
@@ -827,20 +822,11 @@ func (s *pushSummary) report(
 	seconds := fmt.Sprintf("%.1fs", elapsed.Seconds())
 
 	switch {
-	// Nothing pushed is the shared tally, and pushTally states that policy for
-	// every push command. Everything below this line is deploy's alone.
 	case s.Pushed == 0:
 		pushTally{Pushed: 0, Failed: len(s.Failed)}.report(out, resource.Label)
-	// Nothing deployed is a failure, and it used to be announced as
-	// `ℹ Warning: Successfully deployed 0 of 1 sites` -- a sentence that
-	// contradicts itself twice over. Nothing succeeded, so "successfully" is
-	// wrong; and a push where every deployment failed is not a caveat on a good
-	// outcome, it is the bad one.
 	case s.Deployed == 0:
 		output.Failure(out, "Deployed none of the %d %s pushed, in %s.",
 			s.Pushed, plural(s.Pushed, resource), seconds)
-	// Some did deploy, so this really is a partial result -- but it is still not
-	// a "success", and saying how many failed is what the reader wants next.
 	case s.Deployed != s.Pushed:
 		output.Warn(out, "Deployed %d of %d %s in %s. %d failed.",
 			s.Deployed, s.Pushed, plural(s.Pushed, resource), seconds,
@@ -854,10 +840,6 @@ func (s *pushSummary) report(
 }
 
 // plural names a resource by count.
-//
-// `0 of 1 sites` and `1 site` both matter: a count line is the last thing a
-// push prints, and getting the agreement wrong there reads as carelessness in
-// the tool that just changed a live project.
 func plural(count int, resource deployable) string {
 	if count == 1 {
 		return resource.Singular

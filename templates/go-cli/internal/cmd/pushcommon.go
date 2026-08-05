@@ -16,15 +16,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// pushTally is the closing count of a push.
-//
-// One policy, and it was written out three times -- in pushsimple, in
-// `push tables` and in `push collections` -- with only the deploy variant ever
-// covered by a test. The rule: zero pushed is INFORMATIONAL when nothing
-// failed, because the commonest way to push nothing is that everything already
-// matched, and reporting a good outcome as `✗ Error:` above a zero exit status
-// contradicted itself. Zero pushed with a failure is the bad outcome, and each
-// failure has already been printed with its own reason.
+// pushTally is the closing count of a push. Zero pushed is informational when
+// nothing failed -- the usual reason to push nothing is that everything already
+// matched, and the command exits zero either way.
 type pushTally struct {
 	Pushed int
 	Failed int
