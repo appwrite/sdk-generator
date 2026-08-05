@@ -104,6 +104,12 @@ func New(optionalSetters ...ClientOption) Client {
 		}
 	}
 
+	// After the options, so WithSelfSigned is applied whichever order it was
+	// passed in and whether or not WithTimeout replaced the http.Client.
+	if client.SelfSigned {
+		trustSelfSigned(client.Client)
+	}
+
 	return client
 }
 
@@ -120,6 +126,41 @@ func GetDefaultClient(timeout time.Duration) (*http.Client, error) {
 		Jar:     jar,
 		Timeout: timeout,
 	}, nil
+}
+
+// trustSelfSigned stops verifying certificates for one http.Client.
+//
+// The transport belongs to the client passed in, never http.DefaultTransport:
+// the shared default is what every other http.Client in the process falls back
+// to, so turning verification off there would disable it for requests this SDK
+// has nothing to do with.
+//
+// Idempotent, so the call on each request is a read once the client is set up.
+func trustSelfSigned(httpClient *http.Client) {
+	if httpClient == nil {
+		return
+	}
+
+	if transport, ok := httpClient.Transport.(*http.Transport); ok {
+		if transport.TLSClientConfig != nil && transport.TLSClientConfig.InsecureSkipVerify {
+			return
+		}
+
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+		return
+	}
+
+	// No transport of our own yet. Start from a copy of the default so its dial
+	// and handshake timeouts and connection pooling are kept, and fall back to a
+	// plain transport if something replaced the default with another
+	// RoundTripper.
+	transport := &http.Transport{}
+	if standard, ok := http.DefaultTransport.(*http.Transport); ok {
+		transport = standard.Clone()
+	}
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	httpClient.Transport = transport
 }
 
 type ClientOption func(*Client) error
@@ -396,7 +437,7 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 	}
 
 	if client.SelfSigned {
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		trustSelfSigned(client.Client)
 	}
 
 	urlPath := client.Endpoint + path

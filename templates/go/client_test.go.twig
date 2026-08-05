@@ -2,6 +2,8 @@
 package client
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -34,6 +36,59 @@ func TestSetSelfSigned(t *testing.T) {
 	c.SelfSigned = true
 	if !c.SelfSigned {
 		t.Errorf("Expected SelfSigned to be true")
+	}
+}
+
+func selfSignedServer(t *testing.T) *httptest.Server {
+	t.Helper()
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("content-type", "application/json")
+		w.Write([]byte("{}"))
+	}))
+	t.Cleanup(server.Close)
+
+	return server
+}
+
+// SelfSigned has to reach the request, and it has to stay on the client it was
+// asked of: the process default is what every other http.Client falls back to.
+func TestSelfSignedAcceptsTheCertificateWithoutTouchingTheDefaultTransport(t *testing.T) {
+	server := selfSignedServer(t)
+
+	c := New()
+	c.Endpoint = server.URL
+	c.SelfSigned = true
+
+	if _, err := c.Call("GET", "/", nil, nil); err != nil {
+		t.Fatalf("Expected the self-signed certificate to be accepted, got %v", err)
+	}
+
+	standard, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		t.Fatal("Expected http.DefaultTransport to be an *http.Transport")
+	}
+	if standard.TLSClientConfig != nil && standard.TLSClientConfig.InsecureSkipVerify {
+		t.Error("Expected http.DefaultTransport to keep verifying certificates")
+	}
+}
+
+func TestSelfSignedDoesNotLeakToAnotherClient(t *testing.T) {
+	server := selfSignedServer(t)
+
+	trusting := New()
+	trusting.Endpoint = server.URL
+	trusting.SelfSigned = true
+
+	if _, err := trusting.Call("GET", "/", nil, nil); err != nil {
+		t.Fatalf("Expected the self-signed certificate to be accepted, got %v", err)
+	}
+
+	verifying := New()
+	verifying.Endpoint = server.URL
+
+	if _, err := verifying.Call("GET", "/", nil, nil); err == nil {
+		t.Error("Expected a client without SelfSigned to reject the certificate")
 	}
 }
 {% endautoescape %}
