@@ -14,15 +14,10 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
 )
 
-// The main help screen, ported from templates/cli/lib/help.ts.
+// The main help screen. cobra's default lists 40-odd services alphabetically
+// with a paragraph each; this groups them by intent with one-line summaries.
 //
-// cobra's default screen lists every command alphabetically with its full API
-// description, which for this CLI is 40-odd services and a paragraph each. The
-// TypeScript CLI groups them by intent instead and gives each a one-line
-// summary, so the first thing a new user sees is the eight commands that
-// actually get them started.
-//
-// The groups, the summaries and the option order below are generated from
+// The groups, summaries and option order are generated from
 // CliCommandSurface::HELP_GROUPS, ::HELP_SUMMARIES and ::HELP_OPTION_ORDER --
 // the same tables help.ts is generated from, so the two screens cannot drift.
 
@@ -404,28 +399,16 @@ func optionTerm(flag *pflag.Flag) string {
 }
 
 // helpMinimumColumns is the narrowest column the paragraph is wrapped into.
-//
-// commander's Help.wrap takes a minColumnWidth and returns the string unwrapped
-// below it. Its default is 40, but help.ts passes 2 deliberately
-// (`helper.wrap(description, width - 2, 2, 2)`), so the TypeScript screen keeps
-// wrapping all the way down -- a 20-column terminal gets a dozen short lines
-// rather than one running off the edge. Matched here, which also keeps a
-// terminal reporting 3 columns from reaching the loop with a negative width.
+// help.ts passes 2 rather than commander's default 40, so the screen keeps
+// wrapping all the way down. Matching it also keeps a terminal reporting 3
+// columns from reaching the loop with a negative width.
 const helpMinimumColumns = 2
 
-// wrapHelpText reproduces commander's Help.wrap for the paragraph under the
-// logo, including two behaviours that a from-scratch word wrap does not have.
-//
-// FIRST, a line holds columns-1 characters, not columns: the regex is
-// `.{1,columnWidth - 1}([\s\u200B]|$)`, which takes up to columnWidth-1
-// characters and then eats the space after them.
-//
-// SECOND, commander splits the string at `indent` and wraps only the remainder
-// (`leadingStr = str.slice(0, indent)`), so the FIRST line carries two extra
-// characters that were never measured. That is a quirk rather than a design, but
-// reproducing it is what makes the two CLIs' screens identical at every width
-// instead of only at 80 -- checked against commander itself for every width from
-// 6 to 80.
+// wrapHelpText reproduces commander's Help.wrap, including two quirks a
+// from-scratch word wrap does not have: a line holds columns-1 characters, and
+// the first line carries two extra characters that were never measured because
+// commander wraps only the remainder after `indent`. Reproducing both is what
+// makes the two CLIs' screens identical at every width, not just at 80.
 func wrapHelpText(text string, columns int, indent string) string {
 	// A DELIBERATE deviation: commander returns the indent for an empty or
 	// all-whitespace description, which puts a line of trailing spaces on the

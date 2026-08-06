@@ -102,13 +102,11 @@ func (g *Global) Path() string {
 
 // Write persists preferences, creating the directory if needed.
 //
-// 0600 on the file and 0700 on the directory: this holds access and refresh
-// tokens. The directory has to be tightened explicitly, because MkdirAll leaves
-// an existing one alone and this file is shared with the TypeScript CLI, so on
-// most machines it is already there -- a TypeScript user upgrading has it at
-// 0755 and prefs.json at 0644. The file needs no such fix-up: the atomic write
-// renames a fresh 0600 file into place, which discards the old mode along with
-// the old contents.
+// 0600 on the file and 0700 on the directory, because this holds access and
+// refresh tokens. The directory is tightened explicitly: MkdirAll leaves an
+// existing one alone, and a user upgrading from the TypeScript CLI has it at
+// 0755. The file needs no fix-up -- the atomic write renames a fresh 0600 file
+// into place.
 func (g *Global) Write() error {
 	directory := filepath.Dir(g.path)
 	if err := os.MkdirAll(directory, 0o700); err != nil {
@@ -283,13 +281,10 @@ var (
 // baseCloudHostname strips a regional prefix such as `fra.` from a Cloud
 // hostname, returning "" when the host is not Appwrite Cloud.
 //
-// Only a single label is stripped, and only when it is a known region code.
-// Matching on suffix alone would treat any `*.cloud.appwrite.io` host as Cloud,
-// including one an attacker controls, and normalising it would let a session
-// stored for real Cloud be selected for that endpoint.
-//
-// JavaScript's URL parser lower-cases hostnames
-// and Go's does not, hence the explicit fold.
+// Only a single label, and only a known region code: matching on suffix alone
+// would treat any `*.cloud.appwrite.io` host as Cloud, including one an attacker
+// controls, and let a session stored for real Cloud be selected for it. Go's URL
+// parser does not lower-case hostnames, hence the explicit fold.
 func baseCloudHostname(hostname string) string {
 	hostname = strings.ToLower(hostname)
 	if cloudBaseHostnames[hostname] {
@@ -338,13 +333,9 @@ func NormalizeCloudConsoleEndpoint(endpoint string) string {
 	return "https://" + base + "/v1"
 }
 
-// IsCloudLoginEndpoint reports whether an endpoint signs in through the
-// browser rather than with an email and a password.
-//
-// The TypeScript also accepts
-// localhost behind the `devCloudLogin` feature flag; there is no flag registry
-// in this port, so localhost is treated as self-hosted -- which is what it is
-// for everyone outside Appwrite.
+// IsCloudLoginEndpoint reports whether an endpoint signs in through the browser
+// rather than with an email and a password. localhost is treated as self-hosted:
+// the TypeScript accepts it behind a feature flag this port has no registry for.
 func IsCloudLoginEndpoint(endpoint string) bool {
 	parsed, err := url.Parse(endpoint)
 	if err != nil {
@@ -381,17 +372,13 @@ func EndpointsMatch(a, b string) bool {
 // where there was no email to record. Ports the literal in generic.ts:migrate.
 const LegacyEmail = "legacy"
 
-// MigrateLegacySession lifts a pre-sessions prefs.json into the sessions array,
-// reporting whether it changed anything.
+// MigrateLegacySession lifts a pre-sessions prefs.json -- a single endpoint and
+// cookie at the top level -- into the sessions array, reporting whether it
+// changed anything. Without it, a user upgrading from an older CLI is told they
+// are logged out.
 //
-// Ports migrate() (generic.ts:392), which the TypeScript CLI runs on every
-// invocation. prefs.json used to hold a single endpoint and cookie at the top
-// level; sessions replaced that with a keyed array plus `current`. Without this,
-// a user upgrading from an older CLI keeps a perfectly good cookie in a shape
-// nothing reads, so the first command they run tells them they are logged out.
-//
-// Both keys have to be present. Either one alone is not a legacy session: a
-// bare endpoint is what `client --endpoint` writes before anyone signs in.
+// Both keys have to be present: a bare endpoint is what `client --endpoint`
+// writes before anyone signs in.
 func (g *Global) MigrateLegacySession(id string) bool {
 	if !g.data.Has(PreferenceEndpoint) || !g.data.Has(PreferenceCookie) {
 		return false
