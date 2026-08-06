@@ -524,26 +524,9 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 		if isGet {
 			q := req.URL.Query()
 			for key, val := range params {
-				rt := reflect.TypeOf(val)
-				switch rt.Kind() {
-				case reflect.Array:
-				case reflect.Slice:
-					arr := reflect.ValueOf(val)
-					for i := 0; i < arr.Len(); i++ {
-						// Indexed, not bare `key[]`: the Node, Python and PHP
-						// SDKs all send `key[0]`, and Go was the only one that
-						// did not. The API accepts both, so this is about the
-						// SDKs agreeing rather than about a broken request.
-						q.Add(fmt.Sprintf("%s[%d]", key, i), toString(arr.Index(i)))
-					}
-				default:
-					if strVal := toString(val); strVal != "" {
-						q.Add(key, strVal)
-					}
-				}
+				AddQueryParam(q, key, val)
 			}
-			rawQuery := q.Encode()
-			req.URL.RawQuery = rawQuery
+			req.URL.RawQuery = q.Encode()
 		}
 	}
 
@@ -610,6 +593,32 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 		Result:     responseData,
 		Type:	   contentType,
 	}, nil
+}
+
+// AddQueryParam writes one query parameter into q.
+//
+// Arrays and slices are indexed -- `key[0]`, `key[1]` -- which is the form the
+// Node, Python and PHP SDKs send. The API accepts a bare `key[]` too, so this is
+// about the SDKs agreeing rather than about a broken request.
+//
+// Both the GET branch of Call and the URL-returning service methods go through
+// here, so the two cannot disagree on the encoding.
+func AddQueryParam(q url.Values, key string, value interface{}) {
+	if value == nil {
+		return
+	}
+
+	switch reflect.TypeOf(value).Kind() {
+	case reflect.Array, reflect.Slice:
+		arr := reflect.ValueOf(value)
+		for index := 0; index < arr.Len(); index++ {
+			q.Add(fmt.Sprintf("%s[%d]", key, index), toString(arr.Index(index)))
+		}
+	default:
+		if stringValue := toString(value); stringValue != "" {
+			q.Add(key, stringValue)
+		}
+	}
 }
 
 // EncodePath percent-encodes one path segment.
