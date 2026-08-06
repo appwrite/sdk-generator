@@ -1,0 +1,126 @@
+[
+  {
+    "name": "plain pairs",
+    "source": "A=1\nB=two\nC=\n",
+    "expected": {
+      "A": "1",
+      "B": "two",
+      "C": ""
+    }
+  },
+  {
+    "name": "no trailing newline",
+    "source": "A=1",
+    "expected": {
+      "A": "1"
+    }
+  },
+  {
+    "name": "crlf line endings",
+    "source": "A=1\r\nB=2\r\n",
+    "expected": {
+      "A": "1",
+      "B": "2"
+    }
+  },
+  {
+    "name": "surrounding whitespace",
+    "source": "  A  =  spaced  \nB=\ttabbed\t\n",
+    "expected": {
+      "A": "spaced",
+      "B": "tabbed"
+    }
+  },
+  {
+    "name": "export prefix",
+    "source": "export A=1\nexport  B=2\n",
+    "expected": {
+      "A": "1",
+      "B": "2"
+    }
+  },
+  {
+    "name": "quotes",
+    "source": "A=\"double\"\nB='single'\nC=`backtick`\nD=\"  padded  \"\nE='  padded  '\n",
+    "expected": {
+      "A": "double",
+      "B": "single",
+      "C": "backtick",
+      "D": "  padded  ",
+      "E": "  padded  "
+    }
+  },
+  {
+    "name": "escapes inside double quotes only",
+    "source": "A=\"line\\nbreak\"\nB='line\\nbreak'\nC=line\\nbreak\n",
+    "expected": {
+      "A": "line\nbreak",
+      "B": "line\\nbreak",
+      "C": "line\\nbreak"
+    }
+  },
+  {
+    "name": "multiline values",
+    "source": "A=\"first\nsecond\"\nB='first\nsecond'\nC=`first\nsecond`\n",
+    "expected": {
+      "A": "first\nsecond",
+      "B": "first\nsecond",
+      "C": "first\nsecond"
+    }
+  },
+  {
+    "name": "comments",
+    "source": "# leading comment\nA=1 # trailing\nB=2# no space\nC='quoted # hash'\nD=\"quoted # hash\"\n#full line\nE=3\n",
+    "expected": {
+      "A": "1",
+      "B": "2",
+      "C": "quoted # hash",
+      "D": "quoted # hash",
+      "E": "3"
+    }
+  },
+  {
+    "name": "blank and malformed lines",
+    "source": "\n\nA=1\nnot a pair\n=novalue\nB=2\n",
+    "expected": {
+      "A": "1",
+      "B": "2"
+    }
+  },
+  {
+    "name": "values containing equals and urls",
+    "source": "A=a=b=c\nURL=https://cloud.appwrite.io/v1?x=1&y=2\n",
+    "expected": {
+      "A": "a=b=c",
+      "URL": "https://cloud.appwrite.io/v1?x=1&y=2"
+    }
+  },
+  {
+    "name": "empty and quoted-empty",
+    "source": "A=\nB=\"\"\nC=''\nD=\"   \"\n",
+    "expected": {
+      "A": "",
+      "B": "",
+      "C": "",
+      "D": "   "
+    }
+  },
+  {
+    "name": "keys with dots, dashes and digits",
+    "source": "A.B=1\nA-B=2\nA_B=3\n_A=4\n1A=5\n",
+    "expected": {
+      "A.B": "1",
+      "A-B": "2",
+      "A_B": "3",
+      "_A": "4",
+      "1A": "5"
+    }
+  },
+  {
+    "name": "duplicate keys keep the last",
+    "source": "A=first\nA=second\n",
+    "expected": {
+      "A": "second"
+    }
+  }
+]

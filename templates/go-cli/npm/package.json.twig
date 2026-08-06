@@ -1,0 +1,28 @@
+{
+  "name": "{{ language.params.npmPackage }}",
+  "version": "{{ sdk.version }}",
+  "description": "{{ sdk.shortDescription }}",
+  "homepage": "{{ spec.contactURL }}",
+  "license": "{{ sdk.license }}",
+  "repository": {
+    "type": "git",
+    "url": "{{ sdk.gitURL }}"
+  },
+  "bin": {
+    "{{ language.params.executableName|caseLower }}": "run.js"
+  },
+  "files": [
+    "run.js"
+  ],
+  "optionalDependencies": {
+    "{{ language.params.npmPackage }}-darwin-arm64": "{{ sdk.version }}",
+    "{{ language.params.npmPackage }}-darwin-x64": "{{ sdk.version }}",
+    "{{ language.params.npmPackage }}-linux-arm64": "{{ sdk.version }}",
+    "{{ language.params.npmPackage }}-linux-x64": "{{ sdk.version }}",
+    "{{ language.params.npmPackage }}-win-arm64": "{{ sdk.version }}",
+    "{{ language.params.npmPackage }}-win-x64": "{{ sdk.version }}"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

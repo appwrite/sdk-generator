@@ -1,0 +1,49 @@
+#!/usr/bin/env node
+// Copy the goreleaser build output into a flat directory named by release asset.
+//
+// THE RELEASE ASSET NAMES ARE NOT FILENAMES ON DISK. With `formats: [binary]`
+// goreleaser leaves each build where it built it --
+// dist/{{ language.params.executableName }}_darwin_amd64_v1/{{ language.params.executableName }} -- and carries the asset name
+// ({{ language.params.npmPackage }}-darwin-x64) only as metadata, applying it when it uploads.
+// Anything that wants to work with the six assets by name -- signing them,
+// uploading them, checksumming them for the Homebrew formula, packing them
+// into npm packages -- needs them as real files first. Globbing dist/ for the
+// asset names finds nothing.
+//
+// Usage: node scripts/stage-assets.mjs <distDir> <outDir>
+
+import fs from "node:fs";
+import path from "node:path";
+
+const [distDir = "dist", outDir = "staging"] = process.argv.slice(2);
+
+const ASSETS = [
+  "{{ language.params.npmPackage }}-darwin-arm64",
+  "{{ language.params.npmPackage }}-darwin-x64",
+  "{{ language.params.npmPackage }}-linux-arm64",
+  "{{ language.params.npmPackage }}-linux-x64",
+  "{{ language.params.npmPackage }}-win-arm64.exe",
+  "{{ language.params.npmPackage }}-win-x64.exe",
+];
+
+const artifacts = JSON.parse(fs.readFileSync(path.join(distDir, "artifacts.json"), "utf8"));
+const paths = new Map(artifacts.map((artifact) => [artifact.name, artifact.path]));
+
+fs.mkdirSync(outDir, { recursive: true });
+
+for (const asset of ASSETS) {
+  const source = paths.get(asset);
+
+  // Fail rather than skip. A missing artifact means goreleaser did not build
+  // that target, and a release that is quietly short a platform is worse than
+  // one that did not happen.
+  if (!source || !fs.existsSync(source)) {
+    console.error(`no artifact named ${asset} in ${distDir}/artifacts.json`);
+    process.exit(1);
+  }
+
+  const destination = path.join(outDir, asset);
+  fs.copyFileSync(source, destination);
+  fs.chmodSync(destination, 0o755);
+  console.log(`staged ${destination}`);
+}

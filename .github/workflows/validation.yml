@@ -75,6 +75,9 @@ jobs:
           # Console SDKs
           - sdk: cli
             platform: console
+
+          - sdk: go-cli
+            platform: console
           
           - sdk: web
             platform: console
@@ -97,19 +100,20 @@ jobs:
       - name: Generate SDK for ${{ matrix.sdk }}
         run: php example.php ${{ matrix.sdk }} ${{ matrix.platform }}
 
-      - name: Verify generated Zed extension is idempotent
-        if: matrix.sdk == 'zed-extension'
+      - name: Verify generated SDK is idempotent
+        if: matrix.sdk == 'zed-extension' || matrix.sdk == 'go-cli'
         run: |
-          find examples/zed-extension -type f -print0 \
-            | sort -z \
-            | xargs -0 sha256sum > /tmp/zed-extension-checksums
+          checksums() {
+            find examples/${{ matrix.sdk }} -type f -print0 \
+              | sort -z \
+              | xargs -0 sha256sum
+          }
 
-          php example.php zed-extension
+          checksums > /tmp/${{ matrix.sdk }}-checksums
 
-          find examples/zed-extension -type f -print0 \
-            | sort -z \
-            | xargs -0 sha256sum \
-            | diff -u /tmp/zed-extension-checksums -
+          php example.php ${{ matrix.sdk }} ${{ matrix.platform }}
+
+          checksums | diff -u /tmp/${{ matrix.sdk }}-checksums -
 
       # Language-specific setup
       - name: Setup Node.js
@@ -176,7 +180,7 @@ jobs:
           sdk: 'stable'
 
       - name: Setup Go
-        if: matrix.sdk == 'go' || matrix.sdk == 'dart' || matrix.sdk == 'flutter'
+        if: matrix.sdk == 'go' || matrix.sdk == 'go-cli' || matrix.sdk == 'dart' || matrix.sdk == 'flutter'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26.5'
@@ -294,6 +298,19 @@ jobs:
               go build ./...
               go test ./...
               ;;
+            go-cli)
+              go mod tidy
+              unformatted=$(gofmt -l .)
+              if [ -n "$unformatted" ]; then
+                echo "Not gofmt-clean:"
+                echo "$unformatted"
+                exit 1
+              fi
+              go build ./...
+              go vet ./...
+              go test -race ./...
+              go build -o appwrite .
+              ;;
             dotnet)
               dotnet restore
               dotnet build --no-restore
@@ -334,6 +351,15 @@ jobs:
           "./$BIN" --help | grep -q "USAGE"
           "./$BIN" --help | grep -q "GET STARTED"
           SHELL=bash "./$BIN" completion bash >/dev/null
+
+      - name: Test compiled Go CLI binary
+        if: matrix.sdk == 'go-cli'
+        working-directory: examples/go-cli
+        run: |
+          ./appwrite --version
+          ./appwrite --help | grep -q "USAGE"
+          ./appwrite --help | grep -q "GET STARTED"
+          SHELL=bash ./appwrite completion bash >/dev/null
 
       - name: Verify npm package entry points
         if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'

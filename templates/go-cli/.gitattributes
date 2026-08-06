@@ -1,0 +1,16 @@
+# Keep line endings LF everywhere, including on a Windows checkout.
+#
+# The typegen and generate suites compare their output against golden files
+# byte for byte. Git's default autocrlf on Windows rewrites those files to CRLF
+# on checkout, so every one of them fails on the first line -- a diff that
+# looks like a real behaviour difference and is not. The CLI also writes LF on
+# every platform, so a CRLF golden file would be wrong even if the test
+# tolerated it.
+* text=auto eol=lf
+
+# Binary fixtures must never be line-ending converted.
+*.png binary
+*.jpg binary
+*.mp4 binary
+*.gz binary
+*.tar binary

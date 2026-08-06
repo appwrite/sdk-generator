@@ -1,0 +1,80 @@
+#!/usr/bin/env node
+// Build the six per-platform npm packages from the staged release assets.
+//
+// Run after scripts/stage-assets.mjs and before publishing. Each package holds
+// one binary plus a package.json whose `os`/`cpu` fields let npm pick exactly
+// one of them at install time; npm/run.js explains why the distribution is
+// shaped this way rather than downloading in a postinstall.
+//
+// Reads the staged directory rather than dist/, because the release asset
+// names are not filenames in dist/ -- see scripts/stage-assets.mjs.
+//
+// Usage: node scripts/build-npm-packages.mjs <stagingDir> <outDir> <version>
+
+import fs from "node:fs";
+import path from "node:path";
+
+const [stagingDir = "staging", outDir = "npm-packages", version] = process.argv.slice(2);
+
+if (!version) {
+  console.error("usage: build-npm-packages.mjs <stagingDir> <outDir> <version>");
+  process.exit(1);
+}
+
+// `os` and `cpu` are node's spellings and are what npm matches on; the asset
+// suffix is the release naming. They differ for windows, so both are listed
+// rather than derived from each other.
+const TARGETS = [
+  { suffix: "darwin-arm64", os: "darwin", cpu: "arm64" },
+  { suffix: "darwin-x64", os: "darwin", cpu: "x64" },
+  { suffix: "linux-arm64", os: "linux", cpu: "arm64" },
+  { suffix: "linux-x64", os: "linux", cpu: "x64" },
+  { suffix: "win-arm64", os: "win32", cpu: "arm64" },
+  { suffix: "win-x64", os: "win32", cpu: "x64" },
+];
+
+const packageName = "{{ language.params.npmPackage }}";
+const executable = "{{ language.params.executableName }}";
+
+fs.mkdirSync(outDir, { recursive: true });
+
+for (const target of TARGETS) {
+  const windows = target.os === "win32";
+  const source = path.join(stagingDir, `${packageName}-${target.suffix}${windows ? ".exe" : ""}`);
+
+  // Fail rather than skip. Publishing five of six would leave the parent
+  // package resolving an optional dependency that does not exist.
+  if (!fs.existsSync(source)) {
+    console.error(`missing staged asset: ${source}`);
+    process.exit(1);
+  }
+
+  const directory = path.join(outDir, `${packageName}-${target.suffix}`);
+  fs.mkdirSync(path.join(directory, "bin"), { recursive: true });
+
+  const destination = path.join(directory, "bin", windows ? `${executable}.exe` : executable);
+  fs.copyFileSync(source, destination);
+  // npm preserves the executable bit from the tarball, and losing it here
+  // produces an EACCES the shim cannot explain.
+  fs.chmodSync(destination, 0o755);
+
+  fs.writeFileSync(
+    path.join(directory, "package.json"),
+    JSON.stringify(
+      {
+        name: `${packageName}-${target.suffix}`,
+        version,
+        description: `${executable} binary for ${target.os} ${target.cpu}`,
+        license: "{{ sdk.license }}",
+        repository: { type: "git", url: "{{ sdk.gitURL }}" },
+        os: [target.os],
+        cpu: [target.cpu],
+        files: ["bin"],
+      },
+      null,
+      2,
+    ) + "\n",
+  );
+
+  console.log(`built ${directory}`);
+}

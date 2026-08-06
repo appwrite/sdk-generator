@@ -1,0 +1,136 @@
+[
+  {
+    "$id": "authors",
+    "databaseId": "main",
+    "name": "Authors",
+    "attributes": [
+      {
+        "key": "$id",
+        "type": "string",
+        "required": true,
+        "size": 36
+      },
+      {
+        "key": "full name",
+        "type": "string",
+        "required": true,
+        "size": 128
+      },
+      {
+        "key": "bio",
+        "type": "text",
+        "required": false,
+        "default": null
+      },
+      {
+        "key": "age",
+        "type": "integer",
+        "required": false,
+        "default": null
+      },
+      {
+        "key": "rating",
+        "type": "double",
+        "required": true
+      },
+      {
+        "key": "verified",
+        "type": "boolean",
+        "required": false,
+        "default": null
+      },
+      {
+        "key": "joined-at",
+        "type": "datetime",
+        "required": true
+      },
+      {
+        "key": "tags",
+        "type": "string",
+        "required": false,
+        "array": true,
+        "size": 32,
+        "default": null
+      },
+      {
+        "key": "status",
+        "type": "string",
+        "required": true,
+        "size": 16,
+        "format": "enum",
+        "elements": [
+          "active",
+          "in-active",
+          "in active",
+          "9lives",
+          "in_active"
+        ]
+      },
+      {
+        "key": "books",
+        "type": "relationship",
+        "required": false,
+        "default": null,
+        "relatedCollection": "books",
+        "relationType": "oneToMany",
+        "side": "parent"
+      },
+      {
+        "key": "home",
+        "type": "point",
+        "required": false,
+        "default": null
+      },
+      {
+        "key": "route",
+        "type": "linestring",
+        "required": true
+      },
+      {
+        "key": "region",
+        "type": "polygon",
+        "required": true
+      },
+      {
+        "key": "weird key!",
+        "type": "string",
+        "required": true,
+        "size": 8
+      }
+    ]
+  },
+  {
+    "$id": "books",
+    "databaseId": "main",
+    "name": "Books & Zines",
+    "attributes": [
+      {
+        "key": "title",
+        "type": "string",
+        "required": true,
+        "size": 128
+      },
+      {
+        "key": "author",
+        "type": "relationship",
+        "required": true,
+        "relatedCollection": "authors",
+        "relationType": "manyToOne",
+        "side": "child"
+      },
+      { "key": "r&d<flag>", "type": "string", "required": true, "size": 8 },
+      {
+        "key": "kind",
+        "type": "string",
+        "required": true,
+        "size": 16,
+        "format": "enum",
+        "elements": [
+          "hard<cover>",
+          "soft\"cover\"",
+          ""
+        ]
+      }
+    ]
+  }
+]

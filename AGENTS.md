@@ -20,8 +20,29 @@ The generator does not auto-discover templates. Every output file must have an e
 | `Dart` | `Flutter` |
 | `Swift` | `Apple` |
 | `Kotlin` | `Android` |
+| `Go` | `GoCLI` |
 
 Modifying a parent's template or `getFiles()` affects all children. Regenerate and verify child SDKs too.
+
+**Two couplings are not visible in the hierarchy.**
+
+`Concern/CliCommandSurface.php` is a trait used by **both** `CLI` and `GoCLI`. It holds
+the nine helpers that decide what a generated command looks like — flag syntax, query
+flags, promoted root commands, service scopes. It is shared precisely so the two CLIs
+cannot drift, which means a change there alters the TypeScript CLI and the Go CLI at once.
+
+`templates/cli/install.sh.twig` and `templates/cli/install.ps1.twig` live under
+`templates/cli/` but are registered in **both** `CLI::getFiles()` and `GoCLI::getFiles()`.
+They build every download URL from `language.params.npmPackage`, which also names every
+release asset produced by `.goreleaser.yaml` and consumed by the scoop manifest and the
+npm platform packages. Change the asset naming in one place and all four must move
+together, for both CLIs.
+
+Either way, regenerate both:
+
+```bash
+php example.php cli && php example.php go-cli
+```
 
 ### Rule 4: `copy` scope = no Twig processing
 
@@ -59,7 +80,7 @@ examples/<lang>/              ← Generated SDK output (gitignored; regenerate t
 example.php                   ← Entry point: regenerates all SDKs from specs
 ```
 
-**Supported SDKs:** PHP, Web, Node, CLI, Ruby, Python, Dart, Flutter, React Native, Go, Swift, Apple, DotNet, Android, Kotlin, Unity, REST, GraphQL, Rust, Skills, CursorPlugin, ClaudePlugin, CodexPlugin
+**Supported SDKs:** PHP, Web, Node, CLI, GoCLI, Ruby, Python, Dart, Flutter, React Native, Go, Swift, Apple, DotNet, Android, Kotlin, Unity, REST, GraphQL, Rust, Skills, CursorPlugin, ClaudePlugin, CodexPlugin
 
 ## Primary Workflows
 
@@ -70,7 +91,7 @@ example.php                   ← Entry point: regenerates all SDKs from specs
    ```bash
    php example.php <lang>
    ```
-3. Inspect `examples/<lang>/` to verify the output is correct. `git diff` will **not** show it — `examples/*` is gitignored. To compare before/after, copy `examples/` aside, `git stash` your template changes, regenerate, and `diff -r` the two trees
+3. Inspect `examples/<lang>/` to verify the output is correct. `git diff` will **not** show it — `examples/*` is gitignored. To compare before/after, copy `examples/` aside, `git stash -u` your template changes, regenerate, and `diff -r` the two trees. **`-u` matters:** a newly added template is untracked, and a plain `git stash` leaves it in place, so the "before" tree is generated with your change still applied and the comparison shows nothing
 4. Run linters and refactor check:
    ```bash
    composer refactor:check
@@ -150,6 +171,7 @@ Pass as first argument to generate only that SDK:
 | `flutter` | Flutter | `examples/flutter/` |
 | `react-native` | ReactNative | `examples/react-native/` |
 | `go` | Go | `examples/go/` |
+| `go-cli` | GoCLI | `examples/go-cli/` |
 | `swift` | Swift | `examples/swift/` |
 | `apple` | Apple | `examples/apple/` |
 | `dotnet` | DotNet | `examples/dotnet/` |
@@ -224,3 +246,8 @@ Before submitting changes that touch templates or language classes:
 - [ ] Rector check passes (`composer refactor:check`)
 - [ ] Twig linter passes (`composer lint-twig`)
 - [ ] If a parent language was modified, child SDKs were also checked
+- [ ] If `Concern/CliCommandSurface.php` was touched, **both** CLIs were regenerated and
+      their e2e suites run — the trait is shared, so a change there moves the shipping
+      TypeScript CLI as well as the Go one
+- [ ] Go CLI changes compile and pass their tests:
+      `cd examples/go-cli && go build ./... && go vet ./... && go test ./...`

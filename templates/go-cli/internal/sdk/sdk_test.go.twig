@@ -1,0 +1,223 @@
+{% if sdk.test %}
+package sdk
+
+// The SDK-backed client is omitted from the conformance build, so there is
+// nothing here to test. The file still exists because getFiles() is static.
+{% else %}
+package sdk
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
+)
+
+// These cover three defects a live request against a local listener exposed.
+// All three affected every generated service command, and none was visible
+// without watching what actually went on the wire.
+
+// withSession writes a preferences file and points the process at it.
+func withSession(t *testing.T, session map[string]any) *Context {
+	t.Helper()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	directory := filepath.Join(home, ".appwrite")
+	if err := os.MkdirAll(directory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	document := map[string]any{"current": "s", "s": session}
+	encoded, err := json.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "prefs.json"), encoded, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	context, err := Load("appwrite", "0.0.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return context
+}
+
+// inProject runs within a directory holding the given appwrite.config.json.
+func inProject(t *testing.T, contents string) {
+	t.Helper()
+
+	directory := t.TempDir()
+	if err := os.WriteFile(
+		filepath.Join(directory, config.LocalFileName), []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	previous, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(directory); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(previous) })
+}
+
+const localEndpoint = "https://example.test/v1"
+
+// TestAPIKeyAuthenticatesAProjectCall pins the defect that mattered most: an
+// API key was not accepted at all, so every CI user -- who authenticates with
+// `appwrite client --key` rather than a browser login -- got "no active
+// session" from every project command.
+func TestAPIKeyAuthenticatesAProjectCall(t *testing.T) {
+	context := withSession(t, map[string]any{"endpoint": localEndpoint, "key": "secret"})
+	inProject(t, `{"projectId": "from-config"}`)
+
+	client, err := context.ForProject("")
+	if err != nil {
+		t.Fatalf("an API key should authenticate a project call: %v", err)
+	}
+
+	if client.Headers["X-Appwrite-Key"] != "secret" {
+		t.Error("the API key was not sent")
+	}
+	// An API key in admin mode is rejected by the API; only a console session
+	// gets admin.
+	if client.Headers["X-Appwrite-Mode"] != config.ModeDefault {
+		t.Errorf("mode = %q, want %q", client.Headers["X-Appwrite-Mode"], config.ModeDefault)
+	}
+}
+
+// TestAPIKeyIsRefusedForConsole pins the other half. An API key is scoped to
+// one project and the console endpoints are not, so the message has to say so
+// rather than reporting a missing session.
+func TestAPIKeyIsRefusedForConsole(t *testing.T) {
+	context := withSession(t, map[string]any{"endpoint": localEndpoint, "key": "secret"})
+
+	_, err := context.ForConsole()
+	if err == nil {
+		t.Fatal("a console call with only an API key should be refused")
+	}
+	if !strings.Contains(err.Error(), "API keys work for project commands") {
+		t.Errorf("error %q should explain why the key is not enough", err)
+	}
+}
+
+// TestEnvironmentBeatsTheProjectConfig pins the precedence a CI job depends on.
+func TestEnvironmentBeatsTheProjectConfig(t *testing.T) {
+	context := withSession(t, map[string]any{"endpoint": localEndpoint, "key": "secret"})
+	inProject(t, `{"projectId": "from-config"}`)
+
+	client, err := context.ForProject("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.Headers["X-Appwrite-Project"] != "from-config" {
+		t.Errorf("project = %q, want from-config", client.Headers["X-Appwrite-Project"])
+	}
+
+	t.Setenv(EnvProjectID, "from-env")
+	client, err = context.ForProject("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.Headers["X-Appwrite-Project"] != "from-env" {
+		t.Errorf("project = %q, want from-env", client.Headers["X-Appwrite-Project"])
+	}
+
+	// An explicit argument still wins over both.
+	client, err = context.ForProject("from-flag")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.Headers["X-Appwrite-Project"] != "from-flag" {
+		t.Errorf("project = %q, want from-flag", client.Headers["X-Appwrite-Project"])
+	}
+}
+
+// TestProjectEndpointMustMatchTheSession pins the guard that keeps one
+// instance's credentials from being sent to another. A repository pinned to a
+// self-hosted endpoint must not silently reuse a cloud session.
+func TestProjectEndpointMustMatchTheSession(t *testing.T) {
+	context := withSession(t, map[string]any{"endpoint": localEndpoint, "key": "secret"})
+	inProject(t, `{"projectId": "p", "endpoint": "https://elsewhere.test/v1"}`)
+
+	if _, err := context.ForProject(""); err == nil {
+		t.Fatal("a project endpoint that disagrees with the session should be refused")
+	} else if !strings.Contains(err.Error(), "does not match the current login session endpoint") {
+		t.Errorf("error %q should name the mismatch", err)
+	}
+}
+
+// TestProjectEndpointAcceptsAMatchingOverride confirms the guard is not simply
+// refusing every configured endpoint.
+func TestProjectEndpointAcceptsAMatchingOverride(t *testing.T) {
+	context := withSession(t, map[string]any{"endpoint": localEndpoint, "key": "secret"})
+	inProject(t, `{"projectId": "p", "endpoint": "`+localEndpoint+`"}`)
+
+	if _, err := context.ForProject(""); err != nil {
+		t.Errorf("a matching endpoint should be accepted: %v", err)
+	}
+}
+
+func TestOrganizationHeaderHonoursTheEnvironment(t *testing.T) {
+	context := withSession(t, map[string]any{
+		"endpoint": localEndpoint, "accessToken": "", "cookie": "session=1",
+	})
+	inProject(t, `{"projectId": "p", "organizationId": "from-config"}`)
+
+	client, err := context.ForConsoleWithOrganization("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.Headers["X-Appwrite-Organization"] != "from-config" {
+		t.Errorf("organization = %q, want from-config", client.Headers["X-Appwrite-Organization"])
+	}
+
+	t.Setenv(EnvOrganizationID, "from-env")
+	client, err = context.ForConsoleWithOrganization("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.Headers["X-Appwrite-Organization"] != "from-env" {
+		t.Errorf("organization = %q, want from-env", client.Headers["X-Appwrite-Organization"])
+	}
+}
+
+// TestConsoleCallsAreNotAdminMode pins a regression a live delete-project call
+// caught: `X-Appwrite-Mode: admin` on a console request is rejected with "Admin
+// mode is not allowed for console project", so the console and project paths
+// cannot share the header even though they share the credential.
+func TestConsoleCallsAreNotAdminMode(t *testing.T) {
+	context := withSession(t, map[string]any{"endpoint": localEndpoint, "cookie": "session=1"})
+
+	client, err := context.ForConsole()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mode := client.Headers["X-Appwrite-Mode"]; mode != "" {
+		t.Errorf("console mode = %q, want it unset", mode)
+	}
+}
+
+// TestCookieSessionGetsAdminMode covers the branch an API key must not take.
+func TestCookieSessionGetsAdminMode(t *testing.T) {
+	context := withSession(t, map[string]any{"endpoint": localEndpoint, "cookie": "session=1"})
+	inProject(t, `{"projectId": "p"}`)
+
+	client, err := context.ForProject("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.Headers["X-Appwrite-Mode"] != config.ModeAdmin {
+		t.Errorf("mode = %q, want %q", client.Headers["X-Appwrite-Mode"], config.ModeAdmin)
+	}
+}
+{% endif %}

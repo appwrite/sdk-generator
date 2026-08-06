@@ -11,6 +11,7 @@ use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\Language\Node;
 use Appwrite\SDK\Language\CLI;
+use Appwrite\SDK\Language\GoCLI;
 use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
@@ -155,6 +156,7 @@ try {
         'web',
         'node',
         'cli',
+        'go-cli',
         'ruby',
         'python',
         'dart',
@@ -237,12 +239,7 @@ try {
         $sdk->generate(__DIR__ . '/examples/node');
     }
 
-    // CLI
-    if (!$requestedSdk || $requestedSdk === 'cli') {
-        $language  = new CLI();
-        $language->setNPMPackage('appwrite-cli');
-        $language->setExecutableName('appwrite');
-        $language->setLogo(json_encode("
+    $cliLogo = "
     _                            _ _           ___   __   _____
    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
   //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
@@ -250,65 +247,143 @@ try {
  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
        |_|   |_|
 
-"));
-        $language->setLogoUnescaped("
+";
+
+    $cliLogoUnescaped = "
      _                            _ _           ___   __   _____
     /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
    //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
   /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_
   \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
-        |_|   |_|                                                ");
+        |_|   |_|                                                ";
+
+    // Shared by both CLIs: they present the same command surface.
+    $cliExcludes = [
+        'services' => [
+            ['name' => 'assistant'],
+            ['name' => 'avatars'],
+            ['name' => 'advisor'],
+            ['name' => 'compute'],
+            ['name' => 'apps'],
+            ['name' => 'oauth'],
+            ['name' => 'organizations'],
+            ['name' => 'console'],
+            ['name' => 'projects'],
+            ['name' => 'waf'],
+            ['name' => 'domains'],
+            ['name' => 'manager'],
+            ['name' => 'mysql'],
+            ['name' => 'postgresql'],
+            ['name' => 'mongo'],
+            ['name' => 'usage'],
+        ],
+        'methods' => [
+            ['name' => 'createBillingAddress'],
+            ['name' => 'createPaymentMethod'],
+            ['name' => 'deleteBillingAddress'],
+            ['name' => 'deletePaymentMethod'],
+            ['name' => 'getBillingAddress'],
+            ['name' => 'getCoupon'],
+            ['name' => 'getPaymentMethod'],
+            ['name' => 'listBillingAddresses'],
+            ['name' => 'listInvoices'],
+            ['name' => 'listPaymentMethods'],
+            ['name' => 'updateBillingAddress'],
+            ['name' => 'updateConsoleAccess'],
+            ['name' => 'updatePaymentMethod'],
+            ['name' => 'updatePaymentMethodMandateOptions'],
+            ['name' => 'updatePaymentMethodProvider'],
+            ['name' => 'createPlanEstimation'],
+            // Not yet available in the released @appwrite.io/console package
+            ['name' => 'listStages'],
+            ['name' => 'updateStage'],
+            ['name' => 'approve'],
+        ],
+    ];
+
+    // Absent from the published Go SDK, which is generated from the server spec:
+    // three console-only services, plus `migrations`, which has never shipped.
+    // Generating their commands would import packages that do not exist.
+    $goCliExcludes             = $cliExcludes;
+    $goCliExcludes['services'] = [
+        ...$goCliExcludes['services'],
+        ['name' => 'affiliates'],
+        ['name' => 'migrations'],
+        ['name' => 'notifications'],
+        ['name' => 'vcs'],
+    ];
+    // Individual endpoints the same SDK has no function for. Read off the
+    // compiler, not guessed -- an invented name silently matches nothing.
+    $goCliExcludes['methods'] = [
+        ...$goCliExcludes['methods'],
+        // Account API keys and push targets, and account deletion.
+        ['service' => 'account', 'name' => 'createKey'],
+        ['service' => 'account', 'name' => 'listKeys'],
+        ['service' => 'account', 'name' => 'getKey'],
+        ['service' => 'account', 'name' => 'updateKey'],
+        ['service' => 'account', 'name' => 'deleteKey'],
+        ['service' => 'account', 'name' => 'createPushTarget'],
+        ['service' => 'account', 'name' => 'updatePushTarget'],
+        ['service' => 'account', 'name' => 'deletePushTarget'],
+        ['service' => 'account', 'name' => 'createOAuth2Session'],
+        ['service' => 'account', 'name' => 'delete'],
+        // OIDC logout.
+        ['service' => 'oauth2', 'name' => 'logout'],
+        ['service' => 'oauth2', 'name' => 'logoutPost'],
+        // Function and site templates.
+        ['service' => 'functions', 'name' => 'listTemplates'],
+        ['service' => 'functions', 'name' => 'getTemplate'],
+        ['service' => 'sites', 'name' => 'listTemplates'],
+        ['service' => 'sites', 'name' => 'getTemplate'],
+        // Table migrations -- tablesDB carries four of its own.
+        ['service' => 'tablesDB', 'name' => 'createMigration'],
+        ['service' => 'tablesDB', 'name' => 'listMigrations'],
+        ['service' => 'tablesDB', 'name' => 'getMigration'],
+        ['service' => 'tablesDB', 'name' => 'deleteMigration'],
+        // A signature mismatch rather than a missing function: the released SDK
+        // takes a further path parameter.
+        ['service' => 'presences', 'name' => 'upsert'],
+        ['service' => 'presences', 'name' => 'update'],
+        // Usage and log reporting.
+        ['service' => 'presences', 'name' => 'getUsage'],
+        ['service' => 'project', 'name' => 'getUsage'],
+        ['service' => 'users', 'name' => 'getUsage'],
+        ['service' => 'teams', 'name' => 'listLogs'],
+    ];
+
+    // CLI
+    if (!$requestedSdk || $requestedSdk === 'cli') {
+        $language  = new CLI();
+        $language->setNPMPackage('appwrite-cli');
+        $language->setExecutableName('appwrite');
+        $language->setLogo(json_encode($cliLogo));
+        $language->setLogoUnescaped($cliLogoUnescaped);
 
         $sdk  = new SDK($language, buildSpec($specFormat, $spec));
         $sdk->setTest(false);
-        // Keep in sync with the CLI exclusions applied by the release pipeline,
-        // so examples/cli matches the SDK that actually ships.
         configureSDK($sdk, [
-            'exclude' => [
-                'services' => [
-                    ['name' => 'assistant'],
-                    ['name' => 'avatars'],
-                    ['name' => 'advisor'],
-                    ['name' => 'compute'],
-                    ['name' => 'apps'],
-                    ['name' => 'oauth'],
-                    ['name' => 'organizations'],
-                    ['name' => 'console'],
-                    ['name' => 'projects'],
-                    ['name' => 'waf'],
-                    ['name' => 'domains'],
-                    ['name' => 'manager'],
-                    ['name' => 'mysql'],
-                    ['name' => 'postgresql'],
-                    ['name' => 'mongo'],
-                    ['name' => 'usage'],
-                ],
-                'methods' => [
-                    ['name' => 'createBillingAddress'],
-                    ['name' => 'createPaymentMethod'],
-                    ['name' => 'deleteBillingAddress'],
-                    ['name' => 'deletePaymentMethod'],
-                    ['name' => 'getBillingAddress'],
-                    ['name' => 'getCoupon'],
-                    ['name' => 'getPaymentMethod'],
-                    ['name' => 'listBillingAddresses'],
-                    ['name' => 'listInvoices'],
-                    ['name' => 'listPaymentMethods'],
-                    ['name' => 'updateBillingAddress'],
-                    ['name' => 'updateConsoleAccess'],
-                    ['name' => 'updatePaymentMethod'],
-                    ['name' => 'updatePaymentMethodMandateOptions'],
-                    ['name' => 'updatePaymentMethodProvider'],
-                    ['name' => 'createPlanEstimation'],
-                    // Not yet available in the released @appwrite.io/console package
-                    ['name' => 'listStages'],
-                    ['name' => 'updateStage'],
-                    ['name' => 'approve'],
-                ],
-            ],
+            'exclude' => $cliExcludes,
         ]);
 
         $sdk->generate(__DIR__ . '/examples/cli');
+    }
+
+    // Go CLI -- shares the TypeScript CLI's command surface via CliCommandSurface.
+    if (!$requestedSdk || $requestedSdk === 'go-cli') {
+        $language = new GoCLI();
+        $language->setExecutableName('appwrite');
+        $language->setLogo($cliLogo);
+        $language->setLogoUnescaped($cliLogoUnescaped);
+        // Same package as the TypeScript CLI, and it names every release asset.
+        $language->setNPMPackage('appwrite-cli');
+
+        $sdk = new SDK($language, buildSpec($specFormat, $spec));
+        $sdk->setTest(false);
+        configureSDK($sdk, [
+            'exclude' => $goCliExcludes,
+        ]);
+
+        $sdk->generate(__DIR__ . '/examples/go-cli');
     }
 
     // Ruby
@@ -357,11 +432,12 @@ try {
     // GO
     if (!$requestedSdk || $requestedSdk === 'go') {
         $sdk  = new SDK(new Go(), buildSpec($specFormat, $spec));
-        // Real module path: a `replace` only resolves when the target module
-        // declares the path being replaced.
+        // The version decides the major-version suffix Go requires from v2 on,
+        // so examples/go declares `sdk-for-go/v6` like the published module.
         configureSDK($sdk, [
             'gitUserName' => 'appwrite',
             'gitRepoName' => 'sdk-for-go',
+            'version' => '6.2.0',
         ]);
         $sdk->generate(__DIR__ . '/examples/go');
     }
