@@ -157,21 +157,35 @@ $ docker run --rm --interactive --tty --volume "$(pwd)":/app composer install --
 $ docker run --rm -v $(pwd):/app -w /app php:8.1-cli php example.php
 ```
 
+{% if language.name == 'GoCLI' %}
+3. Head over to the generated SDK and build it.
+```sh
+$ cd examples/go-cli
+$ go mod tidy
+$ go build -ldflags="-s -w" -o {{ language.params.executableName|caseLower }} .
+```
+
+4. You can now use the CLI
+```sh
+$ ./{{ language.params.executableName|caseLower }} -v
+```
+{% else %}
 3. Head over to the generated SDK and install the dependencies.
 ```sh
 $ cd examples/cli
-$ npm install 
+$ npm install
 ```
 
-4. Install the CLI using 
+4. Install the CLI using
 ```sh
 $ npm install -g .
 ```
 
-5. You can now use the CLI 
+5. You can now use the CLI
 ```sh
 $ {{ language.params.executableName|caseLower }} -v
 ```
+{% endif %}
 ## License
 
 Please see the [{{spec.licenseName}} license]({{spec.licenseURL}}) file for more information.

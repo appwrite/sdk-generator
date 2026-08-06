@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK\Language\Concern;
 
+use Override;
 use Twig\TwigFunction;
 
 /**
@@ -483,5 +484,45 @@ trait CliCommandSurface
             new TwigFunction('cliHelpSummaries', fn (string $title): array => $this->getCliHelpSummaries($title)),
             new TwigFunction('cliHelpOptionOrder', fn (): array => $this->getCliHelpOptionOrder()),
         ];
+    }
+
+    /**
+     * How a value is spelled on the command line, for the docs examples. This
+     * is a shell invocation, not source in either CLI's implementation
+     * language, so it belongs to the shared surface: the target language of the
+     * generated CLI cannot change how a user types an array of roles.
+     *
+     * A trait method wins over an inherited one, which is what keeps `GoCLI`
+     * off `Go::getParamExample` -- that renders Go literals, and
+     * `--roles []string{}` is not a command anybody can run.
+     */
+    #[Override]
+    public function getParamExample(array $param, string $lang = ''): string
+    {
+        $type = $param['type'] ?? '';
+        $example = $param['example'] ?? '';
+
+        if (empty($example) && $example !== 0 && $example !== false) {
+            return match ($type) {
+                self::TYPE_NUMBER, self::TYPE_INTEGER, self::TYPE_BOOLEAN => 'null',
+                self::TYPE_STRING => "''",
+                self::TYPE_ARRAY => 'one two three',
+                self::TYPE_OBJECT => '\'{ "key": "value" }\'',
+                self::TYPE_FILE => "'path/to/file.png'",
+                default => '',
+            };
+        }
+
+        return match ($type) {
+            self::TYPE_ARRAY => (\str_contains((string) $example, '[') && \str_contains((string) $example, ']'))
+                ? \implode(' ', \explode(',', \substr((string) $example, 1, -1)))
+                : (string) $example,
+            self::TYPE_OBJECT => '\'{ "key": "value" }\'',
+            self::TYPE_NUMBER, self::TYPE_INTEGER => (string) $example,
+            self::TYPE_BOOLEAN => $example ? 'true' : 'false',
+            self::TYPE_STRING => (string) $example,
+            self::TYPE_FILE => "'path/to/file.png'",
+            default => '',
+        };
     }
 }
