@@ -51,14 +51,9 @@ const (
 	StatusFailed = "failed"
 )
 
-// Archive is a packaged deployment on disk.
-//
-// A path, not bytes. The TypeScript reads the finished archive into a Buffer
-// (deployment.ts:601) and hands it to the SDK as a File; Phase 0 measured that
-// at 421 MB RSS and still growing on a 369 MB tree, against 102 MB flat for a
-// Go upload that streams from the file. That is the single largest measured win
-// in this rewrite, so the archive is never held in memory -- not here, and not
-// in Upload.
+// Archive is a packaged deployment on disk: a path, not bytes. Reading a 369 MB
+// tree into memory measured 421 MB RSS against 102 MB flat for a streamed
+// upload, so the archive is never held in memory -- not here, and not in Upload.
 type Archive struct {
 	// Path is the archive on disk.
 	Path string
@@ -81,11 +76,10 @@ func (a *Archive) Remove() error {
 
 // PackageDirectory packs a resource directory into a gzipped archive.
 //
-// extraIgnoreRules is the resource's own `ignore` config, which ADDS to
-// .gitignore rather than replacing it -- deployment.ts installs both matchers.
-// (The emulation path in internal/docker does replace; the two are genuinely
-// different, so do not unify them.) projectRoot bounds how far a symlink may be
-// followed and may be empty for a path given straight to the CLI.
+// extraIgnoreRules is the resource's own `ignore` config, which adds to
+// .gitignore rather than replacing it. (The emulation path in internal/docker
+// does replace -- genuinely different, do not unify them.) projectRoot bounds
+// how far a symlink may be followed.
 func PackageDirectory(
 	directory string,
 	extraIgnoreRules []string,
@@ -397,14 +391,10 @@ func PlanChunks(size int64) []Chunk {
 
 // Upload sends an archive to path as a multipart form.
 //
-// STREAMED, never buffered: every chunk is an io.SectionReader over the open
-// file, so peak memory is the HTTP write buffer rather than the archive. The
-// TypeScript's fs.readFileSync into a Buffer peaked at 421 MB on a large
-// archive where this stays at 102 MB flat.
-//
-// Ports the chunkedUpload half of the console SDK's client: one request under
-// the chunk size, otherwise a first chunk that mints the upload id followed by
-// the rest, eight at a time.
+// Streamed, never buffered: every chunk is an io.SectionReader over the open
+// file, so peak memory is the HTTP write buffer rather than the archive. One
+// request under the chunk size, otherwise a first chunk that mints the upload id
+// followed by the rest, eight at a time.
 func Upload(
 	api *client.Client,
 	path string,

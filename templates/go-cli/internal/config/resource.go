@@ -7,21 +7,14 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
-// Each adds or replaces one entry in a top-level resource array. Two properties
-// matter and both come from invariant 2 -- this file lives in the user's
-// repository and is code-reviewed:
+// Each adds or replaces one entry in a top-level resource array. The config
+// lives in the user's repository and is code-reviewed, so nothing outside the
+// touched array may change -- the document stays an ordered jsonx.Object
+// throughout -- and an existing entry is replaced in place rather than appended,
+// so re-running `init` does not duplicate a resource.
 //
-//   - nothing outside the touched array may change, so the document stays an
-//     ordered jsonx.Object throughout rather than being decoded and re-encoded
-//   - an entry is REPLACED in place when its identity already exists, not
-//     appended, so re-running `init` twice does not duplicate a resource
-//
-// FIELD ORDER IS PART OF THE OUTPUT. whitelistKeys() iterates the CALLER's keys,
-// so the TypeScript's key order is per-call-site rather than per-schema; a Go
-// struct has one order for every caller. Each struct below is ordered to match
-// its `init` call site, which today is the only caller of each add helper.
-// When `pull` starts writing these, compare against the TypeScript again --
-// if it uses a different order there, one of the two paths has to give.
+// Field order is part of the output. Each struct below is ordered to match its
+// `init` call site, today the only caller of each add helper.
 
 // Bucket is a storage bucket as the config records it.
 //
@@ -273,13 +266,9 @@ func (l *Local) SetEndpoint(endpoint string) {
 	l.Data.Set("endpoint", endpoint)
 }
 
-// Clear empties the config, and empties every file `includes` points at.
-//
-// Ports Local.clear(), which `init project` calls before linking so a directory
-// previously linked elsewhere cannot keep another project's resources. The
-// include files are emptied rather than deleted: the user's `includes` map is
-// rewritten too, but a file left behind full of a different project's
-// collections is worse than an empty one.
+// Clear empties the config, and empties every file `includes` points at, so a
+// directory previously linked elsewhere cannot keep another project's resources.
+// The include files are emptied rather than deleted.
 func (l *Local) Clear() error {
 	for resource, include := range l.Includes() {
 		path, err := l.resolveIncludePath(resource, include)
@@ -297,15 +286,9 @@ func (l *Local) Clear() error {
 }
 
 // Schema key orders, used by `pull` to shape an API response into the config.
-//
-// Ports filterBySchema(), which iterates the SCHEMA's keys and keeps only those
-// present in the response. Two consequences worth stating:
-//
-//   - the emitted order is the SCHEMA's, not the response's. That is a
-//     different rule from the add helpers above, which follow the caller --
-//     `pull` and `init` really do order a bucket differently, and both are
-//     reproduced rather than reconciled.
-//   - a key the API omits is omitted here too, not written as null.
+// The emitted order is the schema's, not the response's -- a different rule from
+// the add helpers above, which follow the caller. A key the API omits is omitted
+// here too, not written as null.
 var (
 	// BucketKeys orders a pulled bucket.
 	BucketKeys = []string{

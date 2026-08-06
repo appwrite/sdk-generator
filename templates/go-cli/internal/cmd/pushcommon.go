@@ -36,32 +36,17 @@ func (t pushTally) report(out io.Writer, plural string) {
 	}
 }
 
-// Shared foundation for every `push` subcommand.
-//
-// Ports templates/cli/lib/commands/utils/change-approval.ts and the parts of
-// push.ts every resource repeats: pick the resources, show what would change,
-// get approval, then apply.
-//
-// The approval gate is the reason `push` is not simply "send the config". It
-// exists because push OVERWRITES a live project, and a user who mistyped a name
-// or pulled from the wrong project needs to see that before it happens.
+// Shared foundation for every `push` subcommand: pick the resources, show what
+// would change, get approval, then apply. The approval gate exists because push
+// overwrites a live project.
 
 // everyResourceArgument accepts the literal `all` as a positional, meaning what
-// --all means.
+// --all means. `push all` is already a command, so the word is one the CLI has
+// taught the user.
 //
-// `appwrite push site all` reads as English, and both CLIs threw the word away:
-// cobra and commander accept surplus positionals by default, so the command
-// carried on and prompted for a selection anyway. `push function all` looked
-// like it worked only because that project had no functions to prompt about --
-// the word was ignored there too.
-//
-// `push all` is already a command, so `all` is a word the CLI has taught the
-// user. Accepting it on the resource subcommands is cheaper than explaining why
-// it means something one level up and nothing here.
-//
-// Anything else is rejected rather than ignored, which is the half of this that
-// silently swallowing an argument cost: `push site my-site` looked like it
-// pushed one site and pushed whatever the prompt was left on.
+// Anything else is rejected rather than ignored: cobra accepts surplus
+// positionals by default, so `push site my-site` looked like it pushed one site
+// and pushed whatever the prompt was left on.
 func everyResourceArgument() cobra.PositionalArgs {
 	return func(command *cobra.Command, arguments []string) error {
 		if len(arguments) == 0 {
@@ -267,18 +252,10 @@ func (c *pushContext) approveChanges(command *cobra.Command, request approvalReq
 			}
 			localValue, hasLocal := local.Get(key)
 
-			// A key the config does not carry is never SENT. writeBody writes
-			// only the keys that are present, deliberately, so that a push does
-			// not clear a field the config is silent about -- which means
-			// listing an absent key here promised an edit the push would not
-			// make. A freshly inited site reported
-			//
-			//   id                   │ key                │ remote │ local
-			//   6a729db1003e322cbfdb │ providerSilentMode │ false  │
-			//
-			// on every push, forever: the config has no such key, so there was
-			// nothing to apply and the row never went away. Approving it did
-			// nothing, which is the worst kind of prompt.
+			// A key the config does not carry is never sent -- writeBody writes
+			// only present keys, so a push cannot clear a field the config is
+			// silent about. Listing an absent key here would promise an edit the
+			// push will not make, and the row would reappear on every push.
 			if !hasLocal {
 				continue
 			}
@@ -326,12 +303,8 @@ func (c *pushContext) approveChanges(command *cobra.Command, request approvalReq
 // printChanges renders the change table.
 func printChanges(command *cobra.Command, changes []change) {
 	// Through the shared renderer, so this table carries the header rule and
-	// column separators every other table has. It used to align its own
-	// columns with spaces alone, which left the reader guessing where one
-	// column ended -- especially with an empty cell in the last one.
-	//
-	// Multi-line cells -- a permissions list -- are handled by the renderer
-	// rather than split here.
+	// column separators every other table has, and multi-line cells such as a
+	// permissions list are handled there rather than split here.
 	data := make([][]string, 0, len(changes))
 	for _, entry := range changes {
 		data = append(data, []string{entry.ID, entry.Key, entry.Remote, entry.Local})
