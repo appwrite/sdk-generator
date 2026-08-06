@@ -766,11 +766,7 @@ class CLI extends Node
             new TwigFilter('cliTopLevelAliases', fn (array $service): array => $this->getCliTopLevelAliases($service)),
             new TwigFilter('cliCommandTargets', fn (array $method, array $service): array => $this->getCliCommandTargets($method, $service)),
             new TwigFilter('cliFallbackHelpers', fn (array $service): array => $this->getCliFallbackHelpers($service)),
-            new TwigFilter('cliIsTopLevelAlias', fn (array $method, array $service): bool => in_array(
-                $method['name'] ?? '',
-                self::TOP_LEVEL_COMMANDS[$service['name'] ?? ''] ?? [],
-                true,
-            )),
+            new TwigFilter('cliIsTopLevelAlias', fn (array $method, array $service): bool => $this->isCliTopLevelAlias($method, $service)),
         ]);
     }
 

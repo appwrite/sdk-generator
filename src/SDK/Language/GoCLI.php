@@ -352,6 +352,7 @@ class GoCLI extends Go
             new TwigFilter('cliTopLevelAliases', fn (array $service): array => $this->getCliTopLevelAliases($service)),
             new TwigFilter('cliCommandTargets', fn (array $method, array $service): array => $this->getCliCommandTargets($method, $service)),
             new TwigFilter('cliFallbackHelpers', fn (array $service): array => $this->getCliFallbackHelpers($service)),
+            new TwigFilter('cliIsTopLevelAlias', fn (array $method, array $service): bool => $this->isCliTopLevelAlias($method, $service)),
             new TwigFilter('goPackage', fn (string $service): string => $this->getGoPackageName($service)),
             new TwigFilter('goString', fn (?string $value): string => $this->toGoString($value)),
         ]);
@@ -385,6 +386,22 @@ class GoCLI extends Go
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'go-cli/README.md.twig',
+            ],
+
+            [
+                'scope'         => 'default',
+                'destination'   => 'LICENSE.md',
+                'template'      => 'cli/LICENSE.md.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'CHANGELOG.md',
+                'template'      => 'cli/CHANGELOG.md.twig',
+            ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'template'      => 'cli/docs/example.md.twig',
             ],
 
             // Shared verbatim with the TypeScript CLI. Both build their download
