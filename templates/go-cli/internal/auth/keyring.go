@@ -74,17 +74,12 @@ func storeName() string {
 // MissingRefreshToken reports that a session has no refresh token, and says
 // where the CLI looked.
 //
-// The where is the entire point. Both stores answering "nothing here" used to
-// surface as `session expired`, which is a conclusion rather than an
-// observation -- and the conclusion is wrong whenever the CLI is looking
-// somewhere other than where the token is. That is not hypothetical: a
-// redirected HOME points macOS at a different login keychain, the lookup comes
-// back empty, and a perfectly good session gets reported as expired. Naming the
-// store and the session id turns that into a one-line diagnosis.
-//
-// It cannot be told apart from a genuinely absent entry by the error alone --
-// `security` exits 44 for both and go-keyring maps both to ErrNotFound -- so
-// saying what was looked for is the only honest thing available.
+// The where is the point: "session expired" is a conclusion, and it is wrong
+// whenever the CLI is looking somewhere other than where the token is -- a
+// redirected HOME points macOS at a different login keychain and a good session
+// reads as expired. That case cannot be told apart from a genuinely absent entry
+// by the error alone, since `security` exits 44 for both, so naming the store
+// and session id is the only honest thing available.
 type MissingRefreshToken struct {
 	SessionID string
 	Store     string
@@ -111,15 +106,12 @@ func (e *MissingRefreshToken) Unwrap() error { return e.StoreErr }
 
 // Refresh returns the stored refresh token for a session.
 //
-// The failed lookup is DESCRIBED rather than reduced to "": the caller turns
-// this into advice for a user, and "no token here" and "the store would not
-// answer" are different advice -- while "I looked in the wrong place" is
-// indistinguishable from either unless the place is named. See
-// MissingRefreshToken.
+// The failed lookup is described rather than reduced to "": "no token here" and
+// "the store would not answer" are different advice. See MissingRefreshToken.
 //
-// A token in prefs wins over the store's opinion. That is the fallback
-// SetRefresh writes to when the keyring is unavailable, so finding one there
-// means the store not answering does not matter.
+// A token in prefs wins over the store's opinion -- it is the fallback SetRefresh
+// writes to when the keyring is unavailable, so the store not answering does not
+// matter.
 func (s *TokenStore) Refresh(sessionID string) (string, error) {
 	if sessionID == "" {
 		return "", &MissingRefreshToken{Store: storeName(), PrefsPath: s.prefsPath()}

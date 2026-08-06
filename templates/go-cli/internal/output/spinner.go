@@ -13,17 +13,12 @@ import (
 	"golang.org/x/term"
 )
 
-// Ports templates/cli/lib/spinner.ts: the live status line a push shows while
-// it waits for a deployment to build.
+// The live status line a push shows while it waits for a deployment to build.
+// One row, redrawn in place, because pushdeploy.go pushes one resource at a
+// time.
 //
-// The TypeScript drives cli-progress with one row per resource, because it
-// pushes them concurrently. This port pushes one at a time (pushdeploy.go), so
-// there is one row and it is a single line redrawn in place.
-//
-// ONLY ON A TERMINAL. Redirected output gets the same plain lines it always
-// got: a progress line written to a pipe is a smear of escape codes, and the
-// recorded request traces compare that output. Everything below degrades to
-// Log when there is no terminal on the other end.
+// Only on a terminal: a progress line written to a pipe is a smear of escape
+// codes, so everything below degrades to Log when there is no terminal.
 
 const (
 	// spinnerInterval is the dots spinner's frame rate (spinner.ts:28).
@@ -287,15 +282,12 @@ func middleColumn(state SpinnerState) string {
 	return fmt.Sprintf("%s (%s)", state.Resource, state.ID)
 }
 
-// spinnerLine assembles one row. Ports Spinner.line (spinner.ts:135) together
-// with fitMiddle (:101).
+// spinnerLine assembles one row. Kept pure -- width in, string out -- because
+// it is the part worth pinning in a test.
 //
-// Kept pure -- width in, string out -- because it is the part worth pinning in
-// a test, and the animation around it is a ticker.
-// The trailing note is styled HERE rather than by the caller. Styling it
-// outside turns an absent note into a non-empty string of escape codes, and
-// the "is there a note?" test then answers yes and prints a separator with
-// nothing after it.
+// The trailing note is styled here rather than by the caller: styling it outside
+// turns an absent note into a non-empty string of escape codes, and the "is
+// there a note?" test then prints a separator with nothing after it.
 func spinnerLine(mark, status, middle, end string, endStyle lipgloss.Style, width int) string {
 	leading := lipgloss.Width(mark + " " + status + " " + separator + " ")
 

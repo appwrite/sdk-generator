@@ -5,19 +5,14 @@ import (
 	"strings"
 )
 
-// Ports the `ignore` npm package (7.x), which the CLI uses to decide which
-// files reach a function build and a deployment.
+// Ports the `ignore` npm package (7.x), which decides which files reach a
+// deployment -- a pattern that fails to match ships a secret, one that
+// over-matches drops a source file.
 //
-// This is not a cosmetic concern: the matcher decides what gets uploaded. A
-// pattern that fails to match ships a secret; one that over-matches drops a
-// source file and the deployment fails to build.
-//
-// Ported rather than taken from an existing Go gitignore library because the
-// libraries disagree with `ignore` in exactly the corners that matter --
-// trailing spaces, `**` placement, negation after a directory match -- and the
-// contract here is "whatever the TypeScript CLI already does", not "whatever
-// git does". Behaviour is pinned to baselines captured from the package
-// itself; see internal/ignore/testdata.
+// Ported rather than taken from a Go gitignore library because those disagree
+// with `ignore` in exactly the corners that matter: trailing spaces, `**`
+// placement, negation after a directory match. The contract is "whatever the
+// TypeScript CLI does", pinned to baselines in internal/ignore/testdata.
 
 // Matcher decides whether a path is ignored.
 type Matcher struct {
@@ -233,16 +228,10 @@ func (m *Matcher) Ignores(path string) bool {
 
 // Test returns the full verdict for a path.
 //
-// Two rules combine here, and the second is easy to miss. Within one path the
-// LAST matching pattern wins, so a negation after the rule that caught a path
-// rescues it. But a negation cannot re-include anything beneath an excluded
-// DIRECTORY -- so `temp/` followed by `!temp/keep.txt` still ignores
-// temp/keep.txt. Only the directory itself can be rescued, by negating the
-// directory.
-//
-// The directory rule was found by comparing against the `ignore` package
-// rather than reasoned about: last-match-wins alone gets temp/keep.txt wrong,
-// and the baseline is what says so.
+// Two rules combine, and the second is easy to miss: the last matching pattern
+// wins, so a negation rescues a path -- but a negation cannot re-include
+// anything beneath an excluded directory, so `temp/` followed by
+// `!temp/keep.txt` still ignores it. Only the directory itself can be rescued.
 func (m *Matcher) Test(path string) Result {
 	path = strings.TrimPrefix(path, "./")
 	if path == "" {

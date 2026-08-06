@@ -11,23 +11,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// install.sh runs `<executable> completion install` as step 4 of every
-// install, so this subcommand has to exist or shell completion quietly stops
-// working on upgrade -- the installer treats a failure there as non-fatal and
-// prints "Skipped". The Phase 3 surface contract could not have caught it:
-// `completion` is hand-written in the TypeScript, not spec-derived, so it is
-// absent from a spec-derived contract the same way `client` was.
+// install.sh runs `<executable> completion install` as step 4 of every install
+// and treats a failure as non-fatal, so this subcommand has to exist or shell
+// completion quietly stops working on upgrade.
 //
-// WHAT IS DELIBERATELY NOT PORTED: the TypeScript renders its own completion
-// scripts, and cobra generates its own. The two differ in content, and this
-// keeps cobra's -- they are dynamically aware of flags and subcommands in a way
-// the hand-rolled ones are not, and a completion script's internals are not
-// user-visible output. Base::CLI_COMPLETION_RESPONSES pins the TypeScript's
-// script text and is therefore NOT part of the Go conformance run.
+// The script CONTENT is cobra's, not the TypeScript's: cobra's are dynamically
+// aware of flags and subcommands, and a completion script's internals are not
+// user-visible output.
 //
-// The install PATHS are ported exactly, including the three env overrides.
-// Those are the part that has to match: writing cobra's zsh script anywhere
-// other than where the TypeScript put its own would leave both installed, and
+// The install PATHS are ported exactly, including the three env overrides --
+// writing cobra's zsh script anywhere else would leave both installed, and
 // whichever the shell found first would win.
 
 // completionShells is the set `completion install` supports.
@@ -148,24 +141,14 @@ func completionInstallPath(shell string) (string, error) {
 // completionFollowUp is what the user still has to do for the script to be
 // loaded, or "" when the shell needs nothing.
 //
-// Writing the file is not installing it. zsh only autoloads completions from a
-// directory on its `fpath`, and `~/.zfunc` -- the path both CLIs write to -- is
-// not on it by default. So `completion install` reported success and tab
-// completion did nothing, with no way for the user to tell which half had
-// failed.
+// Writing the file is not installing it: zsh autoloads only from a directory on
+// its `fpath`, and `~/.zfunc` is not on it by default, so `completion install`
+// reported success while tab completion did nothing. compinit's cached index
+// also outlives a directory that has gone, and adding to fpath does not clear
+// it.
 //
-// The stale-index note is not hypothetical: `_appwrite` autoloaded from a
-// directory that has since gone, and compinit's cached index still named it, so
-// pressing Tab printed
-//
-//	(eval):1: _appwrite: function definition file not found
-//
-// three times and completed nothing. Adding the directory to fpath does not
-// clear that cache.
-//
-// The CLI advises rather than edits: a shell profile is the user's file, and
-// appending to it from an installer is how profiles end up with six copies of
-// the same line.
+// The CLI advises rather than edits -- appending to a shell profile from an
+// installer is how profiles end up with six copies of the same line.
 func completionFollowUp(shell, directory string) string {
 	name := app.ExecutableName
 
