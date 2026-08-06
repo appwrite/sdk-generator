@@ -27,6 +27,74 @@ func TestANewerVersionIsReported(t *testing.T) {
 	}
 }
 
+func TestExplicitReleaseChannelSelection(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		current      string
+		latest       string
+		next         string
+		stableOnly   bool
+		want         string
+		wantNextGets int
+	}{
+		{name: "stable ignores next", current: "1.0.0", latest: "2.0.0", next: "3.0.0-rc.1", want: "2.0.0"},
+		{name: "candidate follows next", current: "26.0.0-rc.1", latest: "25.1.0", next: "26.0.0-rc.2", want: "26.0.0-rc.2", wantNextGets: 1},
+		{name: "final outranks candidate", current: "26.0.0-rc.1", latest: "26.0.0", next: "26.0.0-rc.2", want: "26.0.0", wantNextGets: 1},
+		{name: "next survives latest failure", current: "26.0.0-rc.1", next: "26.0.0-rc.2", want: "26.0.0-rc.2", wantNextGets: 1},
+		{name: "stable-only package manager", current: "26.0.0-rc.1", latest: "25.1.0", next: "26.0.0-rc.2", stableOnly: true, want: "25.1.0"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			nextGets := 0
+			checker := &Checker{
+				RegistryURL:           registry(t, registryPayload(test.latest), nil),
+				PrereleaseRegistryURL: registry(t, registryPayload(test.next), &nextGets),
+				CachePath:             filepath.Join(t.TempDir(), "update-check.json"),
+				Current:               test.current,
+			}
+
+			var got string
+			if test.stableOnly {
+				got = checker.ExplicitStable()
+			} else {
+				got = checker.Explicit()
+			}
+			if got != test.want {
+				t.Errorf("resolved %q, want %q", got, test.want)
+			}
+			if nextGets != test.wantNextGets {
+				t.Errorf("next requests = %d, want %d", nextGets, test.wantNextGets)
+			}
+		})
+	}
+}
+
+func TestAStableCacheDoesNotMaskThePrereleaseChannel(t *testing.T) {
+	latestRequests := 0
+	nextRequests := 0
+	path := filepath.Join(t.TempDir(), "update-check.json")
+	latest := registry(t, `{"version":"25.1.0"}`, &latestRequests)
+	next := registry(t, `{"version":"26.0.0-rc.2"}`, &nextRequests)
+
+	stable := &Checker{
+		RegistryURL: latest, PrereleaseRegistryURL: next,
+		CachePath: path, Current: "25.0.0",
+	}
+	if got := stable.Latest(time.Second); got != "25.1.0" {
+		t.Fatalf("stable lookup = %q, want 25.1.0", got)
+	}
+
+	preview := &Checker{
+		RegistryURL: latest, PrereleaseRegistryURL: next,
+		CachePath: path, Current: "26.0.0-rc.1",
+	}
+	if got := preview.Latest(time.Second); got != "26.0.0-rc.2" {
+		t.Errorf("prerelease lookup reused the stable cache: %q", got)
+	}
+	if latestRequests != 2 || nextRequests != 1 {
+		t.Errorf("requests latest=%d next=%d, want latest=2 next=1", latestRequests, nextRequests)
+	}
+}
+
 // Nothing to say when the running version is current, and nothing to say when
 // it is ahead -- a developer must not be told to "update" to something older.
 func TestNoNoticeWhenCurrentOrAhead(t *testing.T) {
@@ -48,11 +116,20 @@ func TestNoNoticeWhenCurrentOrAhead(t *testing.T) {
 // Startup is the reason this binary exists. A cached answer must not cost a
 // request, or every command pays for the check.
 func TestAFreshCacheMakesNoRequest(t *testing.T) {
+	version := "1.0.0"
 	requests := 0
-	server := registry(t, `{"version":"2.0.0"}`, &requests)
-	path := filepath.Join(t.TempDir(), "update-check.json")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("content-type", "application/json")
+		w.Write([]byte(`{"version":"` + version + `"}`))
+	}))
+	defer server.Close()
 
-	checker := &Checker{RegistryURL: server, CachePath: path, Current: "1.0.0"}
+	checker := &Checker{
+		RegistryURL: server.URL,
+		CachePath:   filepath.Join(t.TempDir(), "update-check.json"),
+		Current:     "1.0.0",
+	}
 
 	// The second run is silent -- that is the notice throttle, covered
 	// separately. What matters here is that it did not go to the network.
@@ -62,8 +139,14 @@ func TestAFreshCacheMakesNoRequest(t *testing.T) {
 	if requests != 1 {
 		t.Errorf("made %d requests, want the second answered from cache", requests)
 	}
-	if got := checker.Latest(time.Second); got != "2.0.0" {
-		t.Errorf("cached version = %q, want 2.0.0", got)
+
+	// An explicit update refreshes even a fresh background cache.
+	version = "2.0.0"
+	if got := checker.ExplicitStable(); got != "2.0.0" {
+		t.Errorf("ExplicitStable() = %q, want newly published 2.0.0", got)
+	}
+	if requests != 2 {
+		t.Errorf("made %d requests, want explicit lookup to refresh the cache", requests)
 	}
 }
 
@@ -142,6 +225,7 @@ func TestCompareOrdersVersions(t *testing.T) {
 		{"0.6.0-preview", "0.6.0", -1},
 		{"0.6.0", "0.6.0-preview", 1},
 		{"0.6.0-preview", "0.6.1-preview", -1},
+		{"26.0.0-rc.1", "26.0.0-rc.2", -1},
 		{"(devel)", "9.9.9", 1},
 	} {
 		if got := Compare(probe.a, probe.b); got != probe.want {
@@ -151,12 +235,25 @@ func TestCompareOrdersVersions(t *testing.T) {
 }
 
 // registry serves one npm-shaped response and optionally counts requests.
+func registryPayload(version string) string {
+	if version == "" {
+		return ""
+	}
+
+	return `{"version":"` + version + `"}`
+}
+
 func registry(t *testing.T, body string, requests *int) string {
 	t.Helper()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if requests != nil {
 			*requests++
+		}
+		if body == "" {
+			w.WriteHeader(http.StatusInternalServerError)
+
+			return
 		}
 		w.Header().Set("content-type", "application/json")
 		w.Write([]byte(body))

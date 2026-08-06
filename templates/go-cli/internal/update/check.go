@@ -29,8 +29,8 @@ const (
 	// CLI's whole startup budget, so it gets one.
 	startupTimeout = time.Second
 
-	// explicitTimeout is for `--version`, where the user is waiting for an
-	// answer about versions and a slow reply beats no reply.
+	// explicitTimeout is for `update`, where the user is waiting for an answer
+	// about versions and a slow reply beats no reply.
 	explicitTimeout = 5 * time.Second
 
 	// DisableEnvironmentVariable turns the check off entirely.
@@ -41,6 +41,8 @@ const (
 type Checker struct {
 	// RegistryURL is the npm endpoint for the package's latest release.
 	RegistryURL string
+	// PrereleaseRegistryURL is the npm endpoint for the package's next release.
+	PrereleaseRegistryURL string
 	// CachePath is where the last answer is remembered.
 	CachePath string
 	// Current is the running version.
@@ -56,9 +58,16 @@ type Checker struct {
 // printed on every single command -- the lookup was cached, the telling was
 // not -- which is nagging rather than informing.
 type cache struct {
-	CheckedAt  string `json:"checkedAt"`
-	Latest     string `json:"latest"`
-	NotifiedAt string `json:"notifiedAt,omitempty"`
+	CheckedAt         string `json:"checkedAt"`
+	Latest            string `json:"latest"`
+	Next              string `json:"next,omitempty"`
+	PrereleaseChecked bool   `json:"prereleaseChecked,omitempty"`
+	NotifiedAt        string `json:"notifiedAt,omitempty"`
+}
+
+type releases struct {
+	Latest string
+	Next   string
 }
 
 // Latest returns the newest published version, from cache when it is fresh.
@@ -66,41 +75,63 @@ type cache struct {
 // An error is never worth surfacing: a failed update check must not change what
 // the command was asked to do. Callers get "" and carry on.
 func (c *Checker) Latest(timeout time.Duration) string {
-	latest, _ := c.resolve(timeout)
+	includePrerelease := IsPrerelease(c.Current) && c.PrereleaseRegistryURL != ""
+	available, _ := c.resolve(timeout, includePrerelease, true)
 
-	return latest
+	return available.newest(includePrerelease)
+}
+
+// Stable returns the newest stable release, even when Current is a prerelease.
+func (c *Checker) Stable(timeout time.Duration) string {
+	available, _ := c.resolve(timeout, false, true)
+
+	return available.Latest
 }
 
 // resolve returns the newest version and the cache entry it came from,
 // refreshing the entry when it is stale.
-func (c *Checker) resolve(timeout time.Duration) (string, cache) {
+func (c *Checker) resolve(
+	timeout time.Duration,
+	includePrerelease bool,
+	useFreshCache bool,
+) (releases, cache) {
 	if os.Getenv(DisableEnvironmentVariable) != "" {
-		return "", cache{}
+		return releases{}, cache{}
 	}
 
 	stored, fresh := c.read()
-	if fresh {
-		return stored.Latest, stored
+	if useFreshCache && fresh && (!includePrerelease || stored.PrereleaseChecked) {
+		return stored.releases(), stored
 	}
 
-	fetched := c.fetch(timeout)
-	if fetched == "" {
+	fetched := c.fetch(timeout, includePrerelease)
+	if fetched.Latest == "" && fetched.Next == "" {
 		// Stale beats nothing: a version from yesterday still answers the
 		// question, and the network may be down for a while.
-		return stored.Latest, stored
+		return stored.releases(), stored
+	}
+	if fetched.Latest != "" {
+		stored.Latest = fetched.Latest
+	}
+	if fetched.Next != "" {
+		stored.Next = fetched.Next
 	}
 
-	stored.Latest = fetched
-	stored.CheckedAt = c.now().UTC().Format(time.RFC3339)
+	stored.PrereleaseChecked = includePrerelease && fetched.Next != ""
+	if fetched.Latest != "" {
+		stored.CheckedAt = c.now().UTC().Format(time.RFC3339)
+	}
 	c.write(stored)
 
-	return fetched, stored
+	return stored.releases(), stored
 }
 
 // UpdateAvailable reports the newer version, or "" when there is none or when
 // the user has already been told within the interval.
 func (c *Checker) UpdateAvailable() string {
-	latest, stored := c.resolve(startupTimeout)
+	includePrerelease := IsPrerelease(c.Current) && c.PrereleaseRegistryURL != ""
+	available, stored := c.resolve(startupTimeout, includePrerelease, true)
+	latest := available.newest(includePrerelease)
 	if latest == "" || Compare(c.Current, latest) >= 0 {
 		return ""
 	}
@@ -115,9 +146,37 @@ func (c *Checker) UpdateAvailable() string {
 	return latest
 }
 
-// Explicit is the `--version` path: a longer timeout, and the answer either
-// way rather than only when an update exists.
-func (c *Checker) Explicit() string { return c.Latest(explicitTimeout) }
+// Explicit refreshes the registry with a longer timeout. A user who asked to
+// update should see a release published since the background cache was filled.
+func (c *Checker) Explicit() string {
+	includePrerelease := IsPrerelease(c.Current) && c.PrereleaseRegistryURL != ""
+	available, _ := c.resolve(explicitTimeout, includePrerelease, false)
+
+	return available.newest(includePrerelease)
+}
+
+// ExplicitStable is the stable-only answer used by package managers that do
+// not publish prereleases.
+func (c *Checker) ExplicitStable() string {
+	available, _ := c.resolve(explicitTimeout, false, false)
+
+	return available.Latest
+}
+
+func (entry cache) releases() releases {
+	return releases{Latest: entry.Latest, Next: entry.Next}
+}
+
+func (available releases) newest(includePrerelease bool) string {
+	if !includePrerelease || available.Next == "" {
+		return available.Latest
+	}
+	if available.Latest == "" || Compare(available.Latest, available.Next) < 0 {
+		return available.Next
+	}
+
+	return available.Latest
+}
 
 func (c *Checker) read() (cache, bool) {
 	stored := cache{}
@@ -168,15 +227,59 @@ func (c *Checker) write(entry cache) {
 	_ = os.WriteFile(c.CachePath, contents, 0o600)
 }
 
-func (c *Checker) fetch(timeout time.Duration) string {
+func (c *Checker) fetch(timeout time.Duration, includePrerelease bool) releases {
 	if c.RegistryURL == "" {
-		return ""
+		return releases{}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, c.RegistryURL, nil)
+	type result struct {
+		prerelease bool
+		version    string
+	}
+
+	urls := []struct {
+		prerelease bool
+		url        string
+	}{{url: c.RegistryURL}}
+	if includePrerelease && c.PrereleaseRegistryURL != "" {
+		urls = append(urls, struct {
+			prerelease bool
+			url        string
+		}{prerelease: true, url: c.PrereleaseRegistryURL})
+	}
+
+	results := make(chan result, len(urls))
+	for _, endpoint := range urls {
+		go func() {
+			results <- result{
+				prerelease: endpoint.prerelease,
+				version:    fetch(ctx, endpoint.url),
+			}
+		}()
+	}
+
+	available := releases{}
+	for range urls {
+		select {
+		case fetched := <-results:
+			if fetched.prerelease {
+				available.Next = fetched.version
+			} else {
+				available.Latest = fetched.version
+			}
+		case <-ctx.Done():
+			return available
+		}
+	}
+
+	return available
+}
+
+func fetch(ctx context.Context, url string) string {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return ""
 	}
@@ -250,6 +353,9 @@ func Compare(a, b string) int {
 
 	return 0
 }
+
+// IsPrerelease reports whether a semantic version carries a prerelease suffix.
+func IsPrerelease(version string) bool { return prerelease(version) != "" }
 
 func isDevelopment(version string) bool {
 	trimmed := strings.TrimSpace(version)
