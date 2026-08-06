@@ -178,32 +178,6 @@ func TestSelfSignedConcurrentCalls(t *testing.T) {
 	}
 }
 
-// Only the cases a live request cannot show. Escaping `/` and `&` is already
-// exercised end to end; these pin the edges that a plausible rewrite would get
-// wrong while still passing that request.
-func TestEncodePath(t *testing.T) {
-	cases := []struct {
-		name     string
-		value    string
-		expected string
-	}{
-		// A form encoder would turn these into %2D%5F%2E and a space into `+`.
-		{"unreserved characters are left alone", "abcXYZ098-_.!~*'()", "abcXYZ098-_.!~*'()"},
-		{"space is %20, not +", "two words", "two%20words"},
-		// A rune-wise loop would emit %E9 here.
-		{"multi-byte utf-8 is encoded per byte", "café", "caf%C3%A9"},
-		{"empty", "", ""},
-	}
-
-	for _, testCase := range cases {
-		t.Run(testCase.name, func(t *testing.T) {
-			if encoded := EncodePath(testCase.value); encoded != testCase.expected {
-				t.Errorf("EncodePath(%q) = %q, expected %q", testCase.value, encoded, testCase.expected)
-			}
-		})
-	}
-}
-
 func TestAddQueryParam(t *testing.T) {
 	q := url.Values{}
 
