@@ -22,26 +22,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports pushFunction (templates/cli/lib/commands/push.ts:3603), pushSite
-// (:3441) and pushSettings (:3358), together with the Push methods they call --
-// Push.pushFunctions (:1726), Push.pushSites (:2238) and Push.pushSettings
-// (:1303).
-//
-// Two deliberate divergences, both named once here rather than at each site.
-//
-// The TypeScript pushes every selected resource concurrently, each with its own
-// spinner row. This pushes them one at a time behind a single row, which keeps
-// the request sequence deterministic -- which is what makes a recorded trace of a
-// push worth comparing at all -- and keeps interleaved build logs attributable. The settings writes are sequential for a different and
-// stronger reason -- see applyEnabled.
-//
-// The TypeScript reads build logs over a realtime WebSocket and falls back to
-// polling when it cannot -- in the recorded trace `GET /realtime` answers 400
-// and it polls anyway. Only the polling half is ported. Build logs ARE
-// streamed, from the same poll that decides the deployment's outcome, so the
-// visible difference is latency: a line appears within one pollDebounce rather
-// than the moment it is written. That also drops the TypeScript's `l` keypress
-// toggle, which exists to pause a firehose the poll cannot produce.
+// Two divergences from the TypeScript CLI: resources are pushed one at a time
+// rather than concurrently, which keeps the request sequence deterministic (the
+// settings writes have a stronger reason -- see applyEnabled), and build logs
+// come from the deployment poll rather than a realtime WebSocket, so a line
+// appears within one pollDebounce rather than the moment it is written.
 
 const (
 	// pollDebounce is POLL_DEBOUNCE (push.ts:117), the gap between deployment
@@ -69,11 +54,8 @@ const (
 )
 
 // settingsPolicies maps a config `auth.security` key to its policy route and
-// the body it takes.
-//
-// The routes are kebab-case, like the ids pull reads. `total` policies write
-// null for "no limit", where the config spells zero the same way; `enabled`
-// policies are plain booleans.
+// body. `total` policies write null for "no limit", which the config spells as
+// zero; `enabled` policies are plain booleans.
 var settingsPolicies = []struct {
 	Key   string
 	Route string
@@ -98,12 +80,9 @@ func newPushSettingsCommand() *cobra.Command {
 	}
 }
 
-// runPushSettings ports pushSettings (push.ts:3358) and Push.pushSettings
-// (:1303).
-//
-// The read half mirrors `pull settings` exactly -- same three requests, same
-// reshaping -- because the change table compares what pull would have written
-// against what the config says.
+// runPushSettings mirrors `pull settings` on the read half -- same requests,
+// same reshaping -- because the change table compares what pull would have
+// written against what the config says.
 func runPushSettings(command *cobra.Command) error {
 	out := command.OutOrStdout()
 
@@ -246,12 +225,8 @@ func (c *pushContext) applySettings(command *cobra.Command, settings *jsonx.Obje
 	return nil
 }
 
-// timed reports what a settings step did and how long it took.
-//
-// A settings push is four steps of one line each and can take the better part
-// of a minute, which leaves no way to tell a slow step from a hung one. The
-// count and the duration turn "it is stuck" into "the auth methods took
-// forty seconds", which is the question anyone actually has.
+// timed reports what a settings step did and how long it took, so a slow step
+// is distinguishable from a hung one.
 func timed(out io.Writer, count int, what string, run func() error) error {
 	started := time.Now()
 	if err := run(); err != nil {
@@ -266,23 +241,10 @@ func timed(out io.Writer, count int, what string, run func() error) error {
 
 // applyEnabled writes an `{id: enabled}` object, one PATCH per entry.
 //
-// ONE AT A TIME, and deliberately so -- this is a divergence from the
-// TypeScript's Promise.all (push.ts:1332), which has the same defect.
-//
-// These look like independent routes and are not. Every one of them
-// read-modify-writes a nested field of the SAME `projects` row
-// (Project/Services/Update.php:76). Sending them together is unsafe: each
-// handler builds its new `services` array from the snapshot it read, and
-// although updateDocument re-reads the row under `SELECT ... FOR UPDATE`, the
-// supplied nested array REPLACES the freshly read one. Two concurrent writes
-// then lose one of the two changes.
-//
-// It is also not faster. The row lock serialises them server-side regardless,
-// measured at ~1.25s per waiter across all four batches, so concurrency buys
-// contention and a lost-update window in exchange for nothing.
-//
-// The real fix is a bulk settings endpoint that merges every change under one
-// transaction; until that exists, the honest client behaviour is to queue.
+// Sequential, unlike the TypeScript's Promise.all: these routes all
+// read-modify-write a nested field of the same `projects` row, so concurrent
+// writes lose one of the two changes. The row lock serialises them server-side
+// anyway. A bulk settings endpoint would be the real fix.
 func (c *pushContext) applyEnabled(base string, states *jsonx.Object) error {
 	for _, key := range states.Keys() {
 		value, _ := states.Get(key)
@@ -509,13 +471,9 @@ type deployable struct {
 	ApproveKeys []string
 	// DeploymentKeys are the config fields sent alongside the archive.
 	DeploymentKeys []string
-	// OmitWhenEmpty are fields left out of a request when the config leaves
-	// them blank, rather than sent as "".
-	//
-	// An entrypoint is the case: it is required on create and optional on
-	// update, so a blank one in the config means "unchanged". Sending "" would
-	// clear the value already on the server. Deliberately NOT every field --
-	// an empty `schedule` really does mean "unschedule it".
+	// OmitWhenEmpty are fields left out of a request when the config leaves them
+	// blank rather than sent as "", because blank means "unchanged" for them.
+	// Not every field: an empty `schedule` really does mean "unschedule it".
 	OmitWhenEmpty []string
 	// ConsoleURL renders the deployment's console page.
 	ConsoleURL func(base, slug, resourceID, deploymentID string) string
@@ -959,12 +917,8 @@ func (c *pushContext) completeDeployables(
 
 // resourceExists reports whether the resource is already on the server.
 //
-// Only asked for a resource whose config leaves a create-required field blank,
-// so it costs one extra request in the one case that needs the answer.
-//
-// A 404 means "not there", so the field is required. Any OTHER failure --
-// offline, an expired session, a 500 -- leaves the question unanswered, and the
-// safe answer is the stricter one: treat it as a create and ask.
+// A 404 means "not there". Any other failure leaves the question unanswered, so
+// it takes the stricter answer: treat it as a create and ask.
 func (c *pushContext) resourceExists(resource deployable, id string) bool {
 	// No id to ask about, or nothing to ask: both mean the answer is unknown,
 	// and unknown takes the strict branch.
@@ -1482,11 +1436,9 @@ func progressText(status string, waitingSince time.Time) string {
 	return "Status: " + status
 }
 
-// progressTracker decides when a deployment has stopped making progress.
-//
-// The clock resets whenever
-// the deployment CHANGES, so a ten-minute build that keeps logging is fine and
-// a two-minute one that goes silent is not.
+// progressTracker decides when a deployment has stopped making progress. The
+// clock resets whenever the deployment changes, so a ten-minute build that
+// keeps logging is fine and a two-minute one that goes silent is not.
 type progressTracker struct {
 	signature  string
 	lastChange time.Time
@@ -1514,10 +1466,8 @@ func (t *progressTracker) stalled() bool {
 }
 
 // progressSignature summarises the parts of a deployment that mean progress.
-//
-// Only the TAIL of the build log is compared, matching the TypeScript's
-// 200-character slice: a log that keeps growing changes the length, and
-// comparing megabytes of text on every poll would not.
+// Only the tail of the build log is compared -- a growing log changes the
+// length, and comparing megabytes on every poll would not.
 func progressSignature(deployment *jsonx.Object) string {
 	logs := deployment.GetString("buildLogs")
 	tail := logs
@@ -1580,10 +1530,8 @@ func (c *pushContext) previewURL(resource deployable, id string) string {
 
 // ensureDefaultRule gives a resource a default domain if it has none.
 //
-// Ports ensureDefaultFunctionRule (push.ts:896) and createDefaultSiteRule
-// (:914). Without a console session the domain cannot be read, so the rule is
-// skipped with a warning rather than failing the push -- an API key run in CI
-// is expected to hit this.
+// Without a console session the domain cannot be read, so the rule is skipped
+// with a warning rather than failing the push -- an API key run in CI hits this.
 func (c *pushContext) ensureDefaultRule(
 	command *cobra.Command,
 	resource deployable,
@@ -1631,11 +1579,9 @@ func (c *pushContext) ensureDefaultRule(
 	return c.api.Call("POST", "/proxy/rules/"+resource.Name, body, nil)
 }
 
-// ruleDomains reads the configured domains for a resource type.
-//
-// A function's domain is regionalised by replacing the first label, which is
-// the TypeScript's stand-in until the API reports a regional functions domain
-// of its own. Sites are not regionalised.
+// ruleDomains reads the configured domains for a resource type. A function's
+// domain is regionalised by replacing the first label, standing in until the
+// API reports a regional functions domain. Sites are not regionalised.
 func (c *pushContext) ruleDomains(resource deployable, variables *jsonx.Object) []string {
 	configured := variables.GetString("_APP_DOMAIN_" + strings.ToUpper(resource.Label))
 
@@ -1706,11 +1652,8 @@ func (c *pushContext) deploymentConsoleURL(
 		id, deploymentID)
 }
 
-// consoleProjectSlug is the project segment of a console URL.
-//
-// A self-hosted project needs its
-// region, which is only knowable by asking the console -- hence a request in
-// the middle of a push that otherwise touches nothing but the project.
+// consoleProjectSlug is the project segment of a console URL. A self-hosted
+// project needs its region, which only the console can answer.
 func (c *pushContext) consoleProjectSlug(endpoint, projectID string) string {
 	parsed, err := url.Parse(endpoint)
 	if err != nil {
