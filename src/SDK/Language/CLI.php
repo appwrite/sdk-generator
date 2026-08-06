@@ -692,67 +692,6 @@ class CLI extends Node
         };
     }
 
-    #[Override]
-    public function getParamExample(array $param, string $lang = ''): string
-    {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
-
-        $output = '';
-
-        if (empty($example) && $example !== 0 && $example !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= 'one two three';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '\'{ "key": "value" }\'';
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "'path/to/file.png'";
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_ARRAY:
-                    if (str_contains((string) $example, '[') && str_contains((string) $example, ']')) {
-                        $trimmed = substr((string) $example, 1, -1);
-                        $split = explode(',', $trimmed);
-                        $output .= implode(' ', $split);
-                    } else {
-                        $output .= $example;
-                    }
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '\'{ "key": "value" }\'';
-                    break;
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= $example;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($example) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "{$example}";
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "'path/to/file.png'";
-                    break;
-            }
-        }
-
-        return $output;
-    }
-
     /**
      * Language specific filters.
      */

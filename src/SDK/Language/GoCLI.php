@@ -385,7 +385,7 @@ class GoCLI extends Go
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
-                'template'      => 'go-cli/README.md.twig',
+                'template'      => 'cli/README.md.twig',
             ],
 
             [
