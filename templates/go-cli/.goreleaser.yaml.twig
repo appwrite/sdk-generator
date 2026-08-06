@@ -88,20 +88,8 @@ release:
     name: {{ sdk.gitRepoName | caseDash }}
   draft: true
 
-# Developer ID signing and notarisation are deliberately absent.
-#
-# What install.sh requires is an embedded signature, not a trusted one, and the
-# ad-hoc signature applied in the build hook above satisfies it. That matches
-# what the CLI ships today: `codesign -dv` on the released Bun binary reports
-# `adhoc,linker-signed`, so the TypeScript CLI has never been Developer
-# ID-signed or notarised either.
-#
-# Adding real notarisation is therefore a product decision, not a gap in this
-# port, and it is worth knowing what it buys before wiring the secrets: it
-# removes the Gatekeeper prompt for binaries downloaded through a browser.
-# Nothing here is -- install.sh curls it, and curl sets no quarantine
-# attribute. Do not add a `notarize:` block referencing secrets that do not
-# exist yet; goreleaser fails the whole release rather than skipping it.
-#
-# Windows signing happens outside goreleaser, in the release workflow, through
-# SignPath -- the same service and the same project the TypeScript CLI uses.
+# No Developer ID signing or notarisation, matching what the CLI ships today:
+# `codesign -dv` on the released binary reports `adhoc,linker-signed`. install.sh
+# only checks that a signature is embedded, which the build hook above satisfies.
+# Do not add a `notarize:` block before the secrets exist -- goreleaser fails the
+# whole release rather than skipping it.
