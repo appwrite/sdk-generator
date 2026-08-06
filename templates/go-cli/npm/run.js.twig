@@ -1,29 +1,17 @@
 #!/usr/bin/env node
 // Launcher for the npm distribution of the {{ spec.title | caseUcfirst }} CLI.
 //
-// `npm i -g {{ language.params.npmPackage }}` used to install a JavaScript bundle and run it
-// under node. It now installs a native binary, and this file is the shim that
-// finds and executes it. Keeping the package name and the `{{ language.params.executableName }}` bin
-// entry identical is what makes the switch invisible: a CI job that installs
-// the CLI this way keeps working without touching its config.
+// `npm i -g {{ language.params.npmPackage }}` now installs a native binary rather than a JavaScript
+// bundle; this shim finds and executes it. The package name and `{{ language.params.executableName }}` bin entry
+// are unchanged so an existing CI job keeps working.
 //
-// WHY optionalDependencies AND NOT A POSTINSTALL DOWNLOAD
+// Per-platform optionalDependencies rather than a postinstall download, which
+// would break under `npm ci --ignore-scripts`, behind a proxied registry, and
+// carries no integrity check. npm installs only the package matching `os`/`cpu`,
+// integrity-checked and cached like any other dependency.
 //
-// The obvious shim downloads the right binary from GitHub in a postinstall
-// script. That breaks in exactly the environments that install a CLI from npm:
-// `npm ci --ignore-scripts` is common CI hardening and would leave the package
-// installed but unusable, an air-gapped or proxied registry has no route to
-// github.com, and nothing checks the download's integrity.
-//
-// Per-platform packages avoid all of it. npm reads the `os` and `cpu` fields
-// and installs only the one matching package, the tarball is integrity-checked
-// and cached like any other dependency, and no network access happens after
-// resolution. This is what esbuild, swc and turbo all do.
-//
-// The consequence to remember when releasing: the platform packages must be
-// published BEFORE this one, or an install resolves optionalDependencies that
-// do not exist yet. scripts/build-npm-packages.mjs builds them from the
-// goreleaser output and the release workflow publishes in that order.
+// The platform packages must be published BEFORE this one, or an install
+// resolves optionalDependencies that do not exist yet.
 
 const { spawnSync } = require("node:child_process");
 

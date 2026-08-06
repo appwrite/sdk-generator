@@ -10,21 +10,11 @@ import (
 
 // The attribute, column and index endpoints.
 //
-// Ports createAttribute, updateAttribute, deleteAttribute and createIndex
-// (attributes.ts:290, :500, :696, :1042).
-//
-// Every one of them goes through the LEGACY /databases route, including the
-// columns and indexes of a TABLE. That reads like a mistake and is not: the
-// TypeScript's Attributes class calls getDatabasesService() unconditionally, and
-// a recorded `push table` confirms it -- adding a string column to a table posts
-// to
-//
-//	POST /databases/{databaseId}/collections/{tableId}/attributes/string
-//
-// not to the /tables route the resource name would suggest. Tables and
-// collections are the same objects behind two route prefixes, so both work, but
-// what the TypeScript sends is the contract and it sends /databases. Re-record a
-// push against a recording proxy before changing this.
+// All of them go through the legacy /databases route, including the columns and
+// indexes of a TABLE. That reads like a mistake and is not -- the TypeScript
+// calls the databases service unconditionally, and tables and collections are
+// the same objects behind two route prefixes. What the TypeScript sends is the
+// contract, so re-record a push before changing this.
 //
 // A field ABSENT from the config is absent from the request body. The
 // TypeScript passes `xdefault: attribute.default` and the JavaScript SDK drops

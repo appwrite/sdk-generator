@@ -7,23 +7,17 @@ import (
 
 // writeFileAtomically replaces a file's contents in a single step.
 //
-// os.WriteFile truncates in place, so an interrupt, a full disk or a crash
-// between the truncate and the final write leaves a partial file. That is worse
-// here than it sounds: LoadGlobal treats an unparseable prefs.json as empty
-// preferences, so a truncated write does not surface as an error -- it silently
-// discards every session the user had, and the next command asks them to log in
-// again.
+// os.WriteFile truncates in place, so a crash mid-write leaves a partial file --
+// and LoadGlobal treats an unparseable prefs.json as empty preferences, so that
+// silently discards every session rather than surfacing an error.
 //
-// Local.Write is a harder case. It rewrites each include file and then the root,
-// so a failure part-way through leaves a split config whose pieces disagree.
-// Renaming cannot make that whole sequence atomic, but it does guarantee each
-// individual file is either entirely its old contents or entirely its new ones,
-// which turns "some files are corrupt" into the far more tractable "some files
-// are older than others".
+// Local.Write rewrites each include file and then the root, which renaming
+// cannot make atomic as a whole; it does guarantee each file is entirely its old
+// or its new contents, turning "some files are corrupt" into "some files are
+// older than others".
 //
-// The temporary file is created alongside the destination because rename is only
-// atomic within one filesystem, and a leading dot keeps it from being mistaken
-// for a config file if anything goes wrong.
+// The temporary file sits alongside the destination because rename is only
+// atomic within one filesystem.
 func writeFileAtomically(path string, data []byte, permissions os.FileMode) error {
 	temporary, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*")
 	if err != nil {
