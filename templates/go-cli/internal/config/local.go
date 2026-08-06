@@ -90,17 +90,12 @@ func LocalPath(directory string) string {
 }
 
 // FindLocalPath locates the project config, searching upwards from the working
-// directory.
+// directory, because people run `push` from inside `functions/<name>/` as
+// readily as from the root.
 //
-// A project is a
-// directory tree, and people run `push` from inside `functions/<name>/` as
-// readily as from the root; looking only in the working directory answered
-// those with "project is not set".
-//
-// The walk stops at the home directory so a stray config there cannot capture
-// every unrelated project, and stops at the filesystem root. When nothing is
-// found the working directory's path is returned, so callers report a missing
-// config where the user is rather than where the search ended.
+// The walk stops at the home directory, so a stray config there cannot capture
+// every unrelated project. When nothing is found the working directory's path is
+// returned, so callers report a missing config where the user is.
 func FindLocalPath() string {
 	working, err := os.Getwd()
 	if err != nil {
@@ -259,15 +254,13 @@ func (l *Local) resolveIncludePath(resource, includePath string) (string, error)
 	return resolved, nil
 }
 
-// resolveSymlinks resolves path as far as it exists on disk.
+// resolveSymlinks resolves path as far as it exists on disk. Comparing cleaned
+// path strings is not containment: a link named `functions.json` inside the
+// project can point anywhere, and the read and write would follow it.
 //
-// Comparing cleaned path strings is not containment: a link named
-// `functions.json` sitting in the project can point anywhere, and both the read
-// and the write that follow would go to the target rather than to the project.
-//
-// filepath.EvalSymlinks fails outright when the leaf does not exist, which is
-// the ordinary case for an include being written for the first time, so the
-// deepest existing ancestor is resolved and the missing tail rejoined onto it.
+// EvalSymlinks fails outright when the leaf does not exist -- ordinary for an
+// include written for the first time -- so the deepest existing ancestor is
+// resolved and the missing tail rejoined.
 func resolveSymlinks(path string) string {
 	tail := ""
 	for current := path; ; {

@@ -23,14 +23,11 @@ import (
 // templatesRepo holds the function starter templates.
 const templatesRepo = "https://github.com/appwrite/templates"
 
-// runtimeChoice is one entry of the runtime list.
-//
-// The two names are NOT the same string and the difference is load-bearing.
-// Directory is the FIRST dash-separated segment of the runtime id, used to find
-// the template directory; Language is the id with its LAST segment dropped,
-// used to look up the entrypoint and install command. For `node-22` both are
-// "node", which is why the divergence goes unnoticed until `python-ml-3.11`
-// asks for the "python" template directory and the "python-ml" entrypoint.
+// runtimeChoice is one entry of the runtime list. Directory and Language are not
+// the same string: Directory is the first dash-separated segment of the runtime
+// id, Language is the id with its last segment dropped. For `node-22` both are
+// "node", so the divergence only shows up on `python-ml-3.11`, which needs the
+// "python" template directory and the "python-ml" entrypoint.
 type runtimeChoice struct {
 	ID         string
 	Directory  string
@@ -98,14 +95,9 @@ func entrypointFor(language string) string {
 	return ""
 }
 
-// installCommandFor is getInstallCommand(), and prefills `commands` for the
-// runtimes that fetch dependencies before a build.
-//
-// An empty result is not a gap to report. swift, java, kotlin and cpp have
-// nothing to fetch; `go` is not listed at all and its runtime resolves modules
-// during the build itself. Both cases deploy exactly as the starter template
-// intends, and `push` never asks for this field -- it prompts for a missing
-// entrypoint, and for a site's build command, and nothing else.
+// installCommandFor prefills `commands` for the runtimes that fetch dependencies
+// before a build. An empty result is not a gap: swift, java, kotlin and cpp have
+// nothing to fetch, and go resolves modules during the build itself.
 func installCommandFor(language string) string {
 	switch language {
 	case "dart":
@@ -368,44 +360,25 @@ func chooseRuntime(api *client.Client, prompter prompt.Prompter) (string, error)
 	})
 }
 
-// Specification types the list endpoint distinguishes.
-//
-// A plan allows a different set for each -- `buildSpecifications` against
-// `runtimeSpecifications` server-side -- and `type` is what selects which set
-// `enabled` is computed from. Both CLIs asked for the default, `runtimes`, for
-// both questions, so the build prompt offered every runtime specification as
-// available and `push` was the first thing to disagree:
-//
-//	✗ Error: Failed to push function Test function 400: Invalid
-//	  `buildSpecification` param: Specification must be one of:
-//	  s-2vcpu-2gb, s-2vcpu-4gb, s-4vcpu-4gb
-//
-// on a value `init function` had just written into appwrite.config.json.
+// Specification types the list endpoint distinguishes. A plan allows a different
+// set for each, and `type` selects which set `enabled` is computed from. Asking
+// for the default `runtimes` for both questions made the build prompt offer
+// specifications that `push` then rejected -- on a value `init function` had
+// just written into the config.
 const (
 	buildSpecifications   = "builds"
 	runtimeSpecifications = "runtimes"
 )
 
-// chooseSpecification asks for a CPU/memory pairing.
+// chooseSpecification asks for a CPU/memory pairing. A specification the plan
+// does not allow is listed and disabled rather than hidden, so the upgrade is
+// discoverable -- but only where an upgrade is what it would take.
 //
-// A specification the account's plan does not allow is listed and disabled
-// rather than hidden, so the upgrade is discoverable -- but only where an
-// upgrade is what it would take.
-//
-// The API answers with a bare `enabled` and no reason for it, and on the BUILD
-// list the disabled rows are two different things. The small specifications are
-// never valid for a build on any plan; the large ones are the tier gate. Marking
-// both "Upgrade to use" offered an upgrade that does not exist:
-//
-//	┃   0.5 CPU, 512MB RAM (Upgrade to use)
-//	┃   2 CPU, 2048MB RAM
-//	┃   8 CPU, 8192MB RAM (Upgrade to use)
-//
-// Nothing server-side distinguishes them -- Validator/Specification.php
-// intersects the plan's list with the env CPU and memory caps and keeps no
-// notion of a build floor -- so the response's own order is what separates
-// them: the allowlist is a contiguous band, and anything before it is below the
-// floor.
+// The API answers with a bare `enabled` and no reason, and on the build list
+// disabled means two different things: the small specifications are below the
+// build floor on every plan, the large ones are the tier gate. Nothing
+// server-side distinguishes them, so the response's own order does -- the
+// allowlist is a contiguous band and anything before it is below the floor.
 func chooseSpecification(
 	api *client.Client,
 	prompter prompt.Prompter,

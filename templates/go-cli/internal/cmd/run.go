@@ -203,13 +203,11 @@ func runFunction(command *cobra.Command, options runOptions) error {
 	return serve(ctx, command, emulator, tool, queue, port, keys, variables, wait)
 }
 
-// watchExit reports a container's own exit, once.
-//
-// Buffered by one so the goroutine always finishes, whether or not anyone is
-// still listening: a deliberate restart also makes wait return, and serve stops
-// listening across that so the expected exit is dropped rather than reported as
-// a crash. A nil wait means no container is running, and a nil channel blocks in
-// select, which is exactly the right behaviour there.
+// watchExit reports a container's own exit, once. Buffered by one so the
+// goroutine always finishes whether or not anyone is listening -- a deliberate
+// restart also makes wait return, and serve stops listening across it so the
+// expected exit is dropped rather than reported as a crash. A nil wait means no
+// container is running, and a nil channel blocks in select.
 func watchExit(wait func() error) <-chan error {
 	if wait == nil {
 		return nil
@@ -222,13 +220,9 @@ func watchExit(wait func() error) <-chan error {
 }
 
 // serve reloads on every debounced change until the context is cancelled, or
-// until the container stops on its own.
-//
-// That second case is why wait is threaded through here. Without it a container
-// that died after startup -- a runtime panic on the first import, an OOM kill --
-// left "Visit http://localhost:<port>/" on screen and waited on a dead port
-// forever, because the only thing that reports the exit is the value both Start
-// call sites used to discard.
+// until the container stops on its own. That second case is why wait is threaded
+// through: without it a container that died after startup left "Visit
+// http://localhost:<port>/" on screen and waited on a dead port forever.
 func serve(
 	ctx context.Context,
 	command *cobra.Command,
@@ -416,19 +410,12 @@ func resolvePort(requested int) (int, error) {
 	return port, nil
 }
 
-// portNotice explains a port the user did not choose.
+// portNotice explains a port the user did not choose, so a function that came up
+// on 3001 does not look like it was always there. Silent when the port was asked
+// for explicitly or the search settled on its first try.
 //
-// `run` prints one URL and nothing about how it got there, so a function that
-// came up on 3001 looked like it had always been on 3001 -- and the reader is
-// left wondering whether the port moved, or something else is holding the one
-// they expected. Naming what was skipped answers both.
-//
-// Silent when the port was asked for explicitly, and when the search settled on
-// the first port it tried: neither is a surprise worth a line.
-//
-// The skipped range is derived rather than collected, which FindPort's contract
-// allows -- it scans upward from portSearchStart and returns the FIRST free port,
-// so everything below the result was busy.
+// The skipped range is derived rather than collected: FindPort scans upward and
+// returns the first free port, so everything below the result was busy.
 func portNotice(requested, chosen int) string {
 	if requested > 0 || chosen <= portSearchStart {
 		return ""
