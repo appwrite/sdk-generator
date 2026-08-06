@@ -48,6 +48,29 @@ func TestReleaseAssetURLKeepsTheAssetName(t *testing.T) {
 	}
 }
 
+func TestUpdateVersionGuard(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		current string
+		target  string
+		force   bool
+		wantErr bool
+	}{
+		{name: "newer candidate", current: "26.0.0-rc.1", target: "26.0.0-rc.2"},
+		{name: "same version", current: "26.0.0-rc.2", target: "26.0.0-rc.2", wantErr: true},
+		{name: "downgrade", current: "26.0.0-rc.1", target: "25.1.0", wantErr: true},
+		{name: "forced downgrade", current: "26.0.0-rc.1", target: "25.1.0", force: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			err := validateUpdateVersion(test.current, test.target, test.force)
+			if (err != nil) != test.wantErr {
+				t.Errorf("validateUpdateVersion(%q, %q, %t) error = %v, wantErr %t",
+					test.current, test.target, test.force, err, test.wantErr)
+			}
+		})
+	}
+}
+
 // A real goreleaser manifest: two spaces between digest and filename, one line
 // per asset, Windows assets carrying their extension.
 const checksumsManifest = `d1e8a70b5ccab1dc2f56bbf7e99f064a2fc6dc2d3c9d4b1e0a7f2c3b4a596877  appwrite-cli-darwin-arm64

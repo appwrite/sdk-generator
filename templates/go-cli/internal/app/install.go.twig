@@ -140,7 +140,7 @@ func HomebrewFormula() string {
 	return ""
 }
 
-// NPMRegistryURL is where the newest published version is looked up.
+// NPMRegistryURL is where the newest stable version is looked up.
 //
 // Homebrew installs are updated through brew, but the
 // version published to npm is the same release, so one source answers for both
@@ -155,6 +155,10 @@ func HomebrewFormula() string {
 // `latest` before picking a number.
 const NPMRegistryURL = "https://registry.npmjs.org/" + NPMPackageName + "/latest"
 
+// NPMPrereleaseRegistryURL follows the release candidates published under the
+// next dist-tag. Stable builds never query it.
+const NPMPrereleaseRegistryURL = "https://registry.npmjs.org/" + NPMPackageName + "/next"
+
 // UpdateChecker builds the once-a-day version check, or nil when there is
 // nowhere to cache its answer.
 func UpdateChecker() *update.Checker {
@@ -164,7 +168,8 @@ func UpdateChecker() *update.Checker {
 	}
 
 	return &update.Checker{
-		RegistryURL: NPMRegistryURL,
+		RegistryURL:           NPMRegistryURL,
+		PrereleaseRegistryURL: NPMPrereleaseRegistryURL,
 		// Beside the preferences, which is already the directory this CLI owns.
 		CachePath: filepath.Join(home, "."+ExecutableName, "update-check.json"),
 		Current:   Version,
