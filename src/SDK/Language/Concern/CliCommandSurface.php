@@ -287,6 +287,20 @@ trait CliCommandSurface
     }
 
     /**
+     * Whether a method is promoted to the root, which decides how the docs
+     * example spells its invocation. Both CLIs document the same surface, so
+     * the lookup belongs here rather than in either language class.
+     */
+    protected function isCliTopLevelAlias(array $method, array $service): bool
+    {
+        return \in_array(
+            $method['name'] ?? '',
+            self::TOP_LEVEL_COMMANDS[$service['name'] ?? ''] ?? [],
+            true,
+        );
+    }
+
+    /**
      * Emission targets for one method: the normal (possibly hidden) service
      * subcommand, plus a standalone root command when the method is aliased.
      *
