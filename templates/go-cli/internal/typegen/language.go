@@ -9,14 +9,12 @@ import (
 	"strings"
 )
 
-// The TypeScript builds each language's output from an EJS template held as an
-// inline string in its class. Those strings are not shared artifacts -- nothing
-// else reads them -- so there is nothing to preserve by porting EJS itself.
-// Each language emits directly in Go instead, and correctness is held by
-// baselines captured from node rather than by reading the templates.
+// The TypeScript builds each language's output from an inline EJS template that
+// nothing else reads, so each language emits directly in Go instead and
+// correctness is held by baselines captured from node.
 //
-// This differs from the .hbs templates under commands/generators, which ARE
-// separate files both CLIs read; those go through internal/typegen/handlebars.go.
+// The .hbs templates under commands/generators are different -- both CLIs read
+// those files, so they go through internal/typegen/handlebars.go.
 
 // Attribute is one attribute of a collection, or one column of a table.
 //
@@ -35,15 +33,12 @@ type Attribute struct {
 	RelationType      string `json:"relationType,omitempty"`
 	Side              string `json:"side,omitempty"`
 
-	// Default distinguishes an absent key from an explicit null, because the
-	// TypeScript tests `attribute.default === null`: an omitted default is
-	// undefined and does NOT widen the type with `| null`. A plain `any` would
-	// collapse both cases to nil and add `| null` where the TypeScript does not.
+	// Default distinguishes an absent key from an explicit null: only the latter
+	// widens the type with `| null`.
 	//
-	// json.RawMessage rather than *json.RawMessage: a pointer field is set to
-	// nil by encoding/json when the JSON value is null, which erases the very
-	// distinction this field exists to keep. As a value it implements
-	// json.Unmarshaler and is handed the literal bytes "null".
+	// json.RawMessage rather than *json.RawMessage -- encoding/json sets a
+	// pointer field to nil for a null value, erasing the distinction this field
+	// exists to keep. As a value it is handed the literal bytes "null".
 	Default json.RawMessage `json:"default,omitempty"`
 }
 
@@ -158,12 +153,10 @@ func PropertyName(attribute Attribute, strict bool) string {
 }
 
 // xmlEscaper reproduces EJS's escapeXML, which `<%= %>` applies and `<%- %>`
-// does not.
-//
-// Several templates use both forms for the same identifier, so an attribute key
-// containing `&` or `<` is written one way as a field declaration and another
-// as a constructor parameter -- in the same generated file. Note the numeric
-// entities for quotes: this is EJS's table, not Handlebars', and the two differ.
+// does not -- several templates use both forms for the same identifier, so an
+// attribute key containing `&` is escaped in one place and not the other within
+// one generated file. The numeric entities for quotes are EJS's table, which
+// differs from Handlebars'.
 var xmlEscaper = strings.NewReplacer(
 	"&", "&amp;",
 	"<", "&lt;",

@@ -14,20 +14,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports pushTable and pushCollection (templates/cli/lib/commands/push.ts:3766
-// and :3935) together with the Push class methods they call, pushTables (:2855)
-// and pushCollections (:3015).
+// `push table` and `push collection` do the same four things in the same order,
+// and the order is the design: databases first, so a table has somewhere to
+// live; then the tables; then the columns, which is internal/schema's job; then
+// the indexes, last, because an index names columns.
 //
-// Both commands do the same four things in the same order, and the order is the
-// whole design:
-//
-//  1. reconcile the DATABASES, so a table has somewhere to live;
-//  2. reconcile the tables themselves, creating or renaming;
-//  3. reconcile the COLUMNS, which is internal/schema's job;
-//  4. reconcile the INDEXES, last, because an index names columns.
-//
-// `push collection` is the deprecated half of the pair and skips step 1 -- it
-// creates a missing database inline instead.
+// `push collection` is the deprecated half of the pair and creates a missing
+// database inline instead.
 
 // pushDatabaseResource parameterises the two commands over their route and key
 // names. The same distinction pull draws (see pulldatabase.go): tablesdb/tables/
@@ -456,12 +449,9 @@ func (c *pushContext) localDatabase(
 }
 
 // pushDatabaseChildren creates or updates the tables and collections, then
-// reconciles their schema.
-//
-// Their one
-// structural difference is preserved: a newly created COLLECTION carries its
-// attributes and indexes in the create body and is therefore complete, while a
-// newly created TABLE does not and has its columns pushed afterwards.
+// reconciles their schema. A newly created collection carries its attributes and
+// indexes in the create body and is complete; a new table does not, and has its
+// columns pushed afterwards.
 func (c *pushContext) pushDatabaseChildren(
 	command *cobra.Command,
 	resource pushDatabaseResource,

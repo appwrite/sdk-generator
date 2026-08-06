@@ -11,19 +11,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports pushBucket (push.ts:4012), pushTeam (:4076), pushWebhook (:4140) and
-// pushMessagingTopic (:4204), together with their implementations on the Push
-// class -- pushBuckets (:1490), pushTeams (:1589), pushWebhooks (:1631) and
-// pushMessagingTopics (:1681).
+// Buckets, teams, webhooks and messaging topics are the flat resources: one
+// config entry maps to one remote object, with nothing to upload and nothing to
+// poll. All four follow the same five steps, so they are described as data and
+// driven by one function.
 //
-// These four are the flat resources: one config entry maps to one remote
-// object, there is nothing to upload and nothing to poll. Every one follows the
-// same five steps, so they are described as data and driven by one function.
-//
-// The remote is fetched TWICE per resource -- once by approveChanges and once
-// by the push itself. That is what the TypeScript does and the two CLIs are
-// compared request-for-request, so collapsing them into a single GET would read
-// as a diff rather than as an optimisation.
+// The remote is fetched twice per resource, once by approveChanges and once by
+// the push. That matches the TypeScript, and the two CLIs are compared
+// request-for-request, so collapsing them would read as a diff.
 
 // simpleResource describes one flat push.
 type simpleResource struct {

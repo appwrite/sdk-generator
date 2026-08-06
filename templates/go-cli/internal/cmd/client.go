@@ -152,12 +152,9 @@ func newClientCommand() *cobra.Command {
 }
 
 // selectSessionForEndpoint points the CLI at the stored session belonging to a
-// newly configured endpoint.
-//
-// Ports the endpoint branch of the TypeScript's client command
-// (generic.ts:288). Setting the endpoint on whatever session happened to be
-// current re-pointed a signed-in session at a different instance, so the
-// credentials of one server were sent to another until the next login.
+// newly configured endpoint. Setting the endpoint on whatever session happened
+// to be current re-pointed a signed-in session at a different instance, sending
+// one server's credentials to another.
 func selectSessionForEndpoint(
 	command *cobra.Command,
 	global *config.Global,
@@ -269,21 +266,15 @@ func warnDetachedSession(out io.Writer, global *config.Global, previous string) 
 		"active. Run `%s login --switch` to return to it.", email, app.ExecutableName)
 }
 
-// setLocalProject records the project in appwrite.config.json.
+// setLocalProject records the project in appwrite.config.json. An existing
+// config anywhere up the tree is updated in place rather than shadowed by a new
+// one in the working directory.
 //
-// Ports the `--project-id` branch of the TypeScript's client command
-// (generic.ts:341), which calls localConfig.setProject. An existing config
-// anywhere up the tree is updated in place rather than shadowed by a new one
-// in the working directory.
-//
-// It also pins the project's REGIONAL endpoint, which the TypeScript does not.
-// On Cloud a project lives in one region and is reachable only through that
-// region's host, so naming a project in another region and leaving the endpoint
-// alone produced "Project is not accessible in this region" from the next
-// command -- with nothing in the config to explain why, since the CLI had been
-// told the project and could have looked the region up. `init project` already
-// does exactly this (initproject.go), so this is the same behaviour arriving
-// through the other door rather than a new idea.
+// It also pins the project's regional endpoint, which the TypeScript does not:
+// on Cloud a project is reachable only through its own region's host, so naming
+// a project in another region and leaving the endpoint alone produced "Project
+// is not accessible in this region" from the next command. `init project`
+// already does this.
 func setLocalProject(command *cobra.Command, global *config.Global, projectID string) error {
 	local, err := config.LoadOrCreateLocal(config.FindLocalPath())
 	if err != nil {
@@ -315,11 +306,9 @@ func setLocalProject(command *cobra.Command, global *config.Global, projectID st
 // regionalEndpointForProject asks the API which region a project is in and
 // returns the endpoint that serves it, or "" to leave the endpoint alone.
 //
-// Every failure returns "" rather than an error. Setting the project is the job
-// the user asked for, and it has to keep working offline, against an instance
-// that does not answer, and for a project id that does not exist yet -- so a
-// region that cannot be determined leaves the config exactly as the TypeScript
-// would have left it.
+// Every failure returns "" rather than an error: setting the project is the job
+// the user asked for, and it has to keep working offline and for a project id
+// that does not exist yet.
 func regionalEndpointForProject(
 	out io.Writer,
 	api *client.Client,
