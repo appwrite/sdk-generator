@@ -64,7 +64,10 @@ jobs:
           echo "${LDID_SHA256}  /tmp/ldid" | sha256sum --check --strict
 
           sudo install -m 0755 /tmp/ldid /usr/local/bin/ldid
-          ldid -V
+          # The gate adhoc-sign.sh itself uses. ldid has no flag that exits 0 --
+          # -V, -v and --version all print usage and exit 1 -- so a version
+          # check here fails the step it is meant to be reassuring about.
+          command -v ldid
 
       - name: Build
         uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
