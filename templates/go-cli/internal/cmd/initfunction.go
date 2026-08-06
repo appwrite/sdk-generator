@@ -370,15 +370,10 @@ const (
 	runtimeSpecifications = "runtimes"
 )
 
-// chooseSpecification asks for a CPU/memory pairing. A specification the plan
-// does not allow is listed and disabled rather than hidden, so the upgrade is
-// discoverable -- but only where an upgrade is what it would take.
-//
-// The API answers with a bare `enabled` and no reason, and on the build list
-// disabled means two different things: the small specifications are below the
-// build floor on every plan, the large ones are the tier gate. Nothing
-// server-side distinguishes them, so the response's own order does -- the
-// allowlist is a contiguous band and anything before it is below the floor.
+// chooseSpecification asks for a CPU/memory pairing. The API omits the
+// specifications that are unavailable server-side, so `enabled: false` means one
+// thing -- the plan gates it -- and those rows are shown disabled rather than
+// hidden to keep the upgrade discoverable.
 func chooseSpecification(
 	api *client.Client,
 	prompter prompt.Prompter,
@@ -403,25 +398,8 @@ func chooseSpecification(
 		return "", err
 	}
 
-	// Where the band starts. Left at -1 when the plan allows none of them, in
-	// which case nothing is hidden: a prompt with every row disabled at least
-	// shows what the account has, where an empty one would look like a fault in
-	// the CLI.
-	floor := -1
-	for index, entry := range response.Specifications {
-		if entry.Enabled == nil || *entry.Enabled {
-			floor = index
-
-			break
-		}
-	}
-
 	options := make([]prompt.Option, 0, len(response.Specifications))
-	for index, entry := range response.Specifications {
-		if specificationType == buildSpecifications && floor > 0 && index < floor {
-			continue
-		}
-
+	for _, entry := range response.Specifications {
 		option := prompt.Option{
 			Label: fmt.Sprintf("%s CPU, %sMB RAM", entry.CPUs, entry.Memory),
 			Value: entry.Slug,
