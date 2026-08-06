@@ -352,6 +352,30 @@ jobs:
           "./$BIN" --help | grep -q "GET STARTED"
           SHELL=bash "./$BIN" completion bash >/dev/null
 
+      # The linker ignores an -X for a symbol that does not exist, so a wrong
+      # path in .goreleaser.yaml builds cleanly and every release then reports
+      # the default. Stamp with the config's own symbol and check it lands.
+      - name: Verify the version ldflag stamps the binary
+        if: matrix.sdk == 'go-cli'
+        working-directory: examples/go-cli
+        run: |
+          symbol=$(grep -oE '\-X [^ ]+app\.Version=' .goreleaser.yaml | head -1 | sed -e 's/^-X //' -e 's/=$//')
+
+          if [ -z "$symbol" ]; then
+            echo "no '-X <path>app.Version=' ldflag found in .goreleaser.yaml"
+            exit 1
+          fi
+
+          go build -ldflags "-X ${symbol}=9.9.9-ldflag-test" -o appwrite-ldflag-test .
+
+          if ! ./appwrite-ldflag-test --version | grep -q '9.9.9-ldflag-test'; then
+            echo "the -X ldflag did not reach ${symbol}:"
+            ./appwrite-ldflag-test --version
+            exit 1
+          fi
+
+          rm appwrite-ldflag-test
+
       - name: Test compiled Go CLI binary
         if: matrix.sdk == 'go-cli'
         working-directory: examples/go-cli
