@@ -108,15 +108,10 @@ func (c *Client) Pull(ctx context.Context, image string) error {
 
 // environmentArguments names the variables to forward, without their values.
 //
-// Bare `-e KEY` tells docker to read the value from its own environment, which
-// is where environmentEntries puts it. `-e KEY=VALUE` would put the value on the
-// command line instead, and argv is world-readable through /proc/<pid>/cmdline:
-// `run` forwards a one-hour project key and a user JWT, so any local account
-// could read a live credential for as long as the container ran. The process
-// environment they move to, /proc/<pid>/environ, is readable only by its owner.
-//
-// Order is taken from keys rather than from a map, so the command line is stable
-// between runs.
+// Bare `-e KEY` makes docker read the value from its own environment. `-e
+// KEY=VALUE` would put a live project key and user JWT on the command line,
+// which is world-readable through /proc/<pid>/cmdline; /proc/<pid>/environ is
+// readable only by its owner. Order comes from keys so the command is stable.
 func environmentArguments(keys []string) []string {
 	arguments := make([]string, 0, len(keys)*2)
 	for _, key := range keys {
@@ -306,23 +301,11 @@ func (c *Client) Start(ctx context.Context, options StartOptions) (wait func() e
 
 // waitForPort polls until the runtime inside the container answers.
 //
-// A bare TCP connect is not enough. docker publishes the port by starting a
-// proxy in front of the container, and that proxy accepts connections while the
-// runtime behind it is still unpacking code -- so `run` announced
-//
-//	✓ Success: Visit http://localhost:3000/ to execute your function.
-//
-// in the middle of the container's own startup log, several seconds before
-// anything could actually be executed. Writing a request and requiring a reply
-// moves the announcement to where it is true.
-//
-// ANY reply counts, including a refusal: without the runtime secret the dev
-// server answers 500, and that is still proof it is listening. Only a connection
-// that closes without a response is treated as not-ready-yet.
-//
-// 100 attempts at 100ms, matching the TypeScript's iteration cap -- about ten
-// seconds, which covers a cold runtime start without hanging a broken one
-// forever.
+// A bare TCP connect is not enough: docker's port proxy accepts connections
+// while the runtime behind it is still unpacking code, so `run` announced
+// success several seconds early. Any reply counts, including a 500 -- only a
+// connection that closes without one is not-ready-yet. 100 attempts at 100ms
+// covers a cold start without hanging a broken one forever.
 func waitForPort(ctx context.Context, port int) error {
 	address := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
 
@@ -376,22 +359,13 @@ func probe(address string) error {
 
 // PortAvailable reports whether a port can be published.
 //
-// Binding is the test rather than dialling: a port with nothing listening yet
-// still fails to bind if another process holds it, and that is the case the
-// caller needs to avoid.
+// Both loopback addresses are checked, because `localhost` is not one address: a
+// server bound only to [::1]:3000 leaves 127.0.0.1:3000 free, and a browser
+// resolving localhost to ::1 first reaches the other service.
 //
-// BOTH loopback addresses are checked, because `localhost` is not one address.
-// A dev server bound only to [::1]:3000 leaves 127.0.0.1:3000 free, so probing
-// v4 alone called the port available; docker published it without complaint, and
-// the browser -- which resolves localhost to ::1 first -- reached the other
-// service instead of the function. The search never moved off 3000 either,
-// because as far as the CLI could see nothing was wrong with it.
-//
-// Dialling AND binding, because neither alone is sufficient. Go sets
-// SO_REUSEADDR on its listeners, which on BSD lets a wildcard bind succeed while
-// a specific address on the same port is held -- so a bind can report a port
-// free that something is actively serving. A dial catches those; a bind catches
-// the ones held but not yet listening.
+// Dialling and binding, because neither alone is sufficient. SO_REUSEADDR lets a
+// wildcard bind succeed while a specific address on the port is held, so a bind
+// alone can report a port free that something is actively serving.
 func PortAvailable(port int) bool {
 	address := func(host string) string {
 		return net.JoinHostPort(host, strconv.Itoa(port))
@@ -424,13 +398,10 @@ func PortAvailable(port int) bool {
 	return true
 }
 
-// held reports whether a probe failed because something already has the
-// address, closing the listener when it did not.
-//
-// The distinction matters: `tcp6` on a host with IPv6 disabled fails with
-// EAFNOSUPPORT, which says nothing about the port, and reading that as a
-// conflict would reject the whole search range and leave `run` insisting there
-// is no free port at all.
+// held reports whether a probe failed because something already has the address,
+// closing the listener when it did not. `tcp6` on a host with IPv6 disabled
+// fails with EAFNOSUPPORT, which says nothing about the port -- reading that as a
+// conflict would reject the whole search range.
 func held(listener net.Listener, err error) bool {
 	if err == nil {
 		listener.Close()
@@ -453,11 +424,8 @@ func FindPort(start, end int) (int, bool) {
 }
 
 // signalNames renders the signals a docker process realistically dies from.
-//
-// Named rather than numbered because the message is user-facing and the
-// TypeScript reports Node's names -- someone who has seen "SIGKILL" before
-// should see it again. Go's syscall.Signal.String() gives "killed" instead,
-// which is why this table exists.
+// Named rather than numbered, because Go's syscall.Signal.String() gives
+// "killed" where the user expects "SIGKILL".
 var signalNames = map[syscall.Signal]string{
 	syscall.SIGHUP:  "SIGHUP",
 	syscall.SIGINT:  "SIGINT",

@@ -135,21 +135,10 @@ func ReportBlock(err error) string {
 		" - Create an issue in our Github\n   " + ReportURL(err)
 }
 
-// RequiredArgument validates a command that takes exactly one argument, and
-// says which one when it is missing.
-//
-// cobra's own message for this is
-//
-//	accepts 1 arg(s), received 0
-//
-// which names neither the argument, nor the command, nor a way to find out --
-// and `arg(s)` is a plural hedge in a sentence that already knows the number is
-// one. `appwrite types` is the command that hits it, where the missing value is
-// a directory the user has to choose, so the message has to say so.
-//
-// description is the argument's own help text, which the TypeScript declares
-// beside the argument ("The directory to write the types to") -- naming it is
-// what turns the error into an instruction.
+// RequiredArgument validates a command that takes exactly one argument, and says
+// which one when it is missing. cobra's own `accepts 1 arg(s), received 0` names
+// neither the argument nor the command; description is the argument's help text,
+// which is what turns the error into an instruction.
 func RequiredArgument(name, description string) cobra.PositionalArgs {
 	return func(command *cobra.Command, arguments []string) error {
 		if len(arguments) == 1 {
@@ -209,17 +198,9 @@ func Report(writer io.Writer, executed *cobra.Command, err error) int {
 
 	output.Failure(writer, "%s", FormatError(err))
 
-	// --verbose was documented as "Show full error stack traces" and showed
-	// none: it suppressed the advice line above and changed nothing else, so on
-	// the failure it is most needed for -- a response the SDK could not decode --
-	// it added exactly nothing to
-	//
-	//   ✗ Error: json: cannot unmarshal array into Go struct field
-	//     UsageProject.embeddingsText of type models.Metric
-	//
-	// which names a field and a type and gives no way to see what actually
-	// arrived. Ports the `cliConfig.verbose` branch of parseError
-	// (parser.ts:937), which prints formatErrorForLog(err).
+	// --verbose has to add the response body: on the failure it matters most for
+	// -- a response the SDK could not decode -- a message naming a field and a
+	// type gives no way to see what actually arrived.
 	if app.Flags().Verbose {
 		if detail := ErrorDetail(err); detail != "" {
 			fmt.Fprint(writer, detail)
@@ -235,15 +216,9 @@ func Report(writer io.Writer, executed *cobra.Command, err error) int {
 
 // ErrorDetail is everything known about a failure, for --verbose.
 //
-// Ports formatErrorForLog (parser.ts:847) and its ERROR_DETAIL_KEYS -- `code`,
-// `type`, `response` -- to what Go actually has. A Go error carries no stack, so
-// the UNWRAP CHAIN stands in for one: each layer names where the failure was
-// wrapped, which is the same question a stack answers.
-//
-// The response body is the reason this exists. internal/sdk records the last
-// one, and a decode failure never renders, so the body that could not be decoded
-// is still sitting there when this runs -- and it is the only thing that tells
-// the user whether the API changed shape or the CLI has the model wrong.
+// A Go error carries no stack, so the unwrap chain stands in for one. The
+// response body is the reason this exists: it is the only thing that says
+// whether the API changed shape or the CLI has the model wrong.
 func ErrorDetail(err error) string {
 	if err == nil {
 		return ""
@@ -281,17 +256,10 @@ func ErrorDetail(err error) string {
 // thousand lines to say "an array of {value, date}".
 const arrayPreview = 2
 
-// prettyJSON re-indents a body and collapses its long arrays.
-//
-// A body that is not JSON is printed untouched, which is the case that matters
-// most: an HTML error page or a proxy's plain-text refusal is the whole
-// diagnosis.
-//
-// Collapsing ARRAYS rather than truncating lines, and this is the difference
-// between a useful dump and a useless one. The field that fails to decode can be
-// anywhere in the response -- `embeddingsText` comes after fourteen other
-// metrics -- so a line or byte cap cuts off exactly the part the user needs. An
-// array is where the volume is, and its length is not what anyone is reading.
+// prettyJSON re-indents a body and collapses its long arrays. A body that is not
+// JSON is printed untouched -- an HTML error page or a proxy's refusal is the
+// whole diagnosis. Arrays are collapsed rather than lines truncated, because the
+// field that failed to decode can sit anywhere in the response.
 func prettyJSON(body []byte) string {
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	// Numbers stay as written: an id that arrived as 20 digits must not be
@@ -315,14 +283,10 @@ func prettyJSON(body []byte) string {
 
 func jsonIndent(depth int) string { return strings.Repeat("  ", depth) }
 
-// writeJSONValue re-emits one value, in the order it was read.
-//
-// Re-emitted from tokens rather than decoded into a map, because a map loses key
-// order -- and a response printed with its fields shuffled is harder to compare
-// against a model than one printed as it arrived.
-// key is the field this value sits under, so a credential can be masked here as
-// it is on the normal render path. It is threaded through arrays as well: an
-// array of strings under a sensitive key is a list of credentials.
+// writeJSONValue re-emits one value in the order it was read, from tokens rather
+// than a map, which would lose key order. key is the field the value sits under
+// so credentials can be masked -- threaded through arrays too, since an array
+// under a sensitive key is a list of credentials.
 func writeJSONValue(decoder *json.Decoder, builder *strings.Builder, depth int, key string) error {
 	token, err := decoder.Token()
 	if err != nil {

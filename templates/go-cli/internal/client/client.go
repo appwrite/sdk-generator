@@ -40,12 +40,10 @@ const (
 
 // Client is a thin HTTP client for the Appwrite API.
 //
-// One client is shared across concurrent requests: `push` runs
-// deploy.UploadConcurrency chunk uploads through a single instance. Every
-// response can carry a Set-Cookie the client records, so the two cookie fields
-// are written while other goroutines are reading them to build requests. They
-// are the only mutable state here -- headers are set before a request is made
-// and only read afterwards -- so one mutex covers them both.
+// One client is shared across concurrent requests -- `push` runs
+// deploy.UploadConcurrency chunk uploads through a single instance -- and every
+// response can carry a Set-Cookie. The two cookie fields are the only mutable
+// state, so one mutex covers them both.
 type Client struct {
 	Endpoint   string
 	HTTP       *http.Client
@@ -112,16 +110,10 @@ const responseHeaderTimeout = 60 * time.Second
 // baseTransport is the process default's tuning plus a bound on response
 // headers.
 //
-// Timeouts are per phase here rather than one budget for the whole request,
-// which is what http.Client.Timeout would be: it covers connect, write, read and
-// body streaming together. `push` sends deploy.ChunkSize per request, and at
-// 5 MB a 60 second ceiling failed every chunk on less than roughly 90 KB/s of
-// upstream -- reported as a server error, with no retry, so a slow connection
-// looked like a broken API. Bounding each phase catches a connection that is
-// stuck without punishing one that is merely slow.
-//
-// A dependency replacing http.DefaultTransport is not a reason to panic on a
-// type assertion, so that case falls back to a plain transport.
+// Per phase rather than one http.Client.Timeout covering connect, write, read
+// and body streaming together: a 5 MB `push` chunk failed every upload under
+// roughly 90 KB/s of upstream and reported it as a server error. Bounding each
+// phase catches a stuck connection without punishing a merely slow one.
 func baseTransport() *http.Transport {
 	transport := &http.Transport{}
 	if standard, ok := http.DefaultTransport.(*http.Transport); ok {
@@ -192,31 +184,21 @@ func (c *Client) Download(path string) ([]byte, error) {
 	return payload, nil
 }
 
-// WithoutResponseFormat drops the x-appwrite-response-format header.
-//
-// That header does not merely declare a version -- it asks the API for THAT
-// version's response shape. The console routes still answer it with a legacy
-// flat project (serviceStatusForAccount, authEmailPassword, ...) instead of the
-// `services`/`protocols`/`authMethods` arrays the config is built from.
-//
-// The TypeScript never hits this because its console calls go through
-// @appwrite.io/console, which sends no such header; only its own client.ts
-// sends one. This is how a call reproduces the console SDK.
+// WithoutResponseFormat drops the x-appwrite-response-format header, which asks
+// the API for that version's response shape: the console routes answer it with a
+// legacy flat project instead of the `services`/`protocols`/`authMethods` arrays
+// the config is built from. This reproduces what the console SDK sends.
 func (c *Client) WithoutResponseFormat() *Client {
 	delete(c.headers, headerFormat)
 
 	return c
 }
 
-// Clone returns a copy with its own header map.
+// Clone returns a copy with its own header map, so that scoping one call to an
+// organization does not scope the next unrelated one.
 //
-// Needed because one console client lists organizations and then acts within
-// one: setting X-Appwrite-Organization on the shared client would scope the
-// next unrelated call as well.
-// Field by field rather than `copied := *c`, which would copy the mutex along
-// with everything else -- vet rejects that, and it would also mean taking a
-// snapshot of the cookies without holding the lock, which is the race this
-// mutex exists to prevent. The clone gets its own lock and its own cookies.
+// Field by field rather than `copied := *c`, which would copy the mutex -- vet
+// rejects it, and it would snapshot the cookies without holding the lock.
 func (c *Client) Clone() *Client {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -294,21 +276,10 @@ func (c *Client) captureSessionCookie(response *http.Response) {
 
 // SetSelfSigned accepts a self-signed TLS certificate.
 //
-// Ports `rejectUnauthorized: !this.selfSigned` on the TypeScript client's HTTPS
-// agent (client.ts:236). A self-hosted instance behind its own certificate is
-// the whole reason `client --self-signed` exists, and without this the flag was
-// stored and never acted on.
-//
-// The transport is this client's own, not http.DefaultTransport: mutating the
-// shared default would turn verification off for every request the process makes
-// afterwards, including ones to Appwrite Cloud.
-//
-// The http.Client is replaced rather than mutated, for the same reason one step
-// in. Clone copies the *http.Client by pointer, so assigning to c.HTTP.Transport
-// reached through every clone and every sibling of this client -- one clone
-// opting in silently disabled certificate verification for calls this client
-// never made. Swapping in a copy confines the decision to the client it was
-// asked of.
+// Both the transport and the http.Client are copies, never the shared default
+// and never mutated in place: Clone copies the *http.Client by pointer, so
+// mutating either would disable certificate verification for every clone and
+// sibling -- including calls to Appwrite Cloud this client never made.
 func (c *Client) SetSelfSigned(selfSigned bool) *Client {
 	if !selfSigned {
 		return c
@@ -376,16 +347,11 @@ func (e *APIError) Error() string {
 }
 
 // unauthenticated reports whether this is the API refusing an unauthenticated
-// request, rather than refusing a real account something.
-//
-// Without it the CLI repeats
-// the API verbatim -- `User (role: guests) missing scopes (["account"])` --
-// which describes a permission model the user did not ask about and names no way
-// out of it.
-//
-// All three parts are matched, exactly as the TypeScript matches them, and Code
-// rather than Status: a 401 of any other type is a different problem, and
-// rewriting those would hide them behind a message about signing in.
+// request, rather than refusing a real account something. Without it the CLI
+// repeats `User (role: guests) missing scopes (["account"])`, which names no way
+// out. All three parts are matched, and Code rather than Status -- a 401 of
+// another type is a different problem and must not be hidden behind a sign-in
+// message.
 func (e *APIError) unauthenticated() bool {
 	return e.Code == 401 && e.Type == unauthorizedScopeType && guestRole.MatchString(e.Message)
 }

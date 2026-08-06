@@ -1,26 +1,12 @@
 // Package schema reconciles the attributes, columns and indexes of a table or
 // collection against appwrite.config.json.
 //
-// Ports templates/cli/lib/commands/utils/attributes.ts and
-// templates/cli/lib/commands/utils/pools.ts.
-//
-// The shape of the problem: the config declares what the schema should be, the
-// API reports what it is, and the difference has to be applied in an order that
-// never destroys data it did not have to. Four properties drive every decision
-// in this file.
-//
-//   - Some fields can be changed in place and some cannot. `required` is an
-//     update; `type` is a delete followed by a create, which loses the column's
-//     data. Which is which depends on the attribute's own type, so the rules are
-//     a per-type table rather than one list.
-//   - Creation is ASYNCHRONOUS. The API answers 202 with status "processing"
-//     and the attribute is unusable until it reports "available". Everything
-//     downstream has to wait, which is what Poller does.
-//   - Indexes reference attributes by name, so attributes are reconciled first
-//     and indexes second, always.
-//   - A rename is expressed by `previousKey` in the config. Without resolving it
-//     first, a rename reads as a delete plus an add -- which is the same schema
-//     and none of the data.
+// Four properties drive the design: some fields update in place and some need a
+// delete-and-recreate that loses data, which is why the rules are a per-type
+// table; creation is asynchronous, so Poller waits for "available"; indexes
+// reference attributes by name, so attributes are always reconciled first; and
+// a `previousKey` rename must be resolved before diffing, or it reads as a
+// delete plus an add -- the same schema and none of the data.
 package schema
 
 import (
@@ -81,12 +67,9 @@ type FieldRules struct {
 // attribute's type.
 var commonRecreateKeys = []string{"type", "array", "encrypt", "format"}
 
-// AttributeFieldRules returns the rules for one attribute.
-//
-// The switch is on the
-// attribute's own type and, for strings, its format -- an enum can have its
-// `elements` updated where a plain string can have its `size` updated, and
-// neither accepts the other's field.
+// AttributeFieldRules returns the rules for one attribute, switching on its type
+// and, for strings, its format -- an enum updates `elements` where a plain
+// string updates `size`, and neither accepts the other's field.
 func AttributeFieldRules(attribute *jsonx.Object) FieldRules {
 	switch attribute.GetString("type") {
 	case TypeString:
@@ -141,12 +124,9 @@ func AttributeFieldRules(attribute *jsonx.Object) FieldRules {
 	}
 }
 
-// IndexFieldRules is the rule set for an index.
-//
-// Nothing about an index is
-// updatable -- there is no update endpoint at all -- so every difference is a
-// recreation. Both `attributes` and `columns` appear because a collection index
-// names the first and a table index the second.
+// IndexFieldRules is the rule set for an index. Nothing about an index is
+// updatable, so every difference is a recreation. Both `attributes` and
+// `columns` appear because collection and table indexes name them differently.
 var IndexFieldRules = FieldRules{
 	Recreate: []string{"type", "attributes", "columns", "orders"},
 }
@@ -439,11 +419,9 @@ func changeFor(attribute *jsonx.Object, container Container, isAdding bool) Chan
 
 // checkChanges compares one remote attribute against its config counterpart.
 //
-// Ports checkAttributeChanges (attributes.ts:236). recreating selects WHICH
-// fields are compared: the immutable ones when deciding whether the attribute
-// must be dropped and rebuilt, the updatable ones when deciding whether an
-// update call is enough. The two passes are separate because an attribute that
-// needs recreating must not also be updated.
+// recreating selects which fields are compared -- immutable or updatable. The
+// two passes are separate because an attribute that needs recreating must not
+// also be updated.
 func checkChanges(
 	remote, local *jsonx.Object,
 	container Container,
@@ -541,14 +519,9 @@ type Reconciler struct {
 // Reconcile diffs a remote snapshot against the config and applies everything
 // that is not a creation, returning what still has to be created.
 //
-// The application order is the
-// contract, and each step exists because the one before it can fail:
-//
-//  1. renames, so a failed rename cannot leave data half-destroyed;
-//  2. in-place updates, so a rejected update aborts before any deletion;
-//  3. deletions for recreation, then deletions proper;
-//  4. a wait for all of those to complete, because a create against a key that
-//     is still being deleted is rejected.
+// The order is the contract -- renames, in-place updates, deletions, then a
+// wait -- so that a failure at any step cannot destroy data the next step
+// needed, and no create races a key still being deleted.
 func (r *Reconciler) Reconcile(
 	remote, local []*jsonx.Object,
 	container Container,
@@ -774,11 +747,8 @@ func (r *Reconciler) deleteAll(
 }
 
 // CreateAttributes creates every entry and waits for all of them to become
-// available.
-//
-// Ports createAttributes and createColumns (attributes.ts:1075 and :1109),
-// which differ only in the word they log. Creation is SERIAL: the API rejects
-// concurrent schema changes on the same collection.
+// available. Serial: the API rejects concurrent schema changes on one
+// collection.
 func (r *Reconciler) CreateAttributes(
 	entries []*jsonx.Object,
 	container Container,
