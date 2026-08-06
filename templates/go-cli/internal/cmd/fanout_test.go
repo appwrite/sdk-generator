@@ -17,13 +17,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// `pull all` and `push all` mean ALL, with or without --all.
-//
-// Both were gated on the global --all flag, so the bare subcommand fell through
-// to the picker and asked which single resource to act on -- reported for
-// `push all` first, then for `pull all` the same way a day later. The
-// TypeScript sets cliConfig.all itself before delegating (pull.ts:1136,
-// push.ts:4288), so neither ever reaches the question.
+// `pull all` and `push all` mean all, with or without --all. Both were gated on
+// the flag, so the bare subcommand fell through to the picker and asked which
+// single resource to act on.
 
 // isolateGlobalAll restores the --all flag when the test ends.
 //
@@ -74,14 +70,10 @@ func TestPushEverythingRunsEveryNonDeprecatedAction(t *testing.T) {
 	assertRanEverything(t, ran)
 }
 
-// `all` has to reach INSIDE each resource.
-//
-// The fan-out running every resource type is only half of it: each one then
-// reads the same global flag to decide whether to ask which functions, sites
-// or buckets to act on. Run without setting it, `pull all` pulled the settings
-// and then stopped to ask which functions to pull -- every resource type, one
-// question at a time. The TypeScript sets cliConfig.all before delegating
-// (pull.ts:850, push.ts:4288), which is what suppresses those.
+// `all` has to reach inside each resource: the fan-out is only half of it, since
+// each resource then reads the same flag to decide whether to ask which
+// functions or buckets to act on. Without it, `pull all` stopped to ask, one
+// resource type at a time.
 func TestEverythingSetsTheGlobalAllFlag(t *testing.T) {
 	for _, run := range []struct {
 		name string
@@ -186,13 +178,12 @@ func TestPushFanOutRunsSites(t *testing.T) {
 	t.Error("`push all` has no sites action")
 }
 
-// The picker's order is user-visible and is NOT the execution order: push runs
+// The picker's order is user-visible and is not the execution order: push runs
 // settings first and databases last, because a table cannot be created before
 // project settings allow the databases service.
 //
-// Every value offered must resolve to an action -- an entry naming nothing is
-// a choice that does nothing. The converse does NOT hold: sites are run by
-// `all` and deliberately absent from the picker, matching upstream.
+// Every value offered must resolve to an action. The converse does not hold --
+// sites are run by `all` and deliberately absent from the picker.
 func TestPickerOffersOnlyRealActions(t *testing.T) {
 	assertResolves := func(name string, order []string, values []string) {
 		for _, value := range order {
@@ -236,13 +227,9 @@ func assertRanEverything(t *testing.T, ran []string) {
 	}
 }
 
-// `push function --all` asked "Enter the entrypoint" for any function whose
-// config had none. --all says "every resource, do not ask me", and it is how a
-// pipeline pushes, so a question there is the opposite of what was asked -- and
-// the answer is data the CLI cannot invent.
-//
-// The function is reported and skipped now, and the rest of the push proceeds.
-// The prompter here fails the test if it is reached at all.
+// `push function --all` asked for an entrypoint when the config had none, which
+// is the opposite of what --all requested and unanswerable in a pipeline. The
+// function is reported and skipped now; the prompter fails the test if reached.
 func TestPushAllNeverAsksForAMissingEntrypoint(t *testing.T) {
 	restore := app.Flags().All
 	app.Flags().All = true

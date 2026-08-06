@@ -309,13 +309,8 @@ func TestTheHintIsNotPrintedWhenTheUserAlreadyAskedForDetail(t *testing.T) {
 	}
 }
 
-// The advice is only true of a failed request. `appwrite types . -l typescript`
-// never sends one, so --verbose has no status, no response and no chain to
-// print, and every one of these errors was preceded by an offer of detail that
-// did not exist:
-//
-//	ℹ Info: For detailed error pass the --verbose or --report flag
-//	✗ Error: language 'typescript' is not supported
+// The advice is only true of a failed request: a command that never sends one
+// has no status, response or chain to print, so the offer of detail was empty.
 func TestTheHintIsNotPrintedWhenNothingWasSent(t *testing.T) {
 	requestWasMade(t, false)
 

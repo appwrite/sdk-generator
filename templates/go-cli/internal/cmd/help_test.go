@@ -6,13 +6,9 @@ import (
 	"testing"
 )
 
-// The main help screen is the first thing a new user sees, and it is the one
-// screen cobra cannot produce: its default lists 40-odd services
-// alphabetically, each with a paragraph of API prose.
-//
-// These assert the layout rather than a byte golden, because the command set
-// comes from the spec -- a service added upstream would fail a golden without
-// anything being wrong.
+// These assert the layout rather than a byte golden: the command set comes from
+// the spec, so a service added upstream would fail a golden without anything
+// being wrong.
 
 // theRealDescription is the paragraph the shipped CLI carries, kept here so the
 // wrap is checked against real input rather than against the placeholder the
@@ -292,20 +288,12 @@ func TestNarrowTerminalsStillWrap(t *testing.T) {
 	}
 }
 
-// commander's wrap is not a plain greedy word wrap, and the difference is
-// visible on the screen: a line holds columnWidth-1 characters rather than
-// columnWidth, and the first line carries two characters that were never
-// measured because commander wraps `str.slice(indent)` and prefixes
-// `str.slice(0, indent)` back on.
-//
-// A from-scratch greedy wrap agreed at 80 columns and disagreed at 15, 17, 18,
-// 30, 41, 42, 49, 50, 56, 57, 62 and 71 -- which is why this compares against
-// captured commander output rather than against a rule.
-//
-// Captured by calling commander's own Help.wrap with the arguments help.ts
-// passes it: `wrap(description, width - 2, 2, 2)`, prefixed with the two-space
-// indent, for every screen width from 6 to 80. The spread below is the boundary,
-// the cap, the floor, and every width the greedy version got wrong.
+// commander's wrap is not a plain greedy word wrap: a line holds columnWidth-1
+// characters, and the first carries two that were never measured. A greedy wrap
+// agreed at 80 columns and disagreed at a dozen others, so this compares against
+// output captured from commander's own Help.wrap for every width from 6 to 80.
+// The widths below are the boundary, the cap, the floor, and the ones greedy got
+// wrong.
 var commanderWrapped = map[int]string{
 	80: "  Appwrite is an open-source self-hosted backend server that abstracts and\n  simplifies complex and repetitive development tasks behind a very simple\n  REST API",
 	71: "  Appwrite is an open-source self-hosted backend server that abstracts\n  and simplifies complex and repetitive development tasks behind a\n  very simple REST API",
@@ -334,12 +322,9 @@ func TestWrapMatchesCommanderAtEveryWidth(t *testing.T) {
 	}
 }
 
-// The paragraph the CLI actually ships has no word longer than a column, no
-// double spaces and no leading space, so checking the wrap against it alone left
-// three branches unexercised -- and one of them was wrong: a run of consecutive
-// spaces produced a blank line that commander does not produce.
-//
-// Captured the same way as commanderWrapped, from commander's own Help.wrap.
+// The shipped paragraph has no long word, double space or leading space, so it
+// left three branches unexercised -- one of which was wrong, producing a blank
+// line commander does not. Captured the same way as commanderWrapped.
 var commanderWrappedAwkward = []struct {
 	name    string
 	text    string

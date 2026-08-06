@@ -8,13 +8,10 @@ import (
 	"testing"
 )
 
-// realConfig is a project config in the exact shape and key order the
-// TypeScript CLI writes: CONFIG_KEY_ORDER at the top level, four-space
-// indentation, no trailing newline.
-//
-// It deliberately includes a URL with an ampersand and a `>` in a description.
-// Go's JSON encoder escapes both by default, which would rewrite a user's file
-// on the next save.
+// realConfig is a project config in the exact shape and key order the TypeScript
+// CLI writes. It deliberately includes a URL with an ampersand and a `>` in a
+// description: Go's JSON encoder escapes both by default, which would rewrite a
+// user's file on the next save.
 const realConfig = `{
     "projectId": "68f2a1b4c5d6e7f80912",
     "projectName": "Acme Storefront",
