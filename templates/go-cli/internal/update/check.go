@@ -13,17 +13,12 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Ports the update check in templates/cli/cli.ts.twig and the cache helpers in
-// lib/utils.ts.
+// Tells the user on every command when a newer version exists.
 //
-// The TypeScript CLI tells you on every command when a newer version exists.
-// The Go port did not, so someone on an old build had no way to find out short
-// of running `update` on a hunch. This restores it.
-//
-// The constraint the TypeScript does not have: startup is the reason this CLI
-// exists -- 5ms against 206ms -- so the check must not spend that budget. It
-// reads a cache, and only reaches the network when the cache is stale, at most
-// once a day and with a short timeout.
+// The constraint the TypeScript does not have: startup time is the reason this
+// CLI exists, so the check must not spend that budget. It reads a cache and only
+// reaches the network when that is stale, at most once a day and with a short
+// timeout.
 
 const (
 	// Interval matches UPDATE_CHECK_INTERVAL_MS.

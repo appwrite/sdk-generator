@@ -50,12 +50,9 @@ func consoleClient() (*client.Client, *config.Global, error) {
 
 // consoleClientAt is consoleClient against a given endpoint.
 //
-// The
-// session's endpoint is the region-less one -- login normalises it, so a Cloud
-// session is stored as cloud.appwrite.io however the user reached it -- and a
-// resource that lives in ONE region is not there. The screenshot bucket is the
-// case: the file exists in nyc.cloud.appwrite.io and the region-less console
-// answers "The requested file could not be found."
+// login normalises a Cloud session to the region-less cloud.appwrite.io, so a
+// resource that lives in one region is not there -- the screenshot bucket exists
+// at nyc.cloud.appwrite.io and the region-less console reports it missing.
 //
 // An empty endpoint keeps the session's, which is what console-wide routes such
 // as /account and /projects want.
@@ -126,20 +123,13 @@ func newWhoamiCommand() *cobra.Command {
 			// they do on every generated command. Printing directly meant
 			// `whoami --json` emitted the human table.
 			session := global.Current()
-			// The CLI identifies itself first, the way `vercel whoami` does.
-			// Both lines are what a bug report needs and what someone chasing
-			// "works on my machine" asks for, so they are fields rather than a
-			// banner -- that way `--json` carries them too.
+			// A banner rather than a field, and dim: it is context for the
+			// answer rather than part of it. To stderr when the output is being
+			// parsed, so `whoami --json | jq` still gets only JSON.
 			//
-			// MFA is deliberately absent: the OAuth login the CLI uses does not
-			// exercise it, so reporting it invited a conclusion it cannot
+			// MFA is deliberately absent -- the OAuth login the CLI uses does
+			// not exercise it, so reporting it invited a conclusion it cannot
 			// support.
-			// A banner rather than a field, the way `vercel whoami` opens with
-			// "Vercel CLI 58.4.4 (Node.js 22.19.0)". Dim, because it is context
-			// for the answer rather than part of it.
-			//
-			// To stderr when the output is being parsed -- same rule as the
-			// update notice, so `whoami --json | jq` still gets only JSON.
 			fmt.Fprintln(bannerWriter(command), bannerStyle.Render(fmt.Sprintf(
 				"Appwrite CLI %s (Go %s, %s/%s)", app.Version,
 				strings.TrimPrefix(runtime.Version(), "go"),

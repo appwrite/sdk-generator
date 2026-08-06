@@ -202,11 +202,10 @@ func fetchAvailableSkills() ([]skillInfo, string, error) {
 
 // placeSkills installs the chosen skills into the chosen agent directories.
 //
-// Symlinking only happens with MORE THAN ONE agent directory: with a single
-// one there is nothing to point at, so the "symlink" answer copies. That is the
-// TypeScript's `useSymlinks && selectedAgents.length > 1`, and reproducing it
-// matters because the alternative -- a lone directory full of links into a
-// temporary clone -- would break the moment the clone is removed.
+// Symlinking only happens with more than one agent directory: with a single one
+// there is nothing to point at, so the "symlink" answer copies. The alternative
+// -- a lone directory of links into a temporary clone -- breaks the moment the
+// clone is removed.
 func placeSkills(root, tempDir string, selected, agents []string, useSymlinks bool) error {
 	skillsSrcDir := filepath.Join(tempDir, "skills")
 

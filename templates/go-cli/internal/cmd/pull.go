@@ -180,13 +180,10 @@ func projectAPI(global *config.Global, local *config.Local) (*client.Client, err
 			endpoint, sessionEndpoint, app.ExecutableName)
 	}
 
-	// WithoutResponseFormat, and this is load bearing. The TypeScript's
-	// sdkForProject() builds an @appwrite.io/console Client -- not its own
-	// client.ts -- so no pull request carries x-appwrite-response-format. With
-	// the header the API answers in the pinned version's shape, and newer
-	// fields (buildSpecification, runtimeSpecification, the project settings
-	// arrays) are absent rather than wrong, so the output looks plausible and
-	// is quietly incomplete.
+	// WithoutResponseFormat is load bearing: with the header the API answers in
+	// the pinned version's shape, and newer fields such as buildSpecification
+	// and the project settings arrays are absent rather than wrong -- so the
+	// output looks plausible and is quietly incomplete.
 	api := client.New(endpoint, app.Version).
 		WithoutResponseFormat().
 		SetProject(projectID).
