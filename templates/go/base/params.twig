@@ -1,28 +1,11 @@
-{#
-   The wire parameters, split the way the request is split: `query` and `body`
-   become `params`, `header` becomes `headers`. `parameters.all` is the method
-   signature -- it also holds the PATH parameters, which are already substituted
-   into the URL, so iterating it sent userId in the query string of a GET and in
-   the body of a PATCH.
-
-   There is no `parameters.formData` key: Swagger2 folds `in: formData` into
-   `requestBody` before parsing, so those land in `body`.
-#}
-{% set payloadParameters = method.parameters.query|merge(method.parameters.body) %}
-{% set wireParameters = payloadParameters|merge(method.parameters.header) %}
-{#
-   Gated on the parameters read below, not on `parameters.all`: a method whose
-   only optional parameters were path or header ones would declare `options` and
-   never read it, which does not compile.
-#}
-{% if wireParameters|filter(v => not v.required)|length > 0 %}
+{% if (method | wireParams)|filter(v => not v.required)|length > 0 %}
 	options := {{(method.name ~ "Options") | caseUcfirst}}{}.New()
 	for _, opt := range optionalSetters {
 		opt(options)
 	}
 {% endif %}
 	params := map[string]interface{}{}
-{% for parameter in payloadParameters %}
+{% for parameter in method | payloadParams %}
 {% if parameter.required %}
 	params["{{ parameter.name }}"] = {{ parameter.name | caseUcfirst }}
 {% else %}

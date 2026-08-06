@@ -364,6 +364,47 @@ class Go extends Language
             new TwigFilter('returnType', fn(array $method, array $spec, string $namespace, string $generic = 'map[string]interface{}'): string => $this->getReturnType($method, $spec, $namespace, $generic)),
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
             new TwigFilter('goPackagePath', fn(array $sdk): string => $this->getPackagePath($sdk)),
+            new TwigFilter('payloadParams', fn(array $method): array => $this->getPayloadParams($method)),
+            new TwigFilter('wireParams', fn(array $method): array => $this->getWireParams($method)),
+        ];
+    }
+
+    /**
+     * The parameters that go into the request payload: query and body.
+     *
+     * Not `parameters.all`, which is the method signature -- that also holds the
+     * path parameters, and those are already substituted into the URL. Sending
+     * them again put them in the query string of a GET and in the body of a PATCH.
+     *
+     * There is no `formData` key to merge: Swagger2 folds `in: formData` into
+     * `requestBody` before the OpenAPI3 parser runs, so those arrive under `body`.
+     *
+     * @param array<string, mixed> $method
+     * @return array<int, array<string, mixed>>
+     */
+    protected function getPayloadParams(array $method): array
+    {
+        return [
+            ...$method['parameters']['query'] ?? [],
+            ...$method['parameters']['body'] ?? [],
+        ];
+    }
+
+    /**
+     * Every parameter the request carries: the payload plus the headers.
+     *
+     * The optional-setter bootstrap is gated on this rather than on
+     * `parameters.all`, so a method whose optional parameters are all path ones
+     * does not declare an unused `options` variable, which would not compile.
+     *
+     * @param array<string, mixed> $method
+     * @return array<int, array<string, mixed>>
+     */
+    protected function getWireParams(array $method): array
+    {
+        return [
+            ...$this->getPayloadParams($method),
+            ...$method['parameters']['header'] ?? [],
         ];
     }
 

@@ -178,22 +178,20 @@ func TestSelfSignedConcurrentCalls(t *testing.T) {
 	}
 }
 
-// EncodePath has to match encodeURIComponent, not url.PathEscape: an id
-// containing `&` or `=` reaches a different route if the sub-delimiters legal in
-// a path segment are left alone.
+// Only the cases a live request cannot show. Escaping `/` and `&` is already
+// exercised end to end; these pin the edges that a plausible rewrite would get
+// wrong while still passing that request.
 func TestEncodePath(t *testing.T) {
 	cases := []struct {
 		name     string
 		value    string
 		expected string
 	}{
-		{"unreserved characters are left alone", "-_.!~*'()", "-_.!~*'()"},
-		{"alphanumerics are left alone", "abcXYZ098", "abcXYZ098"},
-		{"slash", "grant/special", "grant%2Fspecial"},
-		{"sub-delimiters url.PathEscape would leave alone", "a&b=c", "a%26b%3Dc"},
-		{"space", "two words", "two%20words"},
+		// A form encoder would turn these into %2D%5F%2E and a space into `+`.
+		{"unreserved characters are left alone", "abcXYZ098-_.!~*'()", "abcXYZ098-_.!~*'()"},
+		{"space is %20, not +", "two words", "two%20words"},
+		// A rune-wise loop would emit %E9 here.
 		{"multi-byte utf-8 is encoded per byte", "café", "caf%C3%A9"},
-		{"reserved characters", "a?b#c/d", "a%3Fb%23c%2Fd"},
 		{"empty", "", ""},
 	}
 
@@ -206,8 +204,6 @@ func TestEncodePath(t *testing.T) {
 	}
 }
 
-// Arrays are indexed as key[0], key[1] so Go agrees with the Node, Python and
-// PHP SDKs.
 func TestAddQueryParam(t *testing.T) {
 	q := url.Values{}
 

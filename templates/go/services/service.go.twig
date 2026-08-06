@@ -156,8 +156,6 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}URL(
 {% else %}
 	path := "{{ method.path }}"
 {% endif %}
-{# Gated on the query parameters read below: this variant reads nothing else, so
-   gating on `parameters.all` could declare `options` and never use it. #}
 {% if method.parameters.query|filter(v => not v.required)|length > 0 %}
 	options := {{(method.name ~ "Options") | caseUcfirst}}{}.New()
 	for _, opt := range optionalSetters {
