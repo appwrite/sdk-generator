@@ -2,13 +2,14 @@ package sdk
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 // --raw is documented as "the full raw JSON response", and --json filters that
@@ -59,6 +60,50 @@ func (r *responseRecorder) Record(body []byte) {
 
 // requestWasMade records that the process reached the API.
 var requestWasMade atomic.Bool
+
+// UnknownMutationOutcome is a timeout returned after a mutating request may
+// already have reached the server. Retrying it as an ordinary failure can
+// duplicate a create or repeat another side effect.
+type UnknownMutationOutcome struct {
+	err error
+}
+
+func (e *UnknownMutationOutcome) Error() string {
+	return "the request timed out after it may have reached the server; its outcome is unknown. " +
+		"Check the resource before retrying to avoid duplicate changes"
+}
+
+// Unwrap keeps the transport error available to --verbose and errors.Is/As.
+func (e *UnknownMutationOutcome) Unwrap() error { return e.err }
+
+// WrapMutationError marks a timeout from an unsafe HTTP method as an unknown
+// outcome. Read-only requests and ordinary failures keep their original error.
+func WrapMutationError(method string, err error) error {
+	if err == nil || isReadMethod(method) || !isTimeout(err) {
+		return err
+	}
+
+	return &UnknownMutationOutcome{err: err}
+}
+
+func isReadMethod(method string) bool {
+	switch strings.ToUpper(method) {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return true
+	default:
+		return false
+	}
+}
+
+func isTimeout(err error) bool {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+
+	var timeout interface{ Timeout() bool }
+
+	return errors.As(err, &timeout) && timeout.Timeout()
+}
 
 // RequestWasMade reports whether any request has been sent.
 //
@@ -114,19 +159,26 @@ func (t *recordingTransport) RoundTrip(request *http.Request) (*http.Response, e
 	return response, nil
 }
 
-// recordingHTTPClient is the http.Client the SDK client is given.
-//
-// It reproduces GetDefaultClient's cookie jar and timeout, because setting
-// Client on the SDK's struct skips that constructor entirely.
-func recordingHTTPClient(timeout time.Duration) *http.Client {
+// recordingHTTPClient adds response capture and the SDK's cookie jar to the
+// CLI's shared HTTP policy. In particular, it removes any whole-request
+// deadline instead of inheriting the SDK's ten-second timeout.
+func recordingHTTPClient(base *http.Client) *http.Client {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		jar = nil
 	}
-
-	return &http.Client{
-		Jar:       jar,
-		Timeout:   timeout,
-		Transport: &recordingTransport{next: http.DefaultTransport},
+	if base == nil {
+		base = &http.Client{}
 	}
+
+	next := base.Transport
+	if next == nil {
+		next = http.DefaultTransport
+	}
+	recorded := *base
+	recorded.Jar = jar
+	recorded.Timeout = 0
+	recorded.Transport = &recordingTransport{next: next}
+
+	return &recorded
 }
