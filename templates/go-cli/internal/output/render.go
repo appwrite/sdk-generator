@@ -13,17 +13,13 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
-// Unlike --json and --raw this output is explicitly NOT part of the parity
-// contract, so the structure is reproduced -- scalars first,
-// then one section per nested value -- without chasing the TypeScript's exact
-// spacing.
+// Unlike --json and --raw this output is not part of the parity contract, so the
+// structure is reproduced -- scalars first, then one section per nested value --
+// without chasing the TypeScript's exact spacing.
 //
-// PARTIALLY PORTED from response-config.ts. Its scalar half is done and lives
-// in valueformat.go -- timestamp formatting and duration humanising both apply
-// here -- and its `sectionFields` half is in sections.go. What is still missing
-// is per-resource selection of the TOP-LEVEL fields, and the aligned-column
-// renderers (renderAlignedColumns, padColumn, wrapValues) that lay several
-// values out side by side.
+// Partially ported: the scalar half is in valueformat.go and `sectionFields` in
+// sections.go. Still missing are per-resource selection of the top-level fields
+// and the aligned-column renderers that lay several values out side by side.
 
 var (
 	sectionStyle = lipgloss.NewStyle().Bold(true).Underline(true).Foreground(lipgloss.Color("3"))
@@ -231,14 +227,10 @@ func renderTable(rows []*jsonx.Object) string {
 }
 
 func drawTable(headers []string, data [][]string) string {
-	// No outer box. cli-table3 in the TypeScript is configured with every
-	// edge character blanked (parser.ts:740) and only `mid`, `mid-mid` and
-	// `middle` kept, so a row is a value rather than a value wrapped in pipes.
-	// That is not decoration: double-clicking an id in a boxed table selects
-	// the borders with it, which is exactly what you do with an id.
-	//
-	// A single-column table therefore has no vertical rule at all -- `middle`
-	// only appears BETWEEN columns.
+	// No outer box, matching the TypeScript's blanked edge characters: a row is
+	// a value rather than a value wrapped in pipes, and double-clicking an id in
+	// a boxed table selects the borders with it. A single-column table therefore
+	// has no vertical rule at all.
 	return table.New().
 		Border(lipgloss.NormalBorder()).
 		BorderTop(false).

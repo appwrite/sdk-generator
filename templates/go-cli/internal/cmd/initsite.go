@@ -19,14 +19,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Ports initSite (templates/cli/lib/commands/init.ts:825) and
-// questionsCreateSite (questions.ts:1279).
-//
 // Unlike `init function`, the template repository is not a constant: the API is
-// asked for the framework's starter, and the answer names the repo, the tag and
-// the subdirectory. That is why this command can partly succeed -- the config
-// entry is still written when the template lookup fails, as long as the user
-// did not ask to download it.
+// asked for the framework's starter, and the answer names the repo, tag and
+// subdirectory. That is why this command can partly succeed -- the config entry
+// is still written when the template lookup fails, unless the user asked to
+// download it.
 
 // SiteEntry is a site as `init site` writes it.
 type SiteEntry struct {
@@ -418,18 +415,13 @@ func starterTemplate(api *client.Client, framework string) (*siteTemplate, error
 
 // writeTemplateEnv writes the .env a scaffolded template needs to build.
 //
-// Every starter template reads its Appwrite endpoint and project from the
-// environment, and the API says so: each one declares its variables with
-// `{apiEndpoint}`, `{projectId}` and `{projectName}` placeholders for the CLI to
-// fill. Nothing filled them. The template shipped a `.env.example`, no `.env`
-// was written, `push site` had nothing to push, and the FIRST deploy of every
-// template site failed in the build -- for the Next.js starter, as
-// `TypeError: Cannot read properties of undefined (reading 'replace')` from
-// `setEndpoint(undefined)`, which says nothing about the actual cause.
+// Every starter reads its endpoint and project from the environment, and the API
+// declares them with `{apiEndpoint}`, `{projectId}` and `{projectName}`
+// placeholders for the CLI to fill. Nothing filled them, so the first deploy of
+// every template site failed in the build.
 //
-// An existing .env is never touched. It is the one file in a scaffolded site
-// that may already hold secrets, and a template's generic defaults are not worth
-// overwriting them for.
+// An existing .env is never touched -- it is the one file in a scaffolded site
+// that may already hold secrets.
 func writeTemplateEnv(
 	out io.Writer,
 	local *config.Local,

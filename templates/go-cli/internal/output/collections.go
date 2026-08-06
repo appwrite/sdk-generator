@@ -15,19 +15,15 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
-// A nested array in a response renders as a table of whatever keys the rows
-// happen to carry, which for a deployment or a session is a dozen columns of
-// mostly noise. These renderers replace that with a fixed, readable set of
-// columns for the section names worth special-casing.
+// A nested array otherwise renders as a table of whatever keys its rows carry,
+// which for a deployment or a session is a dozen columns of mostly noise. These
+// renderers give the sections worth special-casing a fixed set of columns.
 //
-// WHICH SECTION, NOT WHICH COMMAND. The registry is keyed on the name of the
-// nested field in the response body -- parser.ts:383 passes `section.key`
-// straight through -- so a renderer fires wherever that field appears,
-// regardless of which command produced it.
+// Keyed on the SECTION, not the command: the registry looks up the name of the
+// nested field, so a renderer fires wherever that field appears.
 //
-// Two renderers in the TypeScript, `invoices` and `paymentMethods`, are
-// deliberately absent: each is a field on one list model whose only command is
-// excluded from the CLI, so nothing can reach them.
+// `invoices` and `paymentMethods` are absent because each belongs to a list
+// model whose only command is excluded from the CLI.
 
 const columnGap = "  "
 

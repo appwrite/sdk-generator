@@ -6,17 +6,13 @@ import (
 	"strings"
 )
 
-// Replaces inquirer for the interactive commands.
+// Replaces inquirer for the interactive commands: the field types, the
+// validators, and what happens when there is nobody to answer. Individual
+// question definitions land with the commands that use them.
 //
-// The TypeScript's questions.ts is mostly inquirer question objects belonging
-// to one command each. Those definitions land with the commands that use them;
-// this package is the runtime underneath -- the field types, the validators,
-// and the decision about what happens when there is nobody to answer.
-//
-// That last part is the reason this is an interface rather than direct huh
-// calls. `appwrite push` in CI has no terminal, and a prompt there must fail
-// with the flag that would have answered it, not block a pipeline until it
-// times out.
+// An interface rather than direct huh calls because of that last part -- a
+// prompt in CI must fail naming the flag that would have answered it, not block
+// the pipeline until it times out.
 
 // ErrAborted is returned when the user cancels a prompt.
 var ErrAborted = errors.New("prompt cancelled")
