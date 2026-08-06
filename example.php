@@ -239,9 +239,6 @@ try {
         $sdk->generate(__DIR__ . '/examples/node');
     }
 
-    // The ASCII art above `appwrite --help`. Shared by both CLIs, which render
-    // the same help screen -- the TypeScript one takes it JSON-encoded, the Go
-    // one raw, because JSON escapes `/` as `\/` and Go has no such escape.
     $cliLogo = "
     _                            _ _           ___   __   _____
    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
@@ -252,10 +249,6 @@ try {
 
 ";
 
-    // The same art again, indented for the installer scripts rather than the
-    // help screen. Shared by both CLIs because they generate `install.sh` and
-    // `install.ps1` from one template -- setting it on only one of them leaves
-    // the other's installer printing an empty banner.
     $cliLogoUnescaped = "
      _                            _ _           ___   __   _____
     /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
@@ -264,61 +257,53 @@ try {
   \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
         |_|   |_|                                                ";
 
-    // Services and methods the shipped CLIs do not expose. Shared by both:
-    // the Go CLI has to present the same command surface as the TypeScript
-    // one, so a divergence here is a bug rather than a choice.
+    // Shared by both CLIs: they present the same command surface.
     $cliExcludes = [
-                'services' => [
-                    ['name' => 'assistant'],
-                    ['name' => 'avatars'],
-                    ['name' => 'advisor'],
-                    ['name' => 'compute'],
-                    ['name' => 'apps'],
-                    ['name' => 'oauth'],
-                    ['name' => 'organizations'],
-                    ['name' => 'console'],
-                    ['name' => 'projects'],
-                    ['name' => 'waf'],
-                    ['name' => 'domains'],
-                    ['name' => 'manager'],
-                    ['name' => 'mysql'],
-                    ['name' => 'postgresql'],
-                    ['name' => 'mongo'],
-                    ['name' => 'usage'],
-                ],
-                'methods' => [
-                    ['name' => 'createBillingAddress'],
-                    ['name' => 'createPaymentMethod'],
-                    ['name' => 'deleteBillingAddress'],
-                    ['name' => 'deletePaymentMethod'],
-                    ['name' => 'getBillingAddress'],
-                    ['name' => 'getCoupon'],
-                    ['name' => 'getPaymentMethod'],
-                    ['name' => 'listBillingAddresses'],
-                    ['name' => 'listInvoices'],
-                    ['name' => 'listPaymentMethods'],
-                    ['name' => 'updateBillingAddress'],
-                    ['name' => 'updateConsoleAccess'],
-                    ['name' => 'updatePaymentMethod'],
-                    ['name' => 'updatePaymentMethodMandateOptions'],
-                    ['name' => 'updatePaymentMethodProvider'],
-                    ['name' => 'createPlanEstimation'],
-                    // Not yet available in the released @appwrite.io/console package
-                    ['name' => 'listStages'],
-                    ['name' => 'updateStage'],
-                    ['name' => 'approve'],
-                ],
-            ];
+        'services' => [
+            ['name' => 'assistant'],
+            ['name' => 'avatars'],
+            ['name' => 'advisor'],
+            ['name' => 'compute'],
+            ['name' => 'apps'],
+            ['name' => 'oauth'],
+            ['name' => 'organizations'],
+            ['name' => 'console'],
+            ['name' => 'projects'],
+            ['name' => 'waf'],
+            ['name' => 'domains'],
+            ['name' => 'manager'],
+            ['name' => 'mysql'],
+            ['name' => 'postgresql'],
+            ['name' => 'mongo'],
+            ['name' => 'usage'],
+        ],
+        'methods' => [
+            ['name' => 'createBillingAddress'],
+            ['name' => 'createPaymentMethod'],
+            ['name' => 'deleteBillingAddress'],
+            ['name' => 'deletePaymentMethod'],
+            ['name' => 'getBillingAddress'],
+            ['name' => 'getCoupon'],
+            ['name' => 'getPaymentMethod'],
+            ['name' => 'listBillingAddresses'],
+            ['name' => 'listInvoices'],
+            ['name' => 'listPaymentMethods'],
+            ['name' => 'updateBillingAddress'],
+            ['name' => 'updateConsoleAccess'],
+            ['name' => 'updatePaymentMethod'],
+            ['name' => 'updatePaymentMethodMandateOptions'],
+            ['name' => 'updatePaymentMethodProvider'],
+            ['name' => 'createPlanEstimation'],
+            // Not yet available in the released @appwrite.io/console package
+            ['name' => 'listStages'],
+            ['name' => 'updateStage'],
+            ['name' => 'approve'],
+        ],
+    ];
 
-    // The Go CLI hides four services on top of those, because the published Go
-    // SDK cannot provide them. `sdk-for-go` is generated from the server spec,
-    // so `affiliates`, `notifications` and `vcs` -- console-only services --
-    // will never appear in it, and `migrations` has never been published.
-    // Generating their commands imports packages that do not exist, so a
-    // shipped build (one without the local `replace` below) cannot resolve its
-    // own dependency.
-    //
-    // This is the one place the two CLIs are allowed to diverge by omission.
+    // Absent from the published Go SDK, which is generated from the server spec:
+    // three console-only services, plus `migrations`, which has never shipped.
+    // Generating their commands would import packages that do not exist.
     $goCliExcludes             = $cliExcludes;
     $goCliExcludes['services'] = [
         ...$goCliExcludes['services'],
@@ -327,13 +312,8 @@ try {
         ['name' => 'notifications'],
         ['name' => 'vcs'],
     ];
-    // And the methods that same SDK does not carry. The four services above are
-    // absent as whole packages; these are individual endpoints the server SDK
-    // has no function for, so generating them would not compile either.
-    //
-    // Every name here was read off the compiler: build the generated tree with
-    // the `replace` dropped and each undefined symbol names one of these. Keep
-    // it that way -- a guess produces an exclude that silently matches nothing.
+    // Individual endpoints the same SDK has no function for. Read off the
+    // compiler, not guessed -- an invented name silently matches nothing.
     $goCliExcludes['methods'] = [
         ...$goCliExcludes['methods'],
         // Account API keys and push targets, and account deletion.
@@ -355,15 +335,13 @@ try {
         ['service' => 'functions', 'name' => 'getTemplate'],
         ['service' => 'sites', 'name' => 'listTemplates'],
         ['service' => 'sites', 'name' => 'getTemplate'],
-        // Table migrations -- the `migrations` service is excluded above, but
-        // tablesDB carries four of its own.
+        // Table migrations -- tablesDB carries four of its own.
         ['service' => 'tablesDB', 'name' => 'createMigration'],
         ['service' => 'tablesDB', 'name' => 'listMigrations'],
         ['service' => 'tablesDB', 'name' => 'getMigration'],
         ['service' => 'tablesDB', 'name' => 'deleteMigration'],
-        // Presences takes a further path parameter in the released SDK, so these
-        // two are a signature mismatch rather than a missing function -- the
-        // same spec skew, and excluded for the same reason.
+        // A signature mismatch rather than a missing function: the released SDK
+        // takes a further path parameter.
         ['service' => 'presences', 'name' => 'upsert'],
         ['service' => 'presences', 'name' => 'update'],
         // Usage and log reporting.
@@ -396,9 +374,7 @@ try {
         $language->setExecutableName('appwrite');
         $language->setLogo($cliLogo);
         $language->setLogoUnescaped($cliLogoUnescaped);
-        // Same package name as the TypeScript CLI: `npm i -g appwrite-cli`
-        // has to keep working across the switch. It also names every release
-        // asset, which install.sh and install.ps1 construct by hand.
+        // Same package as the TypeScript CLI, and it names every release asset.
         $language->setNPMPackage('appwrite-cli');
 
         $sdk = new SDK($language, buildSpec($specFormat, $spec));
@@ -456,11 +432,8 @@ try {
     // GO
     if (!$requestedSdk || $requestedSdk === 'go') {
         $sdk  = new SDK(new Go(), buildSpec($specFormat, $spec));
-        // Real module path: a `replace` only resolves when the target module
-        // declares the path being replaced. That includes the major-version
-        // suffix Go requires from v2 on, so the version has to match the one the
-        // Go CLI pins -- otherwise it replaces `sdk-for-go/v6` with a module
-        // calling itself `sdk-for-go` and resolves neither.
+        // The version decides the major-version suffix Go requires from v2 on,
+        // so examples/go declares `sdk-for-go/v6` like the published module.
         configureSDK($sdk, [
             'gitUserName' => 'appwrite',
             'gitRepoName' => 'sdk-for-go',
