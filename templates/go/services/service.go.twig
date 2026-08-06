@@ -6,12 +6,6 @@
 {%- set requireUrlPkg = true -%}
 {%- endif -%}
 {%- endfor -%}
-{%- set requireFmtPkg = false -%}
-{%- for method in service.methods -%}
-{%- if method.type == 'location' and (method.parameters.query|length > 0) -%}
-{%- set requireFmtPkg = true -%}
-{%- endif -%}
-{%- endfor -%}
 {% set hasDiscriminatedUnionResponses = false %}
 {% for method in service.methods %}
 {% if (method | getValidResponseModels)|length > 1 and method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
@@ -46,7 +40,7 @@ import (
 {% if requireUrlPkg %}
 	"net/url"
 {% endif %}
-{% if requireFmtPkg or hasDiscriminatedUnionResponses %}
+{% if hasDiscriminatedUnionResponses %}
 	"fmt"
 {% endif %}
 	"strings"
@@ -125,7 +119,7 @@ func (srv *{{ service.name | caseUcfirst }}) With{{ method.name | caseUcfirst }}
 {% set returnType = method | returnType(spec, spec.title | caseLower) %}
 func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ params }})({% if returnType == 'models.Model' %}{{ returnType }}{% else %}*{{ returnType }}{% endif %}, error) {
 {% if method.parameters.path|length > 0 %}
-	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name }}{{ '}' }}", {% if parameter.source|default('') == 'security' %}srv.client.Config["{{ parameter.config | caseLower }}"]{% else %}{{ parameter.name | caseUcfirst }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name }}{{ '}' }}", client.EncodePath({% if parameter.source|default('') == 'security' %}srv.client.Config["{{ parameter.config | caseLower }}"]{% else %}{{ parameter.name | caseUcfirst }}{% endif %}){% if not loop.last %}, {% endif %}{% endfor %})
 	path := r.Replace("{{ method.path }}")
 {% else %}
 	path := "{{ method.path }}"
@@ -157,12 +151,12 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ 
 {% endif %}
 func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}URL({{ params }}) (*string, error) {
 {% if method.parameters.path|length > 0 %}
-	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name }}{{ '}' }}", {% if parameter.source|default('') == 'security' %}srv.client.Config["{{ parameter.config | caseLower }}"]{% else %}{{ parameter.name | caseUcfirst }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name }}{{ '}' }}", client.EncodePath({% if parameter.source|default('') == 'security' %}srv.client.Config["{{ parameter.config | caseLower }}"]{% else %}{{ parameter.name | caseUcfirst }}{% endif %}){% if not loop.last %}, {% endif %}{% endfor %})
 	path := r.Replace("{{ method.path }}")
 {% else %}
 	path := "{{ method.path }}"
 {% endif %}
-{% if method.parameters.all|filter(v => not v.required)|length > 0 %}
+{% if method.parameters.query|filter(v => not v.required)|length > 0 %}
 	options := {{(method.name ~ "Options") | caseUcfirst}}{}.New()
 	for _, opt := range optionalSetters {
 		opt(options)
@@ -174,11 +168,11 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}URL(
 	}
 	q := u.Query()
 {% for parameter in method.parameters.query|filter(v => v.required) %}
-	q.Set("{{ parameter.name }}", fmt.Sprintf("%v", {{ parameter.name | caseUcfirst }}))
+	client.AddQueryParam(q, "{{ parameter.name }}", {{ parameter.name | caseUcfirst }})
 {% endfor %}
 {% for parameter in method.parameters.query|filter(v => not v.required) %}
 	if options.enabledSetters["{{ parameter.name | caseUcfirst }}"] {
-		q.Set("{{ parameter.name }}", fmt.Sprintf("%v", options.{{ parameter.name | caseUcfirst }}))
+		client.AddQueryParam(q, "{{ parameter.name }}", options.{{ parameter.name | caseUcfirst }})
 	}
 {% endfor %}
 	u.RawQuery = q.Encode()
