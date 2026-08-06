@@ -20,9 +20,11 @@ class GoCLI extends Go
     use CliCommandSurface;
 
     /**
-     * Go module the generated SDK is published under, without a version suffix.
+     * Module the CLI imports the generated SDK from. Carries the /vN suffix Go
+     * requires from v2 on, so it moves in lockstep with the version pinned in
+     * templates/go-cli/go.mod.twig.
      */
-    public const string SDK_MODULE = 'github.com/appwrite/sdk-for-go';
+    public const string SDK_MODULE = 'github.com/appwrite/sdk-for-go/v6';
 
     /**
      * @var array
@@ -36,19 +38,7 @@ class GoCLI extends Go
         // executableName -- they happen to agree today, and a rename would
         // silently break every installer if they did not.
         'npmPackage' => 'appwrite-cli',
-        // Released version of the Go SDK the CLI depends on. Raise this after
-        // publishing sdk-for-go; until then a shipped build resolves nothing,
-        // which is the loud failure rather than the quiet one.
-        'sdkVersion' => 'v0.0.0',
-        // Import path for the SDK, which carries a /vN suffix from v2 onward --
-        // Go requires it in the module path, so `sdk-for-go v6.3.0` is imported
-        // as `sdk-for-go/v6`. Derived from sdkVersion by setSDKVersion() so the
-        // two can never disagree; the default matches the default version.
         'sdkImportPath' => self::SDK_MODULE,
-        // Empty by default, so the shipped repository gets the pinned version
-        // above. example.php sets it to build examples/go-cli against the SDK
-        // this generator produces, without waiting for a release.
-        'localSdkPath' => '',
         // ASCII art above the main help screen, held RAW rather than escaped:
         // the TypeScript CLI's `logo` param is JSON-encoded, and JSON escapes
         // `/` as `\/`, which is not a valid Go escape. Each template escapes it
@@ -74,30 +64,6 @@ class GoCLI extends Go
     public function setExecutableName(string $executableName): self
     {
         $this->setParam('executableName', $executableName);
-
-        return $this;
-    }
-
-    /**
-     * Pin the released Go SDK version the generated `go.mod` requires.
-     */
-    public function setSDKVersion(string $version): self
-    {
-        $this->setParam('sdkVersion', $version);
-        $this->setParam('sdkImportPath', self::SDK_MODULE . $this->getMajorVersionSuffix($version));
-
-        return $this;
-    }
-
-    /**
-     * Build against a local SDK checkout instead of the released one.
-     *
-     * Emits a `replace` directive. For local example generation only -- a
-     * shipped repository must resolve the pinned version.
-     */
-    public function setLocalSDKPath(string $path): self
-    {
-        $this->setParam('localSdkPath', $path);
 
         return $this;
     }

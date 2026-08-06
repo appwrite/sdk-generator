@@ -299,7 +299,6 @@ jobs:
               go test ./...
               ;;
             go-cli)
-              go mod edit -dropreplace=github.com/appwrite/sdk-for-go/v6
               go mod tidy
               unformatted=$(gofmt -l .)
               if [ -n "$unformatted" ]; then

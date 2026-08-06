@@ -11,7 +11,7 @@ go 1.26.5
 // so anything added by hand to the generated file is lost on the next run.
 require (
 {% if not sdk.test %}
-	{{ language.params.sdkImportPath }} {{ language.params.sdkVersion }}
+	github.com/appwrite/sdk-for-go/v6 v6.3.0
 {% endif %}
 	// Not imported directly -- huh pulls it in -- but named here to raise its
 	// floor above the v1.3.6 huh v1.0.0 asks for. Resizing the terminal during a
@@ -29,16 +29,3 @@ require (
 	golang.org/x/sync v0.19.0
 	golang.org/x/term v0.33.0
 )
-{% if not sdk.test and language.params.localSdkPath %}
-
-// Only emitted when a local SDK path is configured, which example.php does so
-// that `examples/go-cli` builds and tests without waiting for an SDK release.
-// A shipped repository sets no path and gets the pinned version above, which
-// is the safe default: forgetting to configure this yields an ordinary
-// dependency rather than a release that cannot resolve.
-//
-// That coupling is not hypothetical -- it is what keeps three methods excluded
-// from the TypeScript CLI today, waiting on a published package (see
-// example.php). Publish the SDK first, then raise sdkVersion here.
-replace {{ language.params.sdkImportPath }} => {{ language.params.localSdkPath }}
-{% endif %}
