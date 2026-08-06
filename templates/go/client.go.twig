@@ -524,22 +524,9 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 		if isGet {
 			q := req.URL.Query()
 			for key, val := range params {
-				rt := reflect.TypeOf(val)
-				switch rt.Kind() {
-				case reflect.Array:
-				case reflect.Slice:
-					arr := reflect.ValueOf(val)
-					for i := 0; i < arr.Len(); i++ {
-						q.Add(fmt.Sprintf("%s[]", key), toString(arr.Index(i)))
-					}
-				default:
-					if strVal := toString(val); strVal != "" {
-						q.Add(key, strVal)
-					}
-				}
+				AddQueryParam(q, key, val)
 			}
-			rawQuery := q.Encode()
-			req.URL.RawQuery = rawQuery
+			req.URL.RawQuery = q.Encode()
 		}
 	}
 
@@ -606,6 +593,68 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 		Result:     responseData,
 		Type:	   contentType,
 	}, nil
+}
+
+// AddQueryParam writes one query parameter into q.
+//
+// Arrays and slices are indexed -- `key[0]`, `key[1]`. The API also accepts a
+// bare repeated `key[]`, so either reaches the server; indexed keys are what the
+// API documents.
+//
+// Both the GET branch of Call and the URL-returning service methods go through
+// here, so the two cannot disagree on the encoding.
+func AddQueryParam(q url.Values, key string, value interface{}) {
+	if value == nil {
+		return
+	}
+
+	switch reflect.TypeOf(value).Kind() {
+	case reflect.Array, reflect.Slice:
+		arr := reflect.ValueOf(value)
+		for index := 0; index < arr.Len(); index++ {
+			q.Add(fmt.Sprintf("%s[%d]", key, index), toString(arr.Index(index)))
+		}
+	default:
+		if stringValue := toString(value); stringValue != "" {
+			q.Add(key, stringValue)
+		}
+	}
+}
+
+// EncodePath percent-encodes one path segment.
+//
+// Everything outside the RFC 2396 unreserved set -- alphanumerics and
+// -_.!~*'() -- is escaped, so a value is confined to the single segment it was
+// substituted into.
+//
+// Not url.PathEscape: that leaves the sub-delimiters legal in a path segment
+// alone, so an id containing `&` or `=` passes through unescaped and the request
+// reaches a different route than the one asked for.
+//
+// Iteration is over bytes, not runes: every byte of a multi-byte character fails
+// the unreserved test and is emitted as %XX, which is how UTF-8 is percent-
+// encoded -- `é` becomes %C3%A9. A rune-wise loop would emit %E9 and be wrong.
+func EncodePath(value string) string {
+	const unreserved = "-_.!~*'()"
+	const hex = "0123456789ABCDEF"
+
+	var encoded strings.Builder
+	encoded.Grow(len(value))
+
+	for index := 0; index < len(value); index++ {
+		char := value[index]
+		if char >= 'A' && char <= 'Z' || char >= 'a' && char <= 'z' ||
+			char >= '0' && char <= '9' || strings.IndexByte(unreserved, char) >= 0 {
+			encoded.WriteByte(char)
+
+			continue
+		}
+		encoded.WriteByte('%')
+		encoded.WriteByte(hex[char>>4])
+		encoded.WriteByte(hex[char&0x0F])
+	}
+
+	return encoded.String()
 }
 
 // toString changes arg to string

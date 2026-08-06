@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync"
 	"testing"
 )
@@ -174,6 +175,25 @@ func TestSelfSignedConcurrentCalls(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected concurrent calls to accept the self-signed certificate, got %v", err)
 		}
+	}
+}
+
+func TestAddQueryParam(t *testing.T) {
+	q := url.Values{}
+
+	AddQueryParam(q, "queries", []string{"first", "second"})
+	AddQueryParam(q, "search", "term")
+	AddQueryParam(q, "empty", "")
+	AddQueryParam(q, "missing", nil)
+
+	expected := url.Values{
+		"queries[0]": []string{"first"},
+		"queries[1]": []string{"second"},
+		"search":     []string{"term"},
+	}
+
+	if q.Encode() != expected.Encode() {
+		t.Errorf("Expected %q, got %q", expected.Encode(), q.Encode())
 	}
 }
 {% endautoescape %}
