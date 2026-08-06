@@ -48,11 +48,23 @@ jobs:
 
       # Linux runners have no codesign, so ad-hoc signing the darwin builds
       # falls back to ldid.
+      # No apt package exists for ldid on any Ubuntu release, so this is the
+      # upstream prebuilt binary, pinned and checksummed: the runner downloads
+      # the thing that signs every macOS build, and a swapped artifact would
+      # otherwise be signing them.
       - name: Install ldid
+        env:
+          LDID_VERSION: v2.1.5-procursus7
+          LDID_SHA256: 4b8862b2fefa2cd7fa8f88cb0310779619aeaa8c72d6aff22f019b470f2fa99a
         run: |
           set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y ldid
+
+          curl -fsSL -o /tmp/ldid \
+            "https://github.com/ProcursusTeam/ldid/releases/download/${LDID_VERSION}/ldid_linux_x86_64"
+          echo "${LDID_SHA256}  /tmp/ldid" | sha256sum --check --strict
+
+          sudo install -m 0755 /tmp/ldid /usr/local/bin/ldid
+          ldid -V
 
       - name: Build
         uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
