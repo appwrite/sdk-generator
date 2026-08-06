@@ -301,9 +301,6 @@ jobs:
             go-cli)
               go mod edit -dropreplace=github.com/appwrite/sdk-for-go/v6
               go mod tidy
-              # The templates emit gofmt-clean Go, including the column
-              # alignment. Drift is invisible until a contributor's
-              # format-on-save produces an unrelated diff.
               unformatted=$(gofmt -l .)
               if [ -n "$unformatted" ]; then
                 echo "Not gofmt-clean:"
@@ -312,9 +309,6 @@ jobs:
               fi
               go build ./...
               go vet ./...
-              # -race, not plain `go test`: `push` shares one client across
-              # eight concurrent chunk uploads, and that path shipped an
-              # unsynchronised write for months while the suite stayed green.
               go test -race ./...
               go build -o appwrite .
               ;;
@@ -364,10 +358,6 @@ jobs:
         working-directory: examples/go-cli
         run: |
           ./appwrite --version
-          # The same two assertions the TypeScript CLI's smoke test makes. The
-          # grouped root screen comes from CliCommandSurface, so it is shared
-          # surface, and this is now the only place either CLI's help output is
-          # exercised against a running binary.
           ./appwrite --help | grep -q "USAGE"
           ./appwrite --help | grep -q "GET STARTED"
           SHELL=bash ./appwrite completion bash >/dev/null

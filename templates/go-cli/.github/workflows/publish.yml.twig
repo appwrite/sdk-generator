@@ -1,36 +1,11 @@
 name: Publish
 
-# Builds the six release binaries, signs them, and publishes to GitHub
-# Releases, npm and the Homebrew tap.
+# Publishing uses npm trusted publishing, so no npm token is needed -- but trust
+# is configured per existing package, so the parent and the six platform packages
+# each need one manual token-based publish before this workflow can run.
 #
-# CREDENTIALS THIS NEEDS. None are wired up yet; each is named where it is
-# used and the release fails loudly rather than silently skipping a step.
-#
-#   vars.APPWRITE_BOT_APP_ID             GitHub App that writes to the tap
-#   secrets.APPWRITE_BOT_PRIVATE_KEY     its private key
-#
-# Windows signing is OPTIONAL. Set secrets.WINDOWS_SIGNING_API_TOKEN and
-# vars.WINDOWS_SIGNING_ORGANIZATION_ID to enable it; leave them unset and the
-# .exe assets ship unsigned with a warning in the run summary. The three slug
-# variables below only matter once signing is on, and each falls back to a
-# convention, so a SignPath project following it needs none of them set.
-#
-# Asset upload uses the job's own GITHUB_TOKEN, covered by `contents: write`.
-#
-# npm needs no token: publishing uses npm trusted publishing, which is what
-# `id-token: write` and `--provenance` below are for. The npm project has to
-# be configured to trust this workflow before the first run -- and because
-# trust is configured per package that already exists, the six platform
-# packages need one manual token-based publish before this ever runs. Skipping
-# that does not degrade gracefully: it fails the release after the GitHub assets
-# have already been uploaded.
-#
-# A prerelease publishes to npm's `next` tag and skips the Homebrew tap
-# entirely; only a full release moves `latest` and the formula.
-#
-# There is deliberately NO Apple credential here. install.sh requires an
-# embedded signature, not a trusted one, and .goreleaser.yaml ad-hoc signs the
-# darwin builds -- which is also all the TypeScript CLI has ever shipped.
+# Windows signing is optional: without secrets.WINDOWS_SIGNING_API_TOKEN the .exe
+# assets ship unsigned with a warning instead of failing the release.
 
 on:
   release:
@@ -40,9 +15,6 @@ permissions:
   contents: write
   id-token: write
 
-# Two releases published close together would otherwise race on `gh release
-# upload` and on the tap push. Never cancel a run in flight: a half-published
-# release is worse than a queued one.
 concurrency:
   group: publish
   cancel-in-progress: false
@@ -59,59 +31,40 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          # This job runs goreleaser, `go mod tidy` and node scripts, all of
-          # which execute third-party code. Leaving the token in .git/config
-          # would put it within reach of any of them. The tap checkout below
-          # keeps its credentials -- it has to push.
           persist-credentials: false
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
 
-      # Before the staging step, not just before publishing: the release
-      # scripts are node, and picking up whatever node the runner image happens
-      # to ship means a runner update can change what built the release.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24.14.1'
           registry-url: 'https://registry.npmjs.org'
 
-      # npm's OIDC trusted publishing needs npm >= 11.5.1, and no node release
-      # bundles one yet. Without this every `npm publish` below fails with
-      # ENEEDAUTH, because this workflow deliberately carries no npm token.
+      # Trusted publishing needs npm >= 11.5.1, which no node release bundles yet.
       - name: Pin npm for trusted publishing
         run: npm install -g npm@11.10.0
 
-      # goreleaser ad-hoc signs the darwin builds. Linux runners have no
-      # codesign, so scripts/adhoc-sign.sh falls back to ldid -- without this
-      # the build fails rather than producing an unsigned macOS binary that
-      # install.sh would later refuse.
+      # Linux runners have no codesign, so ad-hoc signing the darwin builds
+      # falls back to ldid.
       - name: Install ldid
         run: |
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y ldid
 
-      # --skip=publish because the Windows binaries have to be signed before
-      # anything is uploaded. The upload happens further down, once they are.
       - name: Build
         uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
         with:
           version: '~> v2'
           args: release --clean --skip=publish
         env:
-          # .goreleaser.yaml builds its changelog from the GitHub API, which
-          # needs a token even though publishing is skipped.
           GITHUB_TOKEN: {{ '${{ secrets.GITHUB_TOKEN }}' }}
 
       - name: Stage release assets
         run: node scripts/stage-assets.mjs dist staging
 
-      # Signing is optional so a release is not blocked on an external service
-      # being configured. Keyed off the token rather than a flag, so wiring the
-      # secret up is all it takes to start signing -- there is no second switch
-      # to remember.
       - name: Detect Windows code signing
         id: signing
         env:
@@ -171,18 +124,12 @@ jobs:
             cp "$signed" "staging/$asset"
           done
 
-      # Recomputed unconditionally. goreleaser checksummed the unsigned Windows
-      # builds, and signing changes the bytes -- shipping the pre-signing
-      # checksums would make every Windows verification fail. When signing is
-      # skipped this recomputes the same values, which costs nothing and keeps
-      # one code path.
+      # goreleaser checksummed the unsigned Windows builds, and signing changed
+      # the bytes.
       - name: Recompute checksums
         working-directory: staging
         run: sha256sum {{ language.params.npmPackage }}-* > checksums.txt
 
-      # The job's own `contents: write` covers this, so no PAT is needed; the
-      # tag goes through env rather than straight into the script, like every
-      # other step that reads it.
       - name: Upload release assets
         env:
           GH_TOKEN: {{ '${{ secrets.GITHUB_TOKEN }}' }}
@@ -191,9 +138,6 @@ jobs:
           set -euo pipefail
           gh release upload "$RELEASE_TAG" staging/* --clobber
 
-      # Keyed off the release's own prerelease flag rather than a tag glob: a
-      # `-beta` or `-preview` tag is just as much a prerelease as `-rc`, and a
-      # glob that only knows about `-rc` would publish those as `latest`.
       - name: Determine npm tag
         id: npm_tag
         env:
@@ -213,8 +157,6 @@ jobs:
           set -euo pipefail
           version="${RELEASE_TAG#v}"
           node scripts/build-npm-packages.mjs staging npm-packages "$version"
-          # The parent's version and its optionalDependencies are generated at
-          # SDK-generation time from a placeholder, so pin them to the tag here.
           node -e '
             const fs = require("node:fs");
             const version = process.argv[1];
@@ -226,9 +168,7 @@ jobs:
             fs.writeFileSync("npm/package.json", JSON.stringify(manifest, null, 2) + "\n");
           ' "$version"
 
-      # Platform packages FIRST. The parent lists them as optionalDependencies
-      # at an exact version, so publishing it first leaves a window where an
-      # install resolves packages that do not exist yet.
+      # Before the parent, which pins them as exact optionalDependencies.
       - name: Publish platform packages
         run: |
           set -euo pipefail
@@ -258,10 +198,6 @@ jobs:
           path: homebrew-tap
           ref: {{ language.params.homebrewTapBranch }}
 
-      # The formula already exists in the tap and is hand-maintained; this only
-      # rewrites its version and the four checksums, the same way the
-      # TypeScript CLI's release does. Deliberately not generated from a
-      # template here -- the tap is the source of truth for its own formula.
       - name: Update the Homebrew formula
         if: {{ '${{ !github.event.release.prerelease }}' }}
         id: tap
