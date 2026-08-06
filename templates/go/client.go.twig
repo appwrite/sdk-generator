@@ -530,11 +530,7 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 				case reflect.Slice:
 					arr := reflect.ValueOf(val)
 					for i := 0; i < arr.Len(); i++ {
-						// Indexed, not bare `key[]`: the Node, Python and PHP
-						// SDKs all send `key[0]`, and Go was the only one that
-						// did not. The API accepts both, so this is about the
-						// SDKs agreeing rather than about a broken request.
-						q.Add(fmt.Sprintf("%s[%d]", key, i), toString(arr.Index(i)))
+						q.Add(fmt.Sprintf("%s[]", key), toString(arr.Index(i)))
 					}
 				default:
 					if strVal := toString(val); strVal != "" {
