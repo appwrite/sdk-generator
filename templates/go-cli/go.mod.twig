@@ -1,9 +1,5 @@
 module github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}
 
-// Matches templates/go/go.mod.twig. The CLI depends on the Go SDK this same
-// generator produces, and `go mod tidy` raises this directive to whatever that
-// module declares -- so a lower value here is silently rewritten on every
-// regeneration. Change both together.
 go 1.26.5
 
 // Direct dependencies only. Run `go mod tidy` after generation to resolve the
@@ -13,15 +9,9 @@ require (
 {% if not sdk.test %}
 	github.com/appwrite/sdk-for-go/v6 v6.3.0
 {% endif %}
-	// Not imported directly -- huh pulls it in -- but named here to raise its
-	// floor above the v1.3.6 huh v1.0.0 asks for. Resizing the terminal during a
-	// prompt left fragments of the previous frame on screen, because bubbletea's
-	// inline renderer repaints by moving up the height of the last frame and the
-	// terminal had already reflowed it. v1.3.7 carries "fix(renderer): properly
-	// reset cursor position to start of line" (#1472) and three later patches.
-	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/huh v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.0
+	github.com/charmbracelet/x/ansi v0.10.1
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.9
@@ -29,3 +19,6 @@ require (
 	golang.org/x/sync v0.19.0
 	golang.org/x/term v0.33.0
 )
+
+// Floor raised above the v1.3.6 huh v1.0.0 asks for, which misrepaints on resize.
+require github.com/charmbracelet/bubbletea v1.3.10 // indirect
