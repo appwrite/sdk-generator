@@ -169,10 +169,18 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 {% endif %}
 {% if not sdk.test %}
 {% for decode in plan.decodes %}
+{% if decode.cleanup is defined %}
+			{{ decode.var }}, {{ decode.cleanup }}, err := app.{{ decode.helper }}({{ decode.source }})
+			if err != nil {
+				return err
+			}
+			defer {{ decode.cleanup }}()
+{% else %}
 			{{ decode.var }}, err := app.{{ decode.helper }}({{ decode.source }})
 			if err != nil {
 				return err
 			}
+{% endif %}
 {% endfor %}
 {% endif %}
 {% if query.hasQueries %}
