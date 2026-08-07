@@ -52,6 +52,31 @@ final class GoCLI126Test extends Base
     ];
 
     #[Override]
+    public function testHTTPSuccess(): void
+    {
+        $language = new class () extends GoCLI {
+            /**
+             * @return array{0: string, 1: array{var: string, source: string, helper: string, cleanup?: string}|null}
+             */
+            public function convertForTest(string $variable, string $flagType, string $sdkType): array
+            {
+                return $this->convertToSdkType($variable, $flagType, $sdkType);
+            }
+        };
+
+        [$expression, $decode] = $language->convertForTest('rows', '[]string', '[]interface{}');
+
+        $this->assertSame('rowsDecoded', $expression);
+        $this->assertSame([
+            'var' => 'rowsDecoded',
+            'source' => 'rows',
+            'helper' => 'DecodeSlice[interface{}]',
+        ], $decode);
+
+        parent::testHTTPSuccess();
+    }
+
+    #[Override]
     public function getLanguage(): GoCLI
     {
         $language = new GoCLI();

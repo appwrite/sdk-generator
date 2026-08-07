@@ -331,13 +331,9 @@ class GoCLI extends Go
             return [$variable . 'File', $decode];
         }
 
-        // Widening a repeatable string flag to an untyped array cannot fail.
-        if ($sdkType === '[]interface{}' && $flagType === '[]string') {
-            return ['app.ToAnySlice(' . $variable . ')', null];
-        }
-        // Any other typed slice -- []float64, [][]interface{}, []map[string]any --
-        // needs each repetition parsed, because Go cannot hand the API a string
-        // where it declares a number the way the TypeScript does.
+        // Slice parameters -- []interface{}, []float64, [][]interface{},
+        // []map[string]any -- need each repetition parsed, because Go cannot
+        // hand the API a JSON string where it declares an object or number.
         if (str_starts_with($sdkType, '[]') && $flagType === '[]string') {
             $element = substr($sdkType, 2);
 
