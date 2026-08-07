@@ -312,8 +312,7 @@ class GoCLI extends Go
         string $flagType,
         string $sdkType,
         bool $packaging = false,
-    ): array
-    {
+    ): array {
         // A JSON string or a file path becomes a decoded value, and either can
         // fail on bad input, so both are decoded into their own variable first.
         if ($sdkType === 'interface{}' && $flagType === 'string') {
