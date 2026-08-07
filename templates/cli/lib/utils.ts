@@ -1048,6 +1048,32 @@ export interface SkillInfo {
   dirName: string;
 }
 
+export const resolveSkillSelection = (
+  skills: Pick<SkillInfo, "dirName">[],
+  requested: string[],
+  all: boolean,
+): string[] => {
+  if (all && requested.length > 0) {
+    throw new Error("The '--all' and '--skill' flags cannot be used together.");
+  }
+
+  const available = skills.map((skill) => skill.dirName);
+  if (all) {
+    return available;
+  }
+
+  const availableSet = new Set(available);
+  const selected = [...new Set(requested)];
+  const unknown = selected.find((skill) => !availableSet.has(skill));
+  if (unknown !== undefined) {
+    throw new Error(
+      `Unknown skill '${unknown}'. Available skills: ${available.join(", ")}`,
+    );
+  }
+
+  return selected;
+};
+
 const parseSkillFrontmatter = (
   content: string,
 ): { name: string; description: string } => {

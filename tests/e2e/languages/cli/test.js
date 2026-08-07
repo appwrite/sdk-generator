@@ -31,6 +31,7 @@ const {
   getAllFiles,
   getFunctionDeploymentConsoleUrl,
   getSiteDeploymentConsoleUrl,
+  resolveSkillSelection,
 } = require("./lib/utils.ts");
 const { EXECUTABLE_NAME } = require("./lib/constants.ts");
 const { isCompletionInvocation } = require("./lib/completions.ts");
@@ -88,9 +89,6 @@ const {
   questionsClientReset,
 } = require("./lib/questions.ts");
 const { logout, client, whoami } = require("./lib/commands/generic.ts");
-const {
-  resolveSkillSelection,
-} = require("./lib/commands/init.ts");
 const {
   getOrganizationForSession,
   listOrganizationsForSession,

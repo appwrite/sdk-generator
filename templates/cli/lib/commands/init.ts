@@ -43,6 +43,7 @@ import {
   fetchAvailableSkills,
   detectProjectSkills,
   placeSkills,
+  resolveSkillSelection,
 } from "../utils.js";
 import {
   Account,
@@ -590,32 +591,6 @@ const collectInitSkillOption = (
   value: string,
   previous: string[] = [],
 ): string[] => [...previous, value];
-
-export const resolveSkillSelection = (
-  skills: { dirName: string }[],
-  requested: string[],
-  all: boolean,
-): string[] => {
-  if (all && requested.length > 0) {
-    throw new Error("The '--all' and '--skill' flags cannot be used together.");
-  }
-
-  const available = skills.map((skill) => skill.dirName);
-  if (all) {
-    return available;
-  }
-
-  const availableSet = new Set(available);
-  const selected = [...new Set(requested)];
-  const unknown = selected.find((skill) => !availableSet.has(skill));
-  if (unknown !== undefined) {
-    throw new Error(
-      `Unknown skill '${unknown}'. Available skills: ${available.join(", ")}`,
-    );
-  }
-
-  return selected;
-};
 
 const resolveSkillAgents = (requested: string[]): string[] => {
   const available = [".agents", ".claude"];
