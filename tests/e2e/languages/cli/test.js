@@ -31,6 +31,7 @@ const {
   getAllFiles,
   getFunctionDeploymentConsoleUrl,
   getSiteDeploymentConsoleUrl,
+  resolveSkillSelection,
 } = require("./lib/utils.ts");
 const { EXECUTABLE_NAME } = require("./lib/constants.ts");
 const { isCompletionInvocation } = require("./lib/completions.ts");
@@ -269,6 +270,31 @@ const zshRegistrationToken = `compdef ${completionFunctionName} ${EXECUTABLE_NAM
 const bashRegistrationToken =
   `complete -F ${completionFunctionName}_completion ${EXECUTABLE_NAME}`;
 const fishRegistrationToken = `complete -c '${EXECUTABLE_NAME}'`;
+
+const availableSkills = [
+  { dirName: "appwrite-cli" },
+  { dirName: "appwrite-go" },
+];
+assert.deepEqual(resolveSkillSelection(availableSkills, [], true), [
+  "appwrite-cli",
+  "appwrite-go",
+]);
+assert.deepEqual(
+  resolveSkillSelection(
+    availableSkills,
+    ["appwrite-go", "appwrite-go"],
+    false,
+  ),
+  ["appwrite-go"],
+);
+assert.throws(
+  () => resolveSkillSelection(availableSkills, ["appwrite-go"], true),
+  /cannot be used together/,
+);
+assert.throws(
+  () => resolveSkillSelection(availableSkills, ["missing"], false),
+  /Unknown skill/,
+);
 
 for (const commandName of extractHelpCommands(helpOutput)) {
   if (!zshCompletionOutput.includes(`'${commandName}'`)) {

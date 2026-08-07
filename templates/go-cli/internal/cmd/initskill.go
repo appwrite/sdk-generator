@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 	"github.com/spf13/cobra"
@@ -35,6 +36,13 @@ var (
 	frontmatterDescription = regexp.MustCompile(`(?m)^description:\s*(.+)$`)
 )
 
+type initSkillOptions struct {
+	all    bool
+	skills []string
+	agents []string
+	method string
+}
+
 // parseSkillFrontmatter reads the name and description out of a SKILL.md.
 func parseSkillFrontmatter(contents string) (string, string) {
 	block := frontmatterBlock.FindStringSubmatch(contents)
@@ -56,17 +64,29 @@ func parseSkillFrontmatter(contents string) (string, string) {
 }
 
 func newInitSkillCommand() *cobra.Command {
-	return &cobra.Command{
+	options := initSkillOptions{}
+	command := &cobra.Command{
 		Use:     "skill",
 		Aliases: []string{"skills"},
 		Short:   "Install Appwrite skills for AI coding agents",
 		RunE: func(command *cobra.Command, args []string) error {
-			return runInitSkill(command)
+			return runInitSkill(command, options)
 		},
 	}
+
+	flags := command.Flags()
+	flags.BoolVar(&options.all, "all", false, "Install every available Appwrite skill")
+	flags.StringArrayVar(&options.skills, "skill", nil,
+		"Skill directory name to install. Repeat for multiple skills.")
+	flags.StringArrayVar(&options.agents, "agent", nil,
+		"Agent directory to install to: .agents or .claude. Repeat for both. Defaults to .agents for non-interactive installs.")
+	flags.StringVar(&options.method, "method", "",
+		"Installation method: symlink or copy. Defaults to symlink for non-interactive installs.")
+
+	return command
 }
 
-func runInitSkill(command *cobra.Command) error {
+func runInitSkill(command *cobra.Command, requested initSkillOptions) error {
 	context, err := newInitContext()
 	if err != nil {
 		return err
@@ -89,40 +109,71 @@ func runInitSkill(command *cobra.Command) error {
 		options = append(options, prompt.Option{Label: skill.Name, Value: skill.DirName})
 	}
 
-	selected, err := context.prompter.MultiChoice(prompt.MultiChoice{
-		Message:  "Which skills would you like to install?",
-		Options:  options,
-		Validate: prompt.RequiredSelection("skill"),
-	})
+	installAll := requested.all || app.Flags().All
+	explicitSelection := installAll || len(requested.skills) > 0
+	selected, err := resolveSkillSelection(skills, requested.skills, installAll)
 	if err != nil {
 		return err
 	}
+	if !explicitSelection {
+		selected, err = context.prompter.MultiChoice(prompt.MultiChoice{
+			Message:  "Which skills would you like to install?",
+			Options:  options,
+			Flag:     "--all or --skill",
+			Validate: prompt.RequiredSelection("skill"),
+		})
+		if err != nil {
+			return err
+		}
+	}
 
-	agents, err := context.prompter.MultiChoice(prompt.MultiChoice{
-		Message:  "Which agent directories would you like to install to?",
-		Options:  prompt.Options(".agents", ".claude"),
-		Default:  []string{".agents"},
-		Validate: prompt.RequiredSelection("agent directory"),
-	})
+	agents, err := resolveSkillAgents(requested.agents)
 	if err != nil {
 		return err
 	}
+	if len(agents) == 0 {
+		if explicitSelection {
+			agents = []string{".agents"}
+		} else {
+			agents, err = context.prompter.MultiChoice(prompt.MultiChoice{
+				Message:  "Which agent directories would you like to install to?",
+				Options:  prompt.Options(".agents", ".claude"),
+				Default:  []string{".agents"},
+				Flag:     "--agent",
+				Validate: prompt.RequiredSelection("agent directory"),
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
 
-	method, err := context.prompter.Choice(prompt.Choice{
-		Message: "How would you like to install the skills?",
-		Options: []prompt.Option{
-			{
-				Label: "Symlink (recommended) — single source of truth, easy to update",
-				Value: "symlink",
-			},
-			{
-				Label: "Copy — independent copies in each agent directory",
-				Value: "copy",
-			},
-		},
-	})
+	method, err := resolveSkillMethod(requested.method)
 	if err != nil {
 		return err
+	}
+	if method == "" {
+		if explicitSelection {
+			method = "symlink"
+		} else {
+			method, err = context.prompter.Choice(prompt.Choice{
+				Message: "How would you like to install the skills?",
+				Options: []prompt.Option{
+					{
+						Label: "Symlink (recommended) — single source of truth, easy to update",
+						Value: "symlink",
+					},
+					{
+						Label: "Copy — independent copies in each agent directory",
+						Value: "copy",
+					},
+				},
+				Flag: "--method",
+			})
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := placeSkills(root, tempDir, selected, agents, method == "symlink"); err != nil {
@@ -138,6 +189,64 @@ func runInitSkill(command *cobra.Command) error {
 		"agents like Claude Code, Cursor, and GitHub Copilot.")
 
 	return nil
+}
+
+func resolveSkillSelection(available []skillInfo, requested []string, all bool) ([]string, error) {
+	if all && len(requested) > 0 {
+		return nil, errors.New("the --all and --skill flags cannot be used together")
+	}
+
+	availableNames := make([]string, 0, len(available))
+	availableSet := make(map[string]struct{}, len(available))
+	for _, skill := range available {
+		availableNames = append(availableNames, skill.DirName)
+		availableSet[skill.DirName] = struct{}{}
+	}
+
+	if all {
+		return availableNames, nil
+	}
+
+	selected := make([]string, 0, len(requested))
+	seen := make(map[string]struct{}, len(requested))
+	for _, name := range requested {
+		if _, ok := availableSet[name]; !ok {
+			return nil, fmt.Errorf("unknown skill %q. Available skills: %s",
+				name, strings.Join(availableNames, ", "))
+		}
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		selected = append(selected, name)
+	}
+
+	return selected, nil
+}
+
+func resolveSkillAgents(requested []string) ([]string, error) {
+	selected := make([]string, 0, len(requested))
+	seen := make(map[string]struct{}, len(requested))
+	for _, agent := range requested {
+		if agent != ".agents" && agent != ".claude" {
+			return nil, fmt.Errorf("unknown agent directory %q. Available directories: .agents, .claude", agent)
+		}
+		if _, ok := seen[agent]; ok {
+			continue
+		}
+		seen[agent] = struct{}{}
+		selected = append(selected, agent)
+	}
+
+	return selected, nil
+}
+
+func resolveSkillMethod(requested string) (string, error) {
+	if requested != "" && requested != "symlink" && requested != "copy" {
+		return "", fmt.Errorf("unknown installation method %q. Available methods: symlink, copy", requested)
+	}
+
+	return requested, nil
 }
 
 // fetchAvailableSkills clones the skills repository and reads the catalogue.

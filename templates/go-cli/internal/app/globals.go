@@ -57,9 +57,10 @@ func RegisterGlobalFlags(root *cobra.Command) {
 	//
 	// Hidden at the root for the same reason it is hidden there in the
 	// TypeScript (`new Option('-a, --all', ...).hideHelp()`): it is parsed
-	// globally so `appwrite --all push` keeps working, but it acts on `push` and
-	// `pull`, which is where it is documented.
-	flags.BoolVar(&globals.All, "all", false, "Push or pull every resource")
+	// globally so `appwrite --all push` and `appwrite --all init skill` keep
+	// working, but it is documented only on commands where it selects resources
+	// or skills.
+	flags.BoolVar(&globals.All, "all", false, "Select every applicable resource or skill")
 	if flag := flags.Lookup("all"); flag != nil {
 		flag.Hidden = true
 	}
