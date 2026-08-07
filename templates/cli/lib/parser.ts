@@ -1005,6 +1005,46 @@ export const parseJsonObject = (
   throw new InvalidArgumentError(`${optionName} must be a valid JSON object.`);
 };
 
+export const parseGraphQLRequest = (
+  value: string,
+  optionName: string,
+): Record<string, unknown> | unknown[] => {
+  if (value.trim() === "") {
+    throw new InvalidArgumentError(
+      `${optionName} must be a GraphQL document or JSON request object or array.`,
+    );
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value) as unknown;
+  } catch {
+    return { query: value };
+  }
+
+  if (typeof parsed === "string") {
+    return { query: parsed };
+  }
+  if (parsed && typeof parsed === "object") {
+    return parsed as Record<string, unknown> | unknown[];
+  }
+
+  throw new InvalidArgumentError(
+    `${optionName} must be a GraphQL document or JSON request object or array.`,
+  );
+};
+
+// The TypeScript SDK supports object-style method arguments. GraphQL request
+// envelopes themselves contain a `query` key, so passing one positionally is
+// ambiguous and the SDK mistakes it for its own outer params object. Supplying
+// that outer object explicitly preserves the envelope on the wire.
+export const parseGraphQLParams = (
+  value: string,
+  optionName: string,
+): { query: Record<string, unknown> | unknown[] } => ({
+  query: parseGraphQLRequest(value, optionName),
+});
+
 export const log = (message?: string): void => {
   console.log(`${chalk.cyan.bold("ℹ Info:")} ${chalk.cyan(message ?? "")}`);
 };

@@ -797,12 +797,14 @@ class CLI extends Node
              * Get CLI argument expression for a parameter when calling the SDK method.
              * Handles JSON parsing for objects, or plain variable.
              */
-            new TwigFunction('getCliArgExpression', function (array $parameter): string {
+            new TwigFunction('getCliArgExpression', function (array $parameter, array $method, array $service): string {
                 $optionName = $this->getCliOptionName($parameter['name']);
                 $varName = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $optionName))));
                 $type = $parameter['type'] ?? 'string';
 
-                if ($type === 'object') {
+                if ($this->isCliGraphQLInput($parameter, $method, $service)) {
+                    return "parseGraphQLParams({$varName}, \"--{$optionName}\")";
+                } elseif ($type === 'object') {
                     return "parseJsonObject({$varName}, \"--{$optionName}\")";
                 } elseif ($type === 'file') {
                     return "{$varName} !== undefined ? await resolveFileParam({$varName}) : undefined";

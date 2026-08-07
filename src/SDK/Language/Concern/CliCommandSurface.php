@@ -371,6 +371,41 @@ trait CliCommandSurface
         return false;
     }
 
+    /**
+     * GraphQL SDK methods take a JSON request object, but a CLI flag named
+     * `--query` should also accept the GraphQL document users naturally type.
+     * Keep the identification shared so the TypeScript and Go CLIs cannot
+     * apply different input or help contracts.
+     */
+    protected function isCliGraphQLInput(array $parameter, array $method, array $service): bool
+    {
+        return ($service['name'] ?? '') === 'graphql'
+            && ($method['type'] ?? '') === 'graphql'
+            && ($parameter['name'] ?? '') === 'query';
+    }
+
+    protected function getCliMethodDescription(array $method, array $service): string
+    {
+        if (($service['name'] ?? '') === 'graphql' && ($method['type'] ?? '') === 'graphql') {
+            return match ($method['name'] ?? '') {
+                'query' => 'Execute a GraphQL query.',
+                'mutation' => 'Execute a GraphQL mutation.',
+                default => $method['description'] ?? '',
+            };
+        }
+
+        return $method['description'] ?? '';
+    }
+
+    protected function getCliParameterDescription(array $parameter, array $method, array $service): string
+    {
+        if ($this->isCliGraphQLInput($parameter, $method, $service)) {
+            return 'Raw GraphQL document, or a JSON request object or array for variables, operation names, or batching.';
+        }
+
+        return $parameter['description'] ?? '';
+    }
+
     protected function getCliOptionName(string $name): string
     {
         $kebabName = strtolower((string) preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s_]|(?<=[A-Z])\d)/', '-$1', $name));
@@ -483,6 +518,9 @@ trait CliCommandSurface
             new TwigFunction('cliHelpGroups', fn (): array => $this->getCliHelpGroups()),
             new TwigFunction('cliHelpSummaries', fn (string $title): array => $this->getCliHelpSummaries($title)),
             new TwigFunction('cliHelpOptionOrder', fn (): array => $this->getCliHelpOptionOrder()),
+            new TwigFunction('cliIsGraphQLInput', fn (array $parameter, array $method, array $service): bool => $this->isCliGraphQLInput($parameter, $method, $service)),
+            new TwigFunction('cliMethodDescription', fn (array $method, array $service): string => $this->getCliMethodDescription($method, $service)),
+            new TwigFunction('cliParameterDescription', fn (array $parameter, array $method, array $service): string => $this->getCliParameterDescription($parameter, $method, $service)),
         ];
     }
 

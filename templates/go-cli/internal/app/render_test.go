@@ -2,12 +2,64 @@ package app
 
 import (
 	"bytes"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 )
+
+func TestGraphQLRequestAcceptsDocumentsEnvelopesAndBatches(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  string
+		want interface{}
+	}{
+		{
+			name: "document",
+			raw:  "query { __typename }",
+			want: map[string]interface{}{"query": "query { __typename }"},
+		},
+		{
+			name: "envelope",
+			raw:  `{"query":"query Named($id: ID!) { node(id: $id) { id } }","variables":{"id":"one"},"operationName":"Named"}`,
+			want: map[string]interface{}{
+				"query":         "query Named($id: ID!) { node(id: $id) { id } }",
+				"variables":     map[string]interface{}{"id": "one"},
+				"operationName": "Named",
+			},
+		},
+		{
+			name: "batch",
+			raw:  `[{"query":"query { __typename }"},{"query":"query { __typename }"}]`,
+			want: []interface{}{
+				map[string]interface{}{"query": "query { __typename }"},
+				map[string]interface{}{"query": "query { __typename }"},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := GraphQLRequest(test.raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, test.want) {
+				t.Errorf("GraphQLRequest() = %#v, want %#v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestGraphQLRequestRejectsEmptyAndScalarJSON(t *testing.T) {
+	for _, raw := range []string{"", "true", "42", "null"} {
+		if _, err := GraphQLRequest(raw); err == nil {
+			t.Errorf("GraphQLRequest(%q) succeeded", raw)
+		}
+	}
+}
 
 // The captured response, not the typed struct, is what --raw and --json show.
 //

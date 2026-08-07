@@ -2,6 +2,7 @@ import { Command } from "commander";
 {% set hasLocationMethod = false %}
 {% set hasFileParam = false %}
 {% set hasObjectParam = false %}
+{% set hasGraphQLInput = false %}
 {% set hasQueryParam = service | hasCliQueryParam %}
 {% set enumNames = [] %}
 {% for method in service.methods %}
@@ -12,7 +13,9 @@ import { Command } from "commander";
 {% if parameter.type == 'file' %}
 {% set hasFileParam = true %}
 {% endif %}
-{% if parameter.type == 'object' %}
+{% if cliIsGraphQLInput(parameter, method, service) %}
+{% set hasGraphQLInput = true %}
+{% elseif parameter.type == 'object' %}
 {% set hasObjectParam = true %}
 {% endif %}
 {% if parameter.enumName is defined and parameter.enumName not in enumNames %}
@@ -59,6 +62,9 @@ import {
   parseInteger,
 {% if hasObjectParam %}
   parseJsonObject,
+{% endif %}
+{% if hasGraphQLInput %}
+  parseGraphQLParams,
 {% endif %}
 {% if service.name == 'teams' %}
   hint,
@@ -153,10 +159,10 @@ export const {{ target.var }} = new Command(`{{ commandName }}`)
 const {{ target.var }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`{% if target.hidden %}, { hidden: true }{% endif %})
 {% endif %}
-  .description(`{{ method.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
+  .description(`{{ cliMethodDescription(method, service) | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
 {% for parameter in method.parameters.all %}
 {% set opt = getCliOption(parameter) %}
-{% set optDescription = parameter.description | stripMarkdown | replace({'`': '\\`'}) %}
+{% set optDescription = cliParameterDescription(parameter, method, service) | stripMarkdown | replace({'`': '\\`'}) %}
 {% if parameter.name == 'queries' and parameter.type == 'array' %}
 {% set optDescription = query.rawDescriptionPrefix ~ ' ' ~ optDescription %}
 {% endif %}
@@ -216,7 +222,7 @@ const {{ target.var }} = {{ service.name | caseCamel }}
 {% if parameter.name == 'queries' and parameter.type == 'array' %}
 {% set argExpressions = argExpressions|merge(['buildQueries({ ' ~ query.builderParams | join(', ') ~ ' })']) %}
 {% else %}
-{% set argExpressions = argExpressions|merge([getCliArgExpression(parameter)]) %}
+{% set argExpressions = argExpressions|merge([getCliArgExpression(parameter, method, service)]) %}
 {% endif %}
 {% endfor %}
 {% if method.type == 'location' %}

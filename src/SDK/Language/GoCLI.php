@@ -263,7 +263,14 @@ class GoCLI extends Go
             $sdkType = parent::getTypeName($parameter);
             $expression = $variable;
 
-            if ($flagType !== $sdkType) {
+            if ($this->isCliGraphQLInput($parameter, $method, $service)) {
+                $expression = $variable . 'Value';
+                $decodes[] = [
+                    'var' => $expression,
+                    'source' => $variable,
+                    'helper' => 'GraphQLRequest',
+                ];
+            } elseif ($flagType !== $sdkType) {
                 [$expression, $decode] = $this->convertToSdkType(
                     $variable,
                     $flagType,

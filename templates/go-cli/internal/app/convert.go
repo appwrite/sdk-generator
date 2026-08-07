@@ -35,6 +35,36 @@ func JSONObject(raw string) (interface{}, error) {
 	return value, nil
 }
 
+// GraphQLRequest accepts the document users naturally type at --query while
+// preserving the SDK's existing JSON request-object contract. A request object
+// carries variables and an operation name; an array carries a batch.
+func GraphQLRequest(raw string) (interface{}, error) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, fmt.Errorf("--query must be a GraphQL document or JSON request object or array")
+	}
+
+	if !json.Valid([]byte(raw)) {
+		return map[string]interface{}{"query": raw}, nil
+	}
+
+	decoder := json.NewDecoder(strings.NewReader(raw))
+	decoder.UseNumber()
+
+	var value interface{}
+	if err := decoder.Decode(&value); err != nil {
+		return nil, fmt.Errorf("invalid GraphQL JSON request: %w", err)
+	}
+
+	switch value := value.(type) {
+	case string:
+		return map[string]interface{}{"query": value}, nil
+	case map[string]interface{}, []interface{}:
+		return value, nil
+	default:
+		return nil, fmt.Errorf("--query must be a GraphQL document or JSON request object or array")
+	}
+}
+
 // WriteFile saves a downloaded file.
 //
 // `location` methods return the bytes rather than a URL, so there is nothing to
