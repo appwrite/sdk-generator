@@ -154,9 +154,10 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
                 await migrate();
             })
             .option('-f, --force', 'Skip confirmation prompts')
-            // Parsed at the root so `appwrite --all push` keeps working, but
-            // documented on `push` and `pull`, which are what they act on.
-            .addOption(new Option('-a, --all', 'Push or pull every resource').hideHelp())
+            // Parsed at the root so `appwrite --all push` and
+            // `appwrite --all init skill` keep working, but documented only on
+            // the commands where it selects resources or skills.
+            .addOption(new Option('-a, --all', 'Select every applicable resource or skill').hideHelp())
             .addOption(new Option('--id [id...]', 'Limit the action to these resource ids').hideHelp())
             .option('--report', 'Print a prefilled bug report link on error')
             .hook('preAction', (_thisCommand, actionCommand) => {

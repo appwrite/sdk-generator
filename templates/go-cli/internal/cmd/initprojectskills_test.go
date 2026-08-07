@@ -144,3 +144,41 @@ func TestPluralSuffix(t *testing.T) {
 		t.Error("2 skills were singularised")
 	}
 }
+
+func TestHeadlessSkillSelection(t *testing.T) {
+	available := skillsFor("appwrite-cli", "appwrite-go", "appwrite-typescript")
+
+	all, err := resolveSkillSelection(available, nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(all, []string{"appwrite-cli", "appwrite-go", "appwrite-typescript"}) {
+		t.Errorf("--all selected %v", all)
+	}
+
+	selected, err := resolveSkillSelection(available,
+		[]string{"appwrite-go", "appwrite-go", "appwrite-cli"}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(selected, []string{"appwrite-go", "appwrite-cli"}) {
+		t.Errorf("--skill selected %v", selected)
+	}
+}
+
+func TestHeadlessSkillSelectionRejectsInvalidFlags(t *testing.T) {
+	available := skillsFor("appwrite-cli", "appwrite-go")
+
+	if _, err := resolveSkillSelection(available, []string{"appwrite-go"}, true); err == nil {
+		t.Error("--all with --skill was accepted")
+	}
+	if _, err := resolveSkillSelection(available, []string{"missing"}, false); err == nil {
+		t.Error("an unknown skill was accepted")
+	}
+	if _, err := resolveSkillAgents([]string{"unknown"}); err == nil {
+		t.Error("an unknown agent directory was accepted")
+	}
+	if _, err := resolveSkillMethod("archive"); err == nil {
+		t.Error("an unknown installation method was accepted")
+	}
+}

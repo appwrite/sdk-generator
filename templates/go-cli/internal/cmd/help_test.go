@@ -197,9 +197,9 @@ func TestOptionsFollowTheDeclaredOrder(t *testing.T) {
 	}
 }
 
-// --all is parsed at the root so `appwrite --all push` works, but it acts on
-// push and pull. Documenting it globally would offer it on every command.
-func TestAllIsHiddenAtTheRootAndDocumentedOnPush(t *testing.T) {
+// --all is parsed at the root so it can precede the command, but documenting it
+// globally would offer it on commands where it has no meaning.
+func TestAllIsHiddenAtTheRootAndDocumentedWhereUsed(t *testing.T) {
 	root := NewRootCommand()
 
 	if _, options, found := strings.Cut(RenderMainHelp(root), "\nOPTIONS\n"); found {
@@ -222,6 +222,24 @@ func TestAllIsHiddenAtTheRootAndDocumentedOnPush(t *testing.T) {
 	}
 	if flag.Shorthand != "a" {
 		t.Errorf("`push --all` shorthand = %q, want \"a\"", flag.Shorthand)
+	}
+}
+
+func TestInitSkillDocumentsHeadlessFlags(t *testing.T) {
+	command := resolveCommand(NewRootCommand(), "init skill")
+	if command == nil {
+		t.Fatal("`init skill` is missing")
+	}
+
+	for _, name := range []string{"all", "skill", "agent", "method"} {
+		flag := command.Flags().Lookup(name)
+		if flag == nil {
+			t.Errorf("`init skill` does not define --%s", name)
+			continue
+		}
+		if flag.Hidden {
+			t.Errorf("`init skill --%s` is hidden", name)
+		}
 	}
 }
 

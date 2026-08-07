@@ -55,6 +55,13 @@ import { DEFAULT_ENDPOINT, EXECUTABLE_NAME } from "../constants.js";
 type InitResourceAction = (_options?: unknown) => Promise<void>;
 type ProjectCreateRegion = Region;
 
+interface InitSkillOptions {
+  all?: boolean;
+  skill?: string[];
+  agent?: string[];
+  method?: string;
+}
+
 interface ExistingProjectSummary {
   $id: string;
   name?: string;
@@ -579,7 +586,67 @@ const initTopic = async (): Promise<void> => {
   );
 };
 
-const initSkill = async (): Promise<void> => {
+const collectInitSkillOption = (
+  value: string,
+  previous: string[] = [],
+): string[] => [...previous, value];
+
+export const resolveSkillSelection = (
+  skills: { dirName: string }[],
+  requested: string[],
+  all: boolean,
+): string[] => {
+  if (all && requested.length > 0) {
+    throw new Error("The '--all' and '--skill' flags cannot be used together.");
+  }
+
+  const available = skills.map((skill) => skill.dirName);
+  if (all) {
+    return available;
+  }
+
+  const availableSet = new Set(available);
+  const selected = [...new Set(requested)];
+  const unknown = selected.find((skill) => !availableSet.has(skill));
+  if (unknown !== undefined) {
+    throw new Error(
+      `Unknown skill '${unknown}'. Available skills: ${available.join(", ")}`,
+    );
+  }
+
+  return selected;
+};
+
+const resolveSkillAgents = (requested: string[]): string[] => {
+  const available = [".agents", ".claude"];
+  const selected = [...new Set(requested)];
+  const unknown = selected.find((agent) => !available.includes(agent));
+  if (unknown !== undefined) {
+    throw new Error(
+      `Unknown agent directory '${unknown}'. Available directories: ${available.join(", ")}`,
+    );
+  }
+
+  return selected;
+};
+
+const resolveSkillMethod = (requested?: string): string | undefined => {
+  const available = ["symlink", "copy"];
+  if (requested !== undefined && !available.includes(requested)) {
+    throw new Error(
+      `Unknown installation method '${requested}'. Available methods: ${available.join(", ")}`,
+    );
+  }
+
+  return requested;
+};
+
+const initSkill = async ({
+  all = false,
+  skill = [],
+  agent = [],
+  method,
+}: InitSkillOptions = {}): Promise<void> => {
   process.chdir(localConfig.configDirectoryPath);
   const cwd = process.cwd();
 
@@ -587,52 +654,71 @@ const initSkill = async (): Promise<void> => {
   const { skills, tempDir } = fetchAvailableSkills();
 
   try {
-    const { selectedSkills } = await inquirer.prompt([
-      {
-        type: "checkbox",
-        name: "selectedSkills",
-        message: "Which skills would you like to install?",
-        choices: skills.map((skill) => ({
-          name: skill.name,
-          value: skill.dirName,
-          checked: false,
-        })),
-        validate: (value: string[]) =>
-          value.length > 0 || "Please select at least one skill.",
-      },
-    ]);
+    const installAll = all || cliConfig.all;
+    const explicitSelection = installAll || skill.length > 0;
+    let selectedSkills = resolveSkillSelection(skills, skill, installAll);
+    if (!explicitSelection) {
+      ({ selectedSkills } = await inquirer.prompt([
+        {
+          type: "checkbox",
+          name: "selectedSkills",
+          message: "Which skills would you like to install?",
+          choices: skills.map((availableSkill) => ({
+            name: availableSkill.name,
+            value: availableSkill.dirName,
+            checked: false,
+          })),
+          validate: (value: string[]) =>
+            value.length > 0 || "Please select at least one skill.",
+        },
+      ]));
+    }
 
-    const { selectedAgents } = await inquirer.prompt([
-      {
-        type: "checkbox",
-        name: "selectedAgents",
-        message: "Which agent directories would you like to install to?",
-        choices: [
-          { name: ".agents", value: ".agents", checked: true },
-          { name: ".claude", value: ".claude", checked: false },
-        ],
-        validate: (value: string[]) =>
-          value.length > 0 || "Please select at least one agent directory.",
-      },
-    ]);
+    let selectedAgents = resolveSkillAgents(agent);
+    if (selectedAgents.length === 0) {
+      if (explicitSelection) {
+        selectedAgents = [".agents"];
+      } else {
+        ({ selectedAgents } = await inquirer.prompt([
+          {
+            type: "checkbox",
+            name: "selectedAgents",
+            message: "Which agent directories would you like to install to?",
+            choices: [
+              { name: ".agents", value: ".agents", checked: true },
+              { name: ".claude", value: ".claude", checked: false },
+            ],
+            validate: (value: string[]) =>
+              value.length > 0 || "Please select at least one agent directory.",
+          },
+        ]));
+      }
+    }
 
-    const { installMethod } = await inquirer.prompt([
-      {
-        type: "list",
-        name: "installMethod",
-        message: "How would you like to install the skills?",
-        choices: [
+    let installMethod = resolveSkillMethod(method);
+    if (installMethod === undefined) {
+      if (explicitSelection) {
+        installMethod = "symlink";
+      } else {
+        ({ installMethod } = await inquirer.prompt([
           {
-            name: "Symlink (recommended) — single source of truth, easy to update",
-            value: "symlink",
+            type: "list",
+            name: "installMethod",
+            message: "How would you like to install the skills?",
+            choices: [
+              {
+                name: "Symlink (recommended) — single source of truth, easy to update",
+                value: "symlink",
+              },
+              {
+                name: "Copy — independent copies in each agent directory",
+                value: "copy",
+              },
+            ],
           },
-          {
-            name: "Copy — independent copies in each agent directory",
-            value: "copy",
-          },
-        ],
-      },
-    ]);
+        ]));
+      }
+    }
 
     const useSymlinks = installMethod === "symlink";
     placeSkills(cwd, tempDir, selectedSkills, selectedAgents, useSymlinks);
@@ -1094,6 +1180,23 @@ init
   .command("skill")
   .alias("skills")
   .description("Install Appwrite skills for AI coding agents")
+  .option("--all", "Install every available Appwrite skill")
+  .option(
+    "--skill <skill>",
+    "Skill directory name to install. Repeat for multiple skills.",
+    collectInitSkillOption,
+    [],
+  )
+  .option(
+    "--agent <agent>",
+    "Agent directory to install to: .agents or .claude. Repeat for both. Defaults to .agents for non-interactive installs.",
+    collectInitSkillOption,
+    [],
+  )
+  .option(
+    "--method <method>",
+    "Installation method: symlink or copy. Defaults to symlink for non-interactive installs.",
+  )
   .action(actionRunner(initSkill));
 
 init
