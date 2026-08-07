@@ -1,0 +1,67 @@
+package app
+
+{% if not sdk.test %}
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestDeploymentInputFilePassesThroughAnArchive(t *testing.T) {
+	archive := filepath.Join(t.TempDir(), "existing.tar.gz")
+	if err := os.WriteFile(archive, []byte("archive"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	input, cleanup, err := DeploymentInputFile(archive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleanup()
+
+	if input.Path != archive {
+		t.Fatalf("input path %q, want %q", input.Path, archive)
+	}
+	if input.Name != "existing.tar.gz" {
+		t.Fatalf("input name %q, want existing.tar.gz", input.Name)
+	}
+	if _, err := os.Stat(archive); err != nil {
+		t.Fatalf("cleanup removed the caller's archive: %v", err)
+	}
+}
+
+func TestDeploymentInputFilePackagesAndCleansUpADirectory(t *testing.T) {
+	directory := t.TempDir()
+	if err := os.WriteFile(filepath.Join(directory, "main.js"), []byte("export default () => {};"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	input, cleanup, err := DeploymentInputFile(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if input.Path == directory {
+		t.Fatal("directory was passed through instead of packaged")
+	}
+	if input.Name != "code.tar.gz" {
+		t.Fatalf("input name %q, want code.tar.gz", input.Name)
+	}
+	if _, err := os.Stat(input.Path); err != nil {
+		t.Fatalf("packaged archive is unavailable before cleanup: %v", err)
+	}
+
+	cleanup()
+	if _, err := os.Stat(input.Path); !os.IsNotExist(err) {
+		t.Fatalf("packaged archive still exists after cleanup: %v", err)
+	}
+}
+
+func TestDeploymentInputFileRejectsAMissingPath(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "missing")
+
+	if _, _, err := DeploymentInputFile(missing); err == nil {
+		t.Fatal("missing path was accepted")
+	}
+}
+{% endif %}

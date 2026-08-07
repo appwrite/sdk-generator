@@ -243,7 +243,7 @@ class GoCLI extends Go
      *     package: string,
      *     method: string,
      *     optionType: string,
-     *     decodes: list<array{var: string, source: string, helper: string}>,
+     *     decodes: list<array{var: string, source: string, helper: string, cleanup?: string}>,
      *     required: list<array{expression: string}>,
      *     optional: list<array{flag: string, setter: string, expression: string}>
      * }
@@ -264,7 +264,12 @@ class GoCLI extends Go
             $expression = $variable;
 
             if ($flagType !== $sdkType) {
-                [$expression, $decode] = $this->convertToSdkType($variable, $flagType, $sdkType);
+                [$expression, $decode] = $this->convertToSdkType(
+                    $variable,
+                    $flagType,
+                    $sdkType,
+                    (bool) ($method['packaging'] ?? false),
+                );
 
                 if ($decode !== null) {
                     $decodes[] = $decode;
@@ -300,9 +305,14 @@ class GoCLI extends Go
      * Returns the call-site expression, plus a statement to emit before the call
      * when the conversion can fail and its error has to surface.
      *
-     * @return array{0: string, 1: array{var: string, source: string, helper: string}|null}
+     * @return array{0: string, 1: array{var: string, source: string, helper: string, cleanup?: string}|null}
      */
-    protected function convertToSdkType(string $variable, string $flagType, string $sdkType): array
+    protected function convertToSdkType(
+        string $variable,
+        string $flagType,
+        string $sdkType,
+        bool $packaging = false,
+    ): array
     {
         // A JSON string or a file path becomes a decoded value, and either can
         // fail on bad input, so both are decoded into their own variable first.
@@ -310,7 +320,16 @@ class GoCLI extends Go
             return [$variable . 'Value', ['var' => $variable . 'Value', 'source' => $variable, 'helper' => 'JSONObject']];
         }
         if ($sdkType === 'file.InputFile') {
-            return [$variable . 'File', ['var' => $variable . 'File', 'source' => $variable, 'helper' => 'InputFile']];
+            $decode = [
+                'var' => $variable . 'File',
+                'source' => $variable,
+                'helper' => $packaging ? 'DeploymentInputFile' : 'InputFile',
+            ];
+            if ($packaging) {
+                $decode['cleanup'] = $variable . 'FileCleanup';
+            }
+
+            return [$variable . 'File', $decode];
         }
 
         // Widening a repeatable string flag to an untyped array cannot fail.
@@ -638,6 +657,11 @@ class GoCLI extends Go
                 'scope'         => 'default',
                 'destination'   => 'internal/app/inputfile.go',
                 'template'      => 'go-cli/internal/app/inputfile.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/app/inputfile_test.go',
+                'template'      => 'go-cli/internal/app/inputfile_test.go.twig',
             ],
             [
                 'scope'         => 'default',
