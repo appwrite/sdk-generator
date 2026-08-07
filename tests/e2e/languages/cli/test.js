@@ -18,7 +18,11 @@ process.on("exit", () => {
 const Client = require("./lib/client.ts").default;
 const { localConfig } = require("./lib/config.ts");
 const { types } = require("./lib/commands/types.ts");
-const { parse } = require("./lib/parser.ts");
+const {
+  parse,
+  parseGraphQLParams,
+  parseGraphQLRequest,
+} = require("./lib/parser.ts");
 const {
   openRuntimesVersion,
   systemTools,
@@ -101,6 +105,37 @@ const inquirerModule = require("inquirer");
 const inquirer = inquirerModule.default ?? inquirerModule;
 
 assert.ok(globalConfig.path.startsWith(sandboxHome));
+assert.deepEqual(parseGraphQLRequest("query { __typename }", "--query"), {
+  query: "query { __typename }",
+});
+assert.deepEqual(parseGraphQLParams("query { __typename }", "--query"), {
+  query: { query: "query { __typename }" },
+});
+assert.deepEqual(
+  parseGraphQLRequest(
+    '{"query":"query Named($id: ID!) { node(id: $id) { id } }","variables":{"id":"one"},"operationName":"Named"}',
+    "--query",
+  ),
+  {
+    query: "query Named($id: ID!) { node(id: $id) { id } }",
+    variables: { id: "one" },
+    operationName: "Named",
+  },
+);
+assert.deepEqual(
+  parseGraphQLRequest(
+    '[{"query":"query { __typename }"},{"query":"query { __typename }"}]',
+    "--query",
+  ),
+  [
+    { query: "query { __typename }" },
+    { query: "query { __typename }" },
+  ],
+);
+assert.throws(
+  () => parseGraphQLRequest("true", "--query"),
+  /GraphQL document or JSON request object or array/,
+);
 const sandboxKeyringTokens = new Map();
 setRefreshTokenEntryFactoryForTests((_service, account) => ({
   setPassword: (password) => sandboxKeyringTokens.set(account, password),

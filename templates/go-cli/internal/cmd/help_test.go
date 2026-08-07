@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 // These assert the layout rather than a byte golden: the command set comes from
@@ -239,6 +241,35 @@ func TestInitSkillDocumentsHeadlessFlags(t *testing.T) {
 		}
 		if flag.Hidden {
 			t.Errorf("`init skill --%s` is hidden", name)
+		}
+	}
+}
+
+func TestGraphQLHelpDescribesDocumentsAndJSONRequests(t *testing.T) {
+	root := NewRootCommand()
+	query := resolveCommand(root, "graphql query")
+	mutation := resolveCommand(root, "graphql mutation")
+	if query == nil || mutation == nil {
+		t.Skip("the generation spec does not include GraphQL commands")
+	}
+
+	if query.Short != "Execute a GraphQL query." {
+		t.Errorf("query description = %q", query.Short)
+	}
+	if mutation.Short != "Execute a GraphQL mutation." {
+		t.Errorf("mutation description = %q", mutation.Short)
+	}
+
+	for _, command := range []*cobra.Command{query, mutation} {
+		flag := command.Flags().Lookup("query")
+		if flag == nil {
+			t.Errorf("`%s` has no --query flag", command.CommandPath())
+			continue
+		}
+		for _, token := range []string{"Raw GraphQL document", "JSON request object or array", "batching"} {
+			if !strings.Contains(flag.Usage, token) {
+				t.Errorf("`%s --query` help does not mention %q: %s", command.CommandPath(), token, flag.Usage)
+			}
 		}
 	}
 }

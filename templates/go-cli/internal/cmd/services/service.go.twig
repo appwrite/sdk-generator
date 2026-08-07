@@ -146,7 +146,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 {% set commandKeyFormat = isTopLevel ? '%-8s' : '%-7s' %}
 	cmd := &cobra.Command{
 		{{ commandKeyFormat|format('Use:') }}"{{ method.name | caseKebab }}",
-		{{ commandKeyFormat|format('Short:') }}{{ method.description | stripMarkdown | goString | raw }},
+		{{ commandKeyFormat|format('Short:') }}{{ cliMethodDescription(method, service) | stripMarkdown | goString | raw }},
 {% if isTopLevel %}
 		{{ commandKeyFormat|format('Hidden:') }}true,
 {% endif %}
@@ -279,7 +279,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 
 {% for parameter in method.parameters.all %}
 {% set opt = getGoCliOption(parameter) %}
-	cmd.Flags().{{ opt.register }}Var(&{{ opt.var }}, "{{ opt.flag }}", {% if opt.goType == '[]string' %}nil{% elseif opt.goType == 'bool' %}false{% elseif opt.goType == 'int' %}0{% elseif opt.goType == 'float64' %}0{% else %}""{% endif %}, {{ parameter.description | stripMarkdown | goString | raw }})
+	cmd.Flags().{{ opt.register }}Var(&{{ opt.var }}, "{{ opt.flag }}", {% if opt.goType == '[]string' %}nil{% elseif opt.goType == 'bool' %}false{% elseif opt.goType == 'int' %}0{% elseif opt.goType == 'float64' %}0{% else %}""{% endif %}, {{ cliParameterDescription(parameter, method, service) | stripMarkdown | goString | raw }})
 {% if opt.noOptDefault %}
 	cmd.Flags().Lookup("{{ opt.flag }}").NoOptDefVal = "{{ opt.noOptDefault }}"
 {% endif %}
