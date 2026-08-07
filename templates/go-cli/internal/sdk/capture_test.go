@@ -1,11 +1,20 @@
 package sdk
 
 import (
+	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
+	"time"
 )
+
+func testRecordingHTTPClient() *http.Client {
+	return recordingHTTPClient(&http.Client{Transport: http.DefaultTransport})
+}
 
 // --raw promises the full response. Rendering the typed struct instead dropped
 // every field the generated model does not declare, so a field the API added
@@ -20,7 +29,7 @@ func TestResponseBodyIsCaptured(t *testing.T) {
 	defer server.Close()
 
 	LastResponse.Take()
-	if _, err := recordingHTTPClient(0).Get(server.URL); err != nil {
+	if _, err := testRecordingHTTPClient().Get(server.URL); err != nil {
 		t.Fatal(err)
 	}
 
@@ -40,7 +49,7 @@ func TestCapturedBodyIsStillReadable(t *testing.T) {
 	}))
 	defer server.Close()
 
-	response, err := recordingHTTPClient(0).Get(server.URL)
+	response, err := testRecordingHTTPClient().Get(server.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +73,7 @@ func TestTakeClearsTheCapturedBody(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if _, err := recordingHTTPClient(0).Get(server.URL); err != nil {
+	if _, err := testRecordingHTTPClient().Get(server.URL); err != nil {
 		t.Fatal(err)
 	}
 
@@ -86,7 +95,7 @@ func TestNonJSONResponsesAreNotCaptured(t *testing.T) {
 	defer server.Close()
 
 	LastResponse.Take()
-	if _, err := recordingHTTPClient(0).Get(server.URL); err != nil {
+	if _, err := testRecordingHTTPClient().Get(server.URL); err != nil {
 		t.Fatal(err)
 	}
 
@@ -108,7 +117,7 @@ func TestTheNewestResponseWins(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := recordingHTTPClient(0)
+	client := testRecordingHTTPClient()
 	for range responses {
 		if _, err := client.Get(server.URL); err != nil {
 			t.Fatal(err)
@@ -117,5 +126,64 @@ func TestTheNewestResponseWins(t *testing.T) {
 
 	if got := string(LastResponse.Take()); got != `{"chunk":3}` {
 		t.Errorf("captured %q, want the last response", got)
+	}
+}
+
+func TestRecordingClientUsesThePhaseBoundedTransport(t *testing.T) {
+	baseTransport := &http.Transport{ResponseHeaderTimeout: 60 * time.Second}
+	client := recordingHTTPClient(&http.Client{
+		Timeout:   10 * time.Second,
+		Transport: baseTransport,
+	})
+
+	if client.Timeout != 0 {
+		t.Errorf("http.Client.Timeout = %s, want no whole-request deadline", client.Timeout)
+	}
+	recorder, ok := client.Transport.(*recordingTransport)
+	if !ok {
+		t.Fatalf("transport is %T, want *recordingTransport", client.Transport)
+	}
+	transport, ok := recorder.next.(*http.Transport)
+	if !ok {
+		t.Fatalf("recorded transport is %T, want *http.Transport", recorder.next)
+	}
+	if transport.ResponseHeaderTimeout != 60*time.Second {
+		t.Errorf("ResponseHeaderTimeout = %s, want 60s", transport.ResponseHeaderTimeout)
+	}
+}
+
+func TestMutationTimeoutHasAnUnknownOutcome(t *testing.T) {
+	cause := &url.Error{Op: "Post", URL: "https://example.invalid", Err: context.DeadlineExceeded}
+	err := WrapMutationError(http.MethodPost, cause)
+
+	var unknown *UnknownMutationOutcome
+	if !errors.As(err, &unknown) {
+		t.Fatalf("error is %T, want *UnknownMutationOutcome", err)
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Error("the original deadline error is not preserved")
+	}
+	if !strings.Contains(err.Error(), "outcome is unknown") ||
+		!strings.Contains(err.Error(), "before retrying") {
+		t.Errorf("error does not explain the uncertain mutation: %q", err)
+	}
+}
+
+func TestReadTimeoutIsUnchanged(t *testing.T) {
+	cause := &url.Error{Op: "Get", URL: "https://example.invalid", Err: context.DeadlineExceeded}
+
+	if got := WrapMutationError(http.MethodGet, cause); got != cause {
+		t.Errorf("read timeout was wrapped as %T", got)
+	}
+}
+
+func TestNonTimeoutMutationErrorIsUnchanged(t *testing.T) {
+	cause := errors.New("server rejected the request")
+
+	if got := WrapMutationError(http.MethodDelete, cause); got != cause {
+		t.Errorf("ordinary mutation error was wrapped as %T", got)
+	}
+	if got := WrapMutationError(http.MethodPost, nil); got != nil {
+		t.Errorf("nil error became %v", got)
 	}
 }

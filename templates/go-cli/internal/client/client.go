@@ -126,10 +126,27 @@ func baseTransport() *http.Transport {
 	return transport
 }
 
+// NewHTTPClient returns the HTTP policy shared by the CLI's direct requests
+// and its generated SDK-backed service commands.
+//
+// A whole-request deadline makes a slow upload fail even while it is still
+// making progress. The transport instead bounds the individual connection and
+// response-header phases. Self-signed verification is configured before any
+// caller wraps the transport, because the generated SDK cannot see through a
+// recording RoundTripper to change it later.
+func NewHTTPClient(selfSigned bool) *http.Client {
+	transport := baseTransport()
+	if selfSigned {
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
+	return &http.Client{Transport: transport}
+}
+
 func New(endpoint, sdkVersion string) *Client {
 	return &Client{
 		Endpoint:   strings.TrimRight(endpoint, "/"),
-		HTTP:       &http.Client{Transport: baseTransport()},
+		HTTP:       NewHTTPClient(false),
 		SDKVersion: sdkVersion,
 		headers: map[string]string{
 			"content-type":   "application/json",

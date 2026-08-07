@@ -14,6 +14,7 @@ import (
 {% if hasQueryParam %}
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/query"
 {% endif %}
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 {% else %}
 	"github.com/spf13/cobra"
 
@@ -23,6 +24,7 @@ import (
 {% if hasQueryParam %}
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/query"
 {% endif %}
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 {% endif %}
 )
 {% if sdk.test %}
@@ -253,7 +255,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 			result, err := service.{{ plan.method }}({{ callArguments|join(', ') }})
 {% endif %}
 			if err != nil {
-				return err
+				return sdk.WrapMutationError("{{ method.method | upper }}", err)
 			}
 {% if method.type == 'location' and not sdk.test %}
 
