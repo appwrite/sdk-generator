@@ -62,12 +62,18 @@ func consoleClientAt(override string) (*client.Client, *config.Global, error) {
 		return nil, nil, err
 	}
 
+	// A browser has a session of its own that this CLI cannot read: see
+	// ambient_js.go. ambientEndpoint is empty on every other build, so the two
+	// checks below are the ones that were always here.
 	session := global.Current()
-	if session == nil {
-		return nil, nil, ErrNotLoggedIn
-	}
 
-	endpoint := session.GetString(config.PreferenceEndpoint)
+	endpoint := ""
+	if session != nil {
+		endpoint = session.GetString(config.PreferenceEndpoint)
+	}
+	if endpoint == "" {
+		endpoint = ambientEndpoint()
+	}
 	if endpoint == "" {
 		return nil, nil, ErrNotLoggedIn
 	}
@@ -80,8 +86,14 @@ func consoleClientAt(override string) (*client.Client, *config.Global, error) {
 		SetSelfSigned(global.CurrentBool(config.PreferenceSelfSigned)).
 		SetLocale("en-US")
 
-	hasAccessToken := session.GetString(config.PreferenceAccessToken) != ""
-	cookie := session.GetString(config.PreferenceCookie)
+	hasAccessToken := false
+	cookie := ""
+	storedKey := ""
+	if session != nil {
+		hasAccessToken = session.GetString(config.PreferenceAccessToken) != ""
+		cookie = session.GetString(config.PreferenceCookie)
+		storedKey = session.GetString(config.PreferenceKey)
+	}
 
 	switch {
 	case hasAccessToken:
@@ -92,11 +104,14 @@ func consoleClientAt(override string) (*client.Client, *config.Global, error) {
 		api.SetBearer(token)
 	case cookie != "":
 		api.SetCookie(cookie)
-	case session.GetString(config.PreferenceKey) != "":
+	case storedKey != "":
 		// An API key is scoped to one project; the console endpoints are not.
 		// Saying so is the difference between a user adding `login` and a user
 		// re-checking a key that was never going to work here.
 		return nil, nil, ErrConsoleNeedsSession
+	case ambientSession():
+		// Nothing to attach: the credential is the page's cookie, which the
+		// browser adds to the request and this process cannot read.
 	default:
 		return nil, nil, ErrNotLoggedIn
 	}
@@ -244,20 +259,4 @@ func bannerWriter(command *cobra.Command) io.Writer {
 	}
 
 	return command.OutOrStdout()
-}
-
-// registerSessionCommands attaches the commands that do not come from the spec.
-func registerSessionCommands(root *cobra.Command) {
-	root.AddCommand(newWhoamiCommand())
-	root.AddCommand(newSessionsCommand())
-	root.AddCommand(newClientCommand())
-	root.AddCommand(newUpdateCommand())
-	root.AddCommand(newLoginCommand())
-	root.AddCommand(newLogoutCommand())
-	root.AddCommand(newTypesCommand())
-	root.AddCommand(newGenerateCommand())
-	root.AddCommand(newRunCommand())
-	root.AddCommand(newInitCommand())
-	root.AddCommand(newPullCommand())
-	root.AddCommand(newPushCommand())
 }

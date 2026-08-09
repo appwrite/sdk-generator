@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Build the six per-platform npm packages from the staged release assets.
+// Build the native and browser npm packages from staged release assets.
 //
 // Run after scripts/stage-assets.mjs and before publishing. Each package holds
 // one binary plus a package.json whose `os`/`cpu` fields let npm pick exactly
@@ -9,12 +9,13 @@
 // Reads the staged directory rather than dist/, because the release asset
 // names are not filenames in dist/ -- see scripts/stage-assets.mjs.
 //
-// Usage: node scripts/build-npm-packages.mjs <stagingDir> <outDir> <version>
+// Usage: node scripts/build-npm-packages.mjs <stagingDir> <outDir> <version> [wasmOutDir]
 
 import fs from "node:fs";
 import path from "node:path";
 
-const [stagingDir = "staging", outDir = "npm-packages", version] = process.argv.slice(2);
+const [stagingDir = "staging", outDir = "npm-packages", version, wasmOutDir = "npm-wasm"] =
+  process.argv.slice(2);
 
 if (!version) {
   console.error("usage: build-npm-packages.mjs <stagingDir> <outDir> <version>");
@@ -78,3 +79,38 @@ for (const target of TARGETS) {
 
   console.log(`built ${directory}`);
 }
+
+// wasm_exec.js must match the Go toolchain that produced the artifact.
+const wasmFiles = ["{{ language.params.executableName }}.wasm", "wasm_exec.js"];
+const wasmDirectory = path.join(wasmOutDir, `${packageName}-wasm`);
+fs.mkdirSync(wasmDirectory, { recursive: true });
+
+for (const file of wasmFiles) {
+  const source = path.join(stagingDir, file);
+
+  if (!fs.existsSync(source)) {
+    console.error(`missing staged asset: ${source}`);
+    process.exit(1);
+  }
+
+  fs.copyFileSync(source, path.join(wasmDirectory, file));
+}
+
+fs.writeFileSync(
+  path.join(wasmDirectory, "package.json"),
+  JSON.stringify(
+    {
+      name: `${packageName}-wasm`,
+      version,
+      description: `${executable} compiled to WebAssembly, for running in a browser`,
+      license: "{{ sdk.license }}",
+      repository: { type: "git", url: "{{ sdk.gitURL }}" },
+      exports: Object.fromEntries(wasmFiles.map((file) => [`./${file}`, `./${file}`])),
+      files: wasmFiles,
+    },
+    null,
+    2,
+  ) + "\n",
+);
+
+console.log(`built ${wasmDirectory}`);

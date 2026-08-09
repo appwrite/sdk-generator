@@ -1,3 +1,5 @@
+//go:build !browser
+
 package prompt
 
 import (

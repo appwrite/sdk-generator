@@ -472,6 +472,16 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/config/home_native.go',
+                'template'      => 'go-cli/internal/config/home_native.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/config/home_js.go',
+                'template'      => 'go-cli/internal/config/home_js.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/config/write.go',
                 'template'      => 'go-cli/internal/config/write.go',
             ],
@@ -497,6 +507,16 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/client/fetch_js.go',
+                'template'      => 'go-cli/internal/client/fetch_js.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/client/fetch_native.go',
+                'template'      => 'go-cli/internal/client/fetch_native.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/client/selfsigned_test.go',
                 'template'      => 'go-cli/internal/client/selfsigned_test.go',
             ],
@@ -511,9 +531,24 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/session.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/ambient_native.go',
+                'template'      => 'go-cli/internal/cmd/ambient_native.go',
+            ],
+            [
                 'scope'         => 'default',
-                'destination'   => 'internal/auth/keyring.go',
-                'template'      => 'go-cli/internal/auth/keyring.go',
+                'destination'   => 'internal/cmd/ambient_js.go',
+                'template'      => 'go-cli/internal/cmd/ambient_js.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/auth/keyring_native.go',
+                'template'      => 'go-cli/internal/auth/keyring_native.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/auth/keyring_js.go',
+                'template'      => 'go-cli/internal/auth/keyring_js.go',
             ],
             [
                 'scope'         => 'default',
@@ -576,6 +611,26 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/cmd/login.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/commands_portable.go',
+                'template'      => 'go-cli/internal/cmd/commands_portable.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/commands_host.go',
+                'template'      => 'go-cli/internal/cmd/commands_host.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/commands_host_stub.go',
+                'template'      => 'go-cli/internal/cmd/commands_host_stub.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/endpoint.go',
+                'template'      => 'go-cli/internal/cmd/endpoint.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/login_test.go',
                 'template'      => 'go-cli/internal/cmd/login_test.go',
@@ -604,6 +659,16 @@ class GoCLI extends Go
                 'scope'         => 'default',
                 'destination'   => 'internal/sdk/sdk.go',
                 'template'      => 'go-cli/internal/sdk/sdk.go.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/sdk/ambient_native.go',
+                'template'      => 'go-cli/internal/sdk/ambient_native.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/sdk/ambient_js.go',
+                'template'      => 'go-cli/internal/sdk/ambient_js.go',
             ],
             [
                 'scope'         => 'default',
@@ -804,6 +869,16 @@ class GoCLI extends Go
                 'scope'         => 'default',
                 'destination'   => 'internal/app/install.go',
                 'template'      => 'go-cli/internal/app/install.go.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/updatecheck_native.go',
+                'template'      => 'go-cli/internal/app/updatecheck_native.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/updatecheck_browser.go',
+                'template'      => 'go-cli/internal/app/updatecheck_browser.go',
             ],
             [
                 'scope'         => 'default',

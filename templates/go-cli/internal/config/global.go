@@ -67,7 +67,7 @@ type Session struct {
 
 // GlobalPath returns the default preferences path for the current user.
 func GlobalPath(executableName string) (string, error) {
-	home, err := os.UserHomeDir()
+	home, err := homeDir()
 	if err != nil {
 		return "", err
 	}

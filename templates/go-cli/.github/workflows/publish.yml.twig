@@ -80,6 +80,32 @@ jobs:
       - name: Stage release assets
         run: node scripts/stage-assets.mjs dist staging
 
+      # Keep this outside goreleaser so its six native asset names remain stable.
+      - name: Build the browser bundle
+        env:
+          RELEASE_TAG: {{ '${{ github.event.release.tag_name }}' }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+
+          GOOS=js GOARCH=wasm go build -tags browser -trimpath \
+            -ldflags="-s -w -X github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app.Version=${version}" \
+            -o staging/{{ language.params.executableName }}.wasm .
+
+          # Go 1.24 moved this from misc/wasm to lib/wasm.
+          cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" staging/
+
+          # The linker silently ignores an invalid -X symbol.
+          node -e '
+            const fs = require("node:fs");
+            const wanted = process.argv[1];
+            const bytes = fs.readFileSync("staging/{{ language.params.executableName }}.wasm");
+            if (!bytes.includes(Buffer.from(wanted))) {
+              console.error(`version ${wanted} was not linked into the wasm artifact`);
+              process.exit(1);
+            }
+          ' "$version"
+
       - name: Detect Windows code signing
         id: signing
         env:
@@ -141,9 +167,13 @@ jobs:
 
       # goreleaser checksummed the unsigned Windows builds, and signing changed
       # the bytes.
+      # The wasm files do not share the native asset-name prefix.
       - name: Recompute checksums
         working-directory: staging
-        run: sha256sum {{ language.params.npmPackage }}-* > checksums.txt
+        run: |
+          set -euo pipefail
+          sha256sum {{ language.params.npmPackage }}-* \
+            {{ language.params.executableName }}.wasm wasm_exec.js > checksums.txt
 
       - name: Upload release assets
         env:
@@ -171,7 +201,7 @@ jobs:
         run: |
           set -euo pipefail
           version="${RELEASE_TAG#v}"
-          node scripts/build-npm-packages.mjs staging npm-packages "$version"
+          node scripts/build-npm-packages.mjs staging npm-packages "$version" npm-wasm
           node -e '
             const fs = require("node:fs");
             const version = process.argv[1];
@@ -193,6 +223,10 @@ jobs:
 
       - name: Publish {{ language.params.npmPackage }}
         run: npm publish ./npm --provenance --access public --tag {{ '${{ steps.npm_tag.outputs.tag }}' }}
+
+      # Standalone so native installs do not download the wasm artifact.
+      - name: Publish {{ language.params.npmPackage }}-wasm
+        run: npm publish ./npm-wasm/{{ language.params.npmPackage }}-wasm --provenance --access public --tag {{ '${{ steps.npm_tag.outputs.tag }}' }}
 
       - name: Generate token for the Homebrew tap
         if: {{ '${{ !github.event.release.prerelease }}' }}

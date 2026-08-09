@@ -1,3 +1,5 @@
+//go:build !browser
+
 package cmd
 
 import (
@@ -165,29 +167,6 @@ func currentAccount() (*jsonx.Object, error) {
 	}
 
 	return account, nil
-}
-
-// verifyEndpoint checks that an endpoint is an Appwrite server before a
-// password is typed into it.
-func verifyEndpoint(endpoint string, selfSigned bool) error {
-	parsed, err := url.Parse(endpoint)
-	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
-		return fmt.Errorf("invalid endpoint URL: %s", endpoint)
-	}
-
-	version := jsonx.NewObject()
-	// selfSigned is threaded in rather than read from preferences: `client
-	// --endpoint X --self-signed true` has to verify X under the setting given in
-	// the same invocation, not the one stored from a previous run.
-	err = client.New(endpoint, app.Version).SetSelfSigned(selfSigned).
-		Call("GET", "/health/version", nil, version)
-	if err == nil && version.GetString("version") != "" {
-		return nil
-	}
-
-	return fmt.Errorf(
-		"invalid endpoint or your Appwrite server is not running as expected: %s",
-		endpoint)
 }
 
 // switchAccount makes a different signed-in account current.

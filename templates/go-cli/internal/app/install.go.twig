@@ -159,9 +159,12 @@ const NPMRegistryURL = "https://registry.npmjs.org/" + NPMPackageName + "/latest
 // next dist-tag. Stable builds never query it.
 const NPMPrereleaseRegistryURL = "https://registry.npmjs.org/" + NPMPackageName + "/next"
 
-// UpdateChecker builds the once-a-day version check, or nil when there is
-// nowhere to cache its answer.
+// UpdateChecker builds the once-a-day version check when this binary owns updates.
 func UpdateChecker() *update.Checker {
+	if hostManagesUpdates {
+		return nil
+	}
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil
