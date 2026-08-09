@@ -41,6 +41,10 @@ func New{{ service.name | caseUcfirst }}Command() *cobra.Command {
 		{{ serviceKeyFormat|format('Aliases:') }}[]string{"tables-db"},
 {% endif %}
 		{{ serviceKeyFormat|format('Short:') }}{{ service.description | default('') | stripMarkdown | goString | raw }},
+		{{ serviceKeyFormat|format('Args:') }}cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
 	}
 
 {% set seenCommands = [] %}
@@ -150,6 +154,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 {% if isTopLevel %}
 		{{ commandKeyFormat|format('Hidden:') }}true,
 {% endif %}
+		{{ commandKeyFormat|format('Args:') }}cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 {% set plan = getGoCallPlan(method, service) %}
 {% if sdk.test %}
