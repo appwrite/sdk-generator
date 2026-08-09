@@ -181,8 +181,8 @@ func (c *Context) projectEndpoint() (string, error) {
 	if !config.EndpointsMatch(endpoint, sessionEndpoint) {
 		return "", fmt.Errorf(
 			"endpoint %s does not match the current login session endpoint %s. "+
-				"Switch to an account for this environment with `appwrite login --switch`",
-			endpoint, sessionEndpoint)
+				"Switch to an account for this environment with `appwrite login --switch --endpoint %s`",
+			endpoint, sessionEndpoint, endpoint)
 	}
 
 	return endpoint, nil

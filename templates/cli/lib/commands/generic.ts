@@ -120,7 +120,10 @@ export const register = new Command("register")
 
 export const login = new Command("login")
   .description(commandDescriptions["login"])
-  .option(`--email [email]`, `Email, for self hosted instances`)
+  .option(
+    `--email [email]`,
+    `Email for self hosted login, or stored account email with --switch`,
+  )
   .option(`--password [password]`, `Password, for self hosted instances`)
   .option(
     `--mfa [factor]`,
@@ -129,7 +132,7 @@ export const login = new Command("login")
   .option(`--code [code]`, `Code used for MFA on self hosted instances`)
   .option(
     `--endpoint [endpoint]`,
-    `Appwrite endpoint for self hosted instances`,
+    `Endpoint to sign in to, or stored account endpoint with --switch`,
   )
   .option(`--switch`, `Switch to another signed-in account`)
   .option(`--new`, `Sign in to another account`)
