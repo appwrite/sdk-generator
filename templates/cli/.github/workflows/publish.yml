@@ -23,7 +23,7 @@ jobs:
       WINDOWS_SIGNING_POLICY_SLUG: ${{ vars.WINDOWS_SIGNING_POLICY_SLUG || 'release-signing' }}
       WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG: ${{ vars.WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG || 'initial' }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           token: ${{ secrets.GH_TOKEN }}
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -67,7 +67,7 @@ jobs:
 
       - name: Upload unsigned Windows binaries
         id: upload-windows-unsigned
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-unsigned
           path: |
@@ -125,7 +125,7 @@ jobs:
           verify_signature build/appwrite-cli-win-arm64.exe
 
       - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24.14.1'
           registry-url: 'https://registry.npmjs.org'
@@ -142,20 +142,32 @@ jobs:
             echo "tag=latest" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Audit npm dependencies
+        run: npm audit --package-lock-only --audit-level=high --omit=dev
+
       - name: Publish
         run: npm publish --provenance --access public --tag ${{ steps.release_tag.outputs.tag }}
 
-      - uses: fnkr/github-action-ghr@2fcb5ab637a49c14f4b3e7d81d0389d059171d35 # v1
+      - uses: fnkr/github-action-ghr@96b1448dc6162f370067e1de51e856e733a76b4f # v1.3
         env:
           GHR_PATH: build/
           GHR_REPLACE: false
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
+      - name: Generate Appwrite Bot token for Homebrew tap
+        id: bot-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.APPWRITE_BOT_APP_ID }}
+          private-key: ${{ secrets.APPWRITE_BOT_PRIVATE_KEY }}
+          owner: appwrite
+          repositories: homebrew-appwrite
+
       - name: Check out Homebrew tap
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ env.HOMEBREW_TAP_REPO }}
-          token: ${{ secrets.HOMEBREW_TAP_GH_TOKEN }}
+          token: ${{ steps.bot-token.outputs.token }}
           path: homebrew-tap
           fetch-depth: 0
 
@@ -214,15 +226,12 @@ jobs:
             echo "formula_path=${FORMULA_PATH}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Open pull request on Homebrew tap
+      - name: Commit Homebrew formula update
         working-directory: homebrew-tap
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           EXECUTABLE_NAME: ${{ steps.tap.outputs.executable }}
           FORMULA_PATH: ${{ steps.tap.outputs.formula_path }}
-          SOURCE_REPO: ${{ github.repository }}
-          SERVER_URL: ${{ github.server_url }}
-          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_GH_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -231,27 +240,12 @@ jobs:
             exit 0
           fi
 
-          BASE_BRANCH="$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')"
-          BRANCH="release/${EXECUTABLE_NAME}-${RELEASE_TAG}"
+          git config user.name "appwrite-bot[bot]"
+          git config user.email "217594562+appwrite-bot[bot]@users.noreply.github.com"
 
-          git config user.name "appwrite-bot"
-          git config user.email "bot@appwrite.io"
-
-          git checkout -B "$BRANCH"
           git add "$FORMULA_PATH"
           git commit -m "${EXECUTABLE_NAME} ${RELEASE_TAG}"
-          git push -f -u origin "$BRANCH"
 
-          PR_TITLE="${EXECUTABLE_NAME} ${RELEASE_TAG}"
-          PR_BODY=$(printf 'Automated formula update for the `%s` CLI release [`%s`](%s/%s/releases/tag/%s).\n\nOpened automatically by the `%s` publish workflow after release binaries were uploaded.' "$EXECUTABLE_NAME" "$RELEASE_TAG" "$SERVER_URL" "$SOURCE_REPO" "$RELEASE_TAG" "${SOURCE_REPO#*/}")
-
-          EXISTING_PR="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' || true)"
-          if [ -n "$EXISTING_PR" ]; then
-            gh pr edit "$EXISTING_PR" --title "$PR_TITLE" --body "$PR_BODY"
-          else
-            gh pr create \
-              --title "$PR_TITLE" \
-              --body "$PR_BODY" \
-              --base "$BASE_BRANCH" \
-              --head "$BRANCH"
-          fi
+          BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+          git pull --rebase origin "$BRANCH"
+          git push origin "HEAD:${BRANCH}"

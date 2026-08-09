@@ -6,19 +6,19 @@
 	"license": "BSD-3-Clause",
 	"architecture": {
 		"64bit": {
-			"url": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-x64.exe",
+			"url": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.npmPackage }}-win-x64.exe",
 			"bin": [
 				[
-					"{{ language.params.executableName }}-cli-win-x64.exe",
+					"{{ language.params.npmPackage }}-win-x64.exe",
 					"{{ language.params.executableName|caseLower }}"
 				]
 			]
 		},
 		"arm64": {
-			"url": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-arm64.exe",
+			"url": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.npmPackage }}-win-arm64.exe",
 			"bin": [
 				[
-					"{{ language.params.executableName }}-cli-win-arm64.exe",
+					"{{ language.params.npmPackage }}-win-arm64.exe",
 					"{{ language.params.executableName|caseLower }}"
 				]
 			]

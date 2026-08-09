@@ -3,10 +3,16 @@ import os from "os";
 import path from "path";
 import net from "net";
 import childProcess from "child_process";
+import { globSync } from "tinyglobby";
 import type { Models } from "@appwrite.io/console";
 import { ProjectPolicyId } from "@appwrite.io/console";
 import { z } from "zod";
 import { globalConfig } from "./config.js";
+import {
+  describeHttpFailure,
+  looksLikeHtml,
+  sanitizeErrorText,
+} from "./errors.js";
 import { isFlagEnabled } from "./flags.js";
 import type { SettingsType } from "./commands/config.js";
 import {
@@ -137,20 +143,46 @@ export const siteRequiresBuildCommand = (site: SiteBuildConfig): boolean => {
   return !(site.framework === "other" && site.adapter === "static");
 };
 
+/** Beyond this, a message is a response body rather than a message. */
+const MAX_ERROR_MESSAGE_LENGTH = 2000;
+
+/**
+ * Turns a body that carried no usable message into a printable one. Server
+ * markup — from a proxy, or from a request that missed the API entirely — is
+ * reduced to the signal it contains instead of being printed verbatim.
+ */
+const describeErrorBody = (body: string, code?: number): string => {
+  if (looksLikeHtml(body)) {
+    return code
+      ? describeHttpFailure(code, body).message
+      : "The server returned an HTML error page.";
+  }
+
+  return sanitizeErrorText(body);
+};
+
 export const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
+    const code = (error as { code?: number }).code;
     const message =
       typeof error.message === "string" ? error.message.trim() : "";
+
+    // Errors raised outside our own client can carry a whole response body as
+    // their message, so summarize markup and runaway bodies before printing.
+    if (looksLikeHtml(message) || message.length > MAX_ERROR_MESSAGE_LENGTH) {
+      return describeErrorBody(message, code);
+    }
+
     if (message) {
       return message;
     }
 
     // Some error responses carry no `message` field, leaving the exception
-    // message empty. Fall back to the raw response body so users see more
-    // than a bare "✗ Error:".
+    // message empty. Fall back to the response body so users see more than a
+    // bare "✗ Error:".
     const response = (error as { response?: unknown }).response;
     if (typeof response === "string" && response.trim() !== "") {
-      return response.trim();
+      return describeErrorBody(response, code);
     }
 
     return "An unknown error occurred.";
@@ -415,24 +447,33 @@ const getHomebrewLatestVersion = async (
 
 // TODO: Derive this list from the regions in the API spec.
 const CLOUD_REGION_CODES = new Set(["fra", "nyc", "syd", "sfo", "sgp", "tor"]);
-const CLOUD_LOGIN_ENVIRONMENTS = new Set(["stage"]);
+const CLOUD_BASE_HOSTNAMES = new Set([
+  "cloud.appwrite.io",
+  "cloud.staging.appwrite.io",
+]);
 
-export const isCloudHostname = (hostname: string): boolean => {
-  if (hostname === "cloud.appwrite.io") {
-    return true;
+export const getCloudBaseHostname = (hostname: string): string | null => {
+  if (CLOUD_BASE_HOSTNAMES.has(hostname)) {
+    return hostname;
   }
 
-  if (!hostname.endsWith(".cloud.appwrite.io")) {
-    return false;
+  const [region, ...rest] = hostname.split(".");
+  const base = rest.join(".");
+  if (CLOUD_BASE_HOSTNAMES.has(base) && CLOUD_REGION_CODES.has(region)) {
+    return base;
   }
 
-  return CLOUD_REGION_CODES.has(hostname.split(".")[0]);
+  return null;
 };
+
+export const isCloudHostname = (hostname: string): boolean =>
+  getCloudBaseHostname(hostname) !== null;
 
 export const isRegionalCloudEndpoint = (endpoint: string): boolean => {
   try {
     const hostname = new URL(endpoint).hostname;
-    return isCloudHostname(hostname) && hostname !== "cloud.appwrite.io";
+    const base = getCloudBaseHostname(hostname);
+    return base !== null && base !== hostname;
   } catch (_error) {
     return false;
   }
@@ -441,13 +482,13 @@ export const isRegionalCloudEndpoint = (endpoint: string): boolean => {
 export const getCloudEndpointRegion = (endpoint: string): string | null => {
   try {
     const hostname = new URL(endpoint).hostname;
+    const base = getCloudBaseHostname(hostname);
 
-    if (!isCloudHostname(hostname) || hostname === "cloud.appwrite.io") {
+    if (base === null || base === hostname) {
       return null;
     }
 
-    const region = hostname.split(".")[0];
-    return CLOUD_REGION_CODES.has(region) ? region : null;
+    return hostname.split(".")[0];
   } catch (_error) {
     return null;
   }
@@ -456,42 +497,14 @@ export const getCloudEndpointRegion = (endpoint: string): string | null => {
 export const isLocalhostHostname = (hostname: string): boolean =>
   hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
 
-const isCloudEnvironmentHostname = (hostname: string): boolean =>
-  hostname.endsWith(".cloud.appwrite.io") &&
-  CLOUD_LOGIN_ENVIRONMENTS.has(hostname.split(".")[0]);
-
-const getCloudConsoleHostname = (hostname: string): string | null => {
-  if (hostname === "cloud.appwrite.io") {
-    return hostname;
-  }
-
-  const labels = hostname.split(".");
-  if (labels.length < 4 || labels.slice(-3).join(".") !== "cloud.appwrite.io") {
-    return null;
-  }
-
-  if (CLOUD_REGION_CODES.has(labels[0])) {
-    const environment = labels[1];
-    if (environment && CLOUD_LOGIN_ENVIRONMENTS.has(environment)) {
-      return `${environment}.cloud.appwrite.io`;
-    }
-
-    return "cloud.appwrite.io";
-  }
-
-  if (CLOUD_LOGIN_ENVIRONMENTS.has(labels[0])) {
-    return hostname;
-  }
-
-  return null;
-};
+const getCloudConsoleHostname = (hostname: string): string | null =>
+  getCloudBaseHostname(hostname);
 
 export const isCloudLoginEndpoint = (endpoint: string): boolean => {
   try {
     const hostname = new URL(endpoint).hostname;
     return (
-      isCloudHostname(hostname) ||
-      isCloudEnvironmentHostname(hostname) ||
+      hostname.endsWith(".appwrite.io") ||
       (isFlagEnabled("devCloudLogin") && isLocalhostHostname(hostname))
     );
   } catch (_error) {
@@ -527,11 +540,7 @@ export const getConsoleProjectSlug = (
     const hostname = new URL(endpoint).hostname;
 
     if (!isCloudHostname(hostname)) {
-      if (projectRegion) {
-        return `project-${projectRegion}-${projectId}`;
-      }
-
-      return `project-${projectId}`;
+      return `project-${projectRegion || "default"}-${projectId}`;
     }
 
     const firstSubdomain = hostname.split(".")[0];
@@ -539,9 +548,24 @@ export const getConsoleProjectSlug = (
       ? `project-${firstSubdomain}-${projectId}`
       : `project-${projectId}`;
   } catch {
-    return `project-${projectId}`;
+    return `project-${projectRegion || "default"}-${projectId}`;
   }
 };
+
+/**
+ * One indented `email (endpoint)` per line, so a prompt or error listing several
+ * accounts stays readable instead of wrapping as one comma-joined run.
+ */
+export const formatAccountList = (
+  accounts: Array<{ email: string; endpoint?: string }>,
+): string =>
+  accounts
+    .map((account) =>
+      account.endpoint
+        ? `  ${account.email} (${account.endpoint})`
+        : `  ${account.email}`,
+    )
+    .join("\n");
 
 export const getFunctionDeploymentConsoleUrl = (
   endpoint: string,
@@ -851,23 +875,53 @@ export async function getCachedUpdateNotification(
   }
 }
 
-export function getAllFiles(folder: string): string[] {
-  const files: string[] = [];
-  for (const pathDir of fs.readdirSync(folder)) {
-    const pathAbsolute = path.join(folder, pathDir);
-    let stats: fs.Stats;
-    try {
-      stats = fs.statSync(pathAbsolute);
-    } catch (_error) {
-      continue;
-    }
-    if (stats.isDirectory()) {
-      files.push(...getAllFiles(pathAbsolute));
-    } else {
-      files.push(pathAbsolute);
-    }
+/**
+ * True when `child` is `parent` or sits beneath it. Both arguments must
+ * already be real paths, so that `/tmp` and `/private/tmp` compare equal.
+ */
+export function isPathInside(parent: string, child: string): boolean {
+  const relativePath = path.relative(parent, child);
+  return (
+    relativePath === "" ||
+    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+  );
+}
+
+/**
+ * Symlinks are followed so that functions can share code, and the paths they
+ * produce stay rooted at the link (`src/common/util.js`, not the real
+ * `../../common/util.js`). Since a link can point anywhere on the host, this
+ * bounds how far one may be followed: to the Appwrite project directory when
+ * `folder` sits inside it, and to `folder` itself otherwise. Sharing
+ * `functions/common` stays possible; reaching `~/.ssh` does not.
+ */
+export function resolveSymlinkBoundary(
+  folder: string,
+  projectRoot?: string,
+): string {
+  const realFolder = fs.realpathSync(folder);
+
+  if (!projectRoot) {
+    return realFolder;
   }
-  return files;
+
+  const realRoot = fs.realpathSync(projectRoot);
+  return isPathInside(realRoot, realFolder) ? realRoot : realFolder;
+}
+
+/**
+ * Recursively list every file under `folder` as an absolute path.
+ */
+export function getAllFiles(folder: string, projectRoot?: string): string[] {
+  const boundary = resolveSymlinkBoundary(folder, projectRoot);
+
+  return globSync("**/*", {
+    cwd: folder,
+    absolute: true,
+    dot: true,
+    onlyFiles: true,
+    followSymbolicLinks: true,
+  }).filter((file) => isPathInside(boundary, fs.realpathSync(file)));
 }
 
 export async function isPortTaken(port: number): Promise<boolean> {
@@ -993,6 +1047,32 @@ export interface SkillInfo {
   description: string;
   dirName: string;
 }
+
+export const resolveSkillSelection = (
+  skills: Pick<SkillInfo, "dirName">[],
+  requested: string[],
+  all: boolean,
+): string[] => {
+  if (all && requested.length > 0) {
+    throw new Error("The '--all' and '--skill' flags cannot be used together.");
+  }
+
+  const available = skills.map((skill) => skill.dirName);
+  if (all) {
+    return available;
+  }
+
+  const availableSet = new Set(available);
+  const selected = [...new Set(requested)];
+  const unknown = selected.find((skill) => !availableSet.has(skill));
+  if (unknown !== undefined) {
+    throw new Error(
+      `Unknown skill '${unknown}'. Available skills: ${available.join(", ")}`,
+    );
+  }
+
+  return selected;
+};
 
 const parseSkillFrontmatter = (
   content: string,

@@ -1,4 +1,5 @@
 import {
+  endpointsMatch,
   globalConfig,
   localConfig,
   normalizeCloudConsoleEndpoint,
@@ -13,21 +14,30 @@ import {
   SDK_VERSION,
 } from "./constants.js";
 import { warn } from "./parser.js";
+import { resolveOrganizationId, resolveProjectId } from "./context.js";
 import { isCloudHostname } from "./utils.js";
-import { isFlagEnabled } from "./flags.js";
 import {
   getStoredRefreshToken,
   setStoredRefreshToken,
 } from "./auth/refresh-token.js";
 
+export const assertSessionEndpointMatches = (endpoint: string): void => {
+  const sessionEndpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
+  if (!endpointsMatch(endpoint, sessionEndpoint)) {
+    throw new Error(
+      `Endpoint ${endpoint} does not match the current login session endpoint ${sessionEndpoint}. Switch to an account for this environment with \`${EXECUTABLE_NAME} login --switch\`.`,
+    );
+  }
+};
+
 export const getValidAccessToken = async (
-  endpoint: string,
   options: { forceRefresh?: boolean } = {},
 ): Promise<string> => {
   const accessToken = globalConfig.getAccessToken();
   const tokenExpiry = globalConfig.getTokenExpiry();
   const clientId = globalConfig.getClientId() || OAUTH2_CLIENT_ID;
   const currentSession = globalConfig.getCurrentSession();
+  const sessionEndpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
 
   if (
     !options.forceRefresh &&
@@ -53,7 +63,7 @@ export const getValidAccessToken = async (
 
   const oauth2 = new Oauth2(
     new Client()
-      .setEndpoint(normalizeCloudConsoleEndpoint(endpoint))
+      .setEndpoint(normalizeCloudConsoleEndpoint(sessionEndpoint))
       .setProject("console")
       .setSelfSigned(globalConfig.getSelfSigned()),
   );
@@ -75,8 +85,7 @@ export const getValidAccessToken = async (
 let legacySessionWarningShown = false;
 
 const warnLegacySession = (): void => {
-  // Only nudge toward OAuth login when the feature is enabled.
-  if (legacySessionWarningShown || !isFlagEnabled("oauthLogin")) {
+  if (legacySessionWarningShown) {
     return;
   }
 
@@ -90,15 +99,19 @@ export const sdkForConsole = async ({
   requiresAuth = true,
   endpointOverride,
   organizationId,
+  preserveRegion = false,
 }: {
   requiresAuth?: boolean;
   endpointOverride?: string;
   organizationId?: string;
+  preserveRegion?: boolean;
 } = {}): Promise<Client> => {
   const client = new Client();
-  const endpoint = normalizeCloudConsoleEndpoint(
-    endpointOverride || globalConfig.getEndpoint() || DEFAULT_ENDPOINT,
-  );
+  const configuredEndpoint =
+    endpointOverride || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
+  const endpoint = preserveRegion
+    ? configuredEndpoint
+    : normalizeCloudConsoleEndpoint(configuredEndpoint);
   const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
   const selfSigned = globalConfig.getSelfSigned();
 
@@ -106,8 +119,11 @@ export const sdkForConsole = async ({
   const cookie = globalConfig.getCookie();
 
   if (requiresAuth && !accessToken && !cookie) {
+    const hasKey = globalConfig.getKey() !== "";
     throw new Error(
-      `Session not found. Please run \`${EXECUTABLE_NAME} login\` to create a session`,
+      hasKey
+        ? `Session not found. Run \`${EXECUTABLE_NAME} login\`. API keys work for project commands (e.g. \`${EXECUTABLE_NAME} push functions\`), not console-only commands (e.g. \`${EXECUTABLE_NAME} push settings\`).`
+        : `Session not found. Please run \`${EXECUTABLE_NAME} login\` to create a session`,
     );
   }
 
@@ -126,9 +142,13 @@ export const sdkForConsole = async ({
     .setSelfSigned(selfSigned)
     .setLocale("en-US");
 
+  if (requiresAuth && (accessToken || cookie)) {
+    assertSessionEndpointMatches(endpoint);
+  }
+
   if (requiresAuth) {
     if (accessToken) {
-      const validAccessToken = await getValidAccessToken(endpoint);
+      const validAccessToken = await getValidAccessToken();
       client.headers["Authorization"] = `Bearer ${validAccessToken}`;
     } else if (cookie) {
       if (isCloudEndpoint) {
@@ -145,16 +165,34 @@ export const sdkForConsole = async ({
   return client;
 };
 
-export const sdkForProject = async (): Promise<Client> => {
+/**
+ * The `/organization` endpoints carry no organization ID in their path and act
+ * on whichever organization `X-Appwrite-Organization` names, so resolve it from
+ * the current directory's config unless the caller names one explicitly.
+ */
+export const sdkForConsoleWithOrganization = async (
+  organizationId?: string,
+): Promise<Client> => {
+  const client = await sdkForConsole();
+
+  client.headers["X-Appwrite-Organization"] = await resolveOrganizationId({
+    override: organizationId,
+    consoleClient: client,
+  });
+
+  return client;
+};
+
+export const sdkForProject = async (
+  projectIdOverride?: string,
+): Promise<Client> => {
   const client = new Client();
 
   const endpoint =
     localConfig.getEndpoint() || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
   const isCloudEndpoint = isCloudHostname(new URL(endpoint).hostname);
 
-  const project = localConfig.getProject().projectId
-    ? localConfig.getProject().projectId
-    : globalConfig.getProject();
+  const project = resolveProjectId(projectIdOverride);
 
   const key = globalConfig.getKey();
   const accessToken = globalConfig.getAccessToken();
@@ -182,8 +220,12 @@ export const sdkForProject = async (): Promise<Client> => {
     .setSelfSigned(selfSigned)
     .setLocale("en-US");
 
+  if (accessToken || cookie) {
+    assertSessionEndpointMatches(endpoint);
+  }
+
   if (accessToken) {
-    const validAccessToken = await getValidAccessToken(endpoint);
+    const validAccessToken = await getValidAccessToken();
     client.headers["Authorization"] = `Bearer ${validAccessToken}`;
     return client.setMode("admin");
   }
@@ -201,6 +243,6 @@ export const sdkForProject = async (): Promise<Client> => {
   }
 
   throw new Error(
-    `Session not found. Please run \`${EXECUTABLE_NAME} login\` to create a session.`,
+    `Authentication not found. Run \`${EXECUTABLE_NAME} login\` or \`${EXECUTABLE_NAME} client --key <API_KEY>\`.`,
   );
 };

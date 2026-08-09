@@ -147,6 +147,7 @@ php example.php web client
 php example.php node server
 php example.php cli console
 php example.php skills
+php example.php zed-extension
 ```
 
 ### Client SDKs
@@ -156,7 +157,7 @@ php example.php skills
 | Web | `web` | ES5+; Node.js >=18 for builds | [NPM Coding Style] | NPM | `examples/web/` |
 | Flutter | `flutter` | Dart >=2.17 <4; Flutter stable | [Effective Dart] | pub | `examples/flutter/` |
 | Apple | `apple` | iOS 15+, macOS 11+, watchOS 7+, tvOS 13+ | [Swift Style Guide] | Swift Package Manager | `examples/apple/` |
-| Android | `android` | Android 5.0+; Java 17 in CI | [Android style guide] | Gradle, Maven | `examples/android/` |
+| Android | `android` | Android 6.0+; Java 17 in CI | [Android style guide] | Gradle, Maven | `examples/android/` |
 | React Native | `react-native` | React Native >=0.76.7 <1.0.0; Node.js >=18 | [NPM Coding Style] | NPM | `examples/react-native/` |
 
 ### Server SDKs
@@ -168,7 +169,7 @@ php example.php skills
 | Python | `python` | Python >=3.9 | [PEP8] | pip | `examples/python/` |
 | Ruby | `ruby` | Ruby 3.1 in CI | [Ruby Style Guide] | RubyGems, Bundler | `examples/ruby/` |
 | Dart | `dart` | Dart >=2.17 <4 | [Effective Dart] | pub | `examples/dart/` |
-| Go | `go` | Go 1.22.5 | [Effective Go] | Go modules | `examples/go/` |
+| Go | `go` | Go 1.26.5 | [Effective Go] | Go modules | `examples/go/` |
 | Swift | `swift` | Swift 5.1+; Swift 5.9.2 in CI | [Swift Style Guide] | Swift Package Manager | `examples/swift/` |
 | .NET | `dotnet` | .NET Standard 2.0; .NET Framework 4.6.2 | [C# Coding Conventions] | NuGet | `examples/dotnet/` |
 | Kotlin | `kotlin` | JVM 1.8 target; Java 17 in CI | [Kotlin style guide] | Gradle, Maven | `examples/kotlin/` |
@@ -184,6 +185,8 @@ php example.php skills
 | Skills | `skills` | N/A | Markdown | N/A | `examples/skills/` |
 | Cursor Plugin | `cursor-plugin` | N/A | Markdown | N/A | `examples/cursor-plugin/` |
 | Claude Plugin | `claude-plugin` | N/A | Markdown | N/A | `examples/claude-plugin/` |
+| Codex Plugin | `codex-plugin` | N/A | Markdown | N/A | `examples/codex-plugin/` |
+| Zed Extension | `zed-extension` | Zed extension API 0.7.0 | Rust | Cargo | `examples/zed-extension/` |
 
 [PHP FIG]: https://www.php-fig.org/
 [NPM Coding Style]: https://docs.npmjs.com/misc/coding-style

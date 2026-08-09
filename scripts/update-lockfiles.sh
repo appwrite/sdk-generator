@@ -5,6 +5,7 @@
 # Usage:
 #   ./scripts/update-lockfiles.sh           # update all
 #   ./scripts/update-lockfiles.sh web       # update one (web | node | react-native | cli)
+#   ./scripts/update-lockfiles.sh renovate  # update lock files and regenerate examples
 
 set -euo pipefail
 
@@ -12,6 +13,41 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TARGET="${1:-all}"
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
+
+ensure_tool() {
+    local command_name="$1" tool_name="$2" version="${3:-}"
+
+    if command -v "$command_name" >/dev/null 2>&1; then
+        return
+    fi
+
+    if ! command -v install-tool >/dev/null 2>&1; then
+        echo "ERROR: required command '$command_name' is missing" >&2
+        return 1
+    fi
+
+    if [ -n "$version" ]; then
+        install-tool "$tool_name" "$version"
+    else
+        install-tool "$tool_name"
+    fi
+}
+
+ensure_npm() {
+    ensure_tool npm node "${SDK_GEN_NODE_VERSION:-24.18.0}"
+}
+
+ensure_bun() {
+    ensure_tool bun bun "${SDK_GEN_BUN_VERSION:-1.3.4}"
+}
+
+ensure_php() {
+    ensure_tool php php "${SDK_GEN_PHP_VERSION:-8.5.0}"
+}
+
+ensure_composer() {
+    ensure_tool composer composer "${SDK_GEN_COMPOSER_VERSION:-2.10.2}"
+}
 
 strip_twig() {
     # Replace {{ ... }} expressions with a safe placeholder so npm/bun
@@ -90,6 +126,8 @@ update_npm() {
     local dest="$ROOT/templates/$lang/package-lock.json.twig"
     local dir="$WORKDIR/$lang"
 
+    ensure_npm
+
     echo "→ $lang (npm)"
     mkdir -p "$dir"
     strip_twig "$template" > "$dir/package.json"
@@ -106,6 +144,8 @@ update_bun() {
     local template="$ROOT/templates/cli/package.json.twig"
     local dest="$ROOT/templates/cli/bun.lock.twig"
 
+    ensure_bun
+
     echo "→ cli (bun)"
     mkdir -p "$dir"
     strip_twig "$template" > "$dir/package.json"
@@ -120,6 +160,36 @@ restore_cli_bin() {
         '"PLACEHOLDER": "dist/cli.cjs"' \
         '"{{ language.params.executableName|caseLower }}": "dist/cli.cjs"'
     validate_no_placeholders "$ROOT/templates/cli/package-lock.json.twig"
+}
+
+update_all() {
+    update_npm web "{{ language.params.npmPackage }}"
+    validate_no_placeholders "$ROOT/templates/web/package-lock.json.twig"
+    update_npm node "{{ language.params.npmPackage | caseDash }}"
+    validate_no_placeholders "$ROOT/templates/node/package-lock.json.twig"
+    update_npm react-native "{{ language.params.npmPackage }}"
+    validate_no_placeholders "$ROOT/templates/react-native/package-lock.json.twig"
+    update_npm cli "{{ language.params.npmPackage|caseDash }}"
+    restore_cli_bin
+    update_bun "{{ language.params.npmPackage|caseDash }}"
+}
+
+regenerate_examples() {
+    cd "$ROOT"
+
+    ensure_php
+    ensure_composer
+
+    if [ ! -f vendor/autoload.php ]; then
+        composer install --ignore-platform-reqs --no-interaction --prefer-dist
+    fi
+
+    php example.php
+
+    if grep -R '"PLACEHOLDER"' "$ROOT"/templates/*/*lock*.twig >/dev/null 2>&1; then
+        echo "ERROR: unresolved PLACEHOLDER values remain in generated lockfile templates" >&2
+        exit 1
+    fi
 }
 
 case "$TARGET" in
@@ -141,18 +211,14 @@ case "$TARGET" in
         update_bun "{{ language.params.npmPackage|caseDash }}"
         ;;
     all)
-        update_npm web "{{ language.params.npmPackage }}"
-        validate_no_placeholders "$ROOT/templates/web/package-lock.json.twig"
-        update_npm node "{{ language.params.npmPackage | caseDash }}"
-        validate_no_placeholders "$ROOT/templates/node/package-lock.json.twig"
-        update_npm react-native "{{ language.params.npmPackage }}"
-        validate_no_placeholders "$ROOT/templates/react-native/package-lock.json.twig"
-        update_npm cli "{{ language.params.npmPackage|caseDash }}"
-        restore_cli_bin
-        update_bun "{{ language.params.npmPackage|caseDash }}"
+        update_all
+        ;;
+    renovate)
+        update_all
+        regenerate_examples
         ;;
     *)
-        echo "Unknown target: $TARGET. Use web | node | react-native | cli | all"
+        echo "Unknown target: $TARGET. Use web | node | react-native | cli | all | renovate"
         exit 1
         ;;
 esac

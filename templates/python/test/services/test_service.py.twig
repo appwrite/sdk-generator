@@ -2,10 +2,10 @@ import json
 import requests_mock
 import unittest
 
-from appwrite.client import Client
-from appwrite.input_file import InputFile
-from appwrite.models import *
-from appwrite.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
+from {{ spec.namespace | caseSnake }}.client import Client
+from {{ spec.namespace | caseSnake }}.input_file import InputFile
+from {{ spec.namespace | caseSnake }}.models import *
+from {{ spec.namespace | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
 
 class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
 
@@ -34,7 +34,7 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
             {% if parameter.type == 'object' %}{}{% elseif parameter.type == 'array' %}[]{% elseif parameter.type == 'file' %}InputFile.from_bytes(bytearray(), "example.file"){% elseif parameter.type == 'boolean' %}True{% elseif parameter.type == 'string' %}'{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}'{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%},{%~ endfor ~%}
         )
 
-        {%~ if method.type != 'webAuth' and method.responseModel and method.responseModel != 'any' %}
+        {%~ if method.type != 'webAuth' and method.type != 'location' and method.responseModel and method.responseModel != 'any' %}
         {%~ if spec.definitions[method.responseModel].additionalProperties %}
         data['{{ 'data' }}'] = {}
         {%~ endif  %}

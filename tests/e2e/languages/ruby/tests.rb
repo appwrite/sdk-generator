@@ -6,6 +6,7 @@ include Appwrite::Enums
 client = Client.new
 client.set_self_signed(true)
 client.add_header('Origin', 'http://localhost')
+client.set_project('console')
 
 foo = Foo.new(client)
 bar = Bar.new(client)
@@ -84,6 +85,8 @@ begin
 rescue => e
     puts e
 end
+
+puts general.download.body
 
 response = general.enum(mock_type: MockType::FIRST)
 puts response.result

@@ -1,11 +1,11 @@
-{% if method.parameters.all|filter(v => not v.required)|length > 0 %}
+{% if method.parameters.query | merge(method.parameters.body) | merge(method.parameters.header) | filter(v => not v.required) | length > 0 %}
 	options := {{(method.name ~ "Options") | caseUcfirst}}{}.New()
 	for _, opt := range optionalSetters {
 		opt(options)
 	}
 {% endif %}
 	params := map[string]interface{}{}
-{% for parameter in method.parameters.all %}
+{% for parameter in method.parameters.query | merge(method.parameters.body) %}
 {% if parameter.required %}
 	params["{{ parameter.name }}"] = {{ parameter.name | caseUcfirst }}
 {% else %}
@@ -21,4 +21,12 @@
 {% for key, header in method.headers %}
 		"{{ key }}": "{{ header }}",
 {% endfor %}
+{%~ for parameter in method.parameters.header | filter(v => v.required) %}
+		"{{ parameter.name }}": {{ parameter.name | caseUcfirst }},
+{%~ endfor %}
 	}
+{% for parameter in method.parameters.header | filter(v => not v.required) %}
+	if options.enabledSetters["{{ parameter.name | caseUcfirst }}"] {
+		headers["{{ parameter.name }}"] = options.{{ parameter.name | caseUcfirst }}
+	}
+{% endfor %}

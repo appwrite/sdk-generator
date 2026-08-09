@@ -38,6 +38,11 @@
         "demo": "<YOUR_PROJECT_ID>"
       }
     },
+    "Bearer": {
+      "type": "http",
+      "scheme": "bearer",
+      "description": "The OAuth access token to authenticate with"
+    },
     "Key": {
       "type": "apiKey",
       "name": "X-Appwrite-Key",
@@ -1843,6 +1848,13 @@
                   "x-example": "[NULLABLE]",
                   "x-nullable": true
                 },
+                "optionalNullable": {
+                  "type": "string",
+                  "description": "Optional nullable string param",
+                  "default": null,
+                  "x-example": "[OPTIONAL_NULLABLE]",
+                  "x-nullable": true
+                },
                 "optional": {
                   "type": "string",
                   "description": "Sample string param",
@@ -2699,6 +2711,12 @@
           "description": "Result message.",
           "x-example": "Success"
         },
+        "optionalResult": {
+          "type": "string",
+          "description": "Optional result message.",
+          "default": null,
+          "x-example": null
+        },
         "status": {
           "type": "string",
           "description": "Mock status. Possible values: `active`, `inactive`, `pending`, `completed`, or `cancelled`",
@@ -2711,6 +2729,12 @@
             "cancelled"
           ],
           "x-enum-name": "MockStatus"
+        },
+        "relatedMock": {
+          "type": "object",
+          "description": "Optional nested mock.",
+          "x-example": null,
+          "$ref": "#\/definitions\/unionMock"
         }
       },
       "required": [

@@ -133,7 +133,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/__init__.py',
                 'template' => 'python/package/__init__.py.twig',
             ],
             [
@@ -143,22 +143,22 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/utils/deprecated.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/utils/deprecated.py',
                 'template' => 'python/package/utils/deprecated.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/utils/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/utils/__init__.py',
                 'template' => 'python/package/utils/__init__.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/client.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/client.py',
                 'template' => 'python/package/client.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/permission.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/permission.py',
                 'template' => 'python/package/permission.py.twig',
             ],
             [
@@ -168,7 +168,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/role.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/role.py',
                 'template' => 'python/package/role.py.twig',
             ],
             [
@@ -178,7 +178,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/id.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/id.py',
                 'template' => 'python/package/id.py.twig',
             ],
             [
@@ -188,7 +188,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/query.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/query.py',
                 'template' => 'python/package/query.py.twig',
             ],
             [
@@ -198,7 +198,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/operator.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/operator.py',
                 'template' => 'python/package/operator.py.twig',
             ],
             [
@@ -208,42 +208,42 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/exception.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/exception.py',
                 'template' => 'python/package/exception.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/input_file.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/input_file.py',
                 'template' => 'python/package/input_file.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/service.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/service.py',
                 'template' => 'python/package/service.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/models/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/models/__init__.py',
                 'template' => 'python/package/models/__init__.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/models/base_model.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/models/base_model.py',
                 'template' => 'python/package/models/base_model.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/services/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/services/__init__.py',
                 'template' => 'python/package/services/__init__.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/encoders/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/encoders/__init__.py',
                 'template' => 'python/package/services/__init__.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/enums/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/enums/__init__.py',
                 'template' => 'python/package/services/__init__.py.twig',
             ],
             [
@@ -253,17 +253,17 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/encoders/value_class_encoder.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/encoders/value_class_encoder.py',
                 'template' => 'python/package/encoders/value_class_encoder.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/encoders/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/encoders/__init__.py',
                 'template' => 'python/package/encoders/__init__.py.twig',
             ],
             [
                 'scope' => 'service',
-                'destination' => '{{ spec.title | caseSnake}}/services/{{service.name | caseSnake}}.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/services/{{service.name | caseSnake}}.py',
                 'template' => 'python/package/services/service.py.twig',
             ],
             [
@@ -283,22 +283,22 @@ class Python extends Language
             ],
             [
                 'scope' => 'enum',
-                'destination' => '{{ spec.title | caseSnake}}/enums/{{ enum.name | caseSnake }}.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/enums/{{ enum.name | caseSnake }}.py',
                 'template' => 'python/package/enums/enum.py.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/enums/__init__.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/enums/__init__.py',
                 'template' => 'python/package/enums/__init__.py.twig',
             ],
             [
                 'scope' => 'requestModel',
-                'destination' => '{{ spec.title | caseSnake}}/models/{{ requestModel.name | caseSnake }}.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/models/{{ requestModel.name | caseSnake }}.py',
                 'template' => 'python/package/models/request_model.py.twig',
             ],
             [
                 'scope' => 'definition',
-                'destination' => '{{ spec.title | caseSnake}}/models/{{ definition.name | caseSnake }}.py',
+                'destination' => '{{ spec.namespace | caseSnake}}/models/{{ definition.name | caseSnake }}.py',
                 'template' => 'python/package/models/model.py.twig',
             ],
         ];
@@ -647,9 +647,61 @@ class Python extends Language
         return $modelType;
     }
 
-    protected function getServicePropertyType(array $parameter, string $serviceName): string
+    /**
+     * Symbols a service module imports from `..models`.
+     *
+     * An enum sharing one of these names cannot be imported plainly: the enum
+     * import lands second and shadows the model, so every method annotated with
+     * that model returns the enum and hydration fails at runtime.
+     *
+     * @return list<string>
+     */
+    protected function getServiceModelNames(array $service): array
     {
-        if (!empty($parameter['array']['model'])) {
+        $names = [];
+
+        foreach ($service['methods'] ?? [] as $method) {
+            foreach ($method['parameters']['all'] ?? [] as $parameter) {
+                foreach ([$parameter['model'] ?? null, $parameter['array']['model'] ?? null] as $model) {
+                    if (!empty($model)) {
+                        $names[] = \ucfirst((string) $model);
+                    }
+                }
+            }
+
+            foreach ([...(array) ($method['responseModels'] ?? []), $method['responseModel'] ?? null] as $model) {
+                if (!empty($model) && $model !== 'any') {
+                    $names[] = \ucfirst((string) $model);
+                }
+            }
+        }
+
+        return \array_values(\array_unique($names));
+    }
+
+    /**
+     * The name an enum is referenced by inside a service module, suffixed when a
+     * model of the same name is imported alongside it.
+     */
+    protected function getServiceEnumName(array $parameter, array $service): string
+    {
+        $enumName = \ucfirst((string) ($parameter['enumName'] ?? $parameter['name'] ?? ''));
+
+        return \in_array($enumName, $this->getServiceModelNames($service), true)
+            ? $enumName . 'Enum'
+            : $enumName;
+    }
+
+    protected function getServicePropertyType(array $parameter, array $service): string
+    {
+        $serviceName = (string) ($service['name'] ?? '');
+
+        if (isset($parameter['enumName']) || !empty($parameter['enumValues'])) {
+            $enumName = $this->getServiceEnumName($parameter, $service);
+            $typeName = ($parameter['type'] ?? null) === self::TYPE_ARRAY
+                ? 'List[' . $enumName . ']'
+                : $enumName;
+        } elseif (!empty($parameter['array']['model'])) {
             $typeName = 'List[' . $this->getServiceModelTypeName($parameter['array']['model'], $serviceName) . ']';
         } elseif (!empty($parameter['model'])) {
             $modelType = $this->getServiceModelTypeName($parameter['model'], $serviceName);
@@ -762,7 +814,8 @@ class Python extends Language
             new TwigFilter('getPropertyType', fn(array $value, array $method = []): string => $this->getTypeName($value, $method)),
             new TwigFilter('hasGenericType', fn(string $model, array $spec): bool => $this->hasGenericType($model, $spec)),
             new TwigFilter('hasGenericTypeProperty', fn(array $properties, array $spec): bool => array_any($properties, fn($property): bool => !empty($property['sub_schema']) && $this->hasGenericType($property['sub_schema'], $spec))),
-            new TwigFilter('getServicePropertyType', fn(array $value, string $serviceName): string => $this->getServicePropertyType($value, $serviceName)),
+            new TwigFilter('getServicePropertyType', fn(array $value, array $service): string => $this->getServicePropertyType($value, $service)),
+            new TwigFilter('getServiceEnumName', fn(array $parameter, array $service): string => $this->getServiceEnumName($parameter, $service)),
             new TwigFilter('getModelPropertyType', fn(array $value, string $ownerName = ''): string => $this->getModelPropertyType($value, $ownerName)),
             new TwigFilter('getModelFieldName', fn(array $value, array $properties): string => $this->getModelFieldName($value, $properties)),
             new TwigFilter('getResponseType', fn(array $method, string $serviceName = ''): string => $this->getResponseType($method, $serviceName)),

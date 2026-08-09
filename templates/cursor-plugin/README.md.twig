@@ -33,7 +33,7 @@ skills/                      # Agent skills (per language)
 commands/                    # Agent-executable commands
 ├── deploy-site.md
 └── deploy-function.md
-.mcp.json                    # MCP server definitions
+.mcp.json                    # Hosted Appwrite MCP server
 ```
 
 ## Skills
@@ -46,12 +46,17 @@ This plugin includes {{ spec.title }} SDK skills for the following languages:
 
 Each skill provides comprehensive SDK usage examples including authentication, database operations, file storage, real-time subscriptions, and more.
 
-## MCP Servers
+## Hosted MCP Server
 
-This plugin comes with two MCP (Model Context Protocol) servers pre-configured in `.mcp.json`:
+This plugin configures the hosted {{ spec.title }} MCP server at `https://mcp.appwrite.io/`. It gives Cursor access to your {{ spec.title }} workspace and projects as well as the latest {{ spec.title }} documentation.
 
-- **{{ spec.title }} API MCP** — Lets AI agents access the {{ spec.title }} API to manage users, databases, storage, and more.
-- **{{ spec.title }} Docs MCP** — Access {{ spec.title }} documentation inline for quick reference while coding.
+Cursor starts a browser-based OAuth flow when the server first connects. Sign in to {{ spec.title }} and approve access; no API key, project ID, endpoint, or other secret needs to be added to `.mcp.json`.
+
+After authentication, try:
+
+> Use {{ spec.title }} to show my workspace context and list my projects.
+
+If the server does not connect, open Cursor's MCP settings, restart the `{{ spec.title | caseLower }}` server, and complete the sign-in prompt. Clear or reauthenticate the server from the same settings when the OAuth session expires, and inspect Cursor's MCP output logs for connection errors.
 
 ## Commands
 

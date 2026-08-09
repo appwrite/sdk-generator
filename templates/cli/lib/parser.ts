@@ -6,12 +6,19 @@ BigInt.prototype.toJSON = function () {
 import chalk from "chalk";
 import { InvalidArgumentError } from "commander";
 import Table from "cli-table3";
+import stringWidth from "string-width";
 import packageJson from "../package.json" with { type: "json" };
 const { description } = packageJson;
 import { globalConfig } from "./config.js";
 import os from "os";
 import { Client } from "@appwrite.io/console";
 import { getErrorMessage, isCloud } from "./utils.js";
+import {
+  MAX_REPORT_BODY_LENGTH,
+  sanitizeErrorText,
+  summarizeErrorBody,
+} from "./errors.js";
+import { errorHintsFor } from "./hints.js";
 import type { CliConfig } from "./types.js";
 import {
   SDK_VERSION,
@@ -19,7 +26,13 @@ import {
   SDK_LOGO,
   EXECUTABLE_NAME,
 } from "./constants.js";
-import { renderStructuredCollection } from "./response-config.js";
+import {
+  formatSectionField,
+  formatTimestamp,
+  humanizeSeconds,
+  renderStructuredCollection,
+  sectionFieldKeys,
+} from "./response-config.js";
 
 const cliConfig: CliConfig = {
   verbose: false,
@@ -32,6 +45,7 @@ const cliConfig: CliConfig = {
   report: false,
   reportData: {},
   displayFields: [],
+  followUpHint: "",
 };
 
 type JsonObject = Record<string, unknown>;
@@ -66,8 +80,14 @@ const toJsonObject = (value: unknown): JsonObject | null => {
   return null;
 };
 
+/**
+ * Internal bookkeeping that carries no meaning for a CLI reader, plus fields
+ * the API returns twice under two names (`billingPlanId` === `billingPlan`).
+ */
+const NORMAL_VIEW_HIDDEN_KEYS = new Set(["onboarding", "billingPlanId"]);
+
 const isNormalViewHiddenKey = (key: string): boolean =>
-  key.startsWith("$") && key !== "$id";
+  (key.startsWith("$") && key !== "$id") || NORMAL_VIEW_HIDDEN_KEYS.has(key);
 const printSpacerLine = (): void => {
   process.stdout.write(" \n");
 };
@@ -112,6 +132,17 @@ const endRender = (): void => {
       hint(message);
     }
   }
+
+  // Machine-readable output stays free of prose. Cleared once shown so commands
+  // that render more than once do not repeat themselves.
+  if (renderDepth === 0 && cliConfig.followUpHint !== "") {
+    const message = cliConfig.followUpHint;
+    cliConfig.followUpHint = "";
+
+    if (!cliConfig.json && !cliConfig.raw) {
+      hint(message);
+    }
+  }
 };
 
 const withRender = <T>(callback: () => T): T => {
@@ -133,8 +164,10 @@ const isSensitiveKey = (key: string): boolean => {
   );
 };
 
-const maskSensitiveString = (value: string): string => {
-  if (value.length <= 16) {
+const maskSensitiveString = (value: string, key: string): string => {
+  // A key or token tail helps identify which credential is in play; a password
+  // tail is just a leak, so those are masked whole.
+  if (value.length <= 16 || /password/i.test(key)) {
     return HIDDEN_VALUE;
   }
 
@@ -159,7 +192,7 @@ const maskSensitiveData = (
     }
 
     if (typeof value === "string") {
-      return maskSensitiveString(value);
+      return maskSensitiveString(value, key);
     }
 
     if (value == null) {
@@ -356,6 +389,7 @@ export const parse = (data: unknown): void => {
         drawTable([section.value as JsonObject], {
           indent: "  ",
           sectionName: section.key,
+          keyValue: true,
         });
       }
 
@@ -367,9 +401,38 @@ export const parse = (data: unknown): void => {
 const MAX_COL_WIDTH = 40;
 const MAX_COLUMNS = 6;
 
+/** Visible-width cap for table cells; scales with terminal size. */
+const getMaxColWidth = (): number => {
+  const columns = process.stdout.columns || 120;
+  // Leave room for Key + Action + borders; give Reason most of the rest.
+  return Math.max(MAX_COL_WIDTH, Math.min(120, Math.floor(columns * 0.5)));
+};
+
+/**
+ * Truncate by visible width so chalk ANSI codes do not eat the budget and
+ * cut off readable text while the terminal still has space.
+ */
+const truncateToVisibleWidth = (str: string, max: number): string => {
+  if (stringWidth(str) <= max) {
+    return str;
+  }
+
+  let result = "";
+  for (const char of str) {
+    const next = result + char;
+    if (stringWidth(next) > max - 1) {
+      break;
+    }
+    result = next;
+  }
+  return `${result}…`;
+};
+
 type NamedTableOptions = {
   indent?: string;
   sectionName?: string;
+  /** Render as stacked key/value lines rather than a column table. */
+  keyValue?: boolean;
 };
 
 type EntryRenderOptions = {
@@ -397,7 +460,7 @@ const formatCellValue = (value: unknown): string => {
       )
     ) {
       const joinedValue = value.map((item) => String(item)).join(", ");
-      if (joinedValue.length <= MAX_COL_WIDTH) {
+      if (stringWidth(joinedValue) <= getMaxColWidth()) {
         return joinedValue;
       }
     }
@@ -409,16 +472,31 @@ const formatCellValue = (value: unknown): string => {
     if (keys.length === 0) return "{}";
     return `{${keys.length} keys}`;
   }
-  const str = String(value);
-  if (str.length > MAX_COL_WIDTH) {
-    return str.slice(0, MAX_COL_WIDTH - 1) + "…";
-  }
-  return str;
+  return truncateToVisibleWidth(String(value), getMaxColWidth());
 };
 
 const formatKeyValue = (key: string, value: unknown): string => {
   if (key === "status" && typeof value === "boolean") {
-    return value ? "active" : "inactive";
+    return value ? chalk.green("active") : chalk.dim("inactive");
+  }
+
+  if (typeof value === "boolean") {
+    return value ? chalk.green("true") : chalk.dim("false");
+  }
+
+  // Durations come over the wire as raw seconds, which nobody reads at a glance.
+  if (typeof value === "number" && /duration$/i.test(key)) {
+    const humanized = humanizeSeconds(value);
+    if (humanized !== "") {
+      return `${value} ${chalk.dim(`(${humanized})`)}`;
+    }
+  }
+
+  if (typeof value === "string") {
+    const timestamp = formatTimestamp(value);
+    if (timestamp !== null) {
+      return timestamp;
+    }
   }
 
   return String(value);
@@ -500,14 +578,19 @@ const drawKeyValueEntries = (
   }
 };
 
+const printWithheldFieldNote = (count: number, indent?: string): void => {
+  if (count <= 0) return;
+
+  const label = count === 1 ? "field" : "fields";
+  console.log(
+    `${indent ?? ""}${chalk.dim(`… ${count} more ${label} — pass --raw to show all`)}`,
+  );
+};
+
 const drawNamedObjectCollection = (
   rows: JsonObject[],
   options: NamedTableOptions = {},
 ): boolean => {
-  if (renderStructuredCollection(options.sectionName, rows, options)) {
-    return true;
-  }
-
   const scalarEntries = rows.map((row) => toScalarEntries(row));
   const flatScalarEntries = scalarEntries.flat();
 
@@ -565,7 +648,7 @@ export const drawTable = (
       return;
     }
 
-    const rows = applyDisplayFilter(
+    const visibleRows = applyDisplayFilter(
       data.map((item): JsonObject => {
         const maskedItem = maskSensitiveData(item, undefined, false);
         const row = toJsonObject(maskedItem) ?? {};
@@ -580,6 +663,43 @@ export const drawTable = (
       }),
     );
 
+    // An explicit --display selection wins; the reader already said what they want.
+    const allowlist =
+      cliConfig.displayFields.length > 0
+        ? undefined
+        : sectionFieldKeys(options.sectionName);
+    let withheldFields = 0;
+
+    const rows = allowlist
+      ? visibleRows.map((row) => {
+          const kept: JsonObject = {};
+
+          for (const key of allowlist) {
+            if (Object.prototype.hasOwnProperty.call(row, key)) {
+              kept[key] = formatSectionField(
+                options.sectionName,
+                key,
+                row[key],
+              );
+            }
+          }
+
+          withheldFields += Object.keys(row).length - Object.keys(kept).length;
+
+          return kept;
+        })
+      : visibleRows;
+
+    if (renderStructuredCollection(options.sectionName, rows, options)) {
+      printWithheldFieldNote(withheldFields, options.indent);
+      return;
+    }
+
+    if (options.keyValue && drawNamedObjectCollection(rows, options)) {
+      printWithheldFieldNote(withheldFields, options.indent);
+      return;
+    }
+
     // Create an object with all the keys in it
     const obj = rows.reduce((res, item) => ({ ...res, ...item }), {});
     // Get those keys as an array
@@ -592,6 +712,7 @@ export const drawTable = (
     // If too many columns, show condensed key-value output with only scalar, non-empty fields
     if (allKeys.length > MAX_COLUMNS) {
       if (drawNamedObjectCollection(rows, options)) {
+        printWithheldFieldNote(withheldFields, options.indent);
         return;
       }
 
@@ -614,7 +735,8 @@ export const drawTable = (
     const table = new Table({
       head: columns.map((c) => chalk.cyan.italic.bold(c)),
       colWidths: columns.map(() => null) as (number | null)[],
-      wordWrap: false,
+      wordWrap: true,
+      wrapOnWordBoundary: true,
       chars: {
         top: " ",
         "top-mid": " ",
@@ -642,6 +764,7 @@ export const drawTable = (
       table.push(rowValues);
     });
     console.log(table.toString());
+    printWithheldFieldNote(withheldFields, options.indent);
   });
 };
 
@@ -649,18 +772,10 @@ export const drawJSON = (data: unknown): void => {
   console.log(JSON.stringify(data, null, 2));
 };
 
-const isQueryError = (message: string): boolean =>
-  /Invalid query(?: method)?/i.test(message) ||
-  /query[^.:\n]*syntax error|syntax error[^.:\n]*query/i.test(message);
-
-const printQueryErrorHint = (err: Error): void => {
-  if (!isQueryError(err.message)) {
-    return;
+const printErrorHints = (err: Error): void => {
+  for (const message of errorHintsFor(err)) {
+    hint(message);
   }
-
-  hint(
-    `For common list filters, use flags like --limit 25, --sort-desc '$createdAt', or --filter 'status=active'. Raw --queries values must be Appwrite JSON query strings, for example: ${EXECUTABLE_NAME} tables-db list-rows --queries '{"method":"limit","values":[25]}'`,
-  );
 };
 
 const ERROR_DETAIL_KEYS = ["code", "type", "response"] as const;
@@ -677,7 +792,8 @@ const formatErrorDetail = (value: unknown): string => {
         value = parsed;
       }
     } catch {
-      return text;
+      // Not JSON — summarize HTML and oversized proxy responses.
+      return summarizeErrorBody(text);
     }
   }
 
@@ -691,6 +807,42 @@ const formatErrorDetail = (value: unknown): string => {
     return String(value);
   }
 };
+
+/** Keeps a summarized message from dominating a bug report title. */
+const MAX_REPORT_TITLE_LENGTH = 120;
+
+/**
+ * Plain (uncolored, bounded) error details for a bug report body.
+ */
+const reportErrorDetails = (err: Error): string[] => {
+  const lines: string[] = [];
+
+  for (const key of ERROR_DETAIL_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(err, key)) {
+      continue;
+    }
+
+    const value = (err as unknown as Record<string, unknown>)[key];
+    const rendered =
+      typeof value === "string"
+        ? sanitizeErrorText(value, MAX_REPORT_BODY_LENGTH)
+        : String(value);
+
+    lines.push(`${key}: ${rendered}`);
+  }
+
+  return lines;
+};
+
+/**
+ * Stack frames only — the message line is rendered separately and, unlike a raw
+ * stack, frames can never carry a response body.
+ */
+const errorStackFrames = (err: Error): string[] =>
+  (err.stack ?? "")
+    .split("\n")
+    .filter((line) => line.trim().startsWith("at "))
+    .map((line) => line.trim());
 
 export const formatErrorForLog = (err: Error): string => {
   const lines = [
@@ -708,15 +860,13 @@ export const formatErrorForLog = (err: Error): string => {
     );
   }
 
-  const frames = (err.stack ?? "")
-    .split("\n")
-    .filter((line) => line.trim().startsWith("at "));
+  const frames = errorStackFrames(err);
   if (frames.length > 0) {
     lines.push(
       "",
       chalk.dim(`${ERROR_DETAIL_INDENT}Stack trace:`),
       ...frames.map((frame) =>
-        chalk.dim(`${ERROR_DETAIL_INDENT.repeat(2)}${frame.trim()}`),
+        chalk.dim(`${ERROR_DETAIL_INDENT.repeat(2)}${frame}`),
       ),
     );
   }
@@ -746,7 +896,14 @@ export const parseError = (err: Error): void => {
       const stepsToReproduce = `Running \`${EXECUTABLE_NAME} ${commandArgs.join(" ")}\``;
       const yourEnvironment = `CLI version: ${version}\nOperation System: ${os.type()}\nAppwrite version: ${appwriteVersion}\nIs Cloud: ${isCloud()}`;
 
-      const stack = "```\n" + (err.stack || err.message) + "\n```";
+      // Response bodies are summarized and frames are listed separately, so an
+      // HTML error page can never blow the issue URL past what GitHub accepts.
+      const details = [
+        `${err.name || "Error"}: ${getErrorMessage(err)}`,
+        ...reportErrorDetails(err),
+        ...errorStackFrames(err),
+      ].join("\n");
+      const stack = "```\n" + details + "\n```";
 
       const githubIssueUrl = new URL(
         "https://github.com/appwrite/appwrite/issues/new",
@@ -755,7 +912,7 @@ export const parseError = (err: Error): void => {
       githubIssueUrl.searchParams.append("template", "bug.yaml");
       githubIssueUrl.searchParams.append(
         "title",
-        `🐛 Bug Report: ${getErrorMessage(err)}`,
+        `🐛 Bug Report: ${sanitizeErrorText(getErrorMessage(err), MAX_REPORT_TITLE_LENGTH)}`,
       );
       githubIssueUrl.searchParams.append(
         "actual-behavior",
@@ -770,7 +927,7 @@ export const parseError = (err: Error): void => {
       log(
         `To report this error you can:\n - Create a support ticket in our Discord server https://appwrite.io/discord \n - Create an issue in our Github\n   ${githubIssueUrl.href}\n`,
       );
-      printQueryErrorHint(err);
+      printErrorHints(err);
 
       error("\n Stack Trace: \n");
       console.error(formatErrorForLog(err));
@@ -779,11 +936,13 @@ export const parseError = (err: Error): void => {
   } else {
     if (cliConfig.verbose) {
       console.error(formatErrorForLog(err));
-      printQueryErrorHint(err);
+      printErrorHints(err);
     } else {
-      log("For detailed error pass the --verbose or --report flag");
+      if (reportErrorDetails(err).length > 0) {
+        log("For detailed error pass the --verbose or --report flag");
+      }
       error(getErrorMessage(err));
-      printQueryErrorHint(err);
+      printErrorHints(err);
     }
     process.exit(1);
   }
@@ -846,6 +1005,46 @@ export const parseJsonObject = (
   throw new InvalidArgumentError(`${optionName} must be a valid JSON object.`);
 };
 
+export const parseGraphQLRequest = (
+  value: string,
+  optionName: string,
+): Record<string, unknown> | unknown[] => {
+  if (value.trim() === "") {
+    throw new InvalidArgumentError(
+      `${optionName} must be a GraphQL document or JSON request object or array.`,
+    );
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value) as unknown;
+  } catch {
+    return { query: value };
+  }
+
+  if (typeof parsed === "string") {
+    return { query: parsed };
+  }
+  if (parsed && typeof parsed === "object") {
+    return parsed as Record<string, unknown> | unknown[];
+  }
+
+  throw new InvalidArgumentError(
+    `${optionName} must be a GraphQL document or JSON request object or array.`,
+  );
+};
+
+// The TypeScript SDK supports object-style method arguments. GraphQL request
+// envelopes themselves contain a `query` key, so passing one positionally is
+// ambiguous and the SDK mistakes it for its own outer params object. Supplying
+// that outer object explicitly preserves the envelope on the wire.
+export const parseGraphQLParams = (
+  value: string,
+  optionName: string,
+): { query: Record<string, unknown> | unknown[] } => ({
+  query: parseGraphQLRequest(value, optionName),
+});
+
 export const log = (message?: string): void => {
   console.log(`${chalk.cyan.bold("ℹ Info:")} ${chalk.cyan(message ?? "")}`);
 };
@@ -874,10 +1073,12 @@ export const logo = SDK_LOGO;
 
 export const commandDescriptions: Record<string, string> = {
   account: `The account command allows you to authenticate and manage a user account.`,
+  activities: `The activities command allows you to list and inspect project activity events.`,
   graphql: `The graphql command allows you to query and mutate any resource type on your Appwrite server.`,
   avatars: `The avatars command aims to help you complete everyday tasks related to your app image, icons, and avatars.`,
+  backups: `The backups command allows you to manage backup policies, archives, and restorations for your project.`,
   databases: `(Legacy) The databases command allows you to create structured collections of documents and query and filter lists of documents.`,
-  "tables-db": `The tables-db command allows you to create structured tables of columns and query and filter lists of rows.`,
+  tablesDB: `The tablesdb command allows you to create structured tables of columns and query and filter lists of rows.`,
   init: `The init command provides a convenient wrapper for creating and initializing projects, functions, collections, buckets, teams, messaging-topics, and skills in ${SDK_TITLE}.`,
   push: `The push command provides a convenient wrapper for pushing your functions, collections, buckets, teams, and messaging-topics.`,
   run: `The run command allows you to run the project locally to allow easy development and quick debugging.`,
@@ -888,11 +1089,12 @@ export const commandDescriptions: Record<string, string> = {
   locale: `The locale command allows you to customize your app based on your users' location.`,
   sites: `The sites command allows you to view, create and manage your Appwrite Sites.`,
   storage: `The storage command allows you to manage your project files.`,
-  teams: `The teams command allows you to group users of your project to enable them to share read and write access to your project resources. Requires a linked project. To manage console-level teams, use the 'organizations' command instead.`,
+  teams: `The teams command allows you to group users of your project to enable them to share read and write access to your project resources. Requires a linked project. To manage organization members, use the 'organization' command instead.`,
   update: `The update command allows you to update the ${SDK_TITLE} CLI to the latest version.`,
   users: `The users command allows you to manage your project users.`,
   projects: `The projects command allows you to manage your projects, add platforms, manage API keys, Dev Keys etc.`,
   project: `The project command allows you to manage project related resources like usage, variables, etc.`,
+  proxy: `The proxy command allows you to configure actions for your domains beyond DNS configuration.`,
   client: `The client command allows you to configure your CLI`,
   login: `The login command allows you to authenticate and manage a user account.`,
   logout: `The logout command allows you to log out of your ${SDK_TITLE} account.`,
@@ -901,9 +1103,17 @@ export const commandDescriptions: Record<string, string> = {
   console: `The console command gives you access to the APIs used by the Appwrite Console.`,
   messaging: `The messaging command allows you to manage topics and targets and send messages.`,
   migrations: `The migrations command allows you to migrate data between services.`,
+  notifications: `The notifications command allows you to read and manage your Appwrite Console notifications.`,
+  oauth2: `The oauth2 command allows you to authorize apps and issue standards-based OAuth2 and OpenID Connect tokens.`,
+  organization: `The organization command allows you to manage organization-level projects.`,
+  organizations: `The organizations command allows you to manage organization billing, plans, invoices, and add-ons.`,
+  presences: `The presences command allows you to track and manage real-time user presence in your project.`,
+  tokens: `The tokens command allows you to create and manage resource tokens for secure file access.`,
   vcs: `The vcs command allows you to interact with VCS providers and manage your code repositories.`,
   webhooks: `The webhooks command allows you to manage your project webhooks.`,
-  main: chalk.redBright(`${logo}${description}`),
+  // The logo is rendered by the help formatter, so this stays plain prose and
+  // can be reused wherever the CLI needs a one-paragraph description.
+  main: description,
 };
 
 export { cliConfig };

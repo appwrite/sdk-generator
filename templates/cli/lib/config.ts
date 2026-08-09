@@ -37,7 +37,7 @@ import type {
   Entity,
   GlobalConfigData,
 } from "./types.js";
-import { createSettingsObject, isCloudHostname } from "./utils.js";
+import { createSettingsObject, getCloudBaseHostname } from "./utils.js";
 import {
   CONFIG_RESOURCE_KEYS,
   EXECUTABLE_NAME,
@@ -107,14 +107,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function normalizeCloudConsoleEndpoint(endpoint: string): string {
   try {
     const url = new URL(endpoint);
-    if (isCloudHostname(url.hostname)) {
-      return "https://cloud.appwrite.io/v1";
+    const base = getCloudBaseHostname(url.hostname);
+    if (base !== null) {
+      return `https://${base}/v1`;
     }
   } catch (_error) {
     return endpoint;
   }
 
   return endpoint;
+}
+
+/**
+ * Compare two endpoints for session matching: normalize cloud regional hosts
+ * and ignore trailing slashes so `https://fra.cloud.appwrite.io/v1` matches
+ * `https://cloud.appwrite.io/v1`.
+ */
+export function endpointsMatch(a: string, b: string): boolean {
+  return (
+    normalizeCloudConsoleEndpoint(a).replace(/\/+$/, "") ===
+    normalizeCloudConsoleEndpoint(b).replace(/\/+$/, "")
+  );
 }
 
 function ensureDirectoryForFile(filePath: string): void {

@@ -6,8 +6,6 @@
  * and read it anywhere with isFlagEnabled("<name>").
  */
 const FLAG_ENV_VARS = {
-  // Browser-based OAuth2 device login for Cloud (otherwise email/password).
-  oauthLogin: "APPWRITE_CLI_OAUTH_LOGIN",
   // Treat localhost/loopback endpoints as Cloud for OAuth login testing.
   devCloudLogin: "APPWRITE_CLI_DEV_CLOUD_LOGIN",
 } as const;

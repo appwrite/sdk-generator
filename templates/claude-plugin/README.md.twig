@@ -5,13 +5,13 @@
 [![Twitter Account](https://img.shields.io/twitter/follow/appwrite?color=00acee&label=twitter&style=flat-square)](https://twitter.com/appwrite)
 [![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
 
-Appwrite tools for Claude Code. This plugin packages Appwrite SDK skills, Appwrite MCP servers, and deployment commands in Claude Code's native plugin format.
+Appwrite tools for Claude Code. This plugin packages Appwrite SDK skills, the hosted Appwrite MCP server, and deployment commands in Claude Code's native plugin format.
 
 ## Structure
 
 ```text
 .claude-plugin/
-├── plugin.json              # Plugin manifest and user config schema
+├── plugin.json              # Plugin manifest
 └── marketplace.json         # Marketplace manifest for install-by-name flows
 skills/                      # Claude Code skills (per language)
 ├── typescript/
@@ -39,7 +39,7 @@ skills/                      # Claude Code skills (per language)
 commands/                    # Manual commands with side effects
 ├── deploy-site.md
 └── deploy-function.md
-.mcp.json                    # Appwrite API and docs MCP servers
+.mcp.json                    # Hosted Appwrite MCP server
 ```
 
 ## Included Skills
@@ -65,18 +65,21 @@ These skills give Claude Code language-specific Appwrite context for authenticat
 
 These commands are marked as manual-only so Claude will not invoke deployment workflows automatically.
 
-## Included MCP Servers
+## Hosted MCP Server
 
-- `appwrite-api` uses `uvx mcp-server-appwrite`
-- `appwrite-docs` connects to `https://mcp-for-docs.appwrite.io`
+The plugin configures one `{{ spec.title | caseLower }}` server at `https://mcp.appwrite.io/`. It provides tools for working with your {{ spec.title }} workspace and projects and for searching the latest {{ spec.title }} documentation.
 
-The plugin declares these `userConfig` keys for Appwrite credentials:
+The hosted server uses browser-based OAuth, so the plugin does not require an API key, project ID, endpoint, or other manually configured secret. In an interactive Claude Code session, open `/mcp` and authenticate the `{{ spec.title | caseLower }}` plugin server, or run:
 
-- `appwrite_endpoint`
-- `appwrite_project_id`
-- `appwrite_api_key`
+```sh
+claude mcp login plugin:{{ spec.title | caseLower }}:{{ spec.title | caseLower }}
+```
 
-Those values are wired into the packaged `.mcp.json` automatically through Claude Code `userConfig`.
+After authentication, try:
+
+> Use {{ spec.title }} to show my workspace context and list my projects.
+
+If authentication expires, run `claude mcp login plugin:{{ spec.title | caseLower }}:{{ spec.title | caseLower }}` again or choose **Re-authenticate** from `/mcp`. If the browser does not open, use the URL printed by Claude Code. Use `claude mcp get plugin:{{ spec.title | caseLower }}:{{ spec.title | caseLower }}` and `/mcp` to inspect approval, authentication, and connection status.
 
 ## Local Development
 

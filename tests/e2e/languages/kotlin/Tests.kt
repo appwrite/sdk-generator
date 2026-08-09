@@ -63,6 +63,13 @@ class ServiceTest {
 
         runBlocking {
             var mock: Mock
+
+            val nullableMockMap = Mock.from(mapOf("result" to "Success")).toMap()
+            check(nullableMockMap.keys.containsAll(setOf("optionalResult", "status", "relatedMock")))
+            check(nullableMockMap["optionalResult"] == null)
+            check(nullableMockMap["status"] == null)
+            check(nullableMockMap["relatedMock"] == null)
+
             // Foo Tests
             mock = foo.get("string", 123, listOf("string in array"))
             writeToFile(mock.result)
@@ -117,6 +124,8 @@ class ServiceTest {
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
+
+            writeToFile(String(general.download()))
 
             mock = general.enum(MockType.FIRST)
             writeToFile(mock.result)

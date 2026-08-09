@@ -68,8 +68,15 @@ jobs:
           - sdk: rust
             platform: server
 
+          # Tooling targets
+          - sdk: zed-extension
+            platform: console
+
           # Console SDKs
           - sdk: cli
+            platform: console
+
+          - sdk: go-cli
             platform: console
           
           - sdk: web
@@ -77,12 +84,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # 2.37.0
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.5'
           extensions: curl
@@ -93,10 +100,25 @@ jobs:
       - name: Generate SDK for ${{ matrix.sdk }}
         run: php example.php ${{ matrix.sdk }} ${{ matrix.platform }}
 
+      - name: Verify generated SDK is idempotent
+        if: matrix.sdk == 'zed-extension' || matrix.sdk == 'go-cli'
+        run: |
+          checksums() {
+            find examples/${{ matrix.sdk }} -type f -print0 \
+              | sort -z \
+              | xargs -0 sha256sum
+          }
+
+          checksums > /tmp/${{ matrix.sdk }}-checksums
+
+          php example.php ${{ matrix.sdk }} ${{ matrix.platform }}
+
+          checksums | diff -u /tmp/${{ matrix.sdk }}-checksums -
+
       # Language-specific setup
       - name: Setup Node.js
         if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
 
@@ -108,7 +130,7 @@ jobs:
 
       - name: Cache Flutter SDK
         if: matrix.sdk == 'flutter'
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.tool_cache }}/flutter
           key: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}
@@ -127,27 +149,27 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y wget
-          wget https://download.swift.org/swift-6.0.3-release/ubuntu2204/swift-6.0.3-RELEASE/swift-6.0.3-RELEASE-ubuntu22.04.tar.gz
-          tar xzf swift-6.0.3-RELEASE-ubuntu22.04.tar.gz
-          sudo mv swift-6.0.3-RELEASE-ubuntu22.04 /usr/share/swift
+          wget https://download.swift.org/swift-6.1.3-release/ubuntu2204/swift-6.1.3-RELEASE/swift-6.1.3-RELEASE-ubuntu22.04.tar.gz
+          tar xzf swift-6.1.3-RELEASE-ubuntu22.04.tar.gz
+          sudo mv swift-6.1.3-RELEASE-ubuntu22.04 /usr/share/swift
           echo "/usr/share/swift/usr/bin" >> $GITHUB_PATH
 
       - name: Setup Java
         if: matrix.sdk == 'android' || matrix.sdk == 'kotlin'
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Setup Python
         if: matrix.sdk == 'python'
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.11'
 
       - name: Setup Ruby
         if: matrix.sdk == 'ruby'
-        uses: ruby/setup-ruby@c4e5b1316158f92e3d49443a9d58b31d25ac0f8f # v1.306.0
+        uses: ruby/setup-ruby@a30dfa457ad68707b8b910ac3a244714b61c0626 # v1.320.0
         with:
           ruby-version: '3.1'
 
@@ -158,10 +180,10 @@ jobs:
           sdk: 'stable'
 
       - name: Setup Go
-        if: matrix.sdk == 'go' || matrix.sdk == 'dart' || matrix.sdk == 'flutter'
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        if: matrix.sdk == 'go' || matrix.sdk == 'go-cli' || matrix.sdk == 'dart' || matrix.sdk == 'flutter'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.25.11'
+          go-version: '1.26.5'
 
       - name: Install OSV Scanner
         if: matrix.sdk == 'dart' || matrix.sdk == 'flutter'
@@ -169,7 +191,7 @@ jobs:
 
       - name: Setup .NET
         if: matrix.sdk == 'dotnet'
-        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '8.0.x'
 
@@ -177,13 +199,17 @@ jobs:
         if: matrix.sdk == 'rust'
         uses: dtolnay/rust-toolchain@bd41891a8e7f4b8649f6d684415e1a6155fe4e22 # 1.83.0
 
+      - name: Setup Rust for Zed extension
+        if: matrix.sdk == 'zed-extension'
+        run: rustup toolchain install 1.86.0 --profile minimal --no-self-update --component rustfmt --target wasm32-wasip1
+
       - name: Setup Rust for cargo-audit
         if: matrix.sdk == 'rust'
         run: rustup toolchain install 1.85.0 --profile minimal --no-self-update
 
       - name: Cache cargo-audit
         if: matrix.sdk == 'rust'
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.cargo/bin/cargo-audit
@@ -272,6 +298,19 @@ jobs:
               go build ./...
               go test ./...
               ;;
+            go-cli)
+              go mod tidy
+              unformatted=$(gofmt -l .)
+              if [ -n "$unformatted" ]; then
+                echo "Not gofmt-clean:"
+                echo "$unformatted"
+                exit 1
+              fi
+              go build ./...
+              go vet ./...
+              go test -race ./...
+              go build -o appwrite .
+              ;;
             dotnet)
               dotnet restore
               dotnet build --no-restore
@@ -285,6 +324,10 @@ jobs:
               cargo audit
               cargo +1.83.0 build --release
               cargo +1.83.0 test --lib
+              ;;
+            zed-extension)
+              cargo +1.86.0 fmt --check
+              cargo +1.86.0 check --target wasm32-wasip1
               ;;
             *)
               echo "Unknown SDK: ${{ matrix.sdk }}"
@@ -303,8 +346,20 @@ jobs:
         run: |
           BIN=build/appwrite-cli-linux-x64
           "./$BIN" --version
-          "./$BIN" --help | grep -q "Usage:"
+          # The root screen is grouped by intent, so assert a section renders
+          # rather than just that some help was produced.
+          "./$BIN" --help | grep -q "USAGE"
+          "./$BIN" --help | grep -q "GET STARTED"
           SHELL=bash "./$BIN" completion bash >/dev/null
+
+      - name: Test compiled Go CLI binary
+        if: matrix.sdk == 'go-cli'
+        working-directory: examples/go-cli
+        run: |
+          ./appwrite --version
+          ./appwrite --help | grep -q "USAGE"
+          ./appwrite --help | grep -q "GET STARTED"
+          SHELL=bash ./appwrite completion bash >/dev/null
 
       - name: Verify npm package entry points
         if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'
@@ -359,3 +414,84 @@ jobs:
           fi
           echo "All entry points verified."
           echo "::endgroup::"
+
+  validate-tooling-plugins:
+    name: Tooling plugins
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.5'
+          extensions: curl
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.11'
+
+      - name: Install Composer Dependencies
+        run: composer install
+
+      - name: Regenerate tooling plugins
+        run: |
+          php example.php cursor-plugin
+          php example.php claude-plugin
+          php example.php codex-plugin
+
+      - name: Verify tooling plugin generation is idempotent
+        run: |
+          find examples/cursor-plugin examples/claude-plugin examples/codex-plugin -type f -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > /tmp/tooling-plugin-checksums
+
+          php example.php cursor-plugin
+          php example.php claude-plugin
+          php example.php codex-plugin
+
+          find examples/cursor-plugin examples/claude-plugin examples/codex-plugin -type f -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            | diff -u /tmp/tooling-plugin-checksums -
+
+      - name: Validate hosted MCP configurations
+        run: |
+          python3 <<'PY'
+          import json
+          import pathlib
+          import tomllib
+
+          root = pathlib.Path("examples")
+          expected_url = "https://mcp.appwrite.io/"
+
+          cursor = json.loads((root / "cursor-plugin/.mcp.json").read_text())
+          assert cursor["mcpServers"] == {
+              "appwrite": {"url": expected_url},
+          }
+
+          claude = json.loads((root / "claude-plugin/.mcp.json").read_text())
+          assert claude["mcpServers"] == {
+              "appwrite": {"type": "http", "url": expected_url},
+          }
+          claude_manifest = json.loads(
+              (root / "claude-plugin/.claude-plugin/plugin.json").read_text()
+          )
+          assert "userConfig" not in claude_manifest
+
+          codex = json.loads(
+              (root / "codex-plugin/plugins/appwrite/.mcp.json").read_text()
+          )
+          assert codex["mcpServers"] == {
+              "appwrite": {"type": "http", "url": expected_url},
+          }
+          codex_config = tomllib.loads(
+              (root / "codex-plugin/plugins/appwrite/config.toml").read_text()
+          )
+          assert codex_config["mcp_servers"] == {
+              "appwrite": {"url": expected_url},
+          }
+          PY

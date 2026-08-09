@@ -9,7 +9,11 @@
             '{{ key }}': '{{ header }}',
 {% endfor %}
         }, api_params{% if method.type == 'webAuth' %}, response_type='location'{% endif %})
-{% if method.responseModels is defined and method.responseModels|length > 1 %}
+{% if method.type == 'location' %}
+{# Signature says bytes. A responseModel may still be declared, but hydrating it would call to_dict() on the body. #}
+
+        return response
+{% elseif method.responseModels is defined and method.responseModels|length > 1 %}
 {% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
 {% set responseDiscriminator = method.responseDiscriminator ?? {} %}
 {% if hasResponseDiscriminator %}
@@ -30,7 +34,7 @@
 {% set isGenericResponse = method.responseModel | hasGenericType(spec) %}
 {% if isGenericResponse %}
 
-        return {{ method.responseModel | caseUcfirst }}.with_data(response, model_type)
+        return {% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}.with_data(response, model_type)
 {% else %}
 
         return self._parse_response(response, model={% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %})

@@ -279,12 +279,18 @@ const runFunction = async ({
       .watch(".", {
         cwd: functionPath,
         ignoreInitial: true,
+        followSymlinks: true,
         ignored: (xpath: string) => {
-          const relativePath = path.relative(functionPath, xpath);
+          const relativePath = path
+            .relative(functionPath, path.resolve(functionPath, xpath))
+            .split(path.sep)
+            .join("/");
 
-          if (!relativePath) {
+          // The ignore package throws on paths outside its root.
+          if (!relativePath || relativePath.startsWith("../")) {
             return false;
           }
+
           return ignorer.ignores(relativePath);
         },
       })
@@ -346,8 +352,10 @@ const runFunction = async ({
           );
         }
 
-        const filesToCopy = getAllFiles(functionPath)
-          .map((file: string) => path.relative(functionPath, file))
+        const filesToCopy = getAllFiles(functionPath, localConfig.getDirname())
+          .map((file: string) =>
+            path.relative(functionPath, file).split(path.sep).join("/"),
+          )
           .filter((file: string) => !ignorer.ignores(file));
         for (const f of filesToCopy) {
           const filePath = path.join(hotSwapPath, f);
@@ -355,13 +363,8 @@ const runFunction = async ({
             fs.rmSync(filePath, { force: true });
           }
 
-          const fileDir = path.dirname(filePath);
-          if (!fs.existsSync(fileDir)) {
-            fs.mkdirSync(fileDir, { recursive: true });
-          }
-
-          const sourcePath = path.join(functionPath, f);
-          fs.copyFileSync(sourcePath, filePath);
+          fs.mkdirSync(path.dirname(filePath), { recursive: true });
+          fs.copyFileSync(path.join(functionPath, f), filePath);
         }
 
         await create(

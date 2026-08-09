@@ -60,6 +60,7 @@ export interface CliConfig {
   report: boolean;
   reportData: Record<string, unknown>;
   displayFields: string[];
+  followUpHint: string;
 }
 
 export interface SessionData {

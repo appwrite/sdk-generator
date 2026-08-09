@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as readme_file_desc:
     long_description = readme_file_desc.read()
 
 setuptools.setup(
-  name = '{{spec.title | caseSnake}}',
+  name = '{{ language.params.pipPackage }}',
   packages = setuptools.find_packages(),
   version = '{{sdk.version}}',
   license='{{spec.licenseName}}',

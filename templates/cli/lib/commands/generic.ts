@@ -1,7 +1,7 @@
 import inquirer from "inquirer";
 import { Command } from "commander";
-import { Client } from "@appwrite.io/console";
-import { globalConfig, localConfig } from "../config.js";
+import { endpointsMatch, globalConfig, localConfig } from "../config.js";
+import { configuredOrganizationId } from "../context.js";
 import { EXECUTABLE_NAME } from "../constants.js";
 import {
   actionRunner,
@@ -11,17 +11,24 @@ import {
   error,
   parse,
   log,
+  warn,
   drawTable,
   cliConfig,
 } from "../parser.js";
 import ID from "../id.js";
-import { questionsLogout } from "../questions.js";
+import { formatAccountList } from "../utils.js";
+import { questionsClientReset, questionsLogout } from "../questions.js";
 import { getCurrentAccount, loginCommand } from "../auth/login.js";
 import {
+  findSessionForEndpoint,
+  getSession,
+  getSignedInAccounts,
   hasAuthSession,
+  isAuthenticatedSession,
   logoutSessions,
   planSessionLogout,
   restoreCurrentSessionFallback,
+  verifyEndpoint,
 } from "../auth/session.js";
 
 export { loginCommand };
@@ -35,20 +42,52 @@ const logMessages = {
   },
   logoutSuccess: "Logged out successfully",
   clientConfigUpdated: "Client configuration updated",
+  noUserSignedIn: "No user is signed in. To sign in, run 'appwrite login'",
 } as const;
+
+const hintSignedInAccounts = (): void => {
+  if (cliConfig.json || cliConfig.raw) {
+    return;
+  }
+
+  const accounts = getSignedInAccounts();
+  if (accounts.length === 0) {
+    return;
+  }
+
+  log("Signed-in accounts are still available:");
+  for (const account of accounts) {
+    log(`  ${account.email} (${account.endpoint})`);
+  }
+  log(`Run '${EXECUTABLE_NAME} login --switch' to select one.`);
+};
+
+const warnDetachedAuthenticatedSession = (previousSessionId: string): void => {
+  if (!previousSessionId || !isAuthenticatedSession(previousSessionId)) {
+    return;
+  }
+
+  const previous = getSession(previousSessionId);
+  const email = previous?.email ? ` (${previous.email})` : "";
+  warn(
+    `Signed-in account${email} is still available but no longer active. Run '${EXECUTABLE_NAME} login --switch' to return to it.`,
+  );
+};
 
 export const whoami = new Command("whoami")
   .description(commandDescriptions["whoami"])
   .action(
     actionRunner(async () => {
       if (globalConfig.getEndpoint() === "" || !hasAuthSession()) {
-        error("No user is signed in. To sign in, run 'appwrite login'");
+        error(logMessages.noUserSignedIn);
+        hintSignedInAccounts();
         return;
       }
 
       const account = await getCurrentAccount();
       if (!account) {
-        error("No user is signed in. To sign in, run 'appwrite login'");
+        error(logMessages.noUserSignedIn);
+        hintSignedInAccounts();
         return;
       }
 
@@ -81,13 +120,13 @@ export const register = new Command("register")
 
 export const login = new Command("login")
   .description(commandDescriptions["login"])
-  .option(`--email [email]`, `Email`)
-  .option(`--password [password]`, `Password`)
+  .option(`--email [email]`, `Email, for self hosted instances`)
+  .option(`--password [password]`, `Password, for self hosted instances`)
   .option(
     `--mfa [factor]`,
-    `Factor used for MFA. Must be one of: email, phone, totp, recoveryCode`,
+    `Factor used for MFA on self hosted instances. Must be one of: email, phone, totp, recoveryCode`,
   )
-  .option(`--code [code]`, `Code used for MFA`)
+  .option(`--code [code]`, `Code used for MFA on self hosted instances`)
   .option(
     `--endpoint [endpoint]`,
     `Appwrite endpoint for self hosted instances`,
@@ -110,13 +149,17 @@ export const logout = new Command("logout")
       const current = globalConfig.getCurrentSession();
       const originalCurrent = current;
 
-      if (current === "" || !sessions.length) {
+      // The picker only offers sessions with an email, so count those — counting
+      // endpoint-only entries would open a checkbox with no selectable options.
+      const accounts = sessions.filter((session) => session.email);
+
+      if (current === "" || !accounts.length) {
         log(logMessages.noActiveSessions);
         return;
       }
-      if (sessions.length === 1) {
+      if (accounts.length === 1) {
         const { failed, failedIds, errors } = await logoutSessions(
-          planSessionLogout([current]),
+          planSessionLogout([accounts[0].id]),
         );
 
         if (failed > 0) {
@@ -237,6 +280,7 @@ export const client = new Command("client")
             key: maskedKey,
             accessToken: maskedAccessToken,
             selfSigned: globalConfig.getSelfSigned(),
+            organizationId: configuredOrganizationId(),
             projectId: project.projectId ?? "",
             projectName: project.projectName ?? "",
           };
@@ -244,32 +288,43 @@ export const client = new Command("client")
         }
 
         if (endpoint !== undefined) {
-          try {
-            const id = ID.unique();
-            const url = new URL(endpoint);
-            if (url.protocol !== "http:" && url.protocol !== "https:") {
-              throw new Error();
-            }
+          await verifyEndpoint(
+            endpoint,
+            selfSigned || globalConfig.getSelfSigned(),
+          );
 
-            const clientInstance = new Client().setEndpoint(endpoint);
-            clientInstance.setProject("console");
-            if (selfSigned || globalConfig.getSelfSigned()) {
-              clientInstance.setSelfSigned(true);
-            }
-            const response = (await clientInstance.call(
-              "GET",
-              new URL(endpoint + "/health/version"),
-            )) as { version?: string };
-            if (!response.version) {
-              throw new Error();
-            }
-            globalConfig.setCurrentSession(id);
-            globalConfig.addSession(id, { endpoint });
+          const previous = globalConfig.getCurrentSession();
+          const match = findSessionForEndpoint(endpoint);
+
+          if (
+            previous &&
+            endpointsMatch(getSession(previous)?.endpoint ?? "", endpoint) &&
+            (isAuthenticatedSession(previous) || !match.authenticated)
+          ) {
+            // Already on the best available session for this endpoint — keep
+            // current and refresh the stored value so regional hosts stay as
+            // requested.
             globalConfig.setEndpoint(endpoint);
-          } catch (_) {
-            throw new Error(
-              "Invalid endpoint or your Appwrite server is not running as expected.",
-            );
+          } else if (match.authenticated) {
+            globalConfig.setCurrentSession(match.authenticated);
+            globalConfig.setEndpoint(endpoint);
+            const email = getSession(match.authenticated)?.email;
+            if (email) {
+              log(`Using signed-in account ${email}`);
+            }
+          } else if (match.endpointOnly) {
+            globalConfig.setCurrentSession(match.endpointOnly);
+            globalConfig.setEndpoint(endpoint);
+            warnDetachedAuthenticatedSession(previous);
+          } else if (previous && !isAuthenticatedSession(previous)) {
+            // Update an existing endpoint-only stub in place.
+            globalConfig.setEndpoint(endpoint);
+          } else {
+            const id = ID.unique();
+            globalConfig.addSession(id, { endpoint });
+            globalConfig.setCurrentSession(id);
+            globalConfig.setEndpoint(endpoint);
+            warnDetachedAuthenticatedSession(previous);
           }
         }
 
@@ -296,6 +351,23 @@ export const client = new Command("client")
         }
 
         if (reset !== undefined) {
+          const accounts = getSignedInAccounts();
+          if (accounts.length > 0 && !cliConfig.force) {
+            if (!process.stdin.isTTY) {
+              throw new Error(
+                `Resetting will sign out:\n${formatAccountList(accounts)}\nRe-run with --force to confirm.`,
+              );
+            }
+
+            const answers = await inquirer.prompt(
+              questionsClientReset(accounts),
+            );
+            if (!answers.confirm) {
+              log("Reset cancelled.");
+              return;
+            }
+          }
+
           const originalCurrent = globalConfig.getCurrentSession();
           const { failed, failedIds, errors } = await logoutSessions(
             globalConfig.getSessionIds(),

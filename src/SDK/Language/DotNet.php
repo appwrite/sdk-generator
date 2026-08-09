@@ -583,7 +583,9 @@ class DotNet extends Language
     {
         return [
             new TwigFunction('sub_schema', function (array $property): string {
-                $result = $this->getPropertyType($property, [], false);
+                // Fully qualify enum types so they do not collide with same-named
+                // models in Appwrite.Models (C# prefers the current namespace).
+                $result = $this->getPropertyType($property, [], true);
 
                 if (!($property['required'] ?? true)) {
                     $result .= '?';

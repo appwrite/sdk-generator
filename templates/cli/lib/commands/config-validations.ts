@@ -50,6 +50,7 @@ export const validateStringSize = (data: {
 
 interface AttributeOrColumn {
   key: string;
+  previousKey?: string;
 }
 
 interface Index {
@@ -63,7 +64,8 @@ interface CollectionOrTableData {
 }
 
 /**
- * Validates duplicate keys in attributes/columns and indexes
+ * Validates duplicate keys in attributes/columns and indexes,
+ * plus previousKey rename-hint consistency.
  */
 export const validateContainerDuplicates = (
   data: CollectionOrTableData,
@@ -86,6 +88,40 @@ export const validateContainerDuplicates = (
         });
       } else {
         seenKeys.add(item.key);
+      }
+    });
+
+    // Validate previousKey rename hints
+    const seenPreviousKeys = new Set<string>();
+    items.forEach((item, index) => {
+      if (!item.previousKey) {
+        return;
+      }
+
+      if (item.previousKey === item.key) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${itemType} '${item.key}' has previousKey equal to key. previousKey must be the old name, not the new one.`,
+          path: [itemPath, index, "previousKey"],
+        });
+      }
+
+      if (seenKeys.has(item.previousKey) && item.previousKey !== item.key) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${itemType} '${item.key}' has previousKey '${item.previousKey}', but another ${itemType.toLowerCase()} already uses that key. Rename cannot proceed while both names exist locally.`,
+          path: [itemPath, index, "previousKey"],
+        });
+      }
+
+      if (seenPreviousKeys.has(item.previousKey)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Multiple ${itemType.toLowerCase()}s share previousKey '${item.previousKey}'. Each previousKey must be unique within a ${itemType === "Attribute" ? "collection" : "table"}.`,
+          path: [itemPath, index, "previousKey"],
+        });
+      } else {
+        seenPreviousKeys.add(item.previousKey);
       }
     });
   }

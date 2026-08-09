@@ -12,7 +12,7 @@
 {% endfor %}
 
 {% for parameter in method.parameters.query %}
-{% if not parameter.nullable and not parameter.required %}
+{% if not parameter.required %}
         if {{ parameter.name | escapeKeyword | caseSnake }} is not None:
             api_params['{{ parameter.name }}'] = self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }})
 {% else %}
@@ -23,7 +23,7 @@
 {% set paramName = parameter.name | escapeKeyword | caseSnake %}
 {% set isMultipart = method.consumes|length > 0 and method.consumes[0] == "multipart/form-data" %}
 {% set formattedValue = paramName | formatParamValue(parameter.type, isMultipart) %}
-{% if not parameter.nullable and not parameter.required %}
+{% if not parameter.required %}
         if {{ paramName }} is not None:
             api_params['{{ parameter.name }}'] = self._normalize_value({{ formattedValue }})
 {% else %}

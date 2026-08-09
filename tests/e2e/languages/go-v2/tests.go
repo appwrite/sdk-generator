@@ -20,6 +20,7 @@ func main() {
 
 	client := appwrite.NewClient(
 		appwrite.WithTimeout(60 * time.Second),
+		appwrite.WithProject("console"),
 	)
 	client.AddHeader("Origin", "http://localhost")
 	sdkHeaders := client.GetHeaders()
@@ -112,6 +113,14 @@ func testGeneralService(client client.Client, stringInArray []string) {
 		fmt.Printf("general.Redirect => error %v", err)
 	}
 	fmt.Printf("%s\n", (*response).(map[string]interface{})["result"].(string))
+
+	// The mock route is registered at the ENCODED path, so this only reaches it
+	// if the id is escaped on the way into the URL.
+	pathResponse, err := general.GetPath("grant/special&id")
+	if err != nil {
+		fmt.Printf("general.GetPath => error %v", err)
+	}
+	fmt.Printf("%s\n", pathResponse.Result)
 
 	testGeneralUpload(client, stringInArray)
 	testGeneralUpload(client, stringInArray)

@@ -154,6 +154,11 @@ const SiteSchema = z
     buildCommand: z.string().optional(),
     outputDirectory: z.string().optional(),
     fallbackFile: z.string().optional(),
+    installationId: z.string().optional(),
+    providerRepositoryId: z.string().optional(),
+    providerBranch: z.string().optional(),
+    providerSilentMode: z.boolean().optional(),
+    providerRootDirectory: z.string().optional(),
     buildSpecification: z.string().optional(),
     runtimeSpecification: z.string().optional(),
     deploymentRetention: z.number().optional(),
@@ -243,6 +248,9 @@ const AttributeSchema = z
     attributes: z.array(z.string()).optional(),
     orders: z.array(z.string()).optional(),
     encrypt: z.boolean().optional(),
+    // Local-only hint for in-place renames via the API's newKey parameter.
+    // Cleared automatically on pull; ignored once the rename has been applied.
+    previousKey: z.string().optional(),
   })
   .strict()
   .refine(validateRequiredDefault, {
@@ -325,6 +333,9 @@ const ColumnSchema = z
     columns: z.array(z.string()).optional(),
     orders: z.array(z.string()).optional(),
     encrypt: z.boolean().optional(),
+    // Local-only hint for in-place renames via the API's newKey parameter.
+    // Cleared automatically on pull; ignored once the rename has been applied.
+    previousKey: z.string().optional(),
   })
   .strict()
   .refine(validateRequiredDefault, {

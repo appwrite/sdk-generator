@@ -20,6 +20,7 @@ import {
   EXECUTABLE_NAME,
 } from "./constants.js";
 import { deleteStoredRefreshToken } from "./auth/refresh-token.js";
+import { describeHttpFailure } from "./errors.js";
 
 class Client {
   private endpoint: string;
@@ -144,7 +145,8 @@ class Client {
       throw new AppwriteException("Invalid endpoint URL: " + endpoint);
     }
 
-    this.endpoint = endpoint;
+    // Paths are appended verbatim, so a trailing slash would produce `//account`.
+    this.endpoint = endpoint.replace(/\/+$/, "");
     return this;
   }
 
@@ -167,6 +169,15 @@ class Client {
    */
   getHeaders(): Headers {
     return { ...this.headers };
+  }
+
+  /**
+   * Records the endpoint the failed request used, so error hints can talk about
+   * the endpoint actually called rather than the one in config.
+   */
+  private tagEndpoint<T extends Error>(exception: T): T {
+    (exception as T & { endpoint?: string }).endpoint = this.endpoint;
+    return exception;
   }
 
   async call<T = unknown>(
@@ -227,7 +238,7 @@ class Client {
         }),
       });
     } catch (error) {
-      throw new AppwriteException((error as Error).message);
+      throw this.tagEndpoint(new AppwriteException((error as Error).message));
     }
 
     if (response.status >= 400) {
@@ -235,9 +246,33 @@ class Client {
       let json: { message?: string; code?: number; type?: string } | undefined =
         undefined;
       try {
-        json = JSON.parse(text);
+        const parsed: unknown = JSON.parse(text);
+        if (parsed && typeof parsed === "object") {
+          json = parsed as { message?: string; code?: number; type?: string };
+        }
       } catch (_error) {
-        throw new AppwriteException(text, response.status, "", text);
+        json = undefined;
+      }
+
+      if (!json) {
+        // Proxies, load balancers and the console answer with HTML or plain
+        // text. Summarize it — the raw body stays on the exception for
+        // `--verbose` and `--report`.
+        const failure = describeHttpFailure(
+          response.status,
+          text,
+          response.statusText,
+          response.headers.get("content-type") ?? undefined,
+        );
+
+        throw this.tagEndpoint(
+          new AppwriteException(
+            failure.message,
+            response.status,
+            failure.type,
+            text,
+          ),
+        );
       }
 
       if (
@@ -262,19 +297,25 @@ class Client {
         /role:\s*guests/i.test(json.message);
 
       if (isUnauthorized) {
-        throw new AppwriteException(
-          `You are not authenticated. Run '${EXECUTABLE_NAME} login' to authenticate and try again.`,
-          json.code,
-          json.type,
-          text,
+        throw this.tagEndpoint(
+          new AppwriteException(
+            `You are not authenticated. Run '${EXECUTABLE_NAME} login' to authenticate and try again.`,
+            json.code,
+            json.type,
+            text,
+          ),
         );
       }
 
-      throw new AppwriteException(
-        json.message || text,
-        json.code,
-        json.type,
-        text,
+      throw this.tagEndpoint(
+        new AppwriteException(
+          json.message ||
+            describeHttpFailure(response.status, text, response.statusText)
+              .message,
+          json.code ?? response.status,
+          json.type,
+          text,
+        ),
       );
     }
 

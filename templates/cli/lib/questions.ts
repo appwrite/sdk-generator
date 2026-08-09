@@ -7,6 +7,8 @@ import { validateRequired } from "./validations.js";
 import { paginate } from "./paginate.js";
 import {
   checkDeployConditions,
+  formatAccountList,
+  getConsoleBaseUrl,
   getSafeDirectoryName,
   isCloud,
 } from "./utils.js";
@@ -270,7 +272,7 @@ export const questionsInitProject: Question[] = [
 
       if (choices.length == 0) {
         throw new Error(
-          `No organizations found. Please create a new organization at ${globalConfig.getEndpoint().replace("/v1", "/console/onboarding")}`,
+          `No organizations found. Please create a new organization at ${getConsoleBaseUrl(globalConfig.getEndpoint())}/console/onboarding`,
         );
       }
 
@@ -345,10 +347,9 @@ export const questionsInitProject: Question[] = [
     message: `Select your ${SDK_TITLE} Cloud region`,
     choices: async () => {
       const client = await sdkForConsole({ requiresAuth: true });
-      const endpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
       const response = (await client.call(
         "GET",
-        new URL(endpoint + "/console/regions"),
+        new URL(client.config.endpoint + "/console/regions"),
       )) as { regions: any[] };
       const regions = response.regions || [];
       if (!regions.length) {
@@ -549,7 +550,9 @@ export const questionsCreateFunction: Question[] = [
     name: "buildSpecification",
     message: "What build specification would you like to use?",
     choices: async () => {
-      const response = await (await getFunctionsService()).listSpecifications();
+      const response = await (
+        await getFunctionsService()
+      ).listSpecifications({ type: "builds" });
       const specifications = response["specifications"];
       const choices = specifications.map((spec: any, _idx: number) => {
         return {
@@ -566,7 +569,9 @@ export const questionsCreateFunction: Question[] = [
     name: "runtimeSpecification",
     message: "What runtime specification would you like to use?",
     choices: async () => {
-      const response = await (await getFunctionsService()).listSpecifications();
+      const response = await (
+        await getFunctionsService()
+      ).listSpecifications({ type: "runtimes" });
       const specifications = response["specifications"];
       const choices = specifications.map((spec: any, _idx: number) => {
         return {
@@ -938,6 +943,17 @@ export const questionsLogout: Question[] = [
   },
 ];
 
+export const questionsClientReset = (
+  accounts: Array<{ email: string; endpoint: string }>,
+): Question[] => [
+  {
+    type: "confirm",
+    name: "confirm",
+    message: `This will sign out:\n${formatAccountList(accounts)}\nContinue?`,
+    default: false,
+  },
+];
+
 export const questionsPushResources: Question[] = [
   {
     type: "list",
@@ -1305,7 +1321,9 @@ export const questionsCreateSite: Question[] = [
     name: "buildSpecification",
     message: "What build specification would you like to use?",
     choices: async () => {
-      const response = await (await getSitesService()).listSpecifications();
+      const response = await (
+        await getSitesService()
+      ).listSpecifications({ type: "builds" });
       const specifications = response["specifications"];
       const choices = specifications.map((spec: any) => {
         return {
@@ -1322,7 +1340,9 @@ export const questionsCreateSite: Question[] = [
     name: "runtimeSpecification",
     message: "What runtime specification would you like to use?",
     choices: async () => {
-      const response = await (await getSitesService()).listSpecifications();
+      const response = await (
+        await getSitesService()
+      ).listSpecifications({ type: "runtimes" });
       const specifications = response["specifications"];
       const choices = specifications.map((spec: any) => {
         return {

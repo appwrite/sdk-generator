@@ -21,7 +21,12 @@ import {
 import { getFunctionsService, getSitesService } from "../services.js";
 import { sdkForProject, sdkForConsole } from "../sdks.js";
 import { localConfig } from "../config.js";
-import { applyConfigFilters } from "../config-filters.js";
+import { resolveOrganizationId } from "../context.js";
+import {
+  canUseConsole,
+  requireConsoleAuth,
+  requireProjectAuth,
+} from "../auth/capabilities.js";
 import { paginate } from "../paginate.js";
 import {
   questionsPullFunctions,
@@ -100,14 +105,16 @@ export interface PullSettingsResult {
 async function createPullInstance(
   options: {
     silent?: boolean;
-    requiresConsoleAuth?: boolean;
     resource?: "functions" | "sites";
   } = {},
 ): Promise<Pull> {
-  const { silent = false, requiresConsoleAuth = false, resource } = options;
+  const { silent = false, resource } = options;
+  requireProjectAuth();
   const projectClient = await sdkForProject();
+  // Console credentials are attached when present. Console-required ops
+  // call requireConsoleAuth() themselves instead of gating the whole pull.
   const consoleClient = await sdkForConsole({
-    requiresAuth: requiresConsoleAuth,
+    requiresAuth: canUseConsole(),
   });
 
   const pullInstance = new Pull(projectClient, consoleClient, silent);
@@ -267,13 +274,11 @@ export class Pull {
   ): Promise<PullSettingsResult> {
     this.log("Pulling project settings ...");
 
-    await applyConfigFilters({
-      config: {
-        organizationId,
-        projectId,
-      },
-      consoleClient: this.consoleClient,
-    });
+    this.consoleClient.headers["X-Appwrite-Organization"] =
+      await resolveOrganizationId({
+        override: organizationId,
+        consoleClient: this.consoleClient,
+      });
     const organizationService = new Organization(this.consoleClient);
     const projectService = new Project(this.projectClient);
     const project = await organizationService.getProject({
@@ -454,6 +459,11 @@ export class Pull {
         buildCommand: site.buildCommand,
         outputDirectory: site.outputDirectory,
         fallbackFile: site.fallbackFile,
+        installationId: site.installationId,
+        providerRepositoryId: site.providerRepositoryId,
+        providerBranch: site.providerBranch,
+        providerSilentMode: site.providerSilentMode,
+        providerRootDirectory: site.providerRootDirectory,
         startCommand: site.startCommand,
         buildSpecification: site.buildSpecification,
         runtimeSpecification: site.runtimeSpecification,
@@ -851,9 +861,8 @@ export const pullResources = async ({
 };
 
 const pullSettings = async (): Promise<void> => {
-  const pullInstance = await createPullInstance({
-    requiresConsoleAuth: true,
-  });
+  requireConsoleAuth("Pulling project settings");
+  const pullInstance = await createPullInstance();
   const project = localConfig.getProject();
   const projectId = project.projectId;
   const settings = await pullInstance.pullSettings(
@@ -1107,6 +1116,16 @@ const pullMessagingTopic = async (): Promise<void> => {
 
 export const pull = new Command("pull")
   .description(commandDescriptions["pull"])
+  // Also registered on the root program so `appwrite --all pull` keeps working;
+  // declared here too so they are documented where they actually apply.
+  .option("-a, --all", "Pull every resource in the project")
+  .option("--id [id...]", "Limit the pull to these resource ids")
+  .on("option:all", () => {
+    cliConfig.all = true;
+  })
+  .on("option:id", function (this: Command) {
+    cliConfig.ids = this.opts()["id"] as string[];
+  })
   .action(actionRunner(() => pullResources({ skipDeprecated: true })));
 
 pull

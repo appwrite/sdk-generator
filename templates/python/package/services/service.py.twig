@@ -3,7 +3,7 @@ from urllib.parse import quote
 from typing import Any, Dict, List, Optional, Union{% set hasGenericModel = false %}{% for method in service.methods %}{% if method.responseModel and method.responseModel != 'any' and method.responseModel | hasGenericType(spec) %}{% set hasGenericModel = true %}{% endif %}{% endfor %}{% if hasGenericModel %}, Type, TypeVar{% endif %}
 
 from ..exception import AppwriteException
-from appwrite.utils.deprecated import deprecated
+from {{ spec.namespace | caseSnake }}.utils.deprecated import deprecated
 {% set added = [] %}
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}
@@ -13,7 +13,9 @@ from ..input_file import InputFile
 {% endif %}
 {% if parameter.enumValues is not empty%}
 {% if parameter.enumName not in added %}
-from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName | caseUcfirst }}
+{% set enumRef = parameter | getServiceEnumName(service) %}
+from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName | caseUcfirst }}{% if enumRef != (parameter.enumName | caseUcfirst) %} as {{ enumRef }}{% endif %}
+
 {% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
@@ -100,14 +102,14 @@ Union[{% for responseModel in validResponseModels %}{% if not loop.first %}, {% 
 {% elseif validResponseModels|length == 1 %}
 {% if (validResponseModels[0] | caseUcfirst) == (service.name | caseUcfirst) %}{{ validResponseModels[0] | caseUcfirst }}Model{% else %}{{ validResponseModels[0] | caseUcfirst }}{% endif %}
 {% elseif method.responseModel and method.responseModel != 'any' %}
-{% if isGenericResponse %}{{ method.responseModel | caseUcfirst }}[T]{% elseif (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}
+{% if isGenericResponse %}{% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}[T]{% elseif (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}
 {% else %}
 Dict[str, Any]
 {% endif %}
 {% endset %}
     def {{ method.name | caseSnake }}(
         self{% for parameter in method.parameters.all %},
-        {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service.name) | raw }}{% if not parameter.required %} = None{% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},
+        {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service) | raw }}{% if not parameter.required %} = None{% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},
         on_progress = None{% endif %}{% if isGenericResponse %},
         model_type: Type[T] = dict{% endif %}
 
@@ -128,7 +130,7 @@ Dict[str, Any]
 {% endif %}
         Parameters
         ----------
-        {% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getServicePropertyType(service.name) | raw }}
+        {% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getServicePropertyType(service) | raw }}
             {% autoescape false %}{{ parameter.description | replace({"\n": "\n            "}) }}{% endautoescape %}
 
         {% endfor %}{% if 'multipart/form-data' in method.consumes %}
@@ -149,7 +151,7 @@ Dict[str, Any]
             API response as one of the typed response models
         {% elseif validResponseModels|length == 1 %}{{ validResponseModels[0] | caseUcfirst }}
             API response as a typed Pydantic model
-        {% elseif method.responseModel and method.responseModel != 'any' %}{% if isGenericResponse %}{{ method.responseModel | caseUcfirst }}[T]
+        {% elseif method.responseModel and method.responseModel != 'any' %}{% if isGenericResponse %}{% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}[T]
 {% else %}{{ method | getResponseType(service.name) }}
 {% endif %}            API response as a typed Pydantic model
         {% else %}Dict[str, Any]

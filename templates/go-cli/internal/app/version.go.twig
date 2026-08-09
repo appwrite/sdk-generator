@@ -1,0 +1,61 @@
+package app
+
+import (
+	"runtime/debug"
+	"strings"
+)
+
+// devVersion is what gets compiled in when no release stamped a version.
+//
+// A literal, deliberately, and NOT {{ '{{ sdk.version }}' }}: the check in init
+// distinguishes "the ldflag fired" from "it did not" by comparing against this
+// value, so a release must never stamp the same string. Templating it made the
+// two indistinguishable -- a release stamped 0.7.5 over a compiled-in 0.7.5,
+// the comparison saw no change, and the build-info fallback then overwrote the
+// correct version with the build checkout's VCS tag. `appwrite --version`
+// reported the PREVIOUS release.
+const devVersion = "0.0.0"
+
+// Version is stamped at release time with -ldflags. See .goreleaser.yaml.
+var Version = devVersion
+
+// ExecutableName is the binary name, and the directory preferences live under.
+const ExecutableName = "{{ language.params.executableName }}"
+
+// The ldflag only exists on a release build. `go install <module>@<version>`
+// does not apply it, so that path would otherwise report the hardcoded default
+// and every source install would answer `--version` with devVersion --
+// which looks broken, and makes a bug report impossible to place against a
+// build.
+//
+// Go stamps the module version into build info for any install from a tagged
+// version, so fall back to that when the ldflag did not fire. A plain
+// `go build` in a working tree reads "(devel)", which is honest: that build
+// has no version to report.
+func init() {
+	if Version != devVersion {
+		return
+	}
+
+	info, ok := debug.ReadBuildInfo()
+	if !ok || info.Main.Version == "" {
+		return
+	}
+
+	Version = normalizeBuildVersion(info.Main.Version)
+}
+
+// normalizeBuildVersion drops the "v" Go writes into build info.
+//
+// Build info carries the module version as Go spells it -- `v0.7.7-preview` --
+// while the release ldflag carries goreleaser's `.Version`, which has already
+// dropped it. So one release answered `--version` two different ways depending
+// on how it was installed:
+//
+//	go install <module>@latest  ->  appwrite version v0.7.7-preview
+//	a downloaded release        ->  appwrite version 0.7.7-preview
+//
+// `--version` is the first thing a bug report quotes, so the two have to agree.
+func normalizeBuildVersion(version string) string {
+	return strings.TrimPrefix(version, "v")
+}

@@ -1,0 +1,95 @@
+version: 2
+
+# Release build for the {{ spec.title | caseUcfirst }} CLI.
+#
+# THE ASSET NAMES ARE A CONTRACT. install.sh, install.ps1, the scoop manifest and
+# the npm shim all construct a download URL by hand, so a rename here breaks
+# every existing install path at once. The six names this must produce are:
+#
+#   {{ language.params.npmPackage }}-darwin-x64      {{ language.params.npmPackage }}-darwin-arm64
+#   {{ language.params.npmPackage }}-linux-x64       {{ language.params.npmPackage }}-linux-arm64
+#   {{ language.params.npmPackage }}-win-x64.exe   {{ language.params.npmPackage }}-win-arm64.exe
+#
+# Note the Windows spelling is `win`, not `windows`, and that every asset is a
+# BARE BINARY rather than an archive -- install.sh curls the URL straight into
+# place and runs `codesign -dv` on it.
+
+project_name: {{ language.params.npmPackage }}
+
+before:
+  hooks:
+    # The generated go.mod carries direct dependencies only; see go.mod.twig.
+    - go mod tidy
+
+builds:
+  - id: {{ language.params.executableName }}
+    main: .
+    binary: {{ language.params.executableName }}
+    # No cgo anywhere, which is what lets all six targets build from one host.
+    # go-keyring shells out to the platform's own tooling instead of linking
+    # against it, so a static binary keeps a working secret store.
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      # -s -w drop the symbol table and DWARF data. The CLI has no use for a Go
+      # stack trace in a user's terminal, and this is most of the difference
+      # between a ~19 MB and a ~13 MB download.
+      - -s -w
+      # The version lives in internal/app, NOT in main. Getting this path wrong
+      # does not fail the build -- the linker silently ignores an -X for a
+      # symbol that does not exist, and every release then reports the
+      # hardcoded default. `appwrite --version` after a snapshot build is the
+      # check that catches it.
+      - -X github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app.Version={{ '{{ .Version }}' }}
+    hooks:
+      # Ad-hoc sign darwin builds. install.sh runs `codesign -dv` on what it
+      # downloads and aborts if there is no signature, and the Go linker signs
+      # darwin/arm64 but not darwin/amd64 -- so without this, Intel Macs cannot
+      # install at all while Apple Silicon works fine. See scripts/adhoc-sign.sh.
+      post:
+        - sh scripts/adhoc-sign.sh "{{ '{{ .Path }}' }}" "{{ '{{ .Target }}' }}"
+
+archives:
+  # `binary` uploads the executable itself with no tar.gz around it. The
+  # installers predate this build and expect exactly that.
+  - id: {{ language.params.executableName }}
+    formats: [binary]
+    name_template: >-
+      {{ '{{ if eq .Os "windows" }}' }}{{ language.params.npmPackage }}-win-{{ '{{ else }}' }}{{ language.params.npmPackage }}-{{ '{{ .Os }}' }}-{{ '{{ end }}' }}
+      {{- '{{ if eq .Arch "amd64" }}x64{{ else }}{{ .Arch }}{{ end }}' }}
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ '{{ incpatch .Version }}' }}-next"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  github:
+    owner: {{ sdk.gitUserName }}
+    name: {{ sdk.gitRepoName | caseDash }}
+  draft: true
+
+# No Developer ID signing or notarisation, matching what the CLI ships today:
+# `codesign -dv` on the released binary reports `adhoc,linker-signed`. install.sh
+# only checks that a signature is embedded, which the build hook above satisfies.
+# Do not add a `notarize:` block before the secrets exist -- goreleaser fails the
+# whole release rather than skipping it.

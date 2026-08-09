@@ -56,7 +56,7 @@ class Client:
 
 {% endif %}
         {%~ if header.global %}
-        self._global_headers['{{header.name|lower}}'] = value
+        self._global_headers['{{header.name|lower}}'] = {{ header.type is defined and header.type == 'bearer' ? "'Bearer ' + value" : 'value' }}
         {%~ endif %}
         self._config['{{ header.key | caseLower }}'] = value
         return self
@@ -282,6 +282,8 @@ class Client:
 
             if isinstance(value, list) or isinstance(value, dict):
                 output = {**output, **self.flatten(value, finalKey, stringify)}
+            elif isinstance(value, bool):
+                output[finalKey] = 'true' if value else 'false'
             else:
                 if stringify:
                     output[finalKey] = str(value)

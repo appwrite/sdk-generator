@@ -2,17 +2,31 @@ name: Publish to PyPI
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish, e.g. 1.2.3'
+        required: true
 
 jobs:
   publish:
     name: Release build and publish
     runs-on: ubuntu-latest
+    permissions:
+      # Mints the short-lived OIDC token PyPI exchanges for an upload token, so
+      # no long-lived API token has to be stored on the repository.
+      id-token: write
     steps:
       - name: Check out code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # A release build must come from the tag, never from a branch that may
+          # have moved on. On a release event github.ref is already the tag; on a
+          # manual retry the tag has to be named explicitly.
+          ref: {{ '${{ inputs.tag || github.ref }}' }}
 
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.9'
 
@@ -22,10 +36,4 @@ jobs:
           python setup.py sdist bdist_wheel
 
       - name: Publish package
-        run: |
-          python -m pip install twine
-          python -m twine upload -r pypi dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: {{ '${{ secrets.PYPI_TOKEN }}' }}
-          TWINE_NON_INTERACTIVE: true
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2

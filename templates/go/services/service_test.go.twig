@@ -101,7 +101,10 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% set responseModels = method | getValidResponseModels %}
 {% set responseDiscriminator = method.responseDiscriminator ?? {} %}
 {% set responseModelName = '' %}
-{% if responseModels|length > 1 %}
+{# Mirror base/requests/api.twig: a union only picks between models when a
+   discriminator says how. Without one the service falls back to responseModel,
+   so asserting any other member gives a test the generated code cannot pass. #}
+{% if responseModels|length > 1 and responseDiscriminator is not empty %}
 {% set responseModelName = responseModels|last %}
 {% elseif method.responseModel and method.responseModel != 'any' %}
 {% set responseModelName = method.responseModel %}
@@ -196,7 +199,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 		if err != nil {
 			t.Errorf("Method {{ method.name | caseUcfirst }} failed: %v", err)
 		}
-{% if responseModels|length > 1 %}
+{% if responseModels|length > 1 and responseModelName %}
 		if _, ok := response.(*models.{{ responseModelName | caseUcfirst }}); !ok {
 			t.Errorf("Expected response type *models.{{ responseModelName | caseUcfirst }}, got %T", response)
 		}

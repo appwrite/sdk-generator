@@ -2,12 +2,15 @@
 
 namespace Appwrite\SDK\Language;
 
+use Appwrite\SDK\Language\Concern\CliCommandSurface;
 use Override;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
 
 class CLI extends Node
 {
+    use CliCommandSurface;
+
     /**
      * List of functions to ignore for console preview.
      */
@@ -167,16 +170,6 @@ class CLI extends Node
     }
 
     /**
-     * Convert string to kebab-case.
-     */
-    protected function toKebabCase(string $value): string
-    {
-        $value = preg_replace('/([a-z])([A-Z])/', '$1-$2', $value);
-        $value = preg_replace('/[\s_]+/', '-', (string) $value);
-        return strtolower((string) $value);
-    }
-
-    /**
      * Escape reserved keywords.
      */
     #[Override]
@@ -187,98 +180,6 @@ class CLI extends Node
             return 'x' . ucfirst($name);
         }
         return $name;
-    }
-
-    private function hasArrayQueriesParameter(array $method): bool
-    {
-        foreach ($method['parameters']['all'] ?? [] as $parameter) {
-            if (($parameter['name'] ?? '') === 'queries' && ($parameter['type'] ?? '') === self::TYPE_ARRAY) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function hasOnlyLimitOffsetQueries(array $method): bool
-    {
-        foreach ($method['parameters']['all'] ?? [] as $parameter) {
-            if (($parameter['name'] ?? '') !== 'queries' || ($parameter['type'] ?? '') !== self::TYPE_ARRAY) {
-                continue;
-            }
-
-            if (str_contains(strtolower($parameter['description'] ?? ''), 'only supported methods are limit and offset')) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function hasCliQueryParam(array $service): bool
-    {
-        foreach ($service['methods'] ?? [] as $method) {
-            if ($this->hasArrayQueriesParameter($method)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function getCliQueryConfig(array $method): array
-    {
-        $hasQueries = $this->hasArrayQueriesParameter($method);
-        $methodName = $method['name'] ?? '';
-        $hasOnlyLimitOffsetQueries = $hasQueries && $this->hasOnlyLimitOffsetQueries($method);
-        $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true);
-        $hasSelectionOnlyQueries = $hasQueries && in_array($methodName, ['getDocument', 'getRow'], true);
-        $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries;
-        $hasPaginationQueries = $hasQueries && !$hasSelectionOnlyQueries;
-
-        $builderParams = [];
-        if ($hasQueries) {
-            $builderParams[] = 'queries';
-
-            if ($hasFilteringQueries) {
-                $builderParams[] = 'filter';
-                $builderParams[] = 'where';
-                $builderParams[] = 'sortAsc';
-                $builderParams[] = 'sortDesc';
-                $builderParams[] = 'cursorAfter';
-                $builderParams[] = 'cursorBefore';
-            }
-
-            if ($hasPaginationQueries) {
-                $builderParams[] = 'limit';
-                $builderParams[] = 'offset';
-            }
-
-            if ($hasSelectQueries) {
-                $builderParams[] = 'select';
-            }
-        }
-
-        if ($hasOnlyLimitOffsetQueries) {
-            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common pagination prefer --limit and --offset. When mixed, raw --queries are sent before generated flag queries.';
-        } elseif ($hasSelectionOnlyQueries) {
-            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for selecting returned attributes prefer --select. When mixed, raw --queries are sent before generated flag queries.';
-        } elseif ($hasSelectQueries) {
-            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common filtering, sorting, pagination, and selection prefer --filter, --sort-asc, --sort-desc, --limit, --offset, and --select. When mixed, raw --queries are sent before generated flag queries.';
-        } else {
-            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common filtering, sorting, and pagination prefer --filter, --sort-asc, --sort-desc, --limit, and --offset. When mixed, raw --queries are sent before generated flag queries.';
-        }
-
-        return [
-            'hasQueries' => $hasQueries,
-            'hasFiltering' => $hasFilteringQueries,
-            'hasPagination' => $hasPaginationQueries,
-            'hasCursors' => $hasFilteringQueries,
-            'hasSelect' => $hasSelectQueries,
-            'builderParams' => $builderParams,
-            'extraParams' => array_values(array_filter($builderParams, fn (string $param): bool => $param !== 'queries')),
-            'rawDescriptionPrefix' => $rawDescriptionPrefix,
-        ];
     }
 
     #[Override]
@@ -406,6 +307,16 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/errors.ts',
+                'template'      => 'cli/lib/errors.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/console-fallback.ts',
+                'template'      => 'cli/lib/console-fallback.ts',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/json.ts',
                 'template'      => 'cli/lib/json.ts',
             ],
@@ -416,8 +327,8 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'lib/config-filters.ts',
-                'template'      => 'cli/lib/config-filters.ts',
+                'destination'   => 'lib/context.ts',
+                'template'      => 'cli/lib/context.ts',
             ],
             [
                 'scope'         => 'copy',
@@ -451,6 +362,16 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/hints.ts',
+                'template'      => 'cli/lib/hints.ts',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/help.ts',
+                'template'      => 'cli/lib/help.ts.twig',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/questions.ts',
                 'template'      => 'cli/lib/questions.ts',
             ],
@@ -478,6 +399,11 @@ class CLI extends Node
                 'scope'         => 'copy',
                 'destination'   => 'lib/auth/session.ts',
                 'template'      => 'cli/lib/auth/session.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/auth/capabilities.ts',
+                'template'      => 'cli/lib/auth/capabilities.ts',
             ],
             [
                 'scope'         => 'copy',
@@ -622,7 +548,7 @@ class CLI extends Node
             // Command services (lib/commands/services/)
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/commands/services/{{service.name | caseKebab}}.ts',
+                'destination'   => '/lib/commands/services/{{service.name | caseLower}}.ts',
                 'template'      => 'cli/lib/commands/services/services.ts.twig',
             ],
 
@@ -766,67 +692,6 @@ class CLI extends Node
         };
     }
 
-    #[Override]
-    public function getParamExample(array $param, string $lang = ''): string
-    {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
-
-        $output = '';
-
-        if (empty($example) && $example !== 0 && $example !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= 'one two three';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '\'{ "key": "value" }\'';
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "'path/to/file.png'";
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_ARRAY:
-                    if (str_contains((string) $example, '[') && str_contains((string) $example, ']')) {
-                        $trimmed = substr((string) $example, 1, -1);
-                        $split = explode(',', $trimmed);
-                        $output .= implode(' ', $split);
-                    } else {
-                        $output .= $example;
-                    }
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '\'{ "key": "value" }\'';
-                    break;
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= $example;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($example) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "{$example}";
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "'path/to/file.png'";
-                    break;
-            }
-        }
-
-        return $output;
-    }
-
     /**
      * Language specific filters.
      */
@@ -835,7 +700,12 @@ class CLI extends Node
     {
         return array_merge(parent::getFilters(), [
             new TwigFilter('hasCliQueryParam', fn (array $service): bool => $this->hasCliQueryParam($service)),
+            new TwigFilter('cliServiceScope', fn (array $service): ?array => $this->getCliServiceScope($service)),
             new TwigFilter('cliQueryConfig', fn (array $method): array => $this->getCliQueryConfig($method)),
+            new TwigFilter('cliTopLevelAliases', fn (array $service): array => $this->getCliTopLevelAliases($service)),
+            new TwigFilter('cliCommandTargets', fn (array $method, array $service): array => $this->getCliCommandTargets($method, $service)),
+            new TwigFilter('cliFallbackHelpers', fn (array $service): array => $this->getCliFallbackHelpers($service)),
+            new TwigFilter('cliIsTopLevelAlias', fn (array $method, array $service): bool => $this->isCliTopLevelAlias($method, $service)),
         ]);
     }
 
@@ -845,7 +715,7 @@ class CLI extends Node
     #[Override]
     public function getFunctions(): array
     {
-        return [
+        return array_merge($this->getCliHelpFunctions(), [
             /** Return true if the entered service->method is enabled for a console preview link */
             new TwigFunction('hasConsolePreview', fn($method, $service): bool => preg_match('/^([Gg]et|[Ll]ist)/', (string) $method)
                 && !in_array(strtolower((string) $method), $this->consoleIgnoreFunctions)
@@ -856,9 +726,7 @@ class CLI extends Node
              * Returns array with: method, syntax, parser, customParserCode
              */
             new TwigFunction('getCliOption', function (array $parameter): array {
-                $name = $parameter['name'];
-                $kebabName = strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $name));
-                $optionName = in_array(strtolower($name), $this->reservedKeywords) ? 'x' . $kebabName : $kebabName;
+                $optionName = $this->getCliOptionName($parameter['name']);
                 $type = $parameter['type'] ?? 'string';
                 $required = $parameter['required'] ?? false;
 
@@ -921,9 +789,7 @@ class CLI extends Node
              * This matches the option name converted to camelCase.
              */
             new TwigFunction('getCliVarName', function (array $parameter): string {
-                $name = $parameter['name'];
-                $kebabName = strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $name));
-                $optionName = in_array(strtolower($name), $this->reservedKeywords) ? 'x' . $kebabName : $kebabName;
+                $optionName = $this->getCliOptionName($parameter['name']);
                 return lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $optionName))));
             }),
 
@@ -931,14 +797,14 @@ class CLI extends Node
              * Get CLI argument expression for a parameter when calling the SDK method.
              * Handles JSON parsing for objects, or plain variable.
              */
-            new TwigFunction('getCliArgExpression', function (array $parameter): string {
-                $name = $parameter['name'];
-                $kebabName = strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $name));
-                $optionName = in_array(strtolower($name), $this->reservedKeywords) ? 'x' . $kebabName : $kebabName;
+            new TwigFunction('getCliArgExpression', function (array $parameter, array $method, array $service): string {
+                $optionName = $this->getCliOptionName($parameter['name']);
                 $varName = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $optionName))));
                 $type = $parameter['type'] ?? 'string';
 
-                if ($type === 'object') {
+                if ($this->isCliGraphQLInput($parameter, $method, $service)) {
+                    return "parseGraphQLParams({$varName}, \"--{$optionName}\")";
+                } elseif ($type === 'object') {
                     return "parseJsonObject({$varName}, \"--{$optionName}\")";
                 } elseif ($type === 'file') {
                     return "{$varName} !== undefined ? await resolveFileParam({$varName}) : undefined";
@@ -946,6 +812,6 @@ class CLI extends Node
                     return $varName;
                 }
             }),
-        ];
+        ]);
     }
 }

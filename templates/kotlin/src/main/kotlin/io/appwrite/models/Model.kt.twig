@@ -30,9 +30,9 @@ import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
     val {{ 'data' | escapeKeyword | removeDollarSign }}: T
     {%~ endif %}
 ) {
-    fun toMap(): Map<String, Any> = mapOf(
+    fun toMap(): Map<String, Any?> = mapOf(
         {%~ for property in definition.properties %}
-        "{{ property.name | escapeDollarSign }}" to {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.map { it.toMap() }{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.value{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% endif %} as Any,
+        "{{ property.name | escapeDollarSign }}" to {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.map { it.toMap() }{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.value{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% endif %} as Any{% if not property.required %}?{% endif %},
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         "{{ 'data' | escapeDollarSign }}" to {{ 'data' | escapeKeyword | removeDollarSign }}!!.jsonCast(to = Map::class.java)

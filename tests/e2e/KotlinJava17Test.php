@@ -39,6 +39,7 @@ final class KotlinJava17Test extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
+        ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,

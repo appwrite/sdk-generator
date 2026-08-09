@@ -38,8 +38,8 @@ function getFunctionFiles(func: FunctionType): {
 } {
   const functionDir = localConfig.resolveResourcePath("functions", func.path);
   const ignorer = getFunctionIgnorer(func, functionDir);
-  const files = getAllFiles(functionDir)
-    .map((file) => path.relative(functionDir, file))
+  const files = getAllFiles(functionDir, localConfig.getDirname())
+    .map((file) => path.relative(functionDir, file).split(path.sep).join("/"))
     .filter((file) => !ignorer.ignores(file));
 
   return { functionDir, files, ignorer };
@@ -222,13 +222,8 @@ export async function dockerBuild(
   try {
     for (const f of files) {
       const filePath = path.join(tmpBuildPath, f);
-      const fileDir = path.dirname(filePath);
-      if (!fs.existsSync(fileDir)) {
-        fs.mkdirSync(fileDir, { recursive: true });
-      }
-
-      const sourcePath = path.join(functionDir, f);
-      fs.copyFileSync(sourcePath, filePath);
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.copyFileSync(path.join(functionDir, f), filePath);
     }
 
     const params: string[] = ["run"];

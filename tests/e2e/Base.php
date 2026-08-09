@@ -225,7 +225,7 @@ abstract class Base extends TestCase
     protected const CLI_CONSOLE_URL_RESPONSES = [
         'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/sites/site-chirag-profile-website/deployments/deployment-123',
         'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/functions/function-sample-function/deployment-123',
-        'https://abc.example.com/console/project-self-hosted-project/sites/site-docs/deployments/deployment-456',
+        'https://abc.example.com/console/project-default-self-hosted-project/sites/site-docs/deployments/deployment-456',
     ];
 
     protected const CLI_HEADERS_RESPONSES = [
@@ -266,7 +266,12 @@ abstract class Base extends TestCase
         'auth:session-has-auth:passed',
         'auth:plan-session-logout:passed',
         'auth:logout-question-choices:passed',
+        'auth:logout-skips-empty-prompt:passed',
+        'auth:logout-single-account-ignores-current-stub:passed',
         'auth:restore-current-session-fallback:passed',
+        'auth:client-endpoint-session-reuse:passed',
+        'auth:whoami-signed-in-account-hint:passed',
+        'auth:client-reset-confirmation:passed',
         'auth:poll-device-token-success:passed',
         'auth:poll-device-token-retry:passed',
         'auth:poll-device-token-error:passed',
@@ -276,8 +281,38 @@ abstract class Base extends TestCase
         'auth:poll-device-token-default-interval:passed',
         'auth:valid-access-token-cached:passed',
         'auth:valid-access-token-missing-expiry:passed',
-        'auth:oauth-login-flag:passed',
+        'auth:valid-access-token-session-endpoint:passed',
+        'auth:project-session-endpoint-mismatch:passed',
+        'auth:organization-header:passed',
+        'auth:project-id-override:passed',
+        'auth:cloud-login-rejects-credentials:passed',
         'auth:open-browser:passed',
+        'auth:context-organization-lookup:passed',
+        'auth:context-project-precedence:passed',
+    ];
+
+    protected const CLI_REGRESSION_RESPONSES = [
+        'CLI_ERROR_HANDLING:passed',
+        'CLI_CONSOLE_FALLBACKS:passed',
+    ];
+
+    protected const CLI_ATTRIBUTE_SYNC_RESPONSES = [
+        'attribute:in-place-updates:passed',
+        'attribute:recreates-immutable:passed',
+        'attribute:ignores-derived-fields:passed',
+        'attribute:omitted-encrypt-not-recreate:passed',
+        'attribute:index-columns-change:passed',
+        'attribute:attribute-delete-uses-attribute-waiter:passed',
+        'attribute:update-guards:passed',
+        'attribute:resize-hard-fail:passed',
+        'attribute:rename-in-place:passed',
+        'attribute:rename-already-applied:passed',
+        'attribute:rename-missing-both-creates:passed',
+        'attribute:rename-both-exist-deletes-old:passed',
+        'attribute:rename-plus-field-change:passed',
+        'attribute:rename-preserves-indexes:passed',
+        'attribute:rename-hard-fail-before-delete:passed',
+        'attribute:rename-schema-validation:passed',
     ];
 
     protected const CLI_LOCAL_FUNCTION_EMULATION_RESPONSES = [
@@ -287,8 +322,9 @@ abstract class Base extends TestCase
 
     protected const HEADERS_RESPONSE = '__HEADERS_RESPONSE__';
 
-    protected const CLI_RUNTIME_RENDERING_RESPONSES = [
+    protected const CLI_RESPONSE_RENDERING_RESPONSES = [
         'CLI_RUNTIME_RENDERING:passed',
+        'CLI_DEPLOYMENT_RENDERING:passed',
     ];
 
     protected const CLI_QUERY_HELPER_RESPONSES = [
@@ -471,7 +507,17 @@ abstract class Base extends TestCase
         foreach ($this->build as $command) {
             echo "Build Executing: {$command}\n";
 
-            exec($command);
+            $buildOutput = [];
+            $status = 0;
+
+            exec($command . ' 2>&1', $buildOutput, $status);
+
+            echo \implode("\n", $buildOutput) . "\n";
+
+            // A build step that produces no artifact -- `go test`, a linter --
+            // used to fail in silence, because only the exit codes of steps
+            // that something later reads were ever noticed.
+            $this->assertSame(0, $status, "Build command failed: {$command}");
         }
 
         $output = [];

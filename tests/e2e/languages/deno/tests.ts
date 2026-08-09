@@ -13,7 +13,9 @@ async function start() {
   let Condition = appwrite.Condition;
 
   // Init SDK
-  let client = new appwrite.Client().addHeader("Origin", "http://localhost");
+  let client = new appwrite.Client()
+    .addHeader("Origin", "http://localhost")
+    .setProject("console");
 
   let foo = new appwrite.Foo(client);
   let bar = new appwrite.Bar(client);
@@ -113,6 +115,8 @@ async function start() {
   );
   // @ts-ignore
   console.log(response.result);
+
+  console.log(new TextDecoder().decode(await general.download()));
 
   response = await general.enum(appwrite.MockType.First);
   // @ts-ignore

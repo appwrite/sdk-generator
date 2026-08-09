@@ -2,6 +2,7 @@ import { Command } from "commander";
 {% set hasLocationMethod = false %}
 {% set hasFileParam = false %}
 {% set hasObjectParam = false %}
+{% set hasGraphQLInput = false %}
 {% set hasQueryParam = service | hasCliQueryParam %}
 {% set enumNames = [] %}
 {% for method in service.methods %}
@@ -12,7 +13,9 @@ import { Command } from "commander";
 {% if parameter.type == 'file' %}
 {% set hasFileParam = true %}
 {% endif %}
-{% if parameter.type == 'object' %}
+{% if cliIsGraphQLInput(parameter, method, service) %}
+{% set hasGraphQLInput = true %}
+{% elseif parameter.type == 'object' %}
 {% set hasObjectParam = true %}
 {% endif %}
 {% if parameter.enumName is defined and parameter.enumName not in enumNames %}
@@ -34,10 +37,21 @@ import {
   parseFilterQuery,
 } from "../utils/query.js";
 {% endif %}
-{% if service.isConsoleOnly %}
+{% set consoleOnlyMethods = service.consoleOnlyMethods | default([]) %}
+{# Set when the service names its target in a header instead of the path, so it takes an ID flag. #}
+{% set scope = service | cliServiceScope %}
+{% if scope %}
+import { {{ scope.factory }} } from "../../sdks.js";
+{% elseif service.isConsoleOnly %}
 import { sdkForConsole } from "../../sdks.js";
+{% elseif consoleOnlyMethods is not empty %}
+import { sdkForConsole, sdkForProject } from "../../sdks.js";
 {% else %}
 import { sdkForProject } from "../../sdks.js";
+{% endif %}
+{% set fallbackHelpers = service | cliFallbackHelpers %}
+{% if fallbackHelpers is not empty %}
+import { {{ fallbackHelpers | join(', ') }} } from "../../console-fallback.js";
 {% endif %}
 import {
   actionRunner,
@@ -49,6 +63,9 @@ import {
 {% if hasObjectParam %}
   parseJsonObject,
 {% endif %}
+{% if hasGraphQLInput %}
+  parseGraphQLParams,
+{% endif %}
 {% if service.name == 'teams' %}
   hint,
 {% endif %}
@@ -59,6 +76,14 @@ import {
 import { {{ service.name | caseUcfirst }} } from "@appwrite.io/console";
 {% endif %}
 
+{% if scope %}
+// Every endpoint here targets one {{ scope.label | lower }}, so the client is built per
+// command rather than cached across differing --{{ scope.flag }} values.
+const get{{ service.name | caseUcfirst }}Client = async (
+  {{ scope.idVar }}?: string,
+): Promise<{{ service.name | caseUcfirst }}> =>
+  new {{ service.name | caseUcfirst }}(await {{ scope.factory }}({{ scope.idVar }}));
+{% else %}
 let {{ service.name | caseCamel }}Client: {{ service.name | caseUcfirst }} | null = null;
 
 const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.name | caseUcfirst }}> => {
@@ -69,7 +94,7 @@ const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.n
       sdkClient = await sdkForProject();
     } catch (e) {
       if (e instanceof Error && e.message.includes("Project is not set")) {
-        hint(`To manage console-level teams, use the 'organizations' command instead.`);
+        hint(`To manage organization members, use the 'organization' command instead.`);
       }
       throw e;
     }
@@ -80,9 +105,30 @@ const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.n
   }
   return {{ service.name | caseCamel }}Client;
 };
+{% endif %}
+{% if consoleOnlyMethods is not empty %}
 
-export const {{ service.name | caseCamel }} = new Command("{{ service.name | caseKebab }}")
+let {{ service.name | caseCamel }}ConsoleClient: {{ service.name | caseUcfirst }} | null = null;
+
+// A few endpoints on this service are only served on the console project.
+const get{{ service.name | caseUcfirst }}ConsoleClient = async (): Promise<{{ service.name | caseUcfirst }}> => {
+  if (!{{ service.name | caseCamel }}ConsoleClient) {
+    {{ service.name | caseCamel }}ConsoleClient = new {{ service.name | caseUcfirst }}(await sdkForConsole());
+  }
+  return {{ service.name | caseCamel }}ConsoleClient;
+};
+{% endif %}
+
+export const {{ service.name | caseCamel }} = new Command("{{ service.name | caseLower }}")
+{% if service.name == 'tablesDB' %}
+  // TODO: Move CLI alias configuration to the API spec.
+  .alias("tables-db")
+{% endif %}
+{% if service.description %}
+  .description(commandDescriptions["{{ service.name | caseCamel }}"] || {{ service.description | stripMarkdown | json_encode | raw }})
+{% else %}
   .description(commandDescriptions["{{ service.name | caseCamel }}"] ?? "")
+{% endif %}
   .configureHelp({
     helpWidth: process.stdout.columns || 80,
   });
@@ -93,13 +139,30 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% if commandName not in seenCommands %}
 {% set seenCommands = seenCommands|merge([commandName]) %}
 {% set commandVar = service.name | caseCamel ~ method.name | caseUcfirst ~ 'Command' %}
+{% set clientGetter = 'get' ~ (service.name | caseUcfirst) ~ ((method.name | caseCamel) in consoleOnlyMethods ? 'Console' : '') ~ 'Client' %}
+{% set hasScopedIdParam = false %}
+{% for parameter in method.parameters.all %}
+{% if scope and parameter.name == scope.idVar %}
+{% set hasScopedIdParam = true %}
+{% endif %}
+{% endfor %}
+{% set scopedFlag = scope and not hasScopedIdParam %}
+{% set clientCall = clientGetter ~ (scope ? '(' ~ scope.idVar ~ ')' : '()') %}
 {% set query = method | cliQueryConfig %}
-const {{ commandVar }} = {{ service.name | caseCamel }}
-  .command(`{{ commandName }}`)
-  .description(`{{ method.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
+{% for target in method | cliCommandTargets(service) %}
+{% if target.standalone %}
+export const {{ target.var }} = new Command(`{{ commandName }}`)
+  .configureHelp({
+    helpWidth: process.stdout.columns || 80,
+  })
+{% else %}
+const {{ target.var }} = {{ service.name | caseCamel }}
+  .command(`{{ commandName }}`{% if target.hidden %}, { hidden: true }{% endif %})
+{% endif %}
+  .description(`{{ cliMethodDescription(method, service) | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
 {% for parameter in method.parameters.all %}
 {% set opt = getCliOption(parameter) %}
-{% set optDescription = parameter.description | stripMarkdown | replace({'`': '\\`'}) %}
+{% set optDescription = cliParameterDescription(parameter, method, service) | stripMarkdown | replace({'`': '\\`'}) %}
 {% if parameter.name == 'queries' and parameter.type == 'array' %}
 {% set optDescription = query.rawDescriptionPrefix ~ ' ' ~ optDescription %}
 {% endif %}
@@ -137,6 +200,9 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% if method.type == 'location' %}
   .requiredOption(`--destination <destination>`, `Path to save the file to.`)
 {% endif %}
+{% if scopedFlag %}
+  .option(`--{{ scope.flag }} <{{ scope.flag }}>`, `{{ scope.label }} to act on. Defaults to the {{ scope.label | lower }} linked in {{ language.params.executableName|caseLower }}.config.json.`)
+{% endif %}
   .action(
     actionRunner(
 {% set params = [] %}
@@ -146,6 +212,9 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% if query.hasQueries %}
 {% set params = params|merge(query.extraParams) %}
 {% endif %}
+{% if scopedFlag %}
+{% set params = params|merge([scope.idVar]) %}
+{% endif %}
 {% set hasParams = params | length > 0 %}
 {% set actionParams = hasParams ? '{ ' ~ params | join(', ') ~ (method.type == 'location' ? ', destination' : '') ~ ' }' : (method.type == 'location' ? '{ destination }' : '') %}
 {% set argExpressions = [] %}
@@ -153,12 +222,12 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% if parameter.name == 'queries' and parameter.type == 'array' %}
 {% set argExpressions = argExpressions|merge(['buildQueries({ ' ~ query.builderParams | join(', ') ~ ' })']) %}
 {% else %}
-{% set argExpressions = argExpressions|merge([getCliArgExpression(parameter)]) %}
+{% set argExpressions = argExpressions|merge([getCliArgExpression(parameter, method, service)]) %}
 {% endif %}
 {% endfor %}
 {% if method.type == 'location' %}
       async ({{ actionParams }}) => {
-        const url = await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
+        const url = await (await {{ clientCall }}).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
@@ -169,18 +238,24 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
       },
 {% elseif method.type == 'webAuth' %}
       async ({{ actionParams }}) => {
-        const url = (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
+        const url = (await {{ clientCall }}).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
         if (url) console.log(url);
       },
+{% elseif target.implementation %}
+{# The helper resolves the scoped resource itself, so it takes the ID directly. #}
+{% set implementationArgs = (scopedFlag ? [scope.idVar] : [])|merge(argExpressions) %}
+      async ({{ actionParams }}) =>
+        parse(await {{ target.implementation }}({{ implementationArgs | join(', ') | raw }})),
 {% elseif hasParams %}
       async ({{ actionParams }}) =>
-        parse(await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }})),
+        parse(await (await {{ clientCall }}).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }})),
 {% else %}
-      async () => parse(await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}()),
+      async () => parse(await (await {{ clientCall }}).{{ method.name | caseCamel }}()),
 {% endif %}
     ),
   );
 
+{% endfor %}
 {% if service.name == 'projects' and method.name == 'list' %}
 ({{ commandVar }} as Command & { outputFields?: string[] }).outputFields = ["name", "$id", "region", "status"];
 {% endif %}

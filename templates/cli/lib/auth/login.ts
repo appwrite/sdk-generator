@@ -13,7 +13,6 @@ import {
   isRegionalCloudEndpoint,
   openBrowser,
 } from "../utils.js";
-import { isFlagEnabled } from "../flags.js";
 import ID from "../id.js";
 import {
   questionsListFactors,
@@ -31,6 +30,7 @@ import {
   removeLegacySessionsExcept,
   restoreCurrentSession,
   deleteServerSession,
+  verifyEndpoint,
 } from "./session.js";
 import { setStoredRefreshToken } from "./refresh-token.js";
 
@@ -139,7 +139,7 @@ export const getCurrentAccount = async (): Promise<Models.User | null> => {
   } catch (err) {
     if (isGuestUnauthorizedError(err)) {
       try {
-        await getValidAccessToken(globalConfig.getEndpoint(), {
+        await getValidAccessToken({
           forceRefresh: true,
         });
         const refreshedClient = await sdkForConsole();
@@ -341,7 +341,10 @@ const loginWithOAuthDevice = async ({
 }): Promise<void> => {
   const clientId = OAUTH2_CLIENT_ID;
   const oauth2 = await getOauth2Service(
-    await sdkForConsole({ requiresAuth: false, endpointOverride: configEndpoint }),
+    await sdkForConsole({
+      requiresAuth: false,
+      endpointOverride: configEndpoint,
+    }),
   );
 
   globalConfig.addSession(id, { endpoint: configEndpoint, clientId });
@@ -467,17 +470,29 @@ export const loginCommand = async ({
     throw new Error("Use either --switch or --new, not both.");
   }
 
-  if (endpoint && isRegionalCloudEndpoint(endpoint)) {
-    throw new Error(
-      `Cloud login uses ${DEFAULT_ENDPOINT}. Regional Cloud endpoints are for project API calls, not account login.`,
-    );
-  }
-
   const configEndpoint = normalizeCloudConsoleEndpoint(
     (endpoint ?? globalConfig.getEndpoint()) || DEFAULT_ENDPOINT,
   );
-  const shouldUseCloudLogin =
-    isFlagEnabled("oauthLogin") && isCloudLoginEndpoint(configEndpoint);
+
+  if (endpoint && isRegionalCloudEndpoint(endpoint)) {
+    warn(
+      `Regional Cloud endpoints are for project API calls, so signing in to ${configEndpoint} instead. Set the regional endpoint in ${EXECUTABLE_NAME}.config.json.`,
+    );
+  }
+
+  const shouldUseCloudLogin = isCloudLoginEndpoint(configEndpoint);
+
+  // Check the endpoint before anything is prompted for, so a wrong endpoint
+  // fails immediately instead of after the email and password are typed.
+  if (endpoint && !shouldUseCloudLogin) {
+    await verifyEndpoint(configEndpoint);
+  }
+
+  if (shouldUseCloudLogin && (email || password || mfa || code)) {
+    throw new Error(
+      `Cloud sign-in happens in your browser. Run '${EXECUTABLE_NAME} login' without --email, --password, --mfa or --code — those options are for self-hosted instances.`,
+    );
+  }
 
   let oldCurrent = globalConfig.getCurrentSession();
 
@@ -493,7 +508,7 @@ export const loginCommand = async ({
 
     if (account) {
       if (
-        isFlagEnabled("oauthLogin") &&
+        shouldUseCloudLogin &&
         !globalConfig.getAccessToken() &&
         globalConfig.getCookie()
       ) {

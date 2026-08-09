@@ -122,6 +122,9 @@ import {
     response = await general.redirect();
     console.log(response.result);
 
+    // Download
+    console.log(new TextDecoder().decode(await general.download()));
+
     // Enum
     response = await general.enum(MockType.First);
     console.log(response.result);

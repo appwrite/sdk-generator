@@ -1,27 +1,109 @@
 import chalk from "chalk";
 import { getDatabasesService } from "../../services.js";
-import { KeysAttributes } from "../../config.js";
-import { log, success, error, cliConfig, drawTable } from "../../parser.js";
+import { log, warn, success, cliConfig, drawTable } from "../../parser.js";
 import { Pools } from "./pools.js";
 import inquirer from "inquirer";
 import type { Client } from "@appwrite.io/console";
 
-const changeableKeys = [
-  "status",
-  "required",
-  "xdefault",
-  "elements",
-  "min",
-  "max",
-  "default",
-  "error",
-];
+/**
+ * Per-type field rules for push diffing.
+ * - updatable: can be changed in place via update*Attribute / update*Column
+ * - recreate: require delete + recreate (no update API accepts them)
+ * Fields in neither set are ignored (server-derived or irrelevant).
+ */
+interface FieldRules {
+  updatable: string[];
+  recreate: string[];
+}
+
+const COMMON_RECREATE_KEYS = ["type", "array", "encrypt", "format"];
+
+const getAttributeFieldRules = (attribute: any): FieldRules => {
+  const type = attribute?.type;
+  const format = attribute?.format || "";
+
+  switch (type) {
+    case "string":
+      switch (format) {
+        case "enum":
+          return {
+            updatable: ["required", "default", "elements"],
+            recreate: COMMON_RECREATE_KEYS,
+          };
+        case "email":
+        case "url":
+        case "ip":
+          return {
+            updatable: ["required", "default"],
+            recreate: COMMON_RECREATE_KEYS,
+          };
+        default:
+          return {
+            updatable: ["required", "default", "size"],
+            recreate: COMMON_RECREATE_KEYS,
+          };
+      }
+    case "varchar":
+      return {
+        updatable: ["required", "default", "size"],
+        recreate: COMMON_RECREATE_KEYS,
+      };
+    case "text":
+    case "mediumtext":
+    case "longtext":
+    case "boolean":
+    case "datetime":
+    case "point":
+    case "linestring":
+    case "polygon":
+      return {
+        updatable: ["required", "default"],
+        recreate: COMMON_RECREATE_KEYS,
+      };
+    case "integer":
+    case "bigint":
+    case "double":
+      return {
+        updatable: ["required", "default", "min", "max"],
+        recreate: COMMON_RECREATE_KEYS,
+      };
+    case "relationship":
+      return {
+        updatable: ["onDelete"],
+        recreate: [
+          "type",
+          "relatedTable",
+          "relatedCollection",
+          "relationType",
+          "twoWay",
+          "twoWayKey",
+        ],
+      };
+    default:
+      return {
+        updatable: ["required", "default"],
+        recreate: COMMON_RECREATE_KEYS,
+      };
+  }
+};
+
+const INDEX_FIELD_RULES: FieldRules = {
+  updatable: [],
+  recreate: ["type", "attributes", "columns", "orders"],
+};
 
 export interface AttributeChange {
   key: string;
   attribute: any;
   reason: string;
   action: string;
+}
+
+export interface AttributeRename {
+  from: string;
+  to: string;
+  /** Remote attribute snapshot used for the update* call (key = from). */
+  attribute: any;
 }
 
 export interface Collection {
@@ -113,33 +195,50 @@ export class Attributes {
     local: any,
     reason: string,
     key: string,
+    immutable: boolean = false,
   ): string => {
+    // Omitted local fields mean "leave remote as-is" (e.g. encrypt not in config).
+    if (local === undefined) {
+      return reason;
+    }
+
     if (this.isEmpty(remote) && this.isEmpty(local)) {
       return reason;
     }
 
+    const suffix = immutable
+      ? " (cannot be changed in place, requires recreation)"
+      : "";
+
     if (Array.isArray(remote) && Array.isArray(local)) {
       if (JSON.stringify(remote) !== JSON.stringify(local)) {
         const bol = reason === "" ? "" : "\n";
-        reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
+        reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}${suffix}`;
       }
     } else if (!this.isEqual(remote, local)) {
       const bol = reason === "" ? "" : "\n";
-      reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
+      reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}${suffix}`;
     }
 
     return reason;
   };
 
+  private getFieldRules = (
+    entity: any,
+    isIndex: boolean = false,
+  ): FieldRules => (isIndex ? INDEX_FIELD_RULES : getAttributeFieldRules(entity));
+
   /**
-   * Check if attribute non-changeable fields has been changed
-   * If so return the differences as an object.
+   * Check if attribute fields have changed.
+   * When recreating=true, only immutable (recreate-forcing) fields are compared.
+   * When recreating=false, only updatable fields are compared.
    */
   private checkAttributeChanges = (
     remote: any,
     local: any,
     collection: Collection,
     recreating: boolean = true,
+    isIndex: boolean = false,
   ): AttributeChange | undefined => {
     if (local === undefined) {
       return undefined;
@@ -149,24 +248,17 @@ export class Attributes {
     const action = chalk.cyan(recreating ? "recreating" : "changing");
     let reason = "";
     const attribute = recreating ? remote : local;
+    const rules = this.getFieldRules(local, isIndex);
+    const keys = recreating ? rules.recreate : rules.updatable;
 
-    for (const key of Object.keys(remote)) {
-      if (!KeysAttributes.has(key)) {
-        continue;
-      }
-
-      if (changeableKeys.includes(key)) {
-        if (!recreating) {
-          reason = this.compareAttribute(remote[key], local[key], reason, key);
-        }
-        continue;
-      }
-
-      if (!recreating) {
-        continue;
-      }
-
-      reason = this.compareAttribute(remote[key], local[key], reason, key);
+    for (const key of keys) {
+      reason = this.compareAttribute(
+        remote[key],
+        local[key],
+        reason,
+        key,
+        recreating,
+      );
     }
 
     return reason === ""
@@ -386,11 +478,41 @@ export class Attributes {
     }
   };
 
+  private formatUpdateError = (attribute: any, err: unknown): string => {
+    const message = String(err);
+    const key = attribute?.key ?? "unknown";
+    const isResize =
+      message.includes("attribute_invalid_resize") ||
+      message.includes("column_invalid_resize") ||
+      message.includes("invalid_resize");
+
+    if (isResize) {
+      return (
+        `Failed to update "${key}": existing values exceed the new size. ` +
+        `Increase the size, shorten existing data, or recreate the attribute. ` +
+        `(${message})`
+      );
+    }
+
+    return `Failed to update "${key}": ${message}`;
+  };
+
   public updateAttribute = async (
     databaseId: string,
     collectionId: string,
     attribute: any,
+    newKey?: string,
   ): Promise<any> => {
+    // Indexes have no update endpoint; callers must recreate them.
+    if (
+      Array.isArray(attribute.attributes) ||
+      Array.isArray(attribute.columns)
+    ) {
+      throw new Error(
+        `Indexes cannot be updated in place (key: ${attribute.key}). Recreate the index instead.`,
+      );
+    }
+
     const databasesService = await getDatabasesService(this.client);
     switch (attribute.type) {
       case "string":
@@ -402,6 +524,7 @@ export class Attributes {
               key: attribute.key,
               required: attribute.required,
               xdefault: attribute.default,
+              newKey: newKey,
             });
           case "url":
             return databasesService.updateUrlAttribute({
@@ -410,6 +533,7 @@ export class Attributes {
               key: attribute.key,
               required: attribute.required,
               xdefault: attribute.default,
+              newKey: newKey,
             });
           case "ip":
             return databasesService.updateIpAttribute({
@@ -418,6 +542,7 @@ export class Attributes {
               key: attribute.key,
               required: attribute.required,
               xdefault: attribute.default,
+              newKey: newKey,
             });
           case "enum":
             return databasesService.updateEnumAttribute({
@@ -427,6 +552,7 @@ export class Attributes {
               elements: attribute.elements,
               required: attribute.required,
               xdefault: attribute.default,
+              newKey: newKey,
             });
           default:
             return databasesService.updateStringAttribute({
@@ -435,6 +561,8 @@ export class Attributes {
               key: attribute.key,
               required: attribute.required,
               xdefault: attribute.default,
+              size: attribute.size,
+              newKey: newKey,
             });
         }
       case "varchar":
@@ -445,6 +573,7 @@ export class Attributes {
           required: attribute.required,
           xdefault: attribute.default,
           size: attribute.size,
+          newKey: newKey,
         });
       case "text":
         return databasesService.updateTextAttribute({
@@ -453,6 +582,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "mediumtext":
         return databasesService.updateMediumtextAttribute({
@@ -461,6 +591,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "longtext":
         return databasesService.updateLongtextAttribute({
@@ -469,6 +600,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "integer":
         return databasesService.updateIntegerAttribute({
@@ -479,6 +611,7 @@ export class Attributes {
           min: attribute.min,
           max: attribute.max,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "bigint":
         return databasesService.updateBigIntAttribute({
@@ -489,6 +622,7 @@ export class Attributes {
           min: attribute.min,
           max: attribute.max,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "double":
         return databasesService.updateFloatAttribute({
@@ -499,6 +633,7 @@ export class Attributes {
           min: attribute.min,
           max: attribute.max,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "boolean":
         return databasesService.updateBooleanAttribute({
@@ -507,6 +642,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "datetime":
         return databasesService.updateDatetimeAttribute({
@@ -515,6 +651,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "relationship":
         return databasesService.updateRelationshipAttribute({
@@ -522,6 +659,7 @@ export class Attributes {
           collectionId,
           key: attribute.key,
           onDelete: attribute.onDelete,
+          newKey: newKey,
         });
       case "point":
         return databasesService.updatePointAttribute({
@@ -530,6 +668,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "linestring":
         return databasesService.updateLineAttribute({
@@ -538,6 +677,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       case "polygon":
         return databasesService.updatePolygonAttribute({
@@ -546,6 +686,7 @@ export class Attributes {
           key: attribute.key,
           required: attribute.required,
           xdefault: attribute.default,
+          newKey: newKey,
         });
       default:
         throw new Error(`Unsupported attribute type: ${attribute.type}`);
@@ -586,6 +727,67 @@ export class Attributes {
     attribute.type === "relationship" && attribute.side === "child";
 
   /**
+   * Resolve previousKey rename hints against the remote snapshot.
+   * Patches matched remote keys in place (before classification) so a pure
+   * rename does not surface as delete+add. API calls are executed later.
+   */
+  private resolveRenames = (
+    remoteAttributes: any[],
+    localAttributes: any[],
+    collection: Collection,
+  ): { renames: AttributeRename[]; renameChanges: AttributeChange[] } => {
+    const renames: AttributeRename[] = [];
+    const renameChanges: AttributeChange[] = [];
+
+    for (const local of localAttributes) {
+      if (!local.previousKey || local.previousKey === local.key) {
+        continue;
+      }
+
+      const remotePrevious = remoteAttributes.find(
+        (attr) => attr.key === local.previousKey,
+      );
+      const remoteCurrent = remoteAttributes.find(
+        (attr) => attr.key === local.key,
+      );
+
+      if (remotePrevious && !remoteCurrent) {
+        // Pending rename: patch remote key so classification matches by new name.
+        renames.push({
+          from: local.previousKey,
+          to: local.key,
+          attribute: { ...remotePrevious },
+        });
+        renameChanges.push({
+          key: `${chalk.yellow(local.key)} in ${collection.name} (${collection["$id"]})`,
+          attribute: { ...remotePrevious },
+          reason: `key renamed from ${chalk.red(local.previousKey)} to ${chalk.green(local.key)}`,
+          action: chalk.cyan("renaming"),
+        });
+        remotePrevious.key = local.key;
+        continue;
+      }
+
+      if (remoteCurrent && !remotePrevious) {
+        // Already renamed on the server; hint is stale and harmless.
+        continue;
+      }
+
+      if (!remotePrevious && !remoteCurrent) {
+        // Fresh create; ignore the hint and let the add path handle it.
+        continue;
+      }
+
+      // Both keys exist remotely — cannot rename without a collision.
+      warn(
+        `Ignoring previousKey "${local.previousKey}" for "${local.key}" in ${collection.name} (${collection["$id"]}): both keys already exist remotely. "${local.previousKey}" will be treated as a deletion if it is absent from the local config.`,
+      );
+    }
+
+    return { renames, renameChanges };
+  };
+
+  /**
    * Filter deleted and recreated attributes,
    * return list of attributes to create and whether any changes were made
    */
@@ -594,7 +796,11 @@ export class Attributes {
     localAttributes: any[],
     collection: Collection,
     isIndex: boolean = false,
-  ): Promise<{ attributes: any[]; hasChanges: boolean }> => {
+  ): Promise<{
+    attributes: any[];
+    hasChanges: boolean;
+    renames: AttributeRename[];
+  }> => {
     // Filter out child-side relationships from both local and remote attributes for comparison
     // Child-side relationships are auto-generated by Appwrite when creating two-way relationships
     // from the parent side, so we should not compare or try to create them directly
@@ -604,6 +810,16 @@ export class Attributes {
     let filteredRemoteAttributes = remoteAttributes.filter(
       (attr) => !this.isChildSideRelationship(attr),
     );
+
+    // Resolve previousKey hints before classification so renames do not
+    // appear as delete+add. Indexes have no rename API — skip entirely.
+    const { renames, renameChanges } = isIndex
+      ? { renames: [] as AttributeRename[], renameChanges: [] as AttributeChange[] }
+      : this.resolveRenames(
+          filteredRemoteAttributes,
+          filteredLocalAttributes,
+          collection,
+        );
 
     const deleting = filteredRemoteAttributes
       .filter(
@@ -623,6 +839,8 @@ export class Attributes {
           attribute,
           this.attributesContains(attribute, filteredLocalAttributes),
           collection,
+          true,
+          isIndex,
         ),
       )
       .filter((attribute) => attribute !== undefined) as AttributeChange[];
@@ -633,6 +851,7 @@ export class Attributes {
           this.attributesContains(attribute, filteredLocalAttributes),
           collection,
           false,
+          isIndex,
         ),
       )
       .filter((attribute) => attribute !== undefined)
@@ -642,9 +861,15 @@ export class Attributes {
       ) as AttributeChange[];
 
     let changedAttributes: any[] = [];
-    const changing = [...deleting, ...adding, ...conflicts, ...changes];
+    const changing = [
+      ...renameChanges,
+      ...deleting,
+      ...adding,
+      ...conflicts,
+      ...changes,
+    ];
     if (changing.length === 0) {
-      return { attributes: changedAttributes, hasChanges: false };
+      return { attributes: changedAttributes, hasChanges: false, renames: [] };
     }
 
     log(
@@ -690,7 +915,78 @@ export class Attributes {
       }
 
       if ((await this.getConfirmation()) !== true) {
-        return { attributes: changedAttributes, hasChanges: false };
+        return { attributes: changedAttributes, hasChanges: false, renames: [] };
+      }
+    }
+
+    // Apply renames before field updates / deletions so a failed rename
+    // never leaves data half-destroyed.
+    if (renames.length > 0) {
+      const renameResults = await Promise.allSettled(
+        renames.map((rename) =>
+          this.updateAttribute(
+            collection["databaseId"],
+            collection["$id"],
+            rename.attribute,
+            rename.to,
+          ),
+        ),
+      );
+
+      const renameFailures = renameResults
+        .map((result, index) =>
+          result.status === "rejected"
+            ? this.formatUpdateError(
+                { key: renames[index].to },
+                result.reason,
+              )
+            : null,
+        )
+        .filter((message): message is string => message !== null);
+
+      if (renameFailures.length > 0) {
+        throw new Error(
+          `Error renaming attribute for ${collection["$id"]}:\n${renameFailures.join("\n")}`,
+        );
+      }
+
+      const renameReady = await this.pools.expectAttributes(
+        collection["databaseId"],
+        collection["$id"],
+        renames.map((rename) => rename.to),
+      );
+
+      if (!renameReady) {
+        throw new Error(
+          `Attribute rename timed out waiting for keys: ${renames.map((r) => r.to).join(", ")}`,
+        );
+      }
+    }
+
+    // Apply in-place updates first so failures abort before any deletions.
+    if (changes.length > 0) {
+      const updateResults = await Promise.allSettled(
+        changes.map((change) =>
+          this.updateAttribute(
+            collection["databaseId"],
+            collection["$id"],
+            change.attribute,
+          ),
+        ),
+      );
+
+      const failures = updateResults
+        .map((result, index) =>
+          result.status === "rejected"
+            ? this.formatUpdateError(changes[index].attribute, result.reason)
+            : null,
+        )
+        .filter((message): message is string => message !== null);
+
+      if (failures.length > 0) {
+        throw new Error(
+          `Error updating ${isIndex ? "index" : "attribute"} for ${collection["$id"]}:\n${failures.join("\n")}`,
+        );
       }
     }
 
@@ -706,45 +1002,33 @@ export class Attributes {
       );
     }
 
-    if (changes.length > 0) {
-      changedAttributes = changes.map((change) => change.attribute);
-      try {
-        await Promise.all(
-          changedAttributes.map((changed) =>
-            this.updateAttribute(
-              collection["databaseId"],
-              collection["$id"],
-              changed,
-            ),
-          ),
-        );
-      } catch (err) {
-        error(
-          `Error updating attribute for ${collection["$id"]}: ${String(err)}`,
-        );
-      }
-    }
-
     const deletingAttributes = deleting.map((change) => change.attribute);
     await Promise.all(
       deletingAttributes.map((attribute) =>
         this.deleteAttribute(collection, attribute, isIndex),
       ),
     );
-    const attributeKeys = deletingAttributes.map(
-      (attribute: any) => attribute.key,
-    );
 
-    if (attributeKeys.length) {
-      const deleteAttributesPoolStatus =
-        await this.pools.waitForAttributeDeletion(
-          collection["databaseId"],
-          collection["$id"],
-          attributeKeys,
+    // Wait for both removals and recreate-driven deletes before creating.
+    const deletedKeys = [
+      ...deletingAttributes,
+      ...conflicts.map((change) => change.attribute),
+    ].map((attribute: any) => attribute.key);
+
+    if (deletedKeys.length) {
+      const waitForDeletion = isIndex
+        ? this.pools.waitForIndexDeletion
+        : this.pools.waitForAttributeDeletion;
+      const deletePoolStatus = await waitForDeletion(
+        collection["databaseId"],
+        collection["$id"],
+        deletedKeys,
+      );
+
+      if (!deletePoolStatus) {
+        throw new Error(
+          `${isIndex ? "Index" : "Attribute"} deletion timed out.`,
         );
-
-      if (!deleteAttributesPoolStatus) {
-        throw new Error("Attribute deletion timed out.");
       }
     }
 
@@ -752,7 +1036,7 @@ export class Attributes {
       (attribute) =>
         !this.attributesContains(attribute, filteredRemoteAttributes),
     );
-    return { attributes: newAttributes, hasChanges: true };
+    return { attributes: newAttributes, hasChanges: true, renames };
   };
 
   public createIndexes = async (
