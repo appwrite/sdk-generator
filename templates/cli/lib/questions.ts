@@ -22,6 +22,7 @@ import {
   getDatabasesService,
 } from "./services.js";
 import { SDK_TITLE, DEFAULT_ENDPOINT, EXECUTABLE_NAME } from "./constants.js";
+import { getSignedInAccounts } from "./auth/session.js";
 
 interface Answers {
   override?: boolean;
@@ -833,12 +834,12 @@ export const questionsSwitchAccount: Question[] = [
     name: "accountId",
     message: "Select account:",
     choices() {
-      const sessions = globalConfig.getSessions();
+      const sessions = getSignedInAccounts();
       const current = globalConfig.getCurrentSession();
 
       const data: Choice[] = [];
 
-      sessions.forEach((session: any) => {
+      sessions.forEach((session) => {
         if (session.email) {
           data.push({
             current: current === session.id,

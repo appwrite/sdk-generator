@@ -53,8 +53,9 @@ func newLoginCommand() *cobra.Command {
 
 	flags := command.Flags()
 	flags.StringVar(&options.Endpoint, "endpoint", "",
-		"Appwrite endpoint to sign in to. Defaults to "+config.DefaultEndpoint+".")
-	flags.StringVar(&options.Email, "email", "", "Email, for self hosted instances")
+		"Endpoint to sign in to, or stored account endpoint with --switch. Defaults to "+config.DefaultEndpoint+".")
+	flags.StringVar(&options.Email, "email", "",
+		"Email for self hosted login, or stored account email with --switch")
 	flags.StringVar(&options.Password, "password", "", "Password, for self hosted instances")
 	flags.StringVar(&options.MFA, "mfa", "",
 		"Factor used for MFA on self hosted instances. "+
@@ -77,6 +78,16 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 	global, err := preferences()
 	if err != nil {
 		return err
+	}
+	previous := global.CurrentSessionID()
+
+	if options.Switch && (options.Password != "" || options.MFA != "" || options.Code != "") {
+		return errors.New("--password, --mfa and --code cannot be used with --switch. " +
+			"Use --endpoint and/or --email to select a stored account")
+	}
+
+	if options.Switch {
+		return switchAccount(command, global, previous, options.Endpoint, options.Email)
 	}
 
 	endpoint := options.Endpoint
@@ -112,8 +123,6 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 			"for self-hosted instances", app.ExecutableName)
 	}
 
-	previous := global.CurrentSessionID()
-
 	if previous != "" && !options.New {
 		// The error is deliberately dropped: the question here is only whether
 		// someone is already signed in, and every failure answers it with no.
@@ -129,10 +138,6 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 				return nil
 			}
 		}
-	}
-
-	if options.Switch {
-		return switchAccount(command, global, previous)
 	}
 
 	if !cloud {
@@ -190,32 +195,55 @@ func verifyEndpoint(endpoint string, selfSigned bool) error {
 // The switch is applied first and rolled
 // back if the account turns out to be unusable, because whether a stored
 // session still works can only be answered by using it.
-func switchAccount(command *cobra.Command, global *config.Global, previous string) error {
+func switchAccount(
+	command *cobra.Command,
+	global *config.Global,
+	previous, endpoint, email string,
+) error {
 	out := command.OutOrStdout()
+	accounts := matchingSwitchAccounts(global, endpoint, email)
+	allAccounts := matchingSwitchAccounts(global, "", "")
 
-	options := make([]prompt.Option, 0)
-	for _, id := range global.SessionIDs() {
-		session, _ := global.Session(id)
-		if session.Email == "" {
-			continue
-		}
-		options = append(options, prompt.Option{
-			Label: session.Email + " (" + session.Endpoint + ")",
-			Value: id,
-		})
-	}
-
-	if len(options) == 0 {
+	if len(allAccounts) == 0 {
 		return fmt.Errorf("no signed-in accounts found. Run '%s login' to sign in",
 			app.ExecutableName)
 	}
 
-	chosen, err := prompt.New(app.Flags().Force).Choice(prompt.Choice{
-		Message: "Select an account to use",
-		Options: options,
-	})
-	if err != nil {
-		return err
+	chosen := ""
+	if endpoint != "" || email != "" {
+		selectors := switchSelectors(endpoint, email)
+		switch len(accounts) {
+		case 0:
+			return fmt.Errorf("no signed-in account matches %s. Available accounts:\n%s",
+				selectors, formatSwitchAccounts(allAccounts))
+		case 1:
+			chosen = accounts[0].ID
+		default:
+			missing := "--endpoint"
+			if endpoint != "" {
+				missing = "--email"
+			}
+			return fmt.Errorf("multiple signed-in accounts match %s. Add %s to select one:\n%s",
+				selectors, missing, formatSwitchAccounts(accounts))
+		}
+	} else {
+		options := make([]prompt.Option, 0, len(allAccounts))
+		for _, account := range allAccounts {
+			options = append(options, prompt.Option{
+				Label: account.Email + " (" + account.Endpoint + ")",
+				Value: account.ID,
+			})
+		}
+
+		var err error
+		chosen, err = prompt.New(app.Flags().Force).Choice(prompt.Choice{
+			Message: "Select an account to use",
+			Options: options,
+			Flag:    "--endpoint and/or --email",
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	if chosen == previous {
@@ -247,6 +275,64 @@ func switchAccount(command *cobra.Command, global *config.Global, previous strin
 	output.Success(out, "Switched to %s", account.GetString("email"))
 
 	return nil
+}
+
+func matchingSwitchAccounts(global *config.Global, endpoint, email string) []config.Session {
+	accounts := make([]config.Session, 0)
+	byAccount := map[string]int{}
+	current := global.CurrentSessionID()
+
+	for _, id := range global.SessionIDs() {
+		session, ok := global.Session(id)
+		if !ok || session.Email == "" || !isAuthenticatedSession(global, id) {
+			continue
+		}
+
+		key := strings.ToLower(session.Email) + "|" +
+			strings.TrimRight(config.NormalizeCloudConsoleEndpoint(session.Endpoint), "/")
+		if index, exists := byAccount[key]; exists {
+			if id == current {
+				accounts[index] = session
+			}
+			continue
+		}
+		byAccount[key] = len(accounts)
+		accounts = append(accounts, session)
+	}
+
+	matches := make([]config.Session, 0, len(accounts))
+	for _, account := range accounts {
+		if endpoint != "" && !config.EndpointsMatch(account.Endpoint, endpoint) {
+			continue
+		}
+		if email != "" && !strings.EqualFold(account.Email, email) {
+			continue
+		}
+		matches = append(matches, account)
+	}
+
+	return matches
+}
+
+func switchSelectors(endpoint, email string) string {
+	selectors := make([]string, 0, 2)
+	if endpoint != "" {
+		selectors = append(selectors, fmt.Sprintf("--endpoint %q", endpoint))
+	}
+	if email != "" {
+		selectors = append(selectors, fmt.Sprintf("--email %q", email))
+	}
+
+	return strings.Join(selectors, " and ")
+}
+
+func formatSwitchAccounts(accounts []config.Session) string {
+	lines := make([]string, 0, len(accounts))
+	for _, account := range accounts {
+		lines = append(lines, "  "+account.Email+" ("+account.Endpoint+")")
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 // unusableSessionError explains why the selected session could not be used,

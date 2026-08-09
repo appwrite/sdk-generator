@@ -35,6 +35,113 @@ func TestLoginRejectsSwitchWithNew(t *testing.T) {
 	}
 }
 
+func TestLoginRejectsCredentialsWithSwitch(t *testing.T) {
+	preferencesWith(t, `{}`)
+
+	err := runLogin(newLoginCommand(), loginOptions{Switch: true, Password: "secret"})
+	if err == nil || !strings.Contains(err.Error(), "cannot be used with --switch") {
+		t.Errorf("err = %v, want incompatible switch credentials rejected", err)
+	}
+}
+
+func TestSwitchSelectorsMatchRegionalEndpointAndEmail(t *testing.T) {
+	global := preferencesWith(t, `{
+  "prod-a": {
+    "endpoint": "https://cloud.appwrite.io/v1",
+    "email": "a@example.com",
+    "accessToken": "one"
+  },
+  "prod-b": {
+    "endpoint": "https://cloud.appwrite.io/v1",
+    "email": "b@example.com",
+    "accessToken": "two"
+  },
+  "staging-a": {
+    "endpoint": "https://cloud.staging.appwrite.io/v1",
+    "email": "a@example.com",
+    "accessToken": "three"
+  },
+  "stub": {
+    "endpoint": "https://cloud.appwrite.io/v1",
+    "email": "stub@example.com"
+  }
+}`)
+
+	regional := matchingSwitchAccounts(global, "https://sgp.cloud.appwrite.io/v1", "")
+	if len(regional) != 2 {
+		t.Fatalf("regional matches = %v, want the two production accounts", regional)
+	}
+
+	selected := matchingSwitchAccounts(
+		global, "https://sgp.cloud.appwrite.io/v1", "B@EXAMPLE.COM")
+	if len(selected) != 1 || selected[0].ID != "prod-b" {
+		t.Errorf("selected = %v, want prod-b", selected)
+	}
+
+	byEmail := matchingSwitchAccounts(global, "", "a@example.com")
+	if len(byEmail) != 2 {
+		t.Errorf("email matches = %v, want production and staging", byEmail)
+	}
+}
+
+func TestSwitchSelectorsDeduplicateStoredAccount(t *testing.T) {
+	global := preferencesWith(t, `{
+  "current": "new",
+  "old": {
+    "endpoint": "https://cloud.appwrite.io/v1",
+    "email": "a@example.com",
+    "accessToken": "old"
+  },
+  "new": {
+    "endpoint": "https://fra.cloud.appwrite.io/v1",
+    "email": "A@example.com",
+    "accessToken": "new"
+  }
+}`)
+
+	accounts := matchingSwitchAccounts(global, "", "")
+	if len(accounts) != 1 || accounts[0].ID != "new" {
+		t.Errorf("accounts = %v, want only the current duplicate", accounts)
+	}
+}
+
+func TestSwitchSelectorsReportAmbiguityBeforeSwitching(t *testing.T) {
+	global := preferencesWith(t, `{
+  "one": {
+    "endpoint": "https://cloud.appwrite.io/v1",
+    "email": "a@example.com",
+    "accessToken": "one"
+  },
+  "two": {
+    "endpoint": "https://cloud.appwrite.io/v1",
+    "email": "b@example.com",
+    "accessToken": "two"
+  }
+}`)
+	command, _ := captureCommand()
+
+	err := switchAccount(command, global, "", "https://sgp.cloud.appwrite.io/v1", "")
+	if err == nil || !strings.Contains(err.Error(), "Add --email") {
+		t.Errorf("err = %v, want an actionable ambiguity error", err)
+	}
+}
+
+func TestSwitchWithoutSelectorsIsActionableWhenHeadless(t *testing.T) {
+	global := preferencesWith(t, `{
+  "one": {
+    "endpoint": "https://cloud.appwrite.io/v1",
+    "email": "a@example.com",
+    "accessToken": "one"
+  }
+}`)
+	command, _ := captureCommand()
+
+	err := switchAccount(command, global, "", "", "")
+	if err == nil || !strings.Contains(err.Error(), "--endpoint and/or --email") {
+		t.Errorf("err = %v, want selector flags named for a headless invocation", err)
+	}
+}
+
 // Cloud sign-in happens in a browser, so an email and password given for it
 // would be silently ignored. Saying so beats appearing to accept them.
 func TestLoginRejectsPasswordOptionsAgainstCloud(t *testing.T) {

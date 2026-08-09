@@ -176,8 +176,8 @@ func projectAPI(global *config.Global, local *config.Local) (*client.Client, err
 	if !config.EndpointsMatch(endpoint, sessionEndpoint) {
 		return nil, fmt.Errorf(
 			"endpoint %s does not match the current login session endpoint %s. "+
-				"Switch to an account for this environment with `%s login --switch`",
-			endpoint, sessionEndpoint, app.ExecutableName)
+				"Switch to an account for this environment with `%s login --switch --endpoint %s`",
+			endpoint, sessionEndpoint, app.ExecutableName, endpoint)
 	}
 
 	// WithoutResponseFormat is load bearing: with the header the API answers in

@@ -123,15 +123,17 @@ export const findSessionForEndpoint = (
   return { authenticated, endpointOnly };
 };
 
+export interface SignedInAccount {
+  id: string;
+  email: string;
+  endpoint: string;
+}
+
 /**
  * Deduped signed-in accounts (email + auth material) for recoverable
  * messaging when the current session pointer is unauthenticated.
  */
-export const getSignedInAccounts = (): Array<{
-  id: string;
-  email: string;
-  endpoint: string;
-}> => {
+export const getSignedInAccounts = (): SignedInAccount[] => {
   const accounts = new Map<
     string,
     { id: string; email: string; endpoint: string }

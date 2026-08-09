@@ -1,7 +1,11 @@
 import inquirer from "inquirer";
 import { Account, type Models } from "@appwrite.io/console";
 import { getValidAccessToken, sdkForConsole } from "../sdks.js";
-import { globalConfig, normalizeCloudConsoleEndpoint } from "../config.js";
+import {
+  endpointsMatch,
+  globalConfig,
+  normalizeCloudConsoleEndpoint,
+} from "../config.js";
 import {
   EXECUTABLE_NAME,
   OAUTH2_CLIENT_ID,
@@ -25,6 +29,7 @@ import { decodeIdToken, pollForDeviceToken } from "./oauth.js";
 import { getOauth2Service } from "../services.js";
 import {
   createLegacyConsoleClient,
+  getSignedInAccounts,
   hasAuthSession,
   removeCurrentSession,
   removeLegacySessionsExcept,
@@ -32,6 +37,7 @@ import {
   deleteServerSession,
   verifyEndpoint,
 } from "./session.js";
+import type { SignedInAccount } from "./session.js";
 import { setStoredRefreshToken } from "./refresh-token.js";
 
 const DEFAULT_ENDPOINT = "https://cloud.appwrite.io/v1";
@@ -330,6 +336,53 @@ const switchToAccount = async ({
   success(`Switched to ${account.email}`);
 };
 
+const formatSwitchAccounts = (accounts: SignedInAccount[]): string =>
+  accounts
+    .map((account) => `  ${account.email} (${account.endpoint})`)
+    .join("\n");
+
+export const resolveSwitchAccount = ({
+  accounts,
+  endpoint,
+  email,
+}: {
+  accounts: SignedInAccount[];
+  endpoint?: string;
+  email?: string;
+}): string | undefined => {
+  if (!endpoint && !email) {
+    return undefined;
+  }
+
+  const matches = accounts.filter(
+    (account) =>
+      (!endpoint || endpointsMatch(account.endpoint, endpoint)) &&
+      (!email || account.email.toLowerCase() === email.toLowerCase()),
+  );
+  const selectors = [
+    endpoint ? `--endpoint '${endpoint}'` : "",
+    email ? `--email '${email}'` : "",
+  ].filter(Boolean);
+
+  if (matches.length === 0) {
+    const available = accounts.length
+      ? `\nAvailable accounts:\n${formatSwitchAccounts(accounts)}`
+      : "";
+    throw new Error(
+      `No signed-in account matches ${selectors.join(" and ")}.${available}`,
+    );
+  }
+
+  if (matches.length > 1) {
+    const missingSelector = endpoint ? "--email" : "--endpoint";
+    throw new Error(
+      `Multiple signed-in accounts match ${selectors.join(" and ")}. Add ${missingSelector} to select one:\n${formatSwitchAccounts(matches)}`,
+    );
+  }
+
+  return matches[0].id;
+};
+
 const loginWithOAuthDevice = async ({
   id,
   oldCurrent,
@@ -470,6 +523,40 @@ export const loginCommand = async ({
     throw new Error("Use either --switch or --new, not both.");
   }
 
+  if (switchAccount && (password || mfa || code)) {
+    throw new Error(
+      "--password, --mfa and --code cannot be used with --switch. Use --endpoint and/or --email to select a stored account.",
+    );
+  }
+
+  if (switchAccount) {
+    const accounts = getSignedInAccounts();
+    if (accounts.length === 0) {
+      throw new Error(
+        `No signed-in accounts found. Run '${EXECUTABLE_NAME} login' to sign in.`,
+      );
+    }
+
+    const oldCurrent = globalConfig.getCurrentSession();
+    let accountId = resolveSwitchAccount({ accounts, endpoint, email });
+    if (!accountId) {
+      if (!process.stdin.isTTY) {
+        throw new Error(
+          "Account selection requires an interactive terminal. Pass --endpoint and/or --email to select a stored account.",
+        );
+      }
+      const answers = await inquirer.prompt(questionsSwitchAccount);
+      accountId = answers.accountId;
+    }
+
+    if (!accountId) {
+      throw new Error("No account was selected.");
+    }
+
+    await switchToAccount({ oldCurrent, accountId });
+    return;
+  }
+
   const configEndpoint = normalizeCloudConsoleEndpoint(
     (endpoint ?? globalConfig.getEndpoint()) || DEFAULT_ENDPOINT,
   );
@@ -526,23 +613,11 @@ export const loginCommand = async ({
   }
 
   let answers;
-  if (switchAccount) {
-    if (!globalConfig.getSessions().some((session) => session.email)) {
-      throw new Error(
-        `No signed-in accounts found. Run '${EXECUTABLE_NAME} login' to sign in.`,
-      );
-    }
-    answers = await inquirer.prompt(questionsSwitchAccount);
-  } else if (!shouldUseCloudLogin) {
+  if (!shouldUseCloudLogin) {
     answers =
       email && password
         ? { email, password }
         : await inquirer.prompt(questionsLogin);
-  }
-
-  if (switchAccount && answers?.accountId) {
-    await switchToAccount({ oldCurrent, accountId: answers.accountId });
-    return;
   }
 
   const id = ID.unique();

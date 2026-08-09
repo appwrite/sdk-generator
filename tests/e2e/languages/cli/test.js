@@ -86,7 +86,11 @@ const {
   endpointsMatch,
   globalConfig,
 } = require("./lib/config.ts");
-const { listenForBrowserOpen, loginCommand } = require("./lib/auth/login.ts");
+const {
+  listenForBrowserOpen,
+  loginCommand,
+  resolveSwitchAccount,
+} = require("./lib/auth/login.ts");
 const {
   resolveOrganizationId,
   resolveProjectId,
@@ -1836,6 +1840,91 @@ async function runAuthChecks() {
       if (prev === undefined) delete process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN;
       else process.env.APPWRITE_CLI_DEV_CLOUD_LOGIN = prev;
     }
+  });
+
+  await authCheck("login-switch-selectors", () => {
+    const accounts = [
+      {
+        id: "prod-a",
+        endpoint: "https://cloud.appwrite.io/v1",
+        email: "a@example.com",
+      },
+      {
+        id: "prod-b",
+        endpoint: "https://cloud.appwrite.io/v1",
+        email: "b@example.com",
+      },
+      {
+        id: "staging-a",
+        endpoint: "https://cloud.staging.appwrite.io/v1",
+        email: "a@example.com",
+      },
+    ];
+
+    assert.equal(
+      resolveSwitchAccount({
+        accounts,
+        endpoint: "https://sgp.cloud.appwrite.io/v1",
+        email: "B@EXAMPLE.COM",
+      }),
+      "prod-b",
+    );
+    assert.throws(
+      () =>
+        resolveSwitchAccount({
+          accounts,
+          endpoint: "https://sgp.cloud.appwrite.io/v1",
+        }),
+      /Multiple signed-in accounts.*--email/s,
+    );
+    assert.throws(
+      () => resolveSwitchAccount({ accounts, email: "a@example.com" }),
+      /Multiple signed-in accounts.*--endpoint/s,
+    );
+    assert.throws(
+      () =>
+        resolveSwitchAccount({
+          accounts,
+          endpoint: "https://missing.example/v1",
+        }),
+      /No signed-in account matches.*Available accounts/s,
+    );
+    assert.equal(resolveSwitchAccount({ accounts }), undefined);
+  });
+
+  await authCheck("login-switch-headless", async () => {
+    globalConfig.clear();
+    globalConfig.addSession("prod", {
+      endpoint: "https://cloud.appwrite.io/v1",
+      email: "a@example.com",
+      accessToken: "token",
+    });
+
+    const originalIsTTY = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
+    Object.defineProperty(process.stdin, "isTTY", {
+      configurable: true,
+      enumerable: true,
+      get: () => false,
+    });
+    try {
+      await assert.rejects(
+        () => loginCommand({ switch: true }),
+        /Pass --endpoint and\/or --email/,
+      );
+    } finally {
+      if (originalIsTTY) {
+        Object.defineProperty(process.stdin, "isTTY", originalIsTTY);
+      } else {
+        delete process.stdin.isTTY;
+      }
+    }
+  });
+
+  await authCheck("login-switch-rejects-credentials", async () => {
+    await assert.rejects(
+      () => loginCommand({ switch: true, password: "secret" }),
+      /cannot be used with --switch/,
+    );
   });
 
   await authCheck("open-browser", () => {
