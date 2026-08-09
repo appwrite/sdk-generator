@@ -87,6 +87,12 @@ func NewRootCommand() *cobra.Command {
 // network once a day, because the whole point of this binary is that it starts
 // in single-digit milliseconds.
 func noticeUpdateAvailable(command *cobra.Command) {
+	// The update command is already acting on this information. Recommending
+	// that the user run it again only adds noise before the updater's output.
+	if isRootUpdateCommand(command) {
+		return
+	}
+
 	checker := app.UpdateChecker()
 	if checker == nil {
 		return
@@ -105,4 +111,8 @@ func noticeUpdateAvailable(command *cobra.Command) {
 	}
 
 	fmt.Fprint(writer, update.Notice(app.ExecutableName, app.Version, latest))
+}
+
+func isRootUpdateCommand(command *cobra.Command) bool {
+	return command.Name() == "update" && command.Parent() == command.Root()
 }

@@ -38,7 +38,10 @@ const {
   resolveSkillSelection,
 } = require("./lib/utils.ts");
 const { EXECUTABLE_NAME } = require("./lib/constants.ts");
-const { isCompletionInvocation } = require("./lib/completions.ts");
+const {
+  isCompletionInvocation,
+  isTopLevelCommandInvocation,
+} = require("./lib/completions.ts");
 const {
   decodeIdToken,
   isAuthorizationPendingError,
@@ -369,6 +372,20 @@ if (withArgv(["--id", "completion"], isCompletionInvocation)) {
 
 if (!withArgv(["--id=foo", "completion"], isCompletionInvocation)) {
   throw new Error("Expected completion command after --id=foo to be detected.");
+}
+
+const isUpdateInvocation = () => isTopLevelCommandInvocation("update");
+
+if (!withArgv(["--json", "update"], isUpdateInvocation)) {
+  throw new Error(
+    "Expected the root update command to be detected after global flags.",
+  );
+}
+
+if (withArgv(["--id", "update"], isUpdateInvocation)) {
+  throw new Error(
+    "Expected --id update to be parsed as an id value, not the update command.",
+  );
 }
 
 const completionHome = fs.mkdtempSync(
