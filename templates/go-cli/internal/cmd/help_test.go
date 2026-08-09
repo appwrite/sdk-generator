@@ -77,6 +77,25 @@ func TestHelpSectionsAppearInOrder(t *testing.T) {
 	}
 }
 
+func TestUpdateNoticeSkipsOnlyTheRootUpdateCommand(t *testing.T) {
+	root := &cobra.Command{Use: "appwrite"}
+	updateCommand := &cobra.Command{Use: "update"}
+	root.AddCommand(updateCommand)
+
+	if !isRootUpdateCommand(updateCommand) {
+		t.Error("the root update command would show a notice recommending itself")
+	}
+
+	service := &cobra.Command{Use: "service"}
+	serviceUpdate := &cobra.Command{Use: "update"}
+	root.AddCommand(service)
+	service.AddCommand(serviceUpdate)
+
+	if isRootUpdateCommand(serviceUpdate) {
+		t.Error("a nested command named update was mistaken for the CLI updater")
+	}
+}
+
 func TestHelpListsGroupedCommandsWithTheirSummaries(t *testing.T) {
 	root := NewRootCommand()
 	screen := RenderMainHelp(root)

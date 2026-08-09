@@ -24,6 +24,7 @@ import {
     createCompletionCommand,
     isCompletionCommand,
     isCompletionInvocation,
+    isTopLevelCommandInvocation,
 } from './lib/completions.js';
 
 import { client } from './lib/commands/generic.js';
@@ -125,7 +126,10 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
     })();
 } else {
     void (async () => {
-        if (!isCompletionInvocation()) {
+        if (
+            !isCompletionInvocation() &&
+            !isTopLevelCommandInvocation('update')
+        ) {
             await maybeShowUpdateNotice();
         }
 

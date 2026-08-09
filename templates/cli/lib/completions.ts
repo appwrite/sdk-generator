@@ -479,7 +479,11 @@ function installCompletion(
 }
 
 export function isCompletionInvocation(): boolean {
-  return findTopLevelCommandArg(process.argv.slice(2)) === "completion";
+  return isTopLevelCommandInvocation("completion");
+}
+
+export function isTopLevelCommandInvocation(commandName: string): boolean {
+  return findTopLevelCommandArg(process.argv.slice(2)) === commandName;
 }
 
 function findTopLevelCommandArg(args: string[]): string | undefined {
