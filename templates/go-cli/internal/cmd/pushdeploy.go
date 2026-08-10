@@ -605,20 +605,6 @@ func newPushDeployableCommand(resource deployable) *cobra.Command {
 	return command
 }
 
-// parseFlagBool reads the value of `--activate [value]`.
-//
-// A bare `--activate` is true; anything else has to say so.
-func parseFlagBool(value string) (bool, error) {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "", "true", "1", "yes", "y":
-		return true, nil
-	case "false", "0", "no", "n":
-		return false, nil
-	}
-
-	return false, fmt.Errorf("invalid boolean value %q", value)
-}
-
 func runPushDeployable(
 	command *cobra.Command,
 	resource deployable,

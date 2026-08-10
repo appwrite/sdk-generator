@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -38,11 +39,22 @@ func boolLiteral(token string) bool {
 	return err == nil
 }
 
-// booleanFlag returns the boolean flag a token names, or nil.
+// optionalBoolLiteral reports whether token can be a value for flag.
+func optionalBoolLiteral(flag *pflag.Flag, token string) bool {
+	if flag.Value.Type() == "bool" {
+		return boolLiteral(token)
+	}
+
+	_, err := parseFlagBool(token)
+
+	return err == nil
+}
+
+// optionalBooleanFlag returns the optional boolean flag a token names, or nil.
 //
 // A token that already carries `=` is left alone: pflag parses it correctly and
 // rewriting it would corrupt values containing an equals sign.
-func booleanFlag(command *cobra.Command, token string) *pflag.Flag {
+func optionalBooleanFlag(command *cobra.Command, token string) *pflag.Flag {
 	if strings.Contains(token, "=") {
 		return nil
 	}
@@ -67,11 +79,17 @@ func booleanFlag(command *cobra.Command, token string) *pflag.Flag {
 		return nil
 	}
 
-	if flag == nil || flag.Value.Type() != "bool" {
+	if flag == nil {
 		return nil
 	}
+	if flag.Value.Type() == "bool" {
+		return flag
+	}
+	if flag.Value.Type() == "string" && flag.NoOptDefVal != "" {
+		return flag
+	}
 
-	return flag
+	return nil
 }
 
 // RewriteBooleanValues joins `--flag value` into `--flag=value` for boolean
@@ -97,18 +115,34 @@ func RewriteBooleanValues(root *cobra.Command, args []string) []string {
 			break
 		}
 
-		if index+1 < len(args) && boolLiteral(args[index+1]) &&
-			booleanFlag(target, token) != nil {
-			rewritten = append(rewritten, token+"="+args[index+1])
-			index++
+		if index+1 < len(args) {
+			flag := optionalBooleanFlag(target, token)
+			if flag != nil && optionalBoolLiteral(flag, args[index+1]) {
+				rewritten = append(rewritten, token+"="+args[index+1])
+				index++
 
-			continue
+				continue
+			}
 		}
 
 		rewritten = append(rewritten, token)
 	}
 
 	return rewritten
+}
+
+// parseFlagBool reads a boolean flag value.
+//
+// A bare optional boolean is true; anything else has to say so.
+func parseFlagBool(value string) (bool, error) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", "true", "1", "yes", "y":
+		return true, nil
+	case "false", "0", "no", "n":
+		return false, nil
+	}
+
+	return false, fmt.Errorf("invalid boolean value %q", value)
 }
 
 // negatableBool registers name (defaulting on) together with its `--no-name`
