@@ -701,6 +701,11 @@ class GoCLI extends Go
                 'template'      => 'go-cli/internal/app/flags.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/flags_test.go',
+                'template'      => 'go-cli/internal/app/flags_test.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/app/version.go',
                 'template'      => 'go-cli/internal/app/version.go.twig',

@@ -240,9 +240,15 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 			// TypeScript passes undefined and the SDK drops it.
 			options := []{{ plan.package }}.{{ plan.optionType }}{}
 {% for option in plan.optional %}
+{% if option.flag == 'queries' and query.hasQueries %}
+			if app.AnyFlagChanged(cmd, "queries", "filter", "where", "sort-asc", "sort-desc", "limit", "offset", "cursor-after", "cursor-before", "select") {
+				options = append(options, service.{{ option.setter }}({{ option.expression }}))
+			}
+{% else %}
 			if cmd.Flags().Changed("{{ option.flag }}") {
 				options = append(options, service.{{ option.setter }}({{ option.expression }}))
 			}
+{% endif %}
 {% endfor %}
 {% endif %}
 
