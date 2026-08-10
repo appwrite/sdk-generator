@@ -138,9 +138,10 @@ func NewHTTPClient(selfSigned bool) *http.Client {
 	transport := baseTransport()
 	if selfSigned {
 		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		noteSelfSigned()
 	}
 
-	return &http.Client{Transport: transport}
+	return decorate(&http.Client{Transport: transport})
 }
 
 func New(endpoint, sdkVersion string) *Client {
@@ -307,10 +308,11 @@ func (c *Client) SetSelfSigned(selfSigned bool) *Client {
 	// along with the verification.
 	transport := baseTransport()
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	noteSelfSigned()
 
 	replacement := *c.HTTP
 	replacement.Transport = transport
-	c.HTTP = &replacement
+	c.HTTP = decorate(&replacement)
 
 	return c
 }

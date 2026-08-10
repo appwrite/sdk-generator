@@ -1,3 +1,5 @@
+//go:build !browser
+
 package cmd
 
 import (
@@ -457,28 +459,4 @@ func selectionLabel(name, id string) string {
 // consoleBaseURL strips the /v1 suffix so a console link can be built.
 func consoleBaseURL(endpoint string) string {
 	return strings.TrimSuffix(strings.TrimSuffix(endpoint, "/"), "/v1")
-}
-
-// regionalEndpoint prefixes the endpoint's host with a region.
-//
-// Built from the NORMALISED host, not from whatever is configured: the session
-// endpoint may already be regional, and prefixing again would produce
-// `fra.sgp.cloud.appwrite.io`.
-func regionalEndpoint(endpoint, region string) string {
-	normalized := config.NormalizeCloudConsoleEndpoint(endpoint)
-
-	parsed, err := url.Parse(normalized)
-	if err != nil {
-		return normalized
-	}
-	parsed.Host = region + "." + parsed.Host
-
-	return strings.TrimSuffix(parsed.String(), "/")
-}
-
-// isCloudEndpoint reports whether an endpoint is Appwrite Cloud.
-func isCloudEndpoint(endpoint string) bool {
-	_, ok := config.CloudBaseHost(endpoint)
-
-	return ok
 }
