@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -36,6 +37,32 @@ func TestNoCommandHasAShorthandCollision(t *testing.T) {
 	}
 
 	walk(root)
+}
+
+func TestNoArgCommandsRejectExtraArguments(t *testing.T) {
+	tests := [][]string{
+		{"users", "definitely-not-a-command"},
+		{"users", "list", "definitely-not-an-argument"},
+		{"pull", "definitely-not-a-command"},
+		{"push", "definitely-not-a-command"},
+	}
+
+	for _, args := range tests {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			root := NewRootCommand()
+			root.SetArgs(args)
+			root.SetOut(&bytes.Buffer{})
+			root.SetErr(&bytes.Buffer{})
+
+			err := root.Execute()
+			if err == nil {
+				t.Fatal("command accepted an unexpected positional argument")
+			}
+			if !strings.Contains(err.Error(), "unknown command") {
+				t.Fatalf("error = %q, want an unknown command error", err)
+			}
+		})
+	}
 }
 
 // commandPath is cobra's CommandPath without the binary name, which makes a
