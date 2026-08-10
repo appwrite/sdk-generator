@@ -25,3 +25,16 @@ func FlagString(command *cobra.Command, name string, value string) *string {
 
 	return &value
 }
+
+// AnyFlagChanged reports whether any registered flag in names was set by the
+// user. Unknown names are ignored so generated call sites can share one query
+// flag list across commands with different query surfaces.
+func AnyFlagChanged(command *cobra.Command, names ...string) bool {
+	for _, name := range names {
+		if flag := command.Flags().Lookup(name); flag != nil && command.Flags().Changed(name) {
+			return true
+		}
+	}
+
+	return false
+}
