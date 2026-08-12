@@ -781,7 +781,7 @@ class Python extends Language
         $modelDef = $spec['definitions'][$model];
         $lines = [];
 
-        if (!empty($modelDef['additionalProperties'])) {
+        if (!empty($modelDef['additionalProperties']) && !empty($modelDef['properties'] ?? [])) {
             $lines[] = $target . "['data'] = {}";
         }
 

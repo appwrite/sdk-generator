@@ -128,6 +128,14 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
     @model_serializer(mode='wrap')
     def _serialize_model(self, handler, info):
         result = handler(self)
-        result['{{ 'data' }}'] = self._serialize_data(info)
+        data = self._serialize_data(info)
+{% if definition.properties | length > 0 %}
+        result['{{ 'data' }}'] = data
         return result
+{% else %}
+        if isinstance(result, dict) and isinstance(data, dict):
+            return {**result, **data}
+
+        return data
+{% endif %}
 {% endif %}
