@@ -558,7 +558,7 @@ export const loginCommand = async ({
   }
 
   const configEndpoint = normalizeCloudConsoleEndpoint(
-    (endpoint ?? globalConfig.getEndpoint()) || DEFAULT_ENDPOINT,
+    endpoint || DEFAULT_ENDPOINT,
   );
 
   if (endpoint && isRegionalCloudEndpoint(endpoint)) {
@@ -605,7 +605,9 @@ export const loginCommand = async ({
       }
 
       if (!email && !password && !endpoint && !switchAccount && !newAccount) {
-        success("Already logged in as " + account.email);
+        success(
+          `Already logged in as ${account.email} (${globalConfig.getEndpoint()})`,
+        );
         hint(`Use '${EXECUTABLE_NAME} login --new' to add another account`);
         return;
       }
