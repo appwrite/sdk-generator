@@ -2,7 +2,7 @@
 {% set isGeneric = definition.additionalProperties or hasGenericProperty %}
 from typing import Any, Dict, List, Optional, Union, cast{% if isGeneric %}, Generic, TypeVar, Type{% endif %}
 
-from pydantic import Field, PrivateAttr
+from pydantic import Field, PrivateAttr{% if definition.additionalProperties %}, model_serializer{% endif %}
 
 from .base_model import AppwriteModel
 {% set added = [] %}
@@ -113,25 +113,21 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
     def {{ 'data' | caseSnake | removeDollarSign }}(self, value: T) -> None:
         object.__setattr__(self, '_{{ 'data' | caseSnake | removeDollarSign }}', value)
 
-    def model_dump(self, **kwargs) -> Dict[str, Any]:
-        result = super().model_dump(**kwargs)
-        if hasattr(self, '_{{ 'data' | caseSnake | removeDollarSign }}'):
-            if isinstance(self._{{ 'data' | caseSnake | removeDollarSign }}, dict):
-                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}
-            elif hasattr(self._{{ 'data' | caseSnake | removeDollarSign }}, 'model_dump'):
-                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}.model_dump(**kwargs)
-            else:
-                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}
-        return result
+    def _serialize_data(self, info):
+        if hasattr(self._{{ 'data' | caseSnake | removeDollarSign }}, 'model_dump'):
+            return self._{{ 'data' | caseSnake | removeDollarSign }}.model_dump(
+                mode=info.mode,
+                by_alias=info.by_alias,
+                exclude_unset=info.exclude_unset,
+                exclude_defaults=info.exclude_defaults,
+                exclude_none=info.exclude_none,
+            )
 
-    def to_dict(self) -> Dict[str, Any]:
-        result = super().to_dict()
-        if hasattr(self, '_{{ 'data' | caseSnake | removeDollarSign }}'):
-            if isinstance(self._{{ 'data' | caseSnake | removeDollarSign }}, dict):
-                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}
-            elif hasattr(self._{{ 'data' | caseSnake | removeDollarSign }}, 'model_dump'):
-                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}.model_dump(mode='json')
-            else:
-                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}
+        return self._{{ 'data' | caseSnake | removeDollarSign }}
+
+    @model_serializer(mode='wrap')
+    def _serialize_model(self, handler, info):
+        result = handler(self)
+        result['{{ 'data' }}'] = self._serialize_data(info)
         return result
 {% endif %}
