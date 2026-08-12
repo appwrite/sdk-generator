@@ -174,6 +174,69 @@ func TestFilterDataAppliesTheNumberRuleInsideArrays(t *testing.T) {
 	}
 }
 
+func TestFilterDataPreservesGraphQLResponseEnvelope(t *testing.T) {
+	input := decode(t, `{
+		"data": {
+			"localeGet": {
+				"countryCode": "in"
+			}
+		}
+	}`)
+
+	got := render(t, FilterData(input))
+	want := `{
+  "data": {
+    "localeGet": {
+      "countryCode": "in"
+    }
+  }
+}
+`
+
+	if got != want {
+		t.Errorf("FilterData GraphQL output.\n--- want ---\n%s\n--- got ---\n%s", want, got)
+	}
+}
+
+func TestJSONModePreservesGraphQLBatchResponses(t *testing.T) {
+	input, err := DecodeOrdered([]byte(`[
+		{"data":{"id":9007199254740993}},
+		{"errors":[{"message":"bad","extensions":{"code":"x"}}]}
+	]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buffer := &bytes.Buffer{}
+	renderer := &Renderer{Mode: ModeJSON, Writer: buffer}
+	if err := renderer.Render(input); err != nil {
+		t.Fatal(err)
+	}
+
+	want := `[
+  {
+    "data": {
+      "id": "9007199254740993"
+    }
+  },
+  {
+    "errors": [
+      {
+        "message": "bad",
+        "extensions": {
+          "code": "x"
+        }
+      }
+    ]
+  }
+]
+`
+
+	if got := buffer.String(); got != want {
+		t.Errorf("GraphQL batch output.\n--- want ---\n%s\n--- got ---\n%s", want, got)
+	}
+}
+
 // --raw keeps every field, including ones no generated model declares -- that
 // is what "raw" means and why the body is captured rather than re-encoded from
 // the struct. Big integers are still quoted, because the TypeScript's
