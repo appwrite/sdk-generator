@@ -34,7 +34,6 @@ import {
   type CollectionType,
 } from "./config.js";
 import { parseWithBetterErrors } from "./utils/error-formatter.js";
-import { validateVariableKeys } from "../validations.js";
 import {
   createSettingsObject,
   checkDeployConditions,
@@ -1876,34 +1875,6 @@ export class Push {
               .update({ status: "Updating variables" })
               .replaceSpinner(SPINNER_DOTS);
 
-            const envFileLocation = `${func["path"]}/.env`;
-            let envVariables: Array<{ key: string; value: string }> = [];
-            try {
-              if (fs.existsSync(envFileLocation)) {
-                const envObject = parseDotenv(
-                  fs.readFileSync(envFileLocation, "utf8"),
-                );
-                envVariables = Object.entries(envObject || {}).map(
-                  ([key, value]) => ({ key, value }),
-                );
-              }
-            } catch (_error) {
-              envVariables = [];
-            }
-
-            // Validate before deleting anything: the remote variables are
-            // dropped and rebuilt from this file, so a key the API rejects
-            // would leave the function with no variables at all.
-            const invalidKeys = validateVariableKeys(
-              envVariables.map((variable) => variable.key),
-            );
-            if (invalidKeys.length > 0) {
-              const errorMessage = `${envFileLocation}: ${invalidKeys.join(", ")}`;
-              errors.push(new Error(errorMessage));
-              updaterRow.fail({ errorMessage });
-              return;
-            }
-
             const functionsServiceForVars = await getFunctionsService(
               this.projectClient,
             );
@@ -1923,7 +1894,21 @@ export class Push {
               }),
             );
 
-            const created = await Promise.allSettled(
+            const envFileLocation = `${func["path"]}/.env`;
+            let envVariables: Array<{ key: string; value: string }> = [];
+            try {
+              if (fs.existsSync(envFileLocation)) {
+                const envObject = parseDotenv(
+                  fs.readFileSync(envFileLocation, "utf8"),
+                );
+                envVariables = Object.entries(envObject || {}).map(
+                  ([key, value]) => ({ key, value }),
+                );
+              }
+            } catch (_error) {
+              envVariables = [];
+            }
+            await Promise.all(
               envVariables.map(async (variable) => {
                 const functionsServiceCreate = await getFunctionsService(
                   this.projectClient,
@@ -1937,21 +1922,6 @@ export class Push {
                 });
               }),
             );
-
-            const failedKeys = created
-              .map((result, index) =>
-                result.status === "rejected"
-                  ? `${envVariables[index].key} (${result.reason?.message ?? "unknown error"})`
-                  : null,
-              )
-              .filter((failure): failure is string => failure !== null);
-
-            if (failedKeys.length > 0) {
-              const errorMessage = `Failed to push variables: ${failedKeys.join(", ")}`;
-              errors.push(new Error(errorMessage));
-              updaterRow.fail({ errorMessage });
-              return;
-            }
           }
 
           if (code === false) {
@@ -2412,34 +2382,6 @@ export class Push {
               .update({ status: "Creating variables" })
               .replaceSpinner(SPINNER_DOTS);
 
-            const envFileLocation = `${site["path"]}/.env`;
-            let envVariables: Array<{ key: string; value: string }> = [];
-            try {
-              if (fs.existsSync(envFileLocation)) {
-                const envObject = parseDotenv(
-                  fs.readFileSync(envFileLocation, "utf8"),
-                );
-                envVariables = Object.entries(envObject || {}).map(
-                  ([key, value]) => ({ key, value }),
-                );
-              }
-            } catch (_error) {
-              envVariables = [];
-            }
-
-            // Validate before deleting anything: the remote variables are
-            // dropped and rebuilt from this file, so a key the API rejects
-            // would leave the site with no variables at all.
-            const invalidKeys = validateVariableKeys(
-              envVariables.map((variable) => variable.key),
-            );
-            if (invalidKeys.length > 0) {
-              const errorMessage = `${envFileLocation}: ${invalidKeys.join(", ")}`;
-              errors.push(new Error(errorMessage));
-              updaterRow.fail({ errorMessage });
-              return;
-            }
-
             const sitesServiceForVars = await getSitesService(
               this.projectClient,
             );
@@ -2459,7 +2401,21 @@ export class Push {
               }),
             );
 
-            const created = await Promise.allSettled(
+            const envFileLocation = `${site["path"]}/.env`;
+            let envVariables: Array<{ key: string; value: string }> = [];
+            try {
+              if (fs.existsSync(envFileLocation)) {
+                const envObject = parseDotenv(
+                  fs.readFileSync(envFileLocation, "utf8"),
+                );
+                envVariables = Object.entries(envObject || {}).map(
+                  ([key, value]) => ({ key, value }),
+                );
+              }
+            } catch (_error) {
+              envVariables = [];
+            }
+            await Promise.all(
               envVariables.map(async (variable) => {
                 const sitesServiceCreate = await getSitesService(
                   this.projectClient,
@@ -2473,21 +2429,6 @@ export class Push {
                 });
               }),
             );
-
-            const failedKeys = created
-              .map((result, index) =>
-                result.status === "rejected"
-                  ? `${envVariables[index].key} (${result.reason?.message ?? "unknown error"})`
-                  : null,
-              )
-              .filter((failure): failure is string => failure !== null);
-
-            if (failedKeys.length > 0) {
-              const errorMessage = `Failed to push variables: ${failedKeys.join(", ")}`;
-              errors.push(new Error(errorMessage));
-              updaterRow.fail({ errorMessage });
-              return;
-            }
           }
 
           if (code === false) {
