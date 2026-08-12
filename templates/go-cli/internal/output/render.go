@@ -48,6 +48,9 @@ func (r *Renderer) Render(value any) error {
 		return RenderJSON(writer, quoteBigIntegers(redactor.Mask(value, "")))
 	case ModeJSON:
 		masked := redactor.Mask(value, "")
+		if isGraphQLResponse(masked) {
+			return RenderJSON(writer, quoteBigIntegers(masked))
+		}
 		if object, ok := masked.(*jsonx.Object); ok {
 			return RenderJSON(writer, FilterData(object))
 		}

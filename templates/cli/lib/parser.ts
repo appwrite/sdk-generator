@@ -265,7 +265,36 @@ const applyDisplayFilter = (rows: JsonObject[]): JsonObject[] => {
   });
 };
 
+const GRAPHQL_RESPONSE_KEYS = new Set(["data", "errors", "extensions"]);
+
+const isGraphQLResponseObject = (value: unknown): boolean => {
+  const object = toJsonObject(value);
+  if (!object) return false;
+
+  const keys = Object.keys(object).filter(
+    (key) => typeof object[key] !== "function",
+  );
+
+  return (
+    keys.length > 0 &&
+    keys.every((key) => GRAPHQL_RESPONSE_KEYS.has(key)) &&
+    keys.some((key) => key === "data" || key === "errors")
+  );
+};
+
+const isGraphQLResponse = (value: unknown): boolean => {
+  if (Array.isArray(value)) {
+    return value.length > 0 && value.every(isGraphQLResponseObject);
+  }
+
+  return isGraphQLResponseObject(value);
+};
+
 const filterData = (data: JsonObject): JsonObject => {
+  if (isGraphQLResponseObject(data)) {
+    return data;
+  }
+
   const result: JsonObject = {};
   for (const key of Object.keys(data)) {
     const value = data[key];
@@ -310,7 +339,11 @@ export const parse = (data: unknown): void => {
 
     if (cliConfig.json) {
       const sanitizedData = maskSensitiveData(data) as JsonObject;
-      drawJSON(filterData(sanitizedData));
+      drawJSON(
+        isGraphQLResponse(sanitizedData)
+          ? sanitizedData
+          : filterData(sanitizedData),
+      );
       return;
     }
 

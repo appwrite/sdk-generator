@@ -104,13 +104,68 @@ func FilterObject(object *jsonx.Object) *jsonx.Object {
 	return result
 }
 
+var graphQLResponseKeys = map[string]bool{
+	"data":       true,
+	"errors":     true,
+	"extensions": true,
+}
+
+func isGraphQLResponse(value any) bool {
+	switch typed := value.(type) {
+	case *jsonx.Object:
+		return isGraphQLResponseObject(typed)
+	case []any:
+		if len(typed) == 0 {
+			return false
+		}
+		for _, item := range typed {
+			object, ok := item.(*jsonx.Object)
+			if !ok || !isGraphQLResponseObject(object) {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	return false
+}
+
+func isGraphQLResponseObject(object *jsonx.Object) bool {
+	keys := object.Keys()
+	if len(keys) == 0 {
+		return false
+	}
+
+	hasPayload := false
+	for _, key := range keys {
+		if !graphQLResponseKeys[key] {
+			return false
+		}
+		if key == "data" || key == "errors" {
+			hasPayload = true
+		}
+	}
+
+	return hasPayload
+}
+
 // FilterData prepares a response for --json.
 //
 // Scalars survive. Arrays survive with their object elements flattened by
 // FilterObject. Nested objects, nulls and blank strings are dropped. Integers
 // past 2^53 become strings, matching what json-bigint hands the TypeScript;
 // see renderedAsString.
+//
+// GraphQL is the exception: its response envelope is user-selected data under
+// `data` and/or `errors`, so flattening would erase successful responses.
 func FilterData(data *jsonx.Object) *jsonx.Object {
+	if isGraphQLResponseObject(data) {
+		filtered, _ := quoteBigIntegers(data).(*jsonx.Object)
+
+		return filtered
+	}
+
 	result := jsonx.NewObject()
 
 	for _, key := range data.Keys() {
