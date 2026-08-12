@@ -62,6 +62,28 @@ const hintSignedInAccounts = (): void => {
   log(`Run '${EXECUTABLE_NAME} login --switch' to select one.`);
 };
 
+const formatSessionLabel = (session: {
+  id?: string;
+  email?: string;
+  endpoint?: string;
+}): string => {
+  const who = session.email || session.id || "unknown session";
+  return session.endpoint ? `${who} (${session.endpoint})` : who;
+};
+
+const announceActiveSession = (): void => {
+  const currentSession = globalConfig
+    .getSessions()
+    .find((session) => session.id === globalConfig.getCurrentSession());
+
+  if (currentSession?.email) {
+    log(`Now using ${formatSessionLabel(currentSession)}.`);
+    return;
+  }
+
+  log("No active session.");
+};
+
 const warnDetachedAuthenticatedSession = (previousSessionId: string): void => {
   if (!previousSessionId || !isAuthenticatedSession(previousSessionId)) {
     return;
@@ -172,7 +194,8 @@ export const logout = new Command("logout")
         } else {
           globalConfig.setCurrentSession("");
         }
-        success(logMessages.logoutSuccess);
+        success(`Signed out of ${formatSessionLabel(accounts[0])}.`);
+        announceActiveSession();
 
         return;
       }
@@ -204,15 +227,23 @@ export const logout = new Command("logout")
           remainingSessions[0];
         globalConfig.setCurrentSession(nextSession.id);
 
-        if (!logoutFailed && nextSession.email) {
-          success(`Switched to ${nextSession.email}`);
-        }
       } else if (remainingSessions.length === 0) {
         globalConfig.setCurrentSession("");
       }
 
       if (!logoutFailed) {
-        success(logMessages.logoutSuccess);
+        const signedOutAccounts = accounts.filter((account) =>
+          (answers.accounts as string[] | undefined)?.includes(account.id),
+        );
+        if (signedOutAccounts.length > 0) {
+          success(`Signed out of ${signedOutAccounts.length} account(s):`);
+          for (const account of signedOutAccounts) {
+            log(`  ${formatSessionLabel(account)}`);
+          }
+        } else {
+          success(logMessages.logoutSuccess);
+        }
+        announceActiveSession();
       }
     }),
   );

@@ -144,6 +144,27 @@ func TestSwitchWithoutSelectorsIsActionableWhenHeadless(t *testing.T) {
 
 // Cloud sign-in happens in a browser, so an email and password given for it
 // would be silently ignored. Saying so beats appearing to accept them.
+func TestLoginDefaultsToProductionCloudEvenWhenAnotherEndpointIsCurrent(t *testing.T) {
+	preferencesWith(t, `{
+  "current": "staging",
+  "staging": {
+    "endpoint": "https://cloud.staging.appwrite.io/v1",
+    "email": "a@example.com",
+    "accessToken": "token"
+  }
+}`)
+
+	if got := resolveLoginEndpoint(""); got != "https://cloud.appwrite.io/v1" {
+		t.Errorf("endpoint = %q, want production Cloud", got)
+	}
+}
+
+func TestLoginHonorsExplicitEndpoint(t *testing.T) {
+	if got := resolveLoginEndpoint("https://cloud.staging.appwrite.io/v1"); got != "https://cloud.staging.appwrite.io/v1" {
+		t.Errorf("endpoint = %q, want the explicit endpoint", got)
+	}
+}
+
 func TestLoginRejectsPasswordOptionsAgainstCloud(t *testing.T) {
 	err := runLogin(newLoginCommand(), loginOptions{
 		Endpoint: "https://cloud.appwrite.io/v1",

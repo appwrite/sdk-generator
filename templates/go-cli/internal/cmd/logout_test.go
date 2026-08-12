@@ -124,6 +124,26 @@ func TestLogoutRevokesEachSessionAtItsOwnEndpoint(t *testing.T) {
 	}
 }
 
+func TestLogoutSessionLabelsShowAccountAndEndpoint(t *testing.T) {
+	session := config.Session{
+		ID:       "session-id",
+		Email:    "person@example.com",
+		Endpoint: "https://cloud.appwrite.io/v1",
+	}
+
+	if got := formatSessionLabel(session); got != "person@example.com (https://cloud.appwrite.io/v1)" {
+		t.Errorf("label = %q", got)
+	}
+}
+
+func TestLogoutSessionLabelsFallbackToID(t *testing.T) {
+	session := config.Session{ID: "session-id"}
+
+	if got := formatSessionLabel(session); got != "session-id" {
+		t.Errorf("label = %q", got)
+	}
+}
+
 // preferencesWith writes a prefs file and loads it, with HOME pointed at a
 // temporary directory so the real one is never touched.
 func preferencesWith(t *testing.T, contents string) *config.Global {

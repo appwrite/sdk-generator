@@ -223,6 +223,11 @@ func newLogoutCommand() *cobra.Command {
 				return nil
 			}
 
+			// Capture labels before revocation deletes the local entries. Without
+			// them, logout can only say a count, and users cannot tell which account
+			// was removed or which remaining account became active.
+			signedOutSessions := sessionsForIDs(global, targets)
+
 			// Revoked at the server first. Deleting the local entry alone
 			// left the credential working until it expired on its own.
 			result := logoutSessions(global, targets)
@@ -231,7 +236,16 @@ func newLogoutCommand() *cobra.Command {
 			}
 
 			if len(result.SignedOut) > 0 {
-				command.Printf("Signed out of %d session(s).\n", len(result.SignedOut))
+				command.Printf("Signed out of %d session(s):\n", len(result.SignedOut))
+				for _, session := range sessionsForIDsFromList(signedOutSessions, result.SignedOut) {
+					command.Printf("  %s\n", formatSessionLabel(session))
+				}
+
+				if current, ok := global.Session(global.CurrentSessionID()); ok {
+					command.Printf("Now using:\n  %s\n", formatSessionLabel(current))
+				} else if !app.Flags().All {
+					command.Println("No active session.")
+				}
 			}
 			if len(result.Failed) > 0 {
 				// Kept, not removed: a live server session with no local record
@@ -244,6 +258,47 @@ func newLogoutCommand() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func sessionsForIDs(global *config.Global, ids []string) []config.Session {
+	sessions := make([]config.Session, 0, len(ids))
+	for _, id := range ids {
+		if session, ok := global.Session(id); ok {
+			sessions = append(sessions, session)
+		}
+	}
+
+	return sessions
+}
+
+func sessionsForIDsFromList(sessions []config.Session, ids []string) []config.Session {
+	byID := make(map[string]config.Session, len(sessions))
+	for _, session := range sessions {
+		byID[session.ID] = session
+	}
+
+	matched := make([]config.Session, 0, len(ids))
+	for _, id := range ids {
+		if session, ok := byID[id]; ok {
+			matched = append(matched, session)
+		}
+	}
+
+	return matched
+}
+
+func formatSessionLabel(session config.Session) string {
+	parts := []string{}
+	if session.Email != "" {
+		parts = append(parts, session.Email)
+	} else {
+		parts = append(parts, session.ID)
+	}
+	if session.Endpoint != "" {
+		parts = append(parts, "("+session.Endpoint+")")
+	}
+
+	return strings.Join(parts, " ")
 }
 
 // bannerStyle is the dim grey the CLI uses for context lines.

@@ -92,14 +92,7 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 		return switchAccount(command, global, previous, options.Endpoint, options.Email)
 	}
 
-	endpoint := options.Endpoint
-	if endpoint == "" {
-		endpoint = global.CurrentValue(config.PreferenceEndpoint)
-	}
-	if endpoint == "" {
-		endpoint = config.DefaultEndpoint
-	}
-	configEndpoint := config.NormalizeCloudConsoleEndpoint(endpoint)
+	configEndpoint := resolveLoginEndpoint(options.Endpoint)
 
 	if options.Endpoint != "" && config.IsRegionalCloudEndpoint(options.Endpoint) {
 		output.Warn(out, "Regional Cloud endpoints are for project API calls, so "+
@@ -133,7 +126,8 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 			// rather than starting a flow they did not ask for.
 			if options.Email == "" && options.Password == "" &&
 				options.Endpoint == "" && !options.Switch {
-				output.Success(out, "Already logged in as %s", account.GetString("email"))
+				output.Success(out, "Already logged in as %s (%s)",
+					account.GetString("email"), global.CurrentValue(config.PreferenceEndpoint))
 				output.Hint(out, "Use '%s login --new' to add another account",
 					app.ExecutableName)
 
@@ -512,6 +506,14 @@ func isInvalidCredentials(err error) bool {
 
 // loginWithDevice signs in through the browser. Ports loginWithOAuthDevice
 // (login.ts:333).
+func resolveLoginEndpoint(endpoint string) string {
+	if endpoint == "" {
+		endpoint = config.DefaultEndpoint
+	}
+
+	return config.NormalizeCloudConsoleEndpoint(endpoint)
+}
+
 func loginWithDevice(command *cobra.Command, endpoint string) error {
 	global, err := preferences()
 	if err != nil {
