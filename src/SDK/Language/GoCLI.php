@@ -1212,6 +1212,11 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/cmd/pushvariables_test.go',
+                'template'      => 'go-cli/internal/cmd/pushvariables_test.go',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pushall.go',
                 'template'      => 'go-cli/internal/cmd/pushall.go',
             ],

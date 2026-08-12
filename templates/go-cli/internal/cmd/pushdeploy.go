@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -1074,12 +1075,57 @@ func writeBody(
 	return body
 }
 
+// variableKeyPattern is the API's rule for a variable key. Keys become
+// environment variable names at build and runtime, so only identifiers are
+// accepted. dotenv's own key pattern is wider -- `A.B` and `A-B` parse there
+// and are rejected here.
+var variableKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+// variableKeyMaxLength is the API's limit on a variable key.
+const variableKeyMaxLength = 255
+
+// validateVariableKeys reports the keys the API will not accept.
+func validateVariableKeys(names []string) error {
+	invalid := make([]string, 0, len(names))
+	for _, name := range names {
+		if len(name) > variableKeyMaxLength || !variableKeyPattern.MatchString(name) {
+			invalid = append(invalid, name)
+		}
+	}
+
+	if len(invalid) == 0 {
+		return nil
+	}
+
+	return fmt.Errorf(
+		"invalid variable keys (%s): a key must contain only letters, digits "+
+			"and underscores and must not start with a digit",
+		strings.Join(invalid, ", "))
+}
+
 // replaceVariables rewrites a resource's variables from its .env file.
 //
 // Every remote variable is deleted first: the .env is the source of truth, and
 // merging would keep one the user removed.
 func (c *pushContext) replaceVariables(resource deployable, entry *jsonx.Object) error {
 	base := resource.Path + "/" + url.PathEscape(entry.GetString("$id")) + "/variables"
+
+	var names []string
+	var values map[string]string
+
+	path := c.local.ResolveResourcePath(resource.ConfigKey, entry.GetString("path"))
+	// No .env is not an error: the TypeScript swallows the read and pushes an
+	// empty set, which is how variables are cleared.
+	if contents, err := os.ReadFile(filepath.Join(path, ".env")); err == nil {
+		names, values = dotenv.ParseOrdered(string(contents))
+
+		// Validated before the deletes below: the remote set is dropped and
+		// rebuilt from this file, so a key the API rejects would leave the
+		// resource with no variables at all.
+		if err := validateVariableKeys(names); err != nil {
+			return err
+		}
+	}
 
 	listing := jsonx.NewObject()
 	if err := c.api.Call("GET", base, nil, listing); err != nil {
@@ -1100,15 +1146,6 @@ func (c *pushContext) replaceVariables(resource deployable, entry *jsonx.Object)
 		}
 	}
 
-	path := c.local.ResolveResourcePath(resource.ConfigKey, entry.GetString("path"))
-	contents, err := os.ReadFile(filepath.Join(path, ".env"))
-	if err != nil {
-		// No .env is not an error: the TypeScript swallows the read and pushes
-		// an empty set, which is how variables are cleared.
-		return nil
-	}
-
-	names, values := dotenv.ParseOrdered(string(contents))
 	for _, name := range names {
 		body := jsonx.NewObject()
 		body.Set("variableId", appwrite.Unique())
