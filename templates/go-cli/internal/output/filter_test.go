@@ -199,12 +199,17 @@ func TestFilterDataPreservesGraphQLResponseEnvelope(t *testing.T) {
 }
 
 func TestJSONModePreservesGraphQLBatchResponses(t *testing.T) {
-	first := decode(t, `{"data":{"id":9007199254740993}}`)
-	second := decode(t, `{"errors":[{"message":"bad","extensions":{"code":"x"}}]}`)
+	input, err := DecodeOrdered([]byte(`[
+		{"data":{"id":9007199254740993}},
+		{"errors":[{"message":"bad","extensions":{"code":"x"}}]}
+	]`))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	buffer := &bytes.Buffer{}
 	renderer := &Renderer{Mode: ModeJSON, Writer: buffer}
-	if err := renderer.Render([]any{first, second}); err != nil {
+	if err := renderer.Render(input); err != nil {
 		t.Fatal(err)
 	}
 

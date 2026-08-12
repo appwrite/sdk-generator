@@ -114,13 +114,14 @@ func isGraphQLResponse(value any) bool {
 	switch typed := value.(type) {
 	case *jsonx.Object:
 		return isGraphQLResponseObject(typed)
+	case map[string]any:
+		return isGraphQLResponseMap(typed)
 	case []any:
 		if len(typed) == 0 {
 			return false
 		}
 		for _, item := range typed {
-			object, ok := item.(*jsonx.Object)
-			if !ok || !isGraphQLResponseObject(object) {
+			if !isGraphQLResponse(item) {
 				return false
 			}
 		}
@@ -132,7 +133,19 @@ func isGraphQLResponse(value any) bool {
 }
 
 func isGraphQLResponseObject(object *jsonx.Object) bool {
-	keys := object.Keys()
+	return isGraphQLResponseKeys(object.Keys())
+}
+
+func isGraphQLResponseMap(object map[string]any) bool {
+	keys := make([]string, 0, len(object))
+	for key := range object {
+		keys = append(keys, key)
+	}
+
+	return isGraphQLResponseKeys(keys)
+}
+
+func isGraphQLResponseKeys(keys []string) bool {
 	if len(keys) == 0 {
 		return false
 	}
@@ -227,6 +240,13 @@ func quoteBigIntegers(value any) any {
 		for _, key := range typed.Keys() {
 			nested, _ := typed.Get(key)
 			result.Set(key, quoteBigIntegers(nested))
+		}
+
+		return result
+	case map[string]any:
+		result := make(map[string]any, len(typed))
+		for key, nested := range typed {
+			result[key] = quoteBigIntegers(nested)
 		}
 
 		return result

@@ -60,33 +60,15 @@ func RenderJSON(writer io.Writer, value any) error {
 //
 // Responses must go through this rather than encoding/json's default
 // map[string]any: a map would re-emit keys sorted, which --json consumers would
-// see as the field order changing between the two CLIs.
+// see as the field order changing between the two CLIs. Arrays use the same
+// ordered decoder because GraphQL batches put response objects at the top level.
 func DecodeOrdered(payload []byte) (any, error) {
 	trimmed := strings.TrimSpace(string(payload))
 	if trimmed == "" {
 		return nil, nil
 	}
 
-	// Only objects carry key order worth preserving; arrays and scalars decode
-	// normally, with UseNumber so integers keep their digits.
-	if strings.HasPrefix(trimmed, "{") {
-		object := jsonx.NewObject()
-		if err := object.UnmarshalJSON([]byte(trimmed)); err != nil {
-			return nil, err
-		}
-
-		return object, nil
-	}
-
-	decoder := json.NewDecoder(strings.NewReader(trimmed))
-	decoder.UseNumber()
-
-	var value any
-	if err := decoder.Decode(&value); err != nil {
-		return nil, err
-	}
-
-	return value, nil
+	return jsonx.DecodeValue([]byte(trimmed))
 }
 
 // MarshalOrdered encodes a value to JSON for re-decoding through DecodeOrdered.
