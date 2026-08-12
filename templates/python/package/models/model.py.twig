@@ -2,7 +2,7 @@
 {% set isGeneric = definition.additionalProperties or hasGenericProperty %}
 from typing import Any, Dict, List, Optional, Union, cast{% if isGeneric %}, Generic, TypeVar, Type{% endif %}
 
-from pydantic import Field, PrivateAttr{{ definition.additionalProperties ? ', model_serializer' : '' }}
+from pydantic import Field, PrivateAttr{{ definition.additionalProperties ? ', TypeAdapter, model_serializer' : '' }}
 
 from .base_model import AppwriteModel
 {% set added = [] %}
@@ -30,6 +30,10 @@ from .{{ subSchema | caseSnake }} import {{ subSchema | caseUcfirst }}
 {% if isGeneric %}
 
 T = TypeVar('T')
+{% endif %}
+{% if definition.additionalProperties %}
+
+_PAYLOAD_ADAPTER = TypeAdapter(Dict[str, Any])
 {% endif %}
 
 class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generic[T]{% endif %}):
@@ -126,11 +130,16 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
             )
 
         if isinstance(self._{{ 'data' | caseSnake | removeDollarSign }}, dict) and (include is not None or exclude is not None):
-            keys = [key for key in self._{{ 'data' | caseSnake | removeDollarSign }} if include is None or key in include]
-            if exclude is not None:
-                keys = [key for key in keys if key not in exclude]
-
-            return {key: self._{{ 'data' | caseSnake | removeDollarSign }}[key] for key in keys}
+            return _PAYLOAD_ADAPTER.dump_python(
+                self._{{ 'data' | caseSnake | removeDollarSign }},
+                mode=info.mode,
+                by_alias=info.by_alias,
+                exclude_unset=info.exclude_unset,
+                exclude_defaults=info.exclude_defaults,
+                exclude_none=info.exclude_none,
+                include=include,
+                exclude=exclude,
+            )
 
         return self._{{ 'data' | caseSnake | removeDollarSign }}
 {% if definition.properties | length > 0 %}
