@@ -113,7 +113,7 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
     def {{ 'data' | caseSnake | removeDollarSign }}(self, value: T) -> None:
         object.__setattr__(self, '_{{ 'data' | caseSnake | removeDollarSign }}', value)
 
-    def _serialize_data(self, info):
+    def _serialize_data(self, info, include=None, exclude=None):
         if hasattr(self._{{ 'data' | caseSnake | removeDollarSign }}, 'model_dump'):
             return self._{{ 'data' | caseSnake | removeDollarSign }}.model_dump(
                 mode=info.mode,
@@ -121,18 +121,58 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
                 exclude_unset=info.exclude_unset,
                 exclude_defaults=info.exclude_defaults,
                 exclude_none=info.exclude_none,
+                include=include,
+                exclude=exclude,
             )
 
+        if isinstance(self._{{ 'data' | caseSnake | removeDollarSign }}, dict) and (include is not None or exclude is not None):
+            keys = [key for key in self._{{ 'data' | caseSnake | removeDollarSign }} if include is None or key in include]
+            if exclude is not None:
+                keys = [key for key in keys if key not in exclude]
+
+            return {key: self._{{ 'data' | caseSnake | removeDollarSign }}[key] for key in keys}
+
         return self._{{ 'data' | caseSnake | removeDollarSign }}
+{% if definition.properties | length > 0 %}
+
+    @staticmethod
+    def _select_data(selector):
+        """
+        Resolves a pydantic include/exclude selector against the '{{ 'data' }}' key, which is
+        serialized here rather than declared as a field. Returns whether the key was
+        named, and any nested selector to apply within it.
+        """
+        if selector is None:
+            return False, None
+
+        if isinstance(selector, dict):
+            if '{{ 'data' }}' not in selector:
+                return False, None
+
+            nested = selector['{{ 'data' }}']
+
+            return True, nested if isinstance(nested, (dict, set, frozenset, list, tuple)) else None
+
+        return '{{ 'data' }}' in selector, None
+{% endif %}
 
     @model_serializer(mode='wrap')
     def _serialize_model(self, handler, info):
         result = handler(self)
-        data = self._serialize_data(info)
 {% if definition.properties | length > 0 %}
-        result['{{ 'data' }}'] = data
+        included, include_fields = self._select_data(info.include)
+        excluded, exclude_fields = self._select_data(info.exclude)
+
+        if info.include is not None and not included:
+            return result
+
+        if excluded and exclude_fields is None:
+            return result
+
+        result['{{ 'data' }}'] = self._serialize_data(info, include_fields, exclude_fields)
         return result
 {% else %}
+        data = self._serialize_data(info, info.include, info.exclude)
         if isinstance(result, dict) and isinstance(data, dict):
             return {**result, **data}
 
