@@ -772,6 +772,46 @@ class Python extends Language
         return false;
     }
 
+    protected function getAdditionalPropertiesExpectationLines(?string $model, array $spec, string $target): array
+    {
+        if (!$model || !array_key_exists($model, $spec['definitions'] ?? [])) {
+            return [];
+        }
+
+        $modelDef = $spec['definitions'][$model];
+        $lines = [];
+
+        if (!empty($modelDef['additionalProperties'])) {
+            $lines[] = $target . "['data'] = {}";
+        }
+
+        foreach ($modelDef['properties'] ?? [] as $property) {
+            if (!($property['required'] ?? false) || empty($property['sub_schema']) || ($property['type'] ?? '') === self::TYPE_ARRAY) {
+                continue;
+            }
+
+            $propertyName = str_replace(["\\", "'"], ["\\\\", "\\'"], (string) $property['name']);
+            $lines = [
+                ...$lines,
+                ...$this->getAdditionalPropertiesExpectationLines(
+                    $property['sub_schema'],
+                    $spec,
+                    $target . "['" . $propertyName . "']"
+                ),
+            ];
+        }
+
+        return $lines;
+    }
+
+    protected function getAdditionalPropertiesExpectations(?string $model, array $spec, string $target): string
+    {
+        return implode("\n", array_map(
+            fn(string $line): string => '        ' . $line,
+            $this->getAdditionalPropertiesExpectationLines($model, $spec, $target)
+        ));
+    }
+
     /**
      * Creates an example for a response model with the given name
      *
@@ -877,7 +917,8 @@ class Python extends Language
                 $json = json_encode($result, JSON_PRETTY_PRINT | JSON_PRESERVE_ZERO_FRACTION);
 
                 return str_replace([ 'true', 'false', 'null' ], [ "True", "False", "None" ], $json);
-            })
+            }),
+            new TwigFilter('additionalPropertiesExpectations', fn(string $model, array $spec, string $target): string => $this->getAdditionalPropertiesExpectations($model, $spec, $target))
         ];
     }
 }
