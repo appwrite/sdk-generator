@@ -474,6 +474,18 @@ class Python extends Language
         return $index <= 1 ? $baseName : $baseName . '_' . $index;
     }
 
+    protected function getServiceEnumName(Parameter $parameter, Specification $spec): string
+    {
+        $enumName = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
+        foreach (\array_keys($spec->schemas) as $modelName) {
+            if ($this->toPascalCase($modelName) === $enumName) {
+                return $enumName . 'Enum';
+            }
+        }
+
+        return $enumName;
+    }
+
     protected function getDocsModelTypeName(string $modelName, string $serviceName = ''): string
     {
         $modelType = $this->toPascalCase($modelName);
@@ -628,7 +640,7 @@ class Python extends Language
             new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => $this->hasGenericType($model, $spec)),
             new TwigFilter('hasGenericTypeProperty', fn(array $properties, Specification $spec): bool => $this->hasGenericTypeProperty($properties, $spec)),
             new TwigFilter('getServicePropertyType', fn(Schema|Parameter $value, Tag $service): string => $this->getTypeName($value)),
-            new TwigFilter('getServiceEnumName', fn(Parameter $parameter, Tag $service): string => $this->toPascalCase($parameter->schema?->extensions['x-enum-name'] ?? $parameter->name)),
+            new TwigFilter('getServiceEnumName', fn(Parameter $parameter, Tag $service, Specification $spec): string => $this->getServiceEnumName($parameter, $spec)),
             new TwigFilter('getModelPropertyType', fn(Schema $value, string $ownerName, Specification $spec): string => $this->getTypeName($value, $spec)),
             new TwigFilter('getModelFieldName', fn(Schema $value, array $properties): string => $this->getModelFieldName($value, $properties)),
             new TwigFilter('getResponseType', fn(Operation $method, string $serviceName = ''): string => ($models = $this->getOperationResponseModels($method)) === [] ? 'Any' : \implode(', ', \array_map($this->toPascalCase(...), $models))),

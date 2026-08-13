@@ -13,7 +13,7 @@ from ..input_file import InputFile
 {% endif %}
 {% if (parameter | enumValues) is not empty%}
 {% if (parameter | enumName) not in added %}
-{% set enumRef = parameter | getServiceEnumName(service) %}
+{% set enumRef = parameter | getServiceEnumName(service, spec) %}
 from ..enums.{{ (parameter | enumName) | caseSnake }} import {{ (parameter | enumName) | caseUcfirst }}{% if enumRef != ((parameter | enumName) | caseUcfirst) %} as {{ enumRef }}{% endif %}
 
 {% set added = added|merge([(parameter | enumName)]) %}
@@ -69,7 +69,7 @@ class {{ service.name | caseUcfirst }}(Service):
 {% set shouldSkip = false %}
 {% if method.deprecated %}
 {% for otherMethod in (service | operations) %}
-{% if not otherMethod.deprecated and (otherMethod.name | caseSnake) == methodNameSnake %}
+{% if not otherMethod.deprecated and ((otherMethod | methodName) | caseSnake) == methodNameSnake %}
 {% set shouldSkip = true %}
 {% endif %}
 {% endfor %}
