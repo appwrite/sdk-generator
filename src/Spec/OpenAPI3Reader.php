@@ -142,14 +142,45 @@ final class OpenAPI3Reader
         $parameters = [];
 
         foreach ([...$pathParameters, ...$operationParameters] as $parameter) {
-            $reference = $parameter['$ref'] ?? null;
-            $key = \is_string($reference)
-                ? $reference
-                : ($parameter['in'] ?? '') . "\0" . ($parameter['name'] ?? '');
-            $parameters[$key] = $parameter;
+            $parameters[$this->getParameterKey($parameter)] = $parameter;
         }
 
         return \array_values($parameters);
+    }
+
+    /** @param array<string, mixed> $parameter */
+    private function getParameterKey(array $parameter): string
+    {
+        $reference = $parameter['$ref'] ?? null;
+        if (\is_string($reference)) {
+            $resolved = $this->resolveLocalReference($reference);
+            if ($resolved !== null) {
+                return $this->getParameterKey($resolved);
+            }
+
+            return $reference;
+        }
+
+        return ($parameter['in'] ?? '') . "\0" . ($parameter['name'] ?? '');
+    }
+
+    /** @return array<string, mixed>|null */
+    private function resolveLocalReference(string $reference): ?array
+    {
+        if (!\str_starts_with($reference, '#/')) {
+            return null;
+        }
+
+        $value = $this->document;
+        foreach (\explode('/', \substr($reference, 2)) as $segment) {
+            $segment = \str_replace(['~1', '~0'], ['/', '~'], $segment);
+            if (!\is_array($value) || !\array_key_exists($segment, $value)) {
+                return null;
+            }
+            $value = $value[$segment];
+        }
+
+        return \is_array($value) ? $value : null;
     }
 
     /** @return list<SecurityRequirement> */

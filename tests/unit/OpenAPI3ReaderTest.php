@@ -75,10 +75,7 @@ final class OpenAPI3ReaderTest extends TestCase
             'paths' => [
                 '/users/{userId}' => [
                     'parameters' => [[
-                        'name' => 'userId',
-                        'in' => 'path',
-                        'required' => true,
-                        'schema' => ['type' => 'string'],
+                        '$ref' => '#/components/parameters/UserId',
                     ]],
                     'get' => [
                         'operationId' => 'usersGet',
@@ -98,6 +95,16 @@ final class OpenAPI3ReaderTest extends TestCase
                             ],
                         ],
                         'responses' => ['200' => ['description' => 'OK']],
+                    ],
+                ],
+            ],
+            'components' => [
+                'parameters' => [
+                    'UserId' => [
+                        'name' => 'userId',
+                        'in' => 'path',
+                        'required' => true,
+                        'schema' => ['type' => 'string'],
                     ],
                 ],
             ],
