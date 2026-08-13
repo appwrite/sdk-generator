@@ -257,13 +257,11 @@ abstract class Language
     protected function getSchemaModel(Schema|Parameter $value): ?string
     {
         $schema = $this->getSchema($value);
-        if ($schema instanceof ReferenceSchema) {
-            return $this->normalizeSchemaReference($schema->reference);
+        $models = $this->getSchemaModels($schema);
+        if (\count($models) === 1) {
+            return $models[0];
         }
         if ($schema instanceof ArraySchema) {
-            if ($schema->items instanceof ReferenceSchema) {
-                return $this->normalizeSchemaReference($schema->items->reference);
-            }
             return $schema->items->extensions['x-model'] ?? $schema->extensions['x-model'] ?? null;
         }
 
@@ -337,6 +335,24 @@ abstract class Language
         return false;
     }
 
+    protected function hasGenericSchemaType(?string $modelName, Specification $spec, array $visited = []): bool
+    {
+        if (in_array($modelName, [null, '', 'any'], true) || isset($visited[$modelName])) {
+            return false;
+        }
+
+        $model = $spec->schemas[$modelName] ?? null;
+        if (!$model instanceof ObjectSchema) {
+            return false;
+        }
+        if ($model->additionalProperties) {
+            return true;
+        }
+
+        $visited[$modelName] = true;
+        return array_any($model->properties, fn(Schema|Parameter $property): bool => $this->hasGenericSchemaType($this->getSchemaModel($property), $spec, $visited));
+    }
+
     protected function normalizeSchemaReference(string $reference): string
     {
         return \str_replace(['#/components/schemas/', '#/definitions/'], '', $reference);
@@ -365,7 +381,10 @@ abstract class Language
     /** @return list<Parameter> */
     protected function getOperationParameters(Operation $operation): array
     {
-        $parameters = $operation->parameters;
+        $parameters = \array_values(\array_filter(
+            $operation->parameters,
+            static fn(Parameter $parameter): bool => ($parameter->extensions['x-sdk-source'] ?? '') !== 'security',
+        ));
         foreach ($operation->requestBody?->content ?? [] as $mediaType) {
             if (!$mediaType->schema instanceof ObjectSchema) {
                 continue;
@@ -382,6 +401,7 @@ abstract class Language
             }
             break;
         }
+        \usort($parameters, static fn(Parameter $left, Parameter $right): int => (int) $right->required <=> (int) $left->required);
         return $parameters;
     }
 

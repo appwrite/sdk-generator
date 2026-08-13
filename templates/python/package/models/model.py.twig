@@ -44,10 +44,10 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
     Attributes
     ----------
 {% for property in definition.properties %}
-{% set baseType = property | getModelPropertyType(definitionName) | raw %}
+{% set baseType = property | getModelPropertyType(definitionName, spec) | raw %}
 {% set propertyType %}{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}{{ baseType | replace({((property | schemaModel) | caseUcfirst): ((property | schemaModel) | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
 {% if not (property | schemaRequired) and not (property | schemaNullable) %}{% set propertyType %}Optional[{{ propertyType | trim }}]{% endset %}{% endif %}
-    {{ property | schemaName }} : {{ propertyType | trim }}
+    {{ property | getModelFieldName(definition.properties) }} : {{ propertyType | trim }}
 {% if property.description %}
         {{ property.description | replace({"\n": "\n        "}) }}
 {% else %}
@@ -60,9 +60,9 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
     pass
 {% else %}
 {% for property in definition.properties %}
-{% set baseType = property | getModelPropertyType(definitionName) | raw %}
+{% set baseType = property | getModelPropertyType(definitionName, spec) | raw %}
 {% set propType %}{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}{{ baseType | replace({((property | schemaModel) | caseUcfirst): ((property | schemaModel) | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
-    {{ property | schemaName }}: {% if not (property | schemaRequired) and not (property | schemaNullable) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %} = Field({% if (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}')
+    {{ property | getModelFieldName(definition.properties) }}: {% if not (property | schemaRequired) and not (property | schemaNullable) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %} = Field({% if (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}')
 {% endfor %}
 {% endif %}
 {% if isGeneric %}
@@ -91,12 +91,12 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
 {% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}
         if '{{ (property | schemaName) }}' in data and data['{{ (property | schemaName) }}'] is not None:
 {% if (property | schemaType) == 'array' %}
-            instance.{{ property | schemaName }} = [
+            instance.{{ property | getModelFieldName(definition.properties) }} = [
                 {{ (property | schemaModel) | caseUcfirst }}.with_data(row, model_type)
                 for row in data['{{ (property | schemaName) }}']
             ]
 {% else %}
-            instance.{{ property | schemaName }} = {{ (property | schemaModel) | caseUcfirst }}.with_data(
+            instance.{{ property | getModelFieldName(definition.properties) }} = {{ (property | schemaModel) | caseUcfirst }}.with_data(
                 data['{{ (property | schemaName) }}'], model_type
             )
 {% endif %}

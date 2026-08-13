@@ -202,6 +202,10 @@ class Go extends Language
 
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
+        if (\str_contains($parameter->description, 'Collection attributes') || \str_contains($parameter->description, 'List of attributes')) {
+            return '[]map[string]any';
+        }
+
         $schema = $this->getSchema($parameter);
         $model = $this->getSchemaModel($parameter);
         if ($model !== null) {
@@ -215,7 +219,9 @@ class Go extends Language
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_OBJECT => 'interface{}',
-            self::TYPE_ARRAY => '[]' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema),
+            self::TYPE_ARRAY => $schema instanceof ArraySchema && $schema->items instanceof ArraySchema
+                ? '[][]interface{}'
+                : '[]' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema),
             default => 'interface{}',
         };
     }

@@ -34,8 +34,8 @@ class {{ requestModelName | caseUcfirst }}(AppwriteModel):
     Attributes
     ----------
 {% for property in requestModel.properties %}
-{% set propertyType %}{% if not (property | schemaRequired) and not (property | schemaNullable) %}Optional[{{ property | getModelPropertyType(requestModelName) | raw }}]{% else %}{{ property | getModelPropertyType(requestModelName) | raw }}{% endif %}{% endset %}
-    {{ property | schemaName }} : {{ propertyType | trim }}
+{% set propertyType %}{% if not (property | schemaRequired) and not (property | schemaNullable) %}Optional[{{ property | getModelPropertyType(requestModelName, spec) | raw }}]{% else %}{{ property | getModelPropertyType(requestModelName, spec) | raw }}{% endif %}{% endset %}
+    {{ property | getModelFieldName(requestModel.properties) }} : {{ propertyType | trim }}
 {% if property.description %}
         {{ property.description | replace({"\n": "\n        "}) }}
 {% else %}
@@ -48,6 +48,6 @@ class {{ requestModelName | caseUcfirst }}(AppwriteModel):
     pass
 {% else %}
 {% for property in requestModel.properties %}
-    {{ property | schemaName }}: {% if not (property | schemaRequired) and not (property | schemaNullable) %}Optional[{{ property | getModelPropertyType(requestModelName) | raw }}]{% else %}{{ property | getModelPropertyType(requestModelName) | raw }}{% endif %} = Field({% if (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}')
+    {{ property | getModelFieldName(requestModel.properties) }}: {% if not (property | schemaRequired) and not (property | schemaNullable) %}Optional[{{ property | getModelPropertyType(requestModelName, spec) | raw }}]{% else %}{{ property | getModelPropertyType(requestModelName, spec) | raw }}{% endif %} = Field({% if (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}')
 {% endfor %}
 {% endif %}

@@ -59,7 +59,7 @@ export class {{ service.name | caseUcfirst }} {
      */
     {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}({% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress?: (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }};
     {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}(
-        {% if (method | parameters('all'))|length > 0 %}paramsOrFirst{% if not (method | parameters('all'))[0].required or (method | parameters('all'))[0].nullable %}?{% endif %}: { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress?: (progress: UploadProgress) => void{% endif %} } | {{ (method | parameters('all'))[0] | getPropertyType(method) | raw }}{% if (method | parameters('all'))|length > 1 %},
+        {% if (method | parameters('all'))|length > 0 %}paramsOrFirst{% if not (method | parameters('all'))[0].required or ((method | parameters('all'))[0] | schemaNullable) %}?{% endif %}: { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress?: (progress: UploadProgress) => void{% endif %} } | {{ (method | parameters('all'))[0] | getPropertyType(method) | raw }}{% if (method | parameters('all'))|length > 1 %},
         ...rest: [{% for parameter in (method | parameters('all'))[1:] %}({{ parameter | getPropertyType(method) | raw }})?{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %},((progress: UploadProgress) => void)?{% endif %}]{% endif %}{% endif %}
     
     ): {{ method | getReturn(spec) | raw }} {
@@ -109,7 +109,7 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endif %}
         {%~ endfor %}
 
-        const apiPath = '{{ method.path }}'{% for parameter in (method | parameters('path')) %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', encodeURIComponent(String({% if parameter.source|default('') == 'security' %}this.client.config.{{ parameter.config | caseLower }}{% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}))){% endfor %};
+        const apiPath = '{{ method.path }}'{% for parameter in (method | parameters('path')) %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', encodeURIComponent(String({% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}this.client.config.{{ parameter.extensions['x-sdk-config'] | caseLower }}{% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}))){% endfor %};
         const payload: Payload = {};
         {%~ for parameter in (method | parameters('query')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Appwrite\SDK\Language;
 
 use Override;
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Specification;
 
 class Apple extends Swift
 {
@@ -502,5 +504,15 @@ class Apple extends Swift
                 'template'      => '/swift/example-uikit/UIKitExampleUITests/UIKitExampleUITests.swift',
             ],
         ];
+    }
+
+    #[Override]
+    protected function getReturnType(Operation $method, Specification $spec, string $generic = 'T'): string
+    {
+        if (($method->extensions['x-appwrite']['type'] ?? '') === 'webAuth') {
+            return 'Bool';
+        }
+
+        return parent::getReturnType($method, $spec, $generic);
     }
 }

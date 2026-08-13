@@ -1,7 +1,7 @@
 {%~ set importedEnums = [] %}
 {%~ set importedSchemas = [] %}
 {%~ for property in requestModel.properties %}
-{%~ if property.enum and (property | enumName) not in importedEnums %}
+{%~ if (property | enumValues) is not empty and (property | enumName) not in importedEnums %}
 import { {{ (property | enumName) | caseUcfirst }} } from '../enums/{{ (property | enumName) | caseKebab }}';
 {%~ set importedEnums = importedEnums | merge([(property | enumName)]) %}
 {%~ endif %}
@@ -29,7 +29,7 @@ export interface {{ requestModelName | caseUcfirst }} {
 export function {{ requestModelName | caseCamel }}ToMap(model: {{ requestModelName | caseUcfirst }}): Record<string, unknown> {
     return {
         {%~ for property in requestModel.properties %}
-        '{{ (property | schemaName) }}': {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}model.{{ (property | schemaName) | escapeKeyword }}{% if not (property | schemaRequired) %}?{% endif %}.map(item => {{ (property | schemaModel) | caseCamel }}ToMap(item)){% else %}model.{{ (property | schemaName) | escapeKeyword }} ? {{ (property | schemaModel) | caseCamel }}ToMap(model.{{ (property | schemaName) | escapeKeyword }}) : undefined{% endif %}{% elseif property.enum %}model.{{ (property | schemaName) | escapeKeyword }}{% else %}model.{{ (property | schemaName) | escapeKeyword }}{% endif %},
+        '{{ (property | schemaName) }}': {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}model.{{ (property | schemaName) | escapeKeyword }}{% if not (property | schemaRequired) %}?{% endif %}.map(item => {{ (property | schemaModel) | caseCamel }}ToMap(item)){% else %}model.{{ (property | schemaName) | escapeKeyword }} ? {{ (property | schemaModel) | caseCamel }}ToMap(model.{{ (property | schemaName) | escapeKeyword }}) : undefined{% endif %}{% elseif (property | enumValues) is not empty %}model.{{ (property | schemaName) | escapeKeyword }}{% else %}model.{{ (property | schemaName) | escapeKeyword }}{% endif %},
         {%~ endfor %}
     };
 }

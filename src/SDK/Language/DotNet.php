@@ -210,7 +210,7 @@ class DotNet extends Language
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_FILE => 'InputFile',
-            self::TYPE_ARRAY => 'List<' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '>',
+            self::TYPE_ARRAY => 'List<' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema, $spec) . '>',
             self::TYPE_OBJECT => 'object',
             default => 'object',
         };
@@ -558,8 +558,8 @@ class DotNet extends Language
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('sub_schema', function (Schema $property, bool $required = true): string {
-                $result = $this->getPropertyType($property, null, true);
+            new TwigFunction('sub_schema', function (Schema $property, bool $required, Specification $spec): string {
+                $result = $this->getPropertyType($property, $spec, true);
                 return $required ? $result : $result . '?';
             }, ['is_safe' => ['html']]),
             new TwigFunction('property_name', fn(string $definition, string $property): string => $this->getPropertyName($definition, $property)),

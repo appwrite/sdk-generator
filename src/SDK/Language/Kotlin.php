@@ -624,9 +624,7 @@ class Kotlin extends Language
         $model = $this->getSchemaModel($property);
         if ($model !== null) {
             $class = $this->toPascalCase($model);
-            $nestedType = ($spec->schemas[$model] ?? null) instanceof ObjectSchema && $spec->schemas[$model]->additionalProperties
-                ? ', nestedType'
-                : '';
+            $nestedType = $this->hasGenericSchemaType($model, $spec) ? ', nestedType' : '';
             if ($property instanceof ArraySchema) {
                 $cast = $required ? 'as' : 'as?';
                 $safeCall = $required ? '' : '?';
@@ -683,19 +681,23 @@ class Kotlin extends Language
                     return 'Any';
                 }
                 $type = $namespace . '.models.' . $this->toPascalCase($models[0]);
-                return ($spec->schemas[$models[0]] ?? null) instanceof ObjectSchema && $spec->schemas[$models[0]]->additionalProperties
-                    ? $type . '<' . $generic . '>'
-                    : $type;
+                return $this->hasGenericSchemaType($models[0], $spec) ? $type . '<' . $generic . '>' : $type;
             }),
             new TwigFilter('modelType', function (Schema $property, Specification $spec, string $generic = 'T'): string {
-                $name = $this->toPascalCase($this->getSpecificationSchemaName($property, $spec));
-                return $property instanceof ObjectSchema && $property->additionalProperties ? $name . '<' . $generic . '>' : $name;
+                $name = $this->getSpecificationSchemaName($property, $spec);
+                $type = $this->toPascalCase($name);
+                return $this->hasGenericSchemaType($name, $spec) ? $type . '<' . $generic . '>' : $type;
             }),
             new TwigFilter('propertyType', function (Schema $property, Specification $spec, string $generic = 'T'): string {
                 $type = $this->getTypeName($property, $spec);
+                $model = $this->getSchemaModel($property);
+                if ($this->hasGenericSchemaType($model, $spec)) {
+                    $modelType = 'io.appwrite.models.' . $this->toPascalCase((string) $model);
+                    $type = \str_replace($modelType, $modelType . '<' . $generic . '>', $type);
+                }
                 return $this->isSpecificationSchemaRequired($property, $spec) ? $type : $type . '?';
             }),
-            new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => ($spec->schemas[$model] ?? null) instanceof ObjectSchema && (bool) $spec->schemas[$model]->additionalProperties),
+            new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => $this->hasGenericSchemaType($model, $spec)),
             new TwigFilter('caseEnumKey', function (string $value): string {
                 if (isset($this->getIdentifierOverrides()[$value])) {
                     $value = $this->getIdentifierOverrides()[$value];

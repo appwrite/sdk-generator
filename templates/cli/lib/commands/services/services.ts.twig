@@ -18,7 +18,7 @@ import { Command } from "commander";
 {% elseif (parameter | schemaType) == 'object' %}
 {% set hasObjectParam = true %}
 {% endif %}
-{% if (parameter | enumName) not in enumNames %}
+{% if (parameter | enumName) is not empty and (parameter | enumName) not in enumNames %}
 {% set enumNames = enumNames|merge([(parameter | enumName)]) %}
 {% endif %}
 {% endfor %}

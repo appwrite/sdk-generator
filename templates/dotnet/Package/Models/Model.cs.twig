@@ -13,7 +13,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
     {
         {%~ for property in definition.properties %}
         [JsonPropertyName("{{ (property | schemaName) }}")]
-        public {{ sub_schema(property, property | schemaRequired) | raw }} {{ property_name(definitionName, property | schemaName) | overrideProperty(definitionName) }} { get; private set; }
+        public {{ sub_schema(property, property | schemaRequired, spec) | raw }} {{ property_name(definitionName, property | schemaName) | overrideProperty(definitionName) }} { get; private set; }
 
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
@@ -22,7 +22,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
         {%~ endif %}
         public {{ definitionName | caseUcfirst | overrideIdentifier }}(
             {%~ for property in definition.properties %}
-            {{ sub_schema(property, property | schemaRequired) | raw }} {{ (property | schemaName) | caseCamel | escapeKeyword }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            {{ sub_schema(property, property | schemaRequired, spec) | raw }} {{ (property | schemaName) | caseCamel | escapeKeyword }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
@@ -59,7 +59,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
                                 {{ spec.info.title | caseUcfirst }}.Models.{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}.From(map: map["{{ (property | schemaName) }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ (property | schemaName) }}"])
                             {%- endif %}
                         {%- endif %}
-                {%- elseif property.enum %}
+                {%- elseif (property | schemaType) != 'array' and (property | enumValues) is not empty %}
                     {%- set enumName = (property | enumName) -%}
                     {%- if not (property | schemaRequired) -%}
                         map.TryGetValue("{{ (property | schemaName) }}", out var enumRaw{{ loop.index }})

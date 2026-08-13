@@ -1,6 +1,6 @@
 import Foundation
 import JSONCodable
-{% if definition.properties | filter(p => p.enum or p.enumValues) | length > 0 %}
+{% if definition.properties | filter(p => (p | enumValues) is not empty) | length > 0 %}
 import {{spec.info.title | caseUcfirst}}Enums
 {% endif %}
 
@@ -50,7 +50,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         {%~ for property in definition.properties %}
-        {%~ if property.enum %}
+        {%~ if (property | schemaType) != 'array' and (property | enumValues) is not empty %}
         {%~ if (property | schemaRequired) %}
         self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: try container.decode(String.self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}))!
         {%~ else %}
@@ -84,7 +84,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         {%~ for property in definition.properties %}
-        try container.encode{% if not (property | schemaRequired) %}IfPresent{% endif %}({{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}{% if property.enum %}{% if (property | schemaRequired) %}.rawValue{% else %}?.rawValue{% endif %}{% elseif (property | enumValues) %}{% if (property | schemaRequired) %}.map { $0.rawValue }{% else %}?.map { $0.rawValue }{% endif %}{% endif %}, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }})
+        try container.encode{% if not (property | schemaRequired) %}IfPresent{% endif %}({{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}{% if (property | schemaType) != 'array' and (property | enumValues) is not empty %}{% if (property | schemaRequired) %}.rawValue{% else %}?.rawValue{% endif %}{% elseif (property | enumValues) is not empty %}{% if (property | schemaRequired) %}.map { $0.rawValue }{% else %}?.map { $0.rawValue }{% endif %}{% endif %}, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }})
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         try container.encode({{ 'data' | escapeSwiftKeyword | removeDollarSign }}, forKey: .{{ 'data' | escapeSwiftKeyword | removeDollarSign }})
@@ -115,10 +115,10 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
                 {%- endif -%}
             {%- else -%}
                 {%- if property | isAnyCodableArray(spec) -%}
-                    (map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}{% if (property | schemaRequired) %}!{% else %}?{% endif %}{% endif %} [Any]{% if isDocument or not (property | schemaRequired) %} ?? []{% endif %}).map { AnyCodable($0) }
+                    (map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}{% if (property | schemaRequired) %}!{% else %}?{% endif %}{% endif %} [[String: Any]]{% if isDocument or not (property | schemaRequired) %} ?? []{% endif %}).map { $0.mapValues { AnyCodable($0) } }
                 {%- elseif property | isAnyCodableObject(spec) -%}
                     (map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}{% if (property | schemaRequired) %}!{% else %}?{% endif %}{% endif %} [String: Any]{% if isDocument or not (property | schemaRequired) %} ?? [:]{% endif %}).mapValues { AnyCodable($0) }
-                {%- elseif property.enum -%}
+                {%- elseif (property | schemaType) != 'array' and (property | enumValues) is not empty -%}
                     {%- set enumName = (property | enumName) -%}
                     {% if (property | schemaRequired) %}{{ spec.info.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}!{% endif %} String{% if isDocument %} ?? ""{% endif %})!{% else %}map["{{(property | schemaName) }}"] as? String != nil ? {{ spec.info.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: map["{{(property | schemaName) }}"] as! String) : nil{% endif %}
                 {%- elseif (property | enumValues) -%}

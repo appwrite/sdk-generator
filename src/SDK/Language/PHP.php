@@ -383,11 +383,14 @@ class PHP extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $default;
                     break;
+                case self::TYPE_ARRAY:
+                    $output .= \is_array($default) ? $this->jsonToAssoc($default) : (string) $default;
+                    break;
                 case self::TYPE_OBJECT:
-                    $output .= $this->jsonToAssoc(json_decode((string) $default, true));
+                    $decoded = \is_array($default) ? $default : json_decode((string) $default, true);
+                    $output .= $this->jsonToAssoc(\is_array($decoded) ? $decoded : []);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
@@ -433,10 +436,15 @@ class PHP extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
+                    if ($this->isPermissionString($example)) {
+                        $output .= $this->getPermissionExample($example);
+                    } else {
+                        $output .= \is_array($example) ? $this->jsonToAssoc($example) : (string) $example;
+                    }
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= $this->jsonToAssoc(json_decode((string) $example, true));
+                    $decoded = \is_array($example) ? $example : json_decode((string) $example, true);
+                    $output .= $this->jsonToAssoc(\is_array($decoded) ? $decoded : []);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';

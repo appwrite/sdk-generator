@@ -17,19 +17,19 @@
 {%- import _self as helper -%}
 {%- set childIndent = indent ~ '    ' -%}
 {%- if (property | schemaModel) and definitions[(property | schemaModel)] -%}
-    {%- set requiredProps = definitions[(property | schemaModel)].properties | filter(p => p.required) -%}
+    {%- set requiredProps = definitions[(property | schemaModel)].properties | filter(p => p | schemaRequired) -%}
     {%- if (property | schemaType) == 'array' -%}
 [
 {{ childIndent }}{
 {% for prop in requiredProps %}
-{{ childIndent }}    "{{ prop.name | replace({'\\': '\\\\', '"': '\\"'}) | raw }}": {{ helper.render_json_value(definitions, prop, spec, childIndent ~ '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
+{{ childIndent }}    "{{ (prop | schemaName) | replace({'\\': '\\\\', '"': '\\"'}) | raw }}": {{ helper.render_json_value(definitions, prop, spec, childIndent ~ '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
 {% endfor %}
 {{ childIndent }}}
 {{ indent }}]
     {%- else -%}
 {
 {% for prop in requiredProps %}
-{{ indent }}    "{{ prop.name | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": {{ helper.render_json_value(definitions, prop, spec, indent ~ '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
+{{ indent }}    "{{ (prop | schemaName) | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": {{ helper.render_json_value(definitions, prop, spec, indent ~ '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
 {% endfor %}
 {{ indent }}}
     {%- endif -%}
@@ -115,7 +115,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% set discriminatorConditions = responseDiscriminator[responseModelName] ?? {} %}
 		mockResponse := `
 {
-{% for property in definition.properties | filter((param) => param.required) %}
+{% for property in definition.properties | filter((param) => param | schemaRequired) %}
     "{{ (property | schemaName) | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": {% if discriminatorConditions[(property | schemaName)] is defined %}"{{ discriminatorConditions[(property | schemaName)] | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}"{% else %}{{ _self.render_json_value(definitions, property, spec, '    ') | trim | raw }}{% endif %}{% if not loop.last %},{% endif %}{{ "\n" -}}
 {% endfor %}
 }
@@ -172,7 +172,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% elseif (parameter | schemaType) == 'object' %}
 {% set val = 'map[string]interface{}{}' %}
 {% elseif (parameter | schemaType) == 'array' %}
-{% if parameter.items.type == 'string' %}
+{% if (parameter | arraySchema | schemaType) == 'string' %}
 {% set val = '[]string{}' %}
 {% else %}
 {% set val = type ~ '{}' %}

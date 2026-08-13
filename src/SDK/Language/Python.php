@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Utopia\OpenAPI\Model\Schema\ArraySchema;
+use Utopia\OpenAPI\Model\Schema\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema\Schema;
@@ -426,18 +427,65 @@ class Python extends Language
             self::TYPE_STRING => "'{$example}'",
         };
     }
+
+    protected function hasGenericType(string $model, Specification $spec): bool
+    {
+        return $this->hasGenericSchemaType($model, $spec);
+    }
+
+    /** @param array<string, Schema> $properties */
+    protected function hasGenericTypeProperty(array $properties, Specification $spec): bool
+    {
+        return array_any($properties, function (Schema $property) use ($spec): bool {
+            $model = $this->getSchemaModel($property);
+            return $model !== null && $this->hasGenericType($model, $spec);
+        });
+    }
+
+    protected function normalizeModelFieldName(string $name): string
+    {
+        $name = $this->toSnakeCase(\ltrim($name, '$'));
+        return $this->escapeKeyword($name !== '' ? $name : 'value');
+    }
+
+    /** @param array<string, Schema> $properties */
+    protected function getModelFieldName(Schema $property, array $properties): string
+    {
+        $propertyName = 'value';
+        foreach ($properties as $name => $candidate) {
+            if ($candidate === $property) {
+                $propertyName = $name;
+                break;
+            }
+        }
+
+        $baseName = $this->normalizeModelFieldName($propertyName);
+        $index = 0;
+        foreach ($properties as $name => $candidate) {
+            if ($this->normalizeModelFieldName($name) !== $baseName) {
+                continue;
+            }
+            $index++;
+            if ($candidate === $property) {
+                break;
+            }
+        }
+
+        return $index <= 1 ? $baseName : $baseName . '_' . $index;
+    }
+
     #[Override]
     public function getFilters(): array
     {
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
             new TwigFilter('getPropertyType', fn(Schema|Parameter $value): string => $this->getTypeName($value)),
-            new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => false),
-            new TwigFilter('hasGenericTypeProperty', fn(array $properties, Specification $spec): bool => false),
+            new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => $this->hasGenericType($model, $spec)),
+            new TwigFilter('hasGenericTypeProperty', fn(array $properties, Specification $spec): bool => $this->hasGenericTypeProperty($properties, $spec)),
             new TwigFilter('getServicePropertyType', fn(Schema|Parameter $value, Tag $service): string => $this->getTypeName($value)),
             new TwigFilter('getServiceEnumName', fn(Parameter $parameter, Tag $service): string => $this->toPascalCase($parameter->schema?->extensions['x-enum-name'] ?? $parameter->name)),
-            new TwigFilter('getModelPropertyType', fn(Schema $value, string $ownerName = ''): string => $this->getTypeName($value)),
-            new TwigFilter('getModelFieldName', fn(Schema $value, array $properties): string => ''),
+            new TwigFilter('getModelPropertyType', fn(Schema $value, string $ownerName, Specification $spec): string => $this->getTypeName($value, $spec)),
+            new TwigFilter('getModelFieldName', fn(Schema $value, array $properties): string => $this->getModelFieldName($value, $properties)),
             new TwigFilter('getResponseType', fn(Operation $method, string $serviceName = ''): string => ($models = $this->getOperationResponseModels($method)) === [] ? 'Any' : \implode(', ', \array_map($this->toPascalCase(...), $models))),
             new TwigFilter('formatParamValue', function (string $paramName, string $paramType, bool $isMultipartFormData): string {
                 if ($isMultipartFormData && $paramType === self::TYPE_BOOLEAN) {

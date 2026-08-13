@@ -10,12 +10,16 @@ use MatthiasMullie\Minify\JS;
 use MatthiasMullie\Minify\CSS;
 use Exception;
 use Throwable;
+use Utopia\OpenAPI\Model\MediaType;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\ParameterLocation;
+use Utopia\OpenAPI\Model\RequestBody;
+use Utopia\OpenAPI\Model\Response;
 use Utopia\OpenAPI\Model\Schema\AnySchema;
 use Utopia\OpenAPI\Model\Schema\ArraySchema;
 use Utopia\OpenAPI\Model\Schema\CompositeSchema;
+use Utopia\OpenAPI\Model\Schema\Composition;
 use Utopia\OpenAPI\Model\Schema\ObjectSchema;
 use Utopia\OpenAPI\Model\Schema\ReferenceSchema;
 use Utopia\OpenAPI\Model\Schema\Schema;
@@ -82,6 +86,9 @@ class SDK
     protected ?array $filteredServicesCache = null;
 
     protected ?array $filteredModelDataCache = null;
+
+    /** @var array<string, list<Operation>>|null */
+    protected ?array $operationsByServiceCache = null;
 
     protected array $schemaNames = [];
 
@@ -481,10 +488,8 @@ class SDK
         }
 
         $services = [];
-        foreach ($this->spec->operations() as $operation) {
-            foreach ($operation->tags as $name) {
-                $services[$name] ??= $this->spec->tags[$name] ?? new Tag($name);
-            }
+        foreach (\array_keys($this->getOperationsByService()) as $name) {
+            $services[$name] = $this->spec->tags[$name] ?? new Tag($name);
         }
 
         foreach (array_keys($services) as $name) {
@@ -500,7 +505,226 @@ class SDK
     /** @return list<Operation> */
     protected function getMethods(string $service): array
     {
-        return $this->spec->operationsByTag($service);
+        return $this->getOperationsByService()[$service] ?? [];
+    }
+
+    /**
+     * Expand generator-specific method aliases while keeping typed OpenAPI DTOs
+     * throughout the rendering pipeline.
+     *
+     * @return array<string, list<Operation>>
+     */
+    protected function getOperationsByService(): array
+    {
+        if ($this->operationsByServiceCache !== null) {
+            return $this->operationsByServiceCache;
+        }
+
+        $operations = [];
+        foreach ($this->spec->operations() as $operation) {
+            $operation = $this->annotateSecurityPathParameters($operation);
+            $aliases = $operation->extensions['x-appwrite']['methods'] ?? [];
+            if (!\is_array($aliases) || $aliases === []) {
+                foreach ($operation->tags as $serviceName) {
+                    $operations[$serviceName][] = $operation;
+                }
+                continue;
+            }
+
+            foreach ($aliases as $alias) {
+                if (!\is_array($alias)) {
+                    continue;
+                }
+
+                $targets = isset($alias['namespace'])
+                    ? [(string) $alias['namespace']]
+                    : $operation->tags;
+                foreach (\array_unique($targets) as $serviceName) {
+                    $operations[$serviceName][] = $this->createAliasedOperation($operation, $alias, $serviceName);
+                }
+            }
+        }
+
+        return $this->operationsByServiceCache = $operations;
+    }
+
+    protected function annotateSecurityPathParameters(Operation $operation): Operation
+    {
+        $securityParameters = [];
+        foreach ($operation->security[0]->schemes ?? [] as $schemeName => $scopes) {
+            $scheme = $this->spec->securitySchemes[$schemeName] ?? null;
+            if ($scheme === null || ($scheme->extensions['x-appwrite']['location'] ?? '') !== 'path') {
+                continue;
+            }
+            $parameterName = (string) ($scheme->extensions['x-appwrite']['param'] ?? $scheme->name ?? $schemeName);
+            $securityParameters[$parameterName] = (string) ($scheme->extensions['x-appwrite']['config'] ?? $scheme->name ?? $schemeName);
+        }
+        if ($securityParameters === []) {
+            return $operation;
+        }
+
+        $parameters = [];
+        foreach ($operation->parameters as $parameter) {
+            $config = $securityParameters[$parameter->name] ?? null;
+            if ($config === null || $parameter->location !== ParameterLocation::PATH) {
+                $parameters[] = $parameter;
+                continue;
+            }
+            $parameters[] = new Parameter(
+                name: $parameter->name,
+                location: $parameter->location,
+                description: $parameter->description,
+                required: $parameter->required,
+                deprecated: $parameter->deprecated,
+                allowEmptyValue: $parameter->allowEmptyValue,
+                schema: $parameter->schema,
+                content: $parameter->content,
+                style: $parameter->style,
+                explode: $parameter->explode,
+                allowReserved: $parameter->allowReserved,
+                extensions: [
+                    ...$parameter->extensions,
+                    'x-sdk-source' => 'security',
+                    'x-sdk-config' => $config,
+                ],
+            );
+        }
+
+        return new Operation(
+            id: $operation->id,
+            method: $operation->method,
+            path: $operation->path,
+            tags: $operation->tags,
+            summary: $operation->summary,
+            description: $operation->description,
+            deprecated: $operation->deprecated,
+            parameters: $parameters,
+            requestBody: $operation->requestBody,
+            responses: $operation->responses,
+            security: $operation->security,
+            servers: $operation->servers,
+            externalDocumentation: $operation->externalDocumentation,
+            extensions: $operation->extensions,
+        );
+    }
+
+    /** @param array<string, mixed> $alias */
+    protected function createAliasedOperation(Operation $operation, array $alias, string $serviceName): Operation
+    {
+        $appwrite = $operation->extensions['x-appwrite'] ?? [];
+        $appwrite['method'] = (string) ($alias['name'] ?? $appwrite['method'] ?? $operation->id);
+        $appwrite['auth'] = $alias['auth'] ?? [];
+        if (isset($alias['deprecated'])) {
+            $appwrite['deprecated'] = $alias['deprecated'];
+        } else {
+            unset($appwrite['deprecated']);
+        }
+
+        $extensions = $operation->extensions;
+        $extensions['x-appwrite'] = $appwrite;
+
+        return new Operation(
+            id: $operation->id,
+            method: $operation->method,
+            path: $operation->path,
+            tags: [$serviceName],
+            summary: (string) ($alias['name'] ?? $operation->summary),
+            description: (string) (($alias['description'] ?? '') !== '' ? $alias['description'] : $operation->description),
+            deprecated: isset($alias['deprecated']),
+            parameters: $operation->parameters,
+            requestBody: $this->createAliasedRequestBody($operation->requestBody, $alias),
+            responses: $this->createAliasedResponses($operation, $alias),
+            security: $operation->security,
+            servers: $operation->servers,
+            externalDocumentation: $operation->externalDocumentation,
+            extensions: $extensions,
+        );
+    }
+
+    /** @param array<string, mixed> $alias */
+    protected function createAliasedRequestBody(?RequestBody $requestBody, array $alias): ?RequestBody
+    {
+        if (!$requestBody instanceof RequestBody || empty($alias['parameters']) || !\is_array($alias['parameters'])) {
+            return $requestBody;
+        }
+
+        $content = [];
+        foreach ($requestBody->content as $contentType => $mediaType) {
+            $schema = $mediaType->schema;
+            if ($schema instanceof ObjectSchema) {
+                $properties = \array_intersect_key($schema->properties, \array_flip($alias['parameters']));
+                $schema = new ObjectSchema(
+                    properties: $properties,
+                    required: \array_values(\array_intersect($alias['required'] ?? [], \array_keys($properties))),
+                    additionalProperties: $schema->additionalProperties,
+                    minProperties: $schema->minProperties,
+                    maxProperties: $schema->maxProperties,
+                    title: $schema->title,
+                    description: $schema->description,
+                    nullable: $schema->nullable,
+                    default: $schema->default,
+                    enum: $schema->enum,
+                    format: $schema->format,
+                    readOnly: $schema->readOnly,
+                    writeOnly: $schema->writeOnly,
+                    deprecated: $schema->deprecated,
+                    example: $schema->example,
+                    extensions: $schema->extensions,
+                );
+            }
+            $content[$contentType] = new MediaType(
+                schema: $schema,
+                example: $mediaType->example,
+                examples: $mediaType->examples,
+                encoding: $mediaType->encoding,
+                extensions: $mediaType->extensions,
+            );
+        }
+
+        return new RequestBody(
+            description: $requestBody->description,
+            required: $requestBody->required,
+            content: $content,
+            extensions: $requestBody->extensions,
+        );
+    }
+
+    /** @param array<string, mixed> $alias @return array<string, Response> */
+    protected function createAliasedResponses(Operation $operation, array $alias): array
+    {
+        if (!isset($alias['responses']) || !\is_array($alias['responses'])) {
+            return $operation->responses;
+        }
+
+        $contentType = '';
+        foreach ($operation->responses as $response) {
+            $contentType = (string) (\array_key_first($response->content) ?? '');
+            if ($contentType !== '') {
+                break;
+            }
+        }
+
+        $responses = [];
+        foreach ($alias['responses'] as $descriptor) {
+            if (!\is_array($descriptor) || !isset($descriptor['code'], $descriptor['model'])) {
+                continue;
+            }
+
+            $models = \is_array($descriptor['model']) ? $descriptor['model'] : [$descriptor['model']];
+            $schemas = \array_map(
+                static fn(string $reference): ReferenceSchema => new ReferenceSchema($reference),
+                $models,
+            );
+            $schema = \count($schemas) === 1
+                ? $schemas[0]
+                : new CompositeSchema(Composition::ONE_OF, $schemas);
+            $responses[(string) $descriptor['code']] = new Response(
+                description: '',
+                content: [$contentType => new MediaType(schema: $schema)],
+            );
+        }
+
+        return $responses;
     }
 
     /** @param list<Operation> $methods @return list<Operation> */
@@ -1236,6 +1460,9 @@ class SDK
         $parameters = [];
         if ($location !== 'body') {
             foreach ($operation->parameters as $parameter) {
+                if ($location === 'all' && ($parameter->extensions['x-sdk-source'] ?? '') === 'security') {
+                    continue;
+                }
                 if ($location === 'all' || $parameter->location->value === $location) {
                     $parameters[] = $parameter;
                 }
@@ -1292,11 +1519,12 @@ class SDK
     protected function getSchemaModel(Schema|Parameter $value): string
     {
         $schema = $this->getSchema($value);
-        if ($schema instanceof ReferenceSchema) {
-            return $this->normalizeSchemaReference($schema->reference);
+        $models = $this->getSchemaModels($schema);
+        if (\count($models) === 1) {
+            return $models[0];
         }
-        if ($schema instanceof ArraySchema && $schema->items instanceof ReferenceSchema) {
-            return $this->normalizeSchemaReference($schema->items->reference);
+        if ($schema instanceof ArraySchema) {
+            return (string) ($schema->items->extensions['x-model'] ?? $schema->extensions['x-model'] ?? '');
         }
         return (string) ($schema->extensions['x-model'] ?? '');
     }

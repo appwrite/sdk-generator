@@ -516,39 +516,51 @@ class Swift extends Language
         return $name;
     }
 
+    protected function getReturnType(Operation $method, Specification $spec, string $generic = 'T'): string
+    {
+        $methodType = $method->extensions['x-appwrite']['type'] ?? '';
+        if ($methodType === 'webAuth') {
+            return 'String?';
+        }
+        if ($methodType === 'location') {
+            return 'ByteBuffer';
+        }
+
+        $models = \array_values(\array_filter(
+            $this->getOperationResponseModels($method),
+            static fn(string $model): bool => $model !== 'any',
+        ));
+        if (\count($models) !== 1) {
+            return 'Any';
+        }
+        $type = $spec->info->title . 'Models.' . $this->toPascalCase($models[0]);
+        return $this->hasGenericSchemaType($models[0], $spec) ? $type . '<' . $generic . '>' : $type;
+    }
+
     #[Override]
     public function getFilters(): array
     {
         return [
-            new TwigFilter('returnType', function (Operation $method, Specification $spec, string $generic = 'T'): string {
-                $methodType = $method->extensions['x-appwrite']['type'] ?? '';
-                if ($methodType === 'webAuth') {
-                    return 'String?';
-                }
-                if ($methodType === 'location') {
-                    return 'ByteBuffer';
-                }
-
-                $models = \array_values(\array_filter(
-                    $this->getOperationResponseModels($method),
-                    static fn(string $model): bool => $model !== 'any',
-                ));
-                if (\count($models) !== 1) {
-                    return 'Any';
-                }
-                $type = $spec->info->title . 'Models.' . $this->toPascalCase($models[0]);
-                return ($spec->schemas[$models[0]] ?? null) instanceof ObjectSchema && $spec->schemas[$models[0]]->additionalProperties
-                    ? $type . '<' . $generic . '>'
-                    : $type;
-            }),
+            new TwigFilter('returnType', fn(Operation $method, Specification $spec, string $generic = 'T'): string => $this->getReturnType($method, $spec, $generic)),
             new TwigFilter('modelType', function (Schema $property, Specification $spec, string $generic = 'T : Codable'): string {
-                $name = $this->toPascalCase($this->getSpecificationSchemaName($property, $spec));
-                return $property instanceof ObjectSchema && $property->additionalProperties ? $name . '<' . $generic . '>' : $name;
+                $name = $this->getSpecificationSchemaName($property, $spec);
+                $type = $this->toPascalCase($name);
+                return $this->hasGenericSchemaType($name, $spec) ? $type . '<' . $generic . '>' : $type;
             }),
-            new TwigFilter('propertyType', fn(Schema $property, Specification $spec, string $generic = 'T'): string => $this->getTypeName($property, $spec, true)),
-            new TwigFilter('isAnyCodableArray', fn(Schema $property, Specification $spec): bool => $this->getSchemaType($property) === self::TYPE_ARRAY && $this->getSchemaModel($property) === null),
+            new TwigFilter('propertyType', function (Schema $property, Specification $spec, string $generic = 'T'): string {
+                $type = $this->getTypeName($property, $spec, true);
+                $model = $this->getSchemaModel($property);
+                if ($this->hasGenericSchemaType($model, $spec)) {
+                    $modelType = ($spec->info->title ?? '') . 'Models.' . $this->toPascalCase((string) $model);
+                    $type = \str_replace($modelType, $modelType . '<' . $generic . '>', $type);
+                }
+                return $type;
+            }),
+            new TwigFilter('isAnyCodableArray', fn(Schema $property, Specification $spec): bool => $property instanceof ArraySchema
+                && $this->getSchemaType($property->items) === self::TYPE_OBJECT
+                && $this->getSchemaModel($property) === null),
             new TwigFilter('isAnyCodableObject', fn(Schema $property, Specification $spec): bool => $this->getSchemaType($property) === self::TYPE_OBJECT && $this->getSchemaModel($property) === null),
-            new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => ($spec->schemas[$model] ?? null) instanceof ObjectSchema && (bool) $spec->schemas[$model]->additionalProperties),
+            new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => $this->hasGenericSchemaType($model, $spec)),
             new TwigFilter('escapeSwiftKeyword', function ($value) {
                 if (\in_array($value, $this->getKeywords())) {
                     return "`{$value}`";

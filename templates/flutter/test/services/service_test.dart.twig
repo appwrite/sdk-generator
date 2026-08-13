@@ -1,5 +1,5 @@
 {% macro sub_schema(definitions, property) %}{% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}List<<String, dynamic>>{% else %}<String, dynamic>{
-  {% if definitions[(property | schemaModel)] %}{% for property in definitions[(property | schemaModel)].properties | filter(p => p.required) %}
+  {% if definitions[(property | schemaModel)] %}{% for property in definitions[(property | schemaModel)].properties | filter(p => p | schemaRequired) %}
   '{{(property | schemaName) | escapeDollarSign}}': {% if (property | schemaType) == 'object' %}{% if (property | schemaModel) and ((property | schemaModel) != 'prefs' and (property | schemaModel) != 'preferences') %}{{_self.sub_schema(definitions, property)}}{% else %}<String, dynamic>{}{% endif %}{% elseif (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'string' %}'{{(property | schemaExample) | escapeDollarSign}}'{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{(property | schemaExample)}}{% endif %},
   {% endfor %}{% endif %}}{% endif %}{% else %}{% if (property | schemaType) == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
 {% import 'flutter/base/utils.twig' as utils %}
@@ -81,7 +81,7 @@ void main() {
                 {%~ if responseModelName ~%}
 {% set discriminatorConditions = (responseModels|length > 1 and (method | responseDiscriminator)[responseModelName] is defined) ? (method | responseDiscriminator)[responseModelName] : {} %}
             final Map<String, dynamic> data = {
-                {%- for definitionName, definition in definitions ~%}{%~ if definitionName == responseModelName -%}{%~ for property in definition.properties | filter((param) => param.required and param.name not in (discriminatorConditions|keys)) ~%}
+                {%- for definitionName, definition in definitions ~%}{%~ if definitionName == responseModelName -%}{%~ for property in definition.properties | filter((param) => (param | schemaRequired) and (param | schemaName) not in (discriminatorConditions|keys)) ~%}
                 '{{(property | schemaName) | escapeDollarSign}}': {% if (property | schemaType) == 'object' %}{% if (property | schemaModel) and ((property | schemaModel) != 'prefs' and (property | schemaModel) != 'preferences') %}{{_self.sub_schema(definitions, property)}}{% else %}<String, dynamic>{}{% endif %}{% elseif (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'string' %}'{{(property | schemaExample) | escapeDollarSign}}'{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{(property | schemaExample)}}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
 {%~ for field, value in discriminatorConditions ~%}
                 '{{field | escapeDollarSign}}': '{{value | escapeDollarSign}}',{%~ endfor ~%}

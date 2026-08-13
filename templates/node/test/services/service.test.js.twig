@@ -27,7 +27,7 @@ describe('{{ service.name | caseUcfirst }}', () => {
         {% endif %}
         {%- if responseModelName %}
         const data = {
-            {%- for definitionName, definition in definitions ~%}{%~ if definitionName == responseModelName -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+            {%- for definitionName, definition in definitions ~%}{%~ if definitionName == responseModelName -%}{%~ for property in definition.properties | filter((param) => param | schemaRequired) ~%}
             '{{ (property | schemaName) | escapeDollarSign }}': {% if (property | schemaType) == 'object' %}{}{% elseif (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'string' %}'{{ (property | schemaExample) | escapeDollarSign }}'{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{ (property | schemaExample) }}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
         };
         {%~ else %}

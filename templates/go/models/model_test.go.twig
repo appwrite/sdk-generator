@@ -13,9 +13,9 @@
             map[string]interface{}{}
         {%- elseif (property | schemaType) == 'array' -%}
             {{ (property | typeName) }}{
-                {%- if property.items.type == 'string' -%}
-                    "{{ property.items.example | default('test') | replace({'\\': '\\\\', '"': '\\"'}) | raw }}"
-                {%- elseif property.items.type == 'integer' -%}
+                {%- if (property | arraySchema | schemaType) == 'string' -%}
+                    "{{ (property | arraySchema | schemaExample) | default('test') | replace({'\\': '\\\\', '"': '\\"'}) | raw }}"
+                {%- elseif (property | arraySchema | schemaType) == 'integer' -%}
                     1
                 {%- endif -%}
             }
@@ -34,8 +34,8 @@
 {%- endmacro -%}
 
 {%- macro render_struct_init(definitions, definition, spec) -%}
-    {{ definitionName | caseUcfirst }}{
-        {%- for property in definition.properties | filter(p => p.required) %}
+    {{ (definition | schemaName) | caseUcfirst }}{
+        {%- for property in definition.properties | filter(p => p | schemaRequired) %}
         {{ (property | schemaName) | caseUcfirst | escapeKeyword }}: {{ _self.render_property_value(definitions, property, spec) }},
         {%- endfor %}
     }
@@ -61,7 +61,7 @@ func Test{{ definitionName | caseUcfirst }}Model(t *testing.T) {
         t.Fatal(err)
     }
 
-    {%- for property in definition.properties | filter(p => p.required) %}
+    {%- for property in definition.properties | filter(p => p | schemaRequired) %}
     {%- if (property | schemaType) != 'object' and (property | schemaType) != 'array' %}
 
     if result.{{ (property | schemaName) | caseUcfirst | escapeKeyword }} != model.{{ (property | schemaName) | caseUcfirst | escapeKeyword }} {
