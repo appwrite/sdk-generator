@@ -267,7 +267,7 @@ class Client {
      */
     set{{headerKey | caseUcfirst}}(value: string): this {
         {%~ if (headerKey != 'Project') %}
-        this.headers['{{ header.name }}'] = {% if header.type is defined and header.type == 'bearer' %}`Bearer ${value}`{% else %}value{% endif %};
+        this.headers['{{ header.name }}'] = {% if header.scheme == 'bearer' %}`Bearer ${value}`{% else %}value{% endif %};
         {%~ endif %}
         this.config.{{ headerKey | caseLower }} = value;
         return this;

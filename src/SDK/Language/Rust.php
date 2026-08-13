@@ -565,7 +565,27 @@ class Rust extends Language
             new TwigFilter("propertyType", fn(Schema $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getTypeName($property, $spec)),
             new TwigFilter("returnType", fn(Operation $method, Specification $spec, string $namespace, string $generic = "serde_json::Value"): string => $this->getReturnType($method)),
             new TwigFilter("caseEnumKey", fn(string $value): string => $this->toPascalCase($value)),
-            new TwigFilter("docsArgumentExample", fn(Schema|Parameter $param, string $crateName): string => $this->getParamExample($param), ["is_safe" => ["html"]]),
+            new TwigFilter("docsArgumentExample", function (Schema|Parameter $param, string $crateName): string {
+                if ($this->getSchemaType($param) === self::TYPE_FILE) {
+                    $value = $this->toCaseSnake($param instanceof Parameter ? $param->name : 'file');
+                    if (isset($this->getIdentifierOverrides()[$value])) {
+                        $value = $this->getIdentifierOverrides()[$value];
+                    }
+                } elseif ($this->getSchema($param)->enum !== [] || ($this->getSchema($param) instanceof ArraySchema && $this->getSchema($param)->items->enum !== [])) {
+                    $schema = $this->getSchema($param);
+                    $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                    $example = $this->getSchemaExample($param) ?? $enumSchema->enum[0];
+                    $index = \array_search($example, $enumSchema->enum, true);
+                    $key = $enumSchema->extensions['x-enum-keys'][$index] ?? $enumSchema->enum[$index] ?? $example;
+                    $enumName = $this->getSchemaEnumName($param);
+                    $enumValue = $crateName . '::enums::' . $this->toPascalCase($enumName) . '::' . $this->toPascalCase((string) $key);
+                    $value = $schema instanceof ArraySchema ? 'vec![' . $enumValue . ']' : $enumValue;
+                } else {
+                    $value = $this->getParamExample($param);
+                }
+                $required = $param instanceof Parameter && $param->required;
+                return $required && !$this->getSchema($param)->nullable ? $value : "Some({$value})";
+            }, ["is_safe" => ["html"]]),
             new TwigFilter("inputType", fn(Schema|Parameter $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getInputType($property, $spec)),
             new TwigFilter("paramValue", fn(Schema|Parameter $property, string $paramName, ?Specification $spec = null): string => $this->getParamValue($property, $paramName, $spec), ["is_safe" => ["html"]]),
             new TwigFilter("rustType", fn($value): string|array => str_replace(['&lt;', '&gt;'], ['<', '>'], $value), ["is_safe" => ["html"]]),

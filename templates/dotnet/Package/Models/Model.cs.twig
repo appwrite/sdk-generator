@@ -128,7 +128,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
         public Dictionary<string, object?> ToMap() => new Dictionary<string, object?>()
         {
             {%~ for property in definition.properties %}
-            { "{{ (property | schemaName) }}", {{ property | toMapValue(property_name(definitionName, property | schemaName) | overrideProperty(definitionName)) | raw }} }{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            { "{{ (property | schemaName) }}", {{ property | toMapValue(property_name(definitionName, property | schemaName) | overrideProperty(definitionName), spec) | raw }} }{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}

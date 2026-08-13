@@ -2,7 +2,9 @@
 
 namespace Appwrite\SDK\Language;
 
+use InvalidArgumentException;
 use Utopia\OpenAPI\Model\Schema\ArraySchema;
+use Utopia\OpenAPI\Model\Schema\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema\Schema;
@@ -219,11 +221,56 @@ class Web extends JS
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'boolean',
             self::TYPE_FILE => 'File',
-            self::TYPE_ARRAY => $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '[]',
+            self::TYPE_ARRAY => $this->getTypeName($this->getArraySchema($parameter) ?? $schema, $spec) . '[]',
             self::TYPE_OBJECT => 'Record<string, any>',
             default => 'any',
         };
     }
+
+    /** @return list<string> */
+    protected function getGenericTypes(string $modelName, Specification $spec, bool $skipFirst = false, array $visited = []): array
+    {
+        if (isset($visited[$modelName])) {
+            return [];
+        }
+        $model = $spec->schemas[$modelName] ?? null;
+        if (!$model instanceof ObjectSchema) {
+            return [];
+        }
+
+        $visited[$modelName] = true;
+        $generics = [];
+        if (!$skipFirst && $model->additionalProperties) {
+            $generics[] = $this->toPascalCase($modelName);
+        }
+        foreach ($model->properties as $property) {
+            foreach ($this->getSchemaModels($property) as $dependency) {
+                \array_push($generics, ...$this->getGenericTypes($dependency, $spec, false, $visited));
+            }
+        }
+        return \array_values(\array_unique($generics));
+    }
+
+    public function getGenerics(string $modelName, Specification $spec, bool $skipFirst = false): string
+    {
+        $generics = \array_map(
+            static fn(string $type): string => "{$type} extends Models.{$type} = Models.Default{$type}",
+            $this->getGenericTypes($modelName, $spec, $skipFirst),
+        );
+        return $generics === [] ? '' : '<' . \implode(', ', $generics) . '>';
+    }
+
+    protected function getResponseType(string $modelName, Specification $spec): string
+    {
+        $model = $spec->schemas[$modelName] ?? null;
+        $type = ($model instanceof ObjectSchema && $model->additionalProperties ? '' : 'Models.') . $this->toPascalCase($modelName);
+        $generics = \array_values(\array_filter(
+            $this->getGenericTypes($modelName, $spec),
+            fn(string $generic): bool => $generic !== $this->toPascalCase($modelName),
+        ));
+        return $generics === [] ? $type : $type . '<' . \implode(', ', $generics) . '>';
+    }
+
     public function getReturn(Operation $method, Specification $spec): string
     {
         $type = $method->extensions['x-appwrite']['type'] ?? '';
@@ -239,25 +286,76 @@ class Web extends JS
             static fn(string $model): bool => $model !== 'any',
         ));
         if ($models !== []) {
-            return 'Promise<' . \implode(' | ', \array_map(fn(string $model): string => 'Models.' . $this->toPascalCase($model), $models)) . '>';
+            return 'Promise<' . \implode(' | ', \array_map(fn(string $model): string => $this->getResponseType($model, $spec), $models)) . '>';
         }
         return 'Promise<{}>';
     }
 
     public function getSubSchema(Schema $property, Specification $spec, string $methodName = ''): string
     {
+        $schema = $this->getSchema($property);
+        $models = $this->getSchemaModels($property);
+        if ($models !== []) {
+            $types = \array_map(function (string $modelName) use ($spec): string {
+                $type = $this->toPascalCase($modelName);
+                $generics = \array_values(\array_filter(
+                    $this->getGenericTypes($modelName, $spec),
+                    fn(string $generic): bool => $generic !== $type,
+                ));
+                return $generics === [] ? $type : $type . '<' . \implode(', ', $generics) . '>';
+            }, $models);
+            $type = \implode(' | ', $types);
+            return $schema instanceof ArraySchema
+                ? (\count($types) > 1 ? '(' . $type . ')[]' : $type . '[]')
+                : $type;
+        }
+        if ($this->getSchemaType($property) === self::TYPE_OBJECT) {
+            return 'object';
+        }
         return $this->getTypeName($property, $spec);
+    }
+
+    protected function getPropertyType(Schema|Parameter $value, Operation $method, Specification $spec): string
+    {
+        if ($this->getSchemaType($value) === self::TYPE_OBJECT) {
+            $responseModel = $this->getOperationResponseModels($method)[0] ?? '';
+            if ($responseModel === 'user') {
+                return 'Partial<Preferences>';
+            }
+            if (\in_array($responseModel, ['document', 'row'], true)) {
+                $generic = $this->toPascalCase($responseModel);
+                $methodName = $method->method->value;
+                if ($methodName === 'post') {
+                    return "{$generic} extends Models.Default{$generic} ? Partial<Models.{$generic}> & Record<string, any> : Partial<Models.{$generic}> & Omit<{$generic}, keyof Models.{$generic}>";
+                }
+                if (\in_array($methodName, ['patch', 'put'], true)) {
+                    return "{$generic} extends Models.Default{$generic} ? Partial<Models.{$generic}> & Record<string, any> : Partial<Models.{$generic}> & Partial<Omit<{$generic}, keyof Models.{$generic}>>";
+                }
+            }
+        }
+        $schema = $this->getSchema($value);
+        if ($this->getSchemaModels($value) === []) {
+            if ($schema instanceof ArraySchema && $this->getSchemaType($schema->items) === self::TYPE_OBJECT) {
+                return 'object[]';
+            }
+            if ($this->getSchemaType($value) === self::TYPE_OBJECT) {
+                return 'object';
+            }
+        }
+        return $this->getTypeName($value, $spec);
     }
 
     #[Override]
     public function getFilters(): array
     {
         return \array_merge(parent::getFilters(), [
-            new TwigFilter('getPropertyType', fn(Schema|Parameter $value): string => $this->getTypeName($value)),
+            new TwigFilter('getPropertyType', fn(Schema|Parameter $value, Operation|Specification $context, ?Specification $spec = null): string => $context instanceof Operation
+                ? $this->getPropertyType($value, $context, $spec ?? throw new InvalidArgumentException('Specification is required'))
+                : $this->getTypeName($value, $context)),
             new TwigFilter('getSubSchema', fn(Schema $property, Specification $spec, string $methodName = ''): string => $this->getSubSchema($property, $spec, $methodName)),
-            new TwigFilter('getGenerics', fn(string $model, Specification $spec, bool $skipAdditional = false): string => ''),
+            new TwigFilter('getGenerics', fn(string $model, Specification $spec, bool $skipAdditional = false): string => $this->getGenerics($model, $spec, $skipAdditional)),
             new TwigFilter('getReturn', fn(Operation $method, Specification $spec): string => $this->getReturn($method, $spec)),
-            new TwigFilter('getOverloadCondition', function (Operation $method): string {
+            new TwigFilter('getOverloadCondition', function (Operation $method, Specification $spec): string {
                 $params = $this->getOperationParameters($method);
 
                 $hasRequired = false;
@@ -275,7 +373,7 @@ class Web extends JS
 
                 $condition .= "(paramsOrFirst && typeof paramsOrFirst === 'object' && !Array.isArray(paramsOrFirst)";
 
-                $firstParamType = $this->getTypeName($params[0]);
+                $firstParamType = $this->getPropertyType($params[0], $method, $spec);
                 $isPrimitive = str_starts_with($firstParamType, 'string')
                     || str_starts_with($firstParamType, 'number')
                     || str_starts_with($firstParamType, 'boolean');

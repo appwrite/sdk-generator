@@ -489,7 +489,7 @@ class DotNet extends Language
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
             new TwigFilter('overrideProperty', fn(string $property, string $class) => $this->getPropertyOverrides()[$class][$property] ?? $property),
             new TwigFilter('propertyType', fn(Schema $property, ?Specification $spec = null): string => $this->getPropertyType($property, $spec)),
-            new TwigFilter('toMapValue', fn(Schema $property, string $resolvedName): string => $this->getToMapExpression($property, $resolvedName), ['is_safe' => ['html']]),
+            new TwigFilter('toMapValue', fn(Schema $property, string $resolvedName, Specification $spec): string => $this->getToMapExpression($property, $resolvedName, $spec), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
                 $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
@@ -547,6 +547,9 @@ class DotNet extends Language
     protected function getPropertyType(Schema $property, ?Specification $spec = null, bool $fullyQualified = true): string
     {
         $type = $this->getTypeName($property, $spec);
+        if ($this->getSchemaModel($property) !== null) {
+            $type = \str_replace('Appwrite.Models.', '', $type);
+        }
         return $fullyQualified ? $type : \str_replace('Appwrite.Enums.', '', $type);
     }
 
@@ -605,16 +608,17 @@ class DotNet extends Language
      *
      * @param string $resolvedName  C# identifier already produced by the template
      */
-    protected function getToMapExpression(Schema $property, string $resolvedName): string
+    protected function getToMapExpression(Schema $property, string $resolvedName, Specification $spec): string
     {
+        $nullable = $this->isSpecificationSchemaRequired($property, $spec) ? '' : '?';
         if ($this->getSchemaModel($property) !== null) {
             return $property instanceof ArraySchema
-                ? "{$resolvedName}?.Select(it => it.ToMap()).ToList()"
-                : "{$resolvedName}?.ToMap()";
+                ? "{$resolvedName}{$nullable}.Select(it => it.ToMap()).ToList()"
+                : "{$resolvedName}{$nullable}.ToMap()";
         }
 
         if ($property->enum !== []) {
-            return "{$resolvedName}?.Value";
+            return "{$resolvedName}{$nullable}.Value";
         }
 
         return $resolvedName;

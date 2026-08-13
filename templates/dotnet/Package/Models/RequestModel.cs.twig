@@ -37,7 +37,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
             return new Dictionary<string, object?>
             {
                 {%~ for property in requestModel.properties %}
-                { "{{ (property | schemaName) }}", {{ property | toMapValue((property | schemaName) | caseUcfirst | overrideIdentifier) | raw }} }{% if not loop.last %},{% endif %}
+                { "{{ (property | schemaName) }}", {{ property | toMapValue((property | schemaName) | caseUcfirst | overrideIdentifier, spec) | raw }} }{% if not loop.last %},{% endif %}
 
                 {%~ endfor %}
             };

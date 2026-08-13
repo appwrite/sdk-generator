@@ -120,10 +120,10 @@ class Client
     public function set{{headerKey | caseUcfirst}}(string $value): Client
     {
         {%~ if (headerKey != 'Project') %}
-        $this->addHeader('{{header.name}}', {% if header.type is defined and header.type == 'bearer' %}"Bearer {$value}"{% else %}$value{% endif %});
+        $this->addHeader('{{header.name}}', {% if header.scheme == 'bearer' %}"Bearer {$value}"{% else %}$value{% endif %});
         {%~ endif %}
         $this->config['{{ headerKey | caseLower }}'] = $value;
-{% if header.type is defined and header.type == 'bearer' %}
+{% if header.scheme == 'bearer' %}
         $this->key = null;
         $this->authorization = null;
         $this->authorizationExpiresAt = null;
@@ -149,7 +149,7 @@ class Client
         $this->authorization = null;
         $this->authorizationExpiresAt = null;
 {% for headerKey, header in globalHeaders %}
-{% if header.type is defined and header.type == 'bearer' %}
+{% if header.scheme == 'bearer' %}
         unset($this->headers['{{ header.name | caseLower }}'], $this->config['{{ headerKey | caseLower }}']);
 {% endif %}
 {% endfor %}

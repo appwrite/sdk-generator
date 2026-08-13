@@ -66,7 +66,7 @@ class ClientIO extends ClientBase with ClientMixin {
   ClientIO set{{headerKey | caseUcfirst}}(value) {
         config['{{ headerKey | caseCamel }}'] = value;
         {%~ if (headerKey != 'Project') %}
-        addHeader('{{ header.name }}', {% if header.type is defined and header.type == 'bearer' %}'Bearer $value'{% else %}value{% endif %});
+        addHeader('{{ header.name }}', {% if header.scheme == 'bearer' %}'Bearer $value'{% else %}value{% endif %});
         {%~ endif %}
         return this;
     }

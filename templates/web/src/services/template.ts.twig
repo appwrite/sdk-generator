@@ -28,7 +28,7 @@ export class {{ service.name | caseUcfirst }} {
     {%~ endif %}
      *
     {%~ for parameter in (method | parameters('all')) %}
-     * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} params.{{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
+     * @param {{ '{' }}{{ parameter | getPropertyType(method, spec) | raw }}{{ '}' }} params.{{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
     {%~ endfor %}
      * @throws {{ '{' }}{{ spec.info.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
@@ -41,40 +41,40 @@ export class {{ service.name | caseUcfirst }} {
     {%~ endif %}
      */
     {%~ if (method | parameters('all'))|length > 0 %}
-    {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}(params{% set hasRequiredParams = false %}{% for parameter in (method | parameters('all')) %}{% if parameter.required %}{% set hasRequiredParams = true %}{% endif %}{% endfor %}{% if not hasRequiredParams %}?{% endif %}: { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress?: (progress: UploadProgress) => void{% endif %} }): {{ method | getReturn(spec) | raw }};
+    {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}(params{% set hasRequiredParams = false %}{% for parameter in (method | parameters('all')) %}{% if parameter.required %}{% set hasRequiredParams = true %}{% endif %}{% endfor %}{% if not hasRequiredParams %}?{% endif %}: { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress?: (progress: UploadProgress) => void{% endif %} }): {{ method | getReturn(spec) | raw }};
     /**
      {%~ if method.description %}
      * {{ method.description | replace({'\n': '\n     * '}) | raw }}
      {%~ endif %}
      *
      {%~ for parameter in (method | parameters('all')) %}
-     * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
+     * @param {{ '{' }}{{ parameter | getPropertyType(method, spec) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
      {%~ endfor %}
      * @throws {{ '{' }}{{ spec.info.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
      * @deprecated Use the object parameter style method for a better developer experience.
      */
-    {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}({% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress?: (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }};
+    {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}({% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress?: (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }};
     {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}(
-        {% if (method | parameters('all'))|length > 0 %}paramsOrFirst{% if not (method | parameters('all'))[0].required or ((method | parameters('all'))[0] | schemaNullable) %}?{% endif %}: { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress?: (progress: UploadProgress) => void{% endif %} } | {{ (method | parameters('all'))[0] | getPropertyType(method) | raw }}{% if (method | parameters('all'))|length > 1 %},
-        ...rest: [{% for parameter in (method | parameters('all'))[1:] %}({{ parameter | getPropertyType(method) | raw }})?{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %},((progress: UploadProgress) => void)?{% endif %}]{% endif %}{% endif %}
+        {% if (method | parameters('all'))|length > 0 %}paramsOrFirst{% if not (method | parameters('all'))[0].required or ((method | parameters('all'))[0] | schemaNullable) %}?{% endif %}: { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress?: (progress: UploadProgress) => void{% endif %} } | {{ (method | parameters('all'))[0] | getPropertyType(method, spec) | raw }}{% if (method | parameters('all'))|length > 1 %},
+        ...rest: [{% for parameter in (method | parameters('all'))[1:] %}({{ parameter | getPropertyType(method, spec) | raw }})?{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %},((progress: UploadProgress) => void)?{% endif %}]{% endif %}{% endif %}
     
     ): {{ method | getReturn(spec) | raw }} {
         {%~ if (method | parameters('all'))|length > 0 %}
-        let params: { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} };
+        let params: { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} };
         {%~ if 'multipart/form-data' in (method | consumes) %}
         let onProgress: ((progress: UploadProgress) => void);
         {%~ endif %}
         
-        if ({{ method | getOverloadCondition | raw }}) {
-            params = (paramsOrFirst || {}) as { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} };
+        if ({{ method | getOverloadCondition(spec) | raw }}) {
+            params = (paramsOrFirst || {}) as { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} };
             {%~ if 'multipart/form-data' in (method | consumes) %}
             onProgress = paramsOrFirst?.onProgress as ((progress: UploadProgress) => void);
             {%~ endif %}
         } else {
             params = {
                 {%~ for parameter in (method | parameters('all')) %}
-                {{ parameter.name | caseCamel | escapeKeyword }}: {% if loop.index0 == 0 %}paramsOrFirst{% else %}rest[{{ loop.index0 - 1 }}]{% endif %} as {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %},
+                {{ parameter.name | caseCamel | escapeKeyword }}: {% if loop.index0 == 0 %}paramsOrFirst{% else %}rest[{{ loop.index0 - 1 }}]{% endif %} as {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %},
 {% endif %}
                 {%~ endfor %}
             
@@ -96,7 +96,7 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endif %}
         {%~ endif %}
     {%~ else %}
-    {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}({% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress = (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }} {
+    {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}({% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress = (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }} {
     {%~ endif %}
         {%~ for parameter in (method | parameters('all')) %}
         {%~ if parameter.required %}

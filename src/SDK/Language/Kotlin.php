@@ -691,9 +691,13 @@ class Kotlin extends Language
             new TwigFilter('propertyType', function (Schema $property, Specification $spec, string $generic = 'T'): string {
                 $type = $this->getTypeName($property, $spec);
                 $model = $this->getSchemaModel($property);
-                if ($this->hasGenericSchemaType($model, $spec)) {
-                    $modelType = 'io.appwrite.models.' . $this->toPascalCase((string) $model);
-                    $type = \str_replace($modelType, $modelType . '<' . $generic . '>', $type);
+                if ($model !== null) {
+                    $modelType = 'io.appwrite.models.' . $this->toPascalCase($model);
+                    $replacement = $this->toPascalCase($model);
+                    if ($this->hasGenericSchemaType($model, $spec)) {
+                        $replacement .= '<' . $generic . '>';
+                    }
+                    $type = \str_replace($modelType, $replacement, $type);
                 }
                 return $this->isSpecificationSchemaRequired($property, $spec) ? $type : $type . '?';
             }),

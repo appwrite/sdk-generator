@@ -121,7 +121,7 @@ class Client @JvmOverloads constructor(
     fun set{{headerKey | caseUcfirst}}(value: String): Client {
         config["{{ headerKey | caseCamel }}"] = value
         {%~ if (headerKey != 'Project') %}
-        addHeader("{{ header.name | caseLower }}", {% if header.type is defined and header.type == 'bearer' %}"Bearer $value"{% else %}value{% endif %})
+        addHeader("{{ header.name | caseLower }}", {% if header.scheme == 'bearer' %}"Bearer $value"{% else %}value{% endif %})
         {%~ endif %}
         return this
     }

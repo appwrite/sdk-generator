@@ -175,8 +175,8 @@ class SDK
         $this->twig->addFilter(new TwigFilter('extension', fn(Schema|Parameter $value, string $key, mixed $default = null): mixed => $this->getSchema($value)->extensions[$key] ?? $default));
         $this->twig->addFilter(new TwigFilter('methodHeaders', fn(Operation $operation): array => $this->getMethodHeaders($operation)));
         $this->twig->addFilter(new TwigFilter('responseDiscriminator', fn(Operation $operation): array => $this->getResponseDiscriminator($operation)));
-        $this->twig->addFilter(new TwigFilter('securitySchemes', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation)));
-        $this->twig->addFilter(new TwigFilter('securityHeaders', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::HEADER)));
+        $this->twig->addFilter(new TwigFilter('securitySchemes', fn(Operation $operation): array => $this->getOperationAuthSchemes($operation)));
+        $this->twig->addFilter(new TwigFilter('securityHeaders', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::HEADER, false)));
         $this->twig->addFilter(new TwigFilter('securityQueries', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::QUERY)));
         $this->twig->addFilter(new TwigFilter('schemaNullable', fn(Schema|Parameter $value): bool => $this->getSchema($value)->nullable));
         $this->twig->addFilter(new TwigFilter('enumValues', function (Schema|Parameter $value): array {
@@ -706,7 +706,11 @@ class SDK
 
         $responses = [];
         foreach ($alias['responses'] as $descriptor) {
-            if (!\is_array($descriptor) || !isset($descriptor['code'], $descriptor['model'])) {
+            if (!\is_array($descriptor) || !isset($descriptor['code'])) {
+                continue;
+            }
+            if (!isset($descriptor['model'])) {
+                $responses[(string) $descriptor['code']] = new Response(description: '');
                 continue;
             }
 
@@ -884,31 +888,38 @@ class SDK
             }
         }
 
-        $definitions = [];
-        $requestModels = [];
+        $reachable = [];
         while ($queue !== []) {
             $name = array_key_first($queue);
             unset($queue[$name]);
 
-            if ($name === 'any' || isset($excluded[$name])) {
+            if ($name === 'any' || isset($excluded[$name]) || isset($reachable[$name])) {
                 continue;
             }
 
             $schema = $this->spec->schemas[$name] ?? null;
-            if ($schema === null || isset($definitions[$name]) || isset($requestModels[$name])) {
+            if ($schema === null) {
                 continue;
             }
 
-            if ($schema->extensions['x-request-model'] ?? false) {
-                $requestModels[$name] = $schema;
-            } else {
-                $definitions[$name] = $schema;
-            }
-
+            $reachable[$name] = true;
             foreach ($this->getSchemaDependencies($schema) as $dependency) {
                 if (!isset($excluded[$dependency])) {
                     $queue[$dependency] = true;
                 }
+            }
+        }
+
+        $definitions = [];
+        $requestModels = [];
+        foreach ($this->spec->schemas as $name => $schema) {
+            if (!isset($reachable[$name])) {
+                continue;
+            }
+            if ($schema->extensions['x-request-model'] ?? false) {
+                $requestModels[$name] = $schema;
+            } else {
+                $definitions[$name] = $schema;
             }
         }
 
@@ -1634,11 +1645,26 @@ class SDK
     /** @return array<string, SecurityScheme> */
     protected function getGlobalHeaders(): array
     {
-        return \array_filter(
-            $this->spec->securitySchemes,
-            static fn(SecurityScheme $scheme): bool => ($scheme->type === SecuritySchemeType::API_KEY && $scheme->location === ParameterLocation::HEADER)
-                || ($scheme->type === SecuritySchemeType::HTTP && $scheme->scheme === 'bearer'),
-        );
+        $headers = [];
+        foreach ($this->spec->securitySchemes as $name => $scheme) {
+            if (($scheme->type === SecuritySchemeType::API_KEY && $scheme->location === ParameterLocation::HEADER)
+                || ($scheme->type === SecuritySchemeType::HTTP && $scheme->scheme === 'bearer')) {
+                $headers[$name] = $scheme->type === SecuritySchemeType::HTTP
+                    ? new SecurityScheme(
+                        type: $scheme->type,
+                        description: $scheme->description,
+                        name: 'Authorization',
+                        location: $scheme->location,
+                        scheme: $scheme->scheme,
+                        bearerFormat: $scheme->bearerFormat,
+                        flows: $scheme->flows,
+                        openIdConnectUrl: $scheme->openIdConnectUrl,
+                        extensions: $scheme->extensions,
+                    )
+                    : $scheme;
+            }
+        }
+        return $headers;
     }
 
     protected function getEndpointDocs(): string
@@ -1662,6 +1688,9 @@ class SDK
                 }
             }
         }
+        if ($produces === []) {
+            $produces = $operation->extensions['x-appwrite']['produces'] ?? [];
+        }
         return $produces;
     }
 
@@ -1670,6 +1699,9 @@ class SDK
     {
         $headers = [];
         $consumes = \array_keys($operation->requestBody?->content ?? []);
+        if ($consumes === [] && !\in_array($operation->method->value, ['get', 'head'], true)) {
+            $consumes = ['application/json'];
+        }
         if ($consumes !== []) {
             $headers['content-type'] = array_last($consumes);
         }
@@ -1684,12 +1716,47 @@ class SDK
     }
 
     /** @return array<string, SecurityScheme> */
-    protected function getOperationSecuritySchemes(Operation $operation, ?ParameterLocation $location = null): array
+    protected function getOperationAuthSchemes(Operation $operation): array
+    {
+        $auth = $operation->extensions['x-appwrite']['auth'] ?? [];
+        if (!\is_array($auth)) {
+            return [];
+        }
+        $schemes = [];
+        $pathSchemes = [];
+        foreach (\array_keys($auth) as $name) {
+            $scheme = $this->spec->securitySchemes[$name] ?? null;
+            if ($scheme === null) {
+                continue;
+            }
+            if (($scheme->extensions['x-appwrite']['location'] ?? '') === 'path' && $scheme->name !== null) {
+                $pathSchemes[\ucfirst($this->helperCamelCase($scheme->name))] = $scheme;
+            } else {
+                $schemes[$name] = $scheme;
+            }
+        }
+        return [...$schemes, ...$pathSchemes];
+    }
+
+    /** @return array<string, SecurityScheme> */
+    protected function getOperationSecuritySchemes(Operation $operation, ?ParameterLocation $location = null, bool $includeGlobal = true): array
     {
         $schemes = [];
         foreach ($operation->security[0]->schemes ?? [] as $name => $scopes) {
             $scheme = $this->spec->securitySchemes[$name] ?? null;
-            if ($scheme === null || ($location instanceof ParameterLocation && $scheme->location !== $location)) {
+            if ($scheme === null) {
+                continue;
+            }
+            if (($scheme->extensions['x-appwrite']['location'] ?? '') === 'path') {
+                if (!$location instanceof ParameterLocation) {
+                    $schemes[$name] = $scheme;
+                }
+                continue;
+            }
+            if ($location instanceof ParameterLocation && $scheme->location !== $location) {
+                continue;
+            }
+            if (!$includeGlobal && $name !== 'Project') {
                 continue;
             }
             $schemes[$name] = $scheme;

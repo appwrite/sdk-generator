@@ -328,7 +328,7 @@ class Swift extends Language
 
         $model = $this->getSchemaModel($parameter);
         if ($model !== null) {
-            $type = $prefix . 'Models.' . $this->toPascalCase($model);
+            $type = ($isProperty ? '' : $prefix . 'Models.') . $this->toPascalCase($model);
             return $schema instanceof ArraySchema ? '[' . $type . ']' : $type;
         }
         return match ($this->getSchemaType($parameter)) {

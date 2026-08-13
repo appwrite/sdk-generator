@@ -38,7 +38,7 @@ module {{ spec.info.title | caseUcfirst }}
         # @return [self]
         def set_{{headerKey | caseSnake}}(value)
             {%~ if (headerKey != 'Project') %}
-            add_header('{{header.name | caseLower}}', {% if header.type is defined and header.type == 'bearer' %}"Bearer #{value}"{% else %}value{% endif %})
+            add_header('{{header.name | caseLower}}', {% if header.scheme == 'bearer' %}"Bearer #{value}"{% else %}value{% endif %})
             {%~ endif %}
             @config['{{ headerKey | caseLower }}'] = value
 

@@ -290,7 +290,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// <returns>Client instance for method chaining</returns>
         public Client Set{{headerKey | caseUcfirst}}(string value)
         {
-{% if header.type is defined and header.type == 'bearer' %}
+{% if header.scheme == 'bearer' %}
             _config["{{headerKey | caseLower}}"] = value;
             _headers["{{header.name}}"] = "Bearer " + value;
 {% else %}

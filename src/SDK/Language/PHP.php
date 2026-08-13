@@ -671,8 +671,9 @@ class PHP extends Language
                     return '';
                 }
 
-                $enumKeys = $schema->extensions['x-enum-keys'] ?? [];
-                $enumName = $this->toPascalCase($schema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $schema->title ?? ''));
+                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
+                $enumName = $this->toPascalCase($enumSchema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
                 $example = $this->getSchemaExample($param);
                 $isArray = $schema instanceof ArraySchema;
 

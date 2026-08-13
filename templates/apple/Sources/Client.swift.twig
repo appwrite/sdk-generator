@@ -116,7 +116,7 @@ open class Client {
     open func set{{ headerKey | caseUcfirst }}(_ value: String) -> Client {
         config["{{ headerKey | caseLower }}"] = value
         {%~ if (headerKey != 'Project') %}
-        _ = addHeader(key: "{{header.name}}", value: {% if header.type is defined and header.type == 'bearer' %}"Bearer \(value)"{% else %}value{% endif %})
+        _ = addHeader(key: "{{header.name}}", value: {% if header.scheme == 'bearer' %}"Bearer \(value)"{% else %}value{% endif %})
         {%~ endif %}
         return self
     }
