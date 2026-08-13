@@ -101,7 +101,7 @@ final class GenerationProfile
                 if (\is_array($operationConfig) && \is_array($platformOperation)) {
                     $operation = $this->applyOperation(
                         $operation,
-                        \array_replace_recursive($operationConfig, $platformOperation),
+                        $this->mergeConfig($operationConfig, $platformOperation),
                     );
                 }
 
@@ -292,6 +292,34 @@ final class GenerationProfile
         $operation['security'] = $requirements;
 
         return $operation;
+    }
+
+    /**
+     * Merge associative profile configuration while replacing lists. Platform
+     * lists are complete overrides, not positional patches of global lists.
+     *
+     * @param array<string, mixed> $base
+     * @param array<string, mixed> $override
+     * @return array<string, mixed>
+     */
+    private function mergeConfig(array $base, array $override): array
+    {
+        foreach ($override as $key => $value) {
+            if (
+                isset($base[$key])
+                && \is_array($base[$key])
+                && \is_array($value)
+                && !\array_is_list($base[$key])
+                && !\array_is_list($value)
+            ) {
+                $base[$key] = $this->mergeConfig($base[$key], $value);
+                continue;
+            }
+
+            $base[$key] = $value;
+        }
+
+        return $base;
     }
 
     /**

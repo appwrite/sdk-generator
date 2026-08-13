@@ -186,6 +186,7 @@ final class GenerationProfileTest extends TestCase
                             'auth' => ['Project'],
                             'security' => ['Project', 'Session'],
                             'cookies' => true,
+                            'platforms' => ['client'],
                             'methods' => [
                                 [
                                     'name' => 'getLegacy',
@@ -279,6 +280,7 @@ final class GenerationProfileTest extends TestCase
         $this->assertSame(['getLegacy', 'get'], \array_column($methods, 'name'));
         $this->assertSame(['Project'], \array_keys($methods[1]['auth'][0]));
         $this->assertSame(['Project', 'Session'], $methods[1]['security']);
+        $this->assertSame(['client'], $methods[1]['platforms']);
         $this->assertTrue($methods[1]['cookies']);
         $this->assertSame(['account'], \array_keys($spec->getServices()));
     }
@@ -289,14 +291,39 @@ final class GenerationProfileTest extends TestCase
         $method = $spec->getMethods('account')[0];
 
         $this->assertSame('get', $method['name']);
-        $this->assertSame(['Project', 'Session', 'Key'], \array_keys($method['auth'][0]));
-        $this->assertSame(['Project', 'Session', 'Key'], $method['security']);
+        $this->assertCount(2, $method['auth']);
+        $this->assertSame(['Project', 'Session'], \array_keys($method['auth'][0]));
+        $this->assertSame(['Project', 'Key'], \array_keys($method['auth'][1]));
+        $this->assertSame(['Project', 'Session'], $method['security']);
 
         $property = $spec->getDefinitions()['account']['properties']['status'];
         $this->assertSame('string', $property['type']);
         $this->assertTrue($property['x-nullable']);
         $this->assertSame('AccountStatus', $property['enumName']);
         $this->assertSame('active', $property['example']);
+    }
+
+    public function testPlatformListsReplaceGlobalLists(): void
+    {
+        $profile = $this->profile;
+        $profile['operations']['accountGet']['auth'] = ['Project', 'Session'];
+        $profile['operations']['accountGet']['methods'] = [
+            ['name' => 'globalOne'],
+            ['name' => 'globalTwo'],
+        ];
+        $profile['operations']['accountGet']['platforms'] = ['client', 'server'];
+        $profile['platforms']['client']['operations']['accountGet']['auth'] = ['Project'];
+        $profile['platforms']['client']['operations']['accountGet']['methods'] = [
+            ['name' => 'clientOnly'],
+        ];
+        $profile['platforms']['client']['operations']['accountGet']['platforms'] = ['client'];
+
+        $projected = new GenerationProfile($profile)->apply($this->document, 'client');
+        $metadata = $projected['paths']['/account']['get']['x-appwrite'];
+
+        $this->assertSame(['Project'], \array_keys($metadata['auth']));
+        $this->assertSame(['clientOnly'], \array_column($metadata['methods'], 'name'));
+        $this->assertSame(['client'], $metadata['platforms']);
     }
 
     public function testRejectsUnsupportedProfileVersion(): void

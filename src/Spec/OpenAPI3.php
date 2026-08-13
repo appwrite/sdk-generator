@@ -148,16 +148,23 @@ class OpenAPI3 extends Spec
     protected function parseMethod(string $methodName, string $pathName, array $method): array
     {
         $security = $this->getAttribute('components.securitySchemes', []);
-        $methodSecurity = $this->mergeSecurityRequirements($method['security'] ?? []);
-        $methodAuth = $method['x-appwrite']['auth'] ?? $methodSecurity;
+        $methodRequirements = \array_values(\array_filter($method['security'] ?? [], \is_array(...)));
+        $methodSecurity = $methodRequirements[0] ?? [];
+        $methodAuthRequirements = isset($method['x-appwrite']['auth'])
+            ? [$method['x-appwrite']['auth']]
+            : $methodRequirements;
+        $methodAuthRequirements = $methodAuthRequirements === [] ? [[]] : $methodAuthRequirements;
 
-        foreach ($methodAuth as $i => $node) {
-            $authKey = $this->getAuthSetterKey((string) $i, $security[(string) $i] ?? []);
-            $methodAuth[$authKey] = (array_key_exists((string) $i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
-            if ($authKey !== (string) $i) {
-                unset($methodAuth[$i]);
+        $methodAuth = [];
+        foreach ($methodAuthRequirements as $requirement) {
+            $auth = [];
+            foreach ($requirement as $i => $node) {
+                $authKey = $this->getAuthSetterKey((string) $i, $security[(string) $i] ?? []);
+                $auth[$authKey] = (array_key_exists((string) $i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
             }
+            $methodAuth[] = $auth;
         }
+
         foreach ($methodSecurity as $i => $node) {
             $methodSecurity[$i] = (array_key_exists((string) $i, $security)) ? [...$security[$i], 'global' => $i !== 'Project'] : [];
         }
@@ -255,7 +262,7 @@ class OpenAPI3 extends Spec
             'packaging' => $method['x-appwrite']['packaging'] ?? false,
             'title' => $method['summary'] ?? '',
             'description' => $method['description'] ?? '',
-            'auth' => [$methodAuth] ?? [],
+            'auth' => $methodAuth,
             'security' => \array_keys($methodSecurity),
             'securityHeaders' => $methodSecurityHeaders,
             'securityQueries' => $methodSecurityQueries,
@@ -448,27 +455,6 @@ class OpenAPI3 extends Spec
         usort($output['parameters']['all'], fn(array $a, array $b): int => (int) $b['required'] - (int) $a['required']);
 
         return $output;
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $requirements
-     * @return array<string, mixed>
-     */
-    private function mergeSecurityRequirements(array $requirements): array
-    {
-        $security = [];
-
-        foreach ($requirements as $requirement) {
-            if (!\is_array($requirement)) {
-                continue;
-            }
-
-            foreach ($requirement as $name => $scopes) {
-                $security[$name] ??= $scopes;
-            }
-        }
-
-        return $security;
     }
 
     /**
