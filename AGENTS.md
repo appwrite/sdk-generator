@@ -223,14 +223,9 @@ composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-s
 
 ## Running Tests
 
-Tests are split into two suites:
-
-- `tests/unit/` — fast, pure-PHP tests (spec parsers); no Docker needed
-- `tests/e2e/` — per-language SDK tests; generate an SDK from `tests/resources/spec-openapi3.json` into `tests/e2e/sdks/` and run it in Docker against a mock API. The mock server (`./mock-server`) is started in `setUp()` and removed in `tearDown()` (`docker compose down`); after interrupted runs, clean up with `cd mock-server && docker compose down`
-- `tests/resources/` — shared fixtures (spec file, upload files) used by both suites
+The tests in `tests/e2e/` generate an SDK from `tests/resources/spec-openapi3.json` into `tests/e2e/sdks/` and run it in Docker against a mock API. Parser behavior is tested by `utopia-php/openapi` rather than this repository. The mock server (`./mock-server`) is started in `setUp()` and removed in `tearDown()` (`docker compose down`); after interrupted runs, clean up with `cd mock-server && docker compose down`.
 
 ```bash
-vendor/bin/phpunit --testsuite Unit        # fast, run these always
 vendor/bin/phpunit tests/e2e/PHP83Test.php # one language e2e (needs Docker)
 ```
 
