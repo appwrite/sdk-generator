@@ -115,7 +115,10 @@ final class OpenAPI3Reader
                     summary: (string) ($operation['summary'] ?? ''),
                     description: (string) ($operation['description'] ?? ''),
                     deprecated: ($operation['deprecated'] ?? false) === true,
-                    parameters: [...$pathParameters, ...$this->readList($operation['parameters'] ?? [])],
+                    parameters: $this->mergeParameters(
+                        $pathParameters,
+                        $this->readList($operation['parameters'] ?? []),
+                    ),
                     requestBody: \is_array($operation['requestBody'] ?? null) ? $operation['requestBody'] : null,
                     responses: $this->readMap($operation['responses'] ?? []),
                     security: $this->readSecurity($security),
@@ -124,6 +127,29 @@ final class OpenAPI3Reader
         }
 
         return $operations;
+    }
+
+    /**
+     * Operation parameters override path parameters with the same name and
+     * location, as required by OpenAPI.
+     *
+     * @param list<array<string, mixed>> $pathParameters
+     * @param list<array<string, mixed>> $operationParameters
+     * @return list<array<string, mixed>>
+     */
+    private function mergeParameters(array $pathParameters, array $operationParameters): array
+    {
+        $parameters = [];
+
+        foreach ([...$pathParameters, ...$operationParameters] as $parameter) {
+            $reference = $parameter['$ref'] ?? null;
+            $key = \is_string($reference)
+                ? $reference
+                : ($parameter['in'] ?? '') . "\0" . ($parameter['name'] ?? '');
+            $parameters[$key] = $parameter;
+        }
+
+        return \array_values($parameters);
     }
 
     /** @return list<SecurityRequirement> */

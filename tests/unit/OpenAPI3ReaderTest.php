@@ -83,11 +83,20 @@ final class OpenAPI3ReaderTest extends TestCase
                     'get' => [
                         'operationId' => 'usersGet',
                         'tags' => ['users'],
-                        'parameters' => [[
-                            'name' => 'queries',
-                            'in' => 'query',
-                            'schema' => ['type' => 'array'],
-                        ]],
+                        'parameters' => [
+                            [
+                                'name' => 'userId',
+                                'in' => 'path',
+                                'required' => true,
+                                'description' => 'Operation override.',
+                                'schema' => ['type' => 'string'],
+                            ],
+                            [
+                                'name' => 'queries',
+                                'in' => 'query',
+                                'schema' => ['type' => 'array'],
+                            ],
+                        ],
                         'responses' => ['200' => ['description' => 'OK']],
                     ],
                 ],
@@ -97,6 +106,7 @@ final class OpenAPI3ReaderTest extends TestCase
         $parameters = $document->services['users']->operations[0]->parameters;
 
         $this->assertSame(['userId', 'queries'], \array_column($parameters, 'name'));
+        $this->assertSame('Operation override.', $parameters[0]['description']);
     }
 
     public function testRequiresAnOpenAPIVersion(): void
