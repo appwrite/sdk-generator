@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"net"
 	"os"
 	"path/filepath"
@@ -362,53 +363,43 @@ func TestFindPortSkipsAPortInUse(t *testing.T) {
 	}
 }
 
-// The readiness probe requires a REPLY, not just an accept. docker's published
-// port is proxied, and the proxy accepts while the runtime behind it is still
-// unpacking code -- which is how `run` announced its URL in the middle of the
-// container's startup log.
-func TestReadinessProbeRejectsAnAcceptWithNoReply(t *testing.T) {
+// Readiness is a transport check, not a function invocation. A function may
+// validly ignore GET /, require browser headers, stream indefinitely, or have
+// side effects. Accepting the connection is enough to prove the published port
+// is reachable.
+func TestWaitForPortDoesNotRequireAnHTTPReply(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer listener.Close()
 
-	// Accepts and closes without answering, as a proxy with no backend does.
-	go func() {
-		for {
-			connection, err := listener.Accept()
-			if err != nil {
-				return
-			}
-			connection.Close()
-		}
-	}()
-
-	if err := probe(listener.Addr().String()); err == nil {
-		t.Error("a connection that never answered was treated as ready")
-	}
-}
-
-func TestReadinessProbeAcceptsAnyReply(t *testing.T) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer listener.Close()
-
-	// 500 is what the dev server answers without the runtime secret, and it is
-	// still proof that something is listening.
+	accepted := make(chan struct{})
 	go func() {
 		connection, err := listener.Accept()
 		if err != nil {
 			return
 		}
 		defer connection.Close()
-		_, _ = connection.Write([]byte("HTTP/1.0 500 Internal Server Error\r\n\r\n"))
+		close(accepted)
+
+		// Keep the connection open without sending a reply. The old readiness
+		// probe blocked on this until its read deadline and rejected the runtime.
+		time.Sleep(time.Second)
 	}()
 
-	if err := probe(listener.Addr().String()); err != nil {
-		t.Errorf("a listening runtime was treated as not ready: %v", err)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	port := listener.Addr().(*net.TCPAddr).Port
+	if err := waitForPort(ctx, port); err != nil {
+		t.Fatalf("an accepted connection was treated as not ready: %v", err)
+	}
+
+	select {
+	case <-accepted:
+	case <-ctx.Done():
+		t.Fatal("readiness did not connect to the published port")
 	}
 }
 
