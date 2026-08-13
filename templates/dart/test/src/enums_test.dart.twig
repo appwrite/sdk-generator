@@ -12,7 +12,7 @@ void main() {
         'returns ${method.toString().split('.').last.toUpperCase()} for $method',
         () {
           expect(
-            (method | methodName)(),
+            method.name(),
             method.toString().split('.').last.toUpperCase(),
           );
         },

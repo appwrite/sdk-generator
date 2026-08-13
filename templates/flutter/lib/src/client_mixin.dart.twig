@@ -13,9 +13,9 @@ mixin ClientMixin {
     required Map<String, dynamic> params,
   }) {
 
-    http.BaseRequest request = http.Request((method | methodName)(), uri);
+    http.BaseRequest request = http.Request(method.name(), uri);
     if (headers['content-type'] == 'multipart/form-data') {
-      request = http.MultipartRequest((method | methodName)(), uri);
+      request = http.MultipartRequest(method.name(), uri);
       if (params.isNotEmpty) {
         params.forEach((key, value) {
           if (value == null) {
@@ -66,7 +66,7 @@ mixin ClientMixin {
         queryParameters: {...uri.queryParameters, ...params},
         port: uri.port,
       );
-      request = http.Request((method | methodName)(), uri);
+      request = http.Request(method.name(), uri);
     } else {
       (request as http.Request).body = jsonEncode(params);
     }

@@ -30,13 +30,13 @@ abstract class ClientBase implements Client {
   Future<String> {{ clientMethodName | caseCamel }}() async {
     final String apiPath = '{{ clientMethod.path }}';
     final response = await call(
-      HttpMethod.{{ clientMethod.method | caseLower }},
+      HttpMethod.{{ clientMethod.method.value | caseLower }},
       path: apiPath,
       headers: {
         {%~ for key, security in (clientMethod | securityHeaders) %}
         '{{ security.name }}': config['{{ key | caseLower }}'] ?? '',
         {%~ endfor %}
-        {%~ for key, header in clientMethod.headers %}
+        {%~ for key, header in (clientMethod | methodHeaders) %}
         '{{ key }}': '{{ header }}',
         {%~ endfor %}
       },

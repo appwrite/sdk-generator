@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 {% endif %}
 {% set fieldNames = {} %}
+{% set additionalFieldName = definition.properties.data is defined ? 'additional_data' : 'data' %}
 
 {{ definition.description | rustdocComment }}
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,7 +27,7 @@ pub struct {{ definitionName | caseUcfirst | overrideIdentifier }} {
 {% if definition.additionalProperties %}
 
     #[serde(flatten)]
-    pub {{ 'data' | caseSnake | removeDollarSign }}: HashMap<String, serde_json::Value>,
+    pub {{ additionalFieldName }}: HashMap<String, serde_json::Value>,
 {% endif %}
 }
 
@@ -57,12 +58,12 @@ impl {{ definitionName | caseUcfirst | overrideIdentifier }} {
 {% if definition.additionalProperties %}
 
     pub fn get<T: serde::de::DeserializeOwned>(&self, key: &str) -> Option<T> {
-        self.{{ 'data' | caseSnake | removeDollarSign }}.get(key)
+        self.{{ additionalFieldName }}.get(key)
             .and_then(|v| serde_json::from_value(v.clone()).ok())
     }
 
-    pub fn {{ 'data' | caseSnake | removeDollarSign }}(&self) -> &HashMap<String, serde_json::Value> {
-        &self.{{ 'data' | caseSnake | removeDollarSign }}
+    pub fn {{ additionalFieldName }}(&self) -> &HashMap<String, serde_json::Value> {
+        &self.{{ additionalFieldName }}
     }
 {% endif %}
 }

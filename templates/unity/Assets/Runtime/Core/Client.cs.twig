@@ -236,14 +236,14 @@ namespace {{ spec.info.title | caseUcfirst }}
                 {%~ for key, security in (clientMethod | securityHeaders) %}
                 ["{{ security.name }}"] = _config.GetValueOrDefault("{{ key | caseLower }}", ""),
                 {%~ endfor %}
-                {%~ for key, header in clientMethod.headers %}
+                {%~ for key, header in (clientMethod | methodHeaders) %}
                 ["{{ key }}"] = "{{ header }}",
                 {%~ endfor %}
             };
 
             var parameters = new Dictionary<string, object?>();
 
-            return await Call<string>("{{ clientMethod.method | caseUpper }}", "{{ clientMethod.path }}", headers, parameters,
+            return await Call<string>("{{ clientMethod.method.value | caseUpper }}", "{{ clientMethod.path }}", headers, parameters,
                 response => (response.TryGetValue("result", out var result) ? result?.ToString() : null) ?? string.Empty);
         }
         {%~ endfor %}

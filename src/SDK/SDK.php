@@ -142,7 +142,7 @@ class SDK
         }));
         $this->twig->addFilter(new TwigFilter('caseJson', fn($value) => (is_array($value)) ? json_encode($value) : $value, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseArray', fn($value) => (is_array($value)) ? json_encode($value) : '[]', ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('typeName', fn(Schema|Parameter $value, ?Specification $spec = null): string => $this->language->getTypeName($value, $spec), ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('typeName', fn(Schema|Parameter $value, ?Specification $spec = null): string => $this->language->getTypeName($value, $spec ?? $this->spec), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('getValidResponseModels', fn(Operation $value): array => $this->getValidResponseModels($value)));
         $this->twig->addFilter(new TwigFilter('paramDefault', fn(Schema|Parameter $value): string => $this->language->getParamDefault($value), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('paramExample', fn(Schema|Parameter $value): string => $this->language->getParamExample($value), ['is_safe' => ['html']]));
@@ -522,8 +522,8 @@ class SDK
     protected function getClientMethods(): array
     {
         $clientMethods = [];
-        foreach (array_keys($this->getFilteredServices()) as $serviceName) {
-            foreach ($this->getMethods($serviceName) as $method) {
+        foreach ($this->spec->operations() as $method) {
+            foreach ($method->tags as $serviceName) {
                 if ($this->isClientMethod($method, $serviceName)) {
                     $clientMethods[$serviceName][$this->methodName($method)] = $method;
                 }

@@ -385,7 +385,7 @@ class Go extends Language
 
     protected function getPropertyType(Schema $property, Specification $spec, string $generic = 'map[string]interface{}'): string
     {
-        return $this->getTypeName($property, $spec);
+        return \str_replace('models.', '', $this->getTypeName($property, $spec));
     }
 
     protected function getReturnType(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string
@@ -397,10 +397,13 @@ class Go extends Language
         if ($type === 'location') {
             return '[]byte';
         }
-        $models = $this->getOperationResponseModels($method);
+        $models = \array_values(\array_filter(
+            $this->getOperationResponseModels($method),
+            static fn(string $model): bool => $model !== 'any',
+        ));
         if (\count($models) > 1) {
             return 'models.Model';
         }
-        return $models === [] ? 'interface{}' : 'models.' . \ucfirst($models[0]);
+        return $models === [] ? 'interface{}' : 'models.' . $this->toPascalCase($models[0]);
     }
 }

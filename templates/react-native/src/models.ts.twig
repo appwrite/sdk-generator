@@ -1,6 +1,6 @@
 {% if responseEnums|length > 0 %}
 {% for responseEnum in responseEnums %}
-import { {{ responseEnum.name }} } from "./enums/{{ responseEnum.name | caseKebab }}"
+import { {{ responseEnum.title }} } from "./enums/{{ responseEnum.title | caseKebab }}"
 {% endfor %}
 {% endif %}
 

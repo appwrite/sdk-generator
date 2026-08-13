@@ -32,7 +32,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Services
         [Obsolete("This API has been deprecated.")]
         {%~ endif %}
         {%~ endif %}
-        public Task{% if (method | methodType) == "webAuth" %}<String>{% else %}<{{ utils.resultType(spec.info.title, method) }}>{% endif %} {{ (method | methodName) | caseUcfirst }}({{ utils.method_parameters(method.parameters, (method | consumes)) }})
+        public Task{% if (method | methodType) == "webAuth" %}<String>{% else %}<{{ utils.resultType(spec.info.title, method) }}>{% endif %} {{ (method | methodName) | caseUcfirst }}({{ utils.method_parameters((method | parameters('all')), (method | consumes)) }})
         {
             var apiPath = "{{ method.path }}"{% if (method | parameters('path')) | length == 0 %};{% endif %}
 

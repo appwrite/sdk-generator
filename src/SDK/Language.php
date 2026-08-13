@@ -260,6 +260,12 @@ abstract class Language
         if ($schema instanceof ReferenceSchema) {
             return $this->normalizeSchemaReference($schema->reference);
         }
+        if ($schema instanceof ArraySchema) {
+            if ($schema->items instanceof ReferenceSchema) {
+                return $this->normalizeSchemaReference($schema->items->reference);
+            }
+            return $schema->items->extensions['x-model'] ?? $schema->extensions['x-model'] ?? null;
+        }
 
         return $schema->extensions['x-model'] ?? null;
     }
@@ -279,6 +285,56 @@ abstract class Language
     protected function getSchemaDefault(Schema|Parameter $value): mixed
     {
         return $this->getSchema($value)->default;
+    }
+
+    protected function getSchemaEnumName(Schema|Parameter $value, ?Specification $spec = null): string
+    {
+        $schema = $this->getSchema($value);
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        $name = $enumSchema->extensions['x-enum-name']
+            ?? $enumSchema->title
+            ?? ($value instanceof Parameter ? $value->name : null);
+        if (\is_string($name) && $name !== '') {
+            return $name;
+        }
+
+        foreach ($spec?->schemas ?? [] as $modelName => $model) {
+            if (!$model instanceof ObjectSchema) {
+                continue;
+            }
+            foreach ($model->properties as $propertyName => $property) {
+                $propertySchema = $property instanceof ArraySchema ? $property->items : $property;
+                if ($propertySchema === $enumSchema) {
+                    return \ucfirst($modelName) . \ucfirst($propertyName);
+                }
+            }
+        }
+        return '';
+    }
+
+    protected function getSpecificationSchemaName(Schema $schema, Specification $spec): string
+    {
+        foreach ($spec->schemas as $name => $candidate) {
+            if ($candidate === $schema) {
+                return $name;
+            }
+        }
+        return $schema->title ?? '';
+    }
+
+    protected function isSpecificationSchemaRequired(Schema $schema, Specification $spec): bool
+    {
+        foreach ($spec->schemas as $model) {
+            if (!$model instanceof ObjectSchema) {
+                continue;
+            }
+            foreach ($model->properties as $name => $property) {
+                if ($property === $schema) {
+                    return \in_array($name, $model->required, true);
+                }
+            }
+        }
+        return false;
     }
 
     protected function normalizeSchemaReference(string $reference): string

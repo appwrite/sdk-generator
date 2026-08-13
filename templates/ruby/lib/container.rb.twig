@@ -13,8 +13,11 @@ require_relative '{{ spec.info.title | caseSnake }}/role'
 require_relative '{{ spec.info.title | caseSnake }}/id'
 require_relative '{{ spec.info.title | caseSnake }}/operator'
 
-{% for defintion in definitions %}
-require_relative '{{ spec.info.title | caseSnake }}/models/{{ defintion.name | caseSnake }}'
+{% for definitionName, definition in definitions %}
+require_relative '{{ spec.info.title | caseSnake }}/models/{{ definitionName | caseSnake }}'
+{% endfor %}
+{% for requestModelName, requestModel in requestModels %}
+require_relative '{{ spec.info.title | caseSnake }}/models/{{ requestModelName | caseSnake }}'
 {% endfor %}
 
 {% for enum in allEnums %}

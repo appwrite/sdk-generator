@@ -523,11 +523,11 @@ class Client {
     {%~ for clientMethodName, clientMethods in clientMethods %}
     {%~ for clientMethod in clientMethods %}
     async {{ clientMethodName | caseCamel }}(): Promise<unknown> {
-        return this.call('{{ clientMethod.method | caseUpper }}', new URL(this.config.endpoint + '{{ clientMethod.path }}'), {
+        return this.call('{{ clientMethod.method.value | caseUpper }}', new URL(this.config.endpoint + '{{ clientMethod.path }}'), {
             {%~ for key, security in (clientMethod | securityHeaders) %}
             '{{ security.name }}': this.config.{{ key | caseLower }},
             {%~ endfor %}
-            {%~ for key, header in clientMethod.headers %}
+            {%~ for key, header in (clientMethod | methodHeaders) %}
             '{{ key }}': '{{ header }}',
             {%~ endfor %}
         });

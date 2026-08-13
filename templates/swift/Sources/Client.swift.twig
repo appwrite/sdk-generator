@@ -220,13 +220,13 @@ open class Client {
            {%~ for key, security in (clientMethod | securityHeaders) %}
            "{{ security.name }}": config["{{ key | caseLower }}"] ?? "",
            {%~ endfor %}
-           {%~ for key, header in clientMethod.headers %}
+           {%~ for key, header in (clientMethod | methodHeaders) %}
            "{{ key }}": "{{ header }}",
            {%~ endfor %}
        ]
 
        return try await call(
-           method: "{{ clientMethod.method | caseUpper }}",
+           method: "{{ clientMethod.method.value | caseUpper }}",
            path: apiPath,
            headers: apiHeaders
        )

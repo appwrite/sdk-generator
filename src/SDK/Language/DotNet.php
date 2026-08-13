@@ -194,8 +194,7 @@ class DotNet extends Language
         $schema = $this->getSchema($parameter);
         $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
         if ($enumSchema->enum !== []) {
-            $name = $enumSchema->extensions['x-enum-name'] ?? ($parameter instanceof Parameter ? $parameter->name : $enumSchema->title ?? '');
-            $type = 'Appwrite.Enums.' . \ucfirst((string) $name);
+            $type = 'Appwrite.Enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             return $schema instanceof ArraySchema ? 'List<' . $type . '>' : $type;
         }
 

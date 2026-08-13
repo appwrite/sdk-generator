@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Utopia\OpenAPI\Model\Schema\ArraySchema;
+use Utopia\OpenAPI\Model\Schema\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema\Schema;
@@ -115,6 +116,12 @@ class Kotlin extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        if ($enumSchema->enum !== []) {
+            $type = 'io.appwrite.enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
+            return $schema instanceof ArraySchema ? 'List<' . $type . '>' : $type;
+        }
+
         $model = $this->getSchemaModel($parameter);
         if ($model !== null) {
             $type = 'io.appwrite.models.' . $this->toPascalCase($model);
@@ -596,24 +603,106 @@ class Kotlin extends Language
         ];
     }
 
+    protected function getPropertyAssignment(Schema $property, Specification $spec): string
+    {
+        $propertyName = '';
+        $required = false;
+        foreach ($spec->schemas as $model) {
+            if (!$model instanceof ObjectSchema) {
+                continue;
+            }
+            foreach ($model->properties as $name => $candidate) {
+                if ($candidate === $property) {
+                    $propertyName = $name;
+                    $required = \in_array($name, $model->required, true);
+                    break 2;
+                }
+            }
+        }
+
+        $mapKey = 'map["' . \str_replace('$', '\\$', $propertyName) . '"]';
+        $model = $this->getSchemaModel($property);
+        if ($model !== null) {
+            $class = $this->toPascalCase($model);
+            $nestedType = ($spec->schemas[$model] ?? null) instanceof ObjectSchema && $spec->schemas[$model]->additionalProperties
+                ? ', nestedType'
+                : '';
+            if ($property instanceof ArraySchema) {
+                $cast = $required ? 'as' : 'as?';
+                $safeCall = $required ? '' : '?';
+                return '(' . $mapKey . ' ' . $cast . ' List<Map<String, Any>>)' . $safeCall
+                    . '.map { ' . $class . '.from(map = it' . $nestedType . ') }';
+            }
+            if (!$required) {
+                return '(' . $mapKey . ' as? Map<String, Any>)?.let { '
+                    . $class . '.from(map = it' . $nestedType . ') }';
+            }
+            return $class . '.from(map = ' . $mapKey . ' as Map<String, Any>' . $nestedType . ')';
+        }
+
+        $enumSchema = $property instanceof ArraySchema ? $property->items : $property;
+        if ($enumSchema->enum !== []) {
+            $enumClass = $this->toPascalCase($this->getSchemaEnumName($property, $spec));
+            if ($property instanceof ArraySchema) {
+                $cast = $required ? 'as' : 'as?';
+                $safeCall = $required ? '' : '?';
+                return '(' . $mapKey . ' ' . $cast . ' List<String>)' . $safeCall
+                    . '.map { value -> ' . $enumClass . '.values().first { it.value == value } }';
+            }
+            return $enumClass . '.values().find { it.value == '
+                . ($required ? $mapKey . ' as String' : '(' . $mapKey . ' as? String)') . ' }'
+                . ($required ? '!!' : '');
+        }
+
+        $nullable = $required ? '' : '?';
+        return match ($this->getSchemaType($property)) {
+            self::TYPE_INTEGER => '(' . $mapKey . ' as' . $nullable . ' Number)' . ($required ? '' : '?') . '.toLong()',
+            self::TYPE_NUMBER => '(' . $mapKey . ' as' . $nullable . ' Number)' . ($required ? '' : '?') . '.toDouble()',
+            default => $mapKey . ' as' . $nullable . ' ' . $this->getTypeName($property, $spec),
+        };
+    }
+
     #[Override]
     public function getFilters(): array
     {
         return [
             new TwigFilter('returnType', function (Operation $method, Specification $spec, string $namespace, string $generic = 'T'): string {
-                $models = $this->getOperationResponseModels($method);
-                return $models === [] ? 'Any' : $this->toPascalCase($models[0]);
+                $methodType = $method->extensions['x-appwrite']['type'] ?? '';
+                if ($methodType === 'webAuth') {
+                    return 'String';
+                }
+                if ($methodType === 'location') {
+                    return 'ByteArray';
+                }
+
+                $models = \array_values(\array_filter(
+                    $this->getOperationResponseModels($method),
+                    static fn(string $model): bool => $model !== 'any',
+                ));
+                if (\count($models) !== 1) {
+                    return 'Any';
+                }
+                $type = $namespace . '.models.' . $this->toPascalCase($models[0]);
+                return ($spec->schemas[$models[0]] ?? null) instanceof ObjectSchema && $spec->schemas[$models[0]]->additionalProperties
+                    ? $type . '<' . $generic . '>'
+                    : $type;
             }),
-            new TwigFilter('modelType', fn(Schema $property, Specification $spec, string $generic = 'T'): string => $this->getTypeName($property, $spec)),
-            new TwigFilter('propertyType', fn(Schema $property, Specification $spec, string $generic = 'T'): string => $this->getTypeName($property, $spec)),
-            new TwigFilter('hasGenericType', fn(string $model, Specification $spec): string => ''),
+            new TwigFilter('modelType', function (Schema $property, Specification $spec, string $generic = 'T'): string {
+                $name = $this->toPascalCase($this->getSpecificationSchemaName($property, $spec));
+                return $property instanceof ObjectSchema && $property->additionalProperties ? $name . '<' . $generic . '>' : $name;
+            }),
+            new TwigFilter('propertyType', function (Schema $property, Specification $spec, string $generic = 'T'): string {
+                $type = $this->getTypeName($property, $spec);
+                return $this->isSpecificationSchemaRequired($property, $spec) ? $type : $type . '?';
+            }),
+            new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => ($spec->schemas[$model] ?? null) instanceof ObjectSchema && (bool) $spec->schemas[$model]->additionalProperties),
             new TwigFilter('caseEnumKey', function (string $value): string {
                 if (isset($this->getIdentifierOverrides()[$value])) {
                     $value = $this->getIdentifierOverrides()[$value];
                 }
                 return $this->toUpperSnakeCase($value);
             }),
-            new TwigFilter('propertyAssignment', fn(Schema $property, Specification $spec): string => 'it'),
+            new TwigFilter('propertyAssignment', fn(Schema $property, Specification $spec): string => $this->getPropertyAssignment($property, $spec)),
             new TwigFilter('javaParamExample', fn(Schema|Parameter $param): string => $this->getParamExample($param, 'java'), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', fn(Schema|Parameter $param, string $lang = 'kotlin'): string => $this->getEnumExample($param, $lang)),
             new TwigFilter('javaEnumExample', fn(Schema|Parameter $param): string => $this->getEnumExample($param, 'java')),

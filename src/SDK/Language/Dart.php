@@ -136,6 +136,12 @@ class Dart extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        if ($enumSchema->enum !== []) {
+            $type = 'enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
+            return $schema instanceof ArraySchema ? 'List<' . $type . '>' : $type;
+        }
+
         $model = $this->getSchemaModel($parameter);
         if ($model !== null) {
             $type = 'models.' . $this->toPascalCase($model);

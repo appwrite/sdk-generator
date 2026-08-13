@@ -204,8 +204,7 @@ class Web extends JS
         $schema = $this->getSchema($parameter);
         $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
         if ($enumSchema->enum !== []) {
-            $name = $enumSchema->extensions['x-enum-name'] ?? ($parameter instanceof Parameter ? $parameter->name : $enumSchema->title ?? '');
-            $type = \ucfirst((string) $name);
+            $type = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             return $schema instanceof ArraySchema ? $type . '[]' : $type;
         }
 
@@ -235,7 +234,10 @@ class Web extends JS
             return 'string';
         }
 
-        $models = $this->getOperationResponseModels($method);
+        $models = \array_values(\array_filter(
+            $this->getOperationResponseModels($method),
+            static fn(string $model): bool => $model !== 'any',
+        ));
         if ($models !== []) {
             return 'Promise<' . \implode(' | ', \array_map(fn(string $model): string => 'Models.' . $this->toPascalCase($model), $models)) . '>';
         }

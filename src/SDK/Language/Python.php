@@ -313,8 +313,13 @@ class Python extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        $models = $this->getSchemaModels($parameter);
-        if ($models !== []) {
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        if ($enumSchema->enum !== []) {
+            $typeName = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
+            if ($schema instanceof ArraySchema) {
+                $typeName = 'List[' . $typeName . ']';
+            }
+        } elseif (($models = $this->getSchemaModels($parameter)) !== []) {
             $typeName = \count($models) > 1
                 ? 'Union[' . \implode(', ', \array_map($this->toPascalCase(...), $models)) . ']'
                 : $this->toPascalCase($models[0]);

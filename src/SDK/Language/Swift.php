@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Utopia\OpenAPI\Model\Schema\ArraySchema;
+use Utopia\OpenAPI\Model\Schema\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema\Schema;
@@ -319,6 +320,12 @@ class Swift extends Language
     {
         $schema = $this->getSchema($parameter);
         $prefix = $spec?->info->title ?? '';
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        if ($enumSchema->enum !== []) {
+            $type = $prefix . 'Enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
+            return $schema instanceof ArraySchema ? '[' . $type . ']' : $type;
+        }
+
         $model = $this->getSchemaModel($parameter);
         if ($model !== null) {
             $type = $prefix . 'Models.' . $this->toPascalCase($model);
@@ -514,14 +521,34 @@ class Swift extends Language
     {
         return [
             new TwigFilter('returnType', function (Operation $method, Specification $spec, string $generic = 'T'): string {
-                $models = $this->getOperationResponseModels($method);
-                return $models === [] ? 'Any' : ($spec->info->title . 'Models.' . $this->toPascalCase($models[0]));
+                $methodType = $method->extensions['x-appwrite']['type'] ?? '';
+                if ($methodType === 'webAuth') {
+                    return 'String?';
+                }
+                if ($methodType === 'location') {
+                    return 'ByteBuffer';
+                }
+
+                $models = \array_values(\array_filter(
+                    $this->getOperationResponseModels($method),
+                    static fn(string $model): bool => $model !== 'any',
+                ));
+                if (\count($models) !== 1) {
+                    return 'Any';
+                }
+                $type = $spec->info->title . 'Models.' . $this->toPascalCase($models[0]);
+                return ($spec->schemas[$models[0]] ?? null) instanceof ObjectSchema && $spec->schemas[$models[0]]->additionalProperties
+                    ? $type . '<' . $generic . '>'
+                    : $type;
             }),
-            new TwigFilter('modelType', fn(Schema $property, Specification $spec, string $generic = 'T : Codable'): string => $this->getTypeName($property, $spec, true)),
+            new TwigFilter('modelType', function (Schema $property, Specification $spec, string $generic = 'T : Codable'): string {
+                $name = $this->toPascalCase($this->getSpecificationSchemaName($property, $spec));
+                return $property instanceof ObjectSchema && $property->additionalProperties ? $name . '<' . $generic . '>' : $name;
+            }),
             new TwigFilter('propertyType', fn(Schema $property, Specification $spec, string $generic = 'T'): string => $this->getTypeName($property, $spec, true)),
             new TwigFilter('isAnyCodableArray', fn(Schema $property, Specification $spec): bool => $this->getSchemaType($property) === self::TYPE_ARRAY && $this->getSchemaModel($property) === null),
             new TwigFilter('isAnyCodableObject', fn(Schema $property, Specification $spec): bool => $this->getSchemaType($property) === self::TYPE_OBJECT && $this->getSchemaModel($property) === null),
-            new TwigFilter('hasGenericType', fn(string $model, Specification $spec): string => ''),
+            new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => ($spec->schemas[$model] ?? null) instanceof ObjectSchema && (bool) $spec->schemas[$model]->additionalProperties),
             new TwigFilter('escapeSwiftKeyword', function ($value) {
                 if (\in_array($value, $this->getKeywords())) {
                     return "`{$value}`";

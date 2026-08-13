@@ -205,13 +205,13 @@ class Client @JvmOverloads constructor(
             {%~ for key, security in (clientMethod | securityHeaders) %}
             "{{ security.name }}" to config["{{ key | caseLower }}"].orEmpty(),
             {%~ endfor %}
-            {%~ for key, header in clientMethod.headers %}
+            {%~ for key, header in (clientMethod | methodHeaders) %}
             "{{ key }}" to "{{ header }}",
             {%~ endfor %}
         )
 
         return call(
-            "{{ clientMethod.method | caseUpper }}",
+            "{{ clientMethod.method.value | caseUpper }}",
             apiPath,
             apiHeaders,
             apiParams,

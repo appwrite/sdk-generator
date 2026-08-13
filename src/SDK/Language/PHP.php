@@ -333,10 +333,7 @@ class PHP extends Language
             return 'array';
         }
         if ($schema->enum !== []) {
-            $enumName = $schema->extensions['x-enum-name']
-                ?? ($parameter instanceof Parameter ? $parameter->name : $schema->title)
-                ?? '';
-            return $this->applyIdentifierOverride($this->toPascalCase($enumName));
+            return $this->applyIdentifierOverride($this->toPascalCase($this->getSchemaEnumName($parameter, $spec)));
         }
 
         $model = $this->getSchemaModel($parameter);

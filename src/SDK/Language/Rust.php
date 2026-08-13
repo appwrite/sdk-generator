@@ -274,7 +274,15 @@ class Rust extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        $model = $this->getSchemaModel($parameter);
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        if ($enumSchema->enum !== []) {
+            $type = 'crate::enums::' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
+            return $schema instanceof ArraySchema ? 'Vec<' . $type . '>' : $type;
+        }
+
+        $model = $schema instanceof ArraySchema
+            ? $this->getArraySchemaModel($schema)
+            : $this->getSchemaModel($schema);
         if ($model !== null) {
             $type = $model === 'any' ? 'serde_json::Value' : 'crate::models::' . $this->toPascalCase($model);
             return $schema instanceof ArraySchema ? 'Vec<' . $type . '>' : $type;
@@ -286,7 +294,7 @@ class Rust extends Language
             self::TYPE_STRING => 'String',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_OBJECT => 'serde_json::Value',
-            self::TYPE_ARRAY => 'Vec<' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '>',
+            self::TYPE_ARRAY => 'Vec<' . $this->getTypeName($schema->items) . '>',
             default => 'serde_json::Value',
         };
     }
@@ -484,6 +492,59 @@ class Rust extends Language
         return $this->getArrayOf(implode(", ", $permissions));
     }
 
+    protected function getInputType(Schema|Parameter $property, ?Specification $spec = null): string
+    {
+        return match ($type = $this->getTypeName($property, $spec)) {
+            'String' => 'impl Into<String>',
+            'Vec<String>' => 'impl IntoIterator<Item = impl Into<String>>',
+            default => $type,
+        };
+    }
+
+    protected function getParamValue(Schema|Parameter $property, string $paramName, ?Specification $spec = null): string
+    {
+        return match ($this->getTypeName($property, $spec)) {
+            'String' => $paramName . '.into()',
+            'Vec<String>' => $paramName . '.into_iter().map(|s| s.into()).collect::<Vec<String>>()',
+            default => $paramName,
+        };
+    }
+
+    protected function getReturnType(Operation $method): string
+    {
+        return match ($method->extensions['x-appwrite']['type'] ?? '') {
+            'webAuth' => 'crate::error::Result<String>',
+            'location' => 'crate::error::Result<Vec<u8>>',
+            default => $this->getResponseReturnType($method),
+        };
+    }
+
+    protected function getResponseReturnType(Operation $method): string
+    {
+        $models = \array_values(\array_filter(
+            $this->getOperationResponseModels($method),
+            static fn(string $model): bool => $model !== 'any',
+        ));
+        if (\count($models) > 1) {
+            return 'crate::error::Result<serde_json::Value>';
+        }
+        if ($models !== []) {
+            return 'crate::error::Result<crate::models::' . $this->toPascalCase($models[0]) . '>';
+        }
+
+        $hasContent = false;
+        $empty = $method->responses !== [];
+        foreach ($method->responses as $code => $response) {
+            $hasContent = $hasContent || $response->content !== [];
+            if (!\in_array((int) $code, [204, 205], true)) {
+                $empty = false;
+            }
+        }
+        return $empty || !$hasContent
+            ? 'crate::error::Result<()>'
+            : 'crate::error::Result<serde_json::Value>';
+    }
+
     #[Override]
     public function getFilters(): array
     {
@@ -502,14 +563,11 @@ class Rust extends Language
                 ["is_safe" => ["html"]],
             ),
             new TwigFilter("propertyType", fn(Schema $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getTypeName($property, $spec)),
-            new TwigFilter("returnType", function (Operation $method, Specification $spec, string $namespace, string $generic = "serde_json::Value"): string {
-                $models = $this->getOperationResponseModels($method);
-                return $models === [] ? 'serde_json::Value' : 'crate::models::' . $this->toPascalCase($models[0]);
-            }),
+            new TwigFilter("returnType", fn(Operation $method, Specification $spec, string $namespace, string $generic = "serde_json::Value"): string => $this->getReturnType($method)),
             new TwigFilter("caseEnumKey", fn(string $value): string => $this->toPascalCase($value)),
             new TwigFilter("docsArgumentExample", fn(Schema|Parameter $param, string $crateName): string => $this->getParamExample($param), ["is_safe" => ["html"]]),
-            new TwigFilter("inputType", fn(Schema|Parameter $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getTypeName($property, $spec)),
-            new TwigFilter("paramValue", fn(Schema|Parameter $property, string $paramName, ?Specification $spec = null): string => $paramName, ["is_safe" => ["html"]]),
+            new TwigFilter("inputType", fn(Schema|Parameter $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getInputType($property, $spec)),
+            new TwigFilter("paramValue", fn(Schema|Parameter $property, string $paramName, ?Specification $spec = null): string => $this->getParamValue($property, $paramName, $spec), ["is_safe" => ["html"]]),
             new TwigFilter("rustType", fn($value): string|array => str_replace(['&lt;', '&gt;'], ['<', '>'], $value), ["is_safe" => ["html"]]),
             new TwigFilter("rustCrateName", fn($value): string|array => str_replace('-', '_', $value)),
             new TwigFilter("stripProtocol", fn($value): string|array => str_replace(['https://', 'http://'], '', $value)),

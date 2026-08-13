@@ -4,7 +4,7 @@
 pub mod {{ definitionName | caseSnake | overrideIdentifier }};
 pub use {{ definitionName | caseSnake | overrideIdentifier }}::{{ definitionName | caseUcfirst | overrideIdentifier }};
 {% endfor %}
-{% for definition in requestModels %}
+{% for definitionName, definition in requestModels %}
 pub mod {{ definitionName | caseSnake | overrideIdentifier }};
 pub use {{ definitionName | caseSnake | overrideIdentifier }}::{{ definitionName | caseUcfirst | overrideIdentifier }};
 {% endfor %}
@@ -19,6 +19,6 @@ pub trait Model: Serialize + for<'de> Deserialize<'de> + Clone + std::fmt::Debug
 {% for definitionName, definition in definitions %}
 impl Model for {{ definitionName | caseUcfirst | overrideIdentifier }} {}
 {% endfor %}
-{% for definition in requestModels %}
+{% for definitionName, definition in requestModels %}
 impl Model for {{ definitionName | caseUcfirst | overrideIdentifier }} {}
 {% endfor %}

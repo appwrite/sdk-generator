@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4cc3cfed622ff6e3abf380083ae3af7a",
+    "content-hash": "41a6e00bede86433479ccaf021fdeba6",
     "packages": [
         {
             "name": "matthiasmullie/minify",
@@ -450,16 +450,16 @@
         },
         {
             "name": "utopia-php/openapi",
-            "version": "dev-main",
+            "version": "dev-fix/preserve-additional-properties-presence",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/openapi.git",
-                "reference": "d50d0ce3cf5d712ebce03657cac137f8c8d71c9b"
+                "reference": "d1419fddb9604d0479a2db6e7eedf02edba8c00c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/openapi/zipball/d50d0ce3cf5d712ebce03657cac137f8c8d71c9b",
-                "reference": "d50d0ce3cf5d712ebce03657cac137f8c8d71c9b",
+                "url": "https://api.github.com/repos/utopia-php/openapi/zipball/d1419fddb9604d0479a2db6e7eedf02edba8c00c",
+                "reference": "d1419fddb9604d0479a2db6e7eedf02edba8c00c",
                 "shasum": ""
             },
             "require": {
@@ -467,10 +467,10 @@
                 "php": ">=8.5"
             },
             "require-dev": {
+                "laravel/pint": "^1.0",
                 "phpunit/phpunit": "^13.3",
                 "rector/rector": "^2.0"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -489,11 +489,23 @@
                 "lint": [
                     "find src tests -name '*.php' -print0 | xargs -0 -n1 php -l"
                 ],
+                "format": [
+                    "pint"
+                ],
+                "format:check": [
+                    "pint --test"
+                ],
                 "rector": [
                     "rector process"
                 ],
                 "rector:check": [
                     "rector process --dry-run"
+                ],
+                "check": [
+                    "@lint",
+                    "@format:check",
+                    "@rector:check",
+                    "@test"
                 ]
             },
             "license": [
@@ -501,10 +513,10 @@
             ],
             "description": "Framework-independent OpenAPI 2.0, 3.0, and 3.1 parser with an immutable canonical model",
             "support": {
-                "source": "https://github.com/utopia-php/openapi/tree/main",
+                "source": "https://github.com/utopia-php/openapi/tree/fix/preserve-additional-properties-presence",
                 "issues": "https://github.com/utopia-php/openapi/issues"
             },
-            "time": "2026-08-13T11:10:03+00:00"
+            "time": "2026-08-13T13:26:40+00:00"
         }
     ],
     "packages-dev": [
