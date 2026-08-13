@@ -122,7 +122,23 @@ try {
     }
 
     function buildSpec(string $format, string $content): Spec {
-        return $format === 'swagger2' ? new Swagger2($content) : new OpenAPI3($content);
+        global $platform, $profile;
+
+        return $format === 'swagger2'
+            ? new Swagger2($content)
+            : new OpenAPI3($content, $platform, $profile);
+    }
+
+    function isJsonDocument(bool|string $content): bool {
+        if (!\is_string($content) || $content === '') {
+            return false;
+        }
+
+        try {
+            return \is_array(\json_decode($content, true, 512, JSON_THROW_ON_ERROR));
+        } catch (JsonException) {
+            return false;
+        }
     }
 
     function buildStaticSpec(): StaticSpec {
@@ -184,20 +200,33 @@ try {
     $speclessSDKs = ['skills', 'cursor-plugin', 'claude-plugin', 'codex-plugin', 'zed-extension'];
     $needsSpec = !$requestedSdk || !in_array($requestedSdk, $speclessSDKs);
     $spec = '';
+    $profile = null;
 
     if ($needsSpec) {
-        // Optional local spec file override, e.g. SDK_GEN_SPEC_FILE=/path/to/spec.json
+        // Optional local overrides for the portable spec and its SDK generation profile.
         $specFile = getenv('SDK_GEN_SPEC_FILE');
+        $profileFile = getenv('SDK_GEN_PROFILE_FILE');
 
         if ($specFile) {
             $spec = file_get_contents($specFile);
+            $profile = $profileFile ? file_get_contents($profileFile) : null;
+        } elseif ($specFormat === 'openapi3') {
+            $unified = getSSLPage(Config::SPECS_URL . "/{$version}/open-api3-{$version}.json");
+            $generationProfile = getSSLPage(Config::SPECS_URL . "/{$version}/sdk-generation-profile-{$version}.json");
+
+            if (isJsonDocument($unified) && isJsonDocument($generationProfile)) {
+                $spec = $unified;
+                $profile = $generationProfile;
+            } else {
+                // Older releases publish one OpenAPI document per platform.
+                $spec = getSSLPage(Config::SPECS_URL . "/{$version}/open-api3-{$version}-{$platform}.json");
+            }
         } else {
-            $specPrefix = $specFormat === 'swagger2' ? 'swagger2' : 'open-api3';
-            $spec = getSSLPage(Config::SPECS_URL . "/{$version}/{$specPrefix}-{$version}-{$platform}.json");
+            $spec = getSSLPage(Config::SPECS_URL . "/{$version}/swagger2-{$version}-{$platform}.json");
         }
 
-        if(empty($spec)) {
-            throw new Exception('Failed to fetch spec from Appwrite server');
+        if (!isJsonDocument($spec) || ($profile !== null && !isJsonDocument($profile))) {
+            throw new Exception('Failed to fetch spec or generation profile from Appwrite server');
         }
     }
 

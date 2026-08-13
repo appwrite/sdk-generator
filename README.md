@@ -43,10 +43,15 @@ use Appwrite\Spec\OpenAPI3;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\PHP;
 
-// Read API specification file (OpenAPI 3) and create spec instance
+// Read the portable OpenAPI document and SDK generation profile.
 $version = '1.9.x';
 $platform = 'server';
-$spec = new OpenAPI3(file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/open-api3-{$version}-{$platform}.json"));
+$base = "https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}";
+$spec = new OpenAPI3(
+    file_get_contents("{$base}/open-api3-{$version}.json"),
+    $platform,
+    file_get_contents("{$base}/sdk-generation-profile-{$version}.json"),
+);
 
 // Swagger 2 specs are supported as well:
 // use Appwrite\Spec\Swagger2;
@@ -72,6 +77,38 @@ $sdk
 $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 ```
+
+The OpenAPI document describes only the HTTP API. SDK-specific policy lives in
+a separate generation profile so the API document remains portable across
+standard OpenAPI tooling. A profile can select operations and security schemes,
+provide platform-specific security definitions, and retain compatibility
+metadata such as SDK method variants:
+
+```json
+{
+  "version": "1.0",
+  "platforms": {
+    "client": {
+      "securitySchemes": {
+        "Project": {},
+        "Session": {}
+      },
+      "include": ["accountGet"],
+      "operations": {
+        "accountGet": {
+          "name": "get",
+          "auth": ["Project"]
+        }
+      }
+    }
+  }
+}
+```
+
+Profiles are optional. Without one, services come from `tags`, method names come
+from `operationId`, and authentication comes from standard operation `security`
+requirements. Existing platform-specific specs with `x-appwrite` metadata remain
+supported.
 
 For generated artifacts that do not need an API specification, use `StaticSpec`:
 
@@ -139,6 +176,17 @@ php example.php <target> <platform> <format>
 `<platform>` can be `console`, `client`, or `server`. If omitted, it defaults to `console`.
 
 `<format>` can be `openapi3` or `swagger2`. If omitted, it defaults to `openapi3`. Both formats produce identical SDKs.
+
+For local unified-spec testing, set both input paths:
+
+```bash
+SDK_GEN_SPEC_FILE=/path/to/openapi.json \
+SDK_GEN_PROFILE_FILE=/path/to/sdk-generation-profile.json \
+php example.php web client
+```
+
+If the remote unified spec and profile are unavailable, `example.php` falls back
+to the legacy platform-specific specification URL.
 
 Examples:
 

@@ -2,6 +2,7 @@
 
 namespace Appwrite\Spec;
 
+use InvalidArgumentException;
 use Override;
 use stdClass;
 
@@ -15,6 +16,19 @@ use stdClass;
 class OpenAPI3 extends Spec
 {
     protected const string DEFAULT_CONTENT_TYPE = 'application/json';
+
+    public function __construct($input, ?string $platform = null, array|string|null $profile = null)
+    {
+        parent::__construct($input);
+
+        if ($profile !== null) {
+            if ($platform === null || $platform === '') {
+                throw new InvalidArgumentException('A platform is required when using a generation profile.');
+            }
+
+            $this->exchangeArray(new GenerationProfile($profile)->apply($this->getArrayCopy(), $platform));
+        }
+    }
 
     #[Override]
     public function getTitle(): string
@@ -134,8 +148,8 @@ class OpenAPI3 extends Spec
     protected function parseMethod(string $methodName, string $pathName, array $method): array
     {
         $security = $this->getAttribute('components.securitySchemes', []);
-        $methodAuth = $method['x-appwrite']['auth'] ?? [];
-        $methodSecurity = $method['security'][0] ?? [];
+        $methodSecurity = $this->mergeSecurityRequirements($method['security'] ?? []);
+        $methodAuth = $method['x-appwrite']['auth'] ?? $methodSecurity;
 
         foreach ($methodAuth as $i => $node) {
             $authKey = $this->getAuthSetterKey((string) $i, $security[(string) $i] ?? []);
@@ -237,7 +251,7 @@ class OpenAPI3 extends Spec
             'method' => $methodName,
             'path' => $pathName,
             'fullPath' => parse_url($this->getEndpoint(), PHP_URL_PATH) . $pathName,
-            'name' => $method['x-appwrite']['method'] ?? ($method['operationId'] ?? ''),
+            'name' => $method['x-appwrite']['method'] ?? $this->getOperationName($method),
             'packaging' => $method['x-appwrite']['packaging'] ?? false,
             'title' => $method['summary'] ?? '',
             'description' => $method['description'] ?? '',
@@ -290,13 +304,13 @@ class OpenAPI3 extends Spec
 
             $param = [
                 'name' => $parameter['name'] ?? null,
-                'type' => $parameter['type'] ?? null,
+                'type' => $this->getSchemaType($parameter),
                 'class' => $parameter['x-class'] ?? null,
                 'description' => $parameter['description'] ?? '',
                 'required' => $parameter['required'] ?? false,
-                'nullable' => $parameter['x-nullable'] ?? false,
+                'nullable' => $this->isNullableSchema($parameter),
                 'default' => $parameter['default'] ?? null,
-                'example' => $parameter['x-example'] ?? null,
+                'example' => $parameter['example'] ?? $parameter['x-example'] ?? null,
                 'isUploadID' => $parameter['x-upload-id'] ?? false,
                 'format' => $parameter['format'] ?? null,
                 'array' => [
@@ -311,11 +325,11 @@ class OpenAPI3 extends Spec
             $param['default'] = (is_array($param['default']) || $param['default'] instanceof stdClass) ? json_encode($param['default']) : $param['default'];
             if (isset($parameter['enum'])) {
                 $param['enumValues'] = $parameter['enum'];
-                $param['enumName'] = $parameter['x-enum-name'] ?? $param['name'];
+                $param['enumName'] = $parameter['x-enum-name'] ?? $parameter['title'] ?? $param['name'];
                 $param['enumKeys'] = $parameter['x-enum-keys'] ?? [];
             } elseif (($param['type'] ?? null) === 'array' && isset($parameter['items']['enum'])) {
                 $param['enumValues'] = $parameter['items']['enum'];
-                $param['enumName'] = $parameter['items']['x-enum-name'] ?? $param['name'];
+                $param['enumName'] = $parameter['items']['x-enum-name'] ?? $parameter['items']['title'] ?? $param['name'];
                 $param['enumKeys'] = $parameter['items']['x-enum-keys'] ?? [];
             }
 
@@ -351,14 +365,13 @@ class OpenAPI3 extends Spec
             foreach ($bodyProperties as $key => $value) {
                 $param = [
                     'name' => $key,
-                    'type' => $value['type'] ?? null,
+                    'type' => $this->getSchemaType($value),
                     'class' => $value['x-class'] ?? null,
                     'description' => $value['description'] ?? '',
                     'required' => (in_array($key, $bodyRequired)),
-                    // Multipart parameters carry no nullability information
-                    'nullable' => false,
+                    'nullable' => $this->isNullableSchema($value),
                     'default' => $value['default'] ?? null,
-                    'example' => $value['x-example'] ?? null,
+                    'example' => $value['example'] ?? $value['x-example'] ?? null,
                     'isUploadID' => $value['x-upload-id'] ?? false,
                     'format' => $value['format'] ?? null,
                     'array' => [
@@ -379,11 +392,11 @@ class OpenAPI3 extends Spec
 
                 if (isset($value['enum'])) {
                     $param['enumValues'] = $value['enum'];
-                    $param['enumName'] = $value['x-enum-name'] ?? $param['name'];
+                    $param['enumName'] = $value['x-enum-name'] ?? $value['title'] ?? $param['name'];
                     $param['enumKeys'] = $value['x-enum-keys'] ?? [];
                 } elseif (($param['type'] ?? null) === 'array' && isset($value['items']['enum'])) {
                     $param['enumValues'] = $value['items']['enum'];
-                    $param['enumName'] = $value['items']['x-enum-name'] ?? $param['name'];
+                    $param['enumName'] = $value['items']['x-enum-name'] ?? $value['items']['title'] ?? $param['name'];
                     $param['enumKeys'] = $value['items']['x-enum-keys'] ?? [];
                 }
 
@@ -394,13 +407,13 @@ class OpenAPI3 extends Spec
             foreach ($bodyProperties as $key => $value) {
                 $bodyParam = [
                     'name' => $key,
-                    'type' => $value['type'] ?? null,
+                    'type' => $this->getSchemaType($value),
                     'class' => null,
                     'description' => $value['description'] ?? '',
                     'required' => (in_array($key, $bodyRequired)),
-                    'nullable' => $value['x-nullable'] ?? false,
+                    'nullable' => $this->isNullableSchema($value),
                     'default' => null,
-                    'example' => $value['x-example'] ?? null,
+                    'example' => $value['example'] ?? $value['x-example'] ?? null,
                     'isUploadID' => $value['x-upload-id'] ?? false,
                     'model' => $value['x-model'] ?? null,
                     'format' => $value['format'] ?? null,
@@ -417,11 +430,11 @@ class OpenAPI3 extends Spec
 
                 if (isset($value['enum'])) {
                     $bodyParam['enumValues'] = $value['enum'];
-                    $bodyParam['enumName'] = $value['x-enum-name'] ?? $bodyParam['name'];
+                    $bodyParam['enumName'] = $value['x-enum-name'] ?? $value['title'] ?? $bodyParam['name'];
                     $bodyParam['enumKeys'] = $value['x-enum-keys'] ?? [];
                 } elseif (($bodyParam['type'] ?? null) === 'array' && isset($value['items']['enum'])) {
                     $bodyParam['enumValues'] = $value['items']['enum'];
-                    $bodyParam['enumName'] = $value['items']['x-enum-name'] ?? $bodyParam['name'];
+                    $bodyParam['enumName'] = $value['items']['x-enum-name'] ?? $value['items']['title'] ?? $bodyParam['name'];
                     $bodyParam['enumKeys'] = $value['items']['x-enum-keys'] ?? [];
                 }
 
@@ -435,6 +448,106 @@ class OpenAPI3 extends Spec
         usort($output['parameters']['all'], fn(array $a, array $b): int => (int) $b['required'] - (int) $a['required']);
 
         return $output;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $requirements
+     * @return array<string, mixed>
+     */
+    private function mergeSecurityRequirements(array $requirements): array
+    {
+        $security = [];
+
+        foreach ($requirements as $requirement) {
+            if (!\is_array($requirement)) {
+                continue;
+            }
+
+            foreach ($requirement as $name => $scopes) {
+                $security[$name] ??= $scopes;
+            }
+        }
+
+        return $security;
+    }
+
+    /**
+     * Resolve the SDK method name from the standard operation ID. Appwrite
+     * operation IDs prefix the method with its service tag to remain globally
+     * unique, while SDK methods are scoped by that service.
+     */
+    private function getOperationName(array $method): string
+    {
+        $operationId = $method['operationId'] ?? '';
+        if (!\is_string($operationId) || $operationId === '') {
+            return '';
+        }
+
+        foreach ($method['tags'] ?? [] as $tag) {
+            if (!\is_string($tag) || !\str_starts_with(\strtolower($operationId), \strtolower($tag))) {
+                continue;
+            }
+
+            $name = \substr($operationId, \strlen($tag));
+            if ($name !== '') {
+                return \lcfirst($name);
+            }
+        }
+
+        return $operationId;
+    }
+
+    private function getSchemaType(array $schema): ?string
+    {
+        $type = $schema['type'] ?? null;
+        if (\is_string($type)) {
+            return $type;
+        }
+
+        if (\is_array($type)) {
+            foreach ($type as $candidate) {
+                if (\is_string($candidate) && $candidate !== 'null') {
+                    return $candidate;
+                }
+            }
+        }
+
+        foreach (['oneOf', 'anyOf'] as $union) {
+            foreach ($schema[$union] ?? [] as $candidate) {
+                if (!\is_array($candidate)) {
+                    continue;
+                }
+
+                $candidateType = $this->getSchemaType($candidate);
+                if ($candidateType !== null && $candidateType !== 'null') {
+                    return $candidateType;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function isNullableSchema(array $schema): bool
+    {
+        if (($schema['nullable'] ?? false) === true || ($schema['x-nullable'] ?? false) === true) {
+            return true;
+        }
+
+        $type = $schema['type'] ?? null;
+        if (\is_array($type) && \in_array('null', $type, true)) {
+            return true;
+        }
+
+        foreach (['oneOf', 'anyOf'] as $union) {
+            foreach ($schema[$union] ?? [] as $candidate) {
+                if (\is_array($candidate) && ($candidate['type'] ?? null) === 'null') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -719,6 +832,11 @@ class OpenAPI3 extends Spec
 
     private function getAuthSetterKey(string $key, array $security): string
     {
+        $setter = $security['x-appwrite']['setter'] ?? null;
+        if (\is_string($setter) && $setter !== '') {
+            return $setter;
+        }
+
         if (($security['x-appwrite']['location'] ?? '') !== 'path') {
             return $key;
         }
@@ -741,9 +859,35 @@ class OpenAPI3 extends Spec
      */
     protected function normalizeSchemaProperty(array $property): array
     {
-        if (isset($property['nullable'])) {
-            $property['x-nullable'] = $property['nullable'];
-            unset($property['nullable']);
+        if ($this->isNullableSchema($property)) {
+            $property['x-nullable'] = true;
+        }
+        unset($property['nullable']);
+
+        if (\array_key_exists('example', $property) && !\array_key_exists('x-example', $property)) {
+            $property['x-example'] = $property['example'];
+        }
+
+        foreach (['oneOf', 'anyOf'] as $union) {
+            $members = $property[$union] ?? null;
+            if (!\is_array($members)) {
+                continue;
+            }
+
+            $nonNull = \array_values(\array_filter(
+                $members,
+                fn(mixed $member): bool => !\is_array($member) || ($member['type'] ?? null) !== 'null',
+            ));
+
+            if (\count($nonNull) === 1 && \count($nonNull) !== \count($members) && \is_array($nonNull[0])) {
+                unset($property[$union]);
+                $property = \array_replace($nonNull[0], $property);
+            }
+        }
+
+        $type = $this->getSchemaType($property);
+        if ($type !== null) {
+            $property['type'] = $type;
         }
 
         // A union on an object property is wrapped in allOf
@@ -791,7 +935,7 @@ class OpenAPI3 extends Spec
 
             $def['name'] = $name;
             $def['description'] ??= '';
-            $def['example'] = $def['x-example'] ?? null;
+            $def['example'] ??= $def['x-example'] ?? null;
             $def['required'] = in_array($name, $model['required']);
 
             if (isset($def['$ref'])) {
@@ -833,11 +977,11 @@ class OpenAPI3 extends Spec
 
             if (isset($def['enum'])) {
                 // enum property
-                $def['enumName'] = $def['x-enum-name'] ?? ucfirst($key) . ucfirst((string) $name);
+                $def['enumName'] = $def['x-enum-name'] ?? $def['title'] ?? ucfirst($key) . ucfirst((string) $name);
                 $def['enumKeys'] = $def['x-enum-keys'] ?? [];
             } elseif (($def['type'] ?? null) === 'array' && isset($def['items']['enum'])) {
                 $def['enumValues'] = $def['items']['enum'];
-                $def['enumName'] = $def['items']['x-enum-name'] ?? ucfirst($key) . ucfirst((string) $name);
+                $def['enumName'] = $def['items']['x-enum-name'] ?? $def['items']['title'] ?? ucfirst($key) . ucfirst((string) $name);
                 $def['enumKeys'] = $def['items']['x-enum-keys'] ?? [];
             }
 
@@ -915,7 +1059,7 @@ class OpenAPI3 extends Spec
             if (isset($model['properties']) && is_array($model['properties'])) {
                 foreach ($model['properties'] as $propertyName => $property) {
                     if (isset($property['enum'])) {
-                        $enumName = $property['x-enum-name'] ?? ucfirst((string) $modelName) . ucfirst((string) $propertyName);
+                        $enumName = $property['x-enum-name'] ?? $property['title'] ?? ucfirst((string) $modelName) . ucfirst((string) $propertyName);
 
                         if (!isset($list[$enumName])) {
                             $list[$enumName] = [
@@ -929,6 +1073,7 @@ class OpenAPI3 extends Spec
                     // array of enums
                     if ((($property['type'] ?? null) === 'array') && isset($property['items']['enum'])) {
                         $enumName = $property['items']['x-enum-name']
+                            ?? $property['items']['title']
                             ?? $property['enumName']
                             ?? ucfirst((string) $modelName) . ucfirst((string) $propertyName);
 

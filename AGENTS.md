@@ -202,14 +202,17 @@ Pass as first argument to generate only that SDK:
 - **Silent no-op:** A new `.twig` file with no `getFiles()` entry — generation runs successfully but the file is never created
 - **Wrong scope:** Using `default` scope when you need `service` scope means your template can't access `{{ service.name }}`
 - **Copy scope surprises:** A `copy`-scoped file with Twig syntax — the syntax is output literally, not rendered
-- **Spec fetch failure:** `example.php` requires internet access to fetch the live spec from GitHub; generation fails with an exception if the fetch returns empty. Spec URL pattern (prefix is `open-api3` or `swagger2` depending on the format):
+- **Spec fetch failure:** `example.php` requires internet access to fetch the live spec and SDK generation profile from GitHub. Unified OpenAPI releases use:
   ```
-  https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/open-api3-{version}-{platform}.json
+  https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/open-api3-{version}.json
+  https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/sdk-generation-profile-{version}.json
   ```
+  Older releases automatically fall back to `open-api3-{version}-{platform}.json`.
 - **Spec formats:** `example.php` parses OpenAPI 3 specs by default (`Appwrite\Spec\OpenAPI3`). Swagger 2 (`Appwrite\Spec\Swagger2`) is still fully supported; both formats produce identical SDKs. Pass the format as the third argument:
   ```bash
   php example.php <sdk> <platform> swagger2             # use Swagger 2 spec
   SDK_GEN_SPEC_FILE=/path/to/spec.json php example.php  # use a local spec file
+  SDK_GEN_SPEC_FILE=/path/to/spec.json SDK_GEN_PROFILE_FILE=/path/to/profile.json php example.php web client
   ```
 - **Platform mismatch:** Pass the right platform (`console`, `client`, `server`) as second arg — different platforms expose different API services
 - **Child language gaps:** Adding a file to a parent's `getFiles()` but the child language needs a different template — child classes can override `getFiles()` to replace or remove entries
