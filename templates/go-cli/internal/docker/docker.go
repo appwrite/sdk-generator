@@ -299,13 +299,11 @@ func (c *Client) Start(ctx context.Context, options StartOptions) (wait func() e
 	return func() error { return <-exited }, nil
 }
 
-// waitForPort polls until the runtime inside the container answers.
+// waitForPort polls until the published port accepts a connection.
 //
-// A bare TCP connect is not enough: docker's port proxy accepts connections
-// while the runtime behind it is still unpacking code, so `run` announced
-// success several seconds early. Any reply counts, including a 500 -- only a
-// connection that closes without one is not-ready-yet. 100 attempts at 100ms
-// covers a cold start without hanging a broken one forever.
+// Readiness must stop at the transport boundary. Sending an HTTP request here
+// executes the user's function before `run` has started and rejects valid
+// functions that do not answer that synthetic request.
 func waitForPort(ctx context.Context, port int) error {
 	address := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
 
@@ -317,8 +315,10 @@ func waitForPort(ctx context.Context, port int) error {
 		default:
 		}
 
-		err := probe(address)
+		connection, err := net.DialTimeout("tcp", address, time.Second)
 		if err == nil {
+			connection.Close()
+
 			return nil
 		}
 		lastErr = err
@@ -327,34 +327,6 @@ func waitForPort(ctx context.Context, port int) error {
 	}
 
 	return fmt.Errorf("timed out waiting for port %d: %w", port, lastErr)
-}
-
-// probe sends the smallest well-formed request that gets an answer.
-func probe(address string) error {
-	connection, err := net.DialTimeout("tcp", address, time.Second)
-	if err != nil {
-		return err
-	}
-	defer connection.Close()
-
-	if err := connection.SetDeadline(time.Now().Add(time.Second)); err != nil {
-		return err
-	}
-
-	// HTTP/1.0 so the server closes rather than holding the connection open for
-	// a keep-alive that nothing here will use.
-	if _, err := connection.Write([]byte("GET / HTTP/1.0\r\n\r\n")); err != nil {
-		return err
-	}
-
-	// One byte is the whole signal. Reading the status line would mean parsing
-	// it, and the reply's CONTENT is not what is being checked.
-	answer := make([]byte, 1)
-	if _, err := connection.Read(answer); err != nil {
-		return fmt.Errorf("no reply from the runtime: %w", err)
-	}
-
-	return nil
 }
 
 // PortAvailable reports whether a port can be published.
