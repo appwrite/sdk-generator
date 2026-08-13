@@ -1,7 +1,7 @@
 <?php
 
-namespace {{ spec.namespace | caseNamespace }};
-{% if spec.global.headers | hasBearerAuth %}
+namespace {{ namespace | caseNamespace }};
+{% if globalHeaders | hasBearerAuth %}
 
 use Ahc\Jwt\JWT;
 {% endif %}
@@ -19,7 +19,7 @@ class Client
     const METHOD_TRACE = 'TRACE';
 
     const CHUNK_SIZE = 5 * 1024 * 1024;
-{% if spec.global.headers | hasBearerAuth %}
+{% if globalHeaders | hasBearerAuth %}
     const JWT_MAX_AGE_SECONDS = 3600;
 {% endif %}
 
@@ -35,7 +35,7 @@ class Client
      *
      * @var string
      */
-    protected string $endpoint = '{{spec.endpoint}}';
+    protected string $endpoint = '{{(spec | endpoint)}}';
 
     /**
      * Global Headers
@@ -44,7 +44,7 @@ class Client
      */
     protected array $headers = [
         'content-type' => '',
-        'user-agent' => '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{deviceInfo}})',
+        'user-agent' => '{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{deviceInfo}})',
         'x-sdk-name'=> '{{ sdk.name }}',
         'x-sdk-platform'=> '{{ sdk.platform }}',
         'x-sdk-language'=> '{{ language.name | caseLower }}',
@@ -58,7 +58,7 @@ class Client
      */
     protected array $config = [];
 
-{% if spec.global.headers | hasBearerAuth %}
+{% if globalHeaders | hasBearerAuth %}
     /**
      * API key for JWT generation
      *
@@ -100,14 +100,14 @@ class Client
      */
     public function __construct()
     {
-{% for key,header in spec.global.defaultHeaders %}
+{% for key,header in defaultHeaders %}
         $this->headers['{{key}}'] = '{{header}}';
 {% endfor %} 
     }
 
-{% for header in spec.global.headers %}
+{% for headerKey, header in globalHeaders %}
     /**
-     * Set {{header.key | caseUcfirst}}
+     * Set {{headerKey | caseUcfirst}}
      *
 {% if header.description %}
      * {{header.description}}
@@ -117,12 +117,12 @@ class Client
      *
      * @return Client
      */
-    public function set{{header.key | caseUcfirst}}(string $value): Client
+    public function set{{headerKey | caseUcfirst}}(string $value): Client
     {
-        {%~ if header.global %}
+        {%~ if (headerKey != 'Project') %}
         $this->addHeader('{{header.name}}', {% if header.type is defined and header.type == 'bearer' %}"Bearer {$value}"{% else %}$value{% endif %});
         {%~ endif %}
-        $this->config['{{ header.key | caseLower }}'] = $value;
+        $this->config['{{ headerKey | caseLower }}'] = $value;
 {% if header.type is defined and header.type == 'bearer' %}
         $this->key = null;
         $this->authorization = null;
@@ -133,7 +133,7 @@ class Client
     }
 
 {% endfor %}
-{% if spec.global.headers | hasBearerAuth %}
+{% if globalHeaders | hasBearerAuth %}
     /**
      * Set Signing Key
      *
@@ -148,9 +148,9 @@ class Client
         $this->key = $key;
         $this->authorization = null;
         $this->authorizationExpiresAt = null;
-{% for header in spec.global.headers %}
+{% for headerKey, header in globalHeaders %}
 {% if header.type is defined and header.type == 'bearer' %}
-        unset($this->headers['{{ header.name | caseLower }}'], $this->config['{{ header.key | caseLower }}']);
+        unset($this->headers['{{ header.name | caseLower }}'], $this->config['{{ headerKey | caseLower }}']);
 {% endif %}
 {% endfor %}
 
@@ -182,7 +182,7 @@ class Client
     public function setEndpoint(string $endpoint): Client
     {
         if (!str_starts_with($endpoint, 'http://') && !str_starts_with($endpoint, 'https://')) {
-            throw new {{ spec.namespace | split('\\') | last | caseUcfirst }}Exception("Invalid endpoint URL: $endpoint");
+            throw new {{ namespace | split('\\') | last | caseUcfirst }}Exception("Invalid endpoint URL: $endpoint");
         }
 
         $this->endpoint = $endpoint;
@@ -234,7 +234,7 @@ class Client
         return $this->headers;
     }
 
-{% if spec.global.headers | hasBearerAuth %}
+{% if globalHeaders | hasBearerAuth %}
     /**
      * Get authorization header, generating a new JWT if needed
      *
@@ -265,7 +265,7 @@ class Client
      * @param array $params
      * @param array $headers
      * @return array|string
-     * @throws {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception
+     * @throws {{ namespace | split('\\') | last | caseUcfirst}}Exception
      */
     public function call(
         string $method,
@@ -275,7 +275,7 @@ class Client
         ?string $responseType = null
     )
     {
-{% if spec.global.headers | hasBearerAuth %}
+{% if globalHeaders | hasBearerAuth %}
         if ($this->key !== null) {
             $this->headers['authorization'] = $this->getAuthorization();
         }
@@ -346,7 +346,7 @@ class Client
         $contentType    = $responseHeaders['content-type'] ?? '';
         $responseStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-        $warnings = $responseHeaders['x-{{spec.title | caseLower}}-warning'] ?? '';
+        $warnings = $responseHeaders['x-{{spec.info.title | caseLower}}-warning'] ?? '';
         if ($warnings) {
             foreach(explode(';', $warnings) as $warning) {
                 \trigger_error($warning, E_USER_WARNING);
@@ -358,14 +358,14 @@ class Client
         }
 
         if (curl_errno($ch)) {
-            throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody['type'] ?? '', $responseBody);
+            throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody['type'] ?? '', $responseBody);
         }
 
         if($responseStatus >= 400) {
             if(is_array($responseBody)) {
-                throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', json_encode($responseBody));
+                throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', json_encode($responseBody));
             } else {
-                throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception($responseBody, $responseStatus, '', $responseBody);
+                throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception($responseBody, $responseStatus, '', $responseBody);
             }
         }
 

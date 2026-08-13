@@ -1,32 +1,32 @@
 {% set lang = 'php' %}
 {% set langName = 'PHP' %}
-{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side PHP applications with {{ spec.title }}, including Laravel and Symfony integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side PHP applications with {{ spec.info.title }}, including Laravel and Symfony integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
-# {{ spec.title }} {{ langName }} SDK
+# {{ spec.info.title }} {{ langName }} SDK
 
 ## Installation
 
 ```bash
-composer require {{ spec.title | caseLower }}/{{ spec.title | caseLower }}
+composer require {{ spec.info.title | caseLower }}/{{ spec.info.title | caseLower }}
 ```
 
 ## Setting Up the Client
 
 ```php
-use {{ spec.title }}\Client;
-use {{ spec.title }}\ID;
-use {{ spec.title }}\Query;
-use {{ spec.title }}\Services\Users;
-use {{ spec.title }}\Services\TablesDB;
-use {{ spec.title }}\Services\Storage;
-use {{ spec.title }}\Services\Functions;
-use {{ spec.title }}\InputFile;
+use {{ spec.info.title }}\Client;
+use {{ spec.info.title }}\ID;
+use {{ spec.info.title }}\Query;
+use {{ spec.info.title }}\Services\Users;
+use {{ spec.info.title }}\Services\TablesDB;
+use {{ spec.info.title }}\Services\Storage;
+use {{ spec.info.title }}\Services\Functions;
+use {{ spec.info.title }}\InputFile;
 
 $client = (new Client())
     ->setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
-    ->setProject(getenv('{{ spec.title | caseUpper }}_PROJECT_ID'))
-    ->setKey(getenv('{{ spec.title | caseUpper }}_API_KEY'));
+    ->setProject(getenv('{{ spec.info.title | caseUpper }}_PROJECT_ID'))
+    ->setKey(getenv('{{ spec.info.title | caseUpper }}_API_KEY'));
 ```
 
 ## Code Examples
@@ -160,7 +160,7 @@ $storage->deleteFile('[BUCKET_ID]', '[FILE_ID]');
 #### InputFile Factory Methods
 
 ```php
-use {{ spec.title }}\InputFile;
+use {{ spec.info.title }}\InputFile;
 
 InputFile::withPath('/path/to/file.png')                    // from filesystem path
 InputFile::withData('Hello world', 'hello.txt')             // from string content
@@ -243,14 +243,14 @@ SSR apps (Laravel, Symfony, etc.) use the **server SDK** to handle auth. You nee
 - **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```php
-use {{ spec.title }}\Client;
-use {{ spec.title }}\Services\Account;
+use {{ spec.info.title }}\Client;
+use {{ spec.info.title }}\Services\Account;
 
 // Admin client (reusable)
 $adminClient = (new Client())
     ->setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
     ->setProject('[PROJECT_ID]')
-    ->setKey(getenv('{{ spec.title | caseUpper }}_API_KEY'));
+    ->setKey(getenv('{{ spec.info.title | caseUpper }}_API_KEY'));
 
 // Session client (create per-request)
 $sessionClient = (new Client())
@@ -322,7 +322,7 @@ setcookie('a_session_[PROJECT_ID]', $session['secret'], [
 ## Error Handling
 
 ```php
-use {{ spec.title }}\AppwriteException;
+use {{ spec.info.title }}\AppwriteException;
 
 try {
     $row = $tablesDB->getRow('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]');
@@ -349,8 +349,8 @@ try {
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the row/file level or inherited from the table/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
 
 ```php
-use {{ spec.title }}\Permission;
-use {{ spec.title }}\Role;
+use {{ spec.info.title }}\Permission;
+use {{ spec.info.title }}\Role;
 ```
 
 ### Database Row with Permissions

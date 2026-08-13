@@ -2,148 +2,148 @@ import AsyncHTTPClient
 import Foundation
 import NIO
 import JSONCodable
-import {{spec.title | caseUcfirst}}Enums
-import {{spec.title | caseUcfirst}}Models
+import {{spec.info.title | caseUcfirst}}Enums
+import {{spec.info.title | caseUcfirst}}Models
 
 /// {{ service.description }}
 open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
 
-    {%~ for method in service.methods %}
+    {%~ for method in (service | operations) %}
     ///
     {%~ if method.description %}
     {{~ method.description | wrap(75, '    /// ') }}
     ///
     {%~ endif %}
-    {%~ if method.parameters.all | length > 0 %}
+    {%~ if (method | parameters('all')) | length > 0 %}
     /// - Parameters:
     {%~ endif %}
-    {%~ for parameter in method.parameters.all %}
-    ///   - {{ parameter.name | caseCamel }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %} (optional){% endif %}
+    {%~ for parameter in (method | parameters('all')) %}
+    ///   - {{ parameter.name | caseCamel }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or (parameter | schemaNullable) %} (optional){% endif %}
 
     {%~ endfor %}
     /// - Throws: Exception if the request fails
     /// - Returns: {{ method | returnType(spec) | raw }}
     ///
-    {%~ if method.type == "webAuth" %}
+    {%~ if (method | methodType) == "webAuth" %}
     @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
     {%~ endif %}
     {%~ if method.deprecated %}
-    {%~ if method.since and method.replaceWith %}
-    @available(*, deprecated, message: "This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
+    {%~ if (method | appwrite('deprecated', {})['since'] ?? '') and (method | appwrite('deprecated', {})['replaceWith'] ?? '') %}
+    @available(*, deprecated, message: "This API has been deprecated since {{ (method | appwrite('deprecated', {})['since'] ?? '') }}. Please use `{{ (method | appwrite('deprecated', {})['replaceWith'] ?? '') | capitalizeFirst }}` instead.")
     {%~ else %}
     @available(*, deprecated, message: "This API has been deprecated.")
     {%~ endif %}
     {%~ endif %}
-    open func {{ method.name | caseCamel | overrideIdentifier }}{% if method.responseModel | hasGenericType(spec) %}<T>{% endif %}(
-        {%~ for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes or method.responseModel | hasGenericType(spec) %},{% endif %}
+    open func {{ (method | methodName) | caseCamel | overrideIdentifier }}{% if (method | responseModel) | hasGenericType(spec) %}<T>{% endif %}(
+        {%~ for parameter in (method | parameters('all')) %}
+        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or (parameter | schemaNullable) %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in (method | consumes) or (method | responseModel) | hasGenericType(spec) %},{% endif %}
 
         {%~ endfor %}
-        {%~ if method.responseModel | hasGenericType(spec) %}
+        {%~ if (method | responseModel) | hasGenericType(spec) %}
         nestedType: T.Type
         {%~ endif %}
-        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in (method | consumes) %}
         onProgress: ((UploadProgress) -> Void)? = nil
         {%~ endif %}
     ) async throws -> {{ method | returnType(spec) | raw }} {
         {{~ include('swift/base/params.twig') }}
-        {%~ if method.headers | length <= 0 and method.securityHeaders | length <= 0 %}
+        {%~ if (method | methodHeaders) | length <= 0 and (method | securityHeaders) | length <= 0 %}
         let apiHeaders: [String: String] = [:]
         {%~ else %}
-        {% if 'multipart/form-data' in method.consumes -%} var
+        {% if 'multipart/form-data' in (method | consumes) -%} var
         {%- else -%} let
         {%- endif %} apiHeaders: [String: String] = [
-        {%~ for key, security in method.securityHeaders %}
-            "{{ security.name }}": client.config["{{ key | caseCamel }}"] ?? ""{% if not loop.last or method.headers | length > 0 %},{% endif %}
+        {%~ for key, security in (method | securityHeaders) %}
+            "{{ security.name }}": client.config["{{ key | caseCamel }}"] ?? ""{% if not loop.last or (method | methodHeaders) | length > 0 %},{% endif %}
 
         {%~ endfor %}
-        {%~ for key, header in method.headers %}
+        {%~ for key, header in (method | methodHeaders) %}
             "{{ key }}": "{{ header }}"{% if not loop.last %},{% endif %}
 
         {%~ endfor %}
         ]
         {%~ endif %}
 
-        {%~ if method.type == 'webAuth' %}
+        {%~ if (method | methodType) == 'webAuth' %}
         {{~ include('apple/base/requests/oauth.twig') }}
-        {%~ elseif method.type == 'location' %}
+        {%~ elseif (method | methodType) == 'location' %}
         {{~ include('swift/base/requests/location.twig')}}
         {%~ else %}
-        {%~ if method.responseModel %}
+        {%~ if (method | responseModel) %}
         let converter: (Any) throws -> {{ method | returnType(spec) | raw }} = { response in
-            {%~ if method.responseModel == 'any' %}
+            {%~ if (method | responseModel) == 'any' %}
             return response
             {%~ elseif (method | getValidResponseModels)|length > 1 %}
-{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
-{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}
+{% set responseDiscriminator = (method | responseDiscriminator) %}
             {%~ if hasResponseDiscriminator %}
             guard let responseMap = response as? [String: Any] else {
                 throw AppwriteError(message: "Expected object response when hydrating a response model")
             }
 {% for modelName, conditions in responseDiscriminator %}
             if {% for field, expectedValue in conditions %}String(describing: responseMap["{{ field }}"] ?? "") == "{{ expectedValue }}"{% if not loop.last %} && {% endif %}{% endfor %} {
-                return {{ spec.title | caseUcfirst}}Models.{{ modelName | caseUcfirst }}.from(map: responseMap)
+                return {{ spec.info.title | caseUcfirst}}Models.{{ modelName | caseUcfirst }}.from(map: responseMap)
             }
 {% endfor %}
             throw AppwriteError(message: "Unable to match response to any expected response model")
             {%~ else %}
-            return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: response as! [String: Any])
+            return {{ spec.info.title | caseUcfirst}}Models.{{(method | responseModel) | caseUcfirst}}.from(map: response as! [String: Any])
             {%~ endif %}
             {%~ else %}
-            return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: response as! [String: Any])
+            return {{ spec.info.title | caseUcfirst}}Models.{{(method | responseModel) | caseUcfirst}}.from(map: response as! [String: Any])
             {%~ endif %}
         }
 
         {%~ endif %}
-        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in (method | consumes) %}
         {{~ include('swift/base/requests/file.twig') }}
         {%~ else %}
         {{~ include('swift/base/requests/api.twig') }}
         {%~ endif %}
         {%~ endif %}
     }
-    {%~ if method.responseModel | hasGenericType(spec) %}
+    {%~ if (method | responseModel) | hasGenericType(spec) %}
 
     ///
     {%~ if method.description %}
     {{~ method.description | wrap(75, '    /// ') }}
     ///
     {%~ endif %}
-    {%~ if method.parameters.all | length > 0 %}
+    {%~ if (method | parameters('all')) | length > 0 %}
     /// - Parameters:
     {%~ endif %}
-    {%~ for parameter in method.parameters.all %}
-    ///   - {{ parameter.name | caseCamel }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %} (optional){% endif %}
+    {%~ for parameter in (method | parameters('all')) %}
+    ///   - {{ parameter.name | caseCamel }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or (parameter | schemaNullable) %} (optional){% endif %}
 
     {%~ endfor %}
     /// - Throws: Exception if the request fails
     /// - Returns: {{ method | returnType(spec) | raw }}
     ///
-    {%~ if method.type == "webAuth" %}
+    {%~ if (method | methodType) == "webAuth" %}
     @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
     {%~ endif %}
     {%~ if method.deprecated %}
-    {%~ if method.since and method.replaceWith %}
-    @available(*, deprecated, message: "This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
+    {%~ if (method | appwrite('deprecated', {})['since'] ?? '') and (method | appwrite('deprecated', {})['replaceWith'] ?? '') %}
+    @available(*, deprecated, message: "This API has been deprecated since {{ (method | appwrite('deprecated', {})['since'] ?? '') }}. Please use `{{ (method | appwrite('deprecated', {})['replaceWith'] ?? '') | capitalizeFirst }}` instead.")
     {%~ else %}
     @available(*, deprecated, message: "This API has been deprecated.")
     {%~ endif %}
     {%~ endif %}
-    open func {{ method.name | caseCamel }}(
-        {%~ for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+    open func {{ (method | methodName) | caseCamel }}(
+        {%~ for parameter in (method | parameters('all')) %}
+        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or (parameter | schemaNullable) %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in (method | consumes) %},{% endif %}
 
         {%~ endfor %}
-        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in (method | consumes) %}
         onProgress: ((UploadProgress) -> Void)? = nil
         {%~ endif %}
     ) async throws -> {{ method | returnType(spec, '[String: AnyCodable]') | raw }} {
-        return try await {{ method.name | caseCamel }}(
-            {%~ for parameter in method.parameters.all %}
+        return try await {{ (method | methodName) | caseCamel }}(
+            {%~ for parameter in (method | parameters('all')) %}
             {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter.name | caseCamel | escapeSwiftKeyword }},
             {%~ endfor %}
             nestedType: [String: AnyCodable].self
-            {%~ if 'multipart/form-data' in method.consumes %}
+            {%~ if 'multipart/form-data' in (method | consumes) %}
             onProgress: onProgress
             {%~ endif %}
         )

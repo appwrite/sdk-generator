@@ -1,12 +1,12 @@
 Gem::Specification.new do |spec|
 
-  spec.name = '{{spec.title | caseLower | caseSnake}}'
-  spec.version = '{{ sdk.version }}'
-  spec.license = '{{ spec.licenseName }}'
+  spec.name = '{{spec.info.title | caseLower | caseSnake}}'
+  spec.info.version = '{{ sdk.version }}'
+  spec.license = '{{ spec.info.license.name }}'
   spec.summary = '{{ sdk.shortDescription }}'
-  spec.author = '{{ spec.contactName }}'
-  spec.homepage = '{{ spec.contactURL }}'
-  spec.email = '{{ spec.contactEmail }}'
+  spec.author = '{{ spec.info.contact.name }}'
+  spec.homepage = '{{ spec.info.contact.url }}'
+  spec.email = '{{ spec.info.contact.email }}'
   spec.files = Dir['lib/**/*.rb']
 
   spec.add_dependency 'mime-types', '~> 3.4.1'

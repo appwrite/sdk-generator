@@ -3,24 +3,24 @@ require 'uri'
 require 'json'
 require 'mime/types'
 
-require_relative '{{ spec.title | caseSnake }}/client'
-require_relative '{{ spec.title | caseSnake }}/service'
-require_relative '{{ spec.title | caseSnake }}/exception'
-require_relative '{{ spec.title | caseSnake }}/input_file'
-require_relative '{{ spec.title | caseSnake }}/query'
-require_relative '{{ spec.title | caseSnake }}/permission'
-require_relative '{{ spec.title | caseSnake }}/role'
-require_relative '{{ spec.title | caseSnake }}/id'
-require_relative '{{ spec.title | caseSnake }}/operator'
+require_relative '{{ spec.info.title | caseSnake }}/client'
+require_relative '{{ spec.info.title | caseSnake }}/service'
+require_relative '{{ spec.info.title | caseSnake }}/exception'
+require_relative '{{ spec.info.title | caseSnake }}/input_file'
+require_relative '{{ spec.info.title | caseSnake }}/query'
+require_relative '{{ spec.info.title | caseSnake }}/permission'
+require_relative '{{ spec.info.title | caseSnake }}/role'
+require_relative '{{ spec.info.title | caseSnake }}/id'
+require_relative '{{ spec.info.title | caseSnake }}/operator'
 
-{% for defintion in spec.definitions %}
-require_relative '{{ spec.title | caseSnake }}/models/{{ defintion.name | caseSnake }}'
+{% for defintion in definitions %}
+require_relative '{{ spec.info.title | caseSnake }}/models/{{ defintion.name | caseSnake }}'
 {% endfor %}
 
-{% for enum in spec.allEnums %}
-require_relative '{{ spec.title | caseSnake }}/enums/{{ enum.name | caseSnake }}'
+{% for enum in allEnums %}
+require_relative '{{ spec.info.title | caseSnake }}/enums/{{ enum.title | caseSnake }}'
 {% endfor %}
 
-{% for service in spec.services %}
-require_relative '{{ spec.title | caseSnake }}/services/{{ service.name | caseSnake }}'
+{% for service in services %}
+require_relative '{{ spec.info.title | caseSnake }}/services/{{ service.name | caseSnake }}'
 {% endfor %}

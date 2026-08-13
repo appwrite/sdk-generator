@@ -2,6 +2,11 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\Schema\ArraySchema;
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema\Schema;
+use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
@@ -134,57 +139,57 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => 'swift/docs/example.md.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Tests/{{ spec.title | caseUcfirst}}Tests/Tests.swift',
+                'destination'   => '/Tests/{{ spec.info.title | caseUcfirst}}Tests/Tests.swift',
                 'template'      => 'swift/Tests/Tests.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Client.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Client.swift',
                 'template'      => 'swift/Sources/Client.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/{{ spec.title | caseUcfirst}}Error.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Models/{{ spec.info.title | caseUcfirst}}Error.swift',
                 'template'      => '/swift/Sources/Models/Error.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/InputFile.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Models/InputFile.swift',
                 'template'      => 'swift/Sources/Models/InputFile.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Permission.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Permission.swift',
                 'template'      => 'swift/Sources/Permission.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Role.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Role.swift',
                 'template'      => 'swift/Sources/Role.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/ID.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/ID.swift',
                 'template'      => 'swift/Sources/ID.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Query.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Query.swift',
                 'template'      => 'swift/Sources/Query.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Operator.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Operator.swift',
                 'template'      => 'swift/Sources/Operator.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/UploadProgress.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Models/UploadProgress.swift',
                 'template'      => 'swift/Sources/Models/UploadProgress.swift.twig',
             ],
             [
@@ -194,171 +199,148 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Cookie+Codable.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Extensions/Cookie+Codable.swift',
                 'template'      => 'swift/Sources/Extensions/Cookie+Codable.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/HTTPClientRequest+Cookies.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Extensions/HTTPClientRequest+Cookies.swift',
                 'template'      => 'swift/Sources/Extensions/HTTPClientRequest+Cookies.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/String+MimeTypes.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Extensions/String+MimeTypes.swift',
                 'template'      => 'swift/Sources/Extensions/String+MimeTypes.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/StreamingDelegate.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/StreamingDelegate.swift',
                 'template'      => 'swift/Sources/StreamingDelegate.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/Service.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Services/Service.swift',
                 'template'      => 'swift/Sources/Service.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/iOS/IOSDeviceInfo.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/DeviceInfo/iOS/IOSDeviceInfo.swift',
                 'template'      => 'swift/Sources/DeviceInfo/iOS/IOSDeviceInfo.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/iOS/UIDevice+ModelName.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/DeviceInfo/iOS/UIDevice+ModelName.swift',
                 'template'      => 'swift/Sources/DeviceInfo/iOS/UIDevice+ModelName.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/Linux/LinuxDeviceInfo.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/DeviceInfo/Linux/LinuxDeviceInfo.swift',
                 'template'      => 'swift/Sources/DeviceInfo/Linux/LinuxDeviceInfo.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/macOS/MacOSDeviceInfo.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/DeviceInfo/macOS/MacOSDeviceInfo.swift',
                 'template'      => 'swift/Sources/DeviceInfo/macOS/MacOSDeviceInfo.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/watchOS/WatchOSDeviceInfo.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/DeviceInfo/watchOS/WatchOSDeviceInfo.swift',
                 'template'      => 'swift/Sources/DeviceInfo/watchOS/WatchOSDeviceInfo.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/watchOS/WKInterfaceDevice+ModelName.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/DeviceInfo/watchOS/WKInterfaceDevice+ModelName.swift',
                 'template'      => 'swift/Sources/DeviceInfo/watchOS/WKInterfaceDevice+ModelName.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/macOS/CwlSysCtl.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/DeviceInfo/macOS/CwlSysCtl.swift',
                 'template'      => 'swift/Sources/DeviceInfo/macOS/CwlSysCtl.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/Windows/WindowsDeviceInfo.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/DeviceInfo/Windows/WindowsDeviceInfo.swift',
                 'template'      => 'swift/Sources/DeviceInfo/Windows/WindowsDeviceInfo.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/OSDeviceInfo.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/DeviceInfo/OSDeviceInfo.swift',
                 'template'      => 'swift/Sources/DeviceInfo/OSDeviceInfo.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/Apple/PackageInfo+Apple.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/PackageInfo/Apple/PackageInfo+Apple.swift',
                 'template'      => 'swift/Sources/PackageInfo/Apple/PackageInfo+Apple.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/Linux/PackageInfo+Linux.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/PackageInfo/Linux/PackageInfo+Linux.swift',
                 'template'      => 'swift/Sources/PackageInfo/Linux/PackageInfo+Linux.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/Windows/PackageInfo+Windows.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/PackageInfo/Windows/PackageInfo+Windows.swift',
                 'template'      => 'swift/Sources/PackageInfo/Windows/PackageInfo+Windows.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/OSPackageInfo.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/PackageInfo/OSPackageInfo.swift',
                 'template'      => 'swift/Sources/PackageInfo/OSPackageInfo.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/PackageInfo.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/PackageInfo/PackageInfo.swift',
                 'template'      => 'swift/Sources/PackageInfo/PackageInfo.swift',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.swift',
                 'template'      => 'swift/Sources/Services/Service.swift.twig',
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ definition.name | caseUcfirst }}.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}Models/{{ definitionName | caseUcfirst }}.swift',
                 'template'      => '/swift/Sources/Models/Model.swift.twig',
             ],
             [
                 'scope'         => 'requestModel',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ requestModel.name | caseUcfirst }}.swift',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}Models/{{ requestModelName | caseUcfirst }}.swift',
                 'template'      => '/swift/Sources/Models/RequestModel.swift.twig',
             ],
             [
                 'scope' => 'enum',
-                'destination' => '/Sources/{{ spec.title | caseUcfirst}}Enums/{{ enum.name | caseUcfirst }}.swift',
+                'destination' => '/Sources/{{ spec.info.title | caseUcfirst}}Enums/{{ enum.title | caseUcfirst }}.swift',
                 'template' => '/swift/Sources/Enums/Enum.swift.twig',
             ]
         ];
     }
 
-    public function getTypeName(array $parameter, array $spec = [], bool $isProperty = false): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null, bool $isProperty = false): string
     {
-        if (
-            ($parameter['type'] ?? null) === self::TYPE_ARRAY
-            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
-        ) {
-            $enumType = isset($parameter['enumName'])
-                ? \ucfirst($parameter['enumName'])
-                : \ucfirst((string) $parameter['name']);
-
-            return '[' . ($spec['title'] ?? '') . 'Enums.' . $enumType . ']';
+        $schema = $this->getSchema($parameter);
+        $prefix = $spec?->info->title ?? '';
+        $model = $this->getSchemaModel($parameter);
+        if ($model !== null) {
+            $type = $prefix . 'Models.' . $this->toPascalCase($model);
+            return $schema instanceof ArraySchema ? '[' . $type . ']' : $type;
         }
-
-        if (isset($parameter['enumName'])) {
-            return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['enumName']);
-        }
-        if (!empty($parameter['enumValues'])) {
-            return ($spec['title'] ?? '') . 'Enums.' . \ucfirst((string) $parameter['name']);
-        }
-        if (!empty($parameter['array']['model'])) {
-            return '[' . ($spec['title'] ?? '') . 'Models.' . $this->toPascalCase($parameter['array']['model']) . ']';
-        }
-        if (!empty($parameter['model'])) {
-            $modelType = ($spec['title'] ?? '') . 'Models.' . $this->toPascalCase($parameter['model']);
-            return $parameter['type'] === self::TYPE_ARRAY ? '[' . $modelType . ']' : $modelType;
-        }
-        if (isset($parameter['items'])) {
-            // Map definition nested type to parameter nested type
-            $parameter['array'] = $parameter['items'];
-        }
-        return match ($parameter['type']) {
+        return match ($this->getSchemaType($parameter)) {
             self::TYPE_INTEGER => 'Int',
             self::TYPE_NUMBER => 'Double',
             self::TYPE_STRING => 'String',
             self::TYPE_FILE => 'InputFile',
             self::TYPE_BOOLEAN => 'Bool',
-            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
-                ? '[' . $this->getTypeName($parameter['array']) . ']'
-                : '[AnyCodable]',
+            self::TYPE_ARRAY => '[' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema, $spec, true) . ']',
             self::TYPE_OBJECT => $isProperty ? '[String: AnyCodable]' : 'Any',
-            default => $parameter['type'],
+            default => 'Any',
         };
     }
 
-    public function getParamDefault(array $param): string
+    public function getParamDefault(Schema|Parameter $param): string
     {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $default    = $this->getSchemaDefault($param);
+        $required   = ($param instanceof Parameter && $param->required);
 
         if ($required) {
             return '';
@@ -412,10 +394,10 @@ class Swift extends Language
     }
 
 
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $example    = $this->getSchemaExample($param);
 
         $output = '';
 
@@ -507,31 +489,23 @@ class Swift extends Language
         return $output . ('    ' . $baseIndent . ']');
     }
 
-    public function getModelToMapValue(array $property): string
+    public function getModelToMapValue(Schema $property, string $propertyName, bool $required): string
     {
-        $name = $property['name'] ?? '';
-        if (\in_array($name, $this->getKeywords())) {
-            $name = "`{$name}`";
-        }
+        $name = \in_array($propertyName, $this->getKeywords(), true) ? "`{$propertyName}`" : $propertyName;
         $name = \str_replace('$', '', $name);
-        $nullAware = empty($property['required']) ? '?' : '';
+        $nullAware = $required ? '' : '?';
 
-        if (!empty($property['sub_schema'])) {
-            if (($property['type'] ?? '') === self::TYPE_ARRAY) {
-                return "{$name}{$nullAware}.map { \$0.toMap() }";
-            }
-
-            return "{$name}{$nullAware}.toMap()";
+        if ($this->getSchemaModel($property) !== null) {
+            return $property instanceof ArraySchema
+                ? "{$name}{$nullAware}.map { \$0.toMap() }"
+                : "{$name}{$nullAware}.toMap()";
         }
-
-        if (!empty($property['enum'])) {
+        if ($property->enum !== []) {
             return "{$name}{$nullAware}.rawValue";
         }
-
-        if (!empty($property['enumValues'])) {
+        if ($property instanceof ArraySchema && $property->items->enum !== []) {
             return "{$name}{$nullAware}.map { \$0.rawValue }";
         }
-
         return $name;
     }
 
@@ -539,12 +513,15 @@ class Swift extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('returnType', fn(array $method, array $spec, string $generic = 'T'): string => $this->getReturnType($method, $spec, $generic)),
-            new TwigFilter('modelType', fn(array $property, array $spec, string $generic = 'T : Codable'): string => $this->getModelType($property, $spec, $generic)),
-            new TwigFilter('propertyType', fn(array $property, array $spec, string $generic = 'T'): string => $this->getPropertyType($property, $spec, $generic)),
-            new TwigFilter('isAnyCodableArray', fn(array $property, array $spec): bool => $this->isAnyCodableArray($property, $spec)),
-            new TwigFilter('isAnyCodableObject', fn(array $property, array $spec): bool => $this->isAnyCodableObject($property, $spec)),
-            new TwigFilter('hasGenericType', fn(string $model, array $spec): string => $this->hasGenericType($model, $spec)),
+            new TwigFilter('returnType', function (Operation $method, Specification $spec, string $generic = 'T'): string {
+                $models = $this->getOperationResponseModels($method);
+                return $models === [] ? 'Any' : ($spec->info->title . 'Models.' . $this->toPascalCase($models[0]));
+            }),
+            new TwigFilter('modelType', fn(Schema $property, Specification $spec, string $generic = 'T : Codable'): string => $this->getTypeName($property, $spec, true)),
+            new TwigFilter('propertyType', fn(Schema $property, Specification $spec, string $generic = 'T'): string => $this->getTypeName($property, $spec, true)),
+            new TwigFilter('isAnyCodableArray', fn(Schema $property, Specification $spec): bool => $this->getSchemaType($property) === self::TYPE_ARRAY && $this->getSchemaModel($property) === null),
+            new TwigFilter('isAnyCodableObject', fn(Schema $property, Specification $spec): bool => $this->getSchemaType($property) === self::TYPE_OBJECT && $this->getSchemaModel($property) === null),
+            new TwigFilter('hasGenericType', fn(string $model, Specification $spec): string => ''),
             new TwigFilter('escapeSwiftKeyword', function ($value) {
                 if (\in_array($value, $this->getKeywords())) {
                     return "`{$value}`";
@@ -557,15 +534,17 @@ class Swift extends Language
                 }
                 return $this->toCamelCase($value);
             }),
-            new TwigFilter('enumExample', function (array $param): string {
-                $enumValues = $param['enumValues'] ?? [];
-                if (empty($enumValues)) {
+            new TwigFilter('enumExample', function (Schema|Parameter $param): string {
+                $schema = $this->getSchema($param);
+                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumValues = $enumSchema->enum;
+                if ($enumValues === []) {
                     return '';
                 }
 
-                $enumKeys = $param['enumKeys'] ?? [];
-                $example = $param['example'] ?? null;
-                $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
+                $example = $this->getSchemaExample($param);
+                $isArray = $schema instanceof ArraySchema;
 
                 $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
@@ -602,104 +581,7 @@ class Swift extends Language
                 $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
                 return '.' . $resolveKey($value);
             }),
-            new TwigFilter('modelToMapValue', fn(array $property): string => $this->getModelToMapValue($property), ['is_safe' => ['html']]),
+            new TwigFilter('modelToMapValue', fn(Schema $property, string $name, bool $required): string => $this->getModelToMapValue($property, $name, $required), ['is_safe' => ['html']]),
         ];
-    }
-
-    protected function getReturnType(array $method, array $spec, string $generic): string
-    {
-        if ($method['type'] === 'webAuth') {
-            return 'String?';
-        }
-        if ($method['type'] === 'location') {
-            return 'ByteBuffer';
-        }
-
-        if (
-            \array_key_exists('responseModels', $method)
-            && \count($method['responseModels']) > 1
-        ) {
-            return 'Any';
-        }
-
-        // Check for missing or generic response model
-        if (
-            !\array_key_exists('responseModel', $method)
-            || empty($method['responseModel'])
-            || $method['responseModel'] === 'any'
-        ) {
-            return 'Any';
-        }
-
-        $ret = $this->toPascalCase($method['responseModel']);
-
-        if ($this->hasGenericType($method['responseModel'], $spec) !== '' && $this->hasGenericType($method['responseModel'], $spec) !== '0') {
-            $ret .= '<' . $generic . '>';
-        }
-
-        return \ucfirst((string) $spec['title']) . 'Models.' . $ret;
-    }
-
-    protected function getModelType(array $definition, array $spec, string $generic): string
-    {
-        if ($this->hasGenericType($definition['name'], $spec) !== '' && $this->hasGenericType($definition['name'], $spec) !== '0') {
-            return $this->toPascalCase($definition['name']) . '<' . $generic . '>';
-        }
-        return $this->toPascalCase($definition['name']);
-    }
-
-    protected function getPropertyType(array $property, array $spec, string $generic): string
-    {
-        if (\array_key_exists('sub_schema', $property)) {
-            $type = $this->toPascalCase($property['sub_schema']);
-
-            if ($this->hasGenericType($property['sub_schema'], $spec) !== '' && $this->hasGenericType($property['sub_schema'], $spec) !== '0') {
-                $type .= '<' . $generic . '>';
-            }
-
-            if ($property['type'] === 'array') {
-                $type = '[' . $type . ']';
-            }
-        } else {
-            $type = $this->getTypeName($property, $spec, true);
-        }
-
-        return $type;
-    }
-
-    /**
-     * Check if a property is an array that results in [AnyCodable] type
-     */
-    protected function isAnyCodableArray(array $property, array $spec): bool
-    {
-        return $property['type'] === 'array' && $this->getPropertyType($property, $spec, 'T') === '[AnyCodable]';
-    }
-
-    protected function isAnyCodableObject(array $property, array $spec): bool
-    {
-        return $property['type'] === 'object' && $this->getPropertyType($property, $spec, 'T') === '[String: AnyCodable]';
-    }
-
-    protected function hasGenericType(?string $model, array $spec): string
-    {
-        if (empty($model) || $model === 'any') {
-            return false;
-        }
-
-        $model = $spec['definitions'][$model];
-
-        if ($model['additionalProperties']) {
-            return true;
-        }
-
-        foreach ($model['properties'] as $property) {
-            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
-                continue;
-            }
-
-            return $this->hasGenericType($property['sub_schema'], $spec);
-        }
-
-        return false;
     }
 }

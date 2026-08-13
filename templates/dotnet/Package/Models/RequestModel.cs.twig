@@ -4,31 +4,31 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace {{ spec.title | caseUcfirst }}.Models
+namespace {{ spec.info.title | caseUcfirst }}.Models
 {
     /// <summary>
     /// {{ requestModel.description }}
     /// </summary>
-    public class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
+    public class {{ requestModelName | caseUcfirst | overrideIdentifier }}
     {
         {%~ for property in requestModel.properties %}
         /// <summary>
         /// {{ property.description }}
         /// </summary>
-        [JsonPropertyName("{{ property.name }}")]
-        public {{ property | propertyType(spec) | raw }}{% if not property.required %}?{% endif %} {{ property.name | caseUcfirst | overrideIdentifier }} { get; set; }
+        [JsonPropertyName("{{ (property | schemaName) }}")]
+        public {{ property | propertyType(spec) | raw }}{% if not (property | schemaRequired) %}?{% endif %} {{ (property | schemaName) | caseUcfirst | overrideIdentifier }} { get; set; }
 
         {%~ endfor %}
 
-        public {{ requestModel.name | caseUcfirst | overrideIdentifier }}(
+        public {{ requestModelName | caseUcfirst | overrideIdentifier }}(
             {%~ for property in requestModel.properties %}
-            {{ property | propertyType(spec) | raw }}{% if not property.required %}?{% endif %} {{ property.name | caseCamel | overrideIdentifier }}{% if not property.required %} = null{% endif %}{% if not loop.last %},{% endif %}
+            {{ property | propertyType(spec) | raw }}{% if not (property | schemaRequired) %}?{% endif %} {{ (property | schemaName) | caseCamel | overrideIdentifier }}{% if not (property | schemaRequired) %} = null{% endif %}{% if not loop.last %},{% endif %}
 
             {%~ endfor %}
         )
         {
             {%~ for property in requestModel.properties %}
-            {{ property.name | caseUcfirst | overrideIdentifier }} = {{ property.name | caseCamel | overrideIdentifier }};
+            {{ (property | schemaName) | caseUcfirst | overrideIdentifier }} = {{ (property | schemaName) | caseCamel | overrideIdentifier }};
             {%~ endfor %}
         }
 
@@ -37,7 +37,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
             return new Dictionary<string, object?>
             {
                 {%~ for property in requestModel.properties %}
-                { "{{ property.name }}", {{ property | toMapValue(property.name | caseUcfirst | overrideIdentifier) | raw }} }{% if not loop.last %},{% endif %}
+                { "{{ (property | schemaName) }}", {{ property | toMapValue((property | schemaName) | caseUcfirst | overrideIdentifier) | raw }} }{% if not loop.last %},{% endif %}
 
                 {%~ endfor %}
             };

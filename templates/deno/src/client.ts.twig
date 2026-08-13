@@ -1,4 +1,4 @@
-import { {{ spec.title | caseUcfirst}}Exception } from './exception.ts';
+import { {{ spec.info.title | caseUcfirst}}Exception } from './exception.ts';
 
 export interface Payload {
     [key: string]: any;
@@ -8,27 +8,27 @@ export class Client {
     static CHUNK_SIZE = 5*1024*1024; // 5MB
     static DENO_READ_CHUNK_SIZE = 16384; // 16kb; refference: https://github.com/denoland/deno/discussions/9906
     
-    endpoint: string = '{{spec.endpoint}}';
+    endpoint: string = '{{(spec | endpoint)}}';
     config: Payload = {
-{% for header in spec.global.headers %}
-        '{{ header.key | caseLower }}': '',
+{% for headerKey, header in globalHeaders %}
+        '{{ headerKey | caseLower }}': '',
 {% endfor %}
     };
     headers: Payload = {
         'content-type': '',
-        'user-agent' : `{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Deno.build.os}; ${Deno.build.arch})`,
+        'user-agent' : `{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Deno.build.os}; ${Deno.build.arch})`,
         'x-sdk-name': '{{ sdk.name }}',
         'x-sdk-platform': '{{ sdk.platform }}',
         'x-sdk-language': '{{ language.name | caseLower }}',
         'x-sdk-version': '{{ sdk.version }}',
-{% for key,header in spec.global.defaultHeaders %}
+{% for key,header in defaultHeaders %}
         '{{key}}':'{{header}}',
 {% endfor %}
     };
 
-{% for header in spec.global.headers %}
+{% for headerKey, header in globalHeaders %}
     /**
-     * Set {{header.key | caseUcfirst}}
+     * Set {{headerKey | caseUcfirst}}
      *
 {% if header.description %}
      * {{header.description}}
@@ -38,11 +38,11 @@ export class Client {
      *
      * @return self
      */
-    set{{header.key | caseUcfirst}}(value: string): this {
-        {%~ if header.global %}
+    set{{headerKey | caseUcfirst}}(value: string): this {
+        {%~ if (headerKey != 'Project') %}
         this.addHeader('{{ header.name }}', value);
         {%~ endif %}
-        this.config['{{ header.key | caseLower }}'] = value;
+        this.config['{{ headerKey | caseLower }}'] = value;
 
         return this;
     }
@@ -55,11 +55,11 @@ export class Client {
      */
     setEndpoint(endpoint: string): this {
         if (!endpoint || typeof endpoint !== 'string') {
-            throw new {{spec.title | caseUcfirst}}Exception('Endpoint must be a valid string');
+            throw new {{spec.info.title | caseUcfirst}}Exception('Endpoint must be a valid string');
         }
 
         if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
-            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+            throw new {{spec.info.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
         }
 
         this.endpoint = endpoint;
@@ -118,12 +118,12 @@ export class Client {
                 body
             });
 
-            const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
+            const warnings = response.headers.get('x-{{ spec.info.title | lower }}-warning');
             if (warnings) {
                 warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
             }
         } catch (error) {
-            throw new {{spec.title | caseUcfirst}}Exception(error.message);
+            throw new {{spec.info.title | caseUcfirst}}Exception(error.message);
         }
 
         if (response.status >= 400) {
@@ -132,9 +132,9 @@ export class Client {
             try {
                 json = JSON.parse(text);
             } catch (error) {
-                throw new {{spec.title | caseUcfirst}}Exception(text, response.status, "", text);
+                throw new {{spec.info.title | caseUcfirst}}Exception(text, response.status, "", text);
             }
-            throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, text);
+            throw new {{spec.info.title | caseUcfirst}}Exception(json.message, json.code, json.type, text);
         }
 
         if (responseType === "arraybuffer") {

@@ -25,7 +25,7 @@ jobs:
           RUBYGEMS_TOKEN: {{ '${{ secrets.RUBYGEMS_TOKEN }}' | raw }}
 
       - name: Build gem
-        run: gem build {{ spec.title | caseLower }}.gemspec
+        run: gem build {{ spec.info.title | caseLower }}.gemspec
 
       - name: Publish gem
-        run: gem push {{ spec.title | caseLower }}-*.gem
+        run: gem push {{ spec.info.title | caseLower }}-*.gem

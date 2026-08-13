@@ -98,12 +98,12 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
+                'destination'   => '/lib/src/models/{{definitionName | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/models/model.dart.twig',
             ],
             [
                 'scope'         => 'requestModel',
-                'destination'   => '/lib/src/models/{{requestModel.name | caseSnake }}.dart',
+                'destination'   => '/lib/src/models/{{requestModelName | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/models/request_model.dart.twig',
             ],
             [
@@ -273,7 +273,7 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => '/test/src/models/{{definition.name | caseSnake }}_test.dart',
+                'destination'   => '/test/src/models/{{definitionName | caseSnake }}_test.dart',
                 'template'      => 'dart/test/src/models/model_test.dart.twig',
             ],
             [
@@ -358,7 +358,7 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => 'flutter/docs/example.md.twig',
             ],
             [
@@ -378,7 +378,7 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'lib/src/enums/{{ enum.name | caseSnake }}.dart',
+                'destination'   => 'lib/src/enums/{{ enum.title | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/enums/enum.dart.twig',
             ],
         ];

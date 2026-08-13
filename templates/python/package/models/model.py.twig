@@ -7,19 +7,19 @@ from pydantic import Field, PrivateAttr{{ definition.additionalProperties ? ', T
 from .base_model import AppwriteModel
 {% set added = [] %}
 {%~ for property in definition.properties %}
-{%~ set enumName = property.enumName ?? attribute(property, 'x-enum-name') ?? (definition.name ~ (property.name | caseUcfirst)) %}
-{%~ if property.enum or property.items.enum is defined %}
+{%~ set enumName = property | enumName %}
+{%~ if (property | enumValues) is not empty %}
 {%~ if enumName not in added %}
 from ..enums.{{ enumName | caseSnake }} import {{ enumName | caseUcfirst }}
 {%~ set added = added|merge([enumName]) %}
 {%~ endif %}
 {%~ endif %}
-{%~ if property.sub_schema and property.sub_schema not in added %}
-from .{{ property.sub_schema | caseSnake }} import {{ property.sub_schema | caseUcfirst }}
-{%~ set added = added|merge([property.sub_schema]) %}
+{%~ if (property | schemaModel) and (property | schemaModel) not in added %}
+from .{{ (property | schemaModel) | caseSnake }} import {{ (property | schemaModel) | caseUcfirst }}
+{%~ set added = added|merge([(property | schemaModel)]) %}
 {%~ endif %}
-{%~ if property.sub_schemas is defined %}
-{%~ for subSchema in property.sub_schemas %}
+{%~ if (property | schemaModels) is not empty %}
+{%~ for subSchema in (property | schemaModels) %}
 {%~ if subSchema not in added %}
 from .{{ subSchema | caseSnake }} import {{ subSchema | caseUcfirst }}
 {%~ set added = added|merge([subSchema]) %}
@@ -36,7 +36,7 @@ T = TypeVar('T')
 _PAYLOAD_ADAPTER = TypeAdapter(Dict[str, Any])
 {% endif %}
 
-class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generic[T]{% endif %}):
+class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generic[T]{% endif %}):
     """
     {{ definition.description }}
 {% if definition.properties | length > 0 %}
@@ -44,10 +44,10 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
     Attributes
     ----------
 {% for property in definition.properties %}
-{% set baseType = property | getModelPropertyType(definition.name) | raw %}
-{% set propertyType %}{% if property.sub_schema and property.sub_schema | hasGenericType(spec) %}{{ baseType | replace({(property.sub_schema | caseUcfirst): (property.sub_schema | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
-{% if not property.required and not (property.nullable ?? false) %}{% set propertyType %}Optional[{{ propertyType | trim }}]{% endset %}{% endif %}
-    {{ property | getModelFieldName(definition.properties) }} : {{ propertyType | trim }}
+{% set baseType = property | getModelPropertyType(definitionName) | raw %}
+{% set propertyType %}{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}{{ baseType | replace({((property | schemaModel) | caseUcfirst): ((property | schemaModel) | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
+{% if not (property | schemaRequired) and not (property | schemaNullable) %}{% set propertyType %}Optional[{{ propertyType | trim }}]{% endset %}{% endif %}
+    {{ property | schemaName }} : {{ propertyType | trim }}
 {% if property.description %}
         {{ property.description | replace({"\n": "\n        "}) }}
 {% else %}
@@ -60,19 +60,19 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
     pass
 {% else %}
 {% for property in definition.properties %}
-{% set baseType = property | getModelPropertyType(definition.name) | raw %}
-{% set propType %}{% if property.sub_schema and property.sub_schema | hasGenericType(spec) %}{{ baseType | replace({(property.sub_schema | caseUcfirst): (property.sub_schema | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
-    {{ property | getModelFieldName(definition.properties) }}: {% if not property.required and not (property.nullable ?? false) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %} = Field({% if property.required %}...{% else %}default=None{% endif %}, alias='{{ property.name }}')
+{% set baseType = property | getModelPropertyType(definitionName) | raw %}
+{% set propType %}{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}{{ baseType | replace({((property | schemaModel) | caseUcfirst): ((property | schemaModel) | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
+    {{ property | schemaName }}: {% if not (property | schemaRequired) and not (property | schemaNullable) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %} = Field({% if (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}')
 {% endfor %}
 {% endif %}
 {% if isGeneric %}
 
     @classmethod
-    def with_data(cls, data: Dict[str, Any], model_type: Type[T] = dict) -> '{{ definition.name | caseUcfirst }}[T]':
-        """Create {{ definition.name | caseUcfirst }} instance with typed data."""
+    def with_data(cls, data: Dict[str, Any], model_type: Type[T] = dict) -> '{{ definitionName | caseUcfirst }}[T]':
+        """Create {{ definitionName | caseUcfirst }} instance with typed data."""
 {% if definition.additionalProperties %}
 {% if definition.properties | length > 0 %}
-        internal_aliases = {{ '{' }}{% for property in definition.properties %}'{{ property.name }}'{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}
+        internal_aliases = {{ '{' }}{% for property in definition.properties %}'{{ (property | schemaName) }}'{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}
         internal_fields = {k: v for k, v in data.items() if k in internal_aliases}
         user_data = {k: v for k, v in data.items() if k not in internal_aliases and k != '{{ 'data' }}'}
         nested = data.get('{{ 'data' }}')
@@ -88,16 +88,16 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
 {% else %}
         instance = cls.model_validate(data)
 {% for property in definition.properties %}
-{% if property.sub_schema and property.sub_schema | hasGenericType(spec) %}
-        if '{{ property.name }}' in data and data['{{ property.name }}'] is not None:
-{% if property.type == 'array' %}
-            instance.{{ property | getModelFieldName(definition.properties) }} = [
-                {{ property.sub_schema | caseUcfirst }}.with_data(row, model_type) 
-                for row in data['{{ property.name }}']
+{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}
+        if '{{ (property | schemaName) }}' in data and data['{{ (property | schemaName) }}'] is not None:
+{% if (property | schemaType) == 'array' %}
+            instance.{{ property | schemaName }} = [
+                {{ (property | schemaModel) | caseUcfirst }}.with_data(row, model_type)
+                for row in data['{{ (property | schemaName) }}']
             ]
 {% else %}
-            instance.{{ property | getModelFieldName(definition.properties) }} = {{ property.sub_schema | caseUcfirst }}.with_data(
-                data['{{ property.name }}'], model_type
+            instance.{{ property | schemaName }} = {{ (property | schemaModel) | caseUcfirst }}.with_data(
+                data['{{ (property | schemaName) }}'], model_type
             )
 {% endif %}
 {% endif %}

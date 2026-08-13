@@ -1,14 +1,14 @@
 {% macro get_generics(definition, spec, output = false, first = false) %}
 {% apply spaceless %}
     {% if first and definition.additionalProperties %}
-        {{definition.name | caseUcfirst}} extends Models.{{definition.name | caseUcfirst}}
+        {{definitionName | caseUcfirst}} extends Models.{{definitionName | caseUcfirst}}
     {% endif %}
     {% for property in definition.properties %}
-        {% if spec.definitions[property.sub_schema].additionalProperties and output %}
-            {{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}
+        {% if definitions[(property | schemaModel)].additionalProperties and output %}
+            {{(property | schemaModel) | caseUcfirst}} extends Models.{{(property | schemaModel) | caseUcfirst}}
         {% endif %}
-        {% if spec.definitions[property.sub_schema] %}
-            {{_self.get_generics(spec.definitions[property.sub_schema], spec, true)}}
+        {% if definitions[(property | schemaModel)] %}
+            {{_self.get_generics(definitions[(property | schemaModel)], spec, true)}}
         {% endif %}
     {% endfor %}
 {% endapply %}
@@ -16,11 +16,11 @@
 {% macro get_generics_return(definition, spec) %}
 {% apply spaceless %}
     {% for property in definition.properties %}
-        {% if spec.definitions[property.sub_schema].additionalProperties %}
-            {{property.sub_schema | caseUcfirst}}
+        {% if definitions[(property | schemaModel)].additionalProperties %}
+            {{(property | schemaModel) | caseUcfirst}}
         {% endif %}
-        {% if spec.definitions[property.sub_schema] %}
-            {{_self.get_generics_return(spec.definitions[property.sub_schema], spec)}}
+        {% if definitions[(property | schemaModel)] %}
+            {{_self.get_generics_return(definitions[(property | schemaModel)], spec)}}
         {% endif %}
     {% endfor %}
 {% endapply %}
@@ -33,12 +33,12 @@ import { AppwriteException } from '../exception.ts';
 import type { Models } from '../models.d.ts';
 import { Query } from '../query.ts';
 {% set added = [] %}
-{% for method in service.methods %}
-{% for parameter in method.parameters.all %}
-{% if parameter.enumValues is not empty %}
-{% if parameter.enumName not in added %}
-import { {{ parameter.enumName | caseUcfirst }} } from '../enums/{{ parameter.enumName | caseKebab }}.ts';
-{% set added = added|merge([parameter.enumName]) %}
+{% for method in (service | operations) %}
+{% for parameter in (method | parameters('all')) %}
+{% if (parameter | enumValues) is not empty %}
+{% if (parameter | enumName) not in added %}
+import { {{ (parameter | enumName) | caseUcfirst }} } from '../enums/{{ (parameter | enumName) | caseKebab }}.ts';
+{% set added = added|merge([(parameter | enumName)]) %}
 {% endif %}
 {% endif %}
 {% endfor %}
@@ -59,67 +59,67 @@ export class {{ service.name | caseUcfirst }} extends Service {
         super(client);
      }
 
-{% for method in service.methods %}
-{% set generics = _self.get_generics(spec.definitions[method.responseModel], spec, true, true) %}
-{% set generics_return = _self.get_generics_return(spec.definitions[method.responseModel], spec) %}
+{% for method in (service | operations) %}
+{% set generics = _self.get_generics(definitions[(method | responseModel)], spec, true, true) %}
+{% set generics_return = _self.get_generics_return(definitions[(method | responseModel)], spec) %}
     /**
 {% if method.description %}
 {{ method.description | wrap(75, '     * ') }}
      *
 {% endif %}
-{% for parameter in method.parameters.all%}
+{% for parameter in (method | parameters('all'))%}
      * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {AppwriteException}
      * @returns {Promise}
      {%~ if method.deprecated %}
-     {%~ if method.since and method.replaceWith %}
-     * @deprecated This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.
+     {%~ if (method | appwrite('deprecated', {})['since'] ?? '') and (method | appwrite('deprecated', {})['replaceWith'] ?? '') %}
+     * @deprecated This API has been deprecated since {{ (method | appwrite('deprecated', {})['since'] ?? '') }}. Please use `{{ (method | appwrite('deprecated', {})['replaceWith'] ?? '') | capitalizeFirst }}` instead.
      {%~ else %}
      * @deprecated This API has been deprecated.
      {%~ endif %}
     {%~ endif %}
      */
-    async {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): Promise<{% if method.type == 'webAuth' %}string{% elseif method.type == 'location' %}ArrayBuffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
-{% for parameter in method.parameters.all %}
+    async {{ (method | methodName) | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress = (progress: UploadProgress) => {}{% endif %}): Promise<{% if (method | methodType) == 'webAuth' %}string{% elseif (method | methodType) == 'location' %}ArrayBuffer{% else %}{% if (method | responseModel) and (method | responseModel) != 'any' %}{% if not definitions[(method | responseModel)].additionalProperties %}Models.{% endif %}{{(method | responseModel) | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
+{% for parameter in (method | parameters('all')) %}
 {% if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
-            throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
+            throw new {{spec.info.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
         }
 
 {% endif %}
 {% endfor %}
-        let apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {% if parameter.source|default('') == 'security' %}this.client.config['{{ parameter.config | caseLower }}']{% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}){% endfor %};
-        {%~ for security in method.securityQueries %}
+        let apiPath = '{{ method.path }}'{% for parameter in (method | parameters('path')) %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {% if parameter.source|default('') == 'security' %}this.client.config['{{ parameter.config | caseLower }}']{% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}){% endfor %};
+        {%~ for security in (method | securityQueries) %}
         apiPath += `{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${encodeURIComponent(this.client.config['{{ security.name | caseLower }}'])}`;
         {%~ endfor %}
         const payload: Payload = {};
 
-{% for parameter in method.parameters.query %}
+{% for parameter in (method | parameters('query')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if (method | consumes)[0] == "multipart/form-data" and ( (parameter | schemaType) != "string" and (parameter | schemaType) != "array" and (parameter | schemaType) != "file" ) %}.toString(){% endif %};
         }
 
 {% endfor %}
-{% for parameter in method.parameters.body %}
+{% for parameter in (method | parameters('body')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if (method | consumes)[0] == "multipart/form-data" and ( (parameter | schemaType) != "string" and (parameter | schemaType) != "array" and (parameter | schemaType) != "file" ) %}.toString(){% endif %};
         }
 {% endfor %}
-{% if 'multipart/form-data' in method.consumes %}
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
+{% if 'multipart/form-data' in (method | consumes) %}
+{% for parameter in (method | parameters('all')) %}
+{% if (parameter | schemaType) == 'file' %}
 
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
         const apiHeaders: { [header: string]: string } = {
-        {%~ for key, security in method.securityHeaders %}
+        {%~ for key, security in (method | securityHeaders) %}
             '{{ security.name }}': this.client.config['{{ key | caseLower }}'],
         {%~ endfor %}
-{% for parameter in method.parameters.header %}
+{% for parameter in (method | parameters('header')) %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
-{% for key, header in method.headers %}
+{% for key, header in (method | methodHeaders) %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
         };
@@ -129,8 +129,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         let chunksUploaded = 0;
 
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
+{% for parameter in (method | parameters('all')) %}
+{% if (parameter | extension('x-upload-id', false)) %}
         id = {{ parameter.name }};
         try {
             response = await this.client.call(
@@ -194,7 +194,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         if (chunks.length === 1 && chunks[0].index === 0) {
             payload['{{ parameter.name }}'] = { type: 'file', file: new File([chunks[0].data], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
-            response = await this.client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% elseif method.type == 'webAuth' %}, 'location'{% endif %});
+            response = await this.client.call('{{ method.method.value | caseLower }}', apiPath, apiHeaders, payload{% if (method | methodType) == 'location' %}, 'arraybuffer'{% elseif (method | methodType) == 'webAuth' %}, 'location'{% endif %});
 
             if (onProgress !== null) {
                 onProgress({
@@ -213,13 +213,13 @@ export class {{ service.name | caseUcfirst }} extends Service {
             const chunkHeaders = { ...apiHeaders };
             chunkHeaders['content-range'] = 'bytes ' + chunk.start + '-' + (chunk.end - 1) + '/' + size;
             if (id) {
-                chunkHeaders['x-{{spec.title | caseLower }}-id'] = id;
+                chunkHeaders['x-{{spec.info.title | caseLower }}-id'] = id;
             }
 
             const chunkPayload = { ...payload };
             chunkPayload['{{ parameter.name }}'] = { type: 'file', file: new File([chunk.data], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
 
-            return await this.client.call('{{ method.method | caseLower }}', apiPath, chunkHeaders, chunkPayload{% if method.type == 'location' %}, 'arraybuffer'{% elseif method.type == 'webAuth' %}, 'location'{% endif %});
+            return await this.client.call('{{ method.method.value | caseLower }}', apiPath, chunkHeaders, chunkPayload{% if (method | methodType) == 'location' %}, 'arraybuffer'{% elseif (method | methodType) == 'webAuth' %}, 'location'{% endif %});
         };
 
         response = await uploadChunk(chunks[0]);
@@ -285,23 +285,23 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
 {% else %}
         return await this.client.call(
-            '{{ method.method | caseLower }}',
+            '{{ method.method.value | caseLower }}',
             apiPath,
             {
-                {%~ for key, security in method.securityHeaders %}
+                {%~ for key, security in (method | securityHeaders) %}
                 '{{ security.name }}': this.client.config['{{ key | caseLower }}'],
                 {%~ endfor %}
-                {%~ for parameter in method.parameters.header -%}
+                {%~ for parameter in (method | parameters('header')) -%}
                 '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
                 {%~ endfor -%}
-                {%~ for key, header in method.headers %}
+                {%~ for key, header in (method | methodHeaders) %}
                 '{{ key }}': '{{ header }}',
                 {%~ endfor %}
             },
             payload,
-            {%~ if method.type == 'location' %}
+            {%~ if (method | methodType) == 'location' %}
             'arraybuffer'
-            {%~ elseif method.type == 'webAuth' %}
+            {%~ elseif (method | methodType) == 'webAuth' %}
             'location'
             {%~ else %}
             'json'

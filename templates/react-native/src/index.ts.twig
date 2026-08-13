@@ -1,5 +1,5 @@
-export { Client, {{spec.title | caseUcfirst}}Exception } from './client';
-{% for service in spec.services %}
+export { Client, {{spec.info.title | caseUcfirst}}Exception } from './client';
+{% for service in services %}
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}
 export { Realtime } from './services/realtime';
@@ -12,6 +12,6 @@ export { Role } from './role';
 export { ID } from './id';
 export { Channel } from './channel';
 export { Operator, Condition } from './operator';
-{% for enum in spec.allEnums %}
-export { {{ enum.name | caseUcfirst  }} } from './enums/{{enum.name | caseKebab}}';
+{% for enum in allEnums %}
+export { {{ enum.title | caseUcfirst  }} } from './enums/{{enum.title | caseKebab}}';
 {% endfor %}

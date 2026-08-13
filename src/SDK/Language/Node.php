@@ -2,6 +2,11 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema\ArraySchema;
+use Utopia\OpenAPI\Model\Schema\Schema;
+use Utopia\OpenAPI\Specification;
 use Override;
 use Twig\TwigFilter;
 
@@ -38,74 +43,33 @@ class Node extends Web
     }
 
     #[Override]
-    public function getTypeName(array $parameter, array $method = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        if (($parameter['type'] ?? null) === self::TYPE_ARRAY) {
-            $arrayType = $parameter['array']['type'] ?? $parameter['items']['type'] ?? null;
-
-            if ($arrayType === self::TYPE_FILE) {
-                return '(File | InputFile)[]';
-            }
+        $schema = $this->getSchema($parameter);
+        if ($schema instanceof ArraySchema && $this->getSchemaType($schema->items) === self::TYPE_FILE) {
+            return '(File | InputFile)[]';
         }
-
-        if (($parameter['type'] ?? null) === self::TYPE_FILE) {
+        if ($this->getSchemaType($parameter) === self::TYPE_FILE) {
             return 'File | InputFile';
         }
-
-        return parent::getTypeName($parameter, $method);
+        return parent::getTypeName($parameter, $spec);
     }
 
     #[Override]
-    public function getReturn(array $method, array $spec): string
+    public function getReturn(Operation $method, Specification $spec): string
     {
-        if ($method['type'] === 'webAuth') {
-            return 'Promise<string>';
-        }
-
-        if ($method['type'] === 'location') {
-            return 'Promise<ArrayBuffer>';
-        }
-
-        // check for union types i.e. multiple response models
-        $unionType = $this->getUnionReturnType($method, $spec);
-        if ($unionType !== null) {
-            return $unionType;
-        }
-
-        if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
-            $ret = 'Promise<';
-
-            if (
-                array_key_exists((string) $method['responseModel'], $spec['definitions']) &&
-                array_key_exists('additionalProperties', $spec['definitions'][$method['responseModel']]) &&
-                !$spec['definitions'][$method['responseModel']]['additionalProperties']
-            ) {
-                $ret .= 'Models.';
-            }
-
-            $ret .= $this->toPascalCase($method['responseModel']);
-
-            $models = [];
-
-            $this->populateGenerics($method['responseModel'], $spec, $models);
-
-            $models = array_unique($models);
-            $models = array_filter($models, fn ($model): bool => $model != $this->toPascalCase($method['responseModel']));
-
-            if ($models !== []) {
-                $ret .= '<' . implode(', ', $models) . '>';
-            }
-
-            return $ret . '>';
-        }
-        return 'Promise<{}>';
+        return match ($method->extensions['x-appwrite']['type'] ?? '') {
+            'webAuth' => 'Promise<string>',
+            'location' => 'Promise<ArrayBuffer>',
+            default => parent::getReturn($method, $spec),
+        };
     }
 
     #[Override]
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $example    = $this->getSchemaExample($param);
 
         $hasExample = !empty($example) || $example === 0 || $example === false;
 
@@ -135,11 +99,11 @@ class Node extends Web
     /**
      * Check if service has any file parameters
      */
-    public function hasFileParam(array $service): bool
+    public function hasFileParam(array $methods): bool
     {
-        foreach ($service['methods'] as $method) {
-            foreach ($method['parameters']['all'] as $parameter) {
-                if ($parameter['type'] === self::TYPE_FILE) {
+        foreach ($methods as $method) {
+            foreach ($this->getOperationParameters($method) as $parameter) {
+                if ($this->getSchemaType($parameter) === self::TYPE_FILE) {
                     return true;
                 }
             }
@@ -151,7 +115,7 @@ class Node extends Web
     public function getFilters(): array
     {
         return \array_merge(parent::getFilters(), [
-            new TwigFilter('hasFileParam', fn(array $service): bool => $this->hasFileParam($service)),
+            new TwigFilter('hasFileParam', fn(array $methods): bool => $this->hasFileParam($methods)),
         ]);
     }
 
@@ -266,7 +230,7 @@ class Node extends Web
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => 'node/docs/example.md.twig',
             ],
             [
@@ -286,12 +250,12 @@ class Node extends Web
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
+                'destination'   => 'src/enums/{{ enum.title | caseKebab }}.ts',
                 'template'      => 'web/src/enums/enum.ts.twig',
             ],
             [
                 'scope'         => 'requestModel',
-                'destination'   => 'src/models/{{ requestModel.name | caseKebab }}.ts',
+                'destination'   => 'src/models/{{ requestModelName | caseKebab }}.ts',
                 'template'      => 'node/src/models/requestModel.ts.twig',
             ],
             [

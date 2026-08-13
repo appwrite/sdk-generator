@@ -55,11 +55,11 @@ var helpGroups = []helpGroup{
     values of a map literal.
 #}
 {% set keyWidth = 0 %}
-{% for command in cliHelpSummaries(spec.title | caseUcfirst) | keys %}
+{% for command in cliHelpSummaries(spec.info.title | caseUcfirst) | keys %}
 {% if command | length > keyWidth %}{% set keyWidth = command | length %}{% endif %}
 {% endfor %}
 var helpSummaries = map[string]string{
-{% for command, summary in cliHelpSummaries(spec.title | caseUcfirst) %}
+{% for command, summary in cliHelpSummaries(spec.info.title | caseUcfirst) %}
 	{{ ('%-' ~ (keyWidth + 3) ~ 's') | format((command | goString | raw) ~ ':') | raw }} {{ summary | goString | raw }},
 {% endfor %}
 }

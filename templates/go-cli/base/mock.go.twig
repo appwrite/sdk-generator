@@ -15,11 +15,11 @@ type {{ service.name | caseUcfirst }}MockService struct{}
 func new{{ service.name | caseUcfirst }}MockService() *{{ service.name | caseUcfirst }}MockService {
 	return &{{ service.name | caseUcfirst }}MockService{}
 }
-{% for method in service.methods %}
+{% for method in (service | operations) %}
 {% set query = method | cliQueryConfig %}
 
-// {{ method.name | caseUcfirst }} is a mock.
-func (srv *{{ service.name | caseUcfirst }}MockService) {{ method.name | caseUcfirst }}(args ...any) (*mockResult, error) {
+// {{ (method | methodName) | caseUcfirst }} is a mock.
+func (srv *{{ service.name | caseUcfirst }}MockService) {{ (method | methodName) | caseUcfirst }}(args ...any) (*mockResult, error) {
 {% if query.hasQueries %}
 	// Query commands echo the queries they built, so the harness can assert the
 	// exact JSON the real client would have sent.
@@ -37,14 +37,14 @@ func (srv *{{ service.name | caseUcfirst }}MockService) {{ method.name | caseUcf
 	}
 
 	return &mockResult{Result: string(encoded)}, nil
-{% elseif method.name == 'redirect' %}
-	return &mockResult{Result: "{{ method.method | upper }}:/v1{{ method.path }}/done:passed"}, nil
-{% elseif method.name == 'headers' %}
+{% elseif (method | methodName) == 'redirect' %}
+	return &mockResult{Result: "{{ method.method.value | upper }}:/v1{{ method.path }}/done:passed"}, nil
+{% elseif (method | methodName) == 'headers' %}
 	return &mockResult{Result: "x-sdk-name: {{ sdk.name }}; x-sdk-platform: {{ sdk.platform }}; " +
 		"x-sdk-language: cli; x-sdk-version: {{ sdk.version }}" +
-		"{% for key, header in method.headers %}; {{ key }}: {{ header }}{% endfor %}"}, nil
+		"{% for key, header in (method | methodHeaders) %}; {{ key }}: {{ header }}{% endfor %}"}, nil
 {% else %}
-	return &mockResult{Result: "{{ method.method | upper }}:/v1{{ method.path }}:passed"}, nil
+	return &mockResult{Result: "{{ method.method.value | upper }}:/v1{{ method.path }}:passed"}, nil
 {% endif %}
 }
 {% endfor %}

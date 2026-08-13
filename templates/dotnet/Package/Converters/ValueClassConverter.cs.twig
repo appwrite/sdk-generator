@@ -1,9 +1,9 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using {{ spec.title | caseUcfirst }}.Enums;
+using {{ spec.info.title | caseUcfirst }}.Enums;
 
-namespace {{ spec.title | caseUcfirst }}.Converters
+namespace {{ spec.info.title | caseUcfirst }}.Converters
 {
     public class ValueClassConverter : JsonConverter<object>
     {

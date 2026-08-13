@@ -1,27 +1,27 @@
 {
-    "name": "{{ spec.title | caseLower }}",
+    "name": "{{ spec.info.title | caseLower }}",
     "owner": {
         "name": "Appwrite",
         "email": "team@appwrite.io"
     },
     "metadata": {
-        "description": "{{ spec.title }} plugin marketplace for Claude Code.",
+        "description": "{{ spec.info.title }} plugin marketplace for Claude Code.",
         "version": "{{ sdk.version }}"
     },
     "plugins": [
         {
-            "name": "{{ spec.title | caseLower }}",
+            "name": "{{ spec.info.title | caseLower }}",
             "source": "./",
-            "description": "{{ spec.title }} tools for Claude Code, including SDK skills, the hosted {{ spec.title }} MCP server, and deployment commands.",
+            "description": "{{ spec.info.title }} tools for Claude Code, including SDK skills, the hosted {{ spec.info.title }} MCP server, and deployment commands.",
             "author": {
                 "name": "Appwrite",
                 "email": "team@appwrite.io"
             },
             "homepage": "https://appwrite.io/docs/tooling/ai/ai-dev-tools/claude-code",
             "repository": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}",
-            "license": "{{ spec.licenseName }}",
+            "license": "{{ spec.info.license.name }}",
             "keywords": [
-                "{{ spec.title | caseLower }}",
+                "{{ spec.info.title | caseLower }}",
                 "claude-code",
                 "mcp",
                 "skills"

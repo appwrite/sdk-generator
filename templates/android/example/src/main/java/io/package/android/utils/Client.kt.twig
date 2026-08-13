@@ -8,7 +8,7 @@ object Client {
 
     fun create(context: Context) {
         client = Client(context)
-            .setEndpoint("{{ spec.endpointDocs | raw }}")
+            .setEndpoint("{{ endpointDocs | raw }}")
             .setProject("65a8e2b4632c04b1f5da")
             .setSelfSigned(true)
     }

@@ -1,17 +1,17 @@
 from .base_model import AppwriteModel
-{% for definition in spec.definitions %}
-from .{{ definition.name | caseSnake }} import {{ definition.name | caseUcfirst }}
+{% for definitionName, definition in definitions %}
+from .{{ definitionName | caseSnake }} import {{ definitionName | caseUcfirst }}
 {% endfor %}
-{% for requestModel in spec.requestModels %}
-from .{{ requestModel.name | caseSnake }} import {{ requestModel.name | caseUcfirst }}
+{% for requestModelName, requestModel in requestModels %}
+from .{{ requestModelName | caseSnake }} import {{ requestModelName | caseUcfirst }}
 {% endfor %}
 
 __all__ = [
     'AppwriteModel',
-{% for definition in spec.definitions %}
-    '{{ definition.name | caseUcfirst }}',
+{% for definitionName, definition in definitions %}
+    '{{ definitionName | caseUcfirst }}',
 {% endfor %}
-{% for requestModel in spec.requestModels %}
-    '{{ requestModel.name | caseUcfirst }}',
+{% for requestModelName, requestModel in requestModels %}
+    '{{ requestModelName | caseUcfirst }}',
 {% endfor %}
 ]

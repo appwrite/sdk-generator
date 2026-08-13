@@ -1,17 +1,17 @@
 {% autoescape false %}
 {%- macro render_property_value(definitions, property, spec) -%}
-    {%- if property.sub_schema and definitions[property.sub_schema] -%}
-        {%- if property.type == 'array' -%}
-            []{{ property.sub_schema | caseUcfirst }}{
-                {{- _self.render_struct_init(definitions, definitions[property.sub_schema], spec) -}},
+    {%- if (property | schemaModel) and definitions[(property | schemaModel)] -%}
+        {%- if (property | schemaType) == 'array' -%}
+            []{{ (property | schemaModel) | caseUcfirst }}{
+                {{- _self.render_struct_init(definitions, definitions[(property | schemaModel)], spec) -}},
             }
         {%- else -%}
-            {{- _self.render_struct_init(definitions, definitions[property.sub_schema], spec) -}}
+            {{- _self.render_struct_init(definitions, definitions[(property | schemaModel)], spec) -}}
         {%- endif -%}
     {%- else -%}
-        {%- if property.type == 'object' -%}
+        {%- if (property | schemaType) == 'object' -%}
             map[string]interface{}{}
-        {%- elseif property.type == 'array' -%}
+        {%- elseif (property | schemaType) == 'array' -%}
             {{ (property | typeName) }}{
                 {%- if property.items.type == 'string' -%}
                     "{{ property.items.example | default('test') | replace({'\\': '\\\\', '"': '\\"'}) | raw }}"
@@ -19,14 +19,14 @@
                     1
                 {%- endif -%}
             }
-        {%- elseif property.type == 'string' -%}
-            "{{ (property.example | default('string')) | replace({'\\': '\\\\', '"': '\\"'}) | raw }}"
-        {%- elseif property.type == 'boolean' -%}
+        {%- elseif (property | schemaType) == 'string' -%}
+            "{{ ((property | schemaExample) | default('string')) | replace({'\\': '\\\\', '"': '\\"'}) | raw }}"
+        {%- elseif (property | schemaType) == 'boolean' -%}
             true
-        {%- elseif property.type == 'integer' -%}
-            {{ property.example | default(1) }}
-        {%- elseif property.type == 'number' -%}
-            {{ property.example | default(1.0) }}
+        {%- elseif (property | schemaType) == 'integer' -%}
+            {{ (property | schemaExample) | default(1) }}
+        {%- elseif (property | schemaType) == 'number' -%}
+            {{ (property | schemaExample) | default(1.0) }}
         {%- else -%}
             nil
         {%- endif -%}
@@ -34,9 +34,9 @@
 {%- endmacro -%}
 
 {%- macro render_struct_init(definitions, definition, spec) -%}
-    {{ definition.name | caseUcfirst }}{
+    {{ definitionName | caseUcfirst }}{
         {%- for property in definition.properties | filter(p => p.required) %}
-        {{ property.name | caseUcfirst | escapeKeyword }}: {{ _self.render_property_value(definitions, property, spec) }},
+        {{ (property | schemaName) | caseUcfirst | escapeKeyword }}: {{ _self.render_property_value(definitions, property, spec) }},
         {%- endfor %}
     }
 {%- endmacro -%}
@@ -47,25 +47,25 @@ import (
     "testing"
 )
 
-func Test{{ definition.name | caseUcfirst }}Model(t *testing.T) {
-    model := {{ _self.render_struct_init(spec.definitions, definition, spec) }}
+func Test{{ definitionName | caseUcfirst }}Model(t *testing.T) {
+    model := {{ _self.render_struct_init(definitions, definition, spec) }}
 
     data, err := json.Marshal(model)
     if err != nil {
         t.Fatal(err)
     }
 
-    var result {{ definition.name | caseUcfirst }}
+    var result {{ definitionName | caseUcfirst }}
     err = json.Unmarshal(data, &result)
     if err != nil {
         t.Fatal(err)
     }
 
     {%- for property in definition.properties | filter(p => p.required) %}
-    {%- if property.type != 'object' and property.type != 'array' %}
+    {%- if (property | schemaType) != 'object' and (property | schemaType) != 'array' %}
 
-    if result.{{ property.name | caseUcfirst | escapeKeyword }} != model.{{ property.name | caseUcfirst | escapeKeyword }} {
-        t.Errorf("Expected {{ property.name | caseUcfirst | escapeKeyword }} %v, got %v", model.{{ property.name | caseUcfirst | escapeKeyword }}, result.{{ property.name | caseUcfirst | escapeKeyword }})
+    if result.{{ (property | schemaName) | caseUcfirst | escapeKeyword }} != model.{{ (property | schemaName) | caseUcfirst | escapeKeyword }} {
+        t.Errorf("Expected {{ (property | schemaName) | caseUcfirst | escapeKeyword }} %v, got %v", model.{{ (property | schemaName) | caseUcfirst | escapeKeyword }}, result.{{ (property | schemaName) | caseUcfirst | escapeKeyword }})
     }
     {%- endif %}
     {%- endfor %}

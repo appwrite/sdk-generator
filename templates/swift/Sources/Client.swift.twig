@@ -6,7 +6,7 @@ import NIOFoundationCompat
 import NIOSSL
 import Foundation
 import AsyncHTTPClient
-@_exported import {{spec.title | caseUcfirst}}Models
+@_exported import {{spec.info.title | caseUcfirst}}Models
 @_exported import JSONCodable
 
 let DASHDASH = "--"
@@ -18,16 +18,16 @@ open class Client {
     public static var chunkSize = 5 * 1024 * 1024 // 5MB
     public static var maxConcurrentUploads = 8
 
-    open var endPoint = "{{spec.endpoint}}"
+    open var endPoint = "{{(spec | endpoint)}}"
 
     open var headers: [String: String] = [
         "content-type": "application/json",
         "x-sdk-name": "{{ sdk.name }}",
         "x-sdk-platform": "{{ sdk.platform }}",
         "x-sdk-language": "{{ language.name | caseLower }}",
-        "x-sdk-version": "{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+        "x-sdk-version": "{{ sdk.version }}"{% if defaultHeaders | length > 0 %},{% endif %}
 
-        {%~ for key,header in spec.global.defaultHeaders %}
+        {%~ for key,header in defaultHeaders %}
         "{{key | caseLower }}": "{{header}}"{% if not loop.last %},{% endif %}
 
         {%~ endfor %}
@@ -94,9 +94,9 @@ open class Client {
         }
     }
 
-    {%~ for header in spec.global.headers %}
+    {%~ for headerKey, header in globalHeaders %}
     ///
-    /// Set {{header.key | caseUcfirst}}
+    /// Set {{headerKey | caseUcfirst}}
     ///
     {%~ if header.description %}
     /// {{header.description}}
@@ -106,9 +106,9 @@ open class Client {
     ///
     /// @return Client
     ///
-    open func set{{ header.key | caseUcfirst }}(_ value: String) -> Client {
-        config["{{ header.key | caseLower }}"] = value
-        {%~ if header.global %}
+    open func set{{ headerKey | caseUcfirst }}(_ value: String) -> Client {
+        config["{{ headerKey | caseLower }}"] = value
+        {%~ if (headerKey != 'Project') %}
         _ = addHeader(key: "{{header.name}}", value: {% if header.type is defined and header.type == 'bearer' %}"Bearer \(value)"{% else %}value{% endif %})
         {%~ endif %}
         return self
@@ -205,7 +205,7 @@ open class Client {
        )?.replacingOccurrences(of: "+", with: "%2B") ?? "" // since urlHostAllowed doesn't include +
    }
 
-    {%~ for clientMethodName, clientMethods in spec.clientMethods %}
+    {%~ for clientMethodName, clientMethods in clientMethods %}
     {%~ for clientMethod in clientMethods %}
     ///
     /// {{ clientMethod.description | replace({'\n': '\n    /// '}) | raw }}
@@ -217,7 +217,7 @@ open class Client {
        let apiPath: String = "{{ clientMethod.path }}"
 
        let apiHeaders: [String: String] = [
-           {%~ for key, security in clientMethod.securityHeaders %}
+           {%~ for key, security in (clientMethod | securityHeaders) %}
            "{{ security.name }}": config["{{ key | caseLower }}"] ?? "",
            {%~ endfor %}
            {%~ for key, header in clientMethod.headers %}
@@ -307,7 +307,7 @@ open class Client {
                 responseString = message
             }
 
-            throw {{ spec.title | caseUcfirst }}Error(
+            throw {{ spec.info.title | caseUcfirst }}Error(
                 message: message,
                 code: Int(response.status.code),
                 type: type,
@@ -366,7 +366,7 @@ open class Client {
             timeout: .seconds(30)
         )
 
-        if let warning = response.headers["x-{{ spec.title | lower }}-warning"].first {
+        if let warning = response.headers["x-{{ spec.info.title | lower }}-warning"].first {
             warning.split(separator: ";").forEach { warning in
                 fputs("Warning: \(warning)\n", stderr)
             }
@@ -411,7 +411,7 @@ open class Client {
                 responseString = message
             }
 
-            throw {{ spec.title | caseUcfirst }}Error(
+            throw {{ spec.info.title | caseUcfirst }}Error(
                 message: message,
                 code: Int(response.status.code),
                 type: type,
@@ -497,14 +497,14 @@ open class Client {
             let chunkOffset = index * Client.chunkSize
             let chunkLength = min(Client.chunkSize, size - chunkOffset)
             guard let slice = (input.data as! ByteBuffer).getSlice(at: chunkOffset, length: chunkLength) else {
-                throw {{ spec.title | caseUcfirst }}Error(message: "Failed to read upload chunk")
+                throw {{ spec.info.title | caseUcfirst }}Error(message: "Failed to read upload chunk")
             }
             var chunkParams = baseParams
             var chunkHeaders = baseHeaders
             chunkParams[paramName] = InputFile.fromBuffer(slice, filename: input.filename, mimeType: input.mimeType)
             chunkHeaders["content-range"] = "bytes \(chunkOffset)-\(chunkOffset + chunkLength - 1)/\(size)"
             if let uploadId = uploadId {
-                chunkHeaders["x-{{ spec.title | caseLower }}-id"] = uploadId
+                chunkHeaders["x-{{ spec.info.title | caseLower }}-id"] = uploadId
             }
 
             let chunkResult = try await call(
@@ -701,7 +701,7 @@ open class Client {
         let operatingSystem = Client.getOperatingSystem()
         _ = addHeader(
             key: "origin",
-            value: "{{ spec.title | caseLower }}-\(operatingSystem)://\(packageInfo.packageName)"
+            value: "{{ spec.info.title | caseLower }}-\(operatingSystem)://\(packageInfo.packageName)"
         )
     }
 }

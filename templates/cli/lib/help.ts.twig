@@ -43,7 +43,7 @@ const groups: ReadonlyArray<{
  * Generated from CliCommandSurface::HELP_SUMMARIES.
  */
 const summaries: Record<string, string> = {
-{% for command, summary in cliHelpSummaries(spec.title | caseUcfirst) %}
+{% for command, summary in cliHelpSummaries(spec.info.title | caseUcfirst) %}
   {% if command matches '/^[A-Za-z_$][A-Za-z0-9_$]*$/' %}{{ command }}{% else %}{{ command | json_encode | raw }}{% endif %}: {{ summary | json_encode | raw }},
 {% endfor %}
 };

@@ -4,18 +4,18 @@ import (
 	"time"
 
 	"{{ sdk | goPackagePath }}/client"
-{% for key,service in spec.services %}
+{% for key,service in services %}
 	"{{ sdk | goPackagePath }}/{{ service.name | caseLower }}"
 {% endfor %}
 )
 
-{% for key,service in spec.services %}
+{% for key,service in services %}
 func New{{ service.name | caseUcfirst }}(clt client.Client) *{{ service.name | caseLower}}.{{ service.name | caseUcfirst }} {
 	return {{ service.name | caseLower}}.New(clt)
 }
 {% endfor %}
 
-// NewClient initializes a new {{ spec.title | caseUcfirst }} client with a given timeout
+// NewClient initializes a new {{ spec.info.title | caseUcfirst }} client with a given timeout
 func NewClient(optionalSetters ...client.ClientOption) client.Client {
 	return client.New(optionalSetters...)
 }
@@ -59,16 +59,16 @@ func WithChunkSize(size int64) client.ClientOption {
 	}
 }
 
-{% for header in spec.global.headers %}
+{% for headerKey, header in globalHeaders %}
 // Helper method to construct NewClient()
 {% if header.description %}
 // 
 // {{header.description}}
 {% endif %}
-func With{{header.key | caseUcfirst}}(value string) client.ClientOption {
+func With{{headerKey | caseUcfirst}}(value string) client.ClientOption {
 	return func(clt *client.Client) error {
-		clt.Config["{{ header.key | caseLower }}"] = value
-		{%~ if header.global %}
+		clt.Config["{{ headerKey | caseLower }}"] = value
+		{%~ if (headerKey != 'Project') %}
 		clt.Headers["{{header.name}}"] = {{ header.type is defined and header.type == 'bearer' ? '"Bearer " + value' : 'value' }}
 		{%~ endif %}
 		return nil

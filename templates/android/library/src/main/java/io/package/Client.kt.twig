@@ -5,7 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import {{ sdk.namespace | caseDot }}.cookies.ListenableCookieJar
 import {{ sdk.namespace | caseDot }}.cookies.stores.SharedPreferencesCookieStore
-import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.extensions.toJson
 import {{ sdk.namespace | caseDot }}.models.InputFile
@@ -45,7 +45,7 @@ import kotlin.coroutines.resume
 
 class Client @JvmOverloads constructor(
     context: Context,
-    var endpoint: String = "{{spec.endpoint}}",
+    var endpoint: String = "{{(spec | endpoint)}}",
     var endpointRealtime: String? = null,
     private var selfSigned: Boolean = false
 ) : CoroutineScope {
@@ -89,14 +89,14 @@ class Client @JvmOverloads constructor(
     init {
         headers = mutableMapOf(
             "content-type" to "application/json",
-            "origin" to "{{ spec.title | caseLower }}-android://${context.packageName}",
+            "origin" to "{{ spec.info.title | caseLower }}-android://${context.packageName}",
             "user-agent" to "${context.packageName}/${appVersion}, ${System.getProperty("http.agent")}",
             "x-sdk-name" to "{{ sdk.name }}",
             "x-sdk-platform" to "{{ sdk.platform }}",
             "x-sdk-language" to "{{ language.name | caseLower }}",
-            "x-sdk-version" to "{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+            "x-sdk-version" to "{{ sdk.version }}"{% if defaultHeaders | length > 0 %},{% endif %}
 
-{% for key,header in spec.global.defaultHeaders %}
+{% for key,header in defaultHeaders %}
             "{{ key | caseLower }}" to "{{ header }}"{% if not loop.last %},{% endif %}
 {% endfor %}
 
@@ -106,21 +106,21 @@ class Client @JvmOverloads constructor(
         setSelfSigned(selfSigned)
     }
 
-{% for header in spec.global.headers %}
+{% for headerKey, header in globalHeaders %}
     /**
-     * Set {{header.key | caseUcfirst}}
+     * Set {{headerKey | caseUcfirst}}
      *
 {% if header.description %}
      * {{header.description}}
      *
 {% endif %}
-     * @param {string} {{header.key | caseLower}}
+     * @param {string} {{headerKey | caseLower}}
      *
      * @return this
      */
-    fun set{{header.key | caseUcfirst}}(value: String): Client {
-        config["{{ header.key | caseCamel }}"] = value
-        {%~ if header.global %}
+    fun set{{headerKey | caseUcfirst}}(value: String): Client {
+        config["{{ headerKey | caseCamel }}"] = value
+        {%~ if (headerKey != 'Project') %}
         addHeader("{{ header.name | caseLower }}", {% if header.type is defined and header.type == 'bearer' %}"Bearer $value"{% else %}value{% endif %})
         {%~ endif %}
         return this
@@ -250,7 +250,7 @@ class Client @JvmOverloads constructor(
      */
     fun getHttpClient(): OkHttpClient = http
 
-    {%~ for clientMethodName, clientMethods in spec.clientMethods %}
+    {%~ for clientMethodName, clientMethods in clientMethods %}
     {%~ for clientMethod in clientMethods %}
     /**
      * {{ clientMethod.description | replace({'\n': '\n     * '}) | raw }}
@@ -261,7 +261,7 @@ class Client @JvmOverloads constructor(
         val apiPath = "{{ clientMethod.path }}"
         val apiParams = mutableMapOf<String, Any?>()
         val apiHeaders = mutableMapOf(
-            {%~ for key, security in clientMethod.securityHeaders %}
+            {%~ for key, security in (clientMethod | securityHeaders) %}
             "{{ security.name }}" to config["{{ key | caseLower }}"].orEmpty(),
             {%~ endfor %}
             {%~ for key, header in clientMethod.headers %}
@@ -290,7 +290,7 @@ class Client @JvmOverloads constructor(
      *
      * @return [T]
      */
-    @Throws({{ spec.title | caseUcfirst }}Exception::class)
+    @Throws({{ spec.info.title | caseUcfirst }}Exception::class)
     suspend fun <T> call(
         method: String,
         path: String,
@@ -383,7 +383,7 @@ class Client @JvmOverloads constructor(
      *
      * @return [T]
      */
-    @Throws({{ spec.title | caseUcfirst }}Exception::class)
+    @Throws({{ spec.info.title | caseUcfirst }}Exception::class)
     suspend fun <T> chunkedUpload(
         path: String,
         headers:  MutableMap<String, String>,
@@ -476,7 +476,7 @@ class Client @JvmOverloads constructor(
             val chunkHeaders = headers.toMutableMap()
 
             if (includeUploadId && uploadId != null) {
-                chunkHeaders["x-{{ spec.title | caseLower }}-id"] = uploadId!!
+                chunkHeaders["x-{{ spec.info.title | caseLower }}-id"] = uploadId!!
             }
 
             chunkHeaders["Content-Range"] = "bytes $start-${end - 1}/$size"
@@ -582,7 +582,7 @@ class Client @JvmOverloads constructor(
      *
      * @return [T]
      */
-    @Throws({{ spec.title | caseUcfirst }}Exception::class)
+    @Throws({{ spec.info.title | caseUcfirst }}Exception::class)
     private suspend fun <T> awaitResponse(
         request: Request,
         responseType: Class<T>,
@@ -607,20 +607,20 @@ class Client @JvmOverloads constructor(
                     val error = if (response.headers["content-type"]?.contains("application/json") == true) {
                         val map = body.fromJson<Map<String, Any>>()
 
-                        {{ spec.title | caseUcfirst }}Exception(
+                        {{ spec.info.title | caseUcfirst }}Exception(
                             map["message"] as? String ?: "",
                             (map["code"] as Number).toInt(),
                             map["type"] as? String ?: "",
                             body
                         )
                     } else {
-                        {{ spec.title | caseUcfirst }}Exception(body, response.code, "", body)
+                        {{ spec.info.title | caseUcfirst }}Exception(body, response.code, "", body)
                     }
                     it.cancel(error)
                     return
                 }
 
-                val warnings = response.headers["x-{{ spec.title | lower }}-warning"]
+                val warnings = response.headers["x-{{ spec.info.title | lower }}-warning"]
                 if (warnings != null) {
                     warnings.split(";").forEach { warning ->
                         System.err.println("Warning: $warning")

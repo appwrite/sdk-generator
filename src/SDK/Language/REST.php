@@ -2,6 +2,10 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema\Schema;
+use Utopia\OpenAPI\Specification;
+
 class REST extends HTTP
 {
     public function getName(): string
@@ -24,11 +28,11 @@ class REST extends HTTP
         return '[' . $elements . ']';
     }
 
-    public function getParamDefault(array $param): string
+    public function getParamDefault(Schema|Parameter $param): string
     {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $default    = $this->getSchemaDefault($param);
+        $required   = ($param instanceof Parameter && $param->required);
 
         if ($required) {
             return '';
@@ -75,10 +79,10 @@ class REST extends HTTP
         return $output;
     }
 
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $example    = $this->getSchemaExample($param);
 
         $hasExample = !empty($example) || $example === 0 || $example === false;
 
@@ -128,7 +132,7 @@ class REST extends HTTP
         return [
           [
             'scope'         => 'method',
-            'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+            'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
             'template'      => '/rest/docs/example.md.twig',
           ],
         ];

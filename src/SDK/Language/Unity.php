@@ -69,7 +69,7 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'Assets/docs~/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'Assets/docs~/examples/{{service.name | caseLower}}/{{(method | methodName) | caseDash}}.md',
                 'template'      => 'unity/docs/example.md.twig',
             ],
             [
@@ -79,23 +79,23 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}.asmdef',
+                'destination'   => 'Assets/Runtime/{{ spec.info.title | caseUcfirst }}.asmdef',
                 'template'      => 'unity/Assets/Runtime/Appwrite.asmdef.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}.asmdef.meta',
+                'destination'   => 'Assets/Runtime/{{ spec.info.title | caseUcfirst }}.asmdef.meta',
                 'template'      => 'unity/Assets/Runtime/Appwrite.asmdef.meta.twig',
             ],
             // Runtime
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}Config.cs',
+                'destination'   => 'Assets/Runtime/{{ spec.info.title | caseUcfirst }}Config.cs',
                 'template'      => 'unity/Assets/Runtime/AppwriteConfig.cs.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}Manager.cs',
+                'destination'   => 'Assets/Runtime/{{ spec.info.title | caseUcfirst }}Manager.cs',
                 'template'      => 'unity/Assets/Runtime/AppwriteManager.cs.twig',
             ],
             [
@@ -110,7 +110,7 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Utilities/{{ spec.title | caseUcfirst }}Utilities.cs',
+                'destination'   => 'Assets/Runtime/Utilities/{{ spec.info.title | caseUcfirst }}Utilities.cs',
                 'template'      => 'unity/Assets/Runtime/Utilities/AppwriteUtilities.cs.twig',
             ],
             // Runtime core
@@ -121,12 +121,12 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Core/{{ spec.title | caseUcfirst }}.Core.asmdef',
+                'destination'   => 'Assets/Runtime/Core/{{ spec.info.title | caseUcfirst }}.Core.asmdef',
                 'template'      => 'unity/Assets/Runtime/Core/Appwrite.Core.asmdef.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Core/{{ spec.title | caseUcfirst }}.Core.asmdef.meta',
+                'destination'   => 'Assets/Runtime/Core/{{ spec.info.title | caseUcfirst }}.Core.asmdef.meta',
                 'template'      => 'unity/Assets/Runtime/Core/Appwrite.Core.asmdef.meta.twig',
             ],
             [
@@ -136,7 +136,7 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Core/{{ spec.title | caseUcfirst }}Exception.cs',
+                'destination'   => 'Assets/Runtime/Core/{{ spec.info.title | caseUcfirst }}Exception.cs',
                 'template'      => 'dotnet/Package/Exception.cs.twig',
             ],
             [
@@ -211,17 +211,17 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => 'Assets/Runtime/Core/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
+                'destination'   => 'Assets/Runtime/Core/Models/{{ definitionName | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/Package/Models/Model.cs.twig',
             ],
             [
                 'scope'         => 'requestModel',
-                'destination'   => 'Assets/Runtime/Core/Models/{{ requestModel.name | caseUcfirst | overrideIdentifier }}.cs',
+                'destination'   => 'Assets/Runtime/Core/Models/{{ requestModelName | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/Package/Models/RequestModel.cs.twig',
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'Assets/Runtime/Core/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
+                'destination'   => 'Assets/Runtime/Core/Enums/{{ enum.title | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/Package/Enums/Enum.cs.twig',
             ],
             [
@@ -308,28 +308,28 @@ class Unity extends DotNet
             // Editor
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Editor/{{ spec.title | caseUcfirst }}.Editor.asmdef',
+                'destination'   => 'Assets/Editor/{{ spec.info.title | caseUcfirst }}.Editor.asmdef',
                 'template'      => 'unity/Assets/Editor/Appwrite.Editor.asmdef.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Editor/{{ spec.title | caseUcfirst }}.Editor.asmdef.meta',
+                'destination'   => 'Assets/Editor/{{ spec.info.title | caseUcfirst }}.Editor.asmdef.meta',
                 'template'      => 'unity/Assets/Editor/Appwrite.Editor.asmdef.meta.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Editor/{{ spec.title | caseUcfirst }}SetupAssistant.cs',
+                'destination'   => 'Assets/Editor/{{ spec.info.title | caseUcfirst }}SetupAssistant.cs',
                 'template'      => 'unity/Assets/Editor/AppwriteSetupAssistant.cs.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Editor/{{ spec.title | caseUcfirst }}SetupWindow.cs',
+                'destination'   => 'Assets/Editor/{{ spec.info.title | caseUcfirst }}SetupWindow.cs',
                 'template'      => 'unity/Assets/Editor/AppwriteSetupWindow.cs.twig',
             ],
             // Samples
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Samples~/{{ spec.title | caseUcfirst }}Example/{{ spec.title | caseUcfirst }}Example.cs',
+                'destination'   => 'Assets/Samples~/{{ spec.info.title | caseUcfirst }}Example/{{ spec.info.title | caseUcfirst }}Example.cs',
                 'template'      => 'unity/Assets/Samples~/AppwriteExample/AppwriteExample.cs.twig',
             ],
             // Packages
@@ -481,12 +481,12 @@ class Unity extends DotNet
         // Check if we're in test mode by looking for a global variable
         if ($inTest) {
             $excludeInTest = [
-                'Assets/Runtime/Utilities/{{ spec.title | caseUcfirst }}Utilities.cs',
-                'Assets/Runtime/{{ spec.title | caseUcfirst }}Config.cs',
-                'Assets/Runtime/{{ spec.title | caseUcfirst }}Manager.cs',
-                'Assets/Editor/{{ spec.title | caseUcfirst }}.Editor.asmdef',
-                'Assets/Editor/{{ spec.title | caseUcfirst }}SetupAssistant.cs',
-                'Assets/Editor/{{ spec.title | caseUcfirst }}SetupWindow.cs',
+                'Assets/Runtime/Utilities/{{ spec.info.title | caseUcfirst }}Utilities.cs',
+                'Assets/Runtime/{{ spec.info.title | caseUcfirst }}Config.cs',
+                'Assets/Runtime/{{ spec.info.title | caseUcfirst }}Manager.cs',
+                'Assets/Editor/{{ spec.info.title | caseUcfirst }}.Editor.asmdef',
+                'Assets/Editor/{{ spec.info.title | caseUcfirst }}SetupAssistant.cs',
+                'Assets/Editor/{{ spec.info.title | caseUcfirst }}SetupWindow.cs',
             ];
 
             $files = array_filter($files, fn(array $file): bool => !in_array($file['destination'], $excludeInTest));

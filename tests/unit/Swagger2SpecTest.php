@@ -4,160 +4,60 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-use Appwrite\Spec\Swagger2;
+use Utopia\OpenAPI\Model\Operation;
 use PHPUnit\Framework\TestCase;
+use Utopia\OpenAPI\Model\ParameterLocation;
+use Utopia\OpenAPI\Model\Schema\ObjectSchema;
+use Utopia\OpenAPI\Model\Schema\ReferenceSchema;
+use Utopia\OpenAPI\Model\SecuritySchemeType;
+use Utopia\OpenAPI\Parser;
+use Utopia\OpenAPI\Specification;
+use Utopia\OpenAPI\Version;
 
 final class Swagger2SpecTest extends TestCase
 {
-    private Swagger2 $spec;
+    private Specification $spec;
 
     protected function setUp(): void
     {
-        $this->spec = new Swagger2(\file_get_contents(__DIR__ . '/../resources/spec-swagger2.json'));
+        $this->spec = Parser::parse(\file_get_contents(__DIR__ . '/../resources/spec-swagger2.json'));
     }
 
-    private function getMethod(string $service, string $name): array
+    public function testSwaggerProducesCanonicalSpecification(): void
     {
-        foreach ($this->spec->getMethods($service) as $method) {
-            if ($method['name'] === $name) {
-                return $method;
+        $this->assertSame(Version::V2, $this->spec->version);
+        $this->assertSame('2.0', $this->spec->sourceVersion);
+        $this->assertSame('http://mockapi/v1', $this->spec->servers[0]->url);
+        $this->assertInstanceOf(ObjectSchema::class, $this->spec->schemas['mock']);
+    }
+
+    public function testSecurityDefinitionsBecomeTypedSchemes(): void
+    {
+        $project = $this->spec->securitySchemes['Project'];
+        $this->assertSame(SecuritySchemeType::API_KEY, $project->type);
+        $this->assertSame(ParameterLocation::HEADER, $project->location);
+        $this->assertSame('X-Appwrite-Project', $project->name);
+    }
+
+    public function testBodyAndResponseSchemasAreNormalized(): void
+    {
+        $operation = $this->operation('fooPost');
+        $body = $operation->requestBody?->content['application/json']->schema;
+        $this->assertInstanceOf(ObjectSchema::class, $body);
+
+        $response = $operation->responses['200']->content['application/json']->schema;
+        $this->assertInstanceOf(ReferenceSchema::class, $response);
+        $this->assertSame('#/definitions/mock', $response->reference);
+    }
+
+    private function operation(string $id): Operation
+    {
+        foreach ($this->spec->operations() as $operation) {
+            if ($operation->id === $id) {
+                return $operation;
             }
         }
 
-        $this->fail("Method $name not found in service $service");
-    }
-
-    public function testEndpoint(): void
-    {
-        $this->assertSame('http://mockapi/v1', $this->spec->getEndpoint());
-        $this->assertSame('http://<REGION>.mockapi/v1', $this->spec->getEndpointDocs());
-    }
-
-    public function testGlobalHeadersComeFromSecurityDefinitions(): void
-    {
-        $headers = \array_column($this->spec->getGlobalHeaders(), 'name', 'key');
-
-        $this->assertSame('X-Appwrite-Project', $headers['Project']);
-        $this->assertSame('X-Appwrite-Key', $headers['Key']);
-    }
-
-    public function testObjectPropertyWithAllOfReferenceResolvesSubSchema(): void
-    {
-        $properties = $this->spec->getDefinitions()['unionContainer']['properties'];
-
-        $this->assertSame('mock', $properties['mock']['sub_schema']);
-        $this->assertSame('object', $properties['mock']['type']);
-    }
-
-    public function testObjectPropertyWithLegacyItemsReferenceResolvesSubSchema(): void
-    {
-        $properties = $this->spec->getDefinitions()['unionContainer']['properties'];
-
-        $this->assertSame('mock', $properties['legacyMock']['sub_schema']);
-    }
-
-    public function testObjectPropertyWithOneOfUnionResolvesSubSchemas(): void
-    {
-        $properties = $this->spec->getDefinitions()['unionContainer']['properties'];
-
-        $this->assertSame(['unionMock', 'unionStub'], $properties['options']['sub_schemas']);
-    }
-
-    public function testObjectPropertyWithLegacyItemsOneOfUnionResolvesSubSchemas(): void
-    {
-        $properties = $this->spec->getDefinitions()['unionContainer']['properties'];
-
-        $this->assertSame(['unionMock', 'unionStub'], $properties['legacyOptions']['sub_schemas']);
-    }
-
-    public function testArrayPropertyWithItemsReferenceResolvesSubSchema(): void
-    {
-        $properties = $this->spec->getDefinitions()['unionContainer']['properties'];
-
-        $this->assertSame('mock', $properties['mocks']['sub_schema']);
-        $this->assertSame('array', $properties['mocks']['type']);
-    }
-
-    public function testArrayPropertyWithItemsAnyOfUnionResolvesSubSchemas(): void
-    {
-        $properties = $this->spec->getDefinitions()['unionContainer']['properties'];
-
-        $this->assertSame(['unionMock', 'unionStub'], $properties['entries']['sub_schemas']);
-    }
-
-    public function testScalarPropertyHasNoSubSchema(): void
-    {
-        $properties = $this->spec->getDefinitions()['mock']['properties'];
-
-        $this->assertArrayNotHasKey('sub_schema', $properties['result']);
-        $this->assertArrayNotHasKey('sub_schemas', $properties['result']);
-    }
-
-    public function testModelPropertyEnum(): void
-    {
-        $properties = $this->spec->getDefinitions()['mock']['properties'];
-
-        $this->assertSame(['active', 'inactive', 'pending', 'completed', 'cancelled'], $properties['status']['enum']);
-        $this->assertSame('MockStatus', $properties['status']['enumName']);
-    }
-
-    public function testRequestModelsAreExcludedFromDefinitions(): void
-    {
-        $definitions = $this->spec->getDefinitions();
-        $requestModels = $this->spec->getRequestModels();
-
-        $this->assertArrayHasKey('player', $requestModels);
-        $this->assertArrayNotHasKey('player', $definitions);
-        $this->assertArrayHasKey('unionContainer', $definitions);
-    }
-
-    public function testUnionResponseResolvesModelsAndDiscriminator(): void
-    {
-        $method = $this->getMethod('general', 'getUnion');
-
-        $this->assertSame(['unionMock', 'unionStub'], $method['responseModels']);
-        $this->assertSame('unionMock', $method['responseModel']);
-        $this->assertSame(
-            ['unionMock' => ['type' => 'mock'], 'unionStub' => ['type' => 'stub']],
-            $method['responseDiscriminator']
-        );
-    }
-
-    public function testMultipartMethodHasFileParameter(): void
-    {
-        $method = $this->getMethod('general', 'upload');
-
-        $this->assertSame(['multipart/form-data'], $method['consumes']);
-
-        $file = null;
-        foreach ($method['parameters']['body'] as $parameter) {
-            if ($parameter['name'] === 'file') {
-                $file = $parameter;
-            }
-        }
-
-        $this->assertNotNull($file);
-        $this->assertSame('file', $file['type']);
-        $this->assertTrue($file['required']);
-    }
-
-    public function testEmptyResponseMethod(): void
-    {
-        $method = $this->getMethod('general', 'empty');
-
-        $this->assertTrue($method['emptyResponse']);
-        $this->assertSame('', $method['responseModel']);
-        $this->assertSame([], $method['produces']);
-    }
-
-    public function testRequestEnumsAreCollected(): void
-    {
-        $enums = [];
-        foreach ($this->spec->getRequestEnums() as $enum) {
-            $enums[$enum['name']] = $enum;
-        }
-
-        $this->assertArrayHasKey('mockType', $enums);
-        $this->assertNotEmpty($enums['mockType']['enum']);
+        $this->fail("Operation {$id} not found");
     }
 }

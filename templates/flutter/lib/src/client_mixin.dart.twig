@@ -13,9 +13,9 @@ mixin ClientMixin {
     required Map<String, dynamic> params,
   }) {
 
-    http.BaseRequest request = http.Request(method.name(), uri);
+    http.BaseRequest request = http.Request((method | methodName)(), uri);
     if (headers['content-type'] == 'multipart/form-data') {
-      request = http.MultipartRequest(method.name(), uri);
+      request = http.MultipartRequest((method | methodName)(), uri);
       if (params.isNotEmpty) {
         params.forEach((key, value) {
           if (value == null) {
@@ -66,7 +66,7 @@ mixin ClientMixin {
         queryParameters: {...uri.queryParameters, ...params},
         port: uri.port,
       );
-      request = http.Request(method.name(), uri);
+      request = http.Request((method | methodName)(), uri);
     } else {
       (request as http.Request).body = jsonEncode(params);
     }
@@ -87,7 +87,7 @@ mixin ClientMixin {
   Response prepareResponse(http.Response res, {ResponseType? responseType}) {
     responseType ??= ResponseType.json;
 
-    String? warnings = res.headers['x-{{ spec.title | lower }}-warning'];
+    String? warnings = res.headers['x-{{ spec.info.title | lower }}-warning'];
     if (warnings != null) {
       warnings.split(';').forEach((warning) => log('Warning: $warning'));
     }
@@ -95,14 +95,14 @@ mixin ClientMixin {
     if (res.statusCode >= 400) {
       if ((res.headers['content-type'] ?? '').contains('application/json')) {
         final response = json.decode(res.body);
-        throw {{spec.title | caseUcfirst}}Exception(
+        throw {{spec.info.title | caseUcfirst}}Exception(
           response['message'],
           response['code'],
           response['type'],
           res.body,
         );
       } else {
-        throw {{spec.title | caseUcfirst}}Exception(res.body, res.statusCode, '', res.body);
+        throw {{spec.info.title | caseUcfirst}}Exception(res.body, res.statusCode, '', res.body);
       }
     }
     dynamic data;

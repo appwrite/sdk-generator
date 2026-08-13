@@ -58,13 +58,13 @@ type Headers = {
     [key: string]: string;
 }
 
-class {{spec.title | caseUcfirst}}Exception extends Error {
+class {{spec.info.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;
     type: string;
     constructor(message: string, code: number = 0, type: string = '', response: string = '') {
         super(message);
-        this.name = '{{spec.title | caseUcfirst}}Exception';
+        this.name = '{{spec.info.title | caseUcfirst}}Exception';
         this.message = message;
         this.code = code;
         this.type = type;
@@ -73,7 +73,7 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
 }
 
 function getUserAgent() {
-    let ua = '{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}';
+    let ua = '{{spec.info.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}';
 
     // `process` is a global in Node.js, but not fully available in all runtimes.
     const platform: string[] = [];
@@ -110,10 +110,10 @@ class Client {
     private selfSignedAgent?: Agent;
 
     config = {
-        endpoint: '{{ spec.endpoint }}',
+        endpoint: '{{ (spec | endpoint) }}',
         selfSigned: false,
-        {%~ for header in spec.global.headers %}
-        {{ header.key | caseLower }}: '',
+        {%~ for headerKey, header in globalHeaders %}
+        {{ headerKey | caseLower }}: '',
         {%~ endfor %}
     };
     headers: Headers = {
@@ -122,7 +122,7 @@ class Client {
         'x-sdk-language': '{{ language.name | caseLower }}',
         'x-sdk-version': '{{ sdk.version }}',
         'user-agent' : getUserAgent(),
-        {%~ for key,header in spec.global.defaultHeaders %}
+        {%~ for key,header in defaultHeaders %}
         '{{key}}': '{{header}}',
         {%~ endfor %}
     };
@@ -138,11 +138,11 @@ class Client {
      */
     setEndpoint(endpoint: string): this {
         if (!endpoint || typeof endpoint !== 'string') {
-            throw new {{spec.title | caseUcfirst}}Exception('Endpoint must be a valid string');
+            throw new {{spec.info.title | caseUcfirst}}Exception('Endpoint must be a valid string');
         }
 
         if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
-            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+            throw new {{spec.info.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
         }
 
         this.config.endpoint = endpoint;
@@ -198,9 +198,9 @@ class Client {
         return { ...this.headers };
     }
 
-    {%~ for header in spec.global.headers %}
+    {%~ for headerKey, header in globalHeaders %}
     /**
-     * Set {{header.key | caseUcfirst}}
+     * Set {{headerKey | caseUcfirst}}
      *
     {%~ if header.description %}
      * {{header.description}}
@@ -210,11 +210,11 @@ class Client {
      *
      * @return {this}
      */
-    set{{header.key | caseUcfirst}}(value: string): this {
-        {%~ if header.global %}
+    set{{headerKey | caseUcfirst}}(value: string): this {
+        {%~ if (headerKey != 'Project') %}
         this.headers['{{ header.name }}'] = {% if header.type is defined and header.type == 'bearer' %}`Bearer ${value}`{% else %}value{% endif %};
         {%~ endif %}
-        this.config.{{ header.key | caseLower }} = value;
+        this.config.{{ headerKey | caseLower }} = value;
         return this;
     }
     {%~ endfor %}
@@ -343,7 +343,7 @@ class Client {
             const uploadChunk = async (chunk: typeof chunks[0]) => {
                 const chunkHeaders = { ...headers };
                 if (uploadId) {
-                    chunkHeaders['x-{{spec.title | caseLower }}-id'] = uploadId;
+                    chunkHeaders['x-{{spec.info.title | caseLower }}-id'] = uploadId;
                 }
                 chunkHeaders['content-range'] = `bytes ${chunk.start}-${chunk.end - 1}/${size}`;
                 
@@ -459,7 +459,7 @@ class Client {
         const uploadChunk = async (chunk: typeof chunks[0]) => {
             const chunkHeaders = { ...headers };
             if (uploadId) {
-                chunkHeaders['x-{{spec.title | caseLower }}-id'] = uploadId;
+                chunkHeaders['x-{{spec.info.title | caseLower }}-id'] = uploadId;
             }
             chunkHeaders['content-range'] = `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`;
             
@@ -520,11 +520,11 @@ class Client {
         return finalResponse ?? lastResponse;
     }
 
-    {%~ for clientMethodName, clientMethods in spec.clientMethods %}
+    {%~ for clientMethodName, clientMethods in clientMethods %}
     {%~ for clientMethod in clientMethods %}
     async {{ clientMethodName | caseCamel }}(): Promise<unknown> {
         return this.call('{{ clientMethod.method | caseUpper }}', new URL(this.config.endpoint + '{{ clientMethod.path }}'), {
-            {%~ for key, security in clientMethod.securityHeaders %}
+            {%~ for key, security in (clientMethod | securityHeaders) %}
             '{{ security.name }}': this.config.{{ key | caseLower }},
             {%~ endfor %}
             {%~ for key, header in clientMethod.headers %}
@@ -544,7 +544,7 @@ class Client {
         });
 
         if (response.status !== 301 && response.status !== 302) {
-            throw new {{spec.title | caseUcfirst}}Exception('Invalid redirect', response.status);
+            throw new {{spec.info.title | caseUcfirst}}Exception('Invalid redirect', response.status);
         }
 
         return response.headers.get('location') || '';
@@ -557,7 +557,7 @@ class Client {
 
         const response = await fetch(uri, options);
 
-        const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
+        const warnings = response.headers.get('x-{{ spec.info.title | lower }}-warning');
         if (warnings) {
             warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
         }
@@ -579,7 +579,7 @@ class Client {
             } else {
                 responseText = data?.message;
             }
-            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
+            throw new {{spec.info.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
         }
 
         if (data && typeof data === 'object') {
@@ -610,7 +610,7 @@ class Client {
     }
 }
 
-export { Client, {{spec.title | caseUcfirst}}Exception };
+export { Client, {{spec.info.title | caseUcfirst}}Exception };
 export { Query } from './query';
 export type { Models, Payload, UploadProgress };
 export type { QueryTypes, QueryTypesList } from './query';

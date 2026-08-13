@@ -3,26 +3,25 @@ using System;
 using UnityEngine;
 using Cysharp.Threading.Tasks;
 
-namespace {{ spec.title | caseUcfirst }}.Utilities
+namespace {{ spec.info.title | caseUcfirst }}.Utilities
 {
     /// <summary>
-    /// Utility class for {{ spec.title | caseUcfirst }} Unity integration
+    /// Utility class for {{ spec.info.title | caseUcfirst }} Unity integration
     /// </summary>
-    public static class {{ spec.title | caseUcfirst }}Utilities
+    public static class {{ spec.info.title | caseUcfirst }}Utilities
     {
         #if UNITY_EDITOR
         /// <summary>
-        /// Quick setup for {{ spec.title | caseUcfirst }} in Unity (Editor Only)
+        /// Quick setup for {{ spec.info.title | caseUcfirst }} in Unity (Editor Only)
         /// </summary>
-        public static async UniTask<{{ spec.title | caseUcfirst }}Manager> QuickSetup()
+        public static async UniTask<{{ spec.info.title | caseUcfirst }}Manager> QuickSetup()
         {
             // Create configuration
-            var config = {{ spec.title | caseUcfirst }}Config.CreateConfiguration();
-            
+            var config = {{ spec.info.title | caseUcfirst }}Config.CreateConfiguration();
 
             // Create manager
-            var managerGO = new GameObject("{{ spec.title | caseUcfirst }}Manager");
-            var manager = managerGO.AddComponent<{{ spec.title | caseUcfirst }}Manager>();
+            var managerGO = new GameObject("{{ spec.info.title | caseUcfirst }}Manager");
+            var manager = managerGO.AddComponent<{{ spec.info.title | caseUcfirst }}Manager>();
             manager.SetConfig(config);
 
             // Initialize
@@ -30,7 +29,7 @@ namespace {{ spec.title | caseUcfirst }}.Utilities
             if (!success)
             {
                 UnityEngine.Object.Destroy(managerGO);
-                throw new InvalidOperationException("Failed to initialize {{ spec.title | caseUcfirst }}Manager");
+                throw new InvalidOperationException("Failed to initialize {{ spec.info.title | caseUcfirst }}Manager");
             }
             //Create Realtime instance
             var a =manager.Realtime;
@@ -53,7 +52,7 @@ namespace {{ spec.title | caseUcfirst }}.Utilities
             catch (Exception ex)
             {
                 if (logErrors)
-                    Debug.LogError($"{{ spec.title | caseUcfirst }} operation failed: {ex.Message}");
+                    Debug.LogError($"{{ spec.info.title | caseUcfirst }} operation failed: {ex.Message}");
                 return defaultValue;
             }
         }
@@ -72,7 +71,7 @@ namespace {{ spec.title | caseUcfirst }}.Utilities
             catch (Exception ex)
             {
                 if (logErrors)
-                    Debug.LogError($"{{ spec.title | caseUcfirst }} operation failed: {ex.Message}");
+                    Debug.LogError($"{{ spec.info.title | caseUcfirst }} operation failed: {ex.Message}");
             }
         }
     }

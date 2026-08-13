@@ -1,6 +1,6 @@
-//! HTTP client for {{ spec.title }} API
+//! HTTP client for {{ spec.info.title }} API
 
-use crate::error::{{ spec.title | caseUcfirst }}Error;
+use crate::error::{{ spec.info.title | caseUcfirst }}Error;
 use crate::error::Result;
 use crate::input_file::InputFile;
 use arc_swap::ArcSwap;
@@ -59,7 +59,7 @@ impl<F> Default for UploadOptions<F> {
     }
 }
 
-/// {{ spec.title }} client for making API requests
+/// {{ spec.info.title }} client for making API requests
 #[derive(Debug, Clone)]
 pub struct Client {
     state: Arc<ArcSwap<ClientState>>,
@@ -88,20 +88,20 @@ impl Default for Client {
 }
 
 impl Client {
-    /// Create a new {{ spec.title }} client
+    /// Create a new {{ spec.info.title }} client
     pub fn new() -> Self {
         let mut headers = HeaderMap::new();
-{% for key, header in spec.global.defaultHeaders %}
+{% for key, header in defaultHeaders %}
         headers.insert("{{ key }}", "{{ header }}".parse().unwrap());
 {% endfor %}
-        headers.insert("user-agent", format!("{{ spec.title }}RustSDK/{{ sdk.version }} ({}; {})", std::env::consts::OS, std::env::consts::ARCH).parse().unwrap());
+        headers.insert("user-agent", format!("{{ spec.info.title }}RustSDK/{{ sdk.version }} ({}; {})", std::env::consts::OS, std::env::consts::ARCH).parse().unwrap());
         headers.insert("x-sdk-name", "{{ sdk.name }}".parse().unwrap());
         headers.insert("x-sdk-platform", "{{ sdk.platform }}".parse().unwrap());
         headers.insert("x-sdk-language", "{{ language.name | caseLower }}".parse().unwrap());
         headers.insert("x-sdk-version", "{{ sdk.version }}".parse().unwrap());
 
         let config = Config {
-            endpoint: "{{ spec.endpoint }}".to_string(),
+            endpoint: "{{ (spec | endpoint) }}".to_string(),
             headers,
             self_signed: false,
             chunk_size: DEFAULT_CHUNK_SIZE,
@@ -154,14 +154,14 @@ impl Client {
         self.clone()
     }
 
-{% for header in spec.global.headers %}
+{% for headerKey, header in globalHeaders %}
 
-    /// Set {{header.key | caseUcfirst}}
+    /// Set {{headerKey | caseUcfirst}}
 {% if header.description %}
     ///
     /// {{header.description}}
 {% endif %}
-    pub fn set_{{header.key | caseSnake}}<S: Into<String>>(&self, value: S) -> Self {
+    pub fn set_{{headerKey | caseSnake}}<S: Into<String>>(&self, value: S) -> Self {
         let value = value.into();
         self.state.rcu(|state| {
             let mut next = (**state).clone();
@@ -357,7 +357,7 @@ impl Client {
 
         if let Some(params) = params {
             if method == Method::GET {
-                let mut url_with_params = Url::parse(&url).map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new()))?;
+                let mut url_with_params = Url::parse(&url).map_err(|e| {{ spec.info.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new()))?;
                 {
                     let mut query_pairs = url_with_params.query_pairs_mut();
                     for (key, value) in Self::flatten_query_params(&params) {
@@ -408,7 +408,7 @@ impl Client {
 
         if let Some(params) = params {
             if method == Method::GET {
-                let mut url_with_params = Url::parse(&url).map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new()))?;
+                let mut url_with_params = Url::parse(&url).map_err(|e| {{ spec.info.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new()))?;
                 {
                     let mut query_pairs = url_with_params.query_pairs_mut();
                     for (key, value) in Self::flatten_query_params(&params) {
@@ -437,7 +437,7 @@ impl Client {
                 .get("location")
                 .and_then(|v| v.to_str().ok())
                 .map(|s| s.to_string())
-                .ok_or_else(|| {{ spec.title | caseUcfirst }}Error::new(
+                .ok_or_else(|| {{ spec.info.title | caseUcfirst }}Error::new(
                     status.as_u16(),
                     "Location header not found in redirect response",
                     None,
@@ -463,7 +463,7 @@ impl Client {
                         .get("type")
                         .and_then(|v| v.as_str())
                         .map(|v| v.to_string());
-                    return Err({{ spec.title | caseUcfirst }}Error::new(
+                    return Err({{ spec.info.title | caseUcfirst }}Error::new(
                         status.as_u16(),
                         message,
                         error_type,
@@ -472,7 +472,7 @@ impl Client {
                 }
             }
 
-            Err({{ spec.title | caseUcfirst }}Error::new(
+            Err({{ spec.info.title | caseUcfirst }}Error::new(
                 status.as_u16(),
                 error_text.clone(),
                 None,
@@ -495,7 +495,7 @@ impl Client {
 
         if let Some(params) = params {
             if method == Method::GET {
-                let mut url_with_params = Url::parse(&url).map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new()))?;
+                let mut url_with_params = Url::parse(&url).map_err(|e| {{ spec.info.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new()))?;
                 {
                     let mut query_pairs = url_with_params.query_pairs_mut();
                     for (key, value) in Self::flatten_query_params(&params) {
@@ -545,7 +545,7 @@ impl Client {
                         .get("type")
                         .and_then(|v| v.as_str())
                         .map(|v| v.to_string());
-                    return Err({{ spec.title | caseUcfirst }}Error::new(
+                    return Err({{ spec.info.title | caseUcfirst }}Error::new(
                         status.as_u16(),
                         message,
                         error_type,
@@ -554,7 +554,7 @@ impl Client {
                 }
             }
 
-            Err({{ spec.title | caseUcfirst }}Error::new(
+            Err({{ spec.info.title | caseUcfirst }}Error::new(
                 status.as_u16(),
                 error_text.clone(),
                 None,
@@ -646,7 +646,7 @@ impl Client {
 
         if let Some(mime_type) = input_file.mime_type() {
             file_part = file_part.mime_str(mime_type)
-                .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Invalid MIME type: {}", e), None, String::new()))?;
+                .map_err(|e| {{ spec.info.title | caseUcfirst }}Error::new(0, format!("Invalid MIME type: {}", e), None, String::new()))?;
         }
 
         form = form.part(param_name.to_string(), file_part);
@@ -796,14 +796,14 @@ impl Client {
                     chunk_size,
                 ).await?;
 
-                Ok::<_, {{ spec.title | caseUcfirst }}Error>((chunk_index, result))
+                Ok::<_, {{ spec.info.title | caseUcfirst }}Error>((chunk_index, result))
             });
             next_chunk += 1;
         }
 
         while let Some(joined) = tasks.join_next().await {
             let (chunk_index, result) = joined
-                .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Chunk upload task failed: {}", e), None, String::new()))??;
+                .map_err(|e| {{ spec.info.title | caseUcfirst }}Error::new(0, format!("Chunk upload task failed: {}", e), None, String::new()))??;
 
             last_response = Some(result.clone());
             if is_upload_complete(&result) {
@@ -847,7 +847,7 @@ impl Client {
                         chunk_size,
                     ).await?;
 
-                    Ok::<_, {{ spec.title | caseUcfirst }}Error>((chunk_index, result))
+                    Ok::<_, {{ spec.info.title | caseUcfirst }}Error>((chunk_index, result))
                 });
                 next_chunk += 1;
             }
@@ -855,7 +855,7 @@ impl Client {
 
         completed_response
             .or(last_response)
-            .ok_or_else(|| {{ spec.title | caseUcfirst }}Error::new(0, "No chunks uploaded", None, String::new()))
+            .ok_or_else(|| {{ spec.info.title | caseUcfirst }}Error::new(0, "No chunks uploaded", None, String::new()))
             .and_then(|v| serde_json::from_value(v).map_err(Into::into))
     }
 
@@ -878,11 +878,11 @@ impl Client {
         let chunk_data = reader
             .read_next(chunk_size)
             .await?
-            .ok_or_else(|| {{ spec.title | caseUcfirst }}Error::new(0, "Chunk data not found", None, String::new()))?;
+            .ok_or_else(|| {{ spec.info.title | caseUcfirst }}Error::new(0, "Chunk data not found", None, String::new()))?;
         let actual_chunk_size = chunk_data.len();
 
         if actual_chunk_size == 0 {
-            return Err({{ spec.title | caseUcfirst }}Error::new(0, "Chunk data is empty", None, String::new()));
+            return Err({{ spec.info.title | caseUcfirst }}Error::new(0, "Chunk data is empty", None, String::new()));
         }
 
         let state = self.state.load_full();
@@ -892,7 +892,7 @@ impl Client {
 
         if let Some(mime_type) = input_file.mime_type() {
             file_part = file_part.mime_str(mime_type)
-                .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Invalid MIME type: {}", e), None, String::new()))?;
+                .map_err(|e| {{ spec.info.title | caseUcfirst }}Error::new(0, format!("Invalid MIME type: {}", e), None, String::new()))?;
         }
 
         form = form.part(param_name.to_string(), file_part);
@@ -921,7 +921,7 @@ impl Client {
         }
 
         if let Some(id) = upload_id {
-            request_builder = request_builder.header("x-{{ spec.title | caseLower }}-id", id);
+            request_builder = request_builder.header("x-{{ spec.info.title | caseLower }}-id", id);
         }
 
         let chunk_end = start + actual_chunk_size as u64 - 1;
@@ -950,7 +950,7 @@ impl Client {
             let bytes = response.bytes().await?;
 
             if !content_type.is_empty() && !content_type.starts_with("application/json") && !bytes.is_empty() {
-                return Err({{ spec.title | caseUcfirst }}Error::new(
+                return Err({{ spec.info.title | caseUcfirst }}Error::new(
                     status.as_u16(),
                     format!("Expected JSON response but received content-type: {}", content_type),
                     None,
@@ -976,7 +976,7 @@ impl Client {
                         .get("type")
                         .and_then(|v| v.as_str())
                         .map(|v| v.to_string());
-                    return Err({{ spec.title | caseUcfirst }}Error::new(
+                    return Err({{ spec.info.title | caseUcfirst }}Error::new(
                         status.as_u16(),
                         message,
                         error_type,
@@ -985,7 +985,7 @@ impl Client {
                 }
             }
 
-            Err({{ spec.title | caseUcfirst }}Error::new(
+            Err({{ spec.info.title | caseUcfirst }}Error::new(
                 status.as_u16(),
                 error_text.clone(),
                 None,
@@ -1002,7 +1002,7 @@ mod tests {
     #[test]
     fn test_client_creation() {
         let client = Client::new();
-        assert_eq!(client.endpoint(), "{{ spec.endpoint }}");
+        assert_eq!(client.endpoint(), "{{ (spec | endpoint) }}");
     }
 
     #[test]

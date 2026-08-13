@@ -43,7 +43,7 @@ class ClientIO extends ClientBase with ClientMixin {
   String? get endPointRealtime => _endPointRealtime;
 
   ClientIO({
-    String endPoint = '{{spec.endpoint}}',
+    String endPoint = '{{(spec | endpoint)}}',
     this.selfSigned = false,
   }) : _endPoint = endPoint {
     _nativeClient = HttpClient()
@@ -59,7 +59,7 @@ class ClientIO extends ClientBase with ClientMixin {
       'x-sdk-platform': '{{ sdk.platform }}',
       'x-sdk-language': '{{ language.name | caseLower }}',
       'x-sdk-version': '{{ sdk.version }}',
-{% for key,header in spec.global.defaultHeaders %}
+{% for key,header in defaultHeaders %}
       '{{key}}': '{{header}}',
 {% endfor %}
     };
@@ -84,14 +84,14 @@ class ClientIO extends ClientBase with ClientMixin {
     return dir;
   }
 
-{% for header in spec.global.headers %}
+{% for headerKey, header in globalHeaders %}
 {% if header.description %}
   /// {{header.description}}
 {% endif %}
   @override
-  ClientIO set{{header.key | caseUcfirst}}(value) {
-    config['{{ header.key | caseCamel }}'] = value;
-    {%~ if header.global %}
+  ClientIO set{{headerKey | caseUcfirst}}(value) {
+    config['{{ headerKey | caseCamel }}'] = value;
+    {%~ if (headerKey != 'Project') %}
     addHeader('{{ header.name }}', {% if header.type is defined and header.type == 'bearer' %}'Bearer $value'{% else %}value{% endif %});
     {%~ endif %}
     return this;
@@ -109,7 +109,7 @@ class ClientIO extends ClientBase with ClientMixin {
   @override
   ClientIO setEndpoint(String endPoint) {
     if (!endPoint.startsWith('http://') && !endPoint.startsWith('https://')) {
-      throw {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: $endPoint');
+      throw {{spec.info.title | caseUcfirst}}Exception('Invalid endpoint URL: $endPoint');
     }
 
     _endPoint = endPoint;
@@ -123,7 +123,7 @@ class ClientIO extends ClientBase with ClientMixin {
   @override
   ClientIO setEndPointRealtime(String endPoint) {
     if (!endPoint.startsWith('ws://') && !endPoint.startsWith('wss://')) {
-      throw {{spec.title | caseUcfirst}}Exception('Invalid realtime endpoint URL: $endPoint');
+      throw {{spec.info.title | caseUcfirst}}Exception('Invalid realtime endpoint URL: $endPoint');
     }
 
     _endPointRealtime = endPoint;
@@ -234,7 +234,7 @@ class ClientIO extends ClientBase with ClientMixin {
   }) async {
     InputFile file = params[paramName];
     if (file.path == null && file.bytes == null) {
-      throw {{spec.title | caseUcfirst}}Exception("File path or bytes must be provided");
+      throw {{spec.info.title | caseUcfirst}}Exception("File path or bytes must be provided");
     }
 
     int size = 0;
@@ -285,7 +285,7 @@ class ClientIO extends ClientBase with ClientMixin {
         final int chunksUploaded = res.data['chunksUploaded'] as int;
         offset = chunksUploaded * chunkSize;
         uploadId = res.data['\$id'] ?? params[idParamName]?.toString();
-      } on {{spec.title | caseUcfirst}}Exception catch (_) {}
+      } on {{spec.info.title | caseUcfirst}}Exception catch (_) {}
     }
 
     if (offset >= size) {
@@ -322,7 +322,7 @@ class ClientIO extends ClientBase with ClientMixin {
       );
       final chunkHeaders = Map<String, String>.from(headers);
       if (id != null && id.isNotEmpty) {
-        chunkHeaders['x-{{spec.title | caseLower }}-id'] = id;
+        chunkHeaders['x-{{spec.info.title | caseLower }}-id'] = id;
       }
       chunkHeaders['content-range'] = 'bytes $start-${end - 1}/$size';
 
@@ -418,7 +418,7 @@ class ClientIO extends ClientBase with ClientMixin {
       url: url.toString(),
       callbackUrlScheme: callbackUrlScheme != null && _customSchemeAllowed
           ? callbackUrlScheme
-          : "{{spec.title | caseLower}}-callback-${config['project']!}",
+          : "{{spec.info.title | caseLower}}-callback-${config['project']!}",
       options: const FlutterWebAuth2Options(
         useWebview: false,
       ),
@@ -427,7 +427,7 @@ class ClientIO extends ClientBase with ClientMixin {
       final key = url.queryParameters['key'];
       final secret = url.queryParameters['secret'];
       if (key == null || secret == null) {
-        throw {{spec.title | caseUcfirst}}Exception(
+        throw {{spec.info.title | caseUcfirst}}Exception(
           "Invalid OAuth2 Response. Key and Secret not available.",
           500,
         );
@@ -473,10 +473,10 @@ class ClientIO extends ClientBase with ClientMixin {
 
       return prepareResponse(res, responseType: responseType);
     } catch (e) {
-      if (e is {{spec.title | caseUcfirst}}Exception) {
+      if (e is {{spec.info.title | caseUcfirst}}Exception) {
         rethrow;
       }
-      throw {{spec.title | caseUcfirst}}Exception(e.toString());
+      throw {{spec.info.title | caseUcfirst}}Exception(e.toString());
     }
   }
 }

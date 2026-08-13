@@ -4,25 +4,25 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using {{ spec.title | caseUcfirst }}.Enums;
-using {{ spec.title | caseUcfirst }}.Extensions;
+using {{ spec.info.title | caseUcfirst }}.Enums;
+using {{ spec.info.title | caseUcfirst }}.Extensions;
 
-namespace {{ spec.title | caseUcfirst }}.Models
+namespace {{ spec.info.title | caseUcfirst }}.Models
 {
-    public class {{ definition.name | caseUcfirst | overrideIdentifier }}
+    public class {{ definitionName | caseUcfirst | overrideIdentifier }}
     {
         {%~ for property in definition.properties %}
-        [JsonPropertyName("{{ property.name }}")]
-        public {{ sub_schema(property) | raw }} {{ property_name(definition, property) | overrideProperty(definition.name) }} { get; private set; }
+        [JsonPropertyName("{{ (property | schemaName) }}")]
+        public {{ sub_schema(property, property | schemaRequired) | raw }} {{ property_name(definitionName, property | schemaName) | overrideProperty(definitionName) }} { get; private set; }
 
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         public Dictionary<string, object> {{ 'data' | caseUcfirst | escapeKeyword | removeDollarSign }} { get; private set; }
 
         {%~ endif %}
-        public {{ definition.name | caseUcfirst | overrideIdentifier }}(
+        public {{ definitionName | caseUcfirst | overrideIdentifier }}(
             {%~ for property in definition.properties %}
-            {{ sub_schema(property) | raw }} {{ property.name | caseCamel | escapeKeyword }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            {{ sub_schema(property, property | schemaRequired) | raw }} {{ (property | schemaName) | caseCamel | escapeKeyword }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
@@ -31,84 +31,84 @@ namespace {{ spec.title | caseUcfirst }}.Models
         )
         {
             {%~ for property in definition.properties %}
-            {{ property_name(definition, property) | overrideProperty(definition.name) }} = {{ property.name | caseCamel | escapeKeyword }};
+            {{ property_name(definitionName, property | schemaName) | overrideProperty(definitionName) }} = {{ (property | schemaName) | caseCamel | escapeKeyword }};
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
             {{ 'data' | caseUcfirst | escapeKeyword | removeDollarSign }} = {{ 'data' | caseCamel | escapeKeyword | removeDollarSign }};
             {%~ endif %}
         }
 
-        public static {{ definition.name | caseUcfirst | overrideIdentifier }} From(Dictionary<string, object> map) => new {{ definition.name | caseUcfirst | overrideIdentifier }}(
+        public static {{ definitionName | caseUcfirst | overrideIdentifier }} From(Dictionary<string, object> map) => new {{ definitionName | caseUcfirst | overrideIdentifier }}(
             {%~ for property in definition.properties %}
-            {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
-                    {%- if property.sub_schema %}
-                        {%- if property.type == 'array' -%}
-                            {%- if not property.required -%}
-                                map.TryGetValue("{{ property.name }}", out var arrayRaw{{ loop.index }}) && arrayRaw{{ loop.index }} != null
-                                    ? arrayRaw{{ loop.index }}.ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+            {{ (property | schemaName) | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
+                    {%- if (property | schemaModel) %}
+                        {%- if (property | schemaType) == 'array' -%}
+                            {%- if not (property | schemaRequired) -%}
+                                map.TryGetValue("{{ (property | schemaName) }}", out var arrayRaw{{ loop.index }}) && arrayRaw{{ loop.index }} != null
+                                    ? arrayRaw{{ loop.index }}.ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.info.title | caseUcfirst }}.Models.{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
                                     : null
                             {%- else -%}
-                                map["{{ property.name }}"].ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                                map["{{ (property | schemaName) }}"].ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.info.title | caseUcfirst }}.Models.{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
                             {%- endif %}
                         {%- else -%}
-                            {%- if not property.required -%}
-                                map.TryGetValue("{{ property.name }}", out var objectRaw{{ loop.index }}) && objectRaw{{ loop.index }} != null
-                                    ? {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: objectRaw{{ loop.index }} is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)objectRaw{{ loop.index }})
+                            {%- if not (property | schemaRequired) -%}
+                                map.TryGetValue("{{ (property | schemaName) }}", out var objectRaw{{ loop.index }}) && objectRaw{{ loop.index }} != null
+                                    ? {{ spec.info.title | caseUcfirst }}.Models.{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}.From(map: objectRaw{{ loop.index }} is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)objectRaw{{ loop.index }})
                                     : null
                             {%- else -%}
-                                {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
+                                {{ spec.info.title | caseUcfirst }}.Models.{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}.From(map: map["{{ (property | schemaName) }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ (property | schemaName) }}"])
                             {%- endif %}
                         {%- endif %}
                 {%- elseif property.enum %}
-                    {%- set enumName = property['enumName'] ?? property.name -%}
-                    {%- if not property.required -%}
-                        map.TryGetValue("{{ property.name }}", out var enumRaw{{ loop.index }})
+                    {%- set enumName = (property | enumName) -%}
+                    {%- if not (property | schemaRequired) -%}
+                        map.TryGetValue("{{ (property | schemaName) }}", out var enumRaw{{ loop.index }})
                             ? enumRaw{{ loop.index }} == null
                                 ? null
-                                : new {{ spec.title | caseUcfirst }}.Enums.{{ enumName | caseUcfirst }}(enumRaw{{ loop.index }}.ToString()!)
+                                : new {{ spec.info.title | caseUcfirst }}.Enums.{{ enumName | caseUcfirst }}(enumRaw{{ loop.index }}.ToString()!)
                             : null
                     {%- else -%}
-                        new {{ spec.title | caseUcfirst }}.Enums.{{ enumName | caseUcfirst }}(map["{{ property.name }}"].ToString()!)
+                        new {{ spec.info.title | caseUcfirst }}.Enums.{{ enumName | caseUcfirst }}(map["{{ (property | schemaName) }}"].ToString()!)
                     {%- endif %}
                 {%- else %}
-                    {%- if property.type == 'array' -%}
-                        {%- if not property.required -%}
-                            map.TryGetValue("{{ property.name }}", out var arrayRaw{{ loop.index }}) && arrayRaw{{ loop.index }} != null
+                    {%- if (property | schemaType) == 'array' -%}
+                        {%- if not (property | schemaRequired) -%}
+                            map.TryGetValue("{{ (property | schemaName) }}", out var arrayRaw{{ loop.index }}) && arrayRaw{{ loop.index }} != null
                                 ? arrayRaw{{ loop.index }}.ConvertToList<{{ property | typeName | slice(5, (property | typeName | length) - 6) | raw }}>()
                                 : null
                         {%- else -%}
-                            map["{{ property.name }}"].ConvertToList<{{ property | typeName | slice(5, (property | typeName | length) - 6) | raw }}>()
+                            map["{{ (property | schemaName) }}"].ConvertToList<{{ property | typeName | slice(5, (property | typeName | length) - 6) | raw }}>()
                         {%- endif %}
                     {%- else %}
-                        {%- if property.type == "integer" or property.type == "number" %}
-                            {%- if not property.required -%}
-                                map.TryGetValue("{{ property.name }}", out var numberRaw{{ loop.index }}) && numberRaw{{ loop.index }} != null
-                                    ? Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(numberRaw{{ loop.index }})
+                        {%- if (property | schemaType) == "integer" or (property | schemaType) == "number" %}
+                            {%- if not (property | schemaRequired) -%}
+                                map.TryGetValue("{{ (property | schemaName) }}", out var numberRaw{{ loop.index }}) && numberRaw{{ loop.index }} != null
+                                    ? Convert.To{% if (property | schemaType) == "integer" %}Int64{% else %}Double{% endif %}(numberRaw{{ loop.index }})
                                     : null
                             {%- else -%}
-                                Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
+                                Convert.To{% if (property | schemaType) == "integer" %}Int64{% else %}Double{% endif %}(map["{{ (property | schemaName) }}"])
                             {%- endif %}
                         {%- else %}
-                            {%- if property.type == "boolean" -%}
-                                {%- if not property.required -%}
-                                    map.TryGetValue("{{ property.name }}", out var boolRaw{{ loop.index }}) && boolRaw{{ loop.index }} != null
+                            {%- if (property | schemaType) == "boolean" -%}
+                                {%- if not (property | schemaRequired) -%}
+                                    map.TryGetValue("{{ (property | schemaName) }}", out var boolRaw{{ loop.index }}) && boolRaw{{ loop.index }} != null
                                         ? ({{ property | typeName }}?)boolRaw{{ loop.index }}
                                         : null
                                 {%- else -%}
-                                    ({{ property | typeName }})map["{{ property.name }}"]
+                                    ({{ property | typeName }})map["{{ (property | schemaName) }}"]
                                 {%- endif %}
                             {%- else %}
-                                {%- if property.type == "object" -%}
-                                    {%- if not property.required -%}
-                                        map.TryGetValue("{{ property.name }}", out var objectRaw{{ loop.index }}) ? objectRaw{{ loop.index }} : null
+                                {%- if (property | schemaType) == "object" -%}
+                                    {%- if not (property | schemaRequired) -%}
+                                        map.TryGetValue("{{ (property | schemaName) }}", out var objectRaw{{ loop.index }}) ? objectRaw{{ loop.index }} : null
                                     {%- else -%}
-                                        map["{{ property.name }}"]
+                                        map["{{ (property | schemaName) }}"]
                                     {%- endif %}
                                 {%- else %}
-                                    {%- if not property.required -%}
-                                        map.TryGetValue("{{ property.name }}", out var {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}) ? {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null
+                                    {%- if not (property | schemaRequired) -%}
+                                        map.TryGetValue("{{ (property | schemaName) }}", out var {{ (property | schemaName) | caseCamel | escapeKeyword | removeDollarSign }}) ? {{ (property | schemaName) | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null
                                     {%- else -%}
-                                        map["{{ property.name }}"].ToString()
+                                        map["{{ (property | schemaName) }}"].ToString()
                                     {%- endif %}
                                 {%- endif %}
                             {%- endif %}
@@ -128,7 +128,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
         public Dictionary<string, object?> ToMap() => new Dictionary<string, object?>()
         {
             {%~ for property in definition.properties %}
-            { "{{ property.name }}", {{ property | toMapValue(property_name(definition, property) | overrideProperty(definition.name)) | raw }} }{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            { "{{ (property | schemaName) }}", {{ property | toMapValue(property_name(definitionName, property | schemaName) | overrideProperty(definitionName)) | raw }} }{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
@@ -141,12 +141,12 @@ namespace {{ spec.title | caseUcfirst }}.Models
             fromJson.Invoke({{ 'data' | caseUcfirst | escapeKeyword | removeDollarSign }});
         {%~ endif %}
         {%~ for property in definition.properties %}
-        {%~ if property.sub_schema %}
-        {%~ for def in spec.definitions %}
-        {%~ if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
+        {%~ if (property | schemaModel) %}
+        {%~ for def in definitions %}
+        {%~ if def.name == (property | schemaModel) and def.additionalProperties and (property | schemaType) == 'array' %}
 
         public T ConvertTo<T>(Func<Dictionary<string, object>, T> fromJson) =>
-            (T){{ property.name | caseUcfirst | escapeKeyword }}.Select(it => it.ConvertTo(fromJson));
+            (T){{ (property | schemaName) | caseUcfirst | escapeKeyword }}.Select(it => it.ConvertTo(fromJson));
 
         {%~ endif %}
         {%~ endfor %}

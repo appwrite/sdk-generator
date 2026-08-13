@@ -1,23 +1,23 @@
-using {{ spec.title | caseUcfirst }};
+using {{ spec.info.title | caseUcfirst }};
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-namespace Samples.{{ spec.title | caseUcfirst }}Example
+namespace Samples.{{ spec.info.title | caseUcfirst }}Example
 {
     /// <summary>
-    /// Example of how to use {{ spec.title | caseUcfirst }} with Unity integration
+    /// Example of how to use {{ spec.info.title | caseUcfirst }} with Unity integration
     /// </summary>
-    public class {{ spec.title | caseUcfirst }}Example : MonoBehaviour
+    public class {{ spec.info.title | caseUcfirst }}Example : MonoBehaviour
     {
         [Header("Configuration")]
-        [SerializeField] private {{ spec.title | caseUcfirst }}Config config;
+        [SerializeField] private {{ spec.info.title | caseUcfirst }}Config config;
         
-        private {{ spec.title | caseUcfirst }}Manager _manager;
+        private {{ spec.info.title | caseUcfirst }}Manager _manager;
         
         private async void Start()
         
         {
-            // Method 1: Using {{ spec.title | caseUcfirst }}Manager (Recommended)
+            // Method 1: Using {{ spec.info.title | caseUcfirst }}Manager (Recommended)
             await ExampleWithManager();
             
             // Method 2: Using Client directly
@@ -25,18 +25,18 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
         }
         
         /// <summary>
-        /// Example using {{ spec.title | caseUcfirst }}Manager for easy setup
+        /// Example using {{ spec.info.title | caseUcfirst }}Manager for easy setup
         /// </summary>
         private async UniTask ExampleWithManager()
         {
-            Debug.Log("=== Example with {{ spec.title | caseUcfirst }}Manager ===");
+            Debug.Log("=== Example with {{ spec.info.title | caseUcfirst }}Manager ===");
             
             // Get or create manager
-            _manager = {{ spec.title | caseUcfirst }}Manager.Instance;
+            _manager = {{ spec.info.title | caseUcfirst }}Manager.Instance;
             if (_manager == null)
             {
-                var managerGo = new GameObject("{{ spec.title | caseUcfirst }}Manager");
-                _manager = managerGo.AddComponent<{{ spec.title | caseUcfirst }}Manager>();
+                var managerGo = new GameObject("{{ spec.info.title | caseUcfirst }}Manager");
+                _manager = managerGo.AddComponent<{{ spec.info.title | caseUcfirst }}Manager>();
                 _manager.SetConfig(config);
             }
             
@@ -44,7 +44,7 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
             var success = await _manager.Initialize(true);
             if (!success)
             {
-                Debug.LogError("Failed to initialize {{ spec.title | caseUcfirst }}Manager");
+                Debug.LogError("Failed to initialize {{ spec.info.title | caseUcfirst }}Manager");
                 return;
             }
             
@@ -53,7 +53,7 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
             {
                 // Direct client access
                 var client = _manager.Client;
-                {%~ if spec.clientMethods.ping.get is defined %}
+                {%~ if clientMethods.ping.get is defined %}
                 var pingResult = await client.Ping();
                 Debug.Log($"Ping result: {pingResult}");
                 {%~ endif %}
@@ -76,11 +76,11 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
                     }
                 );
                 
-                Debug.Log("{{ spec.title | caseUcfirst }}Manager example completed successfully");
+                Debug.Log("{{ spec.info.title | caseUcfirst }}Manager example completed successfully");
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"{{ spec.title | caseUcfirst }}Manager example failed: {ex.Message}");
+                Debug.LogError($"{{ spec.info.title | caseUcfirst }}Manager example failed: {ex.Message}");
             }
         }
         
@@ -96,7 +96,7 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
                 // Create and configure client
                 var client = config.CreateClient();
 
-                {%~ if spec.clientMethods.ping.get is defined %}
+                {%~ if clientMethods.ping.get is defined %}
                 // Test connection
                 var pingResult = await client.Ping();
                 Debug.Log($"Direct client ping: {pingResult}");

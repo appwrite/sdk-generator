@@ -6,7 +6,7 @@
 # Love open-source, dev-tooling and passionate about code as much as we do?
 # ---
 # We're always looking for awesome hackers like you to join our 100% remote team!
-# Check and see if you find any relevant position @ https://{{ spec.title | lower }}.io/company/careers 👩‍💻 😎
+# Check and see if you find any relevant position @ https://{{ spec.info.title | lower }}.io/company/careers 👩‍💻 😎
 # (and let us know you found this message...)
 
 # This script contains hidden JS code to allow better readability and syntax highlighting
@@ -16,14 +16,14 @@
 $GITHUB_x64_URL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.npmPackage }}-win-x64.exe"
 $GITHUB_arm64_URL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.npmPackage }}-win-arm64.exe"
 
-${{ spec.title | upper }}_BINARY_NAME = "{{ language.params.executableName }}.exe"
+${{ spec.info.title | upper }}_BINARY_NAME = "{{ language.params.executableName }}.exe"
 
-# {{ spec.title | caseUcfirst }} download directory
-${{ spec.title | upper }}_DOWNLOAD_DIR = Join-Path -Path $env:TEMP -ChildPath ${{ spec.title | upper }}_BINARY_NAME
+# {{ spec.info.title | caseUcfirst }} download directory
+${{ spec.info.title | upper }}_DOWNLOAD_DIR = Join-Path -Path $env:TEMP -ChildPath ${{ spec.info.title | upper }}_BINARY_NAME
 
-# {{ spec.title | caseUcfirst }} CLI location
-${{ spec.title | upper }}_INSTALL_DIR = Join-Path -Path $env:LOCALAPPDATA -ChildPath "{{ spec.title | caseUcfirst }}"
-${{ spec.title | upper }}_INSTALL_PATH = Join-Path -Path "${{ spec.title | upper }}_INSTALL_DIR" -ChildPath "${{ spec.title | upper }}_BINARY_NAME"
+# {{ spec.info.title | caseUcfirst }} CLI location
+${{ spec.info.title | upper }}_INSTALL_DIR = Join-Path -Path $env:LOCALAPPDATA -ChildPath "{{ spec.info.title | caseUcfirst }}"
+${{ spec.info.title | upper }}_INSTALL_PATH = Join-Path -Path "${{ spec.info.title | upper }}_INSTALL_DIR" -ChildPath "${{ spec.info.title | upper }}_BINARY_NAME"
 
 $USER_PATH_ENV_VAR = [Environment]::GetEnvironmentVariable("PATH", "User")
 
@@ -32,7 +32,7 @@ function Greeting {
 {{ language.params.logoUnescaped | raw }}
 
 "@ -ForegroundColor red
-    Write-Host "Welcome to the {{ spec.title | caseUcfirst }} CLI install shield."  
+    Write-Host "Welcome to the {{ spec.info.title | caseUcfirst }} CLI install shield."
 }
 
 function CheckSystemInfo {
@@ -46,26 +46,26 @@ function CheckSystemInfo {
 }
 
 function DownloadBinary {
-    Write-Host "[2/4] Downloading {{ spec.title | caseUcfirst }} CLI binary ..."
+    Write-Host "[2/4] Downloading {{ spec.info.title | caseUcfirst }} CLI binary ..."
     Write-Host "🚦 Fetching latest version ... " -ForegroundColor green
 
     if((Get-CimInstance Win32_operatingsystem).OSArchitecture -like '*ARM*') {
-      Invoke-WebRequest -Uri $GITHUB_arm64_URL -OutFile ${{ spec.title | upper }}_DOWNLOAD_DIR
+      Invoke-WebRequest -Uri $GITHUB_arm64_URL -OutFile ${{ spec.info.title | upper }}_DOWNLOAD_DIR
     } else {
-      Invoke-WebRequest -Uri $GITHUB_x64_URL -OutFile ${{ spec.title | upper }}_DOWNLOAD_DIR
+      Invoke-WebRequest -Uri $GITHUB_x64_URL -OutFile ${{ spec.info.title | upper }}_DOWNLOAD_DIR
     }
 
-    New-Item -ItemType Directory -Path ${{ spec.title | upper }}_INSTALL_DIR
-    Move-Item ${{ spec.title | upper }}_DOWNLOAD_DIR ${{ spec.title | upper }}_INSTALL_PATH
+    New-Item -ItemType Directory -Path ${{ spec.info.title | upper }}_INSTALL_DIR
+    Move-Item ${{ spec.info.title | upper }}_DOWNLOAD_DIR ${{ spec.info.title | upper }}_INSTALL_PATH
 }
 
 function Install {
     Write-Host "[3/4] Starting installation ..."
 
-    if ($USER_PATH_ENV_VAR -like '*{{ spec.title | caseUcfirst }}*') {
-        Write-Host "Skipping to add {{ spec.title | caseUcfirst }} to User Path."
+    if ($USER_PATH_ENV_VAR -like '*{{ spec.info.title | caseUcfirst }}*') {
+        Write-Host "Skipping to add {{ spec.info.title | caseUcfirst }} to User Path."
     } else {
-        [System.Environment]::SetEnvironmentVariable("PATH", $USER_PATH_ENV_VAR + ";${{ spec.title | upper }}_INSTALL_DIR", "User")
+        [System.Environment]::SetEnvironmentVariable("PATH", $USER_PATH_ENV_VAR + ";${{ spec.info.title | upper }}_INSTALL_DIR", "User")
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User") 
     }
 }
@@ -77,8 +77,8 @@ function CleanUp {
 function InstallCompleted {
     Write-Host "[4/4] Finishing Installation ... "
     cleanup
-    Write-Host "To get started with {{ spec.title | caseUcfirst }} CLI, please visit {{ sdk.url }}/docs/command-line"
-    Write-Host "As first step, you can login to your {{ spec.title | caseUcfirst }} account using 'appwrite login'"
+    Write-Host "To get started with {{ spec.info.title | caseUcfirst }} CLI, please visit {{ sdk.url }}/docs/command-line"
+    Write-Host "As first step, you can login to your {{ spec.info.title | caseUcfirst }} account using 'appwrite login'"
 }
 
 Greeting

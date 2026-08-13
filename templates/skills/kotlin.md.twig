@@ -1,18 +1,18 @@
 {% set lang = 'kotlin' %}
 {% set langName = 'Kotlin' %}
-{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building native Android apps or server-side Kotlin/JVM backends with {{ spec.title }}. Covers client-side auth (email, OAuth with Activity integration), database queries, file uploads, real-time subscriptions with coroutine support, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building native Android apps or server-side Kotlin/JVM backends with {{ spec.info.title }}. Covers client-side auth (email, OAuth with Activity integration), database queries, file uploads, real-time subscriptions with coroutine support, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
-# {{ spec.title }} {{ langName }} SDK
+# {{ spec.info.title }} {{ langName }} SDK
 
 ## Installation
 
 ```kotlin
 // build.gradle.kts — Android
-implementation("io.{{ spec.title | caseLower }}:sdk-for-android:+")
+implementation("io.{{ spec.info.title | caseLower }}:sdk-for-android:+")
 
 // build.gradle.kts — Server (Kotlin JVM)
-implementation("io.{{ spec.title | caseLower }}:sdk-for-kotlin:+")
+implementation("io.{{ spec.info.title | caseLower }}:sdk-for-kotlin:+")
 ```
 
 ## Setting Up the Client
@@ -20,15 +20,15 @@ implementation("io.{{ spec.title | caseLower }}:sdk-for-kotlin:+")
 ### Client-side (Android)
 
 ```kotlin
-import io.{{ spec.title | caseLower }}.Client
-import io.{{ spec.title | caseLower }}.ID
-import io.{{ spec.title | caseLower }}.Query
-import io.{{ spec.title | caseLower }}.enums.OAuthProvider
-import io.{{ spec.title | caseLower }}.services.Account
-import io.{{ spec.title | caseLower }}.services.Realtime
-import io.{{ spec.title | caseLower }}.services.TablesDB
-import io.{{ spec.title | caseLower }}.services.Storage
-import io.{{ spec.title | caseLower }}.models.InputFile
+import io.{{ spec.info.title | caseLower }}.Client
+import io.{{ spec.info.title | caseLower }}.ID
+import io.{{ spec.info.title | caseLower }}.Query
+import io.{{ spec.info.title | caseLower }}.enums.OAuthProvider
+import io.{{ spec.info.title | caseLower }}.services.Account
+import io.{{ spec.info.title | caseLower }}.services.Realtime
+import io.{{ spec.info.title | caseLower }}.services.TablesDB
+import io.{{ spec.info.title | caseLower }}.services.Storage
+import io.{{ spec.info.title | caseLower }}.models.InputFile
 
 val client = Client(context)
     .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
@@ -38,18 +38,18 @@ val client = Client(context)
 ### Server-side (Kotlin JVM)
 
 ```kotlin
-import io.{{ spec.title | caseLower }}.Client
-import io.{{ spec.title | caseLower }}.ID
-import io.{{ spec.title | caseLower }}.Query
-import io.{{ spec.title | caseLower }}.services.Users
-import io.{{ spec.title | caseLower }}.services.TablesDB
-import io.{{ spec.title | caseLower }}.services.Storage
-import io.{{ spec.title | caseLower }}.services.Functions
+import io.{{ spec.info.title | caseLower }}.Client
+import io.{{ spec.info.title | caseLower }}.ID
+import io.{{ spec.info.title | caseLower }}.Query
+import io.{{ spec.info.title | caseLower }}.services.Users
+import io.{{ spec.info.title | caseLower }}.services.TablesDB
+import io.{{ spec.info.title | caseLower }}.services.Storage
+import io.{{ spec.info.title | caseLower }}.services.Functions
 
 val client = Client()
     .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
-    .setProject(System.getenv("{{ spec.title | caseUpper }}_PROJECT_ID"))
-    .setKey(System.getenv("{{ spec.title | caseUpper }}_API_KEY"))
+    .setProject(System.getenv("{{ spec.info.title | caseUpper }}_PROJECT_ID"))
+    .setKey(System.getenv("{{ spec.info.title | caseUpper }}_API_KEY"))
 ```
 
 ## Code Examples
@@ -245,7 +245,7 @@ storage.deleteFile(bucketId = "[BUCKET_ID]", fileId = "[FILE_ID]")
 #### InputFile Factory Methods
 
 ```kotlin
-import io.{{ spec.title | caseLower }}.models.InputFile
+import io.{{ spec.info.title | caseLower }}.models.InputFile
 
 InputFile.fromPath("/path/to/file.png")              // from filesystem path
 InputFile.fromBytes(byteArray, "file.png")           // from ByteArray
@@ -284,7 +284,7 @@ teams.delete(teamId = "[TEAM_ID]")
 ### Real-time Subscriptions (client-side)
 
 ```kotlin
-import io.{{ spec.title | caseLower }}.Channel
+import io.{{ spec.info.title | caseLower }}.Channel
 
 val realtime = Realtime(client)
 
@@ -373,15 +373,15 @@ SSR apps using Kotlin server frameworks (Ktor, Spring Boot, etc.) use the **serv
 - **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```kotlin
-import io.{{ spec.title | caseLower }}.Client
-import io.{{ spec.title | caseLower }}.services.Account
-import io.{{ spec.title | caseLower }}.enums.OAuthProvider
+import io.{{ spec.info.title | caseLower }}.Client
+import io.{{ spec.info.title | caseLower }}.services.Account
+import io.{{ spec.info.title | caseLower }}.enums.OAuthProvider
 
 // Admin client (reusable)
 val adminClient = Client()
     .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
     .setProject("[PROJECT_ID]")
-    .setKey(System.getenv("{{ spec.title | caseUpper }}_API_KEY"))
+    .setKey(System.getenv("{{ spec.info.title | caseUpper }}_API_KEY"))
 
 // Session client (create per-request)
 val sessionClient = Client()
@@ -474,7 +474,7 @@ get("/oauth/success") {
 ## Error Handling
 
 ```kotlin
-import io.{{ spec.title | caseLower }}.AppwriteException
+import io.{{ spec.info.title | caseLower }}.AppwriteException
 
 try {
     val row = tablesDB.getRow(databaseId = "[DATABASE_ID]", tableId = "[TABLE_ID]", rowId = "[ROW_ID]")
@@ -501,8 +501,8 @@ try {
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the row/file level or inherited from the table/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
 
 ```kotlin
-import io.{{ spec.title | caseLower }}.Permission
-import io.{{ spec.title | caseLower }}.Role
+import io.{{ spec.info.title | caseLower }}.Permission
+import io.{{ spec.info.title | caseLower }}.Role
 ```
 
 ### Database Row with Permissions

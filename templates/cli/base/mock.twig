@@ -8,15 +8,15 @@ export enum {{ enumName | caseUcfirst }} {
 // Mock {{ service.name | caseUcfirst }} class
 class {{ service.name | caseUcfirst }} {
   constructor(sdkClient: any) {}
-{% for method in service.methods %}
+{% for method in (service | operations) %}
 {% set params = [] %}
-{% for parameter in method.parameters.all %}
+{% for parameter in (method | parameters('all')) %}
 {% set paramType = 'any' %}
-{% if parameter.type == 'string' %}{% set paramType = 'string' %}
-{% elseif parameter.type == 'integer' or parameter.type == 'number' %}{% set paramType = 'number' %}
-{% elseif parameter.type == 'boolean' %}{% set paramType = 'boolean' %}
-{% elseif parameter.type == 'array' %}{% set paramType = 'any[]' %}
-{% elseif parameter.type == 'object' %}{% set paramType = 'any' %}
+{% if (parameter | schemaType) == 'string' %}{% set paramType = 'string' %}
+{% elseif (parameter | schemaType) == 'integer' or (parameter | schemaType) == 'number' %}{% set paramType = 'number' %}
+{% elseif (parameter | schemaType) == 'boolean' %}{% set paramType = 'boolean' %}
+{% elseif (parameter | schemaType) == 'array' %}{% set paramType = 'any[]' %}
+{% elseif (parameter | schemaType) == 'object' %}{% set paramType = 'any' %}
 {% endif %}
 {% if parameter.required %}
 {% set params = params|merge([parameter.name | caseCamel | escapeKeyword ~ ': ' ~ paramType]) %}
@@ -25,20 +25,20 @@ class {{ service.name | caseUcfirst }} {
 {% endif %}
 {% endfor %}
 
-  async {{ method.name | caseCamel }}({{ params | join(', ') }}): Promise<any> {
+  async {{ (method | methodName) | caseCamel }}({{ params | join(', ') }}): Promise<any> {
 {% set query = method | cliQueryConfig %}
 {% if query.hasQueries %}
     return { result: JSON.stringify(queries ?? []) };
-{% elseif method.name == 'redirect' %}
-    return { result: '{{ method.method | upper }}:/v1{{ method.path }}/done:passed' };
-{% elseif method.name == 'headers' %}
+{% elseif (method | methodName) == 'redirect' %}
+    return { result: '{{ method.method.value | upper }}:/v1{{ method.path }}/done:passed' };
+{% elseif (method | methodName) == 'headers' %}
     return {
       result: 'x-sdk-name: {{ sdk.name }}; x-sdk-platform: {{ sdk.platform }}; '
         + 'x-sdk-language: {{ language.name | caseLower }}; x-sdk-version: {{ sdk.version }}'
-        + '{% for key, header in method.headers %}; {{ key }}: {{ header }}{% endfor %}'
+        + '{% for key, header in (method | methodHeaders) %}; {{ key }}: {{ header }}{% endfor %}'
     };
 {% else %}
-    return { result: '{{ method.method | upper }}:/v1{{ method.path }}:passed' };
+    return { result: '{{ method.method.value | upper }}:/v1{{ method.path }}:passed' };
 {% endif %}
   }
 {% endfor %}

@@ -15,12 +15,12 @@ type mockResult struct {
 // Register attaches every generated service command to root, plus the methods
 // promoted to top-level commands.
 func Register(root *cobra.Command) {
-{% for service in spec.services %}
+{% for service in services %}
 	root.AddCommand(New{{ service.name | caseUcfirst }}Command())
 {% endfor %}
 
-{% for service in spec.services %}
-{% if service | cliTopLevelAliases is not empty %}
+{% for service in services %}
+{% if service | cliTopLevelAliases(service | operations) is not empty %}
 	root.AddCommand(New{{ service.name | caseUcfirst }}RootCommands()...)
 {% endif %}
 {% endfor %}

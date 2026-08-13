@@ -3,28 +3,28 @@ package {{ sdk.namespace | caseDot }}.models
 import com.google.gson.annotations.SerializedName
 {%~ for property in requestModel.properties %}
 {%~ if property.enum %}
-import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
+import {{ sdk.namespace | caseDot }}.enums.{{ (property | enumName) | caseUcfirst }}
 {%~ endif %}
 {%~ endfor %}
 
 /**
  * {{ requestModel.description | replace({"\n": "\n * "}) | raw }}
  */
-data class {{ requestModel.name | caseUcfirst }}(
+data class {{ requestModelName | caseUcfirst }}(
     {%~ for property in requestModel.properties %}
     /**
      * {{ property.description | replace({"\n": "\n     * "}) | raw }}
      */
-    @SerializedName("{{ property.name | escapeKeyword | escapeDollarSign}}")
-    {% if property.required -%} val
+    @SerializedName("{{ (property | schemaName) | escapeKeyword | escapeDollarSign}}")
+    {% if (property | schemaRequired) -%} val
     {%- else -%} var
-    {%- endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not property.required %}? = null{% endif %},
+    {%- endif %} {{ (property | schemaName) | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not (property | schemaRequired) %}? = null{% endif %},
 
     {%~ endfor %}
 ) {
     fun toMap(): Map<String, Any?> = mapOf(
         {%~ for property in requestModel.properties %}
-        "{{ property.name | escapeDollarSign }}" to {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.map { it.toMap() }{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.value{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% endif %},
+        "{{ (property | schemaName) | escapeDollarSign }}" to {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{{(property | schemaName) | escapeKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.map { it.toMap() }{% else %}{{(property | schemaName) | escapeKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{(property | schemaName) | escapeKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.value{% else %}{{(property | schemaName) | escapeKeyword | removeDollarSign}}{% endif %},
         {%~ endfor %}
     )
 }

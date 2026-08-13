@@ -1,43 +1,43 @@
 {% import _self as helper %}
 {% macro mockParameterValue(parameter) -%}
-{%- if parameter.enumName -%}
-{%- if parameter.type == 'array' -%}
-array({{ parameter.enumName | caseUcfirst }}::{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}())
+{%- if (parameter | enumName) -%}
+{%- if (parameter | schemaType) == 'array' -%}
+array({{ (parameter | enumName) | caseUcfirst }}::{{ ((parameter | enumKeys)[0] ?? (parameter | enumValues)[0]) | caseEnumKey }}())
 {%- else -%}
-{{ parameter.enumName | caseUcfirst }}::{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}()
+{{ (parameter | enumName) | caseUcfirst }}::{{ ((parameter | enumKeys)[0] ?? (parameter | enumValues)[0]) | caseEnumKey }}()
 {%- endif -%}
-{%- elseif parameter.type == 'object' -%}
+{%- elseif (parameter | schemaType) == 'object' -%}
 array()
-{%- elseif parameter.type == 'array' -%}
+{%- elseif (parameter | schemaType) == 'array' -%}
 array()
-{%- elseif parameter.type == 'file' -%}
+{%- elseif (parameter | schemaType) == 'file' -%}
 InputFile::withData('', 'image/png')
-{%- elseif parameter.type == 'boolean' -%}
+{%- elseif (parameter | schemaType) == 'boolean' -%}
 true
-{%- elseif parameter.type == 'string' -%}
-"{% if parameter.example is not empty %}{{ parameter.example | escapeDollarSign }}{% endif %}"
-{%- elseif parameter.type == 'integer' and parameter['x-example'] is empty -%}
+{%- elseif (parameter | schemaType) == 'string' -%}
+"{% if (parameter | schemaExample) is not empty %}{{ (parameter | schemaExample) | escapeDollarSign }}{% endif %}"
+{%- elseif (parameter | schemaType) == 'integer' and (parameter | schemaExample) is empty -%}
 1
-{%- elseif parameter.type == 'number' and parameter['x-example'] is empty -%}
+{%- elseif (parameter | schemaType) == 'number' and (parameter | schemaExample) is empty -%}
 1.0
 {%- else -%}
-{{ parameter.example }}
+{{ (parameter | schemaExample) }}
 {%- endif -%}
 {%- endmacro %}
 <?php
 
-namespace {{ spec.namespace | caseNamespace }}\Services;
+namespace {{ namespace | caseNamespace }}\Services;
 
-use {{ spec.namespace | caseNamespace }}\Client;
-use {{ spec.namespace | caseNamespace }}\InputFile;
+use {{ namespace | caseNamespace }}\Client;
+use {{ namespace | caseNamespace }}\InputFile;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 {% set added = [] %}
-{% for method in service.methods %}
-{% for parameter in method.parameters.all %}
-{% if parameter.enumName is not empty and parameter.enumName not in added %}
-use {{ spec.namespace | caseNamespace }}\Enums\{{ parameter.enumName | caseUcfirst }};
-{% set added = added|merge([parameter.enumName]) %}
+{% for method in (service | operations) %}
+{% for parameter in (method | parameters('all')) %}
+{% if (parameter | enumName) is not empty and (parameter | enumName) not in added %}
+use {{ namespace | caseNamespace }}\Enums\{{ (parameter | enumName) | caseUcfirst }};
+{% set added = added|merge([(parameter | enumName)]) %}
 {% endif %}
 {% endfor %}
 {% endfor %}
@@ -54,27 +54,27 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
     }
 
 {% set nonDeprecatedMethodNames = [] %}
-{% for method in service.methods %}
+{% for method in (service | operations) %}
 {% if not method.deprecated %}
-{% set nonDeprecatedMethodNames = nonDeprecatedMethodNames|merge([method.name | caseCamel | lower]) %}
+{% set nonDeprecatedMethodNames = nonDeprecatedMethodNames|merge([(method | methodName) | caseCamel | lower]) %}
 {% endif %}
 {% endfor %}
-{% for method in service.methods %}
-{% set methodNameLower = method.name | caseCamel | lower %}
+{% for method in (service | operations) %}
+{% set methodNameLower = (method | methodName) | caseCamel | lower %}
 {% if method.deprecated and methodNameLower in nonDeprecatedMethodNames %}
 {# Skip deprecated methods that have namespace collisions with non-deprecated methods #}
 {% else %}
 {% set responseModels = method | getResponseModels(spec) %}
 {% set filteredResponseModelNames = method | getValidResponseModels %}
-{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% set responseDiscriminator = (method | responseDiscriminator) %}
 {% set responseDefinitionName = '' %}
 {% if filteredResponseModelNames is not empty %}
 {% set responseDefinitionName = filteredResponseModelNames | last %}
-{% elseif method.responseModel and method.responseModel != 'any' %}
-{% set responseDefinitionName = method.responseModel %}
+{% elseif (method | responseModel) and (method | responseModel) != 'any' %}
+{% set responseDefinitionName = (method | responseModel) %}
 {% endif %}
-{% set requiredParameters = method.parameters.all | filter((param) => param.required) %}
-    public function testMethod{{ method.name | caseUcfirst }}(): void
+{% set requiredParameters = (method | parameters('all')) | filter((param) => param.required) %}
+    public function testMethod{{ (method | methodName) | caseUcfirst }}(): void
     {
 {% if responseModels | length > 0 %}
 {% if responseModels | length > 1 and responseDefinitionName and responseDiscriminator[responseDefinitionName] is defined %}
@@ -89,27 +89,27 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
 {% else %}
         $data = {{ responseDefinitionName | mockDefinitionPayload(spec, 3) | raw -}};
 {% endif %}
-{% elseif (method.responseModel and method.responseModel == 'any') or (method | getReturn(spec) == 'array') %}
+{% elseif ((method | responseModel) and (method | responseModel) == 'any') or (method | getReturn(spec) == 'array') %}
         $data = array();
 {% else %}
         $data = '';
 {% endif %}
 
         $this->client
-            ->allows()->call(Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(){% if method.type == 'webAuth' %}, Mockery::any(){% endif %})
+            ->allows()->call(Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(){% if (method | methodType) == 'webAuth' %}, Mockery::any(){% endif %})
             ->andReturn($data);
         $this->client
             ->allows()->getConfig(Mockery::any())
             ->andReturn('');
 
 {% if requiredParameters | length > 0 %}
-        $response = $this->{{ service.name | caseCamel }}->{{ method.name | caseCamel }}(
+        $response = $this->{{ service.name | caseCamel }}->{{ (method | methodName) | caseCamel }}(
 {% for parameter in requiredParameters %}
             {{ helper.mockParameterValue(parameter) }}{{ loop.last ? '' : ',' }}
 {% endfor %}
         );
 {% else %}
-        $response = $this->{{ service.name | caseCamel }}->{{ method.name | caseCamel }}();
+        $response = $this->{{ service.name | caseCamel }}->{{ (method | methodName) | caseCamel }}();
 {% endif %}
 
 {% if responseModels | length > 0 %}

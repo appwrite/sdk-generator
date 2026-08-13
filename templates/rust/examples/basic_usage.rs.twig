@@ -1,21 +1,21 @@
-//! Basic usage example for {{ spec.title }} Rust SDK
+//! Basic usage example for {{ spec.info.title }} Rust SDK
 
 use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::{
     Client,
     services::Users,
     id::ID,
-    {{ spec.title | caseUcfirst }}Error,
+    {{ spec.info.title | caseUcfirst }}Error,
 };
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the client
     let client = Client::new()
-        .set_endpoint("{{ spec.endpoint }}") // Your API Endpoint
+        .set_endpoint("{{ (spec | endpoint) }}") // Your API Endpoint
         .set_project("5df5acd0d48c2") // Your project ID
         .set_key("919c2d18fb5d4...a2ae413da83346ad2"); // Your secret API key
 
-    println!("🚀 {{ spec.title }} Rust SDK Example");
+    println!("🚀 {{ spec.info.title }} Rust SDK Example");
     println!("Connected to: {}", client.endpoint());
 
     // Initialize services
@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Example 3: Using Database service (if available)
-    {% for service in spec.services %}
+    {% for service in services %}
     {% if service.name == 'databases' %}
     use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::services::Databases;
     use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::query::Query;
@@ -88,7 +88,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {% endfor %}
 
     // Example 4: Using Storage service for file operations (if available)
-    {% for service in spec.services %}
+    {% for service in services %}
     {% if service.name == 'storage' %}
     use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::services::Storage;
     use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::input_file::InputFile;
@@ -98,7 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📁 Working with storage...");
 
     // Create a sample file
-    let sample_data = b"Hello, {{ spec.title }}! This is a test file.";
+    let sample_data = b"Hello, {{ spec.info.title }}! This is a test file.";
     let file = InputFile::from_bytes(
         sample_data.to_vec(),
         "test.txt",
@@ -129,7 +129,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // This will likely fail with invalid credentials
     let invalid_client = Client::new()
-        .set_endpoint("{{ spec.endpoint }}")
+        .set_endpoint("{{ (spec | endpoint) }}")
         .set_project("invalid-project")
         .set_key("invalid-key");
 

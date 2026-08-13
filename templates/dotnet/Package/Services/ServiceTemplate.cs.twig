@@ -3,14 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-{% if spec.definitions is not empty %}
-using {{ spec.title | caseUcfirst }}.Models;
+{% if definitions is not empty %}
+using {{ spec.info.title | caseUcfirst }}.Models;
 {% endif %}
-{% if spec.requestEnums is not empty %}
-using {{ spec.title | caseUcfirst }}.Enums;
+{% if requestEnums is not empty %}
+using {{ spec.info.title | caseUcfirst }}.Enums;
 {% endif %}
 
-namespace {{ spec.title | caseUcfirst }}.Services
+namespace {{ spec.info.title | caseUcfirst }}.Services
 {
     public class {{ service.name | caseUcfirst }} : Service
     {
@@ -18,7 +18,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
         {
         }
 
-        {%~ for method in service.methods %}
+        {%~ for method in (service | operations) %}
         {%~ if method.description %}
         /// <para>
         {{~ method.description | wrap(75, '        /// ') }}
@@ -26,50 +26,50 @@ namespace {{ spec.title | caseUcfirst }}.Services
         {%~ endif %}
         /// </summary>
         {%~ if method.deprecated %}
-        {%~ if method.since and method.replaceWith %}
-        [Obsolete("This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")]
+        {%~ if (method | appwrite('deprecated', {})['since'] ?? '') and (method | appwrite('deprecated', {})['replaceWith'] ?? '') %}
+        [Obsolete("This API has been deprecated since {{ (method | appwrite('deprecated', {})['since'] ?? '') }}. Please use `{{ (method | appwrite('deprecated', {})['replaceWith'] ?? '') | capitalizeFirst }}` instead.")]
         {%~ else %}
         [Obsolete("This API has been deprecated.")]
         {%~ endif %}
         {%~ endif %}
-        public Task{% if method.type == "webAuth" %}<String>{% else %}<{{ utils.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ utils.method_parameters(method.parameters, method.consumes) }})
+        public Task{% if (method | methodType) == "webAuth" %}<String>{% else %}<{{ utils.resultType(spec.info.title, method) }}>{% endif %} {{ (method | methodName) | caseUcfirst }}({{ utils.method_parameters(method.parameters, (method | consumes)) }})
         {
-            var apiPath = "{{ method.path }}"{% if method.parameters.path | length == 0 %};{% endif %}
+            var apiPath = "{{ method.path }}"{% if (method | parameters('path')) | length == 0 %};{% endif %}
 
             {{~ include('dotnet/base/params.twig') }}
 
-            {%~ if method.responseModel %}
-{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
-{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
-            static {{ utils.resultType(spec.title, method) }} Convert(Dictionary<string, object> it)
+            {%~ if (method | responseModel) %}
+{% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}
+{% set responseDiscriminator = (method | responseDiscriminator) %}
+            static {{ utils.resultType(spec.info.title, method) }} Convert(Dictionary<string, object> it)
             {
-            {%~ if method.responseModel == 'any' or method.responseModels|length > 1 %}
+            {%~ if (method | responseModel) == 'any' or (method | responseModels)|length > 1 %}
                 {%~ if (method | getValidResponseModels)|length > 1 %}
                     {%~ if hasResponseDiscriminator %}
 {% for modelName, conditions in responseDiscriminator %}
                 if ({% for field, expectedValue in conditions %}it.TryGetValue("{{ field }}", out var {{ field | caseCamel }}Value{{ loop.parent.loop.index }}) && {{ field | caseCamel }}Value{{ loop.parent.loop.index }}?.ToString() == "{{ expectedValue }}"{% if not loop.last %} && {% endif %}{% endfor %})
                 {
-                    return {{ spec.title | caseUcfirst }}.Models.{{ modelName | caseUcfirst | overrideIdentifier }}.From(map: it);
+                    return {{ spec.info.title | caseUcfirst }}.Models.{{ modelName | caseUcfirst | overrideIdentifier }}.From(map: it);
                 }
 {% endfor %}
                 throw new System.Exception("Unable to match response to any expected response model");
                     {%~ else %}
-                return {{ spec.title | caseUcfirst }}.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(map: it);
+                return {{ spec.info.title | caseUcfirst }}.Models.{{ (method | responseModel) | caseUcfirst | overrideIdentifier }}.From(map: it);
                     {%~ endif %}
                 {%~ else %}
                 return it;
                 {%~ endif %}
             {%~ else %}
-                return {{ utils.resultType(spec.title, method) }}.From(map: it);
+                return {{ utils.resultType(spec.info.title, method) }}.From(map: it);
             {%~ endif %}
             }
             {%~ endif %}
 
-            {%~ if method.type == 'location' %}
+            {%~ if (method | methodType) == 'location' %}
             {{~ include('dotnet/base/requests/location.twig') }}
-            {%~ elseif method.type == 'webAuth' %}
+            {%~ elseif (method | methodType) == 'webAuth' %}
             {{~ include('dotnet/base/requests/oauth.twig') }}
-            {%~ elseif 'multipart/form-data' in method.consumes %}
+            {%~ elseif 'multipart/form-data' in (method | consumes) %}
             {{~ include('dotnet/base/requests/file.twig') }}
             {%~ else %}
             {{~ include('dotnet/base/requests/api.twig')}}

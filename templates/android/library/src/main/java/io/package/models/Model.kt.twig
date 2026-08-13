@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 import io.appwrite.extensions.jsonCast
 {%~ for property in definition.properties %}
 {%~ if property.enum %}
-import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
+import {{ sdk.namespace | caseDot }}.enums.{{ (property | enumName) | caseUcfirst }}
 {%~ endif %}
 {%~ endfor %}
 
@@ -16,10 +16,10 @@ import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
     /**
      * {{ property.description | replace({"\n": "\n     * "}) | raw }}
      */
-    @SerializedName("{{ property.name | escapeKeyword | escapeDollarSign}}")
-    {% if property.required -%} val
+    @SerializedName("{{ (property | schemaName) | escapeKeyword | escapeDollarSign}}")
+    {% if (property | schemaRequired) -%} val
     {%- else -%} var
-    {%- endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }},
+    {%- endif %} {{ (property | schemaName) | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }},
 
     {%~ endfor %}
     {%~ if definition.additionalProperties %}
@@ -32,7 +32,7 @@ import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
 ) {
     fun toMap(): Map<String, Any?> = mapOf(
         {%~ for property in definition.properties %}
-        "{{ property.name | escapeDollarSign }}" to {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.map { it.toMap() }{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.value{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% endif %} as Any{% if not property.required %}?{% endif %},
+        "{{ (property | schemaName) | escapeDollarSign }}" to {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{{(property | schemaName) | escapeKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.map { it.toMap() }{% else %}{{(property | schemaName) | escapeKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{(property | schemaName) | escapeKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.value{% else %}{{(property | schemaName) | escapeKeyword | removeDollarSign}}{% endif %} as Any{% if not (property | schemaRequired) %}?{% endif %},
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         "{{ 'data' | escapeDollarSign }}" to {{ 'data' | escapeKeyword | removeDollarSign }}!!.jsonCast(to = Map::class.java)
@@ -40,17 +40,17 @@ import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
     )
 
     companion object {
-        {%~ if definition.name | hasGenericType(spec) %}
+        {%~ if definitionName | hasGenericType(spec) %}
         operator fun invoke(
             {%~ for property in definition.properties %}
-            {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec, 'Map<String, Any>') | raw }},
+            {{ (property | schemaName) | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec, 'Map<String, Any>') | raw }},
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
             {{ 'data' | escapeKeyword | removeDollarSign }}: Map<String, Any>
             {%~ endif %}
         ) = {{ definition | modelType(spec, 'Map<String, Any>') | raw }}(
             {%~ for property in definition.properties %}
-            {{ property.name | escapeKeyword | removeDollarSign }},
+            {{ (property | schemaName) | escapeKeyword | removeDollarSign }},
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
             {{ 'data' | escapeKeyword | removeDollarSign }}
@@ -59,14 +59,14 @@ import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
         {%~ endif %}
 
         @Suppress("UNCHECKED_CAST")
-        fun {% if definition.name | hasGenericType(spec) %}<T> {% endif %}from(
+        fun {% if definitionName | hasGenericType(spec) %}<T> {% endif %}from(
             map: Map<String, Any>,
-            {%~ if definition.name | hasGenericType(spec) %}
+            {%~ if definitionName | hasGenericType(spec) %}
             nestedType: Class<T>
             {%~ endif %}
         ) = {{ definition | modelType(spec) | raw }}(
             {%~ for property in definition.properties %}
-            {{ property.name | escapeKeyword | removeDollarSign }} = {{ property | propertyAssignment(spec) | raw }},
+            {{ (property | schemaName) | escapeKeyword | removeDollarSign }} = {{ property | propertyAssignment(spec) | raw }},
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
             {{ 'data' | escapeKeyword | removeDollarSign }} = map["{{ 'data' | escapeDollarSign }}"]?.jsonCast(to = nestedType) ?: map.jsonCast(to = nestedType)

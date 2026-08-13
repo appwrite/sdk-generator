@@ -1,24 +1,24 @@
-//! Data models for {{ spec.title }} SDK
+//! Data models for {{ spec.info.title }} SDK
 
-{% for definition in spec.definitions %}
-pub mod {{ definition.name | caseSnake | overrideIdentifier }};
-pub use {{ definition.name | caseSnake | overrideIdentifier }}::{{ definition.name | caseUcfirst | overrideIdentifier }};
+{% for definitionName, definition in definitions %}
+pub mod {{ definitionName | caseSnake | overrideIdentifier }};
+pub use {{ definitionName | caseSnake | overrideIdentifier }}::{{ definitionName | caseUcfirst | overrideIdentifier }};
 {% endfor %}
-{% for definition in spec.requestModels %}
-pub mod {{ definition.name | caseSnake | overrideIdentifier }};
-pub use {{ definition.name | caseSnake | overrideIdentifier }}::{{ definition.name | caseUcfirst | overrideIdentifier }};
+{% for definition in requestModels %}
+pub mod {{ definitionName | caseSnake | overrideIdentifier }};
+pub use {{ definitionName | caseSnake | overrideIdentifier }}::{{ definitionName | caseUcfirst | overrideIdentifier }};
 {% endfor %}
 
 // Re-export commonly used types
 use serde::{Deserialize, Serialize};
 
-/// Base trait for all {{ spec.title }} models
+/// Base trait for all {{ spec.info.title }} models
 pub trait Model: Serialize + for<'de> Deserialize<'de> + Clone + std::fmt::Debug {}
 
 // Implement the trait for all generated models
-{% for definition in spec.definitions %}
-impl Model for {{ definition.name | caseUcfirst | overrideIdentifier }} {}
+{% for definitionName, definition in definitions %}
+impl Model for {{ definitionName | caseUcfirst | overrideIdentifier }} {}
 {% endfor %}
-{% for definition in spec.requestModels %}
-impl Model for {{ definition.name | caseUcfirst | overrideIdentifier }} {}
+{% for definition in requestModels %}
+impl Model for {{ definitionName | caseUcfirst | overrideIdentifier }} {}
 {% endfor %}

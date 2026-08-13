@@ -1,7 +1,7 @@
 import unittest
 
-from {{ spec.namespace | caseSnake }}.permission import Permission
-from {{ spec.namespace | caseSnake }}.role import Role
+from {{ namespace | caseSnake }}.permission import Permission
+from {{ namespace | caseSnake }}.role import Role
 
 class TestPermissionMethods(unittest.TestCase):
 

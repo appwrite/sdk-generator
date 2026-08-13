@@ -1,7 +1,7 @@
-{% macro sub_schema(definitions, property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<<String, dynamic>>{% else %}<String, dynamic>{
-  {% if definitions[property.sub_schema] %}{% for property in definitions[property.sub_schema].properties | filter(p => p.required) %}
-  '{{property.name | escapeDollarSign}}': {% if property.type == 'object' %}{% if property.sub_schema and (property.sub_schema != 'prefs' and property.sub_schema != 'preferences') %}{{_self.sub_schema(definitions, property)}}{% else %}<String, dynamic>{}{% endif %}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}'{{property.example | escapeDollarSign}}'{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %},
-  {% endfor %}{% endif %}}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
+{% macro sub_schema(definitions, property) %}{% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}List<<String, dynamic>>{% else %}<String, dynamic>{
+  {% if definitions[(property | schemaModel)] %}{% for property in definitions[(property | schemaModel)].properties | filter(p => p.required) %}
+  '{{(property | schemaName) | escapeDollarSign}}': {% if (property | schemaType) == 'object' %}{% if (property | schemaModel) and ((property | schemaModel) != 'prefs' and (property | schemaModel) != 'preferences') %}{{_self.sub_schema(definitions, property)}}{% else %}<String, dynamic>{}{% endif %}{% elseif (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'string' %}'{{(property | schemaExample) | escapeDollarSign}}'{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{(property | schemaExample)}}{% endif %},
+  {% endfor %}{% endif %}}{% endif %}{% else %}{% if (property | schemaType) == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
 {% import 'flutter/base/utils.twig' as utils %}
 {% if 'dart' in language.params.packageName %}
 import 'package:test/test.dart';
@@ -64,25 +64,25 @@ void main() {
             {{service.name | caseCamel}} = {{service.name | caseUcfirst}}(client);
         });
 
-{% for method in service.methods %}
-        test('test method {{method.name | caseCamel}}()', () async {
+{% for method in (service | operations) %}
+        test('test method {{(method | methodName) | caseCamel}}()', () async {
 {% set responseModels = method | getValidResponseModels %}
 {% set responseModelName = '' %}
 {% if responseModels|length > 1 %}
 {% set responseModelName = responseModels|last %}
-{% elseif method.responseModel and method.responseModel != 'any' %}
-{% set responseModelName = method.responseModel %}
+{% elseif (method | responseModel) and (method | responseModel) != 'any' %}
+{% set responseModelName = (method | responseModel) %}
 {% endif %}
-            {%- if method.type == 'webAuth' -%}
-            {%~ elseif method.type == 'location' -%}
+            {%- if (method | methodType) == 'webAuth' -%}
+            {%~ elseif (method | methodType) == 'location' -%}
             final Uint8List data = Uint8List.fromList([]);
             {%- else -%}
 
                 {%~ if responseModelName ~%}
-{% set discriminatorConditions = (responseModels|length > 1 and method.responseDiscriminator is defined and method.responseDiscriminator[responseModelName] is defined) ? method.responseDiscriminator[responseModelName] : {} %}
+{% set discriminatorConditions = (responseModels|length > 1 and (method | responseDiscriminator)[responseModelName] is defined) ? (method | responseDiscriminator)[responseModelName] : {} %}
             final Map<String, dynamic> data = {
-                {%- for definition in spec.definitions ~%}{%~ if definition.name == responseModelName -%}{%~ for property in definition.properties | filter((param) => param.required and param.name not in (discriminatorConditions|keys)) ~%}
-                '{{property.name | escapeDollarSign}}': {% if property.type == 'object' %}{% if property.sub_schema and (property.sub_schema != 'prefs' and property.sub_schema != 'preferences') %}{{_self.sub_schema(spec.definitions, property)}}{% else %}<String, dynamic>{}{% endif %}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}'{{property.example | escapeDollarSign}}'{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
+                {%- for definitionName, definition in definitions ~%}{%~ if definitionName == responseModelName -%}{%~ for property in definition.properties | filter((param) => param.required and param.name not in (discriminatorConditions|keys)) ~%}
+                '{{(property | schemaName) | escapeDollarSign}}': {% if (property | schemaType) == 'object' %}{% if (property | schemaModel) and ((property | schemaModel) != 'prefs' and (property | schemaModel) != 'preferences') %}{{_self.sub_schema(definitions, property)}}{% else %}<String, dynamic>{}{% endif %}{% elseif (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'string' %}'{{(property | schemaExample) | escapeDollarSign}}'{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{(property | schemaExample)}}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
 {%~ for field, value in discriminatorConditions ~%}
                 '{{field | escapeDollarSign}}': '{{value | escapeDollarSign}}',{%~ endfor ~%}
 
@@ -92,11 +92,11 @@ void main() {
                 {%- endif -%}
             {% endif %}
 
-            {%~ if method.type == 'webAuth' ~%}
+            {%~ if (method | methodType) == 'webAuth' ~%}
             when(client.webAuth(
                 argThat(isNotNull),
             )).thenAnswer((_) async => 'done');
-            {%~ elseif 'multipart/form-data' in method.consumes ~%}
+            {%~ elseif 'multipart/form-data' in (method | consumes) ~%}
             when(client.chunkedUpload(
                 path: argThat(isNotNull),
                 params: argThat(isNotNull),
@@ -106,17 +106,17 @@ void main() {
             )).thenAnswer((_) async => Response(data: data));
             {%~ else ~%}
             when(client.call(
-                HttpMethod.{{method.method | caseLower}},
+                HttpMethod.{{method.method.value | caseLower}},
             )).thenAnswer((_) async => Response(data: data));
             {%~ endif ~%}
 
-            final response = await {{service.name | caseCamel}}.{{method.name | caseCamel}}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
-                {{parameter.name | escapeKeyword | caseCamel}}: {% if parameter.enumValues | length > 0%}{{ parameter | enumExample }}{% elseif parameter.type == 'object' %}{}{% elseif parameter.type == 'array' %}[]{% elseif parameter.type == 'file' %}InputFile.fromPath(path: './image.png'){% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'string' %}'{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}'{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%},{%~ endfor ~%}
+            final response = await {{service.name | caseCamel}}.{{(method | methodName) | caseCamel}}({%~ for parameter in (method | parameters('all')) | filter((param) => param.required) ~%}
+                {{parameter.name | escapeKeyword | caseCamel}}: {% if (parameter | enumValues) | length > 0%}{{ parameter | enumExample }}{% elseif (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.fromPath(path: './image.png'){% elseif (parameter | schemaType) == 'boolean' %}true{% elseif (parameter | schemaType) == 'string' %}'{% if (parameter | schemaExample) is not empty %}{{(parameter | schemaExample) | escapeDollarSign}}{% endif %}'{% elseif (parameter | schemaType) == 'integer' and (parameter | schemaExample) is empty %}1{% elseif (parameter | schemaType) == 'number' and (parameter | schemaExample) is empty %}1.0{% else %}{{(parameter | schemaExample)}}{%~ endif ~%},{%~ endfor ~%}
             );
 
-        {%- if method.type == 'location' ~%}
+        {%- if (method | methodType) == 'location' ~%}
             expect(response, isA<Uint8List>());
-        {%~ elseif method.type == 'webAuth' ~%}
+        {%~ elseif (method | methodType) == 'webAuth' ~%}
             expect(response, equals('done'));
         {%~ elseif responseModelName ~%}
             expect(response, isA<models.{{responseModelName | caseUcfirst | overrideIdentifier}}>());

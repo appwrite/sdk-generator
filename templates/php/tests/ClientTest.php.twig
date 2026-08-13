@@ -1,12 +1,12 @@
 <?php
 
-namespace {{ spec.namespace | caseNamespace }};
+namespace {{ namespace | caseNamespace }};
 
 use PHPUnit\Framework\TestCase;
 
 final class ClientTest extends TestCase {
     public function testSetEndpointInvalidThrowsException(): void {
-        $this->expectException({{ spec.namespace | split('\\') | last | caseUcfirst }}Exception::class);
+        $this->expectException({{ namespace | split('\\') | last | caseUcfirst }}Exception::class);
         $this->expectExceptionMessage('Invalid endpoint URL: invalid-endpoint');
 
         $client = new Client();
@@ -14,7 +14,7 @@ final class ClientTest extends TestCase {
     }
 
     public function testSetEndpointWithoutProtocolThrowsException(): void {
-        $this->expectException({{ spec.namespace | split('\\') | last | caseUcfirst }}Exception::class);
+        $this->expectException({{ namespace | split('\\') | last | caseUcfirst }}Exception::class);
         $this->expectExceptionMessage('Invalid endpoint URL: example.com');
 
         $client = new Client();
@@ -48,11 +48,11 @@ final class ClientTest extends TestCase {
         $result = $client->addHeader('X-Custom', 'value');
         $this->assertSame($client, $result);
     }
-{% for header in spec.global.headers %}
+{% for headerKey, header in globalHeaders %}
 
-    public function testSet{{header.key | caseUcfirst}}ReturnsClient(): void {
+    public function testSet{{headerKey | caseUcfirst}}ReturnsClient(): void {
         $client = new Client();
-        $result = $client->set{{header.key | caseUcfirst}}('test-value');
+        $result = $client->set{{headerKey | caseUcfirst}}('test-value');
         $this->assertSame($client, $result);
     }
 {% endfor %}

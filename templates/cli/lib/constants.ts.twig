@@ -1,6 +1,6 @@
 // SDK
-export const SDK_TITLE = '{{ spec.title|caseUcfirst }}';
-export const SDK_TITLE_LOWER = '{{ spec.title|caseLower }}';
+export const SDK_TITLE = '{{ spec.info.title|caseUcfirst }}';
+export const SDK_TITLE_LOWER = '{{ spec.info.title|caseLower }}';
 export const SDK_VERSION = '{{ sdk.version }}';
 export const SDK_NAME = '{{ sdk.name }}';
 export const SDK_PLATFORM = '{{ sdk.platform }}';
@@ -26,7 +26,7 @@ export const GITHUB_REPO = '{{ sdk.gitUserName }}/{{ sdk.gitRepoName|caseDash }}
 export const GITHUB_RELEASES_URL = `https://github.com/${GITHUB_REPO}/releases`;
 
 // API
-export const DEFAULT_ENDPOINT = '{{ spec.endpoint }}';
+export const DEFAULT_ENDPOINT = '{{ (spec | endpoint) }}';
 
 // OAuth2
 export const OAUTH2_CLIENT_ID = "appwrite-cli";

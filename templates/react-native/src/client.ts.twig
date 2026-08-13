@@ -147,13 +147,13 @@ export type UploadProgress = {
     chunksUploaded: number;
 }
 
-class {{spec.title | caseUcfirst}}Exception extends Error {
+class {{spec.info.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;
     type: string;
     constructor(message: string, code: number = 0, type: string = '', response: string = '') {
         super(message);
-        this.name = '{{spec.title | caseUcfirst}}Exception';
+        this.name = '{{spec.info.title | caseUcfirst}}Exception';
         this.message = message;
         this.code = code;
         this.type = type;
@@ -163,12 +163,12 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
 
 class Client {
     config: { [key: string]: string } = {
-        endpoint: '{{ spec.endpoint }}',
+        endpoint: '{{ (spec | endpoint) }}',
         endpointRealtime: '',
         platform: '',
-{% for header in spec.global.headers %}
-{% if header.key | caseLower != 'platform' %}
-        {{ header.key | caseLower }}: '',
+{% for headerKey, header in globalHeaders %}
+{% if headerKey | caseLower != 'platform' %}
+        {{ headerKey | caseLower }}: '',
 {% endif %}
 {% endfor %}
     };
@@ -177,7 +177,7 @@ class Client {
         'x-sdk-platform': '{{ sdk.platform }}',
         'x-sdk-language': '{{ language.name | caseLower }}',
         'x-sdk-version': '{{ sdk.version }}',
-{% for key,header in spec.global.defaultHeaders %}
+{% for key,header in defaultHeaders %}
         '{{key}}': '{{header}}',
 {% endfor %}
     };
@@ -205,11 +205,11 @@ class Client {
      */
     setEndpoint(endpoint: string): this {
         if (!endpoint || typeof endpoint !== 'string') {
-            throw new {{spec.title | caseUcfirst}}Exception('Endpoint must be a valid string');
+            throw new {{spec.info.title | caseUcfirst}}Exception('Endpoint must be a valid string');
         }
 
         if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
-            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+            throw new {{spec.info.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
         }
 
         this.config.endpoint = endpoint;
@@ -227,11 +227,11 @@ class Client {
      */
     setEndpointRealtime(endpointRealtime: string): this {
         if (!endpointRealtime || typeof endpointRealtime !== 'string') {
-            throw new {{spec.title | caseUcfirst}}Exception('Endpoint must be a valid string');
+            throw new {{spec.info.title | caseUcfirst}}Exception('Endpoint must be a valid string');
         }
 
         if (!endpointRealtime.startsWith('ws://') && !endpointRealtime.startsWith('wss://')) {
-            throw new {{spec.title | caseUcfirst}}Exception('Invalid realtime endpoint URL: ' + endpointRealtime);
+            throw new {{spec.info.title | caseUcfirst}}Exception('Invalid realtime endpoint URL: ' + endpointRealtime);
         }
 
         this.config.endpointRealtime = endpointRealtime;
@@ -252,10 +252,10 @@ class Client {
         return this;
     }
 
-{% for header in spec.global.headers %}
-{% if header.key | caseLower != 'platform' %}
+{% for headerKey, header in globalHeaders %}
+{% if headerKey | caseLower != 'platform' %}
     /**
-     * Set {{header.key | caseUcfirst}}
+     * Set {{headerKey | caseUcfirst}}
      *
 {% if header.description %}
 {{ header.description | wrap(75, '     * ') }}
@@ -265,11 +265,11 @@ class Client {
      *
      * @return {this}
      */
-    set{{header.key | caseUcfirst}}(value: string): this {
-        {%~ if header.global %}
+    set{{headerKey | caseUcfirst}}(value: string): this {
+        {%~ if (headerKey != 'Project') %}
         this.headers['{{ header.name }}'] = {% if header.type is defined and header.type == 'bearer' %}`Bearer ${value}`{% else %}value{% endif %};
         {%~ endif %}
-        this.config.{{ header.key | caseLower }} = value;
+        this.config.{{ headerKey | caseLower }} = value;
         return this;
     }
 
@@ -352,8 +352,8 @@ class Client {
                 // @ts-ignore
                 this.realtime.socket = new WebSocket(url, undefined, {
                     headers: {
-                        Origin: `{{ spec.title | caseLower }}-${Platform.OS}://${this.config.platform}`,
-                        ...(jwt && Platform.OS !== 'web' ? { 'x-{{ spec.title | caseLower }}-jwt': jwt } : {})
+                        Origin: `{{ spec.info.title | caseLower }}-${Platform.OS}://${this.config.platform}`,
+                        ...(jwt && Platform.OS !== 'web' ? { 'x-{{ spec.info.title | caseLower }}-jwt': jwt } : {})
                     }
                 });
                 this.realtime.socket.addEventListener('message', this.realtime.onMessage);
@@ -498,7 +498,7 @@ class Client {
     }
 
     /**
-     * Subscribes to {{spec.title | caseUcfirst}} events and passes you the payload in realtime.
+     * Subscribes to {{spec.info.title | caseUcfirst}} events and passes you the payload in realtime.
      * 
      * @param {string|string[]} channels 
      * Channel to subscribe - pass a single channel as a string or multiple with an array of strings.
@@ -551,11 +551,11 @@ class Client {
         }
     }
 
-    {%~ for clientMethodName, clientMethods in spec.clientMethods %}
+    {%~ for clientMethodName, clientMethods in clientMethods %}
     {%~ for clientMethod in clientMethods %}
     async {{ clientMethodName | caseCamel }}(): Promise<unknown> {
         return this.call('{{ clientMethod.method | caseUpper }}', new URL(this.config.endpoint + '{{ clientMethod.path }}'), {
-            {%~ for key, security in clientMethod.securityHeaders %}
+            {%~ for key, security in (clientMethod | securityHeaders) %}
             '{{ security.name }}': this.config.{{ key | caseLower }},
             {%~ endfor %}
             {%~ for key, header in clientMethod.headers %}
@@ -570,7 +570,7 @@ class Client {
         method = method.toUpperCase();
 
         headers = Object.assign({}, this.headers, headers);
-        headers.Origin = `{{ spec.title | caseLower }}-${Platform.OS}://${this.config.platform}`
+        headers.Origin = `{{ spec.info.title | caseLower }}-${Platform.OS}://${this.config.platform}`
 
         let options: RequestInit = {
             method,
@@ -615,7 +615,7 @@ class Client {
 
             const response = await fetch(url.toString(), options);
 
-            const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
+            const warnings = response.headers.get('x-{{ spec.info.title | lower }}-warning');
             if (warnings) {
                 warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
             }
@@ -637,13 +637,13 @@ class Client {
                 } else {
                     responseText = data?.message;
                 }
-                throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
+                throw new {{spec.info.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
             }
 
             const cookieFallback = response.headers.get('X-Fallback-Cookies');
 
             if (typeof window !== 'undefined' && window.localStorage && cookieFallback) {
-                window.console.warn('{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+                window.console.warn('{{spec.info.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
                 window.localStorage.setItem('cookieFallback', cookieFallback);
             }
 
@@ -658,13 +658,13 @@ class Client {
 
             return data;
         } catch (e) {
-            if (e instanceof {{spec.title | caseUcfirst}}Exception) {
+            if (e instanceof {{spec.info.title | caseUcfirst}}Exception) {
                 throw e;
             }
-            throw new {{spec.title | caseUcfirst}}Exception((<Error>e).message);
+            throw new {{spec.info.title | caseUcfirst}}Exception((<Error>e).message);
         }
     }
 }
 
-export { Client, {{spec.title | caseUcfirst}}Exception };
+export { Client, {{spec.info.title | caseUcfirst}}Exception };
 export type { Models, Payload };

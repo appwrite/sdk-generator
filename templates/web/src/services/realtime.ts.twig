@@ -1,4 +1,4 @@
-import { {{ spec.title | caseUcfirst}}Exception, Client, JSONbig } from '../client';
+import { {{ spec.info.title | caseUcfirst}}Exception, Client, JSONbig } from '../client';
 import { Channel, ActionableChannel, ResolvedChannel } from '../channel';
 import { Query } from '../query';
 import { ID } from '../id';
@@ -204,7 +204,7 @@ export class Realtime {
 
         const projectId = this.client.config.project;
         if (!projectId) {
-            throw new {{spec.title | caseUcfirst}}Exception('Missing project ID');
+            throw new {{spec.info.title | caseUcfirst}}Exception('Missing project ID');
         }
 
         // URL carries only the project; channels/queries are sent via the subscribe message.
@@ -253,8 +253,8 @@ export class Realtime {
                     ? new WebSocketCtor(jwt ? `${url}&jwt=${encodeURIComponent(jwt)}` : url)
                     : new WebSocketCtor(url, undefined, {
                         headers: {
-                            Origin: `{{ spec.title | caseLower }}-${Platform.OS}://${this.client.config.platform}`,
-                            ...(jwt ? { 'x-{{ spec.title | caseLower }}-jwt': jwt } : {})
+                            Origin: `{{ spec.info.title | caseLower }}-${Platform.OS}://${this.client.config.platform}`,
+                            ...(jwt ? { 'x-{{ spec.info.title | caseLower }}-jwt': jwt } : {})
                         }
                     }));
 {% else %}
@@ -386,7 +386,7 @@ export class Realtime {
                 return id;
             }
         }
-        throw new {{spec.title | caseUcfirst}}Exception('Failed to generate unique subscription id');
+        throw new {{spec.info.title | caseUcfirst}}Exception('Failed to generate unique subscription id');
     }
 
     private enqueuePendingSubscribe(subscriptionId: string): void {
@@ -754,7 +754,7 @@ export class Realtime {
     }
 
     private handleResponseError(message: RealtimeResponse): void {
-        const error = new {{spec.title | caseUcfirst}}Exception(
+        const error = new {{spec.info.title | caseUcfirst}}Exception(
             message.data?.message || 'Unknown error'
         );
         const statusCode = message.data?.code;

@@ -2,6 +2,12 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\Schema\ArraySchema;
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema\Schema;
+use Utopia\OpenAPI\Model\Tag;
+use Utopia\OpenAPI\Specification;
 use Appwrite\SDK\Language\Concern\CliCommandSurface;
 use Override;
 use Twig\TwigFilter;
@@ -287,7 +293,7 @@ class CLI extends Node
             // Documentation
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => 'cli/docs/example.md.twig',
             ],
 
@@ -655,40 +661,21 @@ class CLI extends Node
         ];
     }
 
-    /**
-     * @param array $nestedTypes
-     */
     #[Override]
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+        $schema = $this->getSchema($parameter);
+        $models = $this->getSchemaModels($parameter);
+        if ($models !== []) {
+            $type = $this->toPascalCase($models[0]);
+            return $schema instanceof ArraySchema ? $type . '[]' : $type;
         }
-        if (!empty($parameter['enumValues'])) {
-            return \ucfirst((string) $parameter['name']);
-        }
-        if (!empty($parameter['array']['model'])) {
-            return $this->toPascalCase($parameter['array']['model']) . '[]';
-        }
-        if (!empty($parameter['model'])) {
-            $modelType = $this->toPascalCase($parameter['model']);
-            return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
-        }
-        if (isset($parameter['items'])) {
-            // Map definition nested type to parameter nested type
-            $parameter['array'] = $parameter['items'];
-        }
-        return match ($parameter['type']) {
-            self::TYPE_INTEGER,
-            self::TYPE_NUMBER => 'number',
-            self::TYPE_STRING => 'string',
-            self::TYPE_FILE => 'string',
+        return match ($this->getSchemaType($parameter)) {
+            self::TYPE_INTEGER, self::TYPE_NUMBER => 'number',
+            self::TYPE_STRING, self::TYPE_FILE, self::TYPE_OBJECT => 'string',
             self::TYPE_BOOLEAN => 'boolean',
-            self::TYPE_OBJECT => 'string',
-            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
-                ? $this->getTypeName($parameter['array']) . '[]'
-                : 'any[]',
-            default => $parameter['type'],
+            self::TYPE_ARRAY => $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '[]',
+            default => 'any',
         };
     }
 
@@ -699,13 +686,13 @@ class CLI extends Node
     public function getFilters(): array
     {
         return array_merge(parent::getFilters(), [
-            new TwigFilter('hasCliQueryParam', fn (array $service): bool => $this->hasCliQueryParam($service)),
-            new TwigFilter('cliServiceScope', fn (array $service): ?array => $this->getCliServiceScope($service)),
-            new TwigFilter('cliQueryConfig', fn (array $method): array => $this->getCliQueryConfig($method)),
-            new TwigFilter('cliTopLevelAliases', fn (array $service): array => $this->getCliTopLevelAliases($service)),
-            new TwigFilter('cliCommandTargets', fn (array $method, array $service): array => $this->getCliCommandTargets($method, $service)),
-            new TwigFilter('cliFallbackHelpers', fn (array $service): array => $this->getCliFallbackHelpers($service)),
-            new TwigFilter('cliIsTopLevelAlias', fn (array $method, array $service): bool => $this->isCliTopLevelAlias($method, $service)),
+            new TwigFilter('hasCliQueryParam', fn(array $methods): bool => $this->hasCliQueryParam($methods)),
+            new TwigFilter('cliServiceScope', fn(?string $resourceHeader): ?array => $this->getCliServiceScope($resourceHeader)),
+            new TwigFilter('cliQueryConfig', fn(Operation $method): array => $this->getCliQueryConfig($method)),
+            new TwigFilter('cliTopLevelAliases', fn(Tag $service, array $methods): array => $this->getCliTopLevelAliases($service, $methods)),
+            new TwigFilter('cliCommandTargets', fn(Operation $method, Tag $service): array => $this->getCliCommandTargets($method, $service)),
+            new TwigFilter('cliFallbackHelpers', fn(Tag $service, array $methods): array => $this->getCliFallbackHelpers($service, $methods)),
+            new TwigFilter('cliIsTopLevelAlias', fn(Operation $method, Tag $service): bool => $this->isCliTopLevelAlias($method, $service)),
         ]);
     }
 
@@ -725,10 +712,10 @@ class CLI extends Node
              * Get CLI option definition for a parameter.
              * Returns array with: method, syntax, parser, customParserCode
              */
-            new TwigFunction('getCliOption', function (array $parameter): array {
-                $optionName = $this->getCliOptionName($parameter['name']);
-                $type = $parameter['type'] ?? 'string';
-                $required = $parameter['required'] ?? false;
+            new TwigFunction('getCliOption', function (Parameter $parameter): array {
+                $optionName = $this->getCliOptionName($parameter->name);
+                $type = $this->getSchemaType($parameter);
+                $required = $parameter->required;
 
                 if ($required) {
                     if ($type === 'boolean') {
@@ -788,8 +775,8 @@ class CLI extends Node
              * Get the variable name that commander.js will provide for a parameter.
              * This matches the option name converted to camelCase.
              */
-            new TwigFunction('getCliVarName', function (array $parameter): string {
-                $optionName = $this->getCliOptionName($parameter['name']);
+            new TwigFunction('getCliVarName', function (Parameter $parameter): string {
+                $optionName = $this->getCliOptionName($parameter->name);
                 return lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $optionName))));
             }),
 
@@ -797,10 +784,10 @@ class CLI extends Node
              * Get CLI argument expression for a parameter when calling the SDK method.
              * Handles JSON parsing for objects, or plain variable.
              */
-            new TwigFunction('getCliArgExpression', function (array $parameter, array $method, array $service): string {
-                $optionName = $this->getCliOptionName($parameter['name']);
+            new TwigFunction('getCliArgExpression', function (Parameter $parameter, Operation $method, Tag $service): string {
+                $optionName = $this->getCliOptionName($parameter->name);
                 $varName = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $optionName))));
-                $type = $parameter['type'] ?? 'string';
+                $type = $this->getSchemaType($parameter);
 
                 if ($this->isCliGraphQLInput($parameter, $method, $service)) {
                     return "parseGraphQLParams({$varName}, \"--{$optionName}\")";

@@ -2,24 +2,24 @@
     "name": "{{ language.params.composerVendor }}/{{ language.params.composerPackage }}",
     "description": "{{ sdk.shortDescription }}",
     "type": "library",
-    "license": "{{ spec.licenseName }}",
+    "license": "{{ spec.info.license.name }}",
     "support": {
-        "url": "{{ spec.contactURL }}",
-        "email": "{{ spec.contactEmail }}"
+        "url": "{{ spec.info.contact.url }}",
+        "email": "{{ spec.info.contact.email }}"
     },
     "scripts": {
         "test": "vendor/bin/phpunit"
     },
     "autoload": {
         "psr-4": {
-            "{{ spec.namespace | caseNamespace | escapeJson }}\\": "src/{{ spec.namespace | caseNamespacePath }}"
+            "{{ namespace | caseNamespace | escapeJson }}\\": "src/{{ namespace | caseNamespacePath }}"
         }
     },
     "require": {
         "php": ">=8.2.0",
         "ext-curl": "*",
         "ext-json": "*"
-{%- if spec.global.headers | hasBearerAuth %},
+{%- if globalHeaders | hasBearerAuth %},
         "adhocore/jwt": "^1.1"
 {%- endif %}
 

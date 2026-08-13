@@ -1,5 +1,5 @@
-{% if spec.responseEnums|length > 0 %}
-{% for responseEnum in spec.responseEnums %}
+{% if responseEnums|length > 0 %}
+{% for responseEnum in responseEnums %}
 import { {{ responseEnum.name }} } from "./enums/{{ responseEnum.name | caseKebab }}"
 {% endfor %}
 {% endif %}
@@ -7,43 +7,43 @@ import { {{ responseEnum.name }} } from "./enums/{{ responseEnum.name | caseKeba
 export namespace Models {
 
     declare const __default: unique symbol;
-{% for definition in spec.definitions %}
+{% for definitionName, definition in definitions %}
 
     /**
      * {{ definition.description }}
      */
-    export type {{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }} = {
+    export type {{ definitionName | caseUcfirst }}{{ definitionName | getGenerics(spec, true) | raw }} = {
 {% for property in definition.properties %}
         /**
          * {{ property.description }}
          */
-        {{ property.name | removeDash }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec, definition.name) | raw }};
+        {{ (property | schemaName) | removeDash }}{% if not (property | schemaRequired) %}?{% endif %}: {{ property | getSubSchema(spec, definitionName) | raw }};
 {% endfor %}
     }
 {% if definition.additionalProperties %}
 
-    export type Default{{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }} = {{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }} & {
+    export type Default{{ definitionName | caseUcfirst }}{{ definitionName | getGenerics(spec, true) | raw }} = {{ definitionName | caseUcfirst }}{{ definitionName | getGenerics(spec, true) | raw }} & {
         [key: string]: any;
         [__default]: true;
     };
 {% endif %}
 {% endfor %}
-{% for requestModel in spec.requestModels %}
+{% for requestModelName, requestModel in requestModels %}
 
     /**
      * {{ requestModel.description }}
      */
-    export type {{ requestModel.name | caseUcfirst }}{{ requestModel.name | getGenerics(spec, true) | raw }} = {
+    export type {{ requestModelName | caseUcfirst }}{{ requestModelName | getGenerics(spec, true) | raw }} = {
 {% for property in requestModel.properties %}
         /**
          * {{ property.description | raw }}
          */
-        {{ property.name | removeDash }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec, requestModel.name) | raw }};
+        {{ (property | schemaName) | removeDash }}{% if not (property | schemaRequired) %}?{% endif %}: {{ property | getSubSchema(spec, requestModelName) | raw }};
 {% endfor %}
     }
 {% if requestModel.additionalProperties %}
 
-    export type Default{{ requestModel.name | caseUcfirst }}{{ requestModel.name | getGenerics(spec, true) | raw }} = {{ requestModel.name | caseUcfirst }}{{ requestModel.name | getGenerics(spec, true) | raw }} & {
+    export type Default{{ requestModelName | caseUcfirst }}{{ requestModelName | getGenerics(spec, true) | raw }} = {{ requestModelName | caseUcfirst }}{{ requestModelName | getGenerics(spec, true) | raw }} & {
         [key: string]: any;
         [__default]: true;
     };

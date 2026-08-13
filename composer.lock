@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1ce76e2c95c546286c8b9816589bda89",
+    "content-hash": "4cc3cfed622ff6e3abf380083ae3af7a",
     "packages": [
         {
             "name": "matthiasmullie/minify",
@@ -447,6 +447,64 @@
                 }
             ],
             "time": "2026-07-03T20:44:34+00:00"
+        },
+        {
+            "name": "utopia-php/openapi",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/utopia-php/openapi.git",
+                "reference": "d50d0ce3cf5d712ebce03657cac137f8c8d71c9b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/utopia-php/openapi/zipball/d50d0ce3cf5d712ebce03657cac137f8c8d71c9b",
+                "reference": "d50d0ce3cf5d712ebce03657cac137f8c8d71c9b",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "php": ">=8.5"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^13.3",
+                "rector/rector": "^2.0"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Utopia\\OpenAPI\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Utopia\\OpenAPI\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "phpunit"
+                ],
+                "lint": [
+                    "find src tests -name '*.php' -print0 | xargs -0 -n1 php -l"
+                ],
+                "rector": [
+                    "rector process"
+                ],
+                "rector:check": [
+                    "rector process --dry-run"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Framework-independent OpenAPI 2.0, 3.0, and 3.1 parser with an immutable canonical model",
+            "support": {
+                "source": "https://github.com/utopia-php/openapi/tree/main",
+                "issues": "https://github.com/utopia-php/openapi/issues"
+            },
+            "time": "2026-08-13T11:10:03+00:00"
         }
     ],
     "packages-dev": [
@@ -3282,7 +3340,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "utopia-php/openapi": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

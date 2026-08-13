@@ -2,6 +2,9 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema\Schema;
+use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
@@ -22,7 +25,7 @@ class Skills extends Language
         'cli',
     ];
 
-    protected string $skillDestination = 'skills/{{ spec.title | caseLower }}-%s/SKILL.md';
+    protected string $skillDestination = 'skills/{{ spec.info.title | caseLower }}-%s/SKILL.md';
     protected bool $prefixSkillName = true;
 
     public function getName(): string
@@ -55,26 +58,26 @@ class Skills extends Language
         return '[' . $elements . ']';
     }
 
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        return $parameter['type'] ?? 'string';
+        return $this->getSchemaType($parameter);
     }
 
-    public function getParamDefault(array $param): string
+    public function getParamDefault(Schema|Parameter $param): string
     {
-        return $param['default'] ?? '';
+        return $this->getSchemaDefault($param);
     }
 
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        return $param['example'] ?? '';
+        return $this->getSchemaExample($param);
     }
 
     #[Override]
     public function getFilters(): array
     {
         return [
-            new TwigFilter('skillName', fn(string $lang, array $spec): string => $this->getSkillName($lang, $spec['title'] ?? '')),
+            new TwigFilter('skillName', fn(string $lang, Specification $spec): string => $this->getSkillName($lang, $spec->info->title)),
         ];
     }
 

@@ -8,8 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [{{ sdk.version }}] - TBD
 
 ### Added
-- Initial release of {{ spec.title }} Rust SDK
-- Full support for {{ spec.title }} API {{ spec.version }}
+- Initial release of {{ spec.info.title }} Rust SDK
+- Full support for {{ spec.info.title }} API {{ spec.info.version }}
 - Async/await support with tokio runtime
 - Built-in error handling with custom error types
 - File upload support with automatic chunking
@@ -22,23 +22,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic JSON serialization/deserialization
 
 ### Features
-{% for service in spec.services %}
-- {{ service.name | caseUcfirst }} service with {{ service.methods | length }} methods
+{% for service in services %}
+- {{ service.name | caseUcfirst }} service with {{ (service | operations) | length }} methods
 {% endfor %}
 
 ### Services
-{% for service in spec.services %}
+{% for service in services %}
 #### {{ service.name | caseUcfirst }}
 {{ service.description }}
-{% for method in service.methods %}
-- `{{ method.name | caseSnake }}()` - {{ method.description }}
+{% for method in (service | operations) %}
+- `{{ (method | methodName) | caseSnake }}()` - {{ method.description }}
 {% endfor %}
 
 {% endfor %}
 
 ### Models
-{% for definition in spec.definitions %}
-- `{{ definition.name | caseUcfirst }}` - {{ definition.description }}
+{% for definitionName, definition in definitions %}
+- `{{ definitionName | caseUcfirst }}` - {{ definition.description }}
 {% endfor %}
 
 ### Dependencies

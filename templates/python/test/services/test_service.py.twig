@@ -2,10 +2,10 @@ import json
 import requests_mock
 import unittest
 
-from {{ spec.namespace | caseSnake }}.client import Client
-from {{ spec.namespace | caseSnake }}.input_file import InputFile
-from {{ spec.namespace | caseSnake }}.models import *
-from {{ spec.namespace | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
+from {{ namespace | caseSnake }}.client import Client
+from {{ namespace | caseSnake }}.input_file import InputFile
+from {{ namespace | caseSnake }}.models import *
+from {{ namespace | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
 
 class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
 
@@ -13,29 +13,29 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
         self.client = Client()
         self.{{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(self.client)
 
-{% for method in service.methods %}
+{% for method in (service | operations) %}
     @requests_mock.Mocker()
-    def test_{{ method.name | caseSnake }}(self, m):
-    {%~ if method.type == 'webAuth' %}
+    def test_{{ (method | methodName) | caseSnake }}(self, m):
+    {%~ if (method | methodType) == 'webAuth' %}
         data = None
-    {%~ elseif method.type == 'location' %}
+    {%~ elseif (method | methodType) == 'location' %}
         data = bytearray()
     {%~ else %}
-        {%~ if method.responseModel and method.responseModel != 'any' %}
-        data = {{ method.responseModel | responseModelExample(spec) | raw }}
+        {%~ if (method | responseModel) and (method | responseModel) != 'any' %}
+        data = {{ (method | responseModel) | responseModelExample(spec) | raw }}
         {%~ else %}
         data = ''
         {%~ endif %}
     {%~ endif %}
-        headers = {'Content-Type': {% if method.type == 'location' %}'application/octet-stream'{% else %}'application/json'{% endif %}}
-        m.request(requests_mock.ANY, requests_mock.ANY, {% if method.type == 'location' %}body=data{% else %}text=json.dumps(data){% endif %}, headers=headers)
+        headers = {'Content-Type': {% if (method | methodType) == 'location' %}'application/octet-stream'{% else %}'application/json'{% endif %}}
+        m.request(requests_mock.ANY, requests_mock.ANY, {% if (method | methodType) == 'location' %}body=data{% else %}text=json.dumps(data){% endif %}, headers=headers)
 
-        response = self.{{ service.name | caseSnake }}.{{ method.name | caseSnake }}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
-            {% if parameter.type == 'object' %}{}{% elseif parameter.type == 'array' %}[]{% elseif parameter.type == 'file' %}InputFile.from_bytes(bytearray(), "example.file"){% elseif parameter.type == 'boolean' %}True{% elseif parameter.type == 'string' %}'{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}'{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%},{%~ endfor ~%}
+        response = self.{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake }}({%~ for parameter in (method | parameters('all')) | filter((param) => param.required) ~%}
+            {% if (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.from_bytes(bytearray(), "example.file"){% elseif (parameter | schemaType) == 'boolean' %}True{% elseif (parameter | schemaType) == 'string' %}'{% if (parameter | schemaExample) is not empty %}{{(parameter | schemaExample) | escapeDollarSign}}{% endif %}'{% elseif (parameter | schemaType) == 'integer' and (parameter | schemaExample) is empty %}1{% elseif (parameter | schemaType) == 'number' and (parameter | schemaExample) is empty %}1.0{% else %}{{(parameter | schemaExample)}}{%~ endif ~%},{%~ endfor ~%}
         )
 
-        {%~ if method.type != 'webAuth' and method.type != 'location' and method.responseModel and method.responseModel != 'any' %}
-        {%~ set expectations = method.responseModel | additionalPropertiesExpectations(spec, 'data') %}
+        {%~ if (method | methodType) != 'webAuth' and (method | methodType) != 'location' and (method | responseModel) and (method | responseModel) != 'any' %}
+        {%~ set expectations = (method | responseModel) | additionalPropertiesExpectations(spec, 'data') %}
         {%~ if expectations is not empty %}
 {{ expectations | raw }}
         {%~ endif %}

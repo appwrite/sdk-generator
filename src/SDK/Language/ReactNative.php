@@ -2,6 +2,10 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema\Schema;
+use Utopia\OpenAPI\Specification;
 use Override;
 use Twig\TwigFilter;
 
@@ -104,7 +108,7 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => 'react-native/docs/example.md.twig',
             ],
             [
@@ -134,7 +138,7 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
+                'destination'   => 'src/enums/{{ enum.title | caseKebab }}.ts',
                 'template'      => 'react-native/src/enums/enum.ts.twig',
             ],
             [
@@ -156,20 +160,20 @@ class ReactNative extends Web
     }
 
     #[Override]
-    public function getTypeName(array $parameter, array $method = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        if (($parameter['type'] ?? '') === self::TYPE_FILE) {
+        if ($this->getSchemaType($parameter) === self::TYPE_FILE) {
             return '{name: string, type: string, size: number, uri: string}';
         }
 
-        return parent::getTypeName($parameter, $method);
+        return parent::getTypeName($parameter, $spec);
     }
 
     #[Override]
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $example    = $this->getSchemaExample($param);
 
         $hasExample = !empty($example) || $example === 0 || $example === false;
 
@@ -197,46 +201,12 @@ class ReactNative extends Web
     }
 
     #[Override]
-    public function getReturn(array $method, array $spec): string
+    public function getReturn(Operation $method, Specification $spec): string
     {
-        if ($method['type'] === 'webAuth') {
-            return 'void | URL';
-        } elseif ($method['type'] === 'location') {
-            return 'Promise<ArrayBuffer>';
-        }
-
-        // check for union types i.e. multiple response models
-        $unionType = $this->getUnionReturnType($method, $spec);
-        if ($unionType !== null) {
-            return $unionType;
-        }
-
-        if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
-            $ret = 'Promise<';
-
-            if (
-                array_key_exists((string) $method['responseModel'], $spec['definitions']) &&
-                array_key_exists('additionalProperties', $spec['definitions'][$method['responseModel']]) &&
-                !$spec['definitions'][$method['responseModel']]['additionalProperties']
-            ) {
-                $ret .= 'Models.';
-            }
-
-            $ret .= $this->toPascalCase($method['responseModel']);
-
-            $models = [];
-
-            $this->populateGenerics($method['responseModel'], $spec, $models);
-
-            $models = array_unique($models);
-            $models = array_filter($models, fn ($model): bool => $model != $this->toPascalCase($method['responseModel']));
-
-            if ($models !== []) {
-                $ret .= '<' . implode(', ', $models) . '>';
-            }
-
-            return $ret . '>';
-        }
-        return 'Promise<{}>';
+        return match ($method->extensions['x-appwrite']['type'] ?? '') {
+            'webAuth' => 'void | URL',
+            'location' => 'Promise<ArrayBuffer>',
+            default => parent::getReturn($method, $spec),
+        };
     }
 }

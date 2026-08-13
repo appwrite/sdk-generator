@@ -2,6 +2,10 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema\ArraySchema;
+use Utopia\OpenAPI\Model\Schema\Schema;
+use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
@@ -113,60 +117,30 @@ abstract class JS extends Language
         return [];
     }
 
-    /**
-     * @param array $nestedTypes
-     */
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        if (
-            ($parameter['type'] ?? null) === self::TYPE_ARRAY
-            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
-        ) {
-            $enumType = isset($parameter['enumName'])
-                ? \ucfirst($parameter['enumName'])
-                : \ucfirst((string) $parameter['name']);
-
-            return $enumType . '[]';
+        $schema = $this->getSchema($parameter);
+        $model = $this->getSchemaModel($parameter);
+        if ($model !== null) {
+            $type = $this->toPascalCase($model);
+            return $schema instanceof ArraySchema ? $type . '[]' : $type;
         }
-
-        if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
-        }
-        if (!empty($parameter['enumValues'])) {
-            return \ucfirst((string) $parameter['name']);
-        }
-        if (!empty($parameter['array']['model'])) {
-            return $this->toPascalCase($parameter['array']['model']) . '[]';
-        }
-        if (!empty($parameter['model'])) {
-            $modelType = $this->toPascalCase($parameter['model']);
-            return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
-        }
-        if (isset($parameter['items'])) {
-            // Map definition nested type to parameter nested type
-            $parameter['array'] = $parameter['items'];
-        }
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-            case self::TYPE_NUMBER:
-                return 'number';
-            case self::TYPE_ARRAY:
-                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
-                    return $this->getTypeName($parameter['array']) . '[]';
-                }
-                return 'any[]';
-            case self::TYPE_FILE:
-                return 'File';
-        }
-
-        return $parameter['type'];
+        return match ($this->getSchemaType($parameter)) {
+            self::TYPE_INTEGER, self::TYPE_NUMBER => 'number',
+            self::TYPE_STRING => 'string',
+            self::TYPE_BOOLEAN => 'boolean',
+            self::TYPE_ARRAY => $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '[]',
+            self::TYPE_FILE => 'File',
+            self::TYPE_OBJECT => 'object',
+            default => 'any',
+        };
     }
 
-    public function getParamDefault(array $param): string
+    public function getParamDefault(Schema|Parameter $param): string
     {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $default    = $this->getSchemaDefault($param);
+        $required   = ($param instanceof Parameter && $param->required);
 
         if ($required) {
             return '';
@@ -216,16 +190,18 @@ abstract class JS extends Language
     {
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
-            new TwigFilter('enumExample', function (array $param): string {
-                $enumValues = $param['enumValues'] ?? [];
-                if (empty($enumValues)) {
+            new TwigFilter('enumExample', function (Schema|Parameter $param): string {
+                $schema = $this->getSchema($param);
+                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumValues = $enumSchema->enum;
+                if ($enumValues === []) {
                     return '';
                 }
 
-                $enumKeys = $param['enumKeys'] ?? [];
-                $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
-                $example = $param['example'] ?? null;
-                $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
+                $enumName = $this->toPascalCase($enumSchema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
+                $example = $this->getSchemaExample($param);
+                $isArray = $schema instanceof ArraySchema;
                 $prefix = $this->getPermissionPrefix();
 
                 $resolveKey = function ($value) use ($enumValues, $enumKeys): string {

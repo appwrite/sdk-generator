@@ -1,12 +1,12 @@
 /**
- * {{spec.title | caseUcfirst}} {{sdk.name}} SDK
+ * {{spec.info.title | caseUcfirst}} {{sdk.name}} SDK
  *
- * This SDK is compatible with Appwrite server version {{spec.version | split('.') | slice(0,2) | join('.') ~ '.x' }}. 
+ * This SDK is compatible with Appwrite server version {{spec.info.version | split('.') | slice(0,2) | join('.') ~ '.x' }}.
  * For older versions, please check
  * [previous releases](https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}/releases).
  */
-export { Client, Query, {{spec.title | caseUcfirst}}Exception } from './client';
-{% for service in spec.services %}
+export { Client, Query, {{spec.info.title | caseUcfirst}}Exception } from './client';
+{% for service in services %}
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}
 export { Realtime } from './services/realtime';
@@ -18,6 +18,6 @@ export { Role } from './role';
 export { ID } from './id';
 export { Channel } from './channel';
 export { Operator, Condition } from './operator';
-{% for enum in spec.allEnums %}
-export { {{ enum.name | caseUcfirst  }} } from './enums/{{enum.name | caseKebab}}';
+{% for enum in allEnums %}
+export { {{ enum.title | caseUcfirst  }} } from './enums/{{enum.title | caseKebab}}';
 {% endfor %}
