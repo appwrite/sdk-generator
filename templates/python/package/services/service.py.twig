@@ -109,7 +109,7 @@ Dict[str, Any]
 {% endset %}
     def {{ (method | methodName) | caseSnake }}(
         self{% for parameter in (method | parameters('all')) %},
-        {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service) | raw }}{% if not parameter.required %} = None{% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %},
+        {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service, spec) | raw }}{% if not parameter.required %} = None{% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %},
         on_progress = None{% endif %}{% if isGenericResponse %},
         model_type: Type[T] = dict{% endif %}
 
@@ -130,7 +130,7 @@ Dict[str, Any]
 {% endif %}
         Parameters
         ----------
-        {% for parameter in (method | parameters('all')) %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getServicePropertyType(service) | raw }}
+        {% for parameter in (method | parameters('all')) %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getServicePropertyType(service, spec) | raw }}
             {% autoescape false %}{{ parameter.description | replace({"\n": "\n            "}) }}{% endautoescape %}
 
         {% endfor %}{% if 'multipart/form-data' in (method | consumes) %}

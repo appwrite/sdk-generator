@@ -486,6 +486,17 @@ class Python extends Language
         return $enumName;
     }
 
+    protected function getServicePropertyType(Schema|Parameter $value, Specification $spec): string
+    {
+        $type = $this->getTypeName($value, $spec);
+        if (!$value instanceof Parameter || $this->getSchema($value)->enum === [] && !($this->getSchema($value) instanceof ArraySchema && $this->getSchema($value)->items->enum !== [])) {
+            return $type;
+        }
+
+        $enumName = $this->toPascalCase($this->getSchemaEnumName($value, $spec));
+        return \str_replace($enumName, $this->getServiceEnumName($value, $spec), $type);
+    }
+
     protected function getDocsModelTypeName(string $modelName, string $serviceName = ''): string
     {
         $modelType = $this->toPascalCase($modelName);
@@ -639,7 +650,7 @@ class Python extends Language
             new TwigFilter('getPropertyType', fn(Schema|Parameter $value): string => $this->getTypeName($value)),
             new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => $this->hasGenericType($model, $spec)),
             new TwigFilter('hasGenericTypeProperty', fn(array $properties, Specification $spec): bool => $this->hasGenericTypeProperty($properties, $spec)),
-            new TwigFilter('getServicePropertyType', fn(Schema|Parameter $value, Tag $service): string => $this->getTypeName($value)),
+            new TwigFilter('getServicePropertyType', fn(Schema|Parameter $value, Tag $service, Specification $spec): string => $this->getServicePropertyType($value, $spec)),
             new TwigFilter('getServiceEnumName', fn(Parameter $parameter, Tag $service, Specification $spec): string => $this->getServiceEnumName($parameter, $spec)),
             new TwigFilter('getModelPropertyType', fn(Schema $value, string $ownerName, Specification $spec): string => $this->getTypeName($value, $spec)),
             new TwigFilter('getModelFieldName', fn(Schema $value, array $properties): string => $this->getModelFieldName($value, $properties)),
