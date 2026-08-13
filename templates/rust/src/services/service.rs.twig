@@ -37,7 +37,7 @@ impl {{ service.name | caseUcfirst }} {
 {% set shouldSkip = false %}
 {% if method.deprecated %}
 {% for otherMethod in (service | operations) %}
-{% if not otherMethod.deprecated and (otherMethod.name | caseSnake) == methodNameSnake %}
+{% if not otherMethod.deprecated and ((otherMethod | methodName) | caseSnake) == methodNameSnake %}
 {% set shouldSkip = true %}
 {% endif %}
 {% endfor %}

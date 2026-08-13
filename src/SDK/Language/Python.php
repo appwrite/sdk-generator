@@ -474,6 +474,151 @@ class Python extends Language
         return $index <= 1 ? $baseName : $baseName . '_' . $index;
     }
 
+    protected function getDocsModelTypeName(string $modelName, string $serviceName = ''): string
+    {
+        $modelType = $this->toPascalCase($modelName);
+        return $serviceName !== '' && $modelType === $this->toPascalCase($serviceName)
+            ? $modelType . 'Model'
+            : $modelType;
+    }
+
+    protected function getRequestModelPropertyExample(Schema $property, Specification $spec, string $serviceName): string
+    {
+        $models = $this->getSchemaModels($property);
+        if ($models !== []) {
+            $example = $this->getRequestModelInstanceExample($models[0], $spec, $serviceName);
+            return $property instanceof ArraySchema ? '[' . $example . ']' : $example;
+        }
+
+        return $this->getParamExample($property);
+    }
+
+    protected function getRequestModelInstanceExample(string $modelName, Specification $spec, string $serviceName): string
+    {
+        $model = $spec->schemas[$modelName] ?? null;
+        if (!$model instanceof ObjectSchema) {
+            return $this->getDocsModelTypeName($modelName, $serviceName) . '()';
+        }
+
+        $arguments = [];
+        foreach ($model->properties as $property) {
+            $arguments[] = $this->getModelFieldName($property, $model->properties)
+                . ' = ' . $this->getRequestModelPropertyExample($property, $spec, $serviceName);
+        }
+
+        return $this->getDocsModelTypeName($modelName, $serviceName) . '(' . \implode(', ', $arguments) . ')';
+    }
+
+    protected function getRequestModelExample(Parameter $parameter, Specification $spec, string $serviceName): string
+    {
+        $modelName = $this->getSchemaModel($parameter);
+        if ($modelName === null) {
+            return $this->getParamExample($parameter);
+        }
+
+        $example = $this->getRequestModelInstanceExample($modelName, $spec, $serviceName);
+        return $this->getSchema($parameter) instanceof ArraySchema ? '[' . $example . ']' : $example;
+    }
+
+    /** @param array<string, true> $visited */
+    protected function getResponseModelExample(?string $modelName, Specification $spec, array $visited = []): object
+    {
+        if ($modelName === null || isset($visited[$modelName])) {
+            return new stdClass();
+        }
+
+        $model = $spec->schemas[$modelName] ?? null;
+        if (!$model instanceof ObjectSchema) {
+            return new stdClass();
+        }
+
+        $visited[$modelName] = true;
+        $result = [];
+        foreach ($model->required as $propertyName) {
+            $property = $model->properties[$propertyName] ?? null;
+            if (!$property instanceof Schema) {
+                continue;
+            }
+
+            $example = $this->getSchemaExample($property);
+            $hasExample = $example !== null && $example !== '';
+            $enumValues = $property instanceof ArraySchema ? $property->items->enum : $property->enum;
+            $result[$propertyName] = match ($this->getSchemaType($property)) {
+                self::TYPE_OBJECT => ($models = $this->getSchemaModels($property)) !== []
+                    ? $this->getResponseModelExample($models[0], $spec, $visited)
+                    : new stdClass(),
+                self::TYPE_ARRAY => [],
+                self::TYPE_STRING => $hasExample ? $example : ($enumValues[0] ?? ''),
+                self::TYPE_BOOLEAN => $hasExample ? (bool) $example : true,
+                self::TYPE_NUMBER => (float) ($hasExample ? $example : 0),
+                self::TYPE_INTEGER => (int) ($hasExample ? $example : 0),
+                default => $example,
+            };
+        }
+
+        return (object) $result;
+    }
+
+    /** @param array<string, true> $visited @return list<string> */
+    protected function getAdditionalPropertiesExpectationLines(?string $modelName, Specification $spec, string $target, array $visited = []): array
+    {
+        if ($modelName === null || isset($visited[$modelName])) {
+            return [];
+        }
+
+        $model = $spec->schemas[$modelName] ?? null;
+        if (!$model instanceof ObjectSchema) {
+            return [];
+        }
+
+        $visited[$modelName] = true;
+        $lines = [];
+        if ($model->additionalProperties && $model->properties !== []) {
+            $lines[] = $target . "['data'] = {}";
+        }
+
+        foreach ($model->required as $propertyName) {
+            $property = $model->properties[$propertyName] ?? null;
+            if (!$property instanceof Schema || $property instanceof ArraySchema) {
+                continue;
+            }
+            $nestedModel = $this->getSchemaModel($property);
+            if ($nestedModel === null) {
+                continue;
+            }
+            $escapedName = \str_replace(["\\", "'"], ["\\\\", "\\'"], $propertyName);
+            $lines = [
+                ...$lines,
+                ...$this->getAdditionalPropertiesExpectationLines(
+                    $nestedModel,
+                    $spec,
+                    $target . "['" . $escapedName . "']",
+                    $visited,
+                ),
+            ];
+        }
+
+        return $lines;
+    }
+
+    protected function getAdditionalPropertiesExpectations(?string $modelName, Specification $spec, string $target): string
+    {
+        return \implode("\n", \array_map(
+            static fn(string $line): string => '        ' . $line,
+            $this->getAdditionalPropertiesExpectationLines($modelName, $spec, $target),
+        ));
+    }
+
+    protected function toPythonValue(mixed $value): string
+    {
+        $json = json_encode($value, JSON_PRETTY_PRINT | JSON_PRESERVE_ZERO_FRACTION);
+        if (!\is_string($json)) {
+            return '{}';
+        }
+
+        return \str_replace(['true', 'false', 'null'], ['True', 'False', 'None'], $json);
+    }
+
     #[Override]
     public function getFilters(): array
     {
@@ -541,9 +686,9 @@ class Python extends Language
                 $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
                 return $enumName . '.' . $resolveKey($value);
             }),
-            new TwigFilter('requestModelExample', fn(Parameter $parameter, Specification $spec, string $serviceName = ''): string => '{}'),
-            new TwigFilter('responseModelExample', fn(string $model, Specification $spec): string => '{}'),
-            new TwigFilter('additionalPropertiesExpectations', fn(string $model, Specification $spec, string $target): string => '')
+            new TwigFilter('requestModelExample', fn(Parameter $parameter, Specification $spec, string $serviceName = ''): string => $this->getRequestModelExample($parameter, $spec, $serviceName)),
+            new TwigFilter('responseModelExample', fn(string $model, Specification $spec): string => $this->toPythonValue($this->getResponseModelExample($model, $spec))),
+            new TwigFilter('additionalPropertiesExpectations', fn(string $model, Specification $spec, string $target): string => $this->getAdditionalPropertiesExpectations($model, $spec, $target))
         ];
     }
 }

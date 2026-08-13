@@ -41,7 +41,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Services
 {% if (method | methodType) == "webAuth" %}
 #if UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_WEBGL
 {% endif %}
-        public {% if (method | methodType) == "webAuth" %}async {% endif ~%} UniTask{% if (method | methodType) == "webAuth" %}{% else %}<{{ utils.resultType(spec.info.title, method) }}>{% endif %} {{ (method | methodName) | caseUcfirst }}({{ utils.method_parameters(method.parameters, (method | consumes)) }})
+        public {% if (method | methodType) == "webAuth" %}async {% endif ~%} UniTask{% if (method | methodType) == "webAuth" %}{% else %}<{{ utils.resultType(spec.info.title, method) }}>{% endif %} {{ (method | methodName) | caseUcfirst }}({{ utils.method_parameters((method | parameters('all')), (method | consumes)) }})
         {
             var apiPath = "{{ method.path }}"{% if (method | parameters('path')) | length == 0 %};{% endif %}
 
@@ -68,7 +68,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Services
         }
 {% if (method | methodType) == "webAuth" %}
 #else
-        public UniTask {{ (method | methodName) | caseUcfirst }}({{ utils.method_parameters(method.parameters, (method | consumes)) }})
+        public UniTask {{ (method | methodName) | caseUcfirst }}({{ utils.method_parameters((method | parameters('all')), (method | consumes)) }})
         {
             Debug.LogWarning("[{{ spec.info.title | caseUcfirst }}] OAuth2 authorization is not supported on this platform. Available only in Editor, WebGL, iOS or Android.");
             return UniTask.CompletedTask;
