@@ -116,6 +116,33 @@ final class OpenAPI3ReaderTest extends TestCase
         $this->assertSame('Operation override.', $parameters[0]['description']);
     }
 
+    public function testRejectsCyclicParameterReferences(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cyclic parameter reference');
+
+        new OpenAPI3Reader([
+            'openapi' => '3.1.0',
+            'info' => ['title' => 'Example', 'version' => '1.0.0'],
+            'paths' => [
+                '/users' => [
+                    'parameters' => [['$ref' => '#/components/parameters/First']],
+                    'get' => [
+                        'operationId' => 'usersList',
+                        'tags' => ['users'],
+                        'responses' => ['200' => ['description' => 'OK']],
+                    ],
+                ],
+            ],
+            'components' => [
+                'parameters' => [
+                    'First' => ['$ref' => '#/components/parameters/Second'],
+                    'Second' => ['$ref' => '#/components/parameters/First'],
+                ],
+            ],
+        ])->read();
+    }
+
     public function testRequiresAnOpenAPIVersion(): void
     {
         $this->expectException(InvalidArgumentException::class);

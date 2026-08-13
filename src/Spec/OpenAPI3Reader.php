@@ -148,14 +148,22 @@ final class OpenAPI3Reader
         return \array_values($parameters);
     }
 
-    /** @param array<string, mixed> $parameter */
-    private function getParameterKey(array $parameter): string
+    /**
+     * @param array<string, mixed> $parameter
+     * @param array<string, true> $visited
+     */
+    private function getParameterKey(array $parameter, array $visited = []): string
     {
         $reference = $parameter['$ref'] ?? null;
         if (\is_string($reference)) {
+            if (isset($visited[$reference])) {
+                throw new InvalidArgumentException("Cyclic parameter reference: $reference");
+            }
+
             $resolved = $this->resolveLocalReference($reference);
             if ($resolved !== null) {
-                return $this->getParameterKey($resolved);
+                $visited[$reference] = true;
+                return $this->getParameterKey($resolved, $visited);
             }
 
             return $reference;
