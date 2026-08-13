@@ -49,6 +49,9 @@
         "rector/rector": "^2.4",
         "squizlabs/php_codesniffer": "^4"
     },
+    "suggest": {
+        "utopia-php/openapi": "Required when using UtopiaAdapter with the canonical OpenAPI specification model."
+    },
     "config": {
         "sort-packages": true,
         "platform": {

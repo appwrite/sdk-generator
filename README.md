@@ -11,6 +11,22 @@ The SDK Generator uses predefined language settings as [Twig templates](https://
 
 Both OpenAPI 3.0 and Swagger 2.0 specs are supported and produce identical SDKs, including services, methods, models, enums, and union types.
 
+A migration adapter is also available for the planned `utopia-php/openapi` canonical model. It lets SDK Generator consume `Utopia\OpenAPI\Specification` while delegating template fields that have not migrated yet to the existing parser:
+
+```php
+use Appwrite\Spec\OpenAPI3;
+use Appwrite\Spec\UtopiaAdapter;
+use Utopia\OpenAPI\Parser;
+
+$input = file_get_contents('openapi.json');
+$spec = new UtopiaAdapter(
+    specification: Parser::parse($input),
+    compatibility: new OpenAPI3($input),
+);
+```
+
+The compatibility parser is optional once the canonical model provides every field required by the selected templates.
+
 ## Getting Started
 
 Install using composer:
