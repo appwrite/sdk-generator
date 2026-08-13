@@ -329,8 +329,14 @@ class PHP extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        if ($schema instanceof ArraySchema || $schema->enum !== []) {
+        if ($schema instanceof ArraySchema) {
             return 'array';
+        }
+        if ($schema->enum !== []) {
+            $enumName = $schema->extensions['x-enum-name']
+                ?? ($parameter instanceof Parameter ? $parameter->name : $schema->title)
+                ?? '';
+            return $this->applyIdentifierOverride($this->toPascalCase($enumName));
         }
 
         $model = $this->getSchemaModel($parameter);
@@ -580,7 +586,7 @@ class PHP extends Language
 
     protected function getReturn(Operation $method, ?Specification $spec = null): string
     {
-        if (\array_keys($method->responses) === ['204'] || \in_array($method->extensions['x-appwrite']['type'] ?? '', ['location', 'webAuth'], true)) {
+        if ((\count($method->responses) === 1 && isset($method->responses[204])) || \in_array($method->extensions['x-appwrite']['type'] ?? '', ['location', 'webAuth'], true)) {
             return 'string';
         }
 

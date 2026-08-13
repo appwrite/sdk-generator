@@ -554,7 +554,11 @@ class SDK
                     $schema = $this->getSchema($parameter);
                     $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
                     if ($enumSchema->enum !== []) {
-                        $schemas[] = $enumSchema;
+                        $schemas[] = new StringSchema(
+                            title: $this->getEnumName($parameter),
+                            enum: $enumSchema->enum,
+                            extensions: ['x-enum-keys' => $enumSchema->extensions['x-enum-keys'] ?? []],
+                        );
                     }
                 }
             }
@@ -641,17 +645,46 @@ class SDK
             return $this->filteredModelDataCache;
         }
 
+        $excluded = $this->getExcludedDefinitions();
+        $queue = [];
+        foreach (array_keys($this->getFilteredServices()) as $serviceName) {
+            foreach ($this->getFilteredMethods($this->getMethods($serviceName), $serviceName) as $operation) {
+                foreach ($this->getValidResponseModels($operation) as $modelName) {
+                    $queue[$modelName] = true;
+                }
+                foreach ($this->getOperationParameters($operation) as $parameter) {
+                    foreach ($this->getSchemaDependencyNames($parameter) as $modelName) {
+                        $queue[$modelName] = true;
+                    }
+                }
+            }
+        }
+
         $definitions = [];
         $requestModels = [];
-        $excluded = $this->getExcludedDefinitions();
-        foreach ($this->spec->schemas as $name => $schema) {
+        while ($queue !== []) {
+            $name = array_key_first($queue);
+            unset($queue[$name]);
+
             if ($name === 'any' || isset($excluded[$name])) {
                 continue;
             }
+
+            $schema = $this->spec->schemas[$name] ?? null;
+            if ($schema === null || isset($definitions[$name]) || isset($requestModels[$name])) {
+                continue;
+            }
+
             if ($schema->extensions['x-request-model'] ?? false) {
                 $requestModels[$name] = $schema;
             } else {
                 $definitions[$name] = $schema;
+            }
+
+            foreach ($this->getSchemaDependencies($schema) as $dependency) {
+                if (!isset($excluded[$dependency])) {
+                    $queue[$dependency] = true;
+                }
             }
         }
 
@@ -1295,6 +1328,33 @@ class SDK
             )));
         }
         return [];
+    }
+
+    /** @return list<string> */
+    protected function getSchemaDependencyNames(Schema|Parameter $value): array
+    {
+        return \array_values(\array_filter(\array_unique([
+            ...$this->getSchemaModels($value),
+            $this->getSchemaModel($value),
+        ])));
+    }
+
+    /** @return list<string> */
+    protected function getSchemaDependencies(Schema $schema): array
+    {
+        $dependencies = $this->getSchemaDependencyNames($schema);
+        if ($schema instanceof ArraySchema) {
+            \array_push($dependencies, ...$this->getSchemaDependencies($schema->items));
+        } elseif ($schema instanceof ObjectSchema) {
+            foreach ($schema->properties as $property) {
+                \array_push($dependencies, ...$this->getSchemaDependencies($property));
+            }
+        } elseif ($schema instanceof CompositeSchema) {
+            foreach ($schema->schemas as $member) {
+                \array_push($dependencies, ...$this->getSchemaDependencies($member));
+            }
+        }
+        return \array_values(\array_unique($dependencies));
     }
 
     protected function getEnumName(Schema|Parameter $value): string
