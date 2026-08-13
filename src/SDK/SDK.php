@@ -1647,8 +1647,10 @@ class SDK
     {
         $headers = [];
         foreach ($this->spec->securitySchemes as $name => $scheme) {
-            if (($scheme->type === SecuritySchemeType::API_KEY && $scheme->location === ParameterLocation::HEADER)
-                || ($scheme->type === SecuritySchemeType::HTTP && $scheme->scheme === 'bearer')) {
+            if (
+                ($scheme->type === SecuritySchemeType::API_KEY && $scheme->location === ParameterLocation::HEADER)
+                || ($scheme->type === SecuritySchemeType::HTTP && $scheme->scheme === 'bearer')
+            ) {
                 $headers[$name] = $scheme->type === SecuritySchemeType::HTTP
                     ? new SecurityScheme(
                         type: $scheme->type,

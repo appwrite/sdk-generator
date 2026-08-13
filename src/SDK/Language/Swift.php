@@ -550,8 +550,8 @@ class Swift extends Language
             new TwigFilter('propertyType', function (Schema $property, Specification $spec, string $generic = 'T'): string {
                 $type = $this->getTypeName($property, $spec, true);
                 $model = $this->getSchemaModel($property);
-                if ($this->hasGenericSchemaType($model, $spec)) {
-                    $modelType = ($spec->info->title ?? '') . 'Models.' . $this->toPascalCase((string) $model);
+                if ($model !== null && $this->hasGenericSchemaType($model, $spec)) {
+                    $modelType = $this->toPascalCase($model);
                     $type = \str_replace($modelType, $modelType . '<' . $generic . '>', $type);
                 }
                 return $type;
