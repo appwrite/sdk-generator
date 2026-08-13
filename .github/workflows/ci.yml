@@ -13,7 +13,7 @@ on:
 jobs:
   tests:
     name: Tests / ${{ matrix.sdk }}
-    runs-on: ubuntu-latest
+    runs-on: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/extras=otel
     strategy:
       fail-fast: false
       matrix:
@@ -90,7 +90,7 @@ jobs:
 
   unit:
     name: Tests / Unit
-    runs-on: ubuntu-latest
+    runs-on: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/extras=otel
 
     steps:
       - name: Checkout code
@@ -110,7 +110,7 @@ jobs:
 
   lint:
     name: Checks / Lint
-    runs-on: ubuntu-latest
+    runs-on: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/extras=otel
 
     steps:
       - name: Checkout code
@@ -130,7 +130,7 @@ jobs:
 
   refactor:
     name: Checks / Refactor
-    runs-on: ubuntu-latest
+    runs-on: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/extras=otel
 
     steps:
       - name: Checkout code
@@ -150,7 +150,7 @@ jobs:
 
   twig-lint:
     name: Checks / Twig
-    runs-on: ubuntu-latest
+    runs-on: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/extras=otel
 
     steps:
       - name: Checkout code
@@ -165,7 +165,7 @@ jobs:
 
   max-line-length:
     name: Checks / Twig line length
-    runs-on: ubuntu-latest
+    runs-on: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/extras=otel
 
     steps:
       - name: Checkout code
