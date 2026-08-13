@@ -40,6 +40,11 @@ type ClientResponse struct {
 	Status     string
 	StatusCode int
 	Header     http.Header
+	// Result holds the raw response body as []byte, for a JSON response and a
+	// non-JSON one alike. It carried a string for JSON responses until v6.5.0,
+	// so a `Result.(string)` assertion that used to succeed now fails, and an
+	// unchecked one panics. Read it through ResponseBody, which accepts either
+	// and so keeps working across the change.
 	Result     interface{}
 	Type	   string
 }
