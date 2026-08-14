@@ -3,23 +3,23 @@ import { Command } from "commander";
 {% set hasFileParam = false %}
 {% set hasObjectParam = false %}
 {% set hasGraphQLInput = false %}
-{% set hasQueryParam = service | hasCliQueryParam %}
+{% set hasQueryParam = (service | operations) | hasCliQueryParam %}
 {% set enumNames = [] %}
-{% for method in service.methods %}
-{% if method.type == 'location' %}
+{% for method in (service | operations) %}
+{% if (method | methodType) == 'location' %}
 {% set hasLocationMethod = true %}
 {% endif %}
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
+{% for parameter in (method | parameters('all')) %}
+{% if (parameter | schemaType) == 'file' %}
 {% set hasFileParam = true %}
 {% endif %}
 {% if cliIsGraphQLInput(parameter, method, service) %}
 {% set hasGraphQLInput = true %}
-{% elseif parameter.type == 'object' %}
+{% elseif (parameter | schemaType) == 'object' %}
 {% set hasObjectParam = true %}
 {% endif %}
-{% if parameter.enumName is defined and parameter.enumName not in enumNames %}
-{% set enumNames = enumNames|merge([parameter.enumName]) %}
+{% if (parameter | enumName) is not empty and (parameter | enumName) not in enumNames %}
+{% set enumNames = enumNames|merge([(parameter | enumName)]) %}
 {% endif %}
 {% endfor %}
 {% endfor %}
@@ -37,19 +37,19 @@ import {
   parseFilterQuery,
 } from "../utils/query.js";
 {% endif %}
-{% set consoleOnlyMethods = service.consoleOnlyMethods | default([]) %}
+{% set consoleOnlyMethods = consoleOnlyMethods | default([]) %}
 {# Set when the service names its target in a header instead of the path, so it takes an ID flag. #}
-{% set scope = service | cliServiceScope %}
+{% set scope = resourceHeader | cliServiceScope %}
 {% if scope %}
 import { {{ scope.factory }} } from "../../sdks.js";
-{% elseif service.isConsoleOnly %}
+{% elseif isConsoleOnly %}
 import { sdkForConsole } from "../../sdks.js";
 {% elseif consoleOnlyMethods is not empty %}
 import { sdkForConsole, sdkForProject } from "../../sdks.js";
 {% else %}
 import { sdkForProject } from "../../sdks.js";
 {% endif %}
-{% set fallbackHelpers = service | cliFallbackHelpers %}
+{% set fallbackHelpers = service | cliFallbackHelpers(service | operations) %}
 {% if fallbackHelpers is not empty %}
 import { {{ fallbackHelpers | join(', ') }} } from "../../console-fallback.js";
 {% endif %}
@@ -99,7 +99,7 @@ const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.n
       throw e;
     }
 {% else %}
-    const sdkClient = await {{ service.isConsoleOnly ? 'sdkForConsole' : 'sdkForProject' }}();
+    const sdkClient = await {{ isConsoleOnly ? 'sdkForConsole' : 'sdkForProject' }}();
 {% endif %}
     {{ service.name | caseCamel }}Client = new {{ service.name | caseUcfirst }}(sdkClient);
   }
@@ -134,14 +134,14 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
   });
 
 {% set seenCommands = [] %}
-{% for method in service.methods %}
-{% set commandName = method.name | caseKebab %}
+{% for method in (service | operations) %}
+{% set commandName = (method | methodName) | caseKebab %}
 {% if commandName not in seenCommands %}
 {% set seenCommands = seenCommands|merge([commandName]) %}
-{% set commandVar = service.name | caseCamel ~ method.name | caseUcfirst ~ 'Command' %}
-{% set clientGetter = 'get' ~ (service.name | caseUcfirst) ~ ((method.name | caseCamel) in consoleOnlyMethods ? 'Console' : '') ~ 'Client' %}
+{% set commandVar = service.name | caseCamel ~ (method | methodName) | caseUcfirst ~ 'Command' %}
+{% set clientGetter = 'get' ~ (service.name | caseUcfirst) ~ (((method | methodName) | caseCamel) in consoleOnlyMethods ? 'Console' : '') ~ 'Client' %}
 {% set hasScopedIdParam = false %}
-{% for parameter in method.parameters.all %}
+{% for parameter in (method | parameters('all')) %}
 {% if scope and parameter.name == scope.idVar %}
 {% set hasScopedIdParam = true %}
 {% endif %}
@@ -160,10 +160,10 @@ const {{ target.var }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`{% if target.hidden %}, { hidden: true }{% endif %})
 {% endif %}
   .description(`{{ cliMethodDescription(method, service) | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
-{% for parameter in method.parameters.all %}
+{% for parameter in (method | parameters('all')) %}
 {% set opt = getCliOption(parameter) %}
 {% set optDescription = cliParameterDescription(parameter, method, service) | stripMarkdown | replace({'`': '\\`'}) %}
-{% if parameter.name == 'queries' and parameter.type == 'array' %}
+{% if parameter.name == 'queries' and (parameter | schemaType) == 'array' %}
 {% set optDescription = query.rawDescriptionPrefix ~ ' ' ~ optDescription %}
 {% endif %}
 {% if opt.customParserCode is defined %}
@@ -197,7 +197,7 @@ const {{ target.var }} = {{ service.name | caseCamel }}
   .option(`--select <attribute>`, `Attribute to include in the response. Repeat for multiple attributes.`, (value: string, previous: string[] | undefined) => collectQueryValue(value, previous))
 {% endif %}
 {% endif %}
-{% if method.type == 'location' %}
+{% if (method | methodType) == 'location' %}
   .requiredOption(`--destination <destination>`, `Path to save the file to.`)
 {% endif %}
 {% if scopedFlag %}
@@ -206,7 +206,7 @@ const {{ target.var }} = {{ service.name | caseCamel }}
   .action(
     actionRunner(
 {% set params = [] %}
-{% for parameter in method.parameters.all %}
+{% for parameter in (method | parameters('all')) %}
 {% set params = params|merge([getCliVarName(parameter)]) %}
 {% endfor %}
 {% if query.hasQueries %}
@@ -216,18 +216,18 @@ const {{ target.var }} = {{ service.name | caseCamel }}
 {% set params = params|merge([scope.idVar]) %}
 {% endif %}
 {% set hasParams = params | length > 0 %}
-{% set actionParams = hasParams ? '{ ' ~ params | join(', ') ~ (method.type == 'location' ? ', destination' : '') ~ ' }' : (method.type == 'location' ? '{ destination }' : '') %}
+{% set actionParams = hasParams ? '{ ' ~ params | join(', ') ~ ((method | methodType) == 'location' ? ', destination' : '') ~ ' }' : ((method | methodType) == 'location' ? '{ destination }' : '') %}
 {% set argExpressions = [] %}
-{% for parameter in method.parameters.all %}
-{% if parameter.name == 'queries' and parameter.type == 'array' %}
+{% for parameter in (method | parameters('all')) %}
+{% if parameter.name == 'queries' and (parameter | schemaType) == 'array' %}
 {% set argExpressions = argExpressions|merge(['buildQueries({ ' ~ query.builderParams | join(', ') ~ ' })']) %}
 {% else %}
 {% set argExpressions = argExpressions|merge([getCliArgExpression(parameter, method, service)]) %}
 {% endif %}
 {% endfor %}
-{% if method.type == 'location' %}
+{% if (method | methodType) == 'location' %}
       async ({{ actionParams }}) => {
-        const url = await (await {{ clientCall }}).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
+        const url = await (await {{ clientCall }}).{{ (method | methodName) | caseCamel }}({{ argExpressions | join(', ') | raw }});
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
@@ -236,9 +236,9 @@ const {{ target.var }} = {{ service.name | caseCamel }}
         fs.writeFileSync(destination, buffer);
         success(`File saved to ${destination}`);
       },
-{% elseif method.type == 'webAuth' %}
+{% elseif (method | methodType) == 'webAuth' %}
       async ({{ actionParams }}) => {
-        const url = (await {{ clientCall }}).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
+        const url = (await {{ clientCall }}).{{ (method | methodName) | caseCamel }}({{ argExpressions | join(', ') | raw }});
         if (url) console.log(url);
       },
 {% elseif target.implementation %}
@@ -248,15 +248,15 @@ const {{ target.var }} = {{ service.name | caseCamel }}
         parse(await {{ target.implementation }}({{ implementationArgs | join(', ') | raw }})),
 {% elseif hasParams %}
       async ({{ actionParams }}) =>
-        parse(await (await {{ clientCall }}).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }})),
+        parse(await (await {{ clientCall }}).{{ (method | methodName) | caseCamel }}({{ argExpressions | join(', ') | raw }})),
 {% else %}
-      async () => parse(await (await {{ clientCall }}).{{ method.name | caseCamel }}()),
+      async () => parse(await (await {{ clientCall }}).{{ (method | methodName) | caseCamel }}()),
 {% endif %}
     ),
   );
 
 {% endfor %}
-{% if service.name == 'projects' and method.name == 'list' %}
+{% if service.name == 'projects' and (method | methodName) == 'list' %}
 ({{ commandVar }} as Command & { outputFields?: string[] }).outputFields = ["name", "$id", "region", "status"];
 {% endif %}
 

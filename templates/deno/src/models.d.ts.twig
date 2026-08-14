@@ -1,13 +1,13 @@
 {% macro sub_schema(property, definition, spec) %}
 {% apply spaceless %}
-    {% if property.sub_schema %}
+    {% if (property | schemaModel) %}
         {% if _self.get_generics_sub(definition, spec) %}
-            {{property.sub_schema | caseUcfirst}}<{{ _self.get_generics_sub(definition, spec) }}>{% if property.type == 'array' %}[]{% endif %}
+            {{(property | schemaModel) | caseUcfirst}}<{{ _self.get_generics_sub(definition, spec) }}>{% if (property | schemaType) == 'array' %}[]{% endif %}
         {% else %}
-            {{property.sub_schema | caseUcfirst}}{% if property.type == 'array' %}[]{% endif %}
+            {{(property | schemaModel) | caseUcfirst}}{% if (property | schemaType) == 'array' %}[]{% endif %}
         {% endif %}
-    {% elseif property.sub_schemas %}
-        ({% for subProperty in property.sub_schemas %}{{subProperty | caseUcfirst}}{% if loop.last == false %} | {% endif %}{% endfor %}){% if property.type == 'array' %}[]{% endif %}
+    {% elseif (property | schemaModels) %}
+        ({% for subProperty in (property | schemaModels) %}{{subProperty | caseUcfirst}}{% if loop.last == false %} | {% endif %}{% endfor %}){% if (property | schemaType) == 'array' %}[]{% endif %}
     {% else %}
         {{property | typeName}}
     {% endif %}
@@ -16,11 +16,11 @@
 {% macro get_generics(definition, spec) %}
 {% apply spaceless %}
     {% for property in definition.properties %}
-        {% if spec.definitions[property.sub_schema].additionalProperties %}
-            {{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}
+        {% if definitions[(property | schemaModel)].additionalProperties %}
+            {{(property | schemaModel) | caseUcfirst}} extends Models.{{(property | schemaModel) | caseUcfirst}}
         {% endif %}
-        {% if spec.definitions[property.sub_schema] %}
-            {{_self.get_generics(spec.definitions[property.sub_schema], spec)}}
+        {% if definitions[(property | schemaModel)] %}
+            {{_self.get_generics(definitions[(property | schemaModel)], spec)}}
         {% endif %}
     {% endfor %}
 {% endapply %}
@@ -28,26 +28,26 @@
 {% macro get_generics_sub(definition, spec, output = false) %}
 {% apply spaceless %}
     {% for property in definition.properties %}
-        {% if spec.definitions[property.sub_schema].additionalProperties and output %}
-            {{property.sub_schema | caseUcfirst}}
+        {% if definitions[(property | schemaModel)].additionalProperties and output %}
+            {{(property | schemaModel) | caseUcfirst}}
         {% endif %}
-        {% if spec.definitions[property.sub_schema] %}
-            {{_self.get_generics_sub(spec.definitions[property.sub_schema], spec, true)}}
+        {% if definitions[(property | schemaModel)] %}
+            {{_self.get_generics_sub(definitions[(property | schemaModel)], spec, true)}}
         {% endif %}
     {% endfor %}
 {% endapply %}
 {% endmacro %}
 export namespace Models {
-{% for definition in spec.definitions %}
+{% for definitionName, definition in definitions %}
     /**
      * {{ definition.description }}
      */
-    export type {{ definition.name | caseUcfirst }}{% if _self.get_generics(definition, spec) %}<{{_self.get_generics(definition, spec)}}>{% endif %} = { 
+    export type {{ definitionName | caseUcfirst }}{% if _self.get_generics(definition, spec) %}<{{_self.get_generics(definition, spec)}}>{% endif %} = {
 {% for property in definition.properties %}
         /**
          * {{ property.description }}
          */
-        {{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}: {{_self.sub_schema(property, definition, spec)}};
+        {{ (property | schemaName) | escapeKeyword }}{% if not (property | schemaRequired) %}?{% endif %}: {{_self.sub_schema(property, definition, spec)}};
 {% endfor %}
     }
 {% endfor %}

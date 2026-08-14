@@ -41,8 +41,8 @@ import { generate } from './lib/commands/generate.js';
 import { migrate } from './lib/commands/generic.js';
 {% endif %}
 
-{% for service in spec.services %}
-import { {{ service.name }}{% for alias in service | cliTopLevelAliases %}, {{ alias.export }}{% endfor %} } from './lib/commands/services/{{ service.name | caseLower }}.js';
+{% for service in services %}
+import { {{ service.name }}{% for alias in service | cliTopLevelAliases(service | operations) %}, {{ alias.export }}{% endfor %} } from './lib/commands/services/{{ service.name | caseLower }}.js';
 {% endfor %}
 
 const { version } = packageJson;
@@ -213,9 +213,9 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
             .addCommand(generate)
             .addCommand(logout)
 {% endif %}
-{% for service in spec.services %}
+{% for service in services %}
             .addCommand({{ service.name }})
-{% for alias in service | cliTopLevelAliases %}
+{% for alias in service | cliTopLevelAliases(service | operations) %}
             .addCommand({{ alias.export }})
 {% endfor %}
 {% endfor %}

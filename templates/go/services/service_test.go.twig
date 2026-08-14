@@ -2,11 +2,11 @@
 {%- set requireFilesPkg = false -%}
 {%- set requireOsPkg = false -%}
 {%- set requireModelsPkg = false -%}
-{%- for method in service.methods -%}
+{%- for method in (service | operations) -%}
     {%- if (method | getValidResponseModels)|length > 1 -%}
         {%- set requireModelsPkg = true -%}
     {%- endif -%}
-    {%- for parameter in method.parameters.all -%}
+    {%- for parameter in (method | parameters('all')) -%}
         {%- if "file.InputFile" in (parameter | typeName) -%}
             {%- set requireFilesPkg = true -%}
             {%- set requireOsPkg = true -%}
@@ -16,38 +16,38 @@
 {% macro render_json_value(definitions, property, spec, indent = '') -%}
 {%- import _self as helper -%}
 {%- set childIndent = indent ~ '    ' -%}
-{%- if property.sub_schema and definitions[property.sub_schema] -%}
-    {%- set requiredProps = definitions[property.sub_schema].properties | filter(p => p.required) -%}
-    {%- if property.type == 'array' -%}
+{%- if (property | schemaModel) and definitions[(property | schemaModel)] -%}
+    {%- set requiredProps = definitions[(property | schemaModel)].properties | filter(p => p | schemaRequired) -%}
+    {%- if (property | schemaType) == 'array' -%}
 [
 {{ childIndent }}{
 {% for prop in requiredProps %}
-{{ childIndent }}    "{{ prop.name | replace({'\\': '\\\\', '"': '\\"'}) | raw }}": {{ helper.render_json_value(definitions, prop, spec, childIndent ~ '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
+{{ childIndent }}    "{{ (prop | schemaName) | replace({'\\': '\\\\', '"': '\\"'}) | raw }}": {{ helper.render_json_value(definitions, prop, spec, childIndent ~ '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
 {% endfor %}
 {{ childIndent }}}
 {{ indent }}]
     {%- else -%}
 {
 {% for prop in requiredProps %}
-{{ indent }}    "{{ prop.name | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": {{ helper.render_json_value(definitions, prop, spec, indent ~ '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
+{{ indent }}    "{{ (prop | schemaName) | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": {{ helper.render_json_value(definitions, prop, spec, indent ~ '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
 {% endfor %}
 {{ indent }}}
     {%- endif -%}
 {%- else -%}
-    {%- if property.type == 'object' -%}
+    {%- if (property | schemaType) == 'object' -%}
 {}
-{%- elseif property.type == 'array' -%}
+{%- elseif (property | schemaType) == 'array' -%}
 []
-{%- elseif property.type == 'string' -%}
-"{{ (property.example | default('string')) | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}"
-    {%- elseif property.type == 'boolean' -%}
+{%- elseif (property | schemaType) == 'string' -%}
+"{{ ((property | schemaExample) | default('string')) | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}"
+    {%- elseif (property | schemaType) == 'boolean' -%}
 true
-    {%- elseif property.type == 'integer' -%}
-{{ property.example | default(1) }}
-    {%- elseif property.type == 'number' -%}
-{{ property.example | default(1.0) }}
+    {%- elseif (property | schemaType) == 'integer' -%}
+{{ (property | schemaExample) | default(1) }}
+    {%- elseif (property | schemaType) == 'number' -%}
+{{ (property | schemaExample) | default(1.0) }}
     {%- else -%}
-{{ (property.example is empty) ? "null" : property.example }}
+{{ ((property | schemaExample) is empty) ? "null" : (property | schemaExample) }}
     {%- endif -%}
 {%- endif -%}
 {%- endmacro %}
@@ -84,39 +84,39 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 		return c
 	}
 
-{% for method in service.methods %}
+{% for method in (service | operations) %}
 {% if not loop.first %}
 
 {% endif %}
-	t.Run("Test {{ method.name | caseUcfirst }}", func(t *testing.T) {
-{% if method.type == 'webAuth' %}
-{% if (method | returnType(spec, spec.title | caseLower)) == 'bool' %}
+	t.Run("Test {{ (method | methodName) | caseUcfirst }}", func(t *testing.T) {
+{% if (method | methodType) == 'webAuth' %}
+{% if (method | returnType(spec, spec.info.title | caseLower)) == 'bool' %}
 		mockResponse := `true`
 {% else %}
 		mockResponse := `"https://example.com"`
 {% endif %}
-{% elseif method.type == 'location' %}
+{% elseif (method | methodType) == 'location' %}
 		mockData := []byte("image_data")
 {% else %}
 {% set responseModels = method | getValidResponseModels %}
-{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% set responseDiscriminator = (method | responseDiscriminator) %}
 {% set responseModelName = '' %}
 {# Mirror base/requests/api.twig: a union only picks between models when a
    discriminator says how. Without one the service falls back to responseModel,
    so asserting any other member gives a test the generated code cannot pass. #}
 {% if responseModels|length > 1 and responseDiscriminator is not empty %}
 {% set responseModelName = responseModels|last %}
-{% elseif method.responseModel and method.responseModel != 'any' %}
-{% set responseModelName = method.responseModel %}
+{% elseif (method | responseModel) and (method | responseModel) != 'any' %}
+{% set responseModelName = (method | responseModel) %}
 {% endif %}
 {% if responseModelName %}
-{% for definition in spec.definitions %}
-{% if definition.name == responseModelName %}
+{% for definitionName, definition in definitions %}
+{% if definitionName == responseModelName %}
 {% set discriminatorConditions = responseDiscriminator[responseModelName] ?? {} %}
 		mockResponse := `
 {
-{% for property in definition.properties | filter((param) => param.required) %}
-    "{{ property.name | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": {% if discriminatorConditions[property.name] is defined %}"{{ discriminatorConditions[property.name] | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}"{% else %}{{ _self.render_json_value(spec.definitions, property, spec, '    ') | trim | raw }}{% endif %}{% if not loop.last %},{% endif %}{{ "\n" -}}
+{% for property in definition.properties | filter((param) => param | schemaRequired) %}
+    "{{ (property | schemaName) | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": {% if discriminatorConditions[(property | schemaName)] is defined %}"{{ discriminatorConditions[(property | schemaName)] | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}"{% else %}{{ _self.render_json_value(definitions, property, spec, '    ') | trim | raw }}{% endif %}{% if not loop.last %},{% endif %}{{ "\n" -}}
 {% endfor %}
 }
 `
@@ -133,13 +133,13 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 {% set methodUsesFile = false %}
-{% for parameter in method.parameters.all %}
+{% for parameter in (method | parameters('all')) %}
 {% if "file.InputFile" in (parameter | typeName) %}
 {% set methodUsesFile = true %}
 {% endif %}
 {% endfor %}
-{% if methodUsesFile and method.method | upper != 'GET' %}
-			if r.Method == "GET" && "{{ method.method | upper }}" != "GET" {
+{% if methodUsesFile and method.method.value | upper != 'GET' %}
+			if r.Method == "GET" && "{{ method.method.value | upper }}" != "GET" {
 				// Handle file upload resume check
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
@@ -147,13 +147,13 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 				return
 			}
 {% endif %}
-			if r.Method != "{{ method.method | upper }}" {
-				t.Errorf("Expected method {{ method.method | upper }}, got %s", r.Method)
+			if r.Method != "{{ method.method.value | upper }}" {
+				t.Errorf("Expected method {{ method.method.value | upper }}, got %s", r.Method)
 			}
 
-			w.Header().Set("Content-Type", {% if method.type == 'location' %}"image/png"{% else %}"application/json"{% endif %})
+			w.Header().Set("Content-Type", {% if (method | methodType) == 'location' %}"image/png"{% else %}"application/json"{% endif %})
 			w.WriteHeader(http.StatusOK)
-{% if method.type == 'location' %}
+{% if (method | methodType) == 'location' %}
 			_, _ = w.Write(mockData)
 {% else %}
 			_, _ = w.Write([]byte(mockResponse))
@@ -164,40 +164,40 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 		srv := New(newTestClient(ts))
 
 {% set params = '' %}
-{% for parameter in method.parameters.all | filter((param) => param.required) %}
+{% for parameter in (method | parameters('all')) | filter((param) => param.required) %}
 {% set val = '' %}
 {% set type = (parameter | typeName) %}
 {% if "file.InputFile" in type %}
 {% set val = 'file.NewInputFile(tmpFile.Name(), "test.txt")' %}
-{% elseif parameter.type == 'object' %}
+{% elseif (parameter | schemaType) == 'object' %}
 {% set val = 'map[string]interface{}{}' %}
-{% elseif parameter.type == 'array' %}
-{% if parameter.items.type == 'string' %}
+{% elseif (parameter | schemaType) == 'array' %}
+{% if (parameter | arraySchema | schemaType) == 'string' %}
 {% set val = '[]string{}' %}
 {% else %}
 {% set val = type ~ '{}' %}
 {% endif %}
-{% elseif parameter.type == 'boolean' %}
+{% elseif (parameter | schemaType) == 'boolean' %}
 {% set val = 'true' %}
-{% elseif parameter.type == 'string' %}
-{% set val = '"' ~ (parameter.example | replace({'\\': '\\\\', '"': '\\"'}) | raw) ~ '"' %}
-{% elseif parameter.type == 'integer' %}
+{% elseif (parameter | schemaType) == 'string' %}
+{% set val = '"' ~ ((parameter | schemaExample) | replace({'\\': '\\\\', '"': '\\"'}) | raw) ~ '"' %}
+{% elseif (parameter | schemaType) == 'integer' %}
 {% set val = '1' %}
-{% elseif parameter.type == 'number' %}
+{% elseif (parameter | schemaType) == 'number' %}
 {% set val = '1.0' %}
 {% else %}
-{% set val = parameter.example %}
+{% set val = (parameter | schemaExample) %}
 {% endif %}
 {% set params = params ~ val %}
 {% if not loop.last %}{% set params = params ~ ', ' %}{% endif %}
 {% endfor %}
 {% if responseModels|length > 1 %}
-		response, err := srv.{{ method.name | caseUcfirst }}({{ params }})
+		response, err := srv.{{ (method | methodName) | caseUcfirst }}({{ params }})
 {% else %}
-		_, err := srv.{{ method.name | caseUcfirst }}({{ params }})
+		_, err := srv.{{ (method | methodName) | caseUcfirst }}({{ params }})
 {% endif %}
 		if err != nil {
-			t.Errorf("Method {{ method.name | caseUcfirst }} failed: %v", err)
+			t.Errorf("Method {{ (method | methodName) | caseUcfirst }} failed: %v", err)
 		}
 {% if responseModels|length > 1 and responseModelName %}
 		if _, ok := response.(*models.{{ responseModelName | caseUcfirst }}); !ok {

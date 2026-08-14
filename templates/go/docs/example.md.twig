@@ -1,7 +1,7 @@
 ```go
 {% set requireModelsPkg = false -%}
 {%- set requireFilesPkg = false -%}
-{%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
+{%- if (method | returnType(spec, spec.info.title | caseLower)) starts with "models" -%}
 		{%- set requireModelsPkg = true -%}
 {%- endif -%}
 
@@ -17,11 +17,11 @@ import (
 )
 
 client := client.New(
-{% if method.auth|length > 0 %}
-    client.WithEndpoint("{{ spec.endpointDocs | raw }}")
-{% for node in method.auth %}
-{% for key,header in node|keys|filter(h => not node[h]['x-appwrite']['optional']) %}
-    client.With{{header}}("{{node[header]['x-appwrite']['demo'] | raw }}")
+{% if [(method | securitySchemes)]|length > 0 %}
+    client.WithEndpoint("{{ endpointDocs | raw }}")
+{% for node in [(method | securitySchemes)] %}
+{% for key,header in node|keys|filter(h => not node[h].extensions['x-appwrite']['optional']) %}
+    client.With{{header}}("{{node[header].extensions['x-appwrite']['demo'] | raw }}")
 {% endfor %}
 {% endfor %}
 )
@@ -29,13 +29,13 @@ client := client.New(
 {% endif %}
 service := {{ service.name | caseLower }}.New(client)
 
-response, error := service.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %}){% else %}
+response, error := service.{{ (method | methodName) | caseUcfirst }}({% if (method | parameters('all')) | length == 0 %}){% else %}
 
-{% for parameter in method.parameters.all %}
+{% for parameter in (method | parameters('all')) %}
 {% if parameter.required %}
     {{ parameter | paramExample }},
 {% else %}
-    {{ service.name | caseLower }}.With{{ method.name | caseUcfirst }}{{ parameter.name | caseUcfirst }}({{ parameter | paramExample }}),
+    {{ service.name | caseLower }}.With{{ (method | methodName) | caseUcfirst }}{{ parameter.name | caseUcfirst }}({{ parameter | paramExample }}),
 {% endif %}
 {% endfor %}
 {% endif %})

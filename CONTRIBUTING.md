@@ -85,25 +85,15 @@ When you need to test the API templates output, add your new language instance t
 sdk-generator/blob/master/example.php:
 
 ```php
-    use Appwrite\Spec\Swagger2;
     use Appwrite\SDK\SDK;
     use Appwrite\SDK\Language\NewLang;
+    use Utopia\OpenAPI\Parser;
     
-    function getSSLPage($url) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $result = curl_exec($ch);
-        return $result;
-    }
-
-    $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
+    $content = file_get_contents('https://appwrite.io/v1/open-api-3.json');
+    $spec = Parser::parse($content);
 
     // NewLang
-    $sdk  = new SDK(new NewLang(), new Swagger2($spec));
+    $sdk  = new SDK(new NewLang(), $spec);
     $sdk
         ->setCoverImage('https://github.com/appwrite/appwrite/raw/main/public/images/github.png')
         ->setLicenseContent('test test test')

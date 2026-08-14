@@ -1,7 +1,7 @@
         $apiParams = [];
-{% if method.parameters.all | length %}
-{% for parameter in method.parameters.all %}
-{% if not parameter.required and not parameter.nullable %}
+{% if (method | parameters('all')) | length %}
+{% for parameter in (method | parameters('all')) %}
+{% if not parameter.required and not (parameter | schemaNullable) %}
 
         if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
             $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
@@ -13,12 +13,12 @@
 {% endif %}
 
         $apiHeaders = [];
-        {%~ for key, security in method.securityHeaders %}
+        {%~ for key, security in (method | securityHeaders) %}
         $apiHeaders['{{ security.name }}'] = $this->client->getConfig('{{ key | caseLower }}');
         {%~ endfor %}
-        {%~ for parameter in method.parameters.header %}
+        {%~ for parameter in (method | parameters('header')) %}
         $apiHeaders['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
         {%~ endfor %}
-        {%~ for key, header in method.headers %}
+        {%~ for key, header in (method | methodHeaders) %}
         $apiHeaders['{{ key }}'] = '{{ header }}';
         {%~ endfor %}

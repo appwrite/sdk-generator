@@ -149,7 +149,8 @@ public function getFiles(): array
 | Which files get generated | `src/SDK/Language/<Lang>.php` → `getFiles()` |
 | Type mappings for a language | `src/SDK/Language/<Lang>.php` → `getTypeName()` |
 | Available Twig filters | `src/SDK/SDK.php` (around line 62) |
-| How specs are parsed | `src/Spec/OpenAPI3.php`, `src/Spec/Swagger2.php` |
+| Canonical spec parser and DTOs | `utopia-php/openapi` (VCS dependency) |
+| SDK grouping and filtering | `src/SDK/SDK.php` |
 | Generation orchestration | `src/SDK/SDK.php` → `generate()` |
 | Example generation script | `example.php` |
 | Generated output for review (gitignored) | `examples/<lang>/` |
@@ -206,7 +207,7 @@ Pass as first argument to generate only that SDK:
   ```
   https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/open-api3-{version}-{platform}.json
   ```
-- **Spec formats:** `example.php` parses OpenAPI 3 specs by default (`Appwrite\Spec\OpenAPI3`). Swagger 2 (`Appwrite\Spec\Swagger2`) is still fully supported; both formats produce identical SDKs. Pass the format as the third argument:
+- **Spec formats:** `example.php` parses every document through `Utopia\OpenAPI\Parser`. OpenAPI 3 is fetched by default; Swagger 2 is also supported. Pass the fetched format as the third argument:
   ```bash
   php example.php <sdk> <platform> swagger2             # use Swagger 2 spec
   SDK_GEN_SPEC_FILE=/path/to/spec.json php example.php  # use a local spec file
@@ -222,14 +223,9 @@ composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-s
 
 ## Running Tests
 
-Tests are split into two suites:
-
-- `tests/unit/` — fast, pure-PHP tests (spec parsers); no Docker needed
-- `tests/e2e/` — per-language SDK tests; generate an SDK from `tests/resources/spec-openapi3.json` into `tests/e2e/sdks/` and run it in Docker against a mock API. The mock server (`./mock-server`) is started in `setUp()` and removed in `tearDown()` (`docker compose down`); after interrupted runs, clean up with `cd mock-server && docker compose down`
-- `tests/resources/` — shared fixtures (spec file, upload files) used by both suites
+The tests in `tests/e2e/` generate an SDK from `tests/resources/spec-openapi3.json` into `tests/e2e/sdks/` and run it in Docker against a mock API. Parser behavior is tested by `utopia-php/openapi` rather than this repository. The mock server (`./mock-server`) is started in `setUp()` and removed in `tearDown()` (`docker compose down`); after interrupted runs, clean up with `cd mock-server && docker compose down`.
 
 ```bash
-vendor/bin/phpunit --testsuite Unit        # fast, run these always
 vendor/bin/phpunit tests/e2e/PHP83Test.php # one language e2e (needs Docker)
 ```
 

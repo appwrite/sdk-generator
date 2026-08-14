@@ -2,11 +2,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using {{ spec.title | caseUcfirst }}.Extensions;
+using {{ spec.info.title | caseUcfirst }}.Extensions;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-namespace {{ spec.title | caseUcfirst }}
+namespace {{ spec.info.title | caseUcfirst }}
 {
     public static class WebAuthComponent
     {
@@ -19,12 +19,12 @@ namespace {{ spec.title | caseUcfirst }}
         {
             Application.deepLinkActivated -= OnDeepLinkActivated;
             Application.deepLinkActivated += OnDeepLinkActivated;
-            Debug.Log("[{{ spec.title | caseUcfirst }}DeepLinkHandler] Initialized for OAuth callbacks.");
+            Debug.Log("[{{ spec.info.title | caseUcfirst }}DeepLinkHandler] Initialized for OAuth callbacks.");
         }
 
         private static void OnDeepLinkActivated(string url)
         {
-            Debug.Log($"[{{ spec.title | caseUcfirst }}DeepLinkHandler] Received deep link: {url}");
+            Debug.Log($"[{{ spec.info.title | caseUcfirst }}DeepLinkHandler] Received deep link: {url}");
             OnDeepLink?.Invoke(url);
         }
         static WebAuthComponent()
@@ -39,15 +39,15 @@ namespace {{ spec.title | caseUcfirst }}
             var projectId = queryDict.GetValueOrDefault("project");
             if (string.IsNullOrEmpty(projectId))
             {
-                throw new {{ spec.title | caseUcfirst }}Exception("Project ID not found in authentication URL.");
+                throw new {{ spec.info.title | caseUcfirst }}Exception("Project ID not found in authentication URL.");
             }
 
-            var callbackScheme = $"{{ spec.title | caseLower }}-callback-{projectId}";
+            var callbackScheme = $"{{ spec.info.title | caseLower }}-callback-{projectId}";
             var tcs = new UniTaskCompletionSource<Uri>();
             
             if (!PendingAuth.TryAdd(callbackScheme, tcs))
             {
-                throw new {{ spec.title | caseUcfirst }}Exception("Authentication process already in progress.");
+                throw new {{ spec.info.title | caseUcfirst }}Exception("Authentication process already in progress.");
             }
 
             Debug.Log($"[WebAuthenticator] Opening authentication URL: {authUrl}");

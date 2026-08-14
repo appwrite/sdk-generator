@@ -1,34 +1,34 @@
 {% set lang = 'python' %}
 {% set langName = 'Python' %}
-{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side Python applications with {{ spec.title }}, including Django, Flask, and FastAPI integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side Python applications with {{ spec.info.title }}, including Django, Flask, and FastAPI integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
-# {{ spec.title }} {{ langName }} SDK
+# {{ spec.info.title }} {{ langName }} SDK
 
 ## Installation
 
 ```bash
-pip install {{ spec.title | caseLower }}
+pip install {{ spec.info.title | caseLower }}
 ```
 
 ## Setting Up the Client
 
 ```python
-from {{ spec.title | caseLower }}.client import Client
-from {{ spec.title | caseLower }}.id import ID
-from {{ spec.title | caseLower }}.query import Query
-from {{ spec.title | caseLower }}.services.users import Users
-from {{ spec.title | caseLower }}.services.tables_db import TablesDB
-from {{ spec.title | caseLower }}.services.storage import Storage
-from {{ spec.title | caseLower }}.services.functions import Functions
-from {{ spec.title | caseLower }}.enums.o_auth_provider import OAuthProvider
+from {{ spec.info.title | caseLower }}.client import Client
+from {{ spec.info.title | caseLower }}.id import ID
+from {{ spec.info.title | caseLower }}.query import Query
+from {{ spec.info.title | caseLower }}.services.users import Users
+from {{ spec.info.title | caseLower }}.services.tables_db import TablesDB
+from {{ spec.info.title | caseLower }}.services.storage import Storage
+from {{ spec.info.title | caseLower }}.services.functions import Functions
+from {{ spec.info.title | caseLower }}.enums.o_auth_provider import OAuthProvider
 
 import os
 
 client = (Client()
     .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
-    .set_project(os.environ['{{ spec.title | caseUpper }}_PROJECT_ID'])
-    .set_key(os.environ['{{ spec.title | caseUpper }}_API_KEY']))
+    .set_project(os.environ['{{ spec.info.title | caseUpper }}_PROJECT_ID'])
+    .set_key(os.environ['{{ spec.info.title | caseUpper }}_API_KEY']))
 ```
 
 ## Code Examples
@@ -152,7 +152,7 @@ Query.and_queries([Query.greater_than('age', 18), Query.less_than('age', 65)])  
 ### File Storage
 
 ```python
-from {{ spec.title | caseLower }}.input_file import InputFile
+from {{ spec.info.title | caseLower }}.input_file import InputFile
 
 storage = Storage(client)
 
@@ -169,7 +169,7 @@ storage.delete_file('[BUCKET_ID]', '[FILE_ID]')
 #### InputFile Factory Methods
 
 ```python
-from {{ spec.title | caseLower }}.input_file import InputFile
+from {{ spec.info.title | caseLower }}.input_file import InputFile
 
 InputFile.from_path('/path/to/file.png')             # from filesystem path
 InputFile.from_bytes(byte_data, 'file.png')          # from bytes
@@ -179,7 +179,7 @@ InputFile.from_string('Hello world', 'hello.txt')    # from string content
 ### Teams
 
 ```python
-from {{ spec.title | caseLower }}.services.teams import Teams
+from {{ spec.info.title | caseLower }}.services.teams import Teams
 
 teams = Teams(client)
 
@@ -256,15 +256,15 @@ SSR apps (Flask, Django, FastAPI, etc.) use the **server SDK** to handle auth. Y
 - **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```python
-from {{ spec.title | caseLower }}.client import Client
-from {{ spec.title | caseLower }}.services.account import Account
+from {{ spec.info.title | caseLower }}.client import Client
+from {{ spec.info.title | caseLower }}.services.account import Account
 from flask import request, jsonify, make_response, redirect
 
 # Admin client (reusable)
 admin_client = (Client()
     .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
     .set_project('[PROJECT_ID]')
-    .set_key(os.environ['{{ spec.title | caseUpper }}_API_KEY']))
+    .set_key(os.environ['{{ spec.info.title | caseUpper }}_API_KEY']))
 
 # Session client (create per-request)
 session_client = (Client()
@@ -346,7 +346,7 @@ def oauth_success():
 ## Error Handling
 
 ```python
-from {{ spec.title | caseLower }}.exception import AppwriteException
+from {{ spec.info.title | caseLower }}.exception import AppwriteException
 
 try:
     row = tables_db.get_row('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]')
@@ -372,8 +372,8 @@ except AppwriteException as e:
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the row/file level or inherited from the table/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
 
 ```python
-from {{ spec.title | caseLower }}.permission import Permission
-from {{ spec.title | caseLower }}.role import Role
+from {{ spec.info.title | caseLower }}.permission import Permission
+from {{ spec.info.title | caseLower }}.role import Role
 ```
 
 ### Database Row with Permissions

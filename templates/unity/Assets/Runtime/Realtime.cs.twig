@@ -10,7 +10,7 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using NativeWebSocket;
 
-namespace {{ spec.title | caseUcfirst }}
+namespace {{ spec.info.title | caseUcfirst }}
 {
     #region Realtime Data Models
     
@@ -386,7 +386,7 @@ namespace {{ spec.title | caseUcfirst }}
                 }
             }
 
-            throw new {{ spec.title | caseUcfirst }}Exception("Failed to generate unique subscription id");
+            throw new {{ spec.info.title | caseUcfirst }}Exception("Failed to generate unique subscription id");
         }
 
         private async UniTask SendUnsubscribeMessage(IEnumerable<string> subscriptionIds)
@@ -528,7 +528,7 @@ namespace {{ spec.title | caseUcfirst }}
                 var jwt = _client.Config.GetValueOrDefault("jwt");
                 if (!string.IsNullOrEmpty(jwt))
                 {
-                    headers["x-{{ spec.title | caseLower }}-jwt"] = jwt;
+                    headers["x-{{ spec.info.title | caseLower }}-jwt"] = jwt;
                 }
 
                 if (_webSocket == null || _webSocket.State == WebSocketState.Closed)
@@ -667,11 +667,11 @@ namespace {{ spec.title | caseUcfirst }}
         {
             if (data == null)
             {
-                OnError?.Invoke(new {{ spec.title | caseUcfirst }}Exception("Realtime error message missing data.", 0));
+                OnError?.Invoke(new {{ spec.info.title | caseUcfirst }}Exception("Realtime error message missing data.", 0));
                 return;
             }
 
-            OnError?.Invoke(new {{ spec.title | caseUcfirst }}Exception(data.Message, data.Code));
+            OnError?.Invoke(new {{ spec.info.title | caseUcfirst }}Exception(data.Message, data.Code));
         }
 
         private void HandleRealtimeEvent(RealtimeResponseEvent<Dictionary<string, object>> eventData)
@@ -717,7 +717,7 @@ namespace {{ spec.title | caseUcfirst }}
         {
             Debug.LogError($"[Realtime] WebSocket error: {error}");
             _appConnected = false;
-            OnError?.Invoke(new {{ spec.title | caseUcfirst }}Exception($"WebSocket error: {error}"));
+            OnError?.Invoke(new {{ spec.info.title | caseUcfirst }}Exception($"WebSocket error: {error}"));
             Retry();
 
         }
@@ -830,13 +830,13 @@ namespace {{ spec.title | caseUcfirst }}
             var realtimeEndpoint = _client.Config.GetValueOrDefault("endpointRealtime");
             if (string.IsNullOrEmpty(realtimeEndpoint))
             {
-                throw new {{ spec.title | caseUcfirst }}Exception("Please set endPointRealtime to connect to the realtime server.");
+                throw new {{ spec.info.title | caseUcfirst }}Exception("Please set endPointRealtime to connect to the realtime server.");
             }
 
             var project = _client.Config.GetValueOrDefault("project", "");
             if (string.IsNullOrEmpty(project))
             {
-                throw new {{ spec.title | caseUcfirst }}Exception("Project ID is required to connect to the realtime server.");
+                throw new {{ spec.info.title | caseUcfirst }}Exception("Project ID is required to connect to the realtime server.");
             }
 
             var queryParts = new List<string>

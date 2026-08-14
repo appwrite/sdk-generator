@@ -2,6 +2,14 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\ArraySchema;
+use Utopia\OpenAPI\Model\ObjectSchema;
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\SecurityScheme;
+use Utopia\OpenAPI\Model\SecuritySchemeType;
+use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
@@ -185,107 +193,107 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{ service.name | caseLower }}/{{ method.name | caseKebab }}.md',
+                'destination'   => 'docs/examples/{{ service.name | caseLower }}/{{ (method | methodName) | caseKebab }}.md',
                 'template'      => 'php/docs/example.md.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Client.php',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Client.php',
                 'template'      => 'php/src/Client.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Permission.php',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Permission.php',
                 'template'      => 'php/src/Permission.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/PermissionTest.php',
+                'destination'   => 'tests/{{ namespace | caseNamespacePath }}/PermissionTest.php',
                 'template'      => 'php/tests/PermissionTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Role.php',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Role.php',
                 'template'      => 'php/src/Role.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/RoleTest.php',
+                'destination'   => 'tests/{{ namespace | caseNamespacePath }}/RoleTest.php',
                 'template'      => 'php/tests/RoleTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/ID.php',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/ID.php',
                 'template'      => 'php/src/ID.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/IDTest.php',
+                'destination'   => 'tests/{{ namespace | caseNamespacePath }}/IDTest.php',
                 'template'      => 'php/tests/IDTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Query.php',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Query.php',
                 'template'      => 'php/src/Query.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/QueryTest.php',
+                'destination'   => 'tests/{{ namespace | caseNamespacePath }}/QueryTest.php',
                 'template'      => 'php/tests/QueryTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Operator.php',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Operator.php',
                 'template'      => 'php/src/Operator.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/OperatorTest.php',
+                'destination'   => 'tests/{{ namespace | caseNamespacePath }}/OperatorTest.php',
                 'template'      => 'php/tests/OperatorTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/InputFile.php',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/InputFile.php',
                 'template'      => 'php/src/InputFile.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/{{ spec.namespace | split(\'\\\\\') | last | caseUcfirst}}Exception.php',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/{{ namespace | split(\'\\\\\') | last | caseUcfirst}}Exception.php',
                 'template'      => 'php/src/Exception.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Service.php',
+                'destination'   => '/src/{{ namespace | caseNamespacePath }}/Service.php',
                 'template'      => 'php/src/Service.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/ArraySerializable.php',
+                'destination'   => '/src/{{ namespace | caseNamespacePath }}/Models/ArraySerializable.php',
                 'template'      => 'php/src/Models/ArraySerializable.php.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Services/{{service.name | caseUcfirst}}.php',
+                'destination'   => '/src/{{ namespace | caseNamespacePath }}/Services/{{service.name | caseUcfirst}}.php',
                 'template'      => 'php/src/Services/Service.php.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/tests/{{ spec.namespace | caseNamespacePath }}/Services/{{service.name | caseUcfirst}}Test.php',
+                'destination'   => '/tests/{{ namespace | caseNamespacePath }}/Services/{{service.name | caseUcfirst}}Test.php',
                 'template'      => 'php/tests/Services/ServiceTest.php.twig',
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.php',
+                'destination'   => '/src/{{ namespace | caseNamespacePath }}/Enums/{{ enum.title | caseUcfirst | overrideIdentifier }}.php',
                 'template'      => 'php/src/Enums/Enum.php.twig',
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.php',
+                'destination'   => '/src/{{ namespace | caseNamespacePath }}/Models/{{ definitionName | caseUcfirst | overrideIdentifier }}.php',
                 'template'      => 'php/src/Models/Model.php.twig',
             ],
             [
                 'scope'         => 'requestModel',
-                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/{{ requestModel.name | caseUcfirst | overrideIdentifier }}.php',
+                'destination'   => '/src/{{ namespace | caseNamespacePath }}/Models/{{ requestModelName | caseUcfirst | overrideIdentifier }}.php',
                 'template'      => 'php/src/Models/RequestModel.php.twig',
             ],
         ];
@@ -299,7 +307,7 @@ class PHP extends Language
         return implode('\\', $segments);
     }
 
-    protected function getModelClassName(string $modelName, array $spec, bool $fullyQualified = false): string
+    protected function getModelClassName(string $modelName, ?Specification $spec, bool $fullyQualified = false): string
     {
         $className = $this->applyIdentifierOverride($this->toPascalCase($modelName));
 
@@ -307,74 +315,48 @@ class PHP extends Language
             return $className;
         }
 
-        return '\\' . $this->normalizeNamespace($spec['namespace'] ?? '') . '\\Models\\' . $className;
+        return '\\' . $this->normalizeNamespace($spec?->info->title ?? '') . '\\Models\\' . $className;
     }
 
-    protected function getResponseModels(array $method, array $spec): array
+    protected function getResponseModels(Operation $method, ?Specification $spec): array
     {
-        $models = [];
-
-        foreach ($method['responseModels'] ?? [] as $modelName) {
-            if (empty($modelName) || $modelName === 'any') {
-                continue;
-            }
-
-            $models[] = $this->getModelClassName($modelName, $spec, true);
-        }
-
-        if ($models === [] && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
-            $models[] = $this->getModelClassName($method['responseModel'], $spec, true);
-        }
-
-        return array_values(array_unique($models));
+        return \array_map(
+            fn(string $model): string => $this->getModelClassName($model, $spec, true),
+            \array_filter($this->getOperationResponseModels($method), static fn(string $model): bool => $model !== 'any'),
+        );
     }
 
-    /**
-     * @param array $nestedTypes
-     */
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        if (
-            ($parameter['type'] ?? null) === self::TYPE_ARRAY
-            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
-        ) {
+        $schema = $this->getSchema($parameter);
+        if ($schema instanceof ArraySchema) {
             return 'array';
+        }
+        if ($schema->enum !== []) {
+            return $this->applyIdentifierOverride($this->toPascalCase($this->getSchemaEnumName($parameter, $spec)));
         }
 
-        if (isset($parameter['enumName'])) {
-            return $this->applyIdentifierOverride(\ucfirst($parameter['enumName']));
+        $model = $this->getSchemaModel($parameter);
+        if ($model !== null) {
+            return $this->applyIdentifierOverride($this->toPascalCase($model));
         }
-        if (!empty($parameter['enumValues'])) {
-            return $this->applyIdentifierOverride(\ucfirst((string) $parameter['name']));
-        }
-        if (!empty($parameter['array']['model'])) {
-            return 'array';
-        }
-        if (!empty($parameter['sub_schema'])) {
-            $modelType = $this->applyIdentifierOverride($this->toPascalCase($parameter['sub_schema']));
-            return ($parameter['type'] ?? null) === self::TYPE_ARRAY ? 'array' : $modelType;
-        }
-        if (!empty($parameter['model'])) {
-            $modelType = $this->applyIdentifierOverride($this->toPascalCase($parameter['model']));
-            return $parameter['type'] === self::TYPE_ARRAY ? 'array' : $modelType;
-        }
-        return match ($parameter['type']) {
+
+        return match ($this->getSchemaType($parameter)) {
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_NUMBER => 'float',
             self::TYPE_INTEGER => 'int',
-            self::TYPE_ARRAY,
-            self::TYPE_OBJECT => 'array',
+            self::TYPE_ARRAY, self::TYPE_OBJECT => 'array',
             self::TYPE_FILE => 'InputFile',
-            default => $parameter['type'],
+            default => 'mixed',
         };
     }
 
-    public function getParamDefault(array $param): string
+    public function getParamDefault(Schema|Parameter $param): string
     {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
+        $type = $this->getSchemaType($param);
+        $default = $this->getSchemaDefault($param);
+        $required = $param instanceof Parameter && $param->required;
 
         if ($required) {
             return '';
@@ -401,11 +383,14 @@ class PHP extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $default;
                     break;
+                case self::TYPE_ARRAY:
+                    $output .= \is_array($default) ? $this->jsonToAssoc($default) : (string) $default;
+                    break;
                 case self::TYPE_OBJECT:
-                    $output .= $this->jsonToAssoc(json_decode((string) $default, true));
+                    $decoded = \is_array($default) ? $default : json_decode((string) $default, true);
+                    $output .= $this->jsonToAssoc(\is_array($decoded) ? $decoded : []);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
@@ -419,10 +404,10 @@ class PHP extends Language
         return $output;
     }
 
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type = $this->getSchemaType($param);
+        $example = $this->getSchemaExample($param);
 
         $output = '';
 
@@ -451,10 +436,15 @@ class PHP extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
+                    if ($this->isPermissionString($example)) {
+                        $output .= $this->getPermissionExample($example);
+                    } else {
+                        $output .= \is_array($example) ? $this->jsonToAssoc($example) : (string) $example;
+                    }
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= $this->jsonToAssoc(json_decode((string) $example, true));
+                    $decoded = \is_array($example) ? $example : json_decode((string) $example, true);
+                    $output .= $this->jsonToAssoc(\is_array($decoded) ? $decoded : []);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -509,25 +499,18 @@ class PHP extends Language
         return $output . ($baseIndent . '    ]');
     }
 
-    protected function getMockDefinitionPayload(string $definitionName, array $spec, int $indentLevel = 2): string
+    protected function getMockDefinitionPayload(string $definitionName, Specification $spec, int $indentLevel = 2): string
     {
-        $definition = null;
-
-        foreach ($spec['definitions'] ?? [] as $candidate) {
-            if (($candidate['name'] ?? null) === $definitionName) {
-                $definition = $candidate;
-                break;
-            }
-        }
-
-        if ($definition === null) {
+        $definition = $spec->schemas[$definitionName] ?? null;
+        if (!$definition instanceof ObjectSchema) {
             return 'array()';
         }
 
-        $properties = array_values(array_filter(
-            $definition['properties'] ?? [],
-            fn (array $property): bool => (bool)($property['required'] ?? false)
-        ));
+        $properties = \array_filter(
+            $definition->properties,
+            fn(Schema $property, string $name): bool => \in_array($name, $definition->required, true),
+            ARRAY_FILTER_USE_BOTH,
+        );
 
         if ($properties === []) {
             return 'array()';
@@ -537,11 +520,13 @@ class PHP extends Language
         $closingIndent = str_repeat('    ', max(0, $indentLevel - 1));
         $lines = ['array('];
 
-        foreach ($properties as $index => $property) {
+        $index = 0;
+        foreach ($properties as $name => $property) {
             $lines[] = $itemIndent
-                . '"' . $this->escapePhpString((string)($property['name'] ?? '')) . '" => '
-                . $this->getMockPropertyValue($property, $spec, $indentLevel + 1)
+                . '"' . $this->escapePhpString($name) . '" => '
+                . $this->getMockPropertyValue($name, $property, $spec, $indentLevel + 1)
                 . ($index < count($properties) - 1 ? ',' : '');
+            $index++;
         }
 
         $lines[] = $closingIndent . ')';
@@ -549,42 +534,29 @@ class PHP extends Language
         return implode("\n", $lines);
     }
 
-    protected function getMockPropertyValue(array $property, array $spec, int $indentLevel): string
+    protected function getMockPropertyValue(string $name, Schema $property, Specification $spec, int $indentLevel): string
     {
-        if (!empty($property['sub_schema'])) {
-            if (($property['type'] ?? null) === self::TYPE_ARRAY) {
+        $model = $this->getSchemaModel($property);
+        if ($model !== null) {
+            if ($property instanceof ArraySchema) {
                 $itemIndent = str_repeat('    ', $indentLevel);
                 $closingIndent = str_repeat('    ', max(0, $indentLevel - 1));
-
-                return "array(\n"
-                    . $itemIndent . $this->getMockDefinitionPayload((string)$property['sub_schema'], $spec, $indentLevel + 1) . "\n"
-                    . $closingIndent . ')';
+                return "array(\n" . $itemIndent . $this->getMockDefinitionPayload($model, $spec, $indentLevel + 1) . "\n" . $closingIndent . ')';
             }
-
-            return $this->getMockDefinitionPayload((string)$property['sub_schema'], $spec, $indentLevel);
+            return $this->getMockDefinitionPayload($model, $spec, $indentLevel);
+        }
+        if ($property->enum !== []) {
+            return '"' . $this->escapePhpString((string) $property->enum[0]) . '"';
         }
 
-        if (!empty($property['enum'])) {
-            return '"' . $this->escapePhpString((string)$property['enum'][0]) . '"';
-        }
-
-        return match ($property['type'] ?? null) {
+        $example = $this->getSchemaExample($property);
+        return match ($this->getSchemaType($property)) {
             self::TYPE_OBJECT, self::TYPE_ARRAY => 'array()',
             self::TYPE_BOOLEAN => 'true',
-            self::TYPE_INTEGER => (($property['x-example'] ?? null) === null && ($property['example'] ?? null) === null)
-                ? '1'
-                : $this->formatPhpLiteral($property['example'] ?? $property['x-example']),
-            self::TYPE_NUMBER => (($property['x-example'] ?? null) === null && ($property['example'] ?? null) === null)
-                ? '1.0'
-                : $this->formatPhpLiteral($property['example'] ?? $property['x-example']),
-            self::TYPE_STRING => '"' . $this->escapePhpString(
-                (string)(
-                    ($property['example'] ?? null) !== null && ($property['example'] ?? '') !== ''
-                        ? $property['example']
-                        : '[' . strtoupper((string)($property['name'] ?? '')) . ']'
-                )
-            ) . '"',
-            default => $this->formatPhpLiteral($property['example'] ?? null),
+            self::TYPE_INTEGER => $example === null ? '1' : $this->formatPhpLiteral($example),
+            self::TYPE_NUMBER => $example === null ? '1.0' : $this->formatPhpLiteral($example),
+            self::TYPE_STRING => '"' . $this->escapePhpString((string) ($example !== null && $example !== '' ? $example : '[' . strtoupper($name) . ']')) . '"',
+            default => $this->formatPhpLiteral($example),
         };
     }
 
@@ -617,9 +589,9 @@ class PHP extends Language
         return str_replace('$', '\\$', $value);
     }
 
-    protected function getReturn(array $method, array $spec = []): string
+    protected function getReturn(Operation $method, ?Specification $spec = null): string
     {
-        if (($method['emptyResponse'] ?? true) || $method['type'] === 'location' || $method['type'] === 'webAuth') {
+        if ((\count($method->responses) === 1 && isset($method->responses[204])) || \in_array($method->extensions['x-appwrite']['type'] ?? '', ['location', 'webAuth'], true)) {
             return 'string';
         }
 
@@ -635,17 +607,17 @@ class PHP extends Language
     /**
      * Generate method parameters string for PHP method signatures
      */
-    protected function getMethodParameters(array $method): string
+    protected function getMethodParameters(Operation $method): string
     {
         $params = [];
 
-        foreach ($method['parameters']['all'] ?? [] as $parameter) {
-            $nullable = (!($parameter['required'] ?? true)) || ($parameter['nullable'] ?? false);
+        foreach ($this->getOperationParameters($method) as $parameter) {
+            $nullable = !$parameter->required || ($parameter->schema?->nullable ?? false);
             $nullablePrefix = $nullable ? '?' : '';
 
             $typeName = $this->getTypeName($parameter);
-            $paramName = '$' . $this->escapeKeyword($this->toCamelCase($parameter['name'] ?? ''));
-            $default = $parameter['required'] ?? true ? '' : ' = null';
+            $paramName = '$' . $this->escapeKeyword($this->toCamelCase($parameter->name));
+            $default = $parameter->required ? '' : ' = null';
 
             $params[] = $nullablePrefix . $typeName . ' ' . $paramName . $default;
         }
@@ -653,7 +625,7 @@ class PHP extends Language
         $result = implode(', ', $params);
 
         // Add onProgress callback for multipart/form-data methods
-        if (in_array('multipart/form-data', $method['consumes'] ?? [])) {
+        if (isset($method->requestBody?->content['multipart/form-data'])) {
             $result .= ($result !== '' ? ', ' : '') . '?callable $onProgress = null';
         }
 
@@ -664,10 +636,10 @@ class PHP extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('getReturn', fn(array $value, array $spec = []): string => $this->getReturn($value, $spec)),
-            new TwigFilter('getResponseModels', fn(array $value, array $spec = []): array => $this->getResponseModels($value, $spec)),
-            new TwigFilter('mockDefinitionPayload', fn(string $definitionName, array $spec, int $indentLevel = 2): string => $this->getMockDefinitionPayload($definitionName, $spec, $indentLevel), ['is_safe' => ['html']]),
-            new TwigFilter('methodParameters', fn(array $value): string => $this->getMethodParameters($value)),
+            new TwigFilter('getReturn', fn(Operation $value, ?Specification $spec = null): string => $this->getReturn($value, $spec)),
+            new TwigFilter('getResponseModels', fn(Operation $value, ?Specification $spec = null): array => $this->getResponseModels($value, $spec)),
+            new TwigFilter('mockDefinitionPayload', fn(string $definitionName, Specification $spec, int $indentLevel = 2): string => $this->getMockDefinitionPayload($definitionName, $spec, $indentLevel), ['is_safe' => ['html']]),
+            new TwigFilter('methodParameters', fn(Operation $value): string => $this->getMethodParameters($value)),
             new TwigFilter('deviceInfo', fn($value): string => php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m')),
             new TwigFilter('caseEnumKey', function (string $value): string {
                 if (isset($this->getIdentifierOverrides()[$value])) {
@@ -676,7 +648,7 @@ class PHP extends Language
                 $value = \preg_replace('/[^a-zA-Z0-9]/', '', $value);
                 return $this->toUpperSnakeCase($value);
             }),
-            new TwigFilter('hasBearerAuth', fn(array $headers): bool => array_any($headers, fn($header): bool => isset($header['type']) && $header['type'] === 'bearer')),
+            new TwigFilter('hasBearerAuth', fn(array $headers): bool => array_any($headers, static fn(SecurityScheme $header): bool => $header->type === SecuritySchemeType::HTTP && $header->scheme === 'bearer')),
             new TwigFilter('caseNamespace', function ($value): string {
                 $segments = explode('\\', $value);
                 $segments = array_map($this->toPascalCase(...), $segments);
@@ -692,16 +664,18 @@ class PHP extends Language
                 // Escape backslashes for JSON strings
                 fn($value): string|array => str_replace('\\', '\\\\', $value)
             ),
-            new TwigFilter('enumExample', function (array $param): string {
-                $enumValues = $param['enumValues'] ?? [];
-                if (empty($enumValues)) {
+            new TwigFilter('enumExample', function (Schema|Parameter $param): string {
+                $schema = $this->getSchema($param);
+                $enumValues = $schema instanceof ArraySchema ? $schema->items->enum : $schema->enum;
+                if ($enumValues === []) {
                     return '';
                 }
 
-                $enumKeys = $param['enumKeys'] ?? [];
-                $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
-                $example = $param['example'] ?? null;
-                $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
+                $enumName = $this->toPascalCase($enumSchema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
+                $example = $this->getSchemaExample($param);
+                $isArray = $schema instanceof ArraySchema;
 
                 $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);

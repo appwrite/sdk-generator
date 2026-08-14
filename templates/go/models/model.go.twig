@@ -6,17 +6,17 @@ import (
 )
 
 {{ ((definition.description | caseUcfirst) ~ " Model") | godocComment }}
-type {{ definition.name | caseUcfirst }} struct {
+type {{ definitionName | caseUcfirst }} struct {
     {%~ for property in definition.properties %}
     {{ property.description | godocComment(4) }}
-    {{ property.name | caseUcfirst | escapeKeyword }} {{ property | propertyType(spec) }} `json:"{{ property.name }}"`
+    {{ (property | schemaName) | caseUcfirst | escapeKeyword }} {{ property | propertyType(spec) }} `json:"{{ (property | schemaName) }}"`
     {%~ endfor %}
 
     // Used by Decode() method
     data []byte
 }
 
-func (model {{ definition.name | caseUcfirst }}) New(data []byte) *{{ definition.name | caseUcfirst }} {
+func (model {{ definitionName | caseUcfirst }}) New(data []byte) *{{ definitionName | caseUcfirst }} {
     model.data = data
     return &model
 }
@@ -24,7 +24,7 @@ func (model {{ definition.name | caseUcfirst }}) New(data []byte) *{{ definition
 {%~ if definition.additionalProperties %}
 // Use this method to get response in desired type
 {%~ endif %}
-func (model *{{ definition.name | caseUcfirst }}) Decode(value interface{}) error {
+func (model *{{ definitionName | caseUcfirst }}) Decode(value interface{}) error {
     if len(model.data) <= 0 {
         return errors.New("method Decode() cannot be used on nested struct")
     }

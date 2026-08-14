@@ -34,7 +34,7 @@ class RealtimeIO extends RealtimeBase with RealtimeMixin {
 
     final jwt = client.config['jwt'];
     if (jwt != null && jwt.isNotEmpty) {
-      headers['x-{{ spec.title | caseLower }}-jwt'] = jwt;
+      headers['x-{{ spec.info.title | caseLower }}-jwt'] = jwt;
     }
 
     final websok = IOWebSocketChannel((client as ClientIO).selfSigned

@@ -2,6 +2,11 @@
 
 namespace Appwrite\SDK\Language\Concern;
 
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\Tag;
+use Utopia\OpenAPI\Specification;
 use Override;
 use Twig\TwigFunction;
 
@@ -200,10 +205,10 @@ trait CliCommandSurface
      * description is what says whether the endpoint accepts only limit and
      * offset, so the parameter is returned rather than just its presence.
      */
-    protected function findQueriesParameter(array $method): ?array
+    protected function findQueriesParameter(Operation $method): ?Parameter
     {
-        foreach ($method['parameters']['all'] ?? [] as $parameter) {
-            if (($parameter['name'] ?? '') === 'queries' && ($parameter['type'] ?? '') === self::TYPE_ARRAY) {
+        foreach ($this->getOperationParameters($method) as $parameter) {
+            if ($parameter->name === 'queries' && $this->getSchemaType($parameter) === self::TYPE_ARRAY) {
                 return $parameter;
             }
         }
@@ -221,11 +226,9 @@ trait CliCommandSurface
      *
      * @return array{label: string, idVar: string, flag: string, factory: string}|null
      */
-    protected function getCliServiceScope(array $service): ?array
+    protected function getCliServiceScope(?string $resourceHeader): ?array
     {
-        // Defaults to '' rather than null: most services are unscoped, and null
-        // is not a valid array offset.
-        $scheme = $service['resourceHeader'] ?? '';
+        $scheme = $resourceHeader ?? '';
         $factory = self::SCOPE_FACTORIES[$scheme] ?? null;
 
         if ($factory === null) {
@@ -252,9 +255,9 @@ trait CliCommandSurface
      *
      * @return list<array{method: string, command: string, export: string}>
      */
-    protected function getCliTopLevelAliases(array $service): array
+    protected function getCliTopLevelAliases(Tag $service, array $methods): array
     {
-        $serviceName = $service['name'] ?? '';
+        $serviceName = $service->name;
         $configured = self::TOP_LEVEL_COMMANDS[$serviceName] ?? [];
 
         if ($configured === []) {
@@ -262,8 +265,8 @@ trait CliCommandSurface
         }
 
         $available = [];
-        foreach ($service['methods'] ?? [] as $method) {
-            $name = $method['name'] ?? '';
+        foreach ($methods as $method) {
+            $name = $this->cliMethodName($method);
 
             if ($name !== '') {
                 $available[$name] = true;
@@ -292,11 +295,11 @@ trait CliCommandSurface
      * example spells its invocation. Both CLIs document the same surface, so
      * the lookup belongs here rather than in either language class.
      */
-    protected function isCliTopLevelAlias(array $method, array $service): bool
+    protected function isCliTopLevelAlias(Operation $method, Tag $service): bool
     {
         return \in_array(
-            $method['name'] ?? '',
-            self::TOP_LEVEL_COMMANDS[$service['name'] ?? ''] ?? [],
+            $this->cliMethodName($method),
+            self::TOP_LEVEL_COMMANDS[$service->name] ?? [],
             true,
         );
     }
@@ -307,11 +310,11 @@ trait CliCommandSurface
      *
      * @return list<array{var: string, standalone: bool, hidden: bool, implementation: string|null}>
      */
-    protected function getCliCommandTargets(array $method, array $service): array
+    protected function getCliCommandTargets(Operation $method, Tag $service): array
     {
-        $serviceName = $service['name'] ?? '';
-        $methodName = $method['name'] ?? '';
-        $commandVar = lcfirst($serviceName) . ucfirst($methodName) . 'Command';
+        $serviceName = $service->name;
+        $methodName = $this->cliMethodName($method);
+        $commandVar = lcfirst($serviceName) . ucfirst((string) $methodName) . 'Command';
         $isTopLevel = in_array($methodName, self::TOP_LEVEL_COMMANDS[$serviceName] ?? [], true);
         $implementation = self::CONSOLE_FALLBACK_METHODS[$serviceName][$methodName] ?? null;
 
@@ -342,13 +345,13 @@ trait CliCommandSurface
      *
      * @return list<string>
      */
-    protected function getCliFallbackHelpers(array $service): array
+    protected function getCliFallbackHelpers(Tag $service, array $methods): array
     {
-        $configured = self::CONSOLE_FALLBACK_METHODS[$service['name'] ?? ''] ?? [];
+        $configured = self::CONSOLE_FALLBACK_METHODS[$service->name] ?? [];
         $helpers = [];
 
-        foreach ($service['methods'] ?? [] as $method) {
-            $helper = $configured[$method['name'] ?? ''] ?? null;
+        foreach ($methods as $method) {
+            $helper = $configured[$this->cliMethodName($method)] ?? null;
 
             if ($helper !== null && !in_array($helper, $helpers, true)) {
                 $helpers[] = $helper;
@@ -360,15 +363,9 @@ trait CliCommandSurface
         return $helpers;
     }
 
-    protected function hasCliQueryParam(array $service): bool
+    protected function hasCliQueryParam(array $methods): bool
     {
-        foreach ($service['methods'] ?? [] as $method) {
-            if ($this->findQueriesParameter($method) !== null) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($methods, fn($method): bool => $this->findQueriesParameter($method) !== null);
     }
 
     /**
@@ -377,33 +374,38 @@ trait CliCommandSurface
      * Keep the identification shared so the TypeScript and Go CLIs cannot
      * apply different input or help contracts.
      */
-    protected function isCliGraphQLInput(array $parameter, array $method, array $service): bool
+    protected function isCliGraphQLInput(Parameter $parameter, Operation $method, Tag $service): bool
     {
-        return ($service['name'] ?? '') === 'graphql'
-            && ($method['type'] ?? '') === 'graphql'
-            && ($parameter['name'] ?? '') === 'query';
+        return $service->name === 'graphql'
+            && ($method->extensions['x-appwrite']['type'] ?? '') === 'graphql'
+            && $parameter->name === 'query';
     }
 
-    protected function getCliMethodDescription(array $method, array $service): string
+    protected function getCliMethodDescription(Operation $method, Tag $service): string
     {
-        if (($service['name'] ?? '') === 'graphql' && ($method['type'] ?? '') === 'graphql') {
-            return match ($method['name'] ?? '') {
+        if ($service->name === 'graphql' && ($method->extensions['x-appwrite']['type'] ?? '') === 'graphql') {
+            return match ($this->cliMethodName($method)) {
                 'query' => 'Execute a GraphQL query.',
                 'mutation' => 'Execute a GraphQL mutation.',
-                default => $method['description'] ?? '',
+                default => $method->description,
             };
         }
 
-        return $method['description'] ?? '';
+        return $method->description;
     }
 
-    protected function getCliParameterDescription(array $parameter, array $method, array $service): string
+    protected function getCliParameterDescription(Parameter $parameter, Operation $method, Tag $service): string
     {
         if ($this->isCliGraphQLInput($parameter, $method, $service)) {
             return 'Raw GraphQL document, or a JSON request object or array for variables, operation names, or batching.';
         }
 
-        return $parameter['description'] ?? '';
+        return $parameter->description;
+    }
+
+    protected function cliMethodName(Operation $method): string
+    {
+        return (string) ($method->extensions['x-appwrite']['method'] ?? $method->id);
     }
 
     protected function getCliOptionName(string $name): string
@@ -414,18 +416,18 @@ trait CliCommandSurface
         return in_array(strtolower($name), self::FLAG_RESERVED_KEYWORDS, true) ? 'x' . $kebabName : $kebabName;
     }
 
-    protected function getCliQueryConfig(array $method): array
+    protected function getCliQueryConfig(Operation $method): array
     {
         $queries = $this->findQueriesParameter($method);
         $hasQueries = $queries !== null;
-        $methodName = $method['name'] ?? '';
+        $methodName = $this->cliMethodName($method);
         $parameterNames = array_map(
-            fn (array $parameter): string => $parameter['name'] ?? '',
-            $method['parameters']['all'] ?? []
+            static fn(Parameter $parameter): string => $parameter->name,
+            $this->getOperationParameters($method),
         );
         $collides = fn (string $group): bool => array_intersect(self::QUERY_FLAG_PARAMS[$group], $parameterNames) !== [];
         $hasOnlyLimitOffsetQueries = $hasQueries
-            && str_contains(strtolower($queries['description'] ?? ''), 'only supported methods are limit and offset');
+            && str_contains(strtolower((string) $queries->description), 'only supported methods are limit and offset');
         $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true) && !$collides('select');
         $hasSelectionOnlyQueries = $hasQueries && in_array($methodName, ['getDocument', 'getRow'], true);
         $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries && !$collides('filtering');
@@ -518,9 +520,9 @@ trait CliCommandSurface
             new TwigFunction('cliHelpGroups', fn (): array => $this->getCliHelpGroups()),
             new TwigFunction('cliHelpSummaries', fn (string $title): array => $this->getCliHelpSummaries($title)),
             new TwigFunction('cliHelpOptionOrder', fn (): array => $this->getCliHelpOptionOrder()),
-            new TwigFunction('cliIsGraphQLInput', fn (array $parameter, array $method, array $service): bool => $this->isCliGraphQLInput($parameter, $method, $service)),
-            new TwigFunction('cliMethodDescription', fn (array $method, array $service): string => $this->getCliMethodDescription($method, $service)),
-            new TwigFunction('cliParameterDescription', fn (array $parameter, array $method, array $service): string => $this->getCliParameterDescription($parameter, $method, $service)),
+            new TwigFunction('cliIsGraphQLInput', fn(Parameter $parameter, Operation $method, Tag $service): bool => $this->isCliGraphQLInput($parameter, $method, $service)),
+            new TwigFunction('cliMethodDescription', fn(Operation $method, Tag $service): string => $this->getCliMethodDescription($method, $service)),
+            new TwigFunction('cliParameterDescription', fn(Parameter $parameter, Operation $method, Tag $service): string => $this->getCliParameterDescription($parameter, $method, $service)),
         ];
     }
 
@@ -535,10 +537,10 @@ trait CliCommandSurface
      * `--roles []string{}` is not a command anybody can run.
      */
     #[Override]
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type = $param['type'] ?? '';
-        $example = $param['example'] ?? '';
+        $type = $this->getSchemaType($param);
+        $example = $this->getSchemaExample($param);
 
         if (empty($example) && $example !== 0 && $example !== false) {
             return match ($type) {

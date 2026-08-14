@@ -1,7 +1,7 @@
 package services
 
-{% set scope = service | cliServiceScope %}
-{% set hasQueryParam = service | hasCliQueryParam %}
+{% set scope = resourceHeader | cliServiceScope %}
+{% set hasQueryParam = (service | operations) | hasCliQueryParam %}
 import (
 {% if sdk.test %}
 {% if hasQueryParam %}
@@ -48,13 +48,13 @@ func New{{ service.name | caseUcfirst }}Command() *cobra.Command {
 	}
 
 {% set seenCommands = [] %}
-{% for method in service.methods %}
-{% set commandName = method.name | caseKebab %}
+{% for method in (service | operations) %}
+{% set commandName = (method | methodName) | caseKebab %}
 {% if commandName not in seenCommands %}
 {% set seenCommands = seenCommands|merge([commandName]) %}
 {% for target in method | cliCommandTargets(service) %}
 {% if not target.standalone %}
-	cmd.AddCommand(new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command())
+	cmd.AddCommand(new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }}Command())
 {% endif %}
 {% endfor %}
 {% endif %}
@@ -62,7 +62,7 @@ func New{{ service.name | caseUcfirst }}Command() *cobra.Command {
 
 	return cmd
 }
-{% set rootAliases = service | cliTopLevelAliases %}
+{% set rootAliases = service | cliTopLevelAliases(service | operations) %}
 {% if rootAliases is not empty %}
 
 // New{{ service.name | caseUcfirst }}RootCommands returns the methods promoted to
@@ -86,13 +86,13 @@ func New{{ service.name | caseUcfirst }}RootCommands() []*cobra.Command {
 }
 {% endif %}
 {% set seenCommands = [] %}
-{% for method in service.methods %}
-{% set commandName = method.name | caseKebab %}
+{% for method in (service | operations) %}
+{% set commandName = (method | methodName) | caseKebab %}
 {% if commandName not in seenCommands %}
 {% set seenCommands = seenCommands|merge([commandName]) %}
 {% set query = method | cliQueryConfig %}
 {% set hasScopedIdParam = false %}
-{% for parameter in method.parameters.all %}
+{% for parameter in (method | parameters('all')) %}
 {% if scope and parameter.name == scope.idVar %}
 {% set hasScopedIdParam = true %}
 {% endif %}
@@ -113,8 +113,8 @@ func New{{ service.name | caseUcfirst }}RootCommands() []*cobra.Command {
 {% endif %}
 {% endfor %}
 
-func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command() *cobra.Command {
-{% for parameter in method.parameters.all %}
+func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }}Command() *cobra.Command {
+{% for parameter in (method | parameters('all')) %}
 {% set opt = getGoCliOption(parameter) %}
 	var {{ opt.var }} {{ opt.goType }}
 {% endfor %}
@@ -137,7 +137,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 	var selectAttributes []string
 {% endif %}
 {% endif %}
-{% if method.type == 'location' %}
+{% if (method | methodType) == 'location' %}
 	var destination string
 {% endif %}
 {% if scopedFlag %}
@@ -149,7 +149,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
    ends an alignment run at a value that spans lines. #}
 {% set commandKeyFormat = isTopLevel ? '%-8s' : '%-7s' %}
 	cmd := &cobra.Command{
-		{{ commandKeyFormat|format('Use:') }}"{{ method.name | caseKebab }}",
+		{{ commandKeyFormat|format('Use:') }}"{{ (method | methodName) | caseKebab }}",
 		{{ commandKeyFormat|format('Short:') }}{{ cliMethodDescription(method, service) | stripMarkdown | goString | raw }},
 {% if isTopLevel %}
 		{{ commandKeyFormat|format('Hidden:') }}true,
@@ -162,7 +162,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 {% elseif not implementation %}
 {% if scope %}
 			client, err := app.ClientFor{{ scope.label }}({{ scopedFlag ? scope.idVar : '""' }})
-{% elseif service.isConsoleOnly %}
+{% elseif isConsoleOnly %}
 			client, err := app.ClientForConsole()
 {% else %}
 			client, err := app.ClientForProject("")
@@ -265,7 +265,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
    with no arguments after it reading `Method(id, )`, which compiles but is not
    what anyone would write. #}
 {% set callArguments = query.hasQueries ? ['queries'] : [] %}
-{% for parameter in method.parameters.all %}{% set callArguments = callArguments|merge([getGoVarName(parameter)]) %}{% endfor %}
+{% for parameter in (method | parameters('all')) %}{% set callArguments = callArguments|merge([getGoVarName(parameter)]) %}{% endfor %}
 			result, err := service.{{ plan.method }}({{ callArguments|join(', ') }})
 {% else %}
 {% set callArguments = [] %}
@@ -274,9 +274,9 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 			result, err := service.{{ plan.method }}({{ callArguments|join(', ') }})
 {% endif %}
 			if err != nil {
-				return sdk.WrapMutationError("{{ method.method | upper }}", err)
+				return sdk.WrapMutationError("{{ method.method.value | upper }}", err)
 			}
-{% if method.type == 'location' and not sdk.test %}
+{% if (method | methodType) == 'location' and not sdk.test %}
 
 			// A location method returns the file bytes, not a URL. The
 			// TypeScript fetches the URL itself; the SDK has already done that.
@@ -288,7 +288,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 		},
 	}
 
-{% for parameter in method.parameters.all %}
+{% for parameter in (method | parameters('all')) %}
 {% set opt = getGoCliOption(parameter) %}
 	cmd.Flags().{{ opt.register }}Var(&{{ opt.var }}, "{{ opt.flag }}", {% if opt.goType == '[]string' %}nil{% elseif opt.goType == 'bool' %}false{% elseif opt.goType == 'int' %}0{% elseif opt.goType == 'float64' %}0{% else %}""{% endif %}, {{ cliParameterDescription(parameter, method, service) | stripMarkdown | goString | raw }})
 {% if opt.noOptDefault %}
@@ -317,7 +317,7 @@ func new{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Command()
 	cmd.Flags().StringArrayVar(&selectAttributes, "select", nil, "Attribute to include in the response. Repeat for multiple attributes.")
 {% endif %}
 {% endif %}
-{% if method.type == 'location' %}
+{% if (method | methodType) == 'location' %}
 	cmd.Flags().StringVar(&destination, "destination", "", "Path to save the file to.")
 	_ = cmd.MarkFlagRequired("destination")
 {% endif %}

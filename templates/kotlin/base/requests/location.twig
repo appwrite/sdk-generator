@@ -1,5 +1,5 @@
         return client.call(
-            "{{ method.method | caseUpper }}",
+            "{{ method.method.value | caseUpper }}",
             apiPath,
             headers = apiHeaders,
             params = apiParams,

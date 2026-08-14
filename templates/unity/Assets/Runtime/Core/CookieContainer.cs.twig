@@ -8,7 +8,7 @@ using UnityEngine;
 using System.Runtime.InteropServices;
 #endif
 
-namespace {{ spec.title | caseUcfirst }}
+namespace {{ spec.info.title | caseUcfirst }}
 {
     /// <summary>
     /// Simple cookie container for Unity WebRequest
@@ -65,7 +65,7 @@ namespace {{ spec.title | caseUcfirst }}
         private readonly List<Cookie> _cookies = new List<Cookie>();
         private readonly object _lock = new object();
 
-        private const string CookiePrefsKey = "{{ spec.title | caseUcfirst }}_Cookies";
+        private const string CookiePrefsKey = "{{ spec.info.title | caseUcfirst }}_Cookies";
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
         private static extern void EnableWebGLHttpCredentials(int enable);

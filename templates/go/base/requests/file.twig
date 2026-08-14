@@ -1,13 +1,13 @@
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
+{% for parameter in (method | parameters('all')) %}
+{% if (parameter | schemaType) == 'file' %}
     paramName := "{{ parameter.name }}"
 
 {% endif %}
 {% endfor %}
 
     uploadId := ""
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
+{% for parameter in (method | parameters('all')) %}
+{% if (parameter | extension('x-upload-id', false)) %}
     uploadId = {{ parameter.name | escapeKeyword | caseUcfirst }}
 {% endif %}
 {% endfor %}
@@ -21,9 +21,9 @@
 		if err != nil {
 			return nil, err
 		}
-{% if method | returnType(spec, spec.title | caseLower) == 'models.Model' %}
-{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
-{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% if method | returnType(spec, spec.info.title | caseLower) == 'models.Model' %}
+{% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}
+{% set responseDiscriminator = (method | responseDiscriminator) %}
 {% if hasResponseDiscriminator %}
 		var response map[string]interface{}
 		if err := json.Unmarshal(bytes, &response); err != nil {
@@ -40,14 +40,14 @@
 {% endfor %}
 		return nil, errors.New("unable to match response to any expected response model")
 {% else %}
-		parsed := models.{{ method.responseModel | caseUcfirst }}{}.New(bytes)
+		parsed := models.{{ (method | responseModel) | caseUcfirst }}{}.New(bytes)
 		if err := json.Unmarshal(bytes, parsed); err != nil {
 			return nil, err
 		}
 		return parsed, nil
 {% endif %}
 {% else %}
-		var parsed {{ method | returnType(spec, spec.title | caseLower) }}
+		var parsed {{ method | returnType(spec, spec.info.title | caseLower) }}
 		err = json.Unmarshal(bytes, &parsed)
 		if err != nil {
 			return nil, err
@@ -55,15 +55,15 @@
 		return &parsed, nil
 {% endif %}
 	}
-{% if method | returnType(spec, spec.title | caseLower) == 'models.Model' %}
+{% if method | returnType(spec, spec.info.title | caseLower) == 'models.Model' %}
 	parsed, ok := resp.Result.(models.Model)
 	if !ok {
 		return nil, errors.New("unexpected response type")
 	}
 	return parsed, nil
 {% else %}
-	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
-	parsed, ok := resp.Result.({{ method | returnType(spec, spec.title | caseLower) }})
+	var parsed {{ method | returnType(spec, spec.info.title | caseLower) }}
+	parsed, ok := resp.Result.({{ method | returnType(spec, spec.info.title | caseLower) }})
 	if !ok {
 		return nil, errors.New("unexpected response type")
 	}

@@ -1,7 +1,7 @@
 import Foundation
 import JSONCodable
-{% if definition.properties | filter(p => p.enum or p.enumValues) | length > 0 %}
-import {{spec.title | caseUcfirst}}Enums
+{% if definition.properties | filter(p => (p | enumValues) is not empty) | length > 0 %}
+import {{spec.info.title | caseUcfirst}}Enums
 {% endif %}
 
 /// {{ definition.description }}
@@ -12,7 +12,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
 
     enum CodingKeys: String, CodingKey {
         {%~ for property in definition.properties %}
-        case {{ property.name | escapeSwiftKeyword | removeDollarSign }} = "{{ property.name }}"
+        case {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = "{{ (property | schemaName) }}"
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         case {{ 'data' | escapeSwiftKeyword | removeDollarSign }} = "{{ 'data' }}"
@@ -21,7 +21,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
 
     {%~ for property in definition.properties %}
     /// {{ property.description }}
-    public let {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not property.required %}?{% endif %}
+    public let {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not (property | schemaRequired) %}?{% endif %}
 
     {%~ endfor %}
     {%~ if definition.additionalProperties %}
@@ -31,7 +31,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
 
     init(
         {%~ for property in definition.properties %}
-        {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw  }}{% if not property.required %}?{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+        {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw  }}{% if not (property | schemaRequired) %}?{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
@@ -39,7 +39,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         {%~ endif %}
     ) {
         {%~ for property in definition.properties %}
-        self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = {{ property.name | escapeSwiftKeyword | removeDollarSign }}
+        self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         self.{{ 'data' | escapeSwiftKeyword | removeDollarSign }} = {{ 'data' | escapeSwiftKeyword | removeDollarSign }}
@@ -50,29 +50,29 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         {%~ for property in definition.properties %}
-        {%~ if property.enum %}
-        {%~ if property.required %}
-        self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: try container.decode(String.self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }}))!
+        {%~ if (property | schemaType) != 'array' and (property | enumValues) is not empty %}
+        {%~ if (property | schemaRequired) %}
+        self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: try container.decode(String.self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}))!
         {%~ else %}
-        if let {{ property.name | escapeSwiftKeyword | removeDollarSign }}String = try container.decodeIfPresent(String.self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }}) {
-            self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: {{ property.name | escapeSwiftKeyword | removeDollarSign }}String)
+        if let {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}String = try container.decodeIfPresent(String.self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}) {
+            self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}String)
         } else {
-            self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = nil
+            self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = nil
         }
         {%~ endif %}
-        {%~ elseif property.enumValues %}
-        {%~ set enumName = property['enumName'] ?? property.name %}
-        {%~ if property.required %}
-        self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = try container.decode([String].self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }}).map { {{ spec.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: $0)! }
+        {%~ elseif (property | enumValues) %}
+        {%~ set enumName = (property | enumName) %}
+        {%~ if (property | schemaRequired) %}
+        self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = try container.decode([String].self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}).map { {{ spec.info.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: $0)! }
         {%~ else %}
-        if let {{ property.name | escapeSwiftKeyword | removeDollarSign }}Strings = try container.decodeIfPresent([String].self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }}) {
-            self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = {{ property.name | escapeSwiftKeyword | removeDollarSign }}Strings.map { {{ spec.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: $0)! }
+        if let {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}Strings = try container.decodeIfPresent([String].self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}) {
+            self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}Strings.map { {{ spec.info.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: $0)! }
         } else {
-            self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = nil
+            self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = nil
         }
         {%~ endif %}
         {%~ else %}
-        self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = try container.decode{% if not property.required %}IfPresent{% endif %}({{ property | propertyType(spec) | raw }}.self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
+        self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = try container.decode{% if not (property | schemaRequired) %}IfPresent{% endif %}({{ property | propertyType(spec) | raw }}.self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }})
         {%~ endif %}
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
@@ -84,7 +84,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         {%~ for property in definition.properties %}
-        try container.encode{% if not property.required %}IfPresent{% endif %}({{ property.name | escapeSwiftKeyword | removeDollarSign }}{% if property.enum %}{% if property.required %}.rawValue{% else %}?.rawValue{% endif %}{% elseif property.enumValues %}{% if property.required %}.map { $0.rawValue }{% else %}?.map { $0.rawValue }{% endif %}{% endif %}, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
+        try container.encode{% if not (property | schemaRequired) %}IfPresent{% endif %}({{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}{% if (property | schemaType) != 'array' and (property | enumValues) is not empty %}{% if (property | schemaRequired) %}.rawValue{% else %}?.rawValue{% endif %}{% elseif (property | enumValues) is not empty %}{% if (property | schemaRequired) %}.map { $0.rawValue }{% else %}?.map { $0.rawValue }{% endif %}{% endif %}, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }})
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         try container.encode({{ 'data' | escapeSwiftKeyword | removeDollarSign }}, forKey: .{{ 'data' | escapeSwiftKeyword | removeDollarSign }})
@@ -94,7 +94,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     public func toMap() -> [String: Any] {
         return [
             {%~ for property in definition.properties %}
-            "{{ property.name }}": {{ property | modelToMapValue }} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            "{{ (property | schemaName) }}": {{ property | modelToMapValue(property | schemaName, property | schemaRequired) }} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
@@ -103,29 +103,29 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         ]
     }
 
-    public static func from(map: [String: Any] ) -> {{ definition.name | caseUcfirst }} {
-        return {{ definition.name | caseUcfirst }}(
+    public static func from(map: [String: Any] ) -> {{ definitionName | caseUcfirst }} {
+        return {{ definitionName | caseUcfirst }}(
             {%~ for property in definition.properties %}
-            {%~ set isDocument = definition.name | lower == 'document' %}{# Temporary Fix until BE is fixed to return all attributes #}
-            {{ property.name | removeDollarSign }}: {% if property.sub_schema -%}
-                {%- if property.type == 'array' -%}
-                    (map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [[String: Any]]{% if isDocument %} ?? []{% elseif not property.required %} ?? []{% endif %}).map { {{property.sub_schema | caseUcfirst}}.from(map: $0) }
+            {%~ set isDocument = definitionName | lower == 'document' %}{# Temporary Fix until BE is fixed to return all attributes #}
+            {{ (property | schemaName) | removeDollarSign }}: {% if (property | schemaModel) -%}
+                {%- if (property | schemaType) == 'array' -%}
+                    (map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}{% if (property | schemaRequired) %}!{% else %}?{% endif %}{% endif %} [[String: Any]]{% if isDocument %} ?? []{% elseif not (property | schemaRequired) %} ?? []{% endif %}).map { {{(property | schemaModel) | caseUcfirst}}.from(map: $0) }
                 {%- else -%}
-                    {% if isDocument or not property.required %}map["{{property.name }}"] as? [String: Any] != nil ? {{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]) : nil{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]){% endif %}
+                    {% if isDocument or not (property | schemaRequired) %}map["{{(property | schemaName) }}"] as? [String: Any] != nil ? {{(property | schemaModel) | caseUcfirst}}.from(map: map["{{(property | schemaName) }}"] as! [String: Any]) : nil{% else %}{{(property | schemaModel) | caseUcfirst}}.from(map: map["{{(property | schemaName) }}"] as! [String: Any]){% endif %}
                 {%- endif -%}
             {%- else -%}
                 {%- if property | isAnyCodableArray(spec) -%}
-                    (map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [Any]{% if isDocument or not property.required %} ?? []{% endif %}).map { AnyCodable($0) }
+                    (map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}{% if (property | schemaRequired) %}!{% else %}?{% endif %}{% endif %} [Any]{% if isDocument or not (property | schemaRequired) %} ?? []{% endif %}).map { AnyCodable($0) }
                 {%- elseif property | isAnyCodableObject(spec) -%}
-                    (map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [String: Any]{% if isDocument or not property.required %} ?? [:]{% endif %}).mapValues { AnyCodable($0) }
-                {%- elseif property.enum -%}
-                    {%- set enumName = property['enumName'] ?? property.name -%}
-                    {% if property.required %}{{ spec.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: map["{{property.name }}"] as{% if isDocument %}?{% else %}!{% endif %} String{% if isDocument %} ?? ""{% endif %})!{% else %}map["{{property.name }}"] as? String != nil ? {{ spec.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: map["{{property.name }}"] as! String) : nil{% endif %}
-                {%- elseif property.enumValues -%}
-                    {%- set enumName = property['enumName'] ?? property.name -%}
-                    {% if property.required %}(map["{{property.name }}"] as{% if isDocument %}?{% else %}!{% endif %} [String]{% if isDocument %} ?? []{% endif %}).map { {{ spec.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: $0)! }{% else %}(map["{{property.name }}"] as? [String])?.map { {{ spec.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: $0)! }{% endif %}
+                    (map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}{% if (property | schemaRequired) %}!{% else %}?{% endif %}{% endif %} [String: Any]{% if isDocument or not (property | schemaRequired) %} ?? [:]{% endif %}).mapValues { AnyCodable($0) }
+                {%- elseif (property | schemaType) != 'array' and (property | enumValues) is not empty -%}
+                    {%- set enumName = (property | enumName) -%}
+                    {% if (property | schemaRequired) %}{{ spec.info.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}!{% endif %} String{% if isDocument %} ?? ""{% endif %})!{% else %}map["{{(property | schemaName) }}"] as? String != nil ? {{ spec.info.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: map["{{(property | schemaName) }}"] as! String) : nil{% endif %}
+                {%- elseif (property | enumValues) -%}
+                    {%- set enumName = (property | enumName) -%}
+                    {% if (property | schemaRequired) %}(map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}!{% endif %} [String]{% if isDocument %} ?? []{% endif %}).map { {{ spec.info.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: $0)! }{% else %}(map["{{(property | schemaName) }}"] as? [String])?.map { {{ spec.info.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: $0)! }{% endif %}
                 {%- else -%}
-                    map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} {{ property | propertyType(spec) | raw }}{% if isDocument and property.required %}{% if property.type == 'string' %} ?? ""{% elseif property.type == 'integer' %} ?? 0{% elseif property.type == 'number' %} ?? 0.0{% elseif property.type == 'boolean' %} ?? false{% elseif property.type == 'array' %} ?? []{% endif %}{% endif %}
+                    map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}{% if (property | schemaRequired) %}!{% else %}?{% endif %}{% endif %} {{ property | propertyType(spec) | raw }}{% if isDocument and (property | schemaRequired) %}{% if (property | schemaType) == 'string' %} ?? ""{% elseif (property | schemaType) == 'integer' %} ?? 0{% elseif (property | schemaType) == 'number' %} ?? 0.0{% elseif (property | schemaType) == 'boolean' %} ?? false{% elseif (property | schemaType) == 'array' %} ?? []{% endif %}{% endif %}
                 {%- endif -%}
             {%- endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 

@@ -9,11 +9,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using {{ spec.title | caseUcfirst }}.Converters;
-using {{ spec.title | caseUcfirst }}.Extensions;
-using {{ spec.title | caseUcfirst }}.Models;
+using {{ spec.info.title | caseUcfirst }}.Converters;
+using {{ spec.info.title | caseUcfirst }}.Extensions;
+using {{ spec.info.title | caseUcfirst }}.Models;
 
-namespace {{ spec.title | caseUcfirst }}
+namespace {{ spec.info.title | caseUcfirst }}
 {
     public class Client
     {
@@ -60,7 +60,7 @@ namespace {{ spec.title | caseUcfirst }}
         };
 
         public Client(
-            string endpoint = "{{spec.endpoint}}",
+            string endpoint = "{{(spec | endpoint)}}",
             bool selfSigned = false,
             HttpClient? http = null,
             HttpClient? httpForRedirect = null)
@@ -76,12 +76,12 @@ namespace {{ spec.title | caseUcfirst }}
             _headers = new Dictionary<string, string>()
             {
                 { "content-type", "application/json" },
-                { "user-agent" , $"{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({Environment.OSVersion.Platform}; {Environment.OSVersion.VersionString})"},
+                { "user-agent" , $"{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({Environment.OSVersion.Platform}; {Environment.OSVersion.VersionString})"},
                 { "x-sdk-name", "{{ sdk.name }}" },
                 { "x-sdk-platform", "{{ sdk.platform }}" },
                 { "x-sdk-language", "{{ language.name | caseLower }}" },
-                { "x-sdk-version", "{{ sdk.version }}"}{% if spec.global.defaultHeaders | length > 0 %},
-                {%~ for key,header in spec.global.defaultHeaders %}
+                { "x-sdk-version", "{{ sdk.version }}"}{% if defaultHeaders | length > 0 %},
+                {%~ for key,header in defaultHeaders %}
                 { "{{key}}", "{{header}}" }{% if not loop.last %},{% endif %}
                 {%~ endfor %}{% endif %}
 
@@ -112,21 +112,21 @@ namespace {{ spec.title | caseUcfirst }}
         public Client SetEndpoint(string endpoint)
         {
             if (!endpoint.StartsWith("http://") && !endpoint.StartsWith("https://")) {
-                throw new {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: " + endpoint);
+                throw new {{spec.info.title | caseUcfirst}}Exception("Invalid endpoint URL: " + endpoint);
             }
 
             _endpoint = endpoint;
             return this;
         }
 
-        {%~ for header in spec.global.headers %}
+        {%~ for headerKey, header in globalHeaders %}
         {%~ if header.description %}
         /// <summary>{{header.description}}</summary>
         {%~ endif %}
-        public Client Set{{header.key | caseUcfirst}}(string value) {
-            _config["{{ header.key | caseCamel }}"] = value;
-            {%~ if header.global %}
-            AddHeader("{{header.name}}", {% if header.type is defined and header.type == 'bearer' %}"Bearer " + value{% else %}value{% endif %});
+        public Client Set{{headerKey | caseUcfirst}}(string value) {
+            _config["{{ headerKey | caseCamel }}"] = value;
+            {%~ if (headerKey != 'Project') %}
+            AddHeader("{{header.name}}", {% if header.scheme == 'bearer' %}"Bearer " + value{% else %}value{% endif %});
             {%~ endif %}
 
             return this;
@@ -277,7 +277,7 @@ namespace {{ spec.title | caseUcfirst }}
                     message = text;
                 }
 
-                throw new {{spec.title | caseUcfirst}}Exception(message, code, type, text);
+                throw new {{spec.info.title | caseUcfirst}}Exception(message, code, type, text);
             }
 
             return response.Headers.Location?.OriginalString ?? string.Empty;
@@ -304,7 +304,7 @@ namespace {{ spec.title | caseUcfirst }}
             var response = await _http.SendAsync(request);
             var code = (int)response.StatusCode;
 
-            if (response.Headers.TryGetValues("x-{{ spec.title | lower }}-warning", out var warnings))
+            if (response.Headers.TryGetValues("x-{{ spec.info.title | lower }}-warning", out var warnings))
             {
                 foreach (var warning in warnings)
                 {
@@ -343,7 +343,7 @@ namespace {{ spec.title | caseUcfirst }}
                     message = text;
                 }
 
-                throw new {{spec.title | caseUcfirst}}Exception(message, code, type, text);
+                throw new {{spec.info.title | caseUcfirst}}Exception(message, code, type, text);
             }
 
             if (isJson)
@@ -530,7 +530,7 @@ namespace {{ spec.title | caseUcfirst }}
 
                 if (includeUploadId && !string.IsNullOrEmpty(uploadId))
                 {
-                    chunkHeaders["x-{{ spec.title | caseLower }}-id"] = uploadId;
+                    chunkHeaders["x-{{ spec.info.title | caseLower }}-id"] = uploadId;
                 }
 
                 var content = new MultipartFormDataContent {

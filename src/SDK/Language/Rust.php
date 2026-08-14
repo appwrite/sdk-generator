@@ -2,6 +2,11 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\ArraySchema;
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
@@ -144,7 +149,7 @@ class Rust extends Language
             ],
             [
                 "scope" => "method",
-                "destination" => "docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md",
+                "destination" => "docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md",
                 "template" => "rust/docs/example.md.twig",
             ],
             [
@@ -225,12 +230,12 @@ class Rust extends Language
 
             [
                 "scope" => "definition",
-                "destination" => "src/models/{{ definition.name | caseSnake }}.rs",
+                "destination" => "src/models/{{ definitionName | caseSnake }}.rs",
                 "template" => "rust/src/models/model.rs.twig",
             ],
             [
                 "scope" => "requestModel",
-                "destination" => "src/models/{{ requestModel.name | caseSnake }}.rs",
+                "destination" => "src/models/{{ requestModelName | caseSnake }}.rs",
                 "template" => "rust/src/models/request_model.rs.twig",
             ],
             [
@@ -240,7 +245,7 @@ class Rust extends Language
             ],
             [
                 "scope" => "enum",
-                "destination" => "src/enums/{{ enum.name | caseSnake }}.rs",
+                "destination" => "src/enums/{{ enum.title | caseSnake }}.rs",
                 "template" => "rust/src/enums/enum.rs.twig",
             ],
             [
@@ -266,60 +271,33 @@ class Rust extends Language
         ];
     }
 
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        $isArray = (($parameter["type"] ?? null) === self::TYPE_ARRAY);
-
-        // Handle enum types
-        if (!$isArray && isset($parameter["enumName"])) {
-            return "crate::enums::" . $this->toPascalCase($parameter["enumName"]);
-        }
-        if (!$isArray && !empty($parameter["enumValues"])) {
-            return "crate::enums::" . $this->toPascalCase($parameter["name"]);
-        }
-        if ($isArray && isset($parameter["enumName"])) {
-            return "Vec<crate::enums::" . $this->toPascalCase($parameter["enumName"]) . ">";
-        }
-        if ($isArray && !empty($parameter["enumValues"])) {
-            return "Vec<crate::enums::" . $this->toPascalCase($parameter["name"]) . ">";
+        $schema = $this->getSchema($parameter);
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        if ($enumSchema->enum !== []) {
+            $type = 'crate::enums::' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
+            return $schema instanceof ArraySchema ? 'Vec<' . $type . '>' : $type;
         }
 
-        if (
-            isset($parameter["type"]) && $parameter["type"] === "array" &&
-            isset($parameter["items"]["type"]) && $parameter["items"]["type"] === "object" &&
-            !isset($parameter["items"]["model"]) &&
-            !isset($parameter["items"]['$ref'])
-        ) {
-            return "Vec<serde_json::Value>";
+        $model = $schema instanceof ArraySchema
+            ? $this->getArraySchemaModel($schema)
+            : $this->getSchemaModel($schema);
+        if ($model !== null) {
+            $type = $model === 'any' ? 'serde_json::Value' : 'crate::models::' . $this->toPascalCase($model);
+            return $schema instanceof ArraySchema ? 'Vec<' . $type . '>' : $type;
         }
-        if (isset($parameter["items"])) {
-            // Map definition nested type to parameter nested type
-            $parameter["array"] = $parameter["items"];
-        }
-
-        if (($parameter["array"]["model"] ?? null) === "any") {
-            return "Vec<serde_json::Value>";
-        }
-
-        if (($parameter["model"] ?? null) === "any") {
-            return "serde_json::Value";
-        }
-
-        return match ($parameter["type"]) {
-            self::TYPE_INTEGER => "i64",
-            self::TYPE_NUMBER => "f64",
-            self::TYPE_FILE => "InputFile",
-            self::TYPE_STRING => "String",
-            self::TYPE_BOOLEAN => "bool",
-            self::TYPE_OBJECT => "serde_json::Value",
-            self::TYPE_ARRAY => isset($parameter["array"]["model"])
-                ? "Vec<crate::models::" . $this->toPascalCase($parameter["array"]["model"]) . ">"
-                : (!empty(($parameter["array"] ?? [])["type"]) && !\is_array($parameter["array"]["type"])
-                    ? "Vec<" . $this->getTypeName($parameter["array"]) . ">"
-                    : "Vec<String>"),
-            default => isset($parameter["model"])
-                ? "crate::models::" . $this->toPascalCase($parameter["model"])
-                : $parameter["type"],
+        return match ($this->getSchemaType($parameter)) {
+            self::TYPE_INTEGER => 'i64',
+            self::TYPE_NUMBER => 'f64',
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_STRING => 'String',
+            self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_OBJECT => 'serde_json::Value',
+            self::TYPE_ARRAY => $this->isUntypedNestedArray($parameter, $schema)
+                ? 'Vec<Vec<String>>'
+                : 'Vec<' . $this->getTypeName($schema->items) . '>',
+            default => 'serde_json::Value',
         };
     }
 
@@ -338,11 +316,11 @@ class Rust extends Language
         return 'vec![' . $elements . ']';
     }
 
-    public function getParamDefault(array $param): string
+    public function getParamDefault(Schema|Parameter $param): string
     {
-        $type = $param["type"] ?? "";
-        $default = $param["default"] ?? "";
-        $required = $param["required"] ?? "";
+        $type = $this->getSchemaType($param);
+        $default = $this->getSchemaDefault($param);
+        $required = $param instanceof Parameter && $param->required;
 
         if ($required) {
             return "";
@@ -399,10 +377,10 @@ class Rust extends Language
         return $output;
     }
 
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type = $param["type"] ?? "";
-        $example = $param["example"] ?? "";
+        $type = $this->getSchemaType($param);
+        $example = $this->getSchemaExample($param);
 
         $output = "";
 
@@ -448,7 +426,7 @@ class Rust extends Language
                         return $this->getPermissionExample($example);
                     }
 
-                    $items = $param["items"] ?? $param["array"] ?? [];
+                    $items = $this->getArraySchema($param) ?? $this->getSchema($param);
 
                     if (\is_string($example) && $example !== "") {
                         $decoded = json_decode($example, true);
@@ -516,6 +494,72 @@ class Rust extends Language
         return $this->getArrayOf(implode(", ", $permissions));
     }
 
+    protected function getInputType(Schema|Parameter $property, ?Specification $spec = null): string
+    {
+        return match ($type = $this->getTypeName($property, $spec)) {
+            'String' => 'impl Into<String>',
+            'Vec<String>' => 'impl IntoIterator<Item = impl Into<String>>',
+            default => $type,
+        };
+    }
+
+    protected function getParamValue(Schema|Parameter $property, string $paramName, ?Specification $spec = null): string
+    {
+        return match ($this->getTypeName($property, $spec)) {
+            'String' => $paramName . '.into()',
+            'Vec<String>' => $paramName . '.into_iter().map(|s| s.into()).collect::<Vec<String>>()',
+            default => $paramName,
+        };
+    }
+
+    protected function getReturnType(Operation $method): string
+    {
+        return match ($method->extensions['x-appwrite']['type'] ?? '') {
+            'webAuth' => 'crate::error::Result<String>',
+            'location' => 'crate::error::Result<Vec<u8>>',
+            default => $this->getResponseReturnType($method),
+        };
+    }
+
+    protected function getResponseReturnType(Operation $method): string
+    {
+        $models = \array_values(\array_filter(
+            $this->getOperationResponseModels($method),
+            static fn(string $model): bool => $model !== 'any',
+        ));
+        if (\count($models) > 1) {
+            return 'crate::error::Result<serde_json::Value>';
+        }
+        if ($models !== []) {
+            return 'crate::error::Result<crate::models::' . $this->toPascalCase($models[0]) . '>';
+        }
+
+        // Emptiness follows the produced content types, not the response
+        // codes: a 204 whose produced type is recorded in x-appwrite still
+        // returns a body to deserialize, and narrowing it to `()` would be a
+        // breaking change for every caller binding the result.
+        return $this->getProducedTypes($method) === []
+            ? 'crate::error::Result<()>'
+            : 'crate::error::Result<serde_json::Value>';
+    }
+
+    /** @return list<string> */
+    protected function getProducedTypes(Operation $method): array
+    {
+        $produces = [];
+        foreach ($method->responses as $response) {
+            foreach (\array_keys($response->content) as $contentType) {
+                if ($contentType !== '' && !\in_array($contentType, $produces, true)) {
+                    $produces[] = $contentType;
+                }
+            }
+        }
+        if ($produces === []) {
+            $produces = $method->extensions['x-appwrite']['produces'] ?? [];
+        }
+        return $produces;
+    }
+
     #[Override]
     public function getFilters(): array
     {
@@ -533,90 +577,66 @@ class Rust extends Language
                 },
                 ["is_safe" => ["html"]],
             ),
-            new TwigFilter("propertyType", fn(array $property, array $spec = [], string $generic = "serde_json::Value"): string => $this->getPropertyType($property, $spec, $generic)),
-            new TwigFilter("returnType", fn(array $method, array $spec, string $namespace, string $generic = "serde_json::Value"): string => $this->getReturnType($method, $spec, $namespace, $generic)),
+            new TwigFilter("propertyType", fn(Schema $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getTypeName($property, $spec)),
+            new TwigFilter("returnType", fn(Operation $method, Specification $spec, string $namespace, string $generic = "serde_json::Value"): string => $this->getReturnType($method)),
             new TwigFilter("caseEnumKey", fn(string $value): string => $this->toPascalCase($value)),
-            new TwigFilter("docsArgumentExample", fn(array $param, string $crateName): string => $this->getDocsArgumentExample($param, $crateName), ["is_safe" => ["html"]]),
-            new TwigFilter("inputType", fn(array $property, array $spec = [], string $generic = "serde_json::Value"): string => $this->getInputType($property, $spec, $generic)),
-            new TwigFilter("paramValue", fn(array $property, string $paramName, array $spec = []): string => $this->getParamValue($property, $paramName, $spec), ["is_safe" => ["html"]]),
+            new TwigFilter("docsArgumentExample", function (Schema|Parameter $param, string $crateName): string {
+                if ($this->getSchemaType($param) === self::TYPE_FILE) {
+                    $value = $this->toCaseSnake($param instanceof Parameter ? $param->name : 'file');
+                    if (isset($this->getIdentifierOverrides()[$value])) {
+                        $value = $this->getIdentifierOverrides()[$value];
+                    }
+                } elseif ($this->getSchema($param)->enum !== [] || ($this->getSchema($param) instanceof ArraySchema && $this->getSchema($param)->items->enum !== [])) {
+                    $schema = $this->getSchema($param);
+                    $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                    $enumName = $this->toPascalCase($this->getSchemaEnumName($param));
+                    $example = $this->getSchemaExample($param) ?? $enumSchema->enum[0];
+
+                    // An array parameter carries its example as a JSON string,
+                    // so every member has to be resolved separately — searching
+                    // for the whole string finds nothing and silently renders
+                    // enum[0] instead.
+                    $members = [$example];
+                    if ($schema instanceof ArraySchema) {
+                        $decoded = \is_string($example) ? \json_decode($example, true) : $example;
+                        $members = \is_array($decoded) && $decoded !== [] ? $decoded : [$enumSchema->enum[0] ?? $example];
+                    }
+
+                    $keys = $enumSchema->extensions['x-enum-keys'] ?? [];
+                    $variants = [];
+                    foreach ($members as $member) {
+                        $index = \array_search($member, $enumSchema->enum, true);
+
+                        // An example that is not one of the enum's values names
+                        // no variant, so fall back to the first member rather
+                        // than inventing one from the example text.
+                        $key = match (true) {
+                            $index !== false && ($keys[$index] ?? '') !== '' => $keys[$index],
+                            $index !== false => $enumSchema->enum[$index],
+                            default => $keys[0] ?? $enumSchema->enum[0] ?? $member,
+                        };
+                        if ((string) $key === '') {
+                            continue;
+                        }
+                        $variants[] = $crateName . '::enums::' . $enumName . '::' . $this->toPascalCase((string) $key);
+                    }
+
+                    $value = $schema instanceof ArraySchema
+                        ? 'vec![' . \implode(', ', $variants) . ']'
+                        : ($variants[0] ?? '');
+                } else {
+                    $value = $this->getParamExample($param);
+                }
+                $required = $param instanceof Parameter && $param->required;
+                return $required && !$this->getSchema($param)->nullable ? $value : "Some({$value})";
+            }, ["is_safe" => ["html"]]),
+            new TwigFilter("inputType", fn(Schema|Parameter $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getInputType($property, $spec)),
+            new TwigFilter("paramValue", fn(Schema|Parameter $property, string $paramName, ?Specification $spec = null): string => $this->getParamValue($property, $paramName, $spec), ["is_safe" => ["html"]]),
             new TwigFilter("rustType", fn($value): string|array => str_replace(['&lt;', '&gt;'], ['<', '>'], $value), ["is_safe" => ["html"]]),
             new TwigFilter("rustCrateName", fn($value): string|array => str_replace('-', '_', $value)),
             new TwigFilter("stripProtocol", fn($value): string|array => str_replace(['https://', 'http://'], '', $value)),
         ];
     }
-
-    protected function getPropertyType(array $property, array $spec, string $generic = "serde_json::Value"): string
-    {
-        if (\array_key_exists("sub_schemas", $property) && !empty($property["sub_schemas"])) {
-            return $property["type"] === "array" ? "Vec<serde_json::Value>" : "serde_json::Value";
-        }
-
-        if (\array_key_exists("sub_schema", $property)) {
-            $type = $property["sub_schema"] === "any"
-                ? "serde_json::Value"
-                : "crate::models::" . $this->toPascalCase((string) $property["sub_schema"]);
-
-            if ($property["type"] === "array") {
-                $type = "Vec<" . $type . ">";
-            }
-        } else {
-            $type = $this->getTypeName($property, $spec);
-        }
-
-        return $type;
-    }
-
-    /**
-     * Get input type for method parameters (uses impl Into for better DX)
-     */
-    protected function getInputType(array $property, array $spec, string $generic = "serde_json::Value"): string
-    {
-        $baseType = $this->getPropertyType($property, $spec, $generic);
-
-        // For String types, accept impl Into<String> for better DX
-        if ($baseType === "String") {
-            return "impl Into<String>";
-        }
-
-        // For Vec<String>, accept impl IntoIterator for better DX (accepts slices, vecs, arrays)
-        if ($baseType === "Vec<String>") {
-            return "impl IntoIterator<Item = impl Into<String>>";
-        }
-
-        // For Vec<crate::enums::*>, keep as-is (enums don't benefit from Into)
-        if (preg_match('/^Vec<crate::enums::/', $baseType)) {
-            return $baseType;
-        }
-
-        // For Vec<crate::models::*>, keep as-is (models don't benefit from Into)
-        if (preg_match('/^Vec<crate::models::/', $baseType)) {
-            return $baseType;
-        }
-
-        // For primitive types (i64, f64, bool), keep as-is
-        if (in_array($baseType, ['i64', 'f64', 'bool', 'InputFile', 'serde_json::Value'])) {
-            return $baseType;
-        }
-
-        // For enum types, keep as-is
-        if (str_starts_with($baseType, 'crate::enums::')) {
-            return $baseType;
-        }
-
-        // For model types, keep as-is
-        if (str_starts_with($baseType, 'crate::models::')) {
-            return $baseType;
-        }
-
-        // For other Vec types with primitives
-        if (preg_match('/^Vec<(i64|f64|bool|serde_json::Value)>$/', $baseType)) {
-            return $baseType;
-        }
-
-        // Default: return base type as-is
-        return $baseType;
-    }
-
     /**
      * Snake-case using the same algorithm as the caseSnake Twig filter (SDK.php),
      * so PHP-generated variable references match template-generated declarations.
@@ -635,9 +655,9 @@ class Rust extends Language
         return implode('_', $ret);
     }
 
-    protected function formatArrayItemExample(mixed $value, array $items = []): string
+    protected function formatArrayItemExample(mixed $value, Schema $items): string
     {
-        $itemType = $items["type"] ?? null;
+        $itemType = $this->getSchemaType($items);
 
         return match ($itemType) {
             self::TYPE_INTEGER, self::TYPE_NUMBER => (string)$value,
@@ -652,179 +672,5 @@ class Rust extends Language
                 default => "serde_json::Value::Null",
             },
         };
-    }
-
-    protected function getEnumExample(array $param, string $prefix = ""): string
-    {
-        $enumValues = $param["enumValues"] ?? [];
-
-        if (empty($enumValues)) {
-            return $this->getParamExample($param);
-        }
-
-        $enumKeys = $param["enumKeys"] ?? [];
-        $enumName = $this->toPascalCase($param["enumName"] ?? $param["name"] ?? "");
-        $example = $param["example"] ?? null;
-        $isArray = ($param["type"] ?? "") === self::TYPE_ARRAY;
-
-        $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
-            $index = array_search($value, $enumValues, true);
-
-            if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== "") {
-                return $this->toPascalCase($enumKeys[$index]);
-            }
-
-            if ($index !== false && isset($enumValues[$index])) {
-                return $this->toPascalCase($enumValues[$index]);
-            }
-
-            $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
-
-            return $this->toPascalCase((string)$fallback);
-        };
-
-        $enumPath = $prefix . $enumName . "::";
-
-        if ($isArray) {
-            $values = [];
-
-            if (\is_string($example) && $example !== "") {
-                $decoded = json_decode($example, true);
-
-                if (\is_array($decoded)) {
-                    $values = $decoded;
-                }
-            } elseif (\is_array($example)) {
-                $values = $example;
-            }
-
-            if ($values === []) {
-                $values = [$enumValues[0]];
-            }
-
-            $items = array_map(
-                fn ($value): string => $enumPath . $resolveKey($value),
-                $values,
-            );
-
-            return "vec![" . implode(", ", $items) . "]";
-        }
-
-        $value = ($example !== null && $example !== "") ? $example : $enumValues[0];
-
-        return $enumPath . $resolveKey($value);
-    }
-
-    protected function getDocsArgumentExample(array $param, string $crateName): string
-    {
-        if (($param["type"] ?? "") === self::TYPE_FILE) {
-            $value = $this->toCaseSnake($param["name"] ?? "file");
-
-            if (isset($this->getIdentifierOverrides()[$value])) {
-                $value = $this->getIdentifierOverrides()[$value];
-            }
-
-            return (($param["required"] ?? false) && !($param["nullable"] ?? false)) ? $value : "Some({$value})";
-        }
-
-        if (!empty($param["enumValues"]) || !empty($param["enumName"])) {
-            $value = $this->getEnumExample($param, $crateName . "::enums::");
-        } else {
-            $value = $this->getParamExample($param);
-        }
-
-        return (($param["required"] ?? false) && !($param["nullable"] ?? false)) ? $value : "Some({$value})";
-    }
-
-    /**
-     * Get parameter value conversion expression for method body
-     */
-    protected function getParamValue(array $property, string $paramName, array $spec): string
-    {
-        $baseType = $this->getPropertyType($property, $spec);
-
-        // For String types with impl Into<String>, call .into()
-        if ($baseType === "String") {
-            return $paramName . ".into()";
-        }
-
-        // For Vec<String> with impl IntoIterator, map and collect
-        if ($baseType === "Vec<String>") {
-            return $paramName . ".into_iter().map(|s| s.into()).collect::<Vec<String>>()";
-        }
-
-        // For other types, use as-is
-        return $paramName;
-    }
-
-    protected function getReturnType(
-        array $method,
-        array $spec,
-        string $namespace,
-        string $generic = "serde_json::Value",
-    ): string {
-        if ($method["type"] === "webAuth") {
-            return "crate::error::Result<String>";
-        }
-        if ($method["type"] === "location") {
-            return "crate::error::Result<Vec<u8>>";
-        }
-
-        if (
-            \array_key_exists("responseModels", $method)
-            && \count($method["responseModels"]) > 1
-        ) {
-            return "crate::error::Result<serde_json::Value>";
-        }
-
-        $isEmpty = empty($method["produces"]) || (isset($method["responses"]) && $this->isEmptyResponse($method["responses"]));
-
-        if (
-            !\array_key_exists("responseModel", $method) ||
-            empty($method["responseModel"]) ||
-            $method["responseModel"] === "any"
-        ) {
-            if ($isEmpty) {
-                return "crate::error::Result<()>";
-            }
-            return "crate::error::Result<serde_json::Value>";
-        }
-
-        $ret = $this->toPascalCase((string) $method["responseModel"]);
-
-        return "crate::error::Result<crate::models::" . $ret . ">";
-    }
-
-    protected function isEmptyResponse(array $responses): bool
-    {
-        foreach (array_keys($responses) as $code) {
-            if (!in_array((int)$code, [204, 205])) {
-                return false;
-            }
-        }
-        return $responses !== [];
-    }
-
-    protected function hasGenericType(?string $model, array $spec): bool
-    {
-        if (empty($model) || $model === "any") {
-            return false;
-        }
-
-        $model = $spec["definitions"][$model];
-
-        if ($model["additionalProperties"] ?? false) {
-            return true;
-        }
-
-        foreach ($model["properties"] as $property) {
-            if (!\array_key_exists("sub_schema", $property) || !$property["sub_schema"]) {
-                continue;
-            }
-
-            return $this->hasGenericType($property["sub_schema"], $spec);
-        }
-
-        return false;
     }
 }

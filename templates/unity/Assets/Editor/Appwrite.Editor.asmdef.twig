@@ -1,8 +1,8 @@
 {
-    "name": "{{ spec.title | caseUcfirst }}.Editor",
-    "rootNamespace": "{{ spec.title | caseUcfirst }}",
+    "name": "{{ spec.info.title | caseUcfirst }}.Editor",
+    "rootNamespace": "{{ spec.info.title | caseUcfirst }}",
     "references": [
-        "{{ spec.title | caseUcfirst }}"
+        "{{ spec.info.title | caseUcfirst }}"
     ],
     "includePlatforms": [
         "Editor"

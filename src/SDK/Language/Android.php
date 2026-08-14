@@ -26,12 +26,12 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => '/android/docs/kotlin/example.md.twig',
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => '/android/docs/java/example.md.twig',
             ],
             [
@@ -127,7 +127,7 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.info.title | caseUcfirst}}Exception.kt',
                 'template'      => '/android/library/src/main/java/io/package/exceptions/Exception.kt.twig',
             ],
             [
@@ -237,17 +237,17 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => 'library/src/main/java/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}.kt',
+                'destination'   => 'library/src/main/java/{{ sdk.namespace | caseSlash }}/models/{{ definitionName | caseUcfirst }}.kt',
                 'template'      => '/android/library/src/main/java/io/package/models/Model.kt.twig',
             ],
             [
                 'scope'         => 'requestModel',
-                'destination'   => 'library/src/main/java/{{ sdk.namespace | caseSlash }}/models/{{ requestModel.name | caseUcfirst }}.kt',
+                'destination'   => 'library/src/main/java/{{ sdk.namespace | caseSlash }}/models/{{ requestModelName | caseUcfirst }}.kt',
                 'template'      => '/android/library/src/main/java/io/package/models/RequestModel.kt.twig',
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'library/src/main/java/{{ sdk.namespace | caseSlash }}/enums/{{ enum.name | caseUcfirst }}.kt',
+                'destination'   => 'library/src/main/java/{{ sdk.namespace | caseSlash }}/enums/{{ enum.title | caseUcfirst }}.kt',
                 'template'      => '/android/library/src/main/java/io/package/enums/Enum.kt.twig',
             ],
             // Config for project :example
@@ -342,14 +342,5 @@ class Android extends Kotlin
                 'template'      => '/android/example/.gitignore',
             ],
         ];
-    }
-
-    #[Override]
-    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
-    {
-        if ($method['type'] === 'webAuth') {
-            return 'Bool';
-        }
-        return parent::getReturnType($method, $spec, $namespace, $generic);
     }
 }

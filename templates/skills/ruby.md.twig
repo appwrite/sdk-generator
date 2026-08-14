@@ -1,27 +1,27 @@
 {% set lang = 'ruby' %}
 {% set langName = 'Ruby' %}
-{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side Ruby applications with {{ spec.title }}, including Rails and Sinatra integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side Ruby applications with {{ spec.info.title }}, including Rails and Sinatra integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
-# {{ spec.title }} {{ langName }} SDK
+# {{ spec.info.title }} {{ langName }} SDK
 
 ## Installation
 
 ```bash
-gem install {{ spec.title | caseLower }}
+gem install {{ spec.info.title | caseLower }}
 ```
 
 ## Setting Up the Client
 
 ```ruby
-require '{{ spec.title | caseLower }}'
+require '{{ spec.info.title | caseLower }}'
 
-include {{ spec.title }}
+include {{ spec.info.title }}
 
 client = Client.new
     .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
-    .set_project(ENV['{{ spec.title | caseUpper }}_PROJECT_ID'])
-    .set_key(ENV['{{ spec.title | caseUpper }}_API_KEY'])
+    .set_project(ENV['{{ spec.info.title | caseUpper }}_PROJECT_ID'])
+    .set_key(ENV['{{ spec.info.title | caseUpper }}_API_KEY'])
 ```
 
 ## Code Examples
@@ -246,14 +246,14 @@ SSR apps using Ruby frameworks (Rails, Sinatra, etc.) use the **server SDK** to 
 - **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```ruby
-require '{{ spec.title | caseLower }}'
-include {{ spec.title }}
+require '{{ spec.info.title | caseLower }}'
+include {{ spec.info.title }}
 
 # Admin client (reusable)
 admin_client = Client.new
     .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
     .set_project('[PROJECT_ID]')
-    .set_key(ENV['{{ spec.title | caseUpper }}_API_KEY'])
+    .set_key(ENV['{{ spec.info.title | caseUpper }}_API_KEY'])
 
 # Session client (create per-request)
 session_client = Client.new
@@ -347,12 +347,12 @@ end
 ## Error Handling
 
 ```ruby
-require '{{ spec.title | caseLower }}'
-include {{ spec.title }}
+require '{{ spec.info.title | caseLower }}'
+include {{ spec.info.title }}
 
 begin
     row = tables_db.get_row(database_id: '[DATABASE_ID]', table_id: '[TABLE_ID]', row_id: '[ROW_ID]')
-rescue {{ spec.title }}::Exception => e
+rescue {{ spec.info.title }}::Exception => e
     puts e.message    # human-readable message
     puts e.code       # HTTP status code (Integer)
     puts e.type       # error type (e.g. 'document_not_found')
@@ -376,8 +376,8 @@ Appwrite uses permission strings to control access to resources. Each permission
 
 ```ruby
 # Permission and Role are included in the main require
-require '{{ spec.title | caseLower }}'
-include {{ spec.title }}
+require '{{ spec.info.title | caseLower }}'
+include {{ spec.info.title }}
 ```
 
 ### Database Row with Permissions

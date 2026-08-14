@@ -1,9 +1,9 @@
 {% import 'dotnet/base/utils.twig' as utils %}
-            return _client.Call<{{ utils.resultType(spec.title, method) }}>(
-                method: "{{ method.method | caseUpper }}",
+            return _client.Call<{{ utils.resultType(spec.info.title, method) }}>(
+                method: "{{ method.method.value | caseUpper }}",
                 path: apiPath,
                 headers: apiHeaders,
-                {%~ if not method.responseModel %}
+                {%~ if not (method | responseModel) %}
                 parameters: apiParameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!);
                 {%~ else %}
                 parameters: apiParameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!,

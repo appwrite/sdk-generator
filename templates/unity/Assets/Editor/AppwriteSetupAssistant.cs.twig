@@ -5,23 +5,23 @@ using System.Linq;
 using System;
 using System.Collections.Generic;
 
-namespace {{ spec.title | caseUcfirst }}.Editor
+namespace {{ spec.info.title | caseUcfirst }}.Editor
 {
     [InitializeOnLoad]
-    public static class {{ spec.title | caseUcfirst }}SetupAssistant
+    public static class {{ spec.info.title | caseUcfirst }}SetupAssistant
     {
         private const string UNITASK_PACKAGE_URL = "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask#f213ff497e4ff462a77319cf677cf20cc0860ca9";
         private const string UNITASK_PACKAGE_NAME = "com.cysharp.unitask";
         private const string WEBSOCKET_PACKAGE_URL = "https://github.com/endel/NativeWebSocket.git#1d8b49b3fee41c09a98141f1f1a5e4db47e14229";
         private const string WEBSOCKET_PACKAGE_NAME = "com.endel.nativewebsocket";
-        private const string SETUP_COMPLETED_KEY = "{{ spec.title | caseUcfirst }}_Setup_Completed";
-        private const string SHOW_SETUP_DIALOG_KEY = "{{ spec.title | caseUcfirst }}_Show_Setup_Dialog";
+        private const string SETUP_COMPLETED_KEY = "{{ spec.info.title | caseUcfirst }}_Setup_Completed";
+        private const string SHOW_SETUP_DIALOG_KEY = "{{ spec.info.title | caseUcfirst }}_Show_Setup_Dialog";
         private static bool _isBusy; // General flag to prevent running two operations at once
 
         public static bool HasUniTask { get; private set; }
         public static bool HasWebSocket { get; private set; }
 
-        static {{ spec.title | caseUcfirst }}SetupAssistant()
+        static {{ spec.info.title | caseUcfirst }}SetupAssistant()
         {
             // Use delayCall so the Unity Editor has time to initialize
             EditorApplication.delayCall += InitialCheck;
@@ -71,7 +71,7 @@ namespace {{ spec.title | caseUcfirst }}.Editor
                 }
                 else
                 {
-                    Debug.LogWarning($"{{ spec.title | caseUcfirst }} Setup: Could not refresh package status - {request.Error?.message ?? "Unknown"}");
+                    Debug.LogWarning($"{{ spec.info.title | caseUcfirst }} Setup: Could not refresh package status - {request.Error?.message ?? "Unknown"}");
                 }
                 _isBusy = false;
                 onRefreshed?.Invoke(); // Invoke the callback
@@ -127,13 +127,13 @@ namespace {{ spec.title | caseUcfirst }}.Editor
                 EditorApplication.update -= CheckInstallProgress;
                 if (request.Status == StatusCode.Success)
                 {
-                    Debug.Log($"{{ spec.title | caseUcfirst }} Setup: Successfully installed {request.Result.displayName}.");
+                    Debug.Log($"{{ spec.info.title | caseUcfirst }} Setup: Successfully installed {request.Result.displayName}.");
                     InstallNextPackage(packageQueue, onSuccess, onError); // Install the next package
                 }
                 else
                 {
                     string error = request.Error?.message ?? "Unknown error";
-                    Debug.LogError($"{{ spec.title | caseUcfirst }} Setup: Failed to install {packageUrl} - {error}");
+                    Debug.LogError($"{{ spec.info.title | caseUcfirst }} Setup: Failed to install {packageUrl} - {error}");
                     AssetDatabase.StopAssetEditing();
                     _isBusy = false;
                     onError?.Invoke(error);
@@ -153,7 +153,7 @@ namespace {{ spec.title | caseUcfirst }}.Editor
 
         private static void ShowSetupWindow()
         {
-            var window = EditorWindow.GetWindow<{{ spec.title | caseUcfirst }}SetupWindow>(true, "{{ spec.title | caseUcfirst }} Setup Assistant");
+            var window = EditorWindow.GetWindow<{{ spec.info.title | caseUcfirst }}SetupWindow>(true, "{{ spec.info.title | caseUcfirst }} Setup Assistant");
             window.Show();
             window.Focus();
         }
@@ -161,18 +161,18 @@ namespace {{ spec.title | caseUcfirst }}.Editor
         {
             EditorPrefs.SetBool(SETUP_COMPLETED_KEY, true);
             EditorPrefs.SetBool(SHOW_SETUP_DIALOG_KEY, true);
-            Debug.Log("{{ spec.title | caseUcfirst }} Setup: Setup completed successfully!");
+            Debug.Log("{{ spec.info.title | caseUcfirst }} Setup: Setup completed successfully!");
         }
-        [MenuItem("{{ spec.title | caseUcfirst }}/Setup Assistant", priority = 1)]
+        [MenuItem("{{ spec.info.title | caseUcfirst }}/Setup Assistant", priority = 1)]
         public static void ShowSetupAssistant() => ShowSetupWindow();
-        [MenuItem("{{ spec.title | caseUcfirst }}/Reset Setup", priority = 100)]
+        [MenuItem("{{ spec.info.title | caseUcfirst }}/Reset Setup", priority = 100)]
         public static void ResetSetup()
         {
             EditorPrefs.DeleteKey(SETUP_COMPLETED_KEY);
             EditorPrefs.DeleteKey(SHOW_SETUP_DIALOG_KEY);
             HasUniTask = false;
             HasWebSocket = false;
-            Debug.Log("{{ spec.title | caseUcfirst }} Setup: Setup state reset. Reopening the window will trigger the check.");
+            Debug.Log("{{ spec.info.title | caseUcfirst }} Setup: Setup state reset. Reopening the window will trigger the check.");
         }
     }
 }

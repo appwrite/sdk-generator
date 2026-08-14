@@ -2,7 +2,21 @@
 
 namespace Appwrite\SDK;
 
+use Utopia\OpenAPI\Model\AnySchema;
 use Normalizer;
+use Utopia\OpenAPI\Model\ArraySchema;
+use Utopia\OpenAPI\Model\BooleanSchema;
+use Utopia\OpenAPI\Model\CompositeSchema;
+use Utopia\OpenAPI\Model\IntegerSchema;
+use Utopia\OpenAPI\Model\NumberSchema;
+use Utopia\OpenAPI\Model\ObjectSchema;
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\ParameterLocation;
+use Utopia\OpenAPI\Model\ReferenceSchema;
+use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
+use Utopia\OpenAPI\Specification;
 
 abstract class Language
 {
@@ -65,14 +79,14 @@ abstract class Language
     {
     }
 
-    abstract public function getTypeName(array $parameter, array $spec = []): string;
+    abstract public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string;
 
-    abstract public function getParamDefault(array $param): string;
+    abstract public function getParamDefault(Schema|Parameter $param): string;
 
     /**
      * @param string $lang Optional language variant (for multi-language SDKs)
      */
-    abstract public function getParamExample(array $param, string $lang = ''): string;
+    abstract public function getParamExample(Schema|Parameter $param, string $lang = ''): string;
 
     public function setParam(string $key, string $value): Language
     {
@@ -204,13 +218,238 @@ abstract class Language
 
     public function hasPermissionParam(array $parameters): bool
     {
-        foreach ($parameters as $param) {
-            $example = $param['example'] ?? '';
+        foreach ($parameters as $parameter) {
+            $example = $this->getSchema($parameter)->extensions['x-example'] ?? $this->getSchema($parameter)->example;
             if (!empty($example) && is_string($example) && $this->isPermissionString($example)) {
                 return true;
             }
         }
         return false;
+    }
+
+    protected function getSchema(Schema|Parameter $value): Schema
+    {
+        return $value instanceof Parameter ? ($value->schema ?? new AnySchema()) : $value;
+    }
+
+    protected function getSchemaType(Schema|Parameter $value): string
+    {
+        $schema = $this->getSchema($value);
+
+        return match (true) {
+            $schema instanceof StringSchema && $schema->format === 'binary' => self::TYPE_FILE,
+            $schema instanceof StringSchema => self::TYPE_STRING,
+            $schema instanceof IntegerSchema => self::TYPE_INTEGER,
+            $schema instanceof NumberSchema => self::TYPE_NUMBER,
+            $schema instanceof BooleanSchema => self::TYPE_BOOLEAN,
+            $schema instanceof ArraySchema => self::TYPE_ARRAY,
+            $schema instanceof ObjectSchema, $schema instanceof ReferenceSchema => self::TYPE_OBJECT,
+            default => self::TYPE_OBJECT,
+        };
+    }
+
+    protected function getArraySchema(Schema|Parameter $value): ?Schema
+    {
+        $schema = $this->getSchema($value);
+        return $schema instanceof ArraySchema ? $schema->items : null;
+    }
+
+    protected function getSchemaModel(Schema|Parameter $value): ?string
+    {
+        $schema = $this->getSchema($value);
+        $models = $this->getSchemaModels($schema);
+        if (\count($models) === 1) {
+            return $models[0];
+        }
+        if ($schema instanceof ArraySchema) {
+            return $schema->items->extensions['x-model'] ?? $schema->extensions['x-model'] ?? null;
+        }
+
+        return $schema->extensions['x-model'] ?? null;
+    }
+
+    protected function getArraySchemaModel(Schema|Parameter $value): ?string
+    {
+        $items = $this->getArraySchema($value);
+        return $items instanceof ReferenceSchema ? $this->normalizeSchemaReference($items->reference) : null;
+    }
+
+    protected function getSchemaExample(Schema|Parameter $value): mixed
+    {
+        $schema = $this->getSchema($value);
+        return $schema->extensions['x-example'] ?? $schema->example;
+    }
+
+    protected function getSchemaDefault(Schema|Parameter $value): mixed
+    {
+        return $this->getSchema($value)->default;
+    }
+
+    /**
+     * Whether an array's element schema names a type the language can spell.
+     *
+     * A `oneOf`/`anyOf` element, or one with no type at all, does not, and the
+     * array degrades to the language's untyped list rather than rendering each
+     * element as an object.
+     */
+    protected function hasConcreteItemsType(Schema $schema): bool
+    {
+        if (!$schema instanceof ArraySchema) {
+            return false;
+        }
+        $items = $schema->items;
+        return !($items instanceof CompositeSchema)
+            && !($items instanceof AnySchema)
+            && $this->getSchemaType($items) !== '';
+    }
+
+    /**
+     * Whether a nested array should keep its element type untyped.
+     *
+     * A model property carries its full schema tree, so an array of arrays of
+     * numbers resolves all the way down. A method parameter is flattened to a
+     * single level before it reaches a language, so anything past the first
+     * nesting has no type to render and the published SDKs leave it untyped.
+     */
+    protected function isUntypedNestedArray(Schema|Parameter $value, Schema $schema): bool
+    {
+        return $value instanceof Parameter
+            && $schema instanceof ArraySchema
+            && $schema->items instanceof ArraySchema;
+    }
+
+    protected function getSchemaEnumName(Schema|Parameter $value, ?Specification $spec = null): string
+    {
+        $schema = $this->getSchema($value);
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        $name = $enumSchema->extensions['x-enum-name']
+            ?? $enumSchema->title
+            ?? ($value instanceof Parameter ? $value->name : null);
+        if (\is_string($name) && $name !== '') {
+            return $name;
+        }
+
+        foreach ($spec?->schemas ?? [] as $modelName => $model) {
+            if (!$model instanceof ObjectSchema) {
+                continue;
+            }
+            foreach ($model->properties as $propertyName => $property) {
+                $propertySchema = $property instanceof ArraySchema ? $property->items : $property;
+                if ($propertySchema === $enumSchema) {
+                    return \ucfirst($modelName) . \ucfirst($propertyName);
+                }
+            }
+        }
+        return '';
+    }
+
+    protected function getSpecificationSchemaName(Schema $schema, Specification $spec): string
+    {
+        foreach ($spec->schemas as $name => $candidate) {
+            if ($candidate === $schema) {
+                return $name;
+            }
+        }
+        return $schema->title ?? '';
+    }
+
+    protected function isSpecificationSchemaRequired(Schema $schema, Specification $spec): bool
+    {
+        foreach ($spec->schemas as $model) {
+            if (!$model instanceof ObjectSchema) {
+                continue;
+            }
+            foreach ($model->properties as $name => $property) {
+                if ($property === $schema) {
+                    return \in_array($name, $model->required, true);
+                }
+            }
+        }
+        return false;
+    }
+
+    protected function hasGenericSchemaType(?string $modelName, Specification $spec, array $visited = []): bool
+    {
+        if (in_array($modelName, [null, '', 'any'], true) || isset($visited[$modelName])) {
+            return false;
+        }
+
+        $model = $spec->schemas[$modelName] ?? null;
+        if (!$model instanceof ObjectSchema) {
+            return false;
+        }
+        if ($model->additionalProperties) {
+            return true;
+        }
+
+        $visited[$modelName] = true;
+        return array_any($model->properties, fn(Schema|Parameter $property): bool => $this->hasGenericSchemaType($this->getSchemaModel($property), $spec, $visited));
+    }
+
+    protected function normalizeSchemaReference(string $reference): string
+    {
+        return \str_replace(['#/components/schemas/', '#/definitions/'], '', $reference);
+    }
+
+    /** @return list<string> */
+    protected function getSchemaModels(Schema|Parameter $value): array
+    {
+        $schema = $this->getSchema($value);
+        if ($schema instanceof ReferenceSchema) {
+            return [$this->normalizeSchemaReference($schema->reference)];
+        }
+        if ($schema instanceof ArraySchema) {
+            return $this->getSchemaModels($schema->items);
+        }
+        if ($schema instanceof CompositeSchema) {
+            $models = [];
+            foreach ($schema->schemas as $member) {
+                \array_push($models, ...$this->getSchemaModels($member));
+            }
+            return \array_values(\array_unique($models));
+        }
+        return [];
+    }
+
+    /** @return list<Parameter> */
+    protected function getOperationParameters(Operation $operation): array
+    {
+        $parameters = \array_values(\array_filter(
+            $operation->parameters,
+            static fn(Parameter $parameter): bool => ($parameter->extensions['x-sdk-source'] ?? '') !== 'security',
+        ));
+        foreach ($operation->requestBody?->content ?? [] as $mediaType) {
+            if (!$mediaType->schema instanceof ObjectSchema) {
+                continue;
+            }
+            foreach ($mediaType->schema->properties as $name => $schema) {
+                $parameters[] = new Parameter(
+                    name: $name,
+                    location: ParameterLocation::QUERY,
+                    description: $schema->description,
+                    required: \in_array($name, $mediaType->schema->required, true),
+                    schema: $schema,
+                    extensions: $schema->extensions,
+                );
+            }
+            break;
+        }
+        \usort($parameters, static fn(Parameter $left, Parameter $right): int => (int) $right->required <=> (int) $left->required);
+        return $parameters;
+    }
+
+    /** @return list<string> */
+    protected function getOperationResponseModels(Operation $operation): array
+    {
+        $models = [];
+        foreach ($operation->responses as $response) {
+            foreach ($response->content as $mediaType) {
+                if ($mediaType->schema !== null) {
+                    \array_push($models, ...$this->getSchemaModels($mediaType->schema));
+                }
+            }
+        }
+        return \array_values(\array_unique($models));
     }
 
     /**

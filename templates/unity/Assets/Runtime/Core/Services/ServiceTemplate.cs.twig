@@ -4,18 +4,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
-{% if spec.definitions is not empty %}
-using {{ spec.title | caseUcfirst }}.Models;
-{% endif %}
-{% if spec.enums is not empty %}
-using {{ spec.title | caseUcfirst }}.Enums;
+{% if definitions is not empty %}
+using {{ spec.info.title | caseUcfirst }}.Models;
 {% endif %}
 {% if service.name|lower == 'account' or service.name|lower == 'general' %}
-using {{ spec.title | caseUcfirst }}.Extensions;
+using {{ spec.info.title | caseUcfirst }}.Extensions;
 using UnityEngine;
 {% endif %}
 
-namespace {{ spec.title | caseUcfirst }}.Services
+namespace {{ spec.info.title | caseUcfirst }}.Services
 {
     public class {{ service.name | caseUcfirst }} : Service
     {
@@ -23,7 +20,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
         {
         }
 
-        {%~ for method in service.methods %}
+        {%~ for method in (service | operations) %}
         {%~ if method.description %}
         /// <summary>
         /// <para>
@@ -32,45 +29,45 @@ namespace {{ spec.title | caseUcfirst }}.Services
         /// </summary>
         {%~ endif %}
         {%~ if method.deprecated %}
-        {%~ if method.since and method.replaceWith %}
-        [Obsolete("This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")]
+        {%~ if (method | appwrite('deprecated', {})['since'] ?? '') and (method | appwrite('deprecated', {})['replaceWith'] ?? '') %}
+        [Obsolete("This API has been deprecated since {{ (method | appwrite('deprecated', {})['since'] ?? '') }}. Please use `{{ (method | appwrite('deprecated', {})['replaceWith'] ?? '') | capitalizeFirst }}` instead.")]
         {%~ else %}
         [Obsolete("This API has been deprecated.")]
         {%~ endif %}
         {%~ endif %}
-{% if method.type == "webAuth" %}
+{% if (method | methodType) == "webAuth" %}
 #if UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_WEBGL
 {% endif %}
-        public {% if method.type == "webAuth" %}async {% endif ~%} UniTask{% if method.type == "webAuth" %}{% else %}<{{ utils.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ utils.method_parameters(method.parameters, method.consumes) }})
+        public {% if (method | methodType) == "webAuth" %}async {% endif ~%} UniTask{% if (method | methodType) == "webAuth" %}{% else %}<{{ utils.resultType(spec.info.title, method) }}>{% endif %} {{ (method | methodName) | caseUcfirst }}({{ utils.method_parameters((method | parameters('all')), (method | consumes)) }})
         {
-            var apiPath = "{{ method.path }}"{% if method.parameters.path | length == 0 %};{% endif %}
+            var apiPath = "{{ method.path }}"{% if (method | parameters('path')) | length == 0 %};{% endif %}
 
             {{~ include('dotnet/base/params.twig') }}
 
-            {%~ if method.responseModel %}
-            static {{ utils.resultType(spec.title, method) }} Convert(Dictionary<string, object> it) =>
-            {%~ if method.responseModel == 'any' or method.responseModels|length > 1 %}
+            {%~ if (method | responseModel) %}
+            static {{ utils.resultType(spec.info.title, method) }} Convert(Dictionary<string, object> it) =>
+            {%~ if (method | responseModel) == 'any' or (method | responseModels)|length > 1 %}
                 it;
             {%~ else %}
-                {{ utils.resultType(spec.title, method) }}.From(map: it);
+                {{ utils.resultType(spec.info.title, method) }}.From(map: it);
             {%~ endif %}
             {%~ endif %}
 
-            {%~ if method.type == 'location' %}
+            {%~ if (method | methodType) == 'location' %}
             {{~ include('dotnet/base/requests/location.twig') }}
-            {%~ elseif method.type == 'webAuth' %}
+            {%~ elseif (method | methodType) == 'webAuth' %}
             {{~ include('unity/base/requests/oauth.twig') }}
-            {%~ elseif 'multipart/form-data' in method.consumes %}
+            {%~ elseif 'multipart/form-data' in (method | consumes) %}
             {{~ include('dotnet/base/requests/file.twig') }}
             {%~ else %}
             {{~ include('dotnet/base/requests/api.twig')}}
             {%~ endif %}
         }
-{% if method.type == "webAuth" %}
+{% if (method | methodType) == "webAuth" %}
 #else
-        public UniTask {{ method.name | caseUcfirst }}({{ utils.method_parameters(method.parameters, method.consumes) }})
+        public UniTask {{ (method | methodName) | caseUcfirst }}({{ utils.method_parameters((method | parameters('all')), (method | consumes)) }})
         {
-            Debug.LogWarning("[{{ spec.title | caseUcfirst }}] OAuth2 authorization is not supported on this platform. Available only in Editor, WebGL, iOS or Android.");
+            Debug.LogWarning("[{{ spec.info.title | caseUcfirst }}] OAuth2 authorization is not supported on this platform. Available only in Editor, WebGL, iOS or Android.");
             return UniTask.CompletedTask;
         }
 #endif{% endif %}

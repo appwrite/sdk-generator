@@ -1,8 +1,8 @@
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
+{% for parameter in (method | parameters('all')) %}
+{% if (parameter | schemaType) == 'file' %}
 {% set responseModels = method | getResponseModels(spec) %}
-{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
-{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}
+{% set responseDiscriminator = (method | responseDiscriminator) %}
         $size = 0;
         $mimeType = null;
         $postedName = null;
@@ -13,10 +13,10 @@
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name | caseCamel }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(${{ parameter.name | caseCamel }}->getData()), $mimeType, $postedName);
                 $response = $this->client->call(Client::METHOD_POST, $apiPath, [
-    {% for param in method.parameters.header %}
+    {% for param in (method | parameters('header')) %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
     {% endfor %}
-    {% for key, header in method.headers %}
+    {% for key, header in (method | methodHeaders) %}
                     '{{ key }}' => '{{ header }}',
     {% endfor %}
                     ], $apiParams);
@@ -49,11 +49,11 @@
             //send single file if size is less than or equal to 5MB
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }}->getPath(), $mimeType, $postedName);
-                $response = $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $apiPath, [
-    {% for param in method.parameters.header %}
+                $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, [
+    {% for param in (method | parameters('header')) %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
     {% endfor %}
-    {% for key, header in method.headers %}
+    {% for key, header in (method | methodHeaders) %}
                     '{{ key }}' => '{{ header }}',
     {% endfor %}
                     ], $apiParams);
@@ -84,8 +84,8 @@
         $id = '';
         $counter = 0;
 
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
+{% for parameter in (method | parameters('all')) %}
+{% if (parameter | extension('x-upload-id', false)) %}
         try {
             $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ parameter.name }});
             $counter = $response['chunksUploaded'] ?? 0;
@@ -95,13 +95,13 @@
 {% endfor %}
 
         $apiHeaders = [
-        {%~ for key, security in method.securityHeaders %}
+        {%~ for key, security in (method | securityHeaders) %}
             '{{ security.name }}' => $this->client->getConfig('{{ key | caseLower }}'),
         {%~ endfor %}
-        {%~ for parameter in method.parameters.header %}
+        {%~ for parameter in (method | parameters('header')) %}
             '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
         {%~ endfor %}
-        {%~ for key, header in method.headers %}
+        {%~ for key, header in (method | methodHeaders) %}
             '{{ key }}' => '{{ header }}',
         {%~ endfor %}
         ];
@@ -112,7 +112,7 @@
         }
 
         $uploadId = '';
-        {% for parameter in method.parameters.all %}{% if parameter.isUploadID %}
+        {% for parameter in (method | parameters('all')) %}{% if (parameter | extension('x-upload-id', false)) %}
         $uploadId = ${{ parameter.name }} ?? '';
         {% endif %}{% endfor %}
         $totalChunks = (int) ceil($size / Client::CHUNK_SIZE);
@@ -144,7 +144,7 @@
             $chunkParams['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode($data), $mimeType, $postedName);
             $chunkHeaders['content-range'] = 'bytes ' . $chunk['start'] . '-' . ($chunk['end'] - 1) . '/' . $size;
             if(!empty($currentUploadId)) {
-                $chunkHeaders['x-{{spec.title | caseLower }}-id'] = $currentUploadId;
+                $chunkHeaders['x-{{spec.info.title | caseLower }}-id'] = $currentUploadId;
             }
 
             return $this->client->call(Client::METHOD_POST, $apiPath, $chunkHeaders, $chunkParams);
@@ -198,7 +198,7 @@
                 $chunkParams['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode($data), $mimeType, $postedName);
                 $chunkHeaders['content-range'] = 'bytes ' . $chunk['start'] . '-' . ($chunk['end'] - 1) . '/' . $size;
                 if(!empty($uploadId)) {
-                    $chunkHeaders['x-{{spec.title | caseLower }}-id'] = $uploadId;
+                    $chunkHeaders['x-{{spec.info.title | caseLower }}-id'] = $uploadId;
                 }
 
                 $headers = [];
@@ -263,17 +263,17 @@
                         $contentType = $responseHeaders[spl_object_id($ch)]['content-type'] ?? '';
 
                         if (curl_errno($ch)) {
-                            throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $statusCode, '', $body);
+                            throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $statusCode, '', $body);
                         }
 
                         $chunkResponse = str_starts_with($contentType, 'application/json') ? json_decode($body, true) : $body;
 
                         if($statusCode >= 400) {
                             if(is_array($chunkResponse)) {
-                                throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception($chunkResponse['message'], $statusCode, $chunkResponse['type'] ?? '', json_encode($chunkResponse));
+                                throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception($chunkResponse['message'], $statusCode, $chunkResponse['type'] ?? '', json_encode($chunkResponse));
                             }
 
-                            throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception($chunkResponse, $statusCode, '', $chunkResponse);
+                            throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception($chunkResponse, $statusCode, '', $chunkResponse);
                         }
 
                         $completedCount++;

@@ -137,7 +137,7 @@ open class Realtime : Service {
 
         var headers = HTTPHeaders()
         if let jwt = client.config["jwt"], !jwt.isEmpty {
-            headers.add(name: "x-{{ spec.title | caseLower }}-jwt", value: jwt)
+            headers.add(name: "x-{{ spec.info.title | caseLower }}-jwt", value: jwt)
         }
 
         socketClient = WebSocketClient(
@@ -187,7 +187,7 @@ open class Realtime : Service {
                 return id
             }
         }
-        throw {{ spec.title | caseUcfirst }}Error(message: "Failed to generate unique subscription id")
+        throw {{ spec.info.title | caseUcfirst }}Error(message: "Failed to generate unique subscription id")
     }
 
     /// Must be called with `subscriptionsSync` held.
@@ -374,7 +374,7 @@ open class Realtime : Service {
         ]
         guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
               let text = String(data: jsonData, encoding: .utf8) else {
-            throw {{ spec.title | caseUcfirst }}Error(message: "Failed to encode presence payload")
+            throw {{ spec.info.title | caseUcfirst }}Error(message: "Failed to encode presence payload")
         }
         ws.send(text: text)
     }
@@ -619,7 +619,7 @@ extension Realtime: WebSocketClientDelegate {
 
     func handleResponseError(from json: [String: Any]) throws {
         let message = json["message"] as? String ?? "Unknown error"
-        let error = {{ spec.title | caseUcfirst }}Error(message: message)
+        let error = {{ spec.info.title | caseUcfirst }}Error(message: message)
         throw error
     }
 

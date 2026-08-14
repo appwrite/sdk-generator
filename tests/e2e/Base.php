@@ -11,7 +11,7 @@ use FilesystemIterator;
 use Throwable;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\SDK;
-use Appwrite\Spec\OpenAPI3;
+use Utopia\OpenAPI\Parser;
 use PHPUnit\Framework\TestCase;
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
@@ -462,7 +462,7 @@ abstract class Base extends TestCase
             throw new Exception('Failed to parse spec.');
         }
 
-        $sdk = new SDK($this->getLanguage(), new OpenAPI3($spec));
+        $sdk = new SDK($this->getLanguage(), Parser::parse($spec));
 
         $sdk
             ->setName($this->sdkName)

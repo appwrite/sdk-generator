@@ -1,4 +1,4 @@
-//! Input file handling for {{ spec.title }} SDK
+//! Input file handling for {{ spec.info.title }} SDK
 
 use crate::error::Result;
 use bytes::Bytes;
@@ -20,7 +20,7 @@ pub struct ChunkedReader {
     total_size: u64,
 }
 
-/// Represents a file to be uploaded to {{ spec.title }}
+/// Represents a file to be uploaded to {{ spec.info.title }}
 #[derive(Debug, Clone)]
 pub struct InputFile {
     source: InputFileSource,
@@ -230,7 +230,7 @@ impl ChunkedReader {
 
     pub async fn seek(&mut self, position: u64) -> Result<()> {
         if position > self.total_size {
-            return Err(crate::error::{{ spec.title | caseUcfirst }}Error::new(
+            return Err(crate::error::{{ spec.info.title | caseUcfirst }}Error::new(
                 0,
                 format!("Seek position {} exceeds file size {}", position, self.total_size),
                 None,

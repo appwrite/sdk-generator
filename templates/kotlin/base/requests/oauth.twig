@@ -1,5 +1,5 @@
         return client.redirect(
-            "{{ method.method | caseUpper }}",
+            "{{ method.method.value | caseUpper }}",
             apiPath,
             apiHeaders,
             apiParams

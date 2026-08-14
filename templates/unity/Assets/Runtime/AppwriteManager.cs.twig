@@ -1,19 +1,19 @@
 #if UNI_TASK
 using System;
 using System.Collections.Generic;
-using {{ spec.title | caseUcfirst }}.Services;
+using {{ spec.info.title | caseUcfirst }}.Services;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-namespace {{ spec.title | caseUcfirst }}
+namespace {{ spec.info.title | caseUcfirst }}
 {
     /// <summary>
-    /// Unity MonoBehaviour wrapper for {{ spec.title | caseUcfirst }} Client with DI support
+    /// Unity MonoBehaviour wrapper for {{ spec.info.title | caseUcfirst }} Client with DI support
     /// </summary>
-    public class {{ spec.title | caseUcfirst }}Manager : MonoBehaviour
+    public class {{ spec.info.title | caseUcfirst }}Manager : MonoBehaviour
     {
         [Header("Configuration")]
-        [SerializeField] private {{ spec.title | caseUcfirst }}Config config;
+        [SerializeField] private {{ spec.info.title | caseUcfirst }}Config config;
         [SerializeField] private bool initializeOnStart = true;
         [SerializeField] private bool dontDestroyOnLoad = true;
         
@@ -28,7 +28,7 @@ namespace {{ spec.title | caseUcfirst }}
         public static event Action OnClientDestroyed;
         
         // Singleton instance for easy access
-        public static {{ spec.title | caseUcfirst }}Manager Instance { get; private set; }
+        public static {{ spec.info.title | caseUcfirst }}Manager Instance { get; private set; }
         
         // Properties
         public Client Client 
@@ -36,7 +36,7 @@ namespace {{ spec.title | caseUcfirst }}
             get 
             { 
                 if (_client == null)
-                    throw new InvalidOperationException("{{ spec.title | caseUcfirst }} client is not initialized. Call Initialize() first.");
+                    throw new InvalidOperationException("{{ spec.info.title | caseUcfirst }} client is not initialized. Call Initialize() first.");
                 return _client; 
             } 
         }
@@ -52,7 +52,7 @@ namespace {{ spec.title | caseUcfirst }}
         }
         
         public bool IsInitialized => _isInitialized;
-        public {{ spec.title | caseUcfirst }}Config Config => config;
+        public {{ spec.info.title | caseUcfirst }}Config Config => config;
 
         private void Awake()
         {
@@ -64,7 +64,7 @@ namespace {{ spec.title | caseUcfirst }}
             }
             else if (!ReferenceEquals(Instance, this))
             {
-                Debug.LogWarning("Multiple {{ spec.title | caseUcfirst }}Manager instances detected. Destroying duplicate.");
+                Debug.LogWarning("Multiple {{ spec.info.title | caseUcfirst }}Manager instances detected. Destroying duplicate.");
                 Destroy(gameObject);
             }
         }
@@ -78,19 +78,19 @@ namespace {{ spec.title | caseUcfirst }}
         }
         
         /// <summary>
-        /// Initialize the {{ spec.title | caseUcfirst }} client and selected services
+        /// Initialize the {{ spec.info.title | caseUcfirst }} client and selected services
         /// </summary>
         public async UniTask<bool> Initialize(bool needRealtime = false)
         {
             if (_isInitialized)
             {
-                Debug.LogWarning("{{ spec.title | caseUcfirst }} client is already initialized");
+                Debug.LogWarning("{{ spec.info.title | caseUcfirst }} client is already initialized");
                 return true;
             }
             
             if (!config)
             {
-                Debug.LogError("{{ spec.title | caseUcfirst }}Config is not assigned!");
+                Debug.LogError("{{ spec.info.title | caseUcfirst }}Config is not assigned!");
                 return false;
             }
             
@@ -102,9 +102,9 @@ namespace {{ spec.title | caseUcfirst }}
                 
                 if (config.AutoConnect)
                 {
-                    {%~ if spec.clientMethods.ping.get is defined %}
+                    {%~ if clientMethods.ping.get is defined %}
                     var pingResult = await _client.Ping();
-                    Debug.Log($"{{ spec.title | caseUcfirst }} connected successfully: {pingResult}");
+                    Debug.Log($"{{ spec.info.title | caseUcfirst }} connected successfully: {pingResult}");
                     {%~ endif %}
                 }
                 
@@ -116,24 +116,24 @@ namespace {{ spec.title | caseUcfirst }}
                 _isInitialized = true;
                 OnClientInitialized?.Invoke(_client);
                 
-                Debug.Log("{{ spec.title | caseUcfirst }} client initialized successfully");
+                Debug.Log("{{ spec.info.title | caseUcfirst }} client initialized successfully");
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to initialize {{ spec.title | caseUcfirst }} client: {ex.Message}");
+                Debug.LogError($"Failed to initialize {{ spec.info.title | caseUcfirst }} client: {ex.Message}");
                 return false;
             }
         }
 
-        private readonly Dictionary<Type, ({{ spec.title | caseUcfirst }}Service flag, Func<Client, Service> factory)> _serviceDefinitions = new()
+        private readonly Dictionary<Type, ({{ spec.info.title | caseUcfirst }}Service flag, Func<Client, Service> factory)> _serviceDefinitions = new()
         {
-{% for service in spec.services %}
-            { typeof({{ spec.title | caseUcfirst }}.Services.{{ service.name | caseUcfirst }}), ({{ spec.title | caseUcfirst }}Service.{{ service.name | caseUcfirst }}, client => new {{ spec.title | caseUcfirst }}.Services.{{ service.name | caseUcfirst }}(client)) },{{ "\n" }}{% endfor %}
+{% for service in services %}
+            { typeof({{ spec.info.title | caseUcfirst }}.Services.{{ service.name | caseUcfirst }}), ({{ spec.info.title | caseUcfirst }}Service.{{ service.name | caseUcfirst }}, client => new {{ spec.info.title | caseUcfirst }}.Services.{{ service.name | caseUcfirst }}(client)) },{{ "\n" }}{% endfor %}
         };
         
         /// <summary>
-        /// Initialize selected {{ spec.title | caseUcfirst }} services based on the configuration.
+        /// Initialize selected {{ spec.info.title | caseUcfirst }} services based on the configuration.
         /// </summary>
         private void InitializeSelectedServices()
         {
@@ -170,7 +170,7 @@ namespace {{ spec.title | caseUcfirst }}
                 throw new InvalidOperationException("Client must be initialized before realtime");
             if (ReferenceEquals(_realtime, null))
             {
-                var realtimeGo = new GameObject("{{ spec.title | caseUcfirst }}Realtime");
+                var realtimeGo = new GameObject("{{ spec.info.title | caseUcfirst }}Realtime");
                 realtimeGo.transform.SetParent(transform);
                 _realtime = realtimeGo.AddComponent<Realtime>();
                 _realtime.Initialize(_client);
@@ -196,7 +196,7 @@ namespace {{ spec.title | caseUcfirst }}
                 return (T)service;
             }
 
-            throw new InvalidOperationException($"Service of type {type.Name} was not initialized. Ensure it is selected in the {{ spec.title | caseUcfirst }}Config asset.");
+            throw new InvalidOperationException($"Service of type {type.Name} was not initialized. Ensure it is selected in the {{ spec.info.title | caseUcfirst }}Config asset.");
         }
         
         /// <summary>
@@ -208,7 +208,7 @@ namespace {{ spec.title | caseUcfirst }}
             if (!_isInitialized)
             {
                 service = null;
-                Debug.LogWarning("{{ spec.title | caseUcfirst }}Manager: Cannot get service, client is not initialized.");
+                Debug.LogWarning("{{ spec.info.title | caseUcfirst }}Manager: Cannot get service, client is not initialized.");
                 return false;
             }
 
@@ -223,12 +223,12 @@ namespace {{ spec.title | caseUcfirst }}
             return false;
         }
         
-        public void SetConfig({{ spec.title | caseUcfirst }}Config newConfig)
+        public void SetConfig({{ spec.info.title | caseUcfirst }}Config newConfig)
         {
             config = newConfig;
         }
         
-        public async UniTask<bool> Reinitialize({{ spec.title | caseUcfirst }}Config newConfig = null, bool needRealtime = false)
+        public async UniTask<bool> Reinitialize({{ spec.info.title | caseUcfirst }}Config newConfig = null, bool needRealtime = false)
         {
             config = newConfig ?? config;
             Shutdown();
@@ -249,7 +249,7 @@ namespace {{ spec.title | caseUcfirst }}
             _services.Clear();
             
             OnClientDestroyed?.Invoke();
-            Debug.Log("{{ spec.title | caseUcfirst }} client shutdown");
+            Debug.Log("{{ spec.info.title | caseUcfirst }} client shutdown");
         }
 
         private void OnDestroy()

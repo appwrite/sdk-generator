@@ -1,18 +1,18 @@
 {% set lang = 'dart' %}
 {% set langName = 'Dart' %}
-{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building Flutter apps (mobile, web, desktop) or server-side Dart applications with {{ spec.title }}. Covers client-side auth (email, OAuth), database queries, file uploads with native file handling, real-time subscriptions, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building Flutter apps (mobile, web, desktop) or server-side Dart applications with {{ spec.info.title }}. Covers client-side auth (email, OAuth), database queries, file uploads with native file handling, real-time subscriptions, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
-# {{ spec.title }} {{ langName }} SDK
+# {{ spec.info.title }} {{ langName }} SDK
 
 ## Installation
 
 ```bash
 # Flutter (client-side)
-flutter pub add {{ spec.title | caseLower }}
+flutter pub add {{ spec.info.title | caseLower }}
 
 # Dart (server-side)
-dart pub add dart_{{ spec.title | caseLower }}
+dart pub add dart_{{ spec.info.title | caseLower }}
 ```
 
 ## Setting Up the Client
@@ -20,7 +20,7 @@ dart pub add dart_{{ spec.title | caseLower }}
 ### Client-side (Flutter)
 
 ```dart
-import 'package:{{ spec.title | caseLower }}/{{ spec.title | caseLower }}.dart';
+import 'package:{{ spec.info.title | caseLower }}/{{ spec.info.title | caseLower }}.dart';
 
 final client = Client()
     .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
@@ -30,12 +30,12 @@ final client = Client()
 ### Server-side (Dart)
 
 ```dart
-import 'package:dart_{{ spec.title | caseLower }}/dart_{{ spec.title | caseLower }}.dart';
+import 'package:dart_{{ spec.info.title | caseLower }}/dart_{{ spec.info.title | caseLower }}.dart';
 
 final client = Client()
     .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
-    .setProject(Platform.environment['{{ spec.title | caseUpper }}_PROJECT_ID']!)
-    .setKey(Platform.environment['{{ spec.title | caseUpper }}_API_KEY']!);
+    .setProject(Platform.environment['{{ spec.info.title | caseUpper }}_PROJECT_ID']!)
+    .setKey(Platform.environment['{{ spec.info.title | caseUpper }}_API_KEY']!);
 ```
 
 ## Code Examples
@@ -335,19 +335,19 @@ Future<dynamic> main(final context) async {
 
 ### Server-Side Rendering (SSR) Authentication
 
-SSR apps using server-side Dart (Dart Frog, Shelf, etc.) use the **server SDK** (`dart_{{ spec.title | caseLower }}`) to handle auth. You need two clients:
+SSR apps using server-side Dart (Dart Frog, Shelf, etc.) use the **server SDK** (`dart_{{ spec.info.title | caseLower }}`) to handle auth. You need two clients:
 
 - **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
 - **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```dart
-import 'package:dart_{{ spec.title | caseLower }}/dart_{{ spec.title | caseLower }}.dart';
+import 'package:dart_{{ spec.info.title | caseLower }}/dart_{{ spec.info.title | caseLower }}.dart';
 
 // Admin client (reusable)
 final adminClient = Client()
     .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
     .setProject('[PROJECT_ID]')
-    .setKey(Platform.environment['{{ spec.title | caseUpper }}_API_KEY']!);
+    .setKey(Platform.environment['{{ spec.info.title | caseUpper }}_API_KEY']!);
 
 // Session client (create per-request)
 final sessionClient = Client()
@@ -421,7 +421,7 @@ final session = await account.createSession(
 ## Error Handling
 
 ```dart
-import 'package:{{ spec.title | caseLower }}/{{ spec.title | caseLower }}.dart';
+import 'package:{{ spec.info.title | caseLower }}/{{ spec.info.title | caseLower }}.dart';
 // AppwriteException is included in the main import
 
 try {
@@ -449,7 +449,7 @@ try {
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the row/file level or inherited from the table/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
 
 ```dart
-import 'package:{{ spec.title | caseLower }}/{{ spec.title | caseLower }}.dart';
+import 'package:{{ spec.info.title | caseLower }}/{{ spec.info.title | caseLower }}.dart';
 // Permission and Role are included in the main package import
 ```
 

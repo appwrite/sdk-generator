@@ -2,6 +2,10 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\ArraySchema;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Specification;
 use Override;
 
 class Deno extends JS
@@ -136,53 +140,41 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => 'deno/docs/example.md.twig',
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
+                'destination'   => 'src/enums/{{ enum.title | caseKebab }}.ts',
                 'template'      => 'deno/src/enums/enum.ts.twig',
             ],
         ];
     }
 
     #[Override]
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+        $schema = $this->getSchema($parameter);
+        $model = $this->getSchemaModel($parameter);
+        if ($model !== null) {
+            $type = $this->toPascalCase($model);
+            return $schema instanceof ArraySchema ? $type . '[]' : $type;
         }
-        if (!empty($parameter['enumValues'])) {
-            return \ucfirst((string) $parameter['name']);
-        }
-        if (!empty($parameter['array']['model'])) {
-            return $this->toPascalCase($parameter['array']['model']) . '[]';
-        }
-        if (!empty($parameter['model'])) {
-            $modelType = $this->toPascalCase($parameter['model']);
-            return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
-        }
-        if (isset($parameter['items'])) {
-            $parameter['array'] = $parameter['items'];
-        }
-        return match ($parameter['type']) {
-            self::TYPE_INTEGER => 'number',
+        return match ($this->getSchemaType($parameter)) {
+            self::TYPE_INTEGER, self::TYPE_NUMBER => 'number',
             self::TYPE_STRING => 'string',
             self::TYPE_FILE => 'InputFile',
             self::TYPE_BOOLEAN => 'boolean',
-            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
-                ? $this->getTypeName($parameter['array']) . '[]'
-                : 'any[]',
+            self::TYPE_ARRAY => $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '[]',
             self::TYPE_OBJECT => 'object',
-            default => $parameter['type']
+            default => 'unknown',
         };
     }
 
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $example    = $this->getSchemaExample($param);
 
         $hasExample = !empty($example) || $example === 0 || $example === false;
 

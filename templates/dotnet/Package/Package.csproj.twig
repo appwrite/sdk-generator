@@ -1,16 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net462</TargetFrameworks>
-    <PackageId>{{spec.title}}</PackageId>
+    <PackageId>{{spec.info.title}}</PackageId>
     <Version>{{sdk.version}}</Version>
-    <Authors>{{spec.contactName}}</Authors>
-    <Company>{{spec.contactName}}</Company>
+    <Authors>{{spec.info.contact.name}}</Authors>
+    <Company>{{spec.info.contact.name}}</Company>
     <Description>
       {{sdk.shortDescription}}
     </Description>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageLicenseExpression>{{spec.licenseName}}</PackageLicenseExpression>
+    <PackageLicenseExpression>{{spec.info.license.name}}</PackageLicenseExpression>
     <PackageProjectUrl>{{sdk.gitURL}}</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>{{sdk.gitURL}}</RepositoryUrl>

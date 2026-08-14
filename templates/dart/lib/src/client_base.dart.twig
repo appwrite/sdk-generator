@@ -3,12 +3,12 @@ import 'client.dart';
 import 'enums.dart';
 
 abstract class ClientBase implements Client {  
-{% for header in spec.global.headers %}
+{% for headerKey, header in globalHeaders %}
 {% if header.description %}
   /// {{header.description}}
 {% endif %}
   @override
-  ClientBase set{{header.key | caseUcfirst}}(value);
+  ClientBase set{{headerKey | caseUcfirst}}(value);
 
 {% endfor %}
 
@@ -24,19 +24,19 @@ abstract class ClientBase implements Client {
   @override
   Map<String, String> getHeaders();
 
-{% for clientMethodName, clientMethods in spec.clientMethods %}
+{% for clientMethodName, clientMethods in clientMethods %}
 {% for clientMethod in clientMethods %}
   @override
   Future<String> {{ clientMethodName | caseCamel }}() async {
     final String apiPath = '{{ clientMethod.path }}';
     final response = await call(
-      HttpMethod.{{ clientMethod.method | caseLower }},
+      HttpMethod.{{ clientMethod.method.value | caseLower }},
       path: apiPath,
       headers: {
-        {%~ for key, security in clientMethod.securityHeaders %}
+        {%~ for key, security in (clientMethod | securityHeaders) %}
         '{{ security.name }}': config['{{ key | caseLower }}'] ?? '',
         {%~ endfor %}
-        {%~ for key, header in clientMethod.headers %}
+        {%~ for key, header in (clientMethod | methodHeaders) %}
         '{{ key }}': '{{ header }}',
         {%~ endfor %}
       },

@@ -4,6 +4,9 @@ namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language\Concern\CliCommandSurface;
 use Override;
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Tag;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
 
@@ -200,11 +203,11 @@ class GoCLI extends Go
      *
      * @return array{flag: string, var: string, register: string, goType: string, required: bool, noOptDefault: string|null}
      */
-    protected function getGoCliOption(array $parameter): array
+    protected function getGoCliOption(Parameter $parameter): array
     {
-        $flag = $this->getCliOptionName($parameter['name']);
-        $type = $parameter['type'] ?? self::TYPE_STRING;
-        $required = (bool) ($parameter['required'] ?? false);
+        $flag = $this->getCliOptionName($parameter->name);
+        $type = $this->getSchemaType($parameter);
+        $required = $parameter->required;
 
         [$register, $goType, $noOptDefault] = match ($type) {
             self::TYPE_BOOLEAN => ['Bool', 'bool', $required ? null : 'true'],
@@ -218,7 +221,7 @@ class GoCLI extends Go
 
         return [
             'flag' => $flag,
-            'var' => $this->getGoVarName($parameter['name']),
+            'var' => $this->getGoVarName($parameter->name),
             'register' => $register,
             'goType' => $goType,
             'required' => $required,
@@ -248,17 +251,15 @@ class GoCLI extends Go
      *     optional: list<array{flag: string, setter: string, expression: string}>
      * }
      */
-    protected function getGoCallPlan(array $method, array $service): array
+    protected function getGoCallPlan(Operation $method, Tag $service): array
     {
-        // The SDK names these with `caseUcfirst`, which PascalCases through
-        // camelCase -- `client_id` becomes `ClientId`, not `Client_id`.
-        $methodName = $this->toPascalCase($method['name'] ?? '');
+        $methodName = $this->toPascalCase($this->cliMethodName($method));
         $required = [];
         $optional = [];
         $decodes = [];
 
-        foreach ($method['parameters']['all'] ?? [] as $parameter) {
-            $variable = $this->getGoVarName($parameter['name']);
+        foreach ($this->getOperationParameters($method) as $parameter) {
+            $variable = $this->getGoVarName($parameter->name);
             $flagType = $this->getGoCliOption($parameter)['goType'];
             $sdkType = parent::getTypeName($parameter);
             $expression = $variable;
@@ -275,7 +276,7 @@ class GoCLI extends Go
                     $variable,
                     $flagType,
                     $sdkType,
-                    (bool) ($method['packaging'] ?? false),
+                    (bool) ($method->extensions['x-appwrite']['packaging'] ?? false),
                 );
 
                 if ($decode !== null) {
@@ -283,21 +284,21 @@ class GoCLI extends Go
                 }
             }
 
-            if ($parameter['required'] ?? false) {
+            if ($parameter->required) {
                 $required[] = ['expression' => $expression];
 
                 continue;
             }
 
             $optional[] = [
-                'flag' => $this->getCliOptionName($parameter['name']),
-                'setter' => 'With' . $methodName . $this->toPascalCase($parameter['name']),
+                'flag' => $this->getCliOptionName($parameter->name),
+                'setter' => 'With' . $methodName . $this->toPascalCase($parameter->name),
                 'expression' => $expression,
             ];
         }
 
         return [
-            'package' => $this->getGoPackageName($service['name'] ?? ''),
+            'package' => $this->getGoPackageName($service->name),
             'method' => $methodName,
             'optionType' => $methodName . 'Option',
             'decodes' => $decodes,
@@ -367,13 +368,13 @@ class GoCLI extends Go
     public function getFilters(): array
     {
         return array_merge(parent::getFilters(), [
-            new TwigFilter('hasCliQueryParam', fn (array $service): bool => $this->hasCliQueryParam($service)),
-            new TwigFilter('cliServiceScope', fn (array $service): ?array => $this->getCliServiceScope($service)),
-            new TwigFilter('cliQueryConfig', fn (array $method): array => $this->getCliQueryConfig($method)),
-            new TwigFilter('cliTopLevelAliases', fn (array $service): array => $this->getCliTopLevelAliases($service)),
-            new TwigFilter('cliCommandTargets', fn (array $method, array $service): array => $this->getCliCommandTargets($method, $service)),
-            new TwigFilter('cliFallbackHelpers', fn (array $service): array => $this->getCliFallbackHelpers($service)),
-            new TwigFilter('cliIsTopLevelAlias', fn (array $method, array $service): bool => $this->isCliTopLevelAlias($method, $service)),
+            new TwigFilter('hasCliQueryParam', fn(array $methods): bool => $this->hasCliQueryParam($methods)),
+            new TwigFilter('cliServiceScope', fn(?string $resourceHeader): ?array => $this->getCliServiceScope($resourceHeader)),
+            new TwigFilter('cliQueryConfig', fn(Operation $method): array => $this->getCliQueryConfig($method)),
+            new TwigFilter('cliTopLevelAliases', fn(Tag $service, array $methods): array => $this->getCliTopLevelAliases($service, $methods)),
+            new TwigFilter('cliCommandTargets', fn(Operation $method, Tag $service): array => $this->getCliCommandTargets($method, $service)),
+            new TwigFilter('cliFallbackHelpers', fn(Tag $service, array $methods): array => $this->getCliFallbackHelpers($service, $methods)),
+            new TwigFilter('cliIsTopLevelAlias', fn(Operation $method, Tag $service): bool => $this->isCliTopLevelAlias($method, $service)),
             new TwigFilter('goPackage', fn (string $service): string => $this->getGoPackageName($service)),
             new TwigFilter('goString', fn (?string $value): string => $this->toGoString($value)),
         ]);
@@ -383,9 +384,9 @@ class GoCLI extends Go
     public function getFunctions(): array
     {
         return array_merge($this->getCliHelpFunctions(), [
-            new TwigFunction('getGoCliOption', fn (array $parameter): array => $this->getGoCliOption($parameter)),
-            new TwigFunction('getGoVarName', fn (array $parameter): string => $this->getGoVarName($parameter['name'])),
-            new TwigFunction('getGoCallPlan', fn (array $method, array $service): array => $this->getGoCallPlan($method, $service)),
+            new TwigFunction('getGoCliOption', fn(Parameter $parameter): array => $this->getGoCliOption($parameter)),
+            new TwigFunction('getGoVarName', fn(Parameter $parameter): string => $this->getGoVarName($parameter->name)),
+            new TwigFunction('getGoCallPlan', fn(Operation $method, Tag $service): array => $this->getGoCallPlan($method, $service)),
         ]);
     }
 
@@ -421,7 +422,7 @@ class GoCLI extends Go
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => 'cli/docs/example.md.twig',
             ],
 

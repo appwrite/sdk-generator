@@ -28,8 +28,8 @@ const (
 	defaultChunkSize = 5 * 1024 * 1024
 )
 
-// {{ spec.title | caseUcfirst }}Error represents an error of a client request
-type {{ spec.title | caseUcfirst }}Error struct {
+// {{ spec.info.title | caseUcfirst }}Error represents an error of a client request
+type {{ spec.info.title | caseUcfirst }}Error struct {
 	statusCode int
 	message    string
 	response   string
@@ -49,23 +49,23 @@ type ClientResponse struct {
 	Type	   string
 }
 
-func (ce *{{ spec.title | caseUcfirst }}Error) Error() string {
+func (ce *{{ spec.info.title | caseUcfirst }}Error) Error() string {
 	return ce.message
 }
 
-func (ce *{{ spec.title | caseUcfirst }}Error) GetMessage() string {
+func (ce *{{ spec.info.title | caseUcfirst }}Error) GetMessage() string {
 	return ce.message
 }
 
-func (ce *{{ spec.title | caseUcfirst }}Error) GetStatusCode() int {
+func (ce *{{ spec.info.title | caseUcfirst }}Error) GetStatusCode() int {
 	return ce.statusCode
 }
 
-func (ce *{{ spec.title | caseUcfirst }}Error) GetResponse() string {
+func (ce *{{ spec.info.title | caseUcfirst }}Error) GetResponse() string {
 	return ce.response
 }
 
-// Client is the client struct to access {{ spec.title | caseUcfirst }}  services
+// Client is the client struct to access {{ spec.info.title | caseUcfirst }}  services
 type Client struct {
 	Client     *http.Client
 	Headers    map[string]string
@@ -76,12 +76,12 @@ type Client struct {
 	ChunkSize  int64
 }
 
-// Initialize a new {{ spec.title | caseUcfirst }} client with a given timeout
+// Initialize a new {{ spec.info.title | caseUcfirst }} client with a given timeout
 func New(optionalSetters ...ClientOption) Client {
 	headers := map[string]string{
-{% for key,header in spec.global.defaultHeaders %}
+{% for key,header in defaultHeaders %}
 		"{{key}}" : "{{header}}",
-		"user-agent" : fmt.Sprintf("{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (%s; %s)", runtime.GOOS, runtime.GOARCH),
+		"user-agent" : fmt.Sprintf("{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (%s; %s)", runtime.GOOS, runtime.GOARCH),
 		"x-sdk-name": "{{ sdk.name }}",
 		"x-sdk-platform": "{{ sdk.platform }}",
 		"x-sdk-language": "{{ language.name | caseLower }}",
@@ -94,7 +94,7 @@ func New(optionalSetters ...ClientOption) Client {
 	}
 
 	client := Client{
-		Endpoint:  "{{spec.endpoint}}",
+		Endpoint:  "{{(spec | endpoint)}}",
 		Client:    httpClient,
 		Timeout:   defaultTimeout,
 		Headers:   headers,
@@ -259,7 +259,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 
 	if fileInfo.Size() <= client.ChunkSize {
 		if uploadId != "" {
-			headers["x-{{ spec.title | caseLower }}-id"] = uploadId
+			headers["x-{{ spec.info.title | caseLower }}-id"] = uploadId
 		}
 		inputFile.Data = make([]byte, fileInfo.Size())
 		_, err := file.Read(inputFile.Data)
@@ -344,7 +344,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 		chunkParams[paramName] = chunkFile
 		chunkHeaders := copyHeaders(headers)
 		if id != "" {
-			chunkHeaders["x-{{ spec.title | caseLower }}-id"] = id
+			chunkHeaders["x-{{ spec.info.title | caseLower }}-id"] = id
 		}
 
 		totalSize := fileInfo.Size()
@@ -571,7 +571,7 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 			if !ok {
 				message = "N/A"
 			}
-			return nil, &{{ spec.title | caseUcfirst }}Error{
+			return nil, &{{ spec.info.title | caseUcfirst }}Error{
 				statusCode: resp.StatusCode,
 				message:    message,
 				response:   string(responseData),
@@ -587,7 +587,7 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 399 {
-		return nil, &{{ spec.title | caseUcfirst }}Error{
+		return nil, &{{ spec.info.title | caseUcfirst }}Error{
 			statusCode: resp.StatusCode,
 			message:    string(responseData),
 			response:   string(responseData),

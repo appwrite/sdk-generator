@@ -1,12 +1,12 @@
 ```rust
 {% set crateName = sdk.cratePackage | default('appwrite') | rustCrateName %}
-{% set hasFileParam = method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
+{% set hasFileParam = (method | parameters('all')) | filter((param) => (param | schemaType) == 'file') | length > 0 %}
 use {{ crateName }}::Client;
 use {{ crateName }}::services::{{ service.name | caseUcfirst }};
 {% if hasFileParam %}
 use {{ crateName }}::InputFile;
 {% endif %}
-{% if method.parameters.all | hasPermissionParam %}
+{% if (method | parameters('all')) | hasPermissionParam %}
 use {{ crateName }}::permission::Permission;
 use {{ crateName }}::role::Role;
 {% endif %}
@@ -14,27 +14,27 @@ use {{ crateName }}::role::Role;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new();
-    client.set_endpoint("{{ spec.endpointDocs | raw }}"); // Your API Endpoint
-{% for node in method.auth %}
-{% for key, header in node|keys|filter(h => not node[h]['x-appwrite']['optional']) %}
-    client.set_{{ header | caseSnake }}("{{ node[header]['x-appwrite']['demo'] | raw }}"); // {{ node[header].description }}
+    client.set_endpoint("{{ endpointDocs | raw }}"); // Your API Endpoint
+{% for node in [(method | securitySchemes)] %}
+{% for key, header in node|keys|filter(h => not node[h].extensions['x-appwrite']['optional']) %}
+    client.set_{{ header | caseSnake }}("{{ node[header].extensions['x-appwrite']['demo'] | raw }}"); // {{ node[header].description }}
 {% endfor %}
 {% endfor %}
 
     let {{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}::new(&client);
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
+{% for parameter in (method | parameters('all')) %}
+{% if (parameter | schemaType) == 'file' %}
 
     let {{ parameter.name | caseSnake | overrideIdentifier }} = InputFile::from_path("path/to/file.png", None).await?;
 {% endif %}
 {% endfor %}
 {% set resultType = method | returnType(spec, 'crate') | rustType %}
 
-{% if method.parameters.all | length == 0 %}
-    {% if resultType != 'crate::error::Result<()>' %}let result = {% endif %}{{ service.name | caseSnake }}.{{ method.name | caseSnake | overrideIdentifier }}().await?;
+{% if (method | parameters('all')) | length == 0 %}
+    {% if resultType != 'crate::error::Result<()>' %}let result = {% endif %}{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake | overrideIdentifier }}().await?;
 {% else %}
 {% set arguments = [] %}
-{% for parameter in method.parameters.all %}
+{% for parameter in (method | parameters('all')) %}
 {% set argument = parameter | docsArgumentExample(crateName) %}
 {% if not loop.last %}
 {% set argument = argument ~ ',' %}
@@ -44,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 {% endif %}
 {% set arguments = arguments | merge([argument]) %}
 {% endfor %}
-    {% if resultType != 'crate::error::Result<()>' %}let result = {% endif %}{{ service.name | caseSnake }}.{{ method.name | caseSnake | overrideIdentifier }}(
+    {% if resultType != 'crate::error::Result<()>' %}let result = {% endif %}{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake | overrideIdentifier }}(
         {{ arguments | join("\n        ") | raw }}
     ).await?;
 {% endif %}
