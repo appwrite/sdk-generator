@@ -85,7 +85,19 @@ If it should survive a fresh clone, it belongs in the config. Edit the file, the
 
 `databases` is deprecated. Use `tablesdb` and `push table`.
 
-Pull before you edit if the Console may have moved. `push all --all --force` pushes every resource. Scope it (`push function --function-id api`) unless you mean that.
+Always `pull` before `push`. A config that is missing fields the remote has shows those as empty local values in the change table — it looks like you are about to push blanks.
+
+```bash
+# Good
+appwrite pull settings
+# edit appwrite.config.json
+appwrite push settings
+
+# Bad — local has no settings block; table is remote=true, local empty
+appwrite push settings
+```
+
+`push all --all --force` pushes every resource. Scope it (`push function --function-id api`) unless you mean that.
 
 `unique()` is fine for a one-shot row or user. Resources you will push need a **stable** `$id` in the config so the next pull matches.
 
