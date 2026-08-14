@@ -699,6 +699,9 @@ class Kotlin extends Language
                     }
                     $type = \str_replace($modelType, $replacement, $type);
                 }
+                // The model file already imports its enums, so the qualified
+                // name is redundant and every other type here is written short.
+                $type = \str_replace('io.appwrite.enums.', '', $type);
                 return $this->isSpecificationSchemaRequired($property, $spec) ? $type : $type . '?';
             }),
             new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => $this->hasGenericSchemaType($model, $spec)),
