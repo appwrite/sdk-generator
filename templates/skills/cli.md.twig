@@ -85,16 +85,22 @@ If it should survive a fresh clone, it belongs in the config. Edit the file, the
 
 `databases` is deprecated. Use `tablesdb` and `push table`.
 
-Always `pull` before `push`. A config that is missing fields the remote has shows those as empty local values in the change table — it looks like you are about to push blanks.
+If the change table shows remote values against empty local, the config is missing those fields. Pull that resource, then push. Do not `--force` through it, and do not pull everything as a ritual — `pull settings` is slow.
+
+```text
+   id            │ key             │ remote │ local
+  ───────────────┼─────────────────┼────────┼───────
+   Service       │ account         │ true   │
+   Auth method   │ email-password  │ true   │
+```
 
 ```bash
-# Good
+# Good — local column was empty
 appwrite pull settings
-# edit appwrite.config.json
 appwrite push settings
 
-# Bad — local has no settings block; table is remote=true, local empty
-appwrite push settings
+# Bad
+appwrite push settings --force
 ```
 
 `push all --all --force` pushes every resource. Scope it (`push function --function-id api`) unless you mean that.
