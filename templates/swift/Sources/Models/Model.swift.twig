@@ -115,7 +115,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
                 {%- endif -%}
             {%- else -%}
                 {%- if property | isAnyCodableArray(spec) -%}
-                    (map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}{% if (property | schemaRequired) %}!{% else %}?{% endif %}{% endif %} [[String: Any]]{% if isDocument or not (property | schemaRequired) %} ?? []{% endif %}).map { $0.mapValues { AnyCodable($0) } }
+                    (map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}{% if (property | schemaRequired) %}!{% else %}?{% endif %}{% endif %} [Any]{% if isDocument or not (property | schemaRequired) %} ?? []{% endif %}).map { AnyCodable($0) }
                 {%- elseif property | isAnyCodableObject(spec) -%}
                     (map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}{% if (property | schemaRequired) %}!{% else %}?{% endif %}{% endif %} [String: Any]{% if isDocument or not (property | schemaRequired) %} ?? [:]{% endif %}).mapValues { AnyCodable($0) }
                 {%- elseif (property | schemaType) != 'array' and (property | enumValues) is not empty -%}

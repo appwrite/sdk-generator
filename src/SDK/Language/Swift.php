@@ -342,9 +342,11 @@ class Swift extends Language
             // A union or untyped element has no Swift spelling, so the whole
             // array degrades to AnyCodable rather than each element being
             // rendered as a dictionary.
-            self::TYPE_ARRAY => $this->hasConcreteItemsType($schema)
-                ? '[' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema, $spec) . ']'
-                : '[AnyCodable]',
+            self::TYPE_ARRAY => match (true) {
+                $this->isUntypedNestedArray($parameter, $schema) => '[[AnyCodable]]',
+                $this->hasConcreteItemsType($schema) => '[' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema, $spec) . ']',
+                default => '[AnyCodable]',
+            },
             self::TYPE_OBJECT => $isProperty ? '[String: AnyCodable]' : 'Any',
             default => 'Any',
         };
