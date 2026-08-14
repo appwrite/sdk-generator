@@ -312,13 +312,18 @@ class Web extends JS
         }
 
         if ($models !== []) {
-            $types = \array_map(function (string $modelName) use ($spec): string {
+            // A union names its members from outside the declaring namespace,
+            // so those need qualifying; a single model is written bare.
+            $qualify = \count($models) > 1;
+            $types = \array_map(function (string $modelName) use ($spec, $qualify): string {
                 $type = $this->toPascalCase($modelName);
                 $generics = \array_values(\array_filter(
                     $this->getGenericTypes($modelName, $spec),
                     fn(string $generic): bool => $generic !== $type,
                 ));
-                $type = 'Models.' . $type;
+                if ($qualify) {
+                    $type = 'Models.' . $type;
+                }
                 return $generics === [] ? $type : $type . '<' . \implode(', ', $generics) . '>';
             }, $models);
             $type = \implode(' | ', $types);

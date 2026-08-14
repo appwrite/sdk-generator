@@ -294,7 +294,9 @@ class Rust extends Language
             self::TYPE_STRING => 'String',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_OBJECT => 'serde_json::Value',
-            self::TYPE_ARRAY => 'Vec<' . $this->getTypeName($schema->items) . '>',
+            self::TYPE_ARRAY => $this->isUntypedNestedArray($parameter, $schema)
+                ? 'Vec<Vec<String>>'
+                : 'Vec<' . $this->getTypeName($schema->items) . '>',
             default => 'serde_json::Value',
         };
     }

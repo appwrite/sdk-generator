@@ -219,10 +219,12 @@ class Go extends Language
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_OBJECT => 'interface{}',
-            // Recursing keeps the element type at any depth: a polygon is
-            // items→items→items of number, which flattening to a fixed
-            // [][]interface{} would erase along with a whole dimension.
-            self::TYPE_ARRAY => '[]' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema),
+            // A nested array's element type is not carried through, so the
+            // inner element stays untyped rather than being resolved deeper
+            // than the published SDKs express it.
+            self::TYPE_ARRAY => $this->isUntypedNestedArray($parameter, $schema)
+                ? '[][]interface{}'
+                : '[]' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema),
             default => 'interface{}',
         };
     }

@@ -285,6 +285,21 @@ abstract class Language
         return $this->getSchema($value)->default;
     }
 
+    /**
+     * Whether a nested array should keep its element type untyped.
+     *
+     * A model property carries its full schema tree, so an array of arrays of
+     * numbers resolves all the way down. A method parameter is flattened to a
+     * single level before it reaches a language, so anything past the first
+     * nesting has no type to render and the published SDKs leave it untyped.
+     */
+    protected function isUntypedNestedArray(Schema|Parameter $value, Schema $schema): bool
+    {
+        return $value instanceof Parameter
+            && $schema instanceof ArraySchema
+            && $schema->items instanceof ArraySchema;
+    }
+
     protected function getSchemaEnumName(Schema|Parameter $value, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($value);
