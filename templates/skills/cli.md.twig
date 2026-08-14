@@ -126,8 +126,6 @@ appwrite users list --queries '[{"method":"equal","attribute":"emailVerification
 
 `--json` for scripts (empty fields dropped). `--raw` for the unfiltered payload. Secrets stay redacted unless `--show-secrets`.
 
-Prefer `--enabled=false` over `--enabled false`. The `=` form cannot be eaten as a positional.
-
 ## The config file itself
 
 The CLI walks **up** from cwd looking for `appwrite.config.json` (or the legacy `appwrite.json`). `push` from `functions/api/` still hits the project root. A stray config in a parent directory will capture you.
