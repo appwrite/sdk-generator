@@ -129,7 +129,9 @@ abstract class JS extends Language
             self::TYPE_INTEGER, self::TYPE_NUMBER => 'number',
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'boolean',
-            self::TYPE_ARRAY => $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '[]',
+            self::TYPE_ARRAY => $this->isUntypedNestedArray($parameter, $schema)
+                ? 'any[][]'
+                : $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '[]',
             self::TYPE_FILE => 'File',
             self::TYPE_OBJECT => 'object',
             default => 'any',

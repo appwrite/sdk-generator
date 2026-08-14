@@ -293,6 +293,24 @@ abstract class Language
      * single level before it reaches a language, so anything past the first
      * nesting has no type to render and the published SDKs leave it untyped.
      */
+    /**
+     * Whether an array's element schema names a type the language can spell.
+     *
+     * A `oneOf`/`anyOf` element, or one with no type at all, does not, and the
+     * array degrades to the language's untyped list rather than rendering each
+     * element as an object.
+     */
+    protected function hasConcreteItemsType(Schema $schema): bool
+    {
+        if (!$schema instanceof ArraySchema) {
+            return false;
+        }
+        $items = $schema->items;
+        return !($items instanceof CompositeSchema)
+            && !($items instanceof AnySchema)
+            && $this->getSchemaType($items) !== '';
+    }
+
     protected function isUntypedNestedArray(Schema|Parameter $value, Schema $schema): bool
     {
         return $value instanceof Parameter

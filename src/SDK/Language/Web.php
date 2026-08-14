@@ -221,7 +221,9 @@ class Web extends JS
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'boolean',
             self::TYPE_FILE => 'File',
-            self::TYPE_ARRAY => $this->getTypeName($this->getArraySchema($parameter) ?? $schema, $spec) . '[]',
+            self::TYPE_ARRAY => $this->isUntypedNestedArray($parameter, $schema)
+                ? 'any[][]'
+                : $this->getTypeName($this->getArraySchema($parameter) ?? $schema, $spec) . '[]',
             self::TYPE_OBJECT => 'Record<string, any>',
             default => 'any',
         };

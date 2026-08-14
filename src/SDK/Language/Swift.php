@@ -350,22 +350,6 @@ class Swift extends Language
         };
     }
 
-    /**
-     * Whether an array's element schema names a type Swift can spell.
-     *
-     * A `oneOf`/`anyOf` element, or one with no type at all, does not.
-     */
-    protected function hasConcreteItemsType(Schema $schema): bool
-    {
-        if (!$schema instanceof ArraySchema) {
-            return false;
-        }
-        $items = $schema->items;
-        return !($items instanceof CompositeSchema)
-            && !($items instanceof AnySchema)
-            && $this->getSchemaType($items) !== '';
-    }
-
     public function getParamDefault(Schema|Parameter $param): string
     {
         $type       = $this->getSchemaType($param);

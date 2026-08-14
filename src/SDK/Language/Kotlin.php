@@ -133,7 +133,9 @@ class Kotlin extends Language
             self::TYPE_STRING => 'String',
             self::TYPE_FILE => 'InputFile',
             self::TYPE_BOOLEAN => 'Boolean',
-            self::TYPE_ARRAY => 'List<' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '>',
+            self::TYPE_ARRAY => $this->isUntypedNestedArray($parameter, $schema)
+                ? 'List<List<Any>>'
+                : 'List<' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '>',
             self::TYPE_OBJECT => 'Any',
             default => 'Any',
         };
@@ -638,15 +640,11 @@ class Kotlin extends Language
             return $class . '.from(map = ' . $mapKey . ' as Map<String, Any>' . $nestedType . ')';
         }
 
-        $enumSchema = $property instanceof ArraySchema ? $property->items : $property;
-        if ($enumSchema->enum !== []) {
+        // Only a scalar enum property is decoded through its enum class; a
+        // list of enums is cast straight across, which is how the published
+        // SDKs read it.
+        if (!($property instanceof ArraySchema) && $property->enum !== []) {
             $enumClass = $this->toPascalCase($this->getSchemaEnumName($property, $spec));
-            if ($property instanceof ArraySchema) {
-                $cast = $required ? 'as' : 'as?';
-                $safeCall = $required ? '' : '?';
-                return '(' . $mapKey . ' ' . $cast . ' List<String>)' . $safeCall
-                    . '.map { value -> ' . $enumClass . '.values().first { it.value == value } }';
-            }
             return $enumClass . '.values().find { it.value == '
                 . ($required ? $mapKey . ' as String' : '(' . $mapKey . ' as? String)') . ' }'
                 . ($required ? '!!' : '');
@@ -699,9 +697,12 @@ class Kotlin extends Language
                     }
                     $type = \str_replace($modelType, $replacement, $type);
                 }
-                // The model file already imports its enums, so the qualified
-                // name is redundant and every other type here is written short.
-                $type = \str_replace('io.appwrite.enums.', '', $type);
+                // A scalar enum property is written short, matching the import
+                // the model file already carries. Inside a List the qualified
+                // name is kept, which is how the published SDKs read.
+                if (!\str_starts_with($type, 'List<')) {
+                    $type = \str_replace('io.appwrite.enums.', '', $type);
+                }
                 return $this->isSpecificationSchemaRequired($property, $spec) ? $type : $type . '?';
             }),
             new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => $this->hasGenericSchemaType($model, $spec)),

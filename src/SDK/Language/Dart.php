@@ -152,9 +152,11 @@ class Dart extends Language
             self::TYPE_STRING => 'String',
             self::TYPE_FILE => 'InputFile',
             self::TYPE_BOOLEAN => 'bool',
-            self::TYPE_ARRAY => $this->isUntypedNestedArray($parameter, $schema)
-                ? 'List<List>'
-                : 'List<' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '>',
+            self::TYPE_ARRAY => match (true) {
+                $this->isUntypedNestedArray($parameter, $schema) => 'List<List>',
+                !$this->hasConcreteItemsType($schema) => 'List',
+                default => 'List<' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '>',
+            },
             self::TYPE_OBJECT => 'Map',
             self::TYPE_NUMBER => 'double',
             default => 'dynamic',
