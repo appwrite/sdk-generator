@@ -50,7 +50,7 @@ Then add it to your target:
         .target(
             name: "YourAppTarget",
             dependencies: [
-                .product(name: "{{ spec.name | caseUcfirst }}", package: "{{ sdk.gitRepoName }}")
+                .product(name: "{{ spec.title | caseUcfirst }}", package: "{{ sdk.gitRepoName }}")
             ]
         ),
 ```
