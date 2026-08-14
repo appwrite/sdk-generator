@@ -18,6 +18,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Utilities
         {
             // Create configuration
             var config = {{ spec.info.title | caseUcfirst }}Config.CreateConfiguration();
+            
 
             // Create manager
             var managerGO = new GameObject("{{ spec.info.title | caseUcfirst }}Manager");

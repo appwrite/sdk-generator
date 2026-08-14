@@ -532,17 +532,30 @@ class Rust extends Language
             return 'crate::error::Result<crate::models::' . $this->toPascalCase($models[0]) . '>';
         }
 
-        $hasContent = false;
-        $empty = $method->responses !== [];
-        foreach ($method->responses as $code => $response) {
-            $hasContent = $hasContent || $response->content !== [];
-            if (!\in_array((int) $code, [204, 205], true)) {
-                $empty = false;
-            }
-        }
-        return $empty || !$hasContent
+        // Emptiness follows the produced content types, not the response
+        // codes: a 204 whose produced type is recorded in x-appwrite still
+        // returns a body to deserialize, and narrowing it to `()` would be a
+        // breaking change for every caller binding the result.
+        return $this->getProducedTypes($method) === []
             ? 'crate::error::Result<()>'
             : 'crate::error::Result<serde_json::Value>';
+    }
+
+    /** @return list<string> */
+    protected function getProducedTypes(Operation $method): array
+    {
+        $produces = [];
+        foreach ($method->responses as $response) {
+            foreach (\array_keys($response->content) as $contentType) {
+                if ($contentType !== '' && !\in_array($contentType, $produces, true)) {
+                    $produces[] = $contentType;
+                }
+            }
+        }
+        if ($produces === []) {
+            $produces = $method->extensions['x-appwrite']['produces'] ?? [];
+        }
+        return $produces;
     }
 
     #[Override]

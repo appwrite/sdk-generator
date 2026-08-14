@@ -7,9 +7,6 @@ using Cysharp.Threading.Tasks;
 {% if definitions is not empty %}
 using {{ spec.info.title | caseUcfirst }}.Models;
 {% endif %}
-{% if allEnums is not empty %}
-using {{ spec.info.title | caseUcfirst }}.Enums;
-{% endif %}
 {% if service.name|lower == 'account' or service.name|lower == 'general' %}
 using {{ spec.info.title | caseUcfirst }}.Extensions;
 using UnityEngine;

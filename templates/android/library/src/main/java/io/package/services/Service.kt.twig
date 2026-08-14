@@ -6,9 +6,6 @@ import {{ sdk.namespace | caseDot }}.Service
 {% if definitions is not empty %}
 import {{ sdk.namespace | caseDot }}.models.*
 {% endif %}
-{% if allEnums is not empty %}
-import {{ sdk.namespace | caseDot }}.enums.*
-{% endif %}
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.classOf
 {% if serviceFeatures.webAuth %}
