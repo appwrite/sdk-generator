@@ -2,9 +2,9 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\Parameter;
-use Utopia\OpenAPI\Model\Schema\ArraySchema;
-use Utopia\OpenAPI\Model\Schema\Schema;
+use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;

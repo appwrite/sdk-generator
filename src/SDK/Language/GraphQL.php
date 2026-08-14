@@ -3,7 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Utopia\OpenAPI\Model\Parameter;
-use Utopia\OpenAPI\Model\Schema\Schema;
+use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Specification;
 
 class GraphQL extends HTTP

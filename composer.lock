@@ -454,12 +454,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/openapi.git",
-                "reference": "9b1f03807889142ad7aa778f3e389f92e4d7ab5b"
+                "reference": "5962baf44f339ae0919ec751bcbf1a96828f0038"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/openapi/zipball/9b1f03807889142ad7aa778f3e389f92e4d7ab5b",
-                "reference": "9b1f03807889142ad7aa778f3e389f92e4d7ab5b",
+                "url": "https://api.github.com/repos/utopia-php/openapi/zipball/5962baf44f339ae0919ec751bcbf1a96828f0038",
+                "reference": "5962baf44f339ae0919ec751bcbf1a96828f0038",
                 "shasum": ""
             },
             "require": {
@@ -517,7 +517,7 @@
                 "source": "https://github.com/utopia-php/openapi/tree/main",
                 "issues": "https://github.com/utopia-php/openapi/issues"
             },
-            "time": "2026-08-14T04:27:06+00:00"
+            "time": "2026-08-14T07:11:54+00:00"
         }
     ],
     "packages-dev": [

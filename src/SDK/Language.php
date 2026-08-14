@@ -2,20 +2,20 @@
 
 namespace Appwrite\SDK;
 
-use Utopia\OpenAPI\Model\Schema\CompositeSchema;
+use Utopia\OpenAPI\Model\AnySchema;
 use Normalizer;
+use Utopia\OpenAPI\Model\ArraySchema;
+use Utopia\OpenAPI\Model\BooleanSchema;
+use Utopia\OpenAPI\Model\CompositeSchema;
+use Utopia\OpenAPI\Model\IntegerSchema;
+use Utopia\OpenAPI\Model\NumberSchema;
+use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\ParameterLocation;
-use Utopia\OpenAPI\Model\Schema\AnySchema;
-use Utopia\OpenAPI\Model\Schema\ArraySchema;
-use Utopia\OpenAPI\Model\Schema\BooleanSchema;
-use Utopia\OpenAPI\Model\Schema\IntegerSchema;
-use Utopia\OpenAPI\Model\Schema\NumberSchema;
-use Utopia\OpenAPI\Model\Schema\ObjectSchema;
-use Utopia\OpenAPI\Model\Schema\ReferenceSchema;
-use Utopia\OpenAPI\Model\Schema\Schema;
-use Utopia\OpenAPI\Model\Schema\StringSchema;
+use Utopia\OpenAPI\Model\ReferenceSchema;
+use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 
 abstract class Language

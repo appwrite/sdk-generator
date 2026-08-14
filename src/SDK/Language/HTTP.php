@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Appwrite\SDK\Language;
 
 use Utopia\OpenAPI\Model\Parameter;
-use Utopia\OpenAPI\Model\Schema\Schema;
+use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Specification;
 use Appwrite\SDK\Language;
 use Exception;

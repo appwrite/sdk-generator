@@ -4,7 +4,7 @@ namespace Appwrite\SDK\Language\Concern;
 
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
-use Utopia\OpenAPI\Model\Schema\Schema;
+use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Model\Tag;
 use Utopia\OpenAPI\Specification;
 use Override;
