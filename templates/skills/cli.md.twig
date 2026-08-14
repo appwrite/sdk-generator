@@ -1,815 +1,137 @@
 {% set lang = 'cli' %}
 {% set langName = 'CLI' %}
-{% set langDescription %}{{ spec.info.title }} {{ langName }} skill. Use when managing {{ spec.info.title }} projects from the command line. Covers installation, login, project initialization, multi-file project configuration, deploying functions/sites/tables/buckets/teams/webhooks/topics, flag-based list queries, non-interactive CI/CD mode, and generating type-safe SDKs.{% endset %}
+{% set langDescription %}How to use the {{ spec.info.title }} CLI well. Covers when to use appwrite.config.json vs `appwrite client`, pull/push vs one-shot service calls, query flags, CI auth, Cloud regional endpoints, function/site variables, and traps that `--help` will not mention. Does not catalog commands — run `appwrite <command> --help` for flags. Use whenever running `appwrite`, deploying or pulling functions/sites/tables, initializing or linking a project, scripting {{ spec.info.title }}, or when the user mentions the {{ spec.info.title }} CLI, appwrite.config.json, or `appwrite client`.{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
-# {{ spec.info.title }} {{ langName }}
+# {{ spec.info.title }} CLI
 
-## Installation
+`appwrite <command> --help` already lists flags. Read it instead of guessing.
 
-```bash
-# npm
-npm install -g appwrite-cli
+## Config vs `client`
 
-# macOS (Homebrew native binary)
-brew tap appwrite/appwrite
-brew install appwrite/appwrite/appwrite
+A **real project** (repo, schema, functions, deploys, CI) lives in `appwrite.config.json`. Init once. Pull and push after that. Do not `appwrite client --project-id` on every command — the config already names the project.
 
-# macOS / Linux (script)
-curl -sL https://appwrite.io/cli/install.sh | bash
-
-# Windows (Scoop)
-scoop install https://raw.githubusercontent.com/appwrite/sdk-for-cli/master/scoop/appwrite.config.json
-```
-
-Verify installation:
+A **one-off** (inspect a user, patch one row, poke a remote you will not return to) uses `appwrite client`. Do not scaffold a project for a single API call.
 
 ```bash
-appwrite -v
-```
-
-## Login & Initialization
-
-```bash
-# Login to your account
+# Good — project
 appwrite login
+appwrite list-projects --json
+appwrite init project --project-id <ID>
+appwrite pull table
+# edit appwrite.config.json, then:
+appwrite push table
 
-# Login to a self-hosted instance
-appwrite login --endpoint "https://your-instance.com/v1"
+# Bad — project treated as a pile of API calls
+appwrite tablesdb create-table --database-id main --table-id songs ...
+appwrite tablesdb create-varchar-column --database-id main --table-id songs ...
+# the next clone has no record of this
 
-# Switch to a different saved account
-appwrite login --switch
+# Good — one-off (already logged in)
+appwrite client --project-id <ID>
+appwrite users get --user-id <ID> --json
 
-# Initialize a project (creates appwrite.config.json)
-appwrite init project
-
-# Verify by fetching project info
-appwrite projects get --project-id "<PROJECT_ID>"
+# Bad — one-off that litters a repo
+cd ~/some-unrelated-app && appwrite init project
 ```
 
-`appwrite whoami` can show `https://cloud.appwrite.io/v1` as the account login endpoint. That is expected for Appwrite Cloud login. Do not rewrite it to a regional endpoint. Only project configuration and project-scoped API calls use the region endpoint, such as `https://<REGION>.cloud.appwrite.io/v1`.
+No session? `appwrite client --endpoint https://<REGION>.cloud.appwrite.io/v1 --key "$APPWRITE_API_KEY" --project-id <ID>`.
 
-## Configuration
+`appwrite client --project-id` writes `appwrite.config.json` in this directory (or updates one found walking up). That is how you link a folder quickly. Do not run it at the root of an unrelated repo. `APPWRITE_PROJECT_ID` / `APPWRITE_ENDPOINT` override the file without touching it — use those when you are already inside a project and need a one-shot against something else.
+
+## Auth is not the project
+
+| Layer | Lives in | Set with |
+|---|---|---|
+| Who you are (session or API key) | global CLI prefs | `appwrite login` or `appwrite client --key` |
+| Which project | `appwrite.config.json` | `init project`, `pull`, or `client --project-id` |
+
+`init project` talks to the **console**. It needs a login session. An API key cannot list organizations.
 
 ```bash
-# Switch endpoint/project for scripted use
-appwrite client --endpoint "https://<REGION>.cloud.appwrite.io/v1"
-appwrite client --project-id "<PROJECT_ID>"
+# Good — CI against a checked-in config
+appwrite client --key "$APPWRITE_API_KEY"
+appwrite push function --force
+
+# Bad — CI that bakes the key into the repo
+appwrite client --key 'standard_....'
+# and commits appwrite.config.json with secrets inside
 ```
 
-> For the full list of CLI commands, see [CLI Commands](https://appwrite.io/docs/tooling/command-line/commands).
-> For headless / CI/CD usage, see [Non-Interactive Mode](https://appwrite.io/docs/tooling/command-line/non-interactive).
+Env beats the config: `APPWRITE_PROJECT_ID`, `APPWRITE_ENDPOINT`, `APPWRITE_ORGANIZATION_ID`. Check in the config (no secrets). Put keys in the environment. `--force` skips prompts; use it in CI after you know what will be pushed.
 
-## appwrite.config.json
+`appwrite login --switch` rotates saved accounts. `appwrite client --debug` prints the effective endpoint/project with credentials masked. `appwrite client --reset` signs out of everything.
 
-Resources can be configured inline in `appwrite.config.json` or split into separate JSON array files using `includes`.
+## Cloud endpoints
 
-```json
-{
-    "projectId": "<PROJECT_ID>",
-    "projectName": "Production",
-    "endpoint": "https://<REGION>.cloud.appwrite.io/v1",
-    "includes": {
-        "functions": "appwrite/functions.json",
-        "sites": "appwrite/sites.json",
-        "webhooks": "appwrite/webhooks.json"
-    },
-    "settings": {
-        "services": {
-            "account": true,
-            "databases": true,
-            "functions": true,
-            "sites": true,
-            "messaging": true
-        },
-        "protocols": {
-            "rest": true,
-            "graphql": true,
-            "websocket": true
-        },
-        "auth": {
-            "methods": {
-                "email-password": true,
-                "magic-url": true
-            },
-            "security": {
-                "sessionsLimit": 10,
-                "passwordDictionary": true
-            }
-        }
-    },
-    "tablesDB": [],
-    "tables": [],
-    "buckets": [],
-    "teams": [],
-    "topics": []
-}
-```
-
-Each `includes` value must be a relative `.json` path inside the project directory and must point to a JSON array. A resource cannot be defined both inline and in `includes`. When functions or sites are included, their `path` values are resolved relative to the include file directory.
-
-Example `appwrite/functions.json`:
-
-```json
-[
-    {
-        "$id": "<FUNCTION_ID>",
-        "name": "userAuth",
-        "enabled": true,
-        "logging": true,
-        "runtime": "node-22",
-        "buildSpecification": "s-1vcpu-512mb",
-        "runtimeSpecification": "s-1vcpu-512mb",
-        "deploymentRetention": 7,
-        "events": [],
-        "schedule": "",
-        "timeout": 15,
-        "entrypoint": "src/main.js",
-        "commands": "npm install",
-        "ignore": "node_modules\n.tmp",
-        "path": "../functions/userAuth"
-    }
-]
-```
-
-### Pull and push project configuration
+`appwrite whoami` showing `https://cloud.appwrite.io/v1` is the **account** login host. Leave it. Project API calls use the region host (`https://fra.cloud.appwrite.io/v1`, and so on). `init project` and `client --project-id` pin that region into the config. Self-hosted: one endpoint for both.
 
 ```bash
-# Pull or push everything
-appwrite pull all --all
-appwrite push all --all
+# Good — project work uses the config's regional endpoint
+cat appwrite.config.json   # "endpoint": "https://fra.cloud.appwrite.io/v1"
 
-# Pull or push individual resource groups
-appwrite pull settings
-appwrite push settings
-appwrite pull webhooks
-appwrite push webhooks
-appwrite pull functions
-appwrite push functions
+# Bad — "fixing" whoami
+appwrite client --endpoint https://fra.cloud.appwrite.io/v1
+# now login/session calls go to a region host they do not belong on
 ```
 
-## Deploying Functions
+## Schema vs rows
+
+| Pull / push (config) | Service commands (not in the config) |
+|---|---|
+| settings, functions, sites, tables and columns, buckets, teams, webhooks, topics | rows, users, files, executions, messages |
+
+If it should survive a fresh clone, it belongs in the config. Edit the file, then push. Creating the same resources with `tablesdb create-*` or `functions create` bypasses the file the next `pull` / `push` expects.
+
+`databases` is deprecated. Use `tablesdb` and `push table`.
+
+Pull before you edit if the Console may have moved. `push all --all --force` pushes every resource. Scope it (`push function --function-id api`) unless you mean that.
+
+`unique()` is fine for a one-shot row or user. Resources you will push need a **stable** `$id` in the config so the next pull matches.
+
+## Functions and sites
+
+Variables live in `<path>/.env`, not in `appwrite.config.json`. `--with-variables` **replaces** the remote set from that file. Omit it unless you intend to sync secrets.
 
 ```bash
-# Create a new function
-appwrite init functions
+# Good — ship code, leave remote vars alone
+appwrite push function --function-id api --activate
 
-# Pull existing functions from Console
-appwrite pull functions
+# Bad — remote vars you did not list locally are gone
+appwrite push function --function-id api --with-variables
 
-# Deploy functions
-appwrite push functions
+# Good — deploy without switching live traffic
+appwrite push function --function-id api --activate=false
 ```
 
-### Function configuration in appwrite.config.json
+`--async` returns before the build finishes. Local: `appwrite run function`. After the schema is in the config: `appwrite generate`.
 
-```json
-{
-    "functions": [
-        {
-            "$id": "<FUNCTION_ID>",
-            "name": "userAuth",
-            "enabled": true,
-            "logging": true,
-            "runtime": "node-22",
-            "buildSpecification": "s-1vcpu-512mb",
-            "runtimeSpecification": "s-1vcpu-512mb",
-            "deploymentRetention": 7,
-            "scopes": [],
-            "events": [],
-            "schedule": "",
-            "timeout": 15,
-            "entrypoint": "src/main.js",
-            "commands": "npm install",
-            "ignore": "node_modules\n.tmp",
-            "path": "functions/userAuth"
-        }
-    ]
-}
-```
+## Queries and output
 
-Key function config fields:
-
-| Field | Description |
-|-------|-------------|
-| `enabled` | Enables or disables the function. Disabled functions cannot be executed. |
-| `logging` | Stores execution logs for debugging and observability. |
-| `runtime` | Runtime used to execute the function, such as `node-22`. |
-| `buildSpecification` | Compute specification used while building the deployment. |
-| `runtimeSpecification` | Compute specification used while running executions. |
-| `deploymentRetention` | Number of days to retain old deployments before they are automatically deleted. |
-| `scopes` | API scopes granted to the function's generated execution key. |
-| `events` | Event patterns that trigger the function. |
-| `schedule` | Cron expression for scheduled execution. Empty string disables scheduling. |
-| `timeout` | Maximum execution duration in seconds. |
-| `entrypoint` | File inside `path` that starts the function. |
-| `commands` | Build/install command run before deployment. |
-| `ignore` | Extra newline-separated ignore rules used when packaging code. `.gitignore` is read automatically. |
-| `path` | Local function source directory. If configured through `includes`, this is resolved relative to the include file. |
-
-### Function commands
-
-| Command | Description |
-|---------|-------------|
-| `appwrite functions list` | List all functions |
-| `appwrite functions create` | Create a new function |
-| `appwrite functions get --function-id <ID>` | Get a function by ID |
-| `appwrite functions update --function-id <ID>` | Update a function |
-| `appwrite functions delete --function-id <ID>` | Delete a function |
-| `appwrite functions list-runtimes` | List all active runtimes |
-| `appwrite functions list-deployments --function-id <ID>` | List deployments |
-| `appwrite functions create-deployment --function-id <ID>` | Upload a new deployment |
-| `appwrite functions update-deployment --function-id <ID> --deployment-id <ID>` | Set active deployment |
-| `appwrite functions delete-deployment --function-id <ID> --deployment-id <ID>` | Delete a deployment |
-| `appwrite functions download-deployment --function-id <ID> --deployment-id <ID>` | Download deployment |
-| `appwrite functions create-execution --function-id <ID>` | Trigger execution |
-| `appwrite functions list-executions --function-id <ID>` | List execution logs |
-| `appwrite functions get-execution --function-id <ID> --execution-id <ID>` | Get execution log |
-| `appwrite functions list-variables --function-id <ID>` | List variables |
-| `appwrite functions create-variable --function-id <ID> --key <KEY> --value <VALUE>` | Create variable |
-| `appwrite functions update-variable --function-id <ID> --variable-id <ID> --key <KEY> --value <VALUE>` | Update variable |
-| `appwrite functions delete-variable --function-id <ID> --variable-id <ID>` | Delete variable |
-
-### List functions with flag-based queries
-
-Prefer the query flags for common filtering, sorting, and pagination. Use `--queries` only for raw Appwrite JSON query strings or advanced automation.
+Prefer `--filter`, `--sort-asc` / `--sort-desc`, `--limit`, `--select`, `--cursor-after`. `--where` is deprecated. `--queries` only for Query JSON the flags cannot express.
 
 ```bash
-appwrite functions list \
-    --where 'name=api' \
-    --sort-desc '$createdAt' \
-    --limit 10 \
-    --offset 0 \
-    --json
+# Good
+appwrite users list \
+  --filter 'emailVerification=true' \
+  --sort-desc '$createdAt' \
+  --limit 20 \
+  --json
 
-appwrite functions list-deployments \
-    --function-id <FUNCTION_ID> \
-    --limit 5 \
-    --cursor-after <DEPLOYMENT_ID>
+# Bad
+appwrite users list --queries '[{"method":"equal","attribute":"emailVerification","values":[true]}]'
 ```
 
-### Trigger a function with body
+`--filter` parses `true` / `false` / `null`, numbers, and JSON arrays. Repeat the flag to AND. List pages cap at 100; prefer `--cursor-after <lastId>` over a large `--offset`.
 
-```bash
-appwrite functions create-execution \
-    --function-id <FUNCTION_ID> \
-    --body '{"key": "value"}'
-```
+`--json` for scripts (empty fields dropped). `--raw` for the unfiltered payload. Secrets stay redacted unless `--show-secrets`.
 
-### Local development
+Prefer `--enabled=false` over `--enabled false`. The `=` form cannot be eaten as a positional.
 
-```bash
-appwrite run functions
-```
+## The config file itself
 
-### Deployment activation
+The CLI walks **up** from cwd looking for `appwrite.config.json` (or the legacy `appwrite.json`). `push` from `functions/api/` still hits the project root. A stray config in a parent directory will capture you.
 
-```bash
-# Deploy and activate the deployment
-appwrite push functions --function-id <FUNCTION_ID> --activate
+Split large projects with `includes` — each value is a relative `.json` array. A resource cannot be both inline and included. Function and site `path` values resolve relative to the include file, not the repo root.
 
-# Deploy without switching live traffic
-appwrite push functions --function-id <FUNCTION_ID> --activate=false
-```
-
-### Function variables
-
-Do not define function variables in `appwrite.config.json`. Put them in a `.env` file inside the configured function `path`. Variables are saved after they are pushed, so use `--with-variables` only when you want to create, replace, or remove the remote variables from the local `.env` file.
-
-```bash
-# functions/userAuth/.env
-PUBLIC_FLAG=enabled
-SECRET_TOKEN=replace-me
-
-# Sync function variables from .env
-appwrite push functions --function-id <FUNCTION_ID> --with-variables
-
-# Push code without changing saved variables
-appwrite push functions --function-id <FUNCTION_ID>
-
-# Run locally with variables fetched from function settings
-appwrite run functions --with-variables
-```
-
-## Deploying Sites
-
-```bash
-# Create a new site
-appwrite init sites
-
-# Pull existing sites from Console
-appwrite pull sites
-
-# Deploy sites
-appwrite push sites
-```
-
-### Site configuration in appwrite.config.json
-
-```json
-{
-    "sites": [
-        {
-            "$id": "<SITE_ID>",
-            "name": "Documentation template",
-            "logging": true,
-            "framework": "astro",
-            "timeout": 30,
-            "installCommand": "npm install",
-            "buildCommand": "npm run build",
-            "outputDirectory": "./dist",
-            "buildSpecification": "s-1vcpu-512mb",
-            "runtimeSpecification": "s-1vcpu-512mb",
-            "buildRuntime": "node-22",
-            "adapter": "ssr",
-            "fallbackFile": "",
-            "startCommand": "npm run start",
-            "deploymentRetention": 7,
-            "path": "sites/documentation-template"
-        }
-    ]
-}
-```
-
-Key site config fields:
-
-| Field | Description |
-|-------|-------------|
-| `logging` | Stores site request and build logs. |
-| `framework` | Framework preset used for build and deployment defaults. |
-| `timeout` | Maximum request or function duration in seconds for server-rendered sites. |
-| `installCommand` | Command used to install dependencies. |
-| `buildCommand` | Command used to build the site. |
-| `outputDirectory` | Directory containing static build output. |
-| `buildSpecification` | Compute specification used while building the deployment. |
-| `runtimeSpecification` | Compute specification used while serving runtime workloads. |
-| `buildRuntime` | Runtime used to build the site, such as `node-22`. |
-| `adapter` | Deployment adapter, such as static or SSR behavior. |
-| `fallbackFile` | Fallback file for SPA routing or missing routes. |
-| `startCommand` | Command used to start server-rendered output. |
-| `deploymentRetention` | Number of days to retain old deployments before they are automatically deleted. |
-| `path` | Local site source directory. If configured through `includes`, this is resolved relative to the include file. |
-
-### Site commands
-
-| Command | Description |
-|---------|-------------|
-| `appwrite sites list` | List all sites |
-| `appwrite sites create` | Create a new site |
-| `appwrite sites get --site-id <ID>` | Get a site by ID |
-| `appwrite sites update --site-id <ID>` | Update a site |
-| `appwrite sites delete --site-id <ID>` | Delete a site |
-| `appwrite sites list-frameworks` | List available frameworks |
-| `appwrite sites list-specifications` | List allowed specs |
-| `appwrite sites list-templates` | List available templates |
-| `appwrite sites get-template --template-id <ID>` | Get template details |
-| `appwrite sites list-deployments --site-id <ID>` | List deployments |
-| `appwrite sites create-deployment --site-id <ID>` | Create deployment |
-| `appwrite sites get-deployment --site-id <ID> --deployment-id <ID>` | Get deployment |
-| `appwrite sites delete-deployment --site-id <ID> --deployment-id <ID>` | Delete deployment |
-| `appwrite sites update-site-deployment --site-id <ID> --deployment-id <ID>` | Set active deployment |
-| `appwrite sites update-deployment-status --site-id <ID> --deployment-id <ID>` | Cancel ongoing build |
-| `appwrite sites list-variables --site-id <ID>` | List variables |
-| `appwrite sites create-variable --site-id <ID> --key <KEY> --value <VALUE>` | Create variable |
-| `appwrite sites update-variable --site-id <ID> --variable-id <ID> --key <KEY> --value <VALUE>` | Update variable |
-| `appwrite sites delete-variable --site-id <ID> --variable-id <ID>` | Delete variable |
-| `appwrite sites list-logs --site-id <ID>` | List request logs |
-| `appwrite sites get-log --site-id <ID> --log-id <ID>` | Get a log |
-| `appwrite sites delete-log --site-id <ID> --log-id <ID>` | Delete a log |
-
-### Site variables
-
-Do not define site variables in `appwrite.config.json`. Put them in a `.env` file inside the configured site `path`. Variables are saved after they are pushed, so use `--with-variables` only when you want to create, replace, or remove the remote variables from the local `.env` file.
-
-```bash
-# sites/documentation-template/.env
-PUBLIC_SITE_NAME=docs
-
-appwrite push sites --site-id <SITE_ID> --with-variables
-
-# Push code without changing saved variables
-appwrite push sites --site-id <SITE_ID>
-```
-
-## Managing Tables (Databases)
-
-```bash
-# Create a new table
-appwrite init tables
-
-# Pull existing tables from Console
-appwrite pull tables
-
-# Deploy tables
-appwrite push tables
-```
-
-### Table configuration in appwrite.config.json
-
-```json
-{
-    "tablesDB": [
-        {
-            "$id": "<DATABASE_ID>",
-            "name": "songs",
-            "enabled": true
-        }
-    ],
-    "tables": [
-        {
-            "$id": "<TABLE_ID>",
-            "$permissions": ["create(\"any\")", "read(\"any\")"],
-            "databaseId": "<DATABASE_ID>",
-            "name": "music",
-            "enabled": true,
-            "rowSecurity": false,
-            "columns": [
-                {
-                    "key": "title",
-                    "type": "varchar",
-                    "required": true,
-                    "size": 255
-                }
-            ],
-            "indexes": []
-        }
-    ]
-}
-```
-
-### Database commands (TablesDB)
-
-| Command | Description |
-|---------|-------------|
-| `appwrite tablesdb list-tables --database-id <ID>` | List tables |
-| `appwrite tablesdb create-table --database-id <ID>` | Create table |
-| `appwrite tablesdb get-table --database-id <ID> --table-id <ID>` | Get table |
-| `appwrite tablesdb update-table --database-id <ID> --table-id <ID>` | Update table |
-| `appwrite tablesdb delete-table --database-id <ID> --table-id <ID>` | Delete table |
-| `appwrite tablesdb list-columns --database-id <ID> --table-id <ID>` | List columns |
-| `appwrite tablesdb get-column --database-id <ID> --table-id <ID> --key <KEY>` | Get column |
-| `appwrite tablesdb delete-column --database-id <ID> --table-id <ID> --key <KEY>` | Delete column |
-| `appwrite tablesdb list-column-indexes --database-id <ID> --table-id <ID>` | List indexes |
-| `appwrite tablesdb create-column-index --database-id <ID> --table-id <ID>` | Create index |
-| `appwrite tablesdb delete-column-index --database-id <ID> --table-id <ID> --key <KEY>` | Delete index |
-
-### Column type commands
-
-> **Note:** The legacy `string` type is deprecated. Use explicit string column types instead.
-
-| Command | Description |
-|---------|-------------|
-| `create-varchar-column` | Varchar column — inline storage, fully indexable (max 16,383 chars, size ≤ 768 for full index) |
-| `create-text-column` | Text column — off-page storage, prefix index only (max 16,383 chars) |
-| `create-mediumtext-column` | Mediumtext column — off-page storage (max ~4M chars) |
-| `create-longtext-column` | Longtext column — off-page storage (max ~1B chars) |
-| `create-boolean-column` | Boolean column |
-| `create-integer-column` | Integer column (optional min/max) |
-| `create-float-column` | Float column (optional min/max) |
-| `create-email-column` | Email column |
-| `create-url-column` | URL column |
-| `create-ip-column` | IP address column |
-| `create-datetime-column` | Datetime column (ISO 8601) |
-| `create-enum-column` | Enum column (whitelist of accepted values) |
-| `create-relationship-column` | Relationship column |
-
-All column commands use `appwrite tablesdb <command> --database-id <ID> --table-id <ID>`.
-
-### Row operations
-
-```bash
-# Create a row
-appwrite tablesdb create-row \
-    --database-id "<DATABASE_ID>" --table-id "<TABLE_ID>" \
-    --row-id 'unique()' --data '{ "title": "Hello World" }' \
-    --permissions 'read("any")' 'write("team:abc")'
-
-# List rows (JSON output)
-appwrite tablesdb list-rows \
-    --database-id "<DATABASE_ID>" --table-id "<TABLE_ID>" --json
-
-# Get a row
-appwrite tablesdb get-row \
-    --database-id "<DATABASE_ID>" --table-id "<TABLE_ID>" --row-id "<ROW_ID>"
-```
-
-### List rows and documents with query flags
-
-Use `--where`, `--sort-asc`, `--sort-desc`, `--limit`, `--offset`, `--cursor-after`, and `--cursor-before` on list commands. Row and document list/get commands also support repeated `--select` flags.
-
-```bash
-appwrite tablesdb list-rows \
-    --database-id "<DATABASE_ID>" \
-    --table-id "<TABLE_ID>" \
-    --where 'status=active' \
-    --where 'score>=10' \
-    --sort-asc 'name' \
-    --select '$id' \
-    --select 'name' \
-    --limit 25 \
-    --json
-
-appwrite databases list-documents \
-    --database-id "<DATABASE_ID>" \
-    --collection-id "<COLLECTION_ID>" \
-    --where 'email!=null' \
-    --cursor-before "<DOCUMENT_ID>"
-```
-
-`--where` parses strings, numbers, booleans, `null`, and JSON arrays. Supported operators are `=`, `!=`, `>`, `>=`, `<`, and `<=`.
-
-## Managing Buckets (Storage)
-
-```bash
-# Create a new bucket
-appwrite init buckets
-
-# Pull existing buckets from Console
-appwrite pull buckets
-
-# Deploy buckets
-appwrite push buckets
-```
-
-### Storage commands
-
-| Command | Description |
-|---------|-------------|
-| `appwrite storage list-buckets` | List all buckets |
-| `appwrite storage create-bucket` | Create a bucket |
-| `appwrite storage get-bucket --bucket-id <ID>` | Get a bucket |
-| `appwrite storage update-bucket --bucket-id <ID>` | Update a bucket |
-| `appwrite storage delete-bucket --bucket-id <ID>` | Delete a bucket |
-| `appwrite storage list-files --bucket-id <ID>` | List files |
-| `appwrite storage create-file --bucket-id <ID>` | Upload a file |
-| `appwrite storage get-file --bucket-id <ID> --file-id <ID>` | Get file metadata |
-| `appwrite storage delete-file --bucket-id <ID> --file-id <ID>` | Delete a file |
-| `appwrite storage get-file-download --bucket-id <ID> --file-id <ID>` | Download a file |
-| `appwrite storage get-file-preview --bucket-id <ID> --file-id <ID>` | Get image preview |
-| `appwrite storage get-file-view --bucket-id <ID> --file-id <ID>` | View file in browser |
-
-## Managing Teams
-
-```bash
-# Create a new team
-appwrite init teams
-
-# Pull existing teams from Console
-appwrite pull teams
-
-# Deploy teams
-appwrite push teams
-```
-
-### Team commands
-
-| Command | Description |
-|---------|-------------|
-| `appwrite teams list` | List all teams |
-| `appwrite teams create` | Create a team |
-| `appwrite teams get --team-id <ID>` | Get a team |
-| `appwrite teams update-name --team-id <ID>` | Update team name |
-| `appwrite teams delete --team-id <ID>` | Delete a team |
-| `appwrite teams list-memberships --team-id <ID>` | List members |
-| `appwrite teams create-membership --team-id <ID>` | Invite a member |
-| `appwrite teams update-membership --team-id <ID> --membership-id <ID>` | Update member roles |
-| `appwrite teams delete-membership --team-id <ID> --membership-id <ID>` | Remove a member |
-| `appwrite teams get-prefs --team-id <ID>` | Get team preferences |
-| `appwrite teams update-prefs --team-id <ID>` | Update team preferences |
-
-## Managing Webhooks
-
-```bash
-# Pull existing webhooks from Console
-appwrite pull webhooks
-
-# Deploy configured webhooks
-appwrite push webhooks
-```
-
-### Webhook configuration in `appwrite/webhooks.json`
-
-```json
-[
-    {
-        "$id": "<WEBHOOK_ID>",
-        "name": "Deploy events",
-        "url": "https://example.com/appwrite/webhook",
-        "events": ["functions.*.deployments.*.create"],
-        "enabled": true,
-        "tls": true
-    }
-]
-```
-
-### Webhook commands
-
-| Command | Description |
-|---------|-------------|
-| `appwrite webhooks list` | List webhooks |
-| `appwrite webhooks create` | Create a webhook |
-| `appwrite webhooks get --webhook-id <ID>` | Get a webhook |
-| `appwrite webhooks update --webhook-id <ID>` | Update a webhook |
-| `appwrite webhooks delete --webhook-id <ID>` | Delete a webhook |
-
-## Managing Topics (Messaging)
-
-```bash
-# Create a new topic
-appwrite init topics
-
-# Pull existing topics from Console
-appwrite pull topics
-
-# Deploy topics
-appwrite push topics
-```
-
-### Messaging commands
-
-| Command | Description |
-|---------|-------------|
-| `appwrite messaging list-messages` | List all messages |
-| `appwrite messaging create-email` | Create email message |
-| `appwrite messaging create-push` | Create push notification |
-| `appwrite messaging create-sms` | Create SMS message |
-| `appwrite messaging get-message --message-id <ID>` | Get a message |
-| `appwrite messaging delete --message-id <ID>` | Delete a message |
-| `appwrite messaging list-topics` | List all topics |
-| `appwrite messaging create-topic` | Create a topic |
-| `appwrite messaging get-topic --topic-id <ID>` | Get a topic |
-| `appwrite messaging update-topic --topic-id <ID>` | Update a topic |
-| `appwrite messaging delete-topic --topic-id <ID>` | Delete a topic |
-| `appwrite messaging list-subscribers --topic-id <ID>` | List subscribers |
-| `appwrite messaging create-subscriber --topic-id <ID>` | Add subscriber |
-| `appwrite messaging delete-subscriber --topic-id <ID> --subscriber-id <ID>` | Remove subscriber |
-
-## User Management
-
-```bash
-# Create a user
-appwrite users create --user-id "unique()" \
-    --email hello@appwrite.io
-
-# List users
-appwrite users list
-
-# Get a user
-appwrite users get --user-id "<USER_ID>"
-
-# Delete a user
-appwrite users delete --user-id "<USER_ID>"
-```
-
-## Project Management
-
-Project-level commands use the singular `project` service for current-project operations that do not need `--project-id`.
-
-```bash
-# Project settings and policies
-appwrite project update-service --service-id functions --enabled true
-appwrite project update-protocol --protocol-id rest --enabled true
-appwrite project list-policies
-appwrite project get-policy --policy-id "<POLICY_ID>"
-
-# OAuth2 providers
-appwrite project list-o-auth-2-providers
-appwrite project get-o-auth-2-provider --provider github
-appwrite project update-o-auth-2-git-hub --enabled true
-
-# Mock phones and short-lived API keys
-appwrite project create-mock-phone --phone "+12025550123" --otp "123456"
-appwrite project list-mock-phones
-appwrite project create-ephemeral-key
-```
-
-## Generate Type-Safe SDK
-
-```bash
-# Auto-detect language and generate
-appwrite generate
-
-# Specify output directory
-appwrite generate --output ./src/generated
-
-# Specify language
-appwrite generate --language typescript
-
-# Override generated import settings
-appwrite generate --appwrite-import-source node-appwrite --import-extension .js
-```
-
-Generated files:
-
-| File | Description |
-|------|-------------|
-| `types.ts` | Type definitions from your database schema |
-| `databases.ts` | Typed database helpers for querying and mutating rows |
-| `constants.ts` | Configuration constants (endpoint, project ID) |
-| `index.ts` | Entry point that exports all helpers |
-
-Usage:
-
-```typescript
-import { databases } from "./generated/appwrite";
-
-const customers = databases.use("main").use("customers");
-
-// Create
-const customer = await customers.create({
-    name: "Walter O' Brian",
-    email: "walter@example.com"
-});
-
-// List with typed queries
-const results = await customers.list({
-    queries: (q) => [
-        q.equal("name", "Walter O' Brian"),
-        q.orderDesc("$createdAt"),
-        q.limit(10)
-    ]
-});
-
-// Update
-await customers.update("customer-id-123", {
-    email: "walter@scorpion.com"
-});
-
-// Delete
-await customers.delete("customer-id-123");
-
-// Bulk create
-await customers.createMany([
-    { name: "Walter O' Brian", email: "walter@example.com" },
-    { name: "Paige Dineen", email: "paige@example.com" }
-]);
-```
-
-## Non-Interactive / CI/CD Mode
-
-For headless automation, see the [Non-Interactive Mode docs](https://appwrite.io/docs/tooling/command-line/non-interactive).
-
-### Deploy non-interactively
-
-```bash
-# Push everything
-appwrite push all --all --force
-
-# Push specific resources
-appwrite push functions --all --force
-appwrite push functions --function-id <FUNCTION_ID> --force
-appwrite push sites --all --force
-appwrite push tables --all --force
-appwrite push teams --all --force
-appwrite push buckets --all --force
-appwrite push webhooks --all --force
-appwrite push topics --all --force
-```
-
-## Global Command Options
-
-| Option | Description |
-|--------|-------------|
-| `-v, --version` | Output version number |
-| `-V, --verbose` | Show complete error log |
-| `-j, --json` | Output in JSON format |
-| `-f, --force` | Confirm all warnings |
-| `-a, --all` | Select all resources |
-| `--id [id...]` | Pass a list of IDs |
-| `--report` | Generate GitHub error report link |
-| `--console` | Get direct link to Console |
-| `--open` | Open Console link in browser |
-| `-h, --help` | Display help |
-
-## Maintenance Commands
-
-```bash
-# Update CLI using the detected install method
-appwrite update
-
-# Show manual update instructions
-appwrite update --manual
-
-# Install shell completions
-appwrite completion install
-```
-
-## Examples
-
-```bash
-# List users with JSON output
-appwrite users list --json
-
-# Get verbose error output
-appwrite users list --verbose
-
-# View a row in the Console
-appwrite tablesdb get-row \
-    --database-id "<DATABASE_ID>" \
-    --table-id "<TABLE_ID>" \
-    --row-id "<ROW_ID>" \
-    --console --open
-
-# Generate error report
-appwrite login --report
-```
+Do not invent the file from memory. `init project` or `pull` writes a valid one. Then edit.
