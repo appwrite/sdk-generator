@@ -2,7 +2,9 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\Schema\AnySchema;
 use Utopia\OpenAPI\Model\Schema\ArraySchema;
+use Utopia\OpenAPI\Model\Schema\CompositeSchema;
 use Utopia\OpenAPI\Model\Schema\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
@@ -337,10 +339,31 @@ class Swift extends Language
             self::TYPE_STRING => 'String',
             self::TYPE_FILE => 'InputFile',
             self::TYPE_BOOLEAN => 'Bool',
-            self::TYPE_ARRAY => '[' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema, $spec, true) . ']',
+            // A union or untyped element has no Swift spelling, so the whole
+            // array degrades to AnyCodable rather than each element being
+            // rendered as a dictionary.
+            self::TYPE_ARRAY => $this->hasConcreteItemsType($schema)
+                ? '[' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema, $spec) . ']'
+                : '[AnyCodable]',
             self::TYPE_OBJECT => $isProperty ? '[String: AnyCodable]' : 'Any',
             default => 'Any',
         };
+    }
+
+    /**
+     * Whether an array's element schema names a type Swift can spell.
+     *
+     * A `oneOf`/`anyOf` element, or one with no type at all, does not.
+     */
+    protected function hasConcreteItemsType(Schema $schema): bool
+    {
+        if (!$schema instanceof ArraySchema) {
+            return false;
+        }
+        $items = $schema->items;
+        return !($items instanceof CompositeSchema)
+            && !($items instanceof AnySchema)
+            && $this->getSchemaType($items) !== '';
     }
 
     public function getParamDefault(Schema|Parameter $param): string

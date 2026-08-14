@@ -17,13 +17,13 @@
 # {{ spec.info.title | caseUcfirst }} CLI location
 {{ spec.info.title | upper }}_INSTALL_DIR="/usr/local/bin"
 
-# {{ spec.info.title | caseUcfirst }} CLI Executable name
+# {{ spec.info.title | caseUcfirst }} CLI Executable name 
 {{ spec.info.title | upper }}_EXECUTABLE_NAME={{ language.params.executableName }}
 
-# {{ spec.info.title | caseUcfirst }} executable file path
+# {{ spec.info.title | caseUcfirst }} executable file path 
 {{ spec.info.title | upper }}_EXECUTABLE_FILEPATH="${{ spec.info.title | upper }}_INSTALL_DIR/${{ spec.info.title | upper }}_EXECUTABLE_NAME"
 
-# {{ spec.info.title | caseUcfirst }} CLI temp name
+# {{ spec.info.title | caseUcfirst }} CLI temp name 
 {{ spec.info.title | upper }}_TEMP_NAME=temp-$(date +%s)
 
 # {{ spec.info.title | caseUcfirst }} CLI image name
@@ -168,7 +168,7 @@ installCompletions() {
 
 cleanup() {
     printf "${GREEN}🧹 Cleaning up mess ... ${NC}\n"
-    rm ${{ spec.info.title | upper }}_TEMP_NAME
+    rm ${{ spec.info.title | upper }}_TEMP_NAME 
     if [ $? -ne 0 ]; then
         printf "${RED}❌ Failed to remove temporary file ... ${NC}\n"
         exit 1

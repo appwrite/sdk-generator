@@ -611,10 +611,14 @@ class DotNet extends Language
     protected function getToMapExpression(Schema $property, string $resolvedName, Specification $spec): string
     {
         $nullable = $this->isSpecificationSchemaRequired($property, $spec) ? '' : '?';
+
+        // Sub-schema serialization stays null-safe regardless of required,
+        // defensively covering callers that build a model without going
+        // through the constructor.
         if ($this->getSchemaModel($property) !== null) {
             return $property instanceof ArraySchema
-                ? "{$resolvedName}{$nullable}.Select(it => it.ToMap()).ToList()"
-                : "{$resolvedName}{$nullable}.ToMap()";
+                ? "{$resolvedName}?.Select(it => it.ToMap()).ToList()"
+                : "{$resolvedName}?.ToMap()";
         }
 
         if ($property->enum !== []) {

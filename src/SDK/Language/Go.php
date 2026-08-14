@@ -219,9 +219,10 @@ class Go extends Language
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_OBJECT => 'interface{}',
-            self::TYPE_ARRAY => $schema instanceof ArraySchema && $schema->items instanceof ArraySchema
-                ? '[][]interface{}'
-                : '[]' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema),
+            // Recursing keeps the element type at any depth: a polygon is
+            // items→items→items of number, which flattening to a fixed
+            // [][]interface{} would erase along with a whole dimension.
+            self::TYPE_ARRAY => '[]' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema),
             default => 'interface{}',
         };
     }

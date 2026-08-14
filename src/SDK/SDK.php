@@ -43,6 +43,8 @@ use Twig_Error_Syntax;
 
 class SDK
 {
+    private const string MULTIPART_MEDIA_TYPE = 'multipart/form-data';
+
     protected ?Environment $twig = null;
 
     protected array $defaultHeaders = [];
@@ -95,6 +97,8 @@ class SDK
     protected array $requiredSchemas = [];
 
     protected array $schemaEnumNames = [];
+
+    protected array $multipartSchemas = [];
 
     /**
      * SDK constructor.
@@ -178,7 +182,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('securitySchemes', fn(Operation $operation): array => $this->getOperationAuthSchemes($operation)));
         $this->twig->addFilter(new TwigFilter('securityHeaders', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::HEADER, false)));
         $this->twig->addFilter(new TwigFilter('securityQueries', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::QUERY)));
-        $this->twig->addFilter(new TwigFilter('schemaNullable', fn(Schema|Parameter $value): bool => $this->getSchema($value)->nullable));
+        $this->twig->addFilter(new TwigFilter('schemaNullable', fn(Schema|Parameter $value): bool => !isset($this->multipartSchemas[\spl_object_id($this->getSchema($value))]) && $this->getSchema($value)->nullable));
         $this->twig->addFilter(new TwigFilter('enumValues', function (Schema|Parameter $value): array {
             $schema = $this->getSchema($value);
             return $schema instanceof ArraySchema ? $schema->items->enum : $schema->enum;
@@ -1517,7 +1521,12 @@ class SDK
             }
         }
 
-        \usort($parameters, static fn(Parameter $left, Parameter $right): int => (int) $right->required - (int) $left->required);
+        // Only the combined list is presented as a method signature, so only
+        // it needs required-first ordering. A body list is serialised as an
+        // object and must keep spec order.
+        if ($location === 'all') {
+            \usort($parameters, static fn(Parameter $left, Parameter $right): int => (int) $right->required - (int) $left->required);
+        }
         return $parameters;
     }
 
@@ -1658,6 +1667,26 @@ class SDK
                 }
             }
         }
+
+        $this->indexMultipartSchemas();
+    }
+
+    /**
+     * A multipart body carries no nullability information — every part is
+     * either present or absent on the wire, so a part must never be emitted
+     * as an explicit null.
+     */
+    protected function indexMultipartSchemas(): void
+    {
+        foreach ($this->spec->operations() as $operation) {
+            $content = $operation->requestBody?->content[self::MULTIPART_MEDIA_TYPE] ?? null;
+            if (!$content?->schema instanceof ObjectSchema) {
+                continue;
+            }
+            foreach ($content->schema->properties as $property) {
+                $this->multipartSchemas[\spl_object_id($property)] = true;
+            }
+        }
     }
 
     /** @return array<string, SecurityScheme> */
@@ -1718,6 +1747,13 @@ class SDK
     protected function getMethodHeaders(Operation $operation): array
     {
         $headers = [];
+
+        // Insertion order is the emitted order, and the GraphQL marker comes
+        // before the negotiated headers in every published SDK.
+        if ($this->methodType($operation) === 'graphql') {
+            $headers['x-sdk-graphql'] = 'true';
+        }
+
         $consumes = \array_keys($operation->requestBody?->content ?? []);
         if ($consumes === [] && !\in_array($operation->method->value, ['get', 'head'], true)) {
             $consumes = ['application/json'];
@@ -1728,9 +1764,6 @@ class SDK
         $produces = $this->getProduces($operation);
         if ($produces !== []) {
             $headers['accept'] = \implode(', ', $produces);
-        }
-        if ($this->methodType($operation) === 'graphql') {
-            $headers['x-sdk-graphql'] = 'true';
         }
         return $headers;
     }

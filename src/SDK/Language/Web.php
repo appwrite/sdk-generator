@@ -233,6 +233,14 @@ class Web extends JS
         if (isset($visited[$modelName])) {
             return [];
         }
+
+        // `any` carries additionalProperties but is deliberately not emitted as
+        // a model, so a generic parameterised on it would reference a type that
+        // does not exist. Keep this in step with the exclusion in SDK::getDefinitions().
+        if ($modelName === 'any') {
+            return [];
+        }
+
         $model = $spec->schemas[$modelName] ?? null;
         if (!$model instanceof ObjectSchema) {
             return [];
@@ -295,6 +303,14 @@ class Web extends JS
     {
         $schema = $this->getSchema($property);
         $models = $this->getSchemaModels($property);
+
+        // A union is only expressible as a member list when it is the element
+        // type of an array. A bare union property stays `object`, as it was
+        // before unions were resolved outside arrays at all.
+        if (\count($models) > 1 && !($schema instanceof ArraySchema)) {
+            return 'object';
+        }
+
         if ($models !== []) {
             $types = \array_map(function (string $modelName) use ($spec): string {
                 $type = $this->toPascalCase($modelName);
@@ -302,6 +318,7 @@ class Web extends JS
                     $this->getGenericTypes($modelName, $spec),
                     fn(string $generic): bool => $generic !== $type,
                 ));
+                $type = 'Models.' . $type;
                 return $generics === [] ? $type : $type . '<' . \implode(', ', $generics) . '>';
             }, $models);
             $type = \implode(' | ', $types);

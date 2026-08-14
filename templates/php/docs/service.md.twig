@@ -17,22 +17,22 @@
 | --- | --- | --- | --- |
 {% if (method | parameters('path')) | length > 0 %}
 {% for parameter in (method | parameters('path')) %}
-| {{ parameter.name }} | {{ (parameter | schemaType) }} | {% if parameter.required == 1 %}**Required** {% endif %}{{ parameter.description | raw }} | {{ (parameter | schemaDefault) | caseJson }} |
+| {{ parameter.name }} | {{ (parameter | schemaType) }} | {% if parameter.required == 1 %}**Required** {% endif %}{{ parameter.description | raw }} | {% if (parameter | schemaType) == 'object' and (parameter | schemaDefault) is iterable and (parameter | schemaDefault) is empty %}{}{% else %}{{ (parameter | schemaDefault) | caseJson | escape }}{% endif %} |
 {% endfor %}
 {% endif %}
 {% if (method | parameters('query')) | length > 0 %}
 {% for parameter in (method | parameters('query')) %}
-| {{ parameter.name }} | {{ (parameter | schemaType) }} | {% if parameter.required == 1 %}**Required** {% endif %}{{ parameter.description | raw }} | {{ (parameter | schemaDefault) | caseJson }} |
+| {{ parameter.name }} | {{ (parameter | schemaType) }} | {% if parameter.required == 1 %}**Required** {% endif %}{{ parameter.description | raw }} | {% if (parameter | schemaType) == 'object' and (parameter | schemaDefault) is iterable and (parameter | schemaDefault) is empty %}{}{% else %}{{ (parameter | schemaDefault) | caseJson | escape }}{% endif %} |
 {% endfor %}
 {% endif %}
 {% if (method | parameters('body')) | length > 0 %}
 {% for parameter in (method | parameters('body')) %}
-| {{ parameter.name }} | {{ (parameter | schemaType) }} | {{ parameter.description | raw }} | {{ (parameter | schemaDefault) | caseJson }} |
+| {{ parameter.name }} | {{ (parameter | schemaType) }} | {{ parameter.description | raw }} | {% if (parameter | schemaType) == 'object' and (parameter | schemaDefault) is iterable and (parameter | schemaDefault) is empty %}{}{% else %}{{ (parameter | schemaDefault) | caseJson | escape }}{% endif %} |
 {% endfor %}
 {% endif %}
 {% if method.parameters.formData | length > 0 %}
 {% for parameter in method.parameters.formData %}
-| {{ parameter.name }} | {{ (parameter | schemaType) }} | {{ parameter.description | raw }} | {{ (parameter | schemaDefault) | caseJson }} |
+| {{ parameter.name }} | {{ (parameter | schemaType) }} | {{ parameter.description | raw }} | {% if (parameter | schemaType) == 'object' and (parameter | schemaDefault) is iterable and (parameter | schemaDefault) is empty %}{}{% else %}{{ (parameter | schemaDefault) | caseJson | escape }}{% endif %} |
 {% endfor %}
 {% endif %}
 

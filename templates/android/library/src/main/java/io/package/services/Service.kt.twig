@@ -187,7 +187,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         }
         {%~ endif %}
         {%~ if 'multipart/form-data' in (method | consumes) %}
-        val idParamName: String? = {% if (method | parameters('all')) | filter(p => p.isUploadID) | length > 0 %}{% for parameter in (method | parameters('all')) | filter(parameter => (parameter | extension('x-upload-id', false))) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %}
+        val idParamName: String? = {% if (method | parameters('all')) | filter(p => (p | extension('x-upload-id', false))) | length > 0 %}{% for parameter in (method | parameters('all')) | filter(parameter => (parameter | extension('x-upload-id', false))) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %}
     
         {%~ for parameter in (method | parameters('all')) %}
         {%~ if (parameter | schemaType) == 'file' %}
