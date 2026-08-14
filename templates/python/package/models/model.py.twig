@@ -92,7 +92,7 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
         if '{{ (property | schemaName) }}' in data and data['{{ (property | schemaName) }}'] is not None:
 {% if (property | schemaType) == 'array' %}
             instance.{{ property | getModelFieldName(definition.properties) }} = [
-                {{ (property | schemaModel) | caseUcfirst }}.with_data(row, model_type) 
+                {{ (property | schemaModel) | caseUcfirst }}.with_data(row, model_type)
                 for row in data['{{ (property | schemaName) }}']
             ]
 {% else %}
