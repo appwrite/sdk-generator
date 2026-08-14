@@ -282,13 +282,14 @@ jobs:
 
           text = File.read(formula_path)
 
-          unless text.sub!(/^(\s*version ")([^"]+)(")$/) { "#{$1}#{release_tag}#{$3}" }
-            abort("failed to update the formula version")
-          end
-
           checksums.each do |artifact, checksum|
-            pattern = /(#{Regexp.escape(artifact)}"\n\s+sha256 ")([0-9a-f]{64})(")/
-            unless text.sub!(pattern) { "#{$1}#{checksum}#{$3}" }
+            url_pattern = %r{(releases/download/)[^/"]+(/#{Regexp.escape(artifact)}")}
+            unless text.sub!(url_pattern) { "#{$1}#{release_tag}#{$2}" }
+              abort("failed to update the release URL for #{artifact}")
+            end
+
+            checksum_pattern = /(#{Regexp.escape(artifact)}"\n\s+sha256 ")([0-9a-f]{64})(")/
+            unless text.sub!(checksum_pattern) { "#{$1}#{checksum}#{$3}" }
               abort("failed to update the checksum for #{artifact}")
             end
           end
