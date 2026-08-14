@@ -46,7 +46,7 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
 {% for property in definition.properties %}
 {% set baseType = property | getModelPropertyType(definitionName, spec) | raw %}
 {% set propertyType %}{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}{{ baseType | replace({((property | schemaModel) | caseUcfirst): ((property | schemaModel) | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
-{% if not (property | schemaRequired) and not (property | schemaNullable) %}{% set propertyType %}Optional[{{ propertyType | trim }}]{% endset %}{% endif %}
+{% if not (property | schemaRequired) and not (property | modelPropertyNullable) %}{% set propertyType %}Optional[{{ propertyType | trim }}]{% endset %}{% endif %}
     {{ property | getModelFieldName(definition.properties) }} : {{ propertyType | trim }}
 {% if property.description %}
         {{ property.description | replace({"\n": "\n        "}) }}
@@ -62,7 +62,7 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
 {% for property in definition.properties %}
 {% set baseType = property | getModelPropertyType(definitionName, spec) | raw %}
 {% set propType %}{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}{{ baseType | replace({((property | schemaModel) | caseUcfirst): ((property | schemaModel) | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
-    {{ property | getModelFieldName(definition.properties) }}: {% if not (property | schemaRequired) and not (property | schemaNullable) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %} = Field({% if (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}')
+    {{ property | getModelFieldName(definition.properties) }}: {% if not (property | schemaRequired) and not (property | modelPropertyNullable) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %} = Field({% if (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}')
 {% endfor %}
 {% endif %}
 {% if isGeneric %}

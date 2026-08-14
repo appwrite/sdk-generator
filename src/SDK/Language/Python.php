@@ -311,6 +311,23 @@ class Python extends Language
         ];
     }
 
+    /**
+     * The annotation for a model property.
+     *
+     * A list of models keeps its element type, because the decoder builds each
+     * element into that model. Any other list is annotated `List[Any]`: the
+     * element type is not enforced on the way in, and narrowing it would be a
+     * stricter contract than the published SDKs declare.
+     */
+    protected function getModelPropertyType(Schema $value, Specification $spec): string
+    {
+        if ($value instanceof ArraySchema && $this->getSchemaModels($value) === []) {
+            return 'List[Any]';
+        }
+
+        return $this->getTypeName($value, $spec);
+    }
+
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
@@ -685,7 +702,8 @@ class Python extends Language
             new TwigFilter('hasGenericTypeProperty', fn(array $properties, Specification $spec): bool => $this->hasGenericTypeProperty($properties, $spec)),
             new TwigFilter('getServicePropertyType', fn(Schema|Parameter $value, Tag $service, Specification $spec): string => $this->getServicePropertyType($value, $spec)),
             new TwigFilter('getServiceEnumName', fn(Parameter $parameter, Tag $service, Specification $spec): string => $this->getServiceEnumName($parameter, $spec)),
-            new TwigFilter('getModelPropertyType', fn(Schema $value, string $ownerName, Specification $spec): string => $this->getTypeName($value, $spec)),
+            new TwigFilter('getModelPropertyType', fn(Schema $value, string $ownerName, Specification $spec): string => $this->getModelPropertyType($value, $spec)),
+            new TwigFilter('modelPropertyNullable', fn(Schema $value): bool => !($value instanceof ArraySchema) && $value->nullable),
             new TwigFilter('getModelFieldName', fn(Schema $value, array $properties): string => $this->getModelFieldName($value, $properties)),
             new TwigFilter('getResponseType', fn(Operation $method, string $serviceName = ''): string => $this->getResponseType($method, $serviceName)),
             new TwigFilter('formatParamValue', function (string $paramName, string $paramType, bool $isMultipartFormData): string {
