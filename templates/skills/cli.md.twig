@@ -20,7 +20,7 @@ appwrite list-projects --json
 appwrite init project --project-id <ID>
 appwrite pull table
 # edit appwrite.config.json, then:
-appwrite push table
+appwrite push table --force
 
 # Bad — project treated as a pile of API calls
 appwrite tablesdb create-table --database-id main --table-id songs ...
@@ -58,7 +58,9 @@ appwrite client --key 'standard_....'
 # and commits appwrite.config.json with secrets inside
 ```
 
-Env beats the config: `APPWRITE_PROJECT_ID`, `APPWRITE_ENDPOINT`, `APPWRITE_ORGANIZATION_ID`. Check in the config (no secrets). Put keys in the environment. `--force` skips prompts; use it in CI after you know what will be pushed.
+Env beats the config: `APPWRITE_PROJECT_ID`, `APPWRITE_ENDPOINT`, `APPWRITE_ORGANIZATION_ID`. Check in the config (no secrets). Put keys in the environment.
+
+`--force` skips prompts. Agents and CI have no TTY, so a push that needs confirmation fails without it (`Pass --force instead`). Ask the user, then pass `--force`. Do not use it to skip a change table whose local column is empty.
 
 `appwrite login --switch` rotates saved accounts. `appwrite client --debug` prints the effective endpoint/project with credentials masked. `appwrite client --reset` signs out of everything.
 
@@ -95,11 +97,11 @@ If the change table shows remote values against empty local, the config is missi
 ```
 
 ```bash
-# Good — local column was empty
+# Good — local column was empty, so sync first, then push
 appwrite pull settings
-appwrite push settings
+appwrite push settings --force
 
-# Bad
+# Bad — empty local, forced through
 appwrite push settings --force
 ```
 
@@ -113,13 +115,13 @@ Variables live in `<path>/.env`, not in `appwrite.config.json`. `--with-variable
 
 ```bash
 # Good — ship code, leave remote vars alone
-appwrite push function --function-id api --activate
+appwrite push function --function-id api --activate --force
 
 # Bad — remote vars you did not list locally are gone
-appwrite push function --function-id api --with-variables
+appwrite push function --function-id api --with-variables --force
 
 # Good — deploy without switching live traffic
-appwrite push function --function-id api --activate=false
+appwrite push function --function-id api --activate=false --force
 ```
 
 `--async` returns before the build finishes. Local: `appwrite run function`. After the schema is in the config: `appwrite generate`.
