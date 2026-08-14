@@ -16,9 +16,9 @@ InputFile::withData('', 'image/png')
 true
 {%- elseif (parameter | schemaType) == 'string' -%}
 "{% if (parameter | schemaExample) is not empty %}{{ (parameter | schemaExample) | escapeDollarSign }}{% endif %}"
-{%- elseif (parameter | schemaType) == 'integer' and (parameter | schemaExample) is empty -%}
+{%- elseif (parameter | schemaType) == 'integer' -%}
 1
-{%- elseif (parameter | schemaType) == 'number' and (parameter | schemaExample) is empty -%}
+{%- elseif (parameter | schemaType) == 'number' -%}
 1.0
 {%- else -%}
 {{ (parameter | schemaExample) }}

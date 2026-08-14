@@ -321,14 +321,35 @@ class Python extends Language
      */
     protected function getModelPropertyType(Schema $value, Specification $spec): string
     {
-        if ($value instanceof ArraySchema && $this->getSchemaModels($value) === []) {
+        if (
+            $value instanceof ArraySchema
+            && $this->getSchemaModels($value) === []
+            && $value->items->enum === []
+        ) {
             return 'List[Any]';
         }
 
-        return $this->getTypeName($value, $spec);
+        return $this->getBaseTypeName($value, $spec);
     }
 
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
+    {
+        $schema = $this->getSchema($parameter);
+        $typeName = $this->getBaseTypeName($parameter, $spec);
+
+        if (($parameter instanceof Parameter && !$parameter->required) || $schema->nullable) {
+            return 'Optional[' . $typeName . ']';
+        }
+        return $typeName;
+    }
+
+    /**
+     * The annotation without any Optional wrapping.
+     *
+     * Model rendering decides optionality itself, from the declaring schema's
+     * required list, so it needs the bare type.
+     */
+    protected function getBaseTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
         $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
@@ -350,15 +371,14 @@ class Python extends Language
                 self::TYPE_NUMBER, self::TYPE_INTEGER => 'float',
                 self::TYPE_BOOLEAN => 'bool',
                 self::TYPE_STRING => 'str',
-                self::TYPE_ARRAY => 'List[' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . ']',
+                self::TYPE_ARRAY => $this->isUntypedNestedArray($parameter, $schema)
+                    ? 'List[List[Any]]'
+                    : 'List[' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . ']',
                 self::TYPE_OBJECT => 'Dict[str, Any]',
                 default => 'Any',
             };
         }
 
-        if (($parameter instanceof Parameter && !$parameter->required) || $schema->nullable) {
-            return 'Optional[' . $typeName . ']';
-        }
         return $typeName;
     }
 
@@ -493,14 +513,7 @@ class Python extends Language
 
     protected function getServiceEnumName(Parameter $parameter, Specification $spec): string
     {
-        $enumName = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
-        foreach (\array_keys($spec->schemas) as $modelName) {
-            if ($this->toPascalCase($modelName) === $enumName) {
-                return $enumName . 'Enum';
-            }
-        }
-
-        return $enumName;
+        return $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
     }
 
     /**
@@ -622,9 +635,13 @@ class Python extends Language
                     : new stdClass(),
                 self::TYPE_ARRAY => [],
                 self::TYPE_STRING => $hasExample ? $example : ($enumValues[0] ?? ''),
-                self::TYPE_BOOLEAN => $hasExample ? (bool) $example : true,
-                self::TYPE_NUMBER => (float) ($hasExample ? $example : 0),
-                self::TYPE_INTEGER => (int) ($hasExample ? $example : 0),
+                // The fixture asserts the field is present and decodes as a
+                // bool; it does not mirror the spec's example value.
+                self::TYPE_BOOLEAN => true,
+                self::TYPE_NUMBER => $hasExample ? $example : 0,
+                // Python annotates both integer and number as float, and the
+                // fixtures follow the annotation rather than the spec type.
+                self::TYPE_INTEGER => (float) ($hasExample ? $example : 0),
                 default => $example,
             };
         }

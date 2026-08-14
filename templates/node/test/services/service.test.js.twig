@@ -37,7 +37,7 @@ describe('{{ service.name | caseUcfirst }}', () => {
         {%~ endif %}
 
         const response = await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}({%~ for parameter in (method | parameters('all')) | filter((param) => param.required) ~%}
-            {% if (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.fromBuffer(new Uint8Array(0), 'image.png'){% elseif (parameter | schemaType) == 'boolean' %}true{% elseif (parameter | schemaType) == 'string' %}'{% if (parameter | schemaExample) is not empty %}{{ (parameter | schemaExample) | escapeDollarSign }}{% endif %}'{% elseif (parameter | schemaType) == 'integer' and (parameter | schemaExample) is empty %}1{% elseif (parameter | schemaType) == 'number' and (parameter | schemaExample) is empty %}1.0{% else %}{{ (parameter | schemaExample) }}{%~ endif ~%},{%~ endfor ~%}
+            {% if (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.fromBuffer(new Uint8Array(0), 'image.png'){% elseif (parameter | schemaType) == 'boolean' %}true{% elseif (parameter | schemaType) == 'string' %}'{% if (parameter | schemaExample) is not empty %}{{ (parameter | schemaExample) | escapeDollarSign }}{% endif %}'{% elseif (parameter | schemaType) == 'integer' %}1{% elseif (parameter | schemaType) == 'number' %}1.0{% else %}{{ (parameter | schemaExample) }}{%~ endif ~%},{%~ endfor ~%}
         );
 
         // Remove custom toString method on the objects to allow for clean data comparison.
