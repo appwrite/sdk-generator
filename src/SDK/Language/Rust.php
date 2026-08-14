@@ -602,12 +602,19 @@ class Rust extends Language
                         $members = \is_array($decoded) && $decoded !== [] ? $decoded : [$enumSchema->enum[0] ?? $example];
                     }
 
+                    $keys = $enumSchema->extensions['x-enum-keys'] ?? [];
                     $variants = [];
                     foreach ($members as $member) {
                         $index = \array_search($member, $enumSchema->enum, true);
-                        $key = $index === false
-                            ? $member
-                            : ($enumSchema->extensions['x-enum-keys'][$index] ?? $enumSchema->enum[$index] ?? $member);
+
+                        // An example that is not one of the enum's values names
+                        // no variant, so fall back to the first member rather
+                        // than inventing one from the example text.
+                        $key = match (true) {
+                            $index !== false && ($keys[$index] ?? '') !== '' => $keys[$index],
+                            $index !== false => $enumSchema->enum[$index],
+                            default => $keys[0] ?? $enumSchema->enum[0] ?? $member,
+                        };
                         if ((string) $key === '') {
                             continue;
                         }
