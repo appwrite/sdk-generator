@@ -1817,6 +1817,51 @@ class SDK
         return $schemes;
     }
 
+    /**
+     * The conditions that select each member of a discriminated union.
+     *
+     * The standard `mapping` is single-valued: one property value names one
+     * schema. A union whose members differ by a combination of properties
+     * cannot be expressed with it — five Appwrite attribute models share
+     * `type: string` and are told apart only by `format`, so `mapping` can
+     * name just one of them. `x-mapping` carries the full rule set, keyed by
+     * reference, and is preferred when present.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    protected function getDiscriminatorCases(Discriminator $discriminator): array
+    {
+        $cases = [];
+
+        $extended = $discriminator->extensions['x-mapping'] ?? null;
+        if (\is_array($extended)) {
+            foreach ($extended as $reference => $conditions) {
+                if (!\is_array($conditions)) {
+                    continue;
+                }
+                $name = $this->normalizeSchemaReference((string) $reference);
+                if ($name === '') {
+                    continue;
+                }
+                $cases[$name] = \array_filter($conditions, static fn(mixed $value): bool => $value !== null);
+            }
+        }
+
+        if ($cases !== []) {
+            return $cases;
+        }
+
+        foreach ($discriminator->mapping as $value => $reference) {
+            $name = $this->normalizeSchemaReference($reference);
+            if ($name === '') {
+                continue;
+            }
+            $cases[$name] = [$discriminator->propertyName => $value];
+        }
+
+        return $cases;
+    }
+
     protected function getResponseDiscriminator(Operation $operation): array
     {
         foreach ($operation->responses as $response) {
@@ -1825,10 +1870,15 @@ class SDK
                 if (!$schema instanceof CompositeSchema || !$schema->discriminator instanceof Discriminator) {
                     continue;
                 }
-                $mapping = [];
-                foreach ($schema->discriminator->mapping as $value => $reference) {
-                    $mapping[$this->normalizeSchemaReference($reference)] = [$schema->discriminator->propertyName => $value];
+                $mapping = $this->getDiscriminatorCases($schema->discriminator);
+                if ($mapping === []) {
+                    continue;
                 }
+
+                // Most specific first, so a two-condition case is tested before
+                // the one-condition case that would otherwise shadow it.
+                \uksort($mapping, static fn(string $left, string $right): int => \count($mapping[$right]) <=> \count($mapping[$left]));
+
                 return $mapping;
             }
         }
