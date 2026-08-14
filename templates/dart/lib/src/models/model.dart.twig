@@ -80,8 +80,8 @@ class {{ definitionName | caseUcfirst | overrideIdentifier }} implements Model {
 {% endif %}
 {% for property in definition.properties %}
 {% if (property | schemaModel) %}
-{% for def in definitions %}
-{% if def.name == (property | schemaModel) and def.additionalProperties and (property | schemaType) == 'array' %}
+{% for defName, def in definitions %}
+{% if defName == (property | schemaModel) and def.additionalProperties and (property | schemaType) == 'array' %}
 
     List<T> convertTo<T>(T Function(Map) fromJson) =>
         {{(property | schemaName)}}.map((d) => d.convertTo<T>(fromJson)).toList();

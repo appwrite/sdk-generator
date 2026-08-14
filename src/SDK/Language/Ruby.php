@@ -212,18 +212,27 @@ class Ruby extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
+        $type = $this->getSchemaType($parameter);
+
+        // An array of enum members is still just an Array to Ruby; only a
+        // scalar enum names its generated class.
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        if ($enumSchema->enum !== [] && $type !== self::TYPE_ARRAY) {
+            return \ucfirst($this->getSchemaEnumName($parameter, $spec));
+        }
+
         $model = $this->getSchemaModel($parameter);
         if ($model !== null && !($schema instanceof ArraySchema)) {
             return $this->toPascalCase($model);
         }
-        return match ($this->getSchemaType($parameter)) {
+        return match ($type) {
             self::TYPE_INTEGER => 'Integer',
             self::TYPE_NUMBER => 'Float',
             self::TYPE_STRING => 'String',
             self::TYPE_ARRAY => 'Array',
             self::TYPE_OBJECT => 'Hash',
             self::TYPE_BOOLEAN => '',
-            default => 'String',
+            default => $type,
         };
     }
 

@@ -486,6 +486,39 @@ class Python extends Language
         return $enumName;
     }
 
+    /**
+     * The response type as it appears in a service docstring.
+     *
+     * Must stay identical to the `-> ...` annotation the service template
+     * emits: a multi-model response is a `Union[...]`, and a model whose name
+     * collides with its own service is imported under a `Model` suffix.
+     */
+    protected function getResponseType(Operation $method, string $serviceName = ''): string
+    {
+        $models = \array_filter(
+            $this->getOperationResponseModels($method),
+            static fn(string $model): bool => $model !== '' && $model !== 'any'
+        );
+        if ($models === []) {
+            return 'Any';
+        }
+
+        $names = \array_map(
+            fn(string $model): string => $this->getServiceModelTypeName($model, $serviceName),
+            \array_values($models)
+        );
+
+        return \count($names) > 1 ? 'Union[' . \implode(', ', $names) . ']' : $names[0];
+    }
+
+    protected function getServiceModelTypeName(string $model, string $serviceName): string
+    {
+        $name = $this->toPascalCase($model);
+        return $serviceName !== '' && $name === $this->toPascalCase($serviceName)
+            ? $name . 'Model'
+            : $name;
+    }
+
     protected function getServicePropertyType(Schema|Parameter $value, Specification $spec): string
     {
         $type = $this->getTypeName($value, $spec);
@@ -654,7 +687,7 @@ class Python extends Language
             new TwigFilter('getServiceEnumName', fn(Parameter $parameter, Tag $service, Specification $spec): string => $this->getServiceEnumName($parameter, $spec)),
             new TwigFilter('getModelPropertyType', fn(Schema $value, string $ownerName, Specification $spec): string => $this->getTypeName($value, $spec)),
             new TwigFilter('getModelFieldName', fn(Schema $value, array $properties): string => $this->getModelFieldName($value, $properties)),
-            new TwigFilter('getResponseType', fn(Operation $method, string $serviceName = ''): string => ($models = $this->getOperationResponseModels($method)) === [] ? 'Any' : \implode(', ', \array_map($this->toPascalCase(...), $models))),
+            new TwigFilter('getResponseType', fn(Operation $method, string $serviceName = ''): string => $this->getResponseType($method, $serviceName)),
             new TwigFilter('formatParamValue', function (string $paramName, string $paramType, bool $isMultipartFormData): string {
                 if ($isMultipartFormData && $paramType === self::TYPE_BOOLEAN) {
                     return "str({$paramName}).lower() if type({$paramName}) is bool else {$paramName}";

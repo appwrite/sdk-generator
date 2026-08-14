@@ -574,12 +574,34 @@ class Rust extends Language
                 } elseif ($this->getSchema($param)->enum !== [] || ($this->getSchema($param) instanceof ArraySchema && $this->getSchema($param)->items->enum !== [])) {
                     $schema = $this->getSchema($param);
                     $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                    $enumName = $this->toPascalCase($this->getSchemaEnumName($param));
                     $example = $this->getSchemaExample($param) ?? $enumSchema->enum[0];
-                    $index = \array_search($example, $enumSchema->enum, true);
-                    $key = $enumSchema->extensions['x-enum-keys'][$index] ?? $enumSchema->enum[$index] ?? $example;
-                    $enumName = $this->getSchemaEnumName($param);
-                    $enumValue = $crateName . '::enums::' . $this->toPascalCase($enumName) . '::' . $this->toPascalCase((string) $key);
-                    $value = $schema instanceof ArraySchema ? 'vec![' . $enumValue . ']' : $enumValue;
+
+                    // An array parameter carries its example as a JSON string,
+                    // so every member has to be resolved separately — searching
+                    // for the whole string finds nothing and silently renders
+                    // enum[0] instead.
+                    $members = [$example];
+                    if ($schema instanceof ArraySchema) {
+                        $decoded = \is_string($example) ? \json_decode($example, true) : $example;
+                        $members = \is_array($decoded) && $decoded !== [] ? $decoded : [$enumSchema->enum[0] ?? $example];
+                    }
+
+                    $variants = [];
+                    foreach ($members as $member) {
+                        $index = \array_search($member, $enumSchema->enum, true);
+                        $key = $index === false
+                            ? $member
+                            : ($enumSchema->extensions['x-enum-keys'][$index] ?? $enumSchema->enum[$index] ?? $member);
+                        if ((string) $key === '') {
+                            continue;
+                        }
+                        $variants[] = $crateName . '::enums::' . $enumName . '::' . $this->toPascalCase((string) $key);
+                    }
+
+                    $value = $schema instanceof ArraySchema
+                        ? 'vec![' . \implode(', ', $variants) . ']'
+                        : ($variants[0] ?? '');
                 } else {
                     $value = $this->getParamExample($param);
                 }

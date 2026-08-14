@@ -20,7 +20,7 @@
 {% for key,header in (method | methodHeaders) %}
 {% if header == 'multipart/form-data' %}
 {% set boundary = 'cec8e8123c05ba25' %}
-{{ method.method.value | caseUpper }} {{((spec | endpoint) | split('/', 4))[3] ?? ''}}{{ method.path }}{% for security in (method | securityQueries) %}{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}={{ security.extensions['x-appwrite']['demo'] | raw }}{% endfor %} HTTP/1.1
+{{ method.method.value | caseUpper }} {{ method | fullPath }}{% for security in (method | securityQueries) %}{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}={{ security.extensions['x-appwrite']['demo'] | raw }}{% endfor %} HTTP/1.1
 Host: {{ ((spec | endpoint) | split('/'))[2] }}
 {% for key, header in (method | methodHeaders) %}
 {{ key | caseUcwords }}: {{ header }}{% if header == 'multipart/form-data' %}; boundary="{{boundary}}"{% endif ~%}

@@ -67,8 +67,8 @@ module {{ spec.info.title | caseUcfirst }}
 {% endif %}
 {% for property in definition.properties %}
 {% if (property | schemaModel) %}
-{% for def in definitions %}
-{% if def.name == (property | schemaModel) and def.additionalProperties and (property | schemaType) == 'array' %}
+{% for defName, def in definitions %}
+{% if defName == (property | schemaModel) and def.additionalProperties and (property | schemaType) == 'array' %}
 
             def convert_to(from_json)
                 {{ (property | schemaName) | caseSnake | escapeKeyword }}.map { |it| it.convert_to(from_json) }

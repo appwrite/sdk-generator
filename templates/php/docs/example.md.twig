@@ -2,7 +2,7 @@
 <?php
 
 use {{ namespace | caseNamespace }}\Client;
-{% if (method | parameters('all')) | filter((param) => param.type == 'file') | length > 0 %}
+{% if (method | parameters('all')) | filter((param) => (param | schemaType) == 'file') | length > 0 %}
 use {{ namespace | caseNamespace }}\InputFile;
 {% endif %}
 use {{ namespace | caseNamespace }}\Services\{{ service.name | caseUcfirst }};

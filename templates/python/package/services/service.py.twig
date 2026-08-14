@@ -149,7 +149,7 @@ Dict[str, Any]
             Response as bytes
         {% elseif validResponseModels|length > 1 %}{{ method | getResponseType(service.name) }}
             API response as one of the typed response models
-        {% elseif validResponseModels|length == 1 %}{{ validResponseModels[0] | caseUcfirst }}
+        {% elseif validResponseModels|length == 1 %}{{ method | getResponseType(service.name) }}
             API response as a typed Pydantic model
         {% elseif (method | responseModel) and (method | responseModel) != 'any' %}{% if isGenericResponse %}{% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %}[T]
 {% else %}{{ method | getResponseType(service.name) }}

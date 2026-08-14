@@ -1439,6 +1439,24 @@ class SDK
     /** @return list<string> */
     protected function getValidResponseModels(Operation $method): array
     {
+        return \array_values(\array_filter(
+            $this->getResponseModels($method),
+            static fn(string $name): bool => $name !== 'any'
+        ));
+    }
+
+    /**
+     * Every model a response can resolve to, including the catch-all `any`.
+     *
+     * `getValidResponseModels()` drops `any` because a union of one real model
+     * plus `any` is not a union. `getResponseModel()` must keep it, so that an
+     * `any` response still names a type in the generated code rather than
+     * rendering as an empty string.
+     *
+     * @return list<string>
+     */
+    protected function getResponseModels(Operation $method): array
+    {
         $models = [];
         foreach ($method->responses as $response) {
             foreach ($response->content as $mediaType) {
@@ -1447,12 +1465,12 @@ class SDK
                 }
             }
         }
-        return \array_values(\array_filter(\array_unique($models), static fn(string $name): bool => $name !== 'any'));
+        return \array_values(\array_unique($models));
     }
 
     protected function getResponseModel(Operation $operation): string
     {
-        return $this->getValidResponseModels($operation)[0] ?? '';
+        return $this->getResponseModels($operation)[0] ?? '';
     }
 
     protected function methodName(Operation $operation): string
