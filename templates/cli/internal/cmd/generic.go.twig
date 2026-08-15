@@ -1,0 +1,35 @@
+package cmd
+
+import (
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/appwrite"
+)
+
+// migrate upgrades the legacy preferences format.
+
+// migrateLegacyPreferences moves a pre-sessions prefs.json into the sessions
+// array, and is why an upgrading user stays signed in.
+//
+// prefs.json used to hold one endpoint and cookie at the top level; sessions
+// replaced that with a
+// keyed array. The CLI reads per-session cookies correctly but had no
+// equivalent of this, so a user upgrading from an older CLI kept a valid cookie
+// in a shape nothing looked at, and the first command they ran told them to log
+// in again.
+//
+// Silent on every failure, like the TypeScript. This runs before every command,
+// including ones that never touch preferences, so a prefs.json that cannot be
+// read or written must not turn `appwrite --help` into an error. The cost of
+// staying quiet is that the user is asked to log in -- which is exactly what
+// happened before this existed.
+func migrateLegacyPreferences() {
+	global, err := preferences()
+	if err != nil {
+		return
+	}
+
+	if !global.MigrateLegacySession(appwrite.Unique()) {
+		return
+	}
+
+	_ = global.Write()
+}

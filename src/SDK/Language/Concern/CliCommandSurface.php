@@ -11,20 +11,18 @@ use Override;
 use Twig\TwigFunction;
 
 /**
- * Spec analysis shared by every generated Appwrite CLI: which flags a method
- * gets, which services a header scopes, which methods are promoted to root
- * commands, which console fallbacks a service needs. The flag surface is public
- * API, so sharing these is what stops the two CLIs drifting apart.
+ * CLI command-surface analysis: which flags a method gets, which services a
+ * header scopes, which methods are promoted to root commands, and which console
+ * fallbacks a service needs.
  *
- * How a flag is declared, a variable named, or an argument passed to the SDK
- * stays in the Language class.
+ * Go-specific declaration, variable naming, and SDK call planning stay in the
+ * language class.
  */
 trait CliCommandSurface
 {
     /**
-     * Keyword list used to disambiguate generated flag names. Frozen: it is
-     * part of the public flag surface, not a property of the target language,
-     * so both CLIs prefix the same flags with `x`.
+     * Keyword list used to disambiguate generated flag names. Frozen because
+     * it is part of the public flag surface, not a property of Go.
      *
      * @var list<string>
      */
@@ -246,8 +244,7 @@ trait CliCommandSurface
     }
 
     /**
-     * Top-level root aliases for a service, used by `cli.ts` to import and
-     * register the promoted commands.
+     * Top-level root aliases for a service, used to register promoted commands.
      *
      * Only methods that survive exclusion filtering (and are therefore emitted
      * by the service template) are returned, so `cli.ts` never imports a
@@ -292,8 +289,7 @@ trait CliCommandSurface
 
     /**
      * Whether a method is promoted to the root, which decides how the docs
-     * example spells its invocation. Both CLIs document the same surface, so
-     * the lookup belongs here rather than in either language class.
+     * example spells its invocation.
      */
     protected function isCliTopLevelAlias(Operation $method, Tag $service): bool
     {
@@ -371,8 +367,6 @@ trait CliCommandSurface
     /**
      * GraphQL SDK methods take a JSON request object, but a CLI flag named
      * `--query` should also accept the GraphQL document users naturally type.
-     * Keep the identification shared so the TypeScript and Go CLIs cannot
-     * apply different input or help contracts.
      */
     protected function isCliGraphQLInput(Parameter $parameter, Operation $method, Tag $service): bool
     {
@@ -532,9 +526,8 @@ trait CliCommandSurface
      * language, so it belongs to the shared surface: the target language of the
      * generated CLI cannot change how a user types an array of roles.
      *
-     * A trait method wins over an inherited one, which is what keeps `GoCLI`
-     * off `Go::getParamExample` -- that renders Go literals, and
-     * `--roles []string{}` is not a command anybody can run.
+     * A trait method wins over the inherited Go implementation, which renders
+     * Go literals; `--roles []string{}` is not a command anybody can run.
      */
     #[Override]
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string

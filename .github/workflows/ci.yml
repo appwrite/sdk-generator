@@ -21,10 +21,7 @@ jobs:
         sdk: [
           Android5Java17,
           Android16Java17,
-          CLIBun10,
-          CLIBun11,
-          CLIBun13,
-          GoCLI126,
+          CLIGo126,
           DartBeta,
           DartStable,
           DotNet60,

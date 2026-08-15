@@ -1,0 +1,412 @@
+//go:build !browser
+
+package cmd
+
+import (
+	"bufio"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"time"
+
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/update"
+	"github.com/spf13/cobra"
+)
+
+// The update path has to work for someone whose current install is the
+// the established CLI: an npm or Homebrew install is updated through that tool, and
+// a standalone binary is replaced in place. The release asset names match the
+// TypeScript's exactly, so a Go build lands where a TypeScript one was.
+
+// releasesPageURL is where someone downloads a build by hand.
+const releasesPageURL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases"
+
+// releaseAssetURL builds the download URL for one asset of one release.
+//
+// Deliberately a versioned tag rather than /releases/latest/download/: GitHub
+// resolves "latest" to the newest NON-prerelease, so a release candidate
+// updating itself would silently walk backwards onto the last stable build.
+// The version comes from the same registry lookup that decided an update was
+// available, so the binary that lands is the one the user was told about.
+//
+// The tag is the bare version: releases are tagged `25.1.0`, not `v25.1.0`, so
+// prefixing one here 404s on every asset.
+func releaseAssetURL(version, asset string) string {
+	return fmt.Sprintf("%s/download/%s/%s", releasesPageURL, strings.TrimPrefix(version, "v"), asset)
+}
+
+// resolveReleaseVersion is the version a standalone update would install, or
+// "" when the registry cannot be reached.
+func resolveReleaseVersion() string {
+	checker := app.UpdateChecker()
+	if checker == nil {
+		return ""
+	}
+
+	return checker.Explicit()
+}
+
+// resolveStableReleaseVersion is the version a stable-only package manager
+// can install, regardless of the running binary's channel.
+func resolveStableReleaseVersion() string {
+	checker := app.UpdateChecker()
+	if checker == nil {
+		return ""
+	}
+
+	return checker.ExplicitStable()
+}
+
+// validateUpdateVersion stops an ordinary update from reinstalling the same
+// release or walking backwards. --force remains the explicit escape hatch.
+func validateUpdateVersion(current, target string, force bool) error {
+	if force {
+		return nil
+	}
+
+	switch update.Compare(current, target) {
+	case 0:
+		return fmt.Errorf(
+			"%s is already at version %s. Re-run with --force to reinstall it",
+			app.ExecutableName, current)
+	case 1:
+		return fmt.Errorf(
+			"refusing to downgrade %s from %s to %s. Re-run with --force to continue",
+			app.ExecutableName, current, target)
+	}
+
+	return nil
+}
+
+func newUpdateCommand() *cobra.Command {
+	var (
+		force  bool
+		manual bool
+	)
+
+	command := &cobra.Command{
+		Use:   "update",
+		Short: "Update the CLI to the latest version",
+		RunE: func(command *cobra.Command, args []string) error {
+			// Asked for instructions rather than an update: someone who
+			// installed through a package manager the CLI cannot drive, or who
+			// wants to see what an update would run before it runs.
+			if manual {
+				printManualInstructions(command)
+
+				return nil
+			}
+
+			method := app.DetectInstallMethod()
+
+			switch method {
+			case app.InstallNPM:
+				version := resolveReleaseVersion()
+				if version == "" {
+					return unresolvedVersionError()
+				}
+				if err := validateUpdateVersion(app.Version, version, force); err != nil {
+					return err
+				}
+				command.Printf("Updating via npm...\n")
+
+				return runUpdater(command, version, "npm", "install", "-g",
+					app.NPMPackageName+"@"+version)
+			case app.InstallHomebrew:
+				version := resolveStableReleaseVersion()
+				if version == "" {
+					return unresolvedVersionError()
+				}
+				if err := validateUpdateVersion(app.Version, version, force); err != nil {
+					return err
+				}
+				formula := app.HomebrewFormula()
+				if formula == "" {
+					formula = app.ExecutableName
+				}
+				command.Printf("Updating via Homebrew (%s)...\n", formula)
+
+				return runUpdater(command, version, "brew", "upgrade", formula)
+			case app.InstallStandalone:
+				return updateStandalone(command, force)
+			}
+
+			// Better to say so than to guess and overwrite something that is
+			// not ours.
+			return fmt.Errorf(
+				"could not determine how %s was installed; reinstall from https://appwrite.io/docs/tooling/command-line/installation",
+				app.ExecutableName)
+		},
+	}
+	command.Flags().BoolVarP(&force, "force", "f", false,
+		"Update even if the target is not newer or the binary location looks unexpected.")
+	command.Flags().BoolVar(&manual, "manual", false,
+		"Show manual update instructions instead of auto-updating")
+
+	return command
+}
+
+// printManualInstructions lists every way to update by hand.
+//
+// The one case this is for is an
+// install the CLI cannot drive itself -- a distro package, a vendored copy, a
+// binary someone put on PATH -- where the useful answer is the command to run
+// rather than an attempt that fails.
+func printManualInstructions(command *cobra.Command) {
+	out := command.OutOrStdout()
+	version := resolveReleaseVersion()
+	npmVersion := manualNPMVersion(app.Version, version)
+
+	formula := app.HomebrewFormula()
+	if formula == "" {
+		formula = app.ExecutableName
+	}
+
+	output.Log(out, "Manual update options:")
+	fmt.Fprintln(out)
+
+	output.Log(out, "Option 1: NPM")
+	fmt.Fprintf(out, "  npm install -g %s@%s\n\n", app.NPMPackageName, npmVersion)
+
+	output.Log(out, "Option 2: Homebrew")
+	if update.IsPrerelease(app.Version) {
+		fmt.Fprintln(out, "  Homebrew publishes stable releases only; use npm or the standalone binary.")
+		fmt.Fprintln(out)
+	} else {
+		fmt.Fprintf(out, "  brew upgrade %s\n\n", formula)
+	}
+
+	// Only where a downloaded binary can be swapped in from a shell; the
+	// Windows equivalent is the installer, not a curl one-liner.
+	if runtime.GOOS != "windows" && version != "" {
+		if asset, err := app.ReleaseAssetName(); err == nil {
+			output.Log(out, "Option 3: Install Script / Standalone Binary")
+			fmt.Fprintf(out, "  curl -fsSL %s -o %s\n",
+				releaseAssetURL(version, asset),
+				filepath.Join(os.TempDir(), app.ExecutableName))
+			fmt.Fprintln(out)
+		}
+	}
+
+	output.Hint(out, "Download the latest release manually at: %s", releasesPageURL)
+}
+
+func manualNPMVersion(current, resolved string) string {
+	if resolved != "" {
+		return resolved
+	}
+	if update.IsPrerelease(current) {
+		return "next"
+	}
+
+	return "latest"
+}
+
+// runUpdater shells out to the package manager that owns this install.
+func runUpdater(command *cobra.Command, version, name string, args ...string) error {
+	binary, err := exec.LookPath(name)
+	if err != nil {
+		return fmt.Errorf("%s is not on PATH, so the CLI cannot update itself: %w", name, err)
+	}
+
+	updater := exec.Command(binary, args...)
+	updater.Stdout = command.OutOrStdout()
+	updater.Stderr = command.ErrOrStderr()
+
+	if err := updater.Run(); err != nil {
+		return fmt.Errorf("%s failed: %w", name, err)
+	}
+
+	command.Printf("Updated to version %s.\n", version)
+
+	return nil
+}
+
+// updateStandalone downloads the current release and replaces this binary.
+//
+// Written to a temporary file beside the target and renamed into place: a
+// partial download must never leave the user without a working CLI, and rename
+// within a directory is atomic.
+func updateStandalone(command *cobra.Command, force bool) error {
+	asset, err := app.ReleaseAssetName()
+	if err != nil {
+		return err
+	}
+	version := resolveReleaseVersion()
+	if version == "" {
+		return unresolvedVersionError()
+	}
+	if err := validateUpdateVersion(app.Version, version, force); err != nil {
+		return err
+	}
+
+	target, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	if resolved, err := filepath.EvalSymlinks(target); err == nil {
+		target = resolved
+	}
+
+	if !force && filepath.Base(target) != app.ExecutableName &&
+		filepath.Base(target) != app.ExecutableName+".exe" {
+		return fmt.Errorf(
+			"refusing to replace %q: it is not named %s. Re-run with --force if this is correct",
+			target, app.ExecutableName)
+	}
+
+	directory := filepath.Dir(target)
+	if err := checkWritable(directory); err != nil {
+		return fmt.Errorf("cannot write to %s: %w. Re-run with elevated permissions", directory, err)
+	}
+
+	command.Printf("Downloading %s %s...\n", asset, version)
+	body, err := download(releaseAssetURL(version, asset))
+	if err != nil {
+		return err
+	}
+	defer body.Close()
+
+	temporary, err := os.CreateTemp(directory, ".appwrite-update-")
+	if err != nil {
+		return err
+	}
+	temporaryPath := temporary.Name()
+	defer os.Remove(temporaryPath)
+
+	// Hashed on the way through rather than by re-reading the file afterwards:
+	// the bytes are already streaming past.
+	digest := sha256.New()
+	if _, err := io.Copy(io.MultiWriter(temporary, digest), body); err != nil {
+		temporary.Close()
+
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+
+	// Before the rename, and before the executable bit: this replaces the running
+	// binary, and nothing else in the tool has that reach.
+	if err := verifyDownload(version, asset, digest.Sum(nil)); err != nil {
+		return err
+	}
+
+	if err := os.Chmod(temporaryPath, 0o755); err != nil {
+		return err
+	}
+
+	// Windows will not rename over a running executable, so the old one is
+	// moved aside first and cleaned up on the next run.
+	if runtime.GOOS == "windows" {
+		_ = os.Rename(target, target+".old")
+	}
+	if err := os.Rename(temporaryPath, target); err != nil {
+		return err
+	}
+
+	command.Printf("Updated %s.\n", target)
+
+	return nil
+}
+
+func unresolvedVersionError() error {
+	return fmt.Errorf(
+		"cannot determine the version to install. Download it manually at %s", releasesPageURL)
+}
+
+// checksumsAsset is the digest manifest goreleaser publishes beside the
+// binaries, and the release workflow recomputes after Windows signing.
+const checksumsAsset = "checksums.txt"
+
+// verifyDownload checks the bytes against the digest the release published.
+//
+// The pipeline has always published checksums.txt and nothing ever read it, so
+// this path overwrote the running executable with whatever arrived. TLS proves
+// who served the bytes, not that they are the bytes that were built: a 200-OK
+// error page from a proxy, or a body a CDN truncated, would otherwise become the
+// user's CLI.
+//
+// Fails closed. Verifying only when a manifest happens to be present would make
+// the check decorative, since the case it guards against is exactly the one
+// where the response is not what it should be. Releases published before the Go
+// CLI carry no checksums.txt, so updating onto one of those now stops and says
+// so instead of quietly installing it.
+func verifyDownload(version, asset string, sum []byte) error {
+	body, err := download(releaseAssetURL(version, checksumsAsset))
+	if err != nil {
+		return fmt.Errorf(
+			"cannot verify the download: %w. Nothing was installed; fetch it manually at %s",
+			err, releasesPageURL)
+	}
+	defer body.Close()
+
+	expected, err := checksumFor(body, asset)
+	if err != nil {
+		return fmt.Errorf("%w. Nothing was installed; fetch it manually at %s", err, releasesPageURL)
+	}
+
+	if actual := hex.EncodeToString(sum); !strings.EqualFold(actual, expected) {
+		return fmt.Errorf(
+			"%s does not match its published checksum (expected %s, got %s). "+
+				"Nothing was installed; fetch it manually at %s",
+			asset, expected, actual, releasesPageURL)
+	}
+
+	return nil
+}
+
+// checksumFor finds one asset's digest in a `sha256sum`-style manifest, whose
+// lines are a hex digest and a filename separated by spaces.
+func checksumFor(manifest io.Reader, asset string) (string, error) {
+	scanner := bufio.NewScanner(manifest)
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) == 2 && fields[1] == asset {
+			return fields[0], nil
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("cannot read %s: %w", checksumsAsset, err)
+	}
+
+	return "", fmt.Errorf("%s lists no checksum for %s", checksumsAsset, asset)
+}
+
+func download(url string) (io.ReadCloser, error) {
+	client := &http.Client{Timeout: 5 * time.Minute}
+
+	response, err := client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode != http.StatusOK {
+		response.Body.Close()
+
+		return nil, fmt.Errorf("download failed with status %d: %s", response.StatusCode, url)
+	}
+
+	return response.Body, nil
+}
+
+// checkWritable verifies the install directory can be written to, so the
+// failure is reported before anything is downloaded.
+func checkWritable(directory string) error {
+	probe, err := os.CreateTemp(directory, ".appwrite-write-probe-")
+	if err != nil {
+		return err
+	}
+	name := probe.Name()
+	probe.Close()
+
+	return os.Remove(name)
+}
