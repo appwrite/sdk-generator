@@ -14,16 +14,20 @@ import (
 // runtimeLogPollInterval bounds how long a function log waits before it is
 // shown. Polling keeps this portable and avoids holding the files open while
 // cleanup removes .appwrite on Windows.
-const runtimeLogPollInterval = 50 * time.Millisecond
+const (
+	runtimeLogPollInterval      = 50 * time.Millisecond
+	runtimeLogIntegrityInterval = time.Second
+)
 
 // followedLogFile remembers how much of one runtime log has been emitted. The
 // digest detects a truncate-and-regrow that happens entirely between polls.
 type followedLogFile struct {
-	path    string
-	info    os.FileInfo
-	offset  int64
-	pending []byte
-	digest  [sha256.Size]byte
+	path        string
+	info        os.FileInfo
+	offset      int64
+	pending     []byte
+	digest      [sha256.Size]byte
+	validatedAt time.Time
 }
 
 // FollowRuntimeLogs emits complete lines appended to the runtime's stdout and
@@ -67,8 +71,12 @@ func (f *followedLogFile) read(emit func(string)) {
 	if err != nil {
 		return
 	}
-	if f.info != nil && info.Size() == f.offset &&
-		os.SameFile(f.info, info) && info.ModTime().Equal(f.info.ModTime()) {
+	// Size and mtime make ordinary idle polls cheap. The periodic digest is the
+	// fallback for coarse-timestamp filesystems where a same-size rewrite can
+	// leave both values unchanged.
+	metadataUnchanged := f.info != nil && info.Size() == f.offset &&
+		os.SameFile(f.info, info) && info.ModTime().Equal(f.info.ModTime())
+	if metadataUnchanged && time.Since(f.validatedAt) < runtimeLogIntegrityInterval {
 		return
 	}
 
@@ -104,6 +112,7 @@ func (f *followedLogFile) read(emit func(string)) {
 		} else {
 			f.info = info
 		}
+		f.validatedAt = time.Now()
 		return
 	}
 	f.offset += int64(len(appended))
@@ -115,6 +124,7 @@ func (f *followedLogFile) read(emit func(string)) {
 	} else {
 		f.info = info
 	}
+	f.validatedAt = time.Now()
 
 	for {
 		newline := bytes.IndexByte(f.pending, '\n')

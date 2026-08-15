@@ -119,6 +119,35 @@ func TestFollowedLogFileChecksTheWholePrefixAfterRegrowth(t *testing.T) {
 	}
 }
 
+func TestFollowedLogFilePeriodicallyChecksUnchangedMetadata(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "logs.txt")
+	if err := os.WriteFile(path, []byte("old line\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	file := &followedLogFile{path: path}
+	var lines []string
+	emit := func(line string) { lines = append(lines, line) }
+	file.read(emit)
+	oldModTime := file.info.ModTime()
+
+	// Simulate a coarse-timestamp filesystem: the content changes in place but
+	// size, identity and modification time all remain unchanged.
+	if err := os.WriteFile(path, []byte("new line\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(path, oldModTime, oldModTime); err != nil {
+		t.Fatal(err)
+	}
+	file.validatedAt = time.Now().Add(-runtimeLogIntegrityInterval)
+	file.read(emit)
+
+	want := []string{"old line", "new line"}
+	if !reflect.DeepEqual(lines, want) {
+		t.Fatalf("lines = %#v, want %#v", lines, want)
+	}
+}
+
 func TestFollowRuntimeLogsStreamsStdoutAndStderr(t *testing.T) {
 	directory := t.TempDir()
 	scratch := filepath.Join(directory, AppwriteDirectory)
