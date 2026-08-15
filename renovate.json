@@ -9,7 +9,6 @@
     "examples/**",
     "tests/e2e/languages/go*/go.mod",
     "tests/e2e/sdks/**",
-    "templates/cli/package.json",
     "vendor/**",
     "node_modules/**"
   ],
@@ -83,7 +82,7 @@
     {
       "customType": "regex",
       "description": "NPM package versions in SDK templates",
-      "managerFilePatterns": ["/^templates/(web|node|react-native|cli)/package\\.json\\.twig$/"],
+      "managerFilePatterns": ["/^templates/(web|node|react-native)/package\\.json\\.twig$/"],
       "matchStrings": [
         "\"(?<depName>(?:@[^/\\\"]+/)?[A-Za-z0-9][A-Za-z0-9._-]*)\"\\s*:\\s*\"(?<currentValue>[~^<>=\" ]*\\d[^\\\"]*)\""
       ],
@@ -254,8 +253,7 @@
       "matchFileNames": [
         "templates/web/package.json.twig",
         "templates/node/package.json.twig",
-        "templates/react-native/package.json.twig",
-        "templates/cli/package.json.twig"
+        "templates/react-native/package.json.twig"
       ],
       "groupName": "typescript sdk template dependencies"
     },
@@ -264,8 +262,7 @@
       "matchFileNames": [
         "templates/web/package.json.twig",
         "templates/node/package.json.twig",
-        "templates/react-native/package.json.twig",
-        "templates/cli/package.json.twig"
+        "templates/react-native/package.json.twig"
       ],
       "postUpgradeTasks": {
         "commands": ["./scripts/update-lockfiles.sh renovate"],
@@ -276,7 +273,6 @@
         ],
         "installTools": {
           "node": {},
-          "bun": {},
           "php": {},
           "composer": {}
         }

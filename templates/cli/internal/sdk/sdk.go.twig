@@ -1,0 +1,295 @@
+{% if sdk.test %}
+package sdk
+
+// The SDK-backed client is omitted from the conformance build: generated
+// commands call mock services there, so nothing constructs a client.
+{% else %}
+package sdk
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"runtime"
+
+	sdkclient "{{ language.params.sdkImportPath }}/client"
+
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/auth"
+	internalclient "github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
+)
+
+// The CLI's own internal/client stays for the OAuth endpoints, which are hit
+// before a session exists; everything a service command does goes through the
+// SDK so request building, multipart upload and chunking are not reimplemented.
+
+// ErrNotLoggedIn is returned when a command needs a session and none is stored.
+var ErrNotLoggedIn = errors.New("no active session. Run `appwrite login` to sign in")
+
+// ErrProjectNotSet is returned when a project-scoped command runs outside a
+// project directory and no project is configured.
+var ErrProjectNotSet = errors.New("project is not set. Run `appwrite init project` or pass --project-id")
+
+// Context carries what every client needs.
+type Context struct {
+	Global     *config.Global
+	SDKVersion string
+}
+
+// Load reads the user's preferences.
+func Load(executableName, sdkVersion string) (*Context, error) {
+	path, err := config.GlobalPath(executableName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Context{Global: config.LoadGlobal(path), SDKVersion: sdkVersion}, nil
+}
+
+// base builds a client pointed at the session's endpoint with the CLI's
+// identifying headers.
+//
+// The SDK stamps its own x-sdk-* headers; they are overwritten here so requests
+// are attributed to the CLI rather than to the SDK.
+func (c *Context) base(endpoint string) sdkclient.Client {
+	client := sdkclient.New()
+	client.Endpoint = endpoint
+	// Keeps the response body for --raw and --json, which must show what the
+	// API sent rather than the typed model re-encoded. The underlying client is
+	// the CLI's phase-bounded transport, not the SDK's ten-second whole-request
+	// deadline. Self-signed verification is applied before response recording
+	// wraps the transport.
+	client.Client = recordingHTTPClient(internalclient.NewHTTPClient(
+		c.Global.CurrentBool(config.PreferenceSelfSigned)))
+	client.AddHeader("x-sdk-name", "Command Line")
+	client.AddHeader("x-sdk-platform", "console")
+	client.AddHeader("x-sdk-language", "cli")
+	client.AddHeader("x-sdk-version", c.SDKVersion)
+	client.AddHeader("user-agent",
+		fmt.Sprintf("AppwriteCLI/%s (%s; %s)", c.SDKVersion, runtime.GOOS, runtime.GOARCH))
+	// setLocale("en-US") on both clients in sdks.ts. The API localises some
+	// response strings from it, so omitting it changed what came back.
+	client.AddHeader("X-Appwrite-Locale", "en-US")
+
+	return client
+}
+
+// authenticate attaches the session credential, refreshing an expired access
+// token first.
+// allowAPIKey distinguishes the two callers. A project call accepts an API key
+// -- that is how CI authenticates, via `appwrite client --key`. A console call
+// does not: an API key is scoped to one project and the console endpoints are
+// not, which is why the message for that case says so explicitly.
+// The mode header is set only for a PROJECT call. `X-Appwrite-Mode: admin` on
+// a console request is rejected outright -- "Admin mode is not allowed for
+// console project" -- so the two paths cannot share it, which an earlier
+// refactor here got wrong and a live delete-project call caught.
+func (c *Context) authenticate(client *sdkclient.Client, allowAPIKey bool) error {
+	session := c.Global.Current()
+	if session == nil {
+		// A browser's own session needs nothing stored: see ambient_js.go.
+		if ambientCredentials(client, allowAPIKey) {
+			return nil
+		}
+
+		return c.noCredentials(allowAPIKey, "")
+	}
+
+	if session.GetString(config.PreferenceAccessToken) != "" {
+		token, err := auth.NewAuthenticator(c.Global, c.SDKVersion).AccessToken(false)
+		if err != nil {
+			return err
+		}
+		client.AddHeader("Authorization", "Bearer "+token)
+		if allowAPIKey {
+			client.AddHeader("X-Appwrite-Mode", config.ModeAdmin)
+		}
+
+		return nil
+	}
+
+	if cookie := session.GetString(config.PreferenceCookie); cookie != "" {
+		client.AddHeader("Cookie", cookie)
+		if allowAPIKey {
+			client.AddHeader("X-Appwrite-Mode", config.ModeAdmin)
+		}
+
+		return nil
+	}
+
+	key := session.GetString(config.PreferenceKey)
+	if allowAPIKey && key != "" {
+		client.AddHeader("X-Appwrite-Key", key)
+		client.AddHeader("X-Appwrite-Mode", config.ModeDefault)
+
+		return nil
+	}
+
+	// A stored session with nothing usable in it is still no credential, and a
+	// browser still has its own.
+	if ambientCredentials(client, allowAPIKey) {
+		return nil
+	}
+
+	return c.noCredentials(allowAPIKey, key)
+}
+
+// noCredentials builds the message for a call with nothing to authenticate it.
+func (c *Context) noCredentials(allowAPIKey bool, key string) error {
+	if !allowAPIKey && key != "" {
+		return errors.New(
+			"session not found. Run `appwrite login`. API keys work for project commands " +
+				"(e.g. `appwrite push functions`), not console-only commands " +
+				"(e.g. `appwrite push settings`)")
+	}
+	if allowAPIKey {
+		return errors.New(
+			"authentication not found. Run `appwrite login` or `appwrite client --key <API_KEY>`")
+	}
+
+	return ErrNotLoggedIn
+}
+
+// endpoint returns the active session's endpoint, or the environment's when
+// the environment is the session -- see ambient_js.go. ambientEndpoint is empty
+// on every build but the browser one, so this is the same two checks it always
+// was.
+func (c *Context) endpoint() (string, error) {
+	if session := c.Global.Current(); session != nil {
+		if endpoint := session.GetString(config.PreferenceEndpoint); endpoint != "" {
+			return endpoint, nil
+		}
+	}
+
+	if endpoint := ambientEndpoint(); endpoint != "" {
+		return endpoint, nil
+	}
+
+	return "", ErrNotLoggedIn
+}
+
+// projectEndpoint returns the endpoint a PROJECT-scoped call should use.
+//
+// Implements the `localConfig.getEndpoint() || globalConfig.getEndpoint() ||
+// DEFAULT_ENDPOINT` chain in sdkForProject(). This is not the same as
+// endpoint(): a repository pinned to a self-hosted instance must not be pushed
+// to whichever endpoint the user last logged into.
+//
+// A session is bound to the endpoint it was created against, so when the two
+// disagree the call is refused rather than sending one instance's credentials
+// to another.
+func (c *Context) projectEndpoint() (string, error) {
+	sessionEndpoint, err := c.endpoint()
+	if err != nil {
+		return "", err
+	}
+
+	endpoint := sessionEndpoint
+	switch {
+	case osGetenv(EnvEndpoint) != "":
+		endpoint = osGetenv(EnvEndpoint)
+	case c.localValue("endpoint") != "":
+		endpoint = c.localValue("endpoint")
+	}
+
+	if !config.EndpointsMatch(endpoint, sessionEndpoint) {
+		return "", fmt.Errorf(
+			"endpoint %s does not match the current login session endpoint %s. "+
+				"Switch to an account for this environment with `appwrite login --switch --endpoint %s`",
+			endpoint, sessionEndpoint, endpoint)
+	}
+
+	return endpoint, nil
+}
+
+// ForConsole builds a client against the console project.
+func (c *Context) ForConsole() (sdkclient.Client, error) {
+	endpoint, err := c.endpoint()
+	if err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	client := c.base(endpoint)
+	client.Config["project"] = config.ProjectConsole
+	client.AddHeader("X-Appwrite-Project", config.ProjectConsole)
+	if err := c.authenticate(&client, false); err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	return client, nil
+}
+
+// ForConsoleWithOrganization builds a console client scoped to an organization.
+//
+// The `/organization` endpoints carry no organization ID in their path and act
+// on whichever organization the header names, so it is resolved from the
+// project config unless the caller passes one.
+func (c *Context) ForConsoleWithOrganization(organizationID string) (sdkclient.Client, error) {
+	client, err := c.ForConsole()
+	if err != nil {
+		return client, err
+	}
+
+	if organizationID == "" {
+		organizationID = osGetenv(EnvOrganizationID)
+	}
+	if organizationID == "" {
+		organizationID = c.localValue("organizationId")
+	}
+	if organizationID != "" {
+		client.AddHeader("X-Appwrite-Organization", organizationID)
+	}
+
+	return client, nil
+}
+
+// ForProject builds a client against the project in the working directory's
+// config.
+func (c *Context) ForProject(projectID string) (sdkclient.Client, error) {
+	endpoint, err := c.projectEndpoint()
+	if err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	// Flag, then environment, then the project config. The environment has to
+	// beat the config: a CI job that exports APPWRITE_PROJECT_ID over a
+	// checked-in one expects to act on the project it named.
+	if projectID == "" {
+		projectID = osGetenv(EnvProjectID)
+	}
+	if projectID == "" {
+		projectID = c.localValue("projectId")
+	}
+	if projectID == "" {
+		return sdkclient.Client{}, ErrProjectNotSet
+	}
+
+	client := c.base(endpoint)
+	client.Config["project"] = projectID
+	client.AddHeader("X-Appwrite-Project", projectID)
+	// The mode is set by authenticate: admin for a console session, default
+	// for an API key. Setting it here unconditionally would put an API key in
+	// admin mode, which the API rejects.
+	if err := c.authenticate(&client, true); err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	return client, nil
+}
+
+// osGetenv is os.Getenv, named so every environment read in this file is
+// greppable as one symbol.
+func osGetenv(name string) string { return os.Getenv(name) }
+
+// localValue reads a top-level string from appwrite.config.json in the working
+// directory, returning "" when there is no config -- running outside a project
+// is normal for many commands.
+func (c *Context) localValue(key string) string {
+	local, err := config.LoadLocal(config.FindLocalPath())
+	if err != nil {
+		return ""
+	}
+
+	return local.Data.GetString(key)
+}
+{% endif %}

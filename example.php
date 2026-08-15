@@ -9,7 +9,6 @@ use Utopia\OpenAPI\Specification;
 use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\Language\Node;
 use Appwrite\SDK\Language\CLI;
-use Appwrite\SDK\Language\GoCLI;
 use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
@@ -65,6 +64,7 @@ try {
             'shortDescription' => 'Repo short description goes here',
             'url' => 'https://example.com',
             'coverImage' => Config::COVER_IMAGE,
+            'license' => 'BSD-3-Clause',
             'licenseContent' => 'test test test',
             'warning' => '**WORK IN PROGRESS - NOT READY FOR USAGE**',
             'changelog' => '**CHANGELOG**',
@@ -97,6 +97,7 @@ try {
             ->setShortDescription($config['shortDescription'])
             ->setURL($config['url'])
             ->setCoverImage($config['coverImage'])
+            ->setLicense($config['license'])
             ->setLicenseContent($config['licenseContent'])
             ->setWarning($config['warning'])
             ->setChangelog($config['changelog'])
@@ -160,7 +161,6 @@ try {
         'web',
         'node',
         'cli',
-        'go-cli',
         'ruby',
         'python',
         'dart',
@@ -261,7 +261,6 @@ try {
   \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
         |_|   |_|                                                ";
 
-    // Shared by both CLIs: they present the same command surface.
     $cliExcludes = [
         'services' => [
             ['name' => 'assistant'],
@@ -308,9 +307,8 @@ try {
     // Absent from the published Go SDK, which is generated from the server spec:
     // three console-only services, plus `migrations`, which has never shipped.
     // Generating their commands would import packages that do not exist.
-    $goCliExcludes             = $cliExcludes;
-    $goCliExcludes['services'] = [
-        ...$goCliExcludes['services'],
+    $cliExcludes['services'] = [
+        ...$cliExcludes['services'],
         ['name' => 'affiliates'],
         ['name' => 'migrations'],
         ['name' => 'notifications'],
@@ -318,8 +316,8 @@ try {
     ];
     // Individual endpoints the same SDK has no function for. Read off the
     // compiler, not guessed -- an invented name silently matches nothing.
-    $goCliExcludes['methods'] = [
-        ...$goCliExcludes['methods'],
+    $cliExcludes['methods'] = [
+        ...$cliExcludes['methods'],
         // Account API keys and push targets, and account deletion.
         ['service' => 'account', 'name' => 'createKey'],
         ['service' => 'account', 'name' => 'listKeys'],
@@ -357,37 +355,19 @@ try {
 
     // CLI
     if (!$requestedSdk || $requestedSdk === 'cli') {
-        $language  = new CLI();
-        $language->setNPMPackage('appwrite-cli');
+        $language = new CLI();
         $language->setExecutableName('appwrite');
-        $language->setLogo(json_encode($cliLogo));
+        $language->setLogo($cliLogo);
         $language->setLogoUnescaped($cliLogoUnescaped);
+        $language->setNPMPackage('appwrite-cli');
 
-        $sdk  = new SDK($language, buildSpecification($spec));
+        $sdk = new SDK($language, buildSpecification($spec));
         $sdk->setTest(false);
         configureSDK($sdk, [
             'exclude' => $cliExcludes,
         ]);
 
         $sdk->generate(__DIR__ . '/examples/cli');
-    }
-
-    // Go CLI -- shares the TypeScript CLI's command surface via CliCommandSurface.
-    if (!$requestedSdk || $requestedSdk === 'go-cli') {
-        $language = new GoCLI();
-        $language->setExecutableName('appwrite');
-        $language->setLogo($cliLogo);
-        $language->setLogoUnescaped($cliLogoUnescaped);
-        // Same package as the TypeScript CLI, and it names every release asset.
-        $language->setNPMPackage('appwrite-cli');
-
-        $sdk = new SDK($language, buildSpecification($spec));
-        $sdk->setTest(false);
-        configureSDK($sdk, [
-            'exclude' => $goCliExcludes,
-        ]);
-
-        $sdk->generate(__DIR__ . '/examples/go-cli');
     }
 
     // Ruby
