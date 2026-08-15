@@ -58,6 +58,19 @@ Lock file templates (`package-lock.json.twig`) contain Twig expressions that get
 
 The script strips Twig expressions before running `npm install`, then restores them automatically. Never copy a raw lock file over a lock template or edit one by hand.
 
+### Rule 7: Go templates must generate formatted source
+
+Formatting is currently enforced only for the generated Go SDK; other SDKs will adopt formatter checks later. Keep Go templates accurate enough that their generated `.go` files are already `gofmt`-clean. Do not add a post-generation formatting step or run `gofmt` to fix the generated output in place—the fix belongs in the Twig template.
+
+After changing Go templates, regenerate the affected platform and verify formatting:
+
+```bash
+php example.php go <platform>
+test -z "$(gofmt -l examples/go)"
+```
+
+Because `CLI` inherits from `Go`, regenerate it after shared Go template changes and verify its generated Go files too.
+
 ## Repository at a Glance
 
 - **Purpose:** Generate Appwrite SDKs and tooling targets for 20+ languages/platforms from Swagger/OpenAPI specs using Twig templates
