@@ -14,7 +14,7 @@ import (
 
 // pullAction is one entry of the fan-out.
 type pullAction struct {
-	// Value is what the choice returns, and matches the TypeScript's.
+	// Value is what the choice returns.
 	Value string
 	// Label is shown in the prompt, with its owning service in parentheses.
 	Label string
@@ -26,12 +26,10 @@ type pullAction struct {
 
 // TWO ORDERS ARE IN PLAY AND THEY ARE NOT THE SAME, as they are not for push.
 //
-// pullActions is the EXECUTION order: the insertion order of the actions map
-// (pull.ts:832), which is what `Object.values` walks under cliConfig.all.
-// pullPromptOrder is what questionsPullResources offers (questions.ts:383),
-// and it is missing `sites` upstream. That omission is faithful -- `pull all`
-// still pulls sites, and a port that quietly added it to the picker would
-// diverge from the CLI it is replacing.
+// pullActions is the EXECUTION order: the order of the actions map, which is
+// what the everything path walks. pullPromptOrder is what the picker offers,
+// and it deliberately omits `sites` -- `pull all` still pulls them, and adding
+// them to the picker would be a visible behaviour change.
 func pullActions() []pullAction {
 	byName := map[string]flatResource{}
 	for _, resource := range flatResources {
@@ -103,10 +101,10 @@ func newPullAllCommand() *cobra.Command {
 		Use:   "all",
 		Short: "Pull all resources from your Appwrite project",
 		RunE: func(command *cobra.Command, args []string) error {
-			// `pull all` means all, with or without --all. The TypeScript sets
-			// cliConfig.all itself before delegating (pull.ts:1136), so it
-			// never reaches the picker; gating on the flag here turned the
-			// subcommand into a one-resource chooser.
+			// `pull all` means all, with or without --all: the everything path
+			// is taken before delegating, so it never reaches the picker.
+			// Gating on the flag here turned the subcommand into a one-resource
+			// chooser.
 			return runPull(command, pullActions(), true)
 		},
 	}
@@ -120,8 +118,8 @@ func newPullAllCommand() *cobra.Command {
 // two representations of the same data into one config.
 func runPull(command *cobra.Command, actions []pullAction, everything bool) error {
 	if everything {
-		// `cliConfig.all = true` (pull.ts:850). It is not only the fan-out's
-		// own choice: each resource reads the same flag to decide whether to
+		// Set globally, not only for the fan-out's own use: each resource reads
+		// the same flag to decide whether to
 		// ask WHICH functions, sites or buckets to pull. Running the fan-out
 		// without setting it pulls every resource type and then stops to ask
 		// about the contents of each one, which is not what `all` means.

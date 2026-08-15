@@ -23,8 +23,8 @@ import (
 
 // isolateGlobalAll restores the --all flag when the test ends.
 //
-// The flag is PROCESS state -- it stands in for the TypeScript's cliConfig --
-// so a test that runs a fan-out sets it for every test that runs afterwards,
+// The flag is PROCESS state, so a test that runs a fan-out sets it for every
+// test that runs afterwards,
 // and a later prompt test then silently takes the "all" path and never
 // prompts. Anything here that touches the fan-out has to put it back.
 func isolateGlobalAll(t *testing.T) {
@@ -153,11 +153,10 @@ func TestRealFanOutsMarkCollectionsDeprecated(t *testing.T) {
 	}
 }
 
-// `all` has to reach SITES. The picker does not offer them -- upstream's list
-// omits sites for both pull and push (questions.ts:383, :953) -- but upstream's
-// fan-out still runs them, because it walks the actions map rather than the
-// question's choices (pull.ts:851). The Go pull fan-out had no sites entry at
-// all, so `pull all` silently skipped every site in the project.
+// `all` has to reach SITES. The picker does not offer them -- its list omits
+// sites for both pull and push -- but the fan-out still runs them, because it
+// walks the actions map rather than the question's choices. With no sites entry
+// in that map, `pull all` silently skipped every site in the project.
 func TestFanOutsRunSites(t *testing.T) {
 	for _, action := range pullActions() {
 		if action.Value == "sites" {

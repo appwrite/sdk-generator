@@ -504,16 +504,16 @@ func collectVariables(
 	set("APPWRITE_FUNCTION_API_ENDPOINT", localEndpoint(local))
 	set("APPWRITE_FUNCTION_ID", function.ID)
 	set("APPWRITE_FUNCTION_NAME", function.Name)
-	// Empty in the TypeScript too -- there is no deployment when running
-	// locally, and the runtime expects the key to exist.
+	// Deliberately empty -- there is no deployment when running locally, and
+	// the runtime expects the key to exist.
 	set("APPWRITE_FUNCTION_DEPLOYMENT", "")
 	set("APPWRITE_FUNCTION_PROJECT_ID", projectID(local))
 	set("APPWRITE_FUNCTION_RUNTIME_NAME", docker.RuntimeNames[function.RuntimeName()])
 	set("APPWRITE_FUNCTION_RUNTIME_VERSION", function.Runtime)
 
 	// The credentials the function authenticates with. A failure here is a
-	// warning, not an error: the TypeScript runs the function anyway, and one
-	// that never calls the API does not need them.
+	// warning, not an error: the function runs anyway, and one that never calls
+	// the API does not need them.
 	credentials := runCredentials{}
 	if apiErr != nil {
 		output.Warn(out, "Dynamic API key not generated. Header x-appwrite-key "+
@@ -547,8 +547,8 @@ func collectVariables(
 
 // printMaskedVariables shows which variables were loaded without their values.
 //
-// The TypeScript prints a fixed run of asterisks capped at 16, so the length of
-// a short secret is not leaked either.
+// A fixed run of asterisks capped at 16, so the length of a short secret is not
+// leaked either.
 func printMaskedVariables(command *cobra.Command, keys []string, variables map[string]string) {
 	for _, key := range keys {
 		length := min(len(variables[key]), 16)

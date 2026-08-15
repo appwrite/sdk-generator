@@ -20,7 +20,7 @@ import (
 
 // pushAction is one entry of the fan-out.
 type pushAction struct {
-	// Value is what the choice returns, matching the TypeScript's.
+	// Value is what the choice returns.
 	Value string
 	// Label is shown in the prompt, with its owning service in parentheses.
 	Label string
@@ -54,10 +54,10 @@ func pushActions(logs bool) []pushAction {
 			}
 
 			return func(command *cobra.Command) error {
-				// --all implies pushing the code and activating it. The
-				// TypeScript asks both questions once up front and applies the
-				// answers to every resource; --force answers them true, which
-				// is the only path a non-interactive run can take anyway.
+				// --all implies pushing the code and activating it: both
+				// questions are asked once up front and the answers applied to
+				// every resource. --force answers them true, which is the only
+				// path a non-interactive run can take anyway.
 				return runPushDeployable(command, resource, deployOptions{
 					Code:        true,
 					Activate:    true,
@@ -113,10 +113,10 @@ func newPushAllCommand() *cobra.Command {
 			return applyNegatedFlags(command)
 		},
 		RunE: func(command *cobra.Command, args []string) error {
-			// `push all` means all, with or without --all. The TypeScript sets
-			// cliConfig.all itself before delegating (push.ts:4288), so it
-			// never reaches the picker; gating on the flag here turned the
-			// subcommand into a one-resource chooser.
+			// `push all` means all, with or without --all: the everything path
+			// is taken before delegating, so it never reaches the picker.
+			// Gating on the flag here turned the subcommand into a one-resource
+			// chooser.
 			return runPush(command, true)
 		},
 	}
@@ -133,9 +133,8 @@ func newPushAllCommand() *cobra.Command {
 // everything case: they are the legacy databases API, and pushing both writes
 // two representations of the same data to one project.
 func runPush(command *cobra.Command, everything bool) error {
-	// Only `push all` carries --no-logs; the bare `push` inherits the default,
-	// as it does in the TypeScript where the flag is declared on the
-	// subcommand alone (push.ts:4285).
+	// Only `push all` carries --no-logs, because the flag is declared on that
+	// subcommand alone; the bare `push` inherits the default.
 	logs := true
 	if command.Flags().Lookup("logs") != nil {
 		parsed, err := command.Flags().GetBool("logs")
@@ -152,9 +151,8 @@ func runPush(command *cobra.Command, everything bool) error {
 // test can hand it actions that record instead of calling the API.
 func runPushActions(command *cobra.Command, actions []pushAction, everything bool) error {
 	if everything {
-		// `cliConfig.all = true` (push.ts:4288), for the same reason as pull:
-		// each resource reads it to decide whether to ask which functions or
-		// sites to push.
+		// Set globally, for the same reason as pull: each resource reads it to
+		// decide whether to ask which functions or sites to push.
 		app.Flags().All = true
 
 		// Collections are skipped: they are the legacy databases API,

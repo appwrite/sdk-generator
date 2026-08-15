@@ -127,8 +127,8 @@ func TestEndpointWithQueryStringSurvives(t *testing.T) {
 	}
 
 	// `{{endpoint}}` is a double-brace tag, so Handlebars escapes it -- the
-	// generated constant really does contain &amp;. That is a defect in the
-	// the established CLI, reproduced here; see internal/typegen/handlebars.go.
+	// generated constant really does contain &amp;. Established output, kept as
+	// it is; see internal/typegen/handlebars.go.
 	if !strings.Contains(result.Constants, "&amp;") {
 		t.Error("constants.ts should carry the Handlebars-escaped endpoint")
 	}

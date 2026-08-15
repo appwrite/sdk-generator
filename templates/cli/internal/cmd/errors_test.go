@@ -23,8 +23,8 @@ func requestWasMade(t *testing.T, made bool) {
 }
 
 // A proxy 502 or a maintenance page is an HTML document, and the SDK puts a
-// non-JSON body straight into the error message. The CLI printed all 8,946
-// bytes of it where the TypeScript printed one line.
+// non-JSON body straight into the error message. All 8,946 bytes of it reached
+// the terminal where one line would do.
 func TestHTMLErrorPagesAreSummarised(t *testing.T) {
 	page := "<!DOCTYPE html><html><head><title>Error</title></head>" +
 		strings.Repeat("<div>padding</div>", 400) + "</html>"
@@ -249,7 +249,7 @@ func TestReportDistinguishesCancellationFromFailure(t *testing.T) {
 	}
 	got := failed.String()
 	if !strings.Contains(got, "✗ Error:") {
-		t.Errorf("a failure is missing the error prefix the TypeScript prints:\n%s", got)
+		t.Errorf("a failure is missing the error prefix:\n%s", got)
 	}
 	if !strings.Contains(got, "network unreachable") {
 		t.Errorf("a failure does not say what went wrong:\n%s", got)

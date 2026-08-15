@@ -61,9 +61,9 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 		return err
 	}
 
-	// The TypeScript calls account.get() before anything else. A stored
-	// session can be expired or revoked, and finding that out here costs one
-	// request instead of failing halfway through linking.
+	// account.get() before anything else: a stored session can be expired or
+	// revoked, and finding that out here costs one request instead of failing
+	// halfway through linking.
 	var account jsonx.Object
 	if err := api.Call("GET", pathAccount, nil, &account); err != nil {
 		return fmt.Errorf(
@@ -100,9 +100,9 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 	endpoint := global.CurrentValue(config.PreferenceEndpoint)
 	cloud := isCloudEndpoint(endpoint)
 
-	// Question order is user-visible, and it is the TypeScript's: the setup
-	// method comes BEFORE the organization. Only the flags path skips it,
-	// because naming a project id already answers it.
+	// Question order is user-visible and contractual: the setup method comes
+	// BEFORE the organization. Only the flags path skips it, because naming a
+	// project id already answers it.
 	creating := true
 	if projectID == "" {
 		method, err := prompter.Choice(prompt.Choice{
@@ -130,7 +130,7 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 	var linked *jsonx.Object
 
 	// Naming a project id means "link to it if it exists, otherwise create
-	// it" -- the TypeScript decides by trying to fetch it.
+	// it", decided by trying to fetch it.
 	if projectID != "" {
 		existing, err := fetchProject(api, organizationID, projectID)
 		switch {
@@ -209,12 +209,11 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 		}
 	}
 
-	// Asked BEFORE the success line, the way the TypeScript asks it. The answer
-	// decides what happens in the seconds after that line, and a question
-	// printed underneath "Project linked" reads as though the linking were not
-	// finished yet.
+	// Asked BEFORE the success line: the answer decides what happens in the
+	// seconds after that line, and a question printed underneath "Project
+	// linked" reads as though the linking were not finished yet.
 	//
-	// inquirer's confirm defaults to false when no default is given, which is
+	// A confirm defaults to false when no default is given, which is
 	// what this question has -- a pull overwrites local files, so the safe
 	// answer is the default one.
 	autopull := false
@@ -263,10 +262,9 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 
 // pullEverything runs `pull all` in place, the way the autopull answer does.
 //
-// --all and --force are forced on, as the TypeScript sets `cliConfig.all` and
-// `cliConfig.force` before calling pullResources: the user has just answered the
-// only question there was, so a pull that then asked which resources and whether
-// to overwrite would be asking twice. The previous values are restored, because
+// --all and --force are forced on: the user has just answered the only question
+// there was, so a pull that then asked which resources and whether to overwrite
+// would be asking twice. The previous values are restored, because
 // this process may go on to do something else that reads them.
 func pullEverything(command *cobra.Command) error {
 	flags := app.Flags()
@@ -280,7 +278,7 @@ func pullEverything(command *cobra.Command) error {
 // chooseOrganization lists the organizations the account belongs to.
 //
 // Cloud serves them at /organizations; a self-hosted instance has no such
-// concept and uses /teams instead. The TypeScript branches the same way.
+// concept and uses /teams instead.
 func chooseOrganization(api *client.Client, prompter prompt.Prompter, endpoint string, cloud bool) (string, error) {
 	path := pathTeams
 	if cloud {

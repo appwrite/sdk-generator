@@ -18,9 +18,8 @@ import (
 
 // Screenshot previews for a deployed site.
 //
-// Implements the preview half of Push.pushSites: renderSiteTerminalPreview
-// (push.ts:420), fetchSiteScreenshotPreview (:356) and the block at :2755 that
-// prints them under the deployment summary.
+// The preview half of pushing a site: fetch the screenshot, render it, and
+// print it under the deployment summary.
 //
 // Why the CLI shows a picture at all: a site deploy succeeds whenever the build
 // does, and a build succeeds for a page that renders blank, renders an error, or
@@ -32,9 +31,8 @@ import (
 //
 // The console client is built at most once per push and only when a preview is
 // actually going to be drawn -- it needs a session, and a push authenticated
-// with an API key has none. Warnings are deduplicated for the same reason the
-// TypeScript keeps a Set of them: pushing eight sites past an unreachable
-// console should say so once.
+// with an API key has none. Warnings are deduplicated: pushing eight sites past
+// an unreachable console should say so once.
 type screenshots struct {
 	console  *client.Client
 	setupErr error
@@ -44,9 +42,9 @@ type screenshots struct {
 
 // reportScreenshot prints a site deployment's preview, or says why there is none.
 //
-// Ordering matches the TypeScript summary: the pending hint, then the picture,
-// then the links reportDeployment prints -- so the last line on screen is
-// always the one to click.
+// Ordering is the pending hint, then the picture, then the links
+// reportDeployment prints -- so the last line on screen is always the one to
+// click.
 func (c *pushContext) reportScreenshot(out io.Writer, deployment *jsonx.Object) {
 	if !hasScreenshots(deployment) {
 		// The deployment IS live; only its picture is missing. Saying so is the
@@ -91,9 +89,8 @@ func previewRenderable() bool {
 
 // screenshotArt fetches and renders the first screenshot that renders.
 //
-// Dark before light, matching the TypeScript's candidate order: a terminal is
-// dark far more often than not, so the dark screenshot is the one that sits in
-// it without glaring.
+// Dark before light: a terminal is dark far more often than not, so the dark
+// screenshot is the one that sits in it without glaring.
 func (c *pushContext) screenshotArt(deployment *jsonx.Object) (string, error) {
 	console, err := c.consoleForScreenshots()
 	if err != nil {
@@ -151,9 +148,8 @@ func previewSize() (int, int) {
 // the project client that ran the deployment cannot read it -- but it does have
 // the right endpoint. A screenshot lives in the region its deployment ran in,
 // and the session's endpoint has had the region normalised out of it, so the
-// project client's endpoint is passed through: `preserveRegion: true` in the
-// TypeScript, and the difference between a preview and "The requested file could
-// not be found."
+// project client's endpoint is passed through, which is the difference between
+// a preview and "The requested file could not be found."
 //
 // Built lazily and cached, failure included: a push with no session must not
 // retry a login error once per site.

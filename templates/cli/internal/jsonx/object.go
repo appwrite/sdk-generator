@@ -13,16 +13,15 @@ import (
 //
 // Object is a JSON object that remembers the order its keys were read in.
 //
-// Go's map[string]any marshals keys sorted; JavaScript preserves insertion
-// order. The established CLI reads a config, mutates a field and writes the
-// whole document back, so a Go port backed by a plain map would silently
+// Go's map[string]any marshals keys sorted. A config is read, one field is
+// mutated and the whole document is written back, so a plain map would silently
 // reorder every key in every user's appwrite.config.json the first time it
 // wrote one. That file lives in user repositories and gets code-reviewed, so
 // the churn would be real and blamed on us.
 //
-// Numbers are kept as json.Number rather than float64 for the same reason the
-// the established CLI uses json-bigint: float64 cannot hold a millisecond timestamp
-// past 2^53 without losing digits, and `tokenExpiry` is exactly that.
+// Numbers are kept as json.Number rather than float64 for a related reason:
+// float64 cannot hold a millisecond timestamp past 2^53 without losing digits,
+// and `tokenExpiry` is exactly that.
 type Object struct {
 	keys   []string
 	values map[string]any
@@ -360,8 +359,8 @@ func DecodeValue(payload []byte) (any, error) {
 	return decodeValue(decoder)
 }
 
-// Marshal renders the object the way the established CLI writes config files:
-// four-space indentation, no HTML escaping, and a trailing newline left off.
+// Marshal renders the object the way config files are written: four-space
+// indentation, no HTML escaping, and a trailing newline left off.
 //
 // json.Encoder escapes <, > and & by default, which would rewrite any URL or
 // description containing them. JSON.stringify does not, so neither does this.

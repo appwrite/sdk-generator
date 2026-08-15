@@ -13,9 +13,9 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
-// Unlike --json and --raw this output is not part of the parity contract, so the
-// structure is reproduced -- scalars first, then one section per nested value --
-// without chasing the TypeScript's exact spacing.
+// Unlike --json and --raw this output is not scripted against, so the structure
+// is what matters -- scalars first, then one section per nested value -- rather
+// than exact spacing.
 //
 // Partially ported: the scalar half is in valueformat.go and `sectionFields` in
 // sections.go. Still missing are per-resource selection of the top-level fields
@@ -40,11 +40,10 @@ func (r *Renderer) Render(value any) error {
 
 	switch r.Mode {
 	case ModeRaw:
-		// Big integers are quoted here too. --raw is not "the bytes verbatim"
-		// on either CLI: the TypeScript parses with json-bigint and
-		// re-stringifies, so a BigNumber comes out quoted. Leaving it a bare
-		// number would read back through most JSON parsers as a rounded float,
-		// which is the loss the quoting exists to prevent.
+		// Big integers are quoted here too. --raw is not "the bytes verbatim":
+		// the response is parsed and re-rendered, and leaving a big integer a
+		// bare number would read back through most JSON parsers as a rounded
+		// float, which is the loss the quoting exists to prevent.
 		return RenderJSON(writer, quoteBigIntegers(redactor.Mask(value, "")))
 	case ModeJSON:
 		masked := redactor.Mask(value, "")
@@ -230,10 +229,9 @@ func renderTable(rows []*jsonx.Object) string {
 }
 
 func drawTable(headers []string, data [][]string) string {
-	// No outer box, matching the TypeScript's blanked edge characters: a row is
-	// a value rather than a value wrapped in pipes, and double-clicking an id in
-	// a boxed table selects the borders with it. A single-column table therefore
-	// has no vertical rule at all.
+	// No outer box: a row is a value rather than a value wrapped in pipes, and
+	// double-clicking an id in a boxed table selects the borders with it. A
+	// single-column table therefore has no vertical rule at all.
 	return table.New().
 		Border(lipgloss.NormalBorder()).
 		BorderTop(false).
@@ -249,10 +247,10 @@ func drawTable(headers []string, data [][]string) string {
 		Render()
 }
 
-// tableBorderStyle paints the remaining rules the cyan the TypeScript uses.
+// tableBorderStyle paints the remaining rules cyan.
 var tableBorderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
 
-// tableCellStyle pads each cell by one column, which cli-table3 does by
+// tableCellStyle pads each cell by one column, which the captured tables do by
 // default and which the border configuration does not change. Without it the
 // values sit flush against the separators and are hard to read.
 func tableCellStyle(row, _ int) lipgloss.Style {
@@ -300,8 +298,8 @@ func formatKeyValue(key string, value any) string {
 	return formatScalar(value)
 }
 
-// Matches the TypeScript's /duration$/i, which is a suffix test rather than a
-// contains test: `durationLimit` is not a duration.
+// A suffix test rather than a contains test: `durationLimit` is not a
+// duration.
 var durationKey = regexp.MustCompile(`(?i)duration$`)
 
 // formatScalar renders one value for display.
@@ -326,8 +324,8 @@ func formatScalar(value any) string {
 
 // maximumColumns is where a table stops being readable.
 //
-// Implements MAX_COLUMNS (parser.ts:402). `organization get` embeds a plan with 69
-// fields, and rendering that as one row of 69 columns produced a line no
+// `organization get` embeds a plan with 69 fields, and rendering that as one
+// row of 69 columns produced a line no
 // terminal could show. Past this width each row is printed as key/value
 // instead, which stays readable at any size.
 const maximumColumns = 6

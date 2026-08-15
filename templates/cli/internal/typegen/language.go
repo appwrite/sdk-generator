@@ -9,9 +9,8 @@ import (
 	"strings"
 )
 
-// The TypeScript builds each language's output from an inline EJS template that
-// nothing else reads, so each language emits directly in Go instead and
-// correctness is held by baselines captured from node.
+// Each language emits directly in Go rather than through a shared template
+// engine, and correctness is held by the captured baselines under testdata/.
 //
 // The .hbs templates under commands/generators are different -- all CLI builds read
 // those files, so they go through internal/typegen/handlebars.go.
@@ -94,8 +93,7 @@ type Language interface {
 	Render(collections []Collection, current *Collection, strict bool, invocation string) (string, error)
 }
 
-// ErrEnumUnsupported is returned by languages that do not generate enums,
-// matching the TypeScript's base-class throw.
+// ErrEnumUnsupported is returned by languages that do not generate enums.
 var ErrEnumUnsupported = errors.New("enum generation is not supported for this language")
 
 // UnknownAttributeTypeError reports an attribute type no language handles.
@@ -109,8 +107,8 @@ func (e *UnknownAttributeTypeError) Error() string {
 
 // RelatedCollectionID is the id a relationship attribute points at.
 //
-// Collections carry relatedCollection and tables carry relatedTable; the
-// TypeScript checks them in that order and so does this.
+// Collections carry relatedCollection and tables carry relatedTable, checked
+// in that order.
 func RelatedCollectionID(attribute Attribute) string {
 	if attribute.RelatedCollection != "" {
 		return attribute.RelatedCollection
@@ -121,10 +119,9 @@ func RelatedCollectionID(attribute Attribute) string {
 
 // RelatedCollection resolves a relationship attribute to its target.
 //
-// Note the lookup matches on $id only, mirroring LanguageMeta. The shared
-// TypeScript helper getTypeScriptType() additionally matches on name -- see
-// resolveRelated() in typescript.go, which reproduces that wider lookup for the
-// languages that go through it.
+// Note the lookup matches on $id only, mirroring LanguageMeta. The wider
+// lookup that also matches on name lives in resolveRelated() in typescript.go,
+// for the languages that go through it.
 func RelatedCollection(attribute Attribute, collections []Collection) (Collection, error) {
 	id := RelatedCollectionID(attribute)
 	for _, collection := range collections {
@@ -212,8 +209,7 @@ var languageMarkers = []struct {
 	{"java", []string{"build.gradle", "pom.xml"}},
 }
 
-// ErrLanguageUndetected matches the TypeScript's failure message verbatim,
-// because it is what the user sees.
+// ErrLanguageUndetected is worded for the user: it is printed verbatim.
 var ErrLanguageUndetected = errors.New("could not detect language, please specify with -l")
 
 // DetectLanguage guesses the project's language from marker files.
@@ -235,7 +231,7 @@ func DetectLanguage(directory string) (string, error) {
 	}
 
 	// .csproj is matched by extension rather than by name. An unreadable
-	// directory is skipped rather than failing, as in the TypeScript.
+	// directory is skipped rather than failing.
 	if entries, err := os.ReadDir(directory); err == nil {
 		for _, entry := range entries {
 			if strings.HasSuffix(entry.Name(), ".csproj") {
@@ -269,11 +265,11 @@ func AppwriteDependency(directory string) string {
 		var manifest struct {
 			Dependencies map[string]string `json:"dependencies"`
 		}
-		// An unparseable package.json falls through to the deno.json check,
-		// exactly as the TypeScript's empty catch block does.
+		// An unparseable package.json falls through to the deno.json check
+		// rather than failing the detection.
 		if json.Unmarshal(declared, &manifest) == nil {
-			// Truthiness, not presence: the TypeScript tests `deps[name]`, so a
-			// dependency declared with an empty version string is skipped.
+			// Truthiness, not presence: a dependency declared with an empty
+			// version string is skipped.
 			for _, name := range appwriteDependencies {
 				if manifest.Dependencies[name] != "" {
 					return name

@@ -14,9 +14,9 @@ import (
 
 // The skills half of `init project`.
 //
-// Implements installInitProjectSkills (init.ts:242) with hasSkillsInstalled
-// (utils.ts:1067) and detectProjectSkills (utils.ts:1149). fetchAvailableSkills
-// and placeSkills were already ported for `init skill`, which is why this is
+// Installing the skills a project wants, detecting which those are, and
+// noticing when some are already there. Fetching and placing them is shared
+// with `init skill`, which is why this is
 // mostly the DECIDING: which skills a project wants, and whether it has any
 // already.
 //
@@ -27,9 +27,8 @@ import (
 
 // languageMarkers maps a language to the files that prove a project uses it.
 //
-// Implements LANGUAGE_MARKERS (utils.ts:1027) exactly, `*` globs included -- a
-// `*.csproj` is matched by extension because its name is the project's, which
-// this cannot know.
+// `*` globs included -- a `*.csproj` is matched by extension because its name
+// is the project's, which this cannot know.
 var languageMarkers = map[string][]string{
 	"typescript": {"package.json", "tsconfig.json", "bun.lockb", "yarn.lock", "package-lock.json"},
 	"python":     {"requirements.txt", "pyproject.toml", "setup.py", "Pipfile"},
@@ -73,8 +72,8 @@ func hasSkillsInstalled(root string) bool {
 func detectProjectSkills(root string, skills []skillInfo) []skillInfo {
 	detected := map[string]bool{"cli": true}
 
-	// Read the directory ONCE. The TypeScript re-reads it inside the marker
-	// loop, which is a directory listing per glob per language.
+	// Read the directory ONCE: re-reading it inside the marker loop would be a
+	// directory listing per glob per language.
 	var names []string
 	if entries, err := os.ReadDir(root); err == nil {
 		names = make([]string, 0, len(entries))
@@ -103,8 +102,8 @@ func detectProjectSkills(root string, skills []skillInfo) []skillInfo {
 		}
 	}
 
-	// Substring matching on the directory name, as the TypeScript does: the
-	// skills repository names them `appwrite-python`, not `python`.
+	// Substring matching on the directory name: the skills repository names
+	// them `appwrite-python`, not `python`.
 	matched := make([]skillInfo, 0, len(skills))
 	for _, skill := range skills {
 		lowered := strings.ToLower(skill.DirName)

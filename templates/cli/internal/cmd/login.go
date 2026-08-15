@@ -25,11 +25,10 @@ import (
 
 // TWO SIGN-IN FLOWS, chosen by the endpoint. Cloud signs in through the
 // browser with a device code; a self-hosted instance signs in with an email
-// and a password, and may then ask for a second factor. isCloudLoginEndpoint
-// (utils.ts:503) is what decides, so the same `login` command does either.
+// and a password, and may then ask for a second factor. isCloudLoginEndpoint is
+// what decides, so the same `login` command does either.
 
-// loginOptions are the flags `login` was given. Mirrors loginCommand's
-// parameter object (login.ts:452).
+// loginOptions are the flags `login` was given.
 type loginOptions struct {
 	Endpoint string
 	Email    string
@@ -69,7 +68,7 @@ func newLoginCommand() *cobra.Command {
 	return command
 }
 
-// runLogin ports loginCommand (login.ts:452).
+// runLogin runs the `login` command.
 func runLogin(command *cobra.Command, options loginOptions) error {
 	out := command.OutOrStdout()
 
@@ -504,8 +503,7 @@ func isInvalidCredentials(err error) bool {
 	return apiError.Type == "user_invalid_credentials"
 }
 
-// loginWithDevice signs in through the browser. Ports loginWithOAuthDevice
-// (login.ts:333).
+// loginWithDevice signs in through the browser with a device code.
 func resolveLoginEndpoint(endpoint string) string {
 	if endpoint == "" {
 		endpoint = config.DefaultEndpoint
@@ -541,8 +539,8 @@ func loginWithDevice(command *cobra.Command, endpoint string) error {
 	sessionID := cloudSessionID(endpoint, subject)
 
 	session := config.NewObject()
-	// Key order matches what the established CLI writes, so a prefs.json
-	// touched by both binaries does not churn.
+	// Key order is pinned, so a prefs.json rewritten by a later run does not
+	// churn.
 	session.Set(config.PreferenceEndpoint, endpoint)
 	session.Set(config.PreferenceClientID, auth.DefaultClientID)
 	session.Set(config.PreferenceAccessToken, token.AccessToken)

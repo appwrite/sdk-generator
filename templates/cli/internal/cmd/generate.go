@@ -135,8 +135,7 @@ func runGenerate(
 	// The generated client hard-codes the endpoint it talks to, and `pull`
 	// never writes an `endpoint` key -- so reading only the project config
 	// emitted `export const ENDPOINT = ''` and produced a client that cannot
-	// connect. Ports the localConfig || globalConfig || DEFAULT_ENDPOINT chain
-	// in generate.ts:100.
+	// connect. The local config, then the global one, then the default.
 	project.Endpoint = resolveGenerateEndpoint(project.Endpoint)
 
 	if !contains(serverSideModes, serverSide) {
@@ -216,8 +215,7 @@ func printTypeScriptUsage(
 	command.Printf("  await mydb.use(%s).create({ ... });\n", quoteForHint(tableName))
 }
 
-// quoteForHint renders a JSON string literal, as JSON.stringify does in the
-// TypeScript's usage hint.
+// quoteForHint renders a JSON string literal for the usage hint.
 func quoteForHint(value string) string {
 	encoded, err := jsonx.Marshal(value)
 	if err != nil {

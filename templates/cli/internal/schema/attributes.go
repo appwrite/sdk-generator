@@ -155,8 +155,7 @@ type Rename struct {
 
 // Container identifies the table or collection being reconciled.
 //
-// Implements the Collection interface (attributes.ts:109), reduced to the three
-// fields attributes.ts actually reads.
+// Reduced to the three fields reconciliation actually reads.
 type Container struct {
 	DatabaseID string
 	ID         string
@@ -272,9 +271,9 @@ func BuildPlan(
 
 		// An attribute already being recreated is not also updated -- the
 		// update would target an attribute about to be deleted. The count is
-		// compared against exactly one, not zero, because that is what the
-		// TypeScript does (attributes.ts:860); with the display label as the
-		// identity a second match cannot occur, so the two agree in practice.
+		// compared against exactly one, not zero: with the display label as the
+		// identity a second match cannot occur, so the two are equivalent in
+		// practice.
 		matches := 0
 		for _, conflict := range plan.Conflicts {
 			if conflict.Key == change.Key {
@@ -384,7 +383,7 @@ func byKey(attributes []*jsonx.Object, key string) *jsonx.Object {
 	return nil
 }
 
-// copyObject takes a shallow copy, matching the TypeScript's object spread.
+// copyObject takes a shallow copy.
 func copyObject(source *jsonx.Object) *jsonx.Object {
 	copied := jsonx.NewObject()
 	for _, key := range source.Keys() {
@@ -588,9 +587,8 @@ func (r *Reconciler) Reconcile(
 
 // confirm asks whether to apply the changes.
 //
-// Implements getConfirmation (attributes.ts:147). --force is checked by the caller
-// as well, matching the TypeScript, which both suppresses the warnings on the
-// way in and short-circuits the question here.
+// --force is checked by the caller as well: it both suppresses the warnings on
+// the way in and short-circuits the question here.
 func (r *Reconciler) confirm() (bool, error) {
 	if r.Force || r.SkipConfirmation {
 		return true, nil

@@ -56,9 +56,8 @@ func TestRuntimeChoiceResolvesPythonMLThroughItsLanguage(t *testing.T) {
 	}
 }
 
-// The TypeScript writes `ignore: runtime.ignore || null`, but an empty array is
-// truthy in JavaScript, so that fallback never fires. A runtime with no ignores
-// is written as `[]`, and a nil slice here would marshal to null instead.
+// A runtime with no ignores is written as `[]`, never null: a nil slice here
+// would marshal to null instead, and a missing list reads as "not pulled".
 func TestIgnoresIsAlwaysAnArrayNeverNil(t *testing.T) {
 	for _, runtime := range []string{"deno", "go", "some-unknown-runtime"} {
 		if ignores := ignoresFor(runtime); ignores == nil {

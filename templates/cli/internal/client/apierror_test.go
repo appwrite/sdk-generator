@@ -57,13 +57,12 @@ func TestOtherFailuresAreNotRewritten(t *testing.T) {
 	}
 }
 
-// The role is matched the way the TypeScript matches it: `/role:\s*guests/i`,
-// case-insensitive and tolerant of the space.
+// The role is matched with `/role:\s*guests/i`, case-insensitive and tolerant
+// of the space.
 //
-// Deliberately no word boundary after `guests`, because the TypeScript has none
-// either and this is a port. A stricter match here would mean the CLI builds
-// disagreed about which failure gets which message, which is a worse outcome
-// than sharing a loose pattern -- there is no role whose name merely begins with
+// Deliberately no word boundary after `guests`: a stricter match would change
+// which failure gets which message, which is a worse outcome than a loose
+// pattern -- there is no role whose name merely begins with
 // `guests` for it to catch.
 func TestGuestRoleMatching(t *testing.T) {
 	for _, message := range []string{

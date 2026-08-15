@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// Preference keys stored in prefs.json. Names match the established CLI exactly:
-// the same file is read and written by both binaries during the migration.
+// Preference keys stored in prefs.json. The names are contractual: the same
+// file is read and written by any installed build.
 const (
 	PreferenceCurrent      = "current"
 	PreferenceEndpoint     = "endpoint"
@@ -76,8 +76,8 @@ func GlobalPath(executableName string) (string, error) {
 }
 
 // LoadGlobal reads the preferences file. A missing or unparseable file yields
-// empty preferences rather than an error, matching the TypeScript `read()`,
-// which swallows failures so a corrupt file never blocks `login`.
+// empty preferences rather than an error, so a corrupt file never blocks
+// `login`.
 func LoadGlobal(path string) *Global {
 	global := &Global{path: path, data: NewObject()}
 
@@ -104,9 +104,8 @@ func (g *Global) Path() string {
 //
 // 0600 on the file and 0700 on the directory, because this holds access and
 // refresh tokens. The directory is tightened explicitly: MkdirAll leaves an
-// existing one alone, and a user upgrading from the established CLI has it at
-// 0755. The file needs no fix-up -- the atomic write renames a fresh 0600 file
-// into place.
+// existing one alone, and an upgrading user may have it at 0755. The file needs
+// no fix-up -- the atomic write renames a fresh 0600 file into place.
 func (g *Global) Write() error {
 	directory := filepath.Dir(g.path)
 	if err := os.MkdirAll(directory, 0o700); err != nil {
@@ -195,10 +194,10 @@ func (g *Global) CurrentValue(key string) string {
 // CurrentBool reads a boolean field off the active session.
 //
 // The value is written by `client --self-signed` as a real JSON boolean, but a
-// prefs.json edited by hand -- or written by the established CLI, which stores
-// whatever the user typed -- can hold the string "true" instead. Both are
-// accepted, because rejecting the string form would silently disable a setting
-// the user believes is on.
+// prefs.json edited by hand, or written by an older build that stored whatever
+// the user typed, can hold the string "true" instead. Both are accepted,
+// because rejecting the string form would silently disable a setting the user
+// believes is on.
 func (g *Global) CurrentBool(key string) bool {
 	current := g.Current()
 	if current == nil {
@@ -264,9 +263,9 @@ func (g *Global) DeleteSession(id string) {
 
 // Cloud region codes and their endpoint hostnames.
 //
-// Hardcoded rather than derived from the spec because the TypeScript hardcodes
-// it too, and this list decides which endpoints count as Cloud. Deriving it
-// would let a spec change silently reclassify a user's endpoint.
+// Hardcoded rather than derived from the spec: this list decides which
+// endpoints count as Cloud, and deriving it would let a spec change silently
+// reclassify a user's endpoint.
 var (
 	cloudRegionCodes = map[string]bool{
 		"fra": true, "nyc": true, "syd": true, "sfo": true, "sgp": true, "tor": true,
@@ -333,8 +332,8 @@ func NormalizeCloudConsoleEndpoint(endpoint string) string {
 }
 
 // IsCloudLoginEndpoint reports whether an endpoint signs in through the browser
-// rather than with an email and a password. localhost is treated as self-hosted:
-// the TypeScript accepts it behind a feature flag this implementation has no registry for.
+// rather than with an email and a password. localhost is treated as
+// self-hosted, since there is no feature-flag registry here to say otherwise.
 func IsCloudLoginEndpoint(endpoint string) bool {
 	parsed, err := url.Parse(endpoint)
 	if err != nil {
@@ -368,7 +367,7 @@ func EndpointsMatch(a, b string) bool {
 }
 
 // LegacyEmail marks a session recovered from the pre-sessions prefs format,
-// where there was no email to record. Ports the literal in generic.ts:migrate.
+// where there was no email to record.
 const LegacyEmail = "legacy"
 
 // MigrateLegacySession lifts a pre-sessions prefs.json -- a single endpoint and

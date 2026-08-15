@@ -19,9 +19,9 @@ import (
 // before `init project|function|site|skill`. Those four create resources
 // remotely or download templates and arrive with the SDK wiring.
 
-// yesNo is the two-option list the TypeScript uses for every boolean, compared
-// case-insensitively against "yes". Kept as a list rather than a confirm so the
-// rendered question matches.
+// yesNo is the two-option list used for every boolean, compared
+// case-insensitively against "yes". A list rather than a confirm, because the
+// rendered question is contractual.
 var yesNo = prompt.Options("No", "Yes")
 
 func newInitCommand() *cobra.Command {
@@ -63,14 +63,14 @@ func newInitContext() (*initContext, error) {
 	return &initContext{local: local, prompter: prompt.New(app.Flags().Force)}, nil
 }
 
-// truthy renders the yes/no list answer the way the TypeScript does.
+// truthy reads the yes/no list answer.
 func truthy(answer string) *bool {
 	value := answer == "Yes"
 
 	return &value
 }
 
-// finish writes the config and prints the two lines the TypeScript prints.
+// finish writes the config and prints the two closing lines.
 func (c *initContext) finish(command *cobra.Command, resource string) error {
 	if err := c.local.Write(); err != nil {
 		return err
@@ -228,8 +228,8 @@ type databaseChoice struct {
 // chooseDatabase asks whether to reuse a configured database or declare one.
 //
 // The "New or Existing" question is only asked when there is something to
-// reuse; with an empty config the TypeScript skips it and takes the New branch,
-// which is what the empty `existing` list reproduces here.
+// reuse; with an empty config it is skipped and the New branch is taken, which
+// is what the empty `existing` list expresses.
 func (c *initContext) chooseDatabase(resource, key string) (databaseChoice, error) {
 	configured, err := c.databases(key)
 	if err != nil {
@@ -364,9 +364,9 @@ func newInitCollectionCommand() *cobra.Command {
 				}
 			}
 
-			// Empty slices rather than nil: the TypeScript writes
-			// `"attributes": []`, and a missing key would read as "not yet
-			// pulled" rather than "declared with none".
+			// Empty slices rather than nil: `"attributes": []` is written, and a
+			// missing key would read as "not yet pulled" rather than "declared
+			// with none".
 			if err := context.local.AddCollection(config.Collection{
 				ID:               appwrite.ResolveID(id),
 				DatabaseID:       database.ID,

@@ -47,10 +47,10 @@ func SyncTablesDBs(
 		return DatabaseSyncResult{}, err
 	}
 
-	// The TypeScript guards each remote row with a type predicate requiring a
-	// string $id, a string name and a BOOLEAN enabled, and silently drops the
-	// rest. Reproduced: a row the guard rejects is invisible to the diff, so it
-	// is neither updated nor deleted.
+	// Each remote row is guarded by a type check requiring a string $id, a
+	// string name and a BOOLEAN enabled, and the rest are silently dropped: a
+	// row the guard rejects is invisible to the diff, so it is neither updated
+	// nor deleted.
 	remoteDatabases := make([]*jsonx.Object, 0, len(remoteRows))
 	for _, row := range remoteRows {
 		if !isTablesDBResource(row) {
@@ -203,7 +203,7 @@ func SyncTablesDBs(
 	return DatabaseSyncResult{Applied: true, ResyncNeeded: resyncNeeded}, nil
 }
 
-// isTablesDBResource ports the type predicate at database-sync.ts:20.
+// isTablesDBResource reports whether a remote row is shaped like a database.
 func isTablesDBResource(row *jsonx.Object) bool {
 	if _, ok := mustString(row, "$id"); !ok {
 		return false

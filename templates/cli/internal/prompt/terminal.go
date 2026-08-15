@@ -96,11 +96,12 @@ func (t *Terminal) run(field huh.Field) error {
 
 // Text implements Prompter.
 //
-// The default is a PLACEHOLDER, not pre-filled text. inquirer shows its default
-// greyed out and replaces it the moment the user types; huh's Value() seeds the
-// editable buffer instead, so typing would append to it -- answering "QA Team"
-// against a default of "My Awesome Team" produced "My Awesome TeamQA Team".
-// Submitting an empty field takes the default, which is what inquirer does.
+// The default is a PLACEHOLDER, not pre-filled text. The contract is that a
+// default is shown greyed out and replaced the moment the user types; huh's
+// Value() seeds the editable buffer instead, so typing would append to it --
+// answering "QA Team" against a default of "My Awesome Team" produced "My
+// Awesome TeamQA Team".
+// Submitting an empty field takes the default.
 func (t *Terminal) Text(question Text) (string, error) {
 	var value string
 
@@ -139,7 +140,7 @@ func (t *Terminal) Text(question Text) (string, error) {
 //
 // huh has no disabled state, so an unselectable option is rendered with its
 // reason and rejected by the validator instead. Dropping them would be wrong:
-// the TypeScript shows an unavailable plan so the user knows it exists.
+// an unavailable plan is shown so the user knows it exists.
 func huhOptions(options []Option) ([]huh.Option[string], map[string]string) {
 	converted := make([]huh.Option[string], 0, len(options))
 	disabled := map[string]string{}

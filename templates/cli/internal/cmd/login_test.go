@@ -9,9 +9,9 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 )
 
-// `login --switch` was reported as "unknown flag". It was not alone: the port
-// implemented only the cloud browser flow, so six of the TypeScript's seven
-// options did not exist (generic.ts:121).
+// `login --switch` was reported as "unknown flag". It was not alone: only the
+// cloud browser flow was implemented, so six of the seven options did not
+// exist.
 func TestLoginOffersEveryOption(t *testing.T) {
 	command := newLoginCommand()
 

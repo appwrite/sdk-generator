@@ -15,8 +15,8 @@ import (
 )
 
 // Every call shells out to the `docker` binary rather than speaking to the
-// daemon socket. That is what the TypeScript does, and it is the right choice
-// here too: it inherits the user's Docker context, credentials and remote-host
+// daemon socket: it inherits the user's Docker context, credentials and
+// remote-host
 // configuration for free, all of which a direct socket client would have to
 // reimplement to work on Docker Desktop, Colima and a remote engine alike.
 

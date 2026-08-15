@@ -5,9 +5,8 @@ import (
 	"testing"
 )
 
-// nodeBaseline is the exact output of the established CLI's drawJSON() for the
-// document below -- captured from `JSON.stringify(value, null, 2)`, which is
-// what parser.ts:772 calls.
+// nodeBaseline is the exact rendering of the document below -- two-space
+// indentation, as `JSON.stringify(value, null, 2)` produces.
 //
 // --json and --raw are scripted against, so this has to match byte for byte.
 // The interesting parts are the ampersand in

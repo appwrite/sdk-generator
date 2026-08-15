@@ -25,8 +25,8 @@ import (
 // @appwrite.io/console or react-native-appwrite, the JavaScript one only ever
 // chooses between node-appwrite and appwrite.
 //
-// Dart has no equivalent: dart.ts declares getPackageName() and nothing calls
-// it, so there is nothing to resolve and nothing was ported.
+// Dart has no equivalent: there is one package name, so there is nothing to
+// resolve.
 var typeLanguages = map[string]func(directory string) typegen.Language{
 	"ts": func(directory string) typegen.Language {
 		return typegen.TypeScript{Dependency: typegen.AppwriteDependency(directory)}
@@ -42,8 +42,8 @@ var typeLanguages = map[string]func(directory string) typegen.Language{
 	"cs":     func(string) typegen.Language { return typegen.CSharp{} },
 }
 
-// typeLanguageChoices is the accepted `-l` values, in the order the TypeScript
-// lists them in its help.
+// typeLanguageChoices is the accepted `-l` values, in the order the help lists
+// them.
 var typeLanguageChoices = []string{"auto", "ts", "js", "php", "kotlin", "swift", "java", "dart", "cs"}
 
 // typeLanguageAliases maps a name a user is likely to reach for to the value
@@ -131,8 +131,8 @@ func resolveTypeLanguage(command *cobra.Command, requested string) (string, type
 	if requested == "auto" {
 		detected, err := typegen.DetectLanguage(working)
 		if err != nil {
-			// typegen's message is the TypeScript's verbatim and stays that way;
-			// the list of what to pass is added here, where it is known.
+			// typegen's message is printed verbatim; the list of what to pass is
+			// added here, where it is known.
 			return "", nil, fmt.Errorf("%w. The supported languages are %s",
 				err, typeLanguageNames())
 		}
@@ -150,8 +150,7 @@ func resolveTypeLanguage(command *cobra.Command, requested string) (string, type
 
 // invocation reconstructs the arguments the generated header records.
 //
-// The TypeScript interpolates `process.argv.slice(2).join(" ")`, which is
-// everything after the executable name. os.Args[1:] is the same list.
+// Everything after the executable name, which is os.Args[1:].
 func invocation() string {
 	return strings.Join(os.Args[1:], " ")
 }
@@ -159,9 +158,9 @@ func invocation() string {
 // collectionsForTypes reads the project config and normalises it for typegen.
 //
 // Tables are preferred over collections, and a table's `columns` become
-// `attributes` -- the TypeScript renames the key so one set of templates
-// serves both. relatedTable is left where it is: typegen.RelatedCollectionID
-// already checks both fields, so the second half of that rename is unnecessary.
+// `attributes`, so one set of emitters serves both. relatedTable is left where
+// it is: typegen.RelatedCollectionID already checks both fields, so renaming it
+// too is unnecessary.
 func collectionsForTypes(path string) ([]typegen.Collection, string, error) {
 	project, err := generator.LoadConfig(path)
 	if err != nil {

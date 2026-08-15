@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-// The asset name must match what the established CLI publishes, or a user on a
-// TypeScript install updates into a 404. Ports getStandaloneBinaryArtifactName.
+// The asset name must match what the release publishes, or an installed build
+// updates into a 404.
 func TestReleaseAssetName(t *testing.T) {
 	name, err := ReleaseAssetName()
 	if err != nil {
@@ -18,8 +18,8 @@ func TestReleaseAssetName(t *testing.T) {
 		t.Errorf("asset %q does not start with the package name", name)
 	}
 
-	// The TypeScript spells amd64 as x64 and windows as win; matching matters
-	// more than being idiomatic, because the artifacts already exist.
+	// The assets spell amd64 as x64 and windows as win; matching matters more
+	// than being idiomatic, because the artifacts already exist.
 	switch runtime.GOARCH {
 	case "amd64":
 		if !strings.Contains(name, "-x64") {

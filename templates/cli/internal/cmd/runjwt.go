@@ -20,8 +20,7 @@ import (
 // them the function starts and every API call it makes is unauthenticated.
 
 const (
-	// credentialDuration is the hour the TypeScript asks for on both
-	// credentials.
+	// credentialDuration is the hour asked for on both credentials.
 	credentialDuration = 60 * 60
 
 	// credentialWarning and credentialExpiry are when the run warns that the
@@ -42,9 +41,9 @@ type runCredentials struct {
 
 // mintRunCredentials creates the credentials for one local run.
 //
-// A failure is the CALLER's to report and not fatal:
-// the TypeScript warns and runs the function anyway, because a function that
-// does not touch the API runs perfectly well without either credential.
+// A failure is the CALLER's to report and not fatal: it warns and runs the
+// function anyway, because a function that does not touch the API runs
+// perfectly well without either credential.
 func mintRunCredentials(
 	api *client.Client,
 	userID string,
@@ -133,9 +132,8 @@ func warnNoVariables(out io.Writer, err error) {
 
 // warnOnCredentialExpiry announces the end of the credentials' hour.
 //
-// The timers are goroutines
-// on a stop channel rather than a stored handle: a run that ends first simply
-// closes the channel, where the TypeScript clears the timeout by id.
+// The timers are goroutines on a stop channel rather than stored handles: a run
+// that ends first simply closes the channel.
 func warnOnCredentialExpiry(out io.Writer) (stop func()) {
 	done := make(chan struct{})
 

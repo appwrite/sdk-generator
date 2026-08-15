@@ -22,8 +22,7 @@ func TestUnusableSessionErrorCarriesTheReason(t *testing.T) {
 	}
 }
 
-// The generic wording is kept for the one case that has no error behind it,
-// which is what the TypeScript keeps it for.
+// The generic wording is kept for the one case that has no error behind it.
 func TestUnusableSessionErrorWithoutAReason(t *testing.T) {
 	message := unusableSessionError(nil).Error()
 

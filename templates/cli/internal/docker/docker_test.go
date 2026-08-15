@@ -298,8 +298,8 @@ func TestQueueLockClearsPendingFiles(t *testing.T) {
 }
 
 func TestQuoteShellArgumentEscapesQuotes(t *testing.T) {
-	// The TypeScript concatenates this into `helpers/build.sh "<commands>"`,
-	// so an unescaped quote ends the argument and the rest becomes shell.
+	// This is concatenated into `helpers/build.sh "<commands>"`, so an
+	// unescaped quote ends the argument and the rest becomes shell.
 	if got := quoteShellArgument(`npm run "build"`); got != `npm run \"build\"` {
 		t.Errorf("got %q", got)
 	}

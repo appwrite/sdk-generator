@@ -6,8 +6,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// A script written against the established CLI types `--no-code`. Answering it
-// "unknown flag" fails a pipeline over spelling, so both forms are accepted.
+// An existing script types `--no-code`. Answering it "unknown flag" fails a
+// pipeline over spelling, so both forms are accepted.
 func TestNegatedFlagTurnsItsPositiveOff(t *testing.T) {
 	for _, spelling := range []string{"--no-code", "--code=false"} {
 		code := true
@@ -52,9 +52,8 @@ func TestNegatedFlagSetToFalseLeavesItOn(t *testing.T) {
 	}
 }
 
-// Both spellings are documented, because the TypeScript documents both. Hiding
-// the negation meant someone reading Go's help could not discover the spelling
-// their existing scripts already use.
+// Both spellings are documented. Hiding the negation meant someone reading
+// --help could not discover the spelling their existing scripts already use.
 func TestBothFlagSpellingsAreDocumented(t *testing.T) {
 	code := true
 	command := negatableCommand(&code)
@@ -101,7 +100,7 @@ func TestBooleanFlagTakesASpaceSeparatedValue(t *testing.T) {
 }
 
 // `push site --activate true` is registered as a string optional flag because
-// it accepts commander's yes/no forms. It still needs the same rewrite, or true
+// it accepts the yes/no forms. It still needs the same rewrite, or true
 // is rejected as a stray positional argument.
 func TestStringOptionalBooleanFlagTakesASpaceSeparatedValue(t *testing.T) {
 	_, activate, root := booleanCommand()
@@ -116,7 +115,7 @@ func TestStringOptionalBooleanFlagTakesASpaceSeparatedValue(t *testing.T) {
 }
 
 // The bare spelling still means true -- that is what NoOptDefVal is for, and
-// commander's `--flag [value]` behaves the same way.
+// An optional-value flag behaves the same way.
 func TestBareBooleanFlagIsStillTrue(t *testing.T) {
 	verified, _, root := booleanCommand()
 

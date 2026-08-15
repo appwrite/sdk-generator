@@ -48,9 +48,9 @@ func TestNonInteractiveErrorWithoutAFlag(t *testing.T) {
 	}
 }
 
-// TestForcedAnswersConfirmationsWithoutAsking pins --force. The TypeScript
-// repeats `cliConfig.force === true ? true : <prompt>` at each call site;
-// wrapping it once means a new confirmation cannot forget to honour it.
+// TestForcedAnswersConfirmationsWithoutAsking pins --force. Wrapping the check
+// once, rather than repeating it at each call site, means a new confirmation
+// cannot forget to honour it.
 func TestForcedAnswersConfirmationsWithoutAsking(t *testing.T) {
 	scripted := &Scripted{Confirms: map[string]bool{"Overwrite?": false}}
 	forced := Forced{Prompter: scripted}
@@ -140,7 +140,7 @@ func TestScriptedRunsValidators(t *testing.T) {
 	}
 }
 
-func TestRequiredMatchesTheTypeScriptWording(t *testing.T) {
+func TestRequiredMatchesTheExpectedWording(t *testing.T) {
 	// The messages are what the user reads, and the two forms differ.
 	err := Required("project name")("")
 	if err == nil || err.Error() != "project name is required" {
@@ -175,10 +175,9 @@ func TestNonNegativeInteger(t *testing.T) {
 	}
 }
 
-// TestScriptedTreatsDefaultAsAPlaceholder mirrors the Terminal contract that a
-// live comparison against the TypeScript exposed: inquirer replaces its default
-// when the user types, it does not prepend it. huh's Value() seeds the editable
-// buffer, so the first port produced "My Awesome TeamQA Team".
+// TestScriptedTreatsDefaultAsAPlaceholder pins a contract a live run exposed: a
+// default is REPLACED when the user types, not prepended. huh's Value() seeds
+// the editable buffer instead, which produced "My Awesome TeamQA Team".
 func TestScriptedTreatsDefaultAsAPlaceholder(t *testing.T) {
 	scripted := &Scripted{Texts: map[string]string{"Name?": "QA Team"}}
 

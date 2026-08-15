@@ -168,8 +168,8 @@ func ParseFilter(expression string) (string, error) {
 		}
 
 		// An array value becomes the values list itself rather than its single
-		// element. The TypeScript does `Array.isArray(values) ? values : [values]`,
-		// so `tags=["a","b"]` must serialise as ["a","b"], not [["a","b"]].
+		// element, so `tags=["a","b"]` serialises as ["a","b"], not
+		// [["a","b"]].
 		values, isList := value.([]any)
 		if !isList {
 			values = []any{value}
@@ -260,10 +260,9 @@ func Build(options Options) ([]string, error) {
 
 // ParseFilters turns raw --filter expressions into Appwrite query strings.
 //
-// The TypeScript parses these in commander's custom flag parser, so by the time
-// buildQueries sees them they are already serialised. Go's flag layer has no
-// equivalent hook, so the conversion happens here instead -- and it must happen
-// somewhere, or `--filter name=x` reaches the API as the literal string
+// cobra's flag layer has no per-flag parse hook, so the conversion happens here
+// rather than as the flag is read -- and it must happen somewhere, or
+// `--filter name=x` reaches the API as the literal string
 // "name=x" rather than a query.
 func ParseFilters(expressions []string) ([]string, error) {
 	if len(expressions) == 0 {

@@ -12,10 +12,10 @@ import (
 // are still public surface, so they are pinned here.
 //
 // The expectations below were read off `appwrite types --help` and
-// `appwrite generate --help` from the built the established CLI, not from its
-// source. Recapture with:
+// `appwrite generate --help` from a built binary, not from source. Recapture
+// with:
 //
-//	php example.php cli && cd examples/cli && bun dist/cli.cjs types --help
+//	php example.php cli && cd examples/cli && go run . types --help
 
 // flagSurface is the sorted "--name/-shorthand" list a command exposes,
 // excluding help and anything inherited.
@@ -73,9 +73,8 @@ func TestGenerateCommandFlagSurface(t *testing.T) {
 	})
 }
 
-// TestTypesRequiresAnOutputDirectory pins the positional argument: the
-// TypeScript declares it with Argument("<output-directory>"), which commander
-// treats as required.
+// TestTypesRequiresAnOutputDirectory pins the positional argument:
+// <output-directory> is required, not optional.
 func TestTypesRequiresAnOutputDirectory(t *testing.T) {
 	root := NewRootCommand()
 	command, _, err := root.Find([]string{"types"})

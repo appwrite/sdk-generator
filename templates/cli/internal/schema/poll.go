@@ -148,8 +148,7 @@ func (p *Poller) expect(container Container, keys []string, isIndex bool) (bool,
 
 // WaitForDeletion waits until none of the keys are listed any more.
 //
-// Implements waitForAttributeDeletion and waitForIndexDeletion (pools.ts:98 and
-// :159), which differ only in the endpoint they poll.
+// Attributes and indexes differ only in the endpoint they poll.
 func (p *Poller) WaitForDeletion(container Container, keys []string, isIndex bool) (bool, error) {
 	noun, wrapper := "attributes", "attributes"
 	if isIndex {

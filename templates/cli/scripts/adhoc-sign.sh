@@ -8,9 +8,9 @@
 # easy to miss because arm64 is what you build on. Signing both keeps the rule
 # rather than an architecture exception a toolchain change could invalidate.
 #
-# Ad-hoc, the same kind the established CLI ships: it satisfies the loader and
-# install.sh, and is neither Developer ID signing nor notarisation. Linux runners
-# have no codesign, hence the ldid fallback.
+# Ad-hoc: it satisfies the loader and install.sh, and is neither Developer ID
+# signing nor notarisation. Linux runners have no codesign, hence the ldid
+# fallback.
 set -eu
 
 binary="$1"

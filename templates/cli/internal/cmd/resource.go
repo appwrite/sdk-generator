@@ -23,8 +23,8 @@ type resourceIdentity struct {
 func (r resourceIdentity) itemPath(id string) string { return r.Path + "/" + id }
 
 // syncHint is the line shown when a push finds nothing configured. Webhooks
-// word it differently because `init webhook` does not exist; the wording is
-// transcribed from the TypeScript, "existing one" included.
+// word it differently because `init webhook` does not exist. The wording is
+// pinned, "existing one" included.
 func (r resourceIdentity) syncHint() string {
 	return fmt.Sprintf(
 		"Use '%s pull %s' to synchronize existing one, "+

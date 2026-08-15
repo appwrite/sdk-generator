@@ -27,8 +27,7 @@ import (
 
 const columnGap = "  "
 
-// emDash is the TypeScript's placeholder for a value that is missing rather
-// than empty. Kept as the same character so the CLI builds read alike.
+// emDash is the placeholder for a value that is missing rather than empty.
 const emDash = "—"
 
 // structuredRow is one row's worth of a response section.
@@ -145,7 +144,8 @@ func holdsKind(row structuredRow, key string, kind valueKind) bool {
 	return false
 }
 
-// isPresent ports the TypeScript helper: null and whitespace do not count.
+// isPresent reports whether a value is worth rendering: null and whitespace do
+// not count.
 func isPresent(value any) bool {
 	if value == nil {
 		return false
@@ -207,9 +207,9 @@ func compactDate(row structuredRow, key string) string {
 
 var trailingZero = regexp.MustCompile(`\.0$`)
 
-// compactBytes ports compactBytes. Binary units, unlike the decimal ones
+// compactBytes renders a byte count in binary units, unlike the decimal ones
 // formatSize uses for plan quotas -- a stored file is measured differently
-// from a purchased allowance, and the TypeScript keeps them apart.
+// from a purchased allowance, and the two must stay apart.
 func compactBytes(row structuredRow, key string) string {
 	bytes, ok := numberAt(row, key)
 	if !ok || bytes < 0 {
@@ -233,9 +233,9 @@ func compactBytes(row structuredRow, key string) string {
 		" " + units[index]
 }
 
-// compactDuration ports compactDuration, which is NOT HumanizeSeconds: it
-// always shows two units and pads with zeros, where HumanizeSeconds drops
-// empty ones. Both exist in the TypeScript; do not merge them.
+// compactDuration is NOT HumanizeSeconds: it always shows two units and pads
+// with zeros, where HumanizeSeconds drops empty ones. Both are used; do not
+// merge them.
 func compactDuration(row structuredRow, key string) string {
 	duration, ok := numberAt(row, key)
 	if !ok || duration < 0 {
@@ -652,8 +652,8 @@ func renderToggleCollection(rows []structuredRow, indent string) (string, bool) 
 		}
 	}
 
-	// Matches the TypeScript's floor of 40 columns and its assumed 100 when
-	// the terminal width is unknown, which is what a piped run gets.
+	// A floor of 40 columns, and an assumed 100 when the terminal width is
+	// unknown, which is what a piped run gets.
 	available := terminalWidth() - lipgloss.Width(indent) - headingWidth - len(columnGap)
 	if available < 40 {
 		available = 40
@@ -722,10 +722,9 @@ func toggleLabel(row structuredRow) string {
 	return emDash
 }
 
-// terminalWidth reports the usable width, falling back to the 100 the
-// TypeScript assumes when process.stdout.columns is undefined -- which is what
-// a piped or redirected run gets, and what makes the output reproducible in
-// tests.
+// terminalWidth reports the usable width, falling back to 100 when the width is
+// unknown -- which is what a piped or redirected run gets, and what makes the
+// output reproducible in tests.
 func terminalWidth() int {
 	width, _, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil || width <= 0 {

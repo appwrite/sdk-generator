@@ -9,18 +9,18 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// Commander declares flags like `--no-code` and `--no-logs`: booleans that
-// default ON and are turned off by naming them. pflag has no negation, so this
-// port spells the positive flag and defaults it to true -- `--code=false`.
+// `--no-code` and `--no-logs` are booleans that default ON and are turned off
+// by naming them. pflag has no negation, so the positive flag is declared and
+// defaulted to true -- `--code=false`.
 //
-// That is a reasonable Go spelling and a poor migration. A script written
-// against the established CLI types `--no-code`, and answering it "unknown flag"
-// turns a working pipeline into a failing one over spelling. BOTH ARE
+// That is a reasonable Go spelling and a poor migration. An existing script
+// types `--no-code`, and answering it "unknown flag" turns a working pipeline
+// into a failing one over spelling. BOTH ARE
 // ACCEPTED. The negative form is hidden so `--help` documents one flag rather
 // than two ways to say the same thing.
 
 // Optional booleans carry NoOptDefVal so that a bare `--enabled` means true,
-// the way commander's `--enabled [value]` does. The cost is that pflag then
+// the way an optional-value flag does. The cost is that pflag then
 // refuses to consume a space-separated value: `--enabled false` sets the flag
 // TRUE and drops `false` as a stray positional argument, so the request says
 // the opposite of what was typed. A live run of
@@ -93,7 +93,7 @@ func optionalBooleanFlag(command *cobra.Command, token string) *pflag.Flag {
 }
 
 // RewriteBooleanValues joins `--flag value` into `--flag=value` for boolean
-// flags, so the space-separated spelling means what the established CLI means.
+// flags, so the space-separated spelling keeps working.
 //
 // Runs before cobra parses. Find matches on command names only, ignoring
 // flags, so the target command -- and therefore which of its flags are boolean
@@ -152,15 +152,14 @@ func negatableBool(flags *pflag.FlagSet, target *bool, name, usage string) {
 
 	flags.Bool("no-"+name, false, negativeUsage(usage))
 	negative := flags.Lookup("no-" + name)
-	// Bare `--no-code`, with no value, is how commander spells it.
+	// Bare `--no-code`, with no value, is the documented spelling.
 	negative.NoOptDefVal = "true"
 }
 
-// negativeUsage describes the `--no-x` form the way commander describes it.
+// negativeUsage describes the `--no-x` form.
 //
-// Documented rather than hidden: the TypeScript lists these in --help, so
-// hiding them meant a user reading Go's help could not discover the spelling
-// their existing scripts already use.
+// Documented rather than hidden: hiding them means a user reading --help cannot
+// discover the spelling their existing scripts already use.
 func negativeUsage(usage string) string {
 	return "Don't " + strings.ToLower(usage[:1]) + strings.TrimSuffix(usage[1:], ".")
 }

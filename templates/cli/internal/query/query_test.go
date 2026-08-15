@@ -2,9 +2,9 @@ package query
 
 import "testing"
 
-// These baselines were captured from established CLI behavior rather than
-// written from expectation. The strings go on the wire, so they are a contract.
-func TestParseFilterMatchesTypeScript(t *testing.T) {
+// These baselines were captured from real runs rather than written from
+// expectation. The strings go on the wire, so they are a contract.
+func TestParseFilterMatchesTheBaseline(t *testing.T) {
 	cases := []struct{ expression, want string }{
 		{"name=hello", `{"method":"equal","attribute":"name","values":["hello"]}`},
 		{"age>=30", `{"method":"greaterThanEqual","attribute":"age","values":[30]}`},

@@ -25,15 +25,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Two divergences from the established CLI: resources are pushed one at a time
-// rather than concurrently, which keeps the request sequence deterministic (the
-// settings writes have a stronger reason -- see applyEnabled), and build logs
-// come from the deployment poll rather than a realtime WebSocket, so a line
-// appears within one pollDebounce rather than the moment it is written.
+// Resources are pushed one at a time rather than concurrently, which keeps the
+// request sequence deterministic (the settings writes have a stronger reason --
+// see applyEnabled). Build logs come from the deployment poll rather than a
+// realtime WebSocket, so a line appears within one pollDebounce rather than the
+// moment it is written.
 
 const (
-	// pollDebounce is POLL_DEBOUNCE (push.ts:117), the gap between deployment
-	// status reads.
+	// pollDebounce is the gap between deployment status reads.
 	pollDebounce = 2 * time.Second
 
 	// deploymentTimeout is DEPLOYMENT_TIMEOUT_MS. It measures time without
@@ -138,9 +137,9 @@ func runPushSettings(command *cobra.Command) error {
 		remote.GetObject("auth"), local.GetObject("auth"), "security", "Auth security")...)
 
 	if len(changes) > 0 {
-		// Reuses the resource change table. Its headers read `id` and `key`
-		// where the TypeScript's read `group` and `setting`; the values are the
-		// same and human output is not contractual.
+		// Reuses the resource change table: its `id` and `key` headers name the
+		// same values a settings-specific table would, and human output is not
+		// contractual.
 		printChanges(command, changes)
 
 		approved, err := context.prompter.Confirm(prompt.Question{
@@ -244,9 +243,9 @@ func timed(out io.Writer, count int, what string, run func() error) error {
 
 // applyEnabled writes an `{id: enabled}` object, one PATCH per entry.
 //
-// Sequential, unlike the TypeScript's Promise.all: these routes all
-// read-modify-write a nested field of the same `projects` row, so concurrent
-// writes lose one of the two changes. The row lock serialises them server-side
+// Sequential rather than concurrent: these routes all read-modify-write a
+// nested field of the same `projects` row, so concurrent writes lose one of the
+// two changes. The row lock serialises them server-side
 // anyway. A bulk settings endpoint would be the real fix.
 func (c *pushContext) applyEnabled(base string, states *jsonx.Object) error {
 	for _, key := range states.Keys() {
@@ -269,8 +268,7 @@ func (c *pushContext) applyEnabled(base string, states *jsonx.Object) error {
 // absent means "no opinion", not "reset it".
 func (c *pushContext) applySecurity(security *jsonx.Object) error {
 	// One at a time, for the reason given on applyEnabled: these write the same
-	// project row. The TypeScript collects them into securityUpdates and awaits
-	// them together (push.ts:1355), which has the same lost-update window.
+	// project row, so issuing them together opens a lost-update window.
 	for _, policy := range settingsPolicies {
 		value, ok := security.Get(policy.Key)
 		if !ok {
@@ -279,8 +277,7 @@ func (c *pushContext) applySecurity(security *jsonx.Object) error {
 
 		body := jsonx.NewObject()
 		if policy.Field == "total" {
-			// nullablePolicyTotal (push.ts:754): zero and null both mean "no
-			// limit", and the API takes null.
+			// Zero and null both mean "no limit", and the API takes null.
 			body.Set(policy.Field, nullablePolicyTotal(security, policy.Key))
 		} else {
 			body.Set(policy.Field, value)
@@ -465,12 +462,12 @@ type deployable struct {
 	// MismatchKey is the field that cannot be changed after creation. A remote
 	// that disagrees is reported rather than overwritten.
 	MismatchKey string
-	// WriteKeys are the fields create and update send, in the order the
-	// TypeScript builds them. Only the ones the config actually has are sent;
-	// the TypeScript passes the rest as undefined, which JSON.stringify drops.
+	// WriteKeys are the fields create and update send, in the order they are
+	// built. Only the ones the config actually has are sent -- an absent key is
+	// omitted from the body rather than sent as null.
 	WriteKeys []string
 	// ApproveKeys is the config schema, which is what the change table
-	// compares. Ports KeysFunction / KeysSite (config.ts:69).
+	// compares.
 	ApproveKeys []string
 	// DeploymentKeys are the config fields sent alongside the archive.
 	DeploymentKeys []string
@@ -587,11 +584,11 @@ func newPushDeployableCommand(resource deployable) *cobra.Command {
 	flags := command.Flags()
 	flags.StringVarP(&options.ResourceID, resource.IDFlag, "f", "",
 		"ID of "+resource.Singular+" to run")
-	// `-f` is the global --force shorthand, and the TypeScript rebinds it to
-	// --function-id here; commander resolves that in favour of the local
-	// option, cobra panics on the duplicate shorthand. Declaring `force`
-	// locally stops cobra merging the persistent flag at all, so the shorthand
-	// belongs to this command and --force still works spelled out.
+	// `-f` is the global --force shorthand, and it is rebound to --function-id
+	// here. cobra panics on the duplicate shorthand rather than resolving it in
+	// favour of the local option, so it cannot simply be redeclared. Declaring
+	// `force` locally stops cobra merging the persistent flag at all, so the
+	// shorthand belongs to this command and --force still works spelled out.
 	flags.Bool("force", false, "Skip confirmation prompts.")
 	flags.BoolVarP(&options.Async, "async", "A", false,
 		"Don't wait for "+resource.Label+" deployments status")
@@ -626,8 +623,8 @@ func runPushDeployable(
 	}
 	if len(entries) == 0 {
 		output.Log(out, "No %s found.", resource.Label)
-		// Log, not Hint, unlike its three siblings. The TypeScript prints this
-		// one as an ordinary line and the CLIs are compared on their output.
+		// Log, not Hint, unlike its three siblings: this one is an ordinary
+		// line, and the output is scripted against.
 		output.Log(out, "%s", resource.syncHint())
 
 		return nil
@@ -681,8 +678,7 @@ func runPushDeployable(
 
 	activate := true
 	if pushCode && !options.ActivateSet {
-		// --force answers this, where the TypeScript asks it even under
-		// --force. A deliberate divergence: --force in this CLI means "do not
+		// --force answers this rather than asking anyway: --force means "do not
 		// ask", and a confirmation that survives it hangs a CI run.
 		confirmed, err := context.prompter.Confirm(prompt.Question{
 			Message: "Do you want to activate the deployment after it is ready?",
@@ -708,8 +704,8 @@ func runPushDeployable(
 			Code:          pushCode,
 			Activate:      activate,
 			WithVariables: options.WithVariables,
-			// `logs && !asyncDeploy` (push.ts:1751): an async push returns
-			// before the build starts, so there is no log to stream.
+			// An async push returns before the build starts, so there is no
+			// log to stream.
 			Logs: options.Logs && !options.Async,
 			// The label is only worth the width when two logs could interleave.
 			LabelLogs: len(entries) > 1,
@@ -864,9 +860,9 @@ func (c *pushContext) completeDeployables(
 			continue
 		}
 
-		// Which one, and what is missing. The TypeScript logs this before it
-		// prompts (push.ts:3656); without it the question arrives as a bare
-		// "Enter the entrypoint" with no clue which of ten functions it is for.
+		// Which one, and what is missing, logged before the prompt: without it
+		// the question arrives as a bare "Enter the entrypoint" with no clue
+		// which of ten functions it is for.
 		output.Log(out, "%s %s is missing %s.",
 			capitalizeFirst(resource.Singular), name, label)
 
@@ -954,8 +950,7 @@ func (c *pushContext) fetchResource(resource deployable, id string) (*jsonx.Obje
 // pushDeployable pushes one resource and, unless asked not to, waits for it.
 //
 // Errors are reported and recorded rather than returned: one broken function
-// must not abandon the others, which is what the TypeScript's per-resource
-// try/catch achieves.
+// must not abandon the others.
 func (c *pushContext) pushDeployable(
 	command *cobra.Command,
 	resource deployable,
@@ -1004,9 +999,8 @@ func (c *pushContext) pushDeployable(
 		return
 	}
 
-	// Ensured on every push, not only on create: the TypeScript calls it in
-	// both branches, and a function whose rule was deleted in the console gets
-	// it back.
+	// Ensured on every push, not only on create, so a function whose rule was
+	// deleted in the console gets it back.
 	if err := c.ensureDefaultRule(command, resource, id); err != nil {
 		output.Failure(out, "Failed to push %s %s: %s", resource.Singular, name, err)
 
@@ -1045,9 +1039,9 @@ func (c *pushContext) pushDeployable(
 
 // writeBody builds a create or update body from the config entry.
 //
-// Only keys the config actually carries are sent. The TypeScript passes the
-// rest as undefined and JSON.stringify drops them, so sending an explicit null
-// would be a behaviour change -- it would clear the field on the remote.
+// Only keys the config actually carries are sent. An absent key is omitted
+// from the body rather than sent as an explicit null, which would clear the
+// field on the remote.
 func writeBody(
 	entry *jsonx.Object,
 	keys []string,
@@ -1114,8 +1108,8 @@ func (c *pushContext) replaceVariables(resource deployable, entry *jsonx.Object)
 	var values map[string]string
 
 	path := c.local.ResolveResourcePath(resource.ConfigKey, entry.GetString("path"))
-	// No .env is not an error: the TypeScript swallows the read and pushes an
-	// empty set, which is how variables are cleared.
+	// No .env is not an error: the read is swallowed and an empty set is
+	// pushed, which is how variables are cleared.
 	if contents, err := os.ReadFile(filepath.Join(path, ".env")); err == nil {
 		names, values = dotenv.ParseOrdered(string(contents))
 
@@ -1304,8 +1298,8 @@ func (c *pushContext) awaitDeployment(
 	for {
 		if tracker.stalled() {
 			logPrinter.Complete()
-			// getDeploymentTimeoutErrorMessage (push.ts:156). The summary
-			// repeats it with the console link; this is the line in place.
+			// The summary repeats this with the console link; this is the
+			// line in place.
 			spinner.Fail("Error", fmt.Sprintf(
 				"Deployment got stuck for more than %d minutes", deploymentTimeoutMinutes))
 			summary.Failed = append(summary.Failed, failedDeployment{
@@ -1449,9 +1443,9 @@ func hasScreenshots(deployment *jsonx.Object) bool {
 
 // progressText renders the status line for a deployment still building.
 //
-// Implements getDeploymentProgressText (push.ts:141), joke included: a deployment
-// that has been `waiting` for half a minute is queued behind something, and
-// saying so is more honest than repeating the status.
+// Joke included: a deployment that has been `waiting` for half a minute is
+// queued behind something, and saying so is more honest than repeating the
+// status.
 func progressText(status string, waitingSince time.Time) string {
 	if status == "waiting" && !waitingSince.IsZero() &&
 		time.Since(waitingSince) >= waitingJokeThreshold {

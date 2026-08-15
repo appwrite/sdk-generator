@@ -82,9 +82,9 @@ func TestBuildLogStaysQuietWithoutProgress(t *testing.T) {
 // bookmark rewinds with it, so text between the new end and the old one prints
 // a second time as the log regrows.
 //
-// That is the TypeScript's behaviour (deployment.ts:212) and it is pinned here
-// rather than improved on: repeating a line is cheap, and the alternative --
-// keeping the bookmark ahead of the log -- silently swallows a genuine rebuild.
+// That is pinned here rather than improved on: repeating a line is cheap, and
+// the alternative -- keeping the bookmark ahead of the log -- silently swallows
+// a genuine rebuild.
 func TestBuildLogRewindsWhenTheLogShrinks(t *testing.T) {
 	buffer := &bytes.Buffer{}
 	printer := NewBuildLogPrinter(lines(buffer), "function:api", false)

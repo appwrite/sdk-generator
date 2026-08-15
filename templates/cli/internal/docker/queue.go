@@ -15,7 +15,7 @@ import (
 //   - the file set is cleared by Lock, not by the reload -- so a change that
 //     lands during a reload survives into the next one
 
-// debounceInterval matches the TypeScript's 300ms.
+// debounceInterval is how long a burst of file changes is collected for.
 const debounceInterval = 300 * time.Millisecond
 
 // Queue collects changed files and emits debounced reload events.

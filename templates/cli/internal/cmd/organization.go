@@ -20,8 +20,8 @@ import (
 // So when the config has no organization, it is looked up from the project.
 
 // derivedOrganizationWarned keeps the "resolved from project" notice to once
-// per run, matching the TypeScript. A `push all` resolves it for several
-// resources and repeating the same advice each time is noise.
+// per run: a `push all` resolves it for several resources, and repeating the
+// same advice each time is noise.
 var derivedOrganizationWarned sync.Once
 
 // resolveOrganizationID returns configured when it is set, and otherwise asks

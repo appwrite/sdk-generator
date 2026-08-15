@@ -114,8 +114,8 @@ func formatSectionValue(field sectionField, value any) string {
 	return formatKeyValue(field.key, value)
 }
 
-// sizeUnits is the ladder a size climbs, in the TypeScript's order and its
-// factor of 1000 rather than 1024 -- these are the units the console shows.
+// sizeUnits is the ladder a size climbs, with a factor of 1000 rather than
+// 1024 -- these are the units the console shows.
 var sizeUnits = []string{"MB", "GB", "TB", "PB"}
 
 // FormatSize renders a size in the unit the API reports, adding a larger unit
@@ -150,7 +150,7 @@ func FormatSize(amount float64, unit string) string {
 }
 
 // FormatCount adds a compact form to a number large enough to be miscounted at
-// a glance. Ports formatCount (response-config.ts:144).
+// a glance.
 func FormatCount(amount float64) string {
 	if math.Abs(amount) < 10000 {
 		return trimTrailingZeros(amount)

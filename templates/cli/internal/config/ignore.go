@@ -8,11 +8,10 @@ import (
 
 // IgnoreRules is a resource's `ignore` field.
 //
-// IT IS BOTH SHAPES. `init function` writes a JSON array -- in this CLI and in
-// the TypeScript one -- while the config schema documents a single
-// newline-separated string, and a hand-written config may use either. The
-// TypeScript never notices because `ignore().add()` accepts a string or an
-// array, so both have always worked there.
+// IT IS BOTH SHAPES. `init function` writes a JSON array while the config
+// schema documents a single newline-separated string, and a hand-written config
+// may use either. Both have always worked, because the matcher accepts a string
+// or an array.
 //
 // A plain `string` field here does not just mis-read an array, it fails the
 // whole decode: `json: cannot unmarshal array into Go struct field

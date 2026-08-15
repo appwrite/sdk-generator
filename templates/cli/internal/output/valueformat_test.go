@@ -10,11 +10,10 @@ import (
 	"time"
 )
 
-// Pinned to output captured from the TypeScript, not to expectations written
-// here. Recapture testdata/valueformat.json from the TypeScript rather than
-// hand-editing it; the capture must run with FORCE_COLOR=0, and with Date.now
-// frozen to the file's own frozenNow, or the relative timestamps will not
-// replay.
+// Pinned to captured output, not to expectations written here. Recapture
+// testdata/valueformat.json rather than hand-editing it; the capture must run
+// with FORCE_COLOR=0, and with the clock frozen to the file's own frozenNow, or
+// the relative timestamps will not replay.
 type valueFormatBaseline struct {
 	FrozenNow       string             `json:"frozenNow"`
 	HumanizeSeconds map[string]string  `json:"humanizeSeconds"`
@@ -52,7 +51,7 @@ func freezeClock(t *testing.T, at string) {
 	t.Cleanup(func() { now = previous })
 }
 
-func TestHumanizeSecondsMatchesTheTypeScript(t *testing.T) {
+func TestHumanizeSecondsMatchesTheBaseline(t *testing.T) {
 	baseline := loadValueFormatBaseline(t)
 
 	if len(baseline.HumanizeSeconds) == 0 {
@@ -68,7 +67,7 @@ func TestHumanizeSecondsMatchesTheTypeScript(t *testing.T) {
 	}
 }
 
-func TestFormatTimestampMatchesTheTypeScript(t *testing.T) {
+func TestFormatTimestampMatchesTheBaseline(t *testing.T) {
 	baseline := loadValueFormatBaseline(t)
 	freezeClock(t, baseline.FrozenNow)
 
@@ -79,8 +78,7 @@ func TestFormatTimestampMatchesTheTypeScript(t *testing.T) {
 	for input, want := range baseline.FormatTimestamp {
 		got, ok := FormatTimestamp(input)
 
-		// A null in the baseline is the TypeScript returning null, which is
-		// the signal to print the value unchanged.
+		// A null in the baseline is the signal to print the value unchanged.
 		if want == nil {
 			if ok {
 				t.Errorf("FormatTimestamp(%q) = %q, want no match", input, got)

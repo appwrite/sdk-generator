@@ -19,8 +19,8 @@ import (
 // driven by one function.
 //
 // The remote is fetched twice per resource, once by approveChanges and once by
-// the push. That matches the TypeScript, and the CLI builds are compared
-// request-for-request, so collapsing them would read as a diff.
+// the push. The request sequence is compared request-for-request in tests, so
+// collapsing them would read as a diff.
 
 // simpleResource describes one flat push.
 type simpleResource struct {
@@ -38,8 +38,8 @@ type simpleResource struct {
 	// API exposes as a PATCH.
 	UpdateMethod string
 	// CreateFields and UpdateFields name the request body, in the order the
-	// generated SDK builds it -- the spec's parameter order, not the order the
-	// TypeScript's call site lists its arguments.
+	// generated SDK builds it -- the spec's parameter order, not the order a
+	// call site happens to list its arguments.
 	CreateFields []requestField
 	UpdateFields []requestField
 	// Changed reports whether the remote differs enough to be worth a request.
@@ -69,7 +69,7 @@ func simpleResources() []simpleResource {
 			Hint:             bucketIdentity.syncHint(),
 			Keys:             config.BucketKeys,
 			// PUT, so an omitted field is reset to its default. That is the
-			// route the TypeScript calls; a partial update is not on offer.
+			// only route the API offers; a partial update is not on offer.
 			UpdateMethod: "PUT",
 			CreateFields: []requestField{
 				{"$id", "bucketId"},
@@ -242,8 +242,8 @@ func runPushSimple(command *cobra.Command, resource simpleResource) error {
 		pushed++
 	}
 
-	// A failed push is reported and counted, never returned: the TypeScript
-	// exits zero here, and a partial push has already changed the project.
+	// A failed push is reported and counted, never returned: the command exits
+	// zero here, and a partial push has already changed the project.
 	pushTally{Pushed: pushed, Failed: len(failures)}.report(out, resource.Label)
 
 	if app.Flags().Verbose {
@@ -281,9 +281,8 @@ func (c *pushContext) selectSimple(resource simpleResource) ([]*jsonx.Object, er
 // pushOne creates or updates a single resource, reporting whether it was
 // skipped because the remote already matched.
 //
-// A 404 from EITHER the existence check or the update means create. The
-// TypeScript wraps both calls in one try, so an update that races a deletion
-// falls through to a create rather than failing; that is reproduced here.
+// A 404 from EITHER the existence check or the update means create, so an
+// update that races a deletion falls through to a create rather than failing.
 func (c *pushContext) pushOne(
 	resource simpleResource,
 	local *jsonx.Object,
@@ -323,9 +322,8 @@ func (c *pushContext) fetch(path string) (*jsonx.Object, error) {
 // requestBody builds a request body from the config entry.
 //
 // A field the config does not declare is OMITTED rather than sent as a zero
-// value. The generated TypeScript SDK skips an undefined argument, so an unset
-// `compression` never reaches the wire -- sending "" instead would overwrite a
-// bucket's compression on every push.
+// value, so an unset `compression` never reaches the wire -- sending "" instead
+// would overwrite a bucket's compression on every push.
 func requestBody(local *jsonx.Object, fields []requestField) *jsonx.Object {
 	body := jsonx.NewObject()
 	for _, field := range fields {
@@ -413,8 +411,8 @@ func strictToken(value any) string {
 
 // checkDeployConditions refuses to push from a config with nothing in it.
 //
-// Implements checkDeployConditions (utils.ts:1009). newPushContext already fails
-// when the file is missing; this catches the file that exists and is empty,
+// newPushContext already fails when the file is missing; this catches the file
+// that exists and is empty,
 // which is what a user gets after running the command in the wrong directory
 // alongside an unrelated appwrite.config.json.
 func checkDeployConditions(local *config.Local) error {

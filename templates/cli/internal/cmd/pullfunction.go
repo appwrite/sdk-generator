@@ -111,7 +111,7 @@ func runPullCode(command *cobra.Command, resource codeResource, code, withVariab
 		return nil
 	}
 
-	// Without --all the TypeScript asks WHICH resources to pull, so pulling
+	// Without --all the user is asked WHICH resources to pull, so pulling
 	// everything by default would silently do more than asked.
 	if !app.Flags().All {
 		rows, err = selectResources(rows, resource)
@@ -120,9 +120,8 @@ func runPullCode(command *cobra.Command, resource codeResource, code, withVariab
 		}
 	}
 
-	// AFTER the selection, which is the order the TypeScript asks in
-	// (pull.ts:901 then :905). Asking about the code first made the user answer
-	// a question about resources they had not chosen yet.
+	// AFTER the selection: asking about the code first made the user answer a
+	// question about resources they had not chosen yet.
 	if code {
 		// Downloading overwrites whatever is in the resource's directory, so
 		// it is confirmed rather than assumed.
@@ -188,9 +187,8 @@ func runPullCode(command *cobra.Command, resource codeResource, code, withVariab
 
 // selectResources asks which resources to pull.
 //
-// Every resource is offered unselected, matching
-// the TypeScript's checkbox, and choosing none is a valid answer that pulls
-// nothing.
+// Every resource is offered unselected, and choosing none is a valid answer
+// that pulls nothing.
 func selectResources(rows []*jsonx.Object, resource codeResource) ([]*jsonx.Object, error) {
 	options := make([]prompt.Option, 0, len(rows))
 	for _, row := range rows {
@@ -295,8 +293,8 @@ func (p *projectPull) downloadDeployment(
 
 // writeVariables writes the resource's variables to a .env file.
 //
-// Overwritten wholesale, matching the TypeScript: the remote is the source of
-// truth for these, and merging would keep a variable deleted upstream.
+// Overwritten wholesale: the remote is the source of truth for these, and
+// merging would keep a variable deleted upstream.
 func writeVariables(row *jsonx.Object, destination string) error {
 	value, ok := row.Get("vars")
 	if !ok {

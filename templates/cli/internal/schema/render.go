@@ -12,7 +12,7 @@ import (
 //
 // Human-readable output is explicitly outside the parity contract, so this is
 // a plain aligned grid rather than a port
-// of cli-table3's box drawing. What IS reproduced is the column set and the
+// of the captured box drawing. What IS reproduced is the column set and the
 // wording of each cell: those are what tells a user their `title` column is
 // about to be dropped and rebuilt.
 

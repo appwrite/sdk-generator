@@ -63,8 +63,8 @@ type siteTemplate struct {
 	} `json:"frameworks"`
 	// Variables are the environment variables the template's code reads. The
 	// API declares them with placeholders the CLI is expected to fill -- see
-	// writeTemplateEnv, and note that the TypeScript declares this field
-	// (init.ts:97) and then never reads it, which is the bug being fixed here.
+	// writeTemplateEnv. Declaring the field and never reading it is the bug
+	// being fixed here.
 	Variables []siteTemplateVariable `json:"variables"`
 }
 

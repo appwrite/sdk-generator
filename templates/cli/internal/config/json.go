@@ -10,5 +10,5 @@ type Object = jsonx.Object
 // NewObject returns an empty ordered object.
 func NewObject() *Object { return jsonx.NewObject() }
 
-// Marshal renders a value the way the established CLI writes config files.
+// Marshal renders a value the way config files are written.
 func Marshal(value any) ([]byte, error) { return jsonx.Marshal(value) }

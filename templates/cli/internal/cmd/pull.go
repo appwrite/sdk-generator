@@ -40,9 +40,9 @@ var flatResources = []flatResource{
 		// No Keys, and that is not an oversight. pullTeams() is the one pull
 		// that does NOT call filterBySchema, so a pulled team carries
 		// $createdAt, $updatedAt, total and prefs into the config. Confirmed
-		// against the shipping CLI on a real project. It is noise in a
-		// code-reviewed file and almost certainly unintended, but `pull` output
-		// is the contract -- fix it in the TypeScript, not here.
+		// against a real project. It is noise in a code-reviewed file and
+		// almost certainly unintended, but `pull` output is the contract, so a
+		// config already written this way keeps round-tripping.
 	},
 	{resourceIdentity: topicIdentity, Keys: config.TopicKeys},
 	{resourceIdentity: webhookIdentity, Keys: config.WebhookKeys},
@@ -54,9 +54,9 @@ func newPullCommand() *cobra.Command {
 		Short: "Pull your Appwrite project resources into appwrite.config.json",
 		Args:  cobra.NoArgs,
 		RunE: func(command *cobra.Command, args []string) error {
-			// The TypeScript's bare `pull` runs pullResources (pull.ts:1129),
-			// the same picker `pull all` used to reach -- it does not print
-			// help. --all takes the everything path, as it does for `push`.
+			// A bare `pull` runs the same picker `pull all` reaches -- it does
+			// not print help. --all takes the everything path, as it does for
+			// `push`.
 			return runPull(command, pullActions(), app.Flags().All)
 		},
 	}
@@ -242,10 +242,10 @@ func newProjectPull() (*projectPull, error) {
 	return &projectPull{api: api, local: local}, nil
 }
 
-// probeEmpty issues the limit(1) request the TypeScript makes before paging.
+// probeEmpty issues the limit(1) request made before paging.
 //
 // Redundant on its face -- the paginated walk would return the same emptiness
-// -- but it is a request the CLI builds must both make, because a request trace
+// -- but it is part of the contractual request sequence, because a request trace
 // is how they are compared. It also lets an empty resource report "No X found"
 // without a full page.
 func (p *projectPull) probeEmpty(path, wrapper string) (bool, error) {

@@ -7,11 +7,11 @@ import (
 	"testing"
 )
 
-// The install paths are the part of `completion install` that has to match the
-// TypeScript exactly. Writing cobra's script anywhere else would leave both
-// installed, and whichever the shell found first would win.
+// The install paths are the part of `completion install` that is contractual:
+// writing the script anywhere else would leave two installed, and whichever the
+// shell found first would win.
 //
-// Captured by running the shipping the established CLI with a sandboxed HOME.
+// Captured by running the command with a sandboxed HOME.
 // setHome points os.UserHomeDir at a temporary directory on every platform.
 //
 // t.Setenv("HOME", ...) alone is a Unix-only assumption: os.UserHomeDir reads
@@ -27,7 +27,7 @@ func setHome(t *testing.T) string {
 	return home
 }
 
-func TestCompletionInstallPathsMatchTheTypeScript(t *testing.T) {
+func TestCompletionInstallPathsMatchTheBaseline(t *testing.T) {
 	home := setHome(t)
 
 	cases := map[string]string{

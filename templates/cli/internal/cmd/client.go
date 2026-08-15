@@ -38,9 +38,9 @@ func newClientCommand() *cobra.Command {
 		RunE: func(command *cobra.Command, args []string) error {
 			flags := command.Flags()
 
-			// With no flags at all the TypeScript prints help rather than
-			// silently succeeding, which is the useful behaviour when someone
-			// types `client` to find out what it does.
+			// With no flags at all, print help rather than silently succeeding,
+			// which is the useful behaviour when someone types `client` to find
+			// out what it does.
 			if !flags.Changed("endpoint") && !flags.Changed("project-id") &&
 				!flags.Changed("key") && !flags.Changed("self-signed") &&
 				!debug && !reset {
@@ -97,8 +97,8 @@ func newClientCommand() *cobra.Command {
 			if flags.Changed("endpoint") {
 				// Checked before it is stored. Saving an unreachable endpoint
 				// silently made every later command fail somewhere less
-				// obvious than the typo that caused it, and the TypeScript
-				// saves nothing at all when the check fails.
+				// obvious than the typo that caused it. Nothing is saved at all
+				// when the check fails.
 				if err := verifyEndpoint(endpoint, trustSelfSigned); err != nil {
 					return err
 				}
@@ -270,8 +270,8 @@ func warnDetachedSession(out io.Writer, global *config.Global, previous string) 
 // config anywhere up the tree is updated in place rather than shadowed by a new
 // one in the working directory.
 //
-// It also pins the project's regional endpoint, which the TypeScript does not:
-// on Cloud a project is reachable only through its own region's host, so naming
+// It also pins the project's regional endpoint: on Cloud a project is
+// reachable only through its own region's host, so naming
 // a project in another region and leaving the endpoint alone produced "Project
 // is not accessible in this region" from the next command. `init project`
 // already does this.

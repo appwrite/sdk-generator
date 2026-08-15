@@ -98,7 +98,7 @@ func TestFilterDataPreservesOrder(t *testing.T) {
 
 // --json is scripted against, so a number has to stay a number. This shipped
 // stringifying every one of them -- `jq '.total'` answered "0" instead of 0 --
-// because the port read json-bigint's BigNumber handling as applying to all
+// because an earlier version read the big-integer handling as applying to all
 // numbers rather than to the ones outside JavaScript's exact-integer range.
 func TestFilterDataKeepsNumbersAsNumbers(t *testing.T) {
 	input := decode(t, `{
@@ -126,9 +126,8 @@ func TestFilterDataKeepsNumbersAsNumbers(t *testing.T) {
 	}
 }
 
-// Past 2^53 JavaScript cannot hold the integer exactly, json-bigint hands the
-// TypeScript a BigNumber, and filterData renders it with String(). Emitting a
-// number there would silently round the id.
+// Past 2^53 a JavaScript consumer cannot hold the integer exactly, so it is
+// rendered as a string. Emitting a number there would silently round the id.
 func TestFilterDataStringifiesIntegersPastTheSafeRange(t *testing.T) {
 	input := decode(t, `{
 		"safe": 9007199254740991,
@@ -239,9 +238,8 @@ func TestJSONModePreservesGraphQLBatchResponses(t *testing.T) {
 
 // --raw keeps every field, including ones no generated model declares -- that
 // is what "raw" means and why the body is captured rather than re-encoded from
-// the struct. Big integers are still quoted, because the TypeScript's
-// json-bigint round trip quotes them and a bare literal reads back as a
-// rounded float.
+// the struct. Big integers are still quoted, because a bare literal reads back
+// as a rounded float.
 func TestRawModeKeepsEverythingAndQuotesBigIntegers(t *testing.T) {
 	input := decode(t, `{
 		"total": 42,

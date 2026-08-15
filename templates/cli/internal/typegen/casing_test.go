@@ -2,10 +2,10 @@ package typegen
 
 import "testing"
 
-// Baselines captured by running the TypeScript regexes through node, not read
-// off the source. Every generated type name, field name and enum key goes
-// through these, so a difference here renames things in users' generated code.
-func TestCasingMatchesTypeScript(t *testing.T) {
+// Baselines captured by running the regexes, not read off the source. Every
+// generated type name, field name and enum key goes through these, so a
+// difference here renames things in users' generated code.
+func TestCasingMatchesTheBaseline(t *testing.T) {
 	cases := []struct {
 		input, kebab, snake, upper, camel, pascal, enumKey string
 	}{

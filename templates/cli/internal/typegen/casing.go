@@ -9,8 +9,8 @@ import (
 //
 // Every generated type name, field name and enum key runs through these, so
 // they decide the shape of the code users import. Behaviour was captured by
-// running the TypeScript regexes rather than read off them -- several results
-// are not what the source reads like:
+// running the regexes rather than read off them -- several results are not what
+// the source reads like:
 //
 //	MiXeD_Case-99  ->  mi-xe-d-case-99   (not mixed-case-99)
 //	a-b--c         ->  aBC               camelCase eats the doubled hyphen
@@ -94,9 +94,9 @@ const (
 	AttributeTypeInteger    = "integer"
 	AttributeTypeFloat      = "double"
 	// AttributeTypeBigInt is accepted by the config schema but has no entry in
-	// attribute.ts's AttributeType map, so only the languages that switch on
-	// the raw string -- TypeScript -- handle it. The rest reject it as unknown,
-	// which is the existing behaviour and not corrected here.
+	// the shared attribute-type map, so only the languages that switch on the
+	// raw string -- TypeScript -- handle it. The rest reject it as unknown,
+	// which is the established behaviour and not corrected here.
 	AttributeTypeBigInt       = "bigint"
 	AttributeTypeBoolean      = "boolean"
 	AttributeTypeDateTime     = "datetime"

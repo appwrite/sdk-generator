@@ -110,7 +110,7 @@ jobs:
 
       # Language-specific setup
       - name: Setup Node.js
-        if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native'
+        if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
@@ -316,6 +316,42 @@ jobs:
           ./appwrite --help | grep -q "USAGE"
           ./appwrite --help | grep -q "GET STARTED"
           SHELL=bash ./appwrite completion bash >/dev/null
+
+      # The CLI ships as a native binary behind an npm launcher, so it has no
+      # dist/ entry points to check -- what can break is the launcher itself
+      # and the two scripts that assemble the platform packages.
+      - name: Verify CLI npm launcher
+        if: matrix.sdk == 'cli'
+        working-directory: examples/cli
+        run: |
+          node --check npm/run.js
+          node --check scripts/build-npm-packages.mjs
+          node --check scripts/stage-assets.mjs
+
+          node -e "
+            const pkg = require('./npm/package.json');
+            const commands = Object.keys(pkg.bin ?? {});
+            if (commands.length !== 1 || pkg.bin[commands[0]] !== 'run.js') {
+              console.error('ERROR: npm/package.json must map exactly one bin command to run.js');
+              process.exit(1);
+            }
+            if (!(pkg.files ?? []).includes('run.js')) {
+              console.error('ERROR: npm/package.json files must include run.js or the launcher is not published');
+              process.exit(1);
+            }
+            if (!pkg.license) {
+              console.error('ERROR: npm/package.json is missing a license');
+              process.exit(1);
+            }
+            for (const [name, version] of Object.entries(pkg.optionalDependencies ?? {})) {
+              if (version !== pkg.version) {
+                console.error(\`ERROR: \${name} is pinned to \${version}, not the launcher version \${pkg.version}\`);
+                process.exit(1);
+              }
+            }
+          "
+
+          (cd npm && npm pack --dry-run)
 
       - name: Verify npm package entry points
         if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native'

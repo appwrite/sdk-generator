@@ -10,17 +10,16 @@ import (
 
 // jsSafeInteger is the largest integer JavaScript represents exactly, 2^53 - 1.
 //
-// The TypeScript parses responses with json-bigint, which leaves anything
-// inside this range a plain number and promotes anything outside it to a
-// BigNumber. filterData then renders only the BigNumbers with String().
+// Anything inside this range is a plain number; anything outside it cannot
+// survive a JavaScript consumer as a number, so it is rendered as a string.
 const jsSafeInteger = 1<<53 - 1
 
-// renderedAsString reports whether the TypeScript would have stringified this
-// number.
+// renderedAsString reports whether this number has to be rendered as a
+// string.
 //
-// An earlier port read "json-bigint yields BigNumber and String(value) renders
-// it" as "every number becomes a string", because with UseNumber() every number
-// arrives as a json.Number. That turned `"total": 0` into `"total": "0"` and
+// An earlier version read "a big integer is rendered as a string" as "every
+// number becomes a string", because with UseNumber() every number arrives as a
+// json.Number. That turned `"total": 0` into `"total": "0"` and
 // broke any consumer doing arithmetic on --json output.
 func renderedAsString(number json.Number) bool {
 	text := number.String()
@@ -167,8 +166,7 @@ func isGraphQLResponseKeys(keys []string) bool {
 //
 // Scalars survive. Arrays survive with their object elements flattened by
 // FilterObject. Nested objects, nulls and blank strings are dropped. Integers
-// past 2^53 become strings, matching what json-bigint hands the TypeScript;
-// see renderedAsString.
+// past 2^53 become strings; see renderedAsString.
 //
 // GraphQL is the exception: its response envelope is user-selected data under
 // `data` and/or `errors`, so flattening would erase successful responses.
@@ -229,8 +227,7 @@ func FilterData(data *jsonx.Object) *jsonx.Object {
 // strings, leaving every other value alone.
 //
 // --raw keeps whatever the API sent, so unlike FilterData this drops nothing
-// and reshapes nothing; it only makes the same precision decision json-bigint
-// makes for the TypeScript.
+// and reshapes nothing; it only makes the same precision decision.
 func quoteBigIntegers(value any) any {
 	switch typed := value.(type) {
 	case json.Number:

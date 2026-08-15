@@ -7,9 +7,8 @@ import (
 	"testing"
 )
 
-// A real prefs.json, shaped exactly as the established CLI writes one. Key order
-// here is the order the TS CLI produces, which is what the round-trip test
-// pins.
+// A real prefs.json. The key order here is the order the file is written in,
+// which is what the round-trip test pins.
 const realPrefs = `{
     "current": "6a6f6194001a17532db8",
     "6a6f6194001a17532db8": {
@@ -186,10 +185,10 @@ func TestWriteCreatesPrivateFile(t *testing.T) {
 // prefs.json holds access and refresh tokens, so neither it nor the directory
 // around it may be readable by other accounts.
 //
-// Both cases matter, and the second is the common one: this file is shared with
-// the established CLI, so on most machines the directory and the file already
-// exist -- and neither MkdirAll nor WriteFile changes the mode of something that
-// is already there. Creating them correctly only protects a fresh install.
+// Both cases matter, and the second is the common one: on most machines the
+// directory and the file already exist -- and neither MkdirAll nor WriteFile
+// changes the mode of something that is already there. Creating them correctly
+// only protects a fresh install.
 func TestGlobalWriteTightensPermissions(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("POSIX permission bits")
@@ -297,8 +296,8 @@ func TestWriteFileAtomicallyLeavesNoTemporaryFile(t *testing.T) {
 }
 
 // Replacing an existing file must carry the requested mode rather than inherit
-// the old one -- the rename installs a new inode, which is what lets a
-// the established CLI user's 0644 prefs.json become 0600 without a chmod.
+// the old one -- the rename installs a new inode, which is what lets an
+// existing 0644 prefs.json become 0600 without a chmod.
 func TestWriteFileAtomicallyReplacesContentsAndMode(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("POSIX permission bits")

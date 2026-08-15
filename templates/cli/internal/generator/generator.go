@@ -9,9 +9,9 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/typegen"
 )
 
-// `appwrite generate` writes a small typed SDK into the user's project. Only
-// TypeScript is implemented, in the established CLI as here -- base.ts is an
-// interface plus a shared writeFiles(), and index.ts a one-entry registry.
+// `appwrite generate` writes a small typed SDK into the user's project.
+// TypeScript is the only implemented target: an interface plus a shared
+// writeFiles(), and a one-entry registry.
 
 // Language is a target `generate` can emit.
 type Language string
@@ -36,8 +36,7 @@ type Options struct {
 	// with DetectImportExtension when empty.
 	//
 	// A pointer so an explicit empty string can be distinguished from "not
-	// set": "" is a meaningful value here, and the TypeScript's `??` only
-	// falls through on undefined.
+	// set": "" is a meaningful value here.
 	ImportExtension *string
 	// ServerSide overrides whether server-only methods are emitted:
 	// "auto", "true" or "false".
@@ -50,7 +49,7 @@ type Generator interface {
 	Generate(config Config, options Options) (Result, error)
 }
 
-// ErrProjectIDRequired matches the TypeScript's message, which the user sees.
+// ErrProjectIDRequired is worded for the user: it is printed verbatim.
 var ErrProjectIDRequired = errors.New("project ID is required in configuration")
 
 // New returns the generator for a language.
@@ -164,8 +163,8 @@ type Config struct {
 
 // Entities returns the tables if there are any, else the collections.
 //
-// Not a merge: the TypeScript picks one list or the other, so a config with
-// both uses tables and ignores collections entirely.
+// Not a merge: one list or the other is picked, so a config with both uses
+// tables and ignores collections entirely.
 func (c Config) Entities() []Entity {
 	if len(c.Tables) > 0 {
 		return c.Tables
@@ -191,9 +190,8 @@ func LoadConfig(path string) (Config, error) {
 
 // DetectImportExtension reports the extension generated imports should carry.
 //
-// Implements detectImportExtension(): ".js" for an ESM package, ".ts" for Deno, and
-// "" otherwise -- including when package.json is unparseable, which the
-// TypeScript swallows.
+// ".js" for an ESM package, ".ts" for Deno, and "" otherwise -- including when
+// package.json is unparseable, which is swallowed rather than reported.
 func DetectImportExtension(directory string) string {
 	if payload, err := os.ReadFile(filepath.Join(directory, "package.json")); err == nil {
 		var manifest struct {

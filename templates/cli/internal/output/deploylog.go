@@ -52,9 +52,9 @@ type BuildLogPrinter struct {
 
 // NewBuildLogPrinter returns a printer for one deployment's build log.
 //
-// showPrefix is the TypeScript's `functions.length > 1`: with a single
-// deployment the label is noise, with several it is the only way to tell whose
-// line is whose.
+// showPrefix is set when more than one deployment is being followed: with a
+// single deployment the label is noise, with several it is the only way to tell
+// whose line is whose.
 func NewBuildLogPrinter(emit func(string), label string, showPrefix bool) *BuildLogPrinter {
 	return &BuildLogPrinter{emit: emit, label: label, showPrefix: showPrefix}
 }

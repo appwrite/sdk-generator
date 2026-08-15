@@ -21,16 +21,15 @@ import (
 
 // runGit runs a git invocation with its output captured.
 //
-// Output is captured rather than streamed, matching the TypeScript's
-// `stdio: "pipe"`: a sparse checkout prints progress that means nothing to
-// someone running `init function`, and the text is only wanted when it fails.
+// Output is captured rather than streamed: a sparse checkout prints progress
+// that means nothing to someone running `init function`, and the text is only
+// wanted when it fails.
 func runGit(directory string, script string) error {
 	var command *exec.Cmd
 
 	switch {
 	case runtime.GOOS == "windows":
-		// cmd rather than PowerShell, which has no `&&`. The TypeScript wraps
-		// each command the same way for the same reason.
+		// cmd rather than PowerShell, which has no `&&`.
 		command = exec.Command("cmd", "/c", script)
 	default:
 		command = exec.Command("sh", "-c", script)
@@ -46,7 +45,7 @@ func runGit(directory string, script string) error {
 	return gitError(fmt.Sprintf("%s\n%s", err, strings.TrimSpace(string(output))))
 }
 
-// gitError translates a git failure into the suggestion the TypeScript adds.
+// gitError translates a git failure into an actionable suggestion.
 //
 // Two failures are common enough to be worth naming: a git too old for
 // `--sparse`, and no git at all. Both otherwise surface as a bare non-zero exit

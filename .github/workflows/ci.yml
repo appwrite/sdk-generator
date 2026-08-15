@@ -22,6 +22,8 @@ jobs:
           Android5Java17,
           Android16Java17,
           CLIGo126,
+          CLIWasm,
+          CLIWasmBrowser,
           DartBeta,
           DartStable,
           DotNet60,

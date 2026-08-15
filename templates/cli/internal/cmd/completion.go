@@ -15,9 +15,9 @@ import (
 // and treats a failure as non-fatal, so this subcommand has to exist or shell
 // completion quietly stops working on upgrade.
 //
-// The script CONTENT is cobra's, not the TypeScript's: cobra's are dynamically
-// aware of flags and subcommands, and a completion script's internals are not
-// user-visible output.
+// The script CONTENT is cobra's: cobra's scripts are dynamically aware of flags
+// and subcommands, and a completion script's internals are not user-visible
+// output.
 //
 // The install PATHS are ported exactly, including the three env overrides --
 // writing cobra's zsh script anywhere else would leave both installed, and
@@ -26,9 +26,8 @@ import (
 // completionShells is the set `completion install` supports.
 //
 // Only three. cobra also generates powershell, and `completion powershell`
-// still works -- but the TypeScript has no install path for it and neither
-// does this, so `install powershell` is an error rather than a silent write
-// to a guessed location.
+// still works -- but there is no install path for it, so `install powershell`
+// is an error rather than a silent write to a guessed location.
 var completionShells = []string{"zsh", "bash", "fish"}
 
 // registerCompletionInstall hangs `install` off cobra's own `completion`

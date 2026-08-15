@@ -21,11 +21,11 @@ import (
 // codes, so everything below degrades to Log when there is no terminal.
 
 const (
-	// spinnerInterval is the dots spinner's frame rate (spinner.ts:28).
+	// spinnerInterval is the dots spinner's frame rate.
 	spinnerInterval = 80 * time.Millisecond
 
-	// statusWidth is padEnd(12) in the TypeScript's formatter, which keeps the
-	// middle column from shifting as the status changes.
+	// statusWidth pads the status to a fixed width, which keeps the middle
+	// column from shifting as the status changes.
 	statusWidth = 12
 
 	// middleWidth is DEFAULT_MIDDLE_WIDTH, the room the `name (id)` column gets
@@ -38,7 +38,7 @@ const (
 	separator = "•"
 )
 
-// spinnerFrames is the `dots` set (spinner.ts:28).
+// spinnerFrames is the `dots` set.
 var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
 var (
@@ -50,7 +50,7 @@ var (
 	spinnerFailTrailStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 )
 
-// SpinnerState is one row's payload, mirroring SpinnerPayload (spinner.ts:14).
+// SpinnerState is one row's payload.
 type SpinnerState struct {
 	Status   string
 	Resource string

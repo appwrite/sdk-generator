@@ -39,8 +39,7 @@ func TestGenerateEndpointPrefersTheProjectConfig(t *testing.T) {
 	}
 }
 
-// With no config and no session there is still a sensible default, which is
-// what the TypeScript's DEFAULT_ENDPOINT is for.
+// With no config and no session there is still a sensible default endpoint.
 func TestGenerateEndpointFallsBackToTheDefault(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

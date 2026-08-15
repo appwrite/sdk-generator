@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-// realConfig is a project config in the exact shape and key order the TypeScript
-// CLI writes. It deliberately includes a URL with an ampersand and a `>` in a
+// realConfig is a project config in the exact shape and key order the CLI
+// writes. It deliberately includes a URL with an ampersand and a `>` in a
 // description: Go's JSON encoder escapes both by default, which would rewrite a
 // user's file on the next save.
 const realConfig = `{
@@ -150,7 +150,7 @@ func TestLocalRoundTripPreservesHTMLCharacters(t *testing.T) {
 	// Go's encoder writes these by default; JSON.stringify never does.
 	for _, escape := range []string{`\u0026`, `\u003e`, `\u003c`} {
 		if strings.Contains(string(written), escape) {
-			t.Errorf("output contains the escape %s, which the established CLI never writes:\n%s",
+			t.Errorf("output contains the escape %s, which the CLI never writes:\n%s",
 				escape, written)
 		}
 	}
@@ -431,7 +431,7 @@ func TestLocalWriteIsPrivate(t *testing.T) {
 
 // A project is a tree, and people run `push` from inside `functions/<name>/`.
 // Looking only in the working directory answered those with "project is not
-// set" while the established CLI walked up and found the config.
+// set" rather than walking up and finding the config.
 func TestFindLocalPathSearchesUpwards(t *testing.T) {
 	root := t.TempDir()
 	wanted := filepath.Join(root, LocalFileName)

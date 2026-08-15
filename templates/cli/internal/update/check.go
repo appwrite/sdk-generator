@@ -15,18 +15,16 @@ import (
 
 // Tells the user on every command when a newer version exists.
 //
-// The constraint the TypeScript does not have: startup time is the reason this
-// CLI exists, so the check must not spend that budget. It reads a cache and only
-// reaches the network when that is stale, at most once a day and with a short
-// timeout.
+// Startup time is the binding constraint, so the check must not spend that
+// budget. It reads a cache and only reaches the network when that is stale, at
+// most once a day and with a short timeout.
 
 const (
 	// Interval matches UPDATE_CHECK_INTERVAL_MS.
 	Interval = 24 * time.Hour
 
-	// startupTimeout bounds the once-a-day refresh. The TypeScript allows
-	// itself five seconds; that is a fifth of a second per millisecond of this
-	// CLI's whole startup budget, so it gets one.
+	// startupTimeout bounds the once-a-day refresh. One second: anything longer
+	// is a visible fraction of the whole startup budget.
 	startupTimeout = time.Second
 
 	// explicitTimeout is for `update`, where the user is waiting for an answer

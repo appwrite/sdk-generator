@@ -12,7 +12,7 @@ import (
 // because the two termination conditions are easy to get subtly wrong, and
 // getting them wrong means silently pulling a prefix of the user's data.
 
-// DefaultPageSize matches the TypeScript's default.
+// DefaultPageSize is the page size every list walk uses unless told otherwise.
 const DefaultPageSize = 100
 
 // Page is one response from a list endpoint.
@@ -33,7 +33,7 @@ type Lister func(queries []string) (*jsonx.Object, error)
 // Two conditions stop the walk, and both are needed. An empty page stops it
 // because a server that reports a stale total would otherwise loop forever;
 // reaching the total stops it because a full final page would otherwise cost
-// one extra request. The TypeScript checks both, and so does this.
+// one extra request.
 func Paginate(list Lister, wrapper string, queries []string, pageSize int) ([]any, int64, error) {
 	if pageSize <= 0 {
 		pageSize = DefaultPageSize
@@ -132,9 +132,9 @@ func (c *Client) List(path, wrapper string, queries []string) ([]*jsonx.Object, 
 // EncodeQueries renders query strings as the API expects them.
 //
 // `queries[0]=`, indexed -- NOT `queries[]=`. Both happen to work on the list
-// endpoints, but the TypeScript sends the indexed form and a request trace is
-// how the CLI builds are compared, so the wire has to match too. Found by
-// diffing traces on a command whose config output was already identical.
+// endpoints, but the indexed form is what the request trace is pinned to, so
+// the wire has to match too. Found by diffing traces on a command whose config
+// output was already identical.
 func EncodeQueries(queries []string) string {
 	values := url.Values{}
 	for index, query := range queries {

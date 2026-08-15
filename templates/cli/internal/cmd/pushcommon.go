@@ -350,8 +350,7 @@ func (c *pushContext) selectResources(
 		Options: options,
 		Filter:  true,
 		Flag:    "--all",
-		// Implements the checkbox's `validate: validateRequired(...)`
-		// (questions.ts:999). A multi-select starts with nothing ticked and
+		// A multi-select starts with nothing ticked and
 		// Enter accepts that, so without this the prompt returns an empty
 		// list -- and the caller then reports the resources as missing, which
 		// sends the reader to `init` for something that already exists.
@@ -433,8 +432,7 @@ func newPushCommand() *cobra.Command {
 		Use:   "push",
 		Short: "Push your Appwrite project resources from appwrite.config.json",
 		Args:  cobra.NoArgs,
-		// Not Help(). The TypeScript's `push` has an action of its own
-		// (push.ts:4280) that pushes -- prompting for one resource, or
+		// Not Help(). A bare `push` pushes -- prompting for one resource, or
 		// everything under --all. Showing help instead made `push --all` a
 		// no-op that looked like a usage error.
 		RunE: func(command *cobra.Command, args []string) error {

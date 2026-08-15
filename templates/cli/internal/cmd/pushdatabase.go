@@ -102,7 +102,7 @@ func addAttemptsFlag(command *cobra.Command) {
 		"Max number of attempts before timing out. default: 30.")
 }
 
-// runPushTable ports pushTable (push.ts:3766).
+// runPushTable pushes the tables named in the config.
 func runPushTable(command *cobra.Command, resource pushDatabaseResource) error {
 	out := command.OutOrStdout()
 
@@ -176,7 +176,7 @@ func runPushTable(command *cobra.Command, resource pushDatabaseResource) error {
 	return nil
 }
 
-// runPushCollection ports pushCollection (push.ts:3935).
+// runPushCollection pushes the collections named in the config.
 func runPushCollection(command *cobra.Command, resource pushDatabaseResource) error {
 	out := command.OutOrStdout()
 
@@ -218,10 +218,10 @@ func runPushCollection(command *cobra.Command, resource pushDatabaseResource) er
 		return err
 	}
 
-	// --attempts is declared on `push collection` and IGNORED, matching the
-	// TypeScript: the command registers the flag (push.ts:4341) but
-	// pushCollections builds its pool with the default (push.ts:3022). Passing
-	// it through would be a fix, and a fix belongs in the TypeScript first.
+	// --attempts is declared on `push collection` and IGNORED: the flag is
+	// registered but the child pass builds its pool with the default. Passing
+	// it through would change behaviour on a live project, so it is left as it
+	// is until that is a deliberate change.
 	pushed, err := context.pushDatabaseChildren(command, resource, collections, 0)
 	if err != nil {
 		return err
@@ -276,9 +276,7 @@ func (c *pushContext) resyncTables(command *cobra.Command) error {
 // deleteRemovedTables offers to delete tables that exist remotely but not in
 // the config.
 //
-// A failure to
-// delete one table is reported and the rest continue -- matching the TypeScript,
-// which catches per table.
+// A failure to delete one table is reported and the rest continue.
 func (c *pushContext) deleteRemovedTables(
 	command *cobra.Command,
 	resource pushDatabaseResource,
@@ -302,9 +300,8 @@ func (c *pushContext) deleteRemovedTables(
 		remoteTables, err := c.page(
 			resource.Path+"/"+url.PathEscape(databaseID)+resource.ChildPath, "tables")
 		if err != nil {
-			// Swallowed deliberately: the TypeScript catches and skips, so a
-			// database that has just been deleted elsewhere does not abort the
-			// push.
+			// Swallowed deliberately, so a database that has just been deleted
+			// elsewhere does not abort the push.
 			continue
 		}
 
@@ -375,9 +372,8 @@ func (c *pushContext) deleteRemovedTables(
 
 // pushCollectionDatabases creates or renames the databases the collections need.
 //
-// Implements the database pass in pushCollections (push.ts:3033). `push collection`
-// has no equivalent of SyncTablesDBs -- it never deletes a database, only
-// creates one that is missing.
+// `push collection` never deletes a database, only creates one that is
+// missing.
 func (c *pushContext) pushCollectionDatabases(
 	command *cobra.Command,
 	resource pushDatabaseResource,
@@ -394,8 +390,7 @@ func (c *pushContext) pushCollectionDatabases(
 		seen[databaseID] = true
 
 		// The database's name comes from the config's own databases array,
-		// falling back to the id. Ports the databaseName the TypeScript
-		// attaches to each collection before calling pushCollections.
+		// falling back to the id.
 		name := databaseID
 		if entry := c.localDatabase(resource, databaseID); entry != nil {
 			if value := entry.GetString("name"); value != "" {
@@ -472,8 +467,8 @@ func (c *pushContext) pushDatabaseChildren(
 	}
 
 	// state carries what the create-or-update pass learned into the schema
-	// pass. The TypeScript hangs the same three fields off the config object
-	// itself; a struct keeps the config immutable.
+	// pass. A struct rather than three fields hung off the config object, which
+	// keeps the config immutable.
 	type state struct {
 		local        *jsonx.Object
 		remote       *jsonx.Object
@@ -678,10 +673,9 @@ func (c *pushContext) updateChild(
 	if value, present := local.Get("$permissions"); present {
 		body.Set("permissions", value)
 	}
-	// `enabled` is detected as a difference above and then NOT sent -- the
-	// TypeScript's updateTable call omits it (push.ts:2899). Reproduced rather
-	// than fixed: sending it here would be a behaviour change on a live
-	// project, and the fix belongs in the TypeScript first.
+	// `enabled` is detected as a difference above and then NOT sent: the update
+	// call omits it. Sending it here would be a behaviour change on a live
+	// project, so it is left as it is until that is a deliberate change.
 
 	if err := c.api.Call("PUT", path, body, nil); err != nil {
 		return false, err

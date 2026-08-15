@@ -51,8 +51,8 @@ func executablePath() string {
 
 // DetectInstallMethod reports how this binary was installed.
 //
-// Order matters and matches the TypeScript: npm and Homebrew both leave the
-// binary somewhere identifiable, and anything else on PATH is standalone.
+// Order matters: npm and Homebrew both leave the binary somewhere
+// identifiable, and anything else on PATH is standalone.
 func DetectInstallMethod() InstallMethod {
 	path := strings.ToLower(executablePath())
 	if path == "" {
@@ -74,9 +74,9 @@ func DetectInstallMethod() InstallMethod {
 
 // ReleaseAssetName is the release artifact for the running platform.
 //
-// Kept identical to the TypeScript's
-// naming so a Go build can replace a TypeScript one in place: the asset a user
-// already has installed and the asset they upgrade to have the same name.
+// The naming is contractual across releases, so a new build replaces an
+// installed one in place: the asset a user already has and the asset they
+// upgrade to have the same name.
 func ReleaseAssetName() (string, error) {
 	var platform string
 	switch runtime.GOOS {
@@ -146,13 +146,13 @@ func HomebrewFormula() string {
 // version published to npm is the same release, so one source answers for both
 // and the check costs one request rather than shelling out to brew.
 //
-// This is also the constraint on how this CLI is VERSIONED. CLI releases publish to
-// the same npm package, so a Go build numbered below the established CLI's
-// current version would tell every user an upgrade is available and then replace
-// their Go binary with the TypeScript one. The version line has to continue the
-// the established CLI's -- an rc is `26.0.0-rc.1`, the next major of the same
-// product, not `1.0.0-rc.1`. Check what the registry currently serves as
-// `latest` before picking a number.
+// This is also the constraint on how this CLI is VERSIONED. Every release
+// publishes to the same npm package, so a build numbered below what the registry
+// already serves would tell every user an upgrade is available and then install
+// an older binary over a newer one. The version line has to continue unbroken --
+// an rc is `26.0.0-rc.1`, the next major of the same product, not `1.0.0-rc.1`.
+// Check what the registry currently serves as `latest` before picking a
+// number.
 const NPMRegistryURL = "https://registry.npmjs.org/" + NPMPackageName + "/latest"
 
 // NPMPrereleaseRegistryURL follows the release candidates published under the

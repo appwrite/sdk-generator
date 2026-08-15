@@ -126,9 +126,8 @@ func installCommandFor(language string) string {
 
 // ignoresFor is getIgnores().
 //
-// Always an array, never nil. The TypeScript writes `ignore: runtime.ignore ||
-// null`, but an empty array is truthy in JavaScript, so that fallback never
-// fires and a deno function is written with `"ignore": []` rather than null.
+// Always an array, never nil: a runtime with no ignores is written as
+// `"ignore": []` rather than null.
 func ignoresFor(language string) []string {
 	switch language {
 	case "cpp":
@@ -156,8 +155,8 @@ func ignoresFor(language string) []string {
 
 // FunctionEntry is a function as `init function` writes it.
 //
-// Field order is the TypeScript's object literal, which is what lands in the
-// file. `ignore` is a list here and a newline-joined string in config.Function:
+// Field order is what lands in the file, so it is contractual. `ignore` is a
+// list here and a newline-joined string in config.Function:
 // that type is the READ model used by `run`, and the two are deliberately
 // separate rather than one type trying to be both.
 type FunctionEntry struct {
@@ -274,9 +273,7 @@ func runInitFunction(command *cobra.Command) error {
 	}
 	defer os.RemoveAll(templatesDir)
 
-	// The template is always "starter". The TypeScript keeps a branch for
-	// choosing another one, but it initialises `selected` before the check and
-	// so can never reach it; only the starter is ever fetched.
+	// The template is always "starter": only the starter is ever fetched.
 	sparse := strings.ToLower(selected.Directory + "/starter")
 
 	if err := runGit(templatesDir, fmt.Sprintf(

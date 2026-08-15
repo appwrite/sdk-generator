@@ -236,8 +236,7 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 {% endif %}
 {% if plan.optional is not empty and not implementation and not sdk.test %}
 
-			// An unset flag must be omitted, not sent as its zero value: the
-			// TypeScript passes undefined and the SDK drops it.
+			// An unset flag must be omitted, not sent as its zero value.
 			options := []{{ plan.package }}.{{ plan.optionType }}{}
 {% for option in plan.optional %}
 {% if option.flag == 'queries' and query.hasQueries %}
@@ -278,8 +277,8 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 			}
 {% if (method | methodType) == 'location' and not sdk.test %}
 
-			// A location method returns the file bytes, not a URL. The
-			// TypeScript fetches the URL itself; the SDK has already done that.
+			// A location method returns the file bytes, not a URL -- the SDK
+			// has already fetched them.
 			return app.WriteFile(destination, result)
 {% else %}
 

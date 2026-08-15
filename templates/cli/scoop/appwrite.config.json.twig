@@ -3,7 +3,7 @@
 	"version": "{{ sdk.version }}",
 	"description": "{{ sdk.description }}",
 	"homepage": "https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}",
-	"license": "BSD-3-Clause",
+	"license": "{{ sdk.license }}",
 	"architecture": {
 		"64bit": {
 			"url": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.npmPackage }}-win-x64.exe",

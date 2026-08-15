@@ -9,10 +9,10 @@ import (
 // deployment -- a pattern that fails to match ships a secret, one that
 // over-matches drops a source file.
 //
-// Ported rather than taken from a Go gitignore library because those disagree
-// with `ignore` in exactly the corners that matter: trailing spaces, `**`
-// placement, negation after a directory match. The contract is "whatever the
-// the established CLI does", pinned to baselines in internal/ignore/testdata.
+// Written here rather than taken from a Go gitignore library because those
+// disagree in exactly the corners that matter: trailing spaces, `**` placement,
+// negation after a directory match. The contract is pinned to the baselines in
+// internal/ignore/testdata.
 
 // Matcher decides whether a path is ignored.
 type Matcher struct {

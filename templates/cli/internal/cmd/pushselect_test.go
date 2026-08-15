@@ -25,9 +25,8 @@ const configWithOneSite = `{
 // A multi-select starts with nothing ticked and Enter accepts that, so the
 // prompt handed back an empty list; the caller read that as "the config has
 // none" and pointed the reader at `init site` for a site already in front of
-// them. The TypeScript's checkbox carries
-// `validate: validateRequired("site", value)` (questions.ts:999), which the
-// port had as prompt.RequiredSelection and never wired up.
+// them. prompt.RequiredSelection exists for exactly this and was never wired
+// up.
 func TestPushSelectionRejectsAnEmptyChoice(t *testing.T) {
 	local := loadProbeConfig(t)
 

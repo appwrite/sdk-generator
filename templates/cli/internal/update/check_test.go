@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-// The established CLI tells you on every command when a newer version exists.
-// The Go port said nothing, so someone on an old build had no way to find out.
+// Every command reports when a newer version exists. Without it someone on an
+// old build has no way to find out.
 func TestANewerVersionIsReported(t *testing.T) {
 	server := registry(t, `{"version":"2.0.0"}`, nil)
 

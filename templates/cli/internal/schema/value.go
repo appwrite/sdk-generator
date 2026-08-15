@@ -11,10 +11,10 @@ import (
 
 // JavaScript value semantics, reproduced because the diff depends on them.
 //
-// attributes.ts compares two plain objects with `String(a) === String(b)` and
-// with JSON.stringify. Both distinguish a property that is ABSENT (`undefined`)
-// from one that is present and null, and both render arrays and numbers in ways
-// Go's fmt does not. Any of it wrong shows up as a spurious recreation of a live
+// Attributes are compared both as rendered strings and as JSON. Both forms
+// distinguish a property that is ABSENT from one that is present and null, and
+// both render arrays and numbers in ways Go's fmt does not. Any of it wrong
+// shows up as a spurious recreation of a live
 // attribute -- which destroys data -- so the semantics are modelled explicitly
 // rather than approximated.
 
@@ -126,7 +126,7 @@ func jsStringify(value any) string {
 	return strings.TrimRight(buffer.String(), "\n")
 }
 
-// isEqual compares two values the way isEqual (attributes.ts:180) does.
+// isEqual compares two values with JavaScript's equality semantics.
 //
 // A structural comparison for two objects, a string comparison for everything
 // else -- so the number 128 and the string "128" are equal here. That looseness

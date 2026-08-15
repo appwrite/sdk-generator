@@ -18,13 +18,12 @@ import (
 
 // ResponseFormat pins the API response shape the CLI is written against.
 //
-// Hard-coded in the TypeScript client too (client.ts:40). It tracks the API
-// version the CLI was generated for, not the CLI's own version, so it must not
-// be wired to sdk.version.
+// Hard-coded: it tracks the API version the CLI was generated for, not the
+// CLI's own version, so it must not be wired to sdk.version.
 const ResponseFormat = "1.8.1"
 
-// Header names. The API is case-insensitive, but these match the TypeScript
-// spelling so the CLI builds are directly comparable on the wire.
+// Header names. The API is case-insensitive, but the spelling is pinned so
+// recorded request traces stay comparable.
 const (
 	headerProject      = "X-Appwrite-Project"
 	headerKey          = "X-Appwrite-Key"
@@ -377,8 +376,7 @@ func (e *APIError) unauthenticated() bool {
 // Call performs a request and decodes the JSON response into out.
 //
 // out may be nil for endpoints whose body is not needed. Numbers decode as
-// json.Number so large integers survive, matching the json-bigint parsing the
-// the established CLI uses.
+// json.Number so large integers survive.
 func (c *Client) Call(method, path string, body any, out any) error {
 	var reader io.Reader
 	if body != nil {

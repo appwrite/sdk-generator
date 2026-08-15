@@ -20,8 +20,8 @@ import (
 // into an instruction to disable it on the next push.
 
 // settingsServices, settingsProtocols and settingsAuthMethods are the keys
-// written, in the order createSettingsObject lists them. Order is part of the
-// config file, so it is the TypeScript's rather than alphabetical.
+// written, in the order the settings object lists them. Order is part of the
+// config file, so it is contractual rather than alphabetical.
 var (
 	settingsServices = []string{
 		"account", "avatars", "databases", "locale", "health", "storage",
@@ -36,10 +36,10 @@ var (
 
 // Policy identifiers as listPolicies returns them.
 //
-// Kebab-case, confirmed against a live project. The TypeScript reaches these
-// through a ProjectPolicyId enum whose MEMBER names are lowercase run-together
-// words -- Sessionduration, Passwordpersonaldata -- and transcribing those
-// instead of the values yields ids that match nothing and a silently empty
+// Kebab-case, confirmed against a live project. The enum that carries these has
+// MEMBER names that are lowercase run-together words -- Sessionduration,
+// Passwordpersonaldata -- and transcribing those instead of the values yields
+// ids that match nothing and a silently empty
 // security block.
 const (
 	policySessionDuration    = "session-duration"

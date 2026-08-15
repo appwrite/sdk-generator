@@ -18,9 +18,8 @@ const OAuth2Scopes = "openid email profile all"
 
 // defaultPollInterval is used when the server omits one.
 //
-// RFC 8628 section 3.5. The TypeScript guards against a missing interval
-// becoming NaN and busy-polling the endpoint; the Go equivalent is guarding
-// against zero.
+// RFC 8628 section 3.5. Guarding against zero, because a missing interval would
+// otherwise busy-poll the endpoint.
 const defaultPollInterval = 5 * time.Second
 
 // slowDownIncrement is how much a `slow_down` response adds to the interval.
@@ -62,11 +61,9 @@ func (d DeviceAuthorization) PollInterval() time.Duration {
 
 // Lifetime is how long the authorization is valid for.
 //
-// An explicit zero means already expired and is honoured as such -- the
-// TypeScript computes `Date.now() + expires_in * 1000` directly, so a zero
-// there ends the loop immediately. Only a missing or unparseable value falls
-// back to a default, which stops a malformed response becoming an instant
-// failure.
+// An explicit zero means already expired and is honoured as such, ending the
+// loop immediately. Only a missing or unparseable value falls back to a
+// default, which stops a malformed response becoming an instant failure.
 func (d DeviceAuthorization) Lifetime() time.Duration {
 	seconds, err := d.ExpiresIn.Int64()
 	if err != nil {

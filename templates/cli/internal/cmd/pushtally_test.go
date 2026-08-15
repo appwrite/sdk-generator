@@ -66,7 +66,7 @@ func TestSyncHintWordsBothTheCommandAndTheResource(t *testing.T) {
 		}
 	}
 
-	// "existing one", not "ones" -- transcribed from the TypeScript.
+	// "existing one", not "ones" -- the wording is pinned.
 	if got := bucketIdentity.syncHint(); !strings.Contains(got, "synchronize existing one,") {
 		t.Errorf("hint wording drifted: %q", got)
 	}

@@ -17,7 +17,7 @@ const DefaultClientID = "appwrite-cli"
 // refreshSkew is how far before expiry a token is treated as stale.
 //
 // A token that expires during the request it authenticates is a confusing
-// failure, so renew a minute early. Matches the TypeScript `60_000`.
+// failure, so renew a minute early.
 const refreshSkew = 60 * time.Second
 
 // ErrSessionExpired is returned when no usable credential remains.
@@ -170,7 +170,7 @@ func (a *Authenticator) refresh(session *config.Object, sessionID, refreshToken 
 	session.Set(config.PreferenceAccessToken, token.AccessToken)
 	newExpiry := a.now().Add(time.Duration(expiresIn) * time.Second).UnixMilli()
 	// json.Number so the timestamp is written as an integer literal rather than
-	// in scientific notation, matching how the established CLI stores it.
+	// in scientific notation, which is how it is stored.
 	session.Set(config.PreferenceTokenExpiry, json.Number(strconv.FormatInt(newExpiry, 10)))
 
 	// The server may rotate the refresh token; when it does, the old one stops

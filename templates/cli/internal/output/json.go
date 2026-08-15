@@ -9,8 +9,7 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 )
 
-// These two modes are scripted against, so the bytes must match the TypeScript
-// CLI's exactly.
+// These two modes are scripted against, so the bytes are contractual.
 
 // Mode selects how a response is rendered.
 type Mode int

@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-// The templates are generated in from the established CLI's directory, so a
-// broken getFiles() entry would leave the embed empty and typegen silently
-// producing nothing. Checking they load and look like themselves catches that.
+// The templates are written in by the SDK generator, so a broken getFiles()
+// entry would leave the embed empty and typegen silently producing nothing.
+// Checking they load and look like themselves catches that.
 func TestEmbeddedTemplatesLoad(t *testing.T) {
 	cases := []struct{ name, marker string }{
 		{TemplateConstants, "export const PROJECT_ID"},

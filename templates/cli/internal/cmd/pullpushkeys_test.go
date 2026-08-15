@@ -39,10 +39,9 @@ func TestPullWritesEveryKeyPushCompares(t *testing.T) {
 	}
 }
 
-// The other direction. The TypeScript's config schema is `.strict()`
-// (config.ts:143), so a key it does not declare is not merely ignored -- it
-// fails validation, and a config this CLI wrote stops loading in the one it is
-// replacing.
+// The other direction. The config schema is strict, so a key it does not
+// declare is not merely ignored -- it fails validation, and a config written
+// with an extra key stops loading.
 func TestPullWritesNothingPushDoesNotKnow(t *testing.T) {
 	for _, resource := range deployables {
 		t.Run(resource.Name, func(t *testing.T) {

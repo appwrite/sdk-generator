@@ -51,11 +51,9 @@ func RegisterGlobalFlags(root *cobra.Command) {
 	// subcommand, and `push table` and `push collection` define their own -a for
 	// --attempts -- pflag panics on a shorthand collision, so registering -a here
 	// crashed those two commands outright. The shorthand is added locally on
-	// `push` and `pull`, which is where the TypeScript has it (push.ts:4272,
-	// pull.ts:1121); commander options do not inherit, so it never had to choose.
+	// `push` and `pull`, which are the commands where it selects resources.
 	//
-	// Hidden at the root for the same reason it is hidden there in the
-	// TypeScript (`new Option('-a, --all', ...).hideHelp()`): it is parsed
+	// Hidden at the root rather than documented there: it is parsed
 	// globally so `appwrite --all push` and `appwrite --all init skill` keep
 	// working, but it is documented only on commands where it selects resources
 	// or skills.

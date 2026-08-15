@@ -1,14 +1,14 @@
 // Mock {{ service.name | caseUcfirst }} service, generated when sdk.test is set.
 //
 // The e2e suite asserts on strings the CLI prints, not on network traffic, so
-// the SDK is replaced by a stand-in returning the same fixtures the TypeScript
-// mock does (templates/cli/base/mock.twig). That keeps the conformance run free
-// of any dependency on a published SDK release, and means all CLI builds are checked
-// against one set of expectations in tests/e2e/Base.php.
+// the SDK is replaced by a stand-in returning the fixtures the suite expects.
+// That keeps the conformance run free of any dependency on a published SDK
+// release, and means every build is checked against one set of expectations in
+// tests/e2e/Base.php.
 //
 // `x-sdk-language` is the literal `cli`, not the language name: internal/sdk
-// sends `cli` so the CLI is attributed the same way the TypeScript one is,
-// and the mock has to report what the real client would.
+// sends `cli` so requests are attributed to the CLI, and the mock has to report
+// what the real client would.
 
 type {{ service.name | caseUcfirst }}MockService struct{}
 

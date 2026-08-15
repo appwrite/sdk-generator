@@ -22,8 +22,8 @@ import (
 // `SELECT ... FOR UPDATE` does not save it, because the supplied nested array
 // replaces the freshly read one. Two concurrent writes lose one of the changes.
 //
-// This was briefly made concurrent to match the TypeScript's Promise.all and
-// to chase a slow settings push. It was wrong twice over: the row lock
+// This was briefly made concurrent to chase a slow settings push. It was wrong
+// twice over: the row lock
 // serialises them server-side anyway (~1.25s per waiter, measured), so it was
 // not faster, and it opened a lost-update window that the sequential version
 // does not have.

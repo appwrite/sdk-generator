@@ -14,8 +14,8 @@ import (
 // reports a float as "double". Every double therefore falls through to the
 // final else and is decoded as `Double.from(map:)`, a method that does not
 // exist. The same dead comparison appears in the toMap() exclusion list.
-// Reproduced: it is what the TypeScript emits today, and `types` output lands
-// in users' repositories where a change would read as an unexplained diff.
+// Kept as it is: `types` output lands in users' repositories, where a change
+// would read as an unexplained diff.
 type Swift struct{}
 
 // swiftStringTypes are the types from(map:) decodes straight to String.

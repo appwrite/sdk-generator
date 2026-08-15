@@ -53,9 +53,8 @@ func Frame(art string) string {
 
 // visible is a line without its ANSI escape sequences.
 //
-// Implements Node's stripVTControlCharacters, which is what the TypeScript measures
-// with. Only the CSI sequences this package emits and the ones a terminal
-// library is likely to have added are recognised -- a colour escape counts for
+// Only the CSI sequences this package emits and the ones a terminal library is
+// likely to have added are recognised -- a colour escape counts for
 // no columns, and measuring the raw string instead would pad every line by the
 // twenty-odd bytes each cell costs.
 func visible(line string) string {

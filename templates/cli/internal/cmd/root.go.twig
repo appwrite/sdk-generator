@@ -15,9 +15,9 @@ import (
 
 // NewRootCommand builds the full command tree.
 //
-// Registration is deliberately eager. Phase 0 measured the complete tree at
-// 5.0ms against 206ms for the established CLI, so lazy construction would add
-// complexity to generated code for no measurable gain.
+// Registration is deliberately eager: the complete tree measures at 5.0ms, so
+// lazy construction would add complexity to generated code for no measurable
+// gain.
 func NewRootCommand() *cobra.Command {
 	root := &cobra.Command{
 		Use:     "{{ language.params.executableName }}",
@@ -62,7 +62,7 @@ func NewRootCommand() *cobra.Command {
 
 			// Before anything reads a session, and on every command, because
 			// that is when an upgrading user's prefs.json is still in the old
-			// shape. The TypeScript runs it in the same place.
+			// shape.
 			migrateLegacyPreferences()
 
 			noticeUpdateAvailable(command)

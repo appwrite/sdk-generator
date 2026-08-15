@@ -31,8 +31,8 @@ type apiError interface {
 
 // When a response is not JSON the SDK puts the whole body in the error message,
 // and the CLI printed it. A proxy 502, a WAF block or a maintenance page is an
-// HTML document, so `users get` answered with 8,946 bytes of markup where the
-// TypeScript printed one line.
+// HTML document, so `users get` answered with 8,946 bytes of markup where one
+// line would do.
 //
 // The body is still available -- it is what --verbose is for -- but it is not
 // the first thing a user should see.

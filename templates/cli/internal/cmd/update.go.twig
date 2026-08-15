@@ -22,10 +22,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// The update path has to work for someone whose current install is the
-// the established CLI: an npm or Homebrew install is updated through that tool, and
-// a standalone binary is replaced in place. The release asset names match the
-// TypeScript's exactly, so a Go build lands where a TypeScript one was.
+// The update path has to work whichever way the running binary was installed:
+// an npm or Homebrew install is updated through that tool, and a standalone
+// binary is replaced in place. The release asset names are stable across
+// releases, so a new build lands exactly where the installed one was.
 
 // releasesPageURL is where someone downloads a build by hand.
 const releasesPageURL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases"

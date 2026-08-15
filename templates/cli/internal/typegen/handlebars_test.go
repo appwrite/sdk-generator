@@ -3,8 +3,8 @@ package typegen
 import "testing"
 
 // Baselines captured by running handlebars itself, not written from
-// expectation. The generated TypeScript must be byte-identical to what the
-// the established CLI produces, so these are a contract.
+// expectation. The generated TypeScript must be byte-identical to the captured
+// baselines, so these are a contract.
 func TestRenderMatchesHandlebars(t *testing.T) {
 	cases := []struct {
 		name     string

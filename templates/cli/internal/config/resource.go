@@ -18,10 +18,9 @@ import (
 
 // Bucket is a storage bucket as the config records it.
 //
-// The field set is the whitelist: the TypeScript filters props through
-// whitelistKeys(BucketSchema) so an API response can be handed straight in
+// The field set is the whitelist, so an API response can be handed straight in
 // without dragging $createdAt and friends into the config. A typed struct does
-// the same thing by construction.
+// that by construction.
 type Bucket struct {
 	ID                    string   `json:"$id"`
 	Name                  string   `json:"name"`
@@ -198,8 +197,8 @@ func (l *Local) upsert(resource string, value any, matches identity) error {
 	entries, ok := existing.([]any)
 	if !ok {
 		// Absent, null, or something that is not an array. The last case is a
-		// corrupted config; replacing it loses less than appending to it would
-		// and matches the TypeScript's `?? []`.
+		// corrupted config; replacing it loses less than appending to it
+		// would.
 		entries = nil
 	}
 
@@ -224,7 +223,7 @@ func (l *Local) upsert(resource string, value any, matches identity) error {
 //
 // Through JSON so the struct tags decide both the key names and their order --
 // declaration order is what ends up in the file, and it is chosen to match the
-// order the TypeScript writes.
+// order the config is written in.
 func toObject(value any) (*jsonx.Object, error) {
 	// Already ordered: the pulls build their entry with FilterBySchema and
 	// must not have it re-ordered by a round trip through a struct.

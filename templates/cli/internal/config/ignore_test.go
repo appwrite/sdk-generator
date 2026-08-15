@@ -33,8 +33,7 @@ func TestFunctionIgnoreAcceptsAnArray(t *testing.T) {
 }
 
 // The schema documents a single newline-separated string, and a hand-written
-// config may still use it. The TypeScript accepts both because
-// `ignore().add()` does.
+// config may still use it. Both shapes are accepted.
 func TestFunctionIgnoreAcceptsAString(t *testing.T) {
 	raw := `{"$id": "fn", "ignore": "node_modules\n.npm\n\n  vendor  "}`
 

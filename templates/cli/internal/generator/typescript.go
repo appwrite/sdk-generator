@@ -15,9 +15,8 @@ import (
 
 // SDKTitle and ExecutableName are baked into the generated headers.
 //
-// The TypeScript reads these from lib/constants.ts, which the SDK generator
-// fills in from the same params. Kept as constants here rather than threaded
-// through, because a Go build of the CLI is always Appwrite's.
+// Constants rather than values threaded through, because the SDK generator
+// fills them in from the same params at generation time.
 const (
 	SDKTitle       = "Appwrite"
 	SDKDirectory   = "appwrite"
@@ -68,9 +67,9 @@ type databaseGroup struct {
 
 // groupByDatabase groups entities by databaseId, first-seen order.
 //
-// A Map in the TypeScript, which iterates in insertion order. Go maps do not,
-// so the order is carried explicitly -- otherwise the generated DatabaseTableMap
-// would be shuffled on every run and every regeneration would produce a diff.
+// Go maps do not iterate in insertion order, so the order is carried
+// explicitly -- otherwise the generated DatabaseTableMap would be shuffled on
+// every run and every regeneration would produce a diff.
 func groupByDatabase(entities []Entity) []databaseGroup {
 	var groups []databaseGroup
 	index := map[string]int{}
@@ -220,7 +219,7 @@ func generateEntityType(entity Entity, entities []Entity) (string, error) {
 	}
 
 	// An entity with no fields becomes Record<string, never> rather than an
-	// empty object type, which TypeScript would treat as "any non-null value".
+	// empty object type, which TypeScript treats as "any non-null value".
 	createType := fmt.Sprintf("export type %sCreate = {\n%s\n}", typeName, create)
 	if strings.TrimSpace(create) == "" {
 		createType = fmt.Sprintf("export type %sCreate = Record<string, never>", typeName)

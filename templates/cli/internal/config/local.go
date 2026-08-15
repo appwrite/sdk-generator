@@ -369,8 +369,8 @@ func orderConfigKeys(data *jsonx.Object) *jsonx.Object {
 	return ordered
 }
 
-// writeJSONFile writes a config document the way the established CLI does:
-// four-space indentation, mode 0600.
+// writeJSONFile writes a config document with four-space indentation, mode
+// 0600.
 func writeJSONFile(path string, data any) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err

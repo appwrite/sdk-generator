@@ -12,15 +12,15 @@ import (
 // the spec, so a service added upstream would fail a golden without anything
 // being wrong.
 
-// theRealDescription is the paragraph the shipped CLI carries, kept here so the
-// wrap is checked against real input rather than against the placeholder the
-// example generation uses.
+// theRealDescription is the paragraph the shipped help carries, kept here so
+// the wrap is checked against real input rather than against the placeholder
+// the example generation uses.
 const theRealDescription = "Appwrite is an open-source self-hosted backend " +
 	"server that abstracts and simplifies complex and repetitive development " +
 	"tasks behind a very simple REST API"
 
-func TestDescriptionWrapsTheSameWayCommanderDoes(t *testing.T) {
-	// Copied from `appwrite -h` on the established CLI.
+func TestDescriptionWrapsToTheCapturedBaseline(t *testing.T) {
+	// Copied from `appwrite -h`.
 	want := strings.Join([]string{
 		"  Appwrite is an open-source self-hosted backend server that abstracts and",
 		"  simplifies complex and repetitive development tasks behind a very simple",
@@ -323,12 +323,11 @@ func TestFooterTellsTheUserWhereToGoNext(t *testing.T) {
 	}
 }
 
-// help.ts passes minColumnWidth 2 to commander's wrap rather than taking its
-// default of 40, so the TypeScript screen keeps wrapping into a narrow terminal
-// instead of emitting one line that runs off the edge. Verified against
-// commander itself at screen widths 44, 39, 20 and 10.
+// A minimum column width of 2 rather than the more usual 40, so the screen
+// keeps wrapping into a narrow terminal instead of emitting one line that runs
+// off the edge. Verified at screen widths 44, 39, 20 and 10.
 func TestNarrowTerminalsStillWrap(t *testing.T) {
-	// Screen width 20 -> 16 columns. commander produces 11 breaks here.
+	// Screen width 20 -> 16 columns, which is 11 breaks.
 	narrow := wrapHelpText(theRealDescription, 20-helpGap-helpGap, helpIndent)
 	if strings.Count(narrow, "\n") == 0 {
 		t.Errorf("a 20-column terminal was not wrapped at all:\n%s", narrow)
@@ -339,7 +338,7 @@ func TestNarrowTerminalsStillWrap(t *testing.T) {
 		}
 	}
 
-	// Below commander's floor of 2 columns it returns the string as it is, which
+	// Below the floor of 2 columns the string is returned as it is, which
 	// is also what stops a terminal reporting 3 columns from reaching the loop
 	// with a negative width.
 	for _, columns := range []int{1, 0, -4} {
@@ -349,20 +348,19 @@ func TestNarrowTerminalsStillWrap(t *testing.T) {
 		}
 	}
 
-	// And the 80-column screen still wraps to the three lines the TypeScript
-	// prints.
+	// And the 80-column screen still wraps to three lines.
 	if wide := wrapHelpText(theRealDescription, helpMaxWidth-helpGap-helpGap, helpIndent); strings.Count(wide, "\n") != 2 {
 		t.Errorf("the 80-column screen no longer wraps to three lines:\n%s", wide)
 	}
 }
 
-// commander's wrap is not a plain greedy word wrap: a line holds columnWidth-1
+// The wrap is not a plain greedy word wrap: a line holds columnWidth-1
 // characters, and the first carries two that were never measured. A greedy wrap
 // agreed at 80 columns and disagreed at a dozen others, so this compares against
-// output captured from commander's own Help.wrap for every width from 6 to 80.
+// output captured for every width from 6 to 80.
 // The widths below are the boundary, the cap, the floor, and the ones greedy got
 // wrong.
-var commanderWrapped = map[int]string{
+var wrappedBaseline = map[int]string{
 	80: "  Appwrite is an open-source self-hosted backend server that abstracts and\n  simplifies complex and repetitive development tasks behind a very simple\n  REST API",
 	71: "  Appwrite is an open-source self-hosted backend server that abstracts\n  and simplifies complex and repetitive development tasks behind a\n  very simple REST API",
 	62: "  Appwrite is an open-source self-hosted backend server that\n  abstracts and simplifies complex and repetitive\n  development tasks behind a very simple REST API",
@@ -381,8 +379,8 @@ var commanderWrapped = map[int]string{
 	6:  "  Appwrite\n  is\n  an\n  open-source\n  self-hosted\n  backend\n  server\n  that\n  abstracts\n  and\n  simplifies\n  complex\n  and\n  repetitive\n  development\n  tasks\n  behind\n  a\n  very\n  simple\n  REST\n  API",
 }
 
-func TestWrapMatchesCommanderAtEveryWidth(t *testing.T) {
-	for width, want := range commanderWrapped {
+func TestWrapMatchesTheBaselineAtEveryWidth(t *testing.T) {
+	for width, want := range wrappedBaseline {
 		got := wrapHelpText(theRealDescription, width-helpGap-helpGap, helpIndent)
 		if got != want {
 			t.Errorf("width %d differs\n got:\n%s\nwant:\n%s", width, got, want)
@@ -392,8 +390,8 @@ func TestWrapMatchesCommanderAtEveryWidth(t *testing.T) {
 
 // The shipped paragraph has no long word, double space or leading space, so it
 // left three branches unexercised -- one of which was wrong, producing a blank
-// line commander does not. Captured the same way as commanderWrapped.
-var commanderWrappedAwkward = []struct {
+// line the baseline does not. Captured the same way as wrappedBaseline.
+var wrappedAwkwardBaseline = []struct {
 	name    string
 	text    string
 	wrapped map[int]string
@@ -491,8 +489,8 @@ var commanderWrappedAwkward = []struct {
 	},
 }
 
-func TestWrapMatchesCommanderOnAwkwardText(t *testing.T) {
-	for _, testCase := range commanderWrappedAwkward {
+func TestWrapMatchesTheBaselineOnAwkwardText(t *testing.T) {
+	for _, testCase := range wrappedAwkwardBaseline {
 		for width, want := range testCase.wrapped {
 			got := wrapHelpText(testCase.text, width-helpGap-helpGap, helpIndent)
 			if got != want {
@@ -503,10 +501,10 @@ func TestWrapMatchesCommanderOnAwkwardText(t *testing.T) {
 	}
 }
 
-// The one deliberate deviation. commander returns the bare indent for an empty
-// or all-whitespace description, which puts a line of trailing spaces on the
-// screen; nothing generated has an empty description, and no line is better than
-// a blank one.
+// The one deliberate deviation. The captured behaviour is to return the bare
+// indent for an empty or all-whitespace description, which puts a line of
+// trailing spaces on the screen; nothing generated has an empty description,
+// and no line is better than a blank one.
 func TestAnEmptyDescriptionProducesNoLine(t *testing.T) {
 	for _, text := range []string{"", "   ", "\t\n"} {
 		if got := wrapHelpText(text, 76, helpIndent); got != "" {

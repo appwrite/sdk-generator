@@ -16,7 +16,7 @@ import (
 // in a shape nothing looked at, and the first command they ran told them to log
 // in again.
 //
-// Silent on every failure, like the TypeScript. This runs before every command,
+// Silent on every failure. This runs before every command,
 // including ones that never touch preferences, so a prefs.json that cannot be
 // read or written must not turn `appwrite --help` into an error. The cost of
 // staying quiet is that the user is asked to log in -- which is exactly what

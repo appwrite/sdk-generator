@@ -122,9 +122,9 @@ func (l *Local) ResourceDirname(resource string) string {
 
 // ResolveResourcePath turns a resource's configured path into an absolute one.
 //
-// Absolute, not merely joined. The TypeScript uses path.resolve(), which
-// resolves against the working directory; filepath.Join does not, and a config
-// loaded by its bare filename leaves a relative result. Docker then rejects the
+// Absolute, not merely joined: the path is resolved against the working
+// directory, which filepath.Join does not do, and a config loaded by its bare
+// filename would otherwise leave a relative result. Docker then rejects the
 // bind mount -- it reads a relative source as a named volume, and the error
 // names volume-naming rules rather than the path.
 func (l *Local) ResolveResourcePath(resource, path string) string {

@@ -13,10 +13,10 @@ import (
 
 // refreshTokenService is the keyring service refresh tokens are filed under.
 //
-// Matches the established CLI's `${EXECUTABLE_NAME}-oauth-refresh-token` exactly.
+// `${EXECUTABLE_NAME}-oauth-refresh-token`, kept stable across releases.
 // Interop is not an invariant -- re-authenticating once on upgrade is
-// acceptable -- but matching costs nothing and spares users
-// a login if the platform keyring cooperates.
+// acceptable -- but a stable name costs nothing and spares users a login if the
+// platform keyring cooperates.
 const refreshTokenService = "appwrite-oauth-refresh-token"
 
 // prefsRefreshTokenKey is where a refresh token lands when no keyring is
@@ -28,7 +28,7 @@ const prefsRefreshTokenKey = config.PreferenceRefreshToken
 //
 // The fallback is not a convenience: headless Linux and CI containers have no
 // secret service, and a CLI that refuses to hold a session there is a CLI that
-// cannot be scripted. The established CLI makes the same trade.
+// cannot be scripted.
 type TokenStore struct {
 	Global *config.Global
 }

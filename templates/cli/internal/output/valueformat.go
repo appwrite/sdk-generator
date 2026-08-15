@@ -11,11 +11,11 @@ import (
 // Implements duration humanising, timestamp formatting, and the key-aware
 // dispatch around those scalar values.
 //
-// These are pure string functions and deliberately apply no colour. The
-// TypeScript wraps the parenthesised part in chalk.dim, which emits nothing
-// when stdout is not a terminal -- so the plain text is the real contract, and
-// the pinned baselines in testdata/valueformat.json are captured with
-// FORCE_COLOR=0. Styling stays in the renderer, where the rest of it lives.
+// These are pure string functions and deliberately apply no colour. Dimming the
+// parenthesised part emits nothing when stdout is not a terminal, so the plain
+// text is the real contract, and the pinned baselines in
+// testdata/valueformat.json are captured with FORCE_COLOR=0. Styling stays in
+// the renderer, where the rest of it lives.
 
 // now is a variable so tests can freeze it.
 //
@@ -28,7 +28,7 @@ var now = time.Now
 //
 // Returns "" for anything not worth rendering, which is what tells the caller
 // to print the raw number alone. Note that this includes durations under half
-// a second: the TypeScript rounds first, so 0.4 has no parts to show.
+// a second: rounding happens first, so 0.4 has no parts to show.
 func HumanizeSeconds(seconds float64) string {
 	if math.IsNaN(seconds) || math.IsInf(seconds, 0) || seconds <= 0 {
 		return ""
@@ -62,9 +62,8 @@ func HumanizeSeconds(seconds float64) string {
 	return strings.Join(parts, " ")
 }
 
-// The offset is mandatory, matching the TypeScript. A date-time without one is
-// read as local time by both languages, so accepting it would mean labelling a
-// local instant UTC.
+// The offset is mandatory. A date-time without one reads as local time, so
+// accepting it would mean labelling a local instant UTC.
 var isoDateTime = regexp.MustCompile(
 	`^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.\d+)?(Z|[+-]\d{2}:\d{2})$`)
 
@@ -101,8 +100,8 @@ func FormatTimestamp(value string) (string, bool) {
 	stamp := date + " " + clock + zone
 
 	// A value can match the shape and still not be a date -- 2026-13-45 does.
-	// The TypeScript renders the stamp without a relative suffix rather than
-	// dropping it, because the text is still what the API sent.
+	// The stamp is rendered without a relative suffix rather than dropped,
+	// because the text is still what the API sent.
 	parsed, err := parseTimestamp(value)
 	if err != nil {
 		return stamp, true
@@ -133,8 +132,7 @@ func relativeTime(value time.Time) string {
 		return "just now"
 	}
 
-	// Falls back to the finest tier rather than erroring, matching the
-	// TypeScript's `?? RELATIVE_TIERS[RELATIVE_TIERS.length - 1]`.
+	// Falls back to the finest tier rather than erroring.
 	tier := relativeTiers[len(relativeTiers)-1]
 	for _, candidate := range relativeTiers {
 		if magnitude >= candidate.size {

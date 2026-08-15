@@ -1,9 +1,9 @@
 // Package preview draws a site's deployment screenshot in the terminal.
 //
-// The TypeScript unsets TERM_PROGRAM, KITTY_WINDOW_ID and friends to force
-// terminal-image's ANSI fallback: iTerm and kitty would otherwise receive a real
-// image, which cannot be framed and does not survive a copied-out transcript. So
-// the fallback is the shipped rendering and the only one implemented here --
+// The ANSI rendering is deliberate rather than a fallback: iTerm and kitty can
+// receive a real image, which cannot be framed and does not survive a
+// copied-out transcript. So the ANSI form is the shipped rendering and the only
+// one implemented here --
 // which also means no new dependency, since image/png and image/jpeg are
 // standard library and half-block cells are arithmetic.
 package preview
@@ -195,7 +195,7 @@ func average(source image.Image, left, top, right, bottom int) color.NRGBA {
 
 // draw turns a pixel grid into half-block cells.
 //
-// Truecolor escapes, the same as terminal-image's ANSI fallback emits. A
+// Truecolor escapes. A
 // terminal limited to 256 colours degrades them itself, which is a better
 // picture than quantising here would produce.
 func draw(pixels [][]color.NRGBA) string {

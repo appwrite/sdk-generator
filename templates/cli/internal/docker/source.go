@@ -58,9 +58,8 @@ func CollectSource(local *config.Local, function config.Function) (Source, error
 
 // walk lists every file under a directory, relative and slash-separated.
 //
-// Dotfiles are included: the TypeScript globs with `dot: true`, and a function
-// that needs a `.npmrc` at build time would otherwise fail to build with no
-// indication why.
+// Dotfiles are included: a function that needs a `.npmrc` at build time would
+// otherwise fail to build with no indication why.
 func walk(directory string) ([]string, error) {
 	var files []string
 
@@ -72,8 +71,7 @@ func walk(directory string) ([]string, error) {
 			return nil
 		}
 
-		// A symlink is followed by the TypeScript's glob but reported as a
-		// plain entry here; only regular files and symlinks are packed.
+		// Only regular files and symlinks are packed.
 		if !entry.Type().IsRegular() && entry.Type()&os.ModeSymlink == 0 {
 			return nil
 		}
@@ -189,9 +187,9 @@ func IsDependencyChange(tool SystemTool, changed []string) bool {
 	for _, file := range changed {
 		normalized := filepath.ToSlash(file)
 		for _, dependency := range tool.DependencyFiles {
-			// The TypeScript compares the watcher's path to the bare filename,
-			// so only a dependency file at the function root triggers a
-			// rebuild -- one in a subdirectory does not.
+			// The watcher's path is compared to the bare filename, so only a
+			// dependency file at the function root triggers a rebuild -- one in
+			// a subdirectory does not.
 			if normalized == dependency {
 				return true
 			}
@@ -204,11 +202,11 @@ func IsDependencyChange(tool SystemTool, changed []string) bool {
 // quoteShellArgument escapes a config value interpolated into a shell command
 // run inside the container.
 //
-// The TypeScript builds `helpers/build.sh "<commands>"` by concatenation, so a
-// double quote in `commands` ends the argument early and the rest is
-// reinterpreted as shell. This escapes instead -- a deliberate divergence, and
-// one that cannot regress a working config: any `commands` value it changes the
-// behaviour of is one the TypeScript already mangles.
+// `helpers/build.sh "<commands>"` is assembled by concatenation, so a double
+// quote in `commands` would end the argument early and the rest would be
+// reinterpreted as shell. This escapes instead, which cannot regress a working
+// config: any `commands` value it changes the behaviour of is one that would
+// otherwise be mangled.
 //
 // The argument shape is unchanged, because the container's helper expects
 // exactly one quoted argument.

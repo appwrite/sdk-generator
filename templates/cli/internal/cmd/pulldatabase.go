@@ -112,7 +112,7 @@ func runPullDatabase(command *cobra.Command, resource databaseResource) error {
 	}
 
 	// Only the children are checked for removal; a database that disappears
-	// takes its children with it, and the TypeScript reports the children.
+	// takes its children with it, and it is the children that are reported.
 	removed := missingLocally(context.local.ResourceEntries(resource.ConfigKey), children)
 	if len(removed) > 0 {
 		output.Warn(out,
@@ -149,10 +149,9 @@ func runPullDatabase(command *cobra.Command, resource databaseResource) error {
 // shapeChild filters a table or collection and its two inner arrays.
 //
 // The inner arrays are set AFTER the filter, so they keep the position the
-// schema gives them but take the filtered value -- which is what the
-// TypeScript's `{...filterBySchema(table), columns, indexes}` does. They are
-// always written, even when absent remotely, because `[]` means "declared with
-// none" and a missing key reads as "not pulled".
+// schema gives them but take the filtered value. They are always written, even
+// when absent remotely, because `[]` means "declared with none" and a missing
+// key reads as "not pulled".
 func shapeChild(row *jsonx.Object, resource databaseResource) *jsonx.Object {
 	shaped := config.FilterBySchema(row, resource.ChildKeys)
 

@@ -165,8 +165,7 @@ func TestAddToAbsentArrayCreatesIt(t *testing.T) {
 }
 
 // TestOmittedFieldsAreNotWritten pins the whitelist behaviour a typed struct
-// gives for free: the TypeScript filters through whitelistKeys so an API
-// response does not drag $createdAt into the config.
+// gives for free: an API response does not drag $createdAt into the config.
 func TestOmittedFieldsAreNotWritten(t *testing.T) {
 	local := loadFrom(t, `{"projectId": "p"}`)
 

@@ -21,9 +21,9 @@ import (
 // source belongs to pull and lives in internal/cmd/pullfunction.go.
 
 const (
-	// ChunkSize is Client.CHUNK_SIZE in the console SDK the TypeScript uploads
-	// through. An archive at or below it is sent as one request with no
-	// content-range, and the API answers without minting an upload id.
+	// ChunkSize is the SDK's own upload chunk size. An archive at or below it is
+	// sent as one request with no content-range, and the API answers without
+	// minting an upload id.
 	ChunkSize = 5 * 1024 * 1024
 
 	// UploadConcurrency is the console SDK's CONCURRENCY: the first chunk
@@ -37,7 +37,7 @@ const (
 	// ArchiveContentType is the type packageDirectory tags the File with.
 	ArchiveContentType = "application/gzip"
 
-	// pollInterval is POLL_DEBOUNCE * 1.5 (deployment.ts:775). The resource
+	// pollInterval is half again the deployment debounce. The resource
 	// commands poll on their own, faster, schedule; this one is only used when
 	// a caller asks pushDeployment itself to wait.
 	pollInterval = 3 * time.Second

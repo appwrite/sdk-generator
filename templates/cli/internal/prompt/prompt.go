@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Replaces inquirer for the interactive commands: the field types, the
+// The prompt layer for the interactive commands: the field types, the
 // validators, and what happens when there is nobody to answer. Individual
 // question definitions land with the commands that use them.
 //
@@ -45,7 +45,7 @@ type Option struct {
 	Label string
 	Value string
 	// Disabled greys the option out and refuses selection, matching
-	// inquirer's `disabled`. Used for a plan the account cannot pick.
+	// An option shown but not selectable -- a plan the account cannot pick.
 	Disabled bool
 	// Reason is shown beside a disabled option to say why.
 	Reason string
@@ -80,9 +80,9 @@ type Choice struct {
 	Options []Option
 	Default string
 	Flag    string
-	// Filter shows a type-to-narrow field. The TypeScript spells this as a
-	// separate `search-list` question type; here it is a property, because the
-	// only difference is whether the filter is visible.
+	// Filter shows a type-to-narrow field. A property rather than a separate
+	// question type, because the only difference is whether the filter is
+	// visible.
 	Filter bool
 }
 
@@ -113,9 +113,8 @@ type Prompter interface {
 
 // Forced wraps a prompter so every confirmation answers true without asking.
 //
-// Implements `cliConfig.force === true ? true : <prompt>`, which the TypeScript
-// repeats at each call site. Wrapping it once means a new confirmation cannot
-// forget to honour --force.
+// Wrapping the check once, rather than repeating it at each call site, means a
+// new confirmation cannot forget to honour --force.
 type Forced struct {
 	Prompter
 }

@@ -31,9 +31,9 @@ func Warn(writer io.Writer, format string, arguments ...any) {
 
 // Hint writes a suggested next command.
 //
-// Distinct from Log because it is advice rather than status: the TypeScript
-// gives it its own prefix and colour so a user who just saw "No buckets found."
-// can tell the follow-up apart from the report.
+// Distinct from Log because it is advice rather than status: its own prefix and
+// colour let a user who just saw "No buckets found." tell the follow-up apart
+// from the report.
 func Hint(writer io.Writer, format string, arguments ...any) {
 	writeMessage(writer, infoStyle, "♥ Hint:", format, arguments...)
 }
@@ -64,9 +64,9 @@ func Note(writer io.Writer, format string, arguments ...any) {
 
 // Heading styles a label that introduces a block rather than a line.
 //
-// Cyan and bold, which is `chalk.cyan.bold` in the TypeScript. Returned rather
-// than written because the caller decides the blank lines around it -- a
-// heading with nothing under it is worse than no heading.
+// Cyan and bold. Returned rather than written because the caller decides the
+// blank lines around it -- a heading with nothing under it is worse than no
+// heading.
 func Heading(text string) string {
 	return infoStyle.Bold(true).Render(text)
 }

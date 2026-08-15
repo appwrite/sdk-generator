@@ -64,6 +64,7 @@ try {
             'shortDescription' => 'Repo short description goes here',
             'url' => 'https://example.com',
             'coverImage' => Config::COVER_IMAGE,
+            'license' => 'BSD-3-Clause',
             'licenseContent' => 'test test test',
             'warning' => '**WORK IN PROGRESS - NOT READY FOR USAGE**',
             'changelog' => '**CHANGELOG**',
@@ -96,6 +97,7 @@ try {
             ->setShortDescription($config['shortDescription'])
             ->setURL($config['url'])
             ->setCoverImage($config['coverImage'])
+            ->setLicense($config['license'])
             ->setLicenseContent($config['licenseContent'])
             ->setWarning($config['warning'])
             ->setChangelog($config['changelog'])

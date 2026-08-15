@@ -11,15 +11,13 @@ import (
 // The attribute, column and index endpoints.
 //
 // All of them go through the legacy /databases route, including the columns and
-// indexes of a TABLE. That reads like a mistake and is not -- the TypeScript
-// calls the databases service unconditionally, and tables and collections are
-// the same objects behind two route prefixes. What the TypeScript sends is the
-// contract, so re-record a push before changing this.
+// indexes of a TABLE. That reads like a mistake and is not -- tables and
+// collections are the same objects behind two route prefixes. The request
+// sequence is contractual, so re-record a push before changing this.
 //
-// A field ABSENT from the config is absent from the request body. The
-// TypeScript passes `xdefault: attribute.default` and the JavaScript SDK drops
-// undefined values, so a config that does not mention `encrypt` does not send
-// it. A present null IS sent: `"default": null` clears the default.
+// A field ABSENT from the config is absent from the request body, so a config
+// that does not mention `encrypt` does not send it. A present null IS sent:
+// `"default": null` clears the default.
 
 // containerPath is the collection route a container's schema hangs off.
 func containerPath(container Container) string {
@@ -136,8 +134,8 @@ type parameter struct {
 func (p parameter) apply(source, body *jsonx.Object) {
 	for _, name := range p.sources {
 		if value, present := source.Get(name); present {
-			// Nullish coalescing in the TypeScript, so a present null falls
-			// through to the next source rather than being sent.
+			// Nullish coalescing: a present null falls through to the next
+			// source rather than being sent.
 			if value == nil && len(p.sources) > 1 {
 				continue
 			}
@@ -156,9 +154,9 @@ func renamed(name string, sources ...string) parameter {
 	return parameter{name: name, sources: sources}
 }
 
-// The parameter sets, in the order the JavaScript SDK builds them. Order only
+// The parameter sets, in the order the generated SDK builds them. Order only
 // affects the body's key order, which no assertion depends on, but keeping it
-// makes a recorded trace diff cleanly against the TypeScript's.
+// makes a recorded trace diff cleanly between releases.
 var (
 	createTyped     = []parameter{named("key"), named("required"), named("default"), named("array")}
 	createEnum      = []parameter{named("key"), named("elements"), named("required"), named("default"), named("array")}
