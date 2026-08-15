@@ -357,7 +357,10 @@ class Go extends Language
                 $value = explode("\n", $value);
                 $indent = \str_repeat(' ', $indent);
                 foreach ($value as $key => $line) {
-                    $value[$key] = "// " . wordwrap(trim($line), 75, "\n" . $indent . "// ");
+                    $line = trim($line);
+                    $value[$key] = $line === ''
+                        ? '//'
+                        : "// " . wordwrap($line, 75, "\n" . $indent . "// ");
                 }
                 return implode("\n" . $indent, $value);
             }, ['is_safe' => ['html']]),

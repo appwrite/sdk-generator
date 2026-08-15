@@ -1,73 +1,61 @@
 {% autoescape false %}
 {%- macro render_property_value(definitions, property, spec) -%}
-    {%- if (property | schemaModel) and definitions[(property | schemaModel)] -%}
-        {%- if (property | schemaType) == 'array' -%}
-            []{{ (property | schemaModel) | caseUcfirst }}{
-                {{- _self.render_struct_init(definitions, definitions[(property | schemaModel)], spec) -}},
-            }
-        {%- else -%}
-            {{- _self.render_struct_init(definitions, definitions[(property | schemaModel)], spec) -}}
-        {%- endif -%}
-    {%- else -%}
-        {%- if (property | schemaType) == 'object' -%}
-            map[string]interface{}{}
-        {%- elseif (property | schemaType) == 'array' -%}
-            {{ (property | typeName) }}{
-                {%- if (property | arraySchema | schemaType) == 'string' -%}
-                    "{{ (property | arraySchema | schemaExample) | default('test') | replace({'\\': '\\\\', '"': '\\"'}) | raw }}"
-                {%- elseif (property | arraySchema | schemaType) == 'integer' -%}
-                    1
-                {%- endif -%}
-            }
-        {%- elseif (property | schemaType) == 'string' -%}
-            "{{ ((property | schemaExample) | default('string')) | replace({'\\': '\\\\', '"': '\\"'}) | raw }}"
-        {%- elseif (property | schemaType) == 'boolean' -%}
-            true
-        {%- elseif (property | schemaType) == 'integer' -%}
-            {{ (property | schemaExample) | default(1) }}
-        {%- elseif (property | schemaType) == 'number' -%}
-            {{ (property | schemaExample) | default(1.0) }}
-        {%- else -%}
-            nil
-        {%- endif -%}
-    {%- endif -%}
+{%- if (property | schemaModel) and definitions[(property | schemaModel)] -%}
+{%- if (property | schemaType) == 'array' -%}
+[]{{ (property | schemaModel) | caseUcfirst }}{ {{- _self.render_struct_init(definitions, definitions[(property | schemaModel)], spec) -}} }
+{%- else -%}
+{{ _self.render_struct_init(definitions, definitions[(property | schemaModel)], spec) }}
+{%- endif -%}
+{%- elseif (property | schemaType) == 'object' -%}
+map[string]interface{}{}
+{%- elseif (property | schemaType) == 'array' -%}
+{{ property | typeName }}{%- if (property | arraySchema | schemaType) == 'string' -%}{"{{ (property | arraySchema | schemaExample) | default('test') | replace({'\\': '\\\\', '"': '\\"'}) | raw }}"}{%- elseif (property | arraySchema | schemaType) == 'integer' -%}{1}{%- else -%}{}{%- endif -%}
+{%- elseif (property | schemaType) == 'string' -%}
+"{{ ((property | schemaExample) | default('string')) | replace({'\\': '\\\\', '"': '\\"'}) | raw }}"
+{%- elseif (property | schemaType) == 'boolean' -%}
+true
+{%- elseif (property | schemaType) == 'integer' -%}
+{{ (property | schemaExample) | default(1) }}
+{%- elseif (property | schemaType) == 'number' -%}
+{{ (property | schemaExample) | default(1.0) }}
+{%- else -%}
+nil
+{%- endif -%}
 {%- endmacro -%}
 
 {%- macro render_struct_init(definitions, definition, spec) -%}
-    {{ (definition | schemaName) | caseUcfirst }}{
-        {%- for property in definition.properties | filter(p => p | schemaRequired) %}
-        {{ (property | schemaName) | caseUcfirst | escapeKeyword }}: {{ _self.render_property_value(definitions, property, spec) }},
-        {%- endfor %}
-    }
-{%- endmacro -%}
+{{ (definition | schemaName) | caseUcfirst }}{
+{%- for property in definition.properties | filter(p => p | schemaRequired) -%}
+{{ (property | schemaName) | caseUcfirst | escapeKeyword }}: {{ _self.render_property_value(definitions, property, spec) }}{% if not loop.last %}, {% endif %}
+{%- endfor -%}
+}
+{%- endmacro %}
 package models
 
 import (
-    "encoding/json"
-    "testing"
+	"encoding/json"
+	"testing"
 )
 
 func Test{{ definitionName | caseUcfirst }}Model(t *testing.T) {
-    model := {{ _self.render_struct_init(definitions, definition, spec) }}
+	model := {{ _self.render_struct_init(definitions, definition, spec) }}
 
-    data, err := json.Marshal(model)
-    if err != nil {
-        t.Fatal(err)
-    }
+	data, err := json.Marshal(model)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-    var result {{ definitionName | caseUcfirst }}
-    err = json.Unmarshal(data, &result)
-    if err != nil {
-        t.Fatal(err)
-    }
-
-    {%- for property in definition.properties | filter(p => p | schemaRequired) %}
-    {%- if (property | schemaType) != 'object' and (property | schemaType) != 'array' %}
-
-    if result.{{ (property | schemaName) | caseUcfirst | escapeKeyword }} != model.{{ (property | schemaName) | caseUcfirst | escapeKeyword }} {
-        t.Errorf("Expected {{ (property | schemaName) | caseUcfirst | escapeKeyword }} %v, got %v", model.{{ (property | schemaName) | caseUcfirst | escapeKeyword }}, result.{{ (property | schemaName) | caseUcfirst | escapeKeyword }})
-    }
-    {%- endif %}
-    {%- endfor %}
+	var result {{ definitionName | caseUcfirst }}
+	err = json.Unmarshal(data, &result)
+	if err != nil {
+		t.Fatal(err)
+	}
+{% for property in definition.properties | filter(p => p | schemaRequired) %}
+{% if (property | schemaType) != 'object' and (property | schemaType) != 'array' %}
+	if result.{{ (property | schemaName) | caseUcfirst | escapeKeyword }} != model.{{ (property | schemaName) | caseUcfirst | escapeKeyword }} {
+		t.Errorf("Expected {{ (property | schemaName) | caseUcfirst | escapeKeyword }} %v, got %v", model.{{ (property | schemaName) | caseUcfirst | escapeKeyword }}, result.{{ (property | schemaName) | caseUcfirst | escapeKeyword }})
+	}
+{% endif %}
+{% endfor %}
 }
 {% endautoescape %}

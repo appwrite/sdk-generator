@@ -1,26 +1,26 @@
 package models
 
 import (
-    "encoding/json"
+	"encoding/json"
 )
 
 {{ ((requestModel.description | caseUcfirst) ~ " Request Model") | godocComment }}
 type {{ requestModelName | caseUcfirst }} struct {
-    {%~ for property in requestModel.properties %}
-    {{ property.description | godocComment(4) }}
-    {{ (property | schemaName) | caseUcfirst | escapeKeyword }} {{ property | propertyType(spec) }}{% if not (property | schemaRequired) %} `json:"{{ (property | schemaName) }},omitempty"`{% else %} `json:"{{ (property | schemaName) }}"`{% endif %}
+	{%~ for property in requestModel.properties %}
+	{{ property.description | godocComment | replace({"\n": "\n\t"}) }}
+	{{ (property | schemaName) | caseUcfirst | escapeKeyword }} {{ property | propertyType(spec) }}{% if not (property | schemaRequired) %} `json:"{{ (property | schemaName) }},omitempty"`{% else %} `json:"{{ (property | schemaName) }}"`{% endif %}
 
-    {%~ endfor %}
+	{%~ endfor %}
 }
 
 func (model {{ requestModelName | caseUcfirst }}) ToMap() map[string]interface{} {
-    return map[string]interface{}{
-        {%~ for property in requestModel.properties %}
-        "{{ (property | schemaName) }}": model.{{ (property | schemaName) | caseUcfirst | escapeKeyword }},
-        {%~ endfor %}
-    }
+	values := map[string]interface{}{}
+	{%~ for property in requestModel.properties %}
+	values["{{ (property | schemaName) }}"] = model.{{ (property | schemaName) | caseUcfirst | escapeKeyword }}
+	{%~ endfor %}
+	return values
 }
 
 func (model {{ requestModelName | caseUcfirst }}) ToJson() ([]byte, error) {
-    return json.Marshal(model.ToMap())
+	return json.Marshal(model.ToMap())
 }

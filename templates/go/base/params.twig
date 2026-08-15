@@ -14,17 +14,16 @@
 	}
 {% endif %}
 {% endfor %}
-	headers := map[string]interface{}{
+	headers := map[string]interface{}{}
 {%~ for key, security in (method | securityHeaders) %}
-		"{{ security.name }}": srv.client.Config["{{ key | caseLower }}"],
+	headers["{{ security.name }}"] = srv.client.Config["{{ key | caseLower }}"]
 {%~ endfor %}
 {% for key, header in (method | methodHeaders) %}
-		"{{ key }}": "{{ header }}",
+	headers["{{ key }}"] = "{{ header }}"
 {% endfor %}
 {%~ for parameter in (method | parameters('header')) | filter(v => v.required) %}
-		"{{ parameter.name }}": {{ parameter.name | caseUcfirst }},
+	headers["{{ parameter.name }}"] = {{ parameter.name | caseUcfirst }}
 {%~ endfor %}
-	}
 {% for parameter in (method | parameters('header')) | filter(v => not v.required) %}
 	if options.enabledSetters["{{ parameter.name | caseUcfirst }}"] {
 		headers["{{ parameter.name }}"] = options.{{ parameter.name | caseUcfirst }}

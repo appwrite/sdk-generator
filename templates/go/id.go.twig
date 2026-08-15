@@ -1,13 +1,13 @@
 package id
 
 import (
-    "time"
-    "strconv"
-    "math/rand"
+	"math/rand"
+	"strconv"
+	"time"
 )
 
 func Custom(id string) string {
-    return id
+	return id
 }
 
 func Unique() string {
