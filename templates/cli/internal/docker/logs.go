@@ -3,6 +3,8 @@ package docker
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"hash"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,20 +14,16 @@ import (
 // runtimeLogPollInterval bounds how long a function log waits before it is
 // shown. Polling keeps this portable and avoids holding the files open while
 // cleanup removes .appwrite on Windows.
-const (
-	runtimeLogPollInterval = 50 * time.Millisecond
-	runtimeLogBookmarkSize = 256
-)
+const runtimeLogPollInterval = 50 * time.Millisecond
 
 // followedLogFile remembers how much of one runtime log has been emitted. The
-// bookmark detects a truncate-and-regrow that happens entirely between polls.
+// digest detects a truncate-and-regrow that happens entirely between polls.
 type followedLogFile struct {
-	path           string
-	info           os.FileInfo
-	offset         int64
-	pending        []byte
-	bookmark       []byte
-	bookmarkOffset int64
+	path    string
+	info    os.FileInfo
+	offset  int64
+	pending []byte
+	digest  [sha256.Size]byte
 }
 
 // FollowRuntimeLogs emits complete lines appended to the runtime's stdout and
@@ -81,30 +79,36 @@ func (f *followedLogFile) read(emit func(string)) {
 	defer file.Close()
 
 	reset := f.info != nil && (!os.SameFile(f.info, info) || info.Size() < f.offset)
-	if !reset && f.info != nil && info.Size() == f.offset {
-		// The file changed without growing, so it was rewritten in place.
-		reset = true
-	}
+	hasher := sha256.New()
 	if !reset && f.offset > 0 {
-		reset = !f.bookmarkMatches(file)
+		var matches bool
+		hasher, matches = f.prefixMatches(file)
+		reset = !matches
 	}
 	if reset {
 		f.offset = 0
 		f.pending = nil
-		f.bookmark = nil
-		f.bookmarkOffset = 0
-	}
-
-	if _, err := file.Seek(f.offset, io.SeekStart); err != nil {
-		return
+		hasher = sha256.New()
+		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			return
+		}
 	}
 
 	appended, err := io.ReadAll(file)
-	if err != nil || len(appended) == 0 {
+	if err != nil {
+		return
+	}
+	if len(appended) == 0 {
+		if latest, err := file.Stat(); err == nil {
+			f.info = latest
+		} else {
+			f.info = info
+		}
 		return
 	}
 	f.offset += int64(len(appended))
-	f.refreshBookmark(appended)
+	_, _ = hasher.Write(appended)
+	copy(f.digest[:], hasher.Sum(nil))
 	f.pending = append(f.pending, appended...)
 	if latest, err := file.Stat(); err == nil {
 		f.info = latest
@@ -124,28 +128,15 @@ func (f *followedLogFile) read(emit func(string)) {
 	}
 }
 
-func (f *followedLogFile) bookmarkMatches(file *os.File) bool {
-	if len(f.bookmark) == 0 {
-		return true
+// prefixMatches verifies every byte already emitted and leaves the hasher and
+// file positioned at the old offset. A bounded tail sample is insufficient: a
+// restarted runtime can reproduce that sample after replacing an earlier line.
+func (f *followedLogFile) prefixMatches(file *os.File) (hash.Hash, bool) {
+	hasher := sha256.New()
+	copied, err := io.CopyN(hasher, file, f.offset)
+	if err != nil || copied != f.offset {
+		return hasher, false
 	}
 
-	actual := make([]byte, len(f.bookmark))
-	if _, err := file.ReadAt(actual, f.bookmarkOffset); err != nil {
-		return false
-	}
-
-	return bytes.Equal(actual, f.bookmark)
-}
-
-func (f *followedLogFile) refreshBookmark(appended []byte) {
-	if len(appended) >= runtimeLogBookmarkSize {
-		f.bookmark = append(f.bookmark[:0], appended[len(appended)-runtimeLogBookmarkSize:]...)
-	} else {
-		keep := min(len(f.bookmark), runtimeLogBookmarkSize-len(appended))
-		bookmark := make([]byte, 0, keep+len(appended))
-		bookmark = append(bookmark, f.bookmark[len(f.bookmark)-keep:]...)
-		f.bookmark = append(bookmark, appended...)
-	}
-
-	f.bookmarkOffset = f.offset - int64(len(f.bookmark))
+	return hasher, bytes.Equal(hasher.Sum(nil), f.digest[:])
 }

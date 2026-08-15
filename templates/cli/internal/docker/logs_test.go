@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -86,6 +87,33 @@ func TestFollowedLogFileDetectsTruncateAndRegrowBetweenReads(t *testing.T) {
 	file.read(emit)
 
 	want := []string{"old first", "old second", "new first", "new second", "new third"}
+	if !reflect.DeepEqual(lines, want) {
+		t.Fatalf("lines = %#v, want %#v", lines, want)
+	}
+}
+
+func TestFollowedLogFileChecksTheWholePrefixAfterRegrowth(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "logs.txt")
+	sharedTail := strings.Repeat("x", 256)
+	oldLine := strings.Repeat("a", 300) + sharedTail
+	if err := os.WriteFile(path, []byte(oldLine+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	file := &followedLogFile{path: path}
+	var lines []string
+	emit := func(line string) { lines = append(lines, line) }
+	file.read(emit)
+
+	// The final 256 bytes before the old offset are unchanged, but the prefix
+	// before them belongs to the new runtime and must not be skipped.
+	newLine := strings.Repeat("b", 300) + sharedTail
+	if err := os.WriteFile(path, []byte(newLine+"\nnew suffix\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	file.read(emit)
+
+	want := []string{oldLine, newLine, "new suffix"}
 	if !reflect.DeepEqual(lines, want) {
 		t.Fatalf("lines = %#v, want %#v", lines, want)
 	}
