@@ -974,6 +974,16 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/docker/logs.go',
+                'template'      => 'cli/internal/docker/logs.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/docker/logs_test.go',
+                'template'      => 'cli/internal/docker/logs_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/docker/queue.go',
                 'template'      => 'cli/internal/docker/queue.go',
             ],

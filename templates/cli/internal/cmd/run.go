@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -147,6 +148,8 @@ func runFunction(command *cobra.Command, options runOptions) error {
 	ctx, stop := signal.NotifyContext(command.Context(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	go printRuntimeLogs(ctx, out, emulator.Directory)
+
 	keys, variables := collectVariables(command, local, function, options)
 
 	// The credentials collectVariables minted last an hour. A run outliving
@@ -203,6 +206,21 @@ func runFunction(command *cobra.Command, options runOptions) error {
 	queue.Unlock()
 
 	return serve(ctx, command, emulator, tool, queue, port, keys, variables, wait)
+}
+
+// printRuntimeLogs restores the live context.log() and context.error() output
+// that local functions had before the Go CLI. Both streams share stdout to
+// preserve that command's output contract; the heading is delayed so a function
+// that does not log leaves no empty section behind.
+func printRuntimeLogs(ctx context.Context, out io.Writer, functionDirectory string) {
+	shownHeading := false
+	docker.FollowRuntimeLogs(ctx, functionDirectory, func(line string) {
+		if !shownHeading {
+			output.Log(out, "Runtime logs:")
+			shownHeading = true
+		}
+		fmt.Fprintln(out, line)
+	})
 }
 
 // watchExit reports a container's own exit, once. Buffered by one so the
