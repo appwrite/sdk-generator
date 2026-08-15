@@ -66,6 +66,31 @@ func TestFollowedLogFileResetsAfterTruncateOrReplace(t *testing.T) {
 	}
 }
 
+func TestFollowedLogFileDetectsTruncateAndRegrowBetweenReads(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "logs.txt")
+	if err := os.WriteFile(path, []byte("old first\nold second\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	file := &followedLogFile{path: path}
+	var lines []string
+	emit := func(line string) { lines = append(lines, line) }
+	file.read(emit)
+
+	// This replacement is larger than the old offset. A size-only follower
+	// mistakes it for an append and starts in the middle of "new second".
+	regrown := []byte("new first\nnew second\nnew third\n")
+	if err := os.WriteFile(path, regrown, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	file.read(emit)
+
+	want := []string{"old first", "old second", "new first", "new second", "new third"}
+	if !reflect.DeepEqual(lines, want) {
+		t.Fatalf("lines = %#v, want %#v", lines, want)
+	}
+}
+
 func TestFollowRuntimeLogsStreamsStdoutAndStderr(t *testing.T) {
 	directory := t.TempDir()
 	scratch := filepath.Join(directory, AppwriteDirectory)
