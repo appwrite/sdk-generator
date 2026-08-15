@@ -26,13 +26,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Selected functions are packaged, uploaded and monitored in parallel. This
-// starts every deployment without waiting for the previous build to finish.
-// Project settings are deliberately different -- see applyEnabled. Build logs
+// Selected functions are packaged, uploaded and monitored with bounded
+// parallelism. This starts several deployments without waiting for the previous
+// build to finish. Project settings are deliberately different -- see
+// applyEnabled. Build logs
 // come from deployment polling rather than a realtime WebSocket, so a line
 // appears within one pollDebounce rather than the moment it is written.
 
 const (
+	// functionPushConcurrency bounds whole-resource pushes. Each deployment can
+	// already upload eight chunks concurrently, so an unbounded worker per
+	// configured function multiplies network, file and API pressure quickly.
+	functionPushConcurrency = 4
+
 	// pollDebounce is the gap between deployment status reads.
 	pollDebounce = 2 * time.Second
 
@@ -745,25 +751,34 @@ type deployRun struct {
 	LabelLogs     bool
 }
 
-// pushDeployablesInParallel starts one independent push per selected entry.
-// Each worker owns its summary so counters and failure slices never race. The
-// results are merged in config order after every worker has finished, keeping
-// the closing deployment links deterministic even when builds finish in a
-// different order.
+// pushDeployablesInParallel runs selected entries through a bounded worker
+// pool. Each entry owns its summary so counters and failure slices never race.
+// The results are merged in config order after every worker has finished,
+// keeping the closing deployment links deterministic even when builds finish
+// in a different order.
 func pushDeployablesInParallel(
 	entries []*jsonx.Object,
 	push func(*jsonx.Object, *pushSummary),
 ) pushSummary {
 	results := make([]pushSummary, len(entries))
+	jobs := make(chan int)
 
+	workerCount := min(functionPushConcurrency, len(entries))
 	var workers sync.WaitGroup
-	workers.Add(len(entries))
-	for index, entry := range entries {
-		go func(index int, entry *jsonx.Object) {
+	workers.Add(workerCount)
+	for range workerCount {
+		go func() {
 			defer workers.Done()
-			push(entry, &results[index])
-		}(index, entry)
+			for index := range jobs {
+				push(entries[index], &results[index])
+			}
+		}()
 	}
+
+	for index := range entries {
+		jobs <- index
+	}
+	close(jobs)
 	workers.Wait()
 
 	summary := pushSummary{}

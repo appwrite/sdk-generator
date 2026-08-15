@@ -117,6 +117,55 @@ func TestSelectedDeploymentsStartInParallel(t *testing.T) {
 	}
 }
 
+// Packaging and uploading a large function can consume eight HTTP requests on
+// its own. Selecting a large project must not multiply that by every configured
+// function at once.
+func TestSelectedDeploymentConcurrencyIsBounded(t *testing.T) {
+	entries := make([]*jsonx.Object, functionPushConcurrency+2)
+	for index := range entries {
+		entries[index] = jsonx.NewObject()
+	}
+
+	started := make(chan struct{}, len(entries))
+	release := make(chan struct{})
+	finished := make(chan pushSummary, 1)
+
+	go func() {
+		finished <- pushDeployablesInParallel(entries,
+			func(_ *jsonx.Object, summary *pushSummary) {
+				started <- struct{}{}
+				<-release
+				summary.Pushed++
+			})
+	}()
+
+	timer := time.NewTimer(5 * time.Second)
+	defer timer.Stop()
+	for range functionPushConcurrency {
+		select {
+		case <-started:
+		case <-timer.C:
+			close(release)
+			t.Fatalf("only %d of %d deployment workers started",
+				len(started), functionPushConcurrency)
+		}
+	}
+
+	select {
+	case <-started:
+		close(release)
+		t.Fatalf("more than %d deployment workers ran concurrently",
+			functionPushConcurrency)
+	case <-time.After(100 * time.Millisecond):
+	}
+	close(release)
+
+	summary := <-finished
+	if summary.Pushed != len(entries) {
+		t.Errorf("summary counted %d pushes, want %d", summary.Pushed, len(entries))
+	}
+}
+
 // `appwrite push site all` prompted for a selection, because cobra accepts
 // surplus positionals by default and the word was thrown away. `push function
 // all` looked like it worked only because that project had no functions.
