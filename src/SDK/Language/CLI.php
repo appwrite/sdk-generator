@@ -25,7 +25,7 @@ class CLI extends Go
      * requires from v2 on, so it moves in lockstep with the version pinned in
      * templates/cli/go.mod.twig.
      */
-    public const string SDK_MODULE = 'github.com/appwrite/sdk-for-go/v6';
+    public const string SDK_MODULE = 'github.com/appwrite/sdk-for-go/v7';
 
     /**
      * @var array

@@ -328,6 +328,7 @@ try {
         ['service' => 'account', 'name' => 'updatePushTarget'],
         ['service' => 'account', 'name' => 'deletePushTarget'],
         ['service' => 'account', 'name' => 'createOAuth2Session'],
+        ['service' => 'account', 'name' => 'createJWT'],
         ['service' => 'account', 'name' => 'delete'],
         // OIDC logout.
         ['service' => 'oauth2', 'name' => 'logout'],
@@ -348,6 +349,7 @@ try {
         ['service' => 'presences', 'name' => 'update'],
         // Usage and log reporting.
         ['service' => 'presences', 'name' => 'getUsage'],
+        ['service' => 'project', 'name' => 'createKey'],
         ['service' => 'project', 'name' => 'getUsage'],
         ['service' => 'users', 'name' => 'getUsage'],
         ['service' => 'teams', 'name' => 'listLogs'],
