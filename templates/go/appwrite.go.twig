@@ -1,10 +1,12 @@
+{% set sortedServices = services | sort((a, b) => a.name <=> b.name) -%}
 package appwrite
 
 import (
 	"time"
 
 	"{{ sdk | goPackagePath }}/client"
-{% for key,service in services %}
+
+{% for service in sortedServices %}
 	"{{ sdk | goPackagePath }}/{{ service.name | caseLower }}"
 {% endfor %}
 )
@@ -62,7 +64,7 @@ func WithChunkSize(size int64) client.ClientOption {
 {% for headerKey, header in globalHeaders %}
 // Helper method to construct NewClient()
 {% if header.description %}
-// 
+//
 // {{header.description}}
 {% endif %}
 func With{{headerKey | caseUcfirst}}(value string) client.ClientOption {
@@ -74,4 +76,5 @@ func With{{headerKey | caseUcfirst}}(value string) client.ClientOption {
 		return nil
 	}
 }
+{% if not loop.last %}{{ "\n" -}}{% endif %}
 {% endfor %}

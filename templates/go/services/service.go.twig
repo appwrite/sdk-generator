@@ -12,7 +12,8 @@
 {% set hasDiscriminatedUnionResponses = true %}
 {% endif %}
 {% endfor %}
-{%- for method in (service | operations) -%}
+{%- set methods = service | operations -%}
+{%- for method in methods -%}
 {%- if (method | returnType(spec, spec.info.title | caseLower)) starts with "models" -%}
 		{%- set requireModelsPkg = true -%}
 	{%- endif -%}
@@ -30,20 +31,21 @@ package {{ service.name | caseLower }}
 import (
 	"encoding/json"
 	"errors"
-	"{{ sdk | goPackagePath }}/client"
-{% if requireModelsPkg %}
-	"{{ sdk | goPackagePath }}/models"
-{% endif %}
-{% if requireFilesPkg %}
-	"{{ sdk | goPackagePath }}/file"
+{% if hasDiscriminatedUnionResponses %}
+	"fmt"
 {% endif %}
 {% if requireUrlPkg %}
 	"net/url"
 {% endif %}
-{% if hasDiscriminatedUnionResponses %}
-	"fmt"
-{% endif %}
 	"strings"
+
+	"{{ sdk | goPackagePath }}/client"
+{% if requireFilesPkg %}
+	"{{ sdk | goPackagePath }}/file"
+{% endif %}
+{% if requireModelsPkg %}
+	"{{ sdk | goPackagePath }}/models"
+{% endif %}
 )
 
 {{ ((service.name | caseUcfirst) ~ " service") | godocComment }}
@@ -55,30 +57,35 @@ func New(clt client.Client) *{{ service.name | caseUcfirst }} {
 	return &{{ service.name | caseUcfirst }}{
 		client: clt,
 	}
+}{%- set firstMethod = methods | first -%}
+{%- if (firstMethod | parameters('all')) | filter(v => not v.required) | length > 0 -%}
+{{ "\n\n" -}}
+{%- else -%}
+{{ "\n" -}}
+{%- endif -%}
+{% for method in methods -%}
+{% if (method | parameters('all'))|filter(v => not v.required)|length > 0 %}
+{% set optionalParameters = (method | parameters('all')) | filter(v => not v.required) %}
+{% set optionFieldWidth = (optionalParameters | map(p => ((p.name | caseUcfirst) | length)) | merge([14]) | sort | last) %}
+type {{ ((method | methodName) ~ "Options") | caseUcfirst }} struct {
+{% for parameter in optionalParameters %}
+	{{ ('%-' ~ optionFieldWidth ~ 's %s') | format(parameter.name | caseUcfirst, parameter | typeName) }}
+{% endfor %}
+	{{ ('%-' ~ optionFieldWidth ~ 's %s') | format('enabledSetters', 'map[string]bool') }}
 }
 
-{% for method in (service | operations) %}
-{% if (method | parameters('all'))|filter(v => not v.required)|length > 0 %}
-type {{ ((method | methodName) ~ "Options") | caseUcfirst }} struct {
-{% for parameter in (method | parameters('all')) %}
-{% if not parameter.required %}
-	{{ parameter.name | caseUcfirst }} {{ (parameter | typeName) }}
-{% endif %}
-{% endfor %}
-	enabledSetters map[string]bool
-}
 func (options {{ ((method | methodName) ~ "Options") | caseUcfirst }}) New() *{{ ((method | methodName) ~ "Options") | caseUcfirst }} {
-	options.enabledSetters = map[string]bool{
-{% for parameter in (method | parameters('all')) %}
-{% if not parameter.required %}
-		"{{ parameter.name | caseUcfirst }}": false,
-{% endif %}
-{% endfor %}
-	}
+	options.enabledSetters = map[string]bool{{ '{' -}}
+{%- for parameter in optionalParameters -%}
+"{{ parameter.name | caseUcfirst }}": false{% if not loop.last %}, {% endif %}
+{%- endfor -%}
+{{ '}' }}
 	return &options
 }
+
 type {{ ((method | methodName) ~ "Option" ) | caseUcfirst }} func(*{{ ((method | methodName) ~ "Options") | caseUcfirst }})
-{% for parameter in (method | parameters('all'))|filter(v => not v.required) %}
+
+{% for parameter in optionalParameters %}
 func (srv *{{ service.name | caseUcfirst }}) With{{ (method | methodName) | caseUcfirst }}{{ parameter.name | caseUcfirst }}(v {{ (parameter | typeName) }}) {{ ((method | methodName) ~ "Option") | caseUcfirst }} {
 	return func(o *{{ ((method | methodName) ~ "Options") | caseUcfirst }}) {
 		o.{{ parameter.name | caseUcfirst }} = v
@@ -86,23 +93,23 @@ func (srv *{{ service.name | caseUcfirst }}) With{{ (method | methodName) | case
 	}
 }
 {% endfor %}
-{% endif %}
-{% set params="" %}
-{% if (method | parameters('all'))|filter(v => v.required)|length > 0 %}
-{% for parameter in (method | parameters('all'))|filter(v => v.required) %}
-	{% set params = params ~ (parameter.name | caseUcfirst) ~ " " ~ (parameter | typeName) %}
-{% if not loop.last %}
-	{% set params = params ~ ", " %}
-{% endif %}
-{% endfor %}
-{% if (method | parameters('all'))|filter(v => not v.required)|length > 0 %}
-	{% set params = params ~ ", " %}
-{% endif %}
-{% endif %}
-{% if (method | parameters('all'))|filter(v => not v.required)|length > 0 %}
-	{% set params = params ~ "optionalSetters ..." ~ (((method | methodName) ~ "Option") | caseUcfirst) %}
-{% endif %}
-
+{%- endif -%}
+{%- set params="" -%}
+{%- if (method | parameters('all'))|filter(v => v.required)|length > 0 -%}
+{%- for parameter in (method | parameters('all'))|filter(v => v.required) -%}
+{%- set params = params ~ (parameter.name | caseUcfirst) ~ " " ~ (parameter | typeName) -%}
+{%- if not loop.last -%}
+{%- set params = params ~ ", " -%}
+{%- endif -%}
+{%- endfor -%}
+{%- if (method | parameters('all'))|filter(v => not v.required)|length > 0 -%}
+{%- set params = params ~ ", " -%}
+{%- endif -%}
+{%- endif -%}
+{%- if (method | parameters('all'))|filter(v => not v.required)|length > 0 -%}
+{%- set params = params ~ "optionalSetters ..." ~ (((method | methodName) ~ "Option") | caseUcfirst) -%}
+{%- endif -%}
+{{ "\n" -}}
 {% if method.description %}
 {{ (((method | methodName) | caseUcfirst) ~ ' ' ~ method.description | caseLcfirst) | godocComment }}
 {% else %}
@@ -117,7 +124,7 @@ func (srv *{{ service.name | caseUcfirst }}) With{{ (method | methodName) | case
 {%~ endif %}
 {% endif %}
 {% set returnType = method | returnType(spec, spec.info.title | caseLower) %}
-func (srv *{{ service.name | caseUcfirst }}) {{ (method | methodName) | caseUcfirst }}({{ params }})({% if returnType == 'models.Model' %}{{ returnType }}{% else %}*{{ returnType }}{% endif %}, error) {
+func (srv *{{ service.name | caseUcfirst }}) {{ (method | methodName) | caseUcfirst }}({{ params }}) ({% if returnType == 'models.Model' %}{{ returnType }}{% else %}*{{ returnType }}{% endif %}, error) {
 {% if (method | parameters('path'))|length > 0 %}
 	r := strings.NewReplacer({% for parameter in (method | parameters('path')) %}"{{ '{' }}{{ parameter.name }}{{ '}' }}", client.EncodePath({% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}srv.client.Config["{{ parameter.extensions['x-sdk-config'] | caseLower }}"]{% else %}{{ parameter.name | caseUcfirst }}{% endif %}){% if not loop.last %}, {% endif %}{% endfor %})
 	path := r.Replace("{{ method.path }}")
@@ -135,6 +142,7 @@ func (srv *{{ service.name | caseUcfirst }}) {{ (method | methodName) | caseUcfi
 {% endif %}
 }
 {% if (method | methodType) == 'location' %}
+{{ "\n" -}}
 {% if method.description %}
 {{ (((method | methodName) | caseUcfirst) ~ 'URL ' ~ method.description | caseLcfirst) | godocComment }}
 {% else %}
@@ -180,4 +188,5 @@ func (srv *{{ service.name | caseUcfirst }}) {{ (method | methodName) | caseUcfi
 	return &result, nil
 }
 {% endif %}
+{% if not loop.last and ((methods[loop.index0 + 1] | parameters('all')) | filter(v => not v.required) | length > 0) %}{{ "\n" -}}{% endif %}
 {% endfor %}

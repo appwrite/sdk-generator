@@ -1,14 +1,10 @@
-{% for parameter in (method | parameters('all')) %}
-{% if (parameter | schemaType) == 'file' %}
-    paramName := "{{ parameter.name }}"
+{% set fileParameter = (method | parameters('all')) | filter(p => (p | schemaType) == 'file') | last %}
+	paramName := "{{ fileParameter.name }}"
 
-{% endif %}
-{% endfor %}
-
-    uploadId := ""
+	uploadId := ""
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | extension('x-upload-id', false)) %}
-    uploadId = {{ parameter.name | escapeKeyword | caseUcfirst }}
+	uploadId = {{ parameter.name | escapeKeyword | caseUcfirst }}
 {% endif %}
 {% endfor %}
 

@@ -1,38 +1,38 @@
 package models
 
 import (
-    "encoding/json"
-    "errors"
+	"encoding/json"
+	"errors"
 )
 
 {{ ((definition.description | caseUcfirst) ~ " Model") | godocComment }}
 type {{ definitionName | caseUcfirst }} struct {
-    {%~ for property in definition.properties %}
-    {{ property.description | godocComment(4) }}
-    {{ (property | schemaName) | caseUcfirst | escapeKeyword }} {{ property | propertyType(spec) }} `json:"{{ (property | schemaName) }}"`
-    {%~ endfor %}
+	{%~ for property in definition.properties %}
+	{{ property.description | godocComment | replace({"\n": "\n\t"}) }}
+	{{ (property | schemaName) | caseUcfirst | escapeKeyword }} {{ property | propertyType(spec) }} `json:"{{ (property | schemaName) }}"`
+	{%~ endfor %}
 
-    // Used by Decode() method
-    data []byte
+	// Used by Decode() method
+	data []byte
 }
 
 func (model {{ definitionName | caseUcfirst }}) New(data []byte) *{{ definitionName | caseUcfirst }} {
-    model.data = data
-    return &model
+	model.data = data
+	return &model
 }
 
 {%~ if definition.additionalProperties %}
 // Use this method to get response in desired type
 {%~ endif %}
 func (model *{{ definitionName | caseUcfirst }}) Decode(value interface{}) error {
-    if len(model.data) <= 0 {
-        return errors.New("method Decode() cannot be used on nested struct")
-    }
+	if len(model.data) <= 0 {
+		return errors.New("method Decode() cannot be used on nested struct")
+	}
 
-    err := json.Unmarshal(model.data, value)
-    if err != nil {
-        return err
-    }
+	err := json.Unmarshal(model.data, value)
+	if err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }

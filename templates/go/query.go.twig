@@ -27,7 +27,7 @@ func parseQuery(options queryOptions) string {
 		Attribute string        `json:"attribute,omitempty"`
 		Values    []interface{} `json:"values,omitempty"`
 	}{
-		Method:    options.Method,
+		Method: options.Method,
 	}
 
 	if options.Attribute != nil {
@@ -282,32 +282,32 @@ func OrderRandom() string {
 func CursorBefore(documentId interface{}) string {
 	values := toArray(documentId)
 	return parseQuery(queryOptions{
-		Method:    "cursorBefore",
-		Values:    &values,
+		Method: "cursorBefore",
+		Values: &values,
 	})
 }
 
 func CursorAfter(documentId string) string {
 	values := toArray(documentId)
 	return parseQuery(queryOptions{
-		Method:    "cursorAfter",
-		Values:    &values,
+		Method: "cursorAfter",
+		Values: &values,
 	})
 }
 
 func Limit(limit int) string {
 	values := toArray(limit)
 	return parseQuery(queryOptions{
-		Method:    "limit",
-		Values:    &values,
+		Method: "limit",
+		Values: &values,
 	})
 }
 
 func Offset(offset int) string {
 	values := toArray(offset)
 	return parseQuery(queryOptions{
-		Method:    "offset",
-		Values:    &values,
+		Method: "offset",
+		Values: &values,
 	})
 }
 

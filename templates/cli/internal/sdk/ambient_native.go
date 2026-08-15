@@ -2,7 +2,7 @@
 
 package sdk
 
-import sdkclient "github.com/appwrite/sdk-for-go/v6/client"
+import sdkclient "github.com/appwrite/sdk-for-go/v7/client"
 
 // The native half of the pair in ambient_js.go. A host has no session of its
 // own to lend the CLI: the credential is whatever `login` stored, and a command

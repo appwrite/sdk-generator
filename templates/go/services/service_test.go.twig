@@ -56,15 +56,18 @@ package {{ service.name | caseLower }}
 import (
 	"net/http"
 	"net/http/httptest"
-	"testing"
-{% if requireOsPkg %}	"os"
+{% if requireOsPkg %}
+	"os"
 {% endif %}
+	"testing"
 
 	"{{ sdk | goPackagePath }}/client"
-{% if requireModelsPkg %}	"{{ sdk | goPackagePath }}/models"
+{% if requireFilesPkg %}
+	"{{ sdk | goPackagePath }}/file"
 {% endif %}
-{% if requireFilesPkg %}	"{{ sdk | goPackagePath }}/file"
-{%- endif %}
+{% if requireModelsPkg %}
+	"{{ sdk | goPackagePath }}/models"
+{% endif %}
 )
 
 func Test{{ service.name | caseUcfirst }}(t *testing.T) {
