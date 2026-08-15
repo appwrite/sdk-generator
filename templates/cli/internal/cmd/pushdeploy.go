@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
@@ -25,11 +26,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Resources are pushed one at a time rather than concurrently, which keeps the
-// request sequence deterministic (the settings writes have a stronger reason --
-// see applyEnabled). Build logs come from the deployment poll rather than a
-// realtime WebSocket, so a line appears within one pollDebounce rather than the
-// moment it is written.
+// Selected functions are packaged, uploaded and monitored in parallel. This
+// starts every deployment without waiting for the previous build to finish.
+// Project settings are deliberately different -- see applyEnabled. Build logs
+// come from deployment polling rather than a realtime WebSocket, so a line
+// appears within one pollDebounce rather than the moment it is written.
 
 const (
 	// pollDebounce is the gap between deployment status reads.
@@ -696,20 +697,37 @@ func runPushDeployable(
 	output.Log(out, "Pushing %s ...", resource.Label)
 
 	started := time.Now()
-	summary := pushSummary{}
 
-	for _, entry := range entries {
-		context.pushDeployable(command, resource, entry, deployRun{
-			Async:         options.Async,
-			Code:          pushCode,
-			Activate:      activate,
-			WithVariables: options.WithVariables,
-			// An async push returns before the build starts, so there is no
-			// log to stream.
-			Logs: options.Logs && !options.Async,
-			// The label is only worth the width when two logs could interleave.
-			LabelLogs: len(entries) > 1,
-		}, &summary)
+	run := deployRun{
+		Async:         options.Async,
+		Code:          pushCode,
+		Activate:      activate,
+		WithVariables: options.WithVariables,
+		// An async push returns before the build starts, so there is no
+		// log to stream.
+		Logs: options.Logs && !options.Async,
+		// The label is only worth the width when two logs could interleave.
+		LabelLogs: len(entries) > 1,
+	}
+	push := func(entry *jsonx.Object, summary *pushSummary) {
+		context.pushDeployable(command, resource, entry, run, summary)
+	}
+
+	summary := pushSummary{}
+	if resource.Name == "function" && len(entries) > 1 {
+		// Individual spinners own one terminal row and cannot safely redraw the
+		// same row from several goroutines. A synchronized writer keeps every
+		// line intact and deliberately makes parallel progress use the spinner's
+		// plain-line fallback. Build log labels identify interleaved output.
+		command.SetOut(output.Synchronized(command.OutOrStdout()))
+		command.SetErr(output.Synchronized(command.ErrOrStderr()))
+		summary = pushDeployablesInParallel(entries, push)
+	} else {
+		// A single function keeps the animated status row. Sites remain ordered
+		// because their terminal preview cache is shared by the push context.
+		for _, entry := range entries {
+			push(entry, &summary)
+		}
 	}
 
 	summary.report(command, resource, options.Async, time.Since(started))
@@ -725,6 +743,37 @@ type deployRun struct {
 	WithVariables bool
 	Logs          bool
 	LabelLogs     bool
+}
+
+// pushDeployablesInParallel starts one independent push per selected entry.
+// Each worker owns its summary so counters and failure slices never race. The
+// results are merged in config order after every worker has finished, keeping
+// the closing deployment links deterministic even when builds finish in a
+// different order.
+func pushDeployablesInParallel(
+	entries []*jsonx.Object,
+	push func(*jsonx.Object, *pushSummary),
+) pushSummary {
+	results := make([]pushSummary, len(entries))
+
+	var workers sync.WaitGroup
+	workers.Add(len(entries))
+	for index, entry := range entries {
+		go func(index int, entry *jsonx.Object) {
+			defer workers.Done()
+			push(entry, &results[index])
+		}(index, entry)
+	}
+	workers.Wait()
+
+	summary := pushSummary{}
+	for _, result := range results {
+		summary.Pushed += result.Pushed
+		summary.Deployed += result.Deployed
+		summary.Failed = append(summary.Failed, result.Failed...)
+	}
+
+	return summary
 }
 
 // failedDeployment names a deployment that did not become ready.

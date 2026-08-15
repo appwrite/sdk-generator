@@ -3,6 +3,7 @@ package output
 import (
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -18,6 +19,31 @@ var (
 	failureStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 	traceStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 )
+
+// synchronizedWriter serializes whole writes to an underlying writer.
+type synchronizedWriter struct {
+	writer io.Writer
+	mutex  sync.Mutex
+}
+
+func (w *synchronizedWriter) Write(contents []byte) (int, error) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+
+	return w.writer.Write(contents)
+}
+
+// Synchronized returns a writer safe for concurrent status and build-log
+// lines. It intentionally hides whether the underlying writer is a terminal:
+// independent one-row spinners would otherwise redraw over each other, so a
+// parallel push falls back to plain progress lines.
+func Synchronized(writer io.Writer) io.Writer {
+	if _, ok := writer.(*synchronizedWriter); ok {
+		return writer
+	}
+
+	return &synchronizedWriter{writer: writer}
+}
 
 // Log writes an informational line.
 func Log(writer io.Writer, format string, arguments ...any) {

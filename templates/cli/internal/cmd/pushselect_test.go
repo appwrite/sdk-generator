@@ -5,9 +5,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 )
 
@@ -64,6 +66,54 @@ func TestPushSelectionKeepsTheChosenEntries(t *testing.T) {
 	}
 	if len(chosen) != 1 || chosen[0].GetString("$id") != "web" {
 		t.Errorf("chosen = %v, want the one site", chosen)
+	}
+}
+
+// Every selected deployment must start before any one of them finishes. The
+// sequential loop waited for a function's entire build before it even packaged
+// the next one, making a multi-function push take the sum of all build times.
+func TestSelectedDeploymentsStartInParallel(t *testing.T) {
+	entries := make([]*jsonx.Object, 2)
+	for index, id := range []string{"first", "second"} {
+		entry := jsonx.NewObject()
+		entry.Set("$id", id)
+		entries[index] = entry
+	}
+
+	started := make(chan string, len(entries))
+	release := make(chan struct{})
+	finished := make(chan pushSummary, 1)
+
+	go func() {
+		finished <- pushDeployablesInParallel(entries,
+			func(entry *jsonx.Object, summary *pushSummary) {
+				started <- entry.GetString("$id")
+				<-release
+				summary.Pushed++
+			})
+	}()
+
+	timer := time.NewTimer(5 * time.Second)
+	defer timer.Stop()
+
+	seen := map[string]bool{}
+	for range entries {
+		select {
+		case id := <-started:
+			seen[id] = true
+		case <-timer.C:
+			close(release)
+			t.Fatal("a selected deployment waited for the previous one to finish")
+		}
+	}
+	close(release)
+
+	summary := <-finished
+	if len(seen) != len(entries) {
+		t.Errorf("started %v, want both selected deployments", seen)
+	}
+	if summary.Pushed != len(entries) {
+		t.Errorf("summary counted %d pushes, want %d", summary.Pushed, len(entries))
 	}
 }
 
