@@ -12,9 +12,8 @@ func main() {
 	// RewriteBooleanValues.
 	root.SetArgs(cmd.RewriteBooleanValues(root, os.Args[1:]))
 
-	// ExecuteC rather than Execute: it returns the command that ran, which is
-	// what names the command in a cancellation notice.
-	executed, err := root.ExecuteC()
+	// cmd.Execute returns the command that ran for cancellation notices.
+	executed, err := cmd.Execute(root)
 	if err == nil {
 		return
 	}

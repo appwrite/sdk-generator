@@ -44,6 +44,10 @@ func releaseAssetURL(version, asset string) string {
 	return fmt.Sprintf("%s/download/%s/%s", releasesPageURL, strings.TrimPrefix(version, "v"), asset)
 }
 
+func releaseNotesURL(version string) string {
+	return fmt.Sprintf("%s/tag/%s", releasesPageURL, strings.TrimPrefix(version, "v"))
+}
+
 // resolveReleaseVersion is the version a standalone update would install, or
 // "" when the registry cannot be reached.
 func resolveReleaseVersion() string {
@@ -227,6 +231,7 @@ func runUpdater(command *cobra.Command, version, name string, args ...string) er
 	}
 
 	command.Printf("Updated to version %s.\n", version)
+	command.Printf("Release notes: %s\n", releaseNotesURL(version))
 
 	return nil
 }
@@ -315,6 +320,7 @@ func updateStandalone(command *cobra.Command, force bool) error {
 	}
 
 	command.Printf("Updated %s.\n", target)
+	command.Printf("Release notes: %s\n", releaseNotesURL(version))
 
 	return nil
 }

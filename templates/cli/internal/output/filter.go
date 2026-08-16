@@ -58,6 +58,7 @@ func filteredNumber(number json.Number) any {
 var normalViewHiddenKeys = map[string]bool{
 	"onboarding":    true,
 	"billingPlanId": true,
+	"prefs":         true,
 }
 
 // IsNormalViewHiddenKey reports whether a field is hidden from the table view.

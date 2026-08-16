@@ -30,7 +30,7 @@ func render(t *testing.T, value any) string {
 }
 
 func TestIsNormalViewHiddenKey(t *testing.T) {
-	hidden := []string{"$createdAt", "$updatedAt", "$permissions", "onboarding", "billingPlanId"}
+	hidden := []string{"$createdAt", "$updatedAt", "$permissions", "onboarding", "billingPlanId", "prefs"}
 	for _, key := range hidden {
 		if !IsNormalViewHiddenKey(key) {
 			t.Errorf("IsNormalViewHiddenKey(%q) = false, want true", key)
@@ -245,6 +245,7 @@ func TestRawModeKeepsEverythingAndQuotesBigIntegers(t *testing.T) {
 		"total": 42,
 		"undeclared": "kept",
 		"nested": {"big": 9007199254740993, "small": 7},
+		"prefs": {"console.internal": true},
 		"rows": [9007199254740993, 7],
 		"big": 9007199254740993
 	}`)
@@ -261,6 +262,9 @@ func TestRawModeKeepsEverythingAndQuotesBigIntegers(t *testing.T) {
   "nested": {
     "big": "9007199254740993",
     "small": 7
+  },
+  "prefs": {
+    "console.internal": true
   },
   "rows": [
     "9007199254740993",
