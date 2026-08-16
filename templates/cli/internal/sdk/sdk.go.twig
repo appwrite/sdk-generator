@@ -243,21 +243,31 @@ func (c *Context) ForConsoleWithOrganization(organizationID string) (sdkclient.C
 	return client, nil
 }
 
-// ForSessionProject builds a project client from the active login only.
+// ForSessionProject builds a project client from the active login and the
+// endpoint returned by project discovery.
 //
 // Resource discovery must not consult appwrite.config.json: a user can list
-// projects while standing in a repository for another endpoint, and enriching
-// those results must not turn that unrelated local config into a mismatch.
-func (c *Context) ForSessionProject(projectID string) (sdkclient.Client, error) {
-	endpoint, err := c.endpoint()
+// projects while standing in a repository for another endpoint. The discovered
+// endpoint is still checked against the session before credentials are sent;
+// regional Cloud endpoints normalize to the same login endpoint.
+func (c *Context) ForSessionProject(projectID, projectEndpoint string) (sdkclient.Client, error) {
+	sessionEndpoint, err := c.endpoint()
 	if err != nil {
 		return sdkclient.Client{}, err
 	}
 	if projectID == "" {
 		return sdkclient.Client{}, ErrProjectNotSet
 	}
+	if projectEndpoint == "" {
+		projectEndpoint = sessionEndpoint
+	}
+	if !config.EndpointsMatch(projectEndpoint, sessionEndpoint) {
+		return sdkclient.Client{}, fmt.Errorf(
+			"project endpoint %s does not belong to the current login endpoint %s",
+			projectEndpoint, sessionEndpoint)
+	}
 
-	client := c.base(endpoint)
+	client := c.base(projectEndpoint)
 	client.Config["project"] = projectID
 	client.AddHeader("X-Appwrite-Project", projectID)
 	if err := c.authenticate(&client, true); err != nil {

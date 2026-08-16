@@ -323,10 +323,18 @@ func enrichOAuth2Projects(items []models.Oauth2Project) []ProjectSummary {
 	for index, item := range items {
 		index, item := index, item
 		group.Go(func() error {
-			summary := ProjectSummary{
-				ID: item.Id, Region: item.Region, Endpoint: item.Endpoint,
+			endpoint := item.Endpoint
+			if endpoint == "" {
+				ctx, contextErr := context()
+				if contextErr == nil {
+					endpoint = endpointForRegion(
+						ctx.Global.CurrentValue(config.PreferenceEndpoint), item.Region)
+				}
 			}
-			client, err := ClientForSessionProject(item.Id)
+			summary := ProjectSummary{
+				ID: item.Id, Region: item.Region, Endpoint: endpoint,
+			}
+			client, err := ClientForSessionProject(item.Id, endpoint)
 			if err == nil {
 				if details, getErr := project.New(client).Get(); getErr == nil {
 					summary.Name = details.Name
@@ -334,13 +342,6 @@ func enrichOAuth2Projects(items []models.Oauth2Project) []ProjectSummary {
 					if details.Region != "" {
 						summary.Region = details.Region
 					}
-				}
-			}
-			if summary.Endpoint == "" {
-				ctx, contextErr := context()
-				if contextErr == nil {
-					summary.Endpoint = endpointForRegion(
-						ctx.Global.CurrentValue(config.PreferenceEndpoint), summary.Region)
 				}
 			}
 			summaries[index] = summary

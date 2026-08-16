@@ -167,6 +167,34 @@ func TestProjectEndpointAcceptsAMatchingOverride(t *testing.T) {
 	}
 }
 
+func TestSessionProjectUsesItsDiscoveredRegionalEndpoint(t *testing.T) {
+	context := withSession(t, map[string]any{
+		"endpoint": "https://cloud.appwrite.io/v1", "cookie": "session=1",
+	})
+	regionalEndpoint := "https://syd.cloud.appwrite.io/v1"
+
+	client, err := context.ForSessionProject("project-id", regionalEndpoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.Endpoint != regionalEndpoint {
+		t.Errorf("endpoint = %q, want %q", client.Endpoint, regionalEndpoint)
+	}
+	if client.Headers["X-Appwrite-Project"] != "project-id" {
+		t.Errorf("project = %q, want project-id", client.Headers["X-Appwrite-Project"])
+	}
+}
+
+func TestSessionProjectRejectsAnUnrelatedEndpoint(t *testing.T) {
+	context := withSession(t, map[string]any{
+		"endpoint": "https://cloud.appwrite.io/v1", "cookie": "session=1",
+	})
+
+	if _, err := context.ForSessionProject("project-id", "https://example.test/v1"); err == nil {
+		t.Fatal("an unrelated discovery endpoint should be refused")
+	}
+}
+
 func TestOrganizationHeaderHonoursTheEnvironment(t *testing.T) {
 	context := withSession(t, map[string]any{
 		"endpoint": localEndpoint, "accessToken": "", "cookie": "session=1",
