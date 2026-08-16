@@ -13,6 +13,21 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/update"
 )
 
+const updateNoticeCheckedAnnotation = "appwrite.io/update-notice-checked"
+
+type updateAvailabilityChecker interface {
+	UpdateAvailable() string
+}
+
+var newUpdateChecker = func() updateAvailabilityChecker {
+	checker := app.UpdateChecker()
+	if checker == nil {
+		return nil
+	}
+
+	return checker
+}
+
 // NewRootCommand builds the full command tree.
 //
 // Registration is deliberately eager: the complete tree measures at 5.0ms, so
@@ -81,19 +96,37 @@ func NewRootCommand() *cobra.Command {
 	return root
 }
 
+// Execute runs the root command and checks early exits skipped by PersistentPreRun.
+func Execute(root *cobra.Command) (*cobra.Command, error) {
+	executed, err := root.ExecuteC()
+	if err == nil && executed != nil {
+		noticeUpdateAvailable(executed)
+	}
+
+	return executed, err
+}
+
 // noticeUpdateAvailable tells the user when a newer version exists.
 //
-// Reads a cache and only reaches the
-// network once a day, because the whole point of this binary is that it starts
-// in single-digit milliseconds.
+// Reads a cache and only reaches the network once a day. The root annotation
+// prevents Execute from repeating a check made by PersistentPreRun.
 func noticeUpdateAvailable(command *cobra.Command) {
+	root := command.Root()
+	if root.Annotations != nil && root.Annotations[updateNoticeCheckedAnnotation] == "true" {
+		return
+	}
+	if root.Annotations == nil {
+		root.Annotations = map[string]string{}
+	}
+	root.Annotations[updateNoticeCheckedAnnotation] = "true"
+
 	// The update command is already acting on this information. Recommending
 	// that the user run it again only adds noise before the updater's output.
 	if isRootUpdateCommand(command) {
 		return
 	}
 
-	checker := app.UpdateChecker()
+	checker := newUpdateChecker()
 	if checker == nil {
 		return
 	}

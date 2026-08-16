@@ -77,6 +77,35 @@ func TestHelpSectionsAppearInOrder(t *testing.T) {
 	}
 }
 
+type fixedUpdateChecker string
+
+func (checker fixedUpdateChecker) UpdateAvailable() string { return string(checker) }
+
+// Cobra handles --version before PersistentPreRun, so Execute catches it.
+func TestVersionChecksForUpdates(t *testing.T) {
+	original := newUpdateChecker
+	newUpdateChecker = func() updateAvailabilityChecker {
+		return fixedUpdateChecker("27.0.0")
+	}
+	t.Cleanup(func() { newUpdateChecker = original })
+
+	root := NewRootCommand()
+	root.SetArgs([]string{"--version"})
+	printed := &bytes.Buffer{}
+	root.SetOut(printed)
+	root.SetErr(printed)
+
+	if _, err := Execute(root); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, want := range []string{"appwrite version", "A newer version is available", "27.0.0"} {
+		if !strings.Contains(printed.String(), want) {
+			t.Errorf("--version output is missing %q:\n%s", want, printed.String())
+		}
+	}
+}
+
 func TestUpdateNoticeSkipsOnlyTheRootUpdateCommand(t *testing.T) {
 	root := &cobra.Command{Use: "appwrite"}
 	updateCommand := &cobra.Command{Use: "update"}
