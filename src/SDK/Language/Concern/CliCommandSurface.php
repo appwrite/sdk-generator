@@ -377,6 +377,14 @@ trait CliCommandSurface
 
     protected function getCliMethodDescription(Operation $method, Tag $service): string
     {
+        if ($service->name === 'oauth2') {
+            return match ($this->cliMethodName($method)) {
+                'listOrganizations' => 'List the organizations the current session can access.',
+                'listProjects' => 'List the projects the current session can access.',
+                default => $method->description,
+            };
+        }
+
         if ($service->name === 'graphql' && ($method->extensions['x-appwrite']['type'] ?? '') === 'graphql') {
             return match ($this->cliMethodName($method)) {
                 'query' => 'Execute a GraphQL query.',

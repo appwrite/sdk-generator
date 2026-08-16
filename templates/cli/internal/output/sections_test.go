@@ -98,6 +98,58 @@ func TestNarrowSectionsStayTables(t *testing.T) {
 	}
 }
 
+func TestDiscoveryListsShowUsefulColumnsAndPageCount(t *testing.T) {
+	input := decode(t, `{
+		"total": 224,
+		"projects": [{
+			"$id": "project-id", "name": "A project with a deliberately very long display name",
+			"organizationId": "organization-id", "organization": "Example Organization",
+			"region": "fra", "endpoint": "https://fra.cloud.appwrite.io/v1"
+		}]
+	}`)
+
+	buffer := &bytes.Buffer{}
+	renderer := &Renderer{Mode: ModeTable, Writer: buffer}
+	if err := renderer.Render(input); err != nil {
+		t.Fatal(err)
+	}
+	got := buffer.String()
+
+	for _, want := range []string{"projects (1 of 224)", "name", "project-id", "Example Organizat…", "fra"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q from:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "endpoint") || strings.Contains(got, "total :") {
+		t.Errorf("discovery table kept low-value default fields:\n%s", got)
+	}
+	if !strings.Contains(got, "…") {
+		t.Errorf("long project name was not compacted:\n%s", got)
+	}
+}
+
+func TestEmptyDiscoveryListHasAnEmptyState(t *testing.T) {
+	input := decode(t, `{"total":0,"organizations":[]}`)
+	buffer := &bytes.Buffer{}
+	if err := (&Renderer{Mode: ModeTable, Writer: buffer}).Render(input); err != nil {
+		t.Fatal(err)
+	}
+	if got := buffer.String(); !strings.Contains(got, "No organizations found.") {
+		t.Errorf("missing empty state:\n%s", got)
+	}
+}
+
+func TestOrganizationModelIsNotMistakenForAProjectList(t *testing.T) {
+	input := decode(t, `{"$id":"org","name":"Example","total":11,"projects":[]}`)
+	buffer := &bytes.Buffer{}
+	if err := (&Renderer{Mode: ModeTable, Writer: buffer}).Render(input); err != nil {
+		t.Fatal(err)
+	}
+	if got := buffer.String(); !strings.Contains(got, "total") || !strings.Contains(got, "11") {
+		t.Errorf("organization member total was hidden:\n%s", got)
+	}
+}
+
 // A section with no allowlist keeps every field; only the shape changes.
 func TestUnknownWideSectionKeepsItsFields(t *testing.T) {
 	input := decode(t, `{
