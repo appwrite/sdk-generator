@@ -38,6 +38,15 @@ func TestReleaseAssetURLUsesTheBareTag(t *testing.T) {
 	}
 }
 
+func TestReleaseNotesURLUsesTheBareTag(t *testing.T) {
+	for _, version := range []string{"27.0.0", "v27.0.0"} {
+		want := releasesPageURL + "/tag/27.0.0"
+		if got := releaseNotesURL(version); got != want {
+			t.Errorf("releaseNotesURL(%q) = %q, want %q", version, got, want)
+		}
+	}
+}
+
 // The asset has to survive verbatim: it is the release asset name, and the
 // installer scripts and goreleaser derive the same string independently.
 func TestReleaseAssetURLKeepsTheAssetName(t *testing.T) {
