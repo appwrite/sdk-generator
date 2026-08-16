@@ -391,7 +391,71 @@ type structuredRenderer struct {
 	columns []column
 }
 
+// compactDisplay keeps discovery tables inside an ordinary terminal while IDs
+// remain complete and copyable. Only descriptive labels are truncated.
+func compactDisplay(value string, maximum int) string {
+	if lipgloss.Width(value) <= maximum {
+		return value
+	}
+
+	result := ""
+	for _, character := range value {
+		if lipgloss.Width(result+string(character)+"…") > maximum {
+			break
+		}
+		result += string(character)
+	}
+
+	return result + "…"
+}
+
 var structuredRenderers = map[string]structuredRenderer{
+	"organizations": {
+		schema: summarySchema{
+			mustExist: []string{"$id"},
+			strings:   []string{"name"},
+			numeric:   []string{"members"},
+		},
+		columns: []column{
+			{"name", func(row structuredRow, _ int) string {
+				return compactDisplay(compactText(row, "name", emDash), 28)
+			}},
+			{"id", func(row structuredRow, _ int) string { return compactText(row, "$id", emDash) }},
+			{"members", func(row structuredRow, _ int) string {
+				if members, ok := stringAt(row, "members"); ok {
+					return members
+				}
+
+				return emDash
+			}},
+		},
+	},
+	"projects": {
+		schema: summarySchema{
+			mustExist: []string{"$id"},
+			strings: []string{
+				"name", "organization", "organizationId", "teamId", "region", "endpoint",
+			},
+		},
+		columns: []column{
+			{"name", func(row structuredRow, _ int) string {
+				return compactDisplay(compactText(row, "name", emDash), 24)
+			}},
+			{"id", func(row structuredRow, _ int) string { return compactText(row, "$id", emDash) }},
+			{"organization", func(row structuredRow, _ int) string {
+				name := compactText(row, "organization", "")
+				if name == "" {
+					name = compactText(row, "organizationId", "")
+				}
+				if name == "" {
+					name = compactText(row, "teamId", emDash)
+				}
+
+				return compactDisplay(name, 18)
+			}},
+			{"region", func(row structuredRow, _ int) string { return compactText(row, "region", emDash) }},
+		},
+	},
 	"deployments": {
 		schema: summarySchema{
 			mustExist: []string{"$id", "status"},

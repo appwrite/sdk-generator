@@ -719,6 +719,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/app/fallback_test.go',
+                'template'      => 'cli/internal/app/fallback_test.go.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/app/inputfile.go',
                 'template'      => 'cli/internal/app/inputfile.go.twig',
             ],

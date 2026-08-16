@@ -143,6 +143,9 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 {% if scopedFlag %}
 	var {{ scope.idVar }} string
 {% endif %}
+{% if implementation == 'listProjectsForSession' and not scopedFlag %}
+	var organizationId string
+{% endif %}
 
 {# Same alignment rule as query.Options below: `Hidden` only renders for a
    promoted command, and its presence widens the run. RunE is excluded -- gofmt
@@ -154,7 +157,17 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 {% if isTopLevel %}
 		{{ commandKeyFormat|format('Hidden:') }}true,
 {% endif %}
+{% if implementation == 'listOrganizationsForSession' %}
+		Example: "  " + app.ExecutableName + " list-organizations --search <NAME>\n" +
+			"  " + app.ExecutableName + " organization get --organization-id <ORGANIZATION_ID>",
+		Args: cobra.NoArgs,
+{% elseif implementation == 'listProjectsForSession' %}
+		Example: "  " + app.ExecutableName + " list-projects --organization-id <ORGANIZATION_ID>\n" +
+			"  " + app.ExecutableName + " project get --project-id <PROJECT_ID>",
+		Args: cobra.NoArgs,
+{% else %}
 		{{ commandKeyFormat|format('Args:') }}cobra.NoArgs,
+{% endif %}
 		RunE: func(cmd *cobra.Command, args []string) error {
 {% set plan = getGoCallPlan(method, service) %}
 {% if sdk.test %}
@@ -252,11 +265,14 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 {% endif %}
 
 {% if implementation == 'listOrganizationsForSession' %}
-			result, err := app.ListOrganizationsForSession(
-				app.FlagInt(cmd, "limit", limit), app.FlagInt(cmd, "offset", offset), search)
+			limitFlag := app.FlagInt(cmd, "limit", limit)
+			offsetFlag := app.FlagInt(cmd, "offset", offset)
+			result, err := app.ListOrganizationsForSession(limitFlag, offsetFlag, search)
 {% elseif implementation == 'listProjectsForSession' %}
-			result, err := app.ListProjectsForSession({{ scopedFlag ? scope.idVar : '""' }},
-				app.FlagInt(cmd, "limit", limit), app.FlagInt(cmd, "offset", offset), search)
+			limitFlag := app.FlagInt(cmd, "limit", limit)
+			offsetFlag := app.FlagInt(cmd, "offset", offset)
+			result, err := app.ListProjectsForSession({{ scopedFlag ? scope.idVar : 'organizationId' }},
+				limitFlag, offsetFlag, search)
 {% elseif implementation == 'getOrganizationForSession' %}
 			result, err := app.GetOrganizationForSession({{ scopedFlag ? scope.idVar : '""' }})
 {% elseif sdk.test %}
@@ -280,6 +296,12 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 			// A location method returns the file bytes, not a URL -- the SDK
 			// has already fetched them.
 			return app.WriteFile(destination, result)
+{% elseif implementation == 'listOrganizationsForSession' %}
+
+			return app.RenderOrganizationList(result, limitFlag, offsetFlag, search)
+{% elseif implementation == 'listProjectsForSession' %}
+
+			return app.RenderProjectList(result, limitFlag, offsetFlag, search, organizationId)
 {% else %}
 
 			return app.Render(result)
@@ -322,6 +344,9 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 {% endif %}
 {% if scopedFlag %}
 	cmd.Flags().StringVar(&{{ scope.idVar }}, "{{ scope.flag }}", "", "{{ scope.label }} to act on. Defaults to the {{ scope.label | lower }} linked in {{ language.params.executableName }}.config.json.")
+{% endif %}
+{% if implementation == 'listProjectsForSession' and not scopedFlag %}
+	cmd.Flags().StringVar(&organizationId, "organization-id", "", "Only show projects in this organization.")
 {% endif %}
 	return cmd
 }

@@ -101,6 +101,23 @@ func TestRenderFallsBackToTheValue(t *testing.T) {
 	}
 }
 
+// A locally assembled result must beat the last request body. Session list
+// commands make several requests to enrich one page, so that body belongs to
+// an implementation detail rather than to the command result.
+func TestRenderValueDiscardsTheCapturedResponse(t *testing.T) {
+	sdk.LastResponse.Take()
+	sdk.LastResponse.Record([]byte(`{"from":"enrichment request"}`))
+
+	buffer := &bytes.Buffer{}
+	if err := renderValue(&output.Renderer{Mode: output.ModeRaw, Writer: buffer},
+		map[string]any{"from": "assembled result"}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(buffer.String(), "assembled result") {
+		t.Errorf("did not render the assembled result:\n%s", buffer.String())
+	}
+}
+
 // Two renders, one response: the second must not reprint the first's body.
 func TestRenderDoesNotReuseAStaleResponse(t *testing.T) {
 	renderer := func(buffer *bytes.Buffer) *output.Renderer {

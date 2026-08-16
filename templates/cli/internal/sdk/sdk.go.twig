@@ -243,6 +243,30 @@ func (c *Context) ForConsoleWithOrganization(organizationID string) (sdkclient.C
 	return client, nil
 }
 
+// ForSessionProject builds a project client from the active login only.
+//
+// Resource discovery must not consult appwrite.config.json: a user can list
+// projects while standing in a repository for another endpoint, and enriching
+// those results must not turn that unrelated local config into a mismatch.
+func (c *Context) ForSessionProject(projectID string) (sdkclient.Client, error) {
+	endpoint, err := c.endpoint()
+	if err != nil {
+		return sdkclient.Client{}, err
+	}
+	if projectID == "" {
+		return sdkclient.Client{}, ErrProjectNotSet
+	}
+
+	client := c.base(endpoint)
+	client.Config["project"] = projectID
+	client.AddHeader("X-Appwrite-Project", projectID)
+	if err := c.authenticate(&client, true); err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	return client, nil
+}
+
 // ForProject builds a client against the project in the working directory's
 // config.
 func (c *Context) ForProject(projectID string) (sdkclient.Client, error) {

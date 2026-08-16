@@ -75,13 +75,15 @@ func (r *Renderer) renderHuman(writer io.Writer, value any) error {
 		value any
 	}
 
+	listKey, listCount, listTotal, isDiscoveryList := discoveryListSummary(object)
+
 	var (
 		scalars  [][2]string
 		sections []section
 	)
 
 	for _, key := range object.Keys() {
-		if IsNormalViewHiddenKey(key) {
+		if IsNormalViewHiddenKey(key) || (isDiscoveryList && key == "total") {
 			continue
 		}
 		item, _ := object.Get(key)
@@ -128,7 +130,11 @@ func (r *Renderer) renderHuman(writer io.Writer, value any) error {
 		case []any:
 			rows := objectRows(typed)
 			if len(rows) > 0 {
-				fmt.Fprintln(writer, sectionStyle.Render(fmt.Sprintf("%s (%d)", item.key, len(typed))))
+				title := fmt.Sprintf("%s (%d)", item.key, len(typed))
+				if isDiscoveryList && item.key == listKey {
+					title = fmt.Sprintf("%s (%d of %s)", item.key, listCount, listTotal)
+				}
+				fmt.Fprintln(writer, sectionStyle.Render(title))
 				// A section with a renderer of its own, or one whose rows are
 				// plain on/off toggles, gets a shape built for it. Everything
 				// else falls back to the generic table -- unless that table
@@ -157,10 +163,44 @@ func (r *Renderer) renderHuman(writer io.Writer, value any) error {
 	}
 
 	if !printed {
-		fmt.Fprintln(writer, "Request completed successfully.")
+		if isDiscoveryList {
+			fmt.Fprintf(writer, "No %s found.\n", listKey)
+		} else {
+			fmt.Fprintln(writer, "Request completed successfully.")
+		}
 	}
 
 	return nil
+}
+
+// discoveryListSummary recognizes the two normalized session discovery lists.
+// Their total belongs in the collection heading, not in a detached key/value
+// line whose relationship to the returned page is unclear.
+func discoveryListSummary(object *jsonx.Object) (string, int, string, bool) {
+	// A project or organization model can itself contain a `total` and a
+	// `projects` field. Only the two-key list envelope is a discovery list.
+	if object.Len() != 2 {
+		return "", 0, "", false
+	}
+
+	for _, key := range []string{"organizations", "projects"} {
+		value, ok := object.Get(key)
+		if !ok {
+			continue
+		}
+		items, ok := value.([]any)
+		if !ok {
+			continue
+		}
+		total, ok := object.Get("total")
+		if !ok {
+			continue
+		}
+
+		return key, len(items), formatScalar(total), true
+	}
+
+	return "", 0, "", false
 }
 
 // objectRows returns the elements that are objects, flattened for display.

@@ -2,36 +2,41 @@
 package app
 
 // Console fallbacks are omitted from the conformance build. The services they
-// cover (oauth2, organization, teams) are not in the test spec, so nothing
-// references them.
+// cover are not in the test spec, so nothing references them.
 {% else %}
 package app
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
 	sdkclient "{{ language.params.sdkImportPath }}/client"
+	"{{ language.params.sdkImportPath }}/models"
 	"{{ language.params.sdkImportPath }}/oauth2"
 	"{{ language.params.sdkImportPath }}/organization"
+	"{{ language.params.sdkImportPath }}/project"
 	"{{ language.params.sdkImportPath }}/teams"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/term"
 )
 
-// Three OAuth2 endpoints only exist on Appwrite Cloud. On a self-hosted install
-// they 404, and the same answer has to be assembled from the console endpoints
-// that every install does serve. Without this, these commands work on Cloud and
-// fail everywhere else -- which is the whole reason the helpers exist.
+// The OAuth2 discovery endpoints only exist on Appwrite Cloud. Cookie sessions
+// and self-hosted logins use the console endpoints instead. Both paths are
+// normalized into the same summaries so authentication never changes what a
+// person sees.
 
 const (
-	defaultLimit  = 25
-	defaultOffset = 0
-	// pageSize is what the local fallback pages the console endpoints at while
-	// collecting every match.
-	pageSize = 100
+	defaultLimit          = 25
+	defaultOffset         = 0
+	pageSize              = 100
+	enrichmentConcurrency = 8
 )
 
 // isRouteMissing reports whether an error means the Cloud-only route is absent.
@@ -48,10 +53,7 @@ func isRouteMissing(err error) bool {
 	return strings.Contains(err.Error(), "general_route_not_found")
 }
 
-// applyWindow slices a locally-collected list the way the server would page it.
-//
-// The OAuth2 endpoints report `total` as every match while returning one page,
-// so the fallback counts before slicing to keep that contract.
+// applyWindow slices a locally collected list the way the server would page it.
 func applyWindow[T any](items []T, limit, offset *int) []T {
 	start := defaultOffset
 	if offset != nil {
@@ -73,10 +75,9 @@ func applyWindow[T any](items []T, limit, offset *int) []T {
 	return items[start:end]
 }
 
-// endpointForRegion returns the regional API endpoint for a project.
-//
-// Regions only have their own hostname on Cloud; anywhere else every project is
-// served from the configured endpoint. Ports endpointForRegion().
+// endpointForRegion returns the regional API endpoint for a project. Regions
+// only have their own hostname on Cloud; self-hosted projects all use the
+// configured endpoint.
 func endpointForRegion(endpoint, region string) string {
 	if endpoint == "" {
 		endpoint = config.DefaultEndpoint
@@ -99,7 +100,7 @@ func endpointForRegion(endpoint, region string) string {
 }
 
 // hasOAuth2Session reports whether the stored session uses an access token,
-// which is what the Cloud-only routes require.
+// which is what the Cloud-only discovery routes require.
 func hasOAuth2Session() bool {
 	ctx, err := context()
 	if err != nil {
@@ -113,28 +114,49 @@ func hasOAuth2Session() bool {
 	return session.GetString(config.PreferenceAccessToken) != ""
 }
 
-// OrganizationSummary is one entry of the organization list.
+// OrganizationSummary is one organization in the session-wide list.
 type OrganizationSummary struct {
-	ID string `json:"$id"`
+	ID      string `json:"$id"`
+	Name    string `json:"name"`
+	Members int    `json:"members"`
 }
 
-// OrganizationList mirrors the Cloud route's response shape.
+// OrganizationList is the stable response shape shared by every login type.
 type OrganizationList struct {
 	Total         int                   `json:"total"`
 	Organizations []OrganizationSummary `json:"organizations"`
 }
 
-// ListOrganizationsForSession lists the organizations the session can see.
-func ListOrganizationsForSession(limit, offset *int, search string) (any, error) {
+// ProjectSummary is one project in the session-wide list.
+type ProjectSummary struct {
+	ID               string `json:"$id"`
+	Name             string `json:"name"`
+	OrganizationID   string `json:"organizationId"`
+	OrganizationName string `json:"organization"`
+	Region           string `json:"region"`
+	Endpoint         string `json:"endpoint"`
+}
+
+// ProjectList is the stable response shape shared by every login type.
+type ProjectList struct {
+	Total    int              `json:"total"`
+	Projects []ProjectSummary `json:"projects"`
+}
+
+// ListOrganizationsForSession lists organizations with useful metadata for
+// OAuth2, cookie, and self-hosted sessions alike.
+func ListOrganizationsForSession(limit, offset *int, search string) (*OrganizationList, error) {
 	if hasOAuth2Session() {
 		client, err := ClientForConsole()
 		if err != nil {
 			return nil, err
 		}
 
-		result, err := callListOrganizations(client, limit, offset, search)
+		page, err := callListOrganizations(client, limit, offset, search)
 		if err == nil {
-			return result, nil
+			organizations := enrichOrganizationIDs(page.Organizations)
+
+			return &OrganizationList{Total: page.Total, Organizations: organizations}, nil
 		}
 		if !isRouteMissing(err) {
 			return nil, err
@@ -146,12 +168,13 @@ func ListOrganizationsForSession(limit, offset *int, search string) (any, error)
 		return nil, err
 	}
 
-	return OrganizationList{Total: len(all), Organizations: applyWindow(all, limit, offset)}, nil
+	return &OrganizationList{
+		Total: len(all), Organizations: applyWindow(all, limit, offset),
+	}, nil
 }
 
-func callListOrganizations(client sdkclient.Client, limit, offset *int, search string) (any, error) {
+func callListOrganizations(client sdkclient.Client, limit, offset *int, search string) (*models.Oauth2OrganizationList, error) {
 	service := oauth2.New(client)
-
 	options := []oauth2.ListOrganizationsOption{}
 	if limit != nil {
 		options = append(options, service.WithListOrganizationsLimit(*limit))
@@ -166,8 +189,33 @@ func callListOrganizations(client sdkclient.Client, limit, offset *int, search s
 	return service.ListOrganizations(options...)
 }
 
-// listAllOrganizations collects every organization the session can see, as
-// teams -- the console endpoint every install serves.
+// enrichOrganizationIDs fetches one page's display metadata concurrently. A
+// resource can disappear between list and get, so enrichment is best effort:
+// its ID remains useful even if its name cannot be loaded.
+func enrichOrganizationIDs(items []models.Oauth2Organization) []OrganizationSummary {
+	summaries := make([]OrganizationSummary, len(items))
+	group := errgroup.Group{}
+	group.SetLimit(enrichmentConcurrency)
+
+	for index, item := range items {
+		index, item := index, item
+		group.Go(func() error {
+			summary, err := getOrganizationSummary(item.Id)
+			if err != nil {
+				summary = OrganizationSummary{ID: item.Id}
+			}
+			summaries[index] = summary
+
+			return nil
+		})
+	}
+	_ = group.Wait()
+
+	return summaries
+}
+
+// listAllOrganizations collects every organization as the teams exposed by the
+// console endpoint available on Cloud and self-hosted installations.
 func listAllOrganizations(search string) ([]OrganizationSummary, error) {
 	client, err := ClientForConsole()
 	if err != nil {
@@ -178,9 +226,7 @@ func listAllOrganizations(search string) ([]OrganizationSummary, error) {
 	summaries := []OrganizationSummary{}
 	offset := 0
 	for {
-		options := []teams.ListOption{
-			service.WithListQueries(pageQueries(offset)),
-		}
+		options := []teams.ListOption{service.WithListQueries(pageQueries(offset))}
 		if search != "" {
 			options = append(options, service.WithListSearch(search))
 		}
@@ -190,7 +236,9 @@ func listAllOrganizations(search string) ([]OrganizationSummary, error) {
 			return nil, err
 		}
 		for _, team := range page.Teams {
-			summaries = append(summaries, OrganizationSummary{ID: team.Id})
+			summaries = append(summaries, OrganizationSummary{
+				ID: team.Id, Name: team.Name, Members: team.Total,
+			})
 		}
 		if len(page.Teams) < pageSize {
 			break
@@ -201,69 +249,207 @@ func listAllOrganizations(search string) ([]OrganizationSummary, error) {
 	return summaries, nil
 }
 
-// ProjectSummary is one entry of the project list.
-type ProjectSummary struct {
-	ID       string `json:"$id"`
-	Endpoint string `json:"endpoint"`
+func getOrganizationSummary(organizationID string) (OrganizationSummary, error) {
+	client, err := ClientForOrganization(organizationID)
+	if err != nil {
+		return OrganizationSummary{}, err
+	}
+
+	result, err := organization.New(client).Get()
+	if err == nil {
+		return OrganizationSummary{ID: result.Id, Name: result.Name, Members: result.Total}, nil
+	}
+	if !isRouteMissing(err) {
+		return OrganizationSummary{}, err
+	}
+
+	team, err := teams.New(client).Get(organizationID)
+	if err != nil {
+		return OrganizationSummary{}, err
+	}
+
+	return OrganizationSummary{ID: team.Id, Name: team.Name, Members: team.Total}, nil
 }
 
-// ProjectList mirrors the Cloud route's response shape.
-type ProjectList struct {
-	Total    int              `json:"total"`
-	Projects []ProjectSummary `json:"projects"`
-}
+// ListProjectsForSession lists projects across every accessible organization,
+// or only the explicitly requested organization.
+func ListProjectsForSession(organizationID string, limit, offset *int, search string) (*ProjectList, error) {
+	if organizationID != "" {
+		return listProjectsForOrganization(organizationID, limit, offset, search)
+	}
 
-// ListProjectsForSession lists the projects in an organization.
-func ListProjectsForSession(organizationID string, limit, offset *int, search string) (any, error) {
 	if hasOAuth2Session() {
 		client, err := ClientForConsole()
 		if err != nil {
 			return nil, err
 		}
 
-		service := oauth2.New(client)
-		options := []oauth2.ListProjectsOption{}
-		if limit != nil {
-			options = append(options, service.WithListProjectsLimit(*limit))
-		}
-		if offset != nil {
-			options = append(options, service.WithListProjectsOffset(*offset))
-		}
-		if search != "" {
-			options = append(options, service.WithListProjectsSearch(search))
-		}
-
-		result, err := service.ListProjects(options...)
+		page, err := callListProjects(client, limit, offset, search)
 		if err == nil {
-			return result, nil
+			projects := enrichOAuth2Projects(page.Projects)
+			enrichProjectOrganizationNames(projects)
+
+			return &ProjectList{Total: page.Total, Projects: projects}, nil
 		}
 		if !isRouteMissing(err) {
 			return nil, err
 		}
 	}
 
-	all, err := listAllProjects(organizationID, search)
+	return listAllProjectsForSession(limit, offset, search)
+}
+
+func callListProjects(client sdkclient.Client, limit, offset *int, search string) (*models.Oauth2ProjectList, error) {
+	service := oauth2.New(client)
+	options := []oauth2.ListProjectsOption{}
+	if limit != nil {
+		options = append(options, service.WithListProjectsLimit(*limit))
+	}
+	if offset != nil {
+		options = append(options, service.WithListProjectsOffset(*offset))
+	}
+	if search != "" {
+		options = append(options, service.WithListProjectsSearch(search))
+	}
+
+	return service.ListProjects(options...)
+}
+
+func enrichOAuth2Projects(items []models.Oauth2Project) []ProjectSummary {
+	summaries := make([]ProjectSummary, len(items))
+	group := errgroup.Group{}
+	group.SetLimit(enrichmentConcurrency)
+
+	for index, item := range items {
+		index, item := index, item
+		group.Go(func() error {
+			summary := ProjectSummary{
+				ID: item.Id, Region: item.Region, Endpoint: item.Endpoint,
+			}
+			client, err := ClientForSessionProject(item.Id)
+			if err == nil {
+				if details, getErr := project.New(client).Get(); getErr == nil {
+					summary.Name = details.Name
+					summary.OrganizationID = details.TeamId
+					if details.Region != "" {
+						summary.Region = details.Region
+					}
+				}
+			}
+			if summary.Endpoint == "" {
+				ctx, contextErr := context()
+				if contextErr == nil {
+					summary.Endpoint = endpointForRegion(
+						ctx.Global.CurrentValue(config.PreferenceEndpoint), summary.Region)
+				}
+			}
+			summaries[index] = summary
+
+			return nil
+		})
+	}
+	_ = group.Wait()
+
+	return summaries
+}
+
+func enrichProjectOrganizationNames(projects []ProjectSummary) {
+	ids := []string{}
+	seen := map[string]bool{}
+	for _, item := range projects {
+		if item.OrganizationID != "" && !seen[item.OrganizationID] {
+			seen[item.OrganizationID] = true
+			ids = append(ids, item.OrganizationID)
+		}
+	}
+
+	names := make([]string, len(ids))
+	group := errgroup.Group{}
+	group.SetLimit(enrichmentConcurrency)
+	for index, id := range ids {
+		index, id := index, id
+		group.Go(func() error {
+			if organization, err := getOrganizationSummary(id); err == nil {
+				names[index] = organization.Name
+			}
+
+			return nil
+		})
+	}
+	_ = group.Wait()
+
+	byID := map[string]string{}
+	for index, id := range ids {
+		byID[id] = names[index]
+	}
+	for index := range projects {
+		projects[index].OrganizationName = byID[projects[index].OrganizationID]
+	}
+}
+
+func listProjectsForOrganization(organizationID string, limit, offset *int, search string) (*ProjectList, error) {
+	organizationSummary, summaryErr := getOrganizationSummary(organizationID)
+	page, err := listProjectPage(organizationID, limit, offset, search)
 	if err != nil {
 		return nil, err
 	}
 
-	return ProjectList{Total: len(all), Projects: applyWindow(all, limit, offset)}, nil
+	summaries := summarizeProjects(page.Projects, organizationID, organizationSummary.Name)
+	if summaryErr != nil {
+		for index := range summaries {
+			summaries[index].OrganizationName = ""
+		}
+	}
+
+	return &ProjectList{Total: page.Total, Projects: summaries}, nil
 }
 
-func listAllProjects(organizationID, search string) ([]ProjectSummary, error) {
+func listProjectPage(organizationID string, limit, offset *int, search string) (*models.ProjectList, error) {
 	client, err := ClientForOrganization(organizationID)
 	if err != nil {
 		return nil, err
 	}
-	ctx, err := context()
+	service := organization.New(client)
+	options := []organization.ListProjectsOption{}
+	if queries := windowQueries(limit, offset); len(queries) > 0 {
+		options = append(options, service.WithListProjectsQueries(queries))
+	}
+	if search != "" {
+		options = append(options, service.WithListProjectsSearch(search))
+	}
+
+	return service.ListProjects(options...)
+}
+
+// listAllProjectsForSession restores the all-organization behavior needed by
+// cookie and self-hosted sessions. The previous Go fallback only resolved the
+// organization in local config, making this root command incomplete.
+func listAllProjectsForSession(limit, offset *int, search string) (*ProjectList, error) {
+	organizations, err := listAllOrganizations("")
 	if err != nil {
 		return nil, err
 	}
-	endpoint := ctx.Global.CurrentValue(config.PreferenceEndpoint)
 
+	all := []ProjectSummary{}
+	for _, item := range organizations {
+		projects, err := listAllProjects(item.ID, search)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, summarizeProjects(projects, item.ID, item.Name)...)
+	}
+
+	return &ProjectList{Total: len(all), Projects: applyWindow(all, limit, offset)}, nil
+}
+
+func listAllProjects(organizationID, search string) ([]models.Project, error) {
+	client, err := ClientForOrganization(organizationID)
+	if err != nil {
+		return nil, err
+	}
 	service := organization.New(client)
 
-	summaries := []ProjectSummary{}
+	projects := []models.Project{}
 	offset := 0
 	for {
 		options := []organization.ListProjectsOption{
@@ -277,19 +463,37 @@ func listAllProjects(organizationID, search string) ([]ProjectSummary, error) {
 		if err != nil {
 			return nil, err
 		}
-		for _, project := range page.Projects {
-			summaries = append(summaries, ProjectSummary{
-				ID:       project.Id,
-				Endpoint: endpointForRegion(endpoint, project.Region),
-			})
-		}
+		projects = append(projects, page.Projects...)
 		if len(page.Projects) < pageSize {
 			break
 		}
 		offset += pageSize
 	}
 
-	return summaries, nil
+	return projects, nil
+}
+
+func summarizeProjects(projects []models.Project, organizationID, organizationName string) []ProjectSummary {
+	ctx, _ := context()
+	endpoint := ""
+	if ctx != nil {
+		endpoint = ctx.Global.CurrentValue(config.PreferenceEndpoint)
+	}
+
+	summaries := make([]ProjectSummary, 0, len(projects))
+	for _, item := range projects {
+		teamID := item.TeamId
+		if teamID == "" {
+			teamID = organizationID
+		}
+		summaries = append(summaries, ProjectSummary{
+			ID: item.Id, Name: item.Name, OrganizationID: teamID,
+			OrganizationName: organizationName, Region: item.Region,
+			Endpoint: endpointForRegion(endpoint, item.Region),
+		})
+	}
+
+	return summaries
 }
 
 // GetOrganizationForSession returns the organization the session is acting on.
@@ -306,13 +510,120 @@ func GetOrganizationForSession(organizationID string) (any, error) {
 	if !isRouteMissing(err) {
 		return nil, err
 	}
-
-	// Self-hosted: the organization is a team.
 	if organizationID == "" {
 		return nil, errors.New("an organization ID is required on this endpoint")
 	}
 
 	return teams.New(client).Get(organizationID)
+}
+
+// RenderOrganizationList renders a normalized result and only emits contextual
+// hints in an interactive human-readable invocation.
+func RenderOrganizationList(result *OrganizationList, limit, offset *int, search string) error {
+	if err := RenderValue(result); err != nil {
+		return err
+	}
+	printListHints(listHints("organizations", result.Total, len(result.Organizations), limit, offset, search, ""))
+
+	return nil
+}
+
+// RenderProjectList renders a normalized result and contextual next actions.
+func RenderProjectList(result *ProjectList, limit, offset *int, search, organizationID string) error {
+	if err := RenderValue(result); err != nil {
+		return err
+	}
+	printListHints(listHints("projects", result.Total, len(result.Projects), limit, offset, search, organizationID))
+
+	return nil
+}
+
+func printListHints(hints []string) {
+	if Flags().JSON || Flags().Raw || !term.IsTerminal(int(os.Stdout.Fd())) {
+		return
+	}
+	for _, hint := range hints {
+		output.Hint(os.Stderr, "%s", hint)
+	}
+}
+
+// listHints is pure so pagination, filtering, and empty states can be tested
+// without pretending a test buffer is a terminal.
+func listHints(kind string, total, count int, limit, offset *int, search, organizationID string) []string {
+	hints := []string{}
+	start := defaultOffset
+	if offset != nil {
+		start = *offset
+	}
+	end := start + count
+
+	if count > 0 && end < total {
+		command := listCommand(kind, limit, end, search, organizationID)
+		hints = append(hints, fmt.Sprintf(
+			"Showing %d–%d of %d. Next page: %s", start+1, end, total, command))
+	}
+
+	filtered := search != "" || (kind == "projects" && organizationID != "")
+	if count > 0 && filtered {
+		if kind == "projects" {
+			hints = append(hints, "Project details: "+ExecutableName+" project get --project-id <PROJECT_ID>")
+		} else {
+			hints = append(hints, "Organization details: "+ExecutableName+" organization get --organization-id <ORGANIZATION_ID>")
+		}
+	}
+	if count == 0 && search != "" {
+		hints = append(hints, "Try a shorter search or remove --search.")
+	}
+
+	return hints
+}
+
+func listCommand(kind string, limit *int, offset int, search, organizationID string) string {
+	command := []string{ExecutableName, "list-" + kind}
+	if organizationID != "" {
+		command = append(command, "--organization-id", shellArgument(organizationID))
+	}
+	if search != "" {
+		command = append(command, "--search", shellArgument(search))
+	}
+	if limit != nil {
+		command = append(command, "--limit", strconv.Itoa(*limit))
+	}
+	command = append(command, "--offset", strconv.Itoa(offset))
+
+	return strings.Join(command, " ")
+}
+
+func shellArgument(value string) string {
+	if value != "" {
+		safe := true
+		for _, character := range value {
+			if !(character >= 'a' && character <= 'z') &&
+				!(character >= 'A' && character <= 'Z') &&
+				!(character >= '0' && character <= '9') &&
+				!strings.ContainsRune("-._", character) {
+				safe = false
+				break
+			}
+		}
+		if safe {
+			return value
+		}
+	}
+
+	return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'"
+}
+
+func windowQueries(limit, offset *int) []string {
+	queries := []string{}
+	if limit != nil {
+		queries = append(queries, `{"method":"limit","values":[`+strconv.Itoa(*limit)+`]}`)
+	}
+	if offset != nil {
+		queries = append(queries, `{"method":"offset","values":[`+strconv.Itoa(*offset)+`]}`)
+	}
+
+	return queries
 }
 
 // pageQueries builds the limit/offset pair the fallback pages with.

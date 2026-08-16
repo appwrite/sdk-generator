@@ -99,6 +99,20 @@ func Render(value any) error {
 	return render(Renderer(), value)
 }
 
+// RenderValue renders a result assembled by the CLI rather than the body of the
+// last request it made. List commands use this after enriching or combining
+// several API responses; allowing the response recorder to win there would
+// print whichever enrichment request happened to finish last.
+func RenderValue(value any) error {
+	return renderValue(Renderer(), value)
+}
+
+func renderValue(renderer *output.Renderer, value any) error {
+	sdk.LastResponse.Take()
+
+	return render(renderer, value)
+}
+
 // render is Render against an explicit renderer, so it can be exercised without
 // the process-wide global flags.
 func render(renderer *output.Renderer, value any) error {
