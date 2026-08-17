@@ -2187,7 +2187,7 @@
     "\/mock\/tests\/general\/oauth2": {
       "get": {
         "summary": "OAuth2",
-        "operationId": "generalOAuth2",
+        "operationId": "generalOauth2",
         "tags": [
           "general"
         ],
