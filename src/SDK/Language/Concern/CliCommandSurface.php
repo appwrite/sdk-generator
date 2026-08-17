@@ -263,7 +263,7 @@ trait CliCommandSurface
 
         $available = [];
         foreach ($methods as $method) {
-            $name = $this->cliMethodName($method);
+            $name = $this->getMethodName($method);
 
             if ($name !== '') {
                 $available[$name] = true;
@@ -294,7 +294,7 @@ trait CliCommandSurface
     protected function isCliTopLevelAlias(Operation $method, Tag $service): bool
     {
         return \in_array(
-            $this->cliMethodName($method),
+            $this->getMethodName($method),
             self::TOP_LEVEL_COMMANDS[$service->name] ?? [],
             true,
         );
@@ -309,7 +309,7 @@ trait CliCommandSurface
     protected function getCliCommandTargets(Operation $method, Tag $service): array
     {
         $serviceName = $service->name;
-        $methodName = $this->cliMethodName($method);
+        $methodName = $this->getMethodName($method);
         $commandVar = lcfirst($serviceName) . ucfirst((string) $methodName) . 'Command';
         $isTopLevel = in_array($methodName, self::TOP_LEVEL_COMMANDS[$serviceName] ?? [], true);
         $implementation = self::CONSOLE_FALLBACK_METHODS[$serviceName][$methodName] ?? null;
@@ -347,7 +347,7 @@ trait CliCommandSurface
         $helpers = [];
 
         foreach ($methods as $method) {
-            $helper = $configured[$this->cliMethodName($method)] ?? null;
+            $helper = $configured[$this->getMethodName($method)] ?? null;
 
             if ($helper !== null && !in_array($helper, $helpers, true)) {
                 $helpers[] = $helper;
@@ -378,7 +378,7 @@ trait CliCommandSurface
     protected function getCliMethodDescription(Operation $method, Tag $service): string
     {
         if ($service->name === 'oauth2') {
-            return match ($this->cliMethodName($method)) {
+            return match ($this->getMethodName($method)) {
                 'listOrganizations' => 'List the organizations the current session can access.',
                 'listProjects' => 'List the projects the current session can access.',
                 default => $method->description,
@@ -386,7 +386,7 @@ trait CliCommandSurface
         }
 
         if ($service->name === 'graphql' && ($method->extensions['x-appwrite']['type'] ?? '') === 'graphql') {
-            return match ($this->cliMethodName($method)) {
+            return match ($this->getMethodName($method)) {
                 'query' => 'Execute a GraphQL query.',
                 'mutation' => 'Execute a GraphQL mutation.',
                 default => $method->description,
@@ -405,11 +405,6 @@ trait CliCommandSurface
         return $parameter->description;
     }
 
-    protected function cliMethodName(Operation $method): string
-    {
-        return (string) ($method->extensions['x-appwrite']['method'] ?? $method->id);
-    }
-
     protected function getCliOptionName(string $name): string
     {
         $kebabName = strtolower((string) preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s_]|(?<=[A-Z])\d)/', '-$1', $name));
@@ -422,7 +417,7 @@ trait CliCommandSurface
     {
         $queries = $this->findQueriesParameter($method);
         $hasQueries = $queries !== null;
-        $methodName = $this->cliMethodName($method);
+        $methodName = $this->getMethodName($method);
         $parameterNames = array_map(
             static fn(Parameter $parameter): string => $parameter->name,
             $this->getOperationParameters($method),
