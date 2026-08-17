@@ -108,9 +108,11 @@ abstract class Language
     {
         $serviceName = '';
         foreach ($operation->tags as $tag) {
-            if (\strlen($tag) <= \strlen($serviceName)
+            if (
+                \strlen($tag) <= \strlen($serviceName)
                 || !\str_starts_with($operation->id, $tag)
-                || \strlen($operation->id) === \strlen($tag)) {
+                || \strlen($operation->id) === \strlen($tag)
+            ) {
                 continue;
             }
             $serviceName = $tag;
