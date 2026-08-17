@@ -503,6 +503,7 @@ abstract class Base extends TestCase
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
         $this->assertExcludedFixtureWasRemoved($dir);
+        $this->assertCommentsAreNotHtmlEscaped($dir);
 
         /**
          * Build SDK
@@ -607,6 +608,45 @@ abstract class Base extends TestCase
                     $token,
                     $contents,
                     "Excluded fixture leaked into generated file: {$file->getPathname()}"
+                );
+            }
+        }
+    }
+
+    /**
+     * Twig autoescapes to HTML, so a description that reaches the template through an
+     * unsafe filter arrives in the source as `&quot;` rather than `"`. Go doc comments
+     * are read as plain text, so the entity is what the reader sees.
+     *
+     * Scoped to the generated models: the CLI ships hand-written Go that escapes HTML
+     * as its job, and those entities are the payload rather than a leak.
+     */
+    private function assertCommentsAreNotHtmlEscaped(string $dir): void
+    {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'go') {
+                continue;
+            }
+
+            if (!\str_contains((string) $file->getPath(), '/models')) {
+                continue;
+            }
+
+            $contents = \file_get_contents($file->getPathname());
+
+            if ($contents === false) {
+                continue;
+            }
+
+            foreach (['&quot;', '&#039;', '&amp;', '&lt;', '&gt;'] as $entity) {
+                $this->assertStringNotContainsString(
+                    $entity,
+                    $contents,
+                    "HTML entity {$entity} leaked into generated source: {$file->getPathname()}"
                 );
             }
         }
