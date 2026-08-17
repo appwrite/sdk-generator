@@ -615,8 +615,8 @@ class SDK
     /** @param array<string, mixed> $alias */
     protected function createAliasedOperation(Operation $operation, array $alias, string $serviceName): Operation
     {
+        $methodName = (string) ($alias['name'] ?? $this->methodName($operation));
         $appwrite = $operation->extensions['x-appwrite'] ?? [];
-        $appwrite['method'] = (string) ($alias['name'] ?? $appwrite['method'] ?? $operation->id);
         $appwrite['auth'] = $alias['auth'] ?? [];
         if (isset($alias['deprecated'])) {
             $appwrite['deprecated'] = $alias['deprecated'];
@@ -628,7 +628,7 @@ class SDK
         $extensions['x-appwrite'] = $appwrite;
 
         return new Operation(
-            id: $operation->id,
+            id: $serviceName . \ucfirst($methodName),
             method: $operation->method,
             path: $operation->path,
             tags: [$serviceName],
@@ -1479,7 +1479,7 @@ class SDK
 
     protected function methodName(Operation $operation): string
     {
-        return (string) ($operation->extensions['x-appwrite']['method'] ?? $operation->id);
+        return $this->language->getMethodName($operation);
     }
 
     protected function methodType(Operation $operation): string|false

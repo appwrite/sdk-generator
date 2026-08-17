@@ -246,7 +246,7 @@ class CLI extends Go
      */
     protected function getGoCallPlan(Operation $method, Tag $service): array
     {
-        $methodName = $this->toPascalCase($this->cliMethodName($method));
+        $methodName = $this->toPascalCase($this->getMethodName($method));
         $required = [];
         $optional = [];
         $decodes = [];

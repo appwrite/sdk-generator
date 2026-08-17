@@ -101,6 +101,29 @@ abstract class Language
     }
 
     /**
+     * Derive the service-local SDK method name from a service-qualified
+     * OpenAPI operation ID.
+     */
+    public function getMethodName(Operation $operation): string
+    {
+        $serviceName = '';
+        foreach ($operation->tags as $tag) {
+            if (\strlen($tag) <= \strlen($serviceName)
+                || !\str_starts_with($operation->id, $tag)
+                || \strlen($operation->id) === \strlen($tag)) {
+                continue;
+            }
+            $serviceName = $tag;
+        }
+
+        if ($serviceName === '') {
+            return $operation->id;
+        }
+
+        return \lcfirst(\substr($operation->id, \strlen($serviceName)));
+    }
+
+    /**
      * Language specific filters.
      */
     public function getFilters(): array
