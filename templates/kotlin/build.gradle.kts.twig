@@ -31,7 +31,7 @@ repositories {
 dependencies {
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 
-    api(platform("com.squareup.okhttp3:okhttp-bom:5.4.0"))
+    api(platform("com.squareup.okhttp3:okhttp-bom:5.5.0"))
     api("com.squareup.okhttp3:okhttp")
 
     implementation("com.squareup.okhttp3:okhttp-urlconnection")
