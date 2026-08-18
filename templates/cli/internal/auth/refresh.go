@@ -21,7 +21,19 @@ const DefaultClientID = "appwrite-cli"
 const refreshSkew = 60 * time.Second
 
 // ErrSessionExpired is returned when no usable credential remains.
-var ErrSessionExpired = errors.New("session expired. Run `appwrite login` to create a new session")
+var ErrSessionExpired = errors.New("session expired. Run `appwrite login` to sign in again")
+
+// expiredSessionError keeps the server's cause available to --verbose and
+// errors.As while presenting the short recovery instruction in normal output.
+type expiredSessionError struct {
+	cause error
+}
+
+func (e *expiredSessionError) Error() string { return ErrSessionExpired.Error() }
+func (e *expiredSessionError) Unwrap() error { return e.cause }
+func (e *expiredSessionError) Is(target error) bool {
+	return target == ErrSessionExpired
+}
 
 // tokenResponse is the subset of the OAuth2 token payload the CLI uses.
 type tokenResponse struct {
@@ -160,6 +172,11 @@ func (a *Authenticator) refresh(session *config.Object, sessionID, refreshToken 
 		"client_id":     clientID,
 	}, &token)
 	if err != nil {
+		var apiError *client.APIError
+		if errors.As(err, &apiError) && apiError.OAuthError == "invalid_grant" {
+			return "", &expiredSessionError{cause: err}
+		}
+
 		return "", err
 	}
 	if token.AccessToken == "" {

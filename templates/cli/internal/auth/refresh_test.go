@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 )
 
@@ -121,6 +122,40 @@ func TestAccessTokenRefreshesInsideSkewWindow(t *testing.T) {
 	wantExpiry := fixedNow.Add(3600 * time.Second).UnixMilli()
 	if got := session.GetInt64(config.PreferenceTokenExpiry); got != wantExpiry {
 		t.Errorf("persisted expiry = %d, want %d", got, wantExpiry)
+	}
+}
+
+// An invalid refresh grant means the stored session cannot be renewed. Normal
+// output gives the recovery action, while the wrapped API error keeps the
+// server's description available to diagnostics.
+func TestAccessTokenTurnsInvalidGrantIntoExpiredSession(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"error":             "invalid_grant",
+			"error_description": "Invalid refresh token provided.",
+		})
+	}))
+	defer server.Close()
+
+	global := newTestGlobal(t, server.URL, 0, "expired")
+	seedPrefsRefreshToken(t, global, "session-1", "invalid-refresh")
+
+	_, err := NewAuthenticator(global, "0.0.1").AccessToken(true)
+	if err == nil {
+		t.Fatal("expected refresh to fail")
+	}
+	if got := err.Error(); got != ErrSessionExpired.Error() {
+		t.Errorf("refresh error = %q, want %q", got, ErrSessionExpired)
+	}
+	if !errors.Is(err, ErrSessionExpired) {
+		t.Errorf("errors.Is(err, ErrSessionExpired) = false: %v", err)
+	}
+
+	var apiError *client.APIError
+	if !errors.As(err, &apiError) {
+		t.Errorf("refresh error does not retain *client.APIError: %v", err)
 	}
 }
 

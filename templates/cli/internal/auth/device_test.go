@@ -32,12 +32,22 @@ func deviceServer(t *testing.T, responses []func(w http.ResponseWriter)) (*httpt
 
 func pendingResponse(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusBadRequest)
-	_ = json.NewEncoder(w).Encode(map[string]any{"type": "authorization_pending"})
+	_ = json.NewEncoder(w).Encode(map[string]any{"error": "authorization_pending"})
 }
 
 func slowDownResponse(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusBadRequest)
-	_ = json.NewEncoder(w).Encode(map[string]any{"type": "slow_down"})
+	_ = json.NewEncoder(w).Encode(map[string]any{"error": "slow_down"})
+}
+
+func legacyPendingTypeResponse(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusBadRequest)
+	_ = json.NewEncoder(w).Encode(map[string]any{"type": "authorization_pending"})
+}
+
+func legacyPendingMessageResponse(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusBadRequest)
+	_ = json.NewEncoder(w).Encode(map[string]any{"message": "authorization_pending"})
 }
 
 func tokenGrantedResponse(w http.ResponseWriter) {
@@ -92,6 +102,30 @@ func TestPollSucceedsAfterPendingResponses(t *testing.T) {
 	}
 }
 
+// Older endpoints used Appwrite's type/message error envelope. Keep accepting
+// both shapes while preferring the standard OAuth error field.
+func TestPollAcceptsLegacyPendingErrorShapes(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		response func(http.ResponseWriter)
+	}{
+		{name: "type", response: legacyPendingTypeResponse},
+		{name: "message", response: legacyPendingMessageResponse},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			server, calls := deviceServer(t, []func(http.ResponseWriter){test.response, tokenGrantedResponse})
+			flow, _ := newTestFlow(t, server.URL)
+
+			if _, err := flow.Poll(testAuthorization()); err != nil {
+				t.Fatal(err)
+			}
+			if *calls != 2 {
+				t.Errorf("polls = %d, want 2", *calls)
+			}
+		})
+	}
+}
+
 // RFC 8628 section 3.5: `slow_down` widens the interval by five seconds, and
 // the widened interval persists for subsequent polls.
 func TestPollWidensIntervalOnSlowDown(t *testing.T) {
@@ -140,7 +174,7 @@ func TestPollTreatsEmptyErrorBodyAsPending(t *testing.T) {
 func TestPollAbortsOnRealError(t *testing.T) {
 	denied := func(w http.ResponseWriter) {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]any{"type": "access_denied"})
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": "access_denied"})
 	}
 
 	server, calls := deviceServer(t, []func(http.ResponseWriter){denied})
