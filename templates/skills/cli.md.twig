@@ -1,6 +1,6 @@
 {% set lang = 'cli' %}
 {% set langName = 'CLI' %}
-{% set langDescription %}How to use the {{ spec.info.title }} CLI well. Covers when to use appwrite.config.json vs `appwrite client`, pull/push vs one-shot service calls, query flags, CI auth, Cloud regional endpoints, function/site variables, and traps that `--help` will not mention. Does not catalog commands — run `appwrite <command> --help` for flags. Use whenever running `appwrite`, deploying or pulling functions/sites/tables, initializing or linking a project, scripting {{ spec.info.title }}, or when the user mentions the {{ spec.info.title }} CLI, appwrite.config.json, or `appwrite client`.{% endset %}
+{% set langDescription %}How to use the {{ spec.info.title }} CLI well. Covers when to use appwrite.config.json vs `appwrite client`, pull/push vs one-shot service calls, type-safe SDK and model generation, query flags, CI auth, Cloud regional endpoints, function/site variables, and traps that `--help` will not mention. Does not catalog commands — run `appwrite <command> --help` for flags. Use whenever running `appwrite`, deploying or pulling functions/sites/tables, generating application code from a table schema, initializing or linking a project, scripting {{ spec.info.title }}, or when the user mentions the {{ spec.info.title }} CLI, appwrite.config.json, `appwrite generate`, `appwrite types`, or `appwrite client`.{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
 # {{ spec.info.title }} CLI
@@ -109,6 +109,70 @@ appwrite push settings --force
 
 `unique()` is fine for a one-shot row or user. Resources you will push need a **stable** `$id` in the config so the next pull matches.
 
+## Type-safe application code
+
+When writing application code against TablesDB, inspect `appwrite.config.json` before inventing interfaces, database IDs, table IDs, or column names. The generators read the local config; they do not inspect the remote schema. A stale config produces stale code.
+
+If the remote schema is the source of truth, update the config first with `appwrite pull table`. Do not pull over local, unpushed schema edits. If the local config is ahead, generate from it as-is.
+
+For TypeScript, prefer `appwrite generate`. It emits a complete TablesDB wrapper: database and table choices, create/update payloads, returned rows, query fields, and query values are checked by TypeScript. This is stronger than generated model interfaces alone.
+
+```bash
+appwrite generate
+```
+
+Use the generated API instead of dropping back to raw string IDs and handwritten payload types:
+
+```typescript
+import { databases, type Songs } from "./generated/appwrite/index.js";
+
+// Database lookup uses its ID; table lookup uses its name from the config.
+const songs = databases.use("main").use("Songs");
+
+const page = await songs.list({
+  queries: (query) => [
+    query.equal("published", true),
+    query.orderDesc("createdAt"),
+    query.limit(20),
+  ],
+});
+
+const first: Songs | undefined = page.rows[0];
+```
+
+Do not guess the literals in that example: read the generated types or the config. In particular, `.use()` for a table takes its `name`, which may differ from its `$id`. Let compilation expose a misspelled table, column, or wrong query value. Run the project's type checker after generation.
+
+`generate` currently provides the full wrapper for TypeScript. It detects client versus server output from the installed Appwrite package. Server output reads `APPWRITE_API_KEY`; never put that key in generated constants or commit it. Override language, import source, module extension, or client/server mode only when detection is wrong—read `appwrite generate --help` for those flags.
+
+For another supported language, or when the project deliberately uses the regular SDK directly, use `appwrite types <output-directory>`. It supports TypeScript (`ts`), JavaScript (`js`), PHP (`php`), Kotlin (`kotlin`), Swift (`swift`), Java (`java`), Dart (`dart`), and C# (`cs`). Pass these short values to `--language`; names such as `typescript` and `csharp` are not the command's accepted values. Generated files type row data, but they do **not** type-check raw database/table IDs or `Query` calls:
+
+For TypeScript, pass a `.ts` destination when the result will be imported as a module. Passing a directory instead creates `appwrite.d.ts` inside it.
+
+```bash
+appwrite types ./src/appwrite-types.ts --language ts
+```
+
+```typescript
+import { Client, TablesDB } from "appwrite";
+import type { Songs } from "./appwrite-types.js";
+
+// Read these values from appwrite.config.json and expose them through the
+// application's existing configuration mechanism.
+const client = new Client()
+  .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+  .setProject("<PROJECT_ID>");
+const tablesDB = new TablesDB(client);
+
+const page = await tablesDB.listRows<Songs>({
+  databaseId: "main", // still an unchecked string
+  tableId: "songs",  // still an unchecked string
+});
+```
+
+Do not describe `types --strict` as “full type safety.” It only converts field names to the target language's naming conventions. Use `generate` when a fully typed TypeScript table API is the goal.
+
+Generated code is derived output. Do not patch it to fix a schema or naming problem; fix `appwrite.config.json` or the generator inputs and regenerate. After every table or column change, rerun the same generation command the repository uses and run its formatter/type checker. Preserve the repository's existing output path and check-in convention.
+
 ## Functions and sites
 
 Variables live in `<path>/.env`, not in `appwrite.config.json`. `--with-variables` **replaces** the remote set from that file. Omit it unless you intend to sync secrets.
@@ -124,7 +188,7 @@ appwrite push function --function-id api --with-variables --force
 appwrite push function --function-id api --activate=false --force
 ```
 
-`--async` returns before the build finishes. Local: `appwrite run function`. After the schema is in the config: `appwrite generate`.
+`--async` returns before the build finishes. Local: `appwrite run function`.
 
 ## Queries and output
 
