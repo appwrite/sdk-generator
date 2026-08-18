@@ -146,13 +146,22 @@ Do not guess the literals in that example: read the generated types or the confi
 
 For another supported language, or when the project deliberately uses the regular SDK directly, use `appwrite types <output-directory>`. It supports TypeScript (`ts`), JavaScript (`js`), PHP (`php`), Kotlin (`kotlin`), Swift (`swift`), Java (`java`), Dart (`dart`), and C# (`cs`). Pass these short values to `--language`; names such as `typescript` and `csharp` are not the command's accepted values. Generated files type row data, but they do **not** type-check raw database/table IDs or `Query` calls:
 
+For TypeScript, pass a `.ts` destination when the result will be imported as a module. Passing a directory instead creates `appwrite.d.ts` inside it.
+
 ```bash
-appwrite types ./src/appwrite-types
+appwrite types ./src/appwrite-types.ts --language ts
 ```
 
 ```typescript
-import { TablesDB } from "appwrite";
-import type { Songs } from "./appwrite-types/appwrite.js";
+import { Client, TablesDB } from "appwrite";
+import type { Songs } from "./appwrite-types.js";
+
+// Read these values from appwrite.config.json and expose them through the
+// application's existing configuration mechanism.
+const client = new Client()
+  .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+  .setProject("<PROJECT_ID>");
+const tablesDB = new TablesDB(client);
 
 const page = await tablesDB.listRows<Songs>({
   databaseId: "main", // still an unchecked string
