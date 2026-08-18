@@ -9,7 +9,7 @@
 
 The SDK Generator uses predefined language settings as [Twig templates](https://twig.symfony.com/) to generate codebases based on different API specs.
 
-Both OpenAPI 3.0 and Swagger 2.0 specs are supported and produce identical SDKs, including services, methods, models, enums, and union types.
+[Utopia OpenAPI](https://github.com/utopia-php/openapi) parses OpenAPI 2.0, 3.0, and 3.1 documents into one canonical model. The generator consumes that model to render services, methods, models, enums, and union types.
 
 ## Getting Started
 
@@ -39,18 +39,15 @@ Create language and SDK instances and generate code to target directory.
 
 require_once 'vendor/autoload.php';
 
-use Appwrite\Spec\OpenAPI3;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\PHP;
+use Utopia\OpenAPI\Parser;
 
-// Read API specification file (OpenAPI 3) and create spec instance
+// Parse an OpenAPI 2, 3.0, or 3.1 document into the canonical specification model.
 $version = '1.9.x';
 $platform = 'server';
-$spec = new OpenAPI3(file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/open-api3-{$version}-{$platform}.json"));
-
-// Swagger 2 specs are supported as well:
-// use Appwrite\Spec\Swagger2;
-// $spec = new Swagger2(file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json"));
+$content = file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/open-api3-{$version}-{$platform}.json");
+$spec = Parser::parse($content);
 
 // Create language instance
 $lang = new PHP();
@@ -73,24 +70,30 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 ```
 
-For generated artifacts that do not need an API specification, use `StaticSpec`:
+For generated artifacts that do not need API operations, create a minimal canonical specification:
 
 ```php
 <?php
 
 require_once 'vendor/autoload.php';
 
-use Appwrite\Spec\StaticSpec;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\Skills;
+use Utopia\OpenAPI\Parser;
 
-$spec = new StaticSpec(
-    title: 'Appwrite',
-    description: 'Appwrite backend as a service',
-    version: '1.9.x',
-    licenseName: 'BSD-3-Clause',
-    licenseURL: 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
-);
+$spec = Parser::parse([
+    'openapi' => '3.0.0',
+    'info' => [
+        'title' => 'Appwrite',
+        'description' => 'Appwrite backend as a service',
+        'version' => '1.9.x',
+        'license' => [
+            'name' => 'BSD-3-Clause',
+            'url' => 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
+        ],
+    ],
+    'paths' => [],
+]);
 
 $sdk = new SDK(new Skills(), $spec);
 
@@ -117,8 +120,9 @@ Requires [uv](https://github.com/astral-sh/uv) to be installed. Configuration is
 
 ## Supported Specs
 
-* [OpenAPI 3](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md)
-* [Swagger 2](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md)
+* [OpenAPI 3.1](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md)
+* [OpenAPI 3.0](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.4.md)
+* [OpenAPI (Swagger) 2](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/2.0.md)
 * [RAML 1.0](https://raml.org/) (Not Ready)
 * [RAML 0.8](https://raml.org/) (Not Ready)
 * [Postman 2.0](https://schema.getpostman.com/json/collection/v2.0.0/docs/index.html) (Not Ready)
@@ -179,7 +183,7 @@ php example.php zed-extension
 
 | Target | Argument | Supported Versions | Coding Standards | Package Manager | Output |
 |--------|----------|--------------------|------------------|-----------------|--------|
-| CLI | `cli` | Node.js 20 and Bun 1.3.11 in CI | [NPM Coding Style] | NPM, Bun, native binaries | `examples/cli/` |
+| CLI | `cli` | Go 1.26.5 | [Effective Go] | Go modules, native binaries, NPM | `examples/cli/` |
 | REST examples | `rest` | N/A | Markdown | N/A | `examples/REST/` |
 | GraphQL | `graphql` | N/A | GraphQL | N/A | `examples/graphql/` |
 | Skills | `skills` | N/A | Markdown | N/A | `examples/skills/` |

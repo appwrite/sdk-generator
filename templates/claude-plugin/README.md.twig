@@ -1,4 +1,4 @@
-# {{ spec.title }} Claude Code Plugin
+# {{ spec.info.title }} Claude Code Plugin
 
 ![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?style=flat-square)
 ![Version](https://img.shields.io/badge/api%20version-{{ sdk.version }}-blue.svg?style=flat-square)
@@ -44,42 +44,42 @@ commands/                    # Manual commands with side effects
 
 ## Included Skills
 
-- `/{{ spec.title | caseLower }}:typescript`
-- `/{{ spec.title | caseLower }}:dart`
-- `/{{ spec.title | caseLower }}:kotlin`
-- `/{{ spec.title | caseLower }}:swift`
-- `/{{ spec.title | caseLower }}:php`
-- `/{{ spec.title | caseLower }}:python`
-- `/{{ spec.title | caseLower }}:ruby`
-- `/{{ spec.title | caseLower }}:go`
-- `/{{ spec.title | caseLower }}:rust`
-- `/{{ spec.title | caseLower }}:dotnet`
-- `/{{ spec.title | caseLower }}:cli`
+- `/{{ spec.info.title | caseLower }}:typescript`
+- `/{{ spec.info.title | caseLower }}:dart`
+- `/{{ spec.info.title | caseLower }}:kotlin`
+- `/{{ spec.info.title | caseLower }}:swift`
+- `/{{ spec.info.title | caseLower }}:php`
+- `/{{ spec.info.title | caseLower }}:python`
+- `/{{ spec.info.title | caseLower }}:ruby`
+- `/{{ spec.info.title | caseLower }}:go`
+- `/{{ spec.info.title | caseLower }}:rust`
+- `/{{ spec.info.title | caseLower }}:dotnet`
+- `/{{ spec.info.title | caseLower }}:cli`
 
 These skills give Claude Code language-specific Appwrite context for authentication, database queries, storage, realtime, functions, and server-side administration.
 
 ## Included Commands
 
-- `/{{ spec.title | caseLower }}:deploy-site`
-- `/{{ spec.title | caseLower }}:deploy-function`
+- `/{{ spec.info.title | caseLower }}:deploy-site`
+- `/{{ spec.info.title | caseLower }}:deploy-function`
 
 These commands are marked as manual-only so Claude will not invoke deployment workflows automatically.
 
 ## Hosted MCP Server
 
-The plugin configures one `{{ spec.title | caseLower }}` server at `https://mcp.appwrite.io/`. It provides tools for working with your {{ spec.title }} workspace and projects and for searching the latest {{ spec.title }} documentation.
+The plugin configures one `{{ spec.info.title | caseLower }}` server at `https://mcp.appwrite.io/`. It provides tools for working with your {{ spec.info.title }} workspace and projects and for searching the latest {{ spec.info.title }} documentation.
 
-The hosted server uses browser-based OAuth, so the plugin does not require an API key, project ID, endpoint, or other manually configured secret. In an interactive Claude Code session, open `/mcp` and authenticate the `{{ spec.title | caseLower }}` plugin server, or run:
+The hosted server uses browser-based OAuth, so the plugin does not require an API key, project ID, endpoint, or other manually configured secret. In an interactive Claude Code session, open `/mcp` and authenticate the `{{ spec.info.title | caseLower }}` plugin server, or run:
 
 ```sh
-claude mcp login plugin:{{ spec.title | caseLower }}:{{ spec.title | caseLower }}
+claude mcp login plugin:{{ spec.info.title | caseLower }}:{{ spec.info.title | caseLower }}
 ```
 
 After authentication, try:
 
-> Use {{ spec.title }} to show my workspace context and list my projects.
+> Use {{ spec.info.title }} to show my workspace context and list my projects.
 
-If authentication expires, run `claude mcp login plugin:{{ spec.title | caseLower }}:{{ spec.title | caseLower }}` again or choose **Re-authenticate** from `/mcp`. If the browser does not open, use the URL printed by Claude Code. Use `claude mcp get plugin:{{ spec.title | caseLower }}:{{ spec.title | caseLower }}` and `/mcp` to inspect approval, authentication, and connection status.
+If authentication expires, run `claude mcp login plugin:{{ spec.info.title | caseLower }}:{{ spec.info.title | caseLower }}` again or choose **Re-authenticate** from `/mcp`. If the browser does not open, use the URL printed by Claude Code. Use `claude mcp get plugin:{{ spec.info.title | caseLower }}:{{ spec.info.title | caseLower }}` and `/mcp` to inspect approval, authentication, and connection status.
 
 ## Local Development
 
@@ -98,14 +98,14 @@ claude --plugin-dir ./examples/claude-plugin
 
 Then verify:
 
-- `/help` shows the `{{ spec.title | caseLower }}` namespace
-- `/{{ spec.title | caseLower }}:typescript` loads the TypeScript skill
+- `/help` shows the `{{ spec.info.title | caseLower }}` namespace
+- `/{{ spec.info.title | caseLower }}:typescript` loads the TypeScript skill
 
 Install it end to end through the bundled marketplace:
 
 ```sh
 claude plugin marketplace add ./examples/claude-plugin --scope local
-claude plugin install {{ spec.title | caseLower }}@{{ spec.title | caseLower }} --scope local
+claude plugin install {{ spec.info.title | caseLower }}@{{ spec.info.title | caseLower }} --scope local
 ```
 
 Use `--plugin-dir` for fast iteration on skills and commands. Use the bundled marketplace when you want install-by-name flows such as `appwrite@appwrite`.
@@ -116,4 +116,4 @@ This library is auto-generated by Appwrite custom [SDK Generator](https://github
 
 ## License
 
-Please see the [{{spec.licenseName}} license]({{spec.licenseURL}}) file for more information.
+Please see the [{{spec.info.license.name}} license]({{spec.info.license.url}}) file for more information.

@@ -1,6 +1,6 @@
-//! Enums for {{ spec.title }} SDK
+//! Enums for {{ spec.info.title }} SDK
 
-{% for enum in spec.allEnums %}
-pub mod {{ enum.name | caseSnake | overrideIdentifier }};
-pub use {{ enum.name | caseSnake | overrideIdentifier }}::{{ enum.name | caseUcfirst | overrideIdentifier }};
+{% for enum in allEnums %}
+pub mod {{ enum.title | caseSnake | overrideIdentifier }};
+pub use {{ enum.title | caseSnake | overrideIdentifier }}::{{ enum.title | caseUcfirst | overrideIdentifier }};
 {% endfor %}

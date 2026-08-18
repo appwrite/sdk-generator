@@ -5,7 +5,7 @@ require 'uri'
 require 'json'
 require 'cgi'
 
-module {{ spec.title | caseUcfirst }}
+module {{ spec.info.title | caseUcfirst }}
     class Client
 
         def initialize
@@ -15,32 +15,32 @@ module {{ spec.title | caseUcfirst }}
                 'x-sdk-name'=> '{{ sdk.name }}',
                 'x-sdk-platform'=> '{{ sdk.platform }}',
                 'x-sdk-language'=> '{{ language.name | caseLower }}',
-                'x-sdk-version'=> '{{ sdk.version }}'{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+                'x-sdk-version'=> '{{ sdk.version }}'{% if defaultHeaders | length > 0 %},{% endif %}
 
-{% for key,header in spec.global.defaultHeaders %}
+{% for key,header in defaultHeaders %}
                 '{{key}}' => '{{header}}'{% if not loop.last %},{% endif %}
 {% endfor %}
 
             }
-            @endpoint = '{{spec.endpoint}}'
+            @endpoint = '{{(spec | endpoint)}}'
             @config = {}
         end
 
-{% for header in spec.global.headers %}
-        # Set {{header.key | caseUcfirst}}
+{% for headerKey, header in globalHeaders %}
+        # Set {{headerKey | caseUcfirst}}
         #
 {% if header.description %}
         # {{header.description}}
         #
 {% endif %}
-        # @param [String] value The value to set for the {{ header.key }} header
+        # @param [String] value The value to set for the {{ headerKey }} header
         #
         # @return [self]
-        def set_{{header.key | caseSnake}}(value)
-            {%~ if header.global %}
-            add_header('{{header.name | caseLower}}', {% if header.type is defined and header.type == 'bearer' %}"Bearer #{value}"{% else %}value{% endif %})
+        def set_{{headerKey | caseSnake}}(value)
+            {%~ if (headerKey != 'Project') %}
+            add_header('{{header.name | caseLower}}', {% if header.scheme == 'bearer' %}"Bearer #{value}"{% else %}value{% endif %})
             {%~ endif %}
-            @config['{{ header.key | caseLower }}'] = value
+            @config['{{ headerKey | caseLower }}'] = value
 
             self
         end
@@ -57,7 +57,7 @@ module {{ spec.title | caseUcfirst }}
         # @return [self]
         def set_endpoint(endpoint)
             if not endpoint.start_with?('http://') and not endpoint.start_with?('https://')
-                raise {{spec.title | caseUcfirst}}::Exception.new('Invalid endpoint URL: ' + endpoint)
+                raise {{spec.info.title | caseUcfirst}}::Exception.new('Invalid endpoint URL: ' + endpoint)
             end
 
             @endpoint = endpoint
@@ -165,7 +165,7 @@ module {{ spec.title | caseUcfirst }}
                     )
                     chunks_uploaded = current['chunksUploaded'].to_i
                     offset = chunks_uploaded * @chunk_size
-                rescue {{spec.title | caseUcfirst}}::Exception => error
+                rescue {{spec.info.title | caseUcfirst}}::Exception => error
                     raise error unless error.code.to_i == 404
                 end
             end
@@ -200,7 +200,7 @@ module {{ spec.title | caseUcfirst }}
                 ))
 
                 chunk_headers = headers.merge('content-range' => "bytes #{chunk[:start]}-#{chunk[:ending] - 1}/#{size}")
-                chunk_headers['x-{{ spec.title | caseLower }}-id'] = current_upload_id if current_upload_id
+                chunk_headers['x-{{ spec.info.title | caseLower }}-id'] = current_upload_id if current_upload_id
 
                 call(
                     method: 'POST',
@@ -319,10 +319,10 @@ module {{ spec.title | caseUcfirst }}
             begin
                 response = http.send_request(method, uri.request_uri, payload, headers)
             rescue => error
-                raise {{spec.title | caseUcfirst}}::Exception.new(error.message)
+                raise {{spec.info.title | caseUcfirst}}::Exception.new(error.message)
             end
 
-            warnings = response['x-{{ spec.title | lower }}-warning']
+            warnings = response['x-{{ spec.info.title | lower }}-warning']
             if warnings
                 warnings.split(';').each do |warning|
                     warn "Warning: #{warning}"
@@ -344,11 +344,11 @@ module {{ spec.title | caseUcfirst }}
                 begin
                     result = JSON.parse(response.body)
                 rescue JSON::ParserError => e
-                    raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, nil, response.body)
+                    raise {{spec.info.title | caseUcfirst}}::Exception.new(response.body, response.code, nil, response.body)
                 end
 
                 if response.code.to_i >= 400
-                    raise {{spec.title | caseUcfirst}}::Exception.new(result['message'], response.code, result['type'], response.body)
+                    raise {{spec.info.title | caseUcfirst}}::Exception.new(result['message'], response.code, result['type'], response.body)
                 end
 
                 unless response_type.respond_to?("from")
@@ -359,7 +359,7 @@ module {{ spec.title | caseUcfirst }}
             end
 
             if response.code.to_i >= 400
-                raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response, response.body)
+                raise {{spec.info.title | caseUcfirst}}::Exception.new(response.body, response.code, response, response.body)
             end
 
             if response.respond_to?("body_permitted?")

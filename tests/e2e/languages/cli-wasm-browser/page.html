@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Appwrite CLI browser conformance</title>
+</head>
+<body>
+<script src="wasm_exec.js"></script>
+<script>
+// A page that runs the CLI the way an embedder would, and nothing more.
+//
+// Deliberately no filesystem shim. wasm_exec.js installs a stub `fs` whose
+// every call answers ENOSYS except writes to stdout and stderr, and that is
+// what a browser tab actually has -- almostnode in the Console supplies more,
+// but an artifact that only works inside almostnode is a worse artifact. So
+// this page is the floor: no HOME, no readable prefs.json, no writable
+// anything. Everything the CLI needs arrives through argv, the environment, and
+// the browser's own session.
+//
+// The only patch is to `writeSync`, so the test can read what the CLI printed
+// instead of watching it go to the console.
+
+const decoder = new TextDecoder('utf-8')
+
+function captureOutput() {
+    const streams = { 1: '', 2: '' }
+    const original = globalThis.fs.writeSync
+
+    globalThis.fs.writeSync = (fd, buffer) => {
+        if (fd === 1 || fd === 2) {
+            streams[fd] += decoder.decode(buffer, { stream: true })
+
+            return buffer.length
+        }
+
+        return original(fd, buffer)
+    }
+
+    return {
+        streams,
+        restore: () => {
+            globalThis.fs.writeSync = original
+        },
+    }
+}
+
+// Compiled once and instantiated per run: a Go program owns its instance and
+// exits it, so a second command needs a second instance.
+const compiled = WebAssembly.compileStreaming(fetch('appwrite.wasm'))
+
+window.runCLI = async function runCLI(args, env = {}) {
+    const capture = captureOutput()
+    const go = new Go()
+
+    go.argv = ['appwrite', ...args]
+    go.env = env
+
+    let code = 0
+    go.exit = (status) => {
+        code = status
+    }
+
+    try {
+        const instance = await WebAssembly.instantiate(await compiled, go.importObject)
+        await go.run(instance)
+    } finally {
+        capture.restore()
+    }
+
+    return { code, stdout: capture.streams[1], stderr: capture.streams[2] }
+}
+
+// Signals to the driver that the page is ready without it having to poll for a
+// global that may not exist yet.
+window.ready = compiled.then(() => true)
+</script>
+</body>
+</html>

@@ -1,14 +1,14 @@
 {% set lang = 'rust' %}
 {% set langName = 'Rust' %}
-{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side Rust applications with {{ spec.title }}. Covers async client setup with API keys, user management, TablesDB database/table/row operations, file storage, function executions, permissions, queries, and error handling. Uses the crates.io `{{ spec.title | caseLower }}` package and Tokio.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side Rust applications with {{ spec.info.title }}. Covers async client setup with API keys, user management, TablesDB database/table/row operations, file storage, function executions, permissions, queries, and error handling. Uses the crates.io `{{ spec.info.title | caseLower }}` package and Tokio.{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
-# {{ spec.title }} {{ langName }} SDK
+# {{ spec.info.title }} {{ langName }} SDK
 
 ## Installation
 
 ```bash
-cargo add {{ spec.title | caseLower }}
+cargo add {{ spec.info.title | caseLower }}
 cargo add tokio --features full
 cargo add serde_json
 ```
@@ -17,7 +17,7 @@ Or add dependencies manually:
 
 ```toml
 [dependencies]
-{{ spec.title | caseLower }} = "0.3.0"
+{{ spec.info.title | caseLower }} = "0.3.0"
 tokio = { version = "1", features = ["full"] }
 serde_json = "1"
 ```
@@ -27,29 +27,29 @@ serde_json = "1"
 The Rust SDK is async. Use it from a Tokio runtime and authenticate server-side with an API key.
 
 ```rust
-use {{ spec.title | caseLower }}::Client;
+use {{ spec.info.title | caseLower }}::Client;
 use std::env;
 
 let client = Client::new()
     .set_endpoint("https://<REGION>.cloud.appwrite.io/v1")
-    .set_project(env::var("{{ spec.title | caseUpper }}_PROJECT_ID")?)
-    .set_key(env::var("{{ spec.title | caseUpper }}_API_KEY")?);
+    .set_project(env::var("{{ spec.info.title | caseUpper }}_PROJECT_ID")?)
+    .set_key(env::var("{{ spec.info.title | caseUpper }}_API_KEY")?);
 ```
 
 ### Complete server skeleton
 
 ```rust
-use {{ spec.title | caseLower }}::query::Query;
-use {{ spec.title | caseLower }}::services::Users;
-use {{ spec.title | caseLower }}::Client;
+use {{ spec.info.title | caseLower }}::query::Query;
+use {{ spec.info.title | caseLower }}::services::Users;
+use {{ spec.info.title | caseLower }}::Client;
 use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new()
         .set_endpoint("https://<REGION>.cloud.appwrite.io/v1")
-        .set_project(env::var("{{ spec.title | caseUpper }}_PROJECT_ID")?)
-        .set_key(env::var("{{ spec.title | caseUpper }}_API_KEY")?);
+        .set_project(env::var("{{ spec.info.title | caseUpper }}_PROJECT_ID")?)
+        .set_key(env::var("{{ spec.info.title | caseUpper }}_API_KEY")?);
 
     let users = Users::new(&client);
     let _list = users
@@ -65,9 +65,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### User Management
 
 ```rust
-use {{ spec.title | caseLower }}::id::ID;
-use {{ spec.title | caseLower }}::query::Query;
-use {{ spec.title | caseLower }}::services::Users;
+use {{ spec.info.title | caseLower }}::id::ID;
+use {{ spec.info.title | caseLower }}::query::Query;
+use {{ spec.info.title | caseLower }}::services::Users;
 
 let users = Users::new(&client);
 
@@ -101,11 +101,11 @@ users.delete("[USER_ID]").await?;
 > **Rust SDK calling convention:** Methods are async, use positional parameters, and represent optional API parameters as `Option<T>`. Pass `None` for optional values you are not setting.
 
 ```rust
-use {{ spec.title | caseLower }}::id::ID;
-use {{ spec.title | caseLower }}::permission::Permission;
-use {{ spec.title | caseLower }}::query::Query;
-use {{ spec.title | caseLower }}::role::Role;
-use {{ spec.title | caseLower }}::services::TablesDB;
+use {{ spec.info.title | caseLower }}::id::ID;
+use {{ spec.info.title | caseLower }}::permission::Permission;
+use {{ spec.info.title | caseLower }}::query::Query;
+use {{ spec.info.title | caseLower }}::role::Role;
+use {{ spec.info.title | caseLower }}::services::TablesDB;
 use serde_json::json;
 
 let tables_db = TablesDB::new(&client);
@@ -200,7 +200,7 @@ tables_db
 - `text`, `mediumtext`, and `longtext` are stored off-page, so they do not consume the row size budget. `size` is not required for these types.
 
 ```rust
-use {{ spec.title | caseLower }}::enums::{OrderBy, TablesDBIndexType};
+use {{ spec.info.title | caseLower }}::enums::{OrderBy, TablesDBIndexType};
 
 // Short, indexed string
 let _title = tables_db
@@ -248,7 +248,7 @@ let _index = tables_db
 `TablesDB` methods accept `Option<Vec<String>>` for queries. Convert each `Query` to a string.
 
 ```rust
-use {{ spec.title | caseLower }}::query::Query;
+use {{ spec.info.title | caseLower }}::query::Query;
 use serde_json::Value;
 
 let queries = vec![
@@ -278,12 +278,12 @@ let multi_value = Query::equal(
 ### File Storage
 
 ```rust
-use {{ spec.title | caseLower }}::id::ID;
-use {{ spec.title | caseLower }}::input_file::InputFile;
-use {{ spec.title | caseLower }}::permission::Permission;
-use {{ spec.title | caseLower }}::query::Query;
-use {{ spec.title | caseLower }}::role::Role;
-use {{ spec.title | caseLower }}::services::Storage;
+use {{ spec.info.title | caseLower }}::id::ID;
+use {{ spec.info.title | caseLower }}::input_file::InputFile;
+use {{ spec.info.title | caseLower }}::permission::Permission;
+use {{ spec.info.title | caseLower }}::query::Query;
+use {{ spec.info.title | caseLower }}::role::Role;
+use {{ spec.info.title | caseLower }}::services::Storage;
 
 let storage = Storage::new(&client);
 
@@ -339,9 +339,9 @@ storage.delete_file("[BUCKET_ID]", "[FILE_ID]").await?;
 ### Functions
 
 ```rust
-use {{ spec.title | caseLower }}::enums::ExecutionMethod;
-use {{ spec.title | caseLower }}::query::Query;
-use {{ spec.title | caseLower }}::services::Functions;
+use {{ spec.info.title | caseLower }}::enums::ExecutionMethod;
+use {{ spec.info.title | caseLower }}::query::Query;
+use {{ spec.info.title | caseLower }}::services::Functions;
 use serde_json::json;
 
 let functions = Functions::new(&client);
@@ -373,8 +373,8 @@ let _execution = functions
 ### Permissions
 
 ```rust
-use {{ spec.title | caseLower }}::permission::Permission;
-use {{ spec.title | caseLower }}::role::Role;
+use {{ spec.info.title | caseLower }}::permission::Permission;
+use {{ spec.info.title | caseLower }}::role::Role;
 
 let permissions = vec![
     Permission::read(Role::any()).to_string(),

@@ -5,7 +5,7 @@ import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.Channel
 import {{ sdk.namespace | caseDot }}.ID
 import {{ sdk.namespace | caseDot }}.Query
-import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.extensions.jsonCast
@@ -76,12 +76,12 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             val requestBuilder = Request.Builder().url(url)
             val jwt = client.config["jwt"]
             if (!jwt.isNullOrEmpty()) {
-                requestBuilder.addHeader("x-{{ spec.title | caseLower }}-jwt", jwt)
+                requestBuilder.addHeader("x-{{ spec.info.title | caseLower }}-jwt", jwt)
             }
             val request = requestBuilder.build()
 
             val generation = socketGeneration.incrementAndGet()
-            socket = client.http.newWebSocket(request, {{ spec.title | caseUcfirst }}WebSocketListener(generation))
+            socket = client.http.newWebSocket(request, {{ spec.info.title | caseUcfirst }}WebSocketListener(generation))
         }
     }
 
@@ -116,7 +116,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 return id
             }
         }
-        throw {{ spec.title | caseUcfirst }}Exception("Failed to generate unique subscription id")
+        throw {{ spec.info.title | caseUcfirst }}Exception("Failed to generate unique subscription id")
     }
 
     private fun enqueuePendingSubscribeLocked(subscriptionId: String) {
@@ -377,7 +377,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         )
     }
 
-    private inner class {{ spec.title | caseUcfirst }}WebSocketListener(
+    private inner class {{ spec.info.title | caseUcfirst }}WebSocketListener(
         private val generation: Int
     ) : WebSocketListener() {
 
@@ -420,7 +420,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         private fun handleResponseError(message: RealtimeResponse) {
-            val ex = message.data?.jsonCast<{{ spec.title | caseUcfirst }}Exception>() ?: RuntimeException("Data is not present")
+            val ex = message.data?.jsonCast<{{ spec.info.title | caseUcfirst }}Exception>() ?: RuntimeException("Data is not present")
             throw ex
         }
 
@@ -469,7 +469,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             Log.e(
                 this@Realtime::class.java.name,
                 "Realtime disconnected. Re-connecting in ${timeout / 1000} seconds.",
-                {{ spec.title | caseUcfirst }}Exception(reason, code)
+                {{ spec.info.title | caseUcfirst }}Exception(reason, code)
             )
 
             launch {

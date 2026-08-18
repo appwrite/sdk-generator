@@ -1,21 +1,21 @@
-//! Error types for {{ spec.title }} SDK
+//! Error types for {{ spec.info.title }} SDK
 
 use serde_json;
 
 /// Result type alias for SDK operations
-pub type Result<T> = std::result::Result<T, {{ spec.title | caseUcfirst }}Error>;
+pub type Result<T> = std::result::Result<T, {{ spec.info.title | caseUcfirst }}Error>;
 
-/// Main error type for {{ spec.title }} SDK
+/// Main error type for {{ spec.info.title }} SDK
 #[derive(Debug, Clone, thiserror::Error)]
 #[error("{message}")]
-pub struct {{ spec.title | caseUcfirst }}Error {
+pub struct {{ spec.info.title | caseUcfirst }}Error {
     pub code: u16,
     pub message: String,
     pub error_type: Option<String>,
     pub response: String,
 }
 
-impl {{ spec.title | caseUcfirst }}Error {
+impl {{ spec.info.title | caseUcfirst }}Error {
     pub fn new(code: u16, message: impl Into<String>, error_type: Option<String>, response: impl Into<String>) -> Self {
         Self {
             code,
@@ -50,26 +50,26 @@ impl {{ spec.title | caseUcfirst }}Error {
     }
 }
 
-impl From<reqwest::Error> for {{ spec.title | caseUcfirst }}Error {
+impl From<reqwest::Error> for {{ spec.info.title | caseUcfirst }}Error {
     fn from(err: reqwest::Error) -> Self {
         let code = err.status().map(|s| s.as_u16()).unwrap_or(0);
         Self::new(code, format!("HTTP error: {}", err), None, String::new())
     }
 }
 
-impl From<serde_json::Error> for {{ spec.title | caseUcfirst }}Error {
+impl From<serde_json::Error> for {{ spec.info.title | caseUcfirst }}Error {
     fn from(err: serde_json::Error) -> Self {
         Self::new(0, format!("Serialization error: {}", err), None, String::new())
     }
 }
 
-impl From<std::io::Error> for {{ spec.title | caseUcfirst }}Error {
+impl From<std::io::Error> for {{ spec.info.title | caseUcfirst }}Error {
     fn from(err: std::io::Error) -> Self {
         Self::new(0, format!("File error: {}", err), None, String::new())
     }
 }
 
-/// {{ spec.title }} specific error response structure
+/// {{ spec.info.title }} specific error response structure
 #[derive(Debug, serde::Deserialize)]
 pub struct ErrorResponse {
     pub message: String,
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn test_client_error() {
-        let error = {{ spec.title | caseUcfirst }}Error::new(
+        let error = {{ spec.info.title | caseUcfirst }}Error::new(
             404,
             "Not found",
             None,
@@ -99,7 +99,7 @@ mod tests {
 
     #[test]
     fn test_server_error() {
-        let error = {{ spec.title | caseUcfirst }}Error::new(
+        let error = {{ spec.info.title | caseUcfirst }}Error::new(
             500,
             "Internal server error",
             None,

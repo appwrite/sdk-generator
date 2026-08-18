@@ -2,24 +2,24 @@
 {% set isGeneric = definition.additionalProperties or hasGenericProperty %}
 from typing import Any, Dict, List, Optional, Union, cast{% if isGeneric %}, Generic, TypeVar, Type{% endif %}
 
-from pydantic import Field, PrivateAttr
+from pydantic import Field, PrivateAttr{{ definition.additionalProperties ? ', TypeAdapter, model_serializer' : '' }}
 
 from .base_model import AppwriteModel
 {% set added = [] %}
 {%~ for property in definition.properties %}
-{%~ set enumName = property.enumName ?? attribute(property, 'x-enum-name') ?? (definition.name ~ (property.name | caseUcfirst)) %}
-{%~ if property.enum or property.items.enum is defined %}
+{%~ set enumName = property | enumName %}
+{%~ if (property | enumValues) is not empty %}
 {%~ if enumName not in added %}
 from ..enums.{{ enumName | caseSnake }} import {{ enumName | caseUcfirst }}
 {%~ set added = added|merge([enumName]) %}
 {%~ endif %}
 {%~ endif %}
-{%~ if property.sub_schema and property.sub_schema not in added %}
-from .{{ property.sub_schema | caseSnake }} import {{ property.sub_schema | caseUcfirst }}
-{%~ set added = added|merge([property.sub_schema]) %}
+{%~ if (property | schemaModel) and (property | schemaModel) not in added %}
+from .{{ (property | schemaModel) | caseSnake }} import {{ (property | schemaModel) | caseUcfirst }}
+{%~ set added = added|merge([(property | schemaModel)]) %}
 {%~ endif %}
-{%~ if property.sub_schemas is defined %}
-{%~ for subSchema in property.sub_schemas %}
+{%~ if (property | schemaModels) is not empty %}
+{%~ for subSchema in (property | schemaModels) %}
 {%~ if subSchema not in added %}
 from .{{ subSchema | caseSnake }} import {{ subSchema | caseUcfirst }}
 {%~ set added = added|merge([subSchema]) %}
@@ -31,8 +31,12 @@ from .{{ subSchema | caseSnake }} import {{ subSchema | caseUcfirst }}
 
 T = TypeVar('T')
 {% endif %}
+{% if definition.additionalProperties %}
 
-class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generic[T]{% endif %}):
+_PAYLOAD_ADAPTER = TypeAdapter(Dict[str, Any])
+{% endif %}
+
+class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generic[T]{% endif %}):
     """
     {{ definition.description }}
 {% if definition.properties | length > 0 %}
@@ -40,9 +44,9 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
     Attributes
     ----------
 {% for property in definition.properties %}
-{% set baseType = property | getModelPropertyType(definition.name) | raw %}
-{% set propertyType %}{% if property.sub_schema and property.sub_schema | hasGenericType(spec) %}{{ baseType | replace({(property.sub_schema | caseUcfirst): (property.sub_schema | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
-{% if not property.required and not (property.nullable ?? false) %}{% set propertyType %}Optional[{{ propertyType | trim }}]{% endset %}{% endif %}
+{% set baseType = property | getModelPropertyType(definitionName, spec) | raw %}
+{% set propertyType %}{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}{{ baseType | replace({((property | schemaModel) | caseUcfirst): ((property | schemaModel) | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
+{% if not (property | schemaRequired) %}{% set propertyType %}Optional[{{ propertyType | trim }}]{% endset %}{% endif %}
     {{ property | getModelFieldName(definition.properties) }} : {{ propertyType | trim }}
 {% if property.description %}
         {{ property.description | replace({"\n": "\n        "}) }}
@@ -56,19 +60,19 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
     pass
 {% else %}
 {% for property in definition.properties %}
-{% set baseType = property | getModelPropertyType(definition.name) | raw %}
-{% set propType %}{% if property.sub_schema and property.sub_schema | hasGenericType(spec) %}{{ baseType | replace({(property.sub_schema | caseUcfirst): (property.sub_schema | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
-    {{ property | getModelFieldName(definition.properties) }}: {% if not property.required and not (property.nullable ?? false) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %} = Field({% if property.required %}...{% else %}default=None{% endif %}, alias='{{ property.name }}')
+{% set baseType = property | getModelPropertyType(definitionName, spec) | raw %}
+{% set propType %}{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}{{ baseType | replace({((property | schemaModel) | caseUcfirst): ((property | schemaModel) | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
+    {{ property | getModelFieldName(definition.properties) }}: {% if not (property | schemaRequired) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %} = Field({% if (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}')
 {% endfor %}
 {% endif %}
 {% if isGeneric %}
 
     @classmethod
-    def with_data(cls, data: Dict[str, Any], model_type: Type[T] = dict) -> '{{ definition.name | caseUcfirst }}[T]':
-        """Create {{ definition.name | caseUcfirst }} instance with typed data."""
+    def with_data(cls, data: Dict[str, Any], model_type: Type[T] = dict) -> '{{ definitionName | caseUcfirst }}[T]':
+        """Create {{ definitionName | caseUcfirst }} instance with typed data."""
 {% if definition.additionalProperties %}
 {% if definition.properties | length > 0 %}
-        internal_aliases = {{ '{' }}{% for property in definition.properties %}'{{ property.name }}'{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}
+        internal_aliases = {{ '{' }}{% for property in definition.properties %}'{{ (property | schemaName) }}'{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}
         internal_fields = {k: v for k, v in data.items() if k in internal_aliases}
         user_data = {k: v for k, v in data.items() if k not in internal_aliases and k != '{{ 'data' }}'}
         nested = data.get('{{ 'data' }}')
@@ -84,16 +88,16 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
 {% else %}
         instance = cls.model_validate(data)
 {% for property in definition.properties %}
-{% if property.sub_schema and property.sub_schema | hasGenericType(spec) %}
-        if '{{ property.name }}' in data and data['{{ property.name }}'] is not None:
-{% if property.type == 'array' %}
+{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}
+        if '{{ (property | schemaName) }}' in data and data['{{ (property | schemaName) }}'] is not None:
+{% if (property | schemaType) == 'array' %}
             instance.{{ property | getModelFieldName(definition.properties) }} = [
-                {{ property.sub_schema | caseUcfirst }}.with_data(row, model_type) 
-                for row in data['{{ property.name }}']
+                {{ (property | schemaModel) | caseUcfirst }}.with_data(row, model_type)
+                for row in data['{{ (property | schemaName) }}']
             ]
 {% else %}
-            instance.{{ property | getModelFieldName(definition.properties) }} = {{ property.sub_schema | caseUcfirst }}.with_data(
-                data['{{ property.name }}'], model_type
+            instance.{{ property | getModelFieldName(definition.properties) }} = {{ (property | schemaModel) | caseUcfirst }}.with_data(
+                data['{{ (property | schemaName) }}'], model_type
             )
 {% endif %}
 {% endif %}
@@ -113,25 +117,74 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
     def {{ 'data' | caseSnake | removeDollarSign }}(self, value: T) -> None:
         object.__setattr__(self, '_{{ 'data' | caseSnake | removeDollarSign }}', value)
 
-    def model_dump(self, **kwargs) -> Dict[str, Any]:
-        result = super().model_dump(**kwargs)
-        if hasattr(self, '_{{ 'data' | caseSnake | removeDollarSign }}'):
-            if isinstance(self._{{ 'data' | caseSnake | removeDollarSign }}, dict):
-                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}
-            elif hasattr(self._{{ 'data' | caseSnake | removeDollarSign }}, 'model_dump'):
-                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}.model_dump(**kwargs)
-            else:
-                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}
-        return result
+    def _serialize_data(self, info, include=None, exclude=None):
+        if hasattr(self._{{ 'data' | caseSnake | removeDollarSign }}, 'model_dump'):
+            return self._{{ 'data' | caseSnake | removeDollarSign }}.model_dump(
+                mode=info.mode,
+                by_alias=info.by_alias,
+                exclude_unset=info.exclude_unset,
+                exclude_defaults=info.exclude_defaults,
+                exclude_none=info.exclude_none,
+                include=include,
+                exclude=exclude,
+            )
 
-    def to_dict(self) -> Dict[str, Any]:
-        result = super().to_dict()
-        if hasattr(self, '_{{ 'data' | caseSnake | removeDollarSign }}'):
-            if isinstance(self._{{ 'data' | caseSnake | removeDollarSign }}, dict):
-                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}
-            elif hasattr(self._{{ 'data' | caseSnake | removeDollarSign }}, 'model_dump'):
-                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}.model_dump(mode='json')
-            else:
-                result['{{ 'data' }}'] = self._{{ 'data' | caseSnake | removeDollarSign }}
+        if isinstance(self._{{ 'data' | caseSnake | removeDollarSign }}, dict) and (include is not None or exclude is not None):
+            return _PAYLOAD_ADAPTER.dump_python(
+                self._{{ 'data' | caseSnake | removeDollarSign }},
+                mode=info.mode,
+                by_alias=info.by_alias,
+                exclude_unset=info.exclude_unset,
+                exclude_defaults=info.exclude_defaults,
+                exclude_none=info.exclude_none,
+                include=include,
+                exclude=exclude,
+            )
+
+        return self._{{ 'data' | caseSnake | removeDollarSign }}
+{% if definition.properties | length > 0 %}
+
+    @staticmethod
+    def _select_data(selector):
+        """
+        Resolves a pydantic include/exclude selector against the '{{ 'data' }}' key, which is
+        serialized here rather than declared as a field. Returns whether the key was
+        named, and any nested selector to apply within it.
+        """
+        if selector is None:
+            return False, None
+
+        if isinstance(selector, dict):
+            if '{{ 'data' }}' not in selector:
+                return False, None
+
+            nested = selector['{{ 'data' }}']
+
+            return True, nested if isinstance(nested, (dict, set, frozenset, list, tuple)) else None
+
+        return '{{ 'data' }}' in selector, None
+{% endif %}
+
+    @model_serializer(mode='wrap')
+    def _serialize_model(self, handler, info):
+        result = handler(self)
+{% if definition.properties | length > 0 %}
+        included, include_fields = self._select_data(info.include)
+        excluded, exclude_fields = self._select_data(info.exclude)
+
+        if info.include is not None and not included:
+            return result
+
+        if excluded and exclude_fields is None:
+            return result
+
+        result['{{ 'data' }}'] = self._serialize_data(info, include_fields, exclude_fields)
         return result
+{% else %}
+        data = self._serialize_data(info, info.include, info.exclude)
+        if isinstance(result, dict) and isinstance(data, dict):
+            return {**result, **data}
+
+        return data
+{% endif %}
 {% endif %}

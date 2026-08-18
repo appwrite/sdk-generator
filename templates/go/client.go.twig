@@ -14,10 +14,10 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
-	"runtime"
 
 	"{{ sdk | goPackagePath }}/file"
 )
@@ -28,8 +28,8 @@ const (
 	defaultChunkSize = 5 * 1024 * 1024
 )
 
-// {{ spec.title | caseUcfirst }}Error represents an error of a client request
-type {{ spec.title | caseUcfirst }}Error struct {
+// {{ spec.info.title | caseUcfirst }}Error represents an error of a client request
+type {{ spec.info.title | caseUcfirst }}Error struct {
 	statusCode int
 	message    string
 	response   string
@@ -40,27 +40,32 @@ type ClientResponse struct {
 	Status     string
 	StatusCode int
 	Header     http.Header
-	Result     interface{}
-	Type	   string
+	// Result holds the raw response body as []byte, for a JSON response and a
+	// non-JSON one alike. It carried a string for JSON responses until v6.5.0,
+	// so a `Result.(string)` assertion that used to succeed now fails, and an
+	// unchecked one panics. Read it through ResponseBody, which accepts either
+	// and so keeps working across the change.
+	Result interface{}
+	Type   string
 }
 
-func (ce *{{ spec.title | caseUcfirst }}Error) Error() string {
+func (ce *{{ spec.info.title | caseUcfirst }}Error) Error() string {
 	return ce.message
 }
 
-func (ce *{{ spec.title | caseUcfirst }}Error) GetMessage() string {
+func (ce *{{ spec.info.title | caseUcfirst }}Error) GetMessage() string {
 	return ce.message
 }
 
-func (ce *{{ spec.title | caseUcfirst }}Error) GetStatusCode() int {
+func (ce *{{ spec.info.title | caseUcfirst }}Error) GetStatusCode() int {
 	return ce.statusCode
 }
 
-func (ce *{{ spec.title | caseUcfirst }}Error) GetResponse() string {
+func (ce *{{ spec.info.title | caseUcfirst }}Error) GetResponse() string {
 	return ce.response
 }
 
-// Client is the client struct to access {{ spec.title | caseUcfirst }}  services
+// Client is the client struct to access {{ spec.info.title | caseUcfirst }}  services
 type Client struct {
 	Client     *http.Client
 	Headers    map[string]string
@@ -71,25 +76,24 @@ type Client struct {
 	ChunkSize  int64
 }
 
-// Initialize a new {{ spec.title | caseUcfirst }} client with a given timeout
+// Initialize a new {{ spec.info.title | caseUcfirst }} client with a given timeout
 func New(optionalSetters ...ClientOption) Client {
-	headers := map[string]string{
-{% for key,header in spec.global.defaultHeaders %}
-		"{{key}}" : "{{header}}",
-		"user-agent" : fmt.Sprintf("{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (%s; %s)", runtime.GOOS, runtime.GOARCH),
-		"x-sdk-name": "{{ sdk.name }}",
-		"x-sdk-platform": "{{ sdk.platform }}",
-		"x-sdk-language": "{{ language.name | caseLower }}",
-		"x-sdk-version": "{{ sdk.version }}",
+	headers := map[string]string{}
+{% for key,header in defaultHeaders %}
+	headers["{{key}}"] = "{{header}}"
+	headers["user-agent"] = fmt.Sprintf("{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (%s; %s)", runtime.GOOS, runtime.GOARCH)
+	headers["x-sdk-name"] = "{{ sdk.name }}"
+	headers["x-sdk-platform"] = "{{ sdk.platform }}"
+	headers["x-sdk-language"] = "{{ language.name | caseLower }}"
+	headers["x-sdk-version"] = "{{ sdk.version }}"
 {% endfor %}
-	}
 	httpClient, err := GetDefaultClient(defaultTimeout)
 	if err != nil {
 		panic(err)
 	}
 
 	client := Client{
-		Endpoint:  "{{spec.endpoint}}",
+		Endpoint:  "{{(spec | endpoint)}}",
 		Client:    httpClient,
 		Timeout:   defaultTimeout,
 		Headers:   headers,
@@ -243,10 +247,8 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 		if err == nil {
 			result = resp
 			var result map[string]interface{}
-			if resStr, ok := resp.Result.(string); ok {
-				_ = json.Unmarshal([]byte(resStr), &result)
-			} else {
-				result, _ = resp.Result.(map[string]interface{})
+			if body, bodyErr := ResponseBody(resp); bodyErr == nil {
+				_ = json.Unmarshal(body, &result)
 			}
 			if result != nil && result["chunksUploaded"] != nil {
 				currentChunk = int64(result["chunksUploaded"].(float64))
@@ -256,7 +258,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 
 	if fileInfo.Size() <= client.ChunkSize {
 		if uploadId != "" {
-			headers["x-{{ spec.title | caseLower }}-id"] = uploadId
+			headers["x-{{ spec.info.title | caseLower }}-id"] = uploadId
 		}
 		inputFile.Data = make([]byte, fileInfo.Size())
 		_, err := file.Read(inputFile.Data)
@@ -272,9 +274,12 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 
 		var parsed map[string]interface{}
 		if strings.HasPrefix(result.Type, "application/json") {
-			err = json.Unmarshal([]byte(result.Result.(string)), &parsed)
-			if err == nil {
-				uploadId, _ = parsed["$id"].(string)
+			body, bodyErr := ResponseBody(result)
+			if bodyErr == nil {
+				err = json.Unmarshal(body, &parsed)
+				if err == nil {
+					uploadId, _ = parsed["$id"].(string)
+				}
 			}
 		}
 
@@ -284,9 +289,12 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 	parseUploadId := func(resp *ClientResponse) string {
 		var parsed map[string]interface{}
 		if resp != nil && strings.HasPrefix(resp.Type, "application/json") {
-			if unmarshalErr := json.Unmarshal([]byte(resp.Result.(string)), &parsed); unmarshalErr == nil {
-				id, _ := parsed["$id"].(string)
-				return id
+			body, bodyErr := ResponseBody(resp)
+			if bodyErr == nil {
+				if unmarshalErr := json.Unmarshal(body, &parsed); unmarshalErr == nil {
+					id, _ := parsed["$id"].(string)
+					return id
+				}
 			}
 		}
 		return ""
@@ -298,10 +306,8 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 		}
 
 		var parsed map[string]interface{}
-		if resStr, ok := resp.Result.(string); ok {
-			_ = json.Unmarshal([]byte(resStr), &parsed)
-		} else {
-			parsed, _ = resp.Result.(map[string]interface{})
+		if body, bodyErr := ResponseBody(resp); bodyErr == nil {
+			_ = json.Unmarshal(body, &parsed)
 		}
 		if parsed == nil || parsed["chunksUploaded"] == nil {
 			return false
@@ -337,7 +343,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 		chunkParams[paramName] = chunkFile
 		chunkHeaders := copyHeaders(headers)
 		if id != "" {
-			chunkHeaders["x-{{ spec.title | caseLower }}-id"] = id
+			chunkHeaders["x-{{ spec.info.title | caseLower }}-id"] = id
 		}
 
 		totalSize := fileInfo.Size()
@@ -564,7 +570,7 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 			if !ok {
 				message = "N/A"
 			}
-			return nil, &{{ spec.title | caseUcfirst }}Error{
+			return nil, &{{ spec.info.title | caseUcfirst }}Error{
 				statusCode: resp.StatusCode,
 				message:    message,
 				response:   string(responseData),
@@ -574,13 +580,13 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 			Status:     resp.Status,
 			StatusCode: resp.StatusCode,
 			Header:     resp.Header,
-			Result:     string(responseData),
-			Type:	   contentType,
+			Result:     responseData,
+			Type:       contentType,
 		}, nil
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 399 {
-		return nil, &{{ spec.title | caseUcfirst }}Error{
+		return nil, &{{ spec.info.title | caseUcfirst }}Error{
 			statusCode: resp.StatusCode,
 			message:    string(responseData),
 			response:   string(responseData),
@@ -591,8 +597,24 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 		StatusCode: resp.StatusCode,
 		Header:     resp.Header,
 		Result:     responseData,
-		Type:	   contentType,
+		Type:       contentType,
 	}, nil
+}
+
+// ResponseBody returns the raw response body bytes.
+func ResponseBody(resp *ClientResponse) ([]byte, error) {
+	if resp == nil {
+		return nil, errors.New("response is nil")
+	}
+
+	switch body := resp.Result.(type) {
+	case []byte:
+		return body, nil
+	case string:
+		return []byte(body), nil
+	default:
+		return nil, errors.New("unexpected response body type")
+	}
 }
 
 // AddQueryParam writes one query parameter into q.
@@ -724,11 +746,11 @@ func flatten(params interface{}, prefix string, result *map[string]string) error
 				return err
 			}
 		}
-		default:
-			if prefix == "" {
-				return fmt.Errorf("prefix is empty for %s", params)
-			}
-			(*result)[prefix] = toString(params)
+	default:
+		if prefix == "" {
+			return fmt.Errorf("prefix is empty for %s", params)
+		}
+		(*result)[prefix] = toString(params)
 	}
 	return nil
 }

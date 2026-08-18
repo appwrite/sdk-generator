@@ -1,7 +1,7 @@
 ```bash
 {% set requiredParams = [] %}
 {% set query = method | cliQueryConfig %}
-{% for parameter in method.parameters.all %}
+{% for parameter in (method | parameters('all')) %}
 {% if parameter.required %}
 {% set requiredParams = requiredParams|merge([parameter]) %}
 {% endif %}
@@ -14,9 +14,9 @@
 {% set exampleLines = exampleLines|merge(['--limit 25']) %}
 {% endif %}
 {% if method | cliIsTopLevelAlias(service) %}
-{{ language.params.executableName }} {{ method.name | caseKebab }}{% if exampleLines | length > 0 %} \{% endif %}
+{{ language.params.executableName }} {{ (method | methodName) | caseKebab }}{% if exampleLines | length > 0 %} \{% endif %}
 {% else %}
-{{ language.params.executableName }} {{ service.name | caseLower }} {{ method.name | caseKebab }}{% if exampleLines | length > 0 %} \{% endif %}
+{{ language.params.executableName }} {{ service.name | caseLower }} {{ (method | methodName) | caseKebab }}{% if exampleLines | length > 0 %} \{% endif %}
 {% endif %}
 
 {% for line in exampleLines %}

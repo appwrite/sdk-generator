@@ -1,6 +1,6 @@
 {
   "name": "{{ language.params.npmPackage | caseDash }}",
-  "homepage": "{{ spec.contactURL }}",
+  "homepage": "{{ spec.info.contact.url }}",
   "description": "{{ sdk.shortDescription }}",
   "version": "{{ sdk.version }}",
   "license": "{{ sdk.license }}",
@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@types/json-bigint": "1.0.4",
-    "@types/node": "26.1.2",
+    "@types/node": "26.2.0",
     "tsup": "^8.5.1",
     "esbuild-plugin-file-path-extensions": "^2.0.0",
     "tslib": "2.8.1",

@@ -1,0 +1,67 @@
+#!/usr/bin/env node
+// Launcher for the npm distribution of the {{ spec.info.title | caseUcfirst }} CLI.
+//
+// `npm i -g {{ language.params.npmPackage }}` now installs a native binary rather than a JavaScript
+// bundle; this shim finds and executes it. The package name and `{{ language.params.executableName }}` bin entry
+// are unchanged so an existing CI job keeps working.
+//
+// Per-platform optionalDependencies rather than a postinstall download, which
+// would break under `npm ci --ignore-scripts`, behind a proxied registry, and
+// carries no integrity check. npm installs only the package matching `os`/`cpu`,
+// integrity-checked and cached like any other dependency.
+//
+// The platform packages must be published BEFORE this one, or an install
+// resolves optionalDependencies that do not exist yet.
+
+const { spawnSync } = require("node:child_process");
+
+// Keyed to match the release asset names rather than node's own spelling --
+// `win` not `win32`, `x64` not `amd64` -- so one set of six suffixes names the
+// GitHub assets, the npm packages, and the entries in install.sh.
+const PLATFORMS = {
+  "darwin arm64": "darwin-arm64",
+  "darwin x64": "darwin-x64",
+  "linux arm64": "linux-arm64",
+  "linux x64": "linux-x64",
+  "win32 arm64": "win-arm64",
+  "win32 x64": "win-x64",
+};
+
+const suffix = PLATFORMS[`${process.platform} ${process.arch}`];
+if (!suffix) {
+  console.error(
+    `{{ language.params.npmPackage }} does not ship a binary for ${process.platform}/${process.arch}.`,
+  );
+  process.exit(1);
+}
+
+const packageName = `{{ language.params.npmPackage }}-${suffix}`;
+const binary = process.platform === "win32" ? "{{ language.params.executableName }}.exe" : "{{ language.params.executableName }}";
+
+let executable;
+try {
+  executable = require.resolve(`${packageName}/bin/${binary}`);
+} catch {
+  // An optional dependency that fails to install is not an error to npm, so
+  // this is the first place a user hears about it. Name the package: the
+  // install looked successful, and without it there is nothing to search for.
+  console.error(
+    `${packageName} is not installed, so there is no {{ language.params.executableName }} binary to run.\n` +
+      `Reinstall {{ language.params.npmPackage }}, or download the binary directly from {{ sdk.gitURL }}/releases.`,
+  );
+  process.exit(1);
+}
+
+// stdio: "inherit" rather than piping, so the child keeps the real terminal.
+// The CLI's prompts need a TTY, and piping would silently turn every
+// interactive command into a hang.
+const result = spawnSync(executable, process.argv.slice(2), { stdio: "inherit" });
+
+if (result.error) {
+  console.error(result.error.message);
+  process.exit(1);
+}
+
+// A signalled child has a null status. Reporting 0 there would tell a CI job
+// that a cancelled command succeeded.
+process.exit(result.status === null ? 1 : result.status);

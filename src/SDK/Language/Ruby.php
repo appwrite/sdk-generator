@@ -2,6 +2,10 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\ArraySchema;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
@@ -119,67 +123,67 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseDash }}.gemspec',
+                'destination'   => '{{ spec.info.title | caseDash }}.gemspec',
                 'template'      => 'ruby/gemspec.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}.rb',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}.rb',
                 'template'      => 'ruby/lib/container.rb.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/client.rb',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}/client.rb',
                 'template'      => 'ruby/lib/container/client.rb.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/permission.rb',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}/permission.rb',
                 'template'      => 'ruby/lib/container/permission.rb.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/role.rb',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}/role.rb',
                 'template'      => 'ruby/lib/container/role.rb.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/id.rb',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}/id.rb',
                 'template'      => 'ruby/lib/container/id.rb.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/query.rb',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}/query.rb',
                 'template'      => 'ruby/lib/container/query.rb.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/operator.rb',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}/operator.rb',
                 'template'      => 'ruby/lib/container/operator.rb.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/service.rb',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}/service.rb',
                 'template'      => 'ruby/lib/container/service.rb.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/input_file.rb',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}/input_file.rb',
                 'template'      => 'ruby/lib/container/input_file.rb.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/exception.rb',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}/exception.rb',
                 'template'      => 'ruby/lib/container/exception.rb.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/{{ spec.title | caseDash}}/services/{{service.name | caseSnake}}.rb',
+                'destination'   => '/lib/{{ spec.info.title | caseDash}}/services/{{service.name | caseSnake}}.rb',
                 'template'      => 'ruby/lib/container/services/service.rb.twig',
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => 'ruby/docs/example.md.twig',
             ],
             [
@@ -189,62 +193,54 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ definition.name | caseSnake }}.rb',
+                'destination'   => '/lib/{{ spec.info.title | caseDash }}/models/{{ definitionName | caseSnake }}.rb',
                 'template'      => 'ruby/lib/container/models/model.rb.twig',
             ],
             [
                 'scope'         => 'requestModel',
-                'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ requestModel.name | caseSnake }}.rb',
+                'destination'   => '/lib/{{ spec.info.title | caseDash }}/models/{{ requestModelName | caseSnake }}.rb',
                 'template'      => 'ruby/lib/container/models/request_model.rb.twig',
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'lib/{{ spec.title | caseSnake}}/enums/{{ enum.name | caseSnake }}.rb',
+                'destination'   => 'lib/{{ spec.info.title | caseSnake}}/enums/{{ enum.title | caseSnake }}.rb',
                 'template'      => 'ruby/lib/container/enums/enum.rb.twig',
             ],
         ];
     }
 
-    /**
-     * @param array $nestedTypes
-     */
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        if (
-            ($parameter['type'] ?? null) === self::TYPE_ARRAY
-            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
-        ) {
-            return 'Array';
+        $schema = $this->getSchema($parameter);
+        $type = $this->getSchemaType($parameter);
+
+        // An array of enum members is still just an Array to Ruby; only a
+        // scalar enum names its generated class.
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        if ($enumSchema->enum !== [] && $type !== self::TYPE_ARRAY) {
+            return \ucfirst($this->getSchemaEnumName($parameter, $spec));
         }
 
-        if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+        $model = $this->getSchemaModel($parameter);
+        if ($model !== null && !($schema instanceof ArraySchema)) {
+            return $this->toPascalCase($model);
         }
-        if (!empty($parameter['enumValues'])) {
-            return \ucfirst((string) $parameter['name']);
-        }
-        if (!empty($parameter['array']['model'])) {
-            return 'Array';
-        }
-        if (!empty($parameter['model'])) {
-            return $parameter['type'] === self::TYPE_ARRAY ? 'Array' : $this->toPascalCase($parameter['model']);
-        }
-        return match ($parameter['type']) {
+        return match ($type) {
             self::TYPE_INTEGER => 'Integer',
             self::TYPE_NUMBER => 'Float',
             self::TYPE_STRING => 'String',
             self::TYPE_ARRAY => 'Array',
             self::TYPE_OBJECT => 'Hash',
             self::TYPE_BOOLEAN => '',
-            default => $parameter['type'],
+            default => $type,
         };
     }
 
-    public function getParamDefault(array $param): string
+    public function getParamDefault(Schema|Parameter $param): string
     {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $default    = $this->getSchemaDefault($param);
+        $required   = ($param instanceof Parameter && $param->required);
 
         if ($required) {
             return ':';
@@ -289,10 +285,10 @@ class Ruby extends Language
         return $output;
     }
 
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $example    = $this->getSchemaExample($param);
 
         $output = '';
 
@@ -387,16 +383,18 @@ class Ruby extends Language
     {
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
-            new TwigFilter('enumExample', function (array $param): string {
-                $enumValues = $param['enumValues'] ?? [];
-                if (empty($enumValues)) {
+            new TwigFilter('enumExample', function (Schema|Parameter $param): string {
+                $schema = $this->getSchema($param);
+                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumValues = $enumSchema->enum;
+                if ($enumValues === []) {
                     return '';
                 }
 
-                $enumKeys = $param['enumKeys'] ?? [];
-                $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
-                $example = $param['example'] ?? null;
-                $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
+                $enumName = $this->toPascalCase($enumSchema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
+                $example = $this->getSchemaExample($param);
+                $isArray = $schema instanceof ArraySchema;
 
                 $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);

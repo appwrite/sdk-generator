@@ -1,0 +1,97 @@
+package app
+
+{% if sdk.test %}
+// InputFile is stubbed for the conformance build.
+//
+// The e2e suite asserts on printed output rather than on uploads, and the mock
+// services take their arguments as `any`, so the real upload type -- and with it
+// the whole SDK dependency -- is not needed to run the harness.
+func InputFile(path string) (any, error) {
+	return path, nil
+}
+
+// DeploymentInputFile is stubbed for the conformance build.
+func DeploymentInputFile(path string) (any, func(), error) {
+	return path, func() {}, nil
+}
+{% else %}
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	sdkfile "{{ language.params.sdkImportPath }}/file"
+
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/deploy"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+)
+
+// InputFile turns a path into the SDK's upload type.
+//
+// The path is checked here rather than at upload time so a typo fails before
+// any request is made.
+func InputFile(path string) (sdkfile.InputFile, error) {
+	if path == "" {
+		return sdkfile.InputFile{}, fmt.Errorf("a file path is required")
+	}
+
+	resolved, err := filepath.Abs(path)
+	if err != nil {
+		return sdkfile.InputFile{}, err
+	}
+	if _, err := os.Stat(resolved); err != nil {
+		return sdkfile.InputFile{}, fmt.Errorf("cannot read %q: %w", path, err)
+	}
+
+	return sdkfile.NewInputFile(resolved, filepath.Base(resolved)), nil
+}
+
+// DeploymentInputFile turns a deployment archive or source directory into the
+// SDK's upload type. Directories use the same packaging rules as `push`, and
+// the returned cleanup must run after the SDK has finished reading the file.
+func DeploymentInputFile(path string) (sdkfile.InputFile, func(), error) {
+	if path == "" {
+		return sdkfile.InputFile{}, func() {}, fmt.Errorf("a file or directory path is required")
+	}
+
+	resolved, err := filepath.Abs(path)
+	if err != nil {
+		return sdkfile.InputFile{}, func() {}, err
+	}
+	info, err := os.Stat(resolved)
+	if err != nil {
+		return sdkfile.InputFile{}, func() {}, fmt.Errorf("cannot read %q: %w", path, err)
+	}
+	if !info.IsDir() {
+		return sdkfile.NewInputFile(resolved, filepath.Base(resolved)), func() {}, nil
+	}
+
+	packaged, err := deploy.PackageDirectory(
+		resolved,
+		nil,
+		inputFileProjectRoot(),
+		func(message string) { output.Warn(os.Stderr, "%s", message) },
+	)
+	if err != nil {
+		return sdkfile.InputFile{}, func() {}, err
+	}
+
+	cleanup := func() { _ = packaged.Remove() }
+
+	return sdkfile.NewInputFile(packaged.Path, deploy.ArchiveName), cleanup, nil
+}
+
+// inputFileProjectRoot is a best-effort local config lookup. It bounds followed
+// symlinks when the command runs inside a project, while still allowing a
+// directory passed from outside any project.
+func inputFileProjectRoot() string {
+	path := config.FindLocalPath()
+	info, err := os.Stat(path)
+	if err != nil || info.IsDir() {
+		return ""
+	}
+
+	return filepath.Dir(path)
+}
+{% endif %}

@@ -16,32 +16,25 @@ The generator does not auto-discover templates. Every output file must have an e
 
 | Parent | Children affected |
 |--------|------------------|
-| `Node` | `CLI`, `ReactNative` |
+| `Node` | `ReactNative` |
 | `Dart` | `Flutter` |
 | `Swift` | `Apple` |
 | `Kotlin` | `Android` |
-| `Go` | `GoCLI` |
+| `Go` | `CLI` |
 
 Modifying a parent's template or `getFiles()` affects all children. Regenerate and verify child SDKs too.
 
-**Two couplings are not visible in the hierarchy.**
+**One coupling is not visible in the hierarchy.**
 
-`Concern/CliCommandSurface.php` is a trait used by **both** `CLI` and `GoCLI`. It holds
-the nine helpers that decide what a generated command looks like — flag syntax, query
-flags, promoted root commands, service scopes. It is shared precisely so the two CLIs
-cannot drift, which means a change there alters the TypeScript CLI and the Go CLI at once.
+`templates/cli/install.sh.twig` and `templates/cli/install.ps1.twig` build every download
+URL from `language.params.npmPackage`. The same parameter names release assets produced
+by `.goreleaser.yaml` and consumed by the Scoop manifest and npm platform packages.
+Change the asset naming in one place and all four must move together.
 
-`templates/cli/install.sh.twig` and `templates/cli/install.ps1.twig` live under
-`templates/cli/` but are registered in **both** `CLI::getFiles()` and `GoCLI::getFiles()`.
-They build every download URL from `language.params.npmPackage`, which also names every
-release asset produced by `.goreleaser.yaml` and consumed by the scoop manifest and the
-npm platform packages. Change the asset naming in one place and all four must move
-together, for both CLIs.
-
-Either way, regenerate both:
+Regenerate the CLI after changing any of them:
 
 ```bash
-php example.php cli && php example.php go-cli
+php example.php cli
 ```
 
 ### Rule 4: `copy` scope = no Twig processing
@@ -57,14 +50,26 @@ The `destination` string in each `getFiles()` entry supports Twig expressions an
 
 ### Rule 6: Never modify lock file templates directly
 
-Lock file templates (`package-lock.json.twig`, `bun.lock.twig`) contain Twig expressions that get corrupted if you copy a raw lock file over them. Always use the update script:
+Lock file templates (`package-lock.json.twig`) contain Twig expressions that get corrupted if you copy a raw lock file over them. Always use the update script:
 
 ```bash
-./scripts/update-lockfiles.sh cli    # update CLI lock files only
-./scripts/update-lockfiles.sh all    # update all TS-based SDK lock files
+./scripts/update-lockfiles.sh all
 ```
 
-The script strips Twig expressions before running `npm install`/`bun install`, then restores them automatically. Never run `cp package-lock.json package-lock.json.twig` or edit these files by hand.
+The script strips Twig expressions before running `npm install`, then restores them automatically. Never copy a raw lock file over a lock template or edit one by hand.
+
+### Rule 7: Go templates must generate formatted source
+
+Formatting is currently enforced only for the generated Go SDK; other SDKs will adopt formatter checks later. Keep Go templates accurate enough that their generated `.go` files are already `gofmt`-clean. Do not add a post-generation formatting step or run `gofmt` to fix the generated output in place—the fix belongs in the Twig template.
+
+After changing Go templates, regenerate the affected platform and verify formatting:
+
+```bash
+php example.php go <platform>
+test -z "$(gofmt -l examples/go)"
+```
+
+Because `CLI` inherits from `Go`, regenerate it after shared Go template changes and verify its generated Go files too.
 
 ## Repository at a Glance
 
@@ -80,7 +85,7 @@ examples/<lang>/              ← Generated SDK output (gitignored; regenerate t
 example.php                   ← Entry point: regenerates all SDKs from specs
 ```
 
-**Supported SDKs:** PHP, Web, Node, CLI, GoCLI, Ruby, Python, Dart, Flutter, React Native, Go, Swift, Apple, DotNet, Android, Kotlin, Unity, REST, GraphQL, Rust, Skills, CursorPlugin, ClaudePlugin, CodexPlugin
+**Supported SDKs:** PHP, Web, Node, CLI, Ruby, Python, Dart, Flutter, React Native, Go, Swift, Apple, DotNet, Android, Kotlin, Unity, REST, GraphQL, Rust, Skills, CursorPlugin, ClaudePlugin, CodexPlugin
 
 ## Primary Workflows
 
@@ -149,7 +154,8 @@ public function getFiles(): array
 | Which files get generated | `src/SDK/Language/<Lang>.php` → `getFiles()` |
 | Type mappings for a language | `src/SDK/Language/<Lang>.php` → `getTypeName()` |
 | Available Twig filters | `src/SDK/SDK.php` (around line 62) |
-| How specs are parsed | `src/Spec/OpenAPI3.php`, `src/Spec/Swagger2.php` |
+| Canonical spec parser and DTOs | `utopia-php/openapi` (VCS dependency) |
+| SDK grouping and filtering | `src/SDK/SDK.php` |
 | Generation orchestration | `src/SDK/SDK.php` → `generate()` |
 | Example generation script | `example.php` |
 | Generated output for review (gitignored) | `examples/<lang>/` |
@@ -171,7 +177,6 @@ Pass as first argument to generate only that SDK:
 | `flutter` | Flutter | `examples/flutter/` |
 | `react-native` | ReactNative | `examples/react-native/` |
 | `go` | Go | `examples/go/` |
-| `go-cli` | GoCLI | `examples/go-cli/` |
 | `swift` | Swift | `examples/swift/` |
 | `apple` | Apple | `examples/apple/` |
 | `dotnet` | DotNet | `examples/dotnet/` |
@@ -206,7 +211,7 @@ Pass as first argument to generate only that SDK:
   ```
   https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/open-api3-{version}-{platform}.json
   ```
-- **Spec formats:** `example.php` parses OpenAPI 3 specs by default (`Appwrite\Spec\OpenAPI3`). Swagger 2 (`Appwrite\Spec\Swagger2`) is still fully supported; both formats produce identical SDKs. Pass the format as the third argument:
+- **Spec formats:** `example.php` parses every document through `Utopia\OpenAPI\Parser`. OpenAPI 3 is fetched by default; Swagger 2 is also supported. Pass the fetched format as the third argument:
   ```bash
   php example.php <sdk> <platform> swagger2             # use Swagger 2 spec
   SDK_GEN_SPEC_FILE=/path/to/spec.json php example.php  # use a local spec file
@@ -222,14 +227,9 @@ composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-s
 
 ## Running Tests
 
-Tests are split into two suites:
-
-- `tests/unit/` — fast, pure-PHP tests (spec parsers); no Docker needed
-- `tests/e2e/` — per-language SDK tests; generate an SDK from `tests/resources/spec-openapi3.json` into `tests/e2e/sdks/` and run it in Docker against a mock API. The mock server (`./mock-server`) is started in `setUp()` and removed in `tearDown()` (`docker compose down`); after interrupted runs, clean up with `cd mock-server && docker compose down`
-- `tests/resources/` — shared fixtures (spec file, upload files) used by both suites
+The tests in `tests/e2e/` generate an SDK from `tests/resources/spec-openapi3.json` into `tests/e2e/sdks/` and run it in Docker against a mock API. Parser behavior is tested by `utopia-php/openapi` rather than this repository. The mock server (`./mock-server`) is started in `setUp()` and removed in `tearDown()` (`docker compose down`); after interrupted runs, clean up with `cd mock-server && docker compose down`.
 
 ```bash
-vendor/bin/phpunit --testsuite Unit        # fast, run these always
 vendor/bin/phpunit tests/e2e/PHP83Test.php # one language e2e (needs Docker)
 ```
 
@@ -246,8 +246,6 @@ Before submitting changes that touch templates or language classes:
 - [ ] Rector check passes (`composer refactor:check`)
 - [ ] Twig linter passes (`composer lint-twig`)
 - [ ] If a parent language was modified, child SDKs were also checked
-- [ ] If `Concern/CliCommandSurface.php` was touched, **both** CLIs were regenerated and
-      their e2e suites run — the trait is shared, so a change there moves the shipping
-      TypeScript CLI as well as the Go one
-- [ ] Go CLI changes compile and pass their tests:
-      `cd examples/go-cli && go build ./... && go vet ./... && go test ./...`
+- [ ] If `Concern/CliCommandSurface.php` was touched, the CLI was regenerated and its e2e suite run
+- [ ] CLI changes compile and pass their tests:
+      `cd examples/cli && go build ./... && go vet ./... && go test ./...`

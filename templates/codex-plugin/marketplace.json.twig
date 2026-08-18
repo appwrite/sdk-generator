@@ -1,14 +1,14 @@
 {
-    "name": "{{ spec.title | caseLower }}",
+    "name": "{{ spec.info.title | caseLower }}",
     "interface": {
-        "displayName": "{{ spec.title }}"
+        "displayName": "{{ spec.info.title }}"
     },
     "plugins": [
         {
-            "name": "{{ spec.title | caseLower }}",
+            "name": "{{ spec.info.title | caseLower }}",
             "source": {
                 "source": "local",
-                "path": "./plugins/{{ spec.title | caseLower }}"
+                "path": "./plugins/{{ spec.info.title | caseLower }}"
             },
             "policy": {
                 "installation": "AVAILABLE",

@@ -1,9 +1,9 @@
 {% set lang = 'go' %}
 {% set langName = 'Go' %}
-{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side Go applications with {{ spec.title }}. Covers user management, database/table CRUD, file storage, and functions via API keys. Uses per-service packages and functional options pattern.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side Go applications with {{ spec.info.title }}. Covers user management, database/table CRUD, file storage, and functions via API keys. Uses per-service packages and functional options pattern.{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
-# {{ spec.title }} {{ langName }} SDK
+# {{ spec.info.title }} {{ langName }} SDK
 
 ## Installation
 
@@ -26,8 +26,8 @@ import (
 
 clt := client.New(
     client.WithEndpoint("https://<REGION>.cloud.appwrite.io/v1"),
-    client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
-    client.WithKey(os.Getenv("{{ spec.title | caseUpper }}_API_KEY")),
+    client.WithProject(os.Getenv("{{ spec.info.title | caseUpper }}_PROJECT_ID")),
+    client.WithKey(os.Getenv("{{ spec.info.title | caseUpper }}_API_KEY")),
 )
 ```
 
@@ -286,14 +286,14 @@ import (
 // Admin client (reusable)
 adminClient := client.New(
     client.WithEndpoint("https://<REGION>.cloud.appwrite.io/v1"),
-    client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
-    client.WithKey(os.Getenv("{{ spec.title | caseUpper }}_API_KEY")),
+    client.WithProject(os.Getenv("{{ spec.info.title | caseUpper }}_PROJECT_ID")),
+    client.WithKey(os.Getenv("{{ spec.info.title | caseUpper }}_API_KEY")),
 )
 
 // Session client (create per-request)
 sessionClient := client.New(
     client.WithEndpoint("https://<REGION>.cloud.appwrite.io/v1"),
-    client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
+    client.WithProject(os.Getenv("{{ spec.info.title | caseUpper }}_PROJECT_ID")),
 )
 
 cookie, err := r.Cookie("a_session_[PROJECT_ID]")
@@ -340,7 +340,7 @@ http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
 
     sessionClient := client.New(
         client.WithEndpoint("https://<REGION>.cloud.appwrite.io/v1"),
-        client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
+        client.WithProject(os.Getenv("{{ spec.info.title | caseUpper }}_PROJECT_ID")),
         client.WithSession(cookie.Value),
     )
 

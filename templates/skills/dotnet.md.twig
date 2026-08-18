@@ -1,27 +1,27 @@
 {% set lang = 'dotnet' %}
 {% set langName = '.NET' %}
-{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side C# or .NET applications with {{ spec.title }}, including ASP.NET and Blazor integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side C# or .NET applications with {{ spec.info.title }}, including ASP.NET and Blazor integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
-# {{ spec.title }} {{ langName }} SDK
+# {{ spec.info.title }} {{ langName }} SDK
 
 ## Installation
 
 ```bash
-dotnet add package {{ spec.title }}
+dotnet add package {{ spec.info.title }}
 ```
 
 ## Setting Up the Client
 
 ```csharp
-using {{ spec.title }};
-using {{ spec.title }}.Services;
-using {{ spec.title }}.Models;
+using {{ spec.info.title }};
+using {{ spec.info.title }}.Services;
+using {{ spec.info.title }}.Models;
 
 var client = new Client()
     .SetEndpoint("https://<REGION>.cloud.appwrite.io/v1")
-    .SetProject(Environment.GetEnvironmentVariable("{{ spec.title | caseUpper }}_PROJECT_ID"))
-    .SetKey(Environment.GetEnvironmentVariable("{{ spec.title | caseUpper }}_API_KEY"));
+    .SetProject(Environment.GetEnvironmentVariable("{{ spec.info.title | caseUpper }}_PROJECT_ID"))
+    .SetKey(Environment.GetEnvironmentVariable("{{ spec.info.title | caseUpper }}_API_KEY"));
 ```
 
 ## Code Examples
@@ -152,7 +152,7 @@ await storage.DeleteFile("[BUCKET_ID]", "[FILE_ID]");
 #### InputFile Factory Methods
 
 ```csharp
-using {{ spec.title }}.Models;
+using {{ spec.info.title }}.Models;
 
 InputFile.FromPath("/path/to/file.png")                          // from filesystem path
 InputFile.FromBytes(byteArray, "file.png", "image/png")          // from byte[]
@@ -236,14 +236,14 @@ SSR apps using .NET frameworks (ASP.NET, Blazor Server, etc.) use the **server S
 - **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```csharp
-using {{ spec.title }};
-using {{ spec.title }}.Services;
+using {{ spec.info.title }};
+using {{ spec.info.title }}.Services;
 
 // Admin client (reusable)
 var adminClient = new Client()
     .SetEndpoint("https://<REGION>.cloud.appwrite.io/v1")
     .SetProject("[PROJECT_ID]")
-    .SetKey(Environment.GetEnvironmentVariable("{{ spec.title | caseUpper }}_API_KEY"));
+    .SetKey(Environment.GetEnvironmentVariable("{{ spec.info.title | caseUpper }}_API_KEY"));
 
 // Session client (create per-request)
 var sessionClient = new Client()
@@ -334,7 +334,7 @@ app.MapGet("/oauth/success", async (HttpContext ctx, string userId, string secre
 ## Error Handling
 
 ```csharp
-using {{ spec.title }};
+using {{ spec.info.title }};
 
 try
 {
@@ -364,7 +364,7 @@ catch (AppwriteException e)
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the row/file level or inherited from the table/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
 
 ```csharp
-using {{ spec.title }};
+using {{ spec.info.title }};
 // Permission and Role are included in the main namespace
 ```
 

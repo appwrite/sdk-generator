@@ -1,11 +1,11 @@
 ```graphql
 {% macro getProperty(definitions, responseModel, depth) %}
-        {%~ for definition in definitions %}
-        {%~ if definition.name == responseModel %}
+        {%~ for definitionName, definition in definitions %}
+        {%~ if definitionName == responseModel %}
         {%~ for property in definition.properties  %}
-        {{ ("% " ~ depth * 4 ~ "s") |format("") }}{{ property.name | replace({'$': '_'}) }}{%~ if property.sub_schema %} {{ '{' }}
+        {{ ("% " ~ depth * 4 ~ "s") |format("") }}{{ (property | schemaName) | replace({'$': '_'}) }}{%~ if (property | schemaModel) %} {{ '{' }}
             {{- '\n' -}}
-                {{- _self.getProperty(definitions, property.sub_schema, depth + 1) -}}
+                {{- _self.getProperty(definitions, (property | schemaModel), depth + 1) -}}
             {{ ("% " ~ depth * 4 ~ "s") |format("") }}{{ '        }' }}
         {%~ else %}
             {{- '\n' -}}
@@ -17,36 +17,36 @@
         {%~ endif %}
         {%~ endfor %}
 {% endmacro %}
-{% for key,header in method.headers %}
+{% for key,header in (method | methodHeaders) %}
 {% if header == 'multipart/form-data' %}
 {% set boundary = 'cec8e8123c05ba25' %}
-{{ method.method | caseUpper }} {{spec.basePath}}{{ method.path }}{% for security in method.securityQueries %}{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}={{ security['x-appwrite']['demo'] | raw }}{% endfor %} HTTP/1.1
-Host: {{ spec.host }}
-{% for key, header in method.headers %}
+{{ method.method.value | caseUpper }} {{ method | fullPath }}{% for security in (method | securityQueries) %}{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}={{ security.extensions['x-appwrite']['demo'] | raw }}{% endfor %} HTTP/1.1
+Host: {{ ((spec | endpoint) | split('/'))[2] }}
+{% for key, header in (method | methodHeaders) %}
 {{ key | caseUcwords }}: {{ header }}{% if header == 'multipart/form-data' %}; boundary="{{boundary}}"{% endif ~%}
 {% endfor %}
-{% for key,header in spec.global.defaultHeaders %}
+{% for key,header in defaultHeaders %}
 {{ key }}: {{ header }}
 {% endfor %}
-{% for security in method.securityHeaders %}
-{{ security.name }}: {{ security['x-appwrite']['demo'] | raw }}
+{% for security in (method | securityHeaders) %}
+{{ security.name }}: {{ security.extensions['x-appwrite']['demo'] | raw }}
 {% endfor %}
 Content-Length: *Length of your entity body in bytes*
 
 --{{boundary}}
 Content-Disposition: form-data; name="operations"
 
-{ "query": "mutation { {{ service.name | caseCamel }}{{ method.name | caseCamel | caseUcfirst }}({% for parameter in method.parameters.all  %}{{ parameter.name | caseCamel }}: ${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}) { id }" }, "variables": { {% for parameter in method.parameters.all  %}"{{ parameter.name | caseCamel }}": {{ parameter | paramExample }}{% if not loop.last %}, {% endif %}{% endfor %} } }
+{ "query": "mutation { {{ service.name | caseCamel }}{{ (method | methodName) | caseCamel | caseUcfirst }}({% for parameter in (method | parameters('all'))  %}{{ parameter.name | caseCamel }}: ${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}) { id }" }, "variables": { {% for parameter in (method | parameters('all'))  %}"{{ parameter.name | caseCamel }}": {{ parameter | paramExample }}{% if not loop.last %}, {% endif %}{% endfor %} } }
 
 --{{boundary}}
 Content-Disposition: form-data; name="map"
 
 {% set counter = 0 %}
-{ {% for parameter in method.parameters.all  %}{% if parameter.type == 'file' %}"{{ counter }}": ["variables.{{ parameter.name | caseCamel }}"]{% if not loop.last %}, {% endif %}{% set counter = counter + 1 %}{% endif %}{% endfor %} }
+{ {% for parameter in (method | parameters('all'))  %}{% if (parameter | schemaType) == 'file' %}"{{ counter }}": ["variables.{{ parameter.name | caseCamel }}"]{% if not loop.last %}, {% endif %}{% set counter = counter + 1 %}{% endif %}{% endfor %} }
 
 {% set counter = 0 %}
-{% for parameter in method.parameters.all  %}
-{% if parameter.type == 'file' %}
+{% for parameter in (method | parameters('all'))  %}
+{% if (parameter | schemaType) == 'file' %}
 --{{ boundary }}
 Content-Disposition: form-data; name="{{ counter }}"; filename="{{ parameter.name }}.ext"
 
@@ -57,22 +57,22 @@ File contents
 {% endfor %}
 --{{boundary}}--
 {% else %}
-{%~ if method.method == 'get' %}
+{%~ if method.method.value == 'get' %}
 query {
 {%~ else %}
 mutation {
 {%~ endif %}
-    {{ service.name | caseCamel }}{{ method.name | caseCamel | caseUcfirst }}{% if method.parameters.all  | length == 0 %} {{ '{' }}{% else %}(
-        {%~ for parameter in method.parameters.all  %}
+    {{ service.name | caseCamel }}{{ (method | methodName) | caseCamel | caseUcfirst }}{% if (method | parameters('all'))  | length == 0 %} {{ '{' }}{% else %}(
+        {%~ for parameter in (method | parameters('all'))  %}
         {{ parameter.name | caseCamel }}: {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
 
         {%~ endfor %}
     ) {{ '{' }}{%~ endif %}
 
-        {%~ if method.responseModel == 'none' or method.responseModel == '' %}
+        {%~ if (method | responseModel) == 'none' or (method | responseModel) == '' %}
         status
         {%~ else %}
-        {{- _self.getProperty(spec.definitions, method.responseModel, 0) -}}
+        {{- _self.getProperty(definitions, (method | responseModel), 0) -}}
         {%~ endif %}
     }
 }

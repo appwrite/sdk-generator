@@ -18,8 +18,8 @@ val pomDescription = "{{ sdk.description }}"
 val pomLicenseUrl = "https://opensource.org/licenses/GPL-3.0"
 val pomLicenseName = "GPL-3.0"
 val pomDeveloperId = "{{ sdk.gitUserName }}"
-val pomDeveloperName = "{{ spec.contactName }}"
-val pomDeveloperEmail = "{{ spec.contactEmail }}"
+val pomDeveloperName = "{{ spec.info.contact.name }}"
+val pomDeveloperEmail = "{{ spec.info.contact.email }}"
 val githubScmConnection = "scm:git:git://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}.git"
 
 version = publishVersion
@@ -31,7 +31,7 @@ repositories {
 dependencies {
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 
-    api(platform("com.squareup.okhttp3:okhttp-bom:5.4.0"))
+    api(platform("com.squareup.okhttp3:okhttp-bom:5.5.0"))
     api("com.squareup.okhttp3:okhttp")
 
     implementation("com.squareup.okhttp3:okhttp-urlconnection")

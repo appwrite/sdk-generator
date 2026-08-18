@@ -196,4 +196,80 @@ func TestAddQueryParam(t *testing.T) {
 		t.Errorf("Expected %q, got %q", expected.Encode(), q.Encode())
 	}
 }
+
+// Result is []byte for a JSON response as much as for a non-JSON one. It held a
+// string for JSON until v6.5.0, and the two branches disagreeing is what made a
+// `Result.(string)` assertion work against one endpoint and panic against
+// another. Pinned in both directions: reintroducing the string copy is a silent
+// break for anything written against the current type, exactly as dropping it
+// was for anything written against the old one.
+func TestCallReturnsTheBodyAsBytes(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		contentType string
+		body        string
+	}{
+		{name: "json", contentType: "application/json", body: `{"$id":"abc"}`},
+		{name: "not json", contentType: "text/plain", body: "abc"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("content-type", test.contentType)
+				w.Write([]byte(test.body))
+			}))
+			defer server.Close()
+
+			c := New()
+			c.Endpoint = server.URL
+
+			resp, err := c.Call(http.MethodGet, "/", nil, nil)
+			if err != nil {
+				t.Fatalf("Expected the call to succeed, got %v", err)
+			}
+
+			if _, ok := resp.Result.([]byte); !ok {
+				t.Errorf("Expected Result to hold []byte, got %T", resp.Result)
+			}
+
+			body, err := ResponseBody(resp)
+			if err != nil {
+				t.Fatalf("Expected ResponseBody to read the body, got %v", err)
+			}
+			if string(body) != test.body {
+				t.Errorf("Expected %q, got %q", test.body, string(body))
+			}
+		})
+	}
+}
+
+// ResponseBody is the accessor consumers are pointed at when Result's type
+// changes under them, so it has to read the type it used to hold too.
+func TestResponseBodyReadsEitherType(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		result interface{}
+	}{
+		{name: "bytes", result: []byte(`{"$id":"abc"}`)},
+		{name: "string", result: `{"$id":"abc"}`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			body, err := ResponseBody(&ClientResponse{Result: test.result})
+			if err != nil {
+				t.Fatalf("Expected ResponseBody to read the body, got %v", err)
+			}
+			if string(body) != `{"$id":"abc"}` {
+				t.Errorf("Expected the body, got %q", string(body))
+			}
+		})
+	}
+}
+
+func TestResponseBodyRejectsAnotherType(t *testing.T) {
+	if _, err := ResponseBody(&ClientResponse{Result: 42}); err == nil {
+		t.Error("Expected an error for a body that is neither []byte nor string")
+	}
+	if _, err := ResponseBody(nil); err == nil {
+		t.Error("Expected an error for a nil response")
+	}
+}
 {% endautoescape %}

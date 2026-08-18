@@ -15,8 +15,8 @@ val pomDescription = "{{ sdk.description }}"
 val pomLicenseUrl = "https://opensource.org/licenses/GPL-3.0"
 val pomLicenseName = "GPL-3.0"
 val pomDeveloperId = "{{ sdk.gitUserName }}"
-val pomDeveloperName = "{{ spec.contactName }}"
-val pomDeveloperEmail = "{{ spec.contactEmail }}"
+val pomDeveloperName = "{{ spec.info.contact.name }}"
+val pomDeveloperEmail = "{{ spec.info.contact.email }}"
 val githubScmConnection = "scm:git:git://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}.git"
 
 version = publishVersion
@@ -80,13 +80,13 @@ dependencies {
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
-    api("com.squareup.okhttp3:okhttp:5.4.0")
+    api("com.squareup.okhttp3:okhttp:5.5.0")
     implementation("com.google.code.gson:gson:2.14.0")
 
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
     implementation("androidx.lifecycle:lifecycle-common-java8:2.11.0")
-    implementation("androidx.appcompat:appcompat:1.7.1")
-    implementation("androidx.fragment:fragment-ktx:1.8.9")
+    implementation("androidx.appcompat:appcompat:1.8.0")
+    implementation("androidx.fragment:fragment-ktx:1.9.0")
     implementation("androidx.activity:activity-ktx:1.13.0")
     implementation("androidx.browser:browser:1.10.0")
     implementation("androidx.core:core-ktx:1.19.0")

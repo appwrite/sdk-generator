@@ -2,6 +2,10 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Specification;
+
 class GraphQL extends HTTP
 {
     public function getName(): string
@@ -24,54 +28,28 @@ class GraphQL extends HTTP
         return '[' . $elements . ']';
     }
 
-    /**
-     * @param $type
-     */
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        $type = '';
+        $schema = $this->getSchema($parameter);
+        $type = match ($this->getSchemaType($parameter)) {
+            self::TYPE_INTEGER => 'Int',
+            self::TYPE_NUMBER => 'Float',
+            self::TYPE_STRING => 'String',
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_BOOLEAN => 'Boolean',
+            self::TYPE_ARRAY => '[' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . ']',
+            self::TYPE_OBJECT => 'JSON',
+            default => 'JSON',
+        };
 
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-                $type = 'Int';
-                break;
-            case self::TYPE_STRING:
-                $type = 'String';
-                break;
-            case self::TYPE_FILE:
-                $type = 'InputFile';
-                break;
-            case self::TYPE_BOOLEAN:
-                $type = 'Bool';
-                break;
-            case self::TYPE_ARRAY:
-                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
-                    $type = '[' . $this->getTypeName($parameter['array']) . ']';
-                    break;
-                }
-                $type = 'Json';
-                break;
-            case self::TYPE_OBJECT:
-                $type = 'JSON';
-                break;
-        }
-
-        if (empty($type)) {
-            $type = $parameter['type'];
-        }
-
-        if ($parameter['required'] ?? false) {
-            $type .= '!';
-        }
-
-        return $type;
+        return $parameter instanceof Parameter && $parameter->required ? $type . '!' : $type;
     }
 
-    public function getParamDefault(array $param): string
+    public function getParamDefault(Schema|Parameter $param): string
     {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $default    = $this->getSchemaDefault($param);
+        $required   = ($param instanceof Parameter && $param->required);
 
         if ($required) {
             return '';
@@ -118,10 +96,10 @@ class GraphQL extends HTTP
         return $output;
     }
 
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $example    = $this->getSchemaExample($param);
 
         $hasExample = !empty($example) || $example === 0 || $example === false;
 
@@ -151,7 +129,7 @@ class GraphQL extends HTTP
         return [
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => '/graphql/docs/example.md.twig',
                 'exclude'       => [
                     'services'  => [['name' => 'graphql']],

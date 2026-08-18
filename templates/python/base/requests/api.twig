@@ -1,21 +1,21 @@
-        response = self.client.call('{{ method.method | caseLower }}', api_path, {
-{%~ for key, security in method.securityHeaders %}
+        response = self.client.call('{{ method.method.value | caseLower }}', api_path, {
+{%~ for key, security in (method | securityHeaders) %}
             '{{ security.name }}': self.client.get_config('{{ key | caseLower }}'),
 {%~ endfor %}
-{% for parameter in method.parameters.header %}
+{% for parameter in (method | parameters('header')) %}
             '{{ parameter.name }}': self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }}),
 {% endfor %}
-{% for key, header in method.headers %}
+{% for key, header in (method | methodHeaders) %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, api_params{% if method.type == 'webAuth' %}, response_type='location'{% endif %})
-{% if method.type == 'location' %}
+        }, api_params{% if (method | methodType) == 'webAuth' %}, response_type='location'{% endif %})
+{% if (method | methodType) == 'location' %}
 {# Signature says bytes. A responseModel may still be declared, but hydrating it would call to_dict() on the body. #}
 
         return response
-{% elseif method.responseModels is defined and method.responseModels|length > 1 %}
-{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
-{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% elseif (method | responseModels)|length > 1 %}
+{% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}
+{% set responseDiscriminator = (method | responseDiscriminator) %}
 {% if hasResponseDiscriminator %}
         if not isinstance(response, dict):
             raise AppwriteException('Expected object response when hydrating a response model')
@@ -28,16 +28,16 @@
         raise AppwriteException('Unable to match response to any known model')
 {% else %}
 
-        return self._parse_response(response, model={% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %})
+        return self._parse_response(response, model={% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %})
 {% endif %}
-{% elseif method.responseModel and method.responseModel != 'any' %}
-{% set isGenericResponse = method.responseModel | hasGenericType(spec) %}
+{% elseif (method | responseModel) and (method | responseModel) != 'any' %}
+{% set isGenericResponse = (method | responseModel) | hasGenericType(spec) %}
 {% if isGenericResponse %}
 
-        return {% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}.with_data(response, model_type)
+        return {% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %}.with_data(response, model_type)
 {% else %}
 
-        return self._parse_response(response, model={% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %})
+        return self._parse_response(response, model={% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %})
 {% endif %}
 {% else %}
 

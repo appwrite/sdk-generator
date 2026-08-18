@@ -1,6 +1,6 @@
 require 'json'
 
-module {{spec.title | caseUcfirst}}
+module {{spec.info.title | caseUcfirst}}
     class Query
         def initialize(method, attribute = nil, values = nil)
             @method = method

@@ -1,11 +1,11 @@
-{% if method.parameters.query | merge(method.parameters.body) | merge(method.parameters.header) | filter(v => not v.required) | length > 0 %}
-	options := {{(method.name ~ "Options") | caseUcfirst}}{}.New()
+{% if (method | parameters('query')) | merge((method | parameters('body'))) | merge((method | parameters('header'))) | filter(v => not v.required) | length > 0 %}
+	options := {{((method | methodName) ~ "Options") | caseUcfirst}}{}.New()
 	for _, opt := range optionalSetters {
 		opt(options)
 	}
 {% endif %}
 	params := map[string]interface{}{}
-{% for parameter in method.parameters.query | merge(method.parameters.body) %}
+{% for parameter in (method | parameters('query')) | merge((method | parameters('body'))) %}
 {% if parameter.required %}
 	params["{{ parameter.name }}"] = {{ parameter.name | caseUcfirst }}
 {% else %}
@@ -14,18 +14,17 @@
 	}
 {% endif %}
 {% endfor %}
-	headers := map[string]interface{}{
-{%~ for key, security in method.securityHeaders %}
-		"{{ security.name }}": srv.client.Config["{{ key | caseLower }}"],
+	headers := map[string]interface{}{}
+{%~ for key, security in (method | securityHeaders) %}
+	headers["{{ security.name }}"] = srv.client.Config["{{ key | caseLower }}"]
 {%~ endfor %}
-{% for key, header in method.headers %}
-		"{{ key }}": "{{ header }}",
+{% for key, header in (method | methodHeaders) %}
+	headers["{{ key }}"] = "{{ header }}"
 {% endfor %}
-{%~ for parameter in method.parameters.header | filter(v => v.required) %}
-		"{{ parameter.name }}": {{ parameter.name | caseUcfirst }},
+{%~ for parameter in (method | parameters('header')) | filter(v => v.required) %}
+	headers["{{ parameter.name }}"] = {{ parameter.name | caseUcfirst }}
 {%~ endfor %}
-	}
-{% for parameter in method.parameters.header | filter(v => not v.required) %}
+{% for parameter in (method | parameters('header')) | filter(v => not v.required) %}
 	if options.enabledSetters["{{ parameter.name | caseUcfirst }}"] {
 		headers["{{ parameter.name }}"] = options.{{ parameter.name | caseUcfirst }}
 	}

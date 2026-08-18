@@ -1,0 +1,84 @@
+{% if sdk.test %}
+package app
+
+// Client constructors are stubbed for the conformance build: the generated
+// commands call mock services there, so no client is ever built.
+
+import "errors"
+
+var errNoClientInTestBuild = errors.New("client construction is unavailable in the conformance build")
+
+// ClientForConsole is unavailable in the conformance build.
+func ClientForConsole() (any, error) { return nil, errNoClientInTestBuild }
+
+// ClientForProject is unavailable in the conformance build.
+func ClientForProject(string) (any, error) { return nil, errNoClientInTestBuild }
+
+// ClientForSessionProject is unavailable in the conformance build.
+func ClientForSessionProject(string, string) (any, error) { return nil, errNoClientInTestBuild }
+
+// ClientForOrganization is unavailable in the conformance build.
+func ClientForOrganization(string) (any, error) { return nil, errNoClientInTestBuild }
+{% else %}
+package app
+
+import (
+	sdkclient "{{ language.params.sdkImportPath }}/client"
+
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
+)
+
+// Client constructors the generated commands call.
+//
+// Thin wrappers over internal/sdk that supply the executable name and version,
+// so a generated call site is one expression with no configuration in it.
+
+func context() (*sdk.Context, error) {
+	return sdk.Load(ExecutableName, Version)
+}
+
+// ClientForConsole builds a client against the console project.
+func ClientForConsole() (sdkclient.Client, error) {
+	ctx, err := context()
+	if err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	return ctx.ForConsole()
+}
+
+// ClientForProject builds a client against a project.
+//
+// An empty projectID falls back to the one in the working directory's
+// appwrite.config.json, which is what an unscoped command wants; a
+// header-scoped service passes its --project-id flag through instead.
+func ClientForProject(projectID string) (sdkclient.Client, error) {
+	ctx, err := context()
+	if err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	return ctx.ForProject(projectID)
+}
+
+// ClientForSessionProject builds a project client from a discovered ID and
+// endpoint while ignoring unrelated local project configuration.
+func ClientForSessionProject(projectID, endpoint string) (sdkclient.Client, error) {
+	ctx, err := context()
+	if err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	return ctx.ForSessionProject(projectID, endpoint)
+}
+
+// ClientForOrganization builds a console client scoped to an organization.
+func ClientForOrganization(organizationID string) (sdkclient.Client, error) {
+	ctx, err := context()
+	if err != nil {
+		return sdkclient.Client{}, err
+	}
+
+	return ctx.ForConsoleWithOrganization(organizationID)
+}
+{% endif %}

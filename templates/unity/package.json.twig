@@ -1,17 +1,17 @@
 {
   "name": "{{ language.params.packageName }}",
   "version": "{{sdk.version}}",
-  "displayName": "{{spec.title}} SDK",
-  "description": "{{spec.description}}",
+  "displayName": "{{spec.info.title}} SDK",
+  "description": "{{spec.info.description}}",
   "unity": "2021.3",
   "documentationUrl": "{{ sdk.url }}",
   "author": {
-    "name": "{{ spec.contactName }}",
-    "email": "{{ spec.contactEmail }}",
-    "url": "{{ spec.contactURL }}"
+    "name": "{{ spec.info.contact.name }}",
+    "email": "{{ spec.info.contact.email }}",
+    "url": "{{ spec.info.contact.url }}"
   },
   "keywords": [
-    "{{spec.title | caseLower}}",
+    "{{spec.info.title | caseLower}}",
     "backend",
     "baas",
     "api",
@@ -23,7 +23,7 @@
   "samples": [
   {
       "displayName": "Example",
-      "description": "{{ spec.title }} Example",
-      "path": "Samples~/{{ spec.title | caseUcfirst }}Example"
+      "description": "{{ spec.info.title }} Example",
+      "path": "Samples~/{{ spec.info.title | caseUcfirst }}Example"
   } ]
 }

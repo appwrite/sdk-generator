@@ -1,13 +1,13 @@
 {% set responseModels = method | getValidResponseModels %}
-{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
-{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}
+{% set responseDiscriminator = (method | responseDiscriminator) %}
 {% if responseModels|length > 1 and hasResponseDiscriminator %}
             response = @client.call(
-                method: '{{ method.method | caseUpper }}',
+                method: '{{ method.method.value | caseUpper }}',
                 path: api_path,
                 headers: api_headers,
                 params: api_params,
-                {%~ if method.type == "webAuth" %}
+                {%~ if (method | methodType) == "webAuth" %}
                 response_type: "location"
                 {%~ endif %}
             )
@@ -25,14 +25,14 @@
             raise Exception, "Unable to match response to any expected response model"
 {% else %}
             @client.call(
-                method: '{{ method.method | caseUpper }}',
+                method: '{{ method.method.value | caseUpper }}',
                 path: api_path,
                 headers: api_headers,
                 params: api_params,
-                {%~ if method.type == "webAuth" %}
+                {%~ if (method | methodType) == "webAuth" %}
                 response_type: "location"
-                {%~ elseif method.responseModel and method.responseModel != 'any' %}
-                response_type: Models::{{ method.responseModel | caseUcfirst }}
+                {%~ elseif (method | responseModel) and (method | responseModel) != 'any' %}
+                response_type: Models::{{ (method | responseModel) | caseUcfirst }}
                 {%~ endif %}
             )
 {% endif %}

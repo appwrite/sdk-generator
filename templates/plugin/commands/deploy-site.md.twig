@@ -1,16 +1,16 @@
 ---
 name: deploy-site
-description: Deploy a site using the {{ spec.title }} CLI
+description: Deploy a site using the {{ spec.info.title }} CLI
 {% if language.name == 'ClaudePlugin' %}
 disable-model-invocation: true
 {% endif %}
 ---
 
-# Deploy a site using the {{ spec.title }} CLI
+# Deploy a site using the {{ spec.info.title }} CLI
 
 ## Prerequisites
 
-- {{ spec.title }} CLI installed (`npm install -g appwrite-cli`)
+- {{ spec.info.title }} CLI installed (`npm install -g appwrite-cli`)
 - Authenticated with `appwrite login`
 - Project initialized with `appwrite init`
 

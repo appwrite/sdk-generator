@@ -2,6 +2,10 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\ArraySchema;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
@@ -129,64 +133,41 @@ class Dart extends Language
         return '[' . $elements . ']';
     }
 
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        if (
-            ($parameter['type'] ?? null) === self::TYPE_ARRAY
-            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
-        ) {
-            $enumType = isset($parameter['enumName'])
-                ? \ucfirst($parameter['enumName'])
-                : \ucfirst((string) $parameter['name']);
-
-            return 'List<enums.' . $enumType . '>';
+        $schema = $this->getSchema($parameter);
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        if ($enumSchema->enum !== []) {
+            $type = 'enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
+            return $schema instanceof ArraySchema ? 'List<' . $type . '>' : $type;
         }
 
-        if (isset($parameter['enumName'])) {
-            return 'enums.' . \ucfirst($parameter['enumName']);
+        $model = $this->getSchemaModel($parameter);
+        if ($model !== null) {
+            $type = 'models.' . $this->toPascalCase($model);
+            return $schema instanceof ArraySchema ? 'List<' . $type . '>' : $type;
         }
-        if (!empty($parameter['enumValues'])) {
-            return 'enums.' . \ucfirst((string) $parameter['name']);
-        }
-        if (!empty($parameter['array']['model'])) {
-            return 'List<models.' . $this->toPascalCase($parameter['array']['model']) . '>';
-        }
-        if (!empty($parameter['model'])) {
-            $modelType = 'models.' . $this->toPascalCase($parameter['model']);
-            return $parameter['type'] === self::TYPE_ARRAY ? 'List<' . $modelType . '>' : $modelType;
-        }
-        if (isset($parameter['items'])) {
-            // Map definition nested type to parameter nested type
-            $parameter['array'] = $parameter['items'];
-        }
-        switch ($parameter['type'] ?? '') {
-            case self::TYPE_INTEGER:
-                return 'int';
-            case self::TYPE_STRING:
-                return 'String';
-            case self::TYPE_FILE:
-                return 'InputFile';
-            case self::TYPE_BOOLEAN:
-                return 'bool';
-            case self::TYPE_ARRAY:
-                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
-                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
-                }
-                return 'List';
-            case self::TYPE_OBJECT:
-                return 'Map';
-            case self::TYPE_NUMBER:
-                return 'double';
-            default:
-                return $parameter['type'];
-        }
+        return match ($this->getSchemaType($parameter)) {
+            self::TYPE_INTEGER => 'int',
+            self::TYPE_STRING => 'String',
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_ARRAY => match (true) {
+                $this->isUntypedNestedArray($parameter, $schema) => 'List<List>',
+                !$this->hasConcreteItemsType($schema) => 'List',
+                default => 'List<' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '>',
+            },
+            self::TYPE_OBJECT => 'Map',
+            self::TYPE_NUMBER => 'double',
+            default => 'dynamic',
+        };
     }
 
-    public function getParamDefault(array $param): string
+    public function getParamDefault(Schema|Parameter $param): string
     {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $default    = $this->getSchemaDefault($param);
+        $required   = ($param instanceof Parameter && $param->required);
 
         if ($required) {
             return '';
@@ -235,10 +216,10 @@ class Dart extends Language
         return $output;
     }
 
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $example    = $this->getSchemaExample($param);
 
         $hasExample = !empty($example) || $example === 0 || $example === false;
 
@@ -257,7 +238,7 @@ class Dart extends Language
             self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
             self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
-            self::TYPE_OBJECT => ($decoded = json_decode($example, true)) !== null
+            self::TYPE_OBJECT => ($decoded = json_decode((string) $example, true)) !== null
             ? (empty($decoded) && $example === '{}'
                 ? '{}'
                 : preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT)))
@@ -266,20 +247,18 @@ class Dart extends Language
         };
     }
 
-    public function getModelToMapValue(array $property): string
+    public function getModelToMapValue(Schema $property, string $propertyName, bool $required): string
     {
-        $name = $this->escapeKeyword($property['name'] ?? '');
-        $nullAware = empty($property['required']) ? '?' : '';
+        $name = $this->escapeKeyword($propertyName);
+        $nullAware = $required ? '' : '?';
 
-        if (!empty($property['sub_schema'])) {
-            if (($property['type'] ?? '') === self::TYPE_ARRAY) {
-                return "{$name}{$nullAware}.map((p) => p.toMap()).toList()";
-            }
-
-            return "{$name}{$nullAware}.toMap()";
+        if ($this->getSchemaModel($property) !== null) {
+            return $property instanceof ArraySchema
+                ? "{$name}{$nullAware}.map((p) => p.toMap()).toList()"
+                : "{$name}{$nullAware}.toMap()";
         }
 
-        if (!empty($property['enum'])) {
+        if ($property->enum !== []) {
             return "{$name}{$nullAware}.value";
         }
 
@@ -436,17 +415,17 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
+                'destination'   => '/lib/src/models/{{definitionName | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/models/model.dart.twig',
             ],
             [
                 'scope'         => 'requestModel',
-                'destination'   => '/lib/src/models/{{requestModel.name | caseSnake }}.dart',
+                'destination'   => '/lib/src/models/{{requestModelName | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/models/request_model.dart.twig',
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => 'dart/docs/example.md.twig',
             ],
             [
@@ -456,7 +435,7 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => '/test/src/models/{{definition.name | caseSnake }}_test.dart',
+                'destination'   => '/test/src/models/{{definitionName | caseSnake }}_test.dart',
                 'template'      => 'dart/test/src/models/model_test.dart.twig',
             ],
             [
@@ -531,7 +510,7 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'lib/src/enums/{{ enum.name | caseSnake }}.dart',
+                'destination'   => 'lib/src/enums/{{ enum.title | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/enums/enum.dart.twig',
             ],
         ];
@@ -542,16 +521,18 @@ class Dart extends Language
     {
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toCamelCase($value)),
-            new TwigFilter('enumExample', function (array $param): string {
-                $enumValues = $param['enumValues'] ?? [];
-                if (empty($enumValues)) {
+            new TwigFilter('enumExample', function (Schema|Parameter $param): string {
+                $schema = $this->getSchema($param);
+                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumValues = $enumSchema->enum;
+                if ($enumValues === []) {
                     return '';
                 }
 
-                $enumKeys = $param['enumKeys'] ?? [];
-                $enumName = $this->toCamelCase($param['enumName'] ?? $param['name'] ?? '');
-                $example = $param['example'] ?? null;
-                $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
+                $enumName = $this->toCamelCase($enumSchema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
+                $example = $this->getSchemaExample($param);
+                $isArray = $schema instanceof ArraySchema;
 
                 $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
@@ -588,7 +569,7 @@ class Dart extends Language
                 $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
                 return 'enums.' . \ucfirst($enumName) . '.' . $resolveKey($value);
             }),
-            new TwigFilter('modelToMapValue', fn(array $property): string => $this->getModelToMapValue($property), ['is_safe' => ['html']]),
+            new TwigFilter('modelToMapValue', fn(Schema $property, string $name, bool $required): string => $this->getModelToMapValue($property, $name, $required), ['is_safe' => ['html']]),
         ];
     }
 }

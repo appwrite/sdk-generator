@@ -11,7 +11,7 @@ void main() {
     test('throws exception when neither path nor bytes are provided', () {
       expect(
         () => InputFile(),
-        throwsA(isA<{{spec.title | caseUcfirst}}Exception>().having(
+        throwsA(isA<{{spec.info.title | caseUcfirst}}Exception>().having(
           (e) => e.message,
           'message',
           'One of `path` or `bytes` is required',
@@ -22,7 +22,7 @@ void main() {
     test('throws exception when path and bytes are both null', () {
       expect(
         () => InputFile(path: null, bytes: null),
-        throwsA(isA<{{spec.title | caseUcfirst}}Exception>().having(
+        throwsA(isA<{{spec.info.title | caseUcfirst}}Exception>().having(
           (e) => e.message,
           'message',
           'One of `path` or `bytes` is required',

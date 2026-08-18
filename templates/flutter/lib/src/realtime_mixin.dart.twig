@@ -169,7 +169,7 @@ mixin RealtimeMixin {
         _retry();
       });
     } catch (e) {
-      if (e is {{spec.title | caseUcfirst}}Exception) {
+      if (e is {{spec.info.title | caseUcfirst}}Exception) {
         rethrow;
       }
       debugPrint(e.toString());
@@ -205,7 +205,7 @@ mixin RealtimeMixin {
 
   Uri _prepareUri() {
     if (client.endPointRealtime == null) {
-      throw {{spec.title | caseUcfirst}}Exception(
+      throw {{spec.info.title | caseUcfirst}}Exception(
           "Please set endPointRealtime to connect to realtime server");
     }
     var uri = Uri.parse(client.endPointRealtime!);
@@ -239,7 +239,7 @@ mixin RealtimeMixin {
         return id;
       }
     }
-    throw {{spec.title | caseUcfirst}}Exception('Failed to generate unique subscription id');
+    throw {{spec.info.title | caseUcfirst}}Exception('Failed to generate unique subscription id');
   }
 
   void _enqueuePendingSubscribe(String subscriptionId) {
@@ -379,7 +379,7 @@ mixin RealtimeMixin {
 
   void handleError(RealtimeResponse response) {
     if (response.data['code'] == status.policyViolation) {
-      throw {{spec.title | caseUcfirst}}Exception(response.data["message"], response.data["code"]);
+      throw {{spec.info.title | caseUcfirst}}Exception(response.data["message"], response.data["code"]);
     } else {
       _retry();
     }

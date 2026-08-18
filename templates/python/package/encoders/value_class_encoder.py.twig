@@ -1,7 +1,7 @@
 import json
 from ..models.base_model import AppwriteModel
-{%~ for enum in spec.allEnums %}
-from ..enums.{{ enum.name | caseSnake }} import {{ enum.name | caseUcfirst | overrideIdentifier }}
+{%~ for enum in allEnums %}
+from ..enums.{{ enum.title | caseSnake }} import {{ enum.title | caseUcfirst | overrideIdentifier }}
 {%~ endfor %}
 
 class ValueClassEncoder(json.JSONEncoder):
@@ -9,8 +9,8 @@ class ValueClassEncoder(json.JSONEncoder):
         if isinstance(o, AppwriteModel):
             return o.to_dict()
 
-        {%~ for enum in spec.allEnums %}
-        if isinstance(o, {{ enum.name | caseUcfirst | overrideIdentifier }}):
+        {%~ for enum in allEnums %}
+        if isinstance(o, {{ enum.title | caseUcfirst | overrideIdentifier }}):
             return o.value
 
         {%~ endfor %}

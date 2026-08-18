@@ -10,16 +10,16 @@ using Cysharp.Threading.Tasks;
 #endif
 using UnityEngine;
 using UnityEngine.Networking;
-using {{ spec.title | caseUcfirst }}.Converters;
-using {{ spec.title | caseUcfirst }}.Extensions;
-using {{ spec.title | caseUcfirst }}.Models;
+using {{ spec.info.title | caseUcfirst }}.Converters;
+using {{ spec.info.title | caseUcfirst }}.Extensions;
+using {{ spec.info.title | caseUcfirst }}.Models;
 
-namespace {{ spec.title | caseUcfirst }}
+namespace {{ spec.info.title | caseUcfirst }}
 {
     public class Client
     {
-        private const string SESSION_PREF = "{{ spec.title | caseUcfirst }}_Session";
-        private const string JWT_PREF = "{{ spec.title | caseUcfirst }}_JWT";
+        private const string SESSION_PREF = "{{ spec.info.title | caseUcfirst }}_Session";
+        private const string JWT_PREF = "{{ spec.info.title | caseUcfirst }}_JWT";
     
         public string Endpoint => _endpoint;
         public Dictionary<string, string> Config => _config;
@@ -65,19 +65,19 @@ namespace {{ spec.title | caseUcfirst }}
 
         private Client()
         {
-            _endpoint = "{{spec.endpoint}}";
+            _endpoint = "{{(spec | endpoint)}}";
             _selfSigned = false;
             _cookieContainer = new CookieContainer();
 
             _headers = new Dictionary<string, string>()
             {
                 { "content-type", "application/json" },
-                { "user-agent" , $"{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({Environment.OSVersion.Platform}; {Environment.OSVersion.VersionString})"},
+                { "user-agent" , $"{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({Environment.OSVersion.Platform}; {Environment.OSVersion.VersionString})"},
                 { "x-sdk-name", "{{ sdk.name }}" },
                 { "x-sdk-platform", "{{ sdk.platform }}" },
                 { "x-sdk-language", "{{ language.name | caseLower }}" },
-                { "x-sdk-version", "{{ sdk.version }}"}{% if spec.global.defaultHeaders | length > 0 %},
-                {%~ for key,header in spec.global.defaultHeaders %}
+                { "x-sdk-version", "{{ sdk.version }}"}{% if defaultHeaders | length > 0 %},
+                {%~ for key,header in defaultHeaders %}
                 { "{{key}}", "{{header}}" }{% if not loop.last %},{% endif %}
                 {%~ endfor %}{% endif %}
 
@@ -91,7 +91,7 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static Client From(
             string projectId,
-            string endpoint = "{{spec.endpoint}}",
+            string endpoint = "{{(spec | endpoint)}}",
             string? endpointRealtime = null,
             string? locale = null,
             bool selfSigned = false)
@@ -104,20 +104,20 @@ namespace {{ spec.title | caseUcfirst }}
         public static Client FromSession(
             string projectId,
             string session,
-            string endpoint = "{{spec.endpoint}}",
+            string endpoint = "{{(spec | endpoint)}}",
             string? endpointRealtime = null,
             string? locale = null,
             bool selfSigned = false)
         {
             var client = From(projectId, endpoint, endpointRealtime, locale, selfSigned);
-            client.SetHeader("session", "X-{{ spec.title | caseUcfirst }}-Session", session);
+            client.SetHeader("session", "X-{{ spec.info.title | caseUcfirst }}-Session", session);
             return client;
         }
 
         public static Client FromJWT(
             string projectId,
             string jwt,
-            string endpoint = "{{spec.endpoint}}",
+            string endpoint = "{{(spec | endpoint)}}",
             string? endpointRealtime = null,
             string? locale = null,
             bool selfSigned = false)
@@ -130,13 +130,13 @@ namespace {{ spec.title | caseUcfirst }}
         public static Client FromDevKey(
             string projectId,
             string devKey,
-            string endpoint = "{{spec.endpoint}}",
+            string endpoint = "{{(spec | endpoint)}}",
             string? endpointRealtime = null,
             string? locale = null,
             bool selfSigned = false)
         {
             var client = From(projectId, endpoint, endpointRealtime, locale, selfSigned);
-            client.SetHeader("devKey", "X-{{ spec.title | caseUcfirst }}-Dev-Key", devKey);
+            client.SetHeader("devKey", "X-{{ spec.info.title | caseUcfirst }}-Dev-Key", devKey);
             return client;
         }
 
@@ -146,7 +146,7 @@ namespace {{ spec.title | caseUcfirst }}
             string? userId = null,
             string? userEmail = null,
             string? userPhone = null,
-            string endpoint = "{{spec.endpoint}}",
+            string endpoint = "{{(spec | endpoint)}}",
             string? endpointRealtime = null,
             string? locale = null,
             bool selfSigned = false)
@@ -154,24 +154,24 @@ namespace {{ spec.title | caseUcfirst }}
             var targetCount = new[] { userId, userEmail, userPhone }.Count(value => !string.IsNullOrEmpty(value));
             if (targetCount != 1)
             {
-                throw new {{ spec.title | caseUcfirst }}Exception("Exactly one impersonation target must be provided.");
+                throw new {{ spec.info.title | caseUcfirst }}Exception("Exactly one impersonation target must be provided.");
             }
 
             var client = FromSession(projectId, session, endpoint, endpointRealtime, locale, selfSigned);
 
             if (!string.IsNullOrEmpty(userId))
             {
-                client.SetHeader("impersonateuserid", "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id", userId);
+                client.SetHeader("impersonateuserid", "X-{{ spec.info.title | caseUcfirst }}-Impersonate-User-Id", userId);
             }
 
             if (!string.IsNullOrEmpty(userEmail))
             {
-                client.SetHeader("impersonateuseremail", "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email", userEmail);
+                client.SetHeader("impersonateuseremail", "X-{{ spec.info.title | caseUcfirst }}-Impersonate-User-Email", userEmail);
             }
 
             if (!string.IsNullOrEmpty(userPhone))
             {
-                client.SetHeader("impersonateuserphone", "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone", userPhone);
+                client.SetHeader("impersonateuserphone", "X-{{ spec.info.title | caseUcfirst }}-Impersonate-User-Phone", userPhone);
             }
 
             return client;
@@ -194,14 +194,14 @@ namespace {{ spec.title | caseUcfirst }}
 
             if (!string.IsNullOrEmpty(locale))
             {
-                client.SetHeader("locale", "X-{{ spec.title | caseUcfirst }}-Locale", locale);
+                client.SetHeader("locale", "X-{{ spec.info.title | caseUcfirst }}-Locale", locale);
             }
         }
 
         private void ConfigureEndpoint(string endpoint)
         {
             if (!endpoint.StartsWith("http://") && !endpoint.StartsWith("https://")) {
-                throw new {{ spec.title | caseUcfirst }}Exception("Invalid endpoint URL: " + endpoint);
+                throw new {{ spec.info.title | caseUcfirst }}Exception("Invalid endpoint URL: " + endpoint);
             }
 
             _endpoint = endpoint;
@@ -210,7 +210,7 @@ namespace {{ spec.title | caseUcfirst }}
         private static string ValidateRealtimeEndpoint(string endpointRealtime)
         {
             if (!endpointRealtime.StartsWith("ws://") && !endpointRealtime.StartsWith("wss://")) {
-                throw new {{ spec.title | caseUcfirst }}Exception("Invalid realtime endpoint URL: " + endpointRealtime);
+                throw new {{ spec.info.title | caseUcfirst }}Exception("Invalid realtime endpoint URL: " + endpointRealtime);
             }
 
             return endpointRealtime;
@@ -223,7 +223,7 @@ namespace {{ spec.title | caseUcfirst }}
                 .Replace("https://", "wss://");
         }
 #if UNI_TASK
-        {%~ for clientMethodName, clientMethods in spec.clientMethods %}
+        {%~ for clientMethodName, clientMethods in clientMethods %}
         {%~ for clientMethod in clientMethods %}
         /// <summary>
         /// {{ clientMethod.description | replace({'\n': '\n        /// '}) | raw }}
@@ -233,17 +233,17 @@ namespace {{ spec.title | caseUcfirst }}
         {
             var headers = new Dictionary<string, string>
             {
-                {%~ for key, security in clientMethod.securityHeaders %}
+                {%~ for key, security in (clientMethod | securityHeaders) %}
                 ["{{ security.name }}"] = _config.GetValueOrDefault("{{ key | caseLower }}", ""),
                 {%~ endfor %}
-                {%~ for key, header in clientMethod.headers %}
+                {%~ for key, header in (clientMethod | methodHeaders) %}
                 ["{{ key }}"] = "{{ header }}",
                 {%~ endfor %}
             };
 
             var parameters = new Dictionary<string, object?>();
 
-            return await Call<string>("{{ clientMethod.method | caseUpper }}", "{{ clientMethod.path }}", headers, parameters,
+            return await Call<string>("{{ clientMethod.method.value | caseUpper }}", "{{ clientMethod.path }}", headers, parameters,
                 response => (response.TryGetValue("result", out var result) ? result?.ToString() : null) ?? string.Empty);
         }
         {%~ endfor %}
@@ -254,7 +254,7 @@ namespace {{ spec.title | caseUcfirst }}
             _config[configKey] = value;
             _headers[header] = value;
 
-            if (header == "X-{{ spec.title | caseUcfirst }}-Session" || header == "X-{{ spec.title | caseUcfirst }}-JWT")
+            if (header == "X-{{ spec.info.title | caseUcfirst }}-Session" || header == "X-{{ spec.info.title | caseUcfirst }}-JWT")
             {
                 SaveSession();
             }
@@ -278,9 +278,9 @@ namespace {{ spec.title | caseUcfirst }}
             return _config.GetValueOrDefault("jwt") ?? _config.GetValueOrDefault("jWT");
         }
 
-{% for header in spec.global.headers %}
+{% for headerKey, header in globalHeaders %}
         /// <summary>
-        /// Set {{header.key | caseUcfirst}}
+        /// Set {{headerKey | caseUcfirst}}
 {% if header.description %}
         ///
         /// {{header.description}}
@@ -288,13 +288,13 @@ namespace {{ spec.title | caseUcfirst }}
         /// </summary>
         /// <param name="value">The value to set</param>
         /// <returns>Client instance for method chaining</returns>
-        public Client Set{{header.key | caseUcfirst}}(string value)
+        public Client Set{{headerKey | caseUcfirst}}(string value)
         {
-{% if header.type is defined and header.type == 'bearer' %}
-            _config["{{header.key | caseLower}}"] = value;
+{% if header.scheme == 'bearer' %}
+            _config["{{headerKey | caseLower}}"] = value;
             _headers["{{header.name}}"] = "Bearer " + value;
 {% else %}
-            SetHeader("{{header.key | caseLower}}", "{{header.name}}", value);
+            SetHeader("{{headerKey | caseLower}}", "{{header.name}}", value);
 {% endif %}
             return this;
         }
@@ -308,8 +308,8 @@ namespace {{ spec.title | caseUcfirst }}
             _config.Remove("session");
             _config.Remove("jwt");
             _config.Remove("jWT");
-            _headers.Remove("X-{{ spec.title | caseUcfirst }}-Session");
-            _headers.Remove("X-{{ spec.title | caseUcfirst }}-JWT");
+            _headers.Remove("X-{{ spec.info.title | caseUcfirst }}-Session");
+            _headers.Remove("X-{{ spec.info.title | caseUcfirst }}-JWT");
             SaveSession(); // Auto-save when session is cleared
             return this;
         }
@@ -331,8 +331,8 @@ namespace {{ spec.title | caseUcfirst }}
         private void LoadSession()
         {
             try {
-                LoadPref(SESSION_PREF, "session", "X-{{ spec.title | caseUcfirst }}-Session");
-                LoadPref(JWT_PREF, "jwt", "X-{{ spec.title | caseUcfirst }}-JWT");
+                LoadPref(SESSION_PREF, "session", "X-{{ spec.info.title | caseUcfirst }}-Session");
+                LoadPref(JWT_PREF, "jwt", "X-{{ spec.info.title | caseUcfirst }}-JWT");
             } catch (Exception ex) {
                 Debug.LogWarning($"Failed to load session: {ex.Message}");
             }
@@ -567,7 +567,7 @@ namespace {{ spec.title | caseUcfirst }}
                 }
 
                 request.Dispose();
-                throw new {{ spec.title | caseUcfirst }}Exception(message, code, type, text);
+                throw new {{ spec.info.title | caseUcfirst }}Exception(message, code, type, text);
             }
 
             var location = request.GetResponseHeader("Location") ?? string.Empty;
@@ -618,7 +618,7 @@ namespace {{ spec.title | caseUcfirst }}
 #endif
 
             // Check for warnings
-            var warning = request.GetResponseHeader("x-{{ spec.title | lower }}-warning");
+            var warning = request.GetResponseHeader("x-{{ spec.info.title | lower }}-warning");
             if (!string.IsNullOrEmpty(warning))
             {
                 Debug.LogWarning("Warning: " + warning);
@@ -655,7 +655,7 @@ namespace {{ spec.title | caseUcfirst }}
                 }
 
                 request.Dispose();
-                throw new {{ spec.title | caseUcfirst }}Exception(message, code, type, text);
+                throw new {{ spec.info.title | caseUcfirst }}Exception(message, code, type, text);
             }
 
             if (isJson)
@@ -885,7 +885,7 @@ namespace {{ spec.title | caseUcfirst }}
                         ? Convert.ToInt64(chunksUploadedValue)
                         : 0L;
 
-                    headers["x-{{ spec.title | lower }}-id"] = id;
+                    headers["x-{{ spec.info.title | lower }}-id"] = id;
 
                     onProgress?.Invoke(
                         new UploadProgress(

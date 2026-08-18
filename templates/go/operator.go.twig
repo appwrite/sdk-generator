@@ -9,15 +9,15 @@ import (
 type Condition string
 
 const (
-	ConditionEqual              Condition = "equal"
-	ConditionNotEqual           Condition = "notEqual"
-	ConditionGreaterThan        Condition = "greaterThan"
-	ConditionGreaterThanEqual   Condition = "greaterThanEqual"
-	ConditionLessThan           Condition = "lessThan"
-	ConditionLessThanEqual      Condition = "lessThanEqual"
-	ConditionContains           Condition = "contains"
-	ConditionIsNull             Condition = "isNull"
-	ConditionIsNotNull          Condition = "isNotNull"
+	ConditionEqual            Condition = "equal"
+	ConditionNotEqual         Condition = "notEqual"
+	ConditionGreaterThan      Condition = "greaterThan"
+	ConditionGreaterThanEqual Condition = "greaterThanEqual"
+	ConditionLessThan         Condition = "lessThan"
+	ConditionLessThanEqual    Condition = "lessThanEqual"
+	ConditionContains         Condition = "contains"
+	ConditionIsNull           Condition = "isNull"
+	ConditionIsNotNull        Condition = "isNotNull"
 )
 
 type operatorOptions struct {

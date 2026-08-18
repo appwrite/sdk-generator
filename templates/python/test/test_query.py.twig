@@ -1,6 +1,6 @@
 import unittest
 
-from {{ spec.namespace | caseSnake }}.query import Query
+from {{ namespace | caseSnake }}.query import Query
 
 class BasicFilterQueryTest:
     def __init__(self, description: str, value, expected_values: str):

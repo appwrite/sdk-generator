@@ -24,7 +24,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
   late BrowserClient _httpClient;
 
   ClientBrowser({
-    String endPoint = '{{ spec.endpoint }}',
+    String endPoint = '{{ (spec | endpoint) }}',
     bool selfSigned = false,
   }) : _endPoint = endPoint {
     _httpClient = BrowserClient();
@@ -34,7 +34,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
       'x-sdk-platform': '{{ sdk.platform }}',
       'x-sdk-language': '{{ language.name | caseLower }}',
       'x-sdk-version': '{{ sdk.version }}',
-{% for key,header in spec.global.defaultHeaders %}
+{% for key,header in defaultHeaders %}
       '{{key}}' : '{{header}}',
 {% endfor %}
     };
@@ -48,15 +48,15 @@ class ClientBrowser extends ClientBase with ClientMixin {
   @override
   String get endPoint => _endPoint;
 
-{% for header in spec.global.headers %}
+{% for headerKey, header in globalHeaders %}
 {% if header.description %}
     /// {{header.description}}
 {% endif %}
     @override
-  ClientBrowser set{{header.key | caseUcfirst}}(value) {
-        config['{{ header.key | caseCamel }}'] = value;
-        {%~ if header.global %}
-        addHeader('{{ header.name }}', {% if header.type is defined and header.type == 'bearer' %}'Bearer $value'{% else %}value{% endif %});
+  ClientBrowser set{{headerKey | caseUcfirst}}(value) {
+        config['{{ headerKey | caseCamel }}'] = value;
+        {%~ if (headerKey != 'Project') %}
+        addHeader('{{ header.name }}', {% if header.scheme == 'bearer' %}'Bearer $value'{% else %}value{% endif %});
         {%~ endif %}
         return this;
     }
@@ -70,7 +70,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
   @override
   ClientBrowser setEndpoint(String endPoint) {
     if (!endPoint.startsWith('http://') && !endPoint.startsWith('https://')) {
-      throw {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: $endPoint');
+      throw {{spec.info.title | caseUcfirst}}Exception('Invalid endpoint URL: $endPoint');
     }
 
     _endPoint = endPoint;
@@ -107,7 +107,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }) async {
     InputFile file = params[paramName];
     if (file.bytes == null) {
-      throw {{spec.title | caseUcfirst}}Exception("File bytes must be provided for Flutter web");
+      throw {{spec.info.title | caseUcfirst}}Exception("File bytes must be provided for Flutter web");
     }
 
     int size = file.bytes!.length;
@@ -136,7 +136,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
         final int chunksUploaded = res.data['chunksUploaded'] as int;
         offset = chunksUploaded * chunkSize;
         uploadId = res.data['\$id'] ?? params[idParamName]?.toString();
-      } on {{spec.title | caseUcfirst}}Exception catch (_) {}
+      } on {{spec.info.title | caseUcfirst}}Exception catch (_) {}
     }
 
     if (offset >= size) {
@@ -154,7 +154,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
           http.MultipartFile.fromBytes(paramName, chunk, filename: file.filename);
       final chunkHeaders = Map<String, String>.from(headers);
       if (id != null && id.isNotEmpty) {
-        chunkHeaders['x-{{spec.title | caseLower }}-id'] = id;
+        chunkHeaders['x-{{spec.info.title | caseLower }}-id'] = id;
       }
       chunkHeaders['content-range'] = 'bytes $start-${end - 1}/$size';
 
@@ -257,10 +257,10 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
       return prepareResponse(res, responseType: responseType);
     } catch (e) {
-      if (e is {{spec.title | caseUcfirst}}Exception) {
+      if (e is {{spec.info.title | caseUcfirst}}Exception) {
         rethrow;
       }
-      throw {{spec.title | caseUcfirst}}Exception(e.toString());
+      throw {{spec.info.title | caseUcfirst}}Exception(e.toString());
     }
   }
 }

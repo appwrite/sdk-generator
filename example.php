@@ -3,15 +3,12 @@
 include_once __DIR__ . '/vendor/autoload.php';
 
 use Appwrite\SDK\Language\GraphQL;
-use Appwrite\Spec\OpenAPI3;
-use Appwrite\Spec\Spec;
-use Appwrite\Spec\Swagger2;
-use Appwrite\Spec\StaticSpec;
 use Appwrite\SDK\SDK;
+use Utopia\OpenAPI\Parser;
+use Utopia\OpenAPI\Specification;
 use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\Language\Node;
 use Appwrite\SDK\Language\CLI;
-use Appwrite\SDK\Language\GoCLI;
 use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
@@ -67,6 +64,7 @@ try {
             'shortDescription' => 'Repo short description goes here',
             'url' => 'https://example.com',
             'coverImage' => Config::COVER_IMAGE,
+            'license' => 'BSD-3-Clause',
             'licenseContent' => 'test test test',
             'warning' => '**WORK IN PROGRESS - NOT READY FOR USAGE**',
             'changelog' => '**CHANGELOG**',
@@ -99,6 +97,7 @@ try {
             ->setShortDescription($config['shortDescription'])
             ->setURL($config['url'])
             ->setCoverImage($config['coverImage'])
+            ->setLicense($config['license'])
             ->setLicenseContent($config['licenseContent'])
             ->setWarning($config['warning'])
             ->setChangelog($config['changelog'])
@@ -121,18 +120,24 @@ try {
         return $sdk;
     }
 
-    function buildSpec(string $format, string $content): Spec {
-        return $format === 'swagger2' ? new Swagger2($content) : new OpenAPI3($content);
+    function buildSpecification(string $content): Specification {
+        return Parser::parse($content);
     }
 
-    function buildStaticSpec(): StaticSpec {
-        return new StaticSpec(
-            title: Config::TITLE,
-            description: Config::DESCRIPTION,
-            version: Config::VERSION,
-            licenseName: Config::LICENSE_NAME,
-            licenseURL: Config::LICENSE_URL,
-        );
+    function buildStaticSpecification(): Specification {
+        return Parser::parse([
+            'openapi' => '3.0.0',
+            'info' => [
+                'title' => Config::TITLE,
+                'description' => Config::DESCRIPTION,
+                'version' => Config::VERSION,
+                'license' => [
+                    'name' => Config::LICENSE_NAME,
+                    'url' => Config::LICENSE_URL,
+                ],
+            ],
+            'paths' => [],
+        ]);
     }
 
     $requestedSdk = $argv[1] ?? null;
@@ -156,7 +161,6 @@ try {
         'web',
         'node',
         'cli',
-        'go-cli',
         'ruby',
         'python',
         'dart',
@@ -211,7 +215,7 @@ try {
         $php
             ->setComposerVendor('appwrite')
             ->setComposerPackage('appwrite');
-        $sdk  = new SDK($php, buildSpec($specFormat, $spec));
+        $sdk  = new SDK($php, buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/php');
     }
@@ -220,21 +224,21 @@ try {
     if (!$requestedSdk || $requestedSdk === 'unity') {
         $unity = new Unity();
         $unity->setPackageName('io.appwrite.unity');
-        $sdk  = new SDK($unity, buildSpec($specFormat, $spec));
+        $sdk  = new SDK($unity, buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/unity');
     }
 
     // Web
     if (!$requestedSdk || $requestedSdk === 'web') {
-        $sdk  = new SDK(new Web(), buildSpec($specFormat, $spec));
+        $sdk  = new SDK(new Web(), buildSpecification($spec));
         configureSDK($sdk, ['platform' => $platform]);
         $sdk->generate(__DIR__ . '/examples/web');
     }
 
     // Node
     if (!$requestedSdk || $requestedSdk === 'node') {
-        $sdk  = new SDK(new Node(), buildSpec($specFormat, $spec));
+        $sdk  = new SDK(new Node(), buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/node');
     }
@@ -257,7 +261,6 @@ try {
   \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
         |_|   |_|                                                ";
 
-    // Shared by both CLIs: they present the same command surface.
     $cliExcludes = [
         'services' => [
             ['name' => 'assistant'],
@@ -304,9 +307,8 @@ try {
     // Absent from the published Go SDK, which is generated from the server spec:
     // three console-only services, plus `migrations`, which has never shipped.
     // Generating their commands would import packages that do not exist.
-    $goCliExcludes             = $cliExcludes;
-    $goCliExcludes['services'] = [
-        ...$goCliExcludes['services'],
+    $cliExcludes['services'] = [
+        ...$cliExcludes['services'],
         ['name' => 'affiliates'],
         ['name' => 'migrations'],
         ['name' => 'notifications'],
@@ -314,8 +316,8 @@ try {
     ];
     // Individual endpoints the same SDK has no function for. Read off the
     // compiler, not guessed -- an invented name silently matches nothing.
-    $goCliExcludes['methods'] = [
-        ...$goCliExcludes['methods'],
+    $cliExcludes['methods'] = [
+        ...$cliExcludes['methods'],
         // Account API keys and push targets, and account deletion.
         ['service' => 'account', 'name' => 'createKey'],
         ['service' => 'account', 'name' => 'listKeys'],
@@ -326,6 +328,7 @@ try {
         ['service' => 'account', 'name' => 'updatePushTarget'],
         ['service' => 'account', 'name' => 'deletePushTarget'],
         ['service' => 'account', 'name' => 'createOAuth2Session'],
+        ['service' => 'account', 'name' => 'createJWT'],
         ['service' => 'account', 'name' => 'delete'],
         // OIDC logout.
         ['service' => 'oauth2', 'name' => 'logout'],
@@ -346,6 +349,7 @@ try {
         ['service' => 'presences', 'name' => 'update'],
         // Usage and log reporting.
         ['service' => 'presences', 'name' => 'getUsage'],
+        ['service' => 'project', 'name' => 'createKey'],
         ['service' => 'project', 'name' => 'getUsage'],
         ['service' => 'users', 'name' => 'getUsage'],
         ['service' => 'teams', 'name' => 'listLogs'],
@@ -353,13 +357,13 @@ try {
 
     // CLI
     if (!$requestedSdk || $requestedSdk === 'cli') {
-        $language  = new CLI();
-        $language->setNPMPackage('appwrite-cli');
+        $language = new CLI();
         $language->setExecutableName('appwrite');
-        $language->setLogo(json_encode($cliLogo));
+        $language->setLogo($cliLogo);
         $language->setLogoUnescaped($cliLogoUnescaped);
+        $language->setNPMPackage('appwrite-cli');
 
-        $sdk  = new SDK($language, buildSpec($specFormat, $spec));
+        $sdk = new SDK($language, buildSpecification($spec));
         $sdk->setTest(false);
         configureSDK($sdk, [
             'exclude' => $cliExcludes,
@@ -368,27 +372,9 @@ try {
         $sdk->generate(__DIR__ . '/examples/cli');
     }
 
-    // Go CLI -- shares the TypeScript CLI's command surface via CliCommandSurface.
-    if (!$requestedSdk || $requestedSdk === 'go-cli') {
-        $language = new GoCLI();
-        $language->setExecutableName('appwrite');
-        $language->setLogo($cliLogo);
-        $language->setLogoUnescaped($cliLogoUnescaped);
-        // Same package as the TypeScript CLI, and it names every release asset.
-        $language->setNPMPackage('appwrite-cli');
-
-        $sdk = new SDK($language, buildSpec($specFormat, $spec));
-        $sdk->setTest(false);
-        configureSDK($sdk, [
-            'exclude' => $goCliExcludes,
-        ]);
-
-        $sdk->generate(__DIR__ . '/examples/go-cli');
-    }
-
     // Ruby
     if (!$requestedSdk || $requestedSdk === 'ruby') {
-        $sdk  = new SDK(new Ruby(), buildSpec($specFormat, $spec));
+        $sdk  = new SDK(new Ruby(), buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/ruby');
     }
@@ -397,7 +383,7 @@ try {
     if (!$requestedSdk || $requestedSdk === 'python') {
         $python = new Python();
         $python->setPipPackage('appwrite');
-        $sdk  = new SDK($python, buildSpec($specFormat, $spec));
+        $sdk  = new SDK($python, buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/python');
     }
@@ -406,7 +392,7 @@ try {
     if (!$requestedSdk || $requestedSdk === 'dart') {
         $dart = new Dart();
         $dart->setPackageName('dart_appwrite');
-        $sdk  = new SDK($dart, buildSpec($specFormat, $spec));
+        $sdk  = new SDK($dart, buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/dart');
     }
@@ -415,7 +401,7 @@ try {
     if (!$requestedSdk || $requestedSdk === 'flutter') {
         $flutter = new Flutter();
         $flutter->setPackageName('appwrite');
-        $sdk  = new SDK($flutter, buildSpec($specFormat, $spec));
+        $sdk  = new SDK($flutter, buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/flutter');
     }
@@ -424,14 +410,14 @@ try {
     if (!$requestedSdk || $requestedSdk === 'react-native') {
         $reactNative = new ReactNative();
         $reactNative->setNPMPackage('react-native-appwrite');
-        $sdk  = new SDK($reactNative, buildSpec($specFormat, $spec));
+        $sdk  = new SDK($reactNative, buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/react-native');
     }
 
     // GO
     if (!$requestedSdk || $requestedSdk === 'go') {
-        $sdk  = new SDK(new Go(), buildSpec($specFormat, $spec));
+        $sdk  = new SDK(new Go(), buildSpecification($spec));
         // The version decides the major-version suffix Go requires from v2 on,
         // so examples/go declares `sdk-for-go/v6` like the published module.
         configureSDK($sdk, [
@@ -444,35 +430,35 @@ try {
 
     // Swift
     if (!$requestedSdk || $requestedSdk === 'swift') {
-        $sdk  = new SDK(new Swift(), buildSpec($specFormat, $spec));
+        $sdk  = new SDK(new Swift(), buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/swift');
     }
 
     // Apple
     if (!$requestedSdk || $requestedSdk === 'apple') {
-        $sdk  = new SDK(new Apple(), buildSpec($specFormat, $spec));
+        $sdk  = new SDK(new Apple(), buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/apple');
     }
 
     // DotNet
     if (!$requestedSdk || $requestedSdk === 'dotnet') {
-        $sdk  = new SDK(new DotNet(), buildSpec($specFormat, $spec));
+        $sdk  = new SDK(new DotNet(), buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/dotnet');
     }
 
     // REST
     if (!$requestedSdk || $requestedSdk === 'rest') {
-        $sdk  = new SDK(new REST(), buildSpec($specFormat, $spec));
+        $sdk  = new SDK(new REST(), buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/REST');
     }
 
     // Android
     if (!$requestedSdk || $requestedSdk === 'android') {
-        $sdk = new SDK(new Android(), buildSpec($specFormat, $spec));
+        $sdk = new SDK(new Android(), buildSpecification($spec));
         configureSDK($sdk, [
             'namespace' => 'io.appwrite',
         ]);
@@ -481,7 +467,7 @@ try {
 
     // Kotlin
     if (!$requestedSdk || $requestedSdk === 'kotlin') {
-        $sdk = new SDK(new Kotlin(), buildSpec($specFormat, $spec));
+        $sdk = new SDK(new Kotlin(), buildSpecification($spec));
         configureSDK($sdk, [
             'namespace' => 'io.appwrite',
         ]);
@@ -490,42 +476,42 @@ try {
 
     // GraphQL
     if (!$requestedSdk || $requestedSdk === 'graphql') {
-        $sdk = new SDK(new GraphQL(), buildSpec($specFormat, $spec));
+        $sdk = new SDK(new GraphQL(), buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/graphql');
     }
 
     // Skills
     if (!$requestedSdk || $requestedSdk === 'skills') {
-        $sdk = new SDK(new Skills(), buildStaticSpec());
+        $sdk = new SDK(new Skills(), buildStaticSpecification());
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/skills');
     }
 
     // Cursor Plugin
     if (!$requestedSdk || $requestedSdk === 'cursor-plugin') {
-        $sdk = new SDK(new CursorPlugin(), buildStaticSpec());
+        $sdk = new SDK(new CursorPlugin(), buildStaticSpecification());
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/cursor-plugin');
     }
 
     // Claude Plugin
     if (!$requestedSdk || $requestedSdk === 'claude-plugin') {
-        $sdk = new SDK(new ClaudePlugin(), buildStaticSpec());
+        $sdk = new SDK(new ClaudePlugin(), buildStaticSpecification());
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/claude-plugin');
     }
 
     // Codex Plugin
     if (!$requestedSdk || $requestedSdk === 'codex-plugin') {
-        $sdk = new SDK(new CodexPlugin(), buildStaticSpec());
+        $sdk = new SDK(new CodexPlugin(), buildStaticSpecification());
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/codex-plugin');
     }
 
     // Zed Extension
     if (!$requestedSdk || $requestedSdk === 'zed-extension') {
-        $sdk = new SDK(new ZedExtension(), buildStaticSpec());
+        $sdk = new SDK(new ZedExtension(), buildStaticSpecification());
         configureSDK($sdk, [
             'licenseContent' => rtrim(file_get_contents(__DIR__ . '/LICENSE.md')),
         ]);
@@ -534,7 +520,7 @@ try {
 
     // Rust
     if (!$requestedSdk || $requestedSdk === 'rust') {
-        $sdk = new SDK(new Rust(), buildSpec($specFormat, $spec));
+        $sdk = new SDK(new Rust(), buildSpecification($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/rust');
     }

@@ -2,6 +2,11 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\ArraySchema;
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
@@ -174,65 +179,61 @@ class Go extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => 'go/docs/example.md.twig',
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => 'models/{{ definition.name | caseCamel }}.go',
+                'destination'   => 'models/{{ definitionName | caseCamel }}.go',
                 'template'      => 'go/models/model.go.twig',
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => 'models/{{ definition.name | caseCamel }}_test.go',
+                'destination'   => 'models/{{ definitionName | caseCamel }}_test.go',
                 'template'      => 'go/models/model_test.go.twig',
             ],
             [
                 'scope'         => 'requestModel',
-                'destination'   => 'models/{{ requestModel.name | caseCamel }}.go',
+                'destination'   => 'models/{{ requestModelName | caseCamel }}.go',
                 'template'      => 'go/models/request_model.go.twig',
             ],
         ];
     }
 
-    /**
-     * @param array $nestedTypes
-     */
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        if (str_contains($parameter['description'] ?? '', 'Collection attributes') || str_contains($parameter['description'] ?? '', 'List of attributes')) {
+        if (\str_contains($parameter->description, 'Collection attributes') || \str_contains($parameter->description, 'List of attributes')) {
             return '[]map[string]any';
         }
-        if (!empty($parameter['array']['model'])) {
-            return '[]models.' . $this->toPascalCase($parameter['array']['model']);
+
+        $schema = $this->getSchema($parameter);
+        $model = $this->getSchemaModel($parameter);
+        if ($model !== null) {
+            $type = 'models.' . $this->toPascalCase($model);
+            return $schema instanceof ArraySchema ? '[]' . $type : $type;
         }
-        if (!empty($parameter['model'])) {
-            $modelType = 'models.' . $this->toPascalCase($parameter['model']);
-            return $parameter['type'] === self::TYPE_ARRAY ? '[]' . $modelType : $modelType;
-        }
-        if (isset($parameter['items'])) {
-            // Map definition nested type to parameter nested type
-            $parameter['array'] = $parameter['items'];
-        }
-        return match ($parameter['type']) {
+        return match ($this->getSchemaType($parameter)) {
             self::TYPE_INTEGER => 'int',
             self::TYPE_NUMBER => 'float64',
             self::TYPE_FILE => 'file.InputFile',
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_OBJECT => 'interface{}',
-            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
-            ? '[]' . $this->getTypeName($parameter['array'])
-            : '[]interface{}',
-            default => $parameter['type'],
+            // A nested array's element type is not carried through, so the
+            // inner element stays untyped rather than being resolved deeper
+            // than the published SDKs express it.
+            self::TYPE_ARRAY => $this->isUntypedNestedArray($parameter, $schema)
+                ? '[][]interface{}'
+                : '[]' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema),
+            default => 'interface{}',
         };
     }
 
-    public function getParamDefault(array $param): string
+    public function getParamDefault(Schema|Parameter $param): string
     {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $default    = $this->getSchemaDefault($param);
+        $required   = ($param instanceof Parameter && $param->required);
 
         if ($required) {
             return '';
@@ -281,10 +282,10 @@ class Go extends Language
         return $output;
     }
 
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $example    = $this->getSchemaExample($param);
 
         $output = '';
 
@@ -356,12 +357,15 @@ class Go extends Language
                 $value = explode("\n", $value);
                 $indent = \str_repeat(' ', $indent);
                 foreach ($value as $key => $line) {
-                    $value[$key] = "// " . wordwrap(trim($line), 75, "\n" . $indent . "// ");
+                    $line = trim($line);
+                    $value[$key] = $line === ''
+                        ? '//'
+                        : "// " . wordwrap($line, 75, "\n" . $indent . "// ");
                 }
                 return implode("\n" . $indent, $value);
             }, ['is_safe' => ['html']]),
-            new TwigFilter('propertyType', fn(array $property, array $spec, string $generic = 'map[string]interface{}'): string => $this->getPropertyType($property, $spec, $generic)),
-            new TwigFilter('returnType', fn(array $method, array $spec, string $namespace, string $generic = 'map[string]interface{}'): string => $this->getReturnType($method, $spec, $namespace, $generic)),
+            new TwigFilter('propertyType', fn(Schema $property, Specification $spec, string $generic = 'map[string]interface{}'): string => $this->getPropertyType($property, $spec, $generic)),
+            new TwigFilter('returnType', fn(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string => $this->getReturnType($method, $spec, $namespace, $generic)),
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
             new TwigFilter('goPackagePath', fn(array $sdk): string => $this->getPackagePath($sdk)),
         ];
@@ -391,71 +395,27 @@ class Go extends Language
         return $major >= 2 ? '/v' . $major : '';
     }
 
-    protected function getPropertyType(array $property, array $spec, string $generic = 'map[string]interface{}'): string
+    protected function getPropertyType(Schema $property, Specification $spec, string $generic = 'map[string]interface{}'): string
     {
-        if (\array_key_exists('sub_schema', $property)) {
-            $type = $this->toPascalCase($property['sub_schema']);
-
-            if ($property['type'] === 'array') {
-                $type = '[]' . $type;
-            }
-        } else {
-            $type = $this->getTypeName($property);
-        }
-
-        return $type;
+        return \str_replace('models.', '', $this->getTypeName($property, $spec));
     }
 
-    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'map[string]interface{}'): string
+    protected function getReturnType(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string
     {
-        if ($method['type'] === 'webAuth') {
+        $type = $method->extensions['x-appwrite']['type'] ?? '';
+        if ($type === 'webAuth') {
             return 'bool';
         }
-        if ($method['type'] === 'location') {
+        if ($type === 'location') {
             return '[]byte';
         }
-
-        if (
-            \array_key_exists('responseModels', $method)
-            && \count($method['responseModels']) > 1
-        ) {
+        $models = \array_values(\array_filter(
+            $this->getOperationResponseModels($method),
+            static fn(string $model): bool => $model !== 'any',
+        ));
+        if (\count($models) > 1) {
             return 'models.Model';
         }
-
-        // Check for missing or generic response model
-        if (
-            !\array_key_exists('responseModel', $method)
-            || empty($method['responseModel'])
-            || $method['responseModel'] === 'any'
-        ) {
-            return 'interface{}';
-        }
-
-        $ret = ucfirst((string) $method['responseModel']);
-
-        return 'models.' . $ret;
-    }
-
-    protected function hasGenericType(?string $model, array $spec): string
-    {
-        if (empty($model) || $model === 'any') {
-            return false;
-        }
-
-        $model = $spec['definitions'][$model];
-
-        if ($model['additionalProperties']) {
-            return true;
-        }
-
-        foreach ($model['properties'] as $property) {
-            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
-                continue;
-            }
-
-            return $this->hasGenericType($property['sub_schema'], $spec);
-        }
-
-        return false;
+        return $models === [] ? 'interface{}' : 'models.' . $this->toPascalCase($models[0]);
     }
 }

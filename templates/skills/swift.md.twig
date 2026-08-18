@@ -1,9 +1,9 @@
 {% set lang = 'swift' %}
 {% set langName = 'Swift' %}
-{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building native iOS, macOS, watchOS, or tvOS apps, or server-side Swift applications with {{ spec.title }}. Covers client-side auth (email, OAuth), database queries, file uploads, real-time subscriptions with async/await, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building native iOS, macOS, watchOS, or tvOS apps, or server-side Swift applications with {{ spec.info.title }}. Covers client-side auth (email, OAuth), database queries, file uploads, real-time subscriptions with async/await, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
-# {{ spec.title }} {{ langName }} SDK
+# {{ spec.info.title }} {{ langName }} SDK
 
 ## Installation
 
@@ -17,7 +17,7 @@
 ### Client-side (Apple platforms)
 
 ```swift
-import {{ spec.title }}
+import {{ spec.info.title }}
 
 let client = Client()
     .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
@@ -27,12 +27,12 @@ let client = Client()
 ### Server-side (Swift)
 
 ```swift
-import {{ spec.title }}
+import {{ spec.info.title }}
 
 let client = Client()
     .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
-    .setProject(ProcessInfo.processInfo.environment["{{ spec.title | caseUpper }}_PROJECT_ID"]!)
-    .setKey(ProcessInfo.processInfo.environment["{{ spec.title | caseUpper }}_API_KEY"]!)
+    .setProject(ProcessInfo.processInfo.environment["{{ spec.info.title | caseUpper }}_PROJECT_ID"]!)
+    .setKey(ProcessInfo.processInfo.environment["{{ spec.info.title | caseUpper }}_API_KEY"]!)
 ```
 
 ## Code Examples
@@ -309,13 +309,13 @@ SSR apps using server-side Swift (Vapor, Hummingbird, etc.) use the **server SDK
 - **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```swift
-import {{ spec.title }}
+import {{ spec.info.title }}
 
 // Admin client (reusable)
 let adminClient = Client()
     .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
     .setProject("[PROJECT_ID]")
-    .setKey(Environment.get("{{ spec.title | caseUpper }}_API_KEY")!)
+    .setKey(Environment.get("{{ spec.info.title | caseUpper }}_API_KEY")!)
 
 // Session client (create per-request)
 let sessionClient = Client()
@@ -408,7 +408,7 @@ app.get("oauth", "success") { req async throws -> Response in
 ## Error Handling
 
 ```swift
-import {{ spec.title }}
+import {{ spec.info.title }}
 // AppwriteException is included in the main module
 
 do {
@@ -436,7 +436,7 @@ do {
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the row/file level or inherited from the table/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
 
 ```swift
-import {{ spec.title }}
+import {{ spec.info.title }}
 // Permission and Role are included in the main module import
 ```
 

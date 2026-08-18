@@ -2,6 +2,12 @@
 
 namespace Appwrite\SDK\Language;
 
+use Utopia\OpenAPI\Model\ArraySchema;
+use Utopia\OpenAPI\Model\ObjectSchema;
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
@@ -107,54 +113,39 @@ class Kotlin extends Language
         return 'listOf(' . $elements . ')';
     }
 
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        if (
-            ($parameter['type'] ?? null) === self::TYPE_ARRAY
-            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
-        ) {
-            $enumType = isset($parameter['enumName'])
-                ? \ucfirst($parameter['enumName'])
-                : \ucfirst((string) $parameter['name']);
-
-            return 'List<io.appwrite.enums.' . $enumType . '>';
+        $schema = $this->getSchema($parameter);
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        if ($enumSchema->enum !== []) {
+            $type = 'io.appwrite.enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
+            return $schema instanceof ArraySchema ? 'List<' . $type . '>' : $type;
         }
 
-        if (isset($parameter['enumName'])) {
-            return 'io.appwrite.enums.' . \ucfirst($parameter['enumName']);
+        $model = $this->getSchemaModel($parameter);
+        if ($model !== null) {
+            $type = 'io.appwrite.models.' . $this->toPascalCase($model);
+            return $schema instanceof ArraySchema ? 'List<' . $type . '>' : $type;
         }
-        if (!empty($parameter['enumValues'])) {
-            return 'io.appwrite.enums.' . \ucfirst((string) $parameter['name']);
-        }
-        if (!empty($parameter['array']['model'])) {
-            return 'List<io.appwrite.models.' . $this->toPascalCase($parameter['array']['model']) . '>';
-        }
-        if (!empty($parameter['model'])) {
-            $modelType = 'io.appwrite.models.' . $this->toPascalCase($parameter['model']);
-            return $parameter['type'] === self::TYPE_ARRAY ? 'List<' . $modelType . '>' : $modelType;
-        }
-        if (isset($parameter['items'])) {
-            $parameter['array'] = $parameter['items'];
-        }
-        return match ($parameter['type']) {
+        return match ($this->getSchemaType($parameter)) {
             self::TYPE_INTEGER => 'Long',
             self::TYPE_NUMBER => 'Double',
             self::TYPE_STRING => 'String',
             self::TYPE_FILE => 'InputFile',
             self::TYPE_BOOLEAN => 'Boolean',
-            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
-                ? 'List<' . $this->getTypeName($parameter['array']) . '>'
-                : 'List<Any>',
+            self::TYPE_ARRAY => $this->isUntypedNestedArray($parameter, $schema)
+                ? 'List<List<Any>>'
+                : 'List<' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '>',
             self::TYPE_OBJECT => 'Any',
-            default => $parameter['type'],
+            default => 'Any',
         };
     }
 
-    public function getParamDefault(array $param): string
+    public function getParamDefault(Schema|Parameter $param): string
     {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $default    = $this->getSchemaDefault($param);
+        $required   = ($param instanceof Parameter && $param->required);
 
         if ($required) {
             return '';
@@ -208,10 +199,10 @@ class Kotlin extends Language
     /**
      * @param string $lang Language variant: 'kotlin' (default) or 'java'
      */
-    public function getParamExample(array $param, string $lang = 'kotlin'): string
+    public function getParamExample(Schema|Parameter $param, string $lang = 'kotlin'): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type       = $this->getSchemaType($param);
+        $example    = $this->getSchemaExample($param);
 
         $output = '';
 
@@ -462,12 +453,12 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => '/kotlin/docs/kotlin/example.md.twig',
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => '/kotlin/docs/java/example.md.twig',
             ],
             [
@@ -562,7 +553,7 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.info.title | caseUcfirst}}Exception.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/exceptions/Exception.kt.twig',
             ],
             [
@@ -598,40 +589,133 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}.kt',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ definitionName | caseUcfirst }}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
             ],
             [
                 'scope'         => 'requestModel',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ requestModel.name | caseUcfirst }}.kt',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ requestModelName | caseUcfirst }}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/RequestModel.kt.twig',
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/enums/{{ enum.name | caseUcfirst }}.kt',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/enums/{{ enum.title | caseUcfirst }}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/enums/Enum.kt.twig',
             ],
         ];
+    }
+
+    protected function getPropertyAssignment(Schema $property, Specification $spec): string
+    {
+        $propertyName = '';
+        $required = false;
+        foreach ($spec->schemas as $model) {
+            if (!$model instanceof ObjectSchema) {
+                continue;
+            }
+            foreach ($model->properties as $name => $candidate) {
+                if ($candidate === $property) {
+                    $propertyName = $name;
+                    $required = \in_array($name, $model->required, true);
+                    break 2;
+                }
+            }
+        }
+
+        $mapKey = 'map["' . \str_replace('$', '\\$', $propertyName) . '"]';
+        $model = $this->getSchemaModel($property);
+        if ($model !== null) {
+            $class = $this->toPascalCase($model);
+            $nestedType = $this->hasGenericSchemaType($model, $spec) ? ', nestedType' : '';
+            if ($property instanceof ArraySchema) {
+                $cast = $required ? 'as' : 'as?';
+                $safeCall = $required ? '' : '?';
+                return '(' . $mapKey . ' ' . $cast . ' List<Map<String, Any>>)' . $safeCall
+                    . '.map { ' . $class . '.from(map = it' . $nestedType . ') }';
+            }
+            if (!$required) {
+                return '(' . $mapKey . ' as? Map<String, Any>)?.let { '
+                    . $class . '.from(map = it' . $nestedType . ') }';
+            }
+            return $class . '.from(map = ' . $mapKey . ' as Map<String, Any>' . $nestedType . ')';
+        }
+
+        // Only a scalar enum property is decoded through its enum class; a
+        // list of enums is cast straight across, which is how the published
+        // SDKs read it.
+        if (!($property instanceof ArraySchema) && $property->enum !== []) {
+            $enumClass = $this->toPascalCase($this->getSchemaEnumName($property, $spec));
+            return $enumClass . '.values().find { it.value == '
+                . ($required ? $mapKey . ' as String' : '(' . $mapKey . ' as? String)') . ' }'
+                . ($required ? '!!' : '');
+        }
+
+        $nullable = $required ? '' : '?';
+        return match ($this->getSchemaType($property)) {
+            self::TYPE_INTEGER => '(' . $mapKey . ' as' . $nullable . ' Number)' . ($required ? '' : '?') . '.toLong()',
+            self::TYPE_NUMBER => '(' . $mapKey . ' as' . $nullable . ' Number)' . ($required ? '' : '?') . '.toDouble()',
+            default => $mapKey . ' as' . $nullable . ' ' . $this->getTypeName($property, $spec),
+        };
     }
 
     #[Override]
     public function getFilters(): array
     {
         return [
-            new TwigFilter('returnType', fn(array $method, array $spec, string $namespace, string $generic = 'T'): string => $this->getReturnType($method, $spec, $namespace, $generic)),
-            new TwigFilter('modelType', fn(array $property, array $spec, string $generic = 'T'): string => $this->getModelType($property, $spec, $generic)),
-            new TwigFilter('propertyType', fn(array $property, array $spec, string $generic = 'T'): string => $this->getPropertyType($property, $spec, $generic)),
-            new TwigFilter('hasGenericType', fn(string $model, array $spec): string => $this->hasGenericType($model, $spec)),
+            new TwigFilter('returnType', function (Operation $method, Specification $spec, string $namespace, string $generic = 'T'): string {
+                $methodType = $method->extensions['x-appwrite']['type'] ?? '';
+                if ($methodType === 'webAuth') {
+                    return 'String';
+                }
+                if ($methodType === 'location') {
+                    return 'ByteArray';
+                }
+
+                $models = \array_values(\array_filter(
+                    $this->getOperationResponseModels($method),
+                    static fn(string $model): bool => $model !== 'any',
+                ));
+                if (\count($models) !== 1) {
+                    return 'Any';
+                }
+                $type = $namespace . '.models.' . $this->toPascalCase($models[0]);
+                return $this->hasGenericSchemaType($models[0], $spec) ? $type . '<' . $generic . '>' : $type;
+            }),
+            new TwigFilter('modelType', function (Schema $property, Specification $spec, string $generic = 'T'): string {
+                $name = $this->getSpecificationSchemaName($property, $spec);
+                $type = $this->toPascalCase($name);
+                return $this->hasGenericSchemaType($name, $spec) ? $type . '<' . $generic . '>' : $type;
+            }),
+            new TwigFilter('propertyType', function (Schema $property, Specification $spec, string $generic = 'T'): string {
+                $type = $this->getTypeName($property, $spec);
+                $model = $this->getSchemaModel($property);
+                if ($model !== null) {
+                    $modelType = 'io.appwrite.models.' . $this->toPascalCase($model);
+                    $replacement = $this->toPascalCase($model);
+                    if ($this->hasGenericSchemaType($model, $spec)) {
+                        $replacement .= '<' . $generic . '>';
+                    }
+                    $type = \str_replace($modelType, $replacement, $type);
+                }
+                // A scalar enum property is written short, matching the import
+                // the model file already carries. Inside a List the qualified
+                // name is kept, which is how the published SDKs read.
+                if (!\str_starts_with($type, 'List<')) {
+                    $type = \str_replace('io.appwrite.enums.', '', $type);
+                }
+                return $this->isSpecificationSchemaRequired($property, $spec) ? $type : $type . '?';
+            }),
+            new TwigFilter('hasGenericType', fn(string $model, Specification $spec): bool => $this->hasGenericSchemaType($model, $spec)),
             new TwigFilter('caseEnumKey', function (string $value): string {
                 if (isset($this->getIdentifierOverrides()[$value])) {
                     $value = $this->getIdentifierOverrides()[$value];
                 }
                 return $this->toUpperSnakeCase($value);
             }),
-            new TwigFilter('propertyAssignment', fn(array $property, array $spec): string => $this->getPropertyAssignment($property, $spec)),
-            new TwigFilter('javaParamExample', fn(array $param): string => $this->getParamExample($param, 'java'), ['is_safe' => ['html']]),
-            new TwigFilter('enumExample', fn(array $param, string $lang = 'kotlin'): string => $this->getEnumExample($param, $lang)),
-            new TwigFilter('javaEnumExample', fn(array $param): string => $this->getEnumExample($param, 'java')),
+            new TwigFilter('propertyAssignment', fn(Schema $property, Specification $spec): string => $this->getPropertyAssignment($property, $spec)),
+            new TwigFilter('javaParamExample', fn(Schema|Parameter $param): string => $this->getParamExample($param, 'java'), ['is_safe' => ['html']]),
+            new TwigFilter('enumExample', fn(Schema|Parameter $param, string $lang = 'kotlin'): string => $this->getEnumExample($param, $lang)),
+            new TwigFilter('javaEnumExample', fn(Schema|Parameter $param): string => $this->getEnumExample($param, 'java')),
         ];
     }
 
@@ -640,17 +724,19 @@ class Kotlin extends Language
      *
      * @param string $lang 'kotlin' or 'java'
      */
-    protected function getEnumExample(array $param, string $lang = 'kotlin'): string
+    protected function getEnumExample(Schema|Parameter $param, string $lang = 'kotlin'): string
     {
-        $enumValues = $param['enumValues'] ?? [];
-        if (empty($enumValues)) {
+        $schema = $this->getSchema($param);
+        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        $enumValues = $enumSchema->enum;
+        if ($enumValues === []) {
             return '';
         }
 
-        $enumKeys = $param['enumKeys'] ?? [];
-        $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
-        $example = $param['example'] ?? null;
-        $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+        $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
+        $enumName = $this->toPascalCase($enumSchema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
+        $example = $this->getSchemaExample($param);
+        $isArray = $schema instanceof ArraySchema;
 
         $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
             $index = array_search($value, $enumValues, true);
@@ -687,167 +773,5 @@ class Kotlin extends Language
 
         $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
         return $enumName . '.' . $resolveKey($value);
-    }
-
-    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
-    {
-        if ($method['type'] === 'webAuth') {
-            return 'String';
-        }
-        if ($method['type'] === 'location') {
-            return 'ByteArray';
-        }
-
-        if (
-            \array_key_exists('responseModels', $method)
-            && \count($method['responseModels']) > 1
-        ) {
-            return 'Any';
-        }
-
-        // Check for missing or generic response model
-        if (
-            !\array_key_exists('responseModel', $method)
-            || empty($method['responseModel'])
-            || $method['responseModel'] === 'any'
-        ) {
-            return 'Any';
-        }
-
-        $ret = $this->toPascalCase($method['responseModel']);
-
-        if ($this->hasGenericType($method['responseModel'], $spec) !== '' && $this->hasGenericType($method['responseModel'], $spec) !== '0') {
-            $ret .= '<' . $generic . '>';
-        }
-
-        return $namespace . '.models.' . $ret;
-    }
-
-    protected function getModelType(array $definition, array $spec, string $generic = 'T'): string
-    {
-        if ($this->hasGenericType($definition['name'], $spec) !== '' && $this->hasGenericType($definition['name'], $spec) !== '0') {
-            return $this->toPascalCase($definition['name']) . '<' . $generic . '>';
-        }
-        return $this->toPascalCase($definition['name']);
-    }
-
-    protected function getPropertyType(array $property, array $spec, string $generic = 'T'): string
-    {
-        if (\array_key_exists('sub_schema', $property)) {
-            $type = $this->toPascalCase($property['sub_schema']);
-
-            if ($this->hasGenericType($property['sub_schema'], $spec) !== '' && $this->hasGenericType($property['sub_schema'], $spec) !== '0') {
-                $type .= '<' . $generic . '>';
-            }
-
-            if ($property['type'] === 'array') {
-                $type = 'List<' . $type . '>';
-            }
-        } elseif (isset($property['enum'])) {
-            $enumName = $property['enumName'] ?? $property['name'];
-            $type = \ucfirst((string) $enumName);
-        } else {
-            $type = $this->getTypeName($property);
-        }
-
-        if (!$property['required']) {
-            $type .= '?';
-        }
-
-        return $type;
-    }
-
-    protected function hasGenericType(?string $model, array $spec): string
-    {
-        if (empty($model) || $model === 'any') {
-            return false;
-        }
-
-        $model = $spec['definitions'][$model];
-
-        if ($model['additionalProperties']) {
-            return true;
-        }
-
-        foreach ($model['properties'] as $property) {
-            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
-                continue;
-            }
-
-            return $this->hasGenericType($property['sub_schema'], $spec);
-        }
-
-        return false;
-    }
-
-    /**
-     * Generate property assignment logic for model deserialization
-     */
-    protected function getPropertyAssignment(array $property, array $spec): string
-    {
-        $propertyName = $property['name'];
-        $escapedPropertyName = str_replace('$', '\$', $propertyName);
-        $mapKey = "map[\"$escapedPropertyName\"]";
-
-        // Handle sub-schema (nested objects)
-        if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
-            $subSchemaClass = $this->toPascalCase($property['sub_schema']);
-            $hasGenericType = $this->hasGenericType($property['sub_schema'], $spec);
-            $nestedTypeParam = $hasGenericType !== '' && $hasGenericType !== '0' ? ', nestedType' : '';
-
-            if ($property['type'] === 'array') {
-                $safeCast = $property['required'] ? 'as' : 'as?';
-                $safeCall = $property['required'] ? '' : '?';
-
-                return "($mapKey $safeCast List<Map<String, Any>>)$safeCall.map { " .
-                       "$subSchemaClass.from(map = it$nestedTypeParam) }";
-            }
-
-            if (!$property['required']) {
-                return "($mapKey as? Map<String, Any>)?.let { " .
-                       "$subSchemaClass.from(map = it$nestedTypeParam) }";
-            }
-
-            return "$subSchemaClass.from(" .
-                   "map = $mapKey as Map<String, Any>$nestedTypeParam" .
-                   ")";
-        }
-
-        // Handle enum properties
-        if (isset($property['enum']) && !empty($property['enum'])) {
-            $enumName = $property['enumName'] ?? $property['name'];
-            $enumClass = $this->toPascalCase($enumName);
-            $nullCheck = $property['required'] ? '!!' : '';
-
-            if ($property['required']) {
-                return "$enumClass.values().find { " .
-                    "it.value == $mapKey as String " .
-                    "}$nullCheck";
-            }
-
-            return "$enumClass.values().find { " .
-                   "it.value == ($mapKey as? String) " .
-                   "}$nullCheck";
-        }
-
-        // Handle primitive types
-        $nullableModifier = $property['required'] ? '' : '?';
-
-        if ($property['type'] === 'integer') {
-            return "($mapKey as$nullableModifier Number)" .
-                   ($nullableModifier !== '' && $nullableModifier !== '0' ? '?' : '') . '.toLong()';
-        }
-
-        if ($property['type'] === 'number') {
-            return "($mapKey as$nullableModifier Number)" .
-                   ($nullableModifier !== '' && $nullableModifier !== '0' ? '?' : '') . '.toDouble()';
-        }
-
-        // Handle other types (string, boolean, etc.)
-        $kotlinType = $this->getPropertyType($property, $spec);
-        // Remove nullable modifier from type since we handle it in the cast
-        $kotlinType = str_replace('?', '', $kotlinType);
-
-        return "$mapKey as$nullableModifier $kotlinType";
     }
 }

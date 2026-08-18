@@ -46,5 +46,6 @@ class Service:
             return model.model_validate(response)
         except ValidationError as error:
             raise AppwriteException(
-                f'Unable to parse response into {model.__name__}: {error}'
+                f'Unable to parse response into {model.__name__}: {error}',
+                response=response,
             ) from error

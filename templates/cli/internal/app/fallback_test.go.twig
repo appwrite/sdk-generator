@@ -1,0 +1,67 @@
+{% if sdk.test %}
+package app
+{% else %}
+package app
+
+import (
+	"reflect"
+	"testing"
+)
+
+func intPointer(value int) *int { return &value }
+
+func TestListHintsAreContextual(t *testing.T) {
+	tests := []struct {
+		name           string
+		kind           string
+		total          int
+		count          int
+		limit          *int
+		offset         *int
+		search         string
+		organizationID string
+		want           []string
+	}{
+		{
+			name: "complete unfiltered list is quiet", kind: "projects", total: 3, count: 3,
+			want: []string{},
+		},
+		{
+			name: "next page preserves filters", kind: "projects", total: 80, count: 10,
+			limit: intPointer(10), offset: intPointer(20), search: "billing api",
+			organizationID: "org-id",
+			want: []string{
+				"Showing 21–30 of 80. Next page: appwrite list-projects --organization-id org-id --search 'billing api' --limit 10 --offset 30",
+				"Project details: appwrite project get --project-id <PROJECT_ID>",
+			},
+		},
+		{
+			name: "organization search suggests details", kind: "organizations", total: 1, count: 1,
+			search: "Example",
+			want:   []string{"Organization details: appwrite organization get --organization-id <ORGANIZATION_ID>"},
+		},
+		{
+			name: "empty search suggests recovery", kind: "projects", total: 0, count: 0,
+			search: "missing",
+			want:   []string{"Try a shorter search or remove --search."},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := listHints(test.kind, test.total, test.count, test.limit, test.offset,
+				test.search, test.organizationID)
+			if !reflect.DeepEqual(got, test.want) {
+				t.Errorf("listHints() = %#v, want %#v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestShellArgumentQuotesApostrophes(t *testing.T) {
+	got := shellArgument("Chirag's Organization")
+	if got != `'Chirag'"'"'s Organization'` {
+		t.Fatalf("shellArgument() = %q", got)
+	}
+}
+{% endif %}

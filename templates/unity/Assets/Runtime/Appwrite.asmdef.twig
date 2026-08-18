@@ -1,8 +1,8 @@
 {
-    "name": "{{ spec.title | caseUcfirst }}",
-    "rootNamespace": "{{ spec.title | caseUcfirst }}",
+    "name": "{{ spec.info.title | caseUcfirst }}",
+    "rootNamespace": "{{ spec.info.title | caseUcfirst }}",
     "references": [
-        "{{ spec.title | caseUcfirst }}.Core",
+        "{{ spec.info.title | caseUcfirst }}.Core",
         "endel.nativewebsocket",
         "UniTask"
     ],

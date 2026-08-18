@@ -19,14 +19,14 @@
     failOnWarning="true"
 >
     <testsuites>
-        <testsuite name="{{ spec.title | caseUcfirst }} SDK Test Suite">
+        <testsuite name="{{ spec.info.title | caseUcfirst }} SDK Test Suite">
             <directory>./tests/</directory>
         </testsuite>
     </testsuites>
 
     <source>
         <include>
-            <directory suffix=".php">./src/{{ spec.namespace | caseNamespacePath }}</directory>
+            <directory suffix=".php">./src/{{ namespace | caseNamespacePath }}</directory>
         </include>
     </source>
 </phpunit>

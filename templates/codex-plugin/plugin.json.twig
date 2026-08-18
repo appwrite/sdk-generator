@@ -1,7 +1,7 @@
 {
-    "name": "{{ spec.title | caseLower }}",
+    "name": "{{ spec.info.title | caseLower }}",
     "version": "{{ sdk.version }}",
-    "description": "{{ spec.title }} tools for Codex, including SDK skills, the hosted {{ spec.title }} MCP server, and deployment workflow skills.",
+    "description": "{{ spec.info.title }} tools for Codex, including SDK skills, the hosted {{ spec.info.title }} MCP server, and deployment workflow skills.",
     "author": {
         "name": "Appwrite",
         "email": "team@appwrite.io",
@@ -9,9 +9,9 @@
     },
     "homepage": "https://appwrite.io/docs/tooling/ai/ai-dev-tools/codex",
     "repository": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}",
-    "license": "{{ spec.licenseName }}",
+    "license": "{{ spec.info.license.name }}",
     "keywords": [
-        "{{ spec.title | caseLower }}",
+        "{{ spec.info.title | caseLower }}",
         "codex",
         "mcp",
         "skills"
@@ -19,9 +19,9 @@
     "skills": "./skills/",
     "mcpServers": "./.mcp.json",
     "interface": {
-        "displayName": "{{ spec.title }}",
-        "shortDescription": "{{ spec.title }} SDK skills, hosted MCP tools, and deployment workflow skills for Codex.",
-        "longDescription": "Use {{ spec.title }} with Codex through language-specific SDK skills, the OAuth-enabled hosted MCP server, and guided deployment skills for sites and functions.",
+        "displayName": "{{ spec.info.title }}",
+        "shortDescription": "{{ spec.info.title }} SDK skills, hosted MCP tools, and deployment workflow skills for Codex.",
+        "longDescription": "Use {{ spec.info.title }} with Codex through language-specific SDK skills, the OAuth-enabled hosted MCP server, and guided deployment skills for sites and functions.",
         "developerName": "Appwrite",
         "category": "Developer Tools",
         "capabilities": [
@@ -32,9 +32,9 @@
         "privacyPolicyURL": "https://appwrite.io/privacy",
         "termsOfServiceURL": "https://appwrite.io/terms",
         "defaultPrompt": [
-            "Build an {{ spec.title }} app with the SDK.",
-            "Connect Codex to my {{ spec.title }} project.",
-            "Deploy my {{ spec.title }} function."
+            "Build an {{ spec.info.title }} app with the SDK.",
+            "Connect Codex to my {{ spec.info.title }} project.",
+            "Deploy my {{ spec.info.title }} function."
         ],
         "brandColor": "#FD366E"
     }

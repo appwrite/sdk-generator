@@ -1,14 +1,14 @@
-/// {{spec.title | caseUcfirst}} Models
+/// {{spec.info.title | caseUcfirst}} Models
 library {{ language.params.packageName }}.models;
 
-{% if (spec.requestEnums | length) > 0 or (spec.responseEnums | length) > 0 %}
+{% if (requestEnums | length) > 0 or (responseEnums | length) > 0 %}
 import 'enums.dart' as enums;
 {% endif %}
 
 part 'src/models/model.dart';
-{% for definition in spec.definitions %}
-part 'src/models/{{definition.name | caseSnake}}.dart';
+{% for definitionName, definition in definitions %}
+part 'src/models/{{definitionName | caseSnake}}.dart';
 {% endfor %}
-{% for requestModel in spec.requestModels %}
-part 'src/models/{{requestModel.name | caseSnake}}.dart';
+{% for requestModelName, requestModel in requestModels %}
+part 'src/models/{{requestModelName | caseSnake}}.dart';
 {% endfor %}
