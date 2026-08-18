@@ -125,10 +125,10 @@ func TestAccessTokenRefreshesInsideSkewWindow(t *testing.T) {
 	}
 }
 
-// An invalid refresh grant means the stored session cannot be renewed. Normal
-// output gives the recovery action, while the wrapped API error keeps the
-// server's description available to diagnostics.
-func TestAccessTokenTurnsInvalidGrantIntoExpiredSession(t *testing.T) {
+// An invalid refresh grant means the server refused the stored session. The
+// sentence names that session and the recovery action; the server's description
+// stays in the unwrap chain, where --verbose reads it.
+func TestAccessTokenReportsRejectedSession(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -146,16 +146,30 @@ func TestAccessTokenTurnsInvalidGrantIntoExpiredSession(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected refresh to fail")
 	}
-	if got := err.Error(); got != ErrSessionExpired.Error() {
-		t.Errorf("refresh error = %q, want %q", got, ErrSessionExpired)
+
+	message := err.Error()
+	if !strings.Contains(message, "someone@example.com") {
+		t.Errorf("rejection = %q, does not name the session", message)
 	}
+	if !strings.Contains(message, "`"+client.ExecutableName+" login`") {
+		t.Errorf("rejection = %q, does not name the recovery command", message)
+	}
+	// The description restates the rejection, so it belongs to --verbose rather
+	// than to a sentence that has to fit on one line.
+	if strings.Contains(message, "Invalid refresh token provided.") {
+		t.Errorf("rejection = %q, repeats the server description", message)
+	}
+
 	if !errors.Is(err, ErrSessionExpired) {
 		t.Errorf("errors.Is(err, ErrSessionExpired) = false: %v", err)
 	}
 
 	var apiError *client.APIError
 	if !errors.As(err, &apiError) {
-		t.Errorf("refresh error does not retain *client.APIError: %v", err)
+		t.Fatalf("refresh error does not retain *client.APIError: %v", err)
+	}
+	if apiError.OAuthDescription != "Invalid refresh token provided." {
+		t.Errorf("retained description = %q", apiError.OAuthDescription)
 	}
 }
 
