@@ -201,15 +201,16 @@ func (f *DeviceFlow) now() time.Time {
 
 // matchesOAuthError reports whether an API error carries an OAuth error code.
 //
-// The code can arrive as the error type or the message depending on how the
-// endpoint failed, so both are checked -- ports matchesOAuthError().
+// The code can arrive in the standard OAuth error field or as the Appwrite API
+// error type or message, so all three are checked -- ports matchesOAuthError().
 func matchesOAuthError(err error, code string) bool {
 	var apiError *client.APIError
 	if !errors.As(err, &apiError) {
 		return false
 	}
 
-	return apiError.Type == code ||
+	return apiError.OAuthError == code ||
+		apiError.Type == code ||
 		apiError.Message == code ||
 		strings.Contains(apiError.Message, code)
 }
@@ -220,10 +221,10 @@ func isSlowDown(err error) bool {
 
 // isAuthorizationPending reports whether polling should continue.
 //
-// An empty error body -- a 400 with no type and no message -- is treated as
-// pending rather than fatal. Ports isEmptyDevicePollError(): aborting the whole
-// login because one poll came back blank would be a worse failure than one more
-// round trip.
+// An empty error body -- a 400 with no Appwrite or OAuth error fields -- is
+// treated as pending rather than fatal. Ports isEmptyDevicePollError(): aborting
+// the whole login because one poll came back blank would be a worse failure than
+// one more round trip.
 func isAuthorizationPending(err error) bool {
 	if matchesOAuthError(err, "authorization_pending") || matchesOAuthError(err, "slow_down") {
 		return true
@@ -234,7 +235,10 @@ func isAuthorizationPending(err error) bool {
 		return false
 	}
 
-	return strings.TrimSpace(apiError.Type) == "" && strings.TrimSpace(apiError.Message) == ""
+	return strings.TrimSpace(apiError.Type) == "" &&
+		strings.TrimSpace(apiError.Message) == "" &&
+		strings.TrimSpace(apiError.OAuthError) == "" &&
+		strings.TrimSpace(apiError.OAuthDescription) == ""
 }
 
 // DecodeIDToken pulls the profile claims out of an OIDC ID token.

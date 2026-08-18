@@ -20,8 +20,42 @@ const DefaultClientID = "appwrite-cli"
 // failure, so renew a minute early.
 const refreshSkew = 60 * time.Second
 
+// sessionExpired is the type behind ErrSessionExpired. The message names a
+// command, and the executable's name is not known until root.go sets it, so it
+// is formatted when read rather than at package init.
+type sessionExpired struct{}
+
+func (sessionExpired) Error() string {
+	return fmt.Sprintf("session expired. Run `%s login` to sign in again", client.ExecutableName)
+}
+
 // ErrSessionExpired is returned when no usable credential remains.
-var ErrSessionExpired = errors.New("session expired. Run `appwrite login` to create a new session")
+var ErrSessionExpired error = sessionExpired{}
+
+// SessionRejectedError reports a refresh token the server refused.
+//
+// It says rejected rather than expired because invalid_grant covers a session
+// revoked elsewhere and a rotation the CLI lost a race on as well as a genuine
+// expiry, and expiry is the one of the three the CLI cannot confirm. It names
+// the session for the reason cannotRefresh does: preferences hold one per
+// environment, and "the session" identifies none of them.
+//
+// The server's own description stays in the unwrap chain rather than the
+// sentence. On this endpoint it is a fixed string -- "Invalid refresh token
+// provided." -- that only restates the rejection, and --verbose prints it.
+type SessionRejectedError struct {
+	Session string
+	cause   error
+}
+
+func (e *SessionRejectedError) Error() string {
+	return fmt.Sprintf("session for %s was rejected. Run `%s login` to sign in again",
+		e.Session, client.ExecutableName)
+}
+func (e *SessionRejectedError) Unwrap() error { return e.cause }
+func (e *SessionRejectedError) Is(target error) bool {
+	return target == ErrSessionExpired
+}
 
 // tokenResponse is the subset of the OAuth2 token payload the CLI uses.
 type tokenResponse struct {
@@ -124,13 +158,22 @@ func describeSession(session *config.Object) string {
 	email := session.GetString(config.PreferenceEmail)
 	endpoint := session.GetString(config.PreferenceEndpoint)
 
-	switch {
-	case email != "" && endpoint != "":
+	if email != "" && endpoint != "" {
 		return email + " at " + endpoint
-	case endpoint != "":
-		return endpoint
-	case email != "":
-		return email
+	}
+
+	return nameSession(session)
+}
+
+// nameSession identifies a session in one term, for a sentence with no room for
+// both. Email first: two stored sessions rarely share one, and the endpoint
+// tells them apart only when they do.
+func nameSession(session *config.Object) string {
+	switch {
+	case session.GetString(config.PreferenceEmail) != "":
+		return session.GetString(config.PreferenceEmail)
+	case session.GetString(config.PreferenceEndpoint) != "":
+		return session.GetString(config.PreferenceEndpoint)
 	default:
 		return "the current account"
 	}
@@ -160,6 +203,11 @@ func (a *Authenticator) refresh(session *config.Object, sessionID, refreshToken 
 		"client_id":     clientID,
 	}, &token)
 	if err != nil {
+		var apiError *client.APIError
+		if errors.As(err, &apiError) && apiError.OAuthError == "invalid_grant" {
+			return "", &SessionRejectedError{Session: nameSession(session), cause: err}
+		}
+
 		return "", err
 	}
 	if token.AccessToken == "" {

@@ -340,16 +340,20 @@ const unauthorizedScopeType = "general_unauthorized_scope"
 // credentials it recognised.
 var guestRole = regexp.MustCompile(`(?i)role:\s*guests`)
 
-// APIError is a non-2xx response from the API.
+// APIError is a non-2xx response from the API. OAuthError and
+// OAuthDescription cover RFC 6749 token endpoint failures, whose shape differs
+// from the Appwrite API's code/message/type envelope.
 type APIError struct {
-	Status  int
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Type    string `json:"type"`
+	Status           int
+	Code             int    `json:"code"`
+	Message          string `json:"message"`
+	Type             string `json:"type"`
+	OAuthError       string `json:"error"`
+	OAuthDescription string `json:"error_description"`
 }
 
-// Error is what the user reads. Message keeps the API's own wording, so
-// --verbose and a bug report still carry it.
+// Error is what the user reads. The API's human-readable wording wins over its
+// machine-readable error identifier.
 func (e *APIError) Error() string {
 	if e.unauthenticated() {
 		return "you are not authenticated. Run `" + ExecutableName +
@@ -358,6 +362,12 @@ func (e *APIError) Error() string {
 
 	if e.Message != "" {
 		return e.Message
+	}
+	if e.OAuthDescription != "" {
+		return e.OAuthDescription
+	}
+	if e.OAuthError != "" {
+		return e.OAuthError
 	}
 
 	return fmt.Sprintf("request failed with status %d", e.Status)
