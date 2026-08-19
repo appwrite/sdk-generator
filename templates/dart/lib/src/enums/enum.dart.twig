@@ -1,17 +1,9 @@
 part of '../../enums.dart';
 
 enum {{ enum.title | caseUcfirst | overrideIdentifier }} {
-    {%~ for value in enum.enum %}
-    {%~ set key = enum.extensions['x-enum-keys'] is empty ? value : enum.extensions['x-enum-keys'][loop.index0] %}
-    {{ key | caseEnumKey | escapeKeyword }}(value: '{{ value }}'){% if not loop.last %},{% else %};{% endif %}
+{% for value in enum.enum %}{% set key = enum.extensions['x-enum-keys'] is empty ? value : enum.extensions['x-enum-keys'][loop.index0] %}  {{ key | caseEnumKey | escapeKeyword }}(value: {{ value | dartString }}){% if not loop.last %},{% else %};{% endif %}{{ "\n" }}{% endfor %}{{ "\n" }}  const {{ enum.title | caseUcfirst | overrideIdentifier }}({required this.value});
 
-    {%~ endfor %}
+  final String value;
 
-    const {{ enum.title | caseUcfirst | overrideIdentifier }}({
-        required this.value
-    });
-
-    final String value;
-
-    String toJson() => value;
+  String toJson() => value;
 }

@@ -95,10 +95,7 @@ class ClientIO extends ClientBase with ClientMixin {
     addHeader('{{ header.name }}', {% if header.scheme == 'bearer' %}'Bearer $value'{% else %}value{% endif %});
     {%~ endif %}
     return this;
-  }
-{% endfor %}
-
-  @override
+  }{{ "\n\n" }}{% endfor %}  @override
   ClientIO setSelfSigned({bool status = true}) {
     selfSigned = status;
     _nativeClient.badCertificateCallback =
@@ -348,7 +345,9 @@ class ClientIO extends ClientBase with ClientMixin {
     bool isUploadComplete(Response response) {
       final chunksUploaded = response.data['chunksUploaded'];
       final chunksTotal = response.data['chunksTotal'] ?? totalChunks;
-      return chunksUploaded is num && chunksTotal is num && chunksUploaded >= chunksTotal;
+      return chunksUploaded is num &&
+          chunksTotal is num &&
+          chunksUploaded >= chunksTotal;
     }
 
     final progress = UploadProgress(
@@ -372,7 +371,8 @@ class ClientIO extends ClientBase with ClientMixin {
 
     var nextChunk = 0;
     Future<void> uploadNext() async {
-      final raf = file.bytes == null ? await iofile!.open(mode: FileMode.read) : null;
+      final raf =
+          file.bytes == null ? await iofile!.open(mode: FileMode.read) : null;
       try {
         while (nextChunk < chunks.length) {
           final chunk = chunks[nextChunk++];

@@ -123,6 +123,35 @@ class Dart extends Language
         return '.';
     }
 
+    #[Override]
+    public function escapeKeyword(string $value): string
+    {
+        $prefix = '';
+
+        if (str_starts_with($value, '$')) {
+            $prefix = '$';
+            $value = substr($value, 1);
+        }
+
+        if ($value === '') {
+            return $prefix === '$' ? '$value' : 'value';
+        }
+
+        if (!preg_match('/^[A-Za-z_]\w*$/', $value)) {
+            $value = $this->toCamelCase($value);
+        }
+
+        if ($value === '') {
+            $value = 'value';
+        }
+
+        if (preg_match('/^\d/', $value)) {
+            $value = 'x' . ucfirst($value);
+        }
+
+        return $prefix . parent::escapeKeyword($value);
+    }
+
     public function getStringQuote(): string
     {
         return "'";
@@ -495,11 +524,6 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '.github/workflows/format.yml',
-                'template'      => 'dart/.github/workflows/format.yml.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '.github/workflows/test.yml',
                 'template'      => 'dart/.github/workflows/test.yml',
             ],
@@ -516,11 +540,24 @@ class Dart extends Language
         ];
     }
 
+    protected function getDartStringLiteral(string $value): string
+    {
+        $encoded = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        if ($encoded === false) {
+            return '""';
+        }
+
+        return str_replace('$', '\\$', $encoded);
+    }
+
     #[Override]
     public function getFilters(): array
     {
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toCamelCase($value)),
+            new TwigFilter('dartString', fn(?string $value): string => $this->getDartStringLiteral($value ?? ''), ['is_safe' => ['html']]),
+            new TwigFilter('trimLines', fn(string $value): string => preg_replace('/[ \t]+$/m', '', $value) ?? $value),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
                 $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;

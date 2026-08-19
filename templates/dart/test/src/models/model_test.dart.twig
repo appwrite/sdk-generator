@@ -1,7 +1,6 @@
-{% macro sub_schema(definitions, property) %}{% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}List<{{(property | schemaModel) | caseUcfirst | overrideIdentifier}}>{% else %}{{(property | schemaModel) | caseUcfirst | overrideIdentifier }}(
-  {% if definitions[(property | schemaModel)] %}{% for property in definitions[(property | schemaModel)].properties | filter(p => p | schemaRequired) %}
-  {{ (property | schemaName) | escapeKeyword }}: {% if (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'object' and ((property | schemaModel) == 'prefs' or (property | schemaModel) == 'preferences') %}Preferences(data: {}){% elseif (property | schemaType) == 'object' and (property | schemaModel) %}{{_self.sub_schema(definitions, property)}}{% elseif (property | enumValues) is not empty %}{{ (property | enumName) | caseUcfirst }}.{{ ((property | enumKeys)[0] ?? (property | enumValues)[0]) | caseEnumKey }}{% elseif (property | schemaType) == 'string' %}'{{(property | schemaExample) | escapeDollarSign}}'{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{(property | schemaExample)}}{% endif %},
-  {% endfor %}{% endif %}){% endif %}{% else %}{% if (property | schemaType) == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
+{% macro sub_schema(definitions, property, indent = '          ', closeIndent = '        ') %}{% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}List<{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}>{% else %}{% set modelDefinition = definitions[(property | schemaModel)] ?? null %}{% set requiredProperties = modelDefinition ? modelDefinition.properties | filter(p => p | schemaRequired) : [] %}{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}({% if requiredProperties|length == 0 %}){% else %}{{ "\n" -}}
+{% for property in requiredProperties %}{{ indent }}{{ (property | schemaName) | escapeKeyword }}: {% if (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'object' and ((property | schemaModel) == 'prefs' or (property | schemaModel) == 'preferences') %}Preferences(data: {}){% elseif (property | schemaType) == 'object' and (property | schemaModel) %}{{ _self.sub_schema(definitions, property, indent ~ '  ', indent) }}{% elseif (property | enumValues) is not empty %}{{ (property | enumName) | caseUcfirst }}.{{ ((property | enumKeys)[0] ?? (property | enumValues)[0]) | caseEnumKey }}{% elseif (property | schemaType) == 'string' %}{{ (property | schemaExample) | dartString }}{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{ property | schemaExample }}{% endif %},
+{% endfor %}{{ closeIndent }}){% endif %}{% endif %}{% else %}{% if (property | schemaType) == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{ property | typeName }}{% endif %}{% endif %}{% endmacro %}
 import 'package:{{ language.params.packageName }}/models.dart';
 {% if (definition.properties | filter(p => (p | enumValues) is not empty and (p | schemaType) != 'array') | length > 0) or (definition.properties | filter(p => (p | schemaRequired) and (p | schemaModel) and definitions[(p | schemaModel)] and (definitions[(p | schemaModel)].properties | filter(sp => (sp | schemaRequired) and (sp | enumValues) is not empty and (sp | schemaType) != 'array') | length > 0)) | length > 0) %}
 import 'package:{{ language.params.packageName }}/enums.dart';
@@ -15,22 +14,40 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('{{ definitionName | caseUcfirst | overrideIdentifier }}', () {
     test('model', () {
+{% set requiredProperties = definition.properties | filter(p => p | schemaRequired) %}
+{% if requiredProperties|length == 0 and not definition.additionalProperties %}
+      final model = {{ definitionName | caseUcfirst | overrideIdentifier }}();
+{% else %}
       final model = {{ definitionName | caseUcfirst | overrideIdentifier }}(
-{% for property in definition.properties | filter(p => p | schemaRequired) %}
-        {{ (property | schemaName) | escapeKeyword }}: {% if (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'object' and ((property | schemaModel) == 'prefs' or (property | schemaModel) == 'preferences') %}Preferences(data: {}){% elseif (property | schemaType) == 'object' and (property | schemaModel) %}{{_self.sub_schema(definitions, property)}}{% elseif (property | schemaType) == 'object' %}{}{% elseif (property | enumValues) is not empty %}{{ (property | enumName) | caseUcfirst }}.{{ ((property | enumKeys)[0] ?? (property | enumValues)[0]) | caseEnumKey }}{% elseif (property | schemaType) == 'string' %}'{{(property | schemaExample) | escapeDollarSign}}'{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{(property | schemaExample)}}{% endif %},
+{% for property in requiredProperties %}
+{% set propertyName = (property | schemaName) | escapeKeyword %}
+{% set stringExample = '' %}
+{% if (property | schemaType) == 'string' %}{% set stringExample = (property | schemaExample) | dartString %}{% endif %}
+        {{ propertyName }}:{% if (property | schemaType) == 'string' and propertyName|length + stringExample|length > 69 %}{% else %} {% endif %}{% if (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'object' and ((property | schemaModel) == 'prefs' or (property | schemaModel) == 'preferences') %}Preferences(data: {}){% elseif (property | schemaType) == 'object' and (property | schemaModel) %}{{_self.sub_schema(definitions, property)}}{% elseif (property | schemaType) == 'object' %}{}{% elseif (property | enumValues) is not empty %}{{ (property | enumName) | caseUcfirst }}.{{ ((property | enumKeys)[0] ?? (property | enumValues)[0]) | caseEnumKey }}{% elseif (property | schemaType) == 'string' %}{% if propertyName|length + stringExample|length > 69 %}{{ "\n" }}            {{ stringExample | raw }}{% else %}{{ stringExample | raw }}{% endif %}{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{(property | schemaExample)}}{% endif %},
 {% endfor %}
 {% if definition.additionalProperties %}
         {{ 'data' | escapeKeyword }}: {},
 {% endif %}
       );
+{% endif %}
 
       final map = model.toMap();
       final result = {{ definitionName | caseUcfirst | overrideIdentifier }}.fromMap(map);
+{% set expectedProperties = requiredProperties | filter(property => (property | schemaType) != 'object' or not (property | schemaModel) or ((property | schemaModel) == 'prefs' and (property | schemaModel) == 'preferences')) %}
+{% if expectedProperties|length > 0 %}
 
-{% for property in definition.properties | filter(p => p | schemaRequired) %}
-      {% if (property | schemaType) != 'object' or not (property | schemaModel) or ((property | schemaModel) == 'prefs' and (property | schemaModel) == 'preferences') %}
-      expect(result.{{ (property | schemaName) | escapeKeyword }}{% if (property | schemaType) == 'object' and ((property | schemaModel) == 'prefs' or (property | schemaModel) == 'preferences') %}.data{% endif %}, {% if (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'object' and ((property | schemaModel) == 'prefs' or (property | schemaModel) == 'preferences') %}{"data": {}}{% elseif (property | schemaType) == 'object' %}{}{% elseif (property | enumValues) is not empty %}{{ (property | enumName) | caseUcfirst }}.{{ ((property | enumKeys)[0] ?? (property | enumValues)[0]) | caseEnumKey }}{% elseif (property | schemaType) == 'string' %}'{{(property | schemaExample) | escapeDollarSign}}'{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{(property | schemaExample)}}{% endif %});
-      {% endif %}
+{% endif %}{% for property in expectedProperties %}
+{% set propertyName = (property | schemaName) | escapeKeyword %}
+{% set stringExample = '' %}
+{% if (property | schemaType) == 'string' %}{% set stringExample = (property | schemaExample) | dartString %}{% endif %}
+{% if (property | schemaType) == 'string' and propertyName|length + stringExample|length > 56 %}
+      expect(
+        result.{{ propertyName }},
+        {{ stringExample | raw }},
+      );
+{% else %}
+      expect(result.{{ propertyName }}{% if (property | schemaType) == 'object' and ((property | schemaModel) == 'prefs' or (property | schemaModel) == 'preferences') %}.data{% endif %}, {% if (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'object' and ((property | schemaModel) == 'prefs' or (property | schemaModel) == 'preferences') %}{"data": {}}{% elseif (property | schemaType) == 'object' %}{}{% elseif (property | enumValues) is not empty %}{{ (property | enumName) | caseUcfirst }}.{{ ((property | enumKeys)[0] ?? (property | enumValues)[0]) | caseEnumKey }}{% elseif (property | schemaType) == 'string' %}{{ stringExample | raw }}{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{(property | schemaExample)}}{% endif %});
+{% endif %}
 {% endfor %}
     });
   });
