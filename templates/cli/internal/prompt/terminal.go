@@ -110,6 +110,17 @@ func (t *Terminal) Text(question Text) (string, error) {
 		Placeholder(question.Default).
 		Value(&value)
 
+	if question.Suffix != "" {
+		field = field.DescriptionFunc(func() string {
+			preview := value
+			if preview == "" {
+				preview = question.Default
+			}
+
+			return preview + question.Suffix
+		}, &value)
+	}
+
 	if question.Secret {
 		field = field.EchoMode(huh.EchoModePassword)
 	}
@@ -166,6 +177,7 @@ func (t *Terminal) Choice(question Choice) (string, error) {
 
 	field := huh.NewSelect[string]().
 		Title(question.Message).
+		Description(question.Description).
 		Options(options...).
 		Filtering(question.Filter).
 		Value(&value).

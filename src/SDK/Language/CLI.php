@@ -1104,6 +1104,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/cmd/initfunction_test.go',
+                'template'      => 'cli/internal/cmd/initfunction_test.go',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/initsite.go',
                 'template'      => 'cli/internal/cmd/initsite.go',
             ],

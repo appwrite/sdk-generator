@@ -12,6 +12,7 @@ import (
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/archive"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
@@ -44,9 +45,12 @@ var codeResources = []codeResource{
 		resourceIdentity: functionIdentity,
 		Directory:        "functions",
 		Keys: []string{
-			"$id", "name", "runtime", "path", "entrypoint", "execute",
-			"enabled", "logging", "events", "schedule", "timeout", "commands",
-			"scopes", "buildSpecification", "runtimeSpecification",
+			"$id", "name", "runtime", "path", "previewDomainTarget",
+			"previewDomainLabel", "entrypoint", "execute", "enabled", "logging",
+			"events", "schedule", "timeout", "commands", "scopes",
+			"installationId", "providerRepositoryId", "providerBranch",
+			"providerSilentMode", "providerRootDirectory", "providerBranches",
+			"providerPaths", "buildSpecification", "runtimeSpecification",
 			"deploymentRetention",
 		},
 	},
@@ -154,15 +158,26 @@ func runPullCode(command *cobra.Command, resource codeResource, code, withVariab
 		// API never returns it -- it is a local concept -- so filtering first
 		// and setting after would append it at the end.
 		row.Set("path", relative)
+		if resource.Name == "function" {
+			context.addPreviewDomain(row)
+		}
 
 		entry := config.FilterBySchema(row, resource.Keys)
 		context.local.UpsertByID(resource.ConfigKey, entry)
 
+		absolute := filepath.Join(directory, filepath.FromSlash(relative))
 		if !code {
+			if withVariables {
+				if err := os.MkdirAll(absolute, 0o755); err != nil {
+					return err
+				}
+				if err := writeVariables(row, absolute); err != nil {
+					return err
+				}
+			}
 			continue
 		}
 
-		absolute := filepath.Join(directory, filepath.FromSlash(relative))
 		if err := os.MkdirAll(absolute, 0o755); err != nil {
 			return err
 		}
@@ -221,6 +236,55 @@ func selectResources(rows []*jsonx.Object, resource codeResource) ([]*jsonx.Obje
 	}
 
 	return filtered, nil
+}
+
+// addPreviewDomain records the Appwrite-managed function endpoint. Custom
+// domains are deliberately ignored: previewDomain* owns only the generated
+// region/edge rule and push must never reconcile a user's custom hostname.
+func (p *projectPull) addPreviewDomain(function *jsonx.Object) {
+	queries := []string{
+		`{"method":"equal","attribute":"deploymentResourceType","values":["function"]}`,
+		`{"method":"equal","attribute":"deploymentResourceId","values":["` +
+			function.GetString("$id") + `"]}`,
+		`{"method":"equal","attribute":"trigger","values":["manual"]}`,
+		`{"method":"limit","values":[100]}`,
+	}
+	listing := jsonx.NewObject()
+	if err := p.api.Call("GET", "/proxy/rules?"+client.EncodeQueries(queries), nil, listing); err != nil {
+		return
+	}
+
+	value, _ := listing.Get("rules")
+	rules, _ := value.([]any)
+	type managedDomain struct{ target, label string }
+	managed := make([]managedDomain, 0, len(rules))
+	for _, item := range rules {
+		rule, ok := item.(*jsonx.Object)
+		if !ok {
+			continue
+		}
+		domain := strings.ToLower(rule.GetString("domain"))
+		target := ""
+		switch {
+		case strings.HasSuffix(domain, ".appwrite.network"):
+			target = "edge"
+		case strings.HasSuffix(domain, ".appwrite.run"):
+			target = "region"
+		default:
+			continue
+		}
+		label, _, found := strings.Cut(domain, ".")
+		if !found || label == "" {
+			continue
+		}
+		managed = append(managed, managedDomain{target: target, label: label})
+	}
+	// Multiple generated endpoints are valid. Without an explicit user choice,
+	// recording one arbitrarily would make the next push delete the others.
+	if len(managed) == 1 {
+		function.Set("previewDomainTarget", managed[0].target)
+		function.Set("previewDomainLabel", managed[0].label)
+	}
 }
 
 // downloadDeployment fetches the latest deployment and unpacks it.

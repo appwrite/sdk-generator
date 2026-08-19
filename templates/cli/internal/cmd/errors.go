@@ -8,10 +8,12 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
@@ -42,6 +44,64 @@ type apiError interface {
 // Comfortably longer than any message the API sends and far shorter than a
 // rendered error page.
 const maximumMessageLength = 400
+
+// actionableError carries a known recovery path without baking terminal layout
+// into Error(). Logs and reports retain the ordinary message; Report can render
+// the title, facts and command as a readable block.
+type actionableError struct {
+	cause   error
+	title   string
+	details []output.FailureDetail
+	action  string
+	command string
+}
+
+func (e *actionableError) Error() string { return e.cause.Error() }
+func (e *actionableError) Unwrap() error { return e.cause }
+
+func endpointMismatchError(projectEndpoint, sessionEndpoint string) error {
+	switchEndpoint := config.NormalizeCloudConsoleEndpoint(projectEndpoint)
+	environment := "the project environment"
+	if base, cloud := config.CloudBaseHost(projectEndpoint); cloud {
+		environment = "Appwrite Cloud"
+		if strings.Contains(base, "staging") {
+			environment = "Appwrite Cloud Staging"
+		}
+	}
+
+	cause := fmt.Errorf("project endpoint %s does not match active session endpoint %s",
+		projectEndpoint, sessionEndpoint)
+	return &actionableError{
+		cause: cause,
+		title: "Active session doesn’t match this project",
+		details: []output.FailureDetail{
+			{Label: "Project endpoint", Value: projectEndpoint},
+			{Label: "Active session", Value: sessionEndpoint},
+		},
+		action: "Switch to " + environment + ":",
+		command: fmt.Sprintf("%s login --switch --endpoint %s",
+			app.ExecutableName, switchEndpoint),
+	}
+}
+
+func missingProjectConfigError(err error) *actionableError {
+	var pathError *os.PathError
+	if !errors.As(err, &pathError) || !errors.Is(err, os.ErrNotExist) ||
+		filepath.Base(pathError.Path) != config.LocalFileName {
+		return nil
+	}
+
+	return &actionableError{
+		cause: err,
+		title: "Appwrite project configuration not found",
+		details: []output.FailureDetail{
+			{Label: "Expected file", Value: pathError.Path},
+		},
+		action: "Run this command from a directory containing " + config.LocalFileName +
+			", or initialize a project:",
+		command: app.ExecutableName + " init project",
+	}
+}
 
 // FormatError renders a command failure for the terminal.
 func FormatError(err error) string {
@@ -196,7 +256,16 @@ func Report(writer io.Writer, executed *cobra.Command, err error) int {
 		output.Log(writer, "For detailed error pass the --verbose or --report flag")
 	}
 
-	output.Failure(writer, "%s", FormatError(err))
+	var actionable *actionableError
+	if errors.As(err, &actionable) {
+		output.ActionableFailure(writer, actionable.title, actionable.details,
+			actionable.action, actionable.command)
+	} else if missing := missingProjectConfigError(err); missing != nil {
+		output.ActionableFailure(writer, missing.title, missing.details,
+			missing.action, missing.command)
+	} else {
+		output.Failure(writer, "%s", FormatError(err))
+	}
 
 	// --verbose has to add the response body: on the failure it matters most for
 	// -- a response the SDK could not decode -- a message naming a field and a

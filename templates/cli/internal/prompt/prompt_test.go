@@ -178,6 +178,19 @@ func TestNonNegativeInteger(t *testing.T) {
 // TestScriptedTreatsDefaultAsAPlaceholder pins a contract a live run exposed: a
 // default is REPLACED when the user types, not prepended. huh's Value() seeds
 // the editable buffer instead, which produced "My Awesome TeamQA Team".
+func TestTextSuffixIsDisplayOnly(t *testing.T) {
+	scripted := &Scripted{Texts: map[string]string{"Domain?": "checkout"}}
+	value, err := scripted.Text(Text{
+		Message: "Domain?", Default: "api", Suffix: ".appwrite.network",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if value != "checkout" {
+		t.Fatalf("Text = %q, want raw label without suffix", value)
+	}
+}
+
 func TestScriptedTreatsDefaultAsAPlaceholder(t *testing.T) {
 	scripted := &Scripted{Texts: map[string]string{"Name?": "QA Team"}}
 
