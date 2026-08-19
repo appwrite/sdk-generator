@@ -89,7 +89,6 @@ jobs:
       - name: Run Tests
         env:
           UNITY_LICENSE: ${{ matrix.sdk == 'Unity2021' && secrets.UNITY_LICENSE || '' }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: composer test tests/e2e/${{ matrix.sdk }}Test.php
 
   lint:

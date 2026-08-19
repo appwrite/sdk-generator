@@ -7,7 +7,6 @@ services:
         DEBUG: "false"
         TESTING: "true"
         VERSION: "dev"
-        GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     entrypoint:
       - php
       - -e

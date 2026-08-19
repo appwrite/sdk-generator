@@ -10,12 +10,7 @@ WORKDIR /usr/local/src/
 COPY composer.lock /usr/local/src/
 COPY composer.json /usr/local/src/
 
-# Raised GitHub API rate limits so parallel e2e jobs can fetch dist zipballs.
-ARG GITHUB_TOKEN=
 RUN set -eu; \
-    if [ -n "${GITHUB_TOKEN}" ]; then \
-        composer config --global github-oauth.github.com "${GITHUB_TOKEN}"; \
-    fi; \
     extra=""; \
     if [ "${TESTING}" != "true" ]; then extra="--no-dev"; fi; \
     n=0; \
