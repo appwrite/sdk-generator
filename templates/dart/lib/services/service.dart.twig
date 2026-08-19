@@ -1,48 +1,63 @@
 part of '../{{ language.params.packageName }}.dart';
-{% macro parameter(parameter) %}{% if parameter.required %}required {% endif %}{{ parameter | typeName }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %} {{ parameter.name | caseCamel | overrideIdentifier }}{% endmacro %}
-{% macro method_parameters(parameters, consumes) %}
-{% if parameters|length > 0 %}{{ '{' }}{% for parameter in parameters %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, Function(UploadProgress)? onProgress{% endif %}{{ '}' }}{% endif %}
-{% endmacro %}
-{% macro service_params(parameters) %}
-{% if parameters|length > 0 %}{{ ', {' }}{% for parameter in parameters %}{% if parameter.required %}required {% endif %}this.{{ parameter.name | caseCamel | overrideIdentifier }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}
-{% endmacro %}
 
-{%if service.description %}
-{{- service.description | wrap(75, '  /// ') | split('    ///') | join('///')}}
-{% endif %}
-class {{ service.name | caseUcfirst }} extends Service {
-    {{ service.name | caseUcfirst }}(super.client);
+{% macro parameter(parameter) %}    {% if parameter.required %}required {% endif %}{{ parameter | typeName }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %} {{ parameter.name | caseCamel | overrideIdentifier }},{% endmacro %}
+{% macro method_parameters(parameters, consumes) %}
+{% if parameters|length > 0 or 'multipart/form-data' in consumes %}{
+{% for parameter in parameters %}{{ _self.parameter(parameter) }}
+{% endfor %}{% if 'multipart/form-data' in consumes %}    Function(UploadProgress)? onProgress,
+{% endif %}  }{% endif %}
+{% endmacro %}
+{% if service.description %}{{- service.description | wrap(75, '/// ') | split('///') | join('///') }}
+{% endif %}class {{ service.name | caseUcfirst }} extends Service {
+  {{ service.name | caseUcfirst }}(super.client);
 {% for method in (service | operations) %}
 
-{%~ if method.description %}
-{{ method.description | wrap(75, '  /// ') }}
+{% if method.description %}
+{{ method.description | trim | wrap(75, '  /// ') | trimLines | raw }}
 {% endif %}
-{%~ if method.deprecated %}
-{%~ if (method | appwrite('deprecated', {})['since'] ?? '') and (method | appwrite('deprecated', {})['replaceWith'] ?? '') %}
-    @Deprecated('This API has been deprecated since {{ (method | appwrite('deprecated', {})['since'] ?? '') }}. Please use `{{ (method | appwrite('deprecated', {})['replaceWith'] ?? '') | capitalizeFirst }}` instead.')
-{%~ else %}
-    @Deprecated('This API has been deprecated.')
-{%~ endif %}
-{%~ endif %}
-    {% if (method | methodType) == 'location' %}Future<Uint8List>{% else %}{% set responseModels = method | getValidResponseModels %}{% if responseModels|length > 1 %}Future<models.Model>{% elseif (method | responseModel) and (method | responseModel) != 'any' %}Future<models.{{(method | responseModel) | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ (method | methodName) | caseCamel | overrideIdentifier }}({{ _self.method_parameters((method | parameters('all')), (method | consumes)) }}) async {
-        final String apiPath = '{{ method.path }}'
-            {%- for parameter in (method | parameters('path')) -%}
-            .replaceAll('{{ '{' }}{{ parameter.name }}{{ '}' }}', {% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}client.config['{{ parameter.extensions['x-sdk-config'] | caseLower }}'] ?? ''{% else %}{{ parameter.name | caseCamel | overrideIdentifier }}{% if (parameter | enumValues) | length > 0  %}.value{% endif %}{% endif %})
-            {%- endfor -%}
-            {%- for security in (method | securityQueries) -%}
-            + '{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${Uri.encodeComponent(client.config['{{ security.name | caseCamel }}'] ?? '')}'
-            {%- endfor -%}
-            ;
+{% if method.deprecated %}
+{% if (method | appwrite('deprecated', {})['since'] ?? '') and (method | appwrite('deprecated', {})['replaceWith'] ?? '') %}
+  @Deprecated(
+    'This API has been deprecated since {{ (method | appwrite('deprecated', {})['since'] ?? '') }}. Please use `{{ (method | appwrite('deprecated', {})['replaceWith'] ?? '') | capitalizeFirst }}` instead.',
+  )
+{% else %}
+  @Deprecated('This API has been deprecated.')
+{% endif %}
+{% endif %}
+  {% if (method | methodType) == 'location' %}Future<Uint8List>{% else %}{% set responseModels = method | getValidResponseModels %}{% if responseModels|length > 1 %}Future<models.Model>{% elseif (method | responseModel) and (method | responseModel) != 'any' %}Future<models.{{ (method | responseModel) | caseUcfirst | overrideIdentifier }}>{% else %}Future{% endif %}{% endif %} {{ (method | methodName) | caseCamel | overrideIdentifier }}({{ _self.method_parameters((method | parameters('all')), (method | consumes)) }}) async {
+{% set pathParameters = method | parameters('path') %}
+{% set securityQueries = method | securityQueries %}
+{% if pathParameters|length == 0 and securityQueries|length == 0 %}
+    final String apiPath = '{{ method.path }}';
+{% elseif pathParameters|length == 1 and securityQueries|length == 0 %}
+{% set wrapPath = method.path|length > 39 %}
+    final String apiPath ={% if wrapPath %}{{ "\n" }}        {% else %} {% endif %}'{{ method.path }}'.replaceAll(
+      '{{ '{' }}{{ pathParameters|first.name }}{{ '}' }}',
+      {% if (pathParameters|first.extensions['x-sdk-source']|default('')) == 'security' %}client.config['{{ pathParameters|first.extensions['x-sdk-config'] | caseLower }}'] ?? ''{% else %}{{ pathParameters|first.name | caseCamel | overrideIdentifier }}{% if (pathParameters|first | enumValues) | length > 0 %}.value{% endif %}{% endif %},
+    );
+{% else %}
+{% set wrapPath = method.path|length > 51 %}
+    final String apiPath ={% if wrapPath %}{{ "\n" }}        {% else %} {% endif %}'{{ method.path }}'
+{% for parameter in pathParameters %}
+{% if wrapPath %}            {% else %}        {% endif %}.replaceAll(
+{% if wrapPath %}              {% else %}          {% endif %}'{{ '{' }}{{ parameter.name }}{{ '}' }}',
+{% if wrapPath %}              {% else %}          {% endif %}{% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}client.config['{{ parameter.extensions['x-sdk-config'] | caseLower }}'] ?? ''{% else %}{{ parameter.name | caseCamel | overrideIdentifier }}{% if (parameter | enumValues) | length > 0 %}.value{% endif %}{% endif %},
+{% if wrapPath %}            {% else %}        {% endif %}){% if loop.last and securityQueries|length == 0 %};{% endif %}{{ "\n" -}}
+{% endfor %}
+{% for security in securityQueries %}
+{% if wrapPath %}            {% else %}        {% endif %}+ '{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${Uri.encodeComponent(client.config['{{ security.name | caseCamel }}'] ?? '')}'{% if loop.last %};{% endif %}{{ "\n" -}}
+{% endfor %}
+{% endif %}
 
 {% if 'multipart/form-data' in (method | consumes) %}
-{{ include('dart/base/requests/file.twig') }}
+{{- include('dart/base/requests/file.twig') -}}
 {% elseif (method | methodType) == 'location' %}
-{{ include('dart/base/requests/location.twig') }}
+{{- include('dart/base/requests/location.twig') -}}
 {% elseif (method | methodType) == 'webAuth' %}
-{{ include('dart/base/requests/oauth.twig') }}
+{{- include('dart/base/requests/oauth.twig') -}}
 {% else %}
-{{ include('dart/base/requests/api.twig') }}
+{{- include('dart/base/requests/api.twig') -}}
 {% endif %}
-    }
+  }
 {% endfor %}
 }

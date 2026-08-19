@@ -20,7 +20,7 @@ ClientBase createClient({
     );
 
 class ClientIO extends ClientBase with ClientMixin {
-  static const int chunkSize = 5*1024*1024;
+  static const int chunkSize = 5 * 1024 * 1024;
   String _endPoint;
   Map<String, String>? _headers;
   @override
@@ -43,9 +43,10 @@ class ClientIO extends ClientBase with ClientMixin {
       'x-sdk-platform': '{{ sdk.platform }}',
       'x-sdk-language': '{{ language.name | caseLower }}',
       'x-sdk-version': '{{ sdk.version }}',
-      'user-agent' : '{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Platform.operatingSystem}; ${Platform.operatingSystemVersion})',
+      'user-agent':
+          '{{ spec.info.title | caseUcfirst }}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Platform.operatingSystem}; ${Platform.operatingSystemVersion})',
 {% for key,header in defaultHeaders %}
-      '{{key}}' : '{{header}}',
+      '{{ key }}': '{{ header }}',
 {% endfor %}
     };
 
@@ -60,19 +61,16 @@ class ClientIO extends ClientBase with ClientMixin {
 
 {% for headerKey, header in globalHeaders %}
 {% if header.description %}
-     /// {{header.description}}
+  /// {{ header.description }}
 {% endif %}
-    @override
-  ClientIO set{{headerKey | caseUcfirst}}(value) {
-        config['{{ headerKey | caseCamel }}'] = value;
-        {%~ if (headerKey != 'Project') %}
-        addHeader('{{ header.name }}', {% if header.scheme == 'bearer' %}'Bearer $value'{% else %}value{% endif %});
-        {%~ endif %}
-        return this;
-    }
-{% endfor %}
-
   @override
+  ClientIO set{{ headerKey | caseUcfirst }}(value) {
+    config['{{ headerKey | caseCamel }}'] = value;
+{% if headerKey != 'Project' %}
+    addHeader('{{ header.name }}', {% if header.scheme == 'bearer' %}'Bearer $value'{% else %}value{% endif %});
+{% endif %}
+    return this;
+  }{{ "\n\n" }}{% endfor %}  @override
   ClientIO setSelfSigned({bool status = true}) {
     _nativeClient.badCertificateCallback =
         ((X509Certificate cert, String host, int port) => status);
@@ -187,8 +185,11 @@ class ClientIO extends ClientBase with ClientMixin {
       }
 
       final chunkParams = Map<String, dynamic>.from(params);
-      chunkParams[paramName] =
-          http.MultipartFile.fromBytes(paramName, chunk, filename: file.filename);
+      chunkParams[paramName] = http.MultipartFile.fromBytes(
+        paramName,
+        chunk,
+        filename: file.filename,
+      );
       final chunkHeaders = Map<String, String>.from(headers);
       if (id != null && id.isNotEmpty) {
         chunkHeaders['x-{{spec.info.title | caseLower }}-id'] = id;
@@ -217,7 +218,9 @@ class ClientIO extends ClientBase with ClientMixin {
     bool isUploadComplete(Response response) {
       final chunksUploaded = response.data['chunksUploaded'];
       final chunksTotal = response.data['chunksTotal'] ?? totalChunks;
-      return chunksUploaded is num && chunksTotal is num && chunksUploaded >= chunksTotal;
+      return chunksUploaded is num &&
+          chunksTotal is num &&
+          chunksUploaded >= chunksTotal;
     }
 
     final progress = UploadProgress(
@@ -241,7 +244,8 @@ class ClientIO extends ClientBase with ClientMixin {
 
     var nextChunk = 0;
     Future<void> uploadNext() async {
-      final raf = file.bytes == null ? await iofile!.open(mode: FileMode.read) : null;
+      final raf =
+          file.bytes == null ? await iofile!.open(mode: FileMode.read) : null;
       try {
         while (nextChunk < chunks.length) {
           final chunk = chunks[nextChunk++];

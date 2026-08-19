@@ -58,9 +58,9 @@ Lock file templates (`package-lock.json.twig`) contain Twig expressions that get
 
 The script strips Twig expressions before running `npm install`, then restores them automatically. Never copy a raw lock file over a lock template or edit one by hand.
 
-### Rule 7: Go templates must generate formatted source
+### Rule 7: Go, Dart, and Flutter templates must generate formatted source
 
-Formatting is currently enforced only for the generated Go SDK; other SDKs will adopt formatter checks later. Keep Go templates accurate enough that their generated `.go` files are already `gofmt`-clean. Do not add a post-generation formatting step or run `gofmt` to fix the generated output in place—the fix belongs in the Twig template.
+Keep Go templates accurate enough that their generated `.go` files are already `gofmt`-clean, and keep Dart/Flutter templates accurate enough that their generated `.dart` files are already `dart format`-clean. Do not add a post-generation formatting step or run a formatter to fix generated output in place—the fix belongs in the Twig template.
 
 After changing Go templates, regenerate the affected platform and verify formatting:
 
@@ -70,6 +70,23 @@ test -z "$(gofmt -l examples/go)"
 ```
 
 Because `CLI` inherits from `Go`, regenerate it after shared Go template changes and verify its generated Go files too.
+
+After changing Dart templates, regenerate the affected platform and verify formatting:
+
+```bash
+rm -rf examples/dart examples/flutter
+php example.php dart <platform>
+(cd examples/dart && dart pub get)
+dart format --output=none --set-exit-if-changed examples/dart
+```
+
+Because `Flutter` inherits from `Dart`, regenerate it after shared Dart template changes and verify its generated Dart files too:
+
+```bash
+php example.php flutter client
+(cd examples/flutter && flutter pub get)
+dart format --output=none --set-exit-if-changed examples/flutter
+```
 
 ## Repository at a Glance
 

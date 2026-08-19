@@ -1,15 +1,21 @@
+{% macro parameter_value(parameter) %}{{ parameter.name | caseCamel | overrideIdentifier }}{% if (parameter | enumValues) | length > 0 and (parameter | schemaType) == 'array' %}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}.map((e) => e.value).toList(){% elseif (parameter | enumValues) | length > 0 %}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}.value{% elseif (parameter | schemaModel) is not empty and (parameter | schemaType) == 'array' %}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}.map((p) => p.toMap()).toList(){% elseif (parameter | schemaModel) is not empty %}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}.toMap(){% endif %}{% endmacro %}
+
 {% macro map_parameter(parameters) %}
 {% for parameter in parameters %}
+{% set name = parameter.name | caseCamel | overrideIdentifier %}
+{% set value = _self.parameter_value(parameter) | trim %}
 {% if not parameter.required %}
-if ({{ parameter.name | caseCamel | overrideIdentifier }} != null) '{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }}{% if (parameter | enumValues) | length > 0 and (parameter | schemaType) == 'array' %}.map((e) => e.value).toList(){% elseif (parameter | enumValues) | length > 0 %}.value{% elseif (parameter | schemaModel) is not empty and (parameter | schemaType) == 'array' %}.map((p) => p.toMap()).toList(){% elseif (parameter | schemaModel) is not empty %}.toMap(){% endif %},
+{% set line %}      if ({{ name }} != null) '{{ parameter.name }}': {{ value }},{% endset %}
+{% set entry %}        '{{ parameter.name }}': {{ value }},{% endset %}
+{% if line|length > 80 %}      if ({{ name }} != null){{ "\n" }}{% if entry|length > 80 %}        '{{ parameter.name }}':{{ "\n" }}            {{ value }},{% else %}{{ entry }}{% endif %}{% else %}{{ line }}{% endif %}{{ "\n" -}}
 {% else %}
-'{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }}{% if (parameter | enumValues) | length > 0 and (parameter | schemaType) == 'array' %}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}.map((e) => e.value).toList(){% elseif (parameter | enumValues) | length > 0  %}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}.value{% elseif (parameter | schemaModel) is not empty and (parameter | schemaType) == 'array' %}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}.map((p) => p.toMap()).toList(){% elseif (parameter | schemaModel) is not empty %}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}.toMap(){% endif %},
+      '{{ parameter.name }}': {{ value }},
 {% endif %}
 {% endfor %}
 {% endmacro %}
 
 {% macro map_headers(headers) %}
 {% for key, header in headers %}
-'{{ key }}': '{{ header }}',
+      '{{ key }}': '{{ header }}',
 {% endfor %}
 {% endmacro %}
