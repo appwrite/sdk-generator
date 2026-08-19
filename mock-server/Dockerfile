@@ -1,4 +1,4 @@
-FROM composer:2.10 as composer
+FROM composer:2.10 AS composer
 
 LABEL maintainer="team@appwrite.io"
 
@@ -10,11 +10,24 @@ WORKDIR /usr/local/src/
 COPY composer.lock /usr/local/src/
 COPY composer.json /usr/local/src/
 
-RUN composer install --ignore-platform-reqs --optimize-autoloader \
-    --no-plugins --no-scripts --prefer-dist \
-    `if [ "$TESTING" != "true" ]; then echo "--no-dev"; fi`
+# Raised GitHub API rate limits so parallel e2e jobs can fetch dist zipballs.
+ARG GITHUB_TOKEN=
+RUN set -eu; \
+    if [ -n "${GITHUB_TOKEN}" ]; then \
+        composer config --global github-oauth.github.com "${GITHUB_TOKEN}"; \
+    fi; \
+    extra=""; \
+    if [ "${TESTING}" != "true" ]; then extra="--no-dev"; fi; \
+    n=0; \
+    until composer install --ignore-platform-reqs --optimize-autoloader \
+        --no-plugins --no-scripts --prefer-dist --no-interaction ${extra}; do \
+        n=$((n + 1)); \
+        if [ "${n}" -ge 5 ]; then exit 1; fi; \
+        echo "composer install failed, retrying ${n}/5..."; \
+        sleep $((n * 5)); \
+    done
 
-FROM phpswoole/swoole:5.1.8-php8.3-alpine as final
+FROM phpswoole/swoole:5.1.8-php8.3-alpine AS final
 
 RUN apk add docker
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\E2E;
 
 use Exception;
+use Override;
 use RecursiveIteratorIterator;
 use RecursiveDirectoryIterator;
 use FilesystemIterator;
@@ -423,15 +424,25 @@ abstract class Base extends TestCase
     protected string $sdkLanguage;
     protected string $version;
 
+    #[Override]
     public function setUp(): void
     {
         \array_unshift($this->expectedOutput, $this->getExpectedSdkHeaders());
 
-        \exec('
-            cd ./mock-server && \
-            docker compose build && \
-            docker compose up -d --force-recreate
-        ');
+        $output = [];
+        $status = 0;
+
+        \exec(
+            'cd ./mock-server && docker compose build && docker compose up -d --force-recreate 2>&1',
+            $output,
+            $status
+        );
+
+        if ($status !== 0) {
+            $this->fail(
+                "Failed to start mock-server (exit {$status}):\n" . \implode("\n", $output)
+            );
+        }
     }
 
     protected function getExpectedSdkHeaders(): string
@@ -439,6 +450,7 @@ abstract class Base extends TestCase
         return "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
     }
 
+    #[Override]
     public function tearDown(): void
     {
         // Remove the mock server so local test runs don't leave containers behind
