@@ -263,6 +263,59 @@ func TestReportDistinguishesCancellationFromFailure(t *testing.T) {
 	}
 }
 
+func TestEndpointMismatchRendersActionableBlock(t *testing.T) {
+	requestWasMade(t, false)
+	buffer := &bytes.Buffer{}
+	err := endpointMismatchError(
+		"https://sgp.cloud.appwrite.io/v1",
+		"https://cloud.staging.appwrite.io/v1",
+	)
+
+	if status := Report(buffer, nil, err); status != 1 {
+		t.Fatalf("status = %d", status)
+	}
+	printed := buffer.String()
+	for _, wanted := range []string{
+		"Active session doesn’t match this project",
+		"Project endpoint", "https://sgp.cloud.appwrite.io/v1",
+		"Active session", "https://cloud.staging.appwrite.io/v1",
+		"Switch to Appwrite Cloud:",
+		"appwrite login --switch --endpoint https://cloud.appwrite.io/v1",
+	} {
+		if !strings.Contains(printed, wanted) {
+			t.Errorf("output does not contain %q:\n%s", wanted, printed)
+		}
+	}
+	if strings.Contains(printed, "✗ Error:") {
+		t.Errorf("actionable block retained generic prefix:\n%s", printed)
+	}
+}
+
+func TestMissingProjectConfigRendersActionableBlock(t *testing.T) {
+	requestWasMade(t, false)
+	path := "/work/project/appwrite.config.json"
+	buffer := &bytes.Buffer{}
+	err := &os.PathError{Op: "open", Path: path, Err: os.ErrNotExist}
+
+	if status := Report(buffer, nil, err); status != 1 {
+		t.Fatalf("status = %d", status)
+	}
+	printed := buffer.String()
+	for _, wanted := range []string{
+		"Appwrite project configuration not found",
+		"Expected file", path,
+		"Run this command from a directory containing appwrite.config.json",
+		"appwrite init project",
+	} {
+		if !strings.Contains(printed, wanted) {
+			t.Errorf("output does not contain %q:\n%s", wanted, printed)
+		}
+	}
+	if strings.Contains(printed, "no such file or directory") {
+		t.Errorf("raw filesystem error leaked into primary output:\n%s", printed)
+	}
+}
+
 // A command that fails DURING parsing never reaches the later flags, so the
 // parsed globals cannot answer "did the user ask for detail". `users get
 // --bogus --verbose` stopped at --bogus and then advised passing --verbose.

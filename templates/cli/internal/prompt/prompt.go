@@ -65,6 +65,9 @@ func Options(values ...string) []Option {
 type Text struct {
 	Message string
 	Default string
+	// Suffix is rendered as a live preview after the typed/default value without
+	// becoming part of the value returned to the caller.
+	Suffix string
 	// Flag is named when there is no terminal.
 	Flag string
 	// Validate rejects a value with a message the user sees. Nil accepts
@@ -76,10 +79,11 @@ type Text struct {
 
 // Choice asks for one option.
 type Choice struct {
-	Message string
-	Options []Option
-	Default string
-	Flag    string
+	Message     string
+	Description string
+	Options     []Option
+	Default     string
+	Flag        string
 	// Filter shows a type-to-narrow field. A property rather than a separate
 	// question type, because the only difference is whether the filter is
 	// visible.

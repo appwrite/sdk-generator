@@ -105,6 +105,42 @@ func Failure(writer io.Writer, format string, arguments ...any) {
 	writeMessage(writer, failureStyle, "✗ Error:", format, arguments...)
 }
 
+// FailureDetail is one aligned fact in an actionable failure block.
+type FailureDetail struct {
+	Label string
+	Value string
+}
+
+// ActionableFailure renders a failure whose resolution is known. The title,
+// facts and command are split into separate visual groups so a long recovery
+// instruction does not become one dense red sentence.
+func ActionableFailure(
+	writer io.Writer,
+	title string,
+	details []FailureDetail,
+	action, command string,
+) {
+	fmt.Fprintf(writer, "%s\n", failureStyle.Bold(true).Render("✗ "+title))
+
+	if len(details) > 0 {
+		width := 0
+		for _, detail := range details {
+			width = max(width, len(detail.Label))
+		}
+		fmt.Fprintln(writer)
+		for _, detail := range details {
+			fmt.Fprintf(writer, "  %-*s   %s\n", width, detail.Label, detail.Value)
+		}
+	}
+
+	if action != "" {
+		fmt.Fprintf(writer, "\n  %s\n", action)
+	}
+	if command != "" {
+		fmt.Fprintf(writer, "\n    %s\n", infoStyle.Render(command))
+	}
+}
+
 func writeMessage(writer io.Writer, style lipgloss.Style, prefix, format string, arguments ...any) {
 	message := fmt.Sprintf(format, arguments...)
 	fmt.Fprintf(writer, "%s %s\n", style.Bold(true).Render(prefix), style.Render(message))

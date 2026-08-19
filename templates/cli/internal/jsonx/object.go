@@ -64,6 +64,17 @@ func (o *Object) GetString(key string) string {
 	return ""
 }
 
+// GetBool returns a boolean value, or false when absent or another type.
+func (o *Object) GetBool(key string) bool {
+	value, ok := o.Get(key)
+	if !ok {
+		return false
+	}
+	boolean, _ := value.(bool)
+
+	return boolean
+}
+
 // GetObject returns a nested object, or nil when absent or another type.
 func (o *Object) GetObject(key string) *Object {
 	value, ok := o.Get(key)
