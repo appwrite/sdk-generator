@@ -131,12 +131,28 @@ func TestNewGitHubRepositoryIsCreatedOnlyAfterReview(t *testing.T) {
 		t.Fatalf("repository created before review: posts=%d vcs=%#v", posts, vcs)
 	}
 
-	vcs, err = createFunctionVCSRepository(client.New(server.URL, "test"), vcs)
+	path := filepath.Join(t.TempDir(), config.LocalFileName)
+	if err := os.WriteFile(path, []byte(`{"functions":[{"$id":"checkout","installationId":"installation","providerRepositoryName":"team/checkout","providerRepositoryPrivate":true,"providerRepositoryPending":true,"providerBranch":"main","providerRootDirectory":"./"}]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	local, err := config.LoadLocal(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if posts != 1 || vcs.RepositoryID != "repository" || vcs.CreateRepository {
-		t.Fatalf("repository was not materialized: posts=%d vcs=%#v", posts, vcs)
+	context := pushContext{api: client.New(server.URL, "test"), local: local}
+	if err := context.materializePendingFunctionRepositories(
+		local.ResourceEntries("functions"),
+	); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := config.LoadLocal(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := reloaded.ResourceEntries("functions")[0]
+	if posts != 1 || entry.GetString("providerRepositoryId") != "repository" ||
+		entry.GetBool("providerRepositoryPending") {
+		t.Fatalf("repository was not materialized: posts=%d entry=%#v", posts, entry)
 	}
 }
 
@@ -267,6 +283,31 @@ func TestFunctionDomainForTarget(t *testing.T) {
 	}
 }
 
+func TestPullPreservesPendingTemplateDeploymentState(t *testing.T) {
+	path := filepath.Join(t.TempDir(), config.LocalFileName)
+	if err := os.WriteFile(path, []byte(`{"functions":[{"$id":"checkout","providerRepositoryName":"team/checkout","providerRepositoryPending":true,"templateRepository":"templates","templateOwner":"appwrite","templateRootDirectory":"node/starter","templateReference":"main","templateReferenceType":"branch"}]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	local, err := config.LoadLocal(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pulled := jsonx.NewObject()
+	pulled.Set("$id", "checkout")
+	pulled.Set("name", "Checkout")
+	preservePendingFunctionTemplate(local, pulled)
+
+	for _, key := range []string{
+		"providerRepositoryName", "providerRepositoryPending", "templateRepository",
+		"templateOwner", "templateRootDirectory", "templateReference",
+		"templateReferenceType",
+	} {
+		if !pulled.Has(key) {
+			t.Errorf("pending key %s was discarded", key)
+		}
+	}
+}
+
 func TestFunctionWriteBodyIncludesVCSButNotDomainIntent(t *testing.T) {
 	entry := jsonx.NewObject()
 	entry.Set("installationId", "installation")
@@ -275,6 +316,8 @@ func TestFunctionWriteBodyIncludesVCSButNotDomainIntent(t *testing.T) {
 	entry.Set("providerRootDirectory", "functions/api")
 	entry.Set("previewDomainTarget", "edge")
 	entry.Set("previewDomainLabel", "api")
+	entry.Set("providerRepositoryName", "team/api")
+	entry.Set("providerRepositoryPending", true)
 
 	body := writeBody(entry, deployables[0].WriteKeys, nil, "functionId", "api")
 	if body.GetString("installationId") != "installation" ||
@@ -282,8 +325,12 @@ func TestFunctionWriteBodyIncludesVCSButNotDomainIntent(t *testing.T) {
 		body.GetString("providerBranch") != "main" {
 		t.Fatalf("VCS fields missing from body: %#v", body)
 	}
-	if _, exists := body.Get("previewDomainTarget"); exists {
-		t.Fatal("local domain intent leaked into Function API body")
+	for _, key := range []string{
+		"previewDomainTarget", "providerRepositoryName", "providerRepositoryPending",
+	} {
+		if _, exists := body.Get(key); exists {
+			t.Fatalf("local intent %s leaked into Function API body", key)
+		}
 	}
 }
 

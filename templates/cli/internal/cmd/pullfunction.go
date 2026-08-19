@@ -163,6 +163,9 @@ func runPullCode(command *cobra.Command, resource codeResource, code, withVariab
 		}
 
 		entry := config.FilterBySchema(row, resource.Keys)
+		if resource.Name == "function" {
+			preservePendingFunctionTemplate(context.local, entry)
+		}
 		context.local.UpsertByID(resource.ConfigKey, entry)
 
 		absolute := filepath.Join(directory, filepath.FromSlash(relative))
@@ -198,6 +201,30 @@ func runPullCode(command *cobra.Command, resource codeResource, code, withVariab
 	output.Success(out, "Successfully pulled %d %s.", len(rows), resource.Label)
 
 	return nil
+}
+
+// preservePendingFunctionTemplate keeps the one-shot deployment coordinates
+// for a newly requested GitHub repository. They have no remote representation
+// until the first push seeds that repository, so replacing the local entry with
+// the Function API response would silently turn the first deployment into a
+// branch deployment against an empty repository.
+func preservePendingFunctionTemplate(local *config.Local, pulled *jsonx.Object) {
+	for _, existing := range local.ResourceEntries("functions") {
+		if existing.GetString("$id") != pulled.GetString("$id") ||
+			!existing.GetBool("providerRepositoryPending") {
+			continue
+		}
+		for _, key := range []string{
+			"providerRepositoryName", "providerRepositoryPrivate",
+			"providerRepositoryPending", "templateRepository", "templateOwner",
+			"templateRootDirectory", "templateReference", "templateReferenceType",
+		} {
+			if value, ok := existing.Get(key); ok {
+				pulled.Set(key, value)
+			}
+		}
+		return
+	}
 }
 
 // selectResources asks which resources to pull.

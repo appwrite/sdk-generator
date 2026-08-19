@@ -161,37 +161,40 @@ func ignoresFor(language string) []string {
 // that type is the READ model used by `run`, and the two are deliberately
 // separate rather than one type trying to be both.
 type FunctionEntry struct {
-	ID                    string   `json:"$id"`
-	Name                  string   `json:"name"`
-	Runtime               string   `json:"runtime"`
-	BuildSpecification    string   `json:"buildSpecification"`
-	RuntimeSpecification  string   `json:"runtimeSpecification"`
-	Execute               []string `json:"execute"`
-	Events                []string `json:"events"`
-	Scopes                []string `json:"scopes"`
-	Schedule              string   `json:"schedule"`
-	Timeout               int      `json:"timeout"`
-	Enabled               bool     `json:"enabled"`
-	Logging               bool     `json:"logging"`
-	Entrypoint            string   `json:"entrypoint"`
-	Commands              string   `json:"commands"`
-	Ignore                []string `json:"ignore"`
-	DeploymentRetention   int      `json:"deploymentRetention"`
-	Path                  string   `json:"path"`
-	PreviewDomainTarget   string   `json:"previewDomainTarget,omitempty"`
-	PreviewDomainLabel    string   `json:"previewDomainLabel,omitempty"`
-	InstallationID        string   `json:"installationId,omitempty"`
-	ProviderRepositoryID  string   `json:"providerRepositoryId,omitempty"`
-	ProviderBranch        string   `json:"providerBranch,omitempty"`
-	ProviderSilentMode    bool     `json:"providerSilentMode,omitempty"`
-	ProviderRootDirectory string   `json:"providerRootDirectory,omitempty"`
-	ProviderBranches      []string `json:"providerBranches,omitempty"`
-	ProviderPaths         []string `json:"providerPaths,omitempty"`
-	TemplateRepository    string   `json:"templateRepository,omitempty"`
-	TemplateOwner         string   `json:"templateOwner,omitempty"`
-	TemplateRootDirectory string   `json:"templateRootDirectory,omitempty"`
-	TemplateReference     string   `json:"templateReference,omitempty"`
-	TemplateReferenceType string   `json:"templateReferenceType,omitempty"`
+	ID                        string   `json:"$id"`
+	Name                      string   `json:"name"`
+	Runtime                   string   `json:"runtime"`
+	BuildSpecification        string   `json:"buildSpecification"`
+	RuntimeSpecification      string   `json:"runtimeSpecification"`
+	Execute                   []string `json:"execute"`
+	Events                    []string `json:"events"`
+	Scopes                    []string `json:"scopes"`
+	Schedule                  string   `json:"schedule"`
+	Timeout                   int      `json:"timeout"`
+	Enabled                   bool     `json:"enabled"`
+	Logging                   bool     `json:"logging"`
+	Entrypoint                string   `json:"entrypoint"`
+	Commands                  string   `json:"commands"`
+	Ignore                    []string `json:"ignore"`
+	DeploymentRetention       int      `json:"deploymentRetention"`
+	Path                      string   `json:"path"`
+	PreviewDomainTarget       string   `json:"previewDomainTarget,omitempty"`
+	PreviewDomainLabel        string   `json:"previewDomainLabel,omitempty"`
+	InstallationID            string   `json:"installationId,omitempty"`
+	ProviderRepositoryID      string   `json:"providerRepositoryId,omitempty"`
+	ProviderRepositoryName    string   `json:"providerRepositoryName,omitempty"`
+	ProviderRepositoryPrivate bool     `json:"providerRepositoryPrivate,omitempty"`
+	ProviderRepositoryPending bool     `json:"providerRepositoryPending,omitempty"`
+	ProviderBranch            string   `json:"providerBranch,omitempty"`
+	ProviderSilentMode        bool     `json:"providerSilentMode,omitempty"`
+	ProviderRootDirectory     string   `json:"providerRootDirectory,omitempty"`
+	ProviderBranches          []string `json:"providerBranches,omitempty"`
+	ProviderPaths             []string `json:"providerPaths,omitempty"`
+	TemplateRepository        string   `json:"templateRepository,omitempty"`
+	TemplateOwner             string   `json:"templateOwner,omitempty"`
+	TemplateRootDirectory     string   `json:"templateRootDirectory,omitempty"`
+	TemplateReference         string   `json:"templateReference,omitempty"`
+	TemplateReferenceType     string   `json:"templateReferenceType,omitempty"`
 }
 
 type initFunctionOptions struct {
@@ -606,13 +609,6 @@ func runInitFunction(command *cobra.Command, options initFunctionOptions) error 
 		}
 		output.Log(out, "Imported environment variables into functions/%s/.env", directoryName)
 	}
-	if vcs.CreateRepository {
-		vcs, err = createFunctionVCSRepository(api, vcs)
-		if err != nil {
-			return err
-		}
-	}
-
 	execute := []string{}
 	if public {
 		execute = []string{"any"}
@@ -626,9 +622,14 @@ func runInitFunction(command *cobra.Command, options initFunctionOptions) error 
 		Ignore: selected.Ignore, DeploymentRetention: 0,
 		Path:                "functions/" + directoryName,
 		PreviewDomainTarget: domainTarget, PreviewDomainLabel: domainLabel,
-		InstallationID: vcs.InstallationID, ProviderRepositoryID: vcs.RepositoryID,
-		ProviderBranch: vcs.Branch, ProviderSilentMode: vcs.SilentMode,
-		ProviderRootDirectory: vcs.RootDirectory,
+		InstallationID:            vcs.InstallationID,
+		ProviderRepositoryID:      vcs.RepositoryID,
+		ProviderRepositoryName:    vcs.RepositoryName,
+		ProviderRepositoryPrivate: vcs.RepositoryPrivate,
+		ProviderRepositoryPending: vcs.CreateRepository,
+		ProviderBranch:            vcs.Branch,
+		ProviderSilentMode:        vcs.SilentMode,
+		ProviderRootDirectory:     vcs.RootDirectory,
 	}
 	if source == "github" && seedRepository {
 		entry.TemplateRepository = template.Repository

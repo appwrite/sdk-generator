@@ -680,6 +680,12 @@ func runPushDeployable(
 		return nil
 	}
 
+	if resource.Name == "function" {
+		if err := context.materializePendingFunctionRepositories(entries); err != nil {
+			return err
+		}
+	}
+
 	pushCode := options.Code
 	if pushCode {
 		confirmed, err := context.prompter.Confirm(prompt.Question{
@@ -1245,6 +1251,84 @@ func (c *pushContext) replaceVariables(resource deployable, entry *jsonx.Object)
 	}
 
 	return nil
+}
+
+// materializePendingFunctionRepositories creates repositories accepted on the
+// init review screen. The pending intent is already persisted before any
+// remote write. If saving the returned repository id fails, a retry sees the
+// same intent, receives GitHub's duplicate-name response, and resolves the
+// created repository by name instead of creating another one.
+func (c *pushContext) materializePendingFunctionRepositories(
+	entries []*jsonx.Object,
+) error {
+	for _, entry := range entries {
+		if !entry.GetBool("providerRepositoryPending") {
+			continue
+		}
+		vcs := functionVCS{
+			InstallationID:    entry.GetString("installationId"),
+			RepositoryName:    entry.GetString("providerRepositoryName"),
+			Branch:            entry.GetString("providerBranch"),
+			RootDirectory:     entry.GetString("providerRootDirectory"),
+			SilentMode:        entry.GetBool("providerSilentMode"),
+			CreateRepository:  true,
+			RepositoryPrivate: entry.GetBool("providerRepositoryPrivate"),
+		}
+		created, err := createFunctionVCSRepository(c.api, vcs)
+		if err != nil {
+			created, err = c.findPendingFunctionRepository(vcs)
+			if err != nil {
+				return fmt.Errorf("create GitHub repository %s: %w", vcs.RepositoryName, err)
+			}
+		}
+
+		entry.Set("providerRepositoryId", created.RepositoryID)
+		entry.Set("providerRepositoryName", created.RepositoryName)
+		entry.Delete("providerRepositoryPrivate")
+		entry.Delete("providerRepositoryPending")
+		c.local.UpsertByID("functions", entry)
+		if err := c.local.Write(); err != nil {
+			return fmt.Errorf(
+				"GitHub repository %s was created but its id could not be saved; retry this push to recover it: %w",
+				created.RepositoryName, err)
+		}
+	}
+
+	return nil
+}
+
+func (c *pushContext) findPendingFunctionRepository(
+	vcs functionVCS,
+) (functionVCS, error) {
+	parts := strings.SplitN(vcs.RepositoryName, "/", 2)
+	name := vcs.RepositoryName
+	if len(parts) == 2 {
+		name = parts[1]
+	}
+	query := url.Values{"type": []string{"runtime"}, "search": []string{name}}
+	query["queries[]"] = []string{`{"method":"limit","values":[100]}`}
+	path := "/vcs/github/installations/" + url.PathEscape(vcs.InstallationID) +
+		"/providerRepositories?" + query.Encode()
+	var listing struct {
+		Repositories []vcsRepository `json:"runtimeProviderRepositories"`
+	}
+	if err := c.api.Call("GET", path, nil, &listing); err != nil {
+		return functionVCS{}, err
+	}
+	for _, repository := range listing.Repositories {
+		fullName := strings.TrimPrefix(repository.Organization+"/"+repository.Name, "/")
+		if fullName == vcs.RepositoryName || repository.Name == vcs.RepositoryName {
+			vcs.RepositoryID = repository.ID
+			vcs.RepositoryName = fullName
+			if repository.DefaultBranch != "" {
+				vcs.Branch = repository.DefaultBranch
+			}
+			vcs.CreateRepository = false
+			return vcs, nil
+		}
+	}
+
+	return functionVCS{}, fmt.Errorf("repository was not found after creation failed")
 }
 
 // createDeployment deploys from Git when a function is connected to VCS;
