@@ -50,7 +50,7 @@ jobs:
           Rust183,
           AppleSwift61,
           Swift61,
-          Unity2021,
+          # TODO: Re-enable Unity2021 after the CI Unity license is restored.
           WebChromium,
           WebNode,
           ReactNative
@@ -87,8 +87,6 @@ jobs:
           composer install
 
       - name: Run Tests
-        env:
-          UNITY_LICENSE: ${{ matrix.sdk == 'Unity2021' && secrets.UNITY_LICENSE || '' }}
         run: composer test tests/e2e/${{ matrix.sdk }}Test.php
 
   lint:

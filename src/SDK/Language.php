@@ -244,7 +244,7 @@ abstract class Language
     public function hasPermissionParam(array $parameters): bool
     {
         foreach ($parameters as $parameter) {
-            $example = $this->getSchema($parameter)->extensions['x-example'] ?? $this->getSchema($parameter)->example;
+            $example = $this->getSchemaExample($parameter);
             if (!empty($example) && is_string($example) && $this->isPermissionString($example)) {
                 return true;
             }
@@ -302,7 +302,17 @@ abstract class Language
     protected function getSchemaExample(Schema|Parameter $value): mixed
     {
         $schema = $this->getSchema($value);
-        return $schema->extensions['x-example'] ?? $schema->example;
+        $example = $schema->example;
+
+        if (!\is_array($example) && !\is_object($example)) {
+            return $example;
+        }
+
+        if ($this->getSchemaType($schema) === self::TYPE_OBJECT && empty((array) $example)) {
+            return '{}';
+        }
+
+        return \json_encode($example, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
     protected function getSchemaDefault(Schema|Parameter $value): mixed
