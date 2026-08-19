@@ -87,6 +87,25 @@ const DEFAULT_DOWNLOAD_EXTENSIONS = [
     'mp4', 'mov', 'avi', 'mkv', 'webm'
 ];
 
+/**
+ * Two-part public suffixes common enough to matter for outbound-link detection.
+ * See `rootDomain()` for why this is a short list rather than the Public Suffix
+ * List.
+ */
+const MULTI_PART_SUFFIXES = new Set([
+    'co.uk', 'org.uk', 'ac.uk', 'gov.uk', 'me.uk', 'net.uk', 'sch.uk',
+    'co.jp', 'ne.jp', 'or.jp', 'ac.jp', 'go.jp',
+    'com.au', 'net.au', 'org.au', 'edu.au', 'gov.au',
+    'com.br', 'net.br', 'org.br',
+    'com.cn', 'net.cn', 'org.cn', 'gov.cn',
+    'co.in', 'net.in', 'org.in',
+    'co.nz', 'net.nz', 'org.nz',
+    'co.za', 'org.za',
+    'com.mx', 'com.ar', 'com.co', 'com.pe', 'com.tr', 'com.tw',
+    'com.sg', 'com.hk', 'com.my', 'com.ph', 'com.vn',
+    'co.kr', 'co.il', 'co.id', 'co.th', 'com.ua', 'com.pl', 'com.es',
+]);
+
 const SCROLL_DEPTH_THROTTLE_MS = 200;
 
 type Cleanup = () => void;
@@ -194,14 +213,26 @@ export class AnalyticsTracking {
         const originalPushState = history.pushState.bind(history);
         const originalReplaceState = history.replaceState.bind(history);
 
-        history.pushState = (data: unknown, unused: string, url?: string | URL | null): void => {
+        // Our wrappers stay reachable after cleanup whenever another library
+        // patched on top of ours, so they have to be switchable off rather than
+        // merely unreferenced.
+        let patchActive = true;
+
+        const patchedPushState = (data: unknown, unused: string, url?: string | URL | null): void => {
             originalPushState(data, unused, url);
-            handleNavigation();
+            if (patchActive) {
+                handleNavigation();
+            }
         };
-        history.replaceState = (data: unknown, unused: string, url?: string | URL | null): void => {
+        const patchedReplaceState = (data: unknown, unused: string, url?: string | URL | null): void => {
             originalReplaceState(data, unused, url);
-            handleNavigation();
+            if (patchActive) {
+                handleNavigation();
+            }
         };
+
+        history.pushState = patchedPushState;
+        history.replaceState = patchedReplaceState;
 
         const popstateHandler = (): void => handleNavigation();
         const hashchangeHandler = (): void => handleNavigation();
@@ -210,8 +241,20 @@ export class AnalyticsTracking {
         window.addEventListener('hashchange', hashchangeHandler);
 
         this.pageviewCleanups.push(() => {
-            history.pushState = originalPushState;
-            history.replaceState = originalReplaceState;
+            // Only unwind our own patch. A router (Next.js App Router, React
+            // Router, …) that patched these after us owns the current value,
+            // and assigning our saved reference back would silently throw its
+            // wrapper away. In that case ours stays in the chain, which is why
+            // `patchActive` exists: the wrapper keeps delegating to the original
+            // but stops reporting.
+            patchActive = false;
+
+            if (history.pushState === patchedPushState) {
+                history.pushState = originalPushState;
+            }
+            if (history.replaceState === patchedReplaceState) {
+                history.replaceState = originalReplaceState;
+            }
             window.removeEventListener('popstate', popstateHandler);
             window.removeEventListener('hashchange', hashchangeHandler);
         });
@@ -550,7 +593,21 @@ export class AnalyticsTracking {
         if (parts.length <= 2) {
             return hostname;
         }
-        return parts.slice(-2).join('.');
+        // Taking the last two labels is wrong wherever the registry sells names
+        // one level down: `shop.example.co.uk` and `google.co.uk` both reduce to
+        // `co.uk`, so every outbound click between two `.co.uk` sites looks
+        // internal and is dropped. Take three labels after a known two-part
+        // suffix instead.
+        //
+        // This is a heuristic, not the Public Suffix List — the full list is
+        // orders of magnitude larger than this whole file, and a tracking
+        // snippet cannot carry it. Sites on a suffix that is missing here can
+        // pass `includeSubdomains: true` to treat every other host as outbound.
+        const suffix = parts.slice(-2).join('.');
+        if (parts.length > 2 && MULTI_PART_SUFFIXES.has(suffix)) {
+            return parts.slice(-3).join('.');
+        }
+        return suffix;
     }
 
     private computeScrollDepth(): number {
