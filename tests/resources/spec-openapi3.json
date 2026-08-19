@@ -2627,6 +2627,19 @@
             "type": "object",
             "description": "Optional nested mock.",
             "$ref": "#\/components\/schemas\/unionMock"
+          },
+          "metadataList": {
+            "type": "array",
+            "description": "Optional generic object collection.",
+            "example": [
+              {
+                "enabled": true
+              }
+            ],
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
           }
         },
         "required": [

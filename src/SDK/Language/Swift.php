@@ -321,6 +321,7 @@ class Swift extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null, bool $isProperty = false): string
     {
         $schema = $this->getSchema($parameter);
+        $items = $this->getArraySchema($parameter);
         $prefix = $spec?->info->title ?? '';
         $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
         if ($enumSchema->enum !== []) {
@@ -339,12 +340,14 @@ class Swift extends Language
             self::TYPE_STRING => 'String',
             self::TYPE_FILE => 'InputFile',
             self::TYPE_BOOLEAN => 'Bool',
-            // A union or untyped element has no Swift spelling, so the whole
-            // array degrades to AnyCodable rather than each element being
-            // rendered as a dictionary.
+            // A union, untyped element, or generic object has no concrete
+            // Codable type, so the array uses AnyCodable.
             self::TYPE_ARRAY => match (true) {
                 $this->isUntypedNestedArray($parameter, $schema) => '[[AnyCodable]]',
-                $this->hasConcreteItemsType($schema) => '[' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema, $spec) . ']',
+                $items instanceof Schema
+                    && $this->getSchemaType($items) === self::TYPE_OBJECT
+                    && $this->getSchemaModel($items) === null => '[AnyCodable]',
+                $this->hasConcreteItemsType($schema) => '[' . $this->getTypeName($items ?? $schema, $spec) . ']',
                 default => '[AnyCodable]',
             },
             self::TYPE_OBJECT => $isProperty ? '[String: AnyCodable]' : 'Any',
