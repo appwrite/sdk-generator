@@ -263,7 +263,8 @@ abstract class Language
 
         return match (true) {
             $schema instanceof StringSchema && $schema->format === 'binary' => self::TYPE_FILE,
-            $schema instanceof StringSchema => self::TYPE_STRING,
+            $schema instanceof StringSchema,
+            $schema instanceof CompositeSchema && $schema->openStringEnumBranch() instanceof StringSchema => self::TYPE_STRING,
             $schema instanceof IntegerSchema => self::TYPE_INTEGER,
             $schema instanceof NumberSchema => self::TYPE_NUMBER,
             $schema instanceof BooleanSchema => self::TYPE_BOOLEAN,
@@ -333,8 +334,8 @@ abstract class Language
             return false;
         }
         $items = $schema->items;
-        return !($items instanceof CompositeSchema)
-            && !($items instanceof AnySchema)
+        return !($items instanceof AnySchema)
+            && (!($items instanceof CompositeSchema) || $items->openStringEnumBranch() instanceof StringSchema)
             && $this->getSchemaType($items) !== '';
     }
 
@@ -353,10 +354,19 @@ abstract class Language
             && $schema->items instanceof ArraySchema;
     }
 
-    protected function getSchemaEnumName(Schema|Parameter $value, ?Specification $spec = null): string
+    protected function getEnumSchema(Schema|Parameter $value): Schema
     {
         $schema = $this->getSchema($value);
         $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+
+        return $enumSchema instanceof CompositeSchema
+            ? ($enumSchema->openStringEnumBranch() ?? $enumSchema)
+            : $enumSchema;
+    }
+
+    protected function getSchemaEnumName(Schema|Parameter $value, ?Specification $spec = null): string
+    {
+        $enumSchema = $this->getEnumSchema($value);
         $name = $enumSchema->extensions['x-enum-name']
             ?? $enumSchema->title
             ?? ($value instanceof Parameter ? $value->name : null);
@@ -369,8 +379,7 @@ abstract class Language
                 continue;
             }
             foreach ($model->properties as $propertyName => $property) {
-                $propertySchema = $property instanceof ArraySchema ? $property->items : $property;
-                if ($propertySchema === $enumSchema) {
+                if ($this->getEnumSchema($property) === $enumSchema) {
                     return \ucfirst($modelName) . \ucfirst($propertyName);
                 }
             }

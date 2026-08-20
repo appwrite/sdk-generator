@@ -1554,6 +1554,49 @@
                     ],
                     "x-enum-name": null,
                     "x-enum-keys": []
+                  },
+                  "usageEventMetrics": {
+                    "type": "array",
+                    "description": "Usage metrics to include.",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "network.requests",
+                            "network.inbound"
+                          ],
+                          "x-enum-name": "UsageEventMetric",
+                          "x-enum-keys": [
+                            "NetworkRequests",
+                            "NetworkInbound"
+                          ]
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "usageEventMetric": {
+                    "description": "Primary usage metric.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "network.requests",
+                          "network.inbound"
+                        ],
+                        "x-enum-name": "UsageEventMetric",
+                        "x-enum-keys": [
+                          "NetworkRequests",
+                          "NetworkInbound"
+                        ]
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
                   }
                 },
                 "required": [

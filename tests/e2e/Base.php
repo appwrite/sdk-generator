@@ -11,6 +11,7 @@ use RecursiveDirectoryIterator;
 use FilesystemIterator;
 use Throwable;
 use Appwrite\SDK\Language;
+use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\SDK;
 use Utopia\OpenAPI\Parser;
 use PHPUnit\Framework\TestCase;
@@ -474,6 +475,8 @@ abstract class Base extends TestCase
             throw new Exception('Failed to parse spec.');
         }
 
+        $this->assertOpenEnumsAllowAnyString();
+
         $sdk = new SDK($this->getLanguage(), Parser::parse($spec));
 
         $sdk
@@ -570,6 +573,48 @@ abstract class Base extends TestCase
                 $this->assertEquals($expected, $output[$index]);
             }
         }
+    }
+
+    private function assertOpenEnumsAllowAnyString(): void
+    {
+        $enumBranch = [
+            'type' => 'string',
+            'enum' => ['network.requests', 'network.inbound'],
+            'x-enum-name' => 'UsageEventMetric',
+            'x-enum-keys' => ['NetworkRequests', 'NetworkInbound'],
+        ];
+        $specification = Parser::parse([
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => ['/test' => ['get' => [
+                'operationId' => 'testOpenEnums',
+                'parameters' => [
+                    ['name' => 'plainScalar', 'in' => 'query', 'schema' => ['type' => 'string']],
+                    ['name' => 'openScalar', 'in' => 'query', 'schema' => ['anyOf' => [$enumBranch, ['type' => 'string']]]],
+                    ['name' => 'plainArray', 'in' => 'query', 'schema' => ['type' => 'array', 'items' => ['type' => 'string']]],
+                    ['name' => 'openArray', 'in' => 'query', 'schema' => ['type' => 'array', 'items' => ['anyOf' => [$enumBranch, ['type' => 'string']]]]],
+                ],
+                'responses' => ['200' => ['description' => 'ok']],
+            ]]],
+        ]);
+        [$plainScalar, $openScalar, $plainArray, $openArray] = $specification->paths['/test']->operations['get']->parameters;
+        $language = $this->getLanguage();
+
+        if ($language instanceof Web) {
+            $this->assertSame('(UsageEventMetric | (string & {}))', $language->getTypeName($openScalar, $specification));
+            $this->assertSame('(UsageEventMetric | (string & {}))[]', $language->getTypeName($openArray, $specification));
+
+            return;
+        }
+
+        $this->assertSame(
+            $language->getTypeName($plainScalar, $specification),
+            $language->getTypeName($openScalar, $specification),
+        );
+        $this->assertSame(
+            $language->getTypeName($plainArray, $specification),
+            $language->getTypeName($openArray, $specification),
+        );
     }
 
     private function rmdirRecursive(string $dir): void

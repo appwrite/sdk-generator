@@ -194,7 +194,7 @@ abstract class JS extends Language
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
-                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumSchema = $this->getEnumSchema($param);
                 $enumValues = $enumSchema->enum;
                 if ($enumValues === []) {
                     return '';
