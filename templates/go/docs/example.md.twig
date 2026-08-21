@@ -1,15 +1,18 @@
 ```go
 {% set requireFilesPkg = (method | parameters('all')) | filter(parameter => (parameter | schemaType) == 'file') | length > 0 -%}
+{%- set packagePath = sdk | goPackagePath -%}
+{%- set imports = [packagePath ~ '/client', packagePath ~ '/' ~ (service.name | caseLower)] -%}
+{%- if requireFilesPkg -%}
+{%- set imports = imports | merge([packagePath ~ '/file']) -%}
+{%- endif %}
 package main
 
 import (
 	"fmt"
 
-	"{{ sdk | goPackagePath }}/client"
-	"{{ sdk | goPackagePath }}/{{ service.name | caseLower }}"
-{% if requireFilesPkg %}
-	"{{ sdk | goPackagePath }}/file"
-{% endif %}
+{% for import in imports | sort %}
+	"{{ import }}"
+{% endfor %}
 )
 
 func main() {
