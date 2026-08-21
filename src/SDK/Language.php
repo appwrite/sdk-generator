@@ -367,7 +367,7 @@ abstract class Language
     protected function getSchemaEnumName(Schema|Parameter $value, ?Specification $spec = null): string
     {
         $enumSchema = $this->getEnumSchema($value);
-        $name = $enumSchema->extensions['x-enum-name']
+        $name = ($enumSchema instanceof StringSchema ? $enumSchema->enumName : null)
             ?? $enumSchema->title
             ?? ($value instanceof Parameter ? $value->name : null);
         if (\is_string($name) && $name !== '') {

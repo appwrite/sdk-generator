@@ -7,6 +7,7 @@ use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Model\SecurityScheme;
 use Utopia\OpenAPI\Model\SecuritySchemeType;
 use Utopia\OpenAPI\Specification;
@@ -672,15 +673,15 @@ class PHP extends Language
                 }
 
                 $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
-                $enumName = $this->toPascalCase($enumSchema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
+                $enumKeys = $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [];
+                $enumName = $this->toPascalCase(($enumSchema instanceof StringSchema ? $enumSchema->enumName : null) ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
                 $example = $this->getSchemaExample($param);
                 $isArray = $schema instanceof ArraySchema;
 
                 $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
                     if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
-                        $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', (string) $enumKeys[$index]);
+                        $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', $enumKeys[$index]);
                         return $this->toUpperSnakeCase($cleaned);
                     }
                     if ($index !== false && isset($enumValues[$index])) {

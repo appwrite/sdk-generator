@@ -1,6 +1,6 @@
 export enum {{ enum.title | caseUcfirst }} {
 {% for value in enum.enum %}
-{% set key = enum.extensions['x-enum-keys'] is empty ? value : enum.extensions['x-enum-keys'][loop.index0] %}
+{% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
     {{ key | replace({'-': ''}) | caseEnumKey }} = '{{ value }}',
 {% endfor %}
 }

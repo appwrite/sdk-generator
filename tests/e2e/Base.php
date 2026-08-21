@@ -11,8 +11,10 @@ use RecursiveDirectoryIterator;
 use FilesystemIterator;
 use Throwable;
 use Appwrite\SDK\Language;
+use Appwrite\SDK\Language\Deno;
 use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\SDK;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Parser;
 use PHPUnit\Framework\TestCase;
 use Twig\Error\LoaderError;
@@ -517,6 +519,7 @@ abstract class Base extends TestCase
         $this->rmdirRecursive($dir);
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
+        $this->assertOpenEnumSuggestionsGenerated($dir);
         $this->assertExcludedFixtureWasRemoved($dir);
         $this->assertCommentsAreNotHtmlEscaped($dir);
 
@@ -599,8 +602,21 @@ abstract class Base extends TestCase
         ]);
         [$plainScalar, $openScalar, $plainArray, $openArray] = $specification->paths['/test']->operations['get']->parameters;
         $language = $this->getLanguage();
+        $sdk = new class ($language, $specification) extends SDK {
+            /** @param list<StringSchema> $schemas @return list<StringSchema> */
+            public function mergeEnumsForTest(array $schemas): array
+            {
+                return $this->mergeEnums($schemas);
+            }
+        };
+        $mergedEnums = $sdk->mergeEnumsForTest([
+            new StringSchema(title: 'SharedMetric', enum: ['known'], open: true),
+            new StringSchema(title: 'SharedMetric', enum: ['known'], open: false),
+        ]);
+        $this->assertCount(1, $mergedEnums);
+        $this->assertFalse($mergedEnums[0]->open, 'A closed use must keep a shared enum type closed.');
 
-        if ($language instanceof Web) {
+        if ($language instanceof Web || $language instanceof Deno) {
             $this->assertSame('(UsageEventMetric | (string & {}))', $language->getTypeName($openScalar, $specification));
             $this->assertSame('(UsageEventMetric | (string & {}))[]', $language->getTypeName($openArray, $specification));
 
@@ -615,6 +631,40 @@ abstract class Base extends TestCase
             $language->getTypeName($plainArray, $specification),
             $language->getTypeName($openArray, $specification),
         );
+    }
+
+    private function assertOpenEnumSuggestionsGenerated(string $dir): void
+    {
+        $expectations = [
+            'web' => ['src/enums/usage-event-metric.ts', 'NetworkRequests'],
+            'node' => ['src/enums/usage-event-metric.ts', 'NetworkRequests'],
+            'react-native' => ['src/enums/usage-event-metric.ts', 'NetworkRequests'],
+            'deno' => ['src/enums/usage-event-metric.ts', 'NetworkRequests'],
+            'php' => ['src/Appwrite/Enums/UsageEventMetric.php', 'public const NETWORKREQUESTS'],
+            'python' => ['appwrite/enums/usage_event_metric.py', 'NETWORKREQUESTS = "network.requests"'],
+            'ruby' => ['lib/appwrite/enums/usage_event_metric.rb', "NETWORKREQUESTS = 'network.requests'"],
+            'dart' => ['lib/src/enums/usage_event_metric.dart', 'static const String networkRequests'],
+            'flutter' => ['lib/src/enums/usage_event_metric.dart', 'static const String networkRequests'],
+            'kotlin' => ['src/main/kotlin/io/appwrite/enums/UsageEventMetric.kt', 'const val NETWORKREQUESTS'],
+            'android' => ['library/src/main/java/io/appwrite/enums/UsageEventMetric.kt', 'const val NETWORKREQUESTS'],
+            'swift' => ['Sources/AppwriteEnums/UsageEventMetric.swift', 'public static let networkRequests'],
+            'apple' => ['Sources/AppwriteEnums/UsageEventMetric.swift', 'public static let networkRequests'],
+            'dotnet' => ['Appwrite/Enums/UsageEventMetric.cs', 'public const string NetworkRequests'],
+            'unity' => ['Assets/Runtime/Core/Enums/UsageEventMetric.cs', 'public const string NetworkRequests'],
+            'rust' => ['src/enums/usage_event_metric.rs', 'pub const NetworkRequests'],
+        ];
+
+        if (!isset($expectations[$this->language])) {
+            return;
+        }
+
+        [$relativePath, $knownValueDeclaration] = $expectations[$this->language];
+        $path = $dir . '/' . $relativePath;
+        $this->assertFileExists($path);
+        $contents = file_get_contents($path);
+        $this->assertIsString($contents);
+        $this->assertStringContainsString($knownValueDeclaration, $contents);
+        $this->assertStringContainsString('network.inbound', $contents);
     }
 
     private function rmdirRecursive(string $dir): void

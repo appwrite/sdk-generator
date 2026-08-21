@@ -3,8 +3,10 @@
 namespace Appwrite\SDK\Language;
 
 use Utopia\OpenAPI\Model\ArraySchema;
+use Utopia\OpenAPI\Model\CompositeSchema;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 
@@ -155,6 +157,17 @@ class Deno extends JS
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
+        $valueSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        $enumSchema = $this->getEnumSchema($parameter);
+        if ($enumSchema->enum !== []) {
+            $type = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
+            if ($valueSchema instanceof CompositeSchema && $valueSchema->openStringEnumBranch() instanceof StringSchema) {
+                $type = '(' . $type . ' | (string & {}))';
+            }
+
+            return $schema instanceof ArraySchema ? $type . '[]' : $type;
+        }
+
         $model = $this->getSchemaModel($parameter);
         if ($model !== null) {
             $type = $this->toPascalCase($model);

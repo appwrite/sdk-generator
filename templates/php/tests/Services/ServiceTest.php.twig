@@ -1,6 +1,6 @@
 {% import _self as helper %}
 {% macro mockParameterValue(parameter) -%}
-{%- if (parameter | enumName) -%}
+{%- if (parameter | enumValues) is not empty -%}
 {%- if (parameter | schemaType) == 'array' -%}
 array({{ (parameter | enumName) | caseUcfirst }}::{{ ((parameter | enumKeys)[0] ?? (parameter | enumValues)[0]) | caseEnumKey }}())
 {%- else -%}

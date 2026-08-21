@@ -6,7 +6,7 @@ namespace {{ namespace | caseNamespace }}\Models;
 {% set optionalProperties = definition.properties | filter((property) => not (property | schemaRequired)) %}
 {% set enumImports = [] %}
 {% for property in definition.properties %}
-{% if (property | enumValues) is not empty or (property | enumName) is not empty %}
+{% if (property | enumValues) is not empty %}
 {% set enumName = (property | enumName) %}
 {% if enumName not in enumImports %}
 {% set enumImports = enumImports|merge([enumName]) %}
@@ -37,7 +37,7 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
 {% set paramDocType = property | typeName %}
 {% if (property | schemaType) == 'array' and (property | schemaModel) %}
 {% set paramDocType = 'list<' ~ ((property | schemaModel) | caseUcfirst | overrideIdentifier) ~ '>' %}
-{% elseif (property | schemaType) == 'array' and ((property | enumValues) is not empty or (property | enumName) is not empty) %}
+{% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
 {% set paramDocType = 'list<' ~ (((property | enumName)) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
      * @param {{ paramDocType | raw }} ${{ (property | schemaName) | caseCamel }} {{ property.description | unescape | lower | raw }}
@@ -46,7 +46,7 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
 {% set paramDocType = property | typeName %}
 {% if (property | schemaType) == 'array' and (property | schemaModel) %}
 {% set paramDocType = 'list<' ~ ((property | schemaModel) | caseUcfirst | overrideIdentifier) ~ '>' %}
-{% elseif (property | schemaType) == 'array' and ((property | enumValues) is not empty or (property | enumName) is not empty) %}
+{% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
 {% set paramDocType = 'list<' ~ (((property | enumName)) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
      * @param {{ paramDocType | raw }}|null ${{ (property | schemaName) | caseCamel }} {{ property.description | unescape | lower | raw }}
@@ -100,12 +100,12 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
                     static fn (mixed $item): mixed => static::hydrateTypedValue({{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}::class, $item),
                     $data['{{ (property | schemaName) }}']
                 )
-                : $data['{{ (property | schemaName) }}']{% elseif (property | schemaModel) %}static::hydrateTypedValue({{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}']){% elseif (property | schemaType) == 'array' and ((property | enumValues) is not empty or (property | enumName) is not empty) %}is_array($data['{{ (property | schemaName) }}'])
+                : $data['{{ (property | schemaName) }}']{% elseif (property | schemaModel) %}static::hydrateTypedValue({{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}']){% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}is_array($data['{{ (property | schemaName) }}'])
                 ? array_map(
                     static fn (mixed $item): mixed => static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $item),
                     $data['{{ (property | schemaName) }}']
                 )
-                : $data['{{ (property | schemaName) }}']{% elseif (property | enumValues) is not empty or (property | enumName) is not empty %}static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}']){% else %}$data['{{ (property | schemaName) }}']{% endif %}{{ (not loop.last or optionalProperties is not empty or definition.additionalProperties) ? ',' : '' }}
+                : $data['{{ (property | schemaName) }}']{% elseif (property | enumValues) is not empty %}static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}']){% else %}$data['{{ (property | schemaName) }}']{% endif %}{{ (not loop.last or optionalProperties is not empty or definition.additionalProperties) ? ',' : '' }}
 {% endfor %}
 {% for property in optionalProperties %}
 {% if (property | schemaType) == 'array' and (property | schemaModel) %}
@@ -118,7 +118,7 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
                         )
                         : $data['{{ (property | schemaName) }}']
                 )
-{% elseif (property | schemaType) == 'array' and ((property | enumValues) is not empty or (property | enumName) is not empty) %}
+{% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
             {{ (property | schemaName) | caseCamel }}: array_key_exists('{{ (property | schemaName) }}', $data)
                 ? (
                     is_array($data['{{ (property | schemaName) }}'])
@@ -130,12 +130,12 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
                 )
 {% elseif (property | schemaModel) %}
             {{ (property | schemaName) | caseCamel }}: array_key_exists('{{ (property | schemaName) }}', $data) ? static::hydrateTypedValue({{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}'], true) : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
-{% elseif (property | enumValues) is not empty or (property | enumName) is not empty %}
+{% elseif (property | enumValues) is not empty %}
             {{ (property | schemaName) | caseCamel }}: array_key_exists('{{ (property | schemaName) }}', $data) ? static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}'], true) : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
 {% else %}
             {{ (property | schemaName) | caseCamel }}: array_key_exists('{{ (property | schemaName) }}', $data) ? $data['{{ (property | schemaName) }}'] : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
 {% endif %}
-{% if (property | schemaType) == 'array' and ((property | schemaModel) or (property | enumValues) is not empty or (property | enumName) is not empty) %}
+{% if (property | schemaType) == 'array' and ((property | schemaModel) or (property | enumValues) is not empty) %}
                 : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
 {% endif %}
 {% endfor %}

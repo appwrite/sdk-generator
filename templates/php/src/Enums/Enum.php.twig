@@ -2,12 +2,21 @@
 
 namespace {{ namespace | caseNamespace }}\Enums;
 
+{% if enum | openEnum %}
+final class {{ enum.title | caseUcfirst | overrideIdentifier }}
+{
+    {%~ for value in enum.enum %}
+    {%~ set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
+    public const {{ key | caseEnumKey }} = '{{ value }}';
+    {%~ endfor %}
+}
+{% else %}
 use JsonSerializable;
 
 class {{ enum.title | caseUcfirst | overrideIdentifier }} implements JsonSerializable
 {
     {%~ for value in enum.enum %}
-    {%~ set key = enum.extensions['x-enum-keys'] is empty ? value : enum.extensions['x-enum-keys'][loop.index0] %}
+    {%~ set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
     private static {{ enum.title | caseUcfirst }} ${{ key | caseEnumKey }};
     {%~ endfor %}
 
@@ -29,7 +38,7 @@ class {{ enum.title | caseUcfirst | overrideIdentifier }} implements JsonSeriali
     }
 
 {% for value in enum.enum %}
-{% set key = enum.extensions['x-enum-keys'] is empty ? value : enum.extensions['x-enum-keys'][loop.index0] %}
+{% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
     public static function {{ key | caseEnumKey }}(): {{ enum.title | caseUcfirst | overrideIdentifier}}
     {
         if (!isset(self::${{ key | caseEnumKey }})) {
@@ -43,10 +52,11 @@ class {{ enum.title | caseUcfirst | overrideIdentifier }} implements JsonSeriali
     {
         return match ($value) {
 {% for value in enum.enum %}
-{% set key = enum.extensions['x-enum-keys'] is empty ? value : enum.extensions['x-enum-keys'][loop.index0] %}
+{% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
             '{{ value }}' => self::{{ key | caseEnumKey }}(),
 {% endfor %}
             default => throw new \InvalidArgumentException('Unknown {{ enum.title | caseUcfirst | overrideIdentifier }} value: ' . $value),
         };
     }
 }
+{% endif %}
