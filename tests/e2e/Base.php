@@ -603,6 +603,14 @@ abstract class Base extends TestCase
         ]);
         [$plainScalar, $closedScalar, $openScalar, $plainArray, $closedArray, $openArray] = $specification->paths['/test']->operations['get']->parameters;
         $language = $this->getLanguage();
+        $permission = '["read(\\"any\\")"]';
+        $this->assertTrue($language->isPermissionString($permission));
+        $this->assertSame([[
+            'action' => 'read',
+            'role' => 'any',
+            'id' => null,
+            'innerRole' => null,
+        ]], $language->extractPermissionParts($permission));
         foreach ([$closedScalar, $closedArray, $openScalar, $openArray] as $parameter) {
             $enumSchema = $language->getEnumSchema($parameter);
             $this->assertInstanceOf(StringSchema::class, $enumSchema);
@@ -614,6 +622,8 @@ abstract class Base extends TestCase
         $this->assertFalse($language->isOpenStringEnum($closedArray));
         $this->assertTrue($language->isOpenStringEnum($openScalar));
         $this->assertTrue($language->isOpenStringEnum($openArray));
+        $this->assertStringContainsString('user.created', $language->getSuggestedEnumExample($openScalar));
+        $this->assertStringContainsString('user.created', $language->getSuggestedEnumExample($openArray));
         $sdk = new class ($language, $specification) extends SDK {
             /** @param list<StringSchema> $schemas @return list<StringSchema> */
             public function mergeEnumsForTest(array $schemas): array

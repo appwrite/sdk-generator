@@ -206,17 +206,31 @@ abstract class Language
 
     public function isPermissionString(string $string): bool
     {
-        $pattern = '/^\["(read|update|delete|write)\(\\"[^\\"]+\\"\)"(,\s*"(read|update|delete|write)\(\\"[^\\"]+\\"\)")*\]$/';
-        return preg_match($pattern, $string) === 1;
+        $permissions = \json_decode($string, true);
+        if (!\is_array($permissions) || $permissions === []) {
+            return false;
+        }
+
+        return \array_all(
+            $permissions,
+            static fn(mixed $permission): bool => \is_string($permission)
+                && \preg_match('/^(read|update|delete|write)\("[^"]+"\)$/', $permission) === 1,
+        );
     }
 
     public function extractPermissionParts(string $string): array
     {
-        $inner = substr($string, 1, -1);
-        preg_match_all('/"(read|update|delete|write)\(\\"([^\\"]+)\\"\)"/', $inner, $matches, PREG_SET_ORDER);
+        $permissions = \json_decode($string, true);
+        if (!\is_array($permissions)) {
+            return [];
+        }
 
         $result = [];
-        foreach ($matches as $match) {
+        foreach ($permissions as $permission) {
+            if (!\is_string($permission) || \preg_match('/^(read|update|delete|write)\("([^"]+)"\)$/', $permission, $match) !== 1) {
+                continue;
+            }
+
             $action = $match[1];
             $roleString = $match[2];
 
@@ -384,6 +398,22 @@ abstract class Language
         $enumSchema = $this->getEnumSchema($value);
 
         return $enumSchema instanceof StringSchema && $enumSchema->open;
+    }
+
+    public function getSuggestedEnumExample(Schema|Parameter $value, string $lang = ''): string
+    {
+        $enumSchema = $this->getEnumSchema($value);
+        $suggestion = $enumSchema->enum[0] ?? null;
+        if (!\is_string($suggestion)) {
+            return $this->getParamExample($value, $lang);
+        }
+
+        $schema = $this->getSchema($value);
+        $example = $schema instanceof ArraySchema
+            ? new ArraySchema(items: new StringSchema(), example: [$suggestion])
+            : new StringSchema(example: $suggestion);
+
+        return $this->getParamExample($example, $lang);
     }
 
     protected function getSchemaEnumName(Schema|Parameter $value, ?Specification $spec = null): string
