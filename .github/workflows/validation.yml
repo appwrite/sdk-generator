@@ -257,6 +257,8 @@ jobs:
               python -m pip install pip-audit
               pip install -e .[test]
               pip-audit --strict .
+              find appwrite test -name '*.py' -print0 | xargs -0 python -m black --check
+              python -m black --check setup.py
               python -m compileall appwrite/
               python -m unittest
               ;;

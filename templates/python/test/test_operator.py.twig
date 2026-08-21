@@ -2,6 +2,7 @@ import unittest
 
 from {{ namespace | caseSnake }}.operator import Operator, Condition
 
+
 class TestOperatorMethods(unittest.TestCase):
 
     def test_increment(self):
@@ -38,10 +39,14 @@ class TestOperatorMethods(unittest.TestCase):
         self.assertEqual(Operator.power(3, 100), '{"method":"power","values":[3,100]}')
 
     def test_array_append(self):
-        self.assertEqual(Operator.array_append(['item1', 'item2']), '{"method":"arrayAppend","values":["item1","item2"]}')
+        self.assertEqual(
+            Operator.array_append(['item1', 'item2']), '{"method":"arrayAppend","values":["item1","item2"]}'
+        )
 
     def test_array_prepend(self):
-        self.assertEqual(Operator.array_prepend(['first', 'second']), '{"method":"arrayPrepend","values":["first","second"]}')
+        self.assertEqual(
+            Operator.array_prepend(['first', 'second']), '{"method":"arrayPrepend","values":["first","second"]}'
+        )
 
     def test_array_insert(self):
         self.assertEqual(Operator.array_insert(0, 'newItem'), '{"method":"arrayInsert","values":[0,"newItem"]}')
@@ -53,13 +58,17 @@ class TestOperatorMethods(unittest.TestCase):
         self.assertEqual(Operator.array_unique(), '{"method":"arrayUnique","values":[]}')
 
     def test_array_intersect(self):
-        self.assertEqual(Operator.array_intersect(['a', 'b', 'c']), '{"method":"arrayIntersect","values":["a","b","c"]}')
+        self.assertEqual(
+            Operator.array_intersect(['a', 'b', 'c']), '{"method":"arrayIntersect","values":["a","b","c"]}'
+        )
 
     def test_array_diff(self):
         self.assertEqual(Operator.array_diff(['x', 'y']), '{"method":"arrayDiff","values":["x","y"]}')
 
     def test_array_filter(self):
-        self.assertEqual(Operator.array_filter(Condition.EQUAL, 'test'), '{"method":"arrayFilter","values":["equal","test"]}')
+        self.assertEqual(
+            Operator.array_filter(Condition.EQUAL, 'test'), '{"method":"arrayFilter","values":["equal","test"]}'
+        )
 
     def test_string_concat(self):
         self.assertEqual(Operator.string_concat('suffix'), '{"method":"stringConcat","values":["suffix"]}')

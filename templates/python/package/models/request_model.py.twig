@@ -26,6 +26,7 @@ from .{{ subSchema | caseSnake }} import {{ subSchema | caseUcfirst }}
 {%~ endif %}
 {%~ endfor %}
 
+
 class {{ requestModelName | caseUcfirst }}(AppwriteModel):
     """
     {{ requestModel.description }}
@@ -37,17 +38,22 @@ class {{ requestModelName | caseUcfirst }}(AppwriteModel):
 {% set propertyType %}{% if not (property | schemaRequired) and not (property | schemaNullable) %}Optional[{{ property | getModelPropertyType(requestModelName, spec) | raw }}]{% else %}{{ property | getModelPropertyType(requestModelName, spec) | raw }}{% endif %}{% endset %}
     {{ property | getModelFieldName(requestModel.properties) }} : {{ propertyType | trim }}
 {% if property.description %}
-        {{ property.description | replace({"\n": "\n        "}) }}
+        {{ property.description | formatDocstring(8) }}
 {% else %}
         Typed model field.
 {% endif %}
 {% endfor %}
 {% endif %}
     """
+
 {% if requestModel.properties | length == 0 %}
     pass
 {% else %}
 {% for property in requestModel.properties %}
-    {{ property | getModelFieldName(requestModel.properties) }}: {% if not (property | schemaRequired) and not (property | schemaNullable) %}Optional[{{ property | getModelPropertyType(requestModelName, spec) | raw }}]{% else %}{{ property | getModelPropertyType(requestModelName, spec) | raw }}{% endif %} = Field({% if (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}')
+{% set fieldType %}{% if not (property | schemaRequired) and not (property | schemaNullable) %}Optional[{{ property | getModelPropertyType(requestModelName, spec) | raw }}]{% else %}{{ property | getModelPropertyType(requestModelName, spec) | raw }}{% endif %}{% endset %}
+    {{ property | getModelFieldName(requestModel.properties) }}: {{ fieldType | trim | formatModelFieldType | raw }} = Field(
+        {% if (property | schemaRequired) %}...{% else %}default=None{% endif %},
+        alias='{{ (property | schemaName) }}',
+    )
 {% endfor %}
 {% endif %}

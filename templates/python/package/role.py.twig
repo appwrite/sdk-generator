@@ -1,15 +1,16 @@
 class Role:
     """Helper class to generate role strings for `Permission`."""
+
     @staticmethod
     def any():
         """Grants access to anyone.
-        
+
         This includes authenticated and unauthenticated users.
         """
         return 'any'
 
     @staticmethod
-    def user(id, status = ""):
+    def user(id, status=""):
         """Grants access to a specific user by user ID.
 
         You can optionally pass verified or unverified for
@@ -29,9 +30,9 @@ class Role:
         return f'user:{id}'
 
     @staticmethod
-    def users(status = ""):
+    def users(status=""):
         """Grants access to any authenticated or anonymous user.
-        
+
         You can optionally pass verified or unverified for
         `status` to target specific types of users.
 
@@ -46,7 +47,7 @@ class Role:
         if status:
             return f'users/{status}'
         return 'users'
-    
+
     @staticmethod
     def guests():
         """Grants access to any guest user without a session.
@@ -60,7 +61,7 @@ class Role:
         return 'guests'
 
     @staticmethod
-    def team(id, role = ""):
+    def team(id, role=""):
         """Grants access to a team by team ID.
 
         You can optionally pass a role for `role` to target

@@ -1,7 +1,6 @@
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | schemaType) == 'file' %}
         param_name = '{{ parameter.name }}'
-
 {% endif %}
 {% endfor %}
 
@@ -12,17 +11,24 @@
 {% endif %}
 {% endfor %}
 
-        response = self.client.chunked_upload(api_path, {
+        response = self.client.chunked_upload(
+            api_path,
+            {
 {%~ for key, security in (method | securityHeaders) %}
-            '{{ security.name }}': self.client.get_config('{{ key | caseLower }}'),
+                '{{ security.name }}': self.client.get_config('{{ key | caseLower }}'),
 {%~ endfor %}
 {% for parameter in (method | parameters('header')) %}
-            '{{ parameter.name }}': self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }}),
+                '{{ parameter.name }}': self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }}),
 {% endfor %}
 {% for key, header in (method | methodHeaders) %}
-            '{{ key }}': '{{ header }}',
+                '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, api_params, param_name, on_progress, upload_id)
+            },
+            api_params,
+            param_name,
+            on_progress,
+            upload_id,
+        )
 {% if (method | responseModels)|length > 1 %}
 {% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}
 {% set responseDiscriminator = (method | responseDiscriminator) %}

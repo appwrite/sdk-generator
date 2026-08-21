@@ -8,6 +8,7 @@ Compatible with Python 2.7+ and Python 3.x.
 import functools
 import warnings
 
+
 def deprecated(reason=None):
     """
     Decorator to mark functions as deprecated.
@@ -21,24 +22,19 @@ def deprecated(reason=None):
         def old_function(...):
             ...
     """
+
     def decorator(func):
-        message = "Call to deprecated function '{}'.{}".format(
-            func.__name__,
-            " " + reason if reason else ""
-        )
+        message = "Call to deprecated function '{}'.{}".format(func.__name__, " " + reason if reason else "")
 
         @functools.wraps(func)
         def wrapped(*args, **kwargs):
-            warnings.simplefilter('always', DeprecationWarning) # show warning every time
+            warnings.simplefilter('always', DeprecationWarning)  # show warning every time
             try:
-                warnings.warn(
-                    message,
-                    category=DeprecationWarning,
-                    stacklevel=2
-                )
+                warnings.warn(message, category=DeprecationWarning, stacklevel=2)
                 return func(*args, **kwargs)
             finally:
                 warnings.simplefilter('default', DeprecationWarning)  # reset filter
+
         return wrapped
 
     # Support both @deprecated and @deprecated("reason")

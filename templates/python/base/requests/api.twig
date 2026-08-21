@@ -1,14 +1,20 @@
-        response = self.client.call('{{ method.method.value | caseLower }}', api_path, {
+        response = self.client.call(
+            '{{ method.method.value | caseLower }}',
+            api_path,
+            {
 {%~ for key, security in (method | securityHeaders) %}
-            '{{ security.name }}': self.client.get_config('{{ key | caseLower }}'),
+                '{{ security.name }}': self.client.get_config('{{ key | caseLower }}'),
 {%~ endfor %}
 {% for parameter in (method | parameters('header')) %}
-            '{{ parameter.name }}': self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }}),
+                '{{ parameter.name }}': self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }}),
 {% endfor %}
 {% for key, header in (method | methodHeaders) %}
-            '{{ key }}': '{{ header }}',
+                '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, api_params{% if (method | methodType) == 'webAuth' %}, response_type='location'{% endif %})
+            },
+            api_params,
+{% if (method | methodType) == 'webAuth' %}            response_type='location',
+{% endif %}        )
 {% if (method | methodType) == 'location' %}
 {# Signature says bytes. A responseModel may still be declared, but hydrating it would call to_dict() on the body. #}
 
