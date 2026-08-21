@@ -1555,21 +1555,21 @@
                     "x-enum-name": null,
                     "x-enum-keys": []
                   },
-                  "usageEventMetrics": {
+                  "webhookEvents": {
                     "type": "array",
-                    "description": "Usage metrics to include.",
+                    "description": "Webhook events to subscribe to.",
                     "items": {
                       "anyOf": [
                         {
                           "type": "string",
                           "enum": [
-                            "network.requests",
-                            "network.inbound"
+                            "user.created",
+                            "user.updated"
                           ],
-                          "x-enum-name": "UsageEventMetric",
+                          "x-enum-name": "WebhookEvent",
                           "x-enum-keys": [
-                            "NetworkRequests",
-                            "NetworkInbound"
+                            "UserCreated",
+                            "UserUpdated"
                           ]
                         },
                         {
@@ -1578,19 +1578,19 @@
                       ]
                     }
                   },
-                  "usageEventMetric": {
-                    "description": "Primary usage metric.",
+                  "webhookEvent": {
+                    "description": "A webhook event to subscribe to.",
                     "anyOf": [
                       {
                         "type": "string",
                         "enum": [
-                          "network.requests",
-                          "network.inbound"
+                          "user.created",
+                          "user.updated"
                         ],
-                        "x-enum-name": "UsageEventMetric",
+                        "x-enum-name": "WebhookEvent",
                         "x-enum-keys": [
-                          "NetworkRequests",
-                          "NetworkInbound"
+                          "UserCreated",
+                          "UserUpdated"
                         ]
                       },
                       {

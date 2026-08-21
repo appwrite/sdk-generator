@@ -582,9 +582,9 @@ abstract class Base extends TestCase
     {
         $enumBranch = [
             'type' => 'string',
-            'enum' => ['network.requests', 'network.inbound'],
-            'x-enum-name' => 'UsageEventMetric',
-            'x-enum-keys' => ['NetworkRequests', 'NetworkInbound'],
+            'enum' => ['user.created', 'user.updated'],
+            'x-enum-name' => 'WebhookEvent',
+            'x-enum-keys' => ['UserCreated', 'UserUpdated'],
         ];
         $specification = Parser::parse([
             'openapi' => '3.0.0',
@@ -610,15 +610,15 @@ abstract class Base extends TestCase
             }
         };
         $mergedEnums = $sdk->mergeEnumsForTest([
-            new StringSchema(title: 'SharedMetric', enum: ['known'], open: true),
-            new StringSchema(title: 'SharedMetric', enum: ['known'], open: false),
+            new StringSchema(title: 'SharedEnum', enum: ['known'], open: true),
+            new StringSchema(title: 'SharedEnum', enum: ['known'], open: false),
         ]);
         $this->assertCount(1, $mergedEnums);
         $this->assertFalse($mergedEnums[0]->open, 'A closed use must keep a shared enum type closed.');
 
         if ($language instanceof Web || $language instanceof Deno) {
-            $this->assertSame('(UsageEventMetric | (string & {}))', $language->getTypeName($openScalar, $specification));
-            $this->assertSame('(UsageEventMetric | (string & {}))[]', $language->getTypeName($openArray, $specification));
+            $this->assertSame('(WebhookEvent | (string & {}))', $language->getTypeName($openScalar, $specification));
+            $this->assertSame('(WebhookEvent | (string & {}))[]', $language->getTypeName($openArray, $specification));
 
             return;
         }
@@ -636,22 +636,22 @@ abstract class Base extends TestCase
     private function assertOpenEnumSuggestionsGenerated(string $dir): void
     {
         $expectations = [
-            'web' => ['src/enums/usage-event-metric.ts', 'NetworkRequests'],
-            'node' => ['src/enums/usage-event-metric.ts', 'NetworkRequests'],
-            'react-native' => ['src/enums/usage-event-metric.ts', 'NetworkRequests'],
-            'deno' => ['src/enums/usage-event-metric.ts', 'NetworkRequests'],
-            'php' => ['src/Appwrite/Enums/UsageEventMetric.php', 'public const NETWORKREQUESTS'],
-            'python' => ['appwrite/enums/usage_event_metric.py', 'NETWORKREQUESTS = "network.requests"'],
-            'ruby' => ['lib/appwrite/enums/usage_event_metric.rb', "NETWORKREQUESTS = 'network.requests'"],
-            'dart' => ['lib/src/enums/usage_event_metric.dart', 'static const String networkRequests'],
-            'flutter' => ['lib/src/enums/usage_event_metric.dart', 'static const String networkRequests'],
-            'kotlin' => ['src/main/kotlin/io/appwrite/enums/UsageEventMetric.kt', 'const val NETWORKREQUESTS'],
-            'android' => ['library/src/main/java/io/appwrite/enums/UsageEventMetric.kt', 'const val NETWORKREQUESTS'],
-            'swift' => ['Sources/AppwriteEnums/UsageEventMetric.swift', 'public static let networkRequests'],
-            'apple' => ['Sources/AppwriteEnums/UsageEventMetric.swift', 'public static let networkRequests'],
-            'dotnet' => ['Appwrite/Enums/UsageEventMetric.cs', 'public const string NetworkRequests'],
-            'unity' => ['Assets/Runtime/Core/Enums/UsageEventMetric.cs', 'public const string NetworkRequests'],
-            'rust' => ['src/enums/usage_event_metric.rs', 'pub const NetworkRequests'],
+            'web' => ['src/enums/webhook-event.ts', 'UserCreated'],
+            'node' => ['src/enums/webhook-event.ts', 'UserCreated'],
+            'react-native' => ['src/enums/webhook-event.ts', 'UserCreated'],
+            'deno' => ['src/enums/webhook-event.ts', 'UserCreated'],
+            'php' => ['src/Appwrite/Enums/WebhookEvent.php', 'public const USERCREATED'],
+            'python' => ['appwrite/enums/webhook_event.py', 'USERCREATED = "user.created"'],
+            'ruby' => ['lib/appwrite/enums/webhook_event.rb', "USERCREATED = 'user.created'"],
+            'dart' => ['lib/src/enums/webhook_event.dart', 'static const String userCreated'],
+            'flutter' => ['lib/src/enums/webhook_event.dart', 'static const String userCreated'],
+            'kotlin' => ['src/main/kotlin/io/appwrite/enums/WebhookEvent.kt', 'const val USERCREATED'],
+            'android' => ['library/src/main/java/io/appwrite/enums/WebhookEvent.kt', 'const val USERCREATED'],
+            'swift' => ['Sources/AppwriteEnums/WebhookEvent.swift', 'public static let userCreated'],
+            'apple' => ['Sources/AppwriteEnums/WebhookEvent.swift', 'public static let userCreated'],
+            'dotnet' => ['Appwrite/Enums/WebhookEvent.cs', 'public const string UserCreated'],
+            'unity' => ['Assets/Runtime/Core/Enums/WebhookEvent.cs', 'public const string UserCreated'],
+            'rust' => ['src/enums/webhook_event.rs', 'pub const UserCreated'],
         ];
 
         if (!isset($expectations[$this->language])) {
@@ -664,7 +664,7 @@ abstract class Base extends TestCase
         $contents = file_get_contents($path);
         $this->assertIsString($contents);
         $this->assertStringContainsString($knownValueDeclaration, $contents);
-        $this->assertStringContainsString('network.inbound', $contents);
+        $this->assertStringContainsString('user.updated', $contents);
     }
 
     private function rmdirRecursive(string $dir): void
