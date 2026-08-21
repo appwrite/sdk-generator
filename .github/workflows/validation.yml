@@ -91,13 +91,7 @@ jobs:
         run: composer install
 
       - name: Generate SDK for ${{ matrix.sdk }}
-        run: |
-          if [ "${{ matrix.sdk }}" = "cli" ]; then
-            # CLI commands are generated from the live spec but go.mod pins the
-            # last published Go SDK. Compile against a Go SDK from the same spec.
-            SDK_GO_VERSION=7.1.0 php example.php go server
-          fi
-          php example.php ${{ matrix.sdk }} ${{ matrix.platform }}
+        run: php example.php ${{ matrix.sdk }} ${{ matrix.platform }}
 
       - name: Verify generated SDK is idempotent
         if: matrix.sdk == 'zed-extension' || matrix.sdk == 'cli'
@@ -220,7 +214,6 @@ jobs:
               npm run build
               ;;
             cli)
-              go mod edit -replace github.com/appwrite/sdk-for-go/v7=../go
               go mod tidy
               unformatted=$(gofmt -l .)
               if [ -n "$unformatted" ]; then
