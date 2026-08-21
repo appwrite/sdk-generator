@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -153,6 +154,68 @@ func TestNewGitHubRepositoryIsCreatedOnlyAfterReview(t *testing.T) {
 	if posts != 1 || entry.GetString("providerRepositoryId") != "repository" ||
 		entry.GetBool("providerRepositoryPending") {
 		t.Fatalf("repository was not materialized: posts=%d entry=%#v", posts, entry)
+	}
+}
+
+func TestPendingRepositoryIsNotCreatedWithoutDeployment(t *testing.T) {
+	vcsPosts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		response.Header().Set("content-type", "application/json")
+		switch {
+		case strings.Contains(request.URL.Path, "/providerRepositories"):
+			vcsPosts++
+			response.WriteHeader(http.StatusCreated)
+			_, _ = response.Write([]byte(`{"providerRepositoryId":"repository"}`))
+		case request.Method == http.MethodGet && request.URL.Path == "/functions/checkout":
+			response.WriteHeader(http.StatusNotFound)
+			_, _ = response.Write([]byte(`{"message":"not found","code":404}`))
+		case request.Method == http.MethodPost && request.URL.Path == "/functions":
+			body := jsonx.NewObject()
+			if err := json.NewDecoder(request.Body).Decode(body); err != nil {
+				t.Errorf("decode settings body: %v", err)
+			}
+			if _, exists := body.Get("installationId"); exists {
+				t.Error("settings-only push sent VCS fields for a pending repository")
+			}
+			response.WriteHeader(http.StatusCreated)
+			_, _ = response.Write([]byte(`{"$id":"checkout"}`))
+		case request.Method == http.MethodGet && request.URL.Path == "/proxy/rules":
+			_, _ = response.Write([]byte(`{"total":0,"rules":[]}`))
+		default:
+			t.Errorf("unexpected request: %s %s", request.Method, request.URL.String())
+			response.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	preferencesWith(t, fmt.Sprintf(
+		`{"current":"test","test":{"endpoint":%q,"key":"secret"}}`, server.URL))
+	directory := t.TempDir()
+	inDirectory(t, directory)
+	path := filepath.Join(directory, config.LocalFileName)
+	contents := `{"projectId":"project","functions":[{"$id":"checkout","name":"Checkout","runtime":"node-22","entrypoint":"src/main.js","installationId":"installation","providerRepositoryName":"team/checkout","providerRepositoryPrivate":true,"providerRepositoryPending":true,"providerBranch":"main","providerRootDirectory":"./"}]}`
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	command := &cobra.Command{Use: "push function"}
+	command.SetOut(&bytes.Buffer{})
+	command.SetErr(&bytes.Buffer{})
+	if err := runPushDeployable(command, deployables[0], deployOptions{
+		ResourceID: "checkout",
+		Code:       false,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if vcsPosts != 0 {
+		t.Fatalf("settings-only push created %d repositories", vcsPosts)
+	}
+	reloaded, err := config.LoadLocal(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reloaded.ResourceEntries("functions")[0].GetBool("providerRepositoryPending") {
+		t.Fatal("settings-only push cleared pending repository intent")
 	}
 }
 
@@ -401,6 +464,7 @@ func TestRemoveOtherPreviewRulesPreservesCustomDomain(t *testing.T) {
 }
 
 func TestCreateGitFunctionDeploymentSeedsTemplateOnce(t *testing.T) {
+	path := filepath.Join(t.TempDir(), config.LocalFileName)
 	var body map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		if request.URL.Path != "/functions/checkout/deployments/template" {
@@ -409,13 +473,18 @@ func TestCreateGitFunctionDeploymentSeedsTemplateOnce(t *testing.T) {
 		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
 			t.Errorf("decode body: %v", err)
 		}
+		persisted, err := config.LoadLocal(path)
+		if err != nil {
+			t.Errorf("load config during request: %v", err)
+		} else if persisted.ResourceEntries("functions")[0].GetString("templateRepository") != "" {
+			t.Error("template coordinates were not consumed before the request")
+		}
 		response.Header().Set("content-type", "application/json")
 		response.WriteHeader(http.StatusAccepted)
 		_, _ = response.Write([]byte(`{"$id":"deployment-1","status":"waiting"}`))
 	}))
 	defer server.Close()
 
-	path := filepath.Join(t.TempDir(), config.LocalFileName)
 	contents := `{"projectId":"project","functions":[{"$id":"checkout","templateRepository":"templates","templateOwner":"appwrite","templateRootDirectory":"node/starter","templateReference":"1.0.1","templateReferenceType":"tag"}]}`
 	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
 		t.Fatal(err)
