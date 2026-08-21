@@ -479,6 +479,7 @@ abstract class Base extends TestCase
 
         $this->assertOpenEnumsAllowAnyString();
         $this->assertUploadIdParameterInference();
+        $this->assertEnumKeysAreValid();
 
         $sdk = new SDK($this->getLanguage(), Parser::parse($spec));
 
@@ -577,6 +578,42 @@ abstract class Base extends TestCase
                 $this->assertEquals($expected, $output[$index]);
             }
         }
+    }
+
+    private function assertEnumKeysAreValid(): void
+    {
+        $specification = Parser::parse([
+            'openapi' => '3.1.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => ['/test' => ['get' => [
+                'operationId' => 'testEnumKeys',
+                'parameters' => [
+                    ['name' => 'localized', 'in' => 'query', 'schema' => [
+                        'type' => 'string',
+                        'enum' => ['រាជធានី', 'ខេត្ត', 'Test'],
+                    ]],
+                    ['name' => 'annotated', 'in' => 'query', 'schema' => [
+                        'title' => 'ProvinceType',
+                        'oneOf' => [
+                            ['const' => 'រាជធានី', 'title' => 'Capital'],
+                            ['const' => 'ខេត្ត', 'title' => 'Province'],
+                            ['const' => 'Test', 'title' => 'Test'],
+                        ],
+                    ]],
+                    ['name' => 'unsafe', 'in' => 'query', 'schema' => [
+                        'type' => 'string',
+                        'enum' => ['123', '-'],
+                    ]],
+                ],
+                'responses' => ['200' => ['description' => 'ok']],
+            ]]],
+        ]);
+        [$localized, $annotated, $unsafe] = $specification->paths['/test']->operations['get']->parameters;
+        $language = $this->getLanguage();
+
+        $this->assertSame(['Value1', 'Value2', 'Test'], $language->resolveEnumKeys($localized));
+        $this->assertSame(['Capital', 'Province', 'Test'], $language->resolveEnumKeys($annotated));
+        $this->assertSame(['Value123', 'Value2'], $language->resolveEnumKeys($unsafe));
     }
 
     private function assertOpenEnumsAllowAnyString(): void
@@ -725,35 +762,54 @@ abstract class Base extends TestCase
     private function assertOpenEnumSuggestionsGenerated(string $dir): void
     {
         $expectations = [
-            'web' => ['src/enums/webhook-event.ts', 'UserCreated'],
-            'node' => ['src/enums/webhook-event.ts', 'UserCreated'],
-            'react-native' => ['src/enums/webhook-event.ts', 'UserCreated'],
-            'deno' => ['src/enums/webhook-event.ts', 'UserCreated'],
-            'php' => ['src/Appwrite/Enums/WebhookEvent.php', 'public const USERCREATED'],
-            'python' => ['appwrite/enums/webhook_event.py', 'USERCREATED = "user.created"'],
-            'ruby' => ['lib/appwrite/enums/webhook_event.rb', "USERCREATED = 'user.created'"],
-            'dart' => ['lib/src/enums/webhook_event.dart', 'static const String userCreated'],
-            'flutter' => ['lib/src/enums/webhook_event.dart', 'static const String userCreated'],
-            'kotlin' => ['src/main/kotlin/io/appwrite/enums/WebhookEvent.kt', 'const val USERCREATED'],
-            'android' => ['library/src/main/java/io/appwrite/enums/WebhookEvent.kt', 'const val USERCREATED'],
-            'swift' => ['Sources/AppwriteEnums/WebhookEvent.swift', 'public static let userCreated'],
-            'apple' => ['Sources/AppwriteEnums/WebhookEvent.swift', 'public static let userCreated'],
-            'dotnet' => ['Appwrite/Enums/WebhookEvent.cs', 'public const string UserCreated'],
-            'unity' => ['Assets/Runtime/Core/Enums/WebhookEvent.cs', 'public const string UserCreated'],
-            'rust' => ['src/enums/webhook_event.rs', 'pub const UserCreated'],
+            'web' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
+            'node' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
+            'react-native' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
+            'deno' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
+            'php' => ['src/Appwrite/Enums/WebhookEvent.php', 'public const USERCREATED', 'src/Appwrite/Enums/LocalizedStatus.php', 'public static function VALUE1', 'src/Appwrite/Enums/ProvinceType.php', 'public static function CAPITAL'],
+            'python' => ['appwrite/enums/webhook_event.py', 'USERCREATED = "user.created"', 'appwrite/enums/localized_status.py', 'VALUE1 = "រាជធានី"', 'appwrite/enums/province_type.py', 'CAPITAL = "រាជធានី"'],
+            'ruby' => ['lib/appwrite/enums/webhook_event.rb', "USERCREATED = 'user.created'", 'lib/appwrite/enums/localized_status.rb', "VALUE1 = 'រាជធានី'", 'lib/appwrite/enums/province_type.rb', "CAPITAL = 'រាជធានី'"],
+            'dart' => ['lib/src/enums/webhook_event.dart', 'static const String userCreated', 'lib/src/enums/localized_status.dart', 'value1(value:', 'lib/src/enums/province_type.dart', 'capital(value:'],
+            'flutter' => ['lib/src/enums/webhook_event.dart', 'static const String userCreated', 'lib/src/enums/localized_status.dart', 'value1(value:', 'lib/src/enums/province_type.dart', 'capital(value:'],
+            'kotlin' => ['src/main/kotlin/io/appwrite/enums/WebhookEvent.kt', 'const val USERCREATED', 'src/main/kotlin/io/appwrite/enums/LocalizedStatus.kt', 'VALUE1("', 'src/main/kotlin/io/appwrite/enums/ProvinceType.kt', 'CAPITAL("'],
+            'android' => ['library/src/main/java/io/appwrite/enums/WebhookEvent.kt', 'const val USERCREATED', 'library/src/main/java/io/appwrite/enums/LocalizedStatus.kt', 'VALUE1("', 'library/src/main/java/io/appwrite/enums/ProvinceType.kt', 'CAPITAL("'],
+            'swift' => ['Sources/AppwriteEnums/WebhookEvent.swift', 'public static let userCreated', 'Sources/AppwriteEnums/LocalizedStatus.swift', 'case value1', 'Sources/AppwriteEnums/ProvinceType.swift', 'case capital'],
+            'apple' => ['Sources/AppwriteEnums/WebhookEvent.swift', 'public static let userCreated', 'Sources/AppwriteEnums/LocalizedStatus.swift', 'case value1', 'Sources/AppwriteEnums/ProvinceType.swift', 'case capital'],
+            'dotnet' => ['Appwrite/Enums/WebhookEvent.cs', 'public const string UserCreated', 'Appwrite/Enums/LocalizedStatus.cs', 'public static LocalizedStatus Value1', 'Appwrite/Enums/ProvinceType.cs', 'public static ProvinceType Capital'],
+            'unity' => ['Assets/Runtime/Core/Enums/WebhookEvent.cs', 'public const string UserCreated', 'Assets/Runtime/Core/Enums/LocalizedStatus.cs', 'public static LocalizedStatus Value1', 'Assets/Runtime/Core/Enums/ProvinceType.cs', 'public static ProvinceType Capital'],
+            'rust' => ['src/enums/webhook_event.rs', 'pub const UserCreated', 'src/enums/localized_status.rs', 'Value1,', 'src/enums/province_type.rs', 'Capital,'],
         ];
 
         if (!isset($expectations[$this->language])) {
             return;
         }
 
-        [$relativePath, $knownValueDeclaration] = $expectations[$this->language];
+        [
+            $relativePath,
+            $knownValueDeclaration,
+            $localizedPath,
+            $localizedDeclaration,
+            $annotatedPath,
+            $annotatedDeclaration,
+        ] = $expectations[$this->language];
         $path = $dir . '/' . $relativePath;
         $this->assertFileExists($path);
         $contents = file_get_contents($path);
         $this->assertIsString($contents);
         $this->assertStringContainsString($knownValueDeclaration, $contents);
         $this->assertStringContainsString('user.updated', $contents);
+
+        foreach (
+            [
+                [$localizedPath, $localizedDeclaration],
+                [$annotatedPath, $annotatedDeclaration],
+            ] as [$enumPath, $declaration]
+        ) {
+            $this->assertFileExists($dir . '/' . $enumPath);
+            $enumContents = file_get_contents($dir . '/' . $enumPath);
+            $this->assertIsString($enumContents);
+            $this->assertStringContainsString($declaration, $enumContents);
+        }
     }
 
     private function rmdirRecursive(string $dir): void
