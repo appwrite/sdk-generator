@@ -406,16 +406,16 @@ func TestNormalizeBuilderDirect(t *testing.T) {
 
 func TestNormalizeBuilderWrappedInArray(t *testing.T) {
 	builder := Builder().Equal("status", "active").Limit(10)
-	assertQueriesEqual(t, Normalize([]any{builder}), builder.Build())
+	assertQueriesEqual(t, Normalize([]interface{}{builder}), builder.Build())
 }
 
 func TestNormalizeBuildResultWrappedInArray(t *testing.T) {
 	built := Builder().Equal("status", "active").Limit(10).Build()
-	assertQueriesEqual(t, Normalize([]any{built}), built)
+	assertQueriesEqual(t, Normalize([]interface{}{built}), built)
 }
 
 func TestNormalizeMixedAndPage(t *testing.T) {
-	normalized := Normalize([]any{
+	normalized := Normalize([]interface{}{
 		Equal("status", "active"),
 		Page(2, 10),
 	})

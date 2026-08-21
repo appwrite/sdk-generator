@@ -584,17 +584,7 @@ export class Realtime {
             }
 
             if (changes.queries !== undefined) {
-                const nextQueries: string[] = [];
-                for (const q of changes.queries) {
-                    if (Array.isArray(q)) {
-                        for (const inner of q) {
-                            nextQueries.push(typeof inner === 'string' ? inner : (inner as Query).toString());
-                        }
-                    } else {
-                        nextQueries.push(typeof q === 'string' ? q : q.toString());
-                    }
-                }
-                subscription.queries = nextQueries;
+                subscription.queries = Query.normalize(changes.queries);
             }
 
             this.enqueuePendingSubscribe(subscriptionId);

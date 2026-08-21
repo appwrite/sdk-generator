@@ -1051,7 +1051,7 @@ func (b *QueryBuilder) Page(page, perPage int) *QueryBuilder {
 	return b.push(Page(page, perPage)...)
 }
 
-func Normalize(queries any) []string {
+func Normalize(queries interface{}) []string {
 	if queries == nil {
 		return []string{}
 	}
