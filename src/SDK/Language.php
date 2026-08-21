@@ -335,7 +335,27 @@ abstract class Language
             return '{}';
         }
 
-        return \json_encode($example, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $options = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+        if ($this->containsAssociativeArray((array) $example)) {
+            $options |= JSON_PRETTY_PRINT;
+        }
+
+        $encoded = \json_encode($example, $options);
+        return ($options & JSON_PRETTY_PRINT) === 0
+            ? \str_replace(',', ', ', $encoded)
+            : \str_replace("\n", "\n\t", $encoded);
+    }
+
+    private function containsAssociativeArray(array $value): bool
+    {
+        if (!\array_is_list($value)) {
+            return true;
+        }
+
+        return \array_any(
+            $value,
+            fn(mixed $item): bool => \is_array($item) && $this->containsAssociativeArray($item),
+        );
     }
 
     protected function getSchemaDefault(Schema|Parameter $value): mixed
