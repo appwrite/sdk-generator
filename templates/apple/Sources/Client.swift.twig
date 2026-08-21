@@ -314,7 +314,7 @@ open class Client {
         converter: ((Any) throws -> T)? = nil
     ) async throws -> T {
         let validParams = params
-            .mapValues { Query.flatten($0) }
+            .mapValues { flatten($0) }
             .filter { $0.value != nil }
 
         let queryParameters = method == "GET" && !validParams.isEmpty
@@ -703,6 +703,48 @@ open class Client {
             key: "origin",
             value: "{{ spec.info.title | caseLower }}-\(operatingSystem)://\(packageInfo.packageName)"
         )
+    }
+
+    private func flatten(_ value: Any?) -> Any? {
+        if let builder = value as? Query.Builder {
+            return builder.build()
+        }
+        if let query = value as? Query {
+            return query.description
+        }
+
+        let items: [Any]
+        if let typed = value as? [Any] {
+            items = typed
+        } else if let typed = value as? [Any?] {
+            items = typed.compactMap { $0 }
+        } else {
+            return value
+        }
+
+        var out: [Any] = []
+        var changed = false
+        for item in items {
+            let flat = flatten(item)
+            if item is Query.Builder || item is Query {
+                if let list = flat as? [Any] {
+                    out.append(contentsOf: list)
+                } else if let flat {
+                    out.append(flat)
+                }
+                changed = true
+                continue
+            }
+            if let list = flat as? [Any], (item is [Any] || item is [String]), list.allSatisfy({ $0 is String }) {
+                out.append(contentsOf: list)
+                changed = true
+                continue
+            }
+            if let flat {
+                out.append(flat)
+            }
+        }
+        return changed ? out : value
     }
 }
 

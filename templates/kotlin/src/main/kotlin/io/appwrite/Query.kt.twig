@@ -577,46 +577,6 @@ class Query(
          */
         fun builder() = Builder()
 
-        internal fun flatten(value: Any?): Any? {
-            if (value is Builder) {
-                return value.build()
-            }
-            if (value is Query) {
-                return value.toString()
-            }
-
-            val items = when (value) {
-                is Array<*> -> value.asList()
-                is Collection<*> -> value
-                else -> return value
-            }
-
-            val out = ArrayList<Any?>(items.size)
-            var changed = false
-            for (item in items) {
-                val flat = flatten(item)
-                if (item is Builder || item is Query) {
-                    if (flat is Collection<*>) {
-                        out.addAll(flat)
-                    } else {
-                        out.add(flat)
-                    }
-                    changed = true
-                    continue
-                }
-                if ((item is Array<*> || item is Collection<*>) && flat is Collection<*> && flat.all { it is String }) {
-                    out.addAll(flat)
-                    changed = true
-                    continue
-                }
-                if (flat !== item) {
-                    changed = true
-                }
-                out.add(flat)
-            }
-            return if (changed) out else value
-        }
-
         private fun joinQuery(method: String, table: String, left: String, right: String, operator: String, alias: String): String {
             val values = if (alias.isNotEmpty()) listOf(left, operator, right, alias) else listOf(left, operator, right)
             return Query(method, table, values).toJson()
