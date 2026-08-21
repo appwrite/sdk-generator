@@ -67,23 +67,22 @@ impl {{ service.name | caseUcfirst }} {
 {% endif %}
 {% endfor %}
     ) -> {{ method | returnType(spec, 'crate') | rustType }} {
-{% set hasUploadID = false %}
+{% set uploadIdParameter = method | uploadIdParameter %}
 {% set uploadIDRequired = false %}
-{% for parameter in (method | parameters('all')) %}
-{% if (parameter | extension('x-upload-id', false)) %}
-{% set hasUploadID = true %}
-{% if parameter.required and not (parameter | schemaNullable) %}
-{% set uploadIDRequired = true %}
-        let {{ parameter.name | caseSnake | overrideIdentifier }}_str = {{ parameter.name | caseSnake | overrideIdentifier }}.into();
+{% if uploadIdParameter %}
+{% set uploadIDRequired = uploadIdParameter.required and not (uploadIdParameter | schemaNullable) %}
+{% endif %}
+{% if uploadIdParameter %}
+{% if uploadIDRequired %}
+        let {{ uploadIdParameter.name | caseSnake | overrideIdentifier }}_str = {{ uploadIdParameter.name | caseSnake | overrideIdentifier }}.into();
 {% else %}
-        let {{ parameter.name | caseSnake | overrideIdentifier }}_str = {{ parameter.name | caseSnake | overrideIdentifier }}.map(|v| v.into());
+        let {{ uploadIdParameter.name | caseSnake | overrideIdentifier }}_str = {{ uploadIdParameter.name | caseSnake | overrideIdentifier }}.map(|v| v.into());
 {% endif %}
 {% endif %}
-{% endfor %}
         let {% if (method | parameters('query')) is not empty or (method | parameters('body')) is not empty %}mut {% endif %}params = HashMap::new();
 {% for parameter in (method | parameters('query')) %}
 {% if parameter.required and not (parameter | schemaNullable) %}
-{% if (parameter | extension('x-upload-id', false)) %}
+{% if uploadIdParameter and parameter.name == uploadIdParameter.name %}
         params.insert("{{ parameter.name }}".to_string(), json!({{ parameter.name | caseSnake | overrideIdentifier }}_str));
 {% else %}
         params.insert("{{ parameter.name }}".to_string(), json!({{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}));
@@ -102,7 +101,7 @@ impl {{ service.name | caseUcfirst }} {
 {% for parameter in (method | parameters('body')) %}
 {% if (parameter | schemaType) != 'file' %}
 {% if parameter.required and not (parameter | schemaNullable) %}
-{% if (parameter | extension('x-upload-id', false)) %}
+{% if uploadIdParameter and parameter.name == uploadIdParameter.name %}
         params.insert("{{ parameter.name }}".to_string(), json!({{ parameter.name | caseSnake | overrideIdentifier }}_str));
 {% else %}
         params.insert("{{ parameter.name }}".to_string(), json!({{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}));
@@ -142,14 +141,14 @@ impl {{ service.name | caseUcfirst }} {
 {% set fileParamName = '' %}
 {% set fileParamKey = '' %}
 {% set uploadIdParam = '' %}
+{% if uploadIdParameter %}
+{% set uploadIdParam = uploadIdParameter.name | caseSnake | overrideIdentifier %}
+{% endif %}
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | schemaType) == 'file' %}
 {% set hasFileParam = true %}
 {% set fileParamName = parameter.name | caseSnake | overrideIdentifier %}
 {% set fileParamKey = parameter.name %}
-{% endif %}
-{% if (parameter | extension('x-upload-id', false)) %}
-{% set uploadIdParam = parameter.name | caseSnake | overrideIdentifier %}
 {% endif %}
 {% endfor %}
 {% if hasFileParam %}

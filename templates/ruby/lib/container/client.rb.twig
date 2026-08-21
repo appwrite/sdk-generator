@@ -155,6 +155,8 @@ module {{ spec.info.title | caseUcfirst }}
             chunks_uploaded = 0
             if id_param_name&.empty? == false
                 upload_id = params[id_param_name]
+            end
+            if upload_id && !upload_id.empty?
                 # Make a request to check if a file already exists
                 begin
                     current = call(

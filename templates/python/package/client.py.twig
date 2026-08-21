@@ -164,11 +164,12 @@ class Client:
         offset = 0
         counter = 0
 
-        try:
-            result = self.call('get', path + '/' + upload_id, headers)
-            counter = result['chunksUploaded']
-        except:
-            pass
+        if upload_id:
+            try:
+                result = self.call('get', path + '/' + upload_id, headers)
+                counter = result['chunksUploaded']
+            except:
+                pass
 
         if counter > 0:
             offset = counter * self._chunk_size

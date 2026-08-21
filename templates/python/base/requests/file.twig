@@ -6,11 +6,10 @@
 {% endfor %}
 
         upload_id = ''
-{% for parameter in (method | parameters('all')) %}
-{% if (parameter | extension('x-upload-id', false)) %}
-        upload_id = {{ parameter.name | escapeKeyword | caseSnake }}
+{% set uploadIdParameter = method | uploadIdParameter %}
+{% if uploadIdParameter %}
+        upload_id = {{ uploadIdParameter.name | escapeKeyword | caseSnake }}
 {% endif %}
-{% endfor %}
 
         response = self.client.chunked_upload(api_path, {
 {%~ for key, security in (method | securityHeaders) %}

@@ -12,6 +12,8 @@ use FilesystemIterator;
 use Throwable;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\SDK;
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Parser;
 use PHPUnit\Framework\TestCase;
@@ -476,6 +478,7 @@ abstract class Base extends TestCase
         }
 
         $this->assertOpenEnumsAllowAnyString();
+        $this->assertUploadIdParameterInference();
 
         $sdk = new SDK($this->getLanguage(), Parser::parse($spec));
 
@@ -657,6 +660,66 @@ abstract class Base extends TestCase
             $language->getTypeName($plainArray, $specification),
             $language->getTypeName($openArray, $specification),
         );
+    }
+
+    private function assertUploadIdParameterInference(): void
+    {
+        $multipart = static fn(array $properties, array $required = []): array => [
+            'requestBody' => ['content' => ['multipart/form-data' => ['schema' => [
+                'type' => 'object',
+                'properties' => $properties,
+                'required' => $required,
+            ]]]],
+            'responses' => ['200' => ['description' => 'ok']],
+        ];
+        $file = ['type' => 'string', 'format' => 'binary'];
+        $string = ['type' => 'string'];
+        $specification = Parser::parse([
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => [
+                '/file' => ['post' => $multipart(
+                    ['fileId' => $string, 'file' => $file],
+                    ['fileId', 'file'],
+                )],
+                '/code' => ['post' => $multipart(['code' => $file], ['code'])],
+                '/optional' => ['post' => $multipart(['fileId' => $string, 'file' => $file], ['file'])],
+                '/malformed' => ['post' => $multipart([
+                    'fileId' => ['type' => 'integer'],
+                    'file' => $file,
+                ])],
+                '/multiple' => ['post' => $multipart([
+                    'archive' => $file,
+                    'archiveId' => $string,
+                    'file' => $file,
+                ])],
+                '/json' => ['post' => [
+                    'requestBody' => ['content' => ['application/json' => ['schema' => [
+                        'type' => 'object',
+                        'properties' => ['fileId' => $string, 'file' => $file],
+                    ]]]],
+                    'responses' => ['200' => ['description' => 'ok']],
+                ]],
+            ],
+        ]);
+        $sdk = new class ($this->getLanguage(), $specification) extends SDK {
+            public function uploadIdParameterForTest(Operation $operation): ?Parameter
+            {
+                return $this->uploadIdParameter($operation);
+            }
+        };
+
+        $fileId = $sdk->uploadIdParameterForTest($specification->paths['/file']->operations['post']);
+        $this->assertInstanceOf(Parameter::class, $fileId);
+        $this->assertSame('fileId', $fileId->name);
+        $this->assertTrue($fileId->required);
+        $this->assertNotInstanceOf(Parameter::class, $sdk->uploadIdParameterForTest($specification->paths['/code']->operations['post']));
+        $optional = $sdk->uploadIdParameterForTest($specification->paths['/optional']->operations['post']);
+        $this->assertInstanceOf(Parameter::class, $optional);
+        $this->assertFalse($optional->required);
+        $this->assertNotInstanceOf(Parameter::class, $sdk->uploadIdParameterForTest($specification->paths['/malformed']->operations['post']));
+        $this->assertNotInstanceOf(Parameter::class, $sdk->uploadIdParameterForTest($specification->paths['/multiple']->operations['post']));
+        $this->assertNotInstanceOf(Parameter::class, $sdk->uploadIdParameterForTest($specification->paths['/json']->operations['post']));
     }
 
     private function assertOpenEnumSuggestionsGenerated(string $dir): void

@@ -2216,6 +2216,10 @@
                       "type": "string"
                     }
                   },
+                  "fileId": {
+                    "description": "Optional upload ID",
+                    "type": "string"
+                  },
                   "file": {
                     "description": "Sample file param",
                     "type": "string",
