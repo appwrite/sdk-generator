@@ -508,6 +508,7 @@ abstract class Base extends TestCase
         }
 
         $this->assertOpenEnumsAllowAnyString();
+        $this->assertClosedOneOfStringEnumsAreEnums();
 
         $sdk = new SDK($this->getLanguage(), Parser::parse($spec));
 
@@ -550,6 +551,7 @@ abstract class Base extends TestCase
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
         $this->assertOpenEnumSuggestionsGenerated($dir);
+        $this->assertOneOfStringEnumsUseWireNames($dir);
         $this->assertExcludedFixtureWasRemoved($dir);
         $this->assertCommentsAreNotHtmlEscaped($dir);
 
@@ -606,6 +608,96 @@ abstract class Base extends TestCase
                 $this->assertEquals($expected, $output[$index]);
             }
         }
+    }
+
+    private function assertClosedOneOfStringEnumsAreEnums(): void
+    {
+        $specification = Parser::parse([
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => ['/items/{kind}' => ['get' => [
+                'operationId' => 'getItem',
+                'parameters' => [[
+                    'name' => 'kind',
+                    'in' => 'path',
+                    'required' => true,
+                    'schema' => [
+                        'type' => 'string',
+                        'example' => 'alpha',
+                        'title' => 'MockKind',
+                        'oneOf' => [
+                            ['type' => 'string', 'enum' => ['alpha'], 'title' => 'alpha'],
+                            ['type' => 'string', 'enum' => ['beta'], 'title' => 'beta'],
+                        ],
+                    ],
+                ]],
+                'responses' => ['200' => ['description' => 'ok']],
+            ]]],
+        ]);
+        $language = $this->getLanguage();
+        $parameter = $specification->paths['/items/{kind}']->operations['get']->parameters[0];
+        $plainString = Parser::parse([
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => ['/test' => ['get' => [
+                'operationId' => 'test',
+                'parameters' => [
+                    ['name' => 'plainScalar', 'in' => 'query', 'schema' => ['type' => 'string']],
+                    ['name' => 'plainObject', 'in' => 'query', 'schema' => ['type' => 'object']],
+                ],
+                'responses' => ['200' => ['description' => 'ok']],
+            ]]],
+        ])->paths['/test']->operations['get']->parameters;
+        [$plainScalar, $plainObject] = $plainString;
+
+        $this->assertNotSame(
+            $language->getTypeName($plainObject, $specification),
+            $language->getTypeName($parameter, $specification),
+            'A oneOf of string enums must not type as a generic object.'
+        );
+        $this->assertNotSame(
+            $language->getTypeName($plainScalar, $specification),
+            $language->getTypeName($plainObject, $specification)
+        );
+        $enumSchema = $language->getEnumSchema($parameter);
+        $this->assertSame(['alpha', 'beta'], $enumSchema->enum);
+    }
+
+    private function assertOneOfStringEnumsUseWireNames(string $dir): void
+    {
+        $expectations = [
+            'php' => [
+                $dir . '/src/Appwrite/Models/Mock.php',
+                "array_key_exists('kind'",
+                "array_key_exists('MockKind'",
+            ],
+            'python' => [
+                $dir . '/appwrite/models/mock.py',
+                "alias='kind'",
+                "alias='MockKind'",
+            ],
+            'kotlin' => [
+                $dir . '/src/main/kotlin/io/appwrite/models/Mock.kt',
+                '@SerializedName("kind")',
+                '@SerializedName("MockKind")',
+            ],
+            'android' => [
+                $dir . '/library/src/main/java/io/appwrite/models/Mock.kt',
+                '@SerializedName("kind")',
+                '@SerializedName("MockKind")',
+            ],
+        ];
+
+        if (!isset($expectations[$this->language])) {
+            return;
+        }
+
+        [$modelPath, $wireName, $titleName] = $expectations[$this->language];
+        $this->assertFileExists($modelPath);
+        $contents = file_get_contents($modelPath);
+        $this->assertIsString($contents);
+        $this->assertStringContainsString($wireName, $contents);
+        $this->assertStringNotContainsString($titleName, $contents);
     }
 
     private function assertOpenEnumsAllowAnyString(): void

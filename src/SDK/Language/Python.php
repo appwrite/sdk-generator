@@ -353,8 +353,7 @@ class Python extends Language
     protected function getBaseTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        if ($enumSchema->enum !== []) {
+        if ($this->getTypedEnumSchema($parameter) instanceof Schema) {
             $typeName = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             if ($schema instanceof ArraySchema) {
                 $typeName = 'List[' . $typeName . ']';

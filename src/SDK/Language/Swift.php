@@ -323,8 +323,7 @@ class Swift extends Language
         $schema = $this->getSchema($parameter);
         $items = $this->getArraySchema($parameter);
         $prefix = $spec?->info->title ?? '';
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        if ($enumSchema->enum !== []) {
+        if ($this->getTypedEnumSchema($parameter) instanceof Schema) {
             $type = $prefix . 'Enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             return $schema instanceof ArraySchema ? '[' . $type . ']' : $type;
         }

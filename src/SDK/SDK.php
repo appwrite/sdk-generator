@@ -1549,7 +1549,7 @@ class SDK
         return match (true) {
             $schema instanceof StringSchema && $schema->format === 'binary' => 'file',
             $schema instanceof StringSchema,
-            $schema instanceof CompositeSchema && $this->language->isOpenStringEnum($schema) => 'string',
+            $schema instanceof CompositeSchema && $this->language->getEnumSchema($schema) instanceof StringSchema => 'string',
             $schema instanceof IntegerSchema => 'integer',
             $schema instanceof NumberSchema => 'number',
             $schema instanceof BooleanSchema => 'boolean',
@@ -1560,7 +1560,7 @@ class SDK
 
     protected function getSchemaName(Schema $schema): string
     {
-        return $schema->title ?? $this->schemaNames[\spl_object_id($schema)] ?? '';
+        return $this->schemaNames[\spl_object_id($schema)] ?? $schema->title ?? '';
     }
 
     protected function getSchemaModel(Schema|Parameter $value): string
@@ -1634,6 +1634,7 @@ class SDK
 
     protected function getEnumName(Schema|Parameter $value): string
     {
+        $original = $this->getSchema($value);
         $enumSchema = $this->language->getEnumSchema($value);
         if ($enumSchema->enum === []) {
             return '';
@@ -1641,6 +1642,7 @@ class SDK
         return (string) (($enumSchema instanceof StringSchema ? $enumSchema->enumName : null)
             ?? $enumSchema->title
             ?? $this->schemaEnumNames[\spl_object_id($enumSchema)]
+            ?? $this->schemaEnumNames[\spl_object_id($original)]
             ?? ($value instanceof Parameter ? $value->name : ''));
     }
 

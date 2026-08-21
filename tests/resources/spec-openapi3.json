@@ -1597,6 +1597,28 @@
                         "type": "string"
                       }
                     ]
+                  },
+                  "kind": {
+                    "description": "Mock kind encoded as a oneOf of string enums.",
+                    "example": "alpha",
+                    "title": "MockKind",
+                    "type": "string",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "alpha"
+                        ],
+                        "title": "alpha"
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "beta"
+                        ],
+                        "title": "beta"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -2665,6 +2687,28 @@
               "cancelled"
             ],
             "x-enum-name": "MockStatus"
+          },
+          "kind": {
+            "description": "Mock kind encoded as a oneOf of string enums.",
+            "example": "alpha",
+            "title": "MockKind",
+            "type": "string",
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "alpha"
+                ],
+                "title": "alpha"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "beta"
+                ],
+                "title": "beta"
+              }
+            ]
           },
           "relatedMock": {
             "type": "object",

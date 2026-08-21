@@ -275,8 +275,7 @@ class Rust extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        if ($enumSchema->enum !== []) {
+        if ($this->getTypedEnumSchema($parameter) instanceof Schema) {
             $type = 'crate::enums::' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             return $schema instanceof ArraySchema ? 'Vec<' . $type . '>' : $type;
         }

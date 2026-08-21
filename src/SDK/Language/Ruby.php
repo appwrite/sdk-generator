@@ -217,8 +217,7 @@ class Ruby extends Language
 
         // An array of enum members is still just an Array to Ruby; only a
         // scalar enum names its generated class.
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        if ($enumSchema->enum !== [] && $type !== self::TYPE_ARRAY) {
+        if ($this->getTypedEnumSchema($parameter) instanceof Schema && $type !== self::TYPE_ARRAY) {
             return \ucfirst($this->getSchemaEnumName($parameter, $spec));
         }
 
@@ -323,7 +322,8 @@ class Ruby extends Language
                     $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= $this->jsonToHash(json_decode((string) $example, true));
+                    $decoded = \is_array($example) ? $example : json_decode((string) $example, true);
+                    $output .= $this->jsonToHash(\is_array($decoded) ? $decoded : []);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';

@@ -12,7 +12,9 @@ mixin ClientMixin {
     required Map<String, String> headers,
     required Map<String, dynamic> params,
   }) {
-    params = params.map((key, value) => MapEntry(key, _flattenValue(value)));
+    params = <String, dynamic>{
+      for (final entry in params.entries) entry.key: _flattenValue(entry.value),
+    };
 
     http.BaseRequest request = http.Request(method.name(), uri);
     if (headers['content-type'] == 'multipart/form-data') {

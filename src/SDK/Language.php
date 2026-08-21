@@ -7,6 +7,7 @@ use Normalizer;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\BooleanSchema;
 use Utopia\OpenAPI\Model\CompositeSchema;
+use Utopia\OpenAPI\Model\Composition;
 use Utopia\OpenAPI\Model\IntegerSchema;
 use Utopia\OpenAPI\Model\NumberSchema;
 use Utopia\OpenAPI\Model\ObjectSchema;
@@ -142,6 +143,21 @@ abstract class Language
     }
 
     /**
+     * Enum schema used in generated signatures. Open string enums are untyped
+     * except in languages that keep the documented enum as a type.
+     */
+    protected function getTypedEnumSchema(Schema|Parameter $value): ?Schema
+    {
+        if ($this->isOpenStringEnum($value) && !$this->keepsOpenEnumType()) {
+            return null;
+        }
+
+        $enumSchema = $this->getEnumSchema($value);
+
+        return $enumSchema->enum === [] ? null : $enumSchema;
+    }
+
+    /**
      * Language specific functions.
      */
     public function getFunctions(): array
@@ -272,7 +288,7 @@ abstract class Language
         return match (true) {
             $schema instanceof StringSchema && $schema->format === 'binary' => self::TYPE_FILE,
             $schema instanceof StringSchema,
-            $schema instanceof CompositeSchema && $this->isOpenStringEnum($schema) => self::TYPE_STRING,
+            $schema instanceof CompositeSchema && $this->getEnumSchema($schema) instanceof StringSchema => self::TYPE_STRING,
             $schema instanceof IntegerSchema => self::TYPE_INTEGER,
             $schema instanceof NumberSchema => self::TYPE_NUMBER,
             $schema instanceof BooleanSchema => self::TYPE_BOOLEAN,
@@ -367,9 +383,66 @@ abstract class Language
         $schema = $this->getSchema($value);
         $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
 
-        return $enumSchema instanceof CompositeSchema
-            ? ($enumSchema->openStringEnumBranch() ?? $enumSchema)
-            : $enumSchema;
+        if (!$enumSchema instanceof CompositeSchema) {
+            return $enumSchema;
+        }
+
+        return $enumSchema->openStringEnumBranch()
+            ?? $this->closedStringEnumFromComposite($enumSchema)
+            ?? $enumSchema;
+    }
+
+    /**
+     * Live specs encode closed string enums as type:string plus oneOf of
+     * single-value string schemas, which is not an open string enum.
+     */
+    protected function closedStringEnumFromComposite(CompositeSchema $schema): ?StringSchema
+    {
+        if (
+            ($schema->composition !== Composition::ONE_OF && $schema->composition !== Composition::ANY_OF)
+            || $schema->not instanceof Schema
+        ) {
+            return null;
+        }
+
+        $values = [];
+        $keys = [];
+        foreach ($schema->schemas as $member) {
+            if (!$member instanceof StringSchema || $member->enum === []) {
+                return null;
+            }
+            foreach ($member->enum as $index => $value) {
+                if (\in_array($value, $values, true)) {
+                    continue;
+                }
+                $values[] = $value;
+                $key = $member->enumKeys[$index] ?? null;
+                $keys[] = \is_string($key) && $key !== ''
+                    ? $key
+                    : (string) ($member->title ?? $value);
+            }
+        }
+
+        if ($values === []) {
+            return null;
+        }
+
+        return new StringSchema(
+            title: $schema->title,
+            description: $schema->description,
+            nullable: $schema->nullable,
+            default: $schema->default,
+            enum: $values,
+            format: $schema->format,
+            readOnly: $schema->readOnly,
+            writeOnly: $schema->writeOnly,
+            deprecated: $schema->deprecated,
+            example: $schema->example,
+            extensions: $schema->extensions,
+            enumName: $schema->title,
+            enumKeys: $keys,
+            open: false,
+        );
     }
 
     public function isOpenStringEnum(Schema|Parameter $value): bool
