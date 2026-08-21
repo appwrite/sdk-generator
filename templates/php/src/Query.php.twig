@@ -35,7 +35,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Equal
-     *
      */
     public static function equal(string $attribute, mixed $value): string
     {
@@ -44,7 +43,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Not Equal
-     *
      */
     public static function notEqual(string $attribute, mixed $value): string
     {
@@ -53,7 +51,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Less Than
-     *
      */
     public static function lessThan(string $attribute, mixed $value): string
     {
@@ -62,7 +59,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Less Than or Equal
-     *
      */
     public static function lessThanEqual(string $attribute, mixed $value): string
     {
@@ -71,7 +67,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Greater Than
-     *
      */
     public static function greaterThan(string $attribute, mixed $value): string
     {
@@ -80,7 +75,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Greater Than or Equal
-     *
      */
     public static function greaterThanEqual(string $attribute, mixed $value): string
     {
@@ -89,7 +83,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Search
-     *
      */
     public static function search(string $attribute, string $value): string
     {
@@ -98,7 +91,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Is Null
-     *
      */
     public static function isNull(string $attribute): string
     {
@@ -107,7 +99,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Is Not Null
-     *
      */
     public static function isNotNull(string $attribute): string
     {
@@ -116,7 +107,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Between
-     *
      */
     public static function between(string $attribute, mixed $start, mixed $end): string
     {
@@ -125,7 +115,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Starts With
-     *
      */
     public static function startsWith(string $attribute, string $value): string
     {
@@ -134,7 +123,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Ends With
-     *
      */
     public static function endsWith(string $attribute, string $value): string
     {
@@ -143,7 +131,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Select
-     *
      */
     public static function select(array $attributes): string
     {
@@ -152,7 +139,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Cursor After
-     *
      */
     public static function cursorAfter(string $documentId): string
     {
@@ -161,7 +147,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Cursor Before
-     *
      */
     public static function cursorBefore(string $documentId): string
     {
@@ -170,7 +155,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Order Asc
-     *
      */
     public static function orderAsc(string $attribute): string
     {
@@ -179,7 +163,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Order Desc
-     *
      */
     public static function orderDesc(string $attribute): string
     {
@@ -188,7 +171,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Order Random
-     *
      */
     public static function orderRandom(): string
     {
@@ -197,7 +179,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Limit
-     *
      */
     public static function limit(int $limit): string
     {
@@ -206,7 +187,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Offset
-     *
      */
     public static function offset(int $offset): string
     {
@@ -254,7 +234,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Not Contains
-     *
      */
     public static function notContains(string $attribute, $value): string
     {
@@ -263,7 +242,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Not Search
-     *
      */
     public static function notSearch(string $attribute, string $value): string
     {
@@ -272,7 +250,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Not Between
-     *
      */
     public static function notBetween(string $attribute, mixed $start, mixed $end): string
     {
@@ -281,7 +258,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Not Starts With
-     *
      */
     public static function notStartsWith(string $attribute, string $value): string
     {
@@ -290,7 +266,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Not Ends With
-     *
      */
     public static function notEndsWith(string $attribute, string $value): string
     {
@@ -299,7 +274,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Filter resources where attribute matches a regular expression pattern.
-     *
      */
     public static function regex(string $attribute, string $pattern): string
     {
@@ -308,7 +282,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Filter resources where the specified attributes exist.
-     *
      */
     public static function exists(array $attributes): string
     {
@@ -317,7 +290,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Filter resources where the specified attributes do not exist.
-     *
      */
     public static function notExists(array $attributes): string
     {
@@ -326,7 +298,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Created Before
-     *
      */
     public static function createdBefore(string $value): string
     {
@@ -335,7 +306,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Created After
-     *
      */
     public static function createdAfter(string $value): string
     {
@@ -344,7 +314,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Created Between
-     *
      */
     public static function createdBetween(string $start, string $end): string
     {
@@ -353,7 +322,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Updated Before
-     *
      */
     public static function updatedBefore(string $value): string
     {
@@ -362,7 +330,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Updated After
-     *
      */
     public static function updatedAfter(string $value): string
     {
@@ -371,7 +338,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Updated Between
-     *
      */
     public static function updatedBetween(string $start, string $end): string
     {
@@ -380,7 +346,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Or
-     *
      */
     public static function or(array $queries): string
     {
@@ -392,7 +357,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * And
-     *
      */
     public static function and(array $queries): string
     {
@@ -404,7 +368,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Filter array elements where at least one element matches all the specified queries.
-     *
      */
     public static function elemMatch(string $attribute, array $queries): string
     {
@@ -417,7 +380,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Distance Equal
-     *
      */
     public static function distanceEqual(string $attribute, array $values, int|float $distance, bool $meters = true): string
     {
@@ -426,7 +388,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Distance Not Equal
-     *
      */
     public static function distanceNotEqual(string $attribute, array $values, int|float $distance, bool $meters = true): string
     {
@@ -435,7 +396,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Distance Greater Than
-     *
      */
     public static function distanceGreaterThan(string $attribute, array $values, int|float $distance, bool $meters = true): string
     {
@@ -444,7 +404,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Distance Less Than
-     *
      */
     public static function distanceLessThan(string $attribute, array $values, int|float $distance, bool $meters = true): string
     {
@@ -453,7 +412,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Vector Dot
-     *
      */
     public static function vectorDot(string $attribute, array $vector): string
     {
@@ -462,7 +420,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Vector Cosine
-     *
      */
     public static function vectorCosine(string $attribute, array $vector): string
     {
@@ -471,7 +428,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Vector Euclidean
-     *
      */
     public static function vectorEuclidean(string $attribute, array $vector): string
     {
@@ -480,7 +436,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Intersects
-     *
      */
     public static function intersects(string $attribute, array $values): string
     {
@@ -489,7 +444,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Not Intersects
-     *
      */
     public static function notIntersects(string $attribute, array $values): string
     {
@@ -498,7 +452,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Crosses
-     *
      */
     public static function crosses(string $attribute, array $values): string
     {
@@ -507,7 +460,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Not Crosses
-     *
      */
     public static function notCrosses(string $attribute, array $values): string
     {
@@ -516,7 +468,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Overlaps
-     *
      */
     public static function overlaps(string $attribute, array $values): string
     {
@@ -525,7 +476,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Not Overlaps
-     *
      */
     public static function notOverlaps(string $attribute, array $values): string
     {
@@ -534,7 +484,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Touches
-     *
      */
     public static function touches(string $attribute, array $values): string
     {
@@ -543,7 +492,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Not Touches
-     *
      */
     public static function notTouches(string $attribute, array $values): string
     {
@@ -552,10 +500,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Count rows of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function count(string $attribute = '*', string $alias = ''): string
     {
@@ -564,10 +508,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Count distinct values of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function countDistinct(string $attribute, string $alias = ''): string
     {
@@ -576,10 +516,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Sum values of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function sum(string $attribute, string $alias = ''): string
     {
@@ -588,10 +524,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Average values of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function avg(string $attribute, string $alias = ''): string
     {
@@ -600,10 +532,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Minimum value of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function min(string $attribute, string $alias = ''): string
     {
@@ -612,10 +540,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Maximum value of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function max(string $attribute, string $alias = ''): string
     {
@@ -624,10 +548,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Standard deviation of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function stddev(string $attribute, string $alias = ''): string
     {
@@ -636,10 +556,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Population standard deviation of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function stddevPop(string $attribute, string $alias = ''): string
     {
@@ -648,10 +564,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Sample standard deviation of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function stddevSamp(string $attribute, string $alias = ''): string
     {
@@ -660,10 +572,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Variance of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function variance(string $attribute, string $alias = ''): string
     {
@@ -672,10 +580,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Population variance of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function varPop(string $attribute, string $alias = ''): string
     {
@@ -684,10 +588,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Sample variance of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function varSamp(string $attribute, string $alias = ''): string
     {
@@ -696,10 +596,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Bitwise AND of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function bitAnd(string $attribute, string $alias = ''): string
     {
@@ -708,10 +604,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Bitwise OR of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function bitOr(string $attribute, string $alias = ''): string
     {
@@ -720,10 +612,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Bitwise XOR of $attribute, optionally aliased.
-     *
-     * @param string $attribute
-     * @param string $alias
-     * @return string
      */
     public static function bitXor(string $attribute, string $alias = ''): string
     {
@@ -732,9 +620,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Group results by attributes.
-     *
-     * @param array<string> $attributes
-     * @return string
      */
     public static function groupBy(array $attributes): string
     {
@@ -745,7 +630,6 @@ class Query implements \JsonSerializable, \Stringable
      * Filter grouped results. $queries are nested like and/or.
      *
      * @param array<int, string|self> $queries
-     * @return string
      */
     public static function having(array $queries): string
     {
@@ -762,8 +646,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Select distinct rows.
-     *
-     * @return string
      */
     public static function distinct(): string
     {
@@ -772,11 +654,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Column-to-column join ON condition.
-     *
-     * @param string $left
-     * @param string $right
-     * @param string $operator
-     * @return string
      */
     public static function on(string $left, string $right, string $operator = '='): string
     {
@@ -785,13 +662,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Inner join. $table is the joined collection/table ID.
-     *
-     * @param string $table
-     * @param string|array<string> $leftOrAliasOrOn
-     * @param string|array<string> $rightOrOn
-     * @param string $operator
-     * @param string $alias
-     * @return string
      */
     public static function join(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
@@ -800,13 +670,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Left join. $table is the joined collection/table ID.
-     *
-     * @param string $table
-     * @param string|array<string> $leftOrAliasOrOn
-     * @param string|array<string> $rightOrOn
-     * @param string $operator
-     * @param string $alias
-     * @return string
      */
     public static function leftJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
@@ -815,13 +678,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Right join. $table is the joined collection/table ID.
-     *
-     * @param string $table
-     * @param string|array<string> $leftOrAliasOrOn
-     * @param string|array<string> $rightOrOn
-     * @param string $operator
-     * @param string $alias
-     * @return string
      */
     public static function rightJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
@@ -830,13 +686,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Full outer join. $table is the joined collection/table ID.
-     *
-     * @param string $table
-     * @param string|array<string> $leftOrAliasOrOn
-     * @param string|array<string> $rightOrOn
-     * @param string $operator
-     * @param string $alias
-     * @return string
      */
     public static function fullOuterJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
@@ -845,10 +694,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Cross join. $table is the joined collection/table ID.
-     *
-     * @param string $table
-     * @param string $alias
-     * @return string
      */
     public static function crossJoin(string $table, string $alias = ''): string
     {
@@ -857,10 +702,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Filter resources where $attribute covers the given geometry.
-     *
-     * @param string $attribute
-     * @param array<mixed> $values
-     * @return string
      */
     public static function covers(string $attribute, array $values): string
     {
@@ -869,10 +710,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Filter resources where $attribute does not cover the given geometry.
-     *
-     * @param string $attribute
-     * @param array<mixed> $values
-     * @return string
      */
     public static function notCovers(string $attribute, array $values): string
     {
@@ -881,10 +718,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Filter resources where $attribute is spatially equal to the given geometry.
-     *
-     * @param string $attribute
-     * @param array<mixed> $values
-     * @return string
      */
     public static function spatialEquals(string $attribute, array $values): string
     {
@@ -893,10 +726,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Filter resources where $attribute is not spatially equal to the given geometry.
-     *
-     * @param string $attribute
-     * @param array<mixed> $values
-     * @return string
      */
     public static function notSpatialEquals(string $attribute, array $values): string
     {
@@ -905,10 +734,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Return limit and offset queries for 1-based page pagination.
-     *
-     * @param int $page
-     * @param int $perPage
-     * @return array<string>
      */
     public static function page(int $page, int $perPage = 25): array
     {
@@ -927,8 +752,6 @@ class Query implements \JsonSerializable, \Stringable
 
     /**
      * Start a fluent query builder.
-     *
-     * @return QueryBuilder
      */
     public static function builder(): QueryBuilder
     {
@@ -936,8 +759,6 @@ class Query implements \JsonSerializable, \Stringable
     }
 
     /**
-     * @param string|array<string> $leftOrAliasOrOn
-     * @param string|array<string> $rightOrOn
      */
     private static function createJoin(string $method, string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn, string $operator, string $alias): string
     {
@@ -952,7 +773,6 @@ class Query implements \JsonSerializable, \Stringable
     }
 
     /**
-     * @param array<string> $on
      */
     private static function nestedJoin(string $method, string $table, string $alias, array $on): string
     {
