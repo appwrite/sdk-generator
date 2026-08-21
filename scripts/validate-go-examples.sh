@@ -43,5 +43,12 @@ while IFS= read -r example; do
     count=$((count + 1))
 done < <(find "$sdk_dir/docs/examples" -type f -name '*.md' | sort)
 
+unformatted="$(find "$tmp" -type f -name 'main.go' -print0 | xargs -0 gofmt -l)"
+if [[ -n "$unformatted" ]]; then
+    echo "Generated Go examples are not gofmt-clean:"
+    echo "$unformatted"
+    exit 1
+fi
+
 echo "Compiling $count generated Go examples"
 (cd "$tmp" && go build ./...)

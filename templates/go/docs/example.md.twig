@@ -29,6 +29,9 @@ func main() {
 
 	service := {{ service.name | caseLower }}.New(client)
 
+{% if (method | parameters('all')) | length == 0 %}
+	response, err := service.{{ (method | methodName) | caseUcfirst }}()
+{% else %}
 	response, err := service.{{ (method | methodName) | caseUcfirst }}(
 {% for parameter in (method | parameters('all')) %}
 {% if parameter.required %}
@@ -38,6 +41,7 @@ func main() {
 {% endif %}
 {% endfor %}
 	)
+{% endif %}
 	fmt.Println(response, err)
 }
 ```
