@@ -38,7 +38,13 @@ class {{ definitionName | caseUcfirst | overrideIdentifier }} implements Model {
           ? {% endif %}{{ modelName }}.fromMap(
 {% if not (property | schemaRequired) %}              {% else %}        {% endif %}map['{{ propertyName | escapeDollarSign }}'],
 {% if not (property | schemaRequired) %}            )
-          : null{% else %}      ){% endif %}{% endif %}{% elseif property | usesEnumType %}{% set enumName = (property | enumName) %}{% if (property | schemaRequired) %}enums.{{ enumName | caseUcfirst }}.values.firstWhere(
+          : null{% else %}      ){% endif %}{% endif %}{% elseif property | usesEnumType %}{% set enumName = (property | enumName) %}{% if property | arraySchema %}{% if not (property | schemaRequired) %}map['{{ propertyName | escapeDollarSign }}'] != null
+          ? {% endif %}List<enums.{{ enumName | caseUcfirst }}>.from(
+{% if not (property | schemaRequired) %}              {% else %}        {% endif %}map['{{ propertyName | escapeDollarSign }}'].map(
+{% if not (property | schemaRequired) %}                {% else %}          {% endif %}(p) =>{% if enumName|length > 16 %}{{ "\n" }}{% if not (property | schemaRequired) %}                    {% else %}              {% endif %}{% else %} {% endif %}enums.{{ enumName | caseUcfirst }}.values.firstWhere((e) => e.value == p),
+{% if not (property | schemaRequired) %}              {% else %}        {% endif %}),
+{% if not (property | schemaRequired) %}            )
+          : null{% else %}      ){% endif %}{% elseif property | schemaRequired %}enums.{{ enumName | caseUcfirst }}.values.firstWhere(
         (e) => e.value == map['{{ propertyName | escapeDollarSign }}'],
       ){% else %}map['{{ propertyName | escapeDollarSign }}'] != null
           ? enums.{{ enumName | caseUcfirst }}.values.firstWhere(

@@ -548,7 +548,9 @@ class PHP extends Language
         }
         $enumSchema = $this->getEnumSchema($property);
         if ($this->usesEnumType($property)) {
-            return '"' . $this->escapePhpString((string) $enumSchema->enum[0]) . '"';
+            $example = '"' . $this->escapePhpString((string) $enumSchema->enum[0]) . '"';
+
+            return $property instanceof ArraySchema ? '[' . $example . ']' : $example;
         }
 
         $example = $this->getSchemaExample($property);
