@@ -1,8 +1,16 @@
 import Foundation
 
+{% if enum | openEnum %}
+public enum {{ enum.title | caseUcfirst | overrideIdentifier }} {
+    {%~ for value in enum.enum %}
+    {%~ set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
+    public static let {{ key | caseEnumKey | escapeSwiftKeyword }} = "{{ value }}"
+    {%~ endfor %}
+}
+{% else %}
 public enum {{ enum.title | caseUcfirst | overrideIdentifier }}: String, Codable, CustomStringConvertible {
     {%~ for value in enum.enum %}
-    {%~ set key = enum.extensions['x-enum-keys'] is empty ? value : enum.extensions['x-enum-keys'][loop.index0] %}
+    {%~ set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
     case {{ key | caseEnumKey | escapeSwiftKeyword }} = "{{ value }}"
     {%~ endfor %}
 
@@ -10,3 +18,4 @@ public enum {{ enum.title | caseUcfirst | overrideIdentifier }}: String, Codable
         return rawValue
     }
 }
+{% endif %}

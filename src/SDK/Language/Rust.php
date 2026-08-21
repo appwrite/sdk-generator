@@ -6,6 +6,7 @@ use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
@@ -586,9 +587,9 @@ class Rust extends Language
                     if (isset($this->getIdentifierOverrides()[$value])) {
                         $value = $this->getIdentifierOverrides()[$value];
                     }
-                } elseif ($this->getSchema($param)->enum !== [] || ($this->getSchema($param) instanceof ArraySchema && $this->getSchema($param)->items->enum !== [])) {
+                } elseif ($this->getEnumSchema($param)->enum !== []) {
                     $schema = $this->getSchema($param);
-                    $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                    $enumSchema = $this->getEnumSchema($param);
                     $enumName = $this->toPascalCase($this->getSchemaEnumName($param));
                     $example = $this->getSchemaExample($param) ?? $enumSchema->enum[0];
 
@@ -602,7 +603,7 @@ class Rust extends Language
                         $members = \is_array($decoded) && $decoded !== [] ? $decoded : [$enumSchema->enum[0] ?? $example];
                     }
 
-                    $keys = $enumSchema->extensions['x-enum-keys'] ?? [];
+                    $keys = $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [];
                     $variants = [];
                     foreach ($members as $member) {
                         $index = \array_search($member, $enumSchema->enum, true);

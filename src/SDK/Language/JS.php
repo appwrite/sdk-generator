@@ -5,6 +5,7 @@ namespace Appwrite\SDK\Language;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
@@ -188,20 +189,42 @@ abstract class JS extends Language
     }
 
     #[Override]
+    public function keepsOpenEnumType(): bool
+    {
+        return true;
+    }
+
+    protected function getEnumTypeName(Schema|Parameter $parameter, ?Specification $spec = null): ?string
+    {
+        $schema = $this->getSchema($parameter);
+        $enumSchema = $this->getEnumSchema($parameter);
+        if ($enumSchema->enum === []) {
+            return null;
+        }
+
+        $type = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
+        if ($this->isOpenStringEnum($parameter)) {
+            $type = '(' . $type . ' | (string & {}))';
+        }
+
+        return $schema instanceof ArraySchema ? $type . '[]' : $type;
+    }
+
+    #[Override]
     public function getFilters(): array
     {
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
-                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumSchema = $this->getEnumSchema($param);
                 $enumValues = $enumSchema->enum;
                 if ($enumValues === []) {
                     return '';
                 }
 
-                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
-                $enumName = $this->toPascalCase($enumSchema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
+                $enumKeys = $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [];
+                $enumName = $this->toPascalCase(($enumSchema instanceof StringSchema ? $enumSchema->enumName : null) ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
                 $example = $this->getSchemaExample($param);
                 $isArray = $schema instanceof ArraySchema;
                 $prefix = $this->getPermissionPrefix();

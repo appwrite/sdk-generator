@@ -12,6 +12,7 @@ use FilesystemIterator;
 use Throwable;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\SDK;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Parser;
 use PHPUnit\Framework\TestCase;
 use Twig\Error\LoaderError;
@@ -474,6 +475,8 @@ abstract class Base extends TestCase
             throw new Exception('Failed to parse spec.');
         }
 
+        $this->assertOpenEnumsAllowAnyString();
+
         $sdk = new SDK($this->getLanguage(), Parser::parse($spec));
 
         $sdk
@@ -514,6 +517,7 @@ abstract class Base extends TestCase
         $this->rmdirRecursive($dir);
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
+        $this->assertOpenEnumSuggestionsGenerated($dir);
         $this->assertExcludedFixtureWasRemoved($dir);
         $this->assertCommentsAreNotHtmlEscaped($dir);
 
@@ -570,6 +574,95 @@ abstract class Base extends TestCase
                 $this->assertEquals($expected, $output[$index]);
             }
         }
+    }
+
+    private function assertOpenEnumsAllowAnyString(): void
+    {
+        $enumBranch = [
+            'type' => 'string',
+            'enum' => ['user.created', 'user.updated'],
+            'x-enum-name' => 'WebhookEvent',
+            'x-enum-keys' => ['UserCreated', 'UserUpdated'],
+        ];
+        $specification = Parser::parse([
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => ['/test' => ['get' => [
+                'operationId' => 'testOpenEnums',
+                'parameters' => [
+                    ['name' => 'plainScalar', 'in' => 'query', 'schema' => ['type' => 'string']],
+                    ['name' => 'openScalar', 'in' => 'query', 'schema' => ['anyOf' => [$enumBranch, ['type' => 'string']]]],
+                    ['name' => 'plainArray', 'in' => 'query', 'schema' => ['type' => 'array', 'items' => ['type' => 'string']]],
+                    ['name' => 'openArray', 'in' => 'query', 'schema' => ['type' => 'array', 'items' => ['anyOf' => [$enumBranch, ['type' => 'string']]]]],
+                ],
+                'responses' => ['200' => ['description' => 'ok']],
+            ]]],
+        ]);
+        [$plainScalar, $openScalar, $plainArray, $openArray] = $specification->paths['/test']->operations['get']->parameters;
+        $language = $this->getLanguage();
+        $sdk = new class ($language, $specification) extends SDK {
+            /** @param list<StringSchema> $schemas @return list<StringSchema> */
+            public function mergeEnumsForTest(array $schemas): array
+            {
+                return $this->mergeEnums($schemas);
+            }
+        };
+        $mergedEnums = $sdk->mergeEnumsForTest([
+            new StringSchema(title: 'SharedEnum', enum: ['known'], open: true),
+            new StringSchema(title: 'SharedEnum', enum: ['known'], open: false),
+        ]);
+        $this->assertCount(1, $mergedEnums);
+        $this->assertFalse($mergedEnums[0]->open, 'A closed use must keep a shared enum type closed.');
+
+        if ($language->keepsOpenEnumType()) {
+            $this->assertSame('(WebhookEvent | (string & {}))', $language->getTypeName($openScalar, $specification));
+            $this->assertSame('(WebhookEvent | (string & {}))[]', $language->getTypeName($openArray, $specification));
+
+            return;
+        }
+
+        $this->assertSame(
+            $language->getTypeName($plainScalar, $specification),
+            $language->getTypeName($openScalar, $specification),
+        );
+        $this->assertSame(
+            $language->getTypeName($plainArray, $specification),
+            $language->getTypeName($openArray, $specification),
+        );
+    }
+
+    private function assertOpenEnumSuggestionsGenerated(string $dir): void
+    {
+        $expectations = [
+            'web' => ['src/enums/webhook-event.ts', 'UserCreated'],
+            'node' => ['src/enums/webhook-event.ts', 'UserCreated'],
+            'react-native' => ['src/enums/webhook-event.ts', 'UserCreated'],
+            'deno' => ['src/enums/webhook-event.ts', 'UserCreated'],
+            'php' => ['src/Appwrite/Enums/WebhookEvent.php', 'public const USERCREATED'],
+            'python' => ['appwrite/enums/webhook_event.py', 'USERCREATED = "user.created"'],
+            'ruby' => ['lib/appwrite/enums/webhook_event.rb', "USERCREATED = 'user.created'"],
+            'dart' => ['lib/src/enums/webhook_event.dart', 'static const String userCreated'],
+            'flutter' => ['lib/src/enums/webhook_event.dart', 'static const String userCreated'],
+            'kotlin' => ['src/main/kotlin/io/appwrite/enums/WebhookEvent.kt', 'const val USERCREATED'],
+            'android' => ['library/src/main/java/io/appwrite/enums/WebhookEvent.kt', 'const val USERCREATED'],
+            'swift' => ['Sources/AppwriteEnums/WebhookEvent.swift', 'public static let userCreated'],
+            'apple' => ['Sources/AppwriteEnums/WebhookEvent.swift', 'public static let userCreated'],
+            'dotnet' => ['Appwrite/Enums/WebhookEvent.cs', 'public const string UserCreated'],
+            'unity' => ['Assets/Runtime/Core/Enums/WebhookEvent.cs', 'public const string UserCreated'],
+            'rust' => ['src/enums/webhook_event.rs', 'pub const UserCreated'],
+        ];
+
+        if (!isset($expectations[$this->language])) {
+            return;
+        }
+
+        [$relativePath, $knownValueDeclaration] = $expectations[$this->language];
+        $path = $dir . '/' . $relativePath;
+        $this->assertFileExists($path);
+        $contents = file_get_contents($path);
+        $this->assertIsString($contents);
+        $this->assertStringContainsString($knownValueDeclaration, $contents);
+        $this->assertStringContainsString('user.updated', $contents);
     }
 
     private function rmdirRecursive(string $dir): void

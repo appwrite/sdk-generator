@@ -7,6 +7,7 @@ use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Model\Tag;
 use Utopia\OpenAPI\Specification;
 use stdClass;
@@ -628,7 +629,7 @@ class Python extends Language
 
             $example = $this->getSchemaExample($property);
             $hasExample = $example !== null && $example !== '';
-            $enumValues = $property instanceof ArraySchema ? $property->items->enum : $property->enum;
+            $enumValues = $this->getEnumSchema($property)->enum;
             $result[$propertyName] = match ($this->getSchemaType($property)) {
                 self::TYPE_OBJECT => ($models = $this->getSchemaModels($property)) !== []
                     ? $this->getResponseModelExample($models[0], $spec, $visited)
@@ -731,14 +732,14 @@ class Python extends Language
             }),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
-                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumSchema = $this->getEnumSchema($param);
                 $enumValues = $enumSchema->enum;
                 if ($enumValues === []) {
                     return '';
                 }
 
-                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
-                $enumName = $this->toPascalCase($enumSchema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
+                $enumKeys = $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [];
+                $enumName = $this->toPascalCase(($enumSchema instanceof StringSchema ? $enumSchema->enumName : null) ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
                 $example = $this->getSchemaExample($param);
                 $isArray = $schema instanceof ArraySchema;
 

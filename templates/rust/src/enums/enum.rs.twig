@@ -1,10 +1,20 @@
+{% if enum | openEnum %}
+pub struct {{ enum.title | caseUcfirst | overrideIdentifier }};
+
+#[allow(non_upper_case_globals)]
+impl {{ enum.title | caseUcfirst | overrideIdentifier }} {
+{% for value in enum.enum %}
+{% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
+    pub const {{ key | caseEnumKey | overrideIdentifier }}: &'static str = "{{ value }}";
+{% endfor %}}
+{% else %}
 use serde::{Deserialize, Serialize};
 
 {% if enum.description %}/// {{ enum.description }}
 {% endif %}#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum {{ enum.title | caseUcfirst | overrideIdentifier }} {
 {% for value in enum.enum %}
-{% set key = enum.extensions['x-enum-keys'] is empty ? value : enum.extensions['x-enum-keys'][loop.index0] %}
+{% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
     #[serde(rename = "{{ value }}")]
     {% if loop.first %}#[default]
     {% endif %}{{ key | caseEnumKey | overrideIdentifier }},
@@ -16,7 +26,7 @@ impl {{ enum.title | caseUcfirst | overrideIdentifier }} {
     pub fn as_str(&self) -> &str {
         match self {
 {% for value in enum.enum %}
-{% set key = enum.extensions['x-enum-keys'] is empty ? value : enum.extensions['x-enum-keys'][loop.index0] %}
+{% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
             {{ enum.title | caseUcfirst | overrideIdentifier }}::{{ key | caseEnumKey | overrideIdentifier }} => "{{ value }}",
 {% endfor %}
         }
@@ -28,3 +38,4 @@ impl std::fmt::Display for {{ enum.title | caseUcfirst | overrideIdentifier }} {
         write!(f, "{}", self.as_str())
     }
 }
+{% endif %}

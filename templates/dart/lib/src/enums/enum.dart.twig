@@ -1,9 +1,17 @@
 part of '../../enums.dart';
 
+{% if enum | openEnum %}
+class {{ enum.title | caseUcfirst | overrideIdentifier }} {
+  const {{ enum.title | caseUcfirst | overrideIdentifier }}._();
+
+{% for value in enum.enum %}{% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}  static const String {{ key | caseEnumKey | escapeKeyword }} = {{ value | dartString }};
+{% endfor %}}
+{% else %}
 enum {{ enum.title | caseUcfirst | overrideIdentifier }} {
-{% for value in enum.enum %}{% set key = enum.extensions['x-enum-keys'] is empty ? value : enum.extensions['x-enum-keys'][loop.index0] %}  {{ key | caseEnumKey | escapeKeyword }}(value: {{ value | dartString }}){% if not loop.last %},{% else %};{% endif %}{{ "\n" }}{% endfor %}{{ "\n" }}  const {{ enum.title | caseUcfirst | overrideIdentifier }}({required this.value});
+{% for value in enum.enum %}{% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}  {{ key | caseEnumKey | escapeKeyword }}(value: {{ value | dartString }}){% if not loop.last %},{% else %};{% endif %}{{ "\n" }}{% endfor %}{{ "\n" }}  const {{ enum.title | caseUcfirst | overrideIdentifier }}({required this.value});
 
   final String value;
 
   String toJson() => value;
 }
+{% endif %}

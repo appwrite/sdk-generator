@@ -1554,6 +1554,49 @@
                     ],
                     "x-enum-name": null,
                     "x-enum-keys": []
+                  },
+                  "webhookEvents": {
+                    "type": "array",
+                    "description": "Webhook events to subscribe to.",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "user.created",
+                            "user.updated"
+                          ],
+                          "x-enum-name": "WebhookEvent",
+                          "x-enum-keys": [
+                            "UserCreated",
+                            "UserUpdated"
+                          ]
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "webhookEvent": {
+                    "description": "A webhook event to subscribe to.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "user.created",
+                          "user.updated"
+                        ],
+                        "x-enum-name": "WebhookEvent",
+                        "x-enum-keys": [
+                          "UserCreated",
+                          "UserUpdated"
+                        ]
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
                   }
                 },
                 "required": [

@@ -134,6 +134,14 @@ abstract class Language
     }
 
     /**
+     * Whether method signatures keep the documented enum as a type for open string enums.
+     */
+    public function keepsOpenEnumType(): bool
+    {
+        return false;
+    }
+
+    /**
      * Language specific functions.
      */
     public function getFunctions(): array
@@ -263,7 +271,8 @@ abstract class Language
 
         return match (true) {
             $schema instanceof StringSchema && $schema->format === 'binary' => self::TYPE_FILE,
-            $schema instanceof StringSchema => self::TYPE_STRING,
+            $schema instanceof StringSchema,
+            $schema instanceof CompositeSchema && $this->isOpenStringEnum($schema) => self::TYPE_STRING,
             $schema instanceof IntegerSchema => self::TYPE_INTEGER,
             $schema instanceof NumberSchema => self::TYPE_NUMBER,
             $schema instanceof BooleanSchema => self::TYPE_BOOLEAN,
@@ -333,8 +342,8 @@ abstract class Language
             return false;
         }
         $items = $schema->items;
-        return !($items instanceof CompositeSchema)
-            && !($items instanceof AnySchema)
+        return !($items instanceof AnySchema)
+            && (!($items instanceof CompositeSchema) || $this->isOpenStringEnum($items))
             && $this->getSchemaType($items) !== '';
     }
 
@@ -353,11 +362,27 @@ abstract class Language
             && $schema->items instanceof ArraySchema;
     }
 
-    protected function getSchemaEnumName(Schema|Parameter $value, ?Specification $spec = null): string
+    public function getEnumSchema(Schema|Parameter $value): Schema
     {
         $schema = $this->getSchema($value);
         $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        $name = $enumSchema->extensions['x-enum-name']
+
+        return $enumSchema instanceof CompositeSchema
+            ? ($enumSchema->openStringEnumBranch() ?? $enumSchema)
+            : $enumSchema;
+    }
+
+    public function isOpenStringEnum(Schema|Parameter $value): bool
+    {
+        $enumSchema = $this->getEnumSchema($value);
+
+        return $enumSchema instanceof StringSchema && $enumSchema->open;
+    }
+
+    protected function getSchemaEnumName(Schema|Parameter $value, ?Specification $spec = null): string
+    {
+        $enumSchema = $this->getEnumSchema($value);
+        $name = ($enumSchema instanceof StringSchema ? $enumSchema->enumName : null)
             ?? $enumSchema->title
             ?? ($value instanceof Parameter ? $value->name : null);
         if (\is_string($name) && $name !== '') {
@@ -369,8 +394,7 @@ abstract class Language
                 continue;
             }
             foreach ($model->properties as $propertyName => $property) {
-                $propertySchema = $property instanceof ArraySchema ? $property->items : $property;
-                if ($propertySchema === $enumSchema) {
+                if ($this->getEnumSchema($property) === $enumSchema) {
                     return \ucfirst($modelName) . \ucfirst($propertyName);
                 }
             }
