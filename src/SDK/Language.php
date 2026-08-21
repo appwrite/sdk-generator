@@ -420,6 +420,12 @@ abstract class Language
         return $enumSchema instanceof StringSchema && $enumSchema->open;
     }
 
+    public function usesEnumType(Schema|Parameter $value): bool
+    {
+        return $this->isStringEnum($value)
+            && (!$this->isOpenStringEnum($value) || $this->keepsOpenEnumType());
+    }
+
     public function getSuggestedEnumExample(Schema|Parameter $value, string $lang = ''): string
     {
         $enumSchema = $this->getEnumSchema($value);

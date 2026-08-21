@@ -622,6 +622,10 @@ abstract class Base extends TestCase
         $this->assertFalse($language->isOpenStringEnum($closedArray));
         $this->assertTrue($language->isOpenStringEnum($openScalar));
         $this->assertTrue($language->isOpenStringEnum($openArray));
+        $this->assertTrue($language->usesEnumType($closedScalar));
+        $this->assertTrue($language->usesEnumType($closedArray));
+        $this->assertSame($language->keepsOpenEnumType(), $language->usesEnumType($openScalar));
+        $this->assertSame($language->keepsOpenEnumType(), $language->usesEnumType($openArray));
         $this->assertStringContainsString('user.created', $language->getSuggestedEnumExample($openScalar));
         $this->assertStringContainsString('user.created', $language->getSuggestedEnumExample($openArray));
         $sdk = new class ($language, $specification) extends SDK {

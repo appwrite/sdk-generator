@@ -333,7 +333,7 @@ class PHP extends Language
         if ($schema instanceof ArraySchema) {
             return 'array';
         }
-        if ($schema->enum !== []) {
+        if ($this->usesEnumType($parameter)) {
             return $this->applyIdentifierOverride($this->toPascalCase($this->getSchemaEnumName($parameter, $spec)));
         }
 
@@ -546,8 +546,9 @@ class PHP extends Language
             }
             return $this->getMockDefinitionPayload($model, $spec, $indentLevel);
         }
-        if ($property->enum !== []) {
-            return '"' . $this->escapePhpString((string) $property->enum[0]) . '"';
+        $enumSchema = $this->getEnumSchema($property);
+        if ($this->usesEnumType($property)) {
+            return '"' . $this->escapePhpString((string) $enumSchema->enum[0]) . '"';
         }
 
         $example = $this->getSchemaExample($property);

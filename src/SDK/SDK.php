@@ -189,6 +189,7 @@ class SDK
             ? []
             : $this->language->getEnumSchema($value)->enum));
         $this->twig->addFilter(new TwigFilter('enumSuggestions', fn(Schema|Parameter $value): array => $this->language->getEnumSchema($value)->enum));
+        $this->twig->addFilter(new TwigFilter('usesEnumType', fn(Schema|Parameter $value): bool => $this->language->usesEnumType($value)));
         $this->twig->addFilter(new TwigFilter('openEnum', fn(Schema|Parameter $value): bool => $this->language->isOpenStringEnum($value)));
         $this->twig->addFilter(new TwigFilter('arraySchema', fn(Schema|Parameter $value): ?Schema => ($schema = $this->getSchema($value)) instanceof ArraySchema ? $schema->items : null));
         $this->twig->addFilter(new TwigFilter('emptyResponse', fn(Operation $operation): bool => \array_keys($operation->responses) === [204] || \array_keys($operation->responses) === ['204']));
