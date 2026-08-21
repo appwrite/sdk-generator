@@ -18,19 +18,19 @@ final class QueryTest extends TestCase
     /**
      * @var BasicFilterQueryTest[] $tests
      */
-    private $tests;
+    private array $tests;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->tests = array(
+        $this->tests = [
             new BasicFilterQueryTest('with a string', 's', '["s"]'),
             new BasicFilterQueryTest('with a integer', 1, '[1]'),
             new BasicFilterQueryTest('with a double', 1.2, '[1.2]'),
             new BasicFilterQueryTest('with a whole number double', 1.0, '[1]'),
             new BasicFilterQueryTest('with a bool', false, '[false]'),
             new BasicFilterQueryTest('with a list', ['a', 'b', 'c'], '["a","b","c"]'),
-        );
+        ];
     }
 
     public function testBasicFilterEqual(): void
