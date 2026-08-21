@@ -402,7 +402,7 @@ module {{spec.info.title | caseUcfirst}}
                 return QueryBuilder.new
             end
 
-            def normalize(queries)
+            def _normalize(queries)
                 if queries.is_a?(QueryBuilder)
                     return queries.build
                 end
@@ -418,7 +418,7 @@ module {{spec.info.title | caseUcfirst}}
                     elsif item.is_a?(Query)
                         out << item.to_s
                     elsif item.is_a?(Array)
-                        out.concat(normalize(item))
+                        out.concat(_normalize(item))
                     else
                         out << item
                     end

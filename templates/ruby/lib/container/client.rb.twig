@@ -112,9 +112,9 @@ module {{ spec.info.title | caseUcfirst }}
             response_type: nil
         )
             if params.key?(:queries) && !params[:queries].nil?
-                params[:queries] = Query.normalize(params[:queries])
+                params[:queries] = Query._normalize(params[:queries])
             elsif params.key?('queries') && !params['queries'].nil?
-                params['queries'] = Query.normalize(params['queries'])
+                params['queries'] = Query._normalize(params['queries'])
             end
 
             separator = path.include?('?') ? '&' : '?'

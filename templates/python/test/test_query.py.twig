@@ -134,6 +134,6 @@ class TestQueryMethods(unittest.TestCase):
 
     def test_normalize_builder(self):
         builder = Query.builder().equal('status', 'active').limit(10)
-        self.assertEqual(builder.build(), Query.normalize(builder))
-        self.assertEqual(builder.build(), Query.normalize([builder]))
-        self.assertEqual(builder.build(), Query.normalize([builder.build()]))
+        self.assertEqual(builder.build(), Query._normalize(builder))
+        self.assertEqual(builder.build(), Query._normalize([builder]))
+        self.assertEqual(builder.build(), Query._normalize([builder.build()]))

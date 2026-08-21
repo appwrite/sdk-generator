@@ -1051,7 +1051,7 @@ func (b *QueryBuilder) Page(page, perPage int) *QueryBuilder {
 	return b.push(Page(page, perPage)...)
 }
 
-func Normalize(queries interface{}) []string {
+func normalize(queries interface{}) []string {
 	if queries == nil {
 		return []string{}
 	}
@@ -1073,7 +1073,7 @@ func Normalize(queries interface{}) []string {
 	case reflect.Slice, reflect.Array:
 		out := make([]string, 0, value.Len())
 		for i := 0; i < value.Len(); i++ {
-			out = append(out, Normalize(value.Index(i).Interface())...)
+			out = append(out, normalize(value.Index(i).Interface())...)
 		}
 		return out
 	default:

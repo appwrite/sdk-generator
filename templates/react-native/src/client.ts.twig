@@ -1,7 +1,7 @@
 import { Models } from './models';
 import { Service } from './service';
 import { Platform } from 'react-native';
-import { Query } from './query';
+import { Query, normalizeQueries } from './query';
 import JSONbigModule from 'json-bigint';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
 const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
@@ -570,7 +570,7 @@ class Client {
         method = method.toUpperCase();
 
         if (Object.prototype.hasOwnProperty.call(params, 'queries')) {
-            params = { ...params, queries: Query.normalize(params.queries) };
+            params = { ...params, queries: normalizeQueries(params.queries) };
         }
 
         headers = Object.assign({}, this.headers, headers);

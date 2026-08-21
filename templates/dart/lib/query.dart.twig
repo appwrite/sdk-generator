@@ -441,31 +441,6 @@ class Query {
 
   static QueryBuilder builder() => QueryBuilder();
 
-  /// Flatten a queries argument into query strings.
-  ///
-  /// Accepts a [QueryBuilder], a list of query strings, builders, or nested
-  /// lists (the common `[builder]` / `[builder.build()]` mistakes).
-  static List<String> normalize(dynamic queries) {
-    if (queries is QueryBuilder) {
-      return queries.build();
-    }
-    if (queries is Query) {
-      return [queries.toString()];
-    }
-    if (queries is String) {
-      return [queries];
-    }
-    if (queries is! List) {
-      return [];
-    }
-
-    final out = <String>[];
-    for (final item in queries) {
-      out.addAll(Query.normalize(item));
-    }
-    return out;
-  }
-
   static String _joinQuery(
     String method,
     String table,

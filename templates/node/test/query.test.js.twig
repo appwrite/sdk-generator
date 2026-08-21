@@ -1,4 +1,4 @@
-const { Query } = require("../dist/query");
+const { Query, normalizeQueries } = require("../dist/query");
 
 const tests = [
     {
@@ -229,13 +229,13 @@ describe('Query', () => {
 
     test('normalize builder wrapped in array', () => {
         const builder = Query.builder().equal('status', 'active').limit(10);
-        expect(Query.normalize([builder])).toEqual(builder.build());
-        expect(Query.normalize([builder.build()])).toEqual(builder.build());
-        expect(Query.normalize(builder)).toEqual(builder.build());
+        expect(normalizeQueries([builder])).toEqual(builder.build());
+        expect(normalizeQueries([builder.build()])).toEqual(builder.build());
+        expect(normalizeQueries(builder)).toEqual(builder.build());
     });
 
     test('normalize page wrapped in array', () => {
-        expect(Query.normalize([Query.equal('status', 'active'), Query.page(2, 10)])).toEqual([
+        expect(normalizeQueries([Query.equal('status', 'active'), Query.page(2, 10)])).toEqual([
             Query.equal('status', 'active'),
             Query.limit(10),
             Query.offset(10),

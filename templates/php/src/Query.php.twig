@@ -889,41 +889,6 @@ class Query implements \JsonSerializable
         return new QueryBuilder();
     }
 
-    /**
-     * Flatten a queries argument into a list of query strings.
-     *
-     * Accepts a QueryBuilder, a list of query strings, builders, or nested
-     * lists (the common `[$builder]` / `[$builder->build()]` mistakes).
-     *
-     * @param mixed $queries
-     * @return array<int, string>
-     */
-    public static function normalize(mixed $queries): array
-    {
-        if ($queries instanceof QueryBuilder) {
-            return $queries->build();
-        }
-
-        if (!\is_array($queries)) {
-            return [];
-        }
-
-        $out = [];
-        foreach ($queries as $item) {
-            if ($item instanceof QueryBuilder) {
-                array_push($out, ...$item->build());
-            } elseif ($item instanceof self) {
-                $out[] = $item->__toString();
-            } elseif (\is_array($item)) {
-                array_push($out, ...self::normalize($item));
-            } else {
-                $out[] = $item;
-            }
-        }
-
-        return $out;
-    }
-
     private static function joinQuery(string $method, string $table, string $left, string $right, string $operator, string $alias): string
     {
         $values = [$left, $operator, $right];

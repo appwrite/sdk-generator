@@ -1,6 +1,6 @@
 import { Models } from './models';
 import { Channel, ActionableChannel, ResolvedChannel } from './channel';
-import { Query, type QueryInput } from './query';
+import { normalizeQueries, type QueryInput } from './query';
 import { ID } from './id';
 import JSONbigModule from 'json-bigint';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
@@ -779,7 +779,7 @@ class Client {
         });
         channelStrings.forEach(channel => this.realtime.channels.add(channel));
 
-        const queryStrings = Query.normalize(queries);
+        const queryStrings = normalizeQueries(queries);
 
         let subscriptionId = '';
         const attempts = this.realtime.subscriptions.size + 1;
@@ -826,7 +826,7 @@ class Client {
         method = method.toUpperCase();
 
         if (Object.prototype.hasOwnProperty.call(params, 'queries')) {
-            params = { ...params, queries: Query.normalize(params.queries) };
+            params = { ...params, queries: normalizeQueries(params.queries) };
         }
 
         headers = Object.assign({}, this.headers, headers);

@@ -758,36 +758,6 @@ export class Query {
   };
 
   static builder = (): QueryBuilder => new QueryBuilder();
-
-  /**
-   * Flatten a queries argument into query strings.
-   *
-   * Accepts a QueryBuilder, a list of query strings, builders, or nested
-   * lists (the common `[builder]` / `[builder.build()]` mistakes).
-   */
-  static normalize = (queries?: QueryInput | null): string[] => {
-    if (queries == null) {
-      return [];
-    }
-    if (queries instanceof QueryBuilder) {
-      return queries.build();
-    }
-    if (!Array.isArray(queries)) {
-      if (queries instanceof Query) {
-        return [queries.toString()];
-      }
-      if (typeof queries === "string") {
-        return [queries];
-      }
-      return [];
-    }
-
-    const out: string[] = [];
-    for (const item of queries) {
-      out.push(...Query.normalize(item));
-    }
-    return out;
-  };
 }
 
 export type QueryInput =
@@ -1147,4 +1117,28 @@ export class QueryBuilder {
     }
     return this;
   }
+}
+
+export function normalizeQueries(queries?: QueryInput | null): string[] {
+  if (queries == null) {
+    return [];
+  }
+  if (queries instanceof QueryBuilder) {
+    return queries.build();
+  }
+  if (!Array.isArray(queries)) {
+    if (queries instanceof Query) {
+      return [queries.toString()];
+    }
+    if (typeof queries === "string") {
+      return [queries];
+    }
+    return [];
+  }
+
+  const out: string[] = [];
+  for (const item of queries) {
+    out.push(...normalizeQueries(item));
+  }
+  return out;
 }

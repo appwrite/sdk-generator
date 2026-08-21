@@ -510,7 +510,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             return new QueryBuilder();
         }
 
-        public static List<string> Normalize(object? queries)
+        internal static List<string> Normalize(object? queries)
         {
             if (queries == null)
             {

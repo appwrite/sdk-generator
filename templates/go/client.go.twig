@@ -438,7 +438,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 func (client *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (*ClientResponse, error) {
 	if params != nil {
 		if _, ok := params["queries"]; ok {
-			params["queries"] = query.Normalize(params["queries"])
+			params["queries"] = flattenQueries(params["queries"])
 		}
 	}
 
@@ -760,4 +760,34 @@ func flatten(params interface{}, prefix string, result *map[string]string) error
 		(*result)[prefix] = toString(params)
 	}
 	return nil
+}
+
+func flattenQueries(queries interface{}) []string {
+	if queries == nil {
+		return []string{}
+	}
+
+	switch v := queries.(type) {
+	case *query.QueryBuilder:
+		if v == nil {
+			return []string{}
+		}
+		return v.Build()
+	case query.QueryBuilder:
+		return v.Build()
+	case string:
+		return []string{v}
+	}
+
+	value := reflect.ValueOf(queries)
+	switch value.Kind() {
+	case reflect.Slice, reflect.Array:
+		out := make([]string, 0, value.Len())
+		for i := 0; i < value.Len(); i++ {
+			out = append(out, flattenQueries(value.Index(i).Interface())...)
+		}
+		return out
+	default:
+		return []string{}
+	}
 }

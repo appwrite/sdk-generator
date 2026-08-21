@@ -282,7 +282,7 @@ class Client
 {% endif %}
         $headers = array_merge($this->headers, $headers);
         if (\array_key_exists('queries', $params)) {
-            $params['queries'] = Query::normalize($params['queries']);
+            $params['queries'] = self::flattenQueries($params['queries']);
         }
         $querySeparator = str_contains($path, '?') ? '&' : '?';
         $ch = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? $querySeparator . http_build_query($params) : ''));
@@ -420,5 +420,31 @@ class Client
         }
 
         return $data;
+    }
+
+    private static function flattenQueries(mixed $queries): array
+    {
+        if ($queries instanceof QueryBuilder) {
+            return $queries->build();
+        }
+
+        if (!\is_array($queries)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($queries as $item) {
+            if ($item instanceof QueryBuilder) {
+                array_push($out, ...$item->build());
+            } elseif ($item instanceof Query) {
+                $out[] = $item->__toString();
+            } elseif (\is_array($item)) {
+                array_push($out, ...self::flattenQueries($item));
+            } else {
+                $out[] = $item;
+            }
+        }
+
+        return $out;
     }
 }

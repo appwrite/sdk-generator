@@ -71,7 +71,7 @@ class Client:
             params = {}
 
         if 'queries' in params:
-            params['queries'] = Query.normalize(params['queries'])
+            params['queries'] = Query._normalize(params['queries'])
 
         data = {}
         files = {}

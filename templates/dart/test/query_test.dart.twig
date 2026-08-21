@@ -483,32 +483,4 @@ void main() {
 
     expect(built, expected);
   });
-
-  test('normalize builder direct', () {
-    final builder = Query.builder().equal('status', 'active').limit(10);
-    expect(Query.normalize(builder), builder.build());
-  });
-
-  test('normalize builder wrapped in array', () {
-    final builder = Query.builder().equal('status', 'active').limit(10);
-    expect(Query.normalize([builder]), builder.build());
-  });
-
-  test('normalize build result wrapped in array', () {
-    final built = Query.builder().equal('status', 'active').limit(10).build();
-    expect(Query.normalize([built]), built);
-  });
-
-  test('normalize mixed and page', () {
-    final normalized = Query.normalize([
-      Query.equal('status', 'active'),
-      Query.page(2, 10),
-    ]);
-
-    expect(normalized, [
-      Query.equal('status', 'active'),
-      Query.limit(10),
-      Query.offset(10),
-    ]);
-  });
 }

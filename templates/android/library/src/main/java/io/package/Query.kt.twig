@@ -574,7 +574,7 @@ class Query(
 
         fun builder() = QueryBuilder()
 
-        fun normalize(queries: Any?): List<String> {
+        internal fun normalize(queries: Any?): List<String> {
             if (queries == null) {
                 return emptyList()
             }

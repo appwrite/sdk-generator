@@ -846,7 +846,7 @@ public struct Query : Codable, CustomStringConvertible {
         return QueryBuilder()
     }
 
-    public static func normalize(_ queries: Any?) -> [String] {
+    static func normalize(_ queries: Any?) -> [String] {
         guard let queries else {
             return []
         }

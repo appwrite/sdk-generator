@@ -1,6 +1,6 @@
 import { {{ spec.info.title | caseUcfirst}}Exception, Client, JSONbig } from '../client';
 import { Channel, ActionableChannel, ResolvedChannel } from '../channel';
-import { Query, type QueryInput } from '../query';
+import { normalizeQueries, type QueryInput } from '../query';
 import { ID } from '../id';
 {% if language.name == 'ReactNative' %}
 import { Platform } from 'react-native';
@@ -537,7 +537,7 @@ export class Realtime {
         const channelStrings = channelArray.map(ch => this.channelToString(ch));
         const channels = new Set(channelStrings);
 
-        const queryStrings = Query.normalize(queries);
+        const queryStrings = normalizeQueries(queries);
 
         const subscriptionId = this.generateUniqueSubscriptionId();
 
@@ -584,7 +584,7 @@ export class Realtime {
             }
 
             if (changes.queries !== undefined) {
-                subscription.queries = Query.normalize(changes.queries);
+                subscription.queries = normalizeQueries(changes.queries);
             }
 
             this.enqueuePendingSubscribe(subscriptionId);

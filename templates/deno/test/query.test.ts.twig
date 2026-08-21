@@ -1,6 +1,6 @@
 import {describe, it as test} from "https://deno.land/std@0.149.0/testing/bdd.ts";
 import {assertEquals} from "https://deno.land/std@0.204.0/assert/assert_equals.ts";
-import {Query, QueryTypes} from "../src/query.ts";
+import {Query, QueryTypes, normalizeQueries} from "../src/query.ts";
 
 type BasicFilterQueryTest = {
     description: string;
@@ -351,13 +351,13 @@ describe('Query', () => {
 
     test('normalize builder wrapped in array', () => {
         const builder = Query.builder().equal('status', 'active').limit(10);
-        assertEquals(Query.normalize([builder]), builder.build());
-        assertEquals(Query.normalize([builder.build()]), builder.build());
-        assertEquals(Query.normalize(builder), builder.build());
+        assertEquals(normalizeQueries([builder]), builder.build());
+        assertEquals(normalizeQueries([builder.build()]), builder.build());
+        assertEquals(normalizeQueries(builder), builder.build());
     });
 
     test('normalize page wrapped in array', () => {
-        assertEquals(Query.normalize([Query.equal('status', 'active'), Query.page(2, 10)]), [
+        assertEquals(normalizeQueries([Query.equal('status', 'active'), Query.page(2, 10)]), [
             Query.equal('status', 'active'),
             Query.limit(10),
             Query.offset(10),

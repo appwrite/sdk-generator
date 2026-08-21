@@ -438,14 +438,14 @@ impl Query {
         QueryBuilder::new()
     }
 
-    pub fn normalize(value: impl Serialize) -> Vec<String> {
+    pub(crate) fn normalize(value: impl Serialize) -> Vec<String> {
         match serde_json::to_value(value) {
             Ok(v) => Self::normalize_value(&v),
             Err(_) => vec![],
         }
     }
 
-    pub fn normalize_value(value: &Value) -> Vec<String> {
+    pub(crate) fn normalize_value(value: &Value) -> Vec<String> {
         match value {
             Value::Null => vec![],
             Value::String(s) => vec![s.clone()],

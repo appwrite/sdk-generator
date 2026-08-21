@@ -443,32 +443,4 @@ final class QueryTest extends TestCase {
 
         $this->assertSame($expected, $built);
     }
-
-    public function testNormalizeBuilderDirect(): void {
-        $builder = Query::builder()->equal('status', 'active')->limit(10);
-        $this->assertSame($builder->build(), Query::normalize($builder));
-    }
-
-    public function testNormalizeBuilderWrappedInArray(): void {
-        $builder = Query::builder()->equal('status', 'active')->limit(10);
-        $this->assertSame($builder->build(), Query::normalize([$builder]));
-    }
-
-    public function testNormalizeBuildResultWrappedInArray(): void {
-        $built = Query::builder()->equal('status', 'active')->limit(10)->build();
-        $this->assertSame($built, Query::normalize([$built]));
-    }
-
-    public function testNormalizeMixedAndPage(): void {
-        $normalized = Query::normalize([
-            Query::equal('status', 'active'),
-            Query::page(2, 10),
-        ]);
-
-        $this->assertSame([
-            Query::equal('status', 'active'),
-            Query::limit(10),
-            Query::offset(10),
-        ], $normalized);
-    }
 }

@@ -417,7 +417,7 @@ class Query():
         return QueryBuilder()
 
     @staticmethod
-    def normalize(queries):
+    def _normalize(queries):
         if isinstance(queries, QueryBuilder):
             return queries.build()
 
@@ -431,7 +431,7 @@ class Query():
             elif isinstance(item, Query):
                 out.append(str(item))
             elif isinstance(item, list):
-                out.extend(Query.normalize(item))
+                out.extend(Query._normalize(item))
             else:
                 out.append(item)
 
