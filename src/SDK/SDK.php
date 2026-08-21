@@ -172,7 +172,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('schemaExample', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->example));
         $this->twig->addFilter(new TwigFilter('schemaDefault', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->default));
         $this->twig->addFilter(new TwigFilter('enumName', fn(Schema|Parameter $value): string => $this->getEnumName($value)));
-        $this->twig->addFilter(new TwigFilter('enumKeys', fn(Schema|Parameter $value): array => $this->getEnumKeys($value)));
+        $this->twig->addFilter(new TwigFilter('enumKeys', fn(Schema|Parameter $value): array => $this->language->resolveEnumKeys($value)));
         $this->twig->addFilter(new TwigFilter('operations', fn(Tag $tag): array => $this->getFilteredMethods($this->getMethods($tag->name), $tag->name)));
         $this->twig->addFilter(new TwigFilter('consumes', fn(Operation $operation): array => \array_keys($operation->requestBody?->content ?? [])));
         $this->twig->addFilter(new TwigFilter('uploadIdParameter', $this->uploadIdParameter(...)));
@@ -793,7 +793,7 @@ class SDK
                         $schemas[] = new StringSchema(
                             title: $this->getEnumName($parameter),
                             enum: $enumSchema->enum,
-                            enumKeys: $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [],
+                            enumKeys: $this->language->resolveEnumKeys($parameter),
                             open: $this->language->isOpenStringEnum($parameter),
                         );
                     }
@@ -842,7 +842,7 @@ class SDK
                     $enums[] = new StringSchema(
                         title: $this->getEnumName($property),
                         enum: $enumSchema->enum,
-                        enumKeys: $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [],
+                        enumKeys: $this->language->resolveEnumKeys($property),
                         open: $this->language->isOpenStringEnum($property),
                     );
                 }
@@ -873,10 +873,16 @@ class SDK
 
         $enums = [];
         foreach ($values as $name => $enumValues) {
-            $enums[] = new StringSchema(
+            $merged = new StringSchema(
                 title: $name,
                 enum: $enumValues,
                 enumKeys: $keys[$name],
+                open: $open[$name],
+            );
+            $enums[] = new StringSchema(
+                title: $name,
+                enum: $enumValues,
+                enumKeys: $this->language->resolveEnumKeys($merged),
                 open: $open[$name],
             );
         }
@@ -1686,13 +1692,6 @@ class SDK
             ?? $this->schemaEnumNames[\spl_object_id($enumSchema)]
             ?? $this->schemaEnumNames[\spl_object_id($original)]
             ?? ($value instanceof Parameter ? $value->name : ''));
-    }
-
-    protected function getEnumKeys(Schema|Parameter $value): array
-    {
-        $enumSchema = $this->language->getEnumSchema($value);
-
-        return $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [];
     }
 
     protected function normalizeSchemaReference(string $reference): string

@@ -58,9 +58,9 @@ Lock file templates (`package-lock.json.twig`) contain Twig expressions that get
 
 The script strips Twig expressions before running `npm install`, then restores them automatically. Never copy a raw lock file over a lock template or edit one by hand.
 
-### Rule 7: Go, Dart, Flutter, and Python templates must generate formatted source
+### Rule 7: Generated source must already be formatter-clean
 
-Keep Go templates accurate enough that their generated `.go` files are already `gofmt`-clean, Dart/Flutter templates accurate enough that their generated `.dart` files are already `dart format`-clean, and Python templates accurate enough that their generated `.py` files are already Black-clean. Do not add a post-generation formatting step or run a formatter to fix generated output in place—the fix belongs in the Twig template.
+Keep Go templates accurate enough that their generated `.go` files are already `gofmt`-clean, Dart/Flutter templates accurate enough that their generated `.dart` files are already `dart format`-clean, Python templates accurate enough that their generated `.py` files are already Black-clean, and PHP templates accurate enough that their generated `.php` files pass Pint, PHPStan, and Rector checks. Do not add a post-generation formatting step or run a formatter to fix generated output in place—the fix belongs in the Twig template.
 
 After changing Go templates, regenerate the affected platform and verify formatting:
 
@@ -95,6 +95,15 @@ rm -rf examples/python
 php example.php python <platform>
 (cd examples/python && find appwrite test -name '*.py' -print0 | xargs -0 python -m black --check)
 (cd examples/python && python -m black --check setup.py)
+```
+
+After changing PHP templates, regenerate from a clean output directory and verify the generated source and tests:
+
+```bash
+rm -rf examples/php
+php example.php php server
+(cd examples/php && composer install)
+(cd examples/php && composer lint && composer analyse && composer refactor)
 ```
 
 ## Repository at a Glance

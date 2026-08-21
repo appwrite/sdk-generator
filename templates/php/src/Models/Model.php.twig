@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }}\Models;
 
 {% set requiredProperties = definition.properties | filter((property) => (property | schemaRequired)) %}
@@ -21,15 +23,13 @@ use {{ namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overrideId
 {% endif %}
 /**
  * {{ definition.description | unescape | raw }}
+ *
+ * @phpstan-consistent-constructor
  */
 readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
 {
     use ArraySerializable;
 
-{% if definition.additionalProperties %}
-    private const ADDITIONAL_PROPERTIES = true;
-
-{% endif %}
     /**
      * {{ definitionName | caseUcfirst }} constructor.
      *
@@ -40,7 +40,7 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
 {% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
 {% set paramDocType = 'list<' ~ (((property | enumName)) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }} ${{ (property | schemaName) | caseCamel }} {{ property.description | unescape | lower | raw }}
+     * @param {{ paramDocType | raw }} ${{ (property | schemaName) | caseCamel }} {{ property.description | trim | unescape | lower | raw }}
 {% endfor %}
 {% for property in optionalProperties %}
 {% set paramDocType = property | typeName %}
@@ -49,7 +49,7 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
 {% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
 {% set paramDocType = 'list<' ~ (((property | enumName)) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }}|null ${{ (property | schemaName) | caseCamel }} {{ property.description | unescape | lower | raw }}
+     * @param {{ paramDocType | raw }}|null ${{ (property | schemaName) | caseCamel }} {{ property.description | trim | unescape | lower | raw }}
 {% endfor %}
 {% if definition.additionalProperties %}
      * @param array<string, mixed> ${{ 'data' | caseCamel | removeDollarSign }} Additional properties.
@@ -133,7 +133,7 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
 {% elseif (property | enumValues) is not empty %}
             {{ (property | schemaName) | caseCamel }}: array_key_exists('{{ (property | schemaName) }}', $data) ? static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}'], true) : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
 {% else %}
-            {{ (property | schemaName) | caseCamel }}: array_key_exists('{{ (property | schemaName) }}', $data) ? $data['{{ (property | schemaName) }}'] : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
+            {{ (property | schemaName) | caseCamel }}: $data['{{ (property | schemaName) }}'] ?? null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
 {% endif %}
 {% if (property | schemaType) == 'array' and ((property | schemaModel) or (property | enumValues) is not empty) %}
                 : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
@@ -154,7 +154,11 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
 {% if definition.properties is empty and not definition.additionalProperties %}
         return [];
 {% else %}
+{% if definition.additionalProperties %}
         $result = [
+{% else %}
+        return [
+{% endif %}
 {% for property in definition.properties %}
             '{{ (property | schemaName) }}' => static::serializeValue($this->{{ (property | schemaName) | caseCamel }}){{ loop.last ? '' : ',' }}
 {% endfor %}
@@ -164,9 +168,9 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
         foreach (static::serializeAdditionalProperties($this->{{ 'data' | caseCamel | removeDollarSign }}) as $field => $value) {
             $result[$field] = $value;
         }
-{% endif %}
 
         return $result;
+{% endif %}
 {% endif %}
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }};
 
 use {{ namespace | caseNamespace }}\Query\Builder as QueryBuilder;
@@ -10,53 +12,49 @@ use Ahc\Jwt\JWT;
 
 class Client
 {
-    const METHOD_GET = 'GET';
-    const METHOD_POST = 'POST';
-    const METHOD_PUT = 'PUT';
-    const METHOD_PATCH = 'PATCH';
-    const METHOD_DELETE = 'DELETE';
-    const METHOD_HEAD = 'HEAD';
-    const METHOD_OPTIONS = 'OPTIONS';
-    const METHOD_CONNECT = 'CONNECT';
-    const METHOD_TRACE = 'TRACE';
+    public const METHOD_GET = 'GET';
+    public const METHOD_POST = 'POST';
+    public const METHOD_PUT = 'PUT';
+    public const METHOD_PATCH = 'PATCH';
+    public const METHOD_DELETE = 'DELETE';
+    public const METHOD_HEAD = 'HEAD';
+    public const METHOD_OPTIONS = 'OPTIONS';
+    public const METHOD_CONNECT = 'CONNECT';
+    public const METHOD_TRACE = 'TRACE';
 
-    const CHUNK_SIZE = 5 * 1024 * 1024;
+    public const CHUNK_SIZE = 5 * 1024 * 1024;
 {% if globalHeaders | hasBearerAuth %}
-    const JWT_MAX_AGE_SECONDS = 3600;
+    public const JWT_MAX_AGE_SECONDS = 3600;
 {% endif %}
 
     /**
      * Is Self Signed Certificates Allowed?
      *
-     * @var bool
      */
     protected bool $selfSigned = false;
 
     /**
      * Service host name
      *
-     * @var string
      */
     protected string $endpoint = '{{(spec | endpoint)}}';
 
     /**
      * Global Headers
      *
-     * @var array
      */
     protected array $headers = [
         'content-type' => '',
         'user-agent' => '{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{deviceInfo}})',
-        'x-sdk-name'=> '{{ sdk.name }}',
-        'x-sdk-platform'=> '{{ sdk.platform }}',
-        'x-sdk-language'=> '{{ language.name | caseLower }}',
-        'x-sdk-version'=> '{{ sdk.version }}',
+        'x-sdk-name' => '{{ sdk.name }}',
+        'x-sdk-platform' => '{{ sdk.platform }}',
+        'x-sdk-language' => '{{ language.name | caseLower }}',
+        'x-sdk-version' => '{{ sdk.version }}',
     ];
 
     /**
      * Auth/config values used by generated service methods.
      *
-     * @var array
      */
     protected array $config = [];
 
@@ -64,21 +62,18 @@ class Client
     /**
      * API key for JWT generation
      *
-     * @var string|null
      */
     protected ?string $key = null;
 
     /**
      * Cached authorization header value
      *
-     * @var string|null
      */
     protected ?string $authorization = null;
 
     /**
      * Authorization header expiry time
      *
-     * @var \DateTime|null
      */
     protected ?\DateTime $authorizationExpiresAt = null;
 
@@ -86,14 +81,12 @@ class Client
     /**
      * Timeout in seconds
      *
-     * @var int|null
      */
     protected ?int $timeout = null;
 
     /**
      * Connect timeout in seconds
      *
-     * @var int|null
      */
     protected ?int $connectTimeout = null;
 
@@ -104,7 +97,7 @@ class Client
     {
 {% for key,header in defaultHeaders %}
         $this->headers['{{key}}'] = '{{header}}';
-{% endfor %} 
+{% endfor %}
     }
 
 {% for headerKey, header in globalHeaders %}
@@ -115,9 +108,7 @@ class Client
      * {{header.description}}
      *
 {% endif %}
-     * @param string $value
      *
-     * @return Client
      */
     public function set{{headerKey | caseUcfirst}}(string $value): Client
     {
@@ -141,9 +132,7 @@ class Client
      *
      * Set a secret key used to self-sign short-lived JWTs for the Authorization header
      *
-     * @param string $key
      *
-     * @return Client
      */
     public function setSigningKey(string $key): Client
     {
@@ -167,8 +156,6 @@ class Client
     }
 
     /***
-     * @param bool $status
-     * @return $this
      */
     public function setSelfSigned(bool $status = true): Client
     {
@@ -178,8 +165,6 @@ class Client
     }
 
     /***
-     * @param $endpoint
-     * @return $this
      */
     public function setEndpoint(string $endpoint): Client
     {
@@ -194,8 +179,6 @@ class Client
     /**
      * Set Timeout
      *
-     * @param int $timeout Timeout in seconds
-     * @return Client
      */
     public function setTimeout(int $timeout): Client
     {
@@ -206,8 +189,6 @@ class Client
     /**
      * Set Connect Timeout
      *
-     * @param int $connectTimeout Connect timeout in seconds
-     * @return Client
      */
     public function setConnectTimeout(int $connectTimeout): Client
     {
@@ -216,8 +197,6 @@ class Client
     }
 
     /**
-     * @param $key
-     * @param $value
      */
     public function addHeader(string $key, string $value): Client
     {
@@ -229,7 +208,6 @@ class Client
     /**
      * Get the request headers.
      *
-     * @return array
      */
     public function getHeaders(): array
     {
@@ -240,7 +218,6 @@ class Client
     /**
      * Get authorization header, generating a new JWT if needed
      *
-     * @return string
      */
     private function getAuthorization(): string
     {
@@ -262,11 +239,6 @@ class Client
      *
      * Make an API call
      *
-     * @param string $method
-     * @param string $path
-     * @param array $params
-     * @param array $headers
-     * @return array|string
      * @throws {{ namespace | split('\\') | last | caseUcfirst}}Exception
      */
     public function call(
@@ -275,8 +247,7 @@ class Client
         array $headers = [],
         array $params = [],
         ?string $responseType = null
-    )
-    {
+    ) {
 {% if globalHeaders | hasBearerAuth %}
         if ($this->key !== null) {
             $this->headers['authorization'] = $this->getAuthorization();
@@ -285,63 +256,55 @@ class Client
         $headers = array_merge($this->headers, $headers);
         $params = \array_map(self::flatten(...), $params);
         $querySeparator = str_contains($path, '?') ? '&' : '?';
-        $ch = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? $querySeparator . http_build_query($params) : ''));
+        $ch = curl_init($this->endpoint . $path . (($method === self::METHOD_GET && $params !== []) ? $querySeparator . http_build_query($params) : ''));
         $responseHeaders = [];
 
-        switch ($headers['content-type']) {
-            case 'application/json':
-                $query = json_encode($this->prepareParams($params));
-                break;
+        $query = match ($headers['content-type']) {
+            'application/json' => json_encode($this->prepareParams($params)),
+            'multipart/form-data' => $this->flattenForm($params),
+            default => http_build_query($params),
+        };
 
-            case 'multipart/form-data':
-                $query = $this->flattenForm($params);
-                break;
-
-            default:
-                $query = http_build_query($params);
-                break;
-        }
-
-        foreach ($headers as $i => $header) {
-            $headers[] = $i . ':' . $header;
-            unset($headers[$i]);
+        $curlHeaders = [];
+        foreach ($headers as $name => $value) {
+            $curlHeaders[] = $name . ':' . $value;
         }
 
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_USERAGENT, php_uname('s') . '-' . php_uname('r') . ':{{ language.name | caseLower }}-' . phpversion());
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $curlHeaders);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $responseType !== 'location');
-        curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($curl, $header) use (&$responseHeaders) {
+        curl_setopt($ch, CURLOPT_HEADERFUNCTION, function ($curl, string $header) use (&$responseHeaders): int {
             $len = strlen($header);
-            $header = explode(':', strtolower($header), 2);
+            $parts = explode(':', strtolower($header), 2);
 
-            if (count($header) < 2) { // ignore invalid headers
+            if (count($parts) < 2) { // ignore invalid headers
                 return $len;
             }
 
-            $responseHeaders[strtolower(trim($header[0]))] = trim($header[1]);
+            $responseHeaders[strtolower(trim($parts[0]))] = trim($parts[1]);
 
             return $len;
         });
 
-        if($method != self::METHOD_GET) {
+        if ($method !== self::METHOD_GET) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, $query);
         }
 
         // Allow self signed certificates
-        if($this->selfSigned) {
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        if ($this->selfSigned) {
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         }
 
         // Set timeout if configured
-        if($this->timeout !== null) {
+        if ($this->timeout !== null) {
             curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
         }
 
         // Set connect timeout if configured
-        if($this->connectTimeout !== null) {
+        if ($this->connectTimeout !== null) {
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->connectTimeout);
         }
 
@@ -349,27 +312,26 @@ class Client
         $contentType    = $responseHeaders['content-type'] ?? '';
         $responseStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
+        if ($responseBody === false) {
+            throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $responseStatus);
+        }
+
         $warnings = $responseHeaders['x-{{spec.info.title | caseLower}}-warning'] ?? '';
         if ($warnings) {
-            foreach(explode(';', $warnings) as $warning) {
+            foreach (explode(';', $warnings) as $warning) {
                 \trigger_error($warning, E_USER_WARNING);
             }
         }
-        
+
         if (str_starts_with($contentType, 'application/json')) {
             $responseBody = json_decode($responseBody, true);
         }
 
-        if (curl_errno($ch)) {
-            throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody['type'] ?? '', $responseBody);
-        }
-
-        if($responseStatus >= 400) {
-            if(is_array($responseBody)) {
+        if ($responseStatus >= 400) {
+            if (is_array($responseBody)) {
                 throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', json_encode($responseBody));
-            } else {
-                throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception($responseBody, $responseStatus, '', $responseBody);
             }
+            throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception($responseBody, $responseStatus, '', $responseBody);
         }
 
         if ($responseType === 'location') {
@@ -382,20 +344,17 @@ class Client
     /**
      * Flatten params array to PHP multiple format
      *
-     * @param array $data
-     * @param string $prefix
-     * @return array
      */
-    protected function flattenForm(array $data, string $prefix = ''): array {
+    protected function flattenForm(array $data, string $prefix = ''): array
+    {
         $output = [];
 
-        foreach($data as $key => $value) {
+        foreach ($data as $key => $value) {
             $finalKey = $prefix ? "{$prefix}[{$key}]" : $key;
 
             if (is_array($value)) {
                 $output = array_merge($output, $this->flattenForm($value, $finalKey));
-            }
-            else {
+            } else {
                 $output[$finalKey] = $value;
             }
         }
@@ -406,13 +365,11 @@ class Client
     /**
      * Prepare params for JSON encoding by converting model objects to arrays
      *
-     * @param mixed $data
-     * @return mixed
      */
     protected function prepareParams($data)
     {
         if (is_array($data)) {
-            return array_map([$this, 'prepareParams'], $data);
+            return array_map($this->prepareParams(...), $data);
         }
 
         if (is_object($data) && method_exists($data, 'toArray')) {

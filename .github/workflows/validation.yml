@@ -250,6 +250,9 @@ jobs:
               ;;
             php)
               composer install
+              composer lint
+              composer analyse
+              composer refactor
               composer audit
               composer test
               ;;

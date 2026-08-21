@@ -729,6 +729,11 @@ open class Client {
         var changed = false
         for item in items {
             let flat = flatten(item)
+            if let strings = flat as? [String], !(item is any StringProtocol) {
+                out.append(contentsOf: strings)
+                changed = true
+                continue
+            }
             if item is Query.Builder || item is Query {
                 if let list = arrayElements(flat) {
                     out.append(contentsOf: list)

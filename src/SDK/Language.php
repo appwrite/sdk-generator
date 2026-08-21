@@ -193,6 +193,53 @@ abstract class Language
     }
 
     /**
+     * @return list<string>
+     */
+    public function resolveEnumKeys(Schema|Parameter $value): array
+    {
+        $enumSchema = $this->getEnumSchema($value);
+        if (!$enumSchema instanceof StringSchema) {
+            return [];
+        }
+
+        $keys = [];
+        $identifiers = [];
+        $used = [];
+        foreach ($enumSchema->enum as $index => $enumValue) {
+            $key = $enumSchema->enumKeys[$index] ?? '';
+            if ($key === '') {
+                $key = (string) $enumValue;
+            }
+
+            $identifier = $this->toPascalCase($key);
+            $keys[] = $key;
+            $identifiers[] = $identifier;
+            if ($identifier !== '' && !\ctype_digit($identifier[0])) {
+                $used[\strtolower($identifier)] = true;
+            }
+        }
+
+        foreach ($identifiers as $index => $identifier) {
+            if ($identifier !== '' && !\ctype_digit($identifier[0])) {
+                continue;
+            }
+
+            $base = $identifier === '' ? 'Value' . ($index + 1) : 'Value' . $identifier;
+            $candidate = $base;
+            $suffix = 2;
+            while (isset($used[\strtolower($candidate)])) {
+                $candidate = $base . $suffix;
+                $suffix++;
+            }
+
+            $keys[$index] = $candidate;
+            $used[\strtolower($candidate)] = true;
+        }
+
+        return $keys;
+    }
+
+    /**
      * Escape reserved keywords by prefixing with 'x'
      */
     public function escapeKeyword(string $value): string

@@ -505,7 +505,7 @@ class DotNet extends Language
                     return '';
                 }
 
-                $enumKeys = $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [];
+                $enumKeys = $this->resolveEnumKeys($param);
                 $enumName = $this->toPascalCase(($enumSchema instanceof StringSchema ? $enumSchema->enumName : null) ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
                 $example = $this->getSchemaExample($param);
                 $isArray = $schema instanceof ArraySchema;
