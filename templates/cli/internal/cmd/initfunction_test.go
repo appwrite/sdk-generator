@@ -564,3 +564,50 @@ func TestPendingSafeBodyStripsVCSKeysWhilePending(t *testing.T) {
 		t.Error("installationId was stripped from a connected entry")
 	}
 }
+
+// A transport failure does not say whether the template deployment was
+// created, so the consumed coordinates stay consumed: restoring them could
+// merge the starter into the repository a second time.
+func TestCreateGitFunctionDeploymentKeepsSeedConsumedOnAmbiguousFailure(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+		hijacker, ok := response.(http.Hijacker)
+		if !ok {
+			t.Fatal("response writer cannot hijack")
+		}
+		connection, _, err := hijacker.Hijack()
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = connection.Close()
+	}))
+	defer server.Close()
+
+	path := filepath.Join(t.TempDir(), config.LocalFileName)
+	contents := `{"projectId":"project","functions":[{"$id":"checkout","templateRepository":"templates","templateOwner":"appwrite","templateRootDirectory":"node/starter","templateReference":"1.0.1","templateReferenceType":"tag"}]}`
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	local, err := config.LoadLocal(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := local.ResourceEntries("functions")[0]
+	context := pushContext{api: client.New(server.URL, "test"), local: local}
+
+	_, err = context.createGitFunctionDeployment(entry, true)
+	if err == nil {
+		t.Fatal("a transport failure was not reported as an error")
+	}
+	if !strings.Contains(err.Error(), "may still have been created") {
+		t.Errorf("error does not warn about the ambiguous outcome: %v", err)
+	}
+
+	reloaded, err := config.LoadLocal(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	persisted := reloaded.ResourceEntries("functions")[0]
+	if _, exists := persisted.Get("templateRepository"); exists {
+		t.Fatal("template coordinates were restored after an ambiguous failure")
+	}
+}

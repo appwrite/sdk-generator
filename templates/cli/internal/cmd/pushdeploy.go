@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -693,16 +694,6 @@ func runPushDeployable(
 		pushCode = confirmed
 	}
 
-	// Repositories accepted on the init review screen are created only once a
-	// deployment is actually requested. A settings-only push (--no-code, or a
-	// declined confirmation) must not leave an empty GitHub repository behind;
-	// the pending intent stays in the config for the push that deploys.
-	if pushCode && resource.Name == "function" {
-		if err := context.materializePendingFunctionRepositories(entries); err != nil {
-			return err
-		}
-	}
-
 	activate := true
 	if pushCode && !options.ActivateSet {
 		// --force answers this rather than asking anyway: --force means "do not
@@ -1115,6 +1106,28 @@ func (c *pushContext) pushDeployable(
 		return
 	}
 
+	// A repository accepted on the init review screen is created here, as the
+	// last step before the deployment that needs it, once every earlier push
+	// step has succeeded. Any earlier and a failed settings write, endpoint
+	// rule, or variable replacement would leave an unwanted empty GitHub
+	// repository behind with no deployment submitted.
+	if resource.Name == "function" && entry.GetBool("providerRepositoryPending") {
+		if err := c.materializePendingFunctionRepository(entry); err != nil {
+			recordPushFailure(command, resource, name, err.Error(), summary)
+
+			return
+		}
+		// The settings write above omitted the VCS connection keys while the
+		// repository was pending; connect the function now that it exists.
+		err := c.api.Call("PUT", resource.Path+"/"+url.PathEscape(id),
+			writeBody(entry, resource.WriteKeys, resource.OmitWhenEmpty, "", ""), nil)
+		if err != nil {
+			recordPushFailure(command, resource, name, err.Error(), summary)
+
+			return
+		}
+	}
+
 	deployment, err := c.createDeployment(command, resource, entry, run.Activate)
 	if err != nil {
 		recordPushFailure(command, resource, name, err.Error(), summary)
@@ -1290,33 +1303,43 @@ func (c *pushContext) materializePendingFunctionRepositories(
 		if !entry.GetBool("providerRepositoryPending") {
 			continue
 		}
-		vcs := functionVCS{
-			InstallationID:    entry.GetString("installationId"),
-			RepositoryName:    entry.GetString("providerRepositoryName"),
-			Branch:            entry.GetString("providerBranch"),
-			RootDirectory:     entry.GetString("providerRootDirectory"),
-			SilentMode:        entry.GetBool("providerSilentMode"),
-			CreateRepository:  true,
-			RepositoryPrivate: entry.GetBool("providerRepositoryPrivate"),
+		if err := c.materializePendingFunctionRepository(entry); err != nil {
+			return err
 		}
-		created, err := createFunctionVCSRepository(c.api, vcs)
-		if err != nil {
-			created, err = c.findPendingFunctionRepository(vcs)
-			if err != nil {
-				return fmt.Errorf("create GitHub repository %s: %w", vcs.RepositoryName, err)
-			}
-		}
+	}
 
-		entry.Set("providerRepositoryId", created.RepositoryID)
-		entry.Set("providerRepositoryName", created.RepositoryName)
-		entry.Delete("providerRepositoryPrivate")
-		entry.Delete("providerRepositoryPending")
-		c.local.UpsertByID("functions", entry)
-		if err := c.local.Write(); err != nil {
-			return fmt.Errorf(
-				"GitHub repository %s was created but its id could not be saved; retry this push to recover it: %w",
-				created.RepositoryName, err)
+	return nil
+}
+
+func (c *pushContext) materializePendingFunctionRepository(
+	entry *jsonx.Object,
+) error {
+	vcs := functionVCS{
+		InstallationID:    entry.GetString("installationId"),
+		RepositoryName:    entry.GetString("providerRepositoryName"),
+		Branch:            entry.GetString("providerBranch"),
+		RootDirectory:     entry.GetString("providerRootDirectory"),
+		SilentMode:        entry.GetBool("providerSilentMode"),
+		CreateRepository:  true,
+		RepositoryPrivate: entry.GetBool("providerRepositoryPrivate"),
+	}
+	created, err := createFunctionVCSRepository(c.api, vcs)
+	if err != nil {
+		created, err = c.findPendingFunctionRepository(vcs)
+		if err != nil {
+			return fmt.Errorf("create GitHub repository %s: %w", vcs.RepositoryName, err)
 		}
+	}
+
+	entry.Set("providerRepositoryId", created.RepositoryID)
+	entry.Set("providerRepositoryName", created.RepositoryName)
+	entry.Delete("providerRepositoryPrivate")
+	entry.Delete("providerRepositoryPending")
+	c.local.UpsertByID("functions", entry)
+	if err := c.local.Write(); err != nil {
+		return fmt.Errorf(
+			"GitHub repository %s was created but its id could not be saved; retry this push to recover it: %w",
+			created.RepositoryName, err)
 	}
 
 	return nil
@@ -1477,6 +1500,18 @@ func (c *pushContext) createGitFunctionDeployment(
 	deployment := jsonx.NewObject()
 	if err := c.api.Call("POST", path, body, deployment); err != nil {
 		if template {
+			// Restore only on a definite server rejection. A timeout, read, or
+			// decode failure does not say whether the deployment was created,
+			// and a consumed seed cannot merge the starter twice -- a restored
+			// one can. `init function` can re-add the coordinates if the seed
+			// truly never landed.
+			var apiError *client.APIError
+			if !errors.As(err, &apiError) {
+				return nil, fmt.Errorf(
+					"%w; the template deployment may still have been created -- "+
+						"check the function's deployments before pushing again",
+					err)
+			}
 			for key, value := range saved {
 				entry.Set(key, value)
 			}
