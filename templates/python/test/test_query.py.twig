@@ -3,6 +3,7 @@ import unittest
 
 from {{ namespace | caseSnake }}.query import Query
 
+
 class BasicFilterQueryTest:
     def __init__(self, description: str, value, expected_values: str):
         self.description = description
@@ -17,6 +18,7 @@ tests = [
     BasicFilterQueryTest('with a bool', False, '[false]'),
     BasicFilterQueryTest('with a list', ['a', 'b', 'c'], '["a","b","c"]'),
 ]
+
 
 class TestQueryMethods(unittest.TestCase):
 

@@ -150,7 +150,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
     var offset = 0;
     String? uploadId;
-    if (idParamName.isNotEmpty) {
+    if (idParamName.isNotEmpty && params[idParamName] != null) {
       //make a request to check if a file already exists
       try {
         res = await call(

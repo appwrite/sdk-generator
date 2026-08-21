@@ -84,15 +84,16 @@
         $id = '';
         $counter = 0;
 
-{% for parameter in (method | parameters('all')) %}
-{% if (parameter | extension('x-upload-id', false)) %}
-        try {
-            $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ parameter.name }});
-            $counter = $response['chunksUploaded'] ?? 0;
-        } catch(\Exception $e) {
+{% set uploadIdParameter = method | uploadIdParameter %}
+{% if uploadIdParameter %}
+        if (!empty(${{ uploadIdParameter.name }})) {
+            try {
+                $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ uploadIdParameter.name }});
+                $counter = $response['chunksUploaded'] ?? 0;
+            } catch(\Exception $e) {
+            }
         }
 {% endif %}
-{% endfor %}
 
         $apiHeaders = [
         {%~ for key, security in (method | securityHeaders) %}
@@ -112,9 +113,9 @@
         }
 
         $uploadId = '';
-        {% for parameter in (method | parameters('all')) %}{% if (parameter | extension('x-upload-id', false)) %}
-        $uploadId = ${{ parameter.name }} ?? '';
-        {% endif %}{% endfor %}
+{% if uploadIdParameter %}
+        $uploadId = ${{ uploadIdParameter.name }} ?? '';
+{% endif %}
         $totalChunks = (int) ceil($size / Client::CHUNK_SIZE);
         $chunks = [];
         $start = $counter * Client::CHUNK_SIZE;

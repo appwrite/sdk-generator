@@ -7,6 +7,7 @@ from {{ namespace | caseSnake }}.input_file import InputFile
 from {{ namespace | caseSnake }}.models import *
 from {{ namespace | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
 
+
 class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
 
     def setUp(self):
@@ -16,32 +17,30 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
 {% for method in (service | operations) %}
     @requests_mock.Mocker()
     def test_{{ (method | methodName) | caseSnake }}(self, m):
-    {%~ if (method | methodType) == 'webAuth' %}
-        data = None
-    {%~ elseif (method | methodType) == 'location' %}
-        data = bytearray()
-    {%~ else %}
-        {%~ if (method | responseModel) and (method | responseModel) != 'any' %}
-        data = {{ (method | responseModel) | responseModelExample(spec) | raw }}
-        {%~ else %}
-        data = ''
-        {%~ endif %}
-    {%~ endif %}
-        headers = {'Content-Type': {% if (method | methodType) == 'location' %}'application/octet-stream'{% else %}'application/json'{% endif %}}
-        m.request(requests_mock.ANY, requests_mock.ANY, {% if (method | methodType) == 'location' %}body=data{% else %}text=json.dumps(data){% endif %}, headers=headers)
-
-        response = self.{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake }}({%~ for parameter in (method | parameters('all')) | filter((param) => param.required) ~%}
-            {% if (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.from_bytes(bytearray(), "example.file"){% elseif (parameter | schemaType) == 'boolean' %}True{% elseif (parameter | schemaType) == 'string' %}'{% if (parameter | schemaExample) is not empty %}{{(parameter | schemaExample) | escapeDollarSign}}{% endif %}'{% elseif (parameter | schemaType) == 'integer' %}1{% elseif (parameter | schemaType) == 'number' %}1.0{% else %}{{(parameter | schemaExample)}}{%~ endif ~%},{%~ endfor ~%}
+{% if (method | methodType) == 'webAuth' %}        data = None
+{% elseif (method | methodType) == 'location' %}        data = bytearray()
+{% elseif (method | responseModel) and (method | responseModel) != 'any' %}        data = {{ (method | responseModel) | responseModelExample(spec) | raw }}
+{% else %}        data = ''
+{% endif %}        headers = {'Content-Type': {% if (method | methodType) == 'location' %}'application/octet-stream'{% else %}'application/json'{% endif %}}
+        m.request(
+            requests_mock.ANY,
+            requests_mock.ANY,
+            {% if (method | methodType) == 'location' %}body=data{% else %}text=json.dumps(data){% endif %},
+            headers=headers,
         )
+{% set requiredParameters = (method | parameters('all')) | filter((param) => param.required) %}
+{% if requiredParameters is empty %}
+        response = self.{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake }}()
+{% else %}
+        response = self.{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake }}(
+{% for parameter in requiredParameters %}            {% if (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.from_bytes(bytearray(), "example.file"){% elseif (parameter | schemaType) == 'boolean' %}True{% elseif (parameter | schemaType) == 'string' %}'{% if (parameter | schemaExample) is not empty %}{{(parameter | schemaExample) | escapeDollarSign}}{% endif %}'{% elseif (parameter | schemaType) == 'integer' %}1{% elseif (parameter | schemaType) == 'number' %}1.0{% else %}{{(parameter | schemaExample)}}{% endif %},
+{% endfor %}        )
+{% endif %}
+{% if (method | methodType) != 'webAuth' and (method | methodType) != 'location' and (method | responseModel) and (method | responseModel) != 'any' %}
+{% set expectations = (method | responseModel) | additionalPropertiesExpectations(spec, 'data') %}
+{% if expectations is not empty %}{{ expectations | raw }}
+{% endif %}        self.assertEqual(response.to_dict(), data)
+{% else %}        self.assertEqual(response, data)
+{% endif %}{% if not loop.last %}
 
-        {%~ if (method | methodType) != 'webAuth' and (method | methodType) != 'location' and (method | responseModel) and (method | responseModel) != 'any' %}
-        {%~ set expectations = (method | responseModel) | additionalPropertiesExpectations(spec, 'data') %}
-        {%~ if expectations is not empty %}
-{{ expectations | raw }}
-        {%~ endif %}
-        self.assertEqual(response.to_dict(), data)
-        {%~ else %}
-        self.assertEqual(response, data)
-        {%~ endif  %}
-
-{% endfor %}
+{% endif %}{% endfor %}

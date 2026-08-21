@@ -1,7 +1,8 @@
 import json
 
+
 # Inherit from dict to allow for easy serialization
-class Query():
+class Query:
     def __init__(self, method, attribute=None, values=None):
         self.method = method
 
@@ -12,11 +13,7 @@ class Query():
             self.values = values if isinstance(values, list) else [values]
 
     def __str__(self):
-        return json.dumps(
-            self.__dict__,
-            separators=(",", ":"),
-            default=lambda obj: obj.__dict__
-        )
+        return json.dumps(self.__dict__, separators=(",", ":"), default=lambda obj: obj.__dict__)
 
     @staticmethod
     def equal(attribute, value):

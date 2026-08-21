@@ -129,20 +129,21 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         let chunksUploaded = 0;
 
-{% for parameter in (method | parameters('all')) %}
-{% if (parameter | extension('x-upload-id', false)) %}
-        id = {{ parameter.name }};
-        try {
-            response = await this.client.call(
-                'get',
-                apiPath + '/' + {{ parameter.name }},
-                apiHeaders
-            );
-            chunksUploaded = response.chunksUploaded;
-        } catch(e) {
+{% set uploadIdParameter = method | uploadIdParameter %}
+{% if uploadIdParameter %}
+        id = {{ uploadIdParameter.name | caseCamel | escapeKeyword }};
+        if (id) {
+            try {
+                response = await this.client.call(
+                    'get',
+                    apiPath + '/' + id,
+                    apiHeaders
+                );
+                chunksUploaded = response.chunksUploaded;
+            } catch(e) {
+            }
         }
 {% endif %}
-{% endfor %}
 
         const totalChunks = Math.ceil(size / Client.CHUNK_SIZE);
         const chunks: { index: number; start: number; end: number; data: Uint8Array }[] = [];

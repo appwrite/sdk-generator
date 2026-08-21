@@ -454,14 +454,18 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             var uploadId = string.Empty;
 
-            if (!string.IsNullOrEmpty(idParamName))
+            if (idParamName is not null
+                && idParamName.Length > 0
+                && parameters.TryGetValue(idParamName, out var uploadIdValue)
+                && uploadIdValue != null)
             {
+                uploadId = uploadIdValue.ToString() ?? string.Empty;
                 try
                 {
                     // Make a request to check if a file already exists
                     var current = await Call<Dictionary<string, object?>>(
                         method: "GET",
-                        path: $"{path}/{parameters[idParamName!]}",
+                        path: $"{path}/{uploadId}",
                         new Dictionary<string, string> { { "content-type", "application/json" } },
                         parameters: new Dictionary<string, object?>()
                     );
@@ -470,7 +474,6 @@ namespace {{ spec.info.title | caseUcfirst }}
                         offset = Convert.ToInt64(chunksUploadedValue) * ChunkSize;
                     }
                     result = current;
-                    uploadId = parameters[idParamName!]?.ToString() ?? string.Empty;
                 }
                 catch
                 {

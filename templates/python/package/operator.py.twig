@@ -2,6 +2,7 @@ import json
 import math
 from enum import Enum
 
+
 class Condition(Enum):
     EQUAL = "equal"
     NOT_EQUAL = "notEqual"
@@ -13,7 +14,8 @@ class Condition(Enum):
     IS_NULL = "isNull"
     IS_NOT_NULL = "isNotNull"
 
-class Operator():
+
+class Operator:
     def __init__(self, method, values=None):
         self.method = method
 
@@ -21,11 +23,7 @@ class Operator():
             self.values = values if isinstance(values, list) else [values]
 
     def __str__(self):
-        return json.dumps(
-            self.__dict__,
-            separators=(",", ":"),
-            default=lambda obj: obj.__dict__
-        )
+        return json.dumps(self.__dict__, separators=(",", ":"), default=lambda obj: obj.__dict__)
 
     @staticmethod
     def increment(value=1, max=None):

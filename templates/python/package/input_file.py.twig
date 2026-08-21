@@ -1,6 +1,7 @@
 import os
 import mimetypes
 
+
 class InputFile:
     @classmethod
     def from_path(cls, path):
@@ -12,7 +13,7 @@ class InputFile:
         return instance
 
     @classmethod
-    def from_bytes(cls, bytes, filename, mime_type = None):
+    def from_bytes(cls, bytes, filename, mime_type=None):
         instance = cls()
         instance.data = bytes
         instance.filename = filename

@@ -180,15 +180,17 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         let offset = 0;
         let response = undefined;
-{% for parameter in (method | parameters('all')) %}
-{% if (parameter | extension('x-upload-id', false)) %}
-        try {
-            response = await this.client.call('GET', new URL(this.client.config.endpoint + apiPath + '/' + {{ parameter.name }}), apiHeaders);
-            offset = response.chunksUploaded * Service.CHUNK_SIZE;
-        } catch(e) {
+{% set uploadIdParameter = method | uploadIdParameter %}
+{% if uploadIdParameter %}
+        const providedUploadId = {{ uploadIdParameter.name | caseCamel | escapeKeyword }};
+        if (providedUploadId) {
+            try {
+                response = await this.client.call('GET', new URL(this.client.config.endpoint + apiPath + '/' + providedUploadId), apiHeaders);
+                offset = response.chunksUploaded * Service.CHUNK_SIZE;
+            } catch(e) {
+            }
         }
 {% endif %}
-{% endfor %}
 
         const totalChunks = Math.ceil(size / Service.CHUNK_SIZE);
 

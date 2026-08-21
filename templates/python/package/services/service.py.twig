@@ -59,6 +59,7 @@ from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfi
 T = TypeVar('T')
 {% endif %}
 
+
 class {{ service.name | caseUcfirst }}(Service):
 
     def __init__(self, client) -> None:
@@ -108,55 +109,49 @@ Dict[str, Any]
 {% endif %}
 {% endset %}
     def {{ (method | methodName) | caseSnake }}(
-        self{% for parameter in (method | parameters('all')) %},
-        {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service, spec) | raw }}{% if not parameter.required %} = None{% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %},
-        on_progress = None{% endif %}{% if isGenericResponse %},
-        model_type: Type[T] = dict{% endif %}
-
-    ) -> {{ returnType | trim }}:
+        self,
+{% for parameter in (method | parameters('all')) %}        {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service, spec) | raw }}{% if not parameter.required %} = None{% endif %},
+{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}        on_progress=None,
+{% endif %}{% if isGenericResponse %}        model_type: Type[T] = dict,
+{% endif %}    ) -> {{ returnType | trim | formatModelFieldType | raw }}:
         """
-        {% autoescape false %}{{ method.description | replace({"\n": "\n        "}) }}{% endautoescape %}
+{% if method.description %}        {% autoescape false %}{{ method.description | formatDocstring(8) }}{% endautoescape %}
 
-{% if (method | parameters('all'))|length > 0 or 'multipart/form-data' in (method | consumes) or isGenericResponse %}
+{% endif %}{% if (method | parameters('all'))|length > 0 or 'multipart/form-data' in (method | consumes) or isGenericResponse %}
 
 {% if method.deprecated %}
-{%~ if (method | appwrite('deprecated', {})['since'] ?? '') and (method | appwrite('deprecated', {})['replaceWith'] ?? '') %}
-        .. deprecated::{{ (method | appwrite('deprecated', {})['since'] ?? '') }}
+{% if (method | appwrite('deprecated', {})['since'] ?? '') and (method | appwrite('deprecated', {})['replaceWith'] ?? '') %}        .. deprecated::{{ (method | appwrite('deprecated', {})['since'] ?? '') }}
             This API has been deprecated since {{ (method | appwrite('deprecated', {})['since'] ?? '') }}. Please use `{{ (method | appwrite('deprecated', {})['replaceWith'] ?? '') | caseSnakeExceptFirstDot }}` instead.
-{%~ else %}
-        .. deprecated::
+{% else %}        .. deprecated::
             This API has been deprecated.
-{%~ endif %}
 {% endif %}
-        Parameters
+{% endif %}        Parameters
         ----------
-        {% for parameter in (method | parameters('all')) %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getServicePropertyType(service, spec) | raw }}
-            {% autoescape false %}{{ parameter.description | replace({"\n": "\n            "}) }}{% endautoescape %}
+{% for parameter in (method | parameters('all')) %}        {{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getServicePropertyType(service, spec) | raw }}
+            {% autoescape false %}{{ parameter.description | formatDocstring(12) }}{% endautoescape %}
 
-        {% endfor %}{% if 'multipart/form-data' in (method | consumes) %}
-        on_progress : callable, optional
+{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}        on_progress : callable, optional
             Optional callback for upload progress
-        {% endif %}{%~ if isGenericResponse ~%}
-        model_type : Type[T], optional
-            Pydantic model class for the user-defined data. Defaults to dict for backward compatibility.
-        {% endif %}{% endif %}
 
-        Returns
+{% endif %}{% if isGenericResponse %}        model_type : Type[T], optional
+            Pydantic model class for the user-defined data. Defaults to dict for backward compatibility.
+
+{% endif %}{% endif %}        Returns
         -------
-        {% if (method | methodType) == 'webAuth' %}str
+{% if (method | methodType) == 'webAuth' %}        str
             Authentication response as a string
-        {% elseif (method | methodType) == 'location' %}bytes
+{% elseif (method | methodType) == 'location' %}        bytes
             Response as bytes
-        {% elseif validResponseModels|length > 1 %}{{ method | getResponseType(service.name) }}
+{% elseif validResponseModels|length > 1 %}        {{ method | getResponseType(service.name) }}
             API response as one of the typed response models
-        {% elseif validResponseModels|length == 1 %}{{ method | getResponseType(service.name) }}
+{% elseif validResponseModels|length == 1 %}        {{ method | getResponseType(service.name) }}
             API response as a typed Pydantic model
-        {% elseif (method | responseModel) and (method | responseModel) != 'any' %}{% if isGenericResponse %}{% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %}[T]
-{% else %}{{ method | getResponseType(service.name) }}
+{% elseif (method | responseModel) and (method | responseModel) != 'any' %}{% if isGenericResponse %}        {% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %}[T]
+{% else %}        {{ method | getResponseType(service.name) }}
 {% endif %}            API response as a typed Pydantic model
-        {% else %}Dict[str, Any]
+{% else %}        Dict[str, Any]
             API response as a dictionary
-        {% endif %}
+{% endif %}
 
         Raises
         ------
@@ -170,9 +165,5 @@ Dict[str, Any]
         {%~ endfor %}
 {{ include('python/base/params.twig') }}
 {% if 'multipart/form-data' in (method | consumes) %}
-{{ include('python/base/requests/file.twig') }}
-{% else %}
-{{ include('python/base/requests/api.twig') }}
-{% endif %}
-{% endif %}
-{% endfor %}
+{{ include('python/base/requests/file.twig') }}{% else %}{{ include('python/base/requests/api.twig') }}{% endif %}{% endif %}{% if not loop.last %}
+{% endif %}{% endfor %}

@@ -175,6 +175,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('enumKeys', fn(Schema|Parameter $value): array => $this->getEnumKeys($value)));
         $this->twig->addFilter(new TwigFilter('operations', fn(Tag $tag): array => $this->getFilteredMethods($this->getMethods($tag->name), $tag->name)));
         $this->twig->addFilter(new TwigFilter('consumes', fn(Operation $operation): array => \array_keys($operation->requestBody?->content ?? [])));
+        $this->twig->addFilter(new TwigFilter('uploadIdParameter', $this->uploadIdParameter(...)));
         $this->twig->addFilter(new TwigFilter('produces', fn(Operation $operation): array => $this->getProduces($operation)));
         $this->twig->addFilter(new TwigFilter('endpoint', fn(Specification $spec): string => $spec->servers[0]->url ?? 'https://example.com'));
         $this->twig->addFilter(new TwigFilter('appwrite', fn(Operation|SecurityScheme $value, string $key, mixed $default = null): mixed => $value->extensions['x-appwrite'][$key] ?? $default));
@@ -1499,6 +1500,38 @@ class SDK
         return $operation->extensions['x-appwrite']['type'] ?? false;
     }
 
+    protected function uploadIdParameter(Operation $operation): ?Parameter
+    {
+        $content = $operation->requestBody?->content ?? [];
+        $schema = ($content[self::MULTIPART_MEDIA_TYPE] ?? null)?->schema;
+        if (!$schema instanceof ObjectSchema) {
+            return null;
+        }
+
+        $uploadId = null;
+        $binaryProperties = 0;
+        foreach ($schema->properties as $name => $property) {
+            if (!$property instanceof StringSchema || $property->format !== 'binary') {
+                continue;
+            }
+
+            $binaryProperties++;
+            if ($binaryProperties > 1) {
+                return null;
+            }
+
+            $idName = $name . 'Id';
+            $idProperty = $schema->properties[$idName] ?? null;
+            if (!$idProperty instanceof StringSchema || $idProperty->format === 'binary') {
+                continue;
+            }
+
+            $uploadId = $this->requestBodyParameter($idName, $idProperty, $schema);
+        }
+
+        return $uploadId;
+    }
+
     /** @return list<Parameter> */
     protected function getOperationParameters(Operation $operation, string $location = 'all'): array
     {
@@ -1520,14 +1553,7 @@ class SDK
                     continue;
                 }
                 foreach ($mediaType->schema->properties as $name => $schema) {
-                    $parameters[] = new Parameter(
-                        name: $name,
-                        location: ParameterLocation::QUERY,
-                        description: $schema->description,
-                        required: \in_array($name, $mediaType->schema->required, true),
-                        schema: $schema,
-                        extensions: $schema->extensions,
-                    );
+                    $parameters[] = $this->requestBodyParameter($name, $schema, $mediaType->schema);
                 }
                 break;
             }
@@ -1540,6 +1566,18 @@ class SDK
             \usort($parameters, static fn(Parameter $left, Parameter $right): int => (int) $right->required - (int) $left->required);
         }
         return $parameters;
+    }
+
+    private function requestBodyParameter(string $name, Schema $schema, ObjectSchema $object): Parameter
+    {
+        return new Parameter(
+            name: $name,
+            location: ParameterLocation::QUERY,
+            description: $schema->description,
+            required: \in_array($name, $object->required, true),
+            schema: $schema,
+            extensions: $schema->extensions,
+        );
     }
 
     protected function getSchema(Schema|Parameter $value): Schema
