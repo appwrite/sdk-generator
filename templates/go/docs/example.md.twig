@@ -1,7 +1,7 @@
 ```go
 {% set requireFilesPkg = (method | parameters('all')) | filter(parameter => (parameter | schemaType) == 'file') | length > 0 -%}
 {%- set packagePath = sdk | goPackagePath -%}
-{%- set imports = [packagePath ~ '/client', packagePath ~ '/' ~ (service.name | caseLower)] -%}
+{%- set imports = [packagePath ~ '/appwrite', packagePath ~ '/' ~ (service.name | caseLower)] -%}
 {%- if requireFilesPkg -%}
 {%- set imports = imports | merge([packagePath ~ '/file']) -%}
 {%- endif %}
@@ -16,12 +16,12 @@ import (
 )
 
 func main() {
-	client := client.New(
+	client := appwrite.NewClient(
 {% if [(method | securitySchemes)]|length > 0 %}
-		client.WithEndpoint("{{ endpointDocs | raw }}"),
+		appwrite.WithEndpoint("{{ endpointDocs | raw }}"),
 {% for node in [(method | securitySchemes)] %}
 {% for key,header in node|keys|filter(h => not node[h].extensions['x-appwrite']['optional']) %}
-		client.With{{header}}("{{node[header].extensions['x-appwrite']['demo'] | raw }}"),
+		appwrite.With{{header}}("{{node[header].extensions['x-appwrite']['demo'] | raw }}"),
 {% endfor %}
 {% endfor %}
 {% endif %}
@@ -34,7 +34,7 @@ func main() {
 {% if parameter.required %}
 		{{ parameter | paramExample }},
 {% else %}
-		{{ service.name | caseLower }}.With{{ (method | methodName) | caseUcfirst }}{{ parameter.name | caseUcfirst }}({{ parameter | paramExample }}),
+		service.With{{ (method | methodName) | caseUcfirst }}{{ parameter.name | caseUcfirst }}({{ parameter | paramExample }}),
 {% endif %}
 {% endfor %}
 	)
