@@ -163,6 +163,76 @@ describe('Query', () => {
             .toEqual('{"method":"count","attribute":"*"}')
     );
 
+    test('countDistinct', () =>
+        expect(Query.countDistinct('year', 'uniqueYears'))
+            .toEqual('{"method":"countDistinct","attribute":"year","values":["uniqueYears"]}')
+    );
+
+    test('sum', () =>
+        expect(Query.sum('price', 'total'))
+            .toEqual('{"method":"sum","attribute":"price","values":["total"]}')
+    );
+
+    test('avg', () =>
+        expect(Query.avg('price', 'avgPrice'))
+            .toEqual('{"method":"avg","attribute":"price","values":["avgPrice"]}')
+    );
+
+    test('min', () =>
+        expect(Query.min('price', 'lowest'))
+            .toEqual('{"method":"min","attribute":"price","values":["lowest"]}')
+    );
+
+    test('max', () =>
+        expect(Query.max('price', 'highest'))
+            .toEqual('{"method":"max","attribute":"price","values":["highest"]}')
+    );
+
+    test('stddev', () =>
+        expect(Query.stddev('price', 'sd'))
+            .toEqual('{"method":"stddev","attribute":"price","values":["sd"]}')
+    );
+
+    test('stddevPop', () =>
+        expect(Query.stddevPop('price', 'sdp'))
+            .toEqual('{"method":"stddevPop","attribute":"price","values":["sdp"]}')
+    );
+
+    test('stddevSamp', () =>
+        expect(Query.stddevSamp('price', 'sds'))
+            .toEqual('{"method":"stddevSamp","attribute":"price","values":["sds"]}')
+    );
+
+    test('variance', () =>
+        expect(Query.variance('price', 'var'))
+            .toEqual('{"method":"variance","attribute":"price","values":["var"]}')
+    );
+
+    test('varPop', () =>
+        expect(Query.varPop('price', 'vp'))
+            .toEqual('{"method":"varPop","attribute":"price","values":["vp"]}')
+    );
+
+    test('varSamp', () =>
+        expect(Query.varSamp('price', 'vs'))
+            .toEqual('{"method":"varSamp","attribute":"price","values":["vs"]}')
+    );
+
+    test('bitAnd', () =>
+        expect(Query.bitAnd('flags', 'band'))
+            .toEqual('{"method":"bitAnd","attribute":"flags","values":["band"]}')
+    );
+
+    test('bitOr', () =>
+        expect(Query.bitOr('flags', 'bor'))
+            .toEqual('{"method":"bitOr","attribute":"flags","values":["bor"]}')
+    );
+
+    test('bitXor', () =>
+        expect(Query.bitXor('flags', 'bxor'))
+            .toEqual('{"method":"bitXor","attribute":"flags","values":["bxor"]}')
+    );
+
     test('groupBy', () =>
         expect(Query.groupBy(['status', 'year']))
             .toEqual('{"method":"groupBy","values":["status","year"]}')
@@ -191,6 +261,16 @@ describe('Query', () => {
             .toEqual('{"method":"leftJoin","attribute":"orders","values":["$id","=","customerId","ord"]}')
     );
 
+    test('rightJoin', () =>
+        expect(Query.rightJoin('orders', '$id', 'customerId'))
+            .toEqual('{"method":"rightJoin","attribute":"orders","values":["$id","=","customerId"]}')
+    );
+
+    test('fullOuterJoin', () =>
+        expect(Query.fullOuterJoin('orders', '$id', 'customerId'))
+            .toEqual('{"method":"fullOuterJoin","attribute":"orders","values":["$id","=","customerId"]}')
+    );
+
     test('on', () =>
         expect(Query.on('$id', 'customerId'))
             .toEqual('{"method":"on","values":["$id","=","customerId"]}')
@@ -216,6 +296,21 @@ describe('Query', () => {
     test('vectorDot', () =>
         expect(Query.vectorDot('embedding', [0.1, 0.2]))
             .toEqual('{"method":"vectorDot","attribute":"embedding","values":[[0.1,0.2]]}')
+    );
+
+    test('notCovers', () =>
+        expect(Query.notCovers('location', [1, 2]))
+            .toEqual('{"method":"notCovers","attribute":"location","values":[[1,2]]}')
+    );
+
+    test('spatialEquals', () =>
+        expect(Query.spatialEquals('location', [1, 2]))
+            .toEqual('{"method":"spatialEquals","attribute":"location","values":[[1,2]]}')
+    );
+
+    test('notSpatialEquals', () =>
+        expect(Query.notSpatialEquals('location', [1, 2]))
+            .toEqual('{"method":"notSpatialEquals","attribute":"location","values":[[1,2]]}')
     );
 
     test('page', () => {

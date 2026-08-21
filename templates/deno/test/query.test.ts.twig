@@ -285,6 +285,76 @@ describe('Query', () => {
         '{"method":"count","attribute":"*"}',
     ));
 
+    test('countDistinct', () => assertEquals(
+        Query.countDistinct('year', 'uniqueYears').toString(),
+        '{"method":"countDistinct","attribute":"year","values":["uniqueYears"]}',
+    ));
+
+    test('sum', () => assertEquals(
+        Query.sum('price', 'total').toString(),
+        '{"method":"sum","attribute":"price","values":["total"]}',
+    ));
+
+    test('avg', () => assertEquals(
+        Query.avg('price', 'avgPrice').toString(),
+        '{"method":"avg","attribute":"price","values":["avgPrice"]}',
+    ));
+
+    test('min', () => assertEquals(
+        Query.min('price', 'lowest').toString(),
+        '{"method":"min","attribute":"price","values":["lowest"]}',
+    ));
+
+    test('max', () => assertEquals(
+        Query.max('price', 'highest').toString(),
+        '{"method":"max","attribute":"price","values":["highest"]}',
+    ));
+
+    test('stddev', () => assertEquals(
+        Query.stddev('price', 'sd').toString(),
+        '{"method":"stddev","attribute":"price","values":["sd"]}',
+    ));
+
+    test('stddevPop', () => assertEquals(
+        Query.stddevPop('price', 'sdp').toString(),
+        '{"method":"stddevPop","attribute":"price","values":["sdp"]}',
+    ));
+
+    test('stddevSamp', () => assertEquals(
+        Query.stddevSamp('price', 'sds').toString(),
+        '{"method":"stddevSamp","attribute":"price","values":["sds"]}',
+    ));
+
+    test('variance', () => assertEquals(
+        Query.variance('price', 'var').toString(),
+        '{"method":"variance","attribute":"price","values":["var"]}',
+    ));
+
+    test('varPop', () => assertEquals(
+        Query.varPop('price', 'vp').toString(),
+        '{"method":"varPop","attribute":"price","values":["vp"]}',
+    ));
+
+    test('varSamp', () => assertEquals(
+        Query.varSamp('price', 'vs').toString(),
+        '{"method":"varSamp","attribute":"price","values":["vs"]}',
+    ));
+
+    test('bitAnd', () => assertEquals(
+        Query.bitAnd('flags', 'band').toString(),
+        '{"method":"bitAnd","attribute":"flags","values":["band"]}',
+    ));
+
+    test('bitOr', () => assertEquals(
+        Query.bitOr('flags', 'bor').toString(),
+        '{"method":"bitOr","attribute":"flags","values":["bor"]}',
+    ));
+
+    test('bitXor', () => assertEquals(
+        Query.bitXor('flags', 'bxor').toString(),
+        '{"method":"bitXor","attribute":"flags","values":["bxor"]}',
+    ));
+
     test('groupBy', () => assertEquals(
         Query.groupBy(['status', 'year']).toString(),
         '{"method":"groupBy","values":["status","year"]}',
@@ -313,6 +383,16 @@ describe('Query', () => {
         '{"method":"leftJoin","attribute":"orders","values":["$id","=","customerId","ord"]}',
     ));
 
+    test('rightJoin', () => assertEquals(
+        Query.rightJoin('orders', '$id', 'customerId').toString(),
+        '{"method":"rightJoin","attribute":"orders","values":["$id","=","customerId"]}',
+    ));
+
+    test('fullOuterJoin', () => assertEquals(
+        Query.fullOuterJoin('orders', '$id', 'customerId').toString(),
+        '{"method":"fullOuterJoin","attribute":"orders","values":["$id","=","customerId"]}',
+    ));
+
     test('on', () => assertEquals(
         Query.on('$id', 'customerId').toString(),
         '{"method":"on","values":["$id","=","customerId"]}',
@@ -338,6 +418,21 @@ describe('Query', () => {
     test('vectorDot', () => assertEquals(
         Query.vectorDot('embedding', [0.1, 0.2]).toString(),
         '{"method":"vectorDot","attribute":"embedding","values":[[0.1,0.2]]}',
+    ));
+
+    test('notCovers', () => assertEquals(
+        Query.notCovers('location', [1, 2]).toString(),
+        '{"method":"notCovers","attribute":"location","values":[[1,2]]}',
+    ));
+
+    test('spatialEquals', () => assertEquals(
+        Query.spatialEquals('location', [1, 2]).toString(),
+        '{"method":"spatialEquals","attribute":"location","values":[[1,2]]}',
+    ));
+
+    test('notSpatialEquals', () => assertEquals(
+        Query.notSpatialEquals('location', [1, 2]).toString(),
+        '{"method":"notSpatialEquals","attribute":"location","values":[[1,2]]}',
     ));
 
     test('page', () => {

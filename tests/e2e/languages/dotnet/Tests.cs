@@ -242,6 +242,36 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.GroupBy(new List<string> { "status" }));
             TestContext.WriteLine(Query.Distinct());
             TestContext.WriteLine(Query.Covers("location", new List<object> { 1, 2 }));
+            TestContext.WriteLine(Query.CountDistinct("year", "uniqueYears"));
+            TestContext.WriteLine(Query.Sum("price", "total"));
+            TestContext.WriteLine(Query.Avg("price", "avgPrice"));
+            TestContext.WriteLine(Query.Min("price", "lowest"));
+            TestContext.WriteLine(Query.Max("price", "highest"));
+            TestContext.WriteLine(Query.Stddev("price", "sd"));
+            TestContext.WriteLine(Query.StddevPop("price", "sdp"));
+            TestContext.WriteLine(Query.StddevSamp("price", "sds"));
+            TestContext.WriteLine(Query.Variance("price", "var"));
+            TestContext.WriteLine(Query.VarPop("price", "vp"));
+            TestContext.WriteLine(Query.VarSamp("price", "vs"));
+            TestContext.WriteLine(Query.BitAnd("flags", "band"));
+            TestContext.WriteLine(Query.BitOr("flags", "bor"));
+            TestContext.WriteLine(Query.BitXor("flags", "bxor"));
+            TestContext.WriteLine(Query.Having(new List<string> { Query.GreaterThan("total", 1) }));
+            TestContext.WriteLine(Query.LeftJoin("orders", "$id", "customerId", "=", "ord"));
+            TestContext.WriteLine(Query.RightJoin("orders", "$id", "customerId"));
+            TestContext.WriteLine(Query.FullOuterJoin("orders", "$id", "customerId"));
+            TestContext.WriteLine(Query.CrossJoin("orders", "ord"));
+            TestContext.WriteLine(Query.On("$id", "customerId"));
+            TestContext.WriteLine(Query.LeftJoin("orders", "ord", new List<string> {
+                Query.On("$id", "customerId"),
+                Query.Equal("ord.status", "paid"),
+            }));
+            TestContext.WriteLine(Query.NotCovers("location", new List<object> { 1, 2 }));
+            TestContext.WriteLine(Query.SpatialEquals("location", new List<object> { 1, 2 }));
+            TestContext.WriteLine(Query.NotSpatialEquals("location", new List<object> { 1, 2 }));
+            var pageQueries = Query.Page(2, 10);
+            TestContext.WriteLine(pageQueries[0]);
+            TestContext.WriteLine(pageQueries[1]);
             TestContext.WriteLine(Query.Builder().Limit(1).Build()[0]);
 
             // Permission & Roles helper tests

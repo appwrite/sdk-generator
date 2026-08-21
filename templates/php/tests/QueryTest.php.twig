@@ -352,6 +352,42 @@ final class QueryTest extends TestCase {
         $this->assertSame('max', json_decode(Query::max('price', 'highest'), true)['method']);
     }
 
+    public function testStddev(): void {
+        $this->assertSame('stddev', json_decode(Query::stddev('price', 'sd'), true)['method']);
+    }
+
+    public function testStddevPop(): void {
+        $this->assertSame('stddevPop', json_decode(Query::stddevPop('price', 'sdp'), true)['method']);
+    }
+
+    public function testStddevSamp(): void {
+        $this->assertSame('stddevSamp', json_decode(Query::stddevSamp('price', 'sds'), true)['method']);
+    }
+
+    public function testVariance(): void {
+        $this->assertSame('variance', json_decode(Query::variance('price', 'var'), true)['method']);
+    }
+
+    public function testVarPop(): void {
+        $this->assertSame('varPop', json_decode(Query::varPop('price', 'vp'), true)['method']);
+    }
+
+    public function testVarSamp(): void {
+        $this->assertSame('varSamp', json_decode(Query::varSamp('price', 'vs'), true)['method']);
+    }
+
+    public function testBitAnd(): void {
+        $this->assertSame('bitAnd', json_decode(Query::bitAnd('flags', 'band'), true)['method']);
+    }
+
+    public function testBitOr(): void {
+        $this->assertSame('bitOr', json_decode(Query::bitOr('flags', 'bor'), true)['method']);
+    }
+
+    public function testBitXor(): void {
+        $this->assertSame('bitXor', json_decode(Query::bitXor('flags', 'bxor'), true)['method']);
+    }
+
     public function testGroupBy(): void {
         $query = json_decode(Query::groupBy(['status', 'year']), true);
         $this->assertSame('groupBy', $query['method']);
@@ -408,11 +444,41 @@ final class QueryTest extends TestCase {
         $this->assertSame('ord.status', $query['values'][2]['attribute']);
     }
 
+    public function testRightJoin(): void {
+        $query = json_decode(Query::rightJoin('orders', '$id', 'customerId'), true);
+        $this->assertSame('rightJoin', $query['method']);
+        $this->assertSame(['$id', '=', 'customerId'], $query['values']);
+    }
+
+    public function testFullOuterJoin(): void {
+        $query = json_decode(Query::fullOuterJoin('orders', '$id', 'customerId'), true);
+        $this->assertSame('fullOuterJoin', $query['method']);
+        $this->assertSame(['$id', '=', 'customerId'], $query['values']);
+    }
+
     public function testCrossJoin(): void {
         $query = json_decode(Query::crossJoin('orders', 'ord'), true);
         $this->assertSame('crossJoin', $query['method']);
         $this->assertSame('orders', $query['attribute']);
         $this->assertSame(['ord'], $query['values']);
+    }
+
+    public function testNotCovers(): void {
+        $query = json_decode(Query::notCovers('location', [1, 2]), true);
+        $this->assertSame('notCovers', $query['method']);
+        $this->assertSame([[1, 2]], $query['values']);
+    }
+
+    public function testSpatialEquals(): void {
+        $query = json_decode(Query::spatialEquals('location', [1, 2]), true);
+        $this->assertSame('spatialEquals', $query['method']);
+        $this->assertSame([[1, 2]], $query['values']);
+    }
+
+    public function testNotSpatialEquals(): void {
+        $query = json_decode(Query::notSpatialEquals('location', [1, 2]), true);
+        $this->assertSame('notSpatialEquals', $query['method']);
+        $this->assertSame([[1, 2]], $query['values']);
     }
 
     public function testVectorDot(): void {

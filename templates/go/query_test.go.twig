@@ -182,6 +182,45 @@ func TestCountDistinct(t *testing.T) {
 	}
 }
 
+func TestNewQueryMethods(t *testing.T) {
+	cases := []struct {
+		name   string
+		query  string
+		method string
+	}{
+		{"sum", Sum("price", "total"), "sum"},
+		{"avg", Avg("price", "avgPrice"), "avg"},
+		{"min", Min("price", "lowest"), "min"},
+		{"max", Max("price", "highest"), "max"},
+		{"stddev", Stddev("price", "sd"), "stddev"},
+		{"stddevPop", StddevPop("price", "sdp"), "stddevPop"},
+		{"stddevSamp", StddevSamp("price", "sds"), "stddevSamp"},
+		{"variance", Variance("price", "var"), "variance"},
+		{"varPop", VarPop("price", "vp"), "varPop"},
+		{"varSamp", VarSamp("price", "vs"), "varSamp"},
+		{"bitAnd", BitAnd("flags", "band"), "bitAnd"},
+		{"bitOr", BitOr("flags", "bor"), "bitOr"},
+		{"bitXor", BitXor("flags", "bxor"), "bitXor"},
+		{"rightJoin", RightJoin("orders", "$id", "customerId", "=", ""), "rightJoin"},
+		{"fullOuterJoin", FullOuterJoin("orders", "$id", "customerId", "=", ""), "fullOuterJoin"},
+		{"notCovers", NotCovers("location", []interface{}{1, 2}), "notCovers"},
+		{"spatialEquals", SpatialEquals("location", []interface{}{1, 2}), "spatialEquals"},
+		{"notSpatialEquals", NotSpatialEquals("location", []interface{}{1, 2}), "notSpatialEquals"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var data map[string]interface{}
+			if err := json.Unmarshal([]byte(c.query), &data); err != nil {
+				t.Fatal(err)
+			}
+			if data["method"] != c.method {
+				t.Errorf("Expected %s, got %v", c.method, data["method"])
+			}
+		})
+	}
+}
+
 func TestGroupBy(t *testing.T) {
 	q := GroupBy([]interface{}{"status", "year"})
 	var data map[string]interface{}

@@ -370,6 +370,36 @@ namespace AppwriteTests
             LogResult(Query.GroupBy(new List<string> { "status" }));
             LogResult(Query.Distinct());
             LogResult(Query.Covers("location", new List<object> { 1, 2 }));
+            LogResult(Query.CountDistinct("year", "uniqueYears"));
+            LogResult(Query.Sum("price", "total"));
+            LogResult(Query.Avg("price", "avgPrice"));
+            LogResult(Query.Min("price", "lowest"));
+            LogResult(Query.Max("price", "highest"));
+            LogResult(Query.Stddev("price", "sd"));
+            LogResult(Query.StddevPop("price", "sdp"));
+            LogResult(Query.StddevSamp("price", "sds"));
+            LogResult(Query.Variance("price", "var"));
+            LogResult(Query.VarPop("price", "vp"));
+            LogResult(Query.VarSamp("price", "vs"));
+            LogResult(Query.BitAnd("flags", "band"));
+            LogResult(Query.BitOr("flags", "bor"));
+            LogResult(Query.BitXor("flags", "bxor"));
+            LogResult(Query.Having(new List<string> { Query.GreaterThan("total", 1) }));
+            LogResult(Query.LeftJoin("orders", "$id", "customerId", "=", "ord"));
+            LogResult(Query.RightJoin("orders", "$id", "customerId"));
+            LogResult(Query.FullOuterJoin("orders", "$id", "customerId"));
+            LogResult(Query.CrossJoin("orders", "ord"));
+            LogResult(Query.On("$id", "customerId"));
+            LogResult(Query.LeftJoin("orders", "ord", new List<string> {
+                Query.On("$id", "customerId"),
+                Query.Equal("ord.status", "paid"),
+            }));
+            LogResult(Query.NotCovers("location", new List<object> { 1, 2 }));
+            LogResult(Query.SpatialEquals("location", new List<object> { 1, 2 }));
+            LogResult(Query.NotSpatialEquals("location", new List<object> { 1, 2 }));
+            var pageQueries = Query.Page(2, 10);
+            LogResult(pageQueries[0]);
+            LogResult(pageQueries[1]);
             LogResult(Query.Builder().Limit(1).Build()[0]);
             // Permission & Roles helper tests
             LogResult(Permission.Read(Role.Any()));

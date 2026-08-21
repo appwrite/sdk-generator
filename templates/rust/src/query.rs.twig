@@ -1671,6 +1671,79 @@ mod tests {
     }
 
     #[test]
+    fn test_count_distinct() {
+        let value = Query::count_distinct("year", "uniqueYears").to_value();
+        assert_eq!(value["method"], "countDistinct");
+        assert_eq!(value["attribute"], "year");
+        assert_eq!(value["values"][0], "uniqueYears");
+    }
+
+    #[test]
+    fn test_sum() {
+        assert_eq!(Query::sum("price", "total").to_value()["method"], "sum");
+    }
+
+    #[test]
+    fn test_avg() {
+        assert_eq!(Query::avg("price", "avgPrice").to_value()["method"], "avg");
+    }
+
+    #[test]
+    fn test_min() {
+        assert_eq!(Query::min("price", "lowest").to_value()["method"], "min");
+    }
+
+    #[test]
+    fn test_max() {
+        assert_eq!(Query::max("price", "highest").to_value()["method"], "max");
+    }
+
+    #[test]
+    fn test_stddev() {
+        assert_eq!(Query::stddev("price", "sd").to_value()["method"], "stddev");
+    }
+
+    #[test]
+    fn test_stddev_pop() {
+        assert_eq!(Query::stddev_pop("price", "sdp").to_value()["method"], "stddevPop");
+    }
+
+    #[test]
+    fn test_stddev_samp() {
+        assert_eq!(Query::stddev_samp("price", "sds").to_value()["method"], "stddevSamp");
+    }
+
+    #[test]
+    fn test_variance() {
+        assert_eq!(Query::variance("price", "var").to_value()["method"], "variance");
+    }
+
+    #[test]
+    fn test_var_pop() {
+        assert_eq!(Query::var_pop("price", "vp").to_value()["method"], "varPop");
+    }
+
+    #[test]
+    fn test_var_samp() {
+        assert_eq!(Query::var_samp("price", "vs").to_value()["method"], "varSamp");
+    }
+
+    #[test]
+    fn test_bit_and() {
+        assert_eq!(Query::bit_and("flags", "band").to_value()["method"], "bitAnd");
+    }
+
+    #[test]
+    fn test_bit_or() {
+        assert_eq!(Query::bit_or("flags", "bor").to_value()["method"], "bitOr");
+    }
+
+    #[test]
+    fn test_bit_xor() {
+        assert_eq!(Query::bit_xor("flags", "bxor").to_value()["method"], "bitXor");
+    }
+
+    #[test]
     fn test_group_by() {
         let query = Query::group_by(vec!["status", "year"]);
         let value = query.to_value();
@@ -1752,6 +1825,41 @@ mod tests {
         assert_eq!(value["method"], "crossJoin");
         assert_eq!(value["attribute"], "orders");
         assert_eq!(value["values"][0], "ord");
+    }
+
+    #[test]
+    fn test_right_join() {
+        let value = Query::right_join("orders", "$id", "customerId", "=", "").to_value();
+        assert_eq!(value["method"], "rightJoin");
+        assert_eq!(value["values"][0], "$id");
+        assert_eq!(value["values"][1], "=");
+        assert_eq!(value["values"][2], "customerId");
+    }
+
+    #[test]
+    fn test_full_outer_join() {
+        let value = Query::full_outer_join("orders", "$id", "customerId", "=", "").to_value();
+        assert_eq!(value["method"], "fullOuterJoin");
+    }
+
+    #[test]
+    fn test_not_covers() {
+        let value = Query::not_covers("location", Value::Array(vec![Value::from(1), Value::from(2)])).to_value();
+        assert_eq!(value["method"], "notCovers");
+        assert_eq!(value["values"][0][0], 1);
+        assert_eq!(value["values"][0][1], 2);
+    }
+
+    #[test]
+    fn test_spatial_equals() {
+        let value = Query::spatial_equals("location", Value::Array(vec![Value::from(1), Value::from(2)])).to_value();
+        assert_eq!(value["method"], "spatialEquals");
+    }
+
+    #[test]
+    fn test_not_spatial_equals() {
+        let value = Query::not_spatial_equals("location", Value::Array(vec![Value::from(1), Value::from(2)])).to_value();
+        assert_eq!(value["method"], "notSpatialEquals");
     }
 
     #[test]

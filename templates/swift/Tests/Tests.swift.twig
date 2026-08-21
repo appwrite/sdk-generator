@@ -1,5 +1,122 @@
+import Foundation
 import XCTest
+import {{ spec.info.title | caseUcfirst }}
 
 class Tests: XCTestCase {
+    func method(_ raw: String) -> String {
+        let object = try! JSONSerialization.jsonObject(with: Data(raw.utf8)) as! [String: Any]
+        return object["method"] as! String
+    }
 
+    func testCountDistinct() {
+        XCTAssertEqual(method(Query.countDistinct("year", alias: "uniqueYears")), "countDistinct")
+    }
+
+    func testSum() {
+        XCTAssertEqual(method(Query.sum("price", alias: "total")), "sum")
+    }
+
+    func testAvg() {
+        XCTAssertEqual(method(Query.avg("price", alias: "avgPrice")), "avg")
+    }
+
+    func testMin() {
+        XCTAssertEqual(method(Query.min("price", alias: "lowest")), "min")
+    }
+
+    func testMax() {
+        XCTAssertEqual(method(Query.max("price", alias: "highest")), "max")
+    }
+
+    func testStddev() {
+        XCTAssertEqual(method(Query.stddev("price", alias: "sd")), "stddev")
+    }
+
+    func testStddevPop() {
+        XCTAssertEqual(method(Query.stddevPop("price", alias: "sdp")), "stddevPop")
+    }
+
+    func testStddevSamp() {
+        XCTAssertEqual(method(Query.stddevSamp("price", alias: "sds")), "stddevSamp")
+    }
+
+    func testVariance() {
+        XCTAssertEqual(method(Query.variance("price", alias: "var")), "variance")
+    }
+
+    func testVarPop() {
+        XCTAssertEqual(method(Query.varPop("price", alias: "vp")), "varPop")
+    }
+
+    func testVarSamp() {
+        XCTAssertEqual(method(Query.varSamp("price", alias: "vs")), "varSamp")
+    }
+
+    func testBitAnd() {
+        XCTAssertEqual(method(Query.bitAnd("flags", alias: "band")), "bitAnd")
+    }
+
+    func testBitOr() {
+        XCTAssertEqual(method(Query.bitOr("flags", alias: "bor")), "bitOr")
+    }
+
+    func testBitXor() {
+        XCTAssertEqual(method(Query.bitXor("flags", alias: "bxor")), "bitXor")
+    }
+
+    func testHaving() {
+        XCTAssertEqual(method(Query.having([Query.greaterThan("total", value: 1)])), "having")
+    }
+
+    func testLeftJoin() {
+        XCTAssertEqual(method(Query.leftJoin("orders", left: "$id", right: "customerId", operator: "=", alias: "ord")), "leftJoin")
+    }
+
+    func testRightJoin() {
+        XCTAssertEqual(method(Query.rightJoin("orders", left: "$id", right: "customerId")), "rightJoin")
+    }
+
+    func testFullOuterJoin() {
+        XCTAssertEqual(method(Query.fullOuterJoin("orders", left: "$id", right: "customerId")), "fullOuterJoin")
+    }
+
+    func testCrossJoin() {
+        XCTAssertEqual(method(Query.crossJoin("orders", alias: "ord")), "crossJoin")
+    }
+
+    func testOn() {
+        XCTAssertEqual(method(Query.on("$id", "customerId")), "on")
+    }
+
+    func testNestedLeftJoin() {
+        let raw = Query.leftJoin("orders", alias: "ord", on: [
+            Query.on("$id", "customerId"),
+            Query.equal("ord.status", value: "paid"),
+        ])
+        let object = try! JSONSerialization.jsonObject(with: Data(raw.utf8)) as! [String: Any]
+        XCTAssertEqual(object["method"] as? String, "leftJoin")
+        let values = object["values"] as! [Any]
+        XCTAssertEqual(values[0] as? String, "ord")
+        XCTAssertEqual((values[1] as! [String: Any])["method"] as? String, "on")
+        XCTAssertEqual((values[2] as! [String: Any])["method"] as? String, "equal")
+    }
+
+    func testNotCovers() {
+        XCTAssertEqual(method(Query.notCovers("location", values: [1, 2])), "notCovers")
+    }
+
+    func testSpatialEquals() {
+        XCTAssertEqual(method(Query.spatialEquals("location", values: [1, 2])), "spatialEquals")
+    }
+
+    func testNotSpatialEquals() {
+        XCTAssertEqual(method(Query.notSpatialEquals("location", values: [1, 2])), "notSpatialEquals")
+    }
+
+    func testPage() {
+        let queries = Query.page(2, perPage: 10)
+        XCTAssertEqual(queries.count, 2)
+        XCTAssertEqual(method(queries[0]), "limit")
+        XCTAssertEqual(method(queries[1]), "offset")
+    }
 }

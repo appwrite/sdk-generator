@@ -544,6 +544,11 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/QueryTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/QueryTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Operator.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Operator.kt.twig',
             ],

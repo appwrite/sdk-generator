@@ -386,6 +386,42 @@ void main() {
     expect(jsonDecode(Query.max('price', 'highest'))['method'], 'max');
   });
 
+  test('returns stddev', () {
+    expect(jsonDecode(Query.stddev('price', 'sd'))['method'], 'stddev');
+  });
+
+  test('returns stddevPop', () {
+    expect(jsonDecode(Query.stddevPop('price', 'sdp'))['method'], 'stddevPop');
+  });
+
+  test('returns stddevSamp', () {
+    expect(jsonDecode(Query.stddevSamp('price', 'sds'))['method'], 'stddevSamp');
+  });
+
+  test('returns variance', () {
+    expect(jsonDecode(Query.variance('price', 'var'))['method'], 'variance');
+  });
+
+  test('returns varPop', () {
+    expect(jsonDecode(Query.varPop('price', 'vp'))['method'], 'varPop');
+  });
+
+  test('returns varSamp', () {
+    expect(jsonDecode(Query.varSamp('price', 'vs'))['method'], 'varSamp');
+  });
+
+  test('returns bitAnd', () {
+    expect(jsonDecode(Query.bitAnd('flags', 'band'))['method'], 'bitAnd');
+  });
+
+  test('returns bitOr', () {
+    expect(jsonDecode(Query.bitOr('flags', 'bor'))['method'], 'bitOr');
+  });
+
+  test('returns bitXor', () {
+    expect(jsonDecode(Query.bitXor('flags', 'bxor'))['method'], 'bitXor');
+  });
+
   test('returns groupBy', () {
     final query = jsonDecode(Query.groupBy(['status', 'year']));
     expect(query['method'], 'groupBy');
@@ -422,6 +458,18 @@ void main() {
     expect(query['method'], 'leftJoin');
     expect(query['attribute'], 'orders');
     expect(query['values'], ['\$id', '=', 'customerId', 'ord']);
+  });
+
+  test('returns rightJoin', () {
+    final query = jsonDecode(Query.rightJoin('orders', '\$id', 'customerId'));
+    expect(query['method'], 'rightJoin');
+    expect(query['values'], ['\$id', '=', 'customerId']);
+  });
+
+  test('returns fullOuterJoin', () {
+    final query = jsonDecode(Query.fullOuterJoin('orders', '\$id', 'customerId'));
+    expect(query['method'], 'fullOuterJoin');
+    expect(query['values'], ['\$id', '=', 'customerId']);
   });
 
   test('returns on', () {
@@ -463,6 +511,30 @@ void main() {
     expect(query['method'], 'covers');
     expect(query['values'], [
       [0, 0]
+    ]);
+  });
+
+  test('returns notCovers', () {
+    final query = jsonDecode(Query.notCovers('location', [1, 2]));
+    expect(query['method'], 'notCovers');
+    expect(query['values'], [
+      [1, 2]
+    ]);
+  });
+
+  test('returns spatialEquals', () {
+    final query = jsonDecode(Query.spatialEquals('location', [1, 2]));
+    expect(query['method'], 'spatialEquals');
+    expect(query['values'], [
+      [1, 2]
+    ]);
+  });
+
+  test('returns notSpatialEquals', () {
+    final query = jsonDecode(Query.notSpatialEquals('location', [1, 2]));
+    expect(query['method'], 'notSpatialEquals');
+    expect(query['values'], [
+      [1, 2]
     ]);
   });
 

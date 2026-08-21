@@ -222,6 +222,36 @@ puts Query.join('orders', '$id', 'customerId')
 puts Query.group_by(['status'])
 puts Query.distinct()
 puts Query.covers('location', [1, 2])
+puts Query.count_distinct('year', 'uniqueYears')
+puts Query.sum('price', 'total')
+puts Query.avg('price', 'avgPrice')
+puts Query.min('price', 'lowest')
+puts Query.max('price', 'highest')
+puts Query.stddev('price', 'sd')
+puts Query.stddev_pop('price', 'sdp')
+puts Query.stddev_samp('price', 'sds')
+puts Query.variance('price', 'var')
+puts Query.var_pop('price', 'vp')
+puts Query.var_samp('price', 'vs')
+puts Query.bit_and('flags', 'band')
+puts Query.bit_or('flags', 'bor')
+puts Query.bit_xor('flags', 'bxor')
+puts Query.having([Query.greater_than('total', 1)])
+puts Query.left_join('orders', '$id', 'customerId', '=', 'ord')
+puts Query.right_join('orders', '$id', 'customerId')
+puts Query.full_outer_join('orders', '$id', 'customerId')
+puts Query.cross_join('orders', 'ord')
+puts Query.on('$id', 'customerId')
+puts Query.left_join('orders', 'ord', [
+  Query.on('$id', 'customerId'),
+  Query.equal('ord.status', 'paid'),
+])
+puts Query.not_covers('location', [1, 2])
+puts Query.spatial_equals('location', [1, 2])
+puts Query.not_spatial_equals('location', [1, 2])
+page_queries = Query.page(2, 10)
+puts page_queries[0]
+puts page_queries[1]
 puts Query.builder.limit(1).build[0]
 
 # Permission & Role helper tests
