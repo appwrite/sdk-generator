@@ -120,9 +120,19 @@ class Tests: XCTestCase {
         XCTAssertEqual(method(queries[1]), "offset")
     }
 
+    func queryStrings(_ value: Any?) -> [String]? {
+        if let list = value as? [String] {
+            return list
+        }
+        if let list = value as? [Any] {
+            return list.map { String(describing: $0) }
+        }
+        return nil
+    }
+
     func testFlattenSpreadsWrappedBuilder() {
         let client = Client()
-        XCTAssertEqual(client.flatten([Query.builder().limit(1)]) as? [String], [Query.limit(1)])
+        XCTAssertEqual(queryStrings(client.flatten([Query.builder().limit(1)])), [Query.limit(1)])
     }
 
     func testFlattenKeepsNestedNumericArrays() {
@@ -133,6 +143,6 @@ class Tests: XCTestCase {
 
     func testFlattenKeepsQueryStringList() {
         let client = Client()
-        XCTAssertEqual(client.flatten([Query.limit(1)]) as? [String], [Query.limit(1)])
+        XCTAssertEqual(queryStrings(client.flatten([Query.limit(1)])), [Query.limit(1)])
     }
 }

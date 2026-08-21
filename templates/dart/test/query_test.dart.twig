@@ -573,6 +573,7 @@ void main() {
 
     expect(built, expected);
   });
+{% if 'dart' in language.params.packageName %}
 
   test('flatten spreads wrapped builder', () {
     final client = Client();
@@ -592,4 +593,5 @@ void main() {
     final client = Client();
     expect(client.flatten([Query.limit(1)]), [Query.limit(1)]);
   });
+{% endif %}
 }

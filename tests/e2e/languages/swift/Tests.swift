@@ -283,12 +283,19 @@ class Tests: XCTestCase {
         print(pageQueries[0])
         print(pageQueries[1])
         print(Query.builder().limit(1).build()[0])
-        let flatBuilder = client.flatten([Query.builder().limit(1)]) as? [String]
-        print(flatBuilder == [Query.limit(1)] ? "flatten-builder:ok" : "flatten-builder:fail")
+        func queryStrings(_ value: Any?) -> [String]? {
+            if let list = value as? [String] {
+                return list
+            }
+            if let list = value as? [Any] {
+                return list.map { String(describing: $0) }
+            }
+            return nil
+        }
+        print(queryStrings(client.flatten([Query.builder().limit(1)])) == [Query.limit(1)] ? "flatten-builder:ok" : "flatten-builder:fail")
         let geometry = [[1, 2], [3, 4]]
         print((client.flatten(geometry) as? [[Int]]) == geometry ? "flatten-geometry:ok" : "flatten-geometry:fail")
-        let flatList = client.flatten([Query.limit(1)]) as? [String]
-        print(flatList == [Query.limit(1)] ? "flatten-list:ok" : "flatten-list:fail")
+        print(queryStrings(client.flatten([Query.limit(1)])) == [Query.limit(1)] ? "flatten-list:ok" : "flatten-list:fail")
 
         // Permission & Role helper tests
         print(Permission.read(Role.any()))
