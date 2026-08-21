@@ -1,6 +1,10 @@
 ```dart
-{% if (method | methodType) == 'upload' %}
+{% if (method | methodType) in ['upload', 'location'] %}
 import 'dart:io';
+{% endif %}
+{% if (method | methodType) == 'location' %}
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
 {% endif %}
 import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
 {% set hasEnumParam = false %}
@@ -35,24 +39,24 @@ Uint8List bytes = await {{ service.name | caseCamel }}.{{ (method | methodName) 
     {%~ for parameter in (method | parameters('all')) %}
     {{ parameter.name | caseCamel | overrideIdentifier}}: {% if (parameter | enumValues) | length > 0%}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }}{% endif %},{% if not parameter.required %} // optional{% endif %}
 
-    {%~ endfor %}{% if (method | parameters('all')) | length > 0 %}{% endif %})
+    {%~ endfor %}{% if (method | parameters('all')) | length > 0 %}{% endif %});
 
 final file = File('path_to_file/filename.ext');
 file.writeAsBytesSync(bytes);
 
 // Displaying image preview
-FutureBuilder(
+FutureBuilder<Uint8List>(
     future: {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}(
-    {%~ for parameter in (method | parameters('all')) %}
-    {{ parameter.name | caseCamel | overrideIdentifier}}:{% if (parameter | enumValues) | length > 0%} {{ parameter | enumExample }}{% else %}{{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }} {% endif %},{% if not parameter.required %} // optional{% endif %}
+        {%~ for parameter in (method | parameters('all')) %}
+        {{ parameter.name | caseCamel | overrideIdentifier}}: {% if (parameter | enumValues) | length > 0%}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }}{% endif %},{% if not parameter.required %} // optional{% endif %}
 
-    {%~ endfor %}
-), // Works for both public file and private file, for private files you need to be logged in
+        {%~ endfor %}
+    ), // Works for both public file and private file, for private files you need to be logged in
     builder: (context, snapshot) {
-      return snapshot.hasData && snapshot.data != null
-          ? Image.memory(snapshot.data)
-          : CircularProgressIndicator();
-    }
+        return snapshot.hasData && snapshot.data != null
+            ? Image.memory(snapshot.data!)
+            : const CircularProgressIndicator();
+    },
 );
 {% else %}
 {% if method.method.value != 'delete' and (method | methodType) != 'webAuth' %}{% if (method | methodType) == 'location' %}Uint8List{% elseif (method | getValidResponseModels)|length > 1 %}dynamic{% else %}{{ (method | responseModel) | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}({% if (method | parameters('all')) | length == 0 %});{% endif %}

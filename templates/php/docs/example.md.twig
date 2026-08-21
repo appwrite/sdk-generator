@@ -38,5 +38,5 @@ $result = ${{ service.name | caseCamel }}->{{ (method | methodName) | caseCamel 
     {{ parameter.name | caseCamel }}: {% if (parameter | enumValues) | length > 0%}{{ parameter | enumExample }}{% else%}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
 
     {%~ endfor -%}
-{% if (method | parameters('all')) | length > 0 %});{% endif %}
+{% if (method | parameters('all')) | length > 0 %});{% endif %}{{ '\n' }}
 ```

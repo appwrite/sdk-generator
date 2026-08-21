@@ -206,17 +206,31 @@ abstract class Language
 
     public function isPermissionString(string $string): bool
     {
-        $pattern = '/^\["(read|update|delete|write)\(\\"[^\\"]+\\"\)"(,\s*"(read|update|delete|write)\(\\"[^\\"]+\\"\)")*\]$/';
-        return preg_match($pattern, $string) === 1;
+        $permissions = \json_decode($string, true);
+        if (!\is_array($permissions) || $permissions === []) {
+            return false;
+        }
+
+        return \array_all(
+            $permissions,
+            static fn(mixed $permission): bool => \is_string($permission)
+                && \preg_match('/^(read|update|delete|write)\("[^"]+"\)$/', $permission) === 1,
+        );
     }
 
     public function extractPermissionParts(string $string): array
     {
-        $inner = substr($string, 1, -1);
-        preg_match_all('/"(read|update|delete|write)\(\\"([^\\"]+)\\"\)"/', $inner, $matches, PREG_SET_ORDER);
+        $permissions = \json_decode($string, true);
+        if (!\is_array($permissions)) {
+            return [];
+        }
 
         $result = [];
-        foreach ($matches as $match) {
+        foreach ($permissions as $permission) {
+            if (!\is_string($permission) || \preg_match('/^(read|update|delete|write)\("([^"]+)"\)$/', $permission, $match) !== 1) {
+                continue;
+            }
+
             $action = $match[1];
             $roleString = $match[2];
 
@@ -272,7 +286,7 @@ abstract class Language
         return match (true) {
             $schema instanceof StringSchema && $schema->format === 'binary' => self::TYPE_FILE,
             $schema instanceof StringSchema,
-            $schema instanceof CompositeSchema && $this->isOpenStringEnum($schema) => self::TYPE_STRING,
+            $schema instanceof CompositeSchema && $this->isStringEnum($schema) => self::TYPE_STRING,
             $schema instanceof IntegerSchema => self::TYPE_INTEGER,
             $schema instanceof NumberSchema => self::TYPE_NUMBER,
             $schema instanceof BooleanSchema => self::TYPE_BOOLEAN,
@@ -321,7 +335,27 @@ abstract class Language
             return '{}';
         }
 
-        return \json_encode($example, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $options = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+        if ($this->containsAssociativeArray((array) $example)) {
+            $options |= JSON_PRETTY_PRINT;
+        }
+
+        $encoded = \json_encode($example, $options);
+        return ($options & JSON_PRETTY_PRINT) === 0
+            ? \str_replace(',', ', ', $encoded)
+            : \str_replace("\n", "\n\t", $encoded);
+    }
+
+    private function containsAssociativeArray(array $value): bool
+    {
+        if (!\array_is_list($value)) {
+            return true;
+        }
+
+        return \array_any(
+            $value,
+            fn(mixed $item): bool => \is_array($item) && $this->containsAssociativeArray($item),
+        );
     }
 
     protected function getSchemaDefault(Schema|Parameter $value): mixed
@@ -343,7 +377,7 @@ abstract class Language
         }
         $items = $schema->items;
         return !($items instanceof AnySchema)
-            && (!($items instanceof CompositeSchema) || $this->isOpenStringEnum($items))
+            && (!($items instanceof CompositeSchema) || $this->isStringEnum($items))
             && $this->getSchemaType($items) !== '';
     }
 
@@ -368,8 +402,15 @@ abstract class Language
         $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
 
         return $enumSchema instanceof CompositeSchema
-            ? ($enumSchema->openStringEnumBranch() ?? $enumSchema)
+            ? ($enumSchema->stringEnum() ?? $enumSchema)
             : $enumSchema;
+    }
+
+    public function isStringEnum(Schema|Parameter $value): bool
+    {
+        $enumSchema = $this->getEnumSchema($value);
+
+        return $enumSchema instanceof StringSchema && $enumSchema->enum !== [];
     }
 
     public function isOpenStringEnum(Schema|Parameter $value): bool
@@ -377,6 +418,28 @@ abstract class Language
         $enumSchema = $this->getEnumSchema($value);
 
         return $enumSchema instanceof StringSchema && $enumSchema->open;
+    }
+
+    public function usesEnumType(Schema|Parameter $value): bool
+    {
+        return $this->isStringEnum($value)
+            && (!$this->isOpenStringEnum($value) || $this->keepsOpenEnumType());
+    }
+
+    public function getSuggestedEnumExample(Schema|Parameter $value, string $lang = ''): string
+    {
+        $enumSchema = $this->getEnumSchema($value);
+        $suggestion = $enumSchema->enum[0] ?? null;
+        if (!\is_string($suggestion)) {
+            return $this->getParamExample($value, $lang);
+        }
+
+        $schema = $this->getSchema($value);
+        $example = $schema instanceof ArraySchema
+            ? new ArraySchema(items: new StringSchema(), example: [$suggestion])
+            : new StringSchema(example: $suggestion);
+
+        return $this->getParamExample($example, $lang);
     }
 
     protected function getSchemaEnumName(Schema|Parameter $value, ?Specification $spec = null): string

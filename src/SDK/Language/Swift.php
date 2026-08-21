@@ -323,8 +323,7 @@ class Swift extends Language
         $schema = $this->getSchema($parameter);
         $items = $this->getArraySchema($parameter);
         $prefix = $spec?->info->title ?? '';
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        if ($enumSchema->enum !== []) {
+        if ($this->usesEnumType($parameter)) {
             $type = $prefix . 'Enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             return $schema instanceof ArraySchema ? '[' . $type . ']' : $type;
         }
@@ -519,11 +518,10 @@ class Swift extends Language
                 ? "{$name}{$nullAware}.map { \$0.toMap() }"
                 : "{$name}{$nullAware}.toMap()";
         }
-        if ($property->enum !== []) {
-            return "{$name}{$nullAware}.rawValue";
-        }
-        if ($property instanceof ArraySchema && $property->items->enum !== []) {
-            return "{$name}{$nullAware}.map { \$0.rawValue }";
+        if ($this->usesEnumType($property)) {
+            return $property instanceof ArraySchema
+                ? "{$name}{$nullAware}.map { \$0.rawValue }"
+                : "{$name}{$nullAware}.rawValue";
         }
         return $name;
     }

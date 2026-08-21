@@ -166,8 +166,7 @@ class Dart extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        if ($enumSchema->enum !== []) {
+        if ($this->usesEnumType($parameter)) {
             $type = 'enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             return $schema instanceof ArraySchema ? 'List<' . $type . '>' : $type;
         }
@@ -288,8 +287,10 @@ class Dart extends Language
                 : "{$name}{$nullAware}.toMap()";
         }
 
-        if ($property->enum !== []) {
-            return "{$name}{$nullAware}.value";
+        if ($this->usesEnumType($property)) {
+            return $property instanceof ArraySchema
+                ? "{$name}{$nullAware}.map((p) => p.value).toList()"
+                : "{$name}{$nullAware}.value";
         }
 
         return $name;

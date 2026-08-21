@@ -30,7 +30,7 @@ class {{ definitionName | caseUcfirst | overrideIdentifier }} implements Model {
 {% for property in definition.properties %}
 {% set propertyName = property | schemaName %}
 {% set modelName = (property | schemaModel) | caseUcfirst | overrideIdentifier %}
-      {{ propertyName | escapeKeyword }}:{% if not (property | schemaModel) and not property.enum and ((((property | schemaType) == 'string' or (property | schemaType) == 'number') and propertyName|length >= 27) or (property | schemaType) == 'array' and propertyName|length >= 25 or propertyName|length > 32) %}{{ "\n" }}          {% else %} {% endif %}{% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{% if not (property | schemaRequired) %}map['{{ propertyName | escapeDollarSign }}'] != null
+      {{ propertyName | escapeKeyword }}:{% if not (property | schemaModel) and not (property | usesEnumType) and ((((property | schemaType) == 'string' or (property | schemaType) == 'number') and propertyName|length >= 27) or (property | schemaType) == 'array' and propertyName|length >= 25 or propertyName|length > 32) %}{{ "\n" }}          {% else %} {% endif %}{% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{% if not (property | schemaRequired) %}map['{{ propertyName | escapeDollarSign }}'] != null
           ? {% endif %}List<{{ modelName }}>.from(
 {% if not (property | schemaRequired) %}              {% else %}        {% endif %}map['{{ propertyName | escapeDollarSign }}']{% if propertyName|length + modelName|length > 40 %}{{ "\n" }}{% if not (property | schemaRequired) %}                  {% else %}            {% endif %}.map((p) => {{ modelName }}.fromMap(p)){% else %}.map((p) => {{ modelName }}.fromMap(p)){% endif %},
 {% if not (property | schemaRequired) %}            )
@@ -38,7 +38,13 @@ class {{ definitionName | caseUcfirst | overrideIdentifier }} implements Model {
           ? {% endif %}{{ modelName }}.fromMap(
 {% if not (property | schemaRequired) %}              {% else %}        {% endif %}map['{{ propertyName | escapeDollarSign }}'],
 {% if not (property | schemaRequired) %}            )
-          : null{% else %}      ){% endif %}{% endif %}{% elseif property.enum %}{% set enumName = (property | enumName) %}{% if (property | schemaRequired) %}enums.{{ enumName | caseUcfirst }}.values.firstWhere(
+          : null{% else %}      ){% endif %}{% endif %}{% elseif property | usesEnumType %}{% set enumName = (property | enumName) %}{% if property | arraySchema %}{% if not (property | schemaRequired) %}map['{{ propertyName | escapeDollarSign }}'] != null
+          ? {% endif %}List<enums.{{ enumName | caseUcfirst }}>.from(
+{% if not (property | schemaRequired) %}              {% else %}        {% endif %}map['{{ propertyName | escapeDollarSign }}'].map(
+{% if not (property | schemaRequired) %}                {% else %}          {% endif %}(p) =>{% if enumName|length > 16 %}{{ "\n" }}{% if not (property | schemaRequired) %}                    {% else %}              {% endif %}{% else %} {% endif %}enums.{{ enumName | caseUcfirst }}.values.firstWhere((e) => e.value == p),
+{% if not (property | schemaRequired) %}              {% else %}        {% endif %}),
+{% if not (property | schemaRequired) %}            )
+          : null{% else %}      ){% endif %}{% elseif property | schemaRequired %}enums.{{ enumName | caseUcfirst }}.values.firstWhere(
         (e) => e.value == map['{{ propertyName | escapeDollarSign }}'],
       ){% else %}map['{{ propertyName | escapeDollarSign }}'] != null
           ? enums.{{ enumName | caseUcfirst }}.values.firstWhere(
