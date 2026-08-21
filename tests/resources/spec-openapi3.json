@@ -2216,6 +2216,50 @@
                       "type": "string"
                     }
                   },
+                  "file": {
+                    "description": "Sample file param",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "x",
+                  "y",
+                  "z",
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/upload-with-id": {
+      "post": {
+        "summary": "Upload File With ID",
+        "operationId": "generalUploadWithId",
+        "tags": [
+          "general"
+        ],
+        "description": "Upload fixture with a structurally inferred ID.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
                   "fileId": {
                     "description": "Optional upload ID",
                     "type": "string"
@@ -2227,9 +2271,6 @@
                   }
                 },
                 "required": [
-                  "x",
-                  "y",
-                  "z",
                   "file"
                 ]
               }
