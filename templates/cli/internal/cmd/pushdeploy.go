@@ -1533,14 +1533,16 @@ func (c *pushContext) createGitFunctionDeployment(
 		if template {
 			// Restore only on a definite client-error rejection. A timeout,
 			// read, or decode failure does not say whether the deployment was
-			// created, and neither does a 5xx -- a proxy or server error can
-			// arrive after the deployment was accepted. A consumed seed cannot
-			// merge the starter twice; a restored one can, and `init function`
-			// can re-add the coordinates if the seed truly never landed.
+			// created, and neither does a 5xx or a 408 -- a proxy can emit
+			// either after the deployment was accepted upstream. A consumed
+			// seed cannot merge the starter twice; a restored one can, and
+			// `init function` can re-add the coordinates if the seed truly
+			// never landed.
 			var apiError *client.APIError
 			if !errors.As(err, &apiError) ||
 				apiError.Status < http.StatusBadRequest ||
-				apiError.Status >= http.StatusInternalServerError {
+				apiError.Status >= http.StatusInternalServerError ||
+				apiError.Status == http.StatusRequestTimeout {
 				return nil, fmt.Errorf(
 					"%w; the template deployment may still have been created -- "+
 						"check the function's deployments before pushing again",

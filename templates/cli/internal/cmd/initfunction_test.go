@@ -638,38 +638,45 @@ func TestCreateGitFunctionDeploymentKeepsSeedConsumedOnAmbiguousFailure(t *testi
 	}
 }
 
-// A 5xx does not say whether the deployment was accepted -- a proxy or server
-// error can arrive after acceptance -- so it keeps the seed consumed exactly
-// like a transport failure.
-func TestCreateGitFunctionDeploymentKeepsSeedConsumedOnServerError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
-		response.Header().Set("content-type", "application/json")
-		response.WriteHeader(http.StatusBadGateway)
-		_, _ = response.Write([]byte(`{"message":"upstream timed out","code":502}`))
-	}))
-	defer server.Close()
+// A 5xx or a 408 does not say whether the deployment was accepted -- a proxy
+// can emit either after acceptance upstream -- so both keep the seed consumed
+// exactly like a transport failure.
+func TestCreateGitFunctionDeploymentKeepsSeedConsumedOnAmbiguousStatus(t *testing.T) {
+	for _, status := range []int{
+		http.StatusInternalServerError, http.StatusBadGateway,
+		http.StatusGatewayTimeout, http.StatusRequestTimeout,
+	} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+				response.Header().Set("content-type", "application/json")
+				response.WriteHeader(status)
+				_, _ = response.Write([]byte(`{"message":"ambiguous failure"}`))
+			}))
+			defer server.Close()
 
-	path := filepath.Join(t.TempDir(), config.LocalFileName)
-	contents := `{"projectId":"project","functions":[{"$id":"checkout","templateRepository":"templates","templateOwner":"appwrite","templateRootDirectory":"node/starter","templateReference":"1.0.1","templateReferenceType":"tag"}]}`
-	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	local, err := config.LoadLocal(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	entry := local.ResourceEntries("functions")[0]
-	context := pushContext{api: client.New(server.URL, "test"), local: local}
+			path := filepath.Join(t.TempDir(), config.LocalFileName)
+			contents := `{"projectId":"project","functions":[{"$id":"checkout","templateRepository":"templates","templateOwner":"appwrite","templateRootDirectory":"node/starter","templateReference":"1.0.1","templateReferenceType":"tag"}]}`
+			if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			local, err := config.LoadLocal(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			entry := local.ResourceEntries("functions")[0]
+			context := pushContext{api: client.New(server.URL, "test"), local: local}
 
-	if _, err = context.createGitFunctionDeployment(entry, true); err == nil {
-		t.Fatal("a server error was not reported as an error")
-	}
+			if _, err = context.createGitFunctionDeployment(entry, true); err == nil {
+				t.Fatal("an ambiguous failure was not reported as an error")
+			}
 
-	reloaded, err := config.LoadLocal(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, exists := reloaded.ResourceEntries("functions")[0].Get("templateRepository"); exists {
-		t.Fatal("template coordinates were restored after an ambiguous 5xx")
+			reloaded, err := config.LoadLocal(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, exists := reloaded.ResourceEntries("functions")[0].Get("templateRepository"); exists {
+				t.Fatal("template coordinates were restored after an ambiguous status")
+			}
+		})
 	}
 }
