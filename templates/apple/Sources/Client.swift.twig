@@ -712,13 +712,7 @@ open class Client {
         if let query = value as? Query {
             return query.description
         }
-
-        let items: [Any]
-        if let typed = value as? [Any] {
-            items = typed
-        } else if let typed = value as? [Any?] {
-            items = typed.compactMap { $0 }
-        } else {
+        guard let items = arrayElements(value) else {
             return value
         }
 
@@ -727,7 +721,7 @@ open class Client {
         for item in items {
             let flat = flatten(item)
             if item is Query.Builder || item is Query {
-                if let list = flat as? [Any] {
+                if let list = arrayElements(flat) {
                     out.append(contentsOf: list)
                 } else if let flat {
                     out.append(flat)
@@ -735,7 +729,7 @@ open class Client {
                 changed = true
                 continue
             }
-            if let list = flat as? [Any], (item is [Any] || item is [String]), list.allSatisfy({ $0 is String }) {
+            if arrayElements(item) != nil, let list = arrayElements(flat), list.allSatisfy({ $0 is String }) {
                 out.append(contentsOf: list)
                 changed = true
                 continue
@@ -745,6 +739,34 @@ open class Client {
             }
         }
         return changed ? out : value
+    }
+
+    private func arrayElements(_ value: Any?) -> [Any]? {
+        guard let value, !(value is String) else {
+            return nil
+        }
+        if let typed = value as? [Any] {
+            return typed
+        }
+        if let typed = value as? [Any?] {
+            return typed.compactMap { $0 }
+        }
+        if let typed = value as? [String] {
+            return typed
+        }
+        if let typed = value as? [Query.Builder] {
+            return typed
+        }
+        if let typed = value as? [Query] {
+            return typed
+        }
+        let mirror = Mirror(reflecting: value)
+        switch mirror.displayStyle {
+        case .collection, .set:
+            return mirror.children.map { $0.value }
+        default:
+            return nil
+        }
     }
 }
 
