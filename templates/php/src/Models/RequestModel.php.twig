@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }}\Models;
 
 {% set enumImports = [] %}
@@ -20,6 +22,8 @@ use {{ namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overrideId
 {% set optionalProperties = requestModel.properties | filter((property) => not (property | schemaRequired)) %}
 /**
  * {{ requestModel.description | unescape | raw }}
+ *
+ * @phpstan-consistent-constructor
  */
 readonly class {{ requestModelName | caseUcfirst | overrideIdentifier }}
 {
@@ -35,7 +39,7 @@ readonly class {{ requestModelName | caseUcfirst | overrideIdentifier }}
 {% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
 {% set paramDocType = 'list<' ~ (((property | enumName)) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }} ${{ (property | schemaName) | caseCamel }} {{ property.description | unescape | lower | raw }}
+     * @param {{ paramDocType | raw }} ${{ (property | schemaName) | caseCamel }} {{ property.description | trim | unescape | lower | raw }}
 {% endfor %}
 {% for property in optionalProperties %}
 {% set paramDocType = property | typeName %}
@@ -44,7 +48,7 @@ readonly class {{ requestModelName | caseUcfirst | overrideIdentifier }}
 {% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
 {% set paramDocType = 'list<' ~ (((property | enumName)) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }}|null ${{ (property | schemaName) | caseCamel }} {{ property.description | unescape | lower | raw }}
+     * @param {{ paramDocType | raw }}|null ${{ (property | schemaName) | caseCamel }} {{ property.description | trim | unescape | lower | raw }}
 {% endfor %}
      */
     public function __construct(

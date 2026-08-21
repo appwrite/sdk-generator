@@ -1,51 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }};
 
 use Exception;
 
-class {{ namespace | split('\\') | last | caseUcfirst }}Exception extends Exception {
+class {{ namespace | split('\\') | last | caseUcfirst }}Exception extends Exception
+{
+    public function __construct(
+        ?string $message = null,
+        int $code = 0,
+        private readonly string $type = '',
+        private readonly ?string $response = null
+    ) {
+        parent::__construct($message, $code);
+    }
 
-  /**
-   * @var mixed
-   */
-  private ?string $response;
+    public function getType(): string
+    {
+        return $this->type;
+    }
 
-  /**
-   * @var string
-   */
-  private string $type;
-
-  /**
-   * @param ?string $message
-   * @param int $code
-   * @param string $type
-   * @param ?string $response
-   */
-  public function __construct(
-      ?string $message = null,
-      int $code = 0,
-      string $type = '',
-      ?string $response = null
-  ) {
-      parent::__construct($message, $code);
-      $this->response = $response;
-      $this->type = $type;
-  }
-
-  /**
-   * @return string
-   */
-  public function getType(): string
-  {
-      return $this->type;
-  }
-  
-  /**
-   * @return ?string
-   */
-  final public function getResponse(): ?string
-  {
-      return $this->response;
-  }
+    final public function getResponse(): ?string
+    {
+        return $this->response;
+    }
 }

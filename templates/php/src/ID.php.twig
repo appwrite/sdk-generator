@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }};
 
-class ID {
+class ID
+{
     public static function unique(int $padding = 7): string
     {
         $uniqid = \uniqid();

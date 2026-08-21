@@ -1,13 +1,15 @@
 <?php
+
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }};
 
-class InputFile {
-    private ?string $data;
-    private ?string $mimeType;
-    private ?string $filename;
-    private ?string $path;
-
-    public function __construct(){}
+class InputFile
+{
+    private ?string $data = null;
+    private ?string $mimeType = null;
+    private ?string $filename = null;
+    private ?string $path = null;
 
     public function getData(): ?string
     {
@@ -37,7 +39,7 @@ class InputFile {
         $instance->mimeType = $mimeType;
         $instance->filename = $filename;
         return $instance;
-    } 
+    }
 
     public static function withData(string $data, ?string $mimeType = null, ?string $filename = null): InputFile
     {

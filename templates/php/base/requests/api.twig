@@ -1,13 +1,18 @@
-        $response = $this->client->call(
-            Client::METHOD_{{ method.method.value | caseUpper }},
-            $apiPath,
-            $apiHeaders,
-            $apiParams{% if (method | methodType) == 'webAuth' -%}, 'location'{% endif %}
-
-        );
 {% set responseModels = method | getResponseModels(spec) %}
 {% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}
 {% set responseDiscriminator = (method | responseDiscriminator) %}
+{% if responseModels | length > 0 %}
+        $response = $this->client->call(
+{% else %}
+        return $this->client->call(
+{% endif %}
+            Client::METHOD_{{ method.method.value | caseUpper }},
+            $apiPath,
+            $apiHeaders,
+            $apiParams{% if (method | methodType) == 'webAuth' %},
+            'location'{% endif %}
+
+        );
 {% if responseModels | length > 0 %}
 {% if responseModels | length > 1 and hasResponseDiscriminator %}
 
@@ -30,7 +35,4 @@
 
         return {{ responseModels | first }}::from($response);
 {% endif %}
-{% else %}
-
-        return $response;
 {% endif %}

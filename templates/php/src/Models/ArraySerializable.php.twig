@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }}\Models;
 
 trait ArraySerializable
@@ -9,7 +11,7 @@ trait ArraySerializable
      * @param array<int, string> $knownFields
      * @return array<string, mixed>
      */
-    private static function extractAdditionalPropertiesFromFields(array $data, array $knownFields): array
+    protected static function extractAdditionalPropertiesFromFields(array $data, array $knownFields): array
     {
         if (!\in_array('data', $knownFields, true) && isset($data['data']) && is_array($data['data'])) {
             return $data['data'];
@@ -21,7 +23,7 @@ trait ArraySerializable
     /**
      * @return array<string, mixed>
      */
-    private static function serializeAdditionalProperties(mixed $value): array
+    protected static function serializeAdditionalProperties(mixed $value): array
     {
         if (!is_array($value)) {
             return [];
@@ -36,7 +38,7 @@ trait ArraySerializable
         return $result;
     }
 
-    private static function hydrateTypedValue(string $type, mixed $value, bool $allowsNull = false): mixed
+    protected static function hydrateTypedValue(string $type, mixed $value, bool $allowsNull = false): mixed
     {
         if ($value === null || !method_exists($type, 'from')) {
             return $value;
@@ -49,7 +51,7 @@ trait ArraySerializable
         return is_array($value) ? $type::from($value) : $type::from((string) $value);
     }
 
-    private static function serializeValue(mixed $value): mixed
+    protected static function serializeValue(mixed $value): mixed
     {
         if ($value === null) {
             return null;
@@ -57,7 +59,7 @@ trait ArraySerializable
 
         if (is_array($value)) {
             return array_map(
-                static fn (mixed $item): mixed => static::serializeValue($item),
+                static::serializeValue(...),
                 $value
             );
         }

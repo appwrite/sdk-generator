@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }}\Enums;
 
 {% if enum | openEnum %}
@@ -12,19 +14,17 @@ final class {{ enum.title | caseUcfirst | overrideIdentifier }}
 }
 {% else %}
 use JsonSerializable;
+use Stringable;
 
-class {{ enum.title | caseUcfirst | overrideIdentifier }} implements JsonSerializable
+class {{ enum.title | caseUcfirst | overrideIdentifier }} implements JsonSerializable, Stringable
 {
     {%~ for value in enum.enum %}
     {%~ set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
     private static {{ enum.title | caseUcfirst }} ${{ key | caseEnumKey }};
     {%~ endfor %}
 
-    private string $value;
-
-    private function __construct(string $value)
+    private function __construct(private readonly string $value)
     {
-        $this->value = $value;
     }
 
     public function __toString(): string

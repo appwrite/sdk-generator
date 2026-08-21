@@ -183,6 +183,21 @@ class PHP extends Language
                 'template'      => 'php/composer.json.twig',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'phpstan.neon',
+                'template'      => 'php/phpstan.neon',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'pint.json',
+                'template'      => 'php/pint.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'rector.php',
+                'template'      => 'php/rector.php',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'phpunit.xml',
                 'template'      => 'php/phpunit.xml.twig',
@@ -504,7 +519,7 @@ class PHP extends Language
     {
         $definition = $spec->schemas[$definitionName] ?? null;
         if (!$definition instanceof ObjectSchema) {
-            return 'array()';
+            return '[]';
         }
 
         $properties = \array_filter(
@@ -514,12 +529,12 @@ class PHP extends Language
         );
 
         if ($properties === []) {
-            return 'array()';
+            return '[]';
         }
 
         $itemIndent = str_repeat('    ', $indentLevel);
         $closingIndent = str_repeat('    ', max(0, $indentLevel - 1));
-        $lines = ['array('];
+        $lines = ['['];
 
         $index = 0;
         foreach ($properties as $name => $property) {
@@ -530,7 +545,7 @@ class PHP extends Language
             $index++;
         }
 
-        $lines[] = $closingIndent . ')';
+        $lines[] = $closingIndent . ']';
 
         return implode("\n", $lines);
     }
@@ -542,7 +557,7 @@ class PHP extends Language
             if ($property instanceof ArraySchema) {
                 $itemIndent = str_repeat('    ', $indentLevel);
                 $closingIndent = str_repeat('    ', max(0, $indentLevel - 1));
-                return "array(\n" . $itemIndent . $this->getMockDefinitionPayload($model, $spec, $indentLevel + 1) . "\n" . $closingIndent . ')';
+                return "[\n" . $itemIndent . $this->getMockDefinitionPayload($model, $spec, $indentLevel + 1) . "\n" . $closingIndent . ']';
             }
             return $this->getMockDefinitionPayload($model, $spec, $indentLevel);
         }
@@ -555,7 +570,7 @@ class PHP extends Language
 
         $example = $this->getSchemaExample($property);
         return match ($this->getSchemaType($property)) {
-            self::TYPE_OBJECT, self::TYPE_ARRAY => 'array()',
+            self::TYPE_OBJECT, self::TYPE_ARRAY => '[]',
             self::TYPE_BOOLEAN => 'true',
             self::TYPE_INTEGER => $example === null ? '1' : $this->formatPhpLiteral($example),
             self::TYPE_NUMBER => $example === null ? '1.0' : $this->formatPhpLiteral($example),
@@ -579,7 +594,7 @@ class PHP extends Language
         }
 
         if (is_array($value)) {
-            return $value === [] ? 'array()' : var_export($value, true);
+            return $value === [] ? '[]' : var_export($value, true);
         }
 
         return (string)$value;
