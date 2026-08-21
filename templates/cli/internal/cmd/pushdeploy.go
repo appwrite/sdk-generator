@@ -3,10 +3,8 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -695,6 +693,12 @@ func runPushDeployable(
 		pushCode = confirmed
 	}
 
+	if pushCode && resource.Name == "function" {
+		if err := context.materializePendingFunctionRepositories(entries); err != nil {
+			return err
+		}
+	}
+
 	activate := true
 	if pushCode && !options.ActivateSet {
 		// --force answers this rather than asking anyway: --force means "do not
@@ -732,7 +736,17 @@ func runPushDeployable(
 	}
 
 	summary := pushSummary{}
-	if resource.Name == "function" && len(entries) > 1 {
+	parallel := resource.Name == "function" && len(entries) > 1
+	for _, entry := range entries {
+		if entry.GetString("templateRepository") != "" {
+			// Template deployment consumes and persists one-shot state. Keep that
+			// rare batch sequential so workers never write the shared config at
+			// the same time.
+			parallel = false
+			break
+		}
+	}
+	if parallel {
 		// Individual spinners own one terminal row and cannot safely redraw the
 		// same row from several goroutines. A synchronized writer keeps every
 		// line intact and deliberately makes parallel progress use the spinner's
@@ -1107,40 +1121,6 @@ func (c *pushContext) pushDeployable(
 		return
 	}
 
-	// A repository accepted on the init review screen is created here, as the
-	// last step before the deployment that needs it, once every earlier push
-	// step has succeeded. Any earlier and a failed settings write, endpoint
-	// rule, or variable replacement would leave an unwanted empty GitHub
-	// repository behind with no deployment submitted.
-	wasPending := resource.Name == "function" &&
-		entry.GetBool("providerRepositoryPending")
-	if wasPending {
-		if err := c.materializePendingFunctionRepository(entry); err != nil {
-			recordPushFailure(command, resource, name, err.Error(), summary)
-
-			return
-		}
-		// The settings write above omitted the VCS connection keys while the
-		// repository was pending; connect the function now that it exists.
-		err := c.api.Call("PUT", resource.Path+"/"+url.PathEscape(id),
-			writeBody(entry, resource.WriteKeys, resource.OmitWhenEmpty, "", ""), nil)
-		if err != nil {
-			recordPushFailure(command, resource, name, err.Error(), summary)
-
-			return
-		}
-		// Confirmed after the connection and BEFORE the deployment: once the
-		// function is connected server-side the pending flow has nothing left
-		// to redo, and clearing the flag now means a failed confirmation stops
-		// the push before anything is submitted -- were it cleared after, a
-		// failed write would replay a submission that already succeeded.
-		if err := c.confirmFunctionRepository(entry); err != nil {
-			recordPushFailure(command, resource, name, err.Error(), summary)
-
-			return
-		}
-	}
-
 	deployment, err := c.createDeployment(command, resource, entry, run.Activate)
 	if err != nil {
 		recordPushFailure(command, resource, name, err.Error(), summary)
@@ -1167,10 +1147,9 @@ func recordPushFailure(
 	summary.Failed = append(summary.Failed, failedDeployment{Name: name, Reason: reason})
 }
 
-// pendingSafeBody strips the VCS connection keys from a write body while the
-// entry's GitHub repository is still pending. The repository does not exist
-// until a deployment push materializes it, so sending an installation without
-// a repository would half-connect the function to nothing.
+// pendingSafeBody strips VCS fields while a new repository is still pending.
+// A settings-only push must not connect the function before that repository
+// exists.
 func pendingSafeBody(entry, body *jsonx.Object) *jsonx.Object {
 	if !entry.GetBool("providerRepositoryPending") {
 		return body
@@ -1316,92 +1295,36 @@ func (c *pushContext) materializePendingFunctionRepositories(
 		if !entry.GetBool("providerRepositoryPending") {
 			continue
 		}
-		if err := c.materializePendingFunctionRepository(entry); err != nil {
-			return err
+		vcs := functionVCS{
+			InstallationID:    entry.GetString("installationId"),
+			RepositoryName:    entry.GetString("providerRepositoryName"),
+			Branch:            entry.GetString("providerBranch"),
+			RootDirectory:     entry.GetString("providerRootDirectory"),
+			SilentMode:        entry.GetBool("providerSilentMode"),
+			CreateRepository:  true,
+			RepositoryPrivate: entry.GetBool("providerRepositoryPrivate"),
 		}
-	}
-
-	return nil
-}
-
-func (c *pushContext) materializePendingFunctionRepository(
-	entry *jsonx.Object,
-) error {
-	// A repository id with the pending flag still set is an earlier push that
-	// created the repository and then failed before its deployment was
-	// submitted. The repository exists; nothing needs creating.
-	if entry.GetString("providerRepositoryId") != "" {
-		return nil
-	}
-
-	vcs := functionVCS{
-		InstallationID:    entry.GetString("installationId"),
-		RepositoryName:    entry.GetString("providerRepositoryName"),
-		Branch:            entry.GetString("providerBranch"),
-		RootDirectory:     entry.GetString("providerRootDirectory"),
-		SilentMode:        entry.GetBool("providerSilentMode"),
-		CreateRepository:  true,
-		RepositoryPrivate: entry.GetBool("providerRepositoryPrivate"),
-	}
-	created, err := createFunctionVCSRepository(c.api, vcs)
-	if err != nil {
-		created, err = c.findPendingFunctionRepository(vcs)
+		created, err := createFunctionVCSRepository(c.api, vcs)
 		if err != nil {
-			return fmt.Errorf("create GitHub repository %s: %w", vcs.RepositoryName, err)
+			created, err = c.findPendingFunctionRepository(vcs)
+			if err != nil {
+				return fmt.Errorf("create GitHub repository %s: %w", vcs.RepositoryName, err)
+			}
 		}
-	}
 
-	// The pending flag survives materialization on purpose: it is cleared only
-	// once the deployment that needed the repository has been submitted, so a
-	// failed VCS connection or deployment leaves a state the next push fully
-	// retries -- creation falls back to finding the repository by name, and the
-	// connection is re-sent -- instead of an orphaned repository nothing owns.
-	if err := c.persistEntry(entry, func() {
 		entry.Set("providerRepositoryId", created.RepositoryID)
 		entry.Set("providerRepositoryName", created.RepositoryName)
-	}); err != nil {
-		return fmt.Errorf(
-			"GitHub repository %s was created but its id could not be saved; retry this push to recover it: %w",
-			created.RepositoryName, err)
+		entry.Delete("providerRepositoryPrivate")
+		entry.Delete("providerRepositoryPending")
+		c.local.UpsertByID("functions", entry)
+		if err := c.local.Write(); err != nil {
+			return fmt.Errorf(
+				"GitHub repository %s was created but its id could not be saved; retry this push to recover it: %w",
+				created.RepositoryName, err)
+		}
 	}
 
 	return nil
-}
-
-// confirmFunctionRepository marks a pending repository as owned: its
-// deployment was submitted, so the next push must treat the function as an
-// ordinary connected one rather than re-running the pending flow.
-func (c *pushContext) confirmFunctionRepository(entry *jsonx.Object) error {
-	return c.persistEntry(entry, func() {
-		entry.Delete("providerRepositoryPrivate")
-		entry.Delete("providerRepositoryPending")
-	})
-}
-
-// persistEntry runs mutate and records the entry in the shared local
-// configuration as one atomic step. Parallel function workers share one
-// config.Local, and serialization reads every entry: a Set or Delete outside
-// the lock could race a Write another worker holds the lock for.
-func (c *pushContext) persistEntry(entry *jsonx.Object, mutate func()) error {
-	c.configMutex.Lock()
-	defer c.configMutex.Unlock()
-	if mutate != nil {
-		mutate()
-	}
-	c.local.UpsertByID("functions", entry)
-
-	return c.local.Write()
-}
-
-// upsertEntry runs mutate and records the entry in memory only, for restoring
-// state after a write that already failed.
-func (c *pushContext) upsertEntry(entry *jsonx.Object, mutate func()) {
-	c.configMutex.Lock()
-	defer c.configMutex.Unlock()
-	if mutate != nil {
-		mutate()
-	}
-	c.local.UpsertByID("functions", entry)
 }
 
 func (c *pushContext) findPendingFunctionRepository(
@@ -1527,65 +1450,37 @@ func (c *pushContext) createGitFunctionDeployment(
 		body.Set("reference", entry.GetString("providerBranch"))
 	}
 
-	// Template coordinates are one-shot. Keeping them would merge the starter
-	// into the repository again on every explicit CLI deployment, so they are
-	// cleared and persisted BEFORE the request: once the deployment succeeds
-	// no retry can submit the seed twice, and a request that fails restores
-	// them so the seed is not lost.
-	templateKeys := []string{
-		"templateRepository", "templateOwner", "templateRootDirectory",
-		"templateReference", "templateReferenceType",
-	}
-	saved := map[string]any{}
+	// Consume template coordinates before the request. Once an HTTP request is
+	// attempted its outcome can be ambiguous, so leaving them consumed is the
+	// only way a retry cannot seed the starter twice.
 	if template {
-		if err := c.persistEntry(entry, func() {
-			for _, key := range templateKeys {
-				if value, ok := entry.Get(key); ok {
-					saved[key] = value
-				}
-				entry.Delete(key)
+		saved := map[string]any{}
+		for _, key := range []string{
+			"templateRepository", "templateOwner", "templateRootDirectory",
+			"templateReference", "templateReferenceType",
+		} {
+			if value, ok := entry.Get(key); ok {
+				saved[key] = value
 			}
-		}); err != nil {
-			c.upsertEntry(entry, func() {
-				for key, value := range saved {
-					entry.Set(key, value)
-				}
-			})
+			entry.Delete(key)
+		}
+		c.local.UpsertByID("functions", entry)
+		if err := c.local.Write(); err != nil {
+			for key, value := range saved {
+				entry.Set(key, value)
+			}
+			c.local.UpsertByID("functions", entry)
 
-			return nil, fmt.Errorf(
-				"template state could not be saved; nothing was deployed: %w", err)
+			return nil, fmt.Errorf("template state could not be saved; nothing was deployed: %w", err)
 		}
 	}
 
 	deployment := jsonx.NewObject()
 	if err := c.api.Call("POST", path, body, deployment); err != nil {
 		if template {
-			// Restore only on a definite client-error rejection. A timeout,
-			// read, or decode failure does not say whether the deployment was
-			// created, and neither does a 5xx or a 408 -- a proxy can emit
-			// either after the deployment was accepted upstream. A consumed
-			// seed cannot merge the starter twice; a restored one can, and
-			// `init function` can re-add the coordinates if the seed truly
-			// never landed.
-			var apiError *client.APIError
-			if !errors.As(err, &apiError) ||
-				apiError.Status < http.StatusBadRequest ||
-				apiError.Status >= http.StatusInternalServerError ||
-				apiError.Status == http.StatusRequestTimeout {
-				return nil, fmt.Errorf(
-					"%w; the template deployment may still have been created -- "+
-						"check the function's deployments before pushing again",
-					err)
-			}
-			if writeErr := c.persistEntry(entry, func() {
-				for key, value := range saved {
-					entry.Set(key, value)
-				}
-			}); writeErr != nil {
-				return nil, fmt.Errorf(
-					"%w (the template coordinates could also not be restored to %s: %v)",
-					err, config.LocalFileName, writeErr)
-			}
+			return nil, fmt.Errorf(
+				"%w; template state was consumed before the request -- check the function's deployments before retrying",
+				err)
 		}
 
 		return nil, err
