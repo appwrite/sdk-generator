@@ -612,6 +612,14 @@ abstract class Base extends TestCase
 
     private function assertClosedOneOfStringEnumsAreEnums(): void
     {
+        $oneOfKind = [
+            'type' => 'string',
+            'example' => 'alpha',
+            'oneOf' => [
+                ['type' => 'string', 'enum' => ['alpha'], 'title' => 'alpha'],
+                ['type' => 'string', 'enum' => ['beta'], 'title' => 'beta'],
+            ],
+        ];
         $specification = Parser::parse([
             'openapi' => '3.0.0',
             'info' => ['title' => 'test', 'version' => '1.0.0'],
@@ -621,18 +629,19 @@ abstract class Base extends TestCase
                     'name' => 'kind',
                     'in' => 'path',
                     'required' => true,
-                    'schema' => [
-                        'type' => 'string',
-                        'example' => 'alpha',
-                        'title' => 'MockKind',
-                        'oneOf' => [
-                            ['type' => 'string', 'enum' => ['alpha'], 'title' => 'alpha'],
-                            ['type' => 'string', 'enum' => ['beta'], 'title' => 'beta'],
-                        ],
-                    ],
+                    'schema' => $oneOfKind + ['title' => 'MockKind'],
                 ]],
                 'responses' => ['200' => ['description' => 'ok']],
             ]]],
+            'components' => ['schemas' => [
+                'widget' => [
+                    'type' => 'object',
+                    'required' => ['kind'],
+                    'properties' => [
+                        'kind' => $oneOfKind,
+                    ],
+                ],
+            ]],
         ]);
         $language = $this->getLanguage();
         $parameter = $specification->paths['/items/{kind}']->operations['get']->parameters[0];
@@ -661,6 +670,15 @@ abstract class Base extends TestCase
         );
         $enumSchema = $language->getEnumSchema($parameter);
         $this->assertSame(['alpha', 'beta'], $enumSchema->enum);
+
+        $untitled = $specification->schemas['widget']->properties['kind'];
+        $untitledType = $language->getTypeName($untitled, $specification);
+        $this->assertNotSame('', $untitledType);
+        $this->assertNotSame(
+            $language->getTypeName($plainObject, $specification),
+            $untitledType,
+            'An untitled oneOf string enum must still produce a concrete type name.'
+        );
     }
 
     private function assertOneOfStringEnumsUseWireNames(string $dir): void
