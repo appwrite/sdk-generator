@@ -338,7 +338,7 @@ class PHP extends Language
         if ($schema instanceof ArraySchema) {
             return 'array';
         }
-        if ($this->getTypedEnumSchema($parameter) instanceof Schema) {
+        if ($this->usesEnumType($parameter)) {
             return $this->applyIdentifierOverride($this->toPascalCase($this->getSchemaEnumName($parameter, $spec)));
         }
 
@@ -551,11 +551,11 @@ class PHP extends Language
             }
             return $this->getMockDefinitionPayload($model, $spec, $indentLevel);
         }
-        $enumSchema = $this->getTypedEnumSchema($property);
-        if ($enumSchema instanceof Schema) {
-            $value = '"' . $this->escapePhpString((string) $enumSchema->enum[0]) . '"';
+        $enumSchema = $this->getEnumSchema($property);
+        if ($this->usesEnumType($property)) {
+            $example = '"' . $this->escapePhpString((string) $enumSchema->enum[0]) . '"';
 
-            return $property instanceof ArraySchema ? 'array(' . $value . ')' : $value;
+            return $property instanceof ArraySchema ? '[' . $example . ']' : $example;
         }
 
         $example = $this->getSchemaExample($property);

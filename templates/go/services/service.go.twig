@@ -110,6 +110,29 @@ func (srv *{{ service.name | caseUcfirst }}) With{{ (method | methodName) | case
 {%- set params = params ~ "optionalSetters ..." ~ (((method | methodName) ~ "Option") | caseUcfirst) -%}
 {%- endif -%}
 {{ "\n" -}}
+{% if (method | methodType) == 'location' %}
+{% set requiredQueryParameters = (method | parameters('query')) | filter(v => v.required) %}
+{% set optionalQueryParameters = (method | parameters('query')) | filter(v => not v.required) %}
+func (srv *{{ service.name | caseUcfirst }}) {{ ((method | methodName) ~ 'Params') | caseLcfirst }}({% for parameter in requiredQueryParameters %}{{ parameter.name | caseUcfirst }} {{ parameter | typeName }}{% if not loop.last or optionalQueryParameters | length > 0 %}, {% endif %}{% endfor %}{% if optionalQueryParameters | length > 0 %}optionalSetters ...{{ ((method | methodName) ~ "Option") | caseUcfirst }}{% endif %}) map[string]interface{} {
+{% if optionalQueryParameters | length > 0 %}
+	options := {{((method | methodName) ~ "Options") | caseUcfirst}}{}.New()
+	for _, opt := range optionalSetters {
+		opt(options)
+	}
+{% endif %}
+	params := map[string]interface{}{}
+{% for parameter in requiredQueryParameters %}
+	params["{{ parameter.name }}"] = {{ parameter.name | caseUcfirst }}
+{% endfor %}
+{% for parameter in optionalQueryParameters %}
+	if options.enabledSetters["{{ parameter.name | caseUcfirst }}"] {
+		params["{{ parameter.name }}"] = options.{{ parameter.name | caseUcfirst }}
+	}
+{% endfor %}
+	return params
+}
+
+{% endif %}
 {% if method.description %}
 {{ (((method | methodName) | caseUcfirst) ~ ' ' ~ method.description | caseLcfirst) | godocComment }}
 {% else %}
@@ -164,25 +187,15 @@ func (srv *{{ service.name | caseUcfirst }}) {{ (method | methodName) | caseUcfi
 {% else %}
 	path := "{{ method.path }}"
 {% endif %}
-{% if (method | parameters('query'))|filter(v => not v.required)|length > 0 %}
-	options := {{((method | methodName) ~ "Options") | caseUcfirst}}{}.New()
-	for _, opt := range optionalSetters {
-		opt(options)
-	}
-{% endif %}
+	params := srv.{{ ((method | methodName) ~ 'Params') | caseLcfirst }}({% for parameter in (method | parameters('query')) | filter(v => v.required) %}{{ parameter.name | caseUcfirst }}{% if not loop.last or (method | parameters('query')) | filter(v => not v.required) | length > 0 %}, {% endif %}{% endfor %}{% if (method | parameters('query')) | filter(v => not v.required) | length > 0 %}optionalSetters...{% endif %})
 	u, err := url.Parse(srv.client.Endpoint + path)
 	if err != nil {
 		return nil, err
 	}
 	q := u.Query()
-{% for parameter in (method | parameters('query'))|filter(v => v.required) %}
-	client.AddQueryParam(q, "{{ parameter.name }}", {{ parameter.name | caseUcfirst }})
-{% endfor %}
-{% for parameter in (method | parameters('query'))|filter(v => not v.required) %}
-	if options.enabledSetters["{{ parameter.name | caseUcfirst }}"] {
-		client.AddQueryParam(q, "{{ parameter.name }}", options.{{ parameter.name | caseUcfirst }})
+	for key, value := range params {
+		client.AddQueryParam(q, key, value)
 	}
-{% endfor %}
 	u.RawQuery = q.Encode()
 	result := u.String()
 	return &result, nil

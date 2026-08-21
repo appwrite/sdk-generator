@@ -193,7 +193,7 @@ class DotNet extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        if ($this->getTypedEnumSchema($parameter) instanceof Schema) {
+        if ($this->usesEnumType($parameter)) {
             $type = 'Appwrite.Enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             return $schema instanceof ArraySchema ? 'List<' . $type . '>' : $type;
         }
@@ -628,8 +628,10 @@ class DotNet extends Language
                 : "{$resolvedName}?.ToMap()";
         }
 
-        if ($property->enum !== []) {
-            return "{$resolvedName}{$nullable}.Value";
+        if ($this->usesEnumType($property)) {
+            return $property instanceof ArraySchema
+                ? "{$resolvedName}{$nullable}.Select(it => it.Value).ToList()"
+                : "{$resolvedName}{$nullable}.Value";
         }
 
         return $resolvedName;

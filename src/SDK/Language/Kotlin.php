@@ -117,7 +117,7 @@ class Kotlin extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        if ($this->getTypedEnumSchema($parameter) instanceof Schema) {
+        if ($this->usesEnumType($parameter)) {
             $type = 'io.appwrite.enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             return $schema instanceof ArraySchema ? 'List<' . $type . '>' : $type;
         }
@@ -648,7 +648,7 @@ class Kotlin extends Language
         // Only a scalar enum property is decoded through its enum class; a
         // list of enums is cast straight across, which is how the published
         // SDKs read it.
-        if (!($property instanceof ArraySchema) && $property->enum !== []) {
+        if (!($property instanceof ArraySchema) && $this->usesEnumType($property)) {
             $enumClass = $this->toPascalCase($this->getSchemaEnumName($property, $spec));
             return $enumClass . '.values().find { it.value == '
                 . ($required ? $mapKey . ' as String' : '(' . $mapKey . ' as? String)') . ' }'

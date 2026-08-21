@@ -222,7 +222,7 @@ class Ruby extends Language
 
         // An array of enum members is still just an Array to Ruby; only a
         // scalar enum names its generated class.
-        if ($this->getTypedEnumSchema($parameter) instanceof Schema && $type !== self::TYPE_ARRAY) {
+        if ($this->usesEnumType($parameter) && $type !== self::TYPE_ARRAY) {
             return \ucfirst($this->getSchemaEnumName($parameter, $spec));
         }
 

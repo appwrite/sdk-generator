@@ -323,6 +323,15 @@ class Go extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
+                    $values = \json_decode((string) $example, true);
+                    if (\is_array($values) && \array_is_list($values)) {
+                        $output .= $this->getTypeName($param) . '{' . \implode(', ', \array_map(
+                            $this->formatGoExampleValue(...),
+                            $values,
+                        )) . '}';
+                        break;
+                    }
+
                     if (\str_starts_with((string) $example, '[')) {
                         $example = \substr((string) $example, 1);
                     }
@@ -332,11 +341,10 @@ class Go extends Language
                     $output .= $this->getTypeName($param) . '{' . $example . '}';
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= ($example === '{}')
-                    ? 'map[string]interface{}{}'
-                    : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT))
-                        ? 'map[string]interface{}' . preg_replace('/\n/', "\n    ", $formatted)
-                        : 'map[string]interface{}' . $example);
+                    $value = \json_decode((string) $example, true);
+                    $output .= \is_array($value)
+                        ? $this->formatGoExampleValue($value)
+                        : 'map[string]interface{}{}';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -351,6 +359,32 @@ class Go extends Language
         }
 
         return $output;
+    }
+
+    private function formatGoExampleValue(mixed $value): string
+    {
+        if (\is_array($value)) {
+            if (\array_is_list($value)) {
+                return '[]interface{}{' . \implode(', ', \array_map(
+                    $this->formatGoExampleValue(...),
+                    $value,
+                )) . '}';
+            }
+
+            $items = [];
+            foreach ($value as $key => $item) {
+                $items[] = \json_encode((string) $key, JSON_THROW_ON_ERROR)
+                    . ': ' . $this->formatGoExampleValue($item);
+            }
+
+            return 'map[string]interface{}{' . \implode(', ', $items) . '}';
+        }
+
+        if ($value === null) {
+            return 'nil';
+        }
+
+        return \json_encode($value, JSON_THROW_ON_ERROR);
     }
 
     #[Override]

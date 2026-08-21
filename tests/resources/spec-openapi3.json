@@ -1547,29 +1547,44 @@
                     "description": "Sample string param",
                     "default": null,
                     "example": "first",
-                    "enum": [
-                      "first",
-                      "second",
-                      "third"
-                    ],
-                    "x-enum-name": null,
-                    "x-enum-keys": []
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "enum": ["first"],
+                        "title": "first"
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["second"],
+                        "title": "second"
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["third"],
+                        "title": "third"
+                      }
+                    ]
                   },
                   "webhookEvents": {
                     "type": "array",
                     "description": "Webhook events to subscribe to.",
                     "items": {
+                      "type": "string",
                       "anyOf": [
                         {
+                          "title": "WebhookEvent",
                           "type": "string",
-                          "enum": [
-                            "user.created",
-                            "user.updated"
-                          ],
-                          "x-enum-name": "WebhookEvent",
-                          "x-enum-keys": [
-                            "UserCreated",
-                            "UserUpdated"
+                          "oneOf": [
+                            {
+                              "type": "string",
+                              "enum": ["user.created"],
+                              "title": "UserCreated"
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["user.updated"],
+                              "title": "UserUpdated"
+                            }
                           ]
                         },
                         {
@@ -1579,18 +1594,23 @@
                     }
                   },
                   "webhookEvent": {
+                    "type": "string",
                     "description": "A webhook event to subscribe to.",
                     "anyOf": [
                       {
+                        "title": "WebhookEvent",
                         "type": "string",
-                        "enum": [
-                          "user.created",
-                          "user.updated"
-                        ],
-                        "x-enum-name": "WebhookEvent",
-                        "x-enum-keys": [
-                          "UserCreated",
-                          "UserUpdated"
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "enum": ["user.created"],
+                            "title": "UserCreated"
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["user.updated"],
+                            "title": "UserUpdated"
+                          }
                         ]
                       },
                       {
@@ -2676,17 +2696,17 @@
             "default": null
           },
           "status": {
+            "title": "MockStatus",
             "type": "string",
             "description": "Mock status. Possible values are \"active\", \"inactive\", \"pending\", \"completed\", or \"cancelled\". Reflects the mock's state.",
             "example": "active",
-            "enum": [
-              "active",
-              "inactive",
-              "pending",
-              "completed",
-              "cancelled"
-            ],
-            "x-enum-name": "MockStatus"
+            "oneOf": [
+              {"type": "string", "enum": ["active"], "title": "active"},
+              {"type": "string", "enum": ["inactive"], "title": "inactive"},
+              {"type": "string", "enum": ["pending"], "title": "pending"},
+              {"type": "string", "enum": ["completed"], "title": "completed"},
+              {"type": "string", "enum": ["cancelled"], "title": "cancelled"}
+            ]
           },
           "kind": {
             "description": "Mock kind encoded as a oneOf of string enums.",
@@ -2808,14 +2828,14 @@
         "type": "object",
         "properties": {
           "state": {
+            "title": "zzexcludedchildstatus",
             "type": "string",
             "description": "Excluded child status.",
             "example": "sleeping",
-            "enum": [
-              "sleeping",
-              "active"
-            ],
-            "x-enum-name": "zzexcludedchildstatus"
+            "oneOf": [
+              {"type": "string", "enum": ["sleeping"], "title": "sleeping"},
+              {"type": "string", "enum": ["active"], "title": "active"}
+            ]
           }
         },
         "required": [
@@ -2832,14 +2852,14 @@
             "example": "excluded"
           },
           "status": {
+            "title": "zzexcludedstatus",
             "type": "string",
             "description": "Excluded result status.",
             "example": "queued",
-            "enum": [
-              "queued",
-              "done"
-            ],
-            "x-enum-name": "zzexcludedstatus"
+            "oneOf": [
+              {"type": "string", "enum": ["queued"], "title": "queued"},
+              {"type": "string", "enum": ["done"], "title": "done"}
+            ]
           }
         },
         "required": [
@@ -2872,14 +2892,14 @@
             "example": "excluded-method"
           },
           "status": {
+            "title": "zzexcludedmethodstatus",
             "type": "string",
             "description": "Excluded method result status.",
             "example": "pending",
-            "enum": [
-              "pending",
-              "finished"
-            ],
-            "x-enum-name": "zzexcludedmethodstatus"
+            "oneOf": [
+              {"type": "string", "enum": ["pending"], "title": "pending"},
+              {"type": "string", "enum": ["finished"], "title": "finished"}
+            ]
           }
         },
         "required": [

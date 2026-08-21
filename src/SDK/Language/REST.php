@@ -98,18 +98,7 @@ class REST extends HTTP
         }
 
         return match ($type) {
-            self::TYPE_ARRAY => (function () use ($example) {
-                // If array of strings, make sure any sub-strings are escaped
-                if (\substr((string) $example, 1, 1) === '"') {
-                    $start = \substr((string) $example, 0, 2);
-                    $end = \substr((string) $example, -2);
-                    $contents = \substr((string) $example, 2, -2);
-                    $contents = \addslashes($contents);
-                    return $start . $contents . $end;
-                } else {
-                    return $example;
-                }
-            })(),
+            self::TYPE_ARRAY => $example,
             self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')

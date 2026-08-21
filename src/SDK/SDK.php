@@ -156,7 +156,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('typeName', fn(Schema|Parameter $value, ?Specification $spec = null): string => $this->language->getTypeName($value, $spec ?? $this->spec), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('getValidResponseModels', fn(Operation $value): array => $this->getValidResponseModels($value)));
         $this->twig->addFilter(new TwigFilter('paramDefault', fn(Schema|Parameter $value): string => $this->language->getParamDefault($value), ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('paramExample', fn(Schema|Parameter $value): string => $this->language->getParamExample($value), ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('paramExample', fn(Schema|Parameter $value): string => $this->language->isOpenStringEnum($value)
+            ? $this->language->getSuggestedEnumExample($value)
+            : $this->language->getParamExample($value), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('methodName', fn(Operation $operation): string => $this->methodName($operation)));
         $this->twig->addFilter(new TwigFilter('methodType', fn(Operation $operation): string|false => $this->methodType($operation)));
         $this->twig->addFilter(new TwigFilter('parameters', fn(Operation $operation, string $location = 'all'): array => $this->getOperationParameters($operation, $location)));
@@ -186,6 +188,8 @@ class SDK
         $this->twig->addFilter(new TwigFilter('enumValues', fn(Schema|Parameter $value): array => $this->language->isOpenStringEnum($value) && !$this->language->keepsOpenEnumType()
             ? []
             : $this->language->getEnumSchema($value)->enum));
+        $this->twig->addFilter(new TwigFilter('enumSuggestions', fn(Schema|Parameter $value): array => $this->language->getEnumSchema($value)->enum));
+        $this->twig->addFilter(new TwigFilter('usesEnumType', fn(Schema|Parameter $value): bool => $this->language->usesEnumType($value)));
         $this->twig->addFilter(new TwigFilter('openEnum', fn(Schema|Parameter $value): bool => $this->language->isOpenStringEnum($value)));
         $this->twig->addFilter(new TwigFilter('arraySchema', fn(Schema|Parameter $value): ?Schema => ($schema = $this->getSchema($value)) instanceof ArraySchema ? $schema->items : null));
         $this->twig->addFilter(new TwigFilter('emptyResponse', fn(Operation $operation): bool => \array_keys($operation->responses) === [204] || \array_keys($operation->responses) === ['204']));
@@ -1549,7 +1553,7 @@ class SDK
         return match (true) {
             $schema instanceof StringSchema && $schema->format === 'binary' => 'file',
             $schema instanceof StringSchema,
-            $schema instanceof CompositeSchema && $this->language->getEnumSchema($schema) instanceof StringSchema => 'string',
+            $schema instanceof CompositeSchema && $this->language->isStringEnum($schema) => 'string',
             $schema instanceof IntegerSchema => 'integer',
             $schema instanceof NumberSchema => 'number',
             $schema instanceof BooleanSchema => 'boolean',

@@ -14,7 +14,7 @@ module {{ spec.info.title | caseUcfirst }}
 {% endfor %}
             )
 {% for property in requestModel.properties %}
-{% if property.enum %}
+{% if property | usesEnumType %}
 {% if (property | schemaRequired) %}
                 @{{ (property | schemaName) | caseSnake | escapeKeyword }} = validate_{{ (property | schemaName) | caseSnake | escapeKeyword }}({{ (property | schemaName) | caseSnake | escapeKeyword }})
 {% else %}
@@ -38,16 +38,16 @@ module {{ spec.info.title | caseUcfirst }}
             def to_json(*args)
                 to_map.to_json(*args)
             end
-{% if requestModel.properties | filter(p => p.enum) | length > 0 %}
+{% if requestModel.properties | filter(p => p | usesEnumType) | length > 0 %}
 
             private
 
 {% endif %}
 {% for property in requestModel.properties %}
-{% if property.enum %}
+{% if property | usesEnumType %}
             def validate_{{ (property | schemaName) | caseSnake | escapeKeyword }}({{ (property | schemaName) | caseSnake | escapeKeyword }})
                 valid_{{ (property | schemaName) | caseSnake }} = [
-{% for value in property.enum %}
+{% for value in property | enumValues %}
                     {{ spec.info.title | caseUcfirst }}::Enums::{{ (property | enumName) | caseUcfirst }}::{{ ((property | enumKeys)[loop.index0] ?? value) | caseEnumKey }},
 {% endfor %}
                 ]

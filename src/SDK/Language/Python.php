@@ -325,7 +325,7 @@ class Python extends Language
         if (
             $value instanceof ArraySchema
             && $this->getSchemaModels($value) === []
-            && $value->items->enum === []
+            && !$this->usesEnumType($value)
         ) {
             return 'List[Any]';
         }
@@ -353,7 +353,7 @@ class Python extends Language
     protected function getBaseTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        if ($this->getTypedEnumSchema($parameter) instanceof Schema) {
+        if ($this->usesEnumType($parameter)) {
             $typeName = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             if ($schema instanceof ArraySchema) {
                 $typeName = 'List[' . $typeName . ']';
@@ -552,7 +552,7 @@ class Python extends Language
     protected function getServicePropertyType(Schema|Parameter $value, Specification $spec): string
     {
         $type = $this->getTypeName($value, $spec);
-        if (!$value instanceof Parameter || $this->getSchema($value)->enum === [] && !($this->getSchema($value) instanceof ArraySchema && $this->getSchema($value)->items->enum !== [])) {
+        if (!$value instanceof Parameter || !$this->usesEnumType($value)) {
             return $type;
         }
 

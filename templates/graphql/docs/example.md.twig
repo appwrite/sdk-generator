@@ -18,6 +18,7 @@
         {%~ endfor %}
 {% endmacro %}
 {% for key,header in (method | methodHeaders) %}
+{% if (key | caseLower) == 'content-type' %}
 {% if header == 'multipart/form-data' %}
 {% set boundary = 'cec8e8123c05ba25' %}
 {{ method.method.value | caseUpper }} {{ method | fullPath }}{% for security in (method | securityQueries) %}{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}={{ security.extensions['x-appwrite']['demo'] | raw }}{% endfor %} HTTP/1.1
@@ -76,6 +77,7 @@ mutation {
         {%~ endif %}
     }
 }
+{% endif %}
 {% endif %}
 {% endfor %}
 ```

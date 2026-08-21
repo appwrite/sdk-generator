@@ -362,7 +362,7 @@ try {
         configureSDK($go, [
             'gitUserName' => 'appwrite',
             'gitRepoName' => 'sdk-for-go',
-            'version' => '7.1.0',
+            'version' => '7.2.0-rc.3',
         ]);
         $go->generate(__DIR__ . '/examples/go');
 
@@ -432,7 +432,7 @@ try {
         configureSDK($sdk, [
             'gitUserName' => 'appwrite',
             'gitRepoName' => 'sdk-for-go',
-            'version' => '7.1.0',
+            'version' => '7.2.0-rc.3',
         ]);
         $sdk->generate(__DIR__ . '/examples/go');
     }
