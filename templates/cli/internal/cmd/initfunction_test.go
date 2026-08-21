@@ -150,9 +150,35 @@ func TestNewGitHubRepositoryIsCreatedOnlyAfterReview(t *testing.T) {
 		t.Fatal(err)
 	}
 	entry := reloaded.ResourceEntries("functions")[0]
-	if posts != 1 || entry.GetString("providerRepositoryId") != "repository" ||
-		entry.GetBool("providerRepositoryPending") {
+	if posts != 1 || entry.GetString("providerRepositoryId") != "repository" {
 		t.Fatalf("repository was not materialized: posts=%d entry=%#v", posts, entry)
+	}
+	// Pending survives materialization: it is cleared only once the deployment
+	// that needed the repository has been submitted, so a failure in between
+	// leaves a state the next push fully retries.
+	if !entry.GetBool("providerRepositoryPending") {
+		t.Fatal("pending flag was cleared before any deployment was submitted")
+	}
+
+	// A retry with the repository already recorded must not create another.
+	if err := context.materializePendingFunctionRepositories(
+		local.ResourceEntries("functions"),
+	); err != nil {
+		t.Fatal(err)
+	}
+	if posts != 1 {
+		t.Fatalf("retry created a second repository: posts=%d", posts)
+	}
+
+	if err := context.confirmFunctionRepository(entry); err != nil {
+		t.Fatal(err)
+	}
+	confirmed, err := config.LoadLocal(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if confirmed.ResourceEntries("functions")[0].GetBool("providerRepositoryPending") {
+		t.Fatal("pending flag survived repository confirmation")
 	}
 }
 
@@ -501,8 +527,8 @@ func TestCreateGitFunctionDeploymentRestoresTemplateOnFailure(t *testing.T) {
 			t.Error("template coordinates were not cleared before the request")
 		}
 		response.Header().Set("content-type", "application/json")
-		response.WriteHeader(http.StatusInternalServerError)
-		_, _ = response.Write([]byte(`{"message":"template deployment failed","code":500}`))
+		response.WriteHeader(http.StatusBadRequest)
+		_, _ = response.Write([]byte(`{"message":"template deployment rejected","code":400}`))
 	}))
 	defer server.Close()
 
@@ -609,5 +635,41 @@ func TestCreateGitFunctionDeploymentKeepsSeedConsumedOnAmbiguousFailure(t *testi
 	persisted := reloaded.ResourceEntries("functions")[0]
 	if _, exists := persisted.Get("templateRepository"); exists {
 		t.Fatal("template coordinates were restored after an ambiguous failure")
+	}
+}
+
+// A 5xx does not say whether the deployment was accepted -- a proxy or server
+// error can arrive after acceptance -- so it keeps the seed consumed exactly
+// like a transport failure.
+func TestCreateGitFunctionDeploymentKeepsSeedConsumedOnServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+		response.Header().Set("content-type", "application/json")
+		response.WriteHeader(http.StatusBadGateway)
+		_, _ = response.Write([]byte(`{"message":"upstream timed out","code":502}`))
+	}))
+	defer server.Close()
+
+	path := filepath.Join(t.TempDir(), config.LocalFileName)
+	contents := `{"projectId":"project","functions":[{"$id":"checkout","templateRepository":"templates","templateOwner":"appwrite","templateRootDirectory":"node/starter","templateReference":"1.0.1","templateReferenceType":"tag"}]}`
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	local, err := config.LoadLocal(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := local.ResourceEntries("functions")[0]
+	context := pushContext{api: client.New(server.URL, "test"), local: local}
+
+	if _, err = context.createGitFunctionDeployment(entry, true); err == nil {
+		t.Fatal("a server error was not reported as an error")
+	}
+
+	reloaded, err := config.LoadLocal(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := reloaded.ResourceEntries("functions")[0].Get("templateRepository"); exists {
+		t.Fatal("template coordinates were restored after an ambiguous 5xx")
 	}
 }

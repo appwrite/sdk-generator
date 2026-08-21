@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -1111,7 +1112,9 @@ func (c *pushContext) pushDeployable(
 	// step has succeeded. Any earlier and a failed settings write, endpoint
 	// rule, or variable replacement would leave an unwanted empty GitHub
 	// repository behind with no deployment submitted.
-	if resource.Name == "function" && entry.GetBool("providerRepositoryPending") {
+	wasPending := resource.Name == "function" &&
+		entry.GetBool("providerRepositoryPending")
+	if wasPending {
 		if err := c.materializePendingFunctionRepository(entry); err != nil {
 			recordPushFailure(command, resource, name, err.Error(), summary)
 
@@ -1133,6 +1136,13 @@ func (c *pushContext) pushDeployable(
 		recordPushFailure(command, resource, name, err.Error(), summary)
 
 		return
+	}
+	if wasPending {
+		if err := c.confirmFunctionRepository(entry); err != nil {
+			recordPushFailure(command, resource, name, err.Error(), summary)
+
+			return
+		}
 	}
 	summary.Pushed++
 
@@ -1314,6 +1324,13 @@ func (c *pushContext) materializePendingFunctionRepositories(
 func (c *pushContext) materializePendingFunctionRepository(
 	entry *jsonx.Object,
 ) error {
+	// A repository id with the pending flag still set is an earlier push that
+	// created the repository and then failed before its deployment was
+	// submitted. The repository exists; nothing needs creating.
+	if entry.GetString("providerRepositoryId") != "" {
+		return nil
+	}
+
 	vcs := functionVCS{
 		InstallationID:    entry.GetString("installationId"),
 		RepositoryName:    entry.GetString("providerRepositoryName"),
@@ -1331,10 +1348,13 @@ func (c *pushContext) materializePendingFunctionRepository(
 		}
 	}
 
+	// The pending flag survives materialization on purpose: it is cleared only
+	// once the deployment that needed the repository has been submitted, so a
+	// failed VCS connection or deployment leaves a state the next push fully
+	// retries -- creation falls back to finding the repository by name, and the
+	// connection is re-sent -- instead of an orphaned repository nothing owns.
 	entry.Set("providerRepositoryId", created.RepositoryID)
 	entry.Set("providerRepositoryName", created.RepositoryName)
-	entry.Delete("providerRepositoryPrivate")
-	entry.Delete("providerRepositoryPending")
 	c.local.UpsertByID("functions", entry)
 	if err := c.local.Write(); err != nil {
 		return fmt.Errorf(
@@ -1343,6 +1363,17 @@ func (c *pushContext) materializePendingFunctionRepository(
 	}
 
 	return nil
+}
+
+// confirmFunctionRepository marks a pending repository as owned: its
+// deployment was submitted, so the next push must treat the function as an
+// ordinary connected one rather than re-running the pending flow.
+func (c *pushContext) confirmFunctionRepository(entry *jsonx.Object) error {
+	entry.Delete("providerRepositoryPrivate")
+	entry.Delete("providerRepositoryPending")
+	c.local.UpsertByID("functions", entry)
+
+	return c.local.Write()
 }
 
 func (c *pushContext) findPendingFunctionRepository(
@@ -1500,13 +1531,16 @@ func (c *pushContext) createGitFunctionDeployment(
 	deployment := jsonx.NewObject()
 	if err := c.api.Call("POST", path, body, deployment); err != nil {
 		if template {
-			// Restore only on a definite server rejection. A timeout, read, or
-			// decode failure does not say whether the deployment was created,
-			// and a consumed seed cannot merge the starter twice -- a restored
-			// one can. `init function` can re-add the coordinates if the seed
-			// truly never landed.
+			// Restore only on a definite client-error rejection. A timeout,
+			// read, or decode failure does not say whether the deployment was
+			// created, and neither does a 5xx -- a proxy or server error can
+			// arrive after the deployment was accepted. A consumed seed cannot
+			// merge the starter twice; a restored one can, and `init function`
+			// can re-add the coordinates if the seed truly never landed.
 			var apiError *client.APIError
-			if !errors.As(err, &apiError) {
+			if !errors.As(err, &apiError) ||
+				apiError.Status < http.StatusBadRequest ||
+				apiError.Status >= http.StatusInternalServerError {
 				return nil, fmt.Errorf(
 					"%w; the template deployment may still have been created -- "+
 						"check the function's deployments before pushing again",
