@@ -1358,8 +1358,7 @@ func (c *pushContext) materializePendingFunctionRepository(
 	// connection is re-sent -- instead of an orphaned repository nothing owns.
 	entry.Set("providerRepositoryId", created.RepositoryID)
 	entry.Set("providerRepositoryName", created.RepositoryName)
-	c.local.UpsertByID("functions", entry)
-	if err := c.local.Write(); err != nil {
+	if err := c.persistEntry(entry); err != nil {
 		return fmt.Errorf(
 			"GitHub repository %s was created but its id could not be saved; retry this push to recover it: %w",
 			created.RepositoryName, err)
@@ -1374,9 +1373,28 @@ func (c *pushContext) materializePendingFunctionRepository(
 func (c *pushContext) confirmFunctionRepository(entry *jsonx.Object) error {
 	entry.Delete("providerRepositoryPrivate")
 	entry.Delete("providerRepositoryPending")
+
+	return c.persistEntry(entry)
+}
+
+// persistEntry atomically records one function entry in the shared local
+// configuration. Parallel function workers share one config.Local, so an
+// unsynchronized upsert-and-write could overwrite another worker's repository
+// or template state.
+func (c *pushContext) persistEntry(entry *jsonx.Object) error {
+	c.configMutex.Lock()
+	defer c.configMutex.Unlock()
 	c.local.UpsertByID("functions", entry)
 
 	return c.local.Write()
+}
+
+// upsertEntry records an entry in memory only, for restoring state after a
+// write that already failed.
+func (c *pushContext) upsertEntry(entry *jsonx.Object) {
+	c.configMutex.Lock()
+	defer c.configMutex.Unlock()
+	c.local.UpsertByID("functions", entry)
 }
 
 func (c *pushContext) findPendingFunctionRepository(
@@ -1519,12 +1537,11 @@ func (c *pushContext) createGitFunctionDeployment(
 			}
 			entry.Delete(key)
 		}
-		c.local.UpsertByID("functions", entry)
-		if err := c.local.Write(); err != nil {
+		if err := c.persistEntry(entry); err != nil {
 			for key, value := range saved {
 				entry.Set(key, value)
 			}
-			c.local.UpsertByID("functions", entry)
+			c.upsertEntry(entry)
 
 			return nil, fmt.Errorf(
 				"template state could not be saved; nothing was deployed: %w", err)
@@ -1554,8 +1571,7 @@ func (c *pushContext) createGitFunctionDeployment(
 			for key, value := range saved {
 				entry.Set(key, value)
 			}
-			c.local.UpsertByID("functions", entry)
-			if writeErr := c.local.Write(); writeErr != nil {
+			if writeErr := c.persistEntry(entry); writeErr != nil {
 				return nil, fmt.Errorf(
 					"%w (the template coordinates could also not be restored to %s: %v)",
 					err, config.LocalFileName, writeErr)

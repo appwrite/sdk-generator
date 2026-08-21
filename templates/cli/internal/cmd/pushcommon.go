@@ -8,6 +8,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
@@ -76,6 +77,11 @@ type pushContext struct {
 	api      *client.Client
 	local    *config.Local
 	prompter prompt.Prompter
+	// configMutex serializes mutations of the shared local configuration.
+	// Parallel function workers share one config.Local, and an unsynchronized
+	// upsert-and-write could overwrite another worker's repository or template
+	// state.
+	configMutex sync.Mutex
 	// screenshots is built on first use by pushpreview.go, and only by a site
 	// push -- it needs a console session the other resources never ask for.
 	screenshots *screenshots
