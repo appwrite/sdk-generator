@@ -12,7 +12,7 @@ Host: {{ ((spec | endpoint) | split('/'))[2] }}
 {{ security.name }}: {{ security.extensions['x-appwrite']['demo'] | raw }}
 {% endfor %}
 {% for key, header in (method | methodHeaders) %}
-{% if header == 'application/json' %}
+{% if (key | caseLower) == 'content-type' and header == 'application/json' %}
 
 {% if (method | parameters('body')) %}
 {
@@ -22,7 +22,7 @@ Host: {{ ((spec | endpoint) | split('/'))[2] }}
 }
 {% endif %}
 {% endif %}
-{% if header == 'multipart/form-data' %}
+{% if (key | caseLower) == 'content-type' and header == 'multipart/form-data' %}
 Content-Length: *Length of your entity body in bytes*
 
 {% for parameter in (method | parameters('body')) %}
