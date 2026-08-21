@@ -812,7 +812,7 @@ func flattenValue(value interface{}) interface{} {
 			changed = true
 			continue
 		}
-		if flat != item {
+		if !reflect.DeepEqual(flat, item) {
 			changed = true
 		}
 		out = append(out, flat)

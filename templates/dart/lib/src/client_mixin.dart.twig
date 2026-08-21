@@ -161,7 +161,9 @@ dynamic _flattenValue(dynamic value) {
   var changed = false;
   for (final item in value) {
     final flat = _flattenValue(item);
-    if (item is List && flat is List && flat.every((entry) => entry is String)) {
+    if (item is! String &&
+        flat is List &&
+        flat.every((entry) => entry is String)) {
       out.addAll(flat);
       changed = true;
       continue;

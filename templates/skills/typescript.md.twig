@@ -351,7 +351,7 @@ Query.leftJoin('orders', 'ord', [
     Query.equal('ord.status', 'paid'),
 ])
 
-// Fluent builder. Wrapping the builder in an extra array is OK — the SDK flattens it.
+// Fluent builder. Pass build() into list methods.
 const queries = Query.builder()
     .equal('status', 'published')
     .leftJoin('orders', '$id', 'customerId', '=', 'ord')
@@ -361,13 +361,6 @@ const queries = Query.builder()
     .build();
 
 await tablesDB.listRows({
-    databaseId: '[DATABASE_ID]',
-    tableId: '[TABLE_ID]',
-    queries, // or [Query.builder().equal('status', 'active')]
-});
-
-// POST createQuery is the large-payload path when it exists; listRows still accepts the same query strings.
-await tablesDB.createQuery({
     databaseId: '[DATABASE_ID]',
     tableId: '[TABLE_ID]',
     queries,

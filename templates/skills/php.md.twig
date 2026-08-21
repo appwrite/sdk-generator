@@ -163,7 +163,7 @@ Query::leftJoin('orders', 'ord', [
     Query::equal('ord.status', 'paid'),
 ])
 
-// Fluent builder. Wrapping the builder in an extra array is OK — the SDK flattens it.
+// Fluent builder. Pass build() into list methods.
 $queries = Query::builder()
     ->equal('status', 'published')
     ->leftJoin('orders', '$id', 'customerId', '=', 'ord')
@@ -173,10 +173,6 @@ $queries = Query::builder()
     ->build();
 
 $tablesDB->listRows('[DATABASE_ID]', '[TABLE_ID]', $queries);
-// $tablesDB->listRows('[DATABASE_ID]', '[TABLE_ID]', [Query::builder()->equal('status', 'active')]);
-
-// POST createQuery is the large-payload path when it exists; listRows still accepts the same query strings.
-$tablesDB->createQuery('[DATABASE_ID]', '[TABLE_ID]', $queries);
 ```
 
 ### File Storage

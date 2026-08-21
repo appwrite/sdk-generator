@@ -678,4 +678,13 @@ class Rust extends Language
             },
         };
     }
+
+    #[Override]
+    public function postGenerate(string $target): void
+    {
+        $legacy = $target . '/src/query.rs';
+        if (\is_file($legacy) && \is_dir($target . '/src/query')) {
+            \unlink($legacy);
+        }
+    }
 }

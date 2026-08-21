@@ -168,7 +168,7 @@ Query.left_join('orders', 'ord', [
     Query.equal('ord.status', 'paid'),
 ])
 
-# Fluent builder. Wrapping the builder in an extra array is OK — the SDK flattens it.
+# Fluent builder. Pass build() into list methods.
 queries = (
     Query.builder()
     .equal('status', 'published')
@@ -180,10 +180,6 @@ queries = (
 )
 
 tables_db.list_rows('[DATABASE_ID]', '[TABLE_ID]', queries)
-# tables_db.list_rows('[DATABASE_ID]', '[TABLE_ID]', [Query.builder().equal('status', 'active')])
-
-# POST create_query is the large-payload path when it exists; list_rows still accepts the same query strings.
-tables_db.create_query('[DATABASE_ID]', '[TABLE_ID]', queries)
 ```
 
 ### File Storage

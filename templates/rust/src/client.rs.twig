@@ -354,20 +354,23 @@ impl Client {
 
     fn flatten_value(value: Value) -> Value {
         match value {
-            Value::Array(items)
-                if items
-                    .iter()
-                    .all(|item| item.is_string() || item.is_array()) =>
-            {
-                Value::Array(
-                    Query::normalize_value(&Value::Array(items))
-                        .into_iter()
-                        .map(Value::String)
-                        .collect(),
-                )
-            }
+            Value::Array(items) if Self::is_query_string_tree(&items) => Value::Array(
+                Query::normalize_value(&Value::Array(items))
+                    .into_iter()
+                    .map(Value::String)
+                    .collect(),
+            ),
             other => other,
         }
+    }
+
+    fn is_query_string_tree(items: &[Value]) -> bool {
+        !items.is_empty()
+            && items.iter().all(|item| match item {
+                Value::String(_) => true,
+                Value::Array(nested) => Self::is_query_string_tree(nested),
+                _ => false,
+            })
     }
 
     pub async fn call<T: DeserializeOwned>(
@@ -1039,5 +1042,21 @@ mod tests {
             .set_key("test-key");
 
         assert_eq!(client.endpoint(), "https://custom.example.com/v1");
+    }
+
+    #[test]
+    fn flatten_value_keeps_numeric_nested_arrays() {
+        let geometry = serde_json::json!([[1, 2], [3, 4]]);
+        assert_eq!(Client::flatten_value(geometry.clone()), geometry);
+    }
+
+    #[test]
+    fn flatten_value_spreads_nested_query_strings() {
+        let nested = serde_json::json!([["{\"method\":\"limit\",\"values\":[1]}"]]);
+        let flat = Client::flatten_value(nested);
+        assert_eq!(
+            flat,
+            serde_json::json!(["{\"method\":\"limit\",\"values\":[1]}"])
+        );
     }
 }

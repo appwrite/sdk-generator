@@ -153,7 +153,7 @@ Query.LeftJoin("orders", "ord", new List<string> {
     Query.Equal("ord.status", "paid"),
 })
 
-// Fluent builder. Wrapping the builder in an extra array is OK — the SDK flattens it.
+// Fluent builder. Pass Build() into list methods.
 var queries = new Query.Builder()
     .Equal("status", "published")
     .LeftJoin("orders", "$id", "customerId", "=", "ord")
@@ -163,10 +163,6 @@ var queries = new Query.Builder()
     .Build();
 
 await tablesDB.ListRows("[DATABASE_ID]", "[TABLE_ID]", queries);
-// await tablesDB.ListRows("[DATABASE_ID]", "[TABLE_ID]", new[] { new Query.Builder().Equal("status", "active") });
-
-// POST CreateQuery is the large-payload path when it exists; ListRows still accepts the same query strings.
-await tablesDB.CreateQuery("[DATABASE_ID]", "[TABLE_ID]", queries);
 ```
 
 ### File Storage

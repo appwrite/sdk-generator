@@ -166,32 +166,28 @@ query.Min("price", "minPrice")
 query.Max("price", "maxPrice")
 
 // Grouping
-query.GroupBy([]string{"status", "year"})
+query.GroupBy([]interface{}{"status", "year"})
 query.Having([]string{query.GreaterThan("total", 1)})
 query.Distinct()
 
 // Joins (table id, left key, right key, operator, alias)
-query.Join("orders", "$id", "customerId")
+query.Join("orders", "$id", "customerId", "=", "")
 query.LeftJoin("orders", "$id", "customerId", "=", "ord")
 query.LeftJoinOn("orders", "ord", []string{
     query.On("$id", "customerId", ""),
     query.Equal("ord.status", "paid"),
 })
 
-// Fluent builder. Wrapping the builder in an extra slice is OK — the SDK flattens it.
+// Fluent builder. Pass Build() into list methods.
 queries := query.NewBuilder().
     Equal("status", "published").
     LeftJoin("orders", "$id", "customerId", "=", "ord").
     Count("*", "total").
-    GroupBy([]string{"status"}).
+    GroupBy([]interface{}{"status"}).
     Limit(25).
     Build()
 
 _, _ = service.ListRows("[DATABASE_ID]", "[TABLE_ID]", service.WithListRowsQueries(queries))
-// Wrapping the builder in an extra slice is OK — the SDK flattens it.
-
-// POST CreateQuery is the large-payload path when it exists; ListRows still accepts the same query strings.
-_, _ = service.CreateQuery("[DATABASE_ID]", "[TABLE_ID]", queries)
 ```
 
 ### File Storage
