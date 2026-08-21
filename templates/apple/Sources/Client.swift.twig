@@ -742,23 +742,23 @@ open class Client {
     }
 
     private func arrayElements(_ value: Any?) -> [Any]? {
-        guard let value, !(value is String) else {
+        guard let value, !(value is any StringProtocol) else {
             return nil
-        }
-        if let typed = value as? [Any] {
-            return typed
-        }
-        if let typed = value as? [Any?] {
-            return typed.compactMap { $0 }
-        }
-        if let typed = value as? [String] {
-            return typed
         }
         if let typed = value as? [Query.Builder] {
             return typed
         }
         if let typed = value as? [Query] {
             return typed
+        }
+        if let typed = value as? [String] {
+            return typed
+        }
+        if let typed = value as? [Any] {
+            return typed
+        }
+        if let typed = value as? [Any?] {
+            return typed.compactMap { $0 }
         }
         let mirror = Mirror(reflecting: value)
         switch mirror.displayStyle {

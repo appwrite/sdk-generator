@@ -290,7 +290,14 @@ class Tests: XCTestCase {
             if let list = value as? [Any] {
                 return list.map { String(describing: $0) }
             }
-            return nil
+            guard let value else {
+                return nil
+            }
+            let mirror = Mirror(reflecting: value)
+            guard mirror.displayStyle == .collection else {
+                return nil
+            }
+            return mirror.children.map { String(describing: $0.value) }
         }
         print(queryStrings(client.flatten([Query.builder().limit(1)])) == [Query.limit(1)] ? "flatten-builder:ok" : "flatten-builder:fail")
         let geometry = [[1, 2], [3, 4]]
