@@ -40,7 +40,7 @@ final class QueryTest extends TestCase
 
     public function testBasicFilterEqual(): void
     {
-        foreach($this->tests as $test) {
+        foreach ($this->tests as $test) {
             $query = json_decode(Query::equal('attr', $test->value), true);
             $expected = json_decode($test->expectedValues, true);
             $this->assertSame('attr', $query['attribute'], $test->description);
@@ -51,7 +51,7 @@ final class QueryTest extends TestCase
 
     public function testBasicFilterNotEqual(): void
     {
-        foreach($this->tests as $test) {
+        foreach ($this->tests as $test) {
             $query = json_decode(Query::notEqual('attr', $test->value), true);
             $expected = json_decode($test->expectedValues, true);
             $this->assertSame('attr', $query['attribute'], $test->description);
@@ -62,7 +62,7 @@ final class QueryTest extends TestCase
 
     public function testBasicFilterLessThan(): void
     {
-        foreach($this->tests as $test) {
+        foreach ($this->tests as $test) {
             $query = json_decode(Query::lessThan('attr', $test->value), true);
             $expected = json_decode($test->expectedValues, true);
             $this->assertSame('attr', $query['attribute'], $test->description);
@@ -73,7 +73,7 @@ final class QueryTest extends TestCase
 
     public function testBasicFilterLessThanEqual(): void
     {
-        foreach($this->tests as $test) {
+        foreach ($this->tests as $test) {
             $query = json_decode(Query::lessThanEqual('attr', $test->value), true);
             $expected = json_decode($test->expectedValues, true);
             $this->assertSame('attr', $query['attribute'], $test->description);
@@ -84,7 +84,7 @@ final class QueryTest extends TestCase
 
     public function testBasicFilterGreaterThan(): void
     {
-        foreach($this->tests as $test) {
+        foreach ($this->tests as $test) {
             $query = json_decode(Query::greaterThan('attr', $test->value), true);
             $expected = json_decode($test->expectedValues, true);
             $this->assertSame('attr', $query['attribute'], $test->description);
@@ -95,7 +95,7 @@ final class QueryTest extends TestCase
 
     public function testBasicFilterGreaterThanEqual(): void
     {
-        foreach($this->tests as $test) {
+        foreach ($this->tests as $test) {
             $query = json_decode(Query::greaterThanEqual('attr', $test->value), true);
             $expected = json_decode($test->expectedValues, true);
             $this->assertSame('attr', $query['attribute'], $test->description);
