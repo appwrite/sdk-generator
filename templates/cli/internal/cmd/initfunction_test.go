@@ -483,3 +483,84 @@ func TestCreateGitFunctionDeploymentUsesBranchAfterSeed(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// The one-shot template coordinates are cleared and persisted BEFORE the
+// deployment request, so a deployment that succeeds remotely can never be
+// submitted twice by a retry -- even when saving the cleared state after the
+// fact would have failed. A request that fails restores the coordinates so
+// the seed is not lost.
+func TestCreateGitFunctionDeploymentRestoresTemplateOnFailure(t *testing.T) {
+	path := filepath.Join(t.TempDir(), config.LocalFileName)
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+		// At request time the persisted config must already have consumed the
+		// template coordinates; anything else re-seeds on retry.
+		persisted, err := config.LoadLocal(path)
+		if err != nil {
+			t.Errorf("load config during request: %v", err)
+		} else if persisted.ResourceEntries("functions")[0].GetString("templateRepository") != "" {
+			t.Error("template coordinates were not cleared before the request")
+		}
+		response.Header().Set("content-type", "application/json")
+		response.WriteHeader(http.StatusInternalServerError)
+		_, _ = response.Write([]byte(`{"message":"template deployment failed","code":500}`))
+	}))
+	defer server.Close()
+
+	contents := `{"projectId":"project","functions":[{"$id":"checkout","templateRepository":"templates","templateOwner":"appwrite","templateRootDirectory":"node/starter","templateReference":"1.0.1","templateReferenceType":"tag"}]}`
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	local, err := config.LoadLocal(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := local.ResourceEntries("functions")[0]
+	context := pushContext{api: client.New(server.URL, "test"), local: local}
+
+	if _, err := context.createGitFunctionDeployment(entry, true); err == nil {
+		t.Fatal("a failed template deployment was not reported as an error")
+	}
+
+	reloaded, err := config.LoadLocal(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	persisted := reloaded.ResourceEntries("functions")[0]
+	if persisted.GetString("templateRepository") != "templates" ||
+		persisted.GetString("templateReference") != "1.0.1" {
+		t.Fatalf("template coordinates were not restored: %#v", persisted)
+	}
+}
+
+// A settings-only push of a function whose GitHub repository is still pending
+// must not send the VCS connection keys: the repository does not exist yet, so
+// an installation without a repository would half-connect the function.
+func TestPendingSafeBodyStripsVCSKeysWhilePending(t *testing.T) {
+	entry := jsonx.NewObject()
+	entry.Set("providerRepositoryPending", true)
+
+	body := jsonx.NewObject()
+	body.Set("name", "Checkout")
+	body.Set("installationId", "installation")
+	body.Set("providerBranch", "main")
+	body.Set("providerSilentMode", false)
+	body.Set("providerRootDirectory", "./")
+
+	pruned := pendingSafeBody(entry, body)
+	if _, exists := pruned.Get("installationId"); exists {
+		t.Error("installationId survived a pending entry")
+	}
+	if _, exists := pruned.Get("providerBranch"); exists {
+		t.Error("providerBranch survived a pending entry")
+	}
+	if pruned.GetString("name") != "Checkout" {
+		t.Error("non-VCS keys must survive")
+	}
+
+	connected := jsonx.NewObject()
+	kept := jsonx.NewObject()
+	kept.Set("installationId", "installation")
+	if _, exists := pendingSafeBody(connected, kept).Get("installationId"); !exists {
+		t.Error("installationId was stripped from a connected entry")
+	}
+}

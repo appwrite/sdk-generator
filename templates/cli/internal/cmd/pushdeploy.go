@@ -680,12 +680,6 @@ func runPushDeployable(
 		return nil
 	}
 
-	if resource.Name == "function" {
-		if err := context.materializePendingFunctionRepositories(entries); err != nil {
-			return err
-		}
-	}
-
 	pushCode := options.Code
 	if pushCode {
 		confirmed, err := context.prompter.Confirm(prompt.Question{
@@ -697,6 +691,16 @@ func runPushDeployable(
 			return err
 		}
 		pushCode = confirmed
+	}
+
+	// Repositories accepted on the init review screen are created only once a
+	// deployment is actually requested. A settings-only push (--no-code, or a
+	// declined confirmation) must not leave an empty GitHub repository behind;
+	// the pending intent stays in the config for the push that deploys.
+	if pushCode && resource.Name == "function" {
+		if err := context.materializePendingFunctionRepositories(entries); err != nil {
+			return err
+		}
 	}
 
 	activate := true
@@ -1074,11 +1078,13 @@ func (c *pushContext) pushDeployable(
 		}
 
 		err = c.api.Call("PUT", resource.Path+"/"+url.PathEscape(id),
-			writeBody(entry, resource.WriteKeys, resource.OmitWhenEmpty, "", ""), nil)
+			pendingSafeBody(entry, writeBody(
+				entry, resource.WriteKeys, resource.OmitWhenEmpty, "", "")), nil)
 	} else {
 		err = c.api.Call("POST", resource.Path,
-			writeBody(entry, resource.WriteKeys, resource.OmitWhenEmpty,
-				resource.IDField, id), nil)
+			pendingSafeBody(entry, writeBody(
+				entry, resource.WriteKeys, resource.OmitWhenEmpty,
+				resource.IDField, id)), nil)
 	}
 	if err != nil {
 		recordPushFailure(command, resource, name, err.Error(), summary)
@@ -1133,6 +1139,25 @@ func recordPushFailure(
 	output.Failure(command.OutOrStdout(), "Failed to push %s %s: %s",
 		resource.Singular, name, reason)
 	summary.Failed = append(summary.Failed, failedDeployment{Name: name, Reason: reason})
+}
+
+// pendingSafeBody strips the VCS connection keys from a write body while the
+// entry's GitHub repository is still pending. The repository does not exist
+// until a deployment push materializes it, so sending an installation without
+// a repository would half-connect the function to nothing.
+func pendingSafeBody(entry, body *jsonx.Object) *jsonx.Object {
+	if !entry.GetBool("providerRepositoryPending") {
+		return body
+	}
+	for _, key := range []string{
+		"installationId", "providerRepositoryId", "providerBranch",
+		"providerSilentMode", "providerRootDirectory", "providerBranches",
+		"providerPaths",
+	} {
+		body.Delete(key)
+	}
+
+	return body
 }
 
 // writeBody builds a create or update body from the config entry.
@@ -1407,7 +1432,8 @@ func (c *pushContext) createGitFunctionDeployment(
 	body.Set("activate", activate)
 
 	path := "/functions/" + functionID + "/deployments/vcs"
-	if entry.GetString("templateRepository") != "" {
+	template := entry.GetString("templateRepository") != ""
+	if template {
 		path = "/functions/" + functionID + "/deployments/template"
 		body.Set("repository", entry.GetString("templateRepository"))
 		body.Set("owner", entry.GetString("templateOwner"))
@@ -1419,24 +1445,50 @@ func (c *pushContext) createGitFunctionDeployment(
 		body.Set("reference", entry.GetString("providerBranch"))
 	}
 
-	deployment := jsonx.NewObject()
-	if err := c.api.Call("POST", path, body, deployment); err != nil {
-		return nil, err
-	}
-
 	// Template coordinates are one-shot. Keeping them would merge the starter
-	// into the repository again on every explicit CLI deployment.
-	if entry.GetString("templateRepository") != "" {
-		for _, key := range []string{
-			"templateRepository", "templateOwner", "templateRootDirectory",
-			"templateReference", "templateReferenceType",
-		} {
+	// into the repository again on every explicit CLI deployment, so they are
+	// cleared and persisted BEFORE the request: once the deployment succeeds
+	// no retry can submit the seed twice, and a request that fails restores
+	// them so the seed is not lost.
+	templateKeys := []string{
+		"templateRepository", "templateOwner", "templateRootDirectory",
+		"templateReference", "templateReferenceType",
+	}
+	saved := map[string]any{}
+	if template {
+		for _, key := range templateKeys {
+			if value, ok := entry.Get(key); ok {
+				saved[key] = value
+			}
 			entry.Delete(key)
 		}
 		c.local.UpsertByID("functions", entry)
 		if err := c.local.Write(); err != nil {
-			return nil, fmt.Errorf("deployment created but template state could not be saved: %w", err)
+			for key, value := range saved {
+				entry.Set(key, value)
+			}
+			c.local.UpsertByID("functions", entry)
+
+			return nil, fmt.Errorf(
+				"template state could not be saved; nothing was deployed: %w", err)
 		}
+	}
+
+	deployment := jsonx.NewObject()
+	if err := c.api.Call("POST", path, body, deployment); err != nil {
+		if template {
+			for key, value := range saved {
+				entry.Set(key, value)
+			}
+			c.local.UpsertByID("functions", entry)
+			if writeErr := c.local.Write(); writeErr != nil {
+				return nil, fmt.Errorf(
+					"%w (the template coordinates could also not be restored to %s: %v)",
+					err, config.LocalFileName, writeErr)
+			}
+		}
+
+		return nil, err
 	}
 
 	return deployment, nil
