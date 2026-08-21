@@ -744,7 +744,7 @@ class Query implements \JsonSerializable, \Stringable
     /**
      * Filter grouped results. $queries are nested like and/or.
      *
-     * @param array<string> $queries
+     * @param array<int, string|self> $queries
      * @return string
      */
     public static function having(array $queries): string
