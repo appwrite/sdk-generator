@@ -190,8 +190,13 @@ class Rust extends Language
             ],
             [
                 "scope" => "default",
-                "destination" => "src/query.rs",
-                "template" => "rust/src/query.rs.twig",
+                "destination" => "src/query/mod.rs",
+                "template" => "rust/src/query/mod.rs.twig",
+            ],
+            [
+                "scope" => "default",
+                "destination" => "src/query/builder.rs",
+                "template" => "rust/src/query/builder.rs.twig",
             ],
             [
                 "scope" => "default",

@@ -272,7 +272,7 @@ namespace AppwriteTests
             var pageQueries = Query.Page(2, 10);
             TestContext.WriteLine(pageQueries[0]);
             TestContext.WriteLine(pageQueries[1]);
-            TestContext.WriteLine(Query.Builder().Limit(1).Build()[0]);
+            TestContext.WriteLine(new Query.Builder().Limit(1).Build()[0]);
 
             // Permission & Roles helper tests
             TestContext.WriteLine(Permission.Read(Role.Any()));

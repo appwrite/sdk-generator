@@ -448,7 +448,7 @@ func TestBuilderBuild(t *testing.T) {
 		Limit(25),
 	}
 
-	built := Builder().
+	built := NewBuilder().
 		Equal("status", "published").
 		LeftJoin("orders", "$id", "customerId", "=", "ord").
 		Count("*", "total").
@@ -479,17 +479,17 @@ func assertQueriesEqual(t *testing.T, got, expected []string) {
 }
 
 func TestNormalizeBuilderDirect(t *testing.T) {
-	builder := Builder().Equal("status", "active").Limit(10)
+	builder := NewBuilder().Equal("status", "active").Limit(10)
 	assertQueriesEqual(t, normalize(builder), builder.Build())
 }
 
 func TestNormalizeBuilderWrappedInArray(t *testing.T) {
-	builder := Builder().Equal("status", "active").Limit(10)
+	builder := NewBuilder().Equal("status", "active").Limit(10)
 	assertQueriesEqual(t, normalize([]interface{}{builder}), builder.Build())
 }
 
 func TestNormalizeBuildResultWrappedInArray(t *testing.T) {
-	built := Builder().Equal("status", "active").Limit(10).Build()
+	built := NewBuilder().Equal("status", "active").Limit(10).Build()
 	assertQueriesEqual(t, normalize([]interface{}{built}), built)
 }
 

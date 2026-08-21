@@ -867,10 +867,10 @@ class Query(
          *
          * @returns A new query builder.
          */
-        fun builder() = QueryBuilder()
+        fun builder() = Builder()
 
         internal fun flatten(value: Any?): Any? {
-            if (value is QueryBuilder) {
+            if (value is Builder) {
                 return value.build()
             }
             if (value is Query) {
@@ -887,7 +887,7 @@ class Query(
             var changed = false
             for (item in items) {
                 val flat = flatten(item)
-                if (item is QueryBuilder || item is Query) {
+                if (item is Builder || item is Query) {
                     if (flat is Collection<*>) {
                         out.addAll(flat)
                     } else {
@@ -936,196 +936,196 @@ class Query(
             }
         }
     }
-}
 
-class QueryBuilder {
-    private val queries = mutableListOf<String>()
+    class Builder {
+        private val queries = mutableListOf<String>()
 
-    fun build(): List<String> = queries.toList()
+        fun build(): List<String> = queries.toList()
 
-    fun equal(attribute: String, value: Any) = push(Query.equal(attribute, value))
+        fun equal(attribute: String, value: Any) = push(Query.equal(attribute, value))
 
-    fun notEqual(attribute: String, value: Any) = push(Query.notEqual(attribute, value))
+        fun notEqual(attribute: String, value: Any) = push(Query.notEqual(attribute, value))
 
-    fun lessThan(attribute: String, value: Any) = push(Query.lessThan(attribute, value))
+        fun lessThan(attribute: String, value: Any) = push(Query.lessThan(attribute, value))
 
-    fun lessThanEqual(attribute: String, value: Any) = push(Query.lessThanEqual(attribute, value))
+        fun lessThanEqual(attribute: String, value: Any) = push(Query.lessThanEqual(attribute, value))
 
-    fun greaterThan(attribute: String, value: Any) = push(Query.greaterThan(attribute, value))
+        fun greaterThan(attribute: String, value: Any) = push(Query.greaterThan(attribute, value))
 
-    fun greaterThanEqual(attribute: String, value: Any) = push(Query.greaterThanEqual(attribute, value))
+        fun greaterThanEqual(attribute: String, value: Any) = push(Query.greaterThanEqual(attribute, value))
 
-    fun search(attribute: String, value: String) = push(Query.search(attribute, value))
+        fun search(attribute: String, value: String) = push(Query.search(attribute, value))
 
-    fun isNull(attribute: String) = push(Query.isNull(attribute))
+        fun isNull(attribute: String) = push(Query.isNull(attribute))
 
-    fun isNotNull(attribute: String) = push(Query.isNotNull(attribute))
+        fun isNotNull(attribute: String) = push(Query.isNotNull(attribute))
 
-    fun between(attribute: String, start: Any, end: Any) = push(Query.between(attribute, start, end))
+        fun between(attribute: String, start: Any, end: Any) = push(Query.between(attribute, start, end))
 
-    fun startsWith(attribute: String, value: String) = push(Query.startsWith(attribute, value))
+        fun startsWith(attribute: String, value: String) = push(Query.startsWith(attribute, value))
 
-    fun endsWith(attribute: String, value: String) = push(Query.endsWith(attribute, value))
+        fun endsWith(attribute: String, value: String) = push(Query.endsWith(attribute, value))
 
-    fun select(attributes: List<String>) = push(Query.select(attributes))
+        fun select(attributes: List<String>) = push(Query.select(attributes))
 
-    fun cursorAfter(documentId: String) = push(Query.cursorAfter(documentId))
+        fun cursorAfter(documentId: String) = push(Query.cursorAfter(documentId))
 
-    fun cursorBefore(documentId: String) = push(Query.cursorBefore(documentId))
+        fun cursorBefore(documentId: String) = push(Query.cursorBefore(documentId))
 
-    fun orderAsc(attribute: String) = push(Query.orderAsc(attribute))
+        fun orderAsc(attribute: String) = push(Query.orderAsc(attribute))
 
-    fun orderDesc(attribute: String) = push(Query.orderDesc(attribute))
+        fun orderDesc(attribute: String) = push(Query.orderDesc(attribute))
 
-    fun orderRandom() = push(Query.orderRandom())
+        fun orderRandom() = push(Query.orderRandom())
 
-    fun limit(limit: Int) = push(Query.limit(limit))
+        fun limit(limit: Int) = push(Query.limit(limit))
 
-    fun offset(offset: Int) = push(Query.offset(offset))
+        fun offset(offset: Int) = push(Query.offset(offset))
 
-    fun contains(attribute: String, value: Any) = push(Query.contains(attribute, value))
+        fun contains(attribute: String, value: Any) = push(Query.contains(attribute, value))
 
-    fun containsAny(attribute: String, value: List<Any>) = push(Query.containsAny(attribute, value))
+        fun containsAny(attribute: String, value: List<Any>) = push(Query.containsAny(attribute, value))
 
-    fun containsAll(attribute: String, value: List<Any>) = push(Query.containsAll(attribute, value))
+        fun containsAll(attribute: String, value: List<Any>) = push(Query.containsAll(attribute, value))
 
-    fun notContains(attribute: String, value: Any) = push(Query.notContains(attribute, value))
+        fun notContains(attribute: String, value: Any) = push(Query.notContains(attribute, value))
 
-    fun notSearch(attribute: String, value: String) = push(Query.notSearch(attribute, value))
+        fun notSearch(attribute: String, value: String) = push(Query.notSearch(attribute, value))
 
-    fun notBetween(attribute: String, start: Any, end: Any) = push(Query.notBetween(attribute, start, end))
+        fun notBetween(attribute: String, start: Any, end: Any) = push(Query.notBetween(attribute, start, end))
 
-    fun notStartsWith(attribute: String, value: String) = push(Query.notStartsWith(attribute, value))
+        fun notStartsWith(attribute: String, value: String) = push(Query.notStartsWith(attribute, value))
 
-    fun notEndsWith(attribute: String, value: String) = push(Query.notEndsWith(attribute, value))
+        fun notEndsWith(attribute: String, value: String) = push(Query.notEndsWith(attribute, value))
 
-    fun regex(attribute: String, pattern: String) = push(Query.regex(attribute, pattern))
+        fun regex(attribute: String, pattern: String) = push(Query.regex(attribute, pattern))
 
-    fun exists(attributes: List<String>) = push(Query.exists(attributes))
+        fun exists(attributes: List<String>) = push(Query.exists(attributes))
 
-    fun notExists(attributes: List<String>) = push(Query.notExists(attributes))
+        fun notExists(attributes: List<String>) = push(Query.notExists(attributes))
 
-    fun createdBefore(value: String) = push(Query.createdBefore(value))
+        fun createdBefore(value: String) = push(Query.createdBefore(value))
 
-    fun createdAfter(value: String) = push(Query.createdAfter(value))
+        fun createdAfter(value: String) = push(Query.createdAfter(value))
 
-    fun createdBetween(start: String, end: String) = push(Query.createdBetween(start, end))
+        fun createdBetween(start: String, end: String) = push(Query.createdBetween(start, end))
 
-    fun updatedBefore(value: String) = push(Query.updatedBefore(value))
+        fun updatedBefore(value: String) = push(Query.updatedBefore(value))
 
-    fun updatedAfter(value: String) = push(Query.updatedAfter(value))
+        fun updatedAfter(value: String) = push(Query.updatedAfter(value))
 
-    fun updatedBetween(start: String, end: String) = push(Query.updatedBetween(start, end))
+        fun updatedBetween(start: String, end: String) = push(Query.updatedBetween(start, end))
 
-    fun or(queries: List<String>) = push(Query.or(queries))
+        fun or(queries: List<String>) = push(Query.or(queries))
 
-    fun and(queries: List<String>) = push(Query.and(queries))
+        fun and(queries: List<String>) = push(Query.and(queries))
 
-    fun elemMatch(attribute: String, queries: List<String>) = push(Query.elemMatch(attribute, queries))
+        fun elemMatch(attribute: String, queries: List<String>) = push(Query.elemMatch(attribute, queries))
 
-    fun distanceEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceEqual(attribute, values, distance, meters))
+        fun distanceEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceEqual(attribute, values, distance, meters))
 
-    fun distanceNotEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceNotEqual(attribute, values, distance, meters))
+        fun distanceNotEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceNotEqual(attribute, values, distance, meters))
 
-    fun distanceGreaterThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceGreaterThan(attribute, values, distance, meters))
+        fun distanceGreaterThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceGreaterThan(attribute, values, distance, meters))
 
-    fun distanceLessThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceLessThan(attribute, values, distance, meters))
+        fun distanceLessThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceLessThan(attribute, values, distance, meters))
 
-    fun intersects(attribute: String, values: List<Any>) = push(Query.intersects(attribute, values))
+        fun intersects(attribute: String, values: List<Any>) = push(Query.intersects(attribute, values))
 
-    fun notIntersects(attribute: String, values: List<Any>) = push(Query.notIntersects(attribute, values))
+        fun notIntersects(attribute: String, values: List<Any>) = push(Query.notIntersects(attribute, values))
 
-    fun crosses(attribute: String, values: List<Any>) = push(Query.crosses(attribute, values))
+        fun crosses(attribute: String, values: List<Any>) = push(Query.crosses(attribute, values))
 
-    fun notCrosses(attribute: String, values: List<Any>) = push(Query.notCrosses(attribute, values))
+        fun notCrosses(attribute: String, values: List<Any>) = push(Query.notCrosses(attribute, values))
 
-    fun overlaps(attribute: String, values: List<Any>) = push(Query.overlaps(attribute, values))
+        fun overlaps(attribute: String, values: List<Any>) = push(Query.overlaps(attribute, values))
 
-    fun notOverlaps(attribute: String, values: List<Any>) = push(Query.notOverlaps(attribute, values))
+        fun notOverlaps(attribute: String, values: List<Any>) = push(Query.notOverlaps(attribute, values))
 
-    fun touches(attribute: String, values: List<Any>) = push(Query.touches(attribute, values))
+        fun touches(attribute: String, values: List<Any>) = push(Query.touches(attribute, values))
 
-    fun notTouches(attribute: String, values: List<Any>) = push(Query.notTouches(attribute, values))
+        fun notTouches(attribute: String, values: List<Any>) = push(Query.notTouches(attribute, values))
 
-    fun count(attribute: String = "*", alias: String = "") = push(Query.count(attribute, alias))
+        fun count(attribute: String = "*", alias: String = "") = push(Query.count(attribute, alias))
 
-    fun countDistinct(attribute: String, alias: String = "") = push(Query.countDistinct(attribute, alias))
+        fun countDistinct(attribute: String, alias: String = "") = push(Query.countDistinct(attribute, alias))
 
-    fun sum(attribute: String, alias: String = "") = push(Query.sum(attribute, alias))
+        fun sum(attribute: String, alias: String = "") = push(Query.sum(attribute, alias))
 
-    fun avg(attribute: String, alias: String = "") = push(Query.avg(attribute, alias))
+        fun avg(attribute: String, alias: String = "") = push(Query.avg(attribute, alias))
 
-    fun min(attribute: String, alias: String = "") = push(Query.min(attribute, alias))
+        fun min(attribute: String, alias: String = "") = push(Query.min(attribute, alias))
 
-    fun max(attribute: String, alias: String = "") = push(Query.max(attribute, alias))
+        fun max(attribute: String, alias: String = "") = push(Query.max(attribute, alias))
 
-    fun stddev(attribute: String, alias: String = "") = push(Query.stddev(attribute, alias))
+        fun stddev(attribute: String, alias: String = "") = push(Query.stddev(attribute, alias))
 
-    fun stddevPop(attribute: String, alias: String = "") = push(Query.stddevPop(attribute, alias))
+        fun stddevPop(attribute: String, alias: String = "") = push(Query.stddevPop(attribute, alias))
 
-    fun stddevSamp(attribute: String, alias: String = "") = push(Query.stddevSamp(attribute, alias))
+        fun stddevSamp(attribute: String, alias: String = "") = push(Query.stddevSamp(attribute, alias))
 
-    fun variance(attribute: String, alias: String = "") = push(Query.variance(attribute, alias))
+        fun variance(attribute: String, alias: String = "") = push(Query.variance(attribute, alias))
 
-    fun varPop(attribute: String, alias: String = "") = push(Query.varPop(attribute, alias))
+        fun varPop(attribute: String, alias: String = "") = push(Query.varPop(attribute, alias))
 
-    fun varSamp(attribute: String, alias: String = "") = push(Query.varSamp(attribute, alias))
+        fun varSamp(attribute: String, alias: String = "") = push(Query.varSamp(attribute, alias))
 
-    fun bitAnd(attribute: String, alias: String = "") = push(Query.bitAnd(attribute, alias))
+        fun bitAnd(attribute: String, alias: String = "") = push(Query.bitAnd(attribute, alias))
 
-    fun bitOr(attribute: String, alias: String = "") = push(Query.bitOr(attribute, alias))
+        fun bitOr(attribute: String, alias: String = "") = push(Query.bitOr(attribute, alias))
 
-    fun bitXor(attribute: String, alias: String = "") = push(Query.bitXor(attribute, alias))
+        fun bitXor(attribute: String, alias: String = "") = push(Query.bitXor(attribute, alias))
 
-    fun groupBy(attributes: List<String>) = push(Query.groupBy(attributes))
+        fun groupBy(attributes: List<String>) = push(Query.groupBy(attributes))
 
-    fun having(queries: List<String>) = push(Query.having(queries))
+        fun having(queries: List<String>) = push(Query.having(queries))
 
-    fun distinct() = push(Query.distinct())
+        fun distinct() = push(Query.distinct())
 
-    fun join(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.join(table, left, right, operator, alias))
+        fun join(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.join(table, left, right, operator, alias))
 
-    fun join(table: String, on: List<String>) = push(Query.join(table, on))
+        fun join(table: String, on: List<String>) = push(Query.join(table, on))
 
-    fun join(table: String, alias: String, on: List<String>) = push(Query.join(table, alias, on))
+        fun join(table: String, alias: String, on: List<String>) = push(Query.join(table, alias, on))
 
-    fun leftJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.leftJoin(table, left, right, operator, alias))
+        fun leftJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.leftJoin(table, left, right, operator, alias))
 
-    fun leftJoin(table: String, on: List<String>) = push(Query.leftJoin(table, on))
+        fun leftJoin(table: String, on: List<String>) = push(Query.leftJoin(table, on))
 
-    fun leftJoin(table: String, alias: String, on: List<String>) = push(Query.leftJoin(table, alias, on))
+        fun leftJoin(table: String, alias: String, on: List<String>) = push(Query.leftJoin(table, alias, on))
 
-    fun rightJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.rightJoin(table, left, right, operator, alias))
+        fun rightJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.rightJoin(table, left, right, operator, alias))
 
-    fun rightJoin(table: String, on: List<String>) = push(Query.rightJoin(table, on))
+        fun rightJoin(table: String, on: List<String>) = push(Query.rightJoin(table, on))
 
-    fun rightJoin(table: String, alias: String, on: List<String>) = push(Query.rightJoin(table, alias, on))
+        fun rightJoin(table: String, alias: String, on: List<String>) = push(Query.rightJoin(table, alias, on))
 
-    fun fullOuterJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.fullOuterJoin(table, left, right, operator, alias))
+        fun fullOuterJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.fullOuterJoin(table, left, right, operator, alias))
 
-    fun fullOuterJoin(table: String, on: List<String>) = push(Query.fullOuterJoin(table, on))
+        fun fullOuterJoin(table: String, on: List<String>) = push(Query.fullOuterJoin(table, on))
 
-    fun fullOuterJoin(table: String, alias: String, on: List<String>) = push(Query.fullOuterJoin(table, alias, on))
+        fun fullOuterJoin(table: String, alias: String, on: List<String>) = push(Query.fullOuterJoin(table, alias, on))
 
-    fun crossJoin(table: String, alias: String = "") = push(Query.crossJoin(table, alias))
+        fun crossJoin(table: String, alias: String = "") = push(Query.crossJoin(table, alias))
 
-    fun vectorDot(attribute: String, vector: List<Number>) = push(Query.vectorDot(attribute, vector))
+        fun vectorDot(attribute: String, vector: List<Number>) = push(Query.vectorDot(attribute, vector))
 
-    fun vectorCosine(attribute: String, vector: List<Number>) = push(Query.vectorCosine(attribute, vector))
+        fun vectorCosine(attribute: String, vector: List<Number>) = push(Query.vectorCosine(attribute, vector))
 
-    fun vectorEuclidean(attribute: String, vector: List<Number>) = push(Query.vectorEuclidean(attribute, vector))
+        fun vectorEuclidean(attribute: String, vector: List<Number>) = push(Query.vectorEuclidean(attribute, vector))
 
-    fun covers(attribute: String, values: List<Any>) = push(Query.covers(attribute, values))
+        fun covers(attribute: String, values: List<Any>) = push(Query.covers(attribute, values))
 
-    fun notCovers(attribute: String, values: List<Any>) = push(Query.notCovers(attribute, values))
+        fun notCovers(attribute: String, values: List<Any>) = push(Query.notCovers(attribute, values))
 
-    fun spatialEquals(attribute: String, values: List<Any>) = push(Query.spatialEquals(attribute, values))
+        fun spatialEquals(attribute: String, values: List<Any>) = push(Query.spatialEquals(attribute, values))
 
-    fun notSpatialEquals(attribute: String, values: List<Any>) = push(Query.notSpatialEquals(attribute, values))
+        fun notSpatialEquals(attribute: String, values: List<Any>) = push(Query.notSpatialEquals(attribute, values))
 
-    fun page(page: Int, perPage: Int = 25) = push(Query.page(page, perPage))
+        fun page(page: Int, perPage: Int = 25) = push(Query.page(page, perPage))
 
-    private fun push(query: String) = apply { queries.add(query) }
+        private fun push(query: String) = apply { queries.add(query) }
 
-    private fun push(query: List<String>) = apply { queries.addAll(query) }
+        private fun push(query: List<String>) = apply { queries.addAll(query) }
+    }
 }

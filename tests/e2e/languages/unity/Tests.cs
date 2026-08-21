@@ -400,7 +400,7 @@ namespace AppwriteTests
             var pageQueries = Query.Page(2, 10);
             LogResult(pageQueries[0]);
             LogResult(pageQueries[1]);
-            LogResult(Query.Builder().Limit(1).Build()[0]);
+            LogResult(new Query.Builder().Limit(1).Build()[0]);
             // Permission & Roles helper tests
             LogResult(Permission.Read(Role.Any()));
             LogResult(Permission.Write(Role.User(ID.Custom("userid"))));

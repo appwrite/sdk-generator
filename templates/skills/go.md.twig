@@ -179,7 +179,7 @@ query.LeftJoinOn("orders", "ord", []string{
 })
 
 // Fluent builder. Wrapping the builder in an extra slice is OK — the SDK flattens it.
-queries := query.Builder().
+queries := query.NewBuilder().
     Equal("status", "published").
     LeftJoin("orders", "$id", "customerId", "=", "ord").
     Count("*", "total").

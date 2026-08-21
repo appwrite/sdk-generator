@@ -767,12 +767,12 @@ func flattenValue(value interface{}) interface{} {
 		return nil
 	}
 	switch v := value.(type) {
-	case *query.QueryBuilder:
+	case *query.Builder:
 		if v == nil {
 			return value
 		}
 		return v.Build()
-	case query.QueryBuilder:
+	case query.Builder:
 		return v.Build()
 	}
 
@@ -787,7 +787,7 @@ func flattenValue(value interface{}) interface{} {
 		item := reflected.Index(i).Interface()
 		flat := flattenValue(item)
 		switch item.(type) {
-		case *query.QueryBuilder, query.QueryBuilder:
+		case *query.Builder, query.Builder:
 			if list, ok := flat.([]string); ok {
 				for _, entry := range list {
 					out = append(out, entry)

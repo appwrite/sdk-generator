@@ -1,0 +1,303 @@
+part of '{{ language.params.packageName }}.dart';
+
+/// Fluent collector of query strings. Call [build] to produce the list
+/// expected by list methods.
+class Builder {
+  final List<String> _queries = [];
+
+  List<String> build() => List<String>.from(_queries);
+
+  Builder equal(String attribute, dynamic value) =>
+      _push(Query.equal(attribute, value));
+
+  Builder notEqual(String attribute, dynamic value) =>
+      _push(Query.notEqual(attribute, value));
+
+  Builder lessThan(String attribute, dynamic value) =>
+      _push(Query.lessThan(attribute, value));
+
+  Builder lessThanEqual(String attribute, dynamic value) =>
+      _push(Query.lessThanEqual(attribute, value));
+
+  Builder greaterThan(String attribute, dynamic value) =>
+      _push(Query.greaterThan(attribute, value));
+
+  Builder greaterThanEqual(String attribute, dynamic value) =>
+      _push(Query.greaterThanEqual(attribute, value));
+
+  Builder search(String attribute, String value) =>
+      _push(Query.search(attribute, value));
+
+  Builder isNull(String attribute) => _push(Query.isNull(attribute));
+
+  Builder isNotNull(String attribute) =>
+      _push(Query.isNotNull(attribute));
+
+  Builder between(String attribute, dynamic start, dynamic end) =>
+      _push(Query.between(attribute, start, end));
+
+  Builder startsWith(String attribute, String value) =>
+      _push(Query.startsWith(attribute, value));
+
+  Builder endsWith(String attribute, String value) =>
+      _push(Query.endsWith(attribute, value));
+
+  Builder select(List<String> attributes) =>
+      _push(Query.select(attributes));
+
+  Builder cursorAfter(String documentId) =>
+      _push(Query.cursorAfter(documentId));
+
+  Builder cursorBefore(String documentId) =>
+      _push(Query.cursorBefore(documentId));
+
+  Builder orderAsc(String attribute) =>
+      _push(Query.orderAsc(attribute));
+
+  Builder orderDesc(String attribute) =>
+      _push(Query.orderDesc(attribute));
+
+  Builder orderRandom() => _push(Query.orderRandom());
+
+  Builder limit(int limit) => _push(Query.limit(limit));
+
+  Builder offset(int offset) => _push(Query.offset(offset));
+
+  Builder contains(String attribute, dynamic value) =>
+      _push(Query.contains(attribute, value));
+
+  Builder containsAny(String attribute, List<dynamic> value) =>
+      _push(Query.containsAny(attribute, value));
+
+  Builder containsAll(String attribute, List<dynamic> value) =>
+      _push(Query.containsAll(attribute, value));
+
+  Builder notContains(String attribute, dynamic value) =>
+      _push(Query.notContains(attribute, value));
+
+  Builder notSearch(String attribute, String value) =>
+      _push(Query.notSearch(attribute, value));
+
+  Builder notBetween(String attribute, dynamic start, dynamic end) =>
+      _push(Query.notBetween(attribute, start, end));
+
+  Builder notStartsWith(String attribute, String value) =>
+      _push(Query.notStartsWith(attribute, value));
+
+  Builder notEndsWith(String attribute, String value) =>
+      _push(Query.notEndsWith(attribute, value));
+
+  Builder regex(String attribute, String pattern) =>
+      _push(Query.regex(attribute, pattern));
+
+  Builder exists(List<String> attributes) =>
+      _push(Query.exists(attributes));
+
+  Builder notExists(List<String> attributes) =>
+      _push(Query.notExists(attributes));
+
+  Builder createdBefore(String value) =>
+      _push(Query.createdBefore(value));
+
+  Builder createdAfter(String value) =>
+      _push(Query.createdAfter(value));
+
+  Builder createdBetween(String start, String end) =>
+      _push(Query.createdBetween(start, end));
+
+  Builder updatedBefore(String value) =>
+      _push(Query.updatedBefore(value));
+
+  Builder updatedAfter(String value) =>
+      _push(Query.updatedAfter(value));
+
+  Builder updatedBetween(String start, String end) =>
+      _push(Query.updatedBetween(start, end));
+
+  Builder or(List<String> queries) => _push(Query.or(queries));
+
+  Builder and(List<String> queries) => _push(Query.and(queries));
+
+  Builder elemMatch(String attribute, List<String> queries) =>
+      _push(Query.elemMatch(attribute, queries));
+
+  Builder distanceEqual(
+    String attribute,
+    List<dynamic> values,
+    num distance, [
+    bool meters = true,
+  ]) =>
+      _push(Query.distanceEqual(attribute, values, distance, meters));
+
+  Builder distanceNotEqual(
+    String attribute,
+    List<dynamic> values,
+    num distance, [
+    bool meters = true,
+  ]) =>
+      _push(Query.distanceNotEqual(attribute, values, distance, meters));
+
+  Builder distanceGreaterThan(
+    String attribute,
+    List<dynamic> values,
+    num distance, [
+    bool meters = true,
+  ]) =>
+      _push(Query.distanceGreaterThan(attribute, values, distance, meters));
+
+  Builder distanceLessThan(
+    String attribute,
+    List<dynamic> values,
+    num distance, [
+    bool meters = true,
+  ]) =>
+      _push(Query.distanceLessThan(attribute, values, distance, meters));
+
+  Builder intersects(String attribute, List<dynamic> values) =>
+      _push(Query.intersects(attribute, values));
+
+  Builder notIntersects(String attribute, List<dynamic> values) =>
+      _push(Query.notIntersects(attribute, values));
+
+  Builder crosses(String attribute, List<dynamic> values) =>
+      _push(Query.crosses(attribute, values));
+
+  Builder notCrosses(String attribute, List<dynamic> values) =>
+      _push(Query.notCrosses(attribute, values));
+
+  Builder overlaps(String attribute, List<dynamic> values) =>
+      _push(Query.overlaps(attribute, values));
+
+  Builder notOverlaps(String attribute, List<dynamic> values) =>
+      _push(Query.notOverlaps(attribute, values));
+
+  Builder touches(String attribute, List<dynamic> values) =>
+      _push(Query.touches(attribute, values));
+
+  Builder notTouches(String attribute, List<dynamic> values) =>
+      _push(Query.notTouches(attribute, values));
+
+  Builder count([String attribute = '*', String alias = '']) =>
+      _push(Query.count(attribute, alias));
+
+  Builder countDistinct(String attribute, [String alias = '']) =>
+      _push(Query.countDistinct(attribute, alias));
+
+  Builder sum(String attribute, [String alias = '']) =>
+      _push(Query.sum(attribute, alias));
+
+  Builder avg(String attribute, [String alias = '']) =>
+      _push(Query.avg(attribute, alias));
+
+  Builder min(String attribute, [String alias = '']) =>
+      _push(Query.min(attribute, alias));
+
+  Builder max(String attribute, [String alias = '']) =>
+      _push(Query.max(attribute, alias));
+
+  Builder stddev(String attribute, [String alias = '']) =>
+      _push(Query.stddev(attribute, alias));
+
+  Builder stddevPop(String attribute, [String alias = '']) =>
+      _push(Query.stddevPop(attribute, alias));
+
+  Builder stddevSamp(String attribute, [String alias = '']) =>
+      _push(Query.stddevSamp(attribute, alias));
+
+  Builder variance(String attribute, [String alias = '']) =>
+      _push(Query.variance(attribute, alias));
+
+  Builder varPop(String attribute, [String alias = '']) =>
+      _push(Query.varPop(attribute, alias));
+
+  Builder varSamp(String attribute, [String alias = '']) =>
+      _push(Query.varSamp(attribute, alias));
+
+  Builder bitAnd(String attribute, [String alias = '']) =>
+      _push(Query.bitAnd(attribute, alias));
+
+  Builder bitOr(String attribute, [String alias = '']) =>
+      _push(Query.bitOr(attribute, alias));
+
+  Builder bitXor(String attribute, [String alias = '']) =>
+      _push(Query.bitXor(attribute, alias));
+
+  Builder groupBy(List<String> attributes) =>
+      _push(Query.groupBy(attributes));
+
+  Builder having(List<String> queries) => _push(Query.having(queries));
+
+  Builder distinct() => _push(Query.distinct());
+
+  Builder join(
+    String table,
+    Object leftOrAliasOrOn, [
+    Object rightOrOn = '',
+    String operator = '=',
+    String alias = '',
+  ]) =>
+      _push(Query.join(table, leftOrAliasOrOn, rightOrOn, operator, alias));
+
+  Builder leftJoin(
+    String table,
+    Object leftOrAliasOrOn, [
+    Object rightOrOn = '',
+    String operator = '=',
+    String alias = '',
+  ]) =>
+      _push(Query.leftJoin(table, leftOrAliasOrOn, rightOrOn, operator, alias));
+
+  Builder rightJoin(
+    String table,
+    Object leftOrAliasOrOn, [
+    Object rightOrOn = '',
+    String operator = '=',
+    String alias = '',
+  ]) =>
+      _push(Query.rightJoin(table, leftOrAliasOrOn, rightOrOn, operator, alias));
+
+  Builder fullOuterJoin(
+    String table,
+    Object leftOrAliasOrOn, [
+    Object rightOrOn = '',
+    String operator = '=',
+    String alias = '',
+  ]) =>
+      _push(Query.fullOuterJoin(table, leftOrAliasOrOn, rightOrOn, operator, alias));
+
+  Builder crossJoin(String table, [String alias = '']) =>
+      _push(Query.crossJoin(table, alias));
+
+  Builder vectorDot(String attribute, List<num> vector) =>
+      _push(Query.vectorDot(attribute, vector));
+
+  Builder vectorCosine(String attribute, List<num> vector) =>
+      _push(Query.vectorCosine(attribute, vector));
+
+  Builder vectorEuclidean(String attribute, List<num> vector) =>
+      _push(Query.vectorEuclidean(attribute, vector));
+
+  Builder covers(String attribute, List<dynamic> values) =>
+      _push(Query.covers(attribute, values));
+
+  Builder notCovers(String attribute, List<dynamic> values) =>
+      _push(Query.notCovers(attribute, values));
+
+  Builder spatialEquals(String attribute, List<dynamic> values) =>
+      _push(Query.spatialEquals(attribute, values));
+
+  Builder notSpatialEquals(String attribute, List<dynamic> values) =>
+      _push(Query.notSpatialEquals(attribute, values));
+
+  Builder page(int page, [int perPage = 25]) =>
+      _push(Query.page(page, perPage));
+
+  Builder _push(Object query) {
+    if (query is List) {
+      _queries.addAll(query.cast<String>());
+    } else {
+      _queries.add(query as String);
+    }
+    return this;
+  }
+}

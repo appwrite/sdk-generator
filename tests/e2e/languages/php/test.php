@@ -6,7 +6,7 @@ include __DIR__ . '/../../sdks/php/src/Appwrite/Client.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Service.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/InputFile.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Query.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/QueryBuilder.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Query/Builder.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Permission.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Role.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/ID.php';

@@ -2,6 +2,8 @@
 
 namespace {{ namespace | caseNamespace }};
 
+use {{ namespace | caseNamespace }}\Query\Builder as QueryBuilder;
+
 class Query implements \JsonSerializable
 {
     protected string $method;

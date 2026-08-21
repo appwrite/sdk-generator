@@ -1,6 +1,8 @@
 <?php
 
 namespace {{ namespace | caseNamespace }};
+
+use {{ namespace | caseNamespace }}\Query\Builder as QueryBuilder;
 {% if globalHeaders | hasBearerAuth %}
 
 use Ahc\Jwt\JWT;

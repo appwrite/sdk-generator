@@ -239,8 +239,8 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ namespace | caseNamespacePath }}/QueryBuilder.php',
-                'template'      => 'php/src/QueryBuilder.php.twig',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Query/Builder.php',
+                'template'      => 'php/src/Query/Builder.php.twig',
             ],
             [
                 'scope'         => 'default',
