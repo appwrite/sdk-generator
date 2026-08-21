@@ -1,7 +1,7 @@
 import { fetch, FormData, File, Agent, type RequestInit } from 'undici';
 import { Models } from './models';
 import { InputFile } from './inputFile';
-import { normalizeQueries } from './query';
+import { flattenParam } from './query';
 import JSONbigModule from 'json-bigint';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
 const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
@@ -223,8 +223,8 @@ class Client {
     prepareRequest(method: string, url: URL, headers: Headers = {}, params: Payload = {}): { uri: string, options: RequestInit } {
         method = method.toUpperCase();
 
-        if (Object.prototype.hasOwnProperty.call(params, 'queries')) {
-            params = { ...params, queries: normalizeQueries(params.queries) };
+        for (const key of Object.keys(params)) {
+            params[key] = flattenParam(params[key]);
         }
 
         headers = Object.assign({}, this.headers, headers);

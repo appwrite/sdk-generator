@@ -885,38 +885,46 @@ public struct Query : Codable, CustomStringConvertible {
         return QueryBuilder()
     }
 
-    static func normalize(_ queries: Any?) -> [String] {
-        guard let queries else {
-            return []
-        }
-        if queries is NSNull {
-            return []
-        }
-        if let builder = queries as? QueryBuilder {
+    static func flatten(_ value: Any?) -> Any? {
+        if let builder = value as? QueryBuilder {
             return builder.build()
         }
-        if let query = queries as? Query {
-            return [query.description]
+        if let query = value as? Query {
+            return query.description
         }
-        if let string = queries as? String {
-            return [string]
+
+        let items: [Any]
+        if let typed = value as? [Any] {
+            items = typed
+        } else if let typed = value as? [Any?] {
+            items = typed.compactMap { $0 }
+        } else {
+            return value
         }
-        if let strings = queries as? [String] {
-            return strings
+
+        var out: [Any] = []
+        var changed = false
+        for item in items {
+            let flat = flatten(item)
+            if item is QueryBuilder || item is Query {
+                if let list = flat as? [Any] {
+                    out.append(contentsOf: list)
+                } else if let flat {
+                    out.append(flat)
+                }
+                changed = true
+                continue
+            }
+            if let list = flat as? [Any], (item is [Any] || item is [String]), list.allSatisfy({ $0 is String }) {
+                out.append(contentsOf: list)
+                changed = true
+                continue
+            }
+            if let flat {
+                out.append(flat)
+            }
         }
-        if let builders = queries as? [QueryBuilder] {
-            return builders.flatMap { $0.build() }
-        }
-        if let nested = queries as? [[String]] {
-            return nested.flatMap { $0 }
-        }
-        if let nestedAny = queries as? [Any] {
-            return nestedAny.flatMap { normalize($0) }
-        }
-        if let nestedOptional = queries as? [Any?] {
-            return nestedOptional.flatMap { normalize($0) }
-        }
-        return []
+        return changed ? out : value
     }
 
     private static func joinQuery(_ method: String, table: String, left: String, right: String, operator op: String, alias: String) -> String {

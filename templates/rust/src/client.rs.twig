@@ -345,15 +345,29 @@ impl Client {
         result
     }
 
-    fn normalize_request_params(mut params: HashMap<String, Value>) -> HashMap<String, Value> {
-        if let Some(queries) = params.get("queries").cloned() {
-            let normalized = Query::normalize_value(&queries)
-                .into_iter()
-                .map(Value::String)
-                .collect::<Vec<_>>();
-            params.insert("queries".to_string(), Value::Array(normalized));
-        }
+    fn normalize_request_params(params: HashMap<String, Value>) -> HashMap<String, Value> {
         params
+            .into_iter()
+            .map(|(key, value)| (key, Self::flatten_value(value)))
+            .collect()
+    }
+
+    fn flatten_value(value: Value) -> Value {
+        match value {
+            Value::Array(items)
+                if items
+                    .iter()
+                    .all(|item| item.is_string() || item.is_array()) =>
+            {
+                Value::Array(
+                    Query::normalize_value(&Value::Array(items))
+                        .into_iter()
+                        .map(Value::String)
+                        .collect(),
+                )
+            }
+            other => other,
+        }
     }
 
     pub async fn call<T: DeserializeOwned>(

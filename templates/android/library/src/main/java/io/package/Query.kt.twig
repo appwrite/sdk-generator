@@ -512,106 +512,401 @@ class Query(
          */
         fun notTouches(attribute: String, values: List<Any>) = Query("notTouches", attribute, listOf(values)).toJson()
 
+        /**
+         * Count rows of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to count. Defaults to `*`.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun count(attribute: String = "*", alias: String = "") = Query("count", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Count distinct values of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to count.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun countDistinct(attribute: String, alias: String = "") = Query("countDistinct", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Sum values of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to sum.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun sum(attribute: String, alias: String = "") = Query("sum", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Average values of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to average.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun avg(attribute: String, alias: String = "") = Query("avg", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Minimum value of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun min(attribute: String, alias: String = "") = Query("min", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Maximum value of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun max(attribute: String, alias: String = "") = Query("max", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Standard deviation of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun stddev(attribute: String, alias: String = "") = Query("stddev", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Population standard deviation of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun stddevPop(attribute: String, alias: String = "") = Query("stddevPop", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Sample standard deviation of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun stddevSamp(attribute: String, alias: String = "") = Query("stddevSamp", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Variance of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun variance(attribute: String, alias: String = "") = Query("variance", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Population variance of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun varPop(attribute: String, alias: String = "") = Query("varPop", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Sample variance of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun varSamp(attribute: String, alias: String = "") = Query("varSamp", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Bitwise AND of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun bitAnd(attribute: String, alias: String = "") = Query("bitAnd", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Bitwise OR of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun bitOr(attribute: String, alias: String = "") = Query("bitOr", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Bitwise XOR of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
         fun bitXor(attribute: String, alias: String = "") = Query("bitXor", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Group results by [attributes].
+         *
+         * @param attributes Attributes to group by.
+         * @returns The query string.
+         */
         fun groupBy(attributes: List<String>) = Query("groupBy", null, attributes).toJson()
 
+        /**
+         * Filter grouped results. [queries] are nested like `and`/`or`.
+         *
+         * @param queries Nested query strings.
+         * @returns The query string.
+         */
         fun having(queries: List<String>) = Query("having", null, queries.map { it.fromJson<Query>() }).toJson()
 
+        /**
+         * Select distinct rows.
+         *
+         * @returns The query string.
+         */
         fun distinct() = Query("distinct").toJson()
 
+        /**
+         * Column-to-column join ON condition.
+         *
+         * @param left Left-hand column.
+         * @param right Right-hand column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @returns The query string.
+         */
         fun on(left: String, right: String, operator: String = "=") = Query("on", values = listOf(left, operator, right)).toJson()
 
+        /**
+         * Inner join. [table] is the joined collection/table ID.
+         *
+         * @param table Joined table ID.
+         * @param left Left-hand join column.
+         * @param right Right-hand join column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @param alias Optional table alias.
+         * @returns The query string.
+         */
         fun join(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("join", table, left, right, operator, alias)
 
+        /**
+         * Inner join with nested ON queries and no alias.
+         *
+         * @param table Joined table ID.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
         fun join(table: String, on: List<String>) = nestedJoin("join", table, "", on)
 
+        /**
+         * Inner join with nested ON queries and an alias.
+         *
+         * @param table Joined table ID.
+         * @param alias Table alias.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
         fun join(table: String, alias: String, on: List<String>) = nestedJoin("join", table, alias, on)
 
+        /**
+         * Left join. [table] is the joined collection/table ID.
+         *
+         * @param table Joined table ID.
+         * @param left Left-hand join column.
+         * @param right Right-hand join column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @param alias Optional table alias.
+         * @returns The query string.
+         */
         fun leftJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("leftJoin", table, left, right, operator, alias)
 
+        /**
+         * Left join with nested ON queries and no alias.
+         *
+         * @param table Joined table ID.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
         fun leftJoin(table: String, on: List<String>) = nestedJoin("leftJoin", table, "", on)
 
+        /**
+         * Left join with nested ON queries and an alias.
+         *
+         * @param table Joined table ID.
+         * @param alias Table alias.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
         fun leftJoin(table: String, alias: String, on: List<String>) = nestedJoin("leftJoin", table, alias, on)
 
+        /**
+         * Right join. [table] is the joined collection/table ID.
+         *
+         * @param table Joined table ID.
+         * @param left Left-hand join column.
+         * @param right Right-hand join column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @param alias Optional table alias.
+         * @returns The query string.
+         */
         fun rightJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("rightJoin", table, left, right, operator, alias)
 
+        /**
+         * Right join with nested ON queries and no alias.
+         *
+         * @param table Joined table ID.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
         fun rightJoin(table: String, on: List<String>) = nestedJoin("rightJoin", table, "", on)
 
+        /**
+         * Right join with nested ON queries and an alias.
+         *
+         * @param table Joined table ID.
+         * @param alias Table alias.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
         fun rightJoin(table: String, alias: String, on: List<String>) = nestedJoin("rightJoin", table, alias, on)
 
+        /**
+         * Full outer join. [table] is the joined collection/table ID.
+         *
+         * @param table Joined table ID.
+         * @param left Left-hand join column.
+         * @param right Right-hand join column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @param alias Optional table alias.
+         * @returns The query string.
+         */
         fun fullOuterJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("fullOuterJoin", table, left, right, operator, alias)
 
+        /**
+         * Full outer join with nested ON queries and no alias.
+         *
+         * @param table Joined table ID.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
         fun fullOuterJoin(table: String, on: List<String>) = nestedJoin("fullOuterJoin", table, "", on)
 
+        /**
+         * Full outer join with nested ON queries and an alias.
+         *
+         * @param table Joined table ID.
+         * @param alias Table alias.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
         fun fullOuterJoin(table: String, alias: String, on: List<String>) = nestedJoin("fullOuterJoin", table, alias, on)
 
+        /**
+         * Cross join. [table] is the joined collection/table ID.
+         *
+         * @param table Joined table ID.
+         * @param alias Optional table alias.
+         * @returns The query string.
+         */
         fun crossJoin(table: String, alias: String = "") = Query("crossJoin", table, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
+        /**
+         * Filter resources where [attribute] covers the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
         fun covers(attribute: String, values: List<Any>) = Query("covers", attribute, listOf(values)).toJson()
 
+        /**
+         * Filter resources where [attribute] does not cover the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
         fun notCovers(attribute: String, values: List<Any>) = Query("notCovers", attribute, listOf(values)).toJson()
 
+        /**
+         * Filter resources where [attribute] is spatially equal to the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
         fun spatialEquals(attribute: String, values: List<Any>) = Query("spatialEquals", attribute, listOf(values)).toJson()
 
+        /**
+         * Filter resources where [attribute] is not spatially equal to the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
         fun notSpatialEquals(attribute: String, values: List<Any>) = Query("notSpatialEquals", attribute, listOf(values)).toJson()
 
+        /**
+         * Return limit and offset queries for 1-based page pagination.
+         *
+         * @param page 1-based page number.
+         * @param perPage Rows per page. Defaults to 25.
+         * @returns Limit and offset query strings.
+         */
         fun page(page: Int, perPage: Int = 25): List<String> {
             require(page >= 1) { "Page must be >= 1, got $page" }
             require(perPage >= 1) { "Per page must be >= 1, got $perPage" }
             return listOf(limit(perPage), offset((page - 1) * perPage))
         }
 
+        /**
+         * Start a fluent query builder.
+         *
+         * @returns A new query builder.
+         */
         fun builder() = QueryBuilder()
 
-        internal fun normalize(queries: Any?): List<String> {
-            if (queries == null) {
-                return emptyList()
+        internal fun flatten(value: Any?): Any? {
+            if (value is QueryBuilder) {
+                return value.build()
             }
-            if (queries is QueryBuilder) {
-                return queries.build()
+            if (value is Query) {
+                return value.toString()
             }
-            if (queries is Query) {
-                return listOf(queries.toString())
+
+            val items = when (value) {
+                is Array<*> -> value.asList()
+                is Collection<*> -> value
+                else -> return value
             }
-            if (queries is String) {
-                return listOf(queries)
+
+            val out = ArrayList<Any?>(items.size)
+            var changed = false
+            for (item in items) {
+                val flat = flatten(item)
+                if (item is QueryBuilder || item is Query) {
+                    if (flat is Collection<*>) {
+                        out.addAll(flat)
+                    } else {
+                        out.add(flat)
+                    }
+                    changed = true
+                    continue
+                }
+                if ((item is Array<*> || item is Collection<*>) && flat is Collection<*> && flat.all { it is String }) {
+                    out.addAll(flat)
+                    changed = true
+                    continue
+                }
+                if (flat !== item) {
+                    changed = true
+                }
+                out.add(flat)
             }
-            if (queries is Array<*>) {
-                return queries.flatMap { normalize(it) }
-            }
-            if (queries is Collection<*>) {
-                return queries.flatMap { normalize(it) }
-            }
-            return emptyList()
+            return if (changed) out else value
         }
 
         private fun joinQuery(method: String, table: String, left: String, right: String, operator: String, alias: String): String {

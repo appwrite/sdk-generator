@@ -12,10 +12,7 @@ mixin ClientMixin {
     required Map<String, String> headers,
     required Map<String, dynamic> params,
   }) {
-    if (params.containsKey('queries')) {
-      params = Map<String, dynamic>.from(params);
-      params['queries'] = _flattenQueries(params['queries']);
-    }
+    params = params.map((key, value) => MapEntry(key, _flattenValue(value)));
 
     http.BaseRequest request = http.Request(method.name(), uri);
     if (headers['content-type'] == 'multipart/form-data') {
@@ -150,23 +147,30 @@ mixin ClientMixin {
   }
 }
 
-List<String> _flattenQueries(dynamic queries) {
-  if (queries == null) {
-    return [];
-  }
-  if (queries is String) {
-    return [queries];
-  }
-  if (queries is List) {
-    final out = <String>[];
-    for (final item in queries) {
-      out.addAll(_flattenQueries(item));
-    }
-    return out;
+dynamic _flattenValue(dynamic value) {
+  if (value == null) {
+    return null;
   }
   try {
-    return _flattenQueries(queries.build());
-  } catch (_) {
-    return [queries.toString()];
+    return _flattenValue(value.build());
+  } catch (_) {}
+  if (value is! List) {
+    return value;
   }
+
+  final out = [];
+  var changed = false;
+  for (final item in value) {
+    final flat = _flattenValue(item);
+    if (item is List && flat is List && flat.every((entry) => entry is String)) {
+      out.addAll(flat);
+      changed = true;
+      continue;
+    }
+    if (flat != item) {
+      changed = true;
+    }
+    out.add(flat);
+  }
+  return changed ? out : value;
 }

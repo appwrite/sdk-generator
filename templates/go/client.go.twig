@@ -437,8 +437,8 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 // Call an API using Client
 func (client *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (*ClientResponse, error) {
 	if params != nil {
-		if _, ok := params["queries"]; ok {
-			params["queries"] = flattenQueries(params["queries"])
+		for key, value := range params {
+			params[key] = flattenValue(value)
 		}
 	}
 
@@ -762,32 +762,77 @@ func flatten(params interface{}, prefix string, result *map[string]string) error
 	return nil
 }
 
-func flattenQueries(queries interface{}) []string {
-	if queries == nil {
-		return []string{}
+func flattenValue(value interface{}) interface{} {
+	if value == nil {
+		return nil
 	}
-
-	switch v := queries.(type) {
+	switch v := value.(type) {
 	case *query.QueryBuilder:
 		if v == nil {
-			return []string{}
+			return value
 		}
 		return v.Build()
 	case query.QueryBuilder:
 		return v.Build()
-	case string:
-		return []string{v}
 	}
 
-	value := reflect.ValueOf(queries)
-	switch value.Kind() {
-	case reflect.Slice, reflect.Array:
-		out := make([]string, 0, value.Len())
-		for i := 0; i < value.Len(); i++ {
-			out = append(out, flattenQueries(value.Index(i).Interface())...)
-		}
-		return out
-	default:
-		return []string{}
+	reflected := reflect.ValueOf(value)
+	if reflected.Kind() != reflect.Slice && reflected.Kind() != reflect.Array {
+		return value
 	}
+
+	out := make([]interface{}, 0, reflected.Len())
+	changed := false
+	for i := 0; i < reflected.Len(); i++ {
+		item := reflected.Index(i).Interface()
+		flat := flattenValue(item)
+		switch item.(type) {
+		case *query.QueryBuilder, query.QueryBuilder:
+			if list, ok := flat.([]string); ok {
+				for _, entry := range list {
+					out = append(out, entry)
+				}
+				changed = true
+				continue
+			}
+		}
+		if nested, ok := item.([]string); ok {
+			for _, entry := range nested {
+				out = append(out, entry)
+			}
+			if len(nested) > 0 {
+				changed = true
+			}
+			continue
+		}
+		if nested, ok := item.([]interface{}); ok && isStringSlice(flattenValue(nested)) {
+			for _, entry := range flattenValue(nested).([]interface{}) {
+				out = append(out, entry)
+			}
+			changed = true
+			continue
+		}
+		if flat != item {
+			changed = true
+		}
+		out = append(out, flat)
+	}
+	if !changed {
+		return value
+	}
+	return out
+}
+
+func isStringSlice(value interface{}) bool {
+	items, ok := value.([]interface{})
+	if !ok {
+		_, ok := value.([]string)
+		return ok
+	}
+	for _, item := range items {
+		if _, ok := item.(string); !ok {
+			return false
+		}
+	}
+	return true
 }

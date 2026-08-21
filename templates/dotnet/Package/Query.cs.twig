@@ -555,34 +555,83 @@ namespace {{ spec.info.title | caseUcfirst }}
             return new QueryBuilder();
         }
 
-        internal static List<string> Normalize(object? queries)
+        internal static object? Flatten(object? value)
         {
-            if (queries == null)
-            {
-                return new List<string>();
-            }
-            if (queries is QueryBuilder builder)
+            if (value is QueryBuilder builder)
             {
                 return builder.Build();
             }
-            if (queries is Query query)
+            if (value is Query query)
             {
-                return new List<string> { query.ToString() };
+                return query.ToString();
             }
-            if (queries is string s)
+            if (value is not IEnumerable enumerable || value is string)
+            {
+                return value;
+            }
+
+            var items = enumerable.Cast<object?>().ToList();
+            var output = new List<object?>();
+            var changed = false;
+            foreach (var item in items)
+            {
+                var flat = Flatten(item);
+                if (item is QueryBuilder || item is Query)
+                {
+                    if (flat is IEnumerable nested && flat is not string)
+                    {
+                        output.AddRange(nested.Cast<object?>());
+                    }
+                    else
+                    {
+                        output.Add(flat);
+                    }
+                    changed = true;
+                    continue;
+                }
+                if (item is IEnumerable nestedItems && item is not string && IsStringList(flat))
+                {
+                    output.AddRange(((IEnumerable)flat!).Cast<object?>());
+                    changed = true;
+                    continue;
+                }
+                if (!Equals(flat, item))
+                {
+                    changed = true;
+                }
+                output.Add(flat);
+            }
+
+            return changed ? output : value;
+        }
+
+        private static bool IsStringList(object? value)
+        {
+            if (value is not IEnumerable enumerable || value is string)
+            {
+                return false;
+            }
+            foreach (var item in enumerable)
+            {
+                if (item is not string)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        internal static List<string> Normalize(object? queries)
+        {
+            var flat = Flatten(queries);
+            if (flat is string s)
             {
                 return new List<string> { s };
             }
-            if (queries is IEnumerable enumerable)
+            if (flat is IEnumerable enumerable && flat is not string)
             {
-                var output = new List<string>();
-                foreach (var item in enumerable)
-                {
-                    output.AddRange(Normalize(item));
-                }
-                return output;
+                return enumerable.Cast<object?>().Select(item => item?.ToString() ?? string.Empty).ToList();
             }
-
             return new List<string>();
         }
 

@@ -281,9 +281,7 @@ class Client
         }
 {% endif %}
         $headers = array_merge($this->headers, $headers);
-        if (\array_key_exists('queries', $params)) {
-            $params['queries'] = self::flattenQueries($params['queries']);
-        }
+        $params = \array_map(self::flattenValue(...), $params);
         $querySeparator = str_contains($path, '?') ? '&' : '?';
         $ch = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? $querySeparator . http_build_query($params) : ''));
         $responseHeaders = [];
@@ -422,29 +420,56 @@ class Client
         return $data;
     }
 
-    private static function flattenQueries(mixed $queries): array
+    private static function flattenValue(mixed $value): mixed
     {
-        if ($queries instanceof QueryBuilder) {
-            return $queries->build();
+        if ($value instanceof QueryBuilder) {
+            return $value->build();
         }
-
-        if (!\is_array($queries)) {
-            return [];
+        if ($value instanceof Query) {
+            return $value->__toString();
+        }
+        if (!\is_array($value) || !\array_is_list($value)) {
+            return $value;
         }
 
         $out = [];
-        foreach ($queries as $item) {
-            if ($item instanceof QueryBuilder) {
-                array_push($out, ...$item->build());
-            } elseif ($item instanceof Query) {
-                $out[] = $item->__toString();
-            } elseif (\is_array($item)) {
-                array_push($out, ...self::flattenQueries($item));
-            } else {
-                $out[] = $item;
+        $changed = false;
+        foreach ($value as $item) {
+            $flat = self::flattenValue($item);
+            if ($item instanceof QueryBuilder || $item instanceof Query) {
+                if (\is_array($flat)) {
+                    array_push($out, ...$flat);
+                } else {
+                    $out[] = $flat;
+                }
+                $changed = true;
+                continue;
+            }
+            if (\is_array($item) && \array_is_list($item) && self::isStringList($flat)) {
+                array_push($out, ...$flat);
+                $changed = true;
+                continue;
+            }
+            if ($flat !== $item) {
+                $changed = true;
+            }
+            $out[] = $flat;
+        }
+
+        return $changed ? $out : $value;
+    }
+
+    private static function isStringList(mixed $value): bool
+    {
+        if (!\is_array($value) || !\array_is_list($value)) {
+            return false;
+        }
+        foreach ($value as $item) {
+            if (!\is_string($item)) {
+                return false;
             }
         }
 
-        return $out;
+        return true;
     }
 }

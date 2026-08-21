@@ -705,83 +705,191 @@ class Query implements \JsonSerializable
         return (new Query('notTouches', $attribute, [$values]))->__toString();
     }
 
+    /**
+     * Count rows of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function count(string $attribute = '*', string $alias = ''): string
     {
         return (new Query('count', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Count distinct values of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function countDistinct(string $attribute, string $alias = ''): string
     {
         return (new Query('countDistinct', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Sum values of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function sum(string $attribute, string $alias = ''): string
     {
         return (new Query('sum', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Average values of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function avg(string $attribute, string $alias = ''): string
     {
         return (new Query('avg', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Minimum value of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function min(string $attribute, string $alias = ''): string
     {
         return (new Query('min', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Maximum value of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function max(string $attribute, string $alias = ''): string
     {
         return (new Query('max', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Standard deviation of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function stddev(string $attribute, string $alias = ''): string
     {
         return (new Query('stddev', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Population standard deviation of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function stddevPop(string $attribute, string $alias = ''): string
     {
         return (new Query('stddevPop', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Sample standard deviation of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function stddevSamp(string $attribute, string $alias = ''): string
     {
         return (new Query('stddevSamp', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Variance of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function variance(string $attribute, string $alias = ''): string
     {
         return (new Query('variance', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Population variance of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function varPop(string $attribute, string $alias = ''): string
     {
         return (new Query('varPop', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Sample variance of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function varSamp(string $attribute, string $alias = ''): string
     {
         return (new Query('varSamp', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Bitwise AND of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function bitAnd(string $attribute, string $alias = ''): string
     {
         return (new Query('bitAnd', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Bitwise OR of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function bitOr(string $attribute, string $alias = ''): string
     {
         return (new Query('bitOr', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
+    /**
+     * Bitwise XOR of $attribute, optionally aliased.
+     *
+     * @param string $attribute
+     * @param string $alias
+     * @return string
+     */
     public static function bitXor(string $attribute, string $alias = ''): string
     {
         return (new Query('bitXor', $attribute, $alias !== '' ? $alias : null))->__toString();
     }
 
     /**
+     * Group results by attributes.
+     *
      * @param array<string> $attributes
+     * @return string
      */
     public static function groupBy(array $attributes): string
     {
@@ -789,7 +897,10 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Filter grouped results. $queries are nested like and/or.
+     *
      * @param array<string> $queries
+     * @return string
      */
     public static function having(array $queries): string
     {
@@ -804,19 +915,38 @@ class Query implements \JsonSerializable
         return (new Query('having', null, $queries))->__toString();
     }
 
+    /**
+     * Select distinct rows.
+     *
+     * @return string
+     */
     public static function distinct(): string
     {
         return (new Query('distinct', null, null))->__toString();
     }
 
+    /**
+     * Column-to-column join ON condition.
+     *
+     * @param string $left
+     * @param string $right
+     * @param string $operator
+     * @return string
+     */
     public static function on(string $left, string $right, string $operator = '='): string
     {
         return (new Query('on', null, [$left, $operator, $right]))->__toString();
     }
 
     /**
+     * Inner join. $table is the joined collection/table ID.
+     *
+     * @param string $table
      * @param string|array<string> $leftOrAliasOrOn
      * @param string|array<string> $rightOrOn
+     * @param string $operator
+     * @param string $alias
+     * @return string
      */
     public static function join(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
@@ -824,8 +954,14 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Left join. $table is the joined collection/table ID.
+     *
+     * @param string $table
      * @param string|array<string> $leftOrAliasOrOn
      * @param string|array<string> $rightOrOn
+     * @param string $operator
+     * @param string $alias
+     * @return string
      */
     public static function leftJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
@@ -833,8 +969,14 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Right join. $table is the joined collection/table ID.
+     *
+     * @param string $table
      * @param string|array<string> $leftOrAliasOrOn
      * @param string|array<string> $rightOrOn
+     * @param string $operator
+     * @param string $alias
+     * @return string
      */
     public static function rightJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
@@ -842,21 +984,38 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Full outer join. $table is the joined collection/table ID.
+     *
+     * @param string $table
      * @param string|array<string> $leftOrAliasOrOn
      * @param string|array<string> $rightOrOn
+     * @param string $operator
+     * @param string $alias
+     * @return string
      */
     public static function fullOuterJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
         return self::createJoin('fullOuterJoin', $table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias);
     }
 
+    /**
+     * Cross join. $table is the joined collection/table ID.
+     *
+     * @param string $table
+     * @param string $alias
+     * @return string
+     */
     public static function crossJoin(string $table, string $alias = ''): string
     {
         return (new Query('crossJoin', $table, $alias !== '' ? $alias : null))->__toString();
     }
 
     /**
+     * Filter resources where $attribute covers the given geometry.
+     *
+     * @param string $attribute
      * @param array<mixed> $values
+     * @return string
      */
     public static function covers(string $attribute, array $values): string
     {
@@ -864,7 +1023,11 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Filter resources where $attribute does not cover the given geometry.
+     *
+     * @param string $attribute
      * @param array<mixed> $values
+     * @return string
      */
     public static function notCovers(string $attribute, array $values): string
     {
@@ -872,7 +1035,11 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Filter resources where $attribute is spatially equal to the given geometry.
+     *
+     * @param string $attribute
      * @param array<mixed> $values
+     * @return string
      */
     public static function spatialEquals(string $attribute, array $values): string
     {
@@ -880,7 +1047,11 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Filter resources where $attribute is not spatially equal to the given geometry.
+     *
+     * @param string $attribute
      * @param array<mixed> $values
+     * @return string
      */
     public static function notSpatialEquals(string $attribute, array $values): string
     {
@@ -888,6 +1059,10 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Return limit and offset queries for 1-based page pagination.
+     *
+     * @param int $page
+     * @param int $perPage
      * @return array<string>
      */
     public static function page(int $page, int $perPage = 25): array
@@ -905,6 +1080,11 @@ class Query implements \JsonSerializable
         ];
     }
 
+    /**
+     * Start a fluent query builder.
+     *
+     * @return QueryBuilder
+     */
     public static function builder(): QueryBuilder
     {
         return new QueryBuilder();

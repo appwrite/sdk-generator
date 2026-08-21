@@ -421,25 +421,43 @@ class Query():
         return QueryBuilder()
 
     @staticmethod
-    def _normalize(queries):
-        if isinstance(queries, QueryBuilder):
-            return queries.build()
-
-        if not isinstance(queries, list):
-            return []
+    def _flatten(value):
+        if isinstance(value, QueryBuilder):
+            return value.build()
+        if isinstance(value, Query):
+            return str(value)
+        if not isinstance(value, list):
+            return value
 
         out = []
-        for item in queries:
-            if isinstance(item, QueryBuilder):
-                out.extend(item.build())
-            elif isinstance(item, Query):
-                out.append(str(item))
-            elif isinstance(item, list):
-                out.extend(Query._normalize(item))
-            else:
-                out.append(item)
+        changed = False
+        for item in value:
+            flat = Query._flatten(item)
+            if isinstance(item, (QueryBuilder, Query)):
+                if isinstance(flat, list):
+                    out.extend(flat)
+                else:
+                    out.append(flat)
+                changed = True
+                continue
+            if isinstance(item, list) and isinstance(flat, list) and all(isinstance(entry, str) for entry in flat):
+                out.extend(flat)
+                changed = True
+                continue
+            if flat is not item:
+                changed = True
+            out.append(flat)
 
-        return out
+        return out if changed else value
+
+    @staticmethod
+    def _normalize(queries):
+        flat = Query._flatten(queries)
+        if isinstance(flat, list):
+            return [str(item) for item in flat]
+        if isinstance(flat, str):
+            return [flat]
+        return []
 
     @staticmethod
     def _create_join(method, table, left, right, operator, alias):

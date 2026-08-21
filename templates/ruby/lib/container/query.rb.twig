@@ -406,29 +406,42 @@ module {{spec.info.title | caseUcfirst}}
                 return QueryBuilder.new
             end
 
-            def _normalize(queries)
-                if queries.is_a?(QueryBuilder)
-                    return queries.build
-                end
-
-                unless queries.is_a?(Array)
-                    return []
-                end
+            def _flatten(value)
+                return value.build if value.is_a?(QueryBuilder)
+                return value.to_s if value.is_a?(Query)
+                return value unless value.is_a?(Array)
 
                 out = []
-                queries.each do |item|
-                    if item.is_a?(QueryBuilder)
-                        out.concat(item.build)
-                    elsif item.is_a?(Query)
-                        out << item.to_s
-                    elsif item.is_a?(Array)
-                        out.concat(_normalize(item))
-                    else
-                        out << item
+                changed = false
+                value.each do |item|
+                    flat = _flatten(item)
+                    if item.is_a?(QueryBuilder) || item.is_a?(Query)
+                        if flat.is_a?(Array)
+                            out.concat(flat)
+                        else
+                            out << flat
+                        end
+                        changed = true
+                        next
                     end
+                    if item.is_a?(Array) && flat.is_a?(Array) && flat.all? { |entry| entry.is_a?(String) }
+                        out.concat(flat)
+                        changed = true
+                        next
+                    end
+                    changed = true if flat != item
+                    out << flat
                 end
 
-                return out
+                changed ? out : value
+            end
+
+            def _normalize(queries)
+                flat = _flatten(queries)
+                return flat.map(&:to_s) if flat.is_a?(Array)
+                return [flat] if flat.is_a?(String)
+
+                []
             end
 
             private

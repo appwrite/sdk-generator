@@ -317,45 +317,58 @@ class Query {
       Query._('countDistinct', attribute, alias.isNotEmpty ? alias : null)
           .toString();
 
+  /// Sum values of [attribute], optionally aliased.
   static String sum(String attribute, [String alias = '']) =>
       Query._('sum', attribute, alias.isNotEmpty ? alias : null).toString();
 
+  /// Average values of [attribute], optionally aliased.
   static String avg(String attribute, [String alias = '']) =>
       Query._('avg', attribute, alias.isNotEmpty ? alias : null).toString();
 
+  /// Minimum value of [attribute], optionally aliased.
   static String min(String attribute, [String alias = '']) =>
       Query._('min', attribute, alias.isNotEmpty ? alias : null).toString();
 
+  /// Maximum value of [attribute], optionally aliased.
   static String max(String attribute, [String alias = '']) =>
       Query._('max', attribute, alias.isNotEmpty ? alias : null).toString();
 
+  /// Standard deviation of [attribute], optionally aliased.
   static String stddev(String attribute, [String alias = '']) =>
       Query._('stddev', attribute, alias.isNotEmpty ? alias : null).toString();
 
+  /// Population standard deviation of [attribute], optionally aliased.
   static String stddevPop(String attribute, [String alias = '']) =>
       Query._('stddevPop', attribute, alias.isNotEmpty ? alias : null)
           .toString();
 
+  /// Sample standard deviation of [attribute], optionally aliased.
   static String stddevSamp(String attribute, [String alias = '']) =>
       Query._('stddevSamp', attribute, alias.isNotEmpty ? alias : null)
           .toString();
 
+  /// Variance of [attribute], optionally aliased.
   static String variance(String attribute, [String alias = '']) =>
       Query._('variance', attribute, alias.isNotEmpty ? alias : null)
           .toString();
 
+  /// Population variance of [attribute], optionally aliased.
   static String varPop(String attribute, [String alias = '']) =>
       Query._('varPop', attribute, alias.isNotEmpty ? alias : null).toString();
 
+  /// Sample variance of [attribute], optionally aliased.
   static String varSamp(String attribute, [String alias = '']) =>
       Query._('varSamp', attribute, alias.isNotEmpty ? alias : null).toString();
 
+  /// Bitwise AND of [attribute], optionally aliased.
   static String bitAnd(String attribute, [String alias = '']) =>
       Query._('bitAnd', attribute, alias.isNotEmpty ? alias : null).toString();
 
+  /// Bitwise OR of [attribute], optionally aliased.
   static String bitOr(String attribute, [String alias = '']) =>
       Query._('bitOr', attribute, alias.isNotEmpty ? alias : null).toString();
 
+  /// Bitwise XOR of [attribute], optionally aliased.
   static String bitXor(String attribute, [String alias = '']) =>
       Query._('bitXor', attribute, alias.isNotEmpty ? alias : null).toString();
 
@@ -370,6 +383,7 @@ class Query {
         queries.map((query) => jsonDecode(query)).toList(),
       ).toString();
 
+  /// Select distinct rows.
   static String distinct() => Query._('distinct').toString();
 
   /// Column-to-column join ON condition.
@@ -386,6 +400,7 @@ class Query {
   ]) =>
       Query._createJoin('join', table, leftOrAliasOrOn, rightOrOn, operator, alias);
 
+  /// Left join. [table] is the joined collection/table ID.
   static String leftJoin(
     String table,
     Object leftOrAliasOrOn, [
@@ -395,6 +410,7 @@ class Query {
   ]) =>
       Query._createJoin('leftJoin', table, leftOrAliasOrOn, rightOrOn, operator, alias);
 
+  /// Right join. [table] is the joined collection/table ID.
   static String rightJoin(
     String table,
     Object leftOrAliasOrOn, [
@@ -404,6 +420,7 @@ class Query {
   ]) =>
       Query._createJoin('rightJoin', table, leftOrAliasOrOn, rightOrOn, operator, alias);
 
+  /// Full outer join. [table] is the joined collection/table ID.
   static String fullOuterJoin(
     String table,
     Object leftOrAliasOrOn, [
@@ -413,18 +430,23 @@ class Query {
   ]) =>
       Query._createJoin('fullOuterJoin', table, leftOrAliasOrOn, rightOrOn, operator, alias);
 
+  /// Cross join. [table] is the joined collection/table ID.
   static String crossJoin(String table, [String alias = '']) =>
       Query._('crossJoin', table, alias.isNotEmpty ? alias : null).toString();
 
+  /// Filter resources where [attribute] covers the given geometry.
   static String covers(String attribute, List<dynamic> values) =>
       Query._('covers', attribute, [values]).toString();
 
+  /// Filter resources where [attribute] does not cover the given geometry.
   static String notCovers(String attribute, List<dynamic> values) =>
       Query._('notCovers', attribute, [values]).toString();
 
+  /// Filter resources where [attribute] is spatially equal to the given geometry.
   static String spatialEquals(String attribute, List<dynamic> values) =>
       Query._('spatialEquals', attribute, [values]).toString();
 
+  /// Filter resources where [attribute] is not spatially equal to the given geometry.
   static String notSpatialEquals(String attribute, List<dynamic> values) =>
       Query._('notSpatialEquals', attribute, [values]).toString();
 
@@ -443,6 +465,7 @@ class Query {
     ];
   }
 
+  /// Start a fluent query builder.
   static QueryBuilder builder() => QueryBuilder();
 
   static String _createJoin(

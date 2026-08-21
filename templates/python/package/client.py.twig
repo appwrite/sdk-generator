@@ -70,8 +70,7 @@ class Client:
         if params is None:
             params = {}
 
-        if 'queries' in params:
-            params['queries'] = Query._normalize(params['queries'])
+        params = {key: Query._flatten(value) for key, value in params.items()}
 
         data = {}
         files = {}

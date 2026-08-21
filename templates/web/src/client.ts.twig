@@ -1,6 +1,6 @@
 import { Models } from './models';
 import { Channel, ActionableChannel, ResolvedChannel } from './channel';
-import { normalizeQueries, type QueryInput } from './query';
+import { flattenParam, normalizeQueries, type QueryInput } from './query';
 import { ID } from './id';
 import JSONbigModule from 'json-bigint';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
@@ -825,8 +825,8 @@ class Client {
     prepareRequest(method: string, url: URL, headers: Headers = {}, params: Payload = {}): { uri: string, options: RequestInit } {
         method = method.toUpperCase();
 
-        if (Object.prototype.hasOwnProperty.call(params, 'queries')) {
-            params = { ...params, queries: normalizeQueries(params.queries) };
+        for (const key of Object.keys(params)) {
+            params[key] = flattenParam(params[key]);
         }
 
         headers = Object.assign({}, this.headers, headers);

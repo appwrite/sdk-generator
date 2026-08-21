@@ -1017,3 +1017,23 @@ export function normalizeQueries(queries?: QueryInput | null): string[] {
   }
   return out;
 }
+
+function isQueryList(value: unknown[]): boolean {
+  return value.every(
+    (item) =>
+      item instanceof QueryBuilder ||
+      item instanceof Query ||
+      typeof item === "string" ||
+      (Array.isArray(item) && isQueryList(item))
+  );
+}
+
+export function flattenParam(value: unknown): unknown {
+  if (value instanceof QueryBuilder || value instanceof Query) {
+    return normalizeQueries(value as QueryInput);
+  }
+  if (Array.isArray(value) && isQueryList(value)) {
+    return normalizeQueries(value as QueryInput);
+  }
+  return value;
+}
