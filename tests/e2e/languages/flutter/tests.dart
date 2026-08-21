@@ -390,6 +390,15 @@ void main() async {
   print(pageQueries[0]);
   print(pageQueries[1]);
   print(Query.builder().limit(1).build()[0]);
+  final flatBuilder = client.flatten([Query.builder().limit(1)]);
+  print(flatBuilder is List && flatBuilder.length == 1 && flatBuilder[0] == Query.limit(1) ? 'flatten-builder:ok' : 'flatten-builder:fail');
+  final geometry = [
+    [1, 2],
+    [3, 4],
+  ];
+  print(client.flatten(geometry).toString() == geometry.toString() ? 'flatten-geometry:ok' : 'flatten-geometry:fail');
+  final flatList = client.flatten([Query.limit(1)]);
+  print(flatList is List && flatList.length == 1 && flatList[0] == Query.limit(1) ? 'flatten-list:ok' : 'flatten-list:fail');
 
   // Permission & Role helper tests
   print(Permission.read(Role.any()));

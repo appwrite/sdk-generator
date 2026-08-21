@@ -247,6 +247,10 @@ page_queries = Query.page(2, 10)
 print(page_queries[0])
 print(page_queries[1])
 print(Query.builder().limit(1).build()[0])
+print('flatten-builder:ok' if Query._flatten([Query.builder().limit(1)]) == [Query.limit(1)] else 'flatten-builder:fail')
+geometry = [[1, 2], [3, 4]]
+print('flatten-geometry:ok' if Query._flatten(geometry) == geometry else 'flatten-geometry:fail')
+print('flatten-list:ok' if Query._flatten([Query.limit(1)]) == [Query.limit(1)] else 'flatten-list:fail')
 
 # Permission & Role helper tests
 print(Permission.read(Role.any()))

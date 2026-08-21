@@ -253,6 +253,10 @@ page_queries = Query.page(2, 10)
 puts page_queries[0]
 puts page_queries[1]
 puts Query.builder.limit(1).build[0]
+puts(Query._flatten([Query.builder.limit(1)]) == [Query.limit(1)] ? 'flatten-builder:ok' : 'flatten-builder:fail')
+geometry = [[1, 2], [3, 4]]
+puts(Query._flatten(geometry) == geometry ? 'flatten-geometry:ok' : 'flatten-geometry:fail')
+puts(Query._flatten([Query.limit(1)]) == [Query.limit(1)] ? 'flatten-list:ok' : 'flatten-list:fail')
 
 # Permission & Role helper tests
 puts Permission.read(Role.any())

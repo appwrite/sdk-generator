@@ -234,6 +234,12 @@ abstract class Base extends TestCase
         '{"method":"limit","values":[1]}',
     ];
 
+    protected const QUERY_FLATTEN_RESPONSES = [
+        'flatten-builder:ok',
+        'flatten-geometry:ok',
+        'flatten-list:ok',
+    ];
+
     protected const PERMISSION_HELPER_RESPONSES = [
         'read("any")',
         'write("user:userid")',

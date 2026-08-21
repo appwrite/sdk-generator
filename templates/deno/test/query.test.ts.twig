@@ -1,6 +1,6 @@
 import {describe, it as test} from "https://deno.land/std@0.149.0/testing/bdd.ts";
 import {assertEquals} from "https://deno.land/std@0.204.0/assert/assert_equals.ts";
-import {Query, QueryTypes, normalizeQueries} from "../src/query.ts";
+import {Query, QueryTypes, flattenParam, normalizeQueries} from "../src/query.ts";
 
 type BasicFilterQueryTest = {
     description: string;
@@ -474,5 +474,18 @@ describe('Query', () => {
             Query.limit(10),
             Query.offset(10),
         ]);
+    });
+
+    test('flattenParam spreads wrapped builder', () => {
+        assertEquals(flattenParam([Query.builder().limit(1)]), [Query.limit(1)]);
+    });
+
+    test('flattenParam keeps nested numeric arrays', () => {
+        const geometry = [[1, 2], [3, 4]];
+        assertEquals(flattenParam(geometry), geometry);
+    });
+
+    test('flattenParam keeps query string list', () => {
+        assertEquals(flattenParam([Query.limit(1)]), [Query.limit(1)]);
     });
 })

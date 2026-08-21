@@ -329,6 +329,25 @@ fn test_queries() {
     println!("{}", page_queries[0]);
     println!("{}", page_queries[1]);
     println!("{}", Query::builder().limit(1).build()[0]);
+    let built = Query::builder().limit(1).build();
+    let nested = json!([built.clone()]);
+    if Client::flatten_value(nested) == json!(built) {
+        println!("flatten-builder:ok");
+    } else {
+        println!("flatten-builder:fail");
+    }
+    let geometry = json!([[1, 2], [3, 4]]);
+    if Client::flatten_value(geometry.clone()) == geometry {
+        println!("flatten-geometry:ok");
+    } else {
+        println!("flatten-geometry:fail");
+    }
+    let query_list = json!([Query::limit(1).to_string()]);
+    if Client::flatten_value(query_list.clone()) == query_list {
+        println!("flatten-list:ok");
+    } else {
+        println!("flatten-list:fail");
+    }
 }
 
 fn test_permission_helpers() {

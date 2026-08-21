@@ -6,6 +6,8 @@ import 'dart:developer';
 import 'enums.dart';
 
 mixin ClientMixin {
+  dynamic flatten(dynamic value) => _flattenValue(value);
+
   http.BaseRequest prepareRequest(
     HttpMethod method, {
     required Uri uri,

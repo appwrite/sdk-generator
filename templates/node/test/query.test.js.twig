@@ -1,4 +1,4 @@
-const { Query, normalizeQueries } = require("../dist/query");
+const { Query, normalizeQueries, flattenParam } = require("../dist/query");
 
 const tests = [
     {
@@ -352,5 +352,18 @@ describe('Query', () => {
             Query.limit(10),
             Query.offset(10),
         ]);
+    });
+
+    test('flattenParam spreads wrapped builder', () => {
+        expect(flattenParam([Query.builder().limit(1)])).toEqual([Query.limit(1)]);
+    });
+
+    test('flattenParam keeps nested numeric arrays', () => {
+        const geometry = [[1, 2], [3, 4]];
+        expect(flattenParam(geometry)).toBe(geometry);
+    });
+
+    test('flattenParam keeps query string list', () => {
+        expect(flattenParam([Query.limit(1)])).toEqual([Query.limit(1)]);
     });
 })

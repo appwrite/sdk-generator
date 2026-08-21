@@ -184,7 +184,7 @@
                 return [$this->endpoint, $this->headers, $this->selfSigned, $this->timeout, $this->connectTimeout];
             }, $this->client, Client::class);
             $flattenParams = \Closure::bind(function(array $params): array {
-                return $this->flatten($params);
+                return $this->flattenForm($params);
             }, $this->client, Client::class);
             [$endpoint, $globalHeaders, $selfSigned, $timeout, $connectTimeout] = $clientConfig();
             $responseHeaders = [];

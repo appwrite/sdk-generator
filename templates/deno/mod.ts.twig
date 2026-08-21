@@ -1,5 +1,5 @@
 import { Client } from "./src/client.ts";
-import { Query, QueryBuilder } from "./src/query.ts";
+import { Query, QueryBuilder, flattenParam } from "./src/query.ts";
 import { Permission } from "./src/permission.ts";
 import { Role } from "./src/role.ts";
 import { ID } from "./src/id.ts";
@@ -17,6 +17,7 @@ export {
     Client,
     Query,
     QueryBuilder,
+    flattenParam,
     Permission,
     Role,
     ID,

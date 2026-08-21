@@ -227,3 +227,13 @@ class TestQueryMethods(unittest.TestCase):
         self.assertEqual(builder.build(), Query._normalize(builder))
         self.assertEqual(builder.build(), Query._normalize([builder]))
         self.assertEqual(builder.build(), Query._normalize([builder.build()]))
+
+    def test_flatten_spreads_wrapped_builder(self):
+        self.assertEqual([Query.limit(1)], Query._flatten([Query.builder().limit(1)]))
+
+    def test_flatten_keeps_nested_numeric_arrays(self):
+        geometry = [[1, 2], [3, 4]]
+        self.assertEqual(geometry, Query._flatten(geometry))
+
+    def test_flatten_keeps_query_string_list(self):
+        self.assertEqual([Query.limit(1)], Query._flatten([Query.limit(1)]))

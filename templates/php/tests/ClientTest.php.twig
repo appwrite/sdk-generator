@@ -48,6 +48,25 @@ final class ClientTest extends TestCase {
         $result = $client->addHeader('X-Custom', 'value');
         $this->assertSame($client, $result);
     }
+
+    public function testFlattenSpreadsWrappedBuilder(): void {
+        $this->assertSame(
+            [Query::limit(1)],
+            array_values((array) Client::flatten([Query::builder()->limit(1)]))
+        );
+    }
+
+    public function testFlattenKeepsNestedNumericArrays(): void {
+        $geometry = [[1, 2], [3, 4]];
+        $this->assertSame($geometry, Client::flatten($geometry));
+    }
+
+    public function testFlattenKeepsQueryStringList(): void {
+        $this->assertSame(
+            [Query::limit(1)],
+            array_values((array) Client::flatten([Query::limit(1)]))
+        );
+    }
 {% for headerKey, header in globalHeaders %}
 
     public function testSet{{headerKey | caseUcfirst}}ReturnsClient(): void {

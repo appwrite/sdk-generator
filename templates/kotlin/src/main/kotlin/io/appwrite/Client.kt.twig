@@ -700,7 +700,7 @@ class Client @JvmOverloads constructor(
         })
     }
 
-    private fun flatten(value: Any?): Any? {
+    fun flatten(value: Any?): Any? {
         if (value is Query.Builder) {
             return value.build()
         }

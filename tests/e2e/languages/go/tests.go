@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path"
+	"reflect"
 	"time"
 
 	"github.com/repoowner/reponame/appwrite"
@@ -326,6 +327,24 @@ func testQueries() {
 	fmt.Println(pageQueries[0])
 	fmt.Println(pageQueries[1])
 	fmt.Println(query.NewBuilder().Limit(1).Build()[0])
+	flatBuilder := client.Flatten([]interface{}{query.NewBuilder().Limit(1)})
+	if got, ok := flatBuilder.([]interface{}); ok && len(got) == 1 && got[0] == query.Limit(1) {
+		fmt.Println("flatten-builder:ok")
+	} else {
+		fmt.Println("flatten-builder:fail")
+	}
+	geometry := [][]int{{1, 2}, {3, 4}}
+	if reflect.DeepEqual(client.Flatten(geometry), geometry) {
+		fmt.Println("flatten-geometry:ok")
+	} else {
+		fmt.Println("flatten-geometry:fail")
+	}
+	flatList := client.Flatten([]interface{}{query.Limit(1)})
+	if got, ok := flatList.([]interface{}); ok && len(got) == 1 && got[0] == query.Limit(1) {
+		fmt.Println("flatten-list:ok")
+	} else {
+		fmt.Println("flatten-list:fail")
+	}
 }
 
 func testPermissionHelpers() {

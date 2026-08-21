@@ -119,4 +119,20 @@ class Tests: XCTestCase {
         XCTAssertEqual(method(queries[0]), "limit")
         XCTAssertEqual(method(queries[1]), "offset")
     }
+
+    func testFlattenSpreadsWrappedBuilder() {
+        let client = Client()
+        XCTAssertEqual(client.flatten([Query.builder().limit(1)]) as? [String], [Query.limit(1)])
+    }
+
+    func testFlattenKeepsNestedNumericArrays() {
+        let client = Client()
+        let geometry = [[1, 2], [3, 4]]
+        XCTAssertEqual(client.flatten(geometry) as? [[Int]], geometry)
+    }
+
+    func testFlattenKeepsQueryStringList() {
+        let client = Client()
+        XCTAssertEqual(client.flatten([Query.limit(1)]) as? [String], [Query.limit(1)])
+    }
 }

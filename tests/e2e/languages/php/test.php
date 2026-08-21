@@ -384,6 +384,12 @@ $page = Query::page(2, 10);
 echo $page[0] . "\n";
 echo $page[1] . "\n";
 echo Query::builder()->limit(1)->build()[0] . "\n";
+$flatBuilder = Client::flatten([Query::builder()->limit(1)]);
+echo ((is_array($flatBuilder) ? array_values($flatBuilder) : []) === [Query::limit(1)] ? 'flatten-builder:ok' : 'flatten-builder:fail') . "\n";
+$geometry = [[1, 2], [3, 4]];
+echo (Client::flatten($geometry) === $geometry ? 'flatten-geometry:ok' : 'flatten-geometry:fail') . "\n";
+$flatList = Client::flatten([Query::limit(1)]);
+echo ((is_array($flatList) ? array_values($flatList) : []) === [Query::limit(1)] ? 'flatten-list:ok' : 'flatten-list:fail') . "\n";
 
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";

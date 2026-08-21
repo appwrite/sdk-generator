@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -401,6 +402,13 @@ namespace AppwriteTests
             LogResult(pageQueries[0]);
             LogResult(pageQueries[1]);
             LogResult(new Query.Builder().Limit(1).Build()[0]);
+            var expectedLimit = new List<object> { Query.Limit(1) };
+            var flatBuilder = Query.Flatten(new List<object> { new Query.Builder().Limit(1) }) as IEnumerable;
+            LogResult(flatBuilder != null && expectedLimit.SequenceEqual(flatBuilder.Cast<object>()) ? "flatten-builder:ok" : "flatten-builder:fail");
+            var geometry = new List<object> { new List<object> { 1, 2 }, new List<object> { 3, 4 } };
+            LogResult(object.ReferenceEquals(Query.Flatten(geometry), geometry) ? "flatten-geometry:ok" : "flatten-geometry:fail");
+            var queryList = new List<object> { Query.Limit(1) };
+            LogResult(object.ReferenceEquals(Query.Flatten(queryList), queryList) ? "flatten-list:ok" : "flatten-list:fail");
             // Permission & Roles helper tests
             LogResult(Permission.Read(Role.Any()));
             LogResult(Permission.Write(Role.User(ID.Custom("userid"))));

@@ -550,7 +550,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             return new List<string> { Limit(perPage), Offset((page - 1) * perPage) };
         }
 
-        internal static object? Flatten(object? value)
+        public static object? Flatten(object? value)
         {
             if (value is Builder builder)
             {

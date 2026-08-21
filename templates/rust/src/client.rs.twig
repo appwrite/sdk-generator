@@ -352,7 +352,7 @@ impl Client {
             .collect()
     }
 
-    fn flatten_value(value: Value) -> Value {
+    pub fn flatten_value(value: Value) -> Value {
         match value {
             Value::Array(items) if Self::is_query_string_tree(&items) => Value::Array(
                 Query::normalize_value(&Value::Array(items))

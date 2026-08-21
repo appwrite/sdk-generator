@@ -762,6 +762,10 @@ func flatten(params interface{}, prefix string, result *map[string]string) error
 	return nil
 }
 
+func Flatten(value interface{}) interface{} {
+	return flattenValue(value)
+}
+
 func flattenValue(value interface{}) interface{} {
 	if value == nil {
 		return nil

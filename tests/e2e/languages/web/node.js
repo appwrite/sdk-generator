@@ -1,4 +1,4 @@
-const { Client, Foo, Bar, General, Query, Permission, Role, ID, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
+const { Client, Foo, Bar, General, Query, Permission, Role, ID, Channel, Operator, Condition, MockType, flattenParam } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
@@ -318,6 +318,9 @@ async function start() {
     console.log(pageQueries[0]);
     console.log(pageQueries[1]);
     console.log(Query.builder().limit(1).build()[0]);
+    console.log(JSON.stringify(flattenParam([Query.builder().limit(1)])) === JSON.stringify([Query.limit(1)]) ? 'flatten-builder:ok' : 'flatten-builder:fail');
+    console.log(JSON.stringify(flattenParam([[1, 2], [3, 4]])) === JSON.stringify([[1, 2], [3, 4]]) ? 'flatten-geometry:ok' : 'flatten-geometry:fail');
+    console.log(JSON.stringify(flattenParam([Query.limit(1)])) === JSON.stringify([Query.limit(1)]) ? 'flatten-list:ok' : 'flatten-list:fail');
 
     // Permission & Role helper tests
     console.log(Permission.read(Role.any()));

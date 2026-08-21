@@ -705,7 +705,7 @@ open class Client {
         )
     }
 
-    private func flatten(_ value: Any?) -> Any? {
+    public func flatten(_ value: Any?) -> Any? {
         if let builder = value as? Query.Builder {
             return builder.build()
         }

@@ -40,6 +40,7 @@ final class Go113Test extends Base
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
+        ...Base::QUERY_FLATTEN_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES,

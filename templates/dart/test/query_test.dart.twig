@@ -573,4 +573,23 @@ void main() {
 
     expect(built, expected);
   });
+
+  test('flatten spreads wrapped builder', () {
+    final client = Client();
+    expect(client.flatten([Query.builder().limit(1)]), [Query.limit(1)]);
+  });
+
+  test('flatten keeps nested numeric arrays', () {
+    final client = Client();
+    final geometry = [
+      [1, 2],
+      [3, 4],
+    ];
+    expect(client.flatten(geometry), geometry);
+  });
+
+  test('flatten keeps query string list', () {
+    final client = Client();
+    expect(client.flatten([Query.limit(1)]), [Query.limit(1)]);
+  });
 }

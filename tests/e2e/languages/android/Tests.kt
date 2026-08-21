@@ -424,6 +424,12 @@ class ServiceTest {
             writeToFile(pageQueries[0])
             writeToFile(pageQueries[1])
             writeToFile(Query.builder().limit(1).build()[0])
+            val flatBuilder = client.flatten(listOf(Query.builder().limit(1)))
+            writeToFile(if (flatBuilder == listOf(Query.limit(1))) "flatten-builder:ok" else "flatten-builder:fail")
+            val geometry = listOf(listOf(1, 2), listOf(3, 4))
+            writeToFile(if (client.flatten(geometry) == geometry) "flatten-geometry:ok" else "flatten-geometry:fail")
+            val flatList = client.flatten(listOf(Query.limit(1)))
+            writeToFile(if (flatList == listOf(Query.limit(1))) "flatten-list:ok" else "flatten-list:fail")
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))

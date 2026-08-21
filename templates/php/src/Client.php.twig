@@ -283,7 +283,7 @@ class Client
         }
 {% endif %}
         $headers = array_merge($this->headers, $headers);
-        $params = \array_map(self::flattenValue(...), $params);
+        $params = \array_map(self::flatten(...), $params);
         $querySeparator = str_contains($path, '?') ? '&' : '?';
         $ch = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? $querySeparator . http_build_query($params) : ''));
         $responseHeaders = [];
@@ -294,7 +294,7 @@ class Client
                 break;
 
             case 'multipart/form-data':
-                $query = $this->flatten($params);
+                $query = $this->flattenForm($params);
                 break;
 
             default:
@@ -386,14 +386,14 @@ class Client
      * @param string $prefix
      * @return array
      */
-    protected function flatten(array $data, string $prefix = ''): array {
+    protected function flattenForm(array $data, string $prefix = ''): array {
         $output = [];
 
         foreach($data as $key => $value) {
             $finalKey = $prefix ? "{$prefix}[{$key}]" : $key;
 
             if (is_array($value)) {
-                $output = array_merge($output, $this->flatten($value, $finalKey));
+                $output = array_merge($output, $this->flattenForm($value, $finalKey));
             }
             else {
                 $output[$finalKey] = $value;
@@ -422,7 +422,7 @@ class Client
         return $data;
     }
 
-    private static function flattenValue(mixed $value): mixed
+    public static function flatten(mixed $value): mixed
     {
         if ($value instanceof QueryBuilder) {
             return $value->build();
@@ -437,7 +437,7 @@ class Client
         $out = [];
         $changed = false;
         foreach ($value as $item) {
-            $flat = self::flattenValue($item);
+            $flat = self::flatten($item);
             if ($item instanceof QueryBuilder || $item instanceof Query) {
                 if (\is_array($flat)) {
                     array_push($out, ...$flat);
