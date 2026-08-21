@@ -272,7 +272,7 @@ abstract class Language
         return match (true) {
             $schema instanceof StringSchema && $schema->format === 'binary' => self::TYPE_FILE,
             $schema instanceof StringSchema,
-            $schema instanceof CompositeSchema && $this->isOpenStringEnum($schema) => self::TYPE_STRING,
+            $schema instanceof CompositeSchema && $this->isStringEnum($schema) => self::TYPE_STRING,
             $schema instanceof IntegerSchema => self::TYPE_INTEGER,
             $schema instanceof NumberSchema => self::TYPE_NUMBER,
             $schema instanceof BooleanSchema => self::TYPE_BOOLEAN,
@@ -343,7 +343,7 @@ abstract class Language
         }
         $items = $schema->items;
         return !($items instanceof AnySchema)
-            && (!($items instanceof CompositeSchema) || $this->isOpenStringEnum($items))
+            && (!($items instanceof CompositeSchema) || $this->isStringEnum($items))
             && $this->getSchemaType($items) !== '';
     }
 
@@ -368,8 +368,15 @@ abstract class Language
         $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
 
         return $enumSchema instanceof CompositeSchema
-            ? ($enumSchema->openStringEnumBranch() ?? $enumSchema)
+            ? ($enumSchema->stringEnum() ?? $enumSchema)
             : $enumSchema;
+    }
+
+    public function isStringEnum(Schema|Parameter $value): bool
+    {
+        $enumSchema = $this->getEnumSchema($value);
+
+        return $enumSchema instanceof StringSchema && $enumSchema->enum !== [];
     }
 
     public function isOpenStringEnum(Schema|Parameter $value): bool

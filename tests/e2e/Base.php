@@ -578,28 +578,42 @@ abstract class Base extends TestCase
 
     private function assertOpenEnumsAllowAnyString(): void
     {
-        $enumBranch = [
-            'type' => 'string',
-            'enum' => ['user.created', 'user.updated'],
-            'x-enum-name' => 'WebhookEvent',
-            'x-enum-keys' => ['UserCreated', 'UserUpdated'],
+        $enum = [
+            'title' => 'WebhookEvent',
+            'oneOf' => [
+                ['const' => 'user.created', 'title' => 'UserCreated'],
+                ['const' => 'user.updated', 'title' => 'UserUpdated'],
+            ],
         ];
         $specification = Parser::parse([
-            'openapi' => '3.0.0',
+            'openapi' => '3.1.0',
             'info' => ['title' => 'test', 'version' => '1.0.0'],
             'paths' => ['/test' => ['get' => [
                 'operationId' => 'testOpenEnums',
                 'parameters' => [
                     ['name' => 'plainScalar', 'in' => 'query', 'schema' => ['type' => 'string']],
-                    ['name' => 'openScalar', 'in' => 'query', 'schema' => ['anyOf' => [$enumBranch, ['type' => 'string']]]],
+                    ['name' => 'closedScalar', 'in' => 'query', 'schema' => $enum],
+                    ['name' => 'openScalar', 'in' => 'query', 'schema' => ['anyOf' => [$enum, ['type' => 'string']]]],
                     ['name' => 'plainArray', 'in' => 'query', 'schema' => ['type' => 'array', 'items' => ['type' => 'string']]],
-                    ['name' => 'openArray', 'in' => 'query', 'schema' => ['type' => 'array', 'items' => ['anyOf' => [$enumBranch, ['type' => 'string']]]]],
+                    ['name' => 'closedArray', 'in' => 'query', 'schema' => ['type' => 'array', 'items' => $enum]],
+                    ['name' => 'openArray', 'in' => 'query', 'schema' => ['type' => 'array', 'items' => ['anyOf' => [$enum, ['type' => 'string']]]]],
                 ],
                 'responses' => ['200' => ['description' => 'ok']],
             ]]],
         ]);
-        [$plainScalar, $openScalar, $plainArray, $openArray] = $specification->paths['/test']->operations['get']->parameters;
+        [$plainScalar, $closedScalar, $openScalar, $plainArray, $closedArray, $openArray] = $specification->paths['/test']->operations['get']->parameters;
         $language = $this->getLanguage();
+        foreach ([$closedScalar, $closedArray, $openScalar, $openArray] as $parameter) {
+            $enumSchema = $language->getEnumSchema($parameter);
+            $this->assertInstanceOf(StringSchema::class, $enumSchema);
+            $this->assertSame(['user.created', 'user.updated'], $enumSchema->enum);
+            $this->assertSame(['UserCreated', 'UserUpdated'], $enumSchema->enumKeys);
+            $this->assertSame('WebhookEvent', $enumSchema->enumName);
+        }
+        $this->assertFalse($language->isOpenStringEnum($closedScalar));
+        $this->assertFalse($language->isOpenStringEnum($closedArray));
+        $this->assertTrue($language->isOpenStringEnum($openScalar));
+        $this->assertTrue($language->isOpenStringEnum($openArray));
         $sdk = new class ($language, $specification) extends SDK {
             /** @param list<StringSchema> $schemas @return list<StringSchema> */
             public function mergeEnumsForTest(array $schemas): array

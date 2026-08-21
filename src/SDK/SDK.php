@@ -1549,7 +1549,7 @@ class SDK
         return match (true) {
             $schema instanceof StringSchema && $schema->format === 'binary' => 'file',
             $schema instanceof StringSchema,
-            $schema instanceof CompositeSchema && $this->language->isOpenStringEnum($schema) => 'string',
+            $schema instanceof CompositeSchema && $this->language->isStringEnum($schema) => 'string',
             $schema instanceof IntegerSchema => 'integer',
             $schema instanceof NumberSchema => 'number',
             $schema instanceof BooleanSchema => 'boolean',
