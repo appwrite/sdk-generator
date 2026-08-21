@@ -4,6 +4,7 @@ from ..models.base_model import AppwriteModel
 from ..enums.{{ enum.title | caseSnake }} import {{ enum.title | caseUcfirst | overrideIdentifier }}
 {%~ endfor %}
 
+
 class ValueClassEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, AppwriteModel):

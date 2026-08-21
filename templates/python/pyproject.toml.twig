@@ -34,12 +34,18 @@ classifiers = [
 
 [project.optional-dependencies]
 test = [
+  "black==25.11.0",
   "requests_mock==1.11.0",
 ]
 
 [project.urls]
 Homepage = "{{ spec.info.contact.url }}"
 Repository = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}"
+
+[tool.black]
+line-length = 120
+skip-string-normalization = true
+target-version = ['py39']
 
 [tool.setuptools.packages.find]
 include = ["{{ namespace | caseSnake }}*"]

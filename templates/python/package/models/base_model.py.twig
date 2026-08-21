@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 ModelType = TypeVar('ModelType', bound='AppwriteModel')
 
+
 class AppwriteModel(BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
