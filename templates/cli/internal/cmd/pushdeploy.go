@@ -1129,6 +1129,16 @@ func (c *pushContext) pushDeployable(
 
 			return
 		}
+		// Confirmed after the connection and BEFORE the deployment: once the
+		// function is connected server-side the pending flow has nothing left
+		// to redo, and clearing the flag now means a failed confirmation stops
+		// the push before anything is submitted -- were it cleared after, a
+		// failed write would replay a submission that already succeeded.
+		if err := c.confirmFunctionRepository(entry); err != nil {
+			recordPushFailure(command, resource, name, err.Error(), summary)
+
+			return
+		}
 	}
 
 	deployment, err := c.createDeployment(command, resource, entry, run.Activate)
@@ -1136,13 +1146,6 @@ func (c *pushContext) pushDeployable(
 		recordPushFailure(command, resource, name, err.Error(), summary)
 
 		return
-	}
-	if wasPending {
-		if err := c.confirmFunctionRepository(entry); err != nil {
-			recordPushFailure(command, resource, name, err.Error(), summary)
-
-			return
-		}
 	}
 	summary.Pushed++
 
