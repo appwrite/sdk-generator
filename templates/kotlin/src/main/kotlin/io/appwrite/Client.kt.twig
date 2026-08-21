@@ -411,18 +411,19 @@ class Client @JvmOverloads constructor(
         var result: Map<*, *>? = null
         var uploadId: String? = null
 
-        if (idParamName?.isNotEmpty() == true) {
+        val providedUploadId = idParamName?.let { params[it]?.toString() }
+        if (!providedUploadId.isNullOrEmpty()) {
             // Make a request to check if a file already exists
             val current = call(
                 method = "GET",
-                path = "$path/${params[idParamName]}",
+                path = "$path/$providedUploadId",
                 headers = headers,
                 params = emptyMap(),
                 responseType = Map::class.java,
             )
             val chunksUploaded = current["chunksUploaded"] as Long
             offset = chunksUploaded * CHUNK_SIZE
-            uploadId = params[idParamName]?.toString()
+            uploadId = providedUploadId
             result = current
         }
 

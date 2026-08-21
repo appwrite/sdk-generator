@@ -2,11 +2,12 @@
 	paramName := "{{ fileParameter.name }}"
 
 	uploadId := ""
-{% for parameter in (method | parameters('all')) %}
-{% if (parameter | extension('x-upload-id', false)) %}
-	uploadId = {{ parameter.name | escapeKeyword | caseUcfirst }}
+{% set uploadIdParameter = method | uploadIdParameter %}
+{% if uploadIdParameter %}
+	if value, ok := params["{{ uploadIdParameter.name }}"].(string); ok {
+		uploadId = value
+	}
 {% endif %}
-{% endfor %}
 
 	resp, err := srv.client.FileUpload(path, headers, params, paramName, uploadId)
 	if err != nil {

@@ -1,4 +1,5 @@
-        let idParamName: String? = {% if (method | parameters('all')) | filter(p => (p | extension('x-upload-id', false))) | length > 0 %}{% for parameter in (method | parameters('all')) | filter(parameter => (parameter | extension('x-upload-id', false))) %}"{{ parameter.name }}"{% endfor %}{% else %}nil{% endif %}
+{% set uploadIdParameter = method | uploadIdParameter %}
+        let idParamName: String? = {% if uploadIdParameter %}"{{ uploadIdParameter.name }}"{% else %}nil{% endif %}
 
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | schemaType) == 'file' %}

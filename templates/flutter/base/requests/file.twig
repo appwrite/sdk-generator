@@ -18,10 +18,11 @@
 {% if (parameter | schemaType) == 'file' %}
     final paramName = '{{ parameter.name }}';
 {% endif %}
-{% if (parameter | extension('x-upload-id', false)) %}
-    idParamName = '{{ parameter.name }}';
-{% endif %}
 {% endfor %}
+{% set uploadIdParameter = method | uploadIdParameter %}
+{% if uploadIdParameter %}
+    idParamName = '{{ uploadIdParameter.name }}';
+{% endif %}
     final res = await client.chunkedUpload(
       path: apiPath,
       params: apiParams,
