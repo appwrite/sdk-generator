@@ -283,6 +283,46 @@ func TestJoinWithAlias(t *testing.T) {
 	}
 }
 
+func TestOn(t *testing.T) {
+	q := On("$id", "customerId", "")
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+	if data["method"] != "on" {
+		t.Errorf("Expected on, got %v", data["method"])
+	}
+	values := data["values"].([]interface{})
+	if values[0] != "$id" || values[1] != "=" || values[2] != "customerId" {
+		t.Errorf("Expected [$id, =, customerId], got %v", values)
+	}
+}
+
+func TestNestedLeftJoin(t *testing.T) {
+	q := LeftJoinOn("orders", "ord", []string{
+		On("$id", "customerId", ""),
+		Equal("ord.status", "paid"),
+	})
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+	if data["method"] != "leftJoin" {
+		t.Errorf("Expected leftJoin, got %v", data["method"])
+	}
+	if data["attribute"] != "orders" {
+		t.Errorf("Expected orders, got %v", data["attribute"])
+	}
+	values := data["values"].([]interface{})
+	if values[0] != "ord" {
+		t.Errorf("Expected alias ord, got %v", values[0])
+	}
+	on := values[1].(map[string]interface{})
+	if on["method"] != "on" {
+		t.Errorf("Expected on, got %v", on["method"])
+	}
+}
+
 func TestCrossJoin(t *testing.T) {
 	q := CrossJoin("orders", "ord")
 	var data map[string]interface{}

@@ -365,20 +365,24 @@ class Query():
         return str(Query("distinct", None, None))
 
     @staticmethod
-    def join(table, left, right, operator='=', alias=''):
-        return Query._join("join", table, left, right, operator, alias)
+    def on(left, right, operator='='):
+        return str(Query("on", None, [left, operator, right]))
 
     @staticmethod
-    def left_join(table, left, right, operator='=', alias=''):
-        return Query._join("leftJoin", table, left, right, operator, alias)
+    def join(table, left, right='', operator='=', alias=''):
+        return Query._create_join("join", table, left, right, operator, alias)
 
     @staticmethod
-    def right_join(table, left, right, operator='=', alias=''):
-        return Query._join("rightJoin", table, left, right, operator, alias)
+    def left_join(table, left, right='', operator='=', alias=''):
+        return Query._create_join("leftJoin", table, left, right, operator, alias)
 
     @staticmethod
-    def full_outer_join(table, left, right, operator='=', alias=''):
-        return Query._join("fullOuterJoin", table, left, right, operator, alias)
+    def right_join(table, left, right='', operator='=', alias=''):
+        return Query._create_join("rightJoin", table, left, right, operator, alias)
+
+    @staticmethod
+    def full_outer_join(table, left, right='', operator='=', alias=''):
+        return Query._create_join("fullOuterJoin", table, left, right, operator, alias)
 
     @staticmethod
     def cross_join(table, alias=''):
@@ -436,6 +440,23 @@ class Query():
                 out.append(item)
 
         return out
+
+    @staticmethod
+    def _create_join(method, table, left, right, operator, alias):
+        if isinstance(left, list):
+            return Query._nested_join(method, table, '', left)
+        if isinstance(right, list):
+            return Query._nested_join(method, table, left, right)
+        return Query._join(method, table, left, right, operator, alias)
+
+    @staticmethod
+    def _nested_join(method, table, alias, on):
+        values = []
+        if alias != '':
+            values.append(alias)
+        for query in on:
+            values.append(json.loads(query))
+        return str(Query(method, table, values))
 
     @staticmethod
     def _join(method, table, left, right, operator, alias):
@@ -661,16 +682,16 @@ class QueryBuilder:
     def distinct(self):
         return self._push(Query.distinct())
 
-    def join(self, table, left, right, operator='=', alias=''):
+    def join(self, table, left, right='', operator='=', alias=''):
         return self._push(Query.join(table, left, right, operator, alias))
 
-    def left_join(self, table, left, right, operator='=', alias=''):
+    def left_join(self, table, left, right='', operator='=', alias=''):
         return self._push(Query.left_join(table, left, right, operator, alias))
 
-    def right_join(self, table, left, right, operator='=', alias=''):
+    def right_join(self, table, left, right='', operator='=', alias=''):
         return self._push(Query.right_join(table, left, right, operator, alias))
 
-    def full_outer_join(self, table, left, right, operator='=', alias=''):
+    def full_outer_join(self, table, left, right='', operator='=', alias=''):
         return self._push(Query.full_outer_join(table, left, right, operator, alias))
 
     def cross_join(self, table, alias=''):

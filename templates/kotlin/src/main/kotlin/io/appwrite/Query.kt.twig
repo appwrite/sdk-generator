@@ -256,13 +256,31 @@ class Query(
 
         fun distinct() = Query("distinct").toJson()
 
+        fun on(left: String, right: String, operator: String = "=") = Query("on", values = listOf(left, operator, right)).toJson()
+
         fun join(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("join", table, left, right, operator, alias)
+
+        fun join(table: String, on: List<String>) = nestedJoin("join", table, "", on)
+
+        fun join(table: String, alias: String, on: List<String>) = nestedJoin("join", table, alias, on)
 
         fun leftJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("leftJoin", table, left, right, operator, alias)
 
+        fun leftJoin(table: String, on: List<String>) = nestedJoin("leftJoin", table, "", on)
+
+        fun leftJoin(table: String, alias: String, on: List<String>) = nestedJoin("leftJoin", table, alias, on)
+
         fun rightJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("rightJoin", table, left, right, operator, alias)
 
+        fun rightJoin(table: String, on: List<String>) = nestedJoin("rightJoin", table, "", on)
+
+        fun rightJoin(table: String, alias: String, on: List<String>) = nestedJoin("rightJoin", table, alias, on)
+
         fun fullOuterJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("fullOuterJoin", table, left, right, operator, alias)
+
+        fun fullOuterJoin(table: String, on: List<String>) = nestedJoin("fullOuterJoin", table, "", on)
+
+        fun fullOuterJoin(table: String, alias: String, on: List<String>) = nestedJoin("fullOuterJoin", table, alias, on)
 
         fun crossJoin(table: String, alias: String = "") = Query("crossJoin", table, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
@@ -306,6 +324,15 @@ class Query(
 
         private fun joinQuery(method: String, table: String, left: String, right: String, operator: String, alias: String): String {
             val values = if (alias.isNotEmpty()) listOf(left, operator, right, alias) else listOf(left, operator, right)
+            return Query(method, table, values).toJson()
+        }
+
+        private fun nestedJoin(method: String, table: String, alias: String, on: List<String>): String {
+            val values = mutableListOf<Any>()
+            if (alias.isNotEmpty()) {
+                values.add(alias)
+            }
+            on.forEach { values.add(it.fromJson<Query>()) }
             return Query(method, table, values).toJson()
         }
 
@@ -465,11 +492,27 @@ class QueryBuilder {
 
     fun join(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.join(table, left, right, operator, alias))
 
+    fun join(table: String, on: List<String>) = push(Query.join(table, on))
+
+    fun join(table: String, alias: String, on: List<String>) = push(Query.join(table, alias, on))
+
     fun leftJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.leftJoin(table, left, right, operator, alias))
+
+    fun leftJoin(table: String, on: List<String>) = push(Query.leftJoin(table, on))
+
+    fun leftJoin(table: String, alias: String, on: List<String>) = push(Query.leftJoin(table, alias, on))
 
     fun rightJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.rightJoin(table, left, right, operator, alias))
 
+    fun rightJoin(table: String, on: List<String>) = push(Query.rightJoin(table, on))
+
+    fun rightJoin(table: String, alias: String, on: List<String>) = push(Query.rightJoin(table, alias, on))
+
     fun fullOuterJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.fullOuterJoin(table, left, right, operator, alias))
+
+    fun fullOuterJoin(table: String, on: List<String>) = push(Query.fullOuterJoin(table, on))
+
+    fun fullOuterJoin(table: String, alias: String, on: List<String>) = push(Query.fullOuterJoin(table, alias, on))
 
     fun crossJoin(table: String, alias: String = "") = push(Query.crossJoin(table, alias))
 

@@ -191,6 +191,23 @@ describe('Query', () => {
             .toEqual('{"method":"leftJoin","attribute":"orders","values":["$id","=","customerId","ord"]}')
     );
 
+    test('on', () =>
+        expect(Query.on('$id', 'customerId'))
+            .toEqual('{"method":"on","values":["$id","=","customerId"]}')
+    );
+
+    test('nested leftJoin', () => {
+        const query = JSON.parse(Query.leftJoin('orders', 'ord', [
+            Query.on('$id', 'customerId'),
+            Query.equal('ord.status', 'paid'),
+        ]));
+        expect(query.method).toEqual('leftJoin');
+        expect(query.attribute).toEqual('orders');
+        expect(query.values[0]).toEqual('ord');
+        expect(query.values[1].method).toEqual('on');
+        expect(query.values[2].method).toEqual('equal');
+    });
+
     test('crossJoin', () =>
         expect(Query.crossJoin('orders', 'ord'))
             .toEqual('{"method":"crossJoin","attribute":"orders","values":["ord"]}')

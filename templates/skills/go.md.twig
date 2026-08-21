@@ -173,6 +173,10 @@ query.Distinct()
 // Joins (table id, left key, right key, operator, alias)
 query.Join("orders", "$id", "customerId")
 query.LeftJoin("orders", "$id", "customerId", "=", "ord")
+query.LeftJoinOn("orders", "ord", []string{
+    query.On("$id", "customerId", ""),
+    query.Equal("ord.status", "paid"),
+})
 
 // Fluent builder. Wrapping the builder in an extra slice is OK — the SDK flattens it.
 queries := query.Builder().

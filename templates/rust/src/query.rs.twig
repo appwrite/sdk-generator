@@ -364,6 +364,22 @@ impl Query {
         Self::new("distinct".to_string(), None, vec![])
     }
 
+    pub fn on(
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+    ) -> Self {
+        Self::new(
+            "on".to_string(),
+            None,
+            vec![
+                Value::String(left.into()),
+                Value::String(operator.into()),
+                Value::String(right.into()),
+            ],
+        )
+    }
+
     pub fn join(
         table: impl Into<String>,
         left: impl Into<String>,
@@ -406,6 +422,38 @@ impl Query {
 
     pub fn cross_join(table: impl Into<String>, alias: impl Into<String>) -> Self {
         Self::aliased("crossJoin", table, alias)
+    }
+
+    pub fn join_on<I, S>(table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        Self::nested_join("join", table, alias, on)
+    }
+
+    pub fn left_join_on<I, S>(table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        Self::nested_join("leftJoin", table, alias, on)
+    }
+
+    pub fn right_join_on<I, S>(table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        Self::nested_join("rightJoin", table, alias, on)
+    }
+
+    pub fn full_outer_join_on<I, S>(table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        Self::nested_join("fullOuterJoin", table, alias, on)
     }
 
     pub fn covers<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
@@ -481,6 +529,24 @@ impl Query {
         let alias = alias.into();
         if !alias.is_empty() {
             values.push(Value::String(alias));
+        }
+        Self::new(method.to_string(), Some(table.into()), values)
+    }
+
+    fn nested_join<I, S>(method: &str, table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let mut values = Vec::new();
+        let alias = alias.into();
+        if !alias.is_empty() {
+            values.push(Value::String(alias));
+        }
+        for query in on {
+            if let Ok(parsed) = serde_json::from_str::<Value>(query.as_ref()) {
+                values.push(parsed);
+            }
         }
         Self::new(method.to_string(), Some(table.into()), values)
     }
@@ -916,6 +982,15 @@ impl QueryBuilder {
         alias: impl Into<String>,
     ) -> Self {
         self.queries.push(Query::left_join(table, left, right, operator, alias));
+        self
+    }
+
+    pub fn left_join_on<I, S>(mut self, table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        self.queries.push(Query::left_join_on(table, alias, on));
         self
     }
 
@@ -1640,6 +1715,34 @@ mod tests {
         assert_eq!(value["method"], "leftJoin");
         assert_eq!(value["attribute"], "orders");
         assert_eq!(value["values"][3], "ord");
+    }
+
+    #[test]
+    fn test_on() {
+        let query = Query::on("$id", "customerId", "=");
+        let value = query.to_value();
+        assert_eq!(value["method"], "on");
+        assert_eq!(value["values"][0], "$id");
+        assert_eq!(value["values"][1], "=");
+        assert_eq!(value["values"][2], "customerId");
+    }
+
+    #[test]
+    fn test_nested_left_join() {
+        let query = Query::left_join_on(
+            "orders",
+            "ord",
+            [
+                Query::on("$id", "customerId", "=").to_string(),
+                Query::equal("ord.status", "paid").to_string(),
+            ],
+        );
+        let value = query.to_value();
+        assert_eq!(value["method"], "leftJoin");
+        assert_eq!(value["attribute"], "orders");
+        assert_eq!(value["values"][0], "ord");
+        assert_eq!(value["values"][1]["method"], "on");
+        assert_eq!(value["values"][2]["method"], "equal");
     }
 
     #[test]

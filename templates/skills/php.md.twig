@@ -157,6 +157,12 @@ Query::distinct()
 Query::join('orders', '$id', 'customerId')
 Query::leftJoin('orders', '$id', 'customerId', '=', 'ord')
 
+// Nested join ON: extra predicates stay on the JOIN, not WHERE
+Query::leftJoin('orders', 'ord', [
+    Query::on('$id', 'customerId'),
+    Query::equal('ord.status', 'paid'),
+])
+
 // Fluent builder. Wrapping the builder in an extra array is OK — the SDK flattens it.
 $queries = Query::builder()
     ->equal('status', 'published')

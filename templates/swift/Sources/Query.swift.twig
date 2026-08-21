@@ -780,20 +780,59 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
+    public static func on(_ left: String, _ right: String, operator op: String = "=") -> String {
+        return Query(
+            method: "on",
+            values: [left, op, right]
+        ).description
+    }
+
     public static func join(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> String {
         return joinQuery("join", table: table, left: left, right: right, operator: op, alias: alias)
+    }
+
+    public static func join(_ table: String, on: [String]) -> String {
+        return nestedJoin("join", table: table, alias: "", on: on)
+    }
+
+    public static func join(_ table: String, alias: String, on: [String]) -> String {
+        return nestedJoin("join", table: table, alias: alias, on: on)
     }
 
     public static func leftJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> String {
         return joinQuery("leftJoin", table: table, left: left, right: right, operator: op, alias: alias)
     }
 
+    public static func leftJoin(_ table: String, on: [String]) -> String {
+        return nestedJoin("leftJoin", table: table, alias: "", on: on)
+    }
+
+    public static func leftJoin(_ table: String, alias: String, on: [String]) -> String {
+        return nestedJoin("leftJoin", table: table, alias: alias, on: on)
+    }
+
     public static func rightJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> String {
         return joinQuery("rightJoin", table: table, left: left, right: right, operator: op, alias: alias)
     }
 
+    public static func rightJoin(_ table: String, on: [String]) -> String {
+        return nestedJoin("rightJoin", table: table, alias: "", on: on)
+    }
+
+    public static func rightJoin(_ table: String, alias: String, on: [String]) -> String {
+        return nestedJoin("rightJoin", table: table, alias: alias, on: on)
+    }
+
     public static func fullOuterJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> String {
         return joinQuery("fullOuterJoin", table: table, left: left, right: right, operator: op, alias: alias)
+    }
+
+    public static func fullOuterJoin(_ table: String, on: [String]) -> String {
+        return nestedJoin("fullOuterJoin", table: table, alias: "", on: on)
+    }
+
+    public static func fullOuterJoin(_ table: String, alias: String, on: [String]) -> String {
+        return nestedJoin("fullOuterJoin", table: table, alias: alias, on: on)
     }
 
     public static func crossJoin(_ table: String, alias: String = "") -> String {
@@ -884,6 +923,24 @@ public struct Query : Codable, CustomStringConvertible {
         var values: [String] = [left, op, right]
         if !alias.isEmpty {
             values.append(alias)
+        }
+        return Query(
+            method: method,
+            attribute: table,
+            values: values
+        ).description
+    }
+
+    private static func nestedJoin(_ method: String, table: String, alias: String, on: [String]) -> String {
+        var values: [Any] = []
+        if !alias.isEmpty {
+            values.append(alias)
+        }
+        for query in on {
+            if let data = query.data(using: .utf8),
+               let parsed = try? JSONDecoder().decode(Query.self, from: data) {
+                values.append(parsed)
+            }
         }
         return Query(
             method: method,
@@ -1296,8 +1353,28 @@ public class QueryBuilder {
     }
 
     @discardableResult
+    public func join(_ table: String, on: [String]) -> QueryBuilder {
+        return push(Query.join(table, on: on))
+    }
+
+    @discardableResult
+    public func join(_ table: String, alias: String, on: [String]) -> QueryBuilder {
+        return push(Query.join(table, alias: alias, on: on))
+    }
+
+    @discardableResult
     public func leftJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> QueryBuilder {
         return push(Query.leftJoin(table, left: left, right: right, operator: op, alias: alias))
+    }
+
+    @discardableResult
+    public func leftJoin(_ table: String, on: [String]) -> QueryBuilder {
+        return push(Query.leftJoin(table, on: on))
+    }
+
+    @discardableResult
+    public func leftJoin(_ table: String, alias: String, on: [String]) -> QueryBuilder {
+        return push(Query.leftJoin(table, alias: alias, on: on))
     }
 
     @discardableResult
@@ -1306,8 +1383,28 @@ public class QueryBuilder {
     }
 
     @discardableResult
+    public func rightJoin(_ table: String, on: [String]) -> QueryBuilder {
+        return push(Query.rightJoin(table, on: on))
+    }
+
+    @discardableResult
+    public func rightJoin(_ table: String, alias: String, on: [String]) -> QueryBuilder {
+        return push(Query.rightJoin(table, alias: alias, on: on))
+    }
+
+    @discardableResult
     public func fullOuterJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> QueryBuilder {
         return push(Query.fullOuterJoin(table, left: left, right: right, operator: op, alias: alias))
+    }
+
+    @discardableResult
+    public func fullOuterJoin(_ table: String, on: [String]) -> QueryBuilder {
+        return push(Query.fullOuterJoin(table, on: on))
+    }
+
+    @discardableResult
+    public func fullOuterJoin(_ table: String, alias: String, on: [String]) -> QueryBuilder {
+        return push(Query.fullOuterJoin(table, alias: alias, on: on))
     }
 
     @discardableResult

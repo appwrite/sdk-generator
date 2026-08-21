@@ -675,59 +675,53 @@ export class Query {
     new Query("distinct").toString();
 
   /**
+   * Column-to-column join ON condition.
+   */
+  static on = (
+    left: string,
+    right: string,
+    operator: string = "="
+  ): string =>
+    new Query("on", undefined, [left, operator, right]).toString();
+
+  /**
    * Inner join. `table` is the joined collection/table ID.
    */
   static join = (
     table: string,
-    left: string,
-    right: string,
+    leftOrAliasOrOn: string | string[],
+    rightOrOn: string | string[] = "",
     operator: string = "=",
     alias: string = ""
   ): string =>
-    new Query(
-      "join",
-      table,
-      alias !== "" ? [left, operator, right, alias] : [left, operator, right]
-    ).toString();
+    Query.createJoin("join", table, leftOrAliasOrOn, rightOrOn, operator, alias);
 
   static leftJoin = (
     table: string,
-    left: string,
-    right: string,
+    leftOrAliasOrOn: string | string[],
+    rightOrOn: string | string[] = "",
     operator: string = "=",
     alias: string = ""
   ): string =>
-    new Query(
-      "leftJoin",
-      table,
-      alias !== "" ? [left, operator, right, alias] : [left, operator, right]
-    ).toString();
+    Query.createJoin("leftJoin", table, leftOrAliasOrOn, rightOrOn, operator, alias);
 
   static rightJoin = (
     table: string,
-    left: string,
-    right: string,
+    leftOrAliasOrOn: string | string[],
+    rightOrOn: string | string[] = "",
     operator: string = "=",
     alias: string = ""
   ): string =>
-    new Query(
-      "rightJoin",
-      table,
-      alias !== "" ? [left, operator, right, alias] : [left, operator, right]
-    ).toString();
+    Query.createJoin("rightJoin", table, leftOrAliasOrOn, rightOrOn, operator, alias);
 
   static fullOuterJoin = (
     table: string,
-    left: string,
-    right: string,
+    leftOrAliasOrOn: string | string[],
+    rightOrOn: string | string[] = "",
     operator: string = "=",
     alias: string = ""
   ): string =>
-    new Query(
-      "fullOuterJoin",
-      table,
-      alias !== "" ? [left, operator, right, alias] : [left, operator, right]
-    ).toString();
+    Query.createJoin("fullOuterJoin", table, leftOrAliasOrOn, rightOrOn, operator, alias);
 
   static crossJoin = (table: string, alias: string = ""): string =>
     new Query("crossJoin", table, alias !== "" ? alias : undefined).toString();
@@ -758,6 +752,45 @@ export class Query {
   };
 
   static builder = (): QueryBuilder => new QueryBuilder();
+
+  private static createJoin(
+    method: string,
+    table: string,
+    leftOrAliasOrOn: string | string[],
+    rightOrOn: string | string[] = "",
+    operator: string = "=",
+    alias: string = ""
+  ): string {
+    if (Array.isArray(leftOrAliasOrOn)) {
+      return Query.nestedJoin(method, table, "", leftOrAliasOrOn);
+    }
+    if (Array.isArray(rightOrOn)) {
+      return Query.nestedJoin(method, table, leftOrAliasOrOn, rightOrOn);
+    }
+    return new Query(
+      method,
+      table,
+      alias !== ""
+        ? [leftOrAliasOrOn, operator, rightOrOn, alias]
+        : [leftOrAliasOrOn, operator, rightOrOn]
+    ).toString();
+  }
+
+  private static nestedJoin(
+    method: string,
+    table: string,
+    alias: string,
+    on: string[]
+  ): string {
+    const values: any[] = [];
+    if (alias !== "") {
+      values.push(alias);
+    }
+    for (const query of on) {
+      values.push(JSONbig.parse(query));
+    }
+    return new Query(method, table, values).toString();
+  }
 }
 
 export type QueryInput =
@@ -1057,20 +1090,20 @@ export class QueryBuilder {
     return this.push(Query.distinct());
   }
 
-  join(table: string, left: string, right: string, operator: string = "=", alias: string = ""): this {
-    return this.push(Query.join(table, left, right, operator, alias));
+  join(table: string, leftOrAliasOrOn: string | string[], rightOrOn: string | string[] = "", operator: string = "=", alias: string = ""): this {
+    return this.push(Query.join(table, leftOrAliasOrOn, rightOrOn, operator, alias));
   }
 
-  leftJoin(table: string, left: string, right: string, operator: string = "=", alias: string = ""): this {
-    return this.push(Query.leftJoin(table, left, right, operator, alias));
+  leftJoin(table: string, leftOrAliasOrOn: string | string[], rightOrOn: string | string[] = "", operator: string = "=", alias: string = ""): this {
+    return this.push(Query.leftJoin(table, leftOrAliasOrOn, rightOrOn, operator, alias));
   }
 
-  rightJoin(table: string, left: string, right: string, operator: string = "=", alias: string = ""): this {
-    return this.push(Query.rightJoin(table, left, right, operator, alias));
+  rightJoin(table: string, leftOrAliasOrOn: string | string[], rightOrOn: string | string[] = "", operator: string = "=", alias: string = ""): this {
+    return this.push(Query.rightJoin(table, leftOrAliasOrOn, rightOrOn, operator, alias));
   }
 
-  fullOuterJoin(table: string, left: string, right: string, operator: string = "=", alias: string = ""): this {
-    return this.push(Query.fullOuterJoin(table, left, right, operator, alias));
+  fullOuterJoin(table: string, leftOrAliasOrOn: string | string[], rightOrOn: string | string[] = "", operator: string = "=", alias: string = ""): this {
+    return this.push(Query.fullOuterJoin(table, leftOrAliasOrOn, rightOrOn, operator, alias));
   }
 
   crossJoin(table: string, alias: string = ""): this {

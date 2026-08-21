@@ -388,6 +388,26 @@ final class QueryTest extends TestCase {
         $this->assertSame(['$id', '=', 'customerId', 'ord'], $query['values']);
     }
 
+    public function testOn(): void {
+        $query = json_decode(Query::on('$id', 'customerId'), true);
+        $this->assertSame('on', $query['method']);
+        $this->assertSame(['$id', '=', 'customerId'], $query['values']);
+    }
+
+    public function testNestedLeftJoin(): void {
+        $query = json_decode(Query::leftJoin('orders', 'ord', [
+            Query::on('$id', 'customerId'),
+            Query::equal('ord.status', 'paid'),
+        ]), true);
+        $this->assertSame('leftJoin', $query['method']);
+        $this->assertSame('orders', $query['attribute']);
+        $this->assertSame('ord', $query['values'][0]);
+        $this->assertSame('on', $query['values'][1]['method']);
+        $this->assertSame(['$id', '=', 'customerId'], $query['values'][1]['values']);
+        $this->assertSame('equal', $query['values'][2]['method']);
+        $this->assertSame('ord.status', $query['values'][2]['attribute']);
+    }
+
     public function testCrossJoin(): void {
         $query = json_decode(Query::crossJoin('orders', 'ord'), true);
         $this->assertSame('crossJoin', $query['method']);

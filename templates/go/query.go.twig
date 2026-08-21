@@ -550,6 +550,25 @@ func joinQuery(method, table, left, right, operator, alias string) string {
 	})
 }
 
+func nestedJoin(method, table, alias string, on []string) string {
+	var values []interface{}
+	if alias != "" {
+		values = append(values, alias)
+	}
+	for _, query := range on {
+		var parsed interface{}
+		if err := json.Unmarshal([]byte(query), &parsed); err != nil {
+			continue
+		}
+		values = append(values, parsed)
+	}
+	return parseQuery(queryOptions{
+		Method:    method,
+		Attribute: &table,
+		Values:    &values,
+	})
+}
+
 func Count(attribute, alias string) string {
 	return aliasedQuery("count", attribute, alias)
 }
@@ -638,6 +657,17 @@ func Distinct() string {
 	})
 }
 
+func On(left, right, operator string) string {
+	if operator == "" {
+		operator = "="
+	}
+	values := []interface{}{left, operator, right}
+	return parseQuery(queryOptions{
+		Method: "on",
+		Values: &values,
+	})
+}
+
 func Join(table, left, right, operator, alias string) string {
 	return joinQuery("join", table, left, right, operator, alias)
 }
@@ -652,6 +682,22 @@ func RightJoin(table, left, right, operator, alias string) string {
 
 func FullOuterJoin(table, left, right, operator, alias string) string {
 	return joinQuery("fullOuterJoin", table, left, right, operator, alias)
+}
+
+func JoinOn(table, alias string, on []string) string {
+	return nestedJoin("join", table, alias, on)
+}
+
+func LeftJoinOn(table, alias string, on []string) string {
+	return nestedJoin("leftJoin", table, alias, on)
+}
+
+func RightJoinOn(table, alias string, on []string) string {
+	return nestedJoin("rightJoin", table, alias, on)
+}
+
+func FullOuterJoinOn(table, alias string, on []string) string {
+	return nestedJoin("fullOuterJoin", table, alias, on)
 }
 
 func CrossJoin(table, alias string) string {
@@ -1013,6 +1059,22 @@ func (b *QueryBuilder) RightJoin(table, left, right, operator, alias string) *Qu
 
 func (b *QueryBuilder) FullOuterJoin(table, left, right, operator, alias string) *QueryBuilder {
 	return b.push(FullOuterJoin(table, left, right, operator, alias))
+}
+
+func (b *QueryBuilder) JoinOn(table, alias string, on []string) *QueryBuilder {
+	return b.push(JoinOn(table, alias, on))
+}
+
+func (b *QueryBuilder) LeftJoinOn(table, alias string, on []string) *QueryBuilder {
+	return b.push(LeftJoinOn(table, alias, on))
+}
+
+func (b *QueryBuilder) RightJoinOn(table, alias string, on []string) *QueryBuilder {
+	return b.push(RightJoinOn(table, alias, on))
+}
+
+func (b *QueryBuilder) FullOuterJoinOn(table, alias string, on []string) *QueryBuilder {
+	return b.push(FullOuterJoinOn(table, alias, on))
 }
 
 func (b *QueryBuilder) CrossJoin(table, alias string) *QueryBuilder {

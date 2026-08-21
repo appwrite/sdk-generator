@@ -446,9 +446,24 @@ namespace {{ spec.info.title | caseUcfirst }}
             return new Query("distinct", null, null).ToString();
         }
 
+        public static string On(string left, string right, string @operator = "=")
+        {
+            return new Query("on", null, new List<object> { left, @operator, right }).ToString();
+        }
+
         public static string Join(string table, string left, string right, string @operator = "=", string alias = "")
         {
             return JoinQuery("join", table, left, right, @operator, alias);
+        }
+
+        public static string Join(string table, List<string> on)
+        {
+            return NestedJoin("join", table, "", on);
+        }
+
+        public static string Join(string table, string alias, List<string> on)
+        {
+            return NestedJoin("join", table, alias, on);
         }
 
         public static string LeftJoin(string table, string left, string right, string @operator = "=", string alias = "")
@@ -456,14 +471,44 @@ namespace {{ spec.info.title | caseUcfirst }}
             return JoinQuery("leftJoin", table, left, right, @operator, alias);
         }
 
+        public static string LeftJoin(string table, List<string> on)
+        {
+            return NestedJoin("leftJoin", table, "", on);
+        }
+
+        public static string LeftJoin(string table, string alias, List<string> on)
+        {
+            return NestedJoin("leftJoin", table, alias, on);
+        }
+
         public static string RightJoin(string table, string left, string right, string @operator = "=", string alias = "")
         {
             return JoinQuery("rightJoin", table, left, right, @operator, alias);
         }
 
+        public static string RightJoin(string table, List<string> on)
+        {
+            return NestedJoin("rightJoin", table, "", on);
+        }
+
+        public static string RightJoin(string table, string alias, List<string> on)
+        {
+            return NestedJoin("rightJoin", table, alias, on);
+        }
+
         public static string FullOuterJoin(string table, string left, string right, string @operator = "=", string alias = "")
         {
             return JoinQuery("fullOuterJoin", table, left, right, @operator, alias);
+        }
+
+        public static string FullOuterJoin(string table, List<string> on)
+        {
+            return NestedJoin("fullOuterJoin", table, "", on);
+        }
+
+        public static string FullOuterJoin(string table, string alias, List<string> on)
+        {
+            return NestedJoin("fullOuterJoin", table, alias, on);
         }
 
         public static string CrossJoin(string table, string alias = "")
@@ -547,6 +592,25 @@ namespace {{ spec.info.title | caseUcfirst }}
             if (alias != "")
             {
                 values.Add(alias);
+            }
+
+            return new Query(method, table, values).ToString();
+        }
+
+        private static string NestedJoin(string method, string table, string alias, List<string> on)
+        {
+            var values = new List<object>();
+            if (alias != "")
+            {
+                values.Add(alias);
+            }
+            foreach (var query in on)
+            {
+                var parsed = JsonSerializer.Deserialize<Query>(query, Client.DeserializerOptions);
+                if (parsed != null)
+                {
+                    values.Add(parsed);
+                }
             }
 
             return new Query(method, table, values).ToString();
@@ -937,9 +1001,29 @@ namespace {{ spec.info.title | caseUcfirst }}
             return Push(Query.Join(table, left, right, @operator, alias));
         }
 
+        public QueryBuilder Join(string table, List<string> on)
+        {
+            return Push(Query.Join(table, on));
+        }
+
+        public QueryBuilder Join(string table, string alias, List<string> on)
+        {
+            return Push(Query.Join(table, alias, on));
+        }
+
         public QueryBuilder LeftJoin(string table, string left, string right, string @operator = "=", string alias = "")
         {
             return Push(Query.LeftJoin(table, left, right, @operator, alias));
+        }
+
+        public QueryBuilder LeftJoin(string table, List<string> on)
+        {
+            return Push(Query.LeftJoin(table, on));
+        }
+
+        public QueryBuilder LeftJoin(string table, string alias, List<string> on)
+        {
+            return Push(Query.LeftJoin(table, alias, on));
         }
 
         public QueryBuilder RightJoin(string table, string left, string right, string @operator = "=", string alias = "")
@@ -947,9 +1031,29 @@ namespace {{ spec.info.title | caseUcfirst }}
             return Push(Query.RightJoin(table, left, right, @operator, alias));
         }
 
+        public QueryBuilder RightJoin(string table, List<string> on)
+        {
+            return Push(Query.RightJoin(table, on));
+        }
+
+        public QueryBuilder RightJoin(string table, string alias, List<string> on)
+        {
+            return Push(Query.RightJoin(table, alias, on));
+        }
+
         public QueryBuilder FullOuterJoin(string table, string left, string right, string @operator = "=", string alias = "")
         {
             return Push(Query.FullOuterJoin(table, left, right, @operator, alias));
+        }
+
+        public QueryBuilder FullOuterJoin(string table, List<string> on)
+        {
+            return Push(Query.FullOuterJoin(table, on));
+        }
+
+        public QueryBuilder FullOuterJoin(string table, string alias, List<string> on)
+        {
+            return Push(Query.FullOuterJoin(table, alias, on));
         }
 
         public QueryBuilder CrossJoin(string table, string alias = "")

@@ -1,3 +1,4 @@
+import json
 import unittest
 
 from {{ namespace | caseSnake }}.query import Query
@@ -111,6 +112,20 @@ class TestQueryMethods(unittest.TestCase):
 
     def test_join(self):
         self.assertEqual(Query.join('orders', '$id', 'customerId'), '{"method":"join","attribute":"orders","values":["$id","=","customerId"]}')
+
+    def test_on(self):
+        self.assertEqual(Query.on('$id', 'customerId'), '{"method":"on","values":["$id","=","customerId"]}')
+
+    def test_nested_left_join(self):
+        query = json.loads(Query.left_join('orders', 'ord', [
+            Query.on('$id', 'customerId'),
+            Query.equal('ord.status', 'paid'),
+        ]))
+        self.assertEqual(query['method'], 'leftJoin')
+        self.assertEqual(query['attribute'], 'orders')
+        self.assertEqual(query['values'][0], 'ord')
+        self.assertEqual(query['values'][1]['method'], 'on')
+        self.assertEqual(query['values'][2]['method'], 'equal')
 
     def test_group_by(self):
         self.assertEqual(Query.group_by(['status']), '{"method":"groupBy","values":["status"]}')

@@ -424,6 +424,24 @@ void main() {
     expect(query['values'], ['\$id', '=', 'customerId', 'ord']);
   });
 
+  test('returns on', () {
+    final query = jsonDecode(Query.on('\$id', 'customerId'));
+    expect(query['method'], 'on');
+    expect(query['values'], ['\$id', '=', 'customerId']);
+  });
+
+  test('returns nested leftJoin', () {
+    final query = jsonDecode(Query.leftJoin('orders', 'ord', [
+      Query.on('\$id', 'customerId'),
+      Query.equal('ord.status', 'paid'),
+    ]));
+    expect(query['method'], 'leftJoin');
+    expect(query['attribute'], 'orders');
+    expect(query['values'][0], 'ord');
+    expect(query['values'][1]['method'], 'on');
+    expect(query['values'][2]['method'], 'equal');
+  });
+
   test('returns crossJoin', () {
     final query = jsonDecode(Query.crossJoin('orders', 'ord'));
     expect(query['method'], 'crossJoin');

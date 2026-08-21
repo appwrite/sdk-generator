@@ -809,24 +809,45 @@ class Query implements \JsonSerializable
         return (new Query('distinct', null, null))->__toString();
     }
 
-    public static function join(string $table, string $left, string $right, string $operator = '=', string $alias = ''): string
+    public static function on(string $left, string $right, string $operator = '='): string
     {
-        return self::joinQuery('join', $table, $left, $right, $operator, $alias);
+        return (new Query('on', null, [$left, $operator, $right]))->__toString();
     }
 
-    public static function leftJoin(string $table, string $left, string $right, string $operator = '=', string $alias = ''): string
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    public static function join(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
-        return self::joinQuery('leftJoin', $table, $left, $right, $operator, $alias);
+        return self::createJoin('join', $table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias);
     }
 
-    public static function rightJoin(string $table, string $left, string $right, string $operator = '=', string $alias = ''): string
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    public static function leftJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
-        return self::joinQuery('rightJoin', $table, $left, $right, $operator, $alias);
+        return self::createJoin('leftJoin', $table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias);
     }
 
-    public static function fullOuterJoin(string $table, string $left, string $right, string $operator = '=', string $alias = ''): string
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    public static function rightJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
-        return self::joinQuery('fullOuterJoin', $table, $left, $right, $operator, $alias);
+        return self::createJoin('rightJoin', $table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias);
+    }
+
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    public static function fullOuterJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
+    {
+        return self::createJoin('fullOuterJoin', $table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias);
     }
 
     public static function crossJoin(string $table, string $alias = ''): string
@@ -887,6 +908,38 @@ class Query implements \JsonSerializable
     public static function builder(): QueryBuilder
     {
         return new QueryBuilder();
+    }
+
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    private static function createJoin(string $method, string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn, string $operator, string $alias): string
+    {
+        if (\is_array($leftOrAliasOrOn)) {
+            return self::nestedJoin($method, $table, '', $leftOrAliasOrOn);
+        }
+        if (\is_array($rightOrOn)) {
+            return self::nestedJoin($method, $table, $leftOrAliasOrOn, $rightOrOn);
+        }
+
+        return self::joinQuery($method, $table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias);
+    }
+
+    /**
+     * @param array<string> $on
+     */
+    private static function nestedJoin(string $method, string $table, string $alias, array $on): string
+    {
+        $values = [];
+        if ($alias !== '') {
+            $values[] = $alias;
+        }
+        foreach ($on as $query) {
+            $values[] = \json_decode($query, true);
+        }
+
+        return (new Query($method, $table, $values))->__toString();
     }
 
     private static function joinQuery(string $method, string $table, string $left, string $right, string $operator, string $alias): string

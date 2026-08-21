@@ -348,20 +348,24 @@ module {{spec.info.title | caseUcfirst}}
                 return Query.new("distinct", nil, nil).to_s
             end
 
-            def join(table, left, right, operator = '=', alias_name = '')
-                return join_query("join", table, left, right, operator, alias_name)
+            def on(left, right, operator = '=')
+                return Query.new("on", nil, [left, operator, right]).to_s
             end
 
-            def left_join(table, left, right, operator = '=', alias_name = '')
-                return join_query("leftJoin", table, left, right, operator, alias_name)
+            def join(table, left, right = '', operator = '=', alias_name = '')
+                return create_join("join", table, left, right, operator, alias_name)
             end
 
-            def right_join(table, left, right, operator = '=', alias_name = '')
-                return join_query("rightJoin", table, left, right, operator, alias_name)
+            def left_join(table, left, right = '', operator = '=', alias_name = '')
+                return create_join("leftJoin", table, left, right, operator, alias_name)
             end
 
-            def full_outer_join(table, left, right, operator = '=', alias_name = '')
-                return join_query("fullOuterJoin", table, left, right, operator, alias_name)
+            def right_join(table, left, right = '', operator = '=', alias_name = '')
+                return create_join("rightJoin", table, left, right, operator, alias_name)
+            end
+
+            def full_outer_join(table, left, right = '', operator = '=', alias_name = '')
+                return create_join("fullOuterJoin", table, left, right, operator, alias_name)
             end
 
             def cross_join(table, alias_name = '')
@@ -428,6 +432,21 @@ module {{spec.info.title | caseUcfirst}}
             end
 
             private
+
+            def create_join(method, table, left, right, operator, alias_name)
+                return nested_join(method, table, '', left) if left.is_a?(Array)
+                return nested_join(method, table, left, right) if right.is_a?(Array)
+
+                return join_query(method, table, left, right, operator, alias_name)
+            end
+
+            def nested_join(method, table, alias_name, on)
+                values = []
+                values << alias_name if alias_name != ''
+                on.each { |query| values << JSON.parse(query) }
+
+                return Query.new(method, table, values).to_s
+            end
 
             def join_query(method, table, left, right, operator, alias_name)
                 values = [left, operator, right]
@@ -727,19 +746,19 @@ module {{spec.info.title | caseUcfirst}}
             return push(Query.distinct())
         end
 
-        def join(table, left, right, operator = '=', alias_name = '')
+        def join(table, left, right = '', operator = '=', alias_name = '')
             return push(Query.join(table, left, right, operator, alias_name))
         end
 
-        def left_join(table, left, right, operator = '=', alias_name = '')
+        def left_join(table, left, right = '', operator = '=', alias_name = '')
             return push(Query.left_join(table, left, right, operator, alias_name))
         end
 
-        def right_join(table, left, right, operator = '=', alias_name = '')
+        def right_join(table, left, right = '', operator = '=', alias_name = '')
             return push(Query.right_join(table, left, right, operator, alias_name))
         end
 
-        def full_outer_join(table, left, right, operator = '=', alias_name = '')
+        def full_outer_join(table, left, right = '', operator = '=', alias_name = '')
             return push(Query.full_outer_join(table, left, right, operator, alias_name))
         end
 

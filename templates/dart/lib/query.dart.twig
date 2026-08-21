@@ -372,42 +372,46 @@ class Query {
 
   static String distinct() => Query._('distinct').toString();
 
+  /// Column-to-column join ON condition.
+  static String on(String left, String right, [String operator = '=']) =>
+      Query._('on', null, [left, operator, right]).toString();
+
   /// Inner join. [table] is the joined collection/table ID.
   static String join(
     String table,
-    String left,
-    String right, [
+    Object leftOrAliasOrOn, [
+    Object rightOrOn = '',
     String operator = '=',
     String alias = '',
   ]) =>
-      Query._joinQuery('join', table, left, right, operator, alias);
+      Query._createJoin('join', table, leftOrAliasOrOn, rightOrOn, operator, alias);
 
   static String leftJoin(
     String table,
-    String left,
-    String right, [
+    Object leftOrAliasOrOn, [
+    Object rightOrOn = '',
     String operator = '=',
     String alias = '',
   ]) =>
-      Query._joinQuery('leftJoin', table, left, right, operator, alias);
+      Query._createJoin('leftJoin', table, leftOrAliasOrOn, rightOrOn, operator, alias);
 
   static String rightJoin(
     String table,
-    String left,
-    String right, [
+    Object leftOrAliasOrOn, [
+    Object rightOrOn = '',
     String operator = '=',
     String alias = '',
   ]) =>
-      Query._joinQuery('rightJoin', table, left, right, operator, alias);
+      Query._createJoin('rightJoin', table, leftOrAliasOrOn, rightOrOn, operator, alias);
 
   static String fullOuterJoin(
     String table,
-    String left,
-    String right, [
+    Object leftOrAliasOrOn, [
+    Object rightOrOn = '',
     String operator = '=',
     String alias = '',
   ]) =>
-      Query._joinQuery('fullOuterJoin', table, left, right, operator, alias);
+      Query._createJoin('fullOuterJoin', table, leftOrAliasOrOn, rightOrOn, operator, alias);
 
   static String crossJoin(String table, [String alias = '']) =>
       Query._('crossJoin', table, alias.isNotEmpty ? alias : null).toString();
@@ -440,6 +444,48 @@ class Query {
   }
 
   static QueryBuilder builder() => QueryBuilder();
+
+  static String _createJoin(
+    String method,
+    String table,
+    Object leftOrAliasOrOn,
+    Object rightOrOn,
+    String operator,
+    String alias,
+  ) {
+    if (leftOrAliasOrOn is List) {
+      return Query._nestedJoin(method, table, '', leftOrAliasOrOn);
+    }
+    if (rightOrOn is List) {
+      return Query._nestedJoin(method, table, leftOrAliasOrOn.toString(), rightOrOn);
+    }
+
+    return Query._joinQuery(
+      method,
+      table,
+      leftOrAliasOrOn.toString(),
+      rightOrOn.toString(),
+      operator,
+      alias,
+    );
+  }
+
+  static String _nestedJoin(
+    String method,
+    String table,
+    String alias,
+    List<dynamic> on,
+  ) {
+    final values = <dynamic>[];
+    if (alias.isNotEmpty) {
+      values.add(alias);
+    }
+    for (final query in on) {
+      values.add(jsonDecode(query.toString()));
+    }
+
+    return Query._(method, table, values).toString();
+  }
 
   static String _joinQuery(
     String method,
@@ -689,39 +735,39 @@ class QueryBuilder {
 
   QueryBuilder join(
     String table,
-    String left,
-    String right, [
+    Object leftOrAliasOrOn, [
+    Object rightOrOn = '',
     String operator = '=',
     String alias = '',
   ]) =>
-      _push(Query.join(table, left, right, operator, alias));
+      _push(Query.join(table, leftOrAliasOrOn, rightOrOn, operator, alias));
 
   QueryBuilder leftJoin(
     String table,
-    String left,
-    String right, [
+    Object leftOrAliasOrOn, [
+    Object rightOrOn = '',
     String operator = '=',
     String alias = '',
   ]) =>
-      _push(Query.leftJoin(table, left, right, operator, alias));
+      _push(Query.leftJoin(table, leftOrAliasOrOn, rightOrOn, operator, alias));
 
   QueryBuilder rightJoin(
     String table,
-    String left,
-    String right, [
+    Object leftOrAliasOrOn, [
+    Object rightOrOn = '',
     String operator = '=',
     String alias = '',
   ]) =>
-      _push(Query.rightJoin(table, left, right, operator, alias));
+      _push(Query.rightJoin(table, leftOrAliasOrOn, rightOrOn, operator, alias));
 
   QueryBuilder fullOuterJoin(
     String table,
-    String left,
-    String right, [
+    Object leftOrAliasOrOn, [
+    Object rightOrOn = '',
     String operator = '=',
     String alias = '',
   ]) =>
-      _push(Query.fullOuterJoin(table, left, right, operator, alias));
+      _push(Query.fullOuterJoin(table, leftOrAliasOrOn, rightOrOn, operator, alias));
 
   QueryBuilder crossJoin(String table, [String alias = '']) =>
       _push(Query.crossJoin(table, alias));

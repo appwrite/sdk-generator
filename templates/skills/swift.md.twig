@@ -187,6 +187,10 @@ Query.distinct()
 // Joins (table id, left key, right key, operator, alias)
 Query.join("orders", left: "$id", right: "customerId")
 Query.leftJoin("orders", left: "$id", right: "customerId", operator: "=", alias: "ord")
+Query.leftJoin("orders", alias: "ord", on: [
+    Query.on("$id", "customerId"),
+    Query.equal("ord.status", value: "paid"),
+])
 
 // Fluent builder. Wrapping the builder in an extra array is OK — the SDK flattens it.
 let queries = Query.builder()

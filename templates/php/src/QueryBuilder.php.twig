@@ -433,24 +433,40 @@ class QueryBuilder
         return $this->push(Query::distinct());
     }
 
-    public function join(string $table, string $left, string $right, string $operator = '=', string $alias = ''): self
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    public function join(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): self
     {
-        return $this->push(Query::join($table, $left, $right, $operator, $alias));
+        return $this->push(Query::join($table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias));
     }
 
-    public function leftJoin(string $table, string $left, string $right, string $operator = '=', string $alias = ''): self
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    public function leftJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): self
     {
-        return $this->push(Query::leftJoin($table, $left, $right, $operator, $alias));
+        return $this->push(Query::leftJoin($table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias));
     }
 
-    public function rightJoin(string $table, string $left, string $right, string $operator = '=', string $alias = ''): self
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    public function rightJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): self
     {
-        return $this->push(Query::rightJoin($table, $left, $right, $operator, $alias));
+        return $this->push(Query::rightJoin($table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias));
     }
 
-    public function fullOuterJoin(string $table, string $left, string $right, string $operator = '=', string $alias = ''): self
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    public function fullOuterJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): self
     {
-        return $this->push(Query::fullOuterJoin($table, $left, $right, $operator, $alias));
+        return $this->push(Query::fullOuterJoin($table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias));
     }
 
     public function crossJoin(string $table, string $alias = ''): self

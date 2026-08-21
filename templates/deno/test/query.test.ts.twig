@@ -313,6 +313,23 @@ describe('Query', () => {
         '{"method":"leftJoin","attribute":"orders","values":["$id","=","customerId","ord"]}',
     ));
 
+    test('on', () => assertEquals(
+        Query.on('$id', 'customerId').toString(),
+        '{"method":"on","values":["$id","=","customerId"]}',
+    ));
+
+    test('nested leftJoin', () => {
+        const query = JSON.parse(Query.leftJoin('orders', 'ord', [
+            Query.on('$id', 'customerId'),
+            Query.equal('ord.status', 'paid'),
+        ]).toString());
+        assertEquals(query.method, 'leftJoin');
+        assertEquals(query.attribute, 'orders');
+        assertEquals(query.values[0], 'ord');
+        assertEquals(query.values[1].method, 'on');
+        assertEquals(query.values[2].method, 'equal');
+    });
+
     test('crossJoin', () => assertEquals(
         Query.crossJoin('orders', 'ord').toString(),
         '{"method":"crossJoin","attribute":"orders","values":["ord"]}',

@@ -205,6 +205,10 @@ Query.distinct()
 // Joins (table id, left key, right key, operator, alias)
 Query.join('orders', r'$id', 'customerId')
 Query.leftJoin('orders', r'$id', 'customerId', '=', 'ord')
+Query.leftJoin('orders', 'ord', [
+  Query.on(r'$id', 'customerId'),
+  Query.equal('ord.status', 'paid'),
+])
 
 // Fluent builder. Wrapping the builder in an extra array is OK — the SDK flattens it.
 final queries = Query.builder()
