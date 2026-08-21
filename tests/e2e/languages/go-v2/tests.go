@@ -325,7 +325,7 @@ func testQueries() {
 	pageQueries := query.Page(2, 10)
 	fmt.Println(pageQueries[0])
 	fmt.Println(pageQueries[1])
-	fmt.Println(query.Builder().Limit(1).Build()[0])
+	fmt.Println(query.NewBuilder().Limit(1).Build()[0])
 }
 
 func testPermissionHelpers() {

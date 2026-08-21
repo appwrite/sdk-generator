@@ -420,10 +420,12 @@ try {
         $sdk  = new SDK(new Go(), buildSpecification($spec));
         // The version decides the major-version suffix Go requires from v2 on,
         // so examples/go declares `sdk-for-go/v6` like the published module.
+        // CLI Validation compiles against this tree via SDK_GO_VERSION=7.1.0 so
+        // the module path matches github.com/appwrite/sdk-for-go/v7.
         configureSDK($sdk, [
             'gitUserName' => 'appwrite',
             'gitRepoName' => 'sdk-for-go',
-            'version' => '6.2.0',
+            'version' => getenv('SDK_GO_VERSION') ?: '6.2.0',
         ]);
         $sdk->generate(__DIR__ . '/examples/go');
     }

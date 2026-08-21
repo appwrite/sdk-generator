@@ -287,8 +287,10 @@ class Dart extends Language
                 : "{$name}{$nullAware}.toMap()";
         }
 
-        if ($property->enum !== []) {
-            return "{$name}{$nullAware}.value";
+        if ($this->getEnumSchema($property)->enum !== []) {
+            return $property instanceof ArraySchema
+                ? "{$name}{$nullAware}.map((item) => item.value).toList()"
+                : "{$name}{$nullAware}.value";
         }
 
         return $name;

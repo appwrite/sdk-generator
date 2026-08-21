@@ -11,9 +11,11 @@ use RecursiveDirectoryIterator;
 use FilesystemIterator;
 use Throwable;
 use Appwrite\SDK\Language;
+use Appwrite\SDK\Language\PHP as PHPLanguage;
 use Appwrite\SDK\SDK;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Parser;
+use Utopia\OpenAPI\Specification;
 use PHPUnit\Framework\TestCase;
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
@@ -509,6 +511,7 @@ abstract class Base extends TestCase
 
         $this->assertOpenEnumsAllowAnyString();
         $this->assertClosedOneOfStringEnumsAreEnums();
+        $this->assertArrayEnumScalarHydrates();
 
         $sdk = new SDK($this->getLanguage(), Parser::parse($spec));
 
@@ -716,6 +719,87 @@ abstract class Base extends TestCase
         $this->assertIsString($contents);
         $this->assertStringContainsString($wireName, $contents);
         $this->assertStringNotContainsString($titleName, $contents);
+    }
+
+    private function assertArrayEnumScalarHydrates(): void
+    {
+        if ($this->language !== 'php') {
+            return;
+        }
+
+        $specification = Parser::parse([
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => ['/oauth' => ['post' => [
+                'operationId' => 'updateOAuth',
+                'tags' => ['project'],
+                'responses' => ['200' => [
+                    'description' => 'ok',
+                    'content' => ['application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/OAuth2Google'],
+                    ]],
+                ]],
+            ]]],
+            'components' => ['schemas' => [
+                'OAuth2Google' => [
+                    'type' => 'object',
+                    'required' => ['prompt'],
+                    'properties' => [
+                        'prompt' => [
+                            'type' => 'array',
+                            'example' => 'none',
+                            'items' => [
+                                'type' => 'string',
+                                'enum' => ['none', 'consent'],
+                                'x-enum-name' => 'OAuth2Prompt',
+                            ],
+                        ],
+                    ],
+                ],
+            ]],
+        ]);
+
+        $php = new class () extends PHPLanguage {
+            public function mockPayload(string $definitionName, Specification $spec): string
+            {
+                return $this->getMockDefinitionPayload($definitionName, $spec);
+            }
+        };
+        $payload = $php->mockPayload('OAuth2Google', $specification);
+        $this->assertStringContainsString('"prompt" => array("none")', $payload);
+        $this->assertStringNotContainsString('"prompt" => "none"', $payload);
+
+        $dir = \sys_get_temp_dir() . '/sdk-array-enum-' . \bin2hex(\random_bytes(4));
+        $sdk = new SDK(new PHPLanguage(), $specification);
+        $sdk
+            ->setName('php')
+            ->setVersion('0.0.1')
+            ->setNamespace('appwrite');
+        $sdk->generate($dir);
+
+        try {
+            $modelPath = $dir . '/src/Appwrite/Models/OAuth2Google.php';
+            $this->assertFileExists($modelPath);
+            $modelSource = \file_get_contents($modelPath);
+            $this->assertIsString($modelSource);
+            $this->assertStringContainsString(
+                '[static::hydrateTypedValue(OAuth2Prompt::class, $data[\'prompt\'])]',
+                $modelSource
+            );
+
+            require_once $dir . '/src/Appwrite/Models/ArraySerializable.php';
+            foreach (\glob($dir . '/src/Appwrite/Enums/*.php') ?: [] as $file) {
+                require_once $file;
+            }
+            require_once $modelPath;
+
+            $modelClass = 'Appwrite\\Models\\OAuth2Google';
+            $model = $modelClass::from(['prompt' => 'none']);
+            $this->assertCount(1, $model->prompt);
+            $this->assertSame('none', (string) $model->prompt[0]);
+        } finally {
+            $this->rmdirRecursive($dir);
+        }
     }
 
     private function assertOpenEnumsAllowAnyString(): void

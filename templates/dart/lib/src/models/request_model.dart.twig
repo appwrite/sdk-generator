@@ -21,7 +21,7 @@ class {{ requestModelName | caseUcfirst | overrideIdentifier }} implements Model
   Map<String, dynamic> toMap() {
     return {
 {% for property in requestModel.properties %}
-      "{{ (property | schemaName) | escapeDollarSign }}": {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{{(property | schemaName) | escapeKeyword}}{% if not (property | schemaRequired) %}?{% endif %}.map((p) => p.toMap()).toList(){% else %}{{(property | schemaName) | escapeKeyword}}{% if not (property | schemaRequired) %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{(property | schemaName) | escapeKeyword}}{% if not (property | schemaRequired) %}?{% endif %}.value{% else %}{{(property | schemaName) | escapeKeyword }}{% endif %},
+      "{{ (property | schemaName) | escapeDollarSign }}": {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{{(property | schemaName) | escapeKeyword}}{% if not (property | schemaRequired) %}?{% endif %}.map((p) => p.toMap()).toList(){% else %}{{(property | schemaName) | escapeKeyword}}{% if not (property | schemaRequired) %}?{% endif %}.toMap(){% endif %}{% elseif (property | enumValues) is not empty %}{{(property | schemaName) | escapeKeyword}}{% if not (property | schemaRequired) %}?{% endif %}{% if (property | schemaType) == 'array' %}.map((item) => item.value).toList(){% else %}.value{% endif %}{% else %}{{(property | schemaName) | escapeKeyword }}{% endif %},
 {% endfor %}
     };
   }
