@@ -129,6 +129,22 @@ Requires [uv](https://github.com/astral-sh/uv) to be installed. Configuration is
 * [Postman 1.0](https://schema.getpostman.com/json/collection/v1.0.0/docs/index.html) (Not Ready)
 * [API Blueprint 1A](https://github.com/apiaryio/api-blueprint/blob/master/API%20Blueprint%20Specification.md) (Not Ready)
 
+### Naming enum values
+
+Enum wire values are converted into identifiers for each generated language. To give values explicit semantic names, describe the enum as titled `oneOf` branches. This is especially useful when values contain non-Latin text:
+
+```yaml
+title: ProvinceType
+type: string
+oneOf:
+  - title: Capital
+    enum: [រាជធានី]
+  - title: Province
+    enum: [ខេត្ត]
+```
+
+OpenAPI 3.1 specifications can use `const` instead of a single-value `enum`. When a value has no explicit title and cannot form a valid identifier, the generator uses a deterministic positional name such as `Value1`.
+
 ## Generated SDKs and Artifacts
 
 The primary generation targets are defined in `example.php`. Run it without arguments to generate every target with the default `console` platform spec, or pass a target and optional platform to generate one SDK:

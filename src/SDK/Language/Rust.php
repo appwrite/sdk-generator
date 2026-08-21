@@ -602,7 +602,7 @@ class Rust extends Language
                         $members = \is_array($decoded) && $decoded !== [] ? $decoded : [$enumSchema->enum[0] ?? $example];
                     }
 
-                    $keys = $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [];
+                    $keys = $this->resolveEnumKeys($param);
                     $variants = [];
                     foreach ($members as $member) {
                         $index = \array_search($member, $enumSchema->enum, true);

@@ -2732,6 +2732,23 @@
               {"type": "string", "enum": ["cancelled"], "title": "cancelled"}
             ]
           },
+          "localizedStatus": {
+            "title": "LocalizedStatus",
+            "type": "string",
+            "description": "Localized status without explicit enum keys.",
+            "example": "រាជធានី",
+            "enum": ["រាជធានី", "ខេត្ត"]
+          },
+          "provinceType": {
+            "title": "ProvinceType",
+            "type": "string",
+            "description": "Localized values with explicit semantic enum keys.",
+            "example": "រាជធានី",
+            "oneOf": [
+              {"type": "string", "enum": ["រាជធានី"], "title": "Capital"},
+              {"type": "string", "enum": ["ខេត្ត"], "title": "Province"}
+            ]
+          },
           "relatedMock": {
             "type": "object",
             "description": "Optional nested mock.",
