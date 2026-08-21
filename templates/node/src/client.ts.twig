@@ -1,6 +1,7 @@
 import { fetch, FormData, File, Agent, type RequestInit } from 'undici';
 import { Models } from './models';
 import { InputFile } from './inputFile';
+import { flattenParam } from './query';
 import JSONbigModule from 'json-bigint';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
 const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
@@ -221,6 +222,10 @@ class Client {
 
     prepareRequest(method: string, url: URL, headers: Headers = {}, params: Payload = {}): { uri: string, options: RequestInit } {
         method = method.toUpperCase();
+
+        for (const key of Object.keys(params)) {
+            params[key] = flattenParam(params[key]);
+        }
 
         headers = Object.assign({}, this.headers, headers);
 
@@ -611,6 +616,6 @@ class Client {
 }
 
 export { Client, {{spec.info.title | caseUcfirst}}Exception };
-export { Query } from './query';
+export { Query, QueryBuilder, flattenParam } from './query';
 export type { Models, Payload, UploadProgress };
-export type { QueryTypes, QueryTypesList } from './query';
+export type { QueryTypes, QueryTypesList, QueryInput } from './query';

@@ -357,6 +357,15 @@ try {
 
     // CLI
     if (!$requestedSdk || $requestedSdk === 'cli') {
+        // CLI go.mod replace-pins github.com/appwrite/sdk-for-go/v7 to ../go.
+        $go = new SDK(new Go(), buildSpecification($spec));
+        configureSDK($go, [
+            'gitUserName' => 'appwrite',
+            'gitRepoName' => 'sdk-for-go',
+            'version' => '7.2.0-rc.3',
+        ]);
+        $go->generate(__DIR__ . '/examples/go');
+
         $language = new CLI();
         $language->setExecutableName('appwrite');
         $language->setLogo($cliLogo);
@@ -419,11 +428,11 @@ try {
     if (!$requestedSdk || $requestedSdk === 'go') {
         $sdk  = new SDK(new Go(), buildSpecification($spec));
         // The version decides the major-version suffix Go requires from v2 on,
-        // so examples/go declares `sdk-for-go/v6` like the published module.
+        // so examples/go declares `sdk-for-go/v7` like the published module.
         configureSDK($sdk, [
             'gitUserName' => 'appwrite',
             'gitRepoName' => 'sdk-for-go',
-            'version' => '6.2.0',
+            'version' => '7.2.0-rc.3',
         ]);
         $sdk->generate(__DIR__ . '/examples/go');
     }

@@ -7,7 +7,7 @@ go 1.26.5
 // so anything added by hand to the generated file is lost on the next run.
 require (
 {% if not sdk.test %}
-	github.com/appwrite/sdk-for-go/v7 v7.2.0-rc.3
+	{{ language.params.sdkImportPath }} v7.2.0-rc.3
 {% endif %}
 	github.com/charmbracelet/huh v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.0
@@ -22,3 +22,9 @@ require (
 
 // Floor raised above the v1.3.6 huh v1.0.0 asks for, which misrepaints on resize.
 require github.com/charmbracelet/bubbletea v1.3.10 // indirect
+{% if not sdk.test %}
+
+// Live spec can add methods the last published Go SDK does not have yet.
+// example.php generates that SDK next to this module as examples/go.
+replace {{ language.params.sdkImportPath }} => ../go
+{% endif %}

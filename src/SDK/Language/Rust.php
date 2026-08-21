@@ -190,8 +190,13 @@ class Rust extends Language
             ],
             [
                 "scope" => "default",
-                "destination" => "src/query.rs",
-                "template" => "rust/src/query.rs.twig",
+                "destination" => "src/query/mod.rs",
+                "template" => "rust/src/query/mod.rs.twig",
+            ],
+            [
+                "scope" => "default",
+                "destination" => "src/query/builder.rs",
+                "template" => "rust/src/query/builder.rs.twig",
             ],
             [
                 "scope" => "default",
@@ -672,5 +677,14 @@ class Rust extends Language
                 default => "serde_json::Value::Null",
             },
         };
+    }
+
+    #[Override]
+    public function postGenerate(string $target): void
+    {
+        $legacy = $target . '/src/query.rs';
+        if (\is_file($legacy) && \is_dir($target . '/src/query')) {
+            \unlink($legacy);
+        }
     }
 }

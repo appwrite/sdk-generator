@@ -77,7 +77,10 @@ abstract class Client {
   Future<String> {{ clientMethodName | caseCamel }}();
 
 {% endfor %}
-{% endfor %}  /// Send the API request.
+{% endfor %}  /// Flatten builders and nested query-string lists for request params.
+  dynamic flatten(dynamic value);
+
+  /// Send the API request.
   Future<Response> call(
     HttpMethod method, {
     String path = '',

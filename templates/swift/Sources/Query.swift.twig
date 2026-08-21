@@ -106,6 +106,10 @@ public struct Query : Codable, CustomStringConvertible {
                     return .bool(boolValue)
                 } else if let queryValue = item as? Query {
                     return .query(queryValue)
+                } else if let doubleArray = item as? [Double] {
+                    return .array(doubleArray.map { .double($0) })
+                } else if let intArray = item as? [Int] {
+                    return .array(intArray.map { .int($0) })
                 } else if let nestedArray = item as? [Any] {
                     // Convert nested array to QueryValue.array
                     if let converted = convertToQueryValueArray(nestedArray) {
@@ -634,6 +638,291 @@ public struct Query : Codable, CustomStringConvertible {
             attribute: attribute,
             values: [values]
         ).description
+    }
+
+    public static func count(_ attribute: String = "*", alias: String = "") -> String {
+        return Query(
+            method: "count",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func countDistinct(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "countDistinct",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func sum(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "sum",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func avg(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "avg",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func min(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "min",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func max(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "max",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func stddev(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "stddev",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func stddevPop(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "stddevPop",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func stddevSamp(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "stddevSamp",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func variance(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "variance",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func varPop(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "varPop",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func varSamp(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "varSamp",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func bitAnd(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "bitAnd",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func bitOr(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "bitOr",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func bitXor(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "bitXor",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func groupBy(_ attributes: [String]) -> String {
+        return Query(
+            method: "groupBy",
+            values: attributes
+        ).description
+    }
+
+    public static func having(_ queries: [String]) -> String {
+        return Query(
+            method: "having",
+            values: decodeQueries(queries)
+        ).description
+    }
+
+    public static func distinct() -> String {
+        return Query(
+            method: "distinct"
+        ).description
+    }
+
+    public static func on(_ left: String, _ right: String, operator op: String = "=") -> String {
+        return Query(
+            method: "on",
+            values: [left, op, right]
+        ).description
+    }
+
+    public static func join(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> String {
+        return joinQuery("join", table: table, left: left, right: right, operator: op, alias: alias)
+    }
+
+    public static func join(_ table: String, on: [String]) -> String {
+        return nestedJoin("join", table: table, alias: "", on: on)
+    }
+
+    public static func join(_ table: String, alias: String, on: [String]) -> String {
+        return nestedJoin("join", table: table, alias: alias, on: on)
+    }
+
+    public static func leftJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> String {
+        return joinQuery("leftJoin", table: table, left: left, right: right, operator: op, alias: alias)
+    }
+
+    public static func leftJoin(_ table: String, on: [String]) -> String {
+        return nestedJoin("leftJoin", table: table, alias: "", on: on)
+    }
+
+    public static func leftJoin(_ table: String, alias: String, on: [String]) -> String {
+        return nestedJoin("leftJoin", table: table, alias: alias, on: on)
+    }
+
+    public static func rightJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> String {
+        return joinQuery("rightJoin", table: table, left: left, right: right, operator: op, alias: alias)
+    }
+
+    public static func rightJoin(_ table: String, on: [String]) -> String {
+        return nestedJoin("rightJoin", table: table, alias: "", on: on)
+    }
+
+    public static func rightJoin(_ table: String, alias: String, on: [String]) -> String {
+        return nestedJoin("rightJoin", table: table, alias: alias, on: on)
+    }
+
+    public static func fullOuterJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> String {
+        return joinQuery("fullOuterJoin", table: table, left: left, right: right, operator: op, alias: alias)
+    }
+
+    public static func fullOuterJoin(_ table: String, on: [String]) -> String {
+        return nestedJoin("fullOuterJoin", table: table, alias: "", on: on)
+    }
+
+    public static func fullOuterJoin(_ table: String, alias: String, on: [String]) -> String {
+        return nestedJoin("fullOuterJoin", table: table, alias: alias, on: on)
+    }
+
+    public static func crossJoin(_ table: String, alias: String = "") -> String {
+        return Query(
+            method: "crossJoin",
+            attribute: table,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func covers(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "covers",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func notCovers(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "notCovers",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func spatialEquals(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "spatialEquals",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func notSpatialEquals(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "notSpatialEquals",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func page(_ page: Int, perPage: Int = 25) -> [String] {
+        precondition(page >= 1, "Page must be >= 1, got \(page)")
+        precondition(perPage >= 1, "Per page must be >= 1, got \(perPage)")
+        return [limit(perPage), offset((page - 1) * perPage)]
+    }
+
+    public static func builder() -> Builder {
+        return Builder()
+    }
+
+    private static func joinQuery(_ method: String, table: String, left: String, right: String, operator op: String, alias: String) -> String {
+        var values: [String] = [left, op, right]
+        if !alias.isEmpty {
+            values.append(alias)
+        }
+        return Query(
+            method: method,
+            attribute: table,
+            values: values
+        ).description
+    }
+
+    private static func nestedJoin(_ method: String, table: String, alias: String, on: [String]) -> String {
+        var values: [Any] = []
+        if !alias.isEmpty {
+            values.append(alias)
+        }
+        for query in on {
+            if let data = query.data(using: .utf8),
+               let parsed = try? JSONDecoder().decode(Query.self, from: data) {
+                values.append(parsed)
+            }
+        }
+        return Query(
+            method: method,
+            attribute: table,
+            values: values
+        ).description
+    }
+
+    private static func decodeQueries(_ queries: [String]) -> [Query] {
+        let decoder = JSONDecoder()
+        return queries.compactMap { queryStr -> Query? in
+            guard let data = queryStr.data(using: .utf8) else {
+                return nil
+            }
+            return try? decoder.decode(Query.self, from: data)
+        }
     }
 
     private static func parseValue(_ value: Any) -> [Any] {

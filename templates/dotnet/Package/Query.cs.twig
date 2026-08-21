@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +7,7 @@ using System.Text.Json.Serialization;
 
 namespace {{ spec.info.title | caseUcfirst }}
 {
-    public class Query
+    public partial class Query
     {
         [JsonPropertyName("method")]
         public string Method { get; set; } = string.Empty;
@@ -353,6 +354,310 @@ namespace {{ spec.info.title | caseUcfirst }}
         public static string NotTouches(string attribute, object values)
         {
             return new Query("notTouches", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string Count(string attribute = "*", string alias = "")
+        {
+            return new Query("count", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string CountDistinct(string attribute, string alias = "")
+        {
+            return new Query("countDistinct", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string Sum(string attribute, string alias = "")
+        {
+            return new Query("sum", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string Avg(string attribute, string alias = "")
+        {
+            return new Query("avg", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string Min(string attribute, string alias = "")
+        {
+            return new Query("min", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string Max(string attribute, string alias = "")
+        {
+            return new Query("max", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string Stddev(string attribute, string alias = "")
+        {
+            return new Query("stddev", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string StddevPop(string attribute, string alias = "")
+        {
+            return new Query("stddevPop", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string StddevSamp(string attribute, string alias = "")
+        {
+            return new Query("stddevSamp", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string Variance(string attribute, string alias = "")
+        {
+            return new Query("variance", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string VarPop(string attribute, string alias = "")
+        {
+            return new Query("varPop", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string VarSamp(string attribute, string alias = "")
+        {
+            return new Query("varSamp", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string BitAnd(string attribute, string alias = "")
+        {
+            return new Query("bitAnd", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string BitOr(string attribute, string alias = "")
+        {
+            return new Query("bitOr", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string BitXor(string attribute, string alias = "")
+        {
+            return new Query("bitXor", attribute, alias != "" ? alias : null).ToString();
+        }
+
+        public static string GroupBy(List<string> attributes)
+        {
+            return new Query("groupBy", null, attributes).ToString();
+        }
+
+        public static string Having(List<string> queries)
+        {
+            return new Query("having", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
+        }
+
+        public static string Distinct()
+        {
+            return new Query("distinct", null, null).ToString();
+        }
+
+        public static string On(string left, string right, string @operator = "=")
+        {
+            return new Query("on", null, new List<object> { left, @operator, right }).ToString();
+        }
+
+        public static string Join(string table, string left, string right, string @operator = "=", string alias = "")
+        {
+            return JoinQuery("join", table, left, right, @operator, alias);
+        }
+
+        public static string Join(string table, List<string> on)
+        {
+            return NestedJoin("join", table, "", on);
+        }
+
+        public static string Join(string table, string alias, List<string> on)
+        {
+            return NestedJoin("join", table, alias, on);
+        }
+
+        public static string LeftJoin(string table, string left, string right, string @operator = "=", string alias = "")
+        {
+            return JoinQuery("leftJoin", table, left, right, @operator, alias);
+        }
+
+        public static string LeftJoin(string table, List<string> on)
+        {
+            return NestedJoin("leftJoin", table, "", on);
+        }
+
+        public static string LeftJoin(string table, string alias, List<string> on)
+        {
+            return NestedJoin("leftJoin", table, alias, on);
+        }
+
+        public static string RightJoin(string table, string left, string right, string @operator = "=", string alias = "")
+        {
+            return JoinQuery("rightJoin", table, left, right, @operator, alias);
+        }
+
+        public static string RightJoin(string table, List<string> on)
+        {
+            return NestedJoin("rightJoin", table, "", on);
+        }
+
+        public static string RightJoin(string table, string alias, List<string> on)
+        {
+            return NestedJoin("rightJoin", table, alias, on);
+        }
+
+        public static string FullOuterJoin(string table, string left, string right, string @operator = "=", string alias = "")
+        {
+            return JoinQuery("fullOuterJoin", table, left, right, @operator, alias);
+        }
+
+        public static string FullOuterJoin(string table, List<string> on)
+        {
+            return NestedJoin("fullOuterJoin", table, "", on);
+        }
+
+        public static string FullOuterJoin(string table, string alias, List<string> on)
+        {
+            return NestedJoin("fullOuterJoin", table, alias, on);
+        }
+
+        public static string CrossJoin(string table, string alias = "")
+        {
+            return new Query("crossJoin", table, alias != "" ? alias : null).ToString();
+        }
+
+        public static string Covers(string attribute, object values)
+        {
+            return new Query("covers", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string NotCovers(string attribute, object values)
+        {
+            return new Query("notCovers", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string SpatialEquals(string attribute, object values)
+        {
+            return new Query("spatialEquals", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string NotSpatialEquals(string attribute, object values)
+        {
+            return new Query("notSpatialEquals", attribute, new List<object> { values }).ToString();
+        }
+
+        public static List<string> Page(int page, int perPage = 25)
+        {
+            if (page < 1)
+            {
+                throw new ArgumentException("Page must be >= 1, got " + page);
+            }
+            if (perPage < 1)
+            {
+                throw new ArgumentException("Per page must be >= 1, got " + perPage);
+            }
+
+            return new List<string> { Limit(perPage), Offset((page - 1) * perPage) };
+        }
+
+        public static object? Flatten(object? value)
+        {
+            if (value is Builder builder)
+            {
+                return builder.Build();
+            }
+            if (value is Query query)
+            {
+                return query.ToString();
+            }
+            if (value is not IEnumerable enumerable || value is string)
+            {
+                return value;
+            }
+
+            var items = enumerable.Cast<object?>().ToList();
+            var output = new List<object?>();
+            var changed = false;
+            foreach (var item in items)
+            {
+                var flat = Flatten(item);
+                if (item is Builder || item is Query)
+                {
+                    if (flat is IEnumerable nested && flat is not string)
+                    {
+                        output.AddRange(nested.Cast<object?>());
+                    }
+                    else
+                    {
+                        output.Add(flat);
+                    }
+                    changed = true;
+                    continue;
+                }
+                if (item is IEnumerable nestedItems && item is not string && IsStringList(flat))
+                {
+                    output.AddRange(((IEnumerable)flat!).Cast<object?>());
+                    changed = true;
+                    continue;
+                }
+                if (!Equals(flat, item))
+                {
+                    changed = true;
+                }
+                output.Add(flat);
+            }
+
+            return changed ? output : value;
+        }
+
+        private static bool IsStringList(object? value)
+        {
+            if (value is not IEnumerable enumerable || value is string)
+            {
+                return false;
+            }
+            foreach (var item in enumerable)
+            {
+                if (item is not string)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        internal static List<string> Normalize(object? queries)
+        {
+            var flat = Flatten(queries);
+            if (flat is string s)
+            {
+                return new List<string> { s };
+            }
+            if (flat is IEnumerable enumerable && flat is not string)
+            {
+                return enumerable.Cast<object?>().Select(item => item?.ToString() ?? string.Empty).ToList();
+            }
+            return new List<string>();
+        }
+
+        private static string JoinQuery(string method, string table, string left, string right, string @operator, string alias)
+        {
+            var values = new List<string> { left, @operator, right };
+            if (alias != "")
+            {
+                values.Add(alias);
+            }
+
+            return new Query(method, table, values).ToString();
+        }
+
+        private static string NestedJoin(string method, string table, string alias, List<string> on)
+        {
+            var values = new List<object>();
+            if (alias != "")
+            {
+                values.Add(alias);
+            }
+            foreach (var query in on)
+            {
+                var parsed = JsonSerializer.Deserialize<Query>(query, Client.DeserializerOptions);
+                if (parsed != null)
+                {
+                    values.Add(parsed);
+                }
+            }
+
+            return new Query(method, table, values).ToString();
         }
     }
 }

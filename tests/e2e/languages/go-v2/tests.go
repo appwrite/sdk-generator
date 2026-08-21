@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path"
+	"reflect"
 	"time"
 
 	"github.com/repoowner/reponame/v2/appwrite"
@@ -290,6 +291,63 @@ func testQueries() {
 		query.Equal("name", "Alice"),
 		query.GreaterThan("age", 18),
 	}))
+	fmt.Println(query.Count("*", "total"))
+	fmt.Println(query.Join("orders", "$id", "customerId", "=", ""))
+	fmt.Println(query.GroupBy([]interface{}{"status"}))
+	fmt.Println(query.Distinct())
+	fmt.Println(query.Covers("location", []interface{}{1, 2}))
+	fmt.Println(query.CountDistinct("year", "uniqueYears"))
+	fmt.Println(query.Sum("price", "total"))
+	fmt.Println(query.Avg("price", "avgPrice"))
+	fmt.Println(query.Min("price", "lowest"))
+	fmt.Println(query.Max("price", "highest"))
+	fmt.Println(query.Stddev("price", "sd"))
+	fmt.Println(query.StddevPop("price", "sdp"))
+	fmt.Println(query.StddevSamp("price", "sds"))
+	fmt.Println(query.Variance("price", "var"))
+	fmt.Println(query.VarPop("price", "vp"))
+	fmt.Println(query.VarSamp("price", "vs"))
+	fmt.Println(query.BitAnd("flags", "band"))
+	fmt.Println(query.BitOr("flags", "bor"))
+	fmt.Println(query.BitXor("flags", "bxor"))
+	fmt.Println(query.Having([]string{query.GreaterThan("total", 1)}))
+	fmt.Println(query.LeftJoin("orders", "$id", "customerId", "=", "ord"))
+	fmt.Println(query.RightJoin("orders", "$id", "customerId", "=", ""))
+	fmt.Println(query.FullOuterJoin("orders", "$id", "customerId", "=", ""))
+	fmt.Println(query.CrossJoin("orders", "ord"))
+	fmt.Println(query.On("$id", "customerId", ""))
+	fmt.Println(query.LeftJoinOn("orders", "ord", []string{
+		query.On("$id", "customerId", ""),
+		query.Equal("ord.status", "paid"),
+	}))
+	fmt.Println(query.NotCovers("location", []interface{}{1, 2}))
+	fmt.Println(query.SpatialEquals("location", []interface{}{1, 2}))
+	fmt.Println(query.NotSpatialEquals("location", []interface{}{1, 2}))
+	pageQueries := query.Page(2, 10)
+	fmt.Println(pageQueries[0])
+	fmt.Println(pageQueries[1])
+	fmt.Println(query.NewBuilder().Limit(1).Build()[0])
+	flatBuilder := client.Flatten([]interface{}{query.NewBuilder().Limit(1)})
+	if got, ok := flatBuilder.([]interface{}); ok && len(got) == 1 && got[0] == query.Limit(1) {
+		fmt.Println("flatten-builder:ok")
+	} else {
+		fmt.Println("flatten-builder:fail")
+	}
+	geometry := [][]int{
+		{1, 2},
+		{3, 4},
+	}
+	if reflect.DeepEqual(client.Flatten(geometry), geometry) {
+		fmt.Println("flatten-geometry:ok")
+	} else {
+		fmt.Println("flatten-geometry:fail")
+	}
+	flatList := client.Flatten([]interface{}{query.Limit(1)})
+	if got, ok := flatList.([]interface{}); ok && len(got) == 1 && got[0] == query.Limit(1) {
+		fmt.Println("flatten-list:ok")
+	} else {
+		fmt.Println("flatten-list:fail")
+	}
 }
 
 func testPermissionHelpers() {

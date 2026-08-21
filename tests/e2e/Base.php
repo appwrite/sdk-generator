@@ -11,11 +11,13 @@ use RecursiveDirectoryIterator;
 use FilesystemIterator;
 use Throwable;
 use Appwrite\SDK\Language;
+use Appwrite\SDK\Language\PHP as PHPLanguage;
 use Appwrite\SDK\SDK;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Parser;
+use Utopia\OpenAPI\Specification;
 use PHPUnit\Framework\TestCase;
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
@@ -200,6 +202,44 @@ abstract class Base extends TestCase
         '{"method":"exists","values":["attr1","attr2"]}',
         '{"method":"notExists","values":["attr1","attr2"]}',
         '{"method":"elemMatch","attribute":"friends","values":[{"method":"equal","attribute":"name","values":["Alice"]},{"method":"greaterThan","attribute":"age","values":[18]}]}',
+        '{"method":"count","attribute":"*","values":["total"]}',
+        '{"method":"join","attribute":"orders","values":["$id","=","customerId"]}',
+        '{"method":"groupBy","values":["status"]}',
+        '{"method":"distinct"}',
+        '{"method":"covers","attribute":"location","values":[[1,2]]}',
+        '{"method":"countDistinct","attribute":"year","values":["uniqueYears"]}',
+        '{"method":"sum","attribute":"price","values":["total"]}',
+        '{"method":"avg","attribute":"price","values":["avgPrice"]}',
+        '{"method":"min","attribute":"price","values":["lowest"]}',
+        '{"method":"max","attribute":"price","values":["highest"]}',
+        '{"method":"stddev","attribute":"price","values":["sd"]}',
+        '{"method":"stddevPop","attribute":"price","values":["sdp"]}',
+        '{"method":"stddevSamp","attribute":"price","values":["sds"]}',
+        '{"method":"variance","attribute":"price","values":["var"]}',
+        '{"method":"varPop","attribute":"price","values":["vp"]}',
+        '{"method":"varSamp","attribute":"price","values":["vs"]}',
+        '{"method":"bitAnd","attribute":"flags","values":["band"]}',
+        '{"method":"bitOr","attribute":"flags","values":["bor"]}',
+        '{"method":"bitXor","attribute":"flags","values":["bxor"]}',
+        '{"method":"having","values":[{"method":"greaterThan","attribute":"total","values":[1]}]}',
+        '{"method":"leftJoin","attribute":"orders","values":["$id","=","customerId","ord"]}',
+        '{"method":"rightJoin","attribute":"orders","values":["$id","=","customerId"]}',
+        '{"method":"fullOuterJoin","attribute":"orders","values":["$id","=","customerId"]}',
+        '{"method":"crossJoin","attribute":"orders","values":["ord"]}',
+        '{"method":"on","values":["$id","=","customerId"]}',
+        '{"method":"leftJoin","attribute":"orders","values":["ord",{"method":"on","values":["$id","=","customerId"]},{"method":"equal","attribute":"ord.status","values":["paid"]}]}',
+        '{"method":"notCovers","attribute":"location","values":[[1,2]]}',
+        '{"method":"spatialEquals","attribute":"location","values":[[1,2]]}',
+        '{"method":"notSpatialEquals","attribute":"location","values":[[1,2]]}',
+        '{"method":"limit","values":[10]}',
+        '{"method":"offset","values":[10]}',
+        '{"method":"limit","values":[1]}',
+    ];
+
+    protected const QUERY_FLATTEN_RESPONSES = [
+        'flatten-builder:ok',
+        'flatten-geometry:ok',
+        'flatten-list:ok',
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [
@@ -478,6 +518,8 @@ abstract class Base extends TestCase
         }
 
         $this->assertOpenEnumsAllowAnyString();
+        $this->assertClosedOneOfStringEnumsAreEnums();
+        $this->assertArrayEnumScalarHydrates();
         $this->assertUploadIdParameterInference();
         $this->assertEnumKeysAreValid();
 
@@ -522,6 +564,7 @@ abstract class Base extends TestCase
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
         $this->assertOpenEnumSuggestionsGenerated($dir);
+        $this->assertOneOfStringEnumsUseWireNames($dir);
         $this->assertExcludedFixtureWasRemoved($dir);
         $this->assertCommentsAreNotHtmlEscaped($dir);
 
@@ -577,6 +620,195 @@ abstract class Base extends TestCase
             } else {
                 $this->assertEquals($expected, $output[$index]);
             }
+        }
+    }
+
+    private function assertClosedOneOfStringEnumsAreEnums(): void
+    {
+        $oneOfKind = [
+            'type' => 'string',
+            'example' => 'alpha',
+            'oneOf' => [
+                ['type' => 'string', 'enum' => ['alpha'], 'title' => 'alpha'],
+                ['type' => 'string', 'enum' => ['beta'], 'title' => 'beta'],
+            ],
+        ];
+        $specification = Parser::parse([
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => ['/items/{kind}' => ['get' => [
+                'operationId' => 'getItem',
+                'parameters' => [[
+                    'name' => 'kind',
+                    'in' => 'path',
+                    'required' => true,
+                    'schema' => $oneOfKind + ['title' => 'MockKind'],
+                ]],
+                'responses' => ['200' => ['description' => 'ok']],
+            ]]],
+            'components' => ['schemas' => [
+                'widget' => [
+                    'type' => 'object',
+                    'required' => ['kind'],
+                    'properties' => [
+                        'kind' => $oneOfKind,
+                    ],
+                ],
+            ]],
+        ]);
+        $language = $this->getLanguage();
+        $parameter = $specification->paths['/items/{kind}']->operations['get']->parameters[0];
+        $plainString = Parser::parse([
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => ['/test' => ['get' => [
+                'operationId' => 'test',
+                'parameters' => [
+                    ['name' => 'plainScalar', 'in' => 'query', 'schema' => ['type' => 'string']],
+                    ['name' => 'plainObject', 'in' => 'query', 'schema' => ['type' => 'object']],
+                ],
+                'responses' => ['200' => ['description' => 'ok']],
+            ]]],
+        ])->paths['/test']->operations['get']->parameters;
+        [$plainScalar, $plainObject] = $plainString;
+
+        $this->assertNotSame(
+            $language->getTypeName($plainObject, $specification),
+            $language->getTypeName($parameter, $specification),
+            'A oneOf of string enums must not type as a generic object.'
+        );
+        $this->assertNotSame(
+            $language->getTypeName($plainScalar, $specification),
+            $language->getTypeName($plainObject, $specification)
+        );
+        $enumSchema = $language->getEnumSchema($parameter);
+        $this->assertSame(['alpha', 'beta'], $enumSchema->enum);
+
+        $untitled = $specification->schemas['widget']->properties['kind'];
+        $untitledType = $language->getTypeName($untitled, $specification);
+        $this->assertNotSame('', $untitledType);
+        $this->assertNotSame(
+            $language->getTypeName($plainObject, $specification),
+            $untitledType,
+            'An untitled oneOf string enum must still produce a concrete type name.'
+        );
+    }
+
+    private function assertOneOfStringEnumsUseWireNames(string $dir): void
+    {
+        $expectations = [
+            'php' => [
+                $dir . '/src/Appwrite/Models/Mock.php',
+                "array_key_exists('kind'",
+                "array_key_exists('MockKind'",
+            ],
+            'python' => [
+                $dir . '/appwrite/models/mock.py',
+                "alias='kind'",
+                "alias='MockKind'",
+            ],
+            'kotlin' => [
+                $dir . '/src/main/kotlin/io/appwrite/models/Mock.kt',
+                '@SerializedName("kind")',
+                '@SerializedName("MockKind")',
+            ],
+            'android' => [
+                $dir . '/library/src/main/java/io/appwrite/models/Mock.kt',
+                '@SerializedName("kind")',
+                '@SerializedName("MockKind")',
+            ],
+        ];
+
+        if (!isset($expectations[$this->language])) {
+            return;
+        }
+
+        [$modelPath, $wireName, $titleName] = $expectations[$this->language];
+        $this->assertFileExists($modelPath);
+        $contents = file_get_contents($modelPath);
+        $this->assertIsString($contents);
+        $this->assertStringContainsString($wireName, $contents);
+        $this->assertStringNotContainsString($titleName, $contents);
+    }
+
+    private function assertArrayEnumScalarHydrates(): void
+    {
+        if ($this->language !== 'php') {
+            return;
+        }
+
+        $specification = Parser::parse([
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => ['/oauth' => ['post' => [
+                'operationId' => 'updateOAuth',
+                'tags' => ['project'],
+                'responses' => ['200' => [
+                    'description' => 'ok',
+                    'content' => ['application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/OAuth2Google'],
+                    ]],
+                ]],
+            ]]],
+            'components' => ['schemas' => [
+                'OAuth2Google' => [
+                    'type' => 'object',
+                    'required' => ['prompt'],
+                    'properties' => [
+                        'prompt' => [
+                            'type' => 'array',
+                            'example' => 'none',
+                            'items' => [
+                                'type' => 'string',
+                                'enum' => ['none', 'consent'],
+                                'x-enum-name' => 'OAuth2Prompt',
+                            ],
+                        ],
+                    ],
+                ],
+            ]],
+        ]);
+
+        $php = new class () extends PHPLanguage {
+            public function mockPayload(string $definitionName, Specification $spec): string
+            {
+                return $this->getMockDefinitionPayload($definitionName, $spec);
+            }
+        };
+        $payload = $php->mockPayload('OAuth2Google', $specification);
+        $this->assertStringContainsString('"prompt" => ["none"]', $payload);
+        $this->assertStringNotContainsString('"prompt" => "none"', $payload);
+
+        $dir = \sys_get_temp_dir() . '/sdk-array-enum-' . \bin2hex(\random_bytes(4));
+        $sdk = new SDK(new PHPLanguage(), $specification);
+        $sdk
+            ->setName('php')
+            ->setVersion('0.0.1')
+            ->setNamespace('appwrite');
+        $sdk->generate($dir);
+
+        try {
+            $modelPath = $dir . '/src/Appwrite/Models/OAuth2Google.php';
+            $this->assertFileExists($modelPath);
+            $modelSource = \file_get_contents($modelPath);
+            $this->assertIsString($modelSource);
+            $this->assertStringContainsString(
+                '[static::hydrateTypedValue(OAuth2GooglePrompt::class, $data[\'prompt\'])]',
+                $modelSource
+            );
+
+            require_once $dir . '/src/Appwrite/Models/ArraySerializable.php';
+            foreach (\glob($dir . '/src/Appwrite/Enums/*.php') ?: [] as $file) {
+                require_once $file;
+            }
+            require_once $modelPath;
+
+            $modelClass = 'Appwrite\\Models\\OAuth2Google';
+            $model = $modelClass::from(['prompt' => 'none']);
+            $this->assertCount(1, $model->prompt);
+            $this->assertSame('none', (string) $model->prompt[0]);
+        } finally {
+            $this->rmdirRecursive($dir);
         }
     }
 

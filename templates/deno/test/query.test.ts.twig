@@ -1,6 +1,6 @@
 import {describe, it as test} from "https://deno.land/std@0.149.0/testing/bdd.ts";
 import {assertEquals} from "https://deno.land/std@0.204.0/assert/assert_equals.ts";
-import {Query, QueryTypes} from "../src/query.ts";
+import {Query, QueryTypes, flattenParam, normalizeQueries} from "../src/query.ts";
 
 type BasicFilterQueryTest = {
     description: string;
@@ -274,4 +274,218 @@ describe('Query', () => {
         Query.updatedBetween('2023-01-01', '2023-12-31').toString(),
         `{"method":"between","attribute":"$updatedAt","values":["2023-01-01","2023-12-31"]}`,
     ));
+
+    test('count with alias', () => assertEquals(
+        Query.count('*', 'total').toString(),
+        '{"method":"count","attribute":"*","values":["total"]}',
+    ));
+
+    test('count without alias', () => assertEquals(
+        Query.count().toString(),
+        '{"method":"count","attribute":"*"}',
+    ));
+
+    test('countDistinct', () => assertEquals(
+        Query.countDistinct('year', 'uniqueYears').toString(),
+        '{"method":"countDistinct","attribute":"year","values":["uniqueYears"]}',
+    ));
+
+    test('sum', () => assertEquals(
+        Query.sum('price', 'total').toString(),
+        '{"method":"sum","attribute":"price","values":["total"]}',
+    ));
+
+    test('avg', () => assertEquals(
+        Query.avg('price', 'avgPrice').toString(),
+        '{"method":"avg","attribute":"price","values":["avgPrice"]}',
+    ));
+
+    test('min', () => assertEquals(
+        Query.min('price', 'lowest').toString(),
+        '{"method":"min","attribute":"price","values":["lowest"]}',
+    ));
+
+    test('max', () => assertEquals(
+        Query.max('price', 'highest').toString(),
+        '{"method":"max","attribute":"price","values":["highest"]}',
+    ));
+
+    test('stddev', () => assertEquals(
+        Query.stddev('price', 'sd').toString(),
+        '{"method":"stddev","attribute":"price","values":["sd"]}',
+    ));
+
+    test('stddevPop', () => assertEquals(
+        Query.stddevPop('price', 'sdp').toString(),
+        '{"method":"stddevPop","attribute":"price","values":["sdp"]}',
+    ));
+
+    test('stddevSamp', () => assertEquals(
+        Query.stddevSamp('price', 'sds').toString(),
+        '{"method":"stddevSamp","attribute":"price","values":["sds"]}',
+    ));
+
+    test('variance', () => assertEquals(
+        Query.variance('price', 'var').toString(),
+        '{"method":"variance","attribute":"price","values":["var"]}',
+    ));
+
+    test('varPop', () => assertEquals(
+        Query.varPop('price', 'vp').toString(),
+        '{"method":"varPop","attribute":"price","values":["vp"]}',
+    ));
+
+    test('varSamp', () => assertEquals(
+        Query.varSamp('price', 'vs').toString(),
+        '{"method":"varSamp","attribute":"price","values":["vs"]}',
+    ));
+
+    test('bitAnd', () => assertEquals(
+        Query.bitAnd('flags', 'band').toString(),
+        '{"method":"bitAnd","attribute":"flags","values":["band"]}',
+    ));
+
+    test('bitOr', () => assertEquals(
+        Query.bitOr('flags', 'bor').toString(),
+        '{"method":"bitOr","attribute":"flags","values":["bor"]}',
+    ));
+
+    test('bitXor', () => assertEquals(
+        Query.bitXor('flags', 'bxor').toString(),
+        '{"method":"bitXor","attribute":"flags","values":["bxor"]}',
+    ));
+
+    test('groupBy', () => assertEquals(
+        Query.groupBy(['status', 'year']).toString(),
+        '{"method":"groupBy","values":["status","year"]}',
+    ));
+
+    test('having nests parsed queries', () => {
+        const having = JSON.parse(Query.having([Query.greaterThan('total', 1)]));
+        assertEquals(having.method, 'having');
+        assertEquals(having.values[0].method, 'greaterThan');
+        assertEquals(having.values[0].attribute, 'total');
+        assertEquals(having.values[0].values, [1]);
+    });
+
+    test('distinct', () => assertEquals(
+        Query.distinct().toString(),
+        '{"method":"distinct"}',
+    ));
+
+    test('join', () => assertEquals(
+        Query.join('orders', '$id', 'customerId').toString(),
+        '{"method":"join","attribute":"orders","values":["$id","=","customerId"]}',
+    ));
+
+    test('leftJoin with alias', () => assertEquals(
+        Query.leftJoin('orders', '$id', 'customerId', '=', 'ord').toString(),
+        '{"method":"leftJoin","attribute":"orders","values":["$id","=","customerId","ord"]}',
+    ));
+
+    test('rightJoin', () => assertEquals(
+        Query.rightJoin('orders', '$id', 'customerId').toString(),
+        '{"method":"rightJoin","attribute":"orders","values":["$id","=","customerId"]}',
+    ));
+
+    test('fullOuterJoin', () => assertEquals(
+        Query.fullOuterJoin('orders', '$id', 'customerId').toString(),
+        '{"method":"fullOuterJoin","attribute":"orders","values":["$id","=","customerId"]}',
+    ));
+
+    test('on', () => assertEquals(
+        Query.on('$id', 'customerId').toString(),
+        '{"method":"on","values":["$id","=","customerId"]}',
+    ));
+
+    test('nested leftJoin', () => {
+        const query = JSON.parse(Query.leftJoin('orders', 'ord', [
+            Query.on('$id', 'customerId'),
+            Query.equal('ord.status', 'paid'),
+        ]).toString());
+        assertEquals(query.method, 'leftJoin');
+        assertEquals(query.attribute, 'orders');
+        assertEquals(query.values[0], 'ord');
+        assertEquals(query.values[1].method, 'on');
+        assertEquals(query.values[2].method, 'equal');
+    });
+
+    test('crossJoin', () => assertEquals(
+        Query.crossJoin('orders', 'ord').toString(),
+        '{"method":"crossJoin","attribute":"orders","values":["ord"]}',
+    ));
+
+    test('vectorDot', () => assertEquals(
+        Query.vectorDot('embedding', [0.1, 0.2]).toString(),
+        '{"method":"vectorDot","attribute":"embedding","values":[[0.1,0.2]]}',
+    ));
+
+    test('notCovers', () => assertEquals(
+        Query.notCovers('location', [1, 2]).toString(),
+        '{"method":"notCovers","attribute":"location","values":[[1,2]]}',
+    ));
+
+    test('spatialEquals', () => assertEquals(
+        Query.spatialEquals('location', [1, 2]).toString(),
+        '{"method":"spatialEquals","attribute":"location","values":[[1,2]]}',
+    ));
+
+    test('notSpatialEquals', () => assertEquals(
+        Query.notSpatialEquals('location', [1, 2]).toString(),
+        '{"method":"notSpatialEquals","attribute":"location","values":[[1,2]]}',
+    ));
+
+    test('page', () => {
+        const queries = Query.page(2, 10);
+        assertEquals(queries, [
+            '{"method":"limit","values":[10]}',
+            '{"method":"offset","values":[10]}',
+        ]);
+    });
+
+    test('builder build', () => {
+        const built = Query.builder()
+            .equal('status', 'published')
+            .leftJoin('orders', '$id', 'customerId', '=', 'ord')
+            .count('*', 'total')
+            .groupBy(['status'])
+            .limit(25)
+            .build();
+
+        assertEquals(built, [
+            Query.equal('status', 'published'),
+            Query.leftJoin('orders', '$id', 'customerId', '=', 'ord'),
+            Query.count('*', 'total'),
+            Query.groupBy(['status']),
+            Query.limit(25),
+        ]);
+    });
+
+    test('normalize builder wrapped in array', () => {
+        const builder = Query.builder().equal('status', 'active').limit(10);
+        assertEquals(normalizeQueries([builder]), builder.build());
+        assertEquals(normalizeQueries([builder.build()]), builder.build());
+        assertEquals(normalizeQueries(builder), builder.build());
+    });
+
+    test('normalize page wrapped in array', () => {
+        assertEquals(normalizeQueries([Query.equal('status', 'active'), Query.page(2, 10)]), [
+            Query.equal('status', 'active'),
+            Query.limit(10),
+            Query.offset(10),
+        ]);
+    });
+
+    test('flattenParam spreads wrapped builder', () => {
+        assertEquals(flattenParam([Query.builder().limit(1)]), [Query.limit(1)]);
+    });
+
+    test('flattenParam keeps nested numeric arrays', () => {
+        const geometry = [[1, 2], [3, 4]];
+        assertEquals(flattenParam(geometry), geometry);
+    });
+
+    test('flattenParam keeps query string list', () => {
+        assertEquals(flattenParam([Query.limit(1)]), [Query.limit(1)]);
+    });
 })

@@ -3,6 +3,9 @@
 use serde::Serialize;
 use serde_json::Value;
 
+mod builder;
+pub use builder::Builder;
+
 /// Query builder for filtering and sorting database queries
 #[derive(Debug, Clone, Serialize)]
 pub struct Query {
@@ -277,6 +280,278 @@ impl Query {
             .filter_map(|query| serde_json::from_str(query.as_ref()).ok())
             .collect();
         Self::new("elemMatch".to_string(), Some(attribute.into()), values)
+    }
+
+    pub fn count(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("count", attribute, alias)
+    }
+
+    pub fn count_distinct(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("countDistinct", attribute, alias)
+    }
+
+    pub fn sum(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("sum", attribute, alias)
+    }
+
+    pub fn avg(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("avg", attribute, alias)
+    }
+
+    pub fn min(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("min", attribute, alias)
+    }
+
+    pub fn max(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("max", attribute, alias)
+    }
+
+    pub fn stddev(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("stddev", attribute, alias)
+    }
+
+    pub fn stddev_pop(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("stddevPop", attribute, alias)
+    }
+
+    pub fn stddev_samp(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("stddevSamp", attribute, alias)
+    }
+
+    pub fn variance(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("variance", attribute, alias)
+    }
+
+    pub fn var_pop(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("varPop", attribute, alias)
+    }
+
+    pub fn var_samp(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("varSamp", attribute, alias)
+    }
+
+    pub fn bit_and(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("bitAnd", attribute, alias)
+    }
+
+    pub fn bit_or(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("bitOr", attribute, alias)
+    }
+
+    pub fn bit_xor(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("bitXor", attribute, alias)
+    }
+
+    pub fn group_by<I, S>(attributes: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        let values: Vec<Value> = attributes.into_iter().map(|s| Value::String(s.into())).collect();
+        Self::new("groupBy".to_string(), None, values)
+    }
+
+    pub fn having<I, S>(queries: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let values: Vec<Value> = queries
+            .into_iter()
+            .filter_map(|query| serde_json::from_str(query.as_ref()).ok())
+            .collect();
+        Self::new("having".to_string(), None, values)
+    }
+
+    pub fn distinct() -> Self {
+        Self::new("distinct".to_string(), None, vec![])
+    }
+
+    pub fn on(
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+    ) -> Self {
+        Self::new(
+            "on".to_string(),
+            None,
+            vec![
+                Value::String(left.into()),
+                Value::String(operator.into()),
+                Value::String(right.into()),
+            ],
+        )
+    }
+
+    pub fn join(
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        Self::join_query("join", table, left, right, operator, alias)
+    }
+
+    pub fn left_join(
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        Self::join_query("leftJoin", table, left, right, operator, alias)
+    }
+
+    pub fn right_join(
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        Self::join_query("rightJoin", table, left, right, operator, alias)
+    }
+
+    pub fn full_outer_join(
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        Self::join_query("fullOuterJoin", table, left, right, operator, alias)
+    }
+
+    pub fn cross_join(table: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("crossJoin", table, alias)
+    }
+
+    pub fn join_on<I, S>(table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        Self::nested_join("join", table, alias, on)
+    }
+
+    pub fn left_join_on<I, S>(table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        Self::nested_join("leftJoin", table, alias, on)
+    }
+
+    pub fn right_join_on<I, S>(table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        Self::nested_join("rightJoin", table, alias, on)
+    }
+
+    pub fn full_outer_join_on<I, S>(table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        Self::nested_join("fullOuterJoin", table, alias, on)
+    }
+
+    pub fn covers<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("covers".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn not_covers<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("notCovers".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn spatial_equals<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("spatialEquals".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn not_spatial_equals<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("notSpatialEquals".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn page(page: u32, per_page: u32) -> Vec<Self> {
+        if page < 1 {
+            panic!("Page must be >= 1, got {}", page);
+        }
+        if per_page < 1 {
+            panic!("Per page must be >= 1, got {}", per_page);
+        }
+        vec![Self::limit(per_page), Self::offset((page - 1) * per_page)]
+    }
+
+    pub fn builder() -> Builder {
+        Builder::new()
+    }
+
+    pub(crate) fn normalize(value: impl Serialize) -> Vec<String> {
+        match serde_json::to_value(value) {
+            Ok(v) => Self::normalize_value(&v),
+            Err(_) => vec![],
+        }
+    }
+
+    pub(crate) fn normalize_value(value: &Value) -> Vec<String> {
+        match value {
+            Value::Null => vec![],
+            Value::String(s) => vec![s.clone()],
+            Value::Array(items) => items.iter().flat_map(Self::normalize_value).collect(),
+            Value::Object(_) => vec![value.to_string()],
+            _ => vec![],
+        }
+    }
+
+    fn aliased(method: &str, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        let alias = alias.into();
+        let values = if alias.is_empty() {
+            vec![]
+        } else {
+            vec![Value::String(alias)]
+        };
+        Self::new(method.to_string(), Some(attribute.into()), values)
+    }
+
+    fn join_query(
+        method: &str,
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        let mut values = vec![
+            Value::String(left.into()),
+            Value::String(operator.into()),
+            Value::String(right.into()),
+        ];
+        let alias = alias.into();
+        if !alias.is_empty() {
+            values.push(Value::String(alias));
+        }
+        Self::new(method.to_string(), Some(table.into()), values)
+    }
+
+    fn nested_join<I, S>(method: &str, table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let mut values = Vec::new();
+        let alias = alias.into();
+        if !alias.is_empty() {
+            values.push(Value::String(alias));
+        }
+        for query in on {
+            if let Ok(parsed) = serde_json::from_str::<Value>(query.as_ref()) {
+                values.push(parsed);
+            }
+        }
+        Self::new(method.to_string(), Some(table.into()), values)
     }
 
     /// Convert query to JSON value (matches Go/Python SDK format)
@@ -881,5 +1156,279 @@ mod tests {
         assert_eq!(value["method"], "notSearch");
         assert_eq!(value["attribute"], "content");
         assert_eq!(value["values"][0], "spam keyword");
+    }
+
+    #[test]
+    fn test_count_with_alias() {
+        let query = Query::count("*", "total");
+        let value = query.to_value();
+        assert_eq!(value["method"], "count");
+        assert_eq!(value["attribute"], "*");
+        assert_eq!(value["values"][0], "total");
+    }
+
+    #[test]
+    fn test_count_without_alias() {
+        let query = Query::count("*", "");
+        let value = query.to_value();
+        assert_eq!(value["method"], "count");
+        assert_eq!(value["attribute"], "*");
+        assert!(value.get("values").is_none());
+    }
+
+    #[test]
+    fn test_count_distinct() {
+        let value = Query::count_distinct("year", "uniqueYears").to_value();
+        assert_eq!(value["method"], "countDistinct");
+        assert_eq!(value["attribute"], "year");
+        assert_eq!(value["values"][0], "uniqueYears");
+    }
+
+    #[test]
+    fn test_sum() {
+        assert_eq!(Query::sum("price", "total").to_value()["method"], "sum");
+    }
+
+    #[test]
+    fn test_avg() {
+        assert_eq!(Query::avg("price", "avgPrice").to_value()["method"], "avg");
+    }
+
+    #[test]
+    fn test_min() {
+        assert_eq!(Query::min("price", "lowest").to_value()["method"], "min");
+    }
+
+    #[test]
+    fn test_max() {
+        assert_eq!(Query::max("price", "highest").to_value()["method"], "max");
+    }
+
+    #[test]
+    fn test_stddev() {
+        assert_eq!(Query::stddev("price", "sd").to_value()["method"], "stddev");
+    }
+
+    #[test]
+    fn test_stddev_pop() {
+        assert_eq!(Query::stddev_pop("price", "sdp").to_value()["method"], "stddevPop");
+    }
+
+    #[test]
+    fn test_stddev_samp() {
+        assert_eq!(Query::stddev_samp("price", "sds").to_value()["method"], "stddevSamp");
+    }
+
+    #[test]
+    fn test_variance() {
+        assert_eq!(Query::variance("price", "var").to_value()["method"], "variance");
+    }
+
+    #[test]
+    fn test_var_pop() {
+        assert_eq!(Query::var_pop("price", "vp").to_value()["method"], "varPop");
+    }
+
+    #[test]
+    fn test_var_samp() {
+        assert_eq!(Query::var_samp("price", "vs").to_value()["method"], "varSamp");
+    }
+
+    #[test]
+    fn test_bit_and() {
+        assert_eq!(Query::bit_and("flags", "band").to_value()["method"], "bitAnd");
+    }
+
+    #[test]
+    fn test_bit_or() {
+        assert_eq!(Query::bit_or("flags", "bor").to_value()["method"], "bitOr");
+    }
+
+    #[test]
+    fn test_bit_xor() {
+        assert_eq!(Query::bit_xor("flags", "bxor").to_value()["method"], "bitXor");
+    }
+
+    #[test]
+    fn test_group_by() {
+        let query = Query::group_by(vec!["status", "year"]);
+        let value = query.to_value();
+        assert_eq!(value["method"], "groupBy");
+        assert_eq!(value["values"][0], "status");
+        assert_eq!(value["values"][1], "year");
+    }
+
+    #[test]
+    fn test_having() {
+        let query = Query::having(vec![Query::greater_than("total", 1).to_string()]);
+        let value = query.to_value();
+        assert_eq!(value["method"], "having");
+        assert_eq!(value["values"][0]["method"], "greaterThan");
+        assert_eq!(value["values"][0]["attribute"], "total");
+        assert_eq!(value["values"][0]["values"][0], 1);
+    }
+
+    #[test]
+    fn test_distinct() {
+        let query = Query::distinct();
+        let value = query.to_value();
+        assert_eq!(value["method"], "distinct");
+    }
+
+    #[test]
+    fn test_join() {
+        let query = Query::join("orders", "$id", "customerId", "=", "");
+        let value = query.to_value();
+        assert_eq!(value["method"], "join");
+        assert_eq!(value["attribute"], "orders");
+        assert_eq!(value["values"][0], "$id");
+        assert_eq!(value["values"][1], "=");
+        assert_eq!(value["values"][2], "customerId");
+        assert_eq!(value["values"].as_array().unwrap().len(), 3);
+    }
+
+    #[test]
+    fn test_left_join_with_alias() {
+        let query = Query::left_join("orders", "$id", "customerId", "=", "ord");
+        let value = query.to_value();
+        assert_eq!(value["method"], "leftJoin");
+        assert_eq!(value["attribute"], "orders");
+        assert_eq!(value["values"][3], "ord");
+    }
+
+    #[test]
+    fn test_on() {
+        let query = Query::on("$id", "customerId", "=");
+        let value = query.to_value();
+        assert_eq!(value["method"], "on");
+        assert_eq!(value["values"][0], "$id");
+        assert_eq!(value["values"][1], "=");
+        assert_eq!(value["values"][2], "customerId");
+    }
+
+    #[test]
+    fn test_nested_left_join() {
+        let query = Query::left_join_on(
+            "orders",
+            "ord",
+            [
+                Query::on("$id", "customerId", "=").to_string(),
+                Query::equal("ord.status", "paid").to_string(),
+            ],
+        );
+        let value = query.to_value();
+        assert_eq!(value["method"], "leftJoin");
+        assert_eq!(value["attribute"], "orders");
+        assert_eq!(value["values"][0], "ord");
+        assert_eq!(value["values"][1]["method"], "on");
+        assert_eq!(value["values"][2]["method"], "equal");
+    }
+
+    #[test]
+    fn test_cross_join() {
+        let query = Query::cross_join("orders", "ord");
+        let value = query.to_value();
+        assert_eq!(value["method"], "crossJoin");
+        assert_eq!(value["attribute"], "orders");
+        assert_eq!(value["values"][0], "ord");
+    }
+
+    #[test]
+    fn test_right_join() {
+        let value = Query::right_join("orders", "$id", "customerId", "=", "").to_value();
+        assert_eq!(value["method"], "rightJoin");
+        assert_eq!(value["values"][0], "$id");
+        assert_eq!(value["values"][1], "=");
+        assert_eq!(value["values"][2], "customerId");
+    }
+
+    #[test]
+    fn test_full_outer_join() {
+        let value = Query::full_outer_join("orders", "$id", "customerId", "=", "").to_value();
+        assert_eq!(value["method"], "fullOuterJoin");
+    }
+
+    #[test]
+    fn test_not_covers() {
+        let value = Query::not_covers("location", Value::Array(vec![Value::from(1), Value::from(2)])).to_value();
+        assert_eq!(value["method"], "notCovers");
+        assert_eq!(value["values"][0][0], 1);
+        assert_eq!(value["values"][0][1], 2);
+    }
+
+    #[test]
+    fn test_spatial_equals() {
+        let value = Query::spatial_equals("location", Value::Array(vec![Value::from(1), Value::from(2)])).to_value();
+        assert_eq!(value["method"], "spatialEquals");
+    }
+
+    #[test]
+    fn test_not_spatial_equals() {
+        let value = Query::not_spatial_equals("location", Value::Array(vec![Value::from(1), Value::from(2)])).to_value();
+        assert_eq!(value["method"], "notSpatialEquals");
+    }
+
+    #[test]
+    fn test_page() {
+        let queries = Query::page(2, 10);
+        assert_eq!(queries.len(), 2);
+        let limit = queries[0].clone().to_value();
+        let offset = queries[1].clone().to_value();
+        assert_eq!(limit["method"], "limit");
+        assert_eq!(limit["values"][0], 10);
+        assert_eq!(offset["method"], "offset");
+        assert_eq!(offset["values"][0], 10);
+    }
+
+    #[test]
+    fn test_builder_build() {
+        let built = Query::builder()
+            .equal("status", "published")
+            .left_join("orders", "$id", "customerId", "=", "ord")
+            .count("*", "total")
+            .group_by(vec!["status"])
+            .limit(25)
+            .build();
+
+        assert_eq!(
+            built,
+            vec![
+                Query::equal("status", "published").to_string(),
+                Query::left_join("orders", "$id", "customerId", "=", "ord").to_string(),
+                Query::count("*", "total").to_string(),
+                Query::group_by(vec!["status"]).to_string(),
+                Query::limit(25).to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_normalize_builder() {
+        let builder = Query::builder().equal("status", "active").limit(10);
+        let expected = builder.build();
+        assert_eq!(Query::normalize(builder.clone()), expected);
+        assert_eq!(Query::normalize(vec![builder.clone()]), expected);
+        assert_eq!(Query::normalize(vec![builder.build()]), expected);
+    }
+
+    #[test]
+    fn test_normalize_page_wrapped_in_array() {
+        let normalized = Query::normalize(vec![
+            Value::String(Query::equal("status", "active").to_string()),
+            Value::Array(
+                Query::page(2, 10)
+                    .into_iter()
+                    .map(|query| Value::String(query.to_string()))
+                    .collect(),
+            ),
+        ]);
+        assert_eq!(
+            normalized,
+            vec![
+                Query::equal("status", "active").to_string(),
+                Query::limit(10).to_string(),
+                Query::offset(10).to_string(),
+            ]
+        );
     }
 }

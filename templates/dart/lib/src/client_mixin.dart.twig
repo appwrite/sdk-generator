@@ -6,12 +6,18 @@ import 'dart:developer';
 import 'enums.dart';
 
 mixin ClientMixin {
+  dynamic flatten(dynamic value) => _flattenValue(value);
+
   http.BaseRequest prepareRequest(
     HttpMethod method, {
     required Uri uri,
     required Map<String, String> headers,
     required Map<String, dynamic> params,
   }) {
+    params = <String, dynamic>{
+      for (final entry in params.entries) entry.key: _flattenValue(entry.value),
+    };
+
     http.BaseRequest request = http.Request(method.name(), uri);
     if (headers['content-type'] == 'multipart/form-data') {
       request = http.MultipartRequest(method.name(), uri);
@@ -140,4 +146,34 @@ mixin ClientMixin {
       return await http.Response.fromStream(streamedResponse);
     }
   }
+}
+
+dynamic _flattenValue(dynamic value) {
+  if (value == null) {
+    return null;
+  }
+  try {
+    return _flattenValue(value.build());
+  } catch (_) {}
+  if (value is! List) {
+    return value;
+  }
+
+  final out = [];
+  var changed = false;
+  for (final item in value) {
+    final flat = _flattenValue(item);
+    if (item is! String &&
+        flat is List &&
+        flat.every((entry) => entry is String)) {
+      out.addAll(flat);
+      changed = true;
+      continue;
+    }
+    if (flat != item) {
+      changed = true;
+    }
+    out.add(flat);
+  }
+  return changed ? out : value;
 }

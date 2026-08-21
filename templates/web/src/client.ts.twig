@@ -1,6 +1,6 @@
 import { Models } from './models';
 import { Channel, ActionableChannel, ResolvedChannel } from './channel';
-import { Query } from './query';
+import { flattenParam, normalizeQueries, type QueryInput } from './query';
 import { ID } from './id';
 import JSONbigModule from 'json-bigint';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
@@ -762,7 +762,7 @@ class Client {
     subscribe<T extends unknown>(
         channels: string | string[] | Channel<any> | ActionableChannel | ResolvedChannel | (Channel<any> | ActionableChannel | ResolvedChannel)[],
         callback: (payload: RealtimeResponseEvent<T>) => void,
-        queries: (string | Query)[] = []
+        queries: QueryInput = []
     ): () => void {
         const channelArray = Array.isArray(channels) ? channels : [channels];
         // Convert Channel instances to strings
@@ -779,7 +779,7 @@ class Client {
         });
         channelStrings.forEach(channel => this.realtime.channels.add(channel));
 
-        const queryStrings = (queries ?? []).map(q => typeof q === 'string' ? q : q.toString());
+        const queryStrings = normalizeQueries(queries);
 
         let subscriptionId = '';
         const attempts = this.realtime.subscriptions.size + 1;
@@ -824,6 +824,10 @@ class Client {
 
     prepareRequest(method: string, url: URL, headers: Headers = {}, params: Payload = {}): { uri: string, options: RequestInit } {
         method = method.toUpperCase();
+
+        for (const key of Object.keys(params)) {
+            params[key] = flattenParam(params[key]);
+        }
 
         headers = Object.assign({}, this.headers, headers);
 
@@ -1109,7 +1113,7 @@ class Client {
 }
 
 export { Client, {{spec.info.title | caseUcfirst}}Exception };
-export { Query } from './query';
+export { Query, QueryBuilder, flattenParam } from './query';
 export type { Models, Payload, UploadProgress };
 export type { RealtimeResponseEvent };
-export type { QueryTypes, QueryTypesList } from './query';
+export type { QueryTypes, QueryTypesList, QueryInput } from './query';

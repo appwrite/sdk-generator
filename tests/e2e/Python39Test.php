@@ -44,6 +44,7 @@ final class Python39Test extends Base
         ...Base::EXCEPTION_RESPONSES,
         ...Base::OAUTH_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
+        ...Base::QUERY_FLATTEN_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES

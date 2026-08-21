@@ -219,6 +219,11 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'tests/{{ namespace | caseNamespacePath }}/ClientTest.php',
+                'template'      => 'php/tests/ClientTest.php.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ namespace | caseNamespacePath }}/Permission.php',
                 'template'      => 'php/src/Permission.php.twig',
             ],
@@ -251,6 +256,11 @@ class PHP extends Language
                 'scope'         => 'default',
                 'destination'   => 'src/{{ namespace | caseNamespacePath }}/Query.php',
                 'template'      => 'php/src/Query.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Query/Builder.php',
+                'template'      => 'php/src/Query/Builder.php.twig',
             ],
             [
                 'scope'         => 'default',

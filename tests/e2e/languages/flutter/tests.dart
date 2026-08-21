@@ -354,6 +354,51 @@ void main() async {
     Query.equal("name", "Alice"),
     Query.greaterThan("age", 18)
   ]));
+  print(Query.count('*', 'total'));
+  print(Query.join('orders', '\$id', 'customerId'));
+  print(Query.groupBy(['status']));
+  print(Query.distinct());
+  print(Query.covers('location', [1, 2]));
+  print(Query.countDistinct('year', 'uniqueYears'));
+  print(Query.sum('price', 'total'));
+  print(Query.avg('price', 'avgPrice'));
+  print(Query.min('price', 'lowest'));
+  print(Query.max('price', 'highest'));
+  print(Query.stddev('price', 'sd'));
+  print(Query.stddevPop('price', 'sdp'));
+  print(Query.stddevSamp('price', 'sds'));
+  print(Query.variance('price', 'var'));
+  print(Query.varPop('price', 'vp'));
+  print(Query.varSamp('price', 'vs'));
+  print(Query.bitAnd('flags', 'band'));
+  print(Query.bitOr('flags', 'bor'));
+  print(Query.bitXor('flags', 'bxor'));
+  print(Query.having([Query.greaterThan('total', 1)]));
+  print(Query.leftJoin('orders', '\$id', 'customerId', '=', 'ord'));
+  print(Query.rightJoin('orders', '\$id', 'customerId'));
+  print(Query.fullOuterJoin('orders', '\$id', 'customerId'));
+  print(Query.crossJoin('orders', 'ord'));
+  print(Query.on('\$id', 'customerId'));
+  print(Query.leftJoin('orders', 'ord', [
+    Query.on('\$id', 'customerId'),
+    Query.equal('ord.status', 'paid'),
+  ]));
+  print(Query.notCovers('location', [1, 2]));
+  print(Query.spatialEquals('location', [1, 2]));
+  print(Query.notSpatialEquals('location', [1, 2]));
+  final pageQueries = Query.page(2, 10);
+  print(pageQueries[0]);
+  print(pageQueries[1]);
+  print(Query.builder().limit(1).build()[0]);
+  final flatBuilder = client.flatten([Query.builder().limit(1)]);
+  print(flatBuilder is List && flatBuilder.length == 1 && flatBuilder[0] == Query.limit(1) ? 'flatten-builder:ok' : 'flatten-builder:fail');
+  final geometry = [
+    [1, 2],
+    [3, 4],
+  ];
+  print(client.flatten(geometry).toString() == geometry.toString() ? 'flatten-geometry:ok' : 'flatten-geometry:fail');
+  final flatList = client.flatten([Query.limit(1)]);
+  print(flatList is List && flatList.length == 1 && flatList[0] == Query.limit(1) ? 'flatten-list:ok' : 'flatten-list:fail');
 
   // Permission & Role helper tests
   print(Permission.read(Role.any()));

@@ -5,8 +5,8 @@ export { {{service.name | caseUcfirst}} } from './services/{{service.name | case
 export { Realtime } from './services/realtime';
 export type { Models, Payload, RealtimeResponseEvent, UploadProgress } from './client';
 export type { RealtimeSubscription } from './services/realtime';
-export type { QueryTypes, QueryTypesList } from './query';
-export { Query } from './query';
+export type { QueryTypes, QueryTypesList, QueryInput } from './query';
+export { Query, QueryBuilder, flattenParam } from './query';
 export { Permission } from './permission';
 export { Role } from './role';
 export { ID } from './id';

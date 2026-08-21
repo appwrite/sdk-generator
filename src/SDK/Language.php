@@ -499,17 +499,23 @@ abstract class Language
             return $name;
         }
 
+        $source = $this->getSchema($value);
+        $source = $source instanceof ArraySchema ? $source->items : $source;
+
         foreach ($spec?->schemas ?? [] as $modelName => $model) {
             if (!$model instanceof ObjectSchema) {
                 continue;
             }
             foreach ($model->properties as $propertyName => $property) {
-                if ($this->getEnumSchema($property) === $enumSchema) {
+                $propertySource = $this->getSchema($property);
+                $propertySource = $propertySource instanceof ArraySchema ? $propertySource->items : $propertySource;
+                if ($propertySource === $source) {
                     return \ucfirst($modelName) . \ucfirst($propertyName);
                 }
             }
         }
-        return '';
+
+        return $value instanceof Parameter ? $value->name : '';
     }
 
     protected function getSpecificationSchemaName(Schema $schema, Specification $spec): string

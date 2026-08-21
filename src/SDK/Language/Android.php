@@ -122,6 +122,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/QueryTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/QueryTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Operator.kt',
                 'template'      => '/android/library/src/main/java/io/package/Operator.kt.twig',
             ],

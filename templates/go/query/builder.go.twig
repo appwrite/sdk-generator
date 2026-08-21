@@ -1,0 +1,368 @@
+package query
+
+type Builder struct {
+	queries []string
+}
+
+func NewBuilder() *Builder {
+	return &Builder{}
+}
+
+func (b *Builder) Build() []string {
+	result := make([]string, len(b.queries))
+	copy(result, b.queries)
+	return result
+}
+
+func (b *Builder) push(queries ...string) *Builder {
+	b.queries = append(b.queries, queries...)
+	return b
+}
+
+func (b *Builder) Equal(attribute string, value interface{}) *Builder {
+	return b.push(Equal(attribute, value))
+}
+
+func (b *Builder) NotEqual(attribute string, value interface{}) *Builder {
+	return b.push(NotEqual(attribute, value))
+}
+
+func (b *Builder) LessThan(attribute string, value interface{}) *Builder {
+	return b.push(LessThan(attribute, value))
+}
+
+func (b *Builder) LessThanEqual(attribute string, value interface{}) *Builder {
+	return b.push(LessThanEqual(attribute, value))
+}
+
+func (b *Builder) GreaterThan(attribute string, value interface{}) *Builder {
+	return b.push(GreaterThan(attribute, value))
+}
+
+func (b *Builder) GreaterThanEqual(attribute string, value interface{}) *Builder {
+	return b.push(GreaterThanEqual(attribute, value))
+}
+
+func (b *Builder) Search(attribute string, value interface{}) *Builder {
+	return b.push(Search(attribute, value))
+}
+
+func (b *Builder) IsNull(attribute string) *Builder {
+	return b.push(IsNull(attribute))
+}
+
+func (b *Builder) IsNotNull(attribute string) *Builder {
+	return b.push(IsNotNull(attribute))
+}
+
+func (b *Builder) Between(attribute string, start, end interface{}) *Builder {
+	return b.push(Between(attribute, start, end))
+}
+
+func (b *Builder) StartsWith(attribute string, value interface{}) *Builder {
+	return b.push(StartsWith(attribute, value))
+}
+
+func (b *Builder) EndsWith(attribute string, value interface{}) *Builder {
+	return b.push(EndsWith(attribute, value))
+}
+
+func (b *Builder) Select(attributes interface{}) *Builder {
+	return b.push(Select(attributes))
+}
+
+func (b *Builder) CursorAfter(documentId string) *Builder {
+	return b.push(CursorAfter(documentId))
+}
+
+func (b *Builder) CursorBefore(documentId interface{}) *Builder {
+	return b.push(CursorBefore(documentId))
+}
+
+func (b *Builder) OrderAsc(attribute string) *Builder {
+	return b.push(OrderAsc(attribute))
+}
+
+func (b *Builder) OrderDesc(attribute string) *Builder {
+	return b.push(OrderDesc(attribute))
+}
+
+func (b *Builder) OrderRandom() *Builder {
+	return b.push(OrderRandom())
+}
+
+func (b *Builder) Limit(limit int) *Builder {
+	return b.push(Limit(limit))
+}
+
+func (b *Builder) Offset(offset int) *Builder {
+	return b.push(Offset(offset))
+}
+
+func (b *Builder) Contains(attribute string, value interface{}) *Builder {
+	return b.push(Contains(attribute, value))
+}
+
+func (b *Builder) ContainsAny(attribute string, value []interface{}) *Builder {
+	return b.push(ContainsAny(attribute, value))
+}
+
+func (b *Builder) ContainsAll(attribute string, value []interface{}) *Builder {
+	return b.push(ContainsAll(attribute, value))
+}
+
+func (b *Builder) NotContains(attribute string, value interface{}) *Builder {
+	return b.push(NotContains(attribute, value))
+}
+
+func (b *Builder) NotSearch(attribute string, value interface{}) *Builder {
+	return b.push(NotSearch(attribute, value))
+}
+
+func (b *Builder) NotBetween(attribute string, start, end interface{}) *Builder {
+	return b.push(NotBetween(attribute, start, end))
+}
+
+func (b *Builder) NotStartsWith(attribute string, value interface{}) *Builder {
+	return b.push(NotStartsWith(attribute, value))
+}
+
+func (b *Builder) NotEndsWith(attribute string, value interface{}) *Builder {
+	return b.push(NotEndsWith(attribute, value))
+}
+
+func (b *Builder) Regex(attribute string, pattern string) *Builder {
+	return b.push(Regex(attribute, pattern))
+}
+
+func (b *Builder) Exists(attributes []interface{}) *Builder {
+	return b.push(Exists(attributes))
+}
+
+func (b *Builder) NotExists(attributes []interface{}) *Builder {
+	return b.push(NotExists(attributes))
+}
+
+func (b *Builder) CreatedBefore(value interface{}) *Builder {
+	return b.push(CreatedBefore(value))
+}
+
+func (b *Builder) CreatedAfter(value interface{}) *Builder {
+	return b.push(CreatedAfter(value))
+}
+
+func (b *Builder) CreatedBetween(start, end interface{}) *Builder {
+	return b.push(CreatedBetween(start, end))
+}
+
+func (b *Builder) UpdatedBefore(value interface{}) *Builder {
+	return b.push(UpdatedBefore(value))
+}
+
+func (b *Builder) UpdatedAfter(value interface{}) *Builder {
+	return b.push(UpdatedAfter(value))
+}
+
+func (b *Builder) UpdatedBetween(start, end interface{}) *Builder {
+	return b.push(UpdatedBetween(start, end))
+}
+
+func (b *Builder) Or(queries []string) *Builder {
+	return b.push(Or(queries))
+}
+
+func (b *Builder) And(queries []string) *Builder {
+	return b.push(And(queries))
+}
+
+func (b *Builder) ElemMatch(attribute string, queries []string) *Builder {
+	return b.push(ElemMatch(attribute, queries))
+}
+
+func (b *Builder) DistanceEqual(attribute string, values []interface{}, distance float64, meters bool) *Builder {
+	return b.push(DistanceEqual(attribute, values, distance, meters))
+}
+
+func (b *Builder) DistanceNotEqual(attribute string, values []interface{}, distance float64, meters bool) *Builder {
+	return b.push(DistanceNotEqual(attribute, values, distance, meters))
+}
+
+func (b *Builder) DistanceGreaterThan(attribute string, values []interface{}, distance float64, meters bool) *Builder {
+	return b.push(DistanceGreaterThan(attribute, values, distance, meters))
+}
+
+func (b *Builder) DistanceLessThan(attribute string, values []interface{}, distance float64, meters bool) *Builder {
+	return b.push(DistanceLessThan(attribute, values, distance, meters))
+}
+
+func (b *Builder) Intersects(attribute string, values []interface{}) *Builder {
+	return b.push(Intersects(attribute, values))
+}
+
+func (b *Builder) NotIntersects(attribute string, values []interface{}) *Builder {
+	return b.push(NotIntersects(attribute, values))
+}
+
+func (b *Builder) Crosses(attribute string, values []interface{}) *Builder {
+	return b.push(Crosses(attribute, values))
+}
+
+func (b *Builder) NotCrosses(attribute string, values []interface{}) *Builder {
+	return b.push(NotCrosses(attribute, values))
+}
+
+func (b *Builder) Overlaps(attribute string, values []interface{}) *Builder {
+	return b.push(Overlaps(attribute, values))
+}
+
+func (b *Builder) NotOverlaps(attribute string, values []interface{}) *Builder {
+	return b.push(NotOverlaps(attribute, values))
+}
+
+func (b *Builder) Touches(attribute string, values []interface{}) *Builder {
+	return b.push(Touches(attribute, values))
+}
+
+func (b *Builder) NotTouches(attribute string, values []interface{}) *Builder {
+	return b.push(NotTouches(attribute, values))
+}
+
+func (b *Builder) Count(attribute, alias string) *Builder {
+	return b.push(Count(attribute, alias))
+}
+
+func (b *Builder) CountDistinct(attribute, alias string) *Builder {
+	return b.push(CountDistinct(attribute, alias))
+}
+
+func (b *Builder) Sum(attribute, alias string) *Builder {
+	return b.push(Sum(attribute, alias))
+}
+
+func (b *Builder) Avg(attribute, alias string) *Builder {
+	return b.push(Avg(attribute, alias))
+}
+
+func (b *Builder) Min(attribute, alias string) *Builder {
+	return b.push(Min(attribute, alias))
+}
+
+func (b *Builder) Max(attribute, alias string) *Builder {
+	return b.push(Max(attribute, alias))
+}
+
+func (b *Builder) Stddev(attribute, alias string) *Builder {
+	return b.push(Stddev(attribute, alias))
+}
+
+func (b *Builder) StddevPop(attribute, alias string) *Builder {
+	return b.push(StddevPop(attribute, alias))
+}
+
+func (b *Builder) StddevSamp(attribute, alias string) *Builder {
+	return b.push(StddevSamp(attribute, alias))
+}
+
+func (b *Builder) Variance(attribute, alias string) *Builder {
+	return b.push(Variance(attribute, alias))
+}
+
+func (b *Builder) VarPop(attribute, alias string) *Builder {
+	return b.push(VarPop(attribute, alias))
+}
+
+func (b *Builder) VarSamp(attribute, alias string) *Builder {
+	return b.push(VarSamp(attribute, alias))
+}
+
+func (b *Builder) BitAnd(attribute, alias string) *Builder {
+	return b.push(BitAnd(attribute, alias))
+}
+
+func (b *Builder) BitOr(attribute, alias string) *Builder {
+	return b.push(BitOr(attribute, alias))
+}
+
+func (b *Builder) BitXor(attribute, alias string) *Builder {
+	return b.push(BitXor(attribute, alias))
+}
+
+func (b *Builder) GroupBy(attributes []interface{}) *Builder {
+	return b.push(GroupBy(attributes))
+}
+
+func (b *Builder) Having(queries []string) *Builder {
+	return b.push(Having(queries))
+}
+
+func (b *Builder) Distinct() *Builder {
+	return b.push(Distinct())
+}
+
+func (b *Builder) Join(table, left, right, operator, alias string) *Builder {
+	return b.push(Join(table, left, right, operator, alias))
+}
+
+func (b *Builder) LeftJoin(table, left, right, operator, alias string) *Builder {
+	return b.push(LeftJoin(table, left, right, operator, alias))
+}
+
+func (b *Builder) RightJoin(table, left, right, operator, alias string) *Builder {
+	return b.push(RightJoin(table, left, right, operator, alias))
+}
+
+func (b *Builder) FullOuterJoin(table, left, right, operator, alias string) *Builder {
+	return b.push(FullOuterJoin(table, left, right, operator, alias))
+}
+
+func (b *Builder) JoinOn(table, alias string, on []string) *Builder {
+	return b.push(JoinOn(table, alias, on))
+}
+
+func (b *Builder) LeftJoinOn(table, alias string, on []string) *Builder {
+	return b.push(LeftJoinOn(table, alias, on))
+}
+
+func (b *Builder) RightJoinOn(table, alias string, on []string) *Builder {
+	return b.push(RightJoinOn(table, alias, on))
+}
+
+func (b *Builder) FullOuterJoinOn(table, alias string, on []string) *Builder {
+	return b.push(FullOuterJoinOn(table, alias, on))
+}
+
+func (b *Builder) CrossJoin(table, alias string) *Builder {
+	return b.push(CrossJoin(table, alias))
+}
+
+func (b *Builder) VectorDot(attribute string, vector []float64) *Builder {
+	return b.push(VectorDot(attribute, vector))
+}
+
+func (b *Builder) VectorCosine(attribute string, vector []float64) *Builder {
+	return b.push(VectorCosine(attribute, vector))
+}
+
+func (b *Builder) VectorEuclidean(attribute string, vector []float64) *Builder {
+	return b.push(VectorEuclidean(attribute, vector))
+}
+
+func (b *Builder) Covers(attribute string, values []interface{}) *Builder {
+	return b.push(Covers(attribute, values))
+}
+
+func (b *Builder) NotCovers(attribute string, values []interface{}) *Builder {
+	return b.push(NotCovers(attribute, values))
+}
+
+func (b *Builder) SpatialEquals(attribute string, values []interface{}) *Builder {
+	return b.push(SpatialEquals(attribute, values))
+}
+
+func (b *Builder) NotSpatialEquals(attribute string, values []interface{}) *Builder {
+	return b.push(NotSpatialEquals(attribute, values))
+}
+
+func (b *Builder) Page(page, perPage int) *Builder {
+	return b.push(Page(page, perPage)...)
+}
