@@ -299,10 +299,10 @@ class Tests: XCTestCase {
             }
             return mirror.children.map { String(describing: $0.value) }
         }
-        print(queryStrings(client.flatten([Query.builder().limit(1)])) == [Query.limit(1)] ? "flatten-builder:ok" : "flatten-builder:fail")
+        print(queryStrings(client.flatten([Query.builder().limit(1)] as [Any])) == [Query.limit(1)] ? "flatten-builder:ok" : "flatten-builder:fail")
         let geometry = [[1, 2], [3, 4]]
         print((client.flatten(geometry) as? [[Int]]) == geometry ? "flatten-geometry:ok" : "flatten-geometry:fail")
-        print(queryStrings(client.flatten([Query.limit(1)])) == [Query.limit(1)] ? "flatten-list:ok" : "flatten-list:fail")
+        print(queryStrings(client.flatten([Query.limit(1)] as [Any])) == [Query.limit(1)] ? "flatten-list:ok" : "flatten-list:fail")
 
         // Permission & Role helper tests
         print(Permission.read(Role.any()))
