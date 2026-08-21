@@ -11,8 +11,6 @@ use RecursiveDirectoryIterator;
 use FilesystemIterator;
 use Throwable;
 use Appwrite\SDK\Language;
-use Appwrite\SDK\Language\Deno;
-use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\SDK;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Parser;
@@ -616,7 +614,7 @@ abstract class Base extends TestCase
         $this->assertCount(1, $mergedEnums);
         $this->assertFalse($mergedEnums[0]->open, 'A closed use must keep a shared enum type closed.');
 
-        if ($language instanceof Web || $language instanceof Deno) {
+        if ($language->keepsOpenEnumType()) {
             $this->assertSame('(WebhookEvent | (string & {}))', $language->getTypeName($openScalar, $specification));
             $this->assertSame('(WebhookEvent | (string & {}))[]', $language->getTypeName($openArray, $specification));
 

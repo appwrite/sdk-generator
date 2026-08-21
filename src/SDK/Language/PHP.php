@@ -7,9 +7,9 @@ use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
-use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Model\SecurityScheme;
 use Utopia\OpenAPI\Model\SecuritySchemeType;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
@@ -667,12 +667,12 @@ class PHP extends Language
             ),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
-                $enumValues = $schema instanceof ArraySchema ? $schema->items->enum : $schema->enum;
+                $enumSchema = $this->getEnumSchema($param);
+                $enumValues = $enumSchema->enum;
                 if ($enumValues === []) {
                     return '';
                 }
 
-                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
                 $enumKeys = $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [];
                 $enumName = $this->toPascalCase(($enumSchema instanceof StringSchema ? $enumSchema->enumName : null) ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
                 $example = $this->getSchemaExample($param);

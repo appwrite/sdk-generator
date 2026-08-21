@@ -728,7 +728,7 @@ class Kotlin extends Language
     protected function getEnumExample(Schema|Parameter $param, string $lang = 'kotlin'): string
     {
         $schema = $this->getSchema($param);
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        $enumSchema = $this->getEnumSchema($param);
         $enumValues = $enumSchema->enum;
         if ($enumValues === []) {
             return '';

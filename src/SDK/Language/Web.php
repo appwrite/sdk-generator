@@ -2,10 +2,8 @@
 
 namespace Appwrite\SDK\Language;
 
-use Utopia\OpenAPI\Model\StringSchema;
 use InvalidArgumentException;
 use Utopia\OpenAPI\Model\ArraySchema;
-use Utopia\OpenAPI\Model\CompositeSchema;
 use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
@@ -207,16 +205,8 @@ class Web extends JS
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        $valueSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        $enumSchema = $this->getEnumSchema($parameter);
-        if ($enumSchema->enum !== []) {
-            $type = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
-            if ($valueSchema instanceof CompositeSchema && $valueSchema->openStringEnumBranch() instanceof StringSchema) {
-                // The intersection keeps enum completions without narrowing the strings the endpoint accepts.
-                $type = '(' . $type . ' | (string & {}))';
-            }
-
-            return $schema instanceof ArraySchema ? $type . '[]' : $type;
+        if (($type = $this->getEnumTypeName($parameter, $spec)) !== null) {
+            return $type;
         }
 
         $models = $this->getSchemaModels($parameter);

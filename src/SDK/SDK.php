@@ -2,8 +2,6 @@
 
 namespace Appwrite\SDK;
 
-use Appwrite\SDK\Language\Deno;
-use Appwrite\SDK\Language\Web;
 use Utopia\OpenAPI\Model\AnySchema;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\BooleanSchema;
@@ -185,10 +183,10 @@ class SDK
         $this->twig->addFilter(new TwigFilter('securityHeaders', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::HEADER, false)));
         $this->twig->addFilter(new TwigFilter('securityQueries', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::QUERY)));
         $this->twig->addFilter(new TwigFilter('schemaNullable', fn(Schema|Parameter $value): bool => !isset($this->multipartSchemas[\spl_object_id($this->getSchema($value))]) && $this->getSchema($value)->nullable));
-        $this->twig->addFilter(new TwigFilter('enumValues', fn(Schema|Parameter $value): array => $this->isOpenStringEnum($value) && (!$this->language instanceof Web && !$this->language instanceof Deno)
+        $this->twig->addFilter(new TwigFilter('enumValues', fn(Schema|Parameter $value): array => $this->language->isOpenStringEnum($value) && !$this->language->keepsOpenEnumType()
             ? []
-            : $this->getEnumSchema($value)->enum));
-        $this->twig->addFilter(new TwigFilter('openEnum', fn(Schema|Parameter $value): bool => $this->isOpenStringEnum($value)));
+            : $this->language->getEnumSchema($value)->enum));
+        $this->twig->addFilter(new TwigFilter('openEnum', fn(Schema|Parameter $value): bool => $this->language->isOpenStringEnum($value)));
         $this->twig->addFilter(new TwigFilter('arraySchema', fn(Schema|Parameter $value): ?Schema => ($schema = $this->getSchema($value)) instanceof ArraySchema ? $schema->items : null));
         $this->twig->addFilter(new TwigFilter('emptyResponse', fn(Operation $operation): bool => \array_keys($operation->responses) === [204] || \array_keys($operation->responses) === ['204']));
         $this->twig->addFilter(new TwigFilter('fullPath', fn(Operation $operation): string => (\parse_url($this->spec->servers[0]->url ?? '', PHP_URL_PATH) ?: '') . $operation->path));
@@ -785,13 +783,13 @@ class SDK
         foreach ((array_keys($filteredServices ?? $this->getFilteredServices())) as $serviceName) {
             foreach ($this->getFilteredMethods($this->getMethods($serviceName), $serviceName) as $operation) {
                 foreach ($this->getOperationParameters($operation) as $parameter) {
-                    $enumSchema = $this->getEnumSchema($parameter);
+                    $enumSchema = $this->language->getEnumSchema($parameter);
                     if ($enumSchema->enum !== []) {
                         $schemas[] = new StringSchema(
                             title: $this->getEnumName($parameter),
                             enum: $enumSchema->enum,
                             enumKeys: $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [],
-                            open: $this->isOpenStringEnum($parameter),
+                            open: $this->language->isOpenStringEnum($parameter),
                         );
                     }
                 }
@@ -834,13 +832,13 @@ class SDK
                 continue;
             }
             foreach ($model->properties as $property) {
-                $enumSchema = $this->getEnumSchema($property);
+                $enumSchema = $this->language->getEnumSchema($property);
                 if ($enumSchema->enum !== []) {
                     $enums[] = new StringSchema(
                         title: $this->getEnumName($property),
                         enum: $enumSchema->enum,
                         enumKeys: $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [],
-                        open: $this->isOpenStringEnum($property),
+                        open: $this->language->isOpenStringEnum($property),
                     );
                 }
             }
@@ -859,7 +857,7 @@ class SDK
             if ($name === '') {
                 continue;
             }
-            $open[$name] = ($open[$name] ?? true) && $this->isOpenStringEnum($schema);
+            $open[$name] = ($open[$name] ?? true) && $this->language->isOpenStringEnum($schema);
             foreach ($schema->enum as $index => $value) {
                 if (!\in_array($value, $values[$name] ?? [], true)) {
                     $values[$name][] = $value;
@@ -1545,32 +1543,13 @@ class SDK
         return $value instanceof Parameter ? ($value->schema ?? new AnySchema()) : $value;
     }
 
-    protected function getEnumSchema(Schema|Parameter $value): Schema
-    {
-        $schema = $this->getSchema($value);
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-
-        return $enumSchema instanceof CompositeSchema
-            ? ($enumSchema->openStringEnumBranch() ?? $enumSchema)
-            : $enumSchema;
-    }
-
-    protected function isOpenStringEnum(Schema|Parameter $value): bool
-    {
-        $schema = $this->getSchema($value);
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-
-        return ($enumSchema instanceof StringSchema && $enumSchema->open)
-            || ($enumSchema instanceof CompositeSchema && $enumSchema->openStringEnumBranch()?->open === true);
-    }
-
     protected function getSchemaType(Schema|Parameter $value): string
     {
         $schema = $this->getSchema($value);
         return match (true) {
             $schema instanceof StringSchema && $schema->format === 'binary' => 'file',
             $schema instanceof StringSchema,
-            $schema instanceof CompositeSchema && $schema->openStringEnumBranch() instanceof StringSchema => 'string',
+            $schema instanceof CompositeSchema && $this->language->isOpenStringEnum($schema) => 'string',
             $schema instanceof IntegerSchema => 'integer',
             $schema instanceof NumberSchema => 'number',
             $schema instanceof BooleanSchema => 'boolean',
@@ -1655,7 +1634,7 @@ class SDK
 
     protected function getEnumName(Schema|Parameter $value): string
     {
-        $enumSchema = $this->getEnumSchema($value);
+        $enumSchema = $this->language->getEnumSchema($value);
         if ($enumSchema->enum === []) {
             return '';
         }
@@ -1667,7 +1646,7 @@ class SDK
 
     protected function getEnumKeys(Schema|Parameter $value): array
     {
-        $enumSchema = $this->getEnumSchema($value);
+        $enumSchema = $this->language->getEnumSchema($value);
 
         return $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [];
     }
@@ -1697,7 +1676,7 @@ class SDK
                     $this->schemaEnumNames[$itemId] = \ucfirst($modelName) . \ucfirst($propertyName);
                 }
 
-                $enumSchema = $this->getEnumSchema($property);
+                $enumSchema = $this->language->getEnumSchema($property);
                 $enumId = \spl_object_id($enumSchema);
                 $this->schemaNames[$enumId] = $propertyName;
                 $this->schemaEnumNames[$enumId] = \ucfirst($modelName) . \ucfirst($propertyName);

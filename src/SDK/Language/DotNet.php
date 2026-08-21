@@ -495,7 +495,7 @@ class DotNet extends Language
             new TwigFilter('toMapValue', fn(Schema $property, string $resolvedName, Specification $spec): string => $this->getToMapExpression($property, $resolvedName, $spec), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
-                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumSchema = $this->getEnumSchema($param);
                 $enumValues = $enumSchema->enum;
                 if ($enumValues === []) {
                     return '';

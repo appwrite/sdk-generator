@@ -4,7 +4,6 @@ namespace Appwrite\SDK\Language;
 
 use Utopia\OpenAPI\Model\AnySchema;
 use Utopia\OpenAPI\Model\ArraySchema;
-use Utopia\OpenAPI\Model\CompositeSchema;
 use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
@@ -588,7 +587,7 @@ class Swift extends Language
             }),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
-                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumSchema = $this->getEnumSchema($param);
                 $enumValues = $enumSchema->enum;
                 if ($enumValues === []) {
                     return '';

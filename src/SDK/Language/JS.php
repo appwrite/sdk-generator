@@ -189,6 +189,28 @@ abstract class JS extends Language
     }
 
     #[Override]
+    public function keepsOpenEnumType(): bool
+    {
+        return true;
+    }
+
+    protected function getEnumTypeName(Schema|Parameter $parameter, ?Specification $spec = null): ?string
+    {
+        $schema = $this->getSchema($parameter);
+        $enumSchema = $this->getEnumSchema($parameter);
+        if ($enumSchema->enum === []) {
+            return null;
+        }
+
+        $type = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
+        if ($this->isOpenStringEnum($parameter)) {
+            $type = '(' . $type . ' | (string & {}))';
+        }
+
+        return $schema instanceof ArraySchema ? $type . '[]' : $type;
+    }
+
+    #[Override]
     public function getFilters(): array
     {
         return [

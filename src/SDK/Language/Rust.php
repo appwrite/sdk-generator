@@ -587,9 +587,9 @@ class Rust extends Language
                     if (isset($this->getIdentifierOverrides()[$value])) {
                         $value = $this->getIdentifierOverrides()[$value];
                     }
-                } elseif ($this->getSchema($param)->enum !== [] || ($this->getSchema($param) instanceof ArraySchema && $this->getSchema($param)->items->enum !== [])) {
+                } elseif ($this->getEnumSchema($param)->enum !== []) {
                     $schema = $this->getSchema($param);
-                    $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                    $enumSchema = $this->getEnumSchema($param);
                     $enumName = $this->toPascalCase($this->getSchemaEnumName($param));
                     $example = $this->getSchemaExample($param) ?? $enumSchema->enum[0];
 

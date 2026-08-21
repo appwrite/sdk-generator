@@ -629,7 +629,7 @@ class Python extends Language
 
             $example = $this->getSchemaExample($property);
             $hasExample = $example !== null && $example !== '';
-            $enumValues = $property instanceof ArraySchema ? $property->items->enum : $property->enum;
+            $enumValues = $this->getEnumSchema($property)->enum;
             $result[$propertyName] = match ($this->getSchemaType($property)) {
                 self::TYPE_OBJECT => ($models = $this->getSchemaModels($property)) !== []
                     ? $this->getResponseModelExample($models[0], $spec, $visited)
@@ -732,7 +732,7 @@ class Python extends Language
             }),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
-                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumSchema = $this->getEnumSchema($param);
                 $enumValues = $enumSchema->enum;
                 if ($enumValues === []) {
                     return '';
