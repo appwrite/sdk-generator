@@ -10,6 +10,7 @@ class BasicFilterQueryTest:
         self.value = value
         self.expected_values = expected_values
 
+
 tests = [
     BasicFilterQueryTest('with a string', 's', '["s"]'),
     BasicFilterQueryTest('with an integer', 1, '[1]'),
@@ -27,7 +28,7 @@ class TestQueryMethods(unittest.TestCase):
             self.assertEqual(
                 Query.equal('attr', t.value),
                 {% verbatim %}f'{{"method":"equal","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
-                t.description
+                t.description,
             )
 
     def test_not_equal(self):
@@ -35,7 +36,7 @@ class TestQueryMethods(unittest.TestCase):
             self.assertEqual(
                 Query.not_equal('attr', t.value),
                 {% verbatim %}f'{{"method":"notEqual","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
-                t.description
+                t.description,
             )
 
     def test_less_than(self):
@@ -43,7 +44,7 @@ class TestQueryMethods(unittest.TestCase):
             self.assertEqual(
                 Query.less_than('attr', t.value),
                 {% verbatim %}f'{{"method":"lessThan","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
-                t.description
+                t.description,
             )
 
     def test_less_than_equal(self):
@@ -51,7 +52,7 @@ class TestQueryMethods(unittest.TestCase):
             self.assertEqual(
                 Query.less_than_equal('attr', t.value),
                 {% verbatim %}f'{{"method":"lessThanEqual","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
-                t.description
+                t.description,
             )
 
     def test_greater_than(self):
@@ -59,7 +60,7 @@ class TestQueryMethods(unittest.TestCase):
             self.assertEqual(
                 Query.greater_than('attr', t.value),
                 {% verbatim %}f'{{"method":"greaterThan","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
-                t.description
+                t.description,
             )
 
     def test_greater_than_equal(self):
@@ -67,11 +68,14 @@ class TestQueryMethods(unittest.TestCase):
             self.assertEqual(
                 Query.greater_than_equal('attr', t.value),
                 {% verbatim %}f'{{"method":"greaterThanEqual","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
-                t.description
+                t.description,
             )
 
     def test_search(self):
-        self.assertEqual(Query.search('attr', 'keyword1 keyword2'), '{"method":"search","attribute":"attr","values":["keyword1 keyword2"]}')
+        self.assertEqual(
+            Query.search('attr', 'keyword1 keyword2'),
+            '{"method":"search","attribute":"attr","values":["keyword1 keyword2"]}',
+        )
 
     def test_is_null(self):
         self.assertEqual(Query.is_null('attr'), '{"method":"isNull","attribute":"attr"}')
@@ -113,7 +117,10 @@ class TestQueryMethods(unittest.TestCase):
         self.assertEqual(Query.count('*', 'total'), '{"method":"count","attribute":"*","values":["total"]}')
 
     def test_count_distinct(self):
-        self.assertEqual(Query.count_distinct('year', 'uniqueYears'), '{"method":"countDistinct","attribute":"year","values":["uniqueYears"]}')
+        self.assertEqual(
+            Query.count_distinct('year', 'uniqueYears'),
+            '{"method":"countDistinct","attribute":"year","values":["uniqueYears"]}',
+        )
 
     def test_sum(self):
         self.assertEqual(Query.sum('price', 'total'), '{"method":"sum","attribute":"price","values":["total"]}')
@@ -131,10 +138,14 @@ class TestQueryMethods(unittest.TestCase):
         self.assertEqual(Query.stddev('price', 'sd'), '{"method":"stddev","attribute":"price","values":["sd"]}')
 
     def test_stddev_pop(self):
-        self.assertEqual(Query.stddev_pop('price', 'sdp'), '{"method":"stddevPop","attribute":"price","values":["sdp"]}')
+        self.assertEqual(
+            Query.stddev_pop('price', 'sdp'), '{"method":"stddevPop","attribute":"price","values":["sdp"]}'
+        )
 
     def test_stddev_samp(self):
-        self.assertEqual(Query.stddev_samp('price', 'sds'), '{"method":"stddevSamp","attribute":"price","values":["sds"]}')
+        self.assertEqual(
+            Query.stddev_samp('price', 'sds'), '{"method":"stddevSamp","attribute":"price","values":["sds"]}'
+        )
 
     def test_variance(self):
         self.assertEqual(Query.variance('price', 'var'), '{"method":"variance","attribute":"price","values":["var"]}')
@@ -160,16 +171,25 @@ class TestQueryMethods(unittest.TestCase):
         self.assertEqual(query['values'][0]['method'], 'greaterThan')
 
     def test_join(self):
-        self.assertEqual(Query.join('orders', '$id', 'customerId'), '{"method":"join","attribute":"orders","values":["$id","=","customerId"]}')
+        self.assertEqual(
+            Query.join('orders', '$id', 'customerId'),
+            '{"method":"join","attribute":"orders","values":["$id","=","customerId"]}',
+        )
 
     def test_on(self):
         self.assertEqual(Query.on('$id', 'customerId'), '{"method":"on","values":["$id","=","customerId"]}')
 
     def test_nested_left_join(self):
-        query = json.loads(Query.left_join('orders', 'ord', [
-            Query.on('$id', 'customerId'),
-            Query.equal('ord.status', 'paid'),
-        ]))
+        query = json.loads(
+            Query.left_join(
+                'orders',
+                'ord',
+                [
+                    Query.on('$id', 'customerId'),
+                    Query.equal('ord.status', 'paid'),
+                ],
+            )
+        )
         self.assertEqual(query['method'], 'leftJoin')
         self.assertEqual(query['attribute'], 'orders')
         self.assertEqual(query['values'][0], 'ord')
@@ -183,35 +203,59 @@ class TestQueryMethods(unittest.TestCase):
         self.assertEqual(Query.distinct(), '{"method":"distinct"}')
 
     def test_covers(self):
-        self.assertEqual(Query.covers('location', [1, 2]), '{"method":"covers","attribute":"location","values":[[1,2]]}')
+        self.assertEqual(
+            Query.covers('location', [1, 2]), '{"method":"covers","attribute":"location","values":[[1,2]]}'
+        )
 
     def test_left_join(self):
-        self.assertEqual(Query.left_join('orders', '$id', 'customerId', '=', 'ord'), '{"method":"leftJoin","attribute":"orders","values":["$id","=","customerId","ord"]}')
+        self.assertEqual(
+            Query.left_join('orders', '$id', 'customerId', '=', 'ord'),
+            '{"method":"leftJoin","attribute":"orders","values":["$id","=","customerId","ord"]}',
+        )
 
     def test_right_join(self):
-        self.assertEqual(Query.right_join('orders', '$id', 'customerId'), '{"method":"rightJoin","attribute":"orders","values":["$id","=","customerId"]}')
+        self.assertEqual(
+            Query.right_join('orders', '$id', 'customerId'),
+            '{"method":"rightJoin","attribute":"orders","values":["$id","=","customerId"]}',
+        )
 
     def test_full_outer_join(self):
-        self.assertEqual(Query.full_outer_join('orders', '$id', 'customerId'), '{"method":"fullOuterJoin","attribute":"orders","values":["$id","=","customerId"]}')
+        self.assertEqual(
+            Query.full_outer_join('orders', '$id', 'customerId'),
+            '{"method":"fullOuterJoin","attribute":"orders","values":["$id","=","customerId"]}',
+        )
 
     def test_cross_join(self):
-        self.assertEqual(Query.cross_join('orders', 'ord'), '{"method":"crossJoin","attribute":"orders","values":["ord"]}')
+        self.assertEqual(
+            Query.cross_join('orders', 'ord'), '{"method":"crossJoin","attribute":"orders","values":["ord"]}'
+        )
 
     def test_not_covers(self):
-        self.assertEqual(Query.not_covers('location', [1, 2]), '{"method":"notCovers","attribute":"location","values":[[1,2]]}')
+        self.assertEqual(
+            Query.not_covers('location', [1, 2]), '{"method":"notCovers","attribute":"location","values":[[1,2]]}'
+        )
 
     def test_spatial_equals(self):
-        self.assertEqual(Query.spatial_equals('location', [1, 2]), '{"method":"spatialEquals","attribute":"location","values":[[1,2]]}')
+        self.assertEqual(
+            Query.spatial_equals('location', [1, 2]),
+            '{"method":"spatialEquals","attribute":"location","values":[[1,2]]}',
+        )
 
     def test_not_spatial_equals(self):
-        self.assertEqual(Query.not_spatial_equals('location', [1, 2]), '{"method":"notSpatialEquals","attribute":"location","values":[[1,2]]}')
+        self.assertEqual(
+            Query.not_spatial_equals('location', [1, 2]),
+            '{"method":"notSpatialEquals","attribute":"location","values":[[1,2]]}',
+        )
 
     def test_page(self):
         queries = Query.page(2, 10)
-        self.assertEqual(queries, [
-            '{"method":"limit","values":[10]}',
-            '{"method":"offset","values":[10]}',
-        ])
+        self.assertEqual(
+            queries,
+            [
+                '{"method":"limit","values":[10]}',
+                '{"method":"offset","values":[10]}',
+            ],
+        )
 
     def test_builder_build(self):
         expected = [
@@ -221,7 +265,15 @@ class TestQueryMethods(unittest.TestCase):
             Query.group_by(['status']),
             Query.limit(25),
         ]
-        built = Query.builder().equal('status', 'published').left_join('orders', '$id', 'customerId', '=', 'ord').count('*', 'total').group_by(['status']).limit(25).build()
+        built = (
+            Query.builder()
+            .equal('status', 'published')
+            .left_join('orders', '$id', 'customerId', '=', 'ord')
+            .count('*', 'total')
+            .group_by(['status'])
+            .limit(25)
+            .build()
+        )
         self.assertEqual(expected, built)
 
     def test_normalize_builder(self):

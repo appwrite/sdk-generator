@@ -712,6 +712,15 @@ open class Client {
         if let query = value as? Query {
             return query.description
         }
+        if let builders = value as? [Query.Builder] {
+            return builders.flatMap { $0.build() }
+        }
+        if let queries = value as? [Query] {
+            return queries.map { $0.description }
+        }
+        if let strings = value as? [String] {
+            return strings
+        }
         guard let items = arrayElements(value) else {
             return value
         }
@@ -753,6 +762,9 @@ open class Client {
         }
         if let typed = value as? [String] {
             return typed
+        }
+        if let array = value as? NSArray {
+            return (0..<array.count).map { array[$0] as Any }
         }
         if let typed = value as? [Any] {
             return typed
