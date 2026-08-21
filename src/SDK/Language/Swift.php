@@ -591,7 +591,7 @@ class Swift extends Language
                     return '';
                 }
 
-                $enumKeys = $enumSchema instanceof StringSchema ? $enumSchema->enumKeys : [];
+                $enumKeys = $this->resolveEnumKeys($param);
                 $example = $this->getSchemaExample($param);
                 $isArray = $schema instanceof ArraySchema;
 
