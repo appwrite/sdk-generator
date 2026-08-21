@@ -106,6 +106,10 @@ public struct Query : Codable, CustomStringConvertible {
                     return .bool(boolValue)
                 } else if let queryValue = item as? Query {
                     return .query(queryValue)
+                } else if let doubleArray = item as? [Double] {
+                    return .array(doubleArray.map { .double($0) })
+                } else if let intArray = item as? [Int] {
+                    return .array(intArray.map { .int($0) })
                 } else if let nestedArray = item as? [Any] {
                     // Convert nested array to QueryValue.array
                     if let converted = convertToQueryValueArray(nestedArray) {
@@ -636,11 +640,730 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
+    public static func count(_ attribute: String = "*", alias: String = "") -> String {
+        return Query(
+            method: "count",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func countDistinct(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "countDistinct",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func sum(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "sum",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func avg(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "avg",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func min(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "min",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func max(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "max",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func stddev(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "stddev",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func stddevPop(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "stddevPop",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func stddevSamp(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "stddevSamp",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func variance(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "variance",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func varPop(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "varPop",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func varSamp(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "varSamp",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func bitAnd(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "bitAnd",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func bitOr(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "bitOr",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func bitXor(_ attribute: String, alias: String = "") -> String {
+        return Query(
+            method: "bitXor",
+            attribute: attribute,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func groupBy(_ attributes: [String]) -> String {
+        return Query(
+            method: "groupBy",
+            values: attributes
+        ).description
+    }
+
+    public static func having(_ queries: [String]) -> String {
+        return Query(
+            method: "having",
+            values: decodeQueries(queries)
+        ).description
+    }
+
+    public static func distinct() -> String {
+        return Query(
+            method: "distinct"
+        ).description
+    }
+
+    public static func join(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> String {
+        return joinQuery("join", table: table, left: left, right: right, operator: op, alias: alias)
+    }
+
+    public static func leftJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> String {
+        return joinQuery("leftJoin", table: table, left: left, right: right, operator: op, alias: alias)
+    }
+
+    public static func rightJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> String {
+        return joinQuery("rightJoin", table: table, left: left, right: right, operator: op, alias: alias)
+    }
+
+    public static func fullOuterJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> String {
+        return joinQuery("fullOuterJoin", table: table, left: left, right: right, operator: op, alias: alias)
+    }
+
+    public static func crossJoin(_ table: String, alias: String = "") -> String {
+        return Query(
+            method: "crossJoin",
+            attribute: table,
+            values: alias.isEmpty ? nil : alias
+        ).description
+    }
+
+    public static func covers(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "covers",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func notCovers(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "notCovers",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func spatialEquals(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "spatialEquals",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func notSpatialEquals(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "notSpatialEquals",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func page(_ page: Int, perPage: Int = 25) -> [String] {
+        precondition(page >= 1, "Page must be >= 1, got \(page)")
+        precondition(perPage >= 1, "Per page must be >= 1, got \(perPage)")
+        return [limit(perPage), offset((page - 1) * perPage)]
+    }
+
+    public static func builder() -> QueryBuilder {
+        return QueryBuilder()
+    }
+
+    public static func normalize(_ queries: Any?) -> [String] {
+        guard let queries else {
+            return []
+        }
+        if queries is NSNull {
+            return []
+        }
+        if let builder = queries as? QueryBuilder {
+            return builder.build()
+        }
+        if let query = queries as? Query {
+            return [query.description]
+        }
+        if let string = queries as? String {
+            return [string]
+        }
+        if let strings = queries as? [String] {
+            return strings
+        }
+        if let builders = queries as? [QueryBuilder] {
+            return builders.flatMap { $0.build() }
+        }
+        if let nested = queries as? [[String]] {
+            return nested.flatMap { $0 }
+        }
+        if let nestedAny = queries as? [Any] {
+            return nestedAny.flatMap { normalize($0) }
+        }
+        if let nestedOptional = queries as? [Any?] {
+            return nestedOptional.flatMap { normalize($0) }
+        }
+        return []
+    }
+
+    private static func joinQuery(_ method: String, table: String, left: String, right: String, operator op: String, alias: String) -> String {
+        var values: [String] = [left, op, right]
+        if !alias.isEmpty {
+            values.append(alias)
+        }
+        return Query(
+            method: method,
+            attribute: table,
+            values: values
+        ).description
+    }
+
+    private static func decodeQueries(_ queries: [String]) -> [Query] {
+        let decoder = JSONDecoder()
+        return queries.compactMap { queryStr -> Query? in
+            guard let data = queryStr.data(using: .utf8) else {
+                return nil
+            }
+            return try? decoder.decode(Query.self, from: data)
+        }
+    }
+
     private static func parseValue(_ value: Any) -> [Any] {
         if let value = value as? [Any] {
             return value
         } else {
             return [value]
         }
+    }
+}
+
+public class QueryBuilder {
+    private var queries: [String] = []
+
+    public init() {}
+
+    public func build() -> [String] {
+        return queries
+    }
+
+    @discardableResult
+    public func equal(_ attribute: String, value: Any) -> QueryBuilder {
+        return push(Query.equal(attribute, value: value))
+    }
+
+    @discardableResult
+    public func notEqual(_ attribute: String, value: Any) -> QueryBuilder {
+        return push(Query.notEqual(attribute, value: value))
+    }
+
+    @discardableResult
+    public func lessThan(_ attribute: String, value: Any) -> QueryBuilder {
+        return push(Query.lessThan(attribute, value: value))
+    }
+
+    @discardableResult
+    public func lessThanEqual(attribute: String, value: Any) -> QueryBuilder {
+        return push(Query.lessThanEqual(attribute: attribute, value: value))
+    }
+
+    @discardableResult
+    public func greaterThan(_ attribute: String, value: Any) -> QueryBuilder {
+        return push(Query.greaterThan(attribute, value: value))
+    }
+
+    @discardableResult
+    public func greaterThanEqual(_ attribute: String, value: Any) -> QueryBuilder {
+        return push(Query.greaterThanEqual(attribute, value: value))
+    }
+
+    @discardableResult
+    public func search(_ attribute: String, value: String) -> QueryBuilder {
+        return push(Query.search(attribute, value: value))
+    }
+
+    @discardableResult
+    public func isNull(_ attribute: String) -> QueryBuilder {
+        return push(Query.isNull(attribute))
+    }
+
+    @discardableResult
+    public func isNotNull(_ attribute: String) -> QueryBuilder {
+        return push(Query.isNotNull(attribute))
+    }
+
+    @discardableResult
+    public func between(_ attribute: String, start: Int, end: Int) -> QueryBuilder {
+        return push(Query.between(attribute, start: start, end: end))
+    }
+
+    @discardableResult
+    public func between(_ attribute: String, start: Double, end: Double) -> QueryBuilder {
+        return push(Query.between(attribute, start: start, end: end))
+    }
+
+    @discardableResult
+    public func between(_ attribute: String, start: String, end: String) -> QueryBuilder {
+        return push(Query.between(attribute, start: start, end: end))
+    }
+
+    @discardableResult
+    public func startsWith(_ attribute: String, value: String) -> QueryBuilder {
+        return push(Query.startsWith(attribute, value: value))
+    }
+
+    @discardableResult
+    public func endsWith(_ attribute: String, value: String) -> QueryBuilder {
+        return push(Query.endsWith(attribute, value: value))
+    }
+
+    @discardableResult
+    public func select(_ attributes: [String]) -> QueryBuilder {
+        return push(Query.select(attributes))
+    }
+
+    @discardableResult
+    public func cursorAfter(_ id: String) -> QueryBuilder {
+        return push(Query.cursorAfter(id))
+    }
+
+    @discardableResult
+    public func cursorBefore(_ id: String) -> QueryBuilder {
+        return push(Query.cursorBefore(id))
+    }
+
+    @discardableResult
+    public func orderAsc(_ attribute: String) -> QueryBuilder {
+        return push(Query.orderAsc(attribute))
+    }
+
+    @discardableResult
+    public func orderDesc(_ attribute: String) -> QueryBuilder {
+        return push(Query.orderDesc(attribute))
+    }
+
+    @discardableResult
+    public func orderRandom() -> QueryBuilder {
+        return push(Query.orderRandom())
+    }
+
+    @discardableResult
+    public func limit(_ limit: Int) -> QueryBuilder {
+        return push(Query.limit(limit))
+    }
+
+    @discardableResult
+    public func offset(_ offset: Int) -> QueryBuilder {
+        return push(Query.offset(offset))
+    }
+
+    @discardableResult
+    public func contains(_ attribute: String, value: Any) -> QueryBuilder {
+        return push(Query.contains(attribute, value: value))
+    }
+
+    @discardableResult
+    public func containsAny(_ attribute: String, value: [Any]) -> QueryBuilder {
+        return push(Query.containsAny(attribute, value: value))
+    }
+
+    @discardableResult
+    public func containsAll(_ attribute: String, value: [Any]) -> QueryBuilder {
+        return push(Query.containsAll(attribute, value: value))
+    }
+
+    @discardableResult
+    public func notContains(_ attribute: String, value: Any) -> QueryBuilder {
+        return push(Query.notContains(attribute, value: value))
+    }
+
+    @discardableResult
+    public func notSearch(_ attribute: String, value: String) -> QueryBuilder {
+        return push(Query.notSearch(attribute, value: value))
+    }
+
+    @discardableResult
+    public func notBetween(_ attribute: String, start: Int, end: Int) -> QueryBuilder {
+        return push(Query.notBetween(attribute, start: start, end: end))
+    }
+
+    @discardableResult
+    public func notBetween(_ attribute: String, start: Double, end: Double) -> QueryBuilder {
+        return push(Query.notBetween(attribute, start: start, end: end))
+    }
+
+    @discardableResult
+    public func notBetween(_ attribute: String, start: String, end: String) -> QueryBuilder {
+        return push(Query.notBetween(attribute, start: start, end: end))
+    }
+
+    @discardableResult
+    public func notStartsWith(_ attribute: String, value: String) -> QueryBuilder {
+        return push(Query.notStartsWith(attribute, value: value))
+    }
+
+    @discardableResult
+    public func notEndsWith(_ attribute: String, value: String) -> QueryBuilder {
+        return push(Query.notEndsWith(attribute, value: value))
+    }
+
+    @discardableResult
+    public func regex(_ attribute: String, pattern: String) -> QueryBuilder {
+        return push(Query.regex(attribute, pattern: pattern))
+    }
+
+    @discardableResult
+    public func exists(_ attributes: [String]) -> QueryBuilder {
+        return push(Query.exists(attributes))
+    }
+
+    @discardableResult
+    public func notExists(_ attributes: [String]) -> QueryBuilder {
+        return push(Query.notExists(attributes))
+    }
+
+    @discardableResult
+    public func createdBefore(_ value: String) -> QueryBuilder {
+        return push(Query.createdBefore(value))
+    }
+
+    @discardableResult
+    public func createdAfter(_ value: String) -> QueryBuilder {
+        return push(Query.createdAfter(value))
+    }
+
+    @discardableResult
+    public func createdBetween(_ start: String, _ end: String) -> QueryBuilder {
+        return push(Query.createdBetween(start, end))
+    }
+
+    @discardableResult
+    public func updatedBefore(_ value: String) -> QueryBuilder {
+        return push(Query.updatedBefore(value))
+    }
+
+    @discardableResult
+    public func updatedAfter(_ value: String) -> QueryBuilder {
+        return push(Query.updatedAfter(value))
+    }
+
+    @discardableResult
+    public func updatedBetween(_ start: String, _ end: String) -> QueryBuilder {
+        return push(Query.updatedBetween(start, end))
+    }
+
+    @discardableResult
+    public func or(_ queries: [String]) -> QueryBuilder {
+        return push(Query.or(queries))
+    }
+
+    @discardableResult
+    public func and(_ queries: [String]) -> QueryBuilder {
+        return push(Query.and(queries))
+    }
+
+    @discardableResult
+    public func elemMatch(_ attribute: String, queries: [String]) -> QueryBuilder {
+        return push(Query.elemMatch(attribute, queries: queries))
+    }
+
+    @discardableResult
+    public func distanceEqual(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> QueryBuilder {
+        return push(Query.distanceEqual(attribute, values: values, distance: distance, meters: meters))
+    }
+
+    @discardableResult
+    public func distanceNotEqual(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> QueryBuilder {
+        return push(Query.distanceNotEqual(attribute, values: values, distance: distance, meters: meters))
+    }
+
+    @discardableResult
+    public func distanceGreaterThan(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> QueryBuilder {
+        return push(Query.distanceGreaterThan(attribute, values: values, distance: distance, meters: meters))
+    }
+
+    @discardableResult
+    public func distanceLessThan(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> QueryBuilder {
+        return push(Query.distanceLessThan(attribute, values: values, distance: distance, meters: meters))
+    }
+
+    @discardableResult
+    public func intersects(_ attribute: String, values: [Any]) -> QueryBuilder {
+        return push(Query.intersects(attribute, values: values))
+    }
+
+    @discardableResult
+    public func notIntersects(_ attribute: String, values: [Any]) -> QueryBuilder {
+        return push(Query.notIntersects(attribute, values: values))
+    }
+
+    @discardableResult
+    public func crosses(_ attribute: String, values: [Any]) -> QueryBuilder {
+        return push(Query.crosses(attribute, values: values))
+    }
+
+    @discardableResult
+    public func notCrosses(_ attribute: String, values: [Any]) -> QueryBuilder {
+        return push(Query.notCrosses(attribute, values: values))
+    }
+
+    @discardableResult
+    public func overlaps(_ attribute: String, values: [Any]) -> QueryBuilder {
+        return push(Query.overlaps(attribute, values: values))
+    }
+
+    @discardableResult
+    public func notOverlaps(_ attribute: String, values: [Any]) -> QueryBuilder {
+        return push(Query.notOverlaps(attribute, values: values))
+    }
+
+    @discardableResult
+    public func touches(_ attribute: String, values: [Any]) -> QueryBuilder {
+        return push(Query.touches(attribute, values: values))
+    }
+
+    @discardableResult
+    public func notTouches(_ attribute: String, values: [Any]) -> QueryBuilder {
+        return push(Query.notTouches(attribute, values: values))
+    }
+
+    @discardableResult
+    public func count(_ attribute: String = "*", alias: String = "") -> QueryBuilder {
+        return push(Query.count(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func countDistinct(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.countDistinct(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func sum(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.sum(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func avg(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.avg(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func min(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.min(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func max(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.max(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func stddev(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.stddev(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func stddevPop(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.stddevPop(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func stddevSamp(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.stddevSamp(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func variance(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.variance(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func varPop(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.varPop(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func varSamp(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.varSamp(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func bitAnd(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.bitAnd(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func bitOr(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.bitOr(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func bitXor(_ attribute: String, alias: String = "") -> QueryBuilder {
+        return push(Query.bitXor(attribute, alias: alias))
+    }
+
+    @discardableResult
+    public func groupBy(_ attributes: [String]) -> QueryBuilder {
+        return push(Query.groupBy(attributes))
+    }
+
+    @discardableResult
+    public func having(_ queries: [String]) -> QueryBuilder {
+        return push(Query.having(queries))
+    }
+
+    @discardableResult
+    public func distinct() -> QueryBuilder {
+        return push(Query.distinct())
+    }
+
+    @discardableResult
+    public func join(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> QueryBuilder {
+        return push(Query.join(table, left: left, right: right, operator: op, alias: alias))
+    }
+
+    @discardableResult
+    public func leftJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> QueryBuilder {
+        return push(Query.leftJoin(table, left: left, right: right, operator: op, alias: alias))
+    }
+
+    @discardableResult
+    public func rightJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> QueryBuilder {
+        return push(Query.rightJoin(table, left: left, right: right, operator: op, alias: alias))
+    }
+
+    @discardableResult
+    public func fullOuterJoin(_ table: String, left: String, right: String, operator op: String = "=", alias: String = "") -> QueryBuilder {
+        return push(Query.fullOuterJoin(table, left: left, right: right, operator: op, alias: alias))
+    }
+
+    @discardableResult
+    public func crossJoin(_ table: String, alias: String = "") -> QueryBuilder {
+        return push(Query.crossJoin(table, alias: alias))
+    }
+
+    @discardableResult
+    public func vectorDot(_ attribute: String, vector: [Double]) -> QueryBuilder {
+        return push(Query.vectorDot(attribute, vector: vector))
+    }
+
+    @discardableResult
+    public func vectorCosine(_ attribute: String, vector: [Double]) -> QueryBuilder {
+        return push(Query.vectorCosine(attribute, vector: vector))
+    }
+
+    @discardableResult
+    public func vectorEuclidean(_ attribute: String, vector: [Double]) -> QueryBuilder {
+        return push(Query.vectorEuclidean(attribute, vector: vector))
+    }
+
+    @discardableResult
+    public func covers(_ attribute: String, values: [Any]) -> QueryBuilder {
+        return push(Query.covers(attribute, values: values))
+    }
+
+    @discardableResult
+    public func notCovers(_ attribute: String, values: [Any]) -> QueryBuilder {
+        return push(Query.notCovers(attribute, values: values))
+    }
+
+    @discardableResult
+    public func spatialEquals(_ attribute: String, values: [Any]) -> QueryBuilder {
+        return push(Query.spatialEquals(attribute, values: values))
+    }
+
+    @discardableResult
+    public func notSpatialEquals(_ attribute: String, values: [Any]) -> QueryBuilder {
+        return push(Query.notSpatialEquals(attribute, values: values))
+    }
+
+    @discardableResult
+    public func page(_ page: Int, perPage: Int = 25) -> QueryBuilder {
+        return push(Query.page(page, perPage: perPage))
+    }
+
+    @discardableResult
+    private func push(_ query: String) -> QueryBuilder {
+        queries.append(query)
+        return self
+    }
+
+    @discardableResult
+    private func push(_ query: [String]) -> QueryBuilder {
+        queries.append(contentsOf: query)
+        return self
     }
 }

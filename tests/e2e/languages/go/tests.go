@@ -290,6 +290,12 @@ func testQueries() {
 		query.Equal("name", "Alice"),
 		query.GreaterThan("age", 18),
 	}))
+	fmt.Println(query.Count("*", "total"))
+	fmt.Println(query.Join("orders", "$id", "customerId", "=", ""))
+	fmt.Println(query.GroupBy([]interface{}{"status"}))
+	fmt.Println(query.Distinct())
+	fmt.Println(query.Covers("location", []interface{}{1, 2}))
+	fmt.Println(query.Builder().Limit(1).Build()[0])
 }
 
 func testPermissionHelpers() {

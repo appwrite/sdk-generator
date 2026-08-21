@@ -388,6 +388,12 @@ class ServiceTest {
                 Query.equal("name", "Alice"),
                 Query.greaterThan("age", 18)
             )))
+            writeToFile(Query.count("*", "total"))
+            writeToFile(Query.join("orders", "\$id", "customerId"))
+            writeToFile(Query.groupBy(listOf("status")))
+            writeToFile(Query.distinct())
+            writeToFile(Query.covers("location", listOf(1, 2)))
+            writeToFile(Query.builder().limit(1).build()[0])
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))

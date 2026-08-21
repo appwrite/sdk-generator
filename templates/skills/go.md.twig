@@ -157,6 +157,37 @@ query.CursorBefore("[ROW_ID]")
 query.Select([]string{"field1", "field2"})
 query.Or([]string{query.Equal("a", 1), query.Equal("b", 2)})    // OR
 query.And([]string{query.GreaterThan("age", 18), query.LessThan("age", 65)})  // AND (default)
+
+// Aggregations (optional alias)
+query.Count("*", "total")
+query.Sum("amount", "revenue")
+query.Avg("score", "avgScore")
+query.Min("price", "minPrice")
+query.Max("price", "maxPrice")
+
+// Grouping
+query.GroupBy([]string{"status", "year"})
+query.Having([]string{query.GreaterThan("total", 1)})
+query.Distinct()
+
+// Joins (table id, left key, right key, operator, alias)
+query.Join("orders", "$id", "customerId")
+query.LeftJoin("orders", "$id", "customerId", "=", "ord")
+
+// Fluent builder. Wrapping the builder in an extra slice is OK — the SDK flattens it.
+queries := query.Builder().
+    Equal("status", "published").
+    LeftJoin("orders", "$id", "customerId", "=", "ord").
+    Count("*", "total").
+    GroupBy([]string{"status"}).
+    Limit(25).
+    Build()
+
+_, _ = service.ListRows("[DATABASE_ID]", "[TABLE_ID]", service.WithListRowsQueries(queries))
+// Wrapping the builder in an extra slice is OK — the SDK flattens it.
+
+// POST CreateQuery is the large-payload path when it exists; ListRows still accepts the same query strings.
+_, _ = service.CreateQuery("[DATABASE_ID]", "[TABLE_ID]", queries)
 ```
 
 ### File Storage

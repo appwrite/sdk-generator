@@ -365,6 +365,12 @@ namespace AppwriteTests
                 Query.Equal("name", "Alice"),
                 Query.GreaterThan("age", 18)
             }));
+            LogResult(Query.Count("*", "total"));
+            LogResult(Query.Join("orders", "$id", "customerId"));
+            LogResult(Query.GroupBy(new List<string> { "status" }));
+            LogResult(Query.Distinct());
+            LogResult(Query.Covers("location", new List<object> { 1, 2 }));
+            LogResult(Query.Builder().Limit(1).Build()[0]);
             // Permission & Roles helper tests
             LogResult(Permission.Read(Role.Any()));
             LogResult(Permission.Write(Role.User(ID.Custom("userid"))));

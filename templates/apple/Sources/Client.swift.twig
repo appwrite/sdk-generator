@@ -313,6 +313,10 @@ open class Client {
         sink: ((ByteBuffer) -> Void)? = nil,
         converter: ((Any) throws -> T)? = nil
     ) async throws -> T {
+        var params = params
+        if params.keys.contains("queries") {
+            params["queries"] = Query.normalize(params["queries"] as Any?)
+        }
         let validParams = params.filter { $0.value != nil }
 
         let queryParameters = method == "GET" && !validParams.isEmpty

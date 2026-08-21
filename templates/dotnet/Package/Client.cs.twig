@@ -151,6 +151,11 @@ namespace {{ spec.info.title | caseUcfirst }}
             Dictionary<string, string> headers,
             Dictionary<string, object?> parameters)
         {
+            if (parameters.ContainsKey("queries"))
+            {
+                parameters["queries"] = Query.Normalize(parameters["queries"]);
+            }
+
             var methodGet = "GET".Equals(method, StringComparison.OrdinalIgnoreCase);
 
             var queryString = methodGet && parameters.Count > 0 ?

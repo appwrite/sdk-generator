@@ -61,6 +61,27 @@ export type QueryBuilder<T> = {
   cursorBefore: (documentId: string) => string;
   or: (...queries: string[]) => string;
   and: (...queries: string[]) => string;
+  count: (attribute?: string, alias?: string) => string;
+  countDistinct: (attribute: string, alias?: string) => string;
+  sum: (attribute: string, alias?: string) => string;
+  avg: (attribute: string, alias?: string) => string;
+  min: (attribute: string, alias?: string) => string;
+  max: (attribute: string, alias?: string) => string;
+  groupBy: (attributes: string[]) => string;
+  having: (queries: string[]) => string;
+  distinct: () => string;
+  join: (table: string, left: string, right: string, operator?: string, alias?: string) => string;
+  leftJoin: (table: string, left: string, right: string, operator?: string, alias?: string) => string;
+  rightJoin: (table: string, left: string, right: string, operator?: string, alias?: string) => string;
+  fullOuterJoin: (table: string, left: string, right: string, operator?: string, alias?: string) => string;
+  crossJoin: (table: string, alias?: string) => string;
+  vectorDot: (attribute: string, vector: number[]) => string;
+  vectorCosine: (attribute: string, vector: number[]) => string;
+  vectorEuclidean: (attribute: string, vector: number[]) => string;
+  covers: (attribute: string, values: any[]) => string;
+  notCovers: (attribute: string, values: any[]) => string;
+  spatialEquals: (attribute: string, values: any[]) => string;
+  notSpatialEquals: (attribute: string, values: any[]) => string;
 }
 
 export type DatabaseId = {{{databaseIdType}}};

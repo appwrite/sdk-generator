@@ -247,6 +247,12 @@ class Tests: XCTestCase {
             Query.equal("name", value: "Alice"),
             Query.greaterThan("age", value: 18)
         ]))
+        print(Query.count("*", alias: "total"))
+        print(Query.join("orders", left: "$id", right: "customerId"))
+        print(Query.groupBy(["status"]))
+        print(Query.distinct())
+        print(Query.covers("location", values: [1, 2]))
+        print(Query.builder().limit(1).build()[0])
 
         // Permission & Role helper tests
         print(Permission.read(Role.any()))

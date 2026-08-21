@@ -256,6 +256,12 @@ async function start() {
     Query.equal("name", "Alice"),
     Query.greaterThan("age", 18)
   ]));
+  console.log(Query.count("*", "total"));
+  console.log(Query.join("orders", "$id", "customerId"));
+  console.log(Query.groupBy(["status"]));
+  console.log(Query.distinct());
+  console.log(Query.covers("location", [1, 2]));
+  console.log(Query.builder().limit(1).build()[0]);
 
   // Permission & Role helper tests
   console.log(Permission.read(Role.any()));

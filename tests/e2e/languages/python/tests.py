@@ -211,6 +211,12 @@ print(Query.elem_match("friends", [
     Query.equal("name", "Alice"),
     Query.greater_than("age", 18)
 ]))
+print(Query.count("*", "total"))
+print(Query.join("orders", "$id", "customerId"))
+print(Query.group_by(["status"]))
+print(Query.distinct())
+print(Query.covers("location", [1, 2]))
+print(Query.builder().limit(1).build()[0])
 
 # Permission & Role helper tests
 print(Permission.read(Role.any()))

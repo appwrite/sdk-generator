@@ -704,4 +704,233 @@ class Query implements \JsonSerializable
     {
         return (new Query('notTouches', $attribute, [$values]))->__toString();
     }
+
+    public static function count(string $attribute = '*', string $alias = ''): string
+    {
+        return (new Query('count', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function countDistinct(string $attribute, string $alias = ''): string
+    {
+        return (new Query('countDistinct', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function sum(string $attribute, string $alias = ''): string
+    {
+        return (new Query('sum', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function avg(string $attribute, string $alias = ''): string
+    {
+        return (new Query('avg', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function min(string $attribute, string $alias = ''): string
+    {
+        return (new Query('min', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function max(string $attribute, string $alias = ''): string
+    {
+        return (new Query('max', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function stddev(string $attribute, string $alias = ''): string
+    {
+        return (new Query('stddev', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function stddevPop(string $attribute, string $alias = ''): string
+    {
+        return (new Query('stddevPop', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function stddevSamp(string $attribute, string $alias = ''): string
+    {
+        return (new Query('stddevSamp', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function variance(string $attribute, string $alias = ''): string
+    {
+        return (new Query('variance', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function varPop(string $attribute, string $alias = ''): string
+    {
+        return (new Query('varPop', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function varSamp(string $attribute, string $alias = ''): string
+    {
+        return (new Query('varSamp', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function bitAnd(string $attribute, string $alias = ''): string
+    {
+        return (new Query('bitAnd', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function bitOr(string $attribute, string $alias = ''): string
+    {
+        return (new Query('bitOr', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    public static function bitXor(string $attribute, string $alias = ''): string
+    {
+        return (new Query('bitXor', $attribute, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    /**
+     * @param array<string> $attributes
+     */
+    public static function groupBy(array $attributes): string
+    {
+        return (new Query('groupBy', null, $attributes))->__toString();
+    }
+
+    /**
+     * @param array<string> $queries
+     */
+    public static function having(array $queries): string
+    {
+        foreach ($queries as &$query) {
+            if ($query instanceof self) {
+                $query = $query->__toString();
+            }
+            $query = \json_decode($query, true);
+        }
+        unset($query);
+
+        return (new Query('having', null, $queries))->__toString();
+    }
+
+    public static function distinct(): string
+    {
+        return (new Query('distinct', null, null))->__toString();
+    }
+
+    public static function join(string $table, string $left, string $right, string $operator = '=', string $alias = ''): string
+    {
+        return self::joinQuery('join', $table, $left, $right, $operator, $alias);
+    }
+
+    public static function leftJoin(string $table, string $left, string $right, string $operator = '=', string $alias = ''): string
+    {
+        return self::joinQuery('leftJoin', $table, $left, $right, $operator, $alias);
+    }
+
+    public static function rightJoin(string $table, string $left, string $right, string $operator = '=', string $alias = ''): string
+    {
+        return self::joinQuery('rightJoin', $table, $left, $right, $operator, $alias);
+    }
+
+    public static function fullOuterJoin(string $table, string $left, string $right, string $operator = '=', string $alias = ''): string
+    {
+        return self::joinQuery('fullOuterJoin', $table, $left, $right, $operator, $alias);
+    }
+
+    public static function crossJoin(string $table, string $alias = ''): string
+    {
+        return (new Query('crossJoin', $table, $alias !== '' ? $alias : null))->__toString();
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public static function covers(string $attribute, array $values): string
+    {
+        return (new Query('covers', $attribute, [$values]))->__toString();
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public static function notCovers(string $attribute, array $values): string
+    {
+        return (new Query('notCovers', $attribute, [$values]))->__toString();
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public static function spatialEquals(string $attribute, array $values): string
+    {
+        return (new Query('spatialEquals', $attribute, [$values]))->__toString();
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public static function notSpatialEquals(string $attribute, array $values): string
+    {
+        return (new Query('notSpatialEquals', $attribute, [$values]))->__toString();
+    }
+
+    /**
+     * @return array<string>
+     */
+    public static function page(int $page, int $perPage = 25): array
+    {
+        if ($page < 1) {
+            throw new \InvalidArgumentException('Page must be >= 1, got ' . $page);
+        }
+        if ($perPage < 1) {
+            throw new \InvalidArgumentException('Per page must be >= 1, got ' . $perPage);
+        }
+
+        return [
+            self::limit($perPage),
+            self::offset(($page - 1) * $perPage),
+        ];
+    }
+
+    public static function builder(): QueryBuilder
+    {
+        return new QueryBuilder();
+    }
+
+    /**
+     * Flatten a queries argument into a list of query strings.
+     *
+     * Accepts a QueryBuilder, a list of query strings, builders, or nested
+     * lists (the common `[$builder]` / `[$builder->build()]` mistakes).
+     *
+     * @param mixed $queries
+     * @return array<int, string>
+     */
+    public static function normalize(mixed $queries): array
+    {
+        if ($queries instanceof QueryBuilder) {
+            return $queries->build();
+        }
+
+        if (!\is_array($queries)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($queries as $item) {
+            if ($item instanceof QueryBuilder) {
+                array_push($out, ...$item->build());
+            } elseif ($item instanceof self) {
+                $out[] = $item->__toString();
+            } elseif (\is_array($item)) {
+                array_push($out, ...self::normalize($item));
+            } else {
+                $out[] = $item;
+            }
+        }
+
+        return $out;
+    }
+
+    private static function joinQuery(string $method, string $table, string $left, string $right, string $operator, string $alias): string
+    {
+        $values = [$left, $operator, $right];
+        if ($alias !== '') {
+            $values[] = $alias;
+        }
+
+        return (new Query($method, $table, $values))->__toString();
+    }
 }

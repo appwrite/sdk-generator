@@ -293,6 +293,12 @@ fn test_queries() {
         Query::equal("name", "Alice").to_string(),
         Query::greater_than("age", 18).to_string(),
     ]));
+    println!("{}", Query::count("*", "total"));
+    println!("{}", Query::join("orders", "$id", "customerId", "=", ""));
+    println!("{}", Query::group_by(vec!["status"]));
+    println!("{}", Query::distinct());
+    println!("{}", Query::covers("location", json!([1, 2])));
+    println!("{}", Query::builder().limit(1).build()[0]);
 }
 
 fn test_permission_helpers() {

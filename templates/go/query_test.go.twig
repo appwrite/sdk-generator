@@ -125,4 +125,304 @@ func TestOr(t *testing.T) {
 		t.Errorf("Expected 2 subqueries, got %d", len(values))
 	}
 }
+
+func TestCountWithAlias(t *testing.T) {
+	q := Count("*", "total")
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "count" {
+		t.Errorf("Expected count, got %v", data["method"])
+	}
+	if data["attribute"] != "*" {
+		t.Errorf("Expected *, got %v", data["attribute"])
+	}
+	values := data["values"].([]interface{})
+	if values[0] != "total" {
+		t.Errorf("Expected total, got %v", values[0])
+	}
+}
+
+func TestCountWithoutAlias(t *testing.T) {
+	q := Count("*", "")
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "count" {
+		t.Errorf("Expected count, got %v", data["method"])
+	}
+	if data["attribute"] != "*" {
+		t.Errorf("Expected *, got %v", data["attribute"])
+	}
+	if _, ok := data["values"]; ok {
+		t.Errorf("Expected no values, got %v", data["values"])
+	}
+}
+
+func TestCountDistinct(t *testing.T) {
+	q := CountDistinct("year", "uniqueYears")
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "countDistinct" {
+		t.Errorf("Expected countDistinct, got %v", data["method"])
+	}
+	if data["attribute"] != "year" {
+		t.Errorf("Expected year, got %v", data["attribute"])
+	}
+	values := data["values"].([]interface{})
+	if values[0] != "uniqueYears" {
+		t.Errorf("Expected uniqueYears, got %v", values[0])
+	}
+}
+
+func TestGroupBy(t *testing.T) {
+	q := GroupBy([]interface{}{"status", "year"})
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "groupBy" {
+		t.Errorf("Expected groupBy, got %v", data["method"])
+	}
+	if _, ok := data["attribute"]; ok {
+		t.Errorf("Expected no attribute, got %v", data["attribute"])
+	}
+	values := data["values"].([]interface{})
+	if values[0] != "status" || values[1] != "year" {
+		t.Errorf("Expected [status, year], got %v", values)
+	}
+}
+
+func TestHaving(t *testing.T) {
+	q := Having([]string{GreaterThan("total", 1)})
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "having" {
+		t.Errorf("Expected having, got %v", data["method"])
+	}
+	values := data["values"].([]interface{})
+	inner := values[0].(map[string]interface{})
+	if inner["method"] != "greaterThan" {
+		t.Errorf("Expected greaterThan, got %v", inner["method"])
+	}
+	if inner["attribute"] != "total" {
+		t.Errorf("Expected total, got %v", inner["attribute"])
+	}
+	if inner["values"].([]interface{})[0].(float64) != 1 {
+		t.Errorf("Expected [1], got %v", inner["values"])
+	}
+}
+
+func TestDistinct(t *testing.T) {
+	q := Distinct()
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "distinct" {
+		t.Errorf("Expected distinct, got %v", data["method"])
+	}
+	if _, ok := data["attribute"]; ok {
+		t.Errorf("Expected no attribute, got %v", data["attribute"])
+	}
+	if _, ok := data["values"]; ok {
+		t.Errorf("Expected no values, got %v", data["values"])
+	}
+}
+
+func TestJoin(t *testing.T) {
+	q := Join("orders", "$id", "customerId", "", "")
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "join" {
+		t.Errorf("Expected join, got %v", data["method"])
+	}
+	if data["attribute"] != "orders" {
+		t.Errorf("Expected orders, got %v", data["attribute"])
+	}
+	values := data["values"].([]interface{})
+	if values[0] != "$id" || values[1] != "=" || values[2] != "customerId" {
+		t.Errorf("Expected [$id, =, customerId], got %v", values)
+	}
+	if len(values) != 3 {
+		t.Errorf("Expected 3 values, got %d", len(values))
+	}
+}
+
+func TestJoinWithAlias(t *testing.T) {
+	q := LeftJoin("orders", "$id", "customerId", "=", "ord")
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "leftJoin" {
+		t.Errorf("Expected leftJoin, got %v", data["method"])
+	}
+	if data["attribute"] != "orders" {
+		t.Errorf("Expected orders, got %v", data["attribute"])
+	}
+	values := data["values"].([]interface{})
+	if values[0] != "$id" || values[1] != "=" || values[2] != "customerId" || values[3] != "ord" {
+		t.Errorf("Expected [$id, =, customerId, ord], got %v", values)
+	}
+}
+
+func TestCrossJoin(t *testing.T) {
+	q := CrossJoin("orders", "ord")
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "crossJoin" {
+		t.Errorf("Expected crossJoin, got %v", data["method"])
+	}
+	if data["attribute"] != "orders" {
+		t.Errorf("Expected orders, got %v", data["attribute"])
+	}
+	values := data["values"].([]interface{})
+	if values[0] != "ord" {
+		t.Errorf("Expected ord, got %v", values[0])
+	}
+}
+
+func TestVectorDot(t *testing.T) {
+	q := VectorDot("embedding", []float64{0.1, 0.2})
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "vectorDot" {
+		t.Errorf("Expected vectorDot, got %v", data["method"])
+	}
+	if data["attribute"] != "embedding" {
+		t.Errorf("Expected embedding, got %v", data["attribute"])
+	}
+	values := data["values"].([]interface{})
+	vector := values[0].([]interface{})
+	if vector[0].(float64) != 0.1 || vector[1].(float64) != 0.2 {
+		t.Errorf("Expected [[0.1, 0.2]], got %v", values)
+	}
+}
+
+func TestPage(t *testing.T) {
+	queries := Page(2, 10)
+	if len(queries) != 2 {
+		t.Fatalf("Expected 2 queries, got %d", len(queries))
+	}
+
+	var limit map[string]interface{}
+	if err := json.Unmarshal([]byte(queries[0]), &limit); err != nil {
+		t.Fatal(err)
+	}
+	if limit["method"] != "limit" {
+		t.Errorf("Expected limit, got %v", limit["method"])
+	}
+	if limit["values"].([]interface{})[0].(float64) != 10 {
+		t.Errorf("Expected [10], got %v", limit["values"])
+	}
+
+	var offset map[string]interface{}
+	if err := json.Unmarshal([]byte(queries[1]), &offset); err != nil {
+		t.Fatal(err)
+	}
+	if offset["method"] != "offset" {
+		t.Errorf("Expected offset, got %v", offset["method"])
+	}
+	if offset["values"].([]interface{})[0].(float64) != 10 {
+		t.Errorf("Expected [10], got %v", offset["values"])
+	}
+}
+
+func TestPageRejectsInvalid(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("Expected panic for page < 1")
+		}
+	}()
+	Page(0, 10)
+}
+
+func TestBuilderBuild(t *testing.T) {
+	expected := []string{
+		Equal("status", "published"),
+		LeftJoin("orders", "$id", "customerId", "=", "ord"),
+		Count("*", "total"),
+		GroupBy([]interface{}{"status"}),
+		Limit(25),
+	}
+
+	built := Builder().
+		Equal("status", "published").
+		LeftJoin("orders", "$id", "customerId", "=", "ord").
+		Count("*", "total").
+		GroupBy([]interface{}{"status"}).
+		Limit(25).
+		Build()
+
+	if len(built) != len(expected) {
+		t.Fatalf("Expected %d queries, got %d", len(expected), len(built))
+	}
+	for i := range expected {
+		if built[i] != expected[i] {
+			t.Errorf("index %d: expected %s, got %s", i, expected[i], built[i])
+		}
+	}
+}
+
+func assertQueriesEqual(t *testing.T, got, expected []string) {
+	t.Helper()
+	if len(got) != len(expected) {
+		t.Fatalf("expected %d queries, got %d: %v", len(expected), len(got), got)
+	}
+	for i := range expected {
+		if got[i] != expected[i] {
+			t.Errorf("index %d: expected %s, got %s", i, expected[i], got[i])
+		}
+	}
+}
+
+func TestNormalizeBuilderDirect(t *testing.T) {
+	builder := Builder().Equal("status", "active").Limit(10)
+	assertQueriesEqual(t, Normalize(builder), builder.Build())
+}
+
+func TestNormalizeBuilderWrappedInArray(t *testing.T) {
+	builder := Builder().Equal("status", "active").Limit(10)
+	assertQueriesEqual(t, Normalize([]any{builder}), builder.Build())
+}
+
+func TestNormalizeBuildResultWrappedInArray(t *testing.T) {
+	built := Builder().Equal("status", "active").Limit(10).Build()
+	assertQueriesEqual(t, Normalize([]any{built}), built)
+}
+
+func TestNormalizeMixedAndPage(t *testing.T) {
+	normalized := Normalize([]any{
+		Equal("status", "active"),
+		Page(2, 10),
+	})
+	assertQueriesEqual(t, normalized, []string{
+		Equal("status", "active"),
+		Limit(10),
+		Offset(10),
+	})
+}
 {% endautoescape %}

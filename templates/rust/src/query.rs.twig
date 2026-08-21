@@ -279,6 +279,212 @@ impl Query {
         Self::new("elemMatch".to_string(), Some(attribute.into()), values)
     }
 
+    pub fn count(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("count", attribute, alias)
+    }
+
+    pub fn count_distinct(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("countDistinct", attribute, alias)
+    }
+
+    pub fn sum(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("sum", attribute, alias)
+    }
+
+    pub fn avg(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("avg", attribute, alias)
+    }
+
+    pub fn min(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("min", attribute, alias)
+    }
+
+    pub fn max(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("max", attribute, alias)
+    }
+
+    pub fn stddev(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("stddev", attribute, alias)
+    }
+
+    pub fn stddev_pop(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("stddevPop", attribute, alias)
+    }
+
+    pub fn stddev_samp(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("stddevSamp", attribute, alias)
+    }
+
+    pub fn variance(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("variance", attribute, alias)
+    }
+
+    pub fn var_pop(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("varPop", attribute, alias)
+    }
+
+    pub fn var_samp(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("varSamp", attribute, alias)
+    }
+
+    pub fn bit_and(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("bitAnd", attribute, alias)
+    }
+
+    pub fn bit_or(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("bitOr", attribute, alias)
+    }
+
+    pub fn bit_xor(attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("bitXor", attribute, alias)
+    }
+
+    pub fn group_by<I, S>(attributes: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        let values: Vec<Value> = attributes.into_iter().map(|s| Value::String(s.into())).collect();
+        Self::new("groupBy".to_string(), None, values)
+    }
+
+    pub fn having<I, S>(queries: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let values: Vec<Value> = queries
+            .into_iter()
+            .filter_map(|query| serde_json::from_str(query.as_ref()).ok())
+            .collect();
+        Self::new("having".to_string(), None, values)
+    }
+
+    pub fn distinct() -> Self {
+        Self::new("distinct".to_string(), None, vec![])
+    }
+
+    pub fn join(
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        Self::join_query("join", table, left, right, operator, alias)
+    }
+
+    pub fn left_join(
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        Self::join_query("leftJoin", table, left, right, operator, alias)
+    }
+
+    pub fn right_join(
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        Self::join_query("rightJoin", table, left, right, operator, alias)
+    }
+
+    pub fn full_outer_join(
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        Self::join_query("fullOuterJoin", table, left, right, operator, alias)
+    }
+
+    pub fn cross_join(table: impl Into<String>, alias: impl Into<String>) -> Self {
+        Self::aliased("crossJoin", table, alias)
+    }
+
+    pub fn covers<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("covers".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn not_covers<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("notCovers".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn spatial_equals<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("spatialEquals".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn not_spatial_equals<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("notSpatialEquals".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn page(page: u32, per_page: u32) -> Vec<Self> {
+        if page < 1 {
+            panic!("Page must be >= 1, got {}", page);
+        }
+        if per_page < 1 {
+            panic!("Per page must be >= 1, got {}", per_page);
+        }
+        vec![Self::limit(per_page), Self::offset((page - 1) * per_page)]
+    }
+
+    pub fn builder() -> QueryBuilder {
+        QueryBuilder::new()
+    }
+
+    pub fn normalize(value: impl Serialize) -> Vec<String> {
+        match serde_json::to_value(value) {
+            Ok(v) => Self::normalize_value(&v),
+            Err(_) => vec![],
+        }
+    }
+
+    pub fn normalize_value(value: &Value) -> Vec<String> {
+        match value {
+            Value::Null => vec![],
+            Value::String(s) => vec![s.clone()],
+            Value::Array(items) => items.iter().flat_map(Self::normalize_value).collect(),
+            Value::Object(_) => vec![value.to_string()],
+            _ => vec![],
+        }
+    }
+
+    fn aliased(method: &str, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        let alias = alias.into();
+        let values = if alias.is_empty() {
+            vec![]
+        } else {
+            vec![Value::String(alias)]
+        };
+        Self::new(method.to_string(), Some(attribute.into()), values)
+    }
+
+    fn join_query(
+        method: &str,
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        let mut values = vec![
+            Value::String(left.into()),
+            Value::String(operator.into()),
+            Value::String(right.into()),
+        ];
+        let alias = alias.into();
+        if !alias.is_empty() {
+            values.push(Value::String(alias));
+        }
+        Self::new(method.to_string(), Some(table.into()), values)
+    }
+
     /// Convert query to JSON value (matches Go/Python SDK format)
     pub fn to_value(self) -> Value {
         let mut obj = serde_json::Map::new();
@@ -301,6 +507,494 @@ impl std::fmt::Display for Query {
         let json_str = serde_json::to_string(self)
             .unwrap_or_else(|_| String::new());
         write!(f, "{}", json_str)
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct QueryBuilder {
+    queries: Vec<Query>,
+}
+
+impl QueryBuilder {
+    pub fn new() -> Self {
+        Self { queries: Vec::new() }
+    }
+
+    pub fn build(&self) -> Vec<String> {
+        self.queries.iter().map(|query| query.to_string()).collect()
+    }
+
+    pub fn equal<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::equal(attribute, value));
+        self
+    }
+
+    pub fn not_equal<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::not_equal(attribute, value));
+        self
+    }
+
+    pub fn less_than<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::less_than(attribute, value));
+        self
+    }
+
+    pub fn less_than_equal<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::less_than_equal(attribute, value));
+        self
+    }
+
+    pub fn greater_than<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::greater_than(attribute, value));
+        self
+    }
+
+    pub fn greater_than_equal<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::greater_than_equal(attribute, value));
+        self
+    }
+
+    pub fn is_null<S: Into<String>>(mut self, attribute: S) -> Self {
+        self.queries.push(Query::is_null(attribute));
+        self
+    }
+
+    pub fn is_not_null<S: Into<String>>(mut self, attribute: S) -> Self {
+        self.queries.push(Query::is_not_null(attribute));
+        self
+    }
+
+    pub fn between<S: Into<String>, V: Into<Value>>(mut self, attribute: S, start: V, end: V) -> Self {
+        self.queries.push(Query::between(attribute, start, end));
+        self
+    }
+
+    pub fn starts_with<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::starts_with(attribute, value));
+        self
+    }
+
+    pub fn ends_with<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::ends_with(attribute, value));
+        self
+    }
+
+    pub fn select<I: IntoIterator<Item = S>, S: Into<String>>(mut self, attributes: I) -> Self {
+        self.queries.push(Query::select(attributes));
+        self
+    }
+
+    pub fn search<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::search(attribute, value));
+        self
+    }
+
+    pub fn not_search<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::not_search(attribute, value));
+        self
+    }
+
+    pub fn order_asc<S: Into<String>>(mut self, attribute: S) -> Self {
+        self.queries.push(Query::order_asc(attribute));
+        self
+    }
+
+    pub fn order_desc<S: Into<String>>(mut self, attribute: S) -> Self {
+        self.queries.push(Query::order_desc(attribute));
+        self
+    }
+
+    pub fn order_random(mut self) -> Self {
+        self.queries.push(Query::order_random());
+        self
+    }
+
+    pub fn cursor_after<S: Into<String>>(mut self, document_id: S) -> Self {
+        self.queries.push(Query::cursor_after(document_id));
+        self
+    }
+
+    pub fn cursor_before<S: Into<String>>(mut self, document_id: S) -> Self {
+        self.queries.push(Query::cursor_before(document_id));
+        self
+    }
+
+    pub fn limit(mut self, value: u32) -> Self {
+        self.queries.push(Query::limit(value));
+        self
+    }
+
+    pub fn offset(mut self, value: u32) -> Self {
+        self.queries.push(Query::offset(value));
+        self
+    }
+
+    pub fn contains<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::contains(attribute, value));
+        self
+    }
+
+    pub fn contains_any<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: Vec<V>) -> Self {
+        self.queries.push(Query::contains_any(attribute, values));
+        self
+    }
+
+    pub fn contains_all<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: Vec<V>) -> Self {
+        self.queries.push(Query::contains_all(attribute, values));
+        self
+    }
+
+    pub fn not_contains<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::not_contains(attribute, value));
+        self
+    }
+
+    pub fn not_between<S: Into<String>, V: Into<Value>>(mut self, attribute: S, start: V, end: V) -> Self {
+        self.queries.push(Query::not_between(attribute, start, end));
+        self
+    }
+
+    pub fn not_starts_with<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::not_starts_with(attribute, value));
+        self
+    }
+
+    pub fn not_ends_with<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::not_ends_with(attribute, value));
+        self
+    }
+
+    pub fn created_before<V: Into<Value>>(mut self, value: V) -> Self {
+        self.queries.push(Query::created_before(value));
+        self
+    }
+
+    pub fn created_after<V: Into<Value>>(mut self, value: V) -> Self {
+        self.queries.push(Query::created_after(value));
+        self
+    }
+
+    pub fn created_between<V: Into<Value>>(mut self, start: V, end: V) -> Self {
+        self.queries.push(Query::created_between(start, end));
+        self
+    }
+
+    pub fn updated_before<V: Into<Value>>(mut self, value: V) -> Self {
+        self.queries.push(Query::updated_before(value));
+        self
+    }
+
+    pub fn updated_after<V: Into<Value>>(mut self, value: V) -> Self {
+        self.queries.push(Query::updated_after(value));
+        self
+    }
+
+    pub fn updated_between<V: Into<Value>>(mut self, start: V, end: V) -> Self {
+        self.queries.push(Query::updated_between(start, end));
+        self
+    }
+
+    pub fn distance_equal<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
+        self.queries.push(Query::distance_equal(attribute, values, distance, meters));
+        self
+    }
+
+    pub fn distance_not_equal<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
+        self.queries.push(Query::distance_not_equal(attribute, values, distance, meters));
+        self
+    }
+
+    pub fn distance_greater_than<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
+        self.queries.push(Query::distance_greater_than(attribute, values, distance, meters));
+        self
+    }
+
+    pub fn distance_less_than<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
+        self.queries.push(Query::distance_less_than(attribute, values, distance, meters));
+        self
+    }
+
+    pub fn intersects<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+        self.queries.push(Query::intersects(attribute, values));
+        self
+    }
+
+    pub fn not_intersects<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+        self.queries.push(Query::not_intersects(attribute, values));
+        self
+    }
+
+    pub fn crosses<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+        self.queries.push(Query::crosses(attribute, values));
+        self
+    }
+
+    pub fn not_crosses<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+        self.queries.push(Query::not_crosses(attribute, values));
+        self
+    }
+
+    pub fn overlaps<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+        self.queries.push(Query::overlaps(attribute, values));
+        self
+    }
+
+    pub fn not_overlaps<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+        self.queries.push(Query::not_overlaps(attribute, values));
+        self
+    }
+
+    pub fn touches<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+        self.queries.push(Query::touches(attribute, values));
+        self
+    }
+
+    pub fn not_touches<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+        self.queries.push(Query::not_touches(attribute, values));
+        self
+    }
+
+    pub fn or<I, S>(mut self, queries: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        self.queries.push(Query::or(queries));
+        self
+    }
+
+    pub fn and<I, S>(mut self, queries: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        self.queries.push(Query::and(queries));
+        self
+    }
+
+    pub fn regex<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+        self.queries.push(Query::regex(attribute, value));
+        self
+    }
+
+    pub fn exists<V: Into<Value>>(mut self, attributes: Vec<V>) -> Self {
+        self.queries.push(Query::exists(attributes));
+        self
+    }
+
+    pub fn not_exists<V: Into<Value>>(mut self, attributes: Vec<V>) -> Self {
+        self.queries.push(Query::not_exists(attributes));
+        self
+    }
+
+    pub fn elem_match<S, I, Q>(mut self, attribute: S, queries: I) -> Self
+    where
+        S: Into<String>,
+        I: IntoIterator<Item = Q>,
+        Q: AsRef<str>,
+    {
+        self.queries.push(Query::elem_match(attribute, queries));
+        self
+    }
+
+    pub fn count(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::count(attribute, alias));
+        self
+    }
+
+    pub fn count_distinct(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::count_distinct(attribute, alias));
+        self
+    }
+
+    pub fn sum(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::sum(attribute, alias));
+        self
+    }
+
+    pub fn avg(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::avg(attribute, alias));
+        self
+    }
+
+    pub fn min(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::min(attribute, alias));
+        self
+    }
+
+    pub fn max(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::max(attribute, alias));
+        self
+    }
+
+    pub fn stddev(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::stddev(attribute, alias));
+        self
+    }
+
+    pub fn stddev_pop(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::stddev_pop(attribute, alias));
+        self
+    }
+
+    pub fn stddev_samp(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::stddev_samp(attribute, alias));
+        self
+    }
+
+    pub fn variance(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::variance(attribute, alias));
+        self
+    }
+
+    pub fn var_pop(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::var_pop(attribute, alias));
+        self
+    }
+
+    pub fn var_samp(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::var_samp(attribute, alias));
+        self
+    }
+
+    pub fn bit_and(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::bit_and(attribute, alias));
+        self
+    }
+
+    pub fn bit_or(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::bit_or(attribute, alias));
+        self
+    }
+
+    pub fn bit_xor(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::bit_xor(attribute, alias));
+        self
+    }
+
+    pub fn group_by<I, S>(mut self, attributes: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.queries.push(Query::group_by(attributes));
+        self
+    }
+
+    pub fn having<I, S>(mut self, queries: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        self.queries.push(Query::having(queries));
+        self
+    }
+
+    pub fn distinct(mut self) -> Self {
+        self.queries.push(Query::distinct());
+        self
+    }
+
+    pub fn join(
+        mut self,
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        self.queries.push(Query::join(table, left, right, operator, alias));
+        self
+    }
+
+    pub fn left_join(
+        mut self,
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        self.queries.push(Query::left_join(table, left, right, operator, alias));
+        self
+    }
+
+    pub fn right_join(
+        mut self,
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        self.queries.push(Query::right_join(table, left, right, operator, alias));
+        self
+    }
+
+    pub fn full_outer_join(
+        mut self,
+        table: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+        operator: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
+        self.queries.push(Query::full_outer_join(table, left, right, operator, alias));
+        self
+    }
+
+    pub fn cross_join(mut self, table: impl Into<String>, alias: impl Into<String>) -> Self {
+        self.queries.push(Query::cross_join(table, alias));
+        self
+    }
+
+    pub fn vector_dot<S: Into<String>, N: Into<Value>>(mut self, attribute: S, vector: Vec<N>) -> Self {
+        let values = Value::Array(vector.into_iter().map(|n| n.into()).collect());
+        self.queries.push(Query::vector_dot(attribute, values));
+        self
+    }
+
+    pub fn vector_cosine<S: Into<String>, N: Into<Value>>(mut self, attribute: S, vector: Vec<N>) -> Self {
+        let values = Value::Array(vector.into_iter().map(|n| n.into()).collect());
+        self.queries.push(Query::vector_cosine(attribute, values));
+        self
+    }
+
+    pub fn vector_euclidean<S: Into<String>, N: Into<Value>>(mut self, attribute: S, vector: Vec<N>) -> Self {
+        let values = Value::Array(vector.into_iter().map(|n| n.into()).collect());
+        self.queries.push(Query::vector_euclidean(attribute, values));
+        self
+    }
+
+    pub fn covers<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+        self.queries.push(Query::covers(attribute, values));
+        self
+    }
+
+    pub fn not_covers<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+        self.queries.push(Query::not_covers(attribute, values));
+        self
+    }
+
+    pub fn spatial_equals<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+        self.queries.push(Query::spatial_equals(attribute, values));
+        self
+    }
+
+    pub fn not_spatial_equals<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+        self.queries.push(Query::not_spatial_equals(attribute, values));
+        self
+    }
+
+    pub fn page(mut self, page: u32, per_page: u32) -> Self {
+        self.queries.extend(Query::page(page, per_page));
+        self
+    }
+}
+
+impl Serialize for QueryBuilder {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.build().serialize(serializer)
     }
 }
 
@@ -881,5 +1575,143 @@ mod tests {
         assert_eq!(value["method"], "notSearch");
         assert_eq!(value["attribute"], "content");
         assert_eq!(value["values"][0], "spam keyword");
+    }
+
+    #[test]
+    fn test_count_with_alias() {
+        let query = Query::count("*", "total");
+        let value = query.to_value();
+        assert_eq!(value["method"], "count");
+        assert_eq!(value["attribute"], "*");
+        assert_eq!(value["values"][0], "total");
+    }
+
+    #[test]
+    fn test_count_without_alias() {
+        let query = Query::count("*", "");
+        let value = query.to_value();
+        assert_eq!(value["method"], "count");
+        assert_eq!(value["attribute"], "*");
+        assert!(value.get("values").is_none());
+    }
+
+    #[test]
+    fn test_group_by() {
+        let query = Query::group_by(vec!["status", "year"]);
+        let value = query.to_value();
+        assert_eq!(value["method"], "groupBy");
+        assert_eq!(value["values"][0], "status");
+        assert_eq!(value["values"][1], "year");
+    }
+
+    #[test]
+    fn test_having() {
+        let query = Query::having(vec![Query::greater_than("total", 1).to_string()]);
+        let value = query.to_value();
+        assert_eq!(value["method"], "having");
+        assert_eq!(value["values"][0]["method"], "greaterThan");
+        assert_eq!(value["values"][0]["attribute"], "total");
+        assert_eq!(value["values"][0]["values"][0], 1);
+    }
+
+    #[test]
+    fn test_distinct() {
+        let query = Query::distinct();
+        let value = query.to_value();
+        assert_eq!(value["method"], "distinct");
+    }
+
+    #[test]
+    fn test_join() {
+        let query = Query::join("orders", "$id", "customerId", "=", "");
+        let value = query.to_value();
+        assert_eq!(value["method"], "join");
+        assert_eq!(value["attribute"], "orders");
+        assert_eq!(value["values"][0], "$id");
+        assert_eq!(value["values"][1], "=");
+        assert_eq!(value["values"][2], "customerId");
+        assert_eq!(value["values"].as_array().unwrap().len(), 3);
+    }
+
+    #[test]
+    fn test_left_join_with_alias() {
+        let query = Query::left_join("orders", "$id", "customerId", "=", "ord");
+        let value = query.to_value();
+        assert_eq!(value["method"], "leftJoin");
+        assert_eq!(value["attribute"], "orders");
+        assert_eq!(value["values"][3], "ord");
+    }
+
+    #[test]
+    fn test_cross_join() {
+        let query = Query::cross_join("orders", "ord");
+        let value = query.to_value();
+        assert_eq!(value["method"], "crossJoin");
+        assert_eq!(value["attribute"], "orders");
+        assert_eq!(value["values"][0], "ord");
+    }
+
+    #[test]
+    fn test_page() {
+        let queries = Query::page(2, 10);
+        assert_eq!(queries.len(), 2);
+        let limit = queries[0].clone().to_value();
+        let offset = queries[1].clone().to_value();
+        assert_eq!(limit["method"], "limit");
+        assert_eq!(limit["values"][0], 10);
+        assert_eq!(offset["method"], "offset");
+        assert_eq!(offset["values"][0], 10);
+    }
+
+    #[test]
+    fn test_builder_build() {
+        let built = Query::builder()
+            .equal("status", "published")
+            .left_join("orders", "$id", "customerId", "=", "ord")
+            .count("*", "total")
+            .group_by(vec!["status"])
+            .limit(25)
+            .build();
+
+        assert_eq!(
+            built,
+            vec![
+                Query::equal("status", "published").to_string(),
+                Query::left_join("orders", "$id", "customerId", "=", "ord").to_string(),
+                Query::count("*", "total").to_string(),
+                Query::group_by(vec!["status"]).to_string(),
+                Query::limit(25).to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_normalize_builder() {
+        let builder = Query::builder().equal("status", "active").limit(10);
+        let expected = builder.build();
+        assert_eq!(Query::normalize(builder.clone()), expected);
+        assert_eq!(Query::normalize(vec![builder.clone()]), expected);
+        assert_eq!(Query::normalize(vec![builder.build()]), expected);
+    }
+
+    #[test]
+    fn test_normalize_page_wrapped_in_array() {
+        let normalized = Query::normalize(vec![
+            Value::String(Query::equal("status", "active").to_string()),
+            Value::Array(
+                Query::page(2, 10)
+                    .into_iter()
+                    .map(|query| Value::String(query.to_string()))
+                    .collect(),
+            ),
+        ]);
+        assert_eq!(
+            normalized,
+            vec![
+                Query::equal("status", "active").to_string(),
+                Query::limit(10).to_string(),
+                Query::offset(10).to_string(),
+            ]
+        );
     }
 }

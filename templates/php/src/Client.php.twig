@@ -281,6 +281,9 @@ class Client
         }
 {% endif %}
         $headers = array_merge($this->headers, $headers);
+        if (\array_key_exists('queries', $params)) {
+            $params['queries'] = Query::normalize($params['queries']);
+        }
         $querySeparator = str_contains($path, '?') ? '&' : '?';
         $ch = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? $querySeparator . http_build_query($params) : ''));
         $responseHeaders = [];

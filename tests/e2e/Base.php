@@ -198,6 +198,12 @@ abstract class Base extends TestCase
         '{"method":"exists","values":["attr1","attr2"]}',
         '{"method":"notExists","values":["attr1","attr2"]}',
         '{"method":"elemMatch","attribute":"friends","values":[{"method":"equal","attribute":"name","values":["Alice"]},{"method":"greaterThan","attribute":"age","values":[18]}]}',
+        '{"method":"count","attribute":"*","values":["total"]}',
+        '{"method":"join","attribute":"orders","values":["$id","=","customerId"]}',
+        '{"method":"groupBy","values":["status"]}',
+        '{"method":"distinct"}',
+        '{"method":"covers","attribute":"location","values":[[1,2]]}',
+        '{"method":"limit","values":[1]}',
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [

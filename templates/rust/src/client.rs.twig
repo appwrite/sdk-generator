@@ -3,6 +3,7 @@
 use crate::error::{{ spec.info.title | caseUcfirst }}Error;
 use crate::error::Result;
 use crate::input_file::InputFile;
+use crate::query::Query;
 use arc_swap::ArcSwap;
 use reqwest::{header::HeaderMap, multipart, Client as HttpClient, Method, Response};
 use serde::de::DeserializeOwned;
@@ -344,6 +345,17 @@ impl Client {
         result
     }
 
+    fn normalize_request_params(mut params: HashMap<String, Value>) -> HashMap<String, Value> {
+        if let Some(queries) = params.get("queries").cloned() {
+            let normalized = Query::normalize_value(&queries)
+                .into_iter()
+                .map(Value::String)
+                .collect::<Vec<_>>();
+            params.insert("queries".to_string(), Value::Array(normalized));
+        }
+        params
+    }
+
     pub async fn call<T: DeserializeOwned>(
         &self,
         method: Method,
@@ -355,7 +367,7 @@ impl Client {
         let url = format!("{}{}", state.config.endpoint, path);
         let mut request_builder;
 
-        if let Some(params) = params {
+        if let Some(params) = params.map(Self::normalize_request_params) {
             if method == Method::GET {
                 let mut url_with_params = Url::parse(&url).map_err(|e| {{ spec.info.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new()))?;
                 {
@@ -406,7 +418,7 @@ impl Client {
             }
         }
 
-        if let Some(params) = params {
+        if let Some(params) = params.map(Self::normalize_request_params) {
             if method == Method::GET {
                 let mut url_with_params = Url::parse(&url).map_err(|e| {{ spec.info.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new()))?;
                 {
@@ -493,7 +505,7 @@ impl Client {
         let url = format!("{}{}", state.config.endpoint, path);
         let mut request_builder;
 
-        if let Some(params) = params {
+        if let Some(params) = params.map(Self::normalize_request_params) {
             if method == Method::GET {
                 let mut url_with_params = Url::parse(&url).map_err(|e| {{ spec.info.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new()))?;
                 {

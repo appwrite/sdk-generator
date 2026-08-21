@@ -324,6 +324,10 @@ open class Client {
         headers: [String: String] = [:],
         params: [String: Any?] = [:]
     ) throws -> HTTPClientRequest {
+        var params = params
+        if params.keys.contains("queries") {
+            params["queries"] = Query.normalize(params["queries"] as Any?)
+        }
         let validParams = params.filter { $0.value != nil }
 
         let queryParameters = method == "GET" && !validParams.isEmpty

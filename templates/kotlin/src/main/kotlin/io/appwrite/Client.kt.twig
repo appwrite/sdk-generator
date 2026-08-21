@@ -238,7 +238,12 @@ class Client @JvmOverloads constructor(
         headers:  Map<String, String> = mapOf(),
         params: Map<String, Any?> = mapOf(),
     ): Request {
-        val filteredParams = params.filterValues { it != null }
+        val requestParams = if (params.containsKey("queries")) {
+            params + ("queries" to Query.normalize(params["queries"]))
+        } else {
+            params
+        }
+        val filteredParams = requestParams.filterValues { it != null }
 
         val requestHeaders = this.headers.toHeaders().newBuilder()
             .addAll(headers.toHeaders())

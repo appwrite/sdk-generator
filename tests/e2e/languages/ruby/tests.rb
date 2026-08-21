@@ -217,6 +217,12 @@ puts Query.elem_match("friends", [
   Query.equal("name", "Alice"),
   Query.greater_than("age", 18)
 ])
+puts Query.count('*', 'total')
+puts Query.join('orders', '$id', 'customerId')
+puts Query.group_by(['status'])
+puts Query.distinct()
+puts Query.covers('location', [1, 2])
+puts Query.builder.limit(1).build[0]
 
 # Permission & Role helper tests
 puts Permission.read(Role.any())

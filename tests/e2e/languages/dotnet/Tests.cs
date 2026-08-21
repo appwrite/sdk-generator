@@ -237,6 +237,12 @@ namespace AppwriteTests
                 Query.Equal("name", "Alice"),
                 Query.GreaterThan("age", 18)
             }));
+            TestContext.WriteLine(Query.Count("*", "total"));
+            TestContext.WriteLine(Query.Join("orders", "$id", "customerId"));
+            TestContext.WriteLine(Query.GroupBy(new List<string> { "status" }));
+            TestContext.WriteLine(Query.Distinct());
+            TestContext.WriteLine(Query.Covers("location", new List<object> { 1, 2 }));
+            TestContext.WriteLine(Query.Builder().Limit(1).Build()[0]);
 
             // Permission & Roles helper tests
             TestContext.WriteLine(Permission.Read(Role.Any()));

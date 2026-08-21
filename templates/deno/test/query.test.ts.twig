@@ -274,4 +274,93 @@ describe('Query', () => {
         Query.updatedBetween('2023-01-01', '2023-12-31').toString(),
         `{"method":"between","attribute":"$updatedAt","values":["2023-01-01","2023-12-31"]}`,
     ));
+
+    test('count with alias', () => assertEquals(
+        Query.count('*', 'total').toString(),
+        '{"method":"count","attribute":"*","values":["total"]}',
+    ));
+
+    test('count without alias', () => assertEquals(
+        Query.count().toString(),
+        '{"method":"count","attribute":"*"}',
+    ));
+
+    test('groupBy', () => assertEquals(
+        Query.groupBy(['status', 'year']).toString(),
+        '{"method":"groupBy","values":["status","year"]}',
+    ));
+
+    test('having nests parsed queries', () => {
+        const having = JSON.parse(Query.having([Query.greaterThan('total', 1)]));
+        assertEquals(having.method, 'having');
+        assertEquals(having.values[0].method, 'greaterThan');
+        assertEquals(having.values[0].attribute, 'total');
+        assertEquals(having.values[0].values, [1]);
+    });
+
+    test('distinct', () => assertEquals(
+        Query.distinct().toString(),
+        '{"method":"distinct"}',
+    ));
+
+    test('join', () => assertEquals(
+        Query.join('orders', '$id', 'customerId').toString(),
+        '{"method":"join","attribute":"orders","values":["$id","=","customerId"]}',
+    ));
+
+    test('leftJoin with alias', () => assertEquals(
+        Query.leftJoin('orders', '$id', 'customerId', '=', 'ord').toString(),
+        '{"method":"leftJoin","attribute":"orders","values":["$id","=","customerId","ord"]}',
+    ));
+
+    test('crossJoin', () => assertEquals(
+        Query.crossJoin('orders', 'ord').toString(),
+        '{"method":"crossJoin","attribute":"orders","values":["ord"]}',
+    ));
+
+    test('vectorDot', () => assertEquals(
+        Query.vectorDot('embedding', [0.1, 0.2]).toString(),
+        '{"method":"vectorDot","attribute":"embedding","values":[[0.1,0.2]]}',
+    ));
+
+    test('page', () => {
+        const queries = Query.page(2, 10);
+        assertEquals(queries, [
+            '{"method":"limit","values":[10]}',
+            '{"method":"offset","values":[10]}',
+        ]);
+    });
+
+    test('builder build', () => {
+        const built = Query.builder()
+            .equal('status', 'published')
+            .leftJoin('orders', '$id', 'customerId', '=', 'ord')
+            .count('*', 'total')
+            .groupBy(['status'])
+            .limit(25)
+            .build();
+
+        assertEquals(built, [
+            Query.equal('status', 'published'),
+            Query.leftJoin('orders', '$id', 'customerId', '=', 'ord'),
+            Query.count('*', 'total'),
+            Query.groupBy(['status']),
+            Query.limit(25),
+        ]);
+    });
+
+    test('normalize builder wrapped in array', () => {
+        const builder = Query.builder().equal('status', 'active').limit(10);
+        assertEquals(Query.normalize([builder]), builder.build());
+        assertEquals(Query.normalize([builder.build()]), builder.build());
+        assertEquals(Query.normalize(builder), builder.build());
+    });
+
+    test('normalize page wrapped in array', () => {
+        assertEquals(Query.normalize([Query.equal('status', 'active'), Query.page(2, 10)]), [
+            Query.equal('status', 'active'),
+            Query.limit(10),
+            Query.offset(10),
+        ]);
+    });
 })

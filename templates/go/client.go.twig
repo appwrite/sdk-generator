@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"{{ sdk | goPackagePath }}/file"
+	"{{ sdk | goPackagePath }}/query"
 )
 
 const (
@@ -435,6 +436,12 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 
 // Call an API using Client
 func (client *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (*ClientResponse, error) {
+	if params != nil {
+		if _, ok := params["queries"]; ok {
+			params["queries"] = query.Normalize(params["queries"])
+		}
+	}
+
 	if client.Client == nil {
 		// Create HTTP client
 		httpClient, err := GetDefaultClient(client.Timeout)

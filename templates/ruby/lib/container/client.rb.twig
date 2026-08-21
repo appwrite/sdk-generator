@@ -111,6 +111,12 @@ module {{ spec.info.title | caseUcfirst }}
             params: {},
             response_type: nil
         )
+            if params.key?(:queries) && !params[:queries].nil?
+                params[:queries] = Query.normalize(params[:queries])
+            elsif params.key?('queries') && !params['queries'].nil?
+                params['queries'] = Query.normalize(params['queries'])
+            end
+
             separator = path.include?('?') ? '&' : '?'
             uri = URI.parse(@endpoint + path + ((method == "GET" && params.length) ? separator + encode(params) : ''))
 

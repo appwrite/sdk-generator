@@ -323,4 +323,152 @@ final class QueryTest extends TestCase {
         $this->assertSame(['2023-01-01', '2023-12-31'], $query['values']);
         $this->assertSame('between', $query['method']);
     }
+
+    public function testCountWithAlias(): void {
+        $query = json_decode(Query::count('*', 'total'), true);
+        $this->assertSame('count', $query['method']);
+        $this->assertSame('*', $query['attribute']);
+        $this->assertSame(['total'], $query['values']);
+    }
+
+    public function testCountWithoutAlias(): void {
+        $query = json_decode(Query::count(), true);
+        $this->assertSame('count', $query['method']);
+        $this->assertSame('*', $query['attribute']);
+        $this->assertArrayNotHasKey('values', $query);
+    }
+
+    public function testCountDistinct(): void {
+        $query = json_decode(Query::countDistinct('year', 'uniqueYears'), true);
+        $this->assertSame('countDistinct', $query['method']);
+        $this->assertSame('year', $query['attribute']);
+        $this->assertSame(['uniqueYears'], $query['values']);
+    }
+
+    public function testSumAvgMinMax(): void {
+        $this->assertSame('sum', json_decode(Query::sum('price', 'total'), true)['method']);
+        $this->assertSame('avg', json_decode(Query::avg('price', 'avgPrice'), true)['method']);
+        $this->assertSame('min', json_decode(Query::min('price', 'lowest'), true)['method']);
+        $this->assertSame('max', json_decode(Query::max('price', 'highest'), true)['method']);
+    }
+
+    public function testGroupBy(): void {
+        $query = json_decode(Query::groupBy(['status', 'year']), true);
+        $this->assertSame('groupBy', $query['method']);
+        $this->assertSame(['status', 'year'], $query['values']);
+        $this->assertArrayNotHasKey('attribute', $query);
+    }
+
+    public function testHaving(): void {
+        $query = json_decode(Query::having([Query::greaterThan('total', 1)]), true);
+        $this->assertSame('having', $query['method']);
+        $this->assertSame('greaterThan', $query['values'][0]['method']);
+        $this->assertSame('total', $query['values'][0]['attribute']);
+        $this->assertSame([1], $query['values'][0]['values']);
+    }
+
+    public function testDistinct(): void {
+        $query = json_decode(Query::distinct(), true);
+        $this->assertSame('distinct', $query['method']);
+        $this->assertArrayNotHasKey('attribute', $query);
+        $this->assertArrayNotHasKey('values', $query);
+    }
+
+    public function testJoin(): void {
+        $query = json_decode(Query::join('orders', '$id', 'customerId'), true);
+        $this->assertSame('join', $query['method']);
+        $this->assertSame('orders', $query['attribute']);
+        $this->assertSame(['$id', '=', 'customerId'], $query['values']);
+    }
+
+    public function testJoinWithAlias(): void {
+        $query = json_decode(Query::leftJoin('orders', '$id', 'customerId', '=', 'ord'), true);
+        $this->assertSame('leftJoin', $query['method']);
+        $this->assertSame('orders', $query['attribute']);
+        $this->assertSame(['$id', '=', 'customerId', 'ord'], $query['values']);
+    }
+
+    public function testCrossJoin(): void {
+        $query = json_decode(Query::crossJoin('orders', 'ord'), true);
+        $this->assertSame('crossJoin', $query['method']);
+        $this->assertSame('orders', $query['attribute']);
+        $this->assertSame(['ord'], $query['values']);
+    }
+
+    public function testVectorDot(): void {
+        $query = json_decode(Query::vectorDot('embedding', [0.1, 0.2]), true);
+        $this->assertSame('vectorDot', $query['method']);
+        $this->assertSame('embedding', $query['attribute']);
+        $this->assertSame([[0.1, 0.2]], $query['values']);
+    }
+
+    public function testCovers(): void {
+        $query = json_decode(Query::covers('location', [0, 0]), true);
+        $this->assertSame('covers', $query['method']);
+        $this->assertSame([[0, 0]], $query['values']);
+    }
+
+    public function testPage(): void {
+        $queries = Query::page(2, 10);
+        $this->assertCount(2, $queries);
+        $limit = json_decode($queries[0], true);
+        $offset = json_decode($queries[1], true);
+        $this->assertSame('limit', $limit['method']);
+        $this->assertSame([10], $limit['values']);
+        $this->assertSame('offset', $offset['method']);
+        $this->assertSame([10], $offset['values']);
+    }
+
+    public function testPageRejectsInvalid(): void {
+        $this->expectException(\InvalidArgumentException::class);
+        Query::page(0, 10);
+    }
+
+    public function testBuilderBuild(): void {
+        $expected = [
+            Query::equal('status', 'published'),
+            Query::leftJoin('orders', '$id', 'customerId', '=', 'ord'),
+            Query::count('*', 'total'),
+            Query::groupBy(['status']),
+            Query::limit(25),
+        ];
+
+        $built = Query::builder()
+            ->equal('status', 'published')
+            ->leftJoin('orders', '$id', 'customerId', '=', 'ord')
+            ->count('*', 'total')
+            ->groupBy(['status'])
+            ->limit(25)
+            ->build();
+
+        $this->assertSame($expected, $built);
+    }
+
+    public function testNormalizeBuilderDirect(): void {
+        $builder = Query::builder()->equal('status', 'active')->limit(10);
+        $this->assertSame($builder->build(), Query::normalize($builder));
+    }
+
+    public function testNormalizeBuilderWrappedInArray(): void {
+        $builder = Query::builder()->equal('status', 'active')->limit(10);
+        $this->assertSame($builder->build(), Query::normalize([$builder]));
+    }
+
+    public function testNormalizeBuildResultWrappedInArray(): void {
+        $built = Query::builder()->equal('status', 'active')->limit(10)->build();
+        $this->assertSame($built, Query::normalize([$built]));
+    }
+
+    public function testNormalizeMixedAndPage(): void {
+        $normalized = Query::normalize([
+            Query::equal('status', 'active'),
+            Query::page(2, 10),
+        ]);
+
+        $this->assertSame([
+            Query::equal('status', 'active'),
+            Query::limit(10),
+            Query::offset(10),
+        ], $normalized);
+    }
 }

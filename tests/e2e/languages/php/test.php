@@ -6,6 +6,7 @@ include __DIR__ . '/../../sdks/php/src/Appwrite/Client.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Service.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/InputFile.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Query.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/QueryBuilder.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Permission.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Role.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/ID.php';
@@ -347,6 +348,12 @@ echo Query::elemMatch('friends', [
     Query::equal('name', ['Alice']),
     Query::greaterThan('age', 18)
 ]) . "\n";
+echo Query::count('*', 'total') . "\n";
+echo Query::join('orders', '$id', 'customerId') . "\n";
+echo Query::groupBy(['status']) . "\n";
+echo Query::distinct() . "\n";
+echo Query::covers('location', [1, 2]) . "\n";
+echo Query::builder()->limit(1)->build()[0] . "\n";
 
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";

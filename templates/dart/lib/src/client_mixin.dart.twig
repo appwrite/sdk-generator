@@ -12,6 +12,11 @@ mixin ClientMixin {
     required Map<String, String> headers,
     required Map<String, dynamic> params,
   }) {
+    if (params.containsKey('queries')) {
+      params = Map<String, dynamic>.from(params);
+      params['queries'] = _flattenQueries(params['queries']);
+    }
+
     http.BaseRequest request = http.Request(method.name(), uri);
     if (headers['content-type'] == 'multipart/form-data') {
       request = http.MultipartRequest(method.name(), uri);
@@ -139,5 +144,26 @@ mixin ClientMixin {
     } else {
       return await http.Response.fromStream(streamedResponse);
     }
+  }
+}
+
+List<String> _flattenQueries(dynamic queries) {
+  if (queries == null) {
+    return [];
+  }
+  if (queries is String) {
+    return [queries];
+  }
+  if (queries is List) {
+    final out = <String>[];
+    for (final item in queries) {
+      out.addAll(_flattenQueries(item));
+    }
+    return out;
+  }
+  try {
+    return _flattenQueries(queries.build());
+  } catch (_) {
+    return [queries.toString()];
   }
 }

@@ -105,3 +105,35 @@ class TestQueryMethods(unittest.TestCase):
 
     def test_offset(self):
         self.assertEqual(Query.offset(1), '{"method":"offset","values":[1]}')
+
+    def test_count(self):
+        self.assertEqual(Query.count('*', 'total'), '{"method":"count","attribute":"*","values":["total"]}')
+
+    def test_join(self):
+        self.assertEqual(Query.join('orders', '$id', 'customerId'), '{"method":"join","attribute":"orders","values":["$id","=","customerId"]}')
+
+    def test_group_by(self):
+        self.assertEqual(Query.group_by(['status']), '{"method":"groupBy","values":["status"]}')
+
+    def test_distinct(self):
+        self.assertEqual(Query.distinct(), '{"method":"distinct"}')
+
+    def test_covers(self):
+        self.assertEqual(Query.covers('location', [1, 2]), '{"method":"covers","attribute":"location","values":[[1,2]]}')
+
+    def test_builder_build(self):
+        expected = [
+            Query.equal('status', 'published'),
+            Query.left_join('orders', '$id', 'customerId', '=', 'ord'),
+            Query.count('*', 'total'),
+            Query.group_by(['status']),
+            Query.limit(25),
+        ]
+        built = Query.builder().equal('status', 'published').left_join('orders', '$id', 'customerId', '=', 'ord').count('*', 'total').group_by(['status']).limit(25).build()
+        self.assertEqual(expected, built)
+
+    def test_normalize_builder(self):
+        builder = Query.builder().equal('status', 'active').limit(10)
+        self.assertEqual(builder.build(), Query.normalize(builder))
+        self.assertEqual(builder.build(), Query.normalize([builder]))
+        self.assertEqual(builder.build(), Query.normalize([builder.build()]))
