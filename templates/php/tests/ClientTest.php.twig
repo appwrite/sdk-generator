@@ -4,8 +4,10 @@ namespace {{ namespace | caseNamespace }};
 
 use PHPUnit\Framework\TestCase;
 
-final class ClientTest extends TestCase {
-    public function testSetEndpointInvalidThrowsException(): void {
+final class ClientTest extends TestCase
+{
+    public function testSetEndpointInvalidThrowsException(): void
+    {
         $this->expectException({{ namespace | split('\\') | last | caseUcfirst }}Exception::class);
         $this->expectExceptionMessage('Invalid endpoint URL: invalid-endpoint');
 
@@ -13,7 +15,8 @@ final class ClientTest extends TestCase {
         $client->setEndpoint('invalid-endpoint');
     }
 
-    public function testSetEndpointWithoutProtocolThrowsException(): void {
+    public function testSetEndpointWithoutProtocolThrowsException(): void
+    {
         $this->expectException({{ namespace | split('\\') | last | caseUcfirst }}Exception::class);
         $this->expectExceptionMessage('Invalid endpoint URL: example.com');
 
@@ -21,7 +24,8 @@ final class ClientTest extends TestCase {
         $client->setEndpoint('example.com');
     }
 
-    public function testChaining(): void {
+    public function testChaining(): void
+    {
         $client = new Client();
         $result = $client
             ->setEndpoint('https://example.com')
@@ -31,37 +35,43 @@ final class ClientTest extends TestCase {
         $this->assertInstanceOf(Client::class, $result);
     }
 
-    public function testSetEndpointReturnsClient(): void {
+    public function testSetEndpointReturnsClient(): void
+    {
         $client = new Client();
         $result = $client->setEndpoint('https://example.com');
         $this->assertSame($client, $result);
     }
 
-    public function testSetSelfSignedReturnsClient(): void {
+    public function testSetSelfSignedReturnsClient(): void
+    {
         $client = new Client();
         $result = $client->setSelfSigned(true);
         $this->assertSame($client, $result);
     }
 
-    public function testAddHeaderReturnsClient(): void {
+    public function testAddHeaderReturnsClient(): void
+    {
         $client = new Client();
         $result = $client->addHeader('X-Custom', 'value');
         $this->assertSame($client, $result);
     }
 
-    public function testFlattenSpreadsWrappedBuilder(): void {
+    public function testFlattenSpreadsWrappedBuilder(): void
+    {
         $this->assertSame(
             [Query::limit(1)],
             array_values((array) Client::flatten([Query::builder()->limit(1)]))
         );
     }
 
-    public function testFlattenKeepsNestedNumericArrays(): void {
+    public function testFlattenKeepsNestedNumericArrays(): void
+    {
         $geometry = [[1, 2], [3, 4]];
         $this->assertSame($geometry, Client::flatten($geometry));
     }
 
-    public function testFlattenKeepsQueryStringList(): void {
+    public function testFlattenKeepsQueryStringList(): void
+    {
         $this->assertSame(
             [Query::limit(1)],
             array_values((array) Client::flatten([Query::limit(1)]))
@@ -69,7 +79,8 @@ final class ClientTest extends TestCase {
     }
 {% for headerKey, header in globalHeaders %}
 
-    public function testSet{{headerKey | caseUcfirst}}ReturnsClient(): void {
+    public function testSet{{headerKey | caseUcfirst}}ReturnsClient(): void
+    {
         $client = new Client();
         $result = $client->set{{headerKey | caseUcfirst}}('test-value');
         $this->assertSame($client, $result);
