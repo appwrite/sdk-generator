@@ -649,7 +649,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function distinct(): string
     {
-        return (new Query('distinct', null, null))->__toString();
+        return (new Query('distinct'))->__toString();
     }
 
     /**

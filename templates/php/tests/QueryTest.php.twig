@@ -1,20 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }};
 
 use PHPUnit\Framework\TestCase;
 
 final class BasicFilterQueryTest
 {
-    public $description;
-    public $value;
-    public $expectedValues;
-
-    public function __construct(string $description, mixed $value, string $expectedValues)
+    public function __construct(public string $description, public mixed $value, public string $expectedValues)
     {
-        $this->description = $description;
-        $this->value = $value;
-        $this->expectedValues = $expectedValues;
     }
 }
 
