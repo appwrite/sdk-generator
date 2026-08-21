@@ -214,6 +214,7 @@
         }
 
         $remainingChunks = array_slice($chunks, 1);
+{% if globalHeaders | hasBearerAuth %}
         $clientConfig = \Closure::bind(function (): array {
             if ($this->key !== null) {
                 $this->headers['authorization'] = $this->getAuthorization();
@@ -221,6 +222,9 @@
 
             return [$this->endpoint, $this->headers, $this->selfSigned, $this->timeout, $this->connectTimeout];
         }, $this->client, Client::class);
+{% else %}
+        $clientConfig = \Closure::bind(fn (): array => [$this->endpoint, $this->headers, $this->selfSigned, $this->timeout, $this->connectTimeout], $this->client, Client::class);
+{% endif %}
         $flattenParams = \Closure::bind(fn (array $params): array => $this->flatten($params), $this->client, Client::class);
         [$endpoint, $globalHeaders, $selfSigned, $timeout, $connectTimeout] = $clientConfig();
         $responseHeaders = [];
