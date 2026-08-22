@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:cookie_jar/cookie_jar.dart';
@@ -427,6 +428,29 @@ class ClientIO extends ClientBase with ClientMixin {
       final key = url.queryParameters['key'];
       final secret = url.queryParameters['secret'];
       if (key == null || secret == null) {
+        final error = url.queryParameters['error'];
+        if (error != null && error.isNotEmpty) {
+          try {
+            final parsed = jsonDecode(error);
+            if (parsed is Map) {
+              final codeValue = parsed['code'];
+              final int? code = codeValue is int
+                  ? codeValue
+                  : int.tryParse('${codeValue ?? ''}');
+              throw {{spec.info.title | caseUcfirst}}Exception(
+                parsed['message']?.toString() ?? error,
+                code,
+                parsed['type']?.toString(),
+                error,
+              );
+            }
+          } on {{spec.info.title | caseUcfirst}}Exception {
+            rethrow;
+          } catch (_) {
+            // Fall through to a plain-string error when JSON is malformed.
+          }
+          throw {{spec.info.title | caseUcfirst}}Exception(error);
+        }
         throw {{spec.info.title | caseUcfirst}}Exception(
           "Invalid OAuth2 Response. Key and Secret not available.",
           500,
