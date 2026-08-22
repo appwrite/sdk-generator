@@ -22,7 +22,7 @@ RUN set -eu; \
         sleep $((n * 5)); \
     done
 
-FROM phpswoole/swoole:5.1.8-php8.3-alpine AS final
+FROM phpswoole/swoole:6.2.2-php8.4-alpine AS final
 
 RUN apk add docker
 
