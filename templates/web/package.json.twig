@@ -1,53 +1,56 @@
 {
-  "name": "{{ language.params.npmPackage }}",
-  "homepage": "{{ spec.info.contact.url }}",
-  "description": "{{ sdk.shortDescription }}",
-  "version": "{{ sdk.version }}",
-  "license": "{{ sdk.license }}",
-  "main": "dist/cjs/sdk.js",
-  "exports": {
-    ".": {
-      "import": "./dist/esm/sdk.js",
-      "require": "./dist/cjs/sdk.js",
-      "types": "./types/index.d.ts"
+    "name": "{{ language.params.npmPackage }}",
+    "homepage": "{{ spec.info.contact.url }}",
+    "description": "{{ sdk.shortDescription }}",
+    "version": "{{ sdk.version }}",
+    "license": "{{ sdk.license }}",
+    "main": "dist/cjs/sdk.js",
+    "exports": {
+        ".": {
+            "import": "./dist/esm/sdk.js",
+            "require": "./dist/cjs/sdk.js",
+            "types": "./types/index.d.ts"
+        },
+        "./package.json": "./package.json"
     },
-    "./package.json": "./package.json"
-  },
-  "module": "dist/esm/sdk.js",
-  "types": "types/index.d.ts",
-  "files": [
-    "dist",
-    "types"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "{{ sdk.gitURL }}"
-  },
-  "scripts": {
-    "build": "npm run build:types && npm run build:libs",
-    "build:types": "tsc --declaration --emitDeclarationOnly --outDir types",
-    "build:libs": "rollup -c"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "json-bigint": "1.0.0"
-  },
-  "devDependencies": {
-    "@rollup/plugin-commonjs": "29.0.3",
-    "@rollup/plugin-node-resolve": "16.0.3",
-    "@rollup/plugin-typescript": "12.3.0",
-    "@types/json-bigint": "1.0.4",
-    "playwright": "1.56.1",
-    "rollup": "4.62.5",
-    "serve-handler": "6.1.7",
-    "tslib": "2.8.1",
-    "typescript": "5.9.3"
-  },
-  "overrides": {
-    "brace-expansion": "5.0.9"
-  },
-  "jsdelivr": "dist/iife/sdk.js",
-  "unpkg": "dist/iife/sdk.js"
+    "module": "dist/esm/sdk.js",
+    "types": "types/index.d.ts",
+    "files": [
+        "dist",
+        "types"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "{{ sdk.gitURL }}"
+    },
+    "scripts": {
+        "build": "npm run build:types && npm run build:libs",
+        "build:types": "tsc --declaration --emitDeclarationOnly --outDir types",
+        "build:libs": "rollup -c",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "dependencies": {
+        "json-bigint": "1.0.0"
+    },
+    "devDependencies": {
+        "@rollup/plugin-commonjs": "29.0.3",
+        "@rollup/plugin-node-resolve": "16.0.3",
+        "@rollup/plugin-typescript": "12.3.0",
+        "@types/json-bigint": "1.0.4",
+        "playwright": "1.56.1",
+        "prettier": "3.9.6",
+        "rollup": "4.62.5",
+        "serve-handler": "6.1.7",
+        "tslib": "2.8.1",
+        "typescript": "5.9.3"
+    },
+    "overrides": {
+        "brace-expansion": "5.0.9"
+    },
+    "jsdelivr": "dist/iife/sdk.js",
+    "unpkg": "dist/iife/sdk.js"
 }

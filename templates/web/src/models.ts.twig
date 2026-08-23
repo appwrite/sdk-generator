@@ -1,6 +1,6 @@
 {% if responseEnums|length > 0 %}
 {% for responseEnum in responseEnums %}
-import { {{ responseEnum.title }} } from "./enums/{{ responseEnum.title | caseKebab }}"
+import { {{ responseEnum.title }} } from './enums/{{ responseEnum.title | caseKebab }}';
 {% endfor %}
 {% endif %}
 
@@ -8,21 +8,25 @@ import { {{ responseEnum.title }} } from "./enums/{{ responseEnum.title | caseKe
  * {{spec.info.title | caseUcfirst}} Models
  */
 export namespace Models {
-
     declare const __default: unique symbol;
 {% for definitionName, definition in definitions %}
 
     /**
-     * {{ definition.description }}
+     * {{ definition.description | trimLines }}
      */
-    export type {{ definitionName | caseUcfirst }}{{ definitionName | getGenerics(spec, true) | raw }} = {
+{% if definition.properties is empty %}
+    {{ (definitionName | caseUcfirst) | tsTypeAlias((definitionName | getGenerics(spec, true)), '{};', 4) | raw }}
+{% else %}
+    {{ (definitionName | caseUcfirst) | tsTypeAlias((definitionName | getGenerics(spec, true)), '{', 4) | raw }}
 {% for property in definition.properties %}
         /**
-         * {{ property.description | raw }}
+         *{% if (property.description | trimLines) is not empty %} {{ property.description | trimLines | raw }}{% endif %}
+
          */
-        {{ (property | schemaName) | removeDash }}{% if not (property | schemaRequired) %}?{% endif %}: {{ property | getSubSchema(spec, definitionName) | raw }};
+        {{ ((property | schemaName) | removeDash ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty((property | getSubSchema(spec, definitionName)), 8) | raw }}
 {% endfor %}
-    }
+    };
+{% endif %}
 {% if definition.additionalProperties %}
 
     export type Default{{ definitionName | caseUcfirst }}{{ definitionName | getGenerics(spec, true) | raw }} = {{ definitionName | caseUcfirst }}{{ definitionName | getGenerics(spec, true) | raw }} & {
@@ -34,16 +38,17 @@ export namespace Models {
 {% for requestModelName, requestModel in requestModels %}
 
     /**
-     * {{ requestModel.description }}
+     * {{ requestModel.description | trimLines }}
      */
-    export type {{ requestModelName | caseUcfirst }}{{ requestModelName | getGenerics(spec, true) | raw }} = {
+    {{ (requestModelName | caseUcfirst) | tsTypeAlias((requestModelName | getGenerics(spec, true)), '{', 4) | raw }}
 {% for property in requestModel.properties %}
         /**
-         * {{ property.description | raw }}
+         *{% if (property.description | trimLines) is not empty %} {{ property.description | trimLines | raw }}{% endif %}
+
          */
         {{ (property | schemaName) | removeDash }}{% if not (property | schemaRequired) %}?{% endif %}: {{ property | getSubSchema(spec, requestModelName) | raw }};
 {% endfor %}
-    }
+    };
 {% if requestModel.additionalProperties %}
 
     export type Default{{ requestModelName | caseUcfirst }}{{ requestModelName | getGenerics(spec, true) | raw }} = {{ requestModelName | caseUcfirst }}{{ requestModelName | getGenerics(spec, true) | raw }} & {

@@ -16,7 +16,7 @@ The generator does not auto-discover templates. Every output file must have an e
 
 | Parent | Children affected |
 |--------|------------------|
-| `Node` | `ReactNative` |
+| `Web` | `Node`, `ReactNative` |
 | `Dart` | `Flutter` |
 | `Swift` | `Apple` |
 | `Kotlin` | `Android` |
@@ -134,6 +134,29 @@ When you change templates for a language below, regenerate and run that language
   ```bash
   php example.php apple client
   (cd examples/apple && swift-format lint --recursive --strict --configuration .swift-format .)
+  ```
+
+- **Web / Node / React Native** — Prettier
+
+  ```bash
+  rm -rf examples/web
+  php example.php web <platform>
+  (cd examples/web && npm ci && npm run format:check)
+  ```
+
+  Prettier's layout depends on the print width, so a template cannot always know
+  whether a construct fits on one line. `src/SDK/Language/Web.php` and
+  `src/SDK/Language/JS.php` render the width-sensitive constructs (method
+  signatures, union and conditional types, guards, assignments) through helpers
+  exposed as Twig filters. Extend those helpers rather than hand-wrapping output
+  in a template.
+
+  `Node` and `ReactNative` read several `templates/web/src/**` files directly.
+  After shared Web template changes:
+
+  ```bash
+  php example.php node server
+  php example.php react-native client
   ```
 
 ## Repository at a Glance

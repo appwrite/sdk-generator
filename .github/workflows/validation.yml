@@ -213,6 +213,7 @@ jobs:
             web)
               npm ci
               npm audit
+              npm run format:check
               npm run build
               ;;
             cli)

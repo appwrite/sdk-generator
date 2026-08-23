@@ -1,0 +1,8 @@
+node_modules/
+dist/
+types/
+package-lock.json
+
+# CI workflow files follow the YAML conventions of the publishing repository,
+# not this SDK's source formatting.
+.github/
