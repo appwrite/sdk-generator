@@ -489,7 +489,7 @@ App::get('/v1/mock/tests/general/set-cookie')
     ->inject('response')
     ->inject('request')
     ->action(function (UtopiaSwooleResponse $response, Request $request) {
-        $response->addCookie('cookieName', 'cookieValue', \time() + 31536000, '/', $request->getHostname(), true, true);
+        $response->addCookie('cookieName', 'cookieValue', \time() + 31536000, '/', $request->getHostname(), true, true, '');
     });
 
 App::get('/v1/mock/tests/general/get-cookie')
