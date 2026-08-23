@@ -1,7 +1,16 @@
+{% if enum | openEnum %}
+class {{ enum.title | caseUcfirst | overrideIdentifier }}:
+{% for value in enum.enum %}
+{% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
+    {{ key | caseEnumKey }} = "{{ value }}"
+{% endfor %}
+{% else %}
 from enum import Enum
+
 
 class {{ enum.title | caseUcfirst | overrideIdentifier }}(Enum):
 {% for value in enum.enum %}
-{% set key = enum.extensions['x-enum-keys'] is empty ? value : enum.extensions['x-enum-keys'][loop.index0] %}
+{% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
     {{ key | caseEnumKey }} = "{{ value }}"
 {% endfor %}
+{% endif %}

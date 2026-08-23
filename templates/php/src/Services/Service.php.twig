@@ -1,15 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }}\Services;
 
 use {{ namespace | caseNamespace }}\{{ namespace | split('\\') | last | caseUcfirst}}Exception;
 use {{ namespace | caseNamespace }}\Client;
 use {{ namespace | caseNamespace }}\Service;
-use {{ namespace | caseNamespace }}\InputFile;
 {% set added = [] %}
 {% for method in (service | operations) %}
 {% for parameter in (method | parameters('all')) %}
-{% if (parameter | enumValues) is not empty %}
+{% if (parameter | schemaType) == 'file' and 'InputFile' not in added %}
+use {{ namespace | caseNamespace }}\InputFile;
+{% set added = added|merge(['InputFile']) %}
+{% endif %}
+{% if (parameter | enumValues) is not empty and (parameter | schemaType) != 'array' %}
 {% if (parameter | enumName) not in added %}
 use {{ namespace | caseNamespace }}\Enums\{{ (parameter | enumName) | caseUcfirst }};
 {% set added = added|merge([(parameter | enumName)]) %}
@@ -26,11 +31,6 @@ use {{ namespace | caseNamespace }}\Models\{{ (parameter | schemaModel) | caseUc
 
 class {{ service.name | caseUcfirst }} extends Service
 {
-    public function __construct(Client $client)
-    {
-        parent::__construct($client);
-    }
-
 {% set nonDeprecatedMethodNames = [] %}
 {% for method in (service | operations) %}
 {% if not method.deprecated %}
@@ -45,14 +45,10 @@ class {{ service.name | caseUcfirst }} extends Service
 {% set deprecated_message = '' %}
     /**
 {% if method.description %}
-{{ method.description | wrap(75, '     * ') }}
+{{ method.description | split('\n') | map(line => line | trim) | join('\n') | trim | wrap(75, '     * ') | replace({'     * \n': '     *\n'}) }}
      *
 {% endif %}
-{% for parameter in (method | parameters('all')) %}
-     * @param {% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}{{ parameter | typeName }} ${{ parameter.name | caseCamel | escapeKeyword }}
-{% endfor %}
      * @throws {{ namespace | split('\\') | last | caseUcfirst}}Exception
-     * @return {{ method | getReturn(spec) }}
 {% if method.deprecated %}
      *
 {%~ if (method | appwrite('deprecated', {})['since'] ?? '') and (method | appwrite('deprecated', {})['replaceWith'] ?? '') %}
@@ -69,7 +65,7 @@ class {{ service.name | caseUcfirst }} extends Service
     {
         $apiPath = str_replace(
             [{% for parameter in (method | parameters('path')) %}'{{ '{' }}{{ parameter.name }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-            [{% for parameter in (method | parameters('path')) %}{% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}$this->client->getConfig('{{ parameter.extensions['x-sdk-config'] | caseLower }}'){% else %}${{ parameter.name | caseCamel | escapeKeyword }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}],
+            [{% for parameter in (method | parameters('path')) %}{% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}$this->client->getConfig('{{ parameter.extensions['x-sdk-config'] | caseLower }}'){% else %}{% if parameter | usesEnumType %}(string) {% endif %}${{ parameter.name | caseCamel | escapeKeyword }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}],
             '{{ method.path }}'
         );
         {%~ for security in (method | securityQueries) %}
@@ -78,10 +74,10 @@ class {{ service.name | caseUcfirst }} extends Service
 
         {{~ include('php/base/params.twig') -}}
         {%~ if 'multipart/form-data' in (method | consumes) %}
-        {{~ include('php/base/requests/file.twig') }}
+        {{~ include('php/base/requests/file.twig') -}}
         {%~ else %}
 
-        {{~ include('php/base/requests/api.twig') }}
+        {{~ include('php/base/requests/api.twig') -}}
         {%~ endif %}
     }
         {%~ if not loop.last %}

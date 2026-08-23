@@ -4,11 +4,11 @@ namespace Appwrite\SDK\Language;
 
 use Utopia\OpenAPI\Model\AnySchema;
 use Utopia\OpenAPI\Model\ArraySchema;
-use Utopia\OpenAPI\Model\CompositeSchema;
 use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
@@ -321,9 +321,9 @@ class Swift extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null, bool $isProperty = false): string
     {
         $schema = $this->getSchema($parameter);
+        $items = $this->getArraySchema($parameter);
         $prefix = $spec?->info->title ?? '';
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        if ($enumSchema->enum !== []) {
+        if ($this->usesEnumType($parameter)) {
             $type = $prefix . 'Enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             return $schema instanceof ArraySchema ? '[' . $type . ']' : $type;
         }
@@ -339,12 +339,14 @@ class Swift extends Language
             self::TYPE_STRING => 'String',
             self::TYPE_FILE => 'InputFile',
             self::TYPE_BOOLEAN => 'Bool',
-            // A union or untyped element has no Swift spelling, so the whole
-            // array degrades to AnyCodable rather than each element being
-            // rendered as a dictionary.
+            // A union, untyped element, or generic object has no concrete
+            // Codable type, so the array uses AnyCodable.
             self::TYPE_ARRAY => match (true) {
                 $this->isUntypedNestedArray($parameter, $schema) => '[[AnyCodable]]',
-                $this->hasConcreteItemsType($schema) => '[' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema, $spec) . ']',
+                $items instanceof Schema
+                    && $this->getSchemaType($items) === self::TYPE_OBJECT
+                    && $this->getSchemaModel($items) === null => '[AnyCodable]',
+                $this->hasConcreteItemsType($schema) => '[' . $this->getTypeName($items ?? $schema, $spec) . ']',
                 default => '[AnyCodable]',
             },
             self::TYPE_OBJECT => $isProperty ? '[String: AnyCodable]' : 'Any',
@@ -516,11 +518,10 @@ class Swift extends Language
                 ? "{$name}{$nullAware}.map { \$0.toMap() }"
                 : "{$name}{$nullAware}.toMap()";
         }
-        if ($property->enum !== []) {
-            return "{$name}{$nullAware}.rawValue";
-        }
-        if ($property instanceof ArraySchema && $property->items->enum !== []) {
-            return "{$name}{$nullAware}.map { \$0.rawValue }";
+        if ($this->usesEnumType($property)) {
+            return $property instanceof ArraySchema
+                ? "{$name}{$nullAware}.map { \$0.rawValue }"
+                : "{$name}{$nullAware}.rawValue";
         }
         return $name;
     }
@@ -584,13 +585,13 @@ class Swift extends Language
             }),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
-                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumSchema = $this->getEnumSchema($param);
                 $enumValues = $enumSchema->enum;
                 if ($enumValues === []) {
                     return '';
                 }
 
-                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
+                $enumKeys = $this->resolveEnumKeys($param);
                 $example = $this->getSchemaExample($param);
                 $isArray = $schema instanceof ArraySchema;
 

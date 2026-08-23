@@ -250,6 +250,9 @@ jobs:
               ;;
             php)
               composer install
+              composer lint
+              composer analyse
+              composer refactor
               composer audit
               composer test
               ;;
@@ -257,6 +260,8 @@ jobs:
               python -m pip install pip-audit
               pip install -e .[test]
               pip-audit --strict .
+              find appwrite test -name '*.py' -print0 | xargs -0 python -m black --check
+              python -m black --check setup.py
               python -m compileall appwrite/
               python -m unittest
               ;;
@@ -289,6 +294,7 @@ jobs:
               govulncheck ./...
               go build ./...
               go test ./...
+              ../../scripts/validate-go-examples.sh .
               ;;
             dotnet)
               dotnet restore

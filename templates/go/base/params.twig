@@ -1,3 +1,8 @@
+{% set requiredQueryParameters = (method | parameters('query')) | filter(v => v.required) %}
+{% set optionalQueryParameters = (method | parameters('query')) | filter(v => not v.required) %}
+{% if (method | methodType) == 'location' %}
+	params := srv.{{ ((method | methodName) ~ 'Params') | caseLcfirst }}({% for parameter in requiredQueryParameters %}{{ parameter.name | caseUcfirst }}{% if not loop.last or optionalQueryParameters | length > 0 %}, {% endif %}{% endfor %}{% if optionalQueryParameters | length > 0 %}optionalSetters...{% endif %})
+{% else %}
 {% if (method | parameters('query')) | merge((method | parameters('body'))) | merge((method | parameters('header'))) | filter(v => not v.required) | length > 0 %}
 	options := {{((method | methodName) ~ "Options") | caseUcfirst}}{}.New()
 	for _, opt := range optionalSetters {
@@ -14,6 +19,7 @@
 	}
 {% endif %}
 {% endfor %}
+{% endif %}
 	headers := map[string]interface{}{}
 {%~ for key, security in (method | securityHeaders) %}
 	headers["{{ security.name }}"] = srv.client.Config["{{ key | caseLower }}"]

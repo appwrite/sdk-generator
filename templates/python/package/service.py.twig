@@ -9,6 +9,7 @@ from .models.base_model import AppwriteModel
 
 ModelType = TypeVar('ModelType', bound=AppwriteModel)
 
+
 class Service:
     def __init__(self, client: Client):
         self.client = client
@@ -24,18 +25,11 @@ class Service:
             return [self._normalize_value(item) for item in value]
 
         if isinstance(value, dict):
-            return {
-                key: self._normalize_value(item)
-                for key, item in value.items()
-            }
+            return {key: self._normalize_value(item) for key, item in value.items()}
 
         return value
 
-    def _parse_response(
-        self,
-        response: Any,
-        model: Optional[Type[ModelType]] = None
-    ) -> Any:
+    def _parse_response(self, response: Any, model: Optional[Type[ModelType]] = None) -> Any:
         if model is None:
             return response
 

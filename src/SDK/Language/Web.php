@@ -205,14 +205,13 @@ class Web extends JS
             self::TYPE_STRING => "'{$example}'",
         };
     }
+
     #[Override]
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        if ($enumSchema->enum !== []) {
-            $type = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
-            return $schema instanceof ArraySchema ? $type . '[]' : $type;
+        if (($type = $this->getEnumTypeName($parameter, $spec)) !== null) {
+            return $type;
         }
 
         $models = $this->getSchemaModels($parameter);

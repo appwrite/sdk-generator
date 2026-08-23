@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "03af878319ef34dee55c3ff1f1cf5fa0",
+    "content-hash": "77e7a4731ea9da7386763085af21d33e",
     "packages": [
         {
             "name": "matthiasmullie/minify",
@@ -450,16 +450,16 @@
         },
         {
             "name": "utopia-php/openapi",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/openapi.git",
-                "reference": "5962baf44f339ae0919ec751bcbf1a96828f0038"
+                "reference": "d74fe62fcb16f810986ad91a2727604e5f83e63e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/openapi/zipball/5962baf44f339ae0919ec751bcbf1a96828f0038",
-                "reference": "5962baf44f339ae0919ec751bcbf1a96828f0038",
+                "url": "https://api.github.com/repos/utopia-php/openapi/zipball/d74fe62fcb16f810986ad91a2727604e5f83e63e",
+                "reference": "d74fe62fcb16f810986ad91a2727604e5f83e63e",
                 "shasum": ""
             },
             "require": {
@@ -484,9 +484,9 @@
             "description": "Framework-independent OpenAPI 2.0, 3.0, and 3.1 parser with an immutable canonical model",
             "support": {
                 "issues": "https://github.com/utopia-php/openapi/issues",
-                "source": "https://github.com/utopia-php/openapi/tree/0.1.0"
+                "source": "https://github.com/utopia-php/openapi/tree/0.2.0"
             },
-            "time": "2026-08-14T07:11:54+00:00"
+            "time": "2026-08-21T04:56:47+00:00"
         }
     ],
     "packages-dev": [

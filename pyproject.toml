@@ -3,8 +3,9 @@
 profile="jinja"
 extension="twig"
 
-ignore="H009,H012,H023,H025,H030,H031,T001,T002,T027,T032"
+ignore="H009,H012,H014,H023,H025,H030,H031,T001,T002,T027,T032"
 # H009: lowercase tag names - false positive for Rust generics like <P: AsRef<Path>>
+# H014: extra blank lines - canonical source formatters require top-level declaration spacing
 # H012: spaces around = - false positive for TypeScript generics like <T = Models.Document>
 # H023: entity references - false positive for Rust references like &Client, &str
 # H025: orphan tags - false positive for code generics like <T>, <String>, <Exception>

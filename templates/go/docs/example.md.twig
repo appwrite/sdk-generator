@@ -1,42 +1,47 @@
 ```go
-{% set requireModelsPkg = false -%}
-{%- set requireFilesPkg = false -%}
-{%- if (method | returnType(spec, spec.info.title | caseLower)) starts with "models" -%}
-		{%- set requireModelsPkg = true -%}
-{%- endif -%}
-
+{% set requireFilesPkg = (method | parameters('all')) | filter(parameter => (parameter | schemaType) == 'file') | length > 0 -%}
+{%- set packagePath = sdk | goPackagePath -%}
+{%- set imports = [packagePath ~ '/appwrite', packagePath ~ '/' ~ (service.name | caseLower)] -%}
+{%- if requireFilesPkg -%}
+{%- set imports = imports | merge([packagePath ~ '/file']) -%}
+{%- endif %}
 package main
 
 import (
-    "fmt"
-    "{{ sdk | goPackagePath }}/client"
-    "{{ sdk | goPackagePath }}/{{ service.name | caseLower }}"
-{% if requireFilesPkg %}
-	"{{ sdk | goPackagePath }}/file"
-{% endif %}
+	"fmt"
+
+{% for import in imports | sort %}
+	"{{ import }}"
+{% endfor %}
 )
 
-client := client.New(
+func main() {
+	client := appwrite.NewClient(
 {% if [(method | securitySchemes)]|length > 0 %}
-    client.WithEndpoint("{{ endpointDocs | raw }}")
+		appwrite.WithEndpoint("{{ endpointDocs | raw }}"),
 {% for node in [(method | securitySchemes)] %}
 {% for key,header in node|keys|filter(h => not node[h].extensions['x-appwrite']['optional']) %}
-    client.With{{header}}("{{node[header].extensions['x-appwrite']['demo'] | raw }}")
+		appwrite.With{{header}}("{{node[header].extensions['x-appwrite']['demo'] | raw }}"),
 {% endfor %}
 {% endfor %}
-)
-
 {% endif %}
-service := {{ service.name | caseLower }}.New(client)
+	)
 
-response, error := service.{{ (method | methodName) | caseUcfirst }}({% if (method | parameters('all')) | length == 0 %}){% else %}
+	service := {{ service.name | caseLower }}.New(client)
 
+{% if (method | parameters('all')) | length == 0 %}
+	response, err := service.{{ (method | methodName) | caseUcfirst }}()
+{% else %}
+	response, err := service.{{ (method | methodName) | caseUcfirst }}(
 {% for parameter in (method | parameters('all')) %}
 {% if parameter.required %}
-    {{ parameter | paramExample }},
+		{{ parameter | paramExample }},
 {% else %}
-    {{ service.name | caseLower }}.With{{ (method | methodName) | caseUcfirst }}{{ parameter.name | caseUcfirst }}({{ parameter | paramExample }}),
+		service.With{{ (method | methodName) | caseUcfirst }}{{ parameter.name | caseUcfirst }}({{ parameter | paramExample }}),
 {% endif %}
 {% endfor %}
-{% endif %})
+	)
+{% endif %}
+	fmt.Println(response, err)
+}
 ```

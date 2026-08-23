@@ -5,6 +5,7 @@ namespace Appwrite\SDK\Language;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
@@ -192,8 +193,7 @@ class DotNet extends Language
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        if ($enumSchema->enum !== []) {
+        if ($this->usesEnumType($parameter)) {
             $type = 'Appwrite.Enums.' . $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             return $schema instanceof ArraySchema ? 'List<' . $type . '>' : $type;
         }
@@ -494,14 +494,14 @@ class DotNet extends Language
             new TwigFilter('toMapValue', fn(Schema $property, string $resolvedName, Specification $spec): string => $this->getToMapExpression($property, $resolvedName, $spec), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
-                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumSchema = $this->getEnumSchema($param);
                 $enumValues = $enumSchema->enum;
                 if ($enumValues === []) {
                     return '';
                 }
 
-                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
-                $enumName = $this->toPascalCase($enumSchema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
+                $enumKeys = $this->resolveEnumKeys($param);
+                $enumName = $this->toPascalCase(($enumSchema instanceof StringSchema ? $enumSchema->enumName : null) ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
                 $example = $this->getSchemaExample($param);
                 $isArray = $schema instanceof ArraySchema;
 
@@ -623,8 +623,10 @@ class DotNet extends Language
                 : "{$resolvedName}?.ToMap()";
         }
 
-        if ($property->enum !== []) {
-            return "{$resolvedName}{$nullable}.Value";
+        if ($this->usesEnumType($property)) {
+            return $property instanceof ArraySchema
+                ? "{$resolvedName}{$nullable}.Select(it => it.Value).ToList()"
+                : "{$resolvedName}{$nullable}.Value";
         }
 
         return $resolvedName;

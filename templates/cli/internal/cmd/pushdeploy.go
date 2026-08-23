@@ -494,12 +494,18 @@ var deployables = []deployable{
 		WriteKeys: []string{
 			"name", "runtime", "execute", "events", "schedule", "timeout",
 			"enabled", "logging", "entrypoint", "commands", "scopes",
-			"buildSpecification", "runtimeSpecification", "deploymentRetention",
+			"installationId", "providerRepositoryId", "providerBranch",
+			"providerSilentMode", "providerRootDirectory", "providerBranches",
+			"providerPaths", "buildSpecification", "runtimeSpecification",
+			"deploymentRetention",
 		},
 		ApproveKeys: []string{
 			"path", "$id", "execute", "name", "enabled", "logging", "runtime",
 			"buildSpecification", "runtimeSpecification", "deploymentRetention",
 			"scopes", "events", "schedule", "timeout", "entrypoint", "commands",
+			"installationId", "providerRepositoryId", "providerBranch",
+			"providerSilentMode", "providerRootDirectory", "providerBranches",
+			"providerPaths", "previewDomainTarget", "previewDomainLabel",
 			"vars", "ignore",
 		},
 		DeploymentKeys: []string{"entrypoint", "commands"},
@@ -556,6 +562,10 @@ type deployOptions struct {
 	// Logs streams the deployment's build log while it builds; --no-logs
 	// reports status transitions only.
 	Logs bool
+	// FailOnError returns an error when any selected resource fails. Ordinary
+	// multi-resource push commands keep reporting a summary so other resources
+	// can finish; init --deploy needs a failing exit status for its one resource.
+	FailOnError bool
 }
 
 func newPushDeployableCommand(resource deployable) *cobra.Command {
@@ -683,6 +693,12 @@ func runPushDeployable(
 		pushCode = confirmed
 	}
 
+	if pushCode && resource.Name == "function" {
+		if err := context.materializePendingFunctionRepositories(entries); err != nil {
+			return err
+		}
+	}
+
 	activate := true
 	if pushCode && !options.ActivateSet {
 		// --force answers this rather than asking anyway: --force means "do not
@@ -720,7 +736,17 @@ func runPushDeployable(
 	}
 
 	summary := pushSummary{}
-	if resource.Name == "function" && len(entries) > 1 {
+	parallel := resource.Name == "function" && len(entries) > 1
+	for _, entry := range entries {
+		if entry.GetString("templateRepository") != "" {
+			// Template deployment consumes and persists one-shot state. Keep that
+			// rare batch sequential so workers never write the shared config at
+			// the same time.
+			parallel = false
+			break
+		}
+	}
+	if parallel {
 		// Individual spinners own one terminal row and cannot safely redraw the
 		// same row from several goroutines. A synchronized writer keeps every
 		// line intact and deliberately makes parallel progress use the spinner's
@@ -737,6 +763,10 @@ func runPushDeployable(
 	}
 
 	summary.report(command, resource, options.Async, time.Since(started))
+	if options.FailOnError && len(summary.Failed) > 0 {
+		return fmt.Errorf("failed to deploy %s: %s",
+			resource.Singular, summary.Failed[0].Reason)
+	}
 
 	return nil
 }
@@ -817,7 +847,9 @@ func (s *pushSummary) report(
 	// The link and nothing else: the spinner row above has already named the
 	// resource and the reason.
 	for _, failure := range s.Failed {
-		output.Log(out, "Deployment page: %s", failure.ConsoleURL)
+		if failure.ConsoleURL != "" {
+			output.Log(out, "Deployment page: %s", failure.ConsoleURL)
+		}
 	}
 
 	if async {
@@ -1034,7 +1066,7 @@ func (c *pushContext) pushDeployable(
 	case err != nil && isNotFound(err):
 		exists = false
 	case err != nil:
-		output.Failure(out, "Failed to push %s %s: %s", resource.Singular, name, err)
+		recordPushFailure(command, resource, name, err.Error(), summary)
 
 		return
 	}
@@ -1042,38 +1074,41 @@ func (c *pushContext) pushDeployable(
 	if exists {
 		local := entry.GetString(resource.MismatchKey)
 		if remoteValue := remote.GetString(resource.MismatchKey); remoteValue != local {
-			output.Failure(out,
-				"%s mismatch! (local=%s,remote=%s) Please delete remote %s or update your %s",
+			reason := fmt.Sprintf(
+				"%s mismatch (local=%s, remote=%s); delete the remote %s or update %s",
 				strings.ToUpper(resource.MismatchKey[:1])+resource.MismatchKey[1:],
 				local, remoteValue, resource.Singular, config.LocalFileName)
+			recordPushFailure(command, resource, name, reason, summary)
 
 			return
 		}
 
 		err = c.api.Call("PUT", resource.Path+"/"+url.PathEscape(id),
-			writeBody(entry, resource.WriteKeys, resource.OmitWhenEmpty, "", ""), nil)
+			pendingSafeBody(entry, writeBody(
+				entry, resource.WriteKeys, resource.OmitWhenEmpty, "", "")), nil)
 	} else {
 		err = c.api.Call("POST", resource.Path,
-			writeBody(entry, resource.WriteKeys, resource.OmitWhenEmpty,
-				resource.IDField, id), nil)
+			pendingSafeBody(entry, writeBody(
+				entry, resource.WriteKeys, resource.OmitWhenEmpty,
+				resource.IDField, id)), nil)
 	}
 	if err != nil {
-		output.Failure(out, "Failed to push %s %s: %s", resource.Singular, name, err)
+		recordPushFailure(command, resource, name, err.Error(), summary)
 
 		return
 	}
 
 	// Ensured on every push, not only on create, so a function whose rule was
 	// deleted in the console gets it back.
-	if err := c.ensureDefaultRule(command, resource, id); err != nil {
-		output.Failure(out, "Failed to push %s %s: %s", resource.Singular, name, err)
+	if err := c.ensureDefaultRule(command, resource, entry); err != nil {
+		recordPushFailure(command, resource, name, err.Error(), summary)
 
 		return
 	}
 
 	if run.WithVariables {
 		if err := c.replaceVariables(resource, entry); err != nil {
-			output.Failure(out, "Failed to push %s %s: %s", resource.Singular, name, err)
+			recordPushFailure(command, resource, name, err.Error(), summary)
 
 			return
 		}
@@ -1088,7 +1123,7 @@ func (c *pushContext) pushDeployable(
 
 	deployment, err := c.createDeployment(command, resource, entry, run.Activate)
 	if err != nil {
-		output.Failure(out, "Failed to push %s %s: %s", resource.Singular, name, err)
+		recordPushFailure(command, resource, name, err.Error(), summary)
 
 		return
 	}
@@ -1099,6 +1134,35 @@ func (c *pushContext) pushDeployable(
 	}
 
 	c.awaitDeployment(command, resource, entry, deployment, run, summary)
+}
+
+func recordPushFailure(
+	command *cobra.Command,
+	resource deployable,
+	name, reason string,
+	summary *pushSummary,
+) {
+	output.Failure(command.OutOrStdout(), "Failed to push %s %s: %s",
+		resource.Singular, name, reason)
+	summary.Failed = append(summary.Failed, failedDeployment{Name: name, Reason: reason})
+}
+
+// pendingSafeBody strips VCS fields while a new repository is still pending.
+// A settings-only push must not connect the function before that repository
+// exists.
+func pendingSafeBody(entry, body *jsonx.Object) *jsonx.Object {
+	if !entry.GetBool("providerRepositoryPending") {
+		return body
+	}
+	for _, key := range []string{
+		"installationId", "providerRepositoryId", "providerBranch",
+		"providerSilentMode", "providerRootDirectory", "providerBranches",
+		"providerPaths",
+	} {
+		body.Delete(key)
+	}
+
+	return body
 }
 
 // writeBody builds a create or update body from the config entry.
@@ -1219,7 +1283,86 @@ func (c *pushContext) replaceVariables(resource deployable, entry *jsonx.Object)
 	return nil
 }
 
-// createDeployment packages the resource and uploads it.
+// materializePendingFunctionRepositories creates repositories accepted on the
+// init review screen. The pending intent is already persisted before any
+// remote write. If saving the returned repository id fails, a retry sees the
+// same intent, receives GitHub's duplicate-name response, and resolves the
+// created repository by name instead of creating another one.
+func (c *pushContext) materializePendingFunctionRepositories(
+	entries []*jsonx.Object,
+) error {
+	for _, entry := range entries {
+		if !entry.GetBool("providerRepositoryPending") {
+			continue
+		}
+		vcs := functionVCS{
+			InstallationID:    entry.GetString("installationId"),
+			RepositoryName:    entry.GetString("providerRepositoryName"),
+			Branch:            entry.GetString("providerBranch"),
+			RootDirectory:     entry.GetString("providerRootDirectory"),
+			SilentMode:        entry.GetBool("providerSilentMode"),
+			CreateRepository:  true,
+			RepositoryPrivate: entry.GetBool("providerRepositoryPrivate"),
+		}
+		created, err := createFunctionVCSRepository(c.api, vcs)
+		if err != nil {
+			created, err = c.findPendingFunctionRepository(vcs)
+			if err != nil {
+				return fmt.Errorf("create GitHub repository %s: %w", vcs.RepositoryName, err)
+			}
+		}
+
+		entry.Set("providerRepositoryId", created.RepositoryID)
+		entry.Set("providerRepositoryName", created.RepositoryName)
+		entry.Delete("providerRepositoryPrivate")
+		entry.Delete("providerRepositoryPending")
+		c.local.UpsertByID("functions", entry)
+		if err := c.local.Write(); err != nil {
+			return fmt.Errorf(
+				"GitHub repository %s was created but its id could not be saved; retry this push to recover it: %w",
+				created.RepositoryName, err)
+		}
+	}
+
+	return nil
+}
+
+func (c *pushContext) findPendingFunctionRepository(
+	vcs functionVCS,
+) (functionVCS, error) {
+	parts := strings.SplitN(vcs.RepositoryName, "/", 2)
+	name := vcs.RepositoryName
+	if len(parts) == 2 {
+		name = parts[1]
+	}
+	query := url.Values{"type": []string{"runtime"}, "search": []string{name}}
+	query["queries[]"] = []string{`{"method":"limit","values":[100]}`}
+	path := "/vcs/github/installations/" + url.PathEscape(vcs.InstallationID) +
+		"/providerRepositories?" + query.Encode()
+	var listing struct {
+		Repositories []vcsRepository `json:"runtimeProviderRepositories"`
+	}
+	if err := c.api.Call("GET", path, nil, &listing); err != nil {
+		return functionVCS{}, err
+	}
+	for _, repository := range listing.Repositories {
+		fullName := strings.TrimPrefix(repository.Organization+"/"+repository.Name, "/")
+		if fullName == vcs.RepositoryName || repository.Name == vcs.RepositoryName {
+			vcs.RepositoryID = repository.ID
+			vcs.RepositoryName = fullName
+			if repository.DefaultBranch != "" {
+				vcs.Branch = repository.DefaultBranch
+			}
+			vcs.CreateRepository = false
+			return vcs, nil
+		}
+	}
+
+	return functionVCS{}, fmt.Errorf("repository was not found after creation failed")
+}
+
+// createDeployment deploys from Git when a function is connected to VCS;
+// otherwise it packages and uploads the local resource directory.
 func (c *pushContext) createDeployment(
 	command *cobra.Command,
 	resource deployable,
@@ -1227,6 +1370,10 @@ func (c *pushContext) createDeployment(
 	activate bool,
 ) (*jsonx.Object, error) {
 	out := command.OutOrStdout()
+
+	if resource.Name == "function" && entry.GetString("providerRepositoryId") != "" {
+		return c.createGitFunctionDeployment(entry, activate)
+	}
 
 	configured := entry.GetString("path")
 	if configured == "" {
@@ -1279,6 +1426,67 @@ func (c *pushContext) createDeployment(
 	}
 
 	return result.Deployment, nil
+}
+
+func (c *pushContext) createGitFunctionDeployment(
+	entry *jsonx.Object,
+	activate bool,
+) (*jsonx.Object, error) {
+	functionID := url.PathEscape(entry.GetString("$id"))
+	body := jsonx.NewObject()
+	body.Set("activate", activate)
+
+	path := "/functions/" + functionID + "/deployments/vcs"
+	template := entry.GetString("templateRepository") != ""
+	if template {
+		path = "/functions/" + functionID + "/deployments/template"
+		body.Set("repository", entry.GetString("templateRepository"))
+		body.Set("owner", entry.GetString("templateOwner"))
+		body.Set("rootDirectory", entry.GetString("templateRootDirectory"))
+		body.Set("type", entry.GetString("templateReferenceType"))
+		body.Set("reference", entry.GetString("templateReference"))
+	} else {
+		body.Set("type", "branch")
+		body.Set("reference", entry.GetString("providerBranch"))
+	}
+
+	// Consume template coordinates before the request. Once an HTTP request is
+	// attempted its outcome can be ambiguous, so leaving them consumed is the
+	// only way a retry cannot seed the starter twice.
+	if template {
+		saved := map[string]any{}
+		for _, key := range []string{
+			"templateRepository", "templateOwner", "templateRootDirectory",
+			"templateReference", "templateReferenceType",
+		} {
+			if value, ok := entry.Get(key); ok {
+				saved[key] = value
+			}
+			entry.Delete(key)
+		}
+		c.local.UpsertByID("functions", entry)
+		if err := c.local.Write(); err != nil {
+			for key, value := range saved {
+				entry.Set(key, value)
+			}
+			c.local.UpsertByID("functions", entry)
+
+			return nil, fmt.Errorf("template state could not be saved; nothing was deployed: %w", err)
+		}
+	}
+
+	deployment := jsonx.NewObject()
+	if err := c.api.Call("POST", path, body, deployment); err != nil {
+		if template {
+			return nil, fmt.Errorf(
+				"%w; template state was consumed before the request -- check the function's deployments before retrying",
+				err)
+		}
+
+		return nil, err
+	}
+
+	return deployment, nil
 }
 
 // normalizeIgnoreRules reads a resource's `ignore` field as a pattern list.
@@ -1571,7 +1779,7 @@ func progressSignature(deployment *jsonx.Object) string {
 // ruleQueries selects a resource's manual proxy rule.
 func ruleQueries(resourceType, id string) []string {
 	return []string{
-		`{"method":"limit","values":[1]}`,
+		`{"method":"limit","values":[100]}`,
 		`{"method":"equal","attribute":"deploymentResourceType","values":["` + resourceType + `"]}`,
 		`{"method":"equal","attribute":"deploymentResourceId","values":["` + id + `"]}`,
 		`{"method":"equal","attribute":"trigger","values":["manual"]}`,
@@ -1618,21 +1826,40 @@ func (c *pushContext) previewURL(resource deployable, id string) string {
 func (c *pushContext) ensureDefaultRule(
 	command *cobra.Command,
 	resource deployable,
-	id string,
+	entry *jsonx.Object,
 ) error {
 	out := command.OutOrStdout()
+	id := entry.GetString("$id")
 
 	rules, err := c.listRules(resource, id)
 	if err != nil {
 		return err
 	}
 	value, _ := rules.Get("rules")
-	if items, _ := value.([]any); len(items) > 0 {
+	items, _ := value.([]any)
+
+	label := entry.GetString("previewDomainLabel")
+	target := entry.GetString("previewDomainTarget")
+	// A resource without explicit endpoint intent retains the old behavior:
+	// any existing manual rule satisfies the default-domain requirement.
+	if label == "" && len(items) > 0 {
 		return nil
 	}
 
-	console, _, err := consoleClient()
-	if err != nil {
+	var domains []string
+	console, _, consoleErr := consoleClientAt(c.api.Endpoint)
+	if consoleErr == nil {
+		variables := jsonx.NewObject()
+		if err := console.Call("GET", "/console/variables", nil, variables); err == nil {
+			domains = c.ruleDomains(resource, variables)
+		} else {
+			consoleErr = err
+		}
+	}
+	if len(domains) == 0 && resource.Name == "function" && label != "" {
+		domains = cloudFunctionDomains(c.api.Endpoint)
+	}
+	if len(domains) == 0 && consoleErr != nil {
 		output.Warn(out,
 			"Skipping default domain rule for %s: console session required to read "+
 				"%s domains. Run `%s login` or create the domain in the Console.",
@@ -1640,33 +1867,116 @@ func (c *pushContext) ensureDefaultRule(
 
 		return nil
 	}
-
-	variables := jsonx.NewObject()
-	if err := console.Call("GET", "/console/variables", nil, variables); err != nil {
-		return fmt.Errorf("read console variables: %w", err)
-	}
-
-	domains := c.ruleDomains(resource, variables)
 	if len(domains) == 0 {
 		return fmt.Errorf("_APP_DOMAIN_%s is not configured",
 			strings.ToUpper(resource.Label))
 	}
 
+	suffix := domains[0]
+	if label != "" && resource.Name == "function" {
+		suffix, err = functionDomainForTarget(domains, target)
+		if err != nil {
+			return err
+		}
+	}
+	if label == "" {
+		label = appwrite.Unique()
+	}
+	domain := label + "." + suffix
+
+	exists, err := c.ruleExists(resource, id, domain)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return c.removeOtherPreviewRules(items, domain)
+	}
+
 	body := jsonx.NewObject()
-	body.Set("domain", appwrite.Unique()+"."+domains[0])
+	body.Set("domain", domain)
 	body.Set(resource.IDField, id)
 
 	output.Log(out, "Creating %s proxy rule for %s ...",
 		resource.Singular, body.GetString("domain"))
 
-	return c.api.Call("POST", "/proxy/rules/"+resource.Name, body, nil)
+	if err := c.api.Call("POST", "/proxy/rules/"+resource.Name, body, nil); err != nil {
+		return err
+	}
+
+	return c.removeOtherPreviewRules(items, domain)
 }
 
-// ruleDomains reads the configured domains for a resource type. A function's
-// domain is regionalised by replacing the first label, standing in until the
-// API reports a regional functions domain. Sites are not regionalised.
+func (c *pushContext) removeOtherPreviewRules(items []any, keep string) error {
+	for _, item := range items {
+		rule, ok := item.(*jsonx.Object)
+		if !ok {
+			continue
+		}
+		domain := strings.ToLower(rule.GetString("domain"))
+		managed := strings.HasSuffix(domain, ".appwrite.network") ||
+			strings.HasSuffix(domain, ".appwrite.run")
+		if !managed || strings.EqualFold(domain, keep) {
+			continue
+		}
+		if err := c.api.Call("DELETE", "/proxy/rules/"+
+			url.PathEscape(rule.GetString("$id")), nil, nil); err != nil {
+			return fmt.Errorf("remove previous function endpoint %s: %w", domain, err)
+		}
+	}
+
+	return nil
+}
+
+func (c *pushContext) ruleExists(resource deployable, id, domain string) (bool, error) {
+	queries := ruleQueries(resource.RuleResourceType, id)
+	queries = append(queries,
+		`{"method":"equal","attribute":"domain","values":["`+domain+`"]}`)
+
+	rules := jsonx.NewObject()
+	if err := c.api.Call("GET", "/proxy/rules?"+client.EncodeQueries(queries), nil, rules); err != nil {
+		return false, err
+	}
+
+	return rules.GetInt64("total") > 0, nil
+}
+
+func cloudFunctionDomains(endpoint string) []string {
+	region := endpointRegion(endpoint)
+	base, cloud := config.CloudBaseHost(endpoint)
+	if region == "" || !cloud {
+		return nil
+	}
+
+	stage := ""
+	if strings.Contains(base, "staging") {
+		stage = "stage."
+	}
+
+	return []string{region + "." + stage + "appwrite.run", stage + "appwrite.network"}
+}
+
+func functionDomainForTarget(domains []string, target string) (string, error) {
+	for _, domain := range domains {
+		isEdge := strings.HasSuffix(strings.ToLower(domain), ".appwrite.network") ||
+			strings.EqualFold(domain, "appwrite.network")
+		if target == "edge" && isEdge || target == "region" && !isEdge {
+			return domain, nil
+		}
+	}
+
+	return "", fmt.Errorf("function %s endpoint is not available for this project", target)
+}
+
+// ruleDomains reads the configured domains for a resource type. A regional
+// Function domain is adjusted to the project's endpoint region; the shared
+// Appwrite Network edge suffix is deliberately left unchanged.
 func (c *pushContext) ruleDomains(resource deployable, variables *jsonx.Object) []string {
 	configured := variables.GetString("_APP_DOMAIN_" + strings.ToUpper(resource.Label))
+	if resource.Name == "function" {
+		// Prefer the Sites suffix for edge Functions. A regional Cloud response
+		// may also expose a region-prefixed appwrite.network Functions suffix.
+		configured = variables.GetString("_APP_DOMAIN_SITES") + "," + configured
+	}
 
 	var domains []string
 	for _, domain := range strings.Split(configured, ",") {
@@ -1674,7 +1984,8 @@ func (c *pushContext) ruleDomains(resource deployable, variables *jsonx.Object) 
 		if domain == "" {
 			continue
 		}
-		if resource.Name == "function" {
+		if resource.Name == "function" &&
+			!strings.HasSuffix(strings.ToLower(domain), ".appwrite.network") {
 			domain = c.regionalRuleDomain(domain)
 		}
 		domains = append(domains, domain)

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -74,6 +75,50 @@ func TestGuestRoleMatching(t *testing.T) {
 		if apiError.Error() == message {
 			t.Errorf("did not recognise %q as unauthenticated", message)
 		}
+	}
+}
+
+// OAuth2 token endpoints use error/error_description rather than the Appwrite
+// API's code/message/type envelope. The description is the useful part for a
+// person trying to repair an expired session.
+func TestOAuthFailureUsesDescription(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{
+			"error":"invalid_grant",
+			"error_description":"Invalid refresh token provided."
+		}`))
+	}))
+	defer server.Close()
+
+	err := New(server.URL, "0.0.1").Call("POST", "/oauth2/console/token", nil, nil)
+	if err == nil {
+		t.Fatal("an OAuth2 failure was not reported as an error")
+	}
+	if got := err.Error(); got != "Invalid refresh token provided." {
+		t.Errorf("OAuth2 failure = %q", got)
+	}
+
+	var apiError *APIError
+	if !errors.As(err, &apiError) {
+		t.Fatalf("error is %T, want *APIError", err)
+	}
+	if apiError.OAuthError != "invalid_grant" {
+		t.Errorf("OAuthError = %q", apiError.OAuthError)
+	}
+	if apiError.Status != http.StatusBadRequest {
+		t.Errorf("Status = %d", apiError.Status)
+	}
+}
+
+// error_description is optional in RFC 6749. The required error identifier is
+// still more useful than a bare HTTP status when the server omits it.
+func TestOAuthFailureWithoutDescriptionUsesIdentifier(t *testing.T) {
+	apiError := &APIError{Status: http.StatusBadRequest, OAuthError: "invalid_grant"}
+
+	if got := apiError.Error(); got != "invalid_grant" {
+		t.Errorf("OAuth2 failure = %q", got)
 	}
 }
 

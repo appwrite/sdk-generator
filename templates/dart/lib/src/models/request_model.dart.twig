@@ -4,23 +4,25 @@ part of '../../models.dart';
 /// {{ requestModel.description }}
 class {{ requestModelName | caseUcfirst | overrideIdentifier }} implements Model {
 {% for property in requestModel.properties %}
-    /// {{ property.description }}
-    final {% if not (property | schemaRequired) %}{{_self.sub_schema(property)}}? {{ (property | schemaName) | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ (property | schemaName) | escapeKeyword }}{% endif %};
+  /// {{ property.description }}
+  final {% if not (property | schemaRequired) %}{{_self.sub_schema(property)}}? {{ (property | schemaName) | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ (property | schemaName) | escapeKeyword }}{% endif %};
 
 {% endfor %}
-    {{ requestModelName | caseUcfirst | overrideIdentifier}}({% if requestModel.properties | length %}{{ '{' }}{% endif %}
+  {{ requestModelName | caseUcfirst | overrideIdentifier }}({% if requestModel.properties | length %}{
+{% else %}
+{% endif %}{% for property in requestModel.properties %}
+    {% if (property | schemaRequired) %}required {% endif %}this.{{ (property | schemaName) | escapeKeyword }},
+{% endfor %}
+{% if requestModel.properties | length %}  });
+{% else %});
+{% endif %}
 
+  @override
+  Map<String, dynamic> toMap() {
+    return {
 {% for property in requestModel.properties %}
-        {% if (property | schemaRequired) %}required {% endif %}this.{{ (property | schemaName) | escapeKeyword }},
+      "{{ (property | schemaName) | escapeDollarSign }}": {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{{(property | schemaName) | escapeKeyword}}{% if not (property | schemaRequired) %}?{% endif %}.map((p) => p.toMap()).toList(){% else %}{{(property | schemaName) | escapeKeyword}}{% if not (property | schemaRequired) %}?{% endif %}.toMap(){% endif %}{% elseif property | usesEnumType %}{{(property | schemaName) | escapeKeyword}}{% if not (property | schemaRequired) %}?{% endif %}.value{% else %}{{(property | schemaName) | escapeKeyword }}{% endif %},
 {% endfor %}
-    {% if requestModel.properties | length %}{{ '}' }}{% endif %});
-
-    @override
-    Map<String, dynamic> toMap() {
-        return {
-{% for property in requestModel.properties %}
-            "{{ (property | schemaName) | escapeDollarSign }}": {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{{(property | schemaName) | escapeKeyword}}{% if not (property | schemaRequired) %}?{% endif %}.map((p) => p.toMap()).toList(){% else %}{{(property | schemaName) | escapeKeyword}}{% if not (property | schemaRequired) %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{(property | schemaName) | escapeKeyword}}{% if not (property | schemaRequired) %}?{% endif %}.value{% else %}{{(property | schemaName) | escapeKeyword }}{% endif %},
-{% endfor %}
-        };
-    }
+    };
+  }
 }

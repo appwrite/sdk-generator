@@ -137,7 +137,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "x-example": "[REQUIRED]"
+              "example": "[REQUIRED]"
             }
           },
           {
@@ -223,19 +223,17 @@
                     "type": "string",
                     "description": "Sample string param",
                     "default": null,
-                    "x-example": "[REQUIRED]"
+                    "example": "[REQUIRED]"
                   },
                   "default": {
                     "type": "integer",
                     "description": "Sample numeric param",
-                    "default": null,
-                    "x-example": null
+                    "default": null
                   },
                   "z": {
                     "type": "array",
                     "description": "Sample array param",
                     "default": null,
-                    "x-example": null,
                     "items": {
                       "type": "string"
                     }
@@ -310,19 +308,17 @@
                     "type": "string",
                     "description": "Sample string param",
                     "default": null,
-                    "x-example": "[REQUIRED]"
+                    "example": "[REQUIRED]"
                   },
                   "default": {
                     "type": "integer",
                     "description": "Sample numeric param",
-                    "default": null,
-                    "x-example": null
+                    "default": null
                   },
                   "z": {
                     "type": "array",
                     "description": "Sample array param",
                     "default": null,
-                    "x-example": null,
                     "items": {
                       "type": "string"
                     }
@@ -397,19 +393,17 @@
                     "type": "string",
                     "description": "Sample string param",
                     "default": null,
-                    "x-example": "[REQUIRED]"
+                    "example": "[REQUIRED]"
                   },
                   "default": {
                     "type": "integer",
                     "description": "Sample numeric param",
-                    "default": null,
-                    "x-example": null
+                    "default": null
                   },
                   "z": {
                     "type": "array",
                     "description": "Sample array param",
                     "default": null,
-                    "x-example": null,
                     "items": {
                       "type": "string"
                     }
@@ -484,19 +478,17 @@
                     "type": "string",
                     "description": "Sample string param",
                     "default": null,
-                    "x-example": "[REQUIRED]"
+                    "example": "[REQUIRED]"
                   },
                   "default": {
                     "type": "integer",
                     "description": "Sample numeric param",
-                    "default": null,
-                    "x-example": null
+                    "default": null
                   },
                   "z": {
                     "type": "array",
                     "description": "Sample array param",
                     "default": null,
-                    "x-example": null,
                     "items": {
                       "type": "string"
                     }
@@ -798,7 +790,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "x-example": "[]"
+              "example": "[]"
             }
           },
           {
@@ -884,19 +876,17 @@
                     "type": "string",
                     "description": "Sample string param",
                     "default": null,
-                    "x-example": "[]"
+                    "example": "[]"
                   },
                   "y": {
                     "type": "integer",
                     "description": "Sample numeric param",
-                    "default": null,
-                    "x-example": null
+                    "default": null
                   },
                   "z": {
                     "type": "array",
                     "description": "Sample array param",
                     "default": null,
-                    "x-example": null,
                     "items": {
                       "type": "string"
                     }
@@ -971,19 +961,17 @@
                     "type": "string",
                     "description": "Sample string param",
                     "default": null,
-                    "x-example": "[]"
+                    "example": "[]"
                   },
                   "y": {
                     "type": "integer",
                     "description": "Sample numeric param",
-                    "default": null,
-                    "x-example": null
+                    "default": null
                   },
                   "z": {
                     "type": "array",
                     "description": "Sample array param",
                     "default": null,
-                    "x-example": null,
                     "items": {
                       "type": "string"
                     }
@@ -1058,19 +1046,17 @@
                     "type": "string",
                     "description": "Sample string param",
                     "default": null,
-                    "x-example": "[]"
+                    "example": "[]"
                   },
                   "y": {
                     "type": "integer",
                     "description": "Sample numeric param",
-                    "default": null,
-                    "x-example": null
+                    "default": null
                   },
                   "z": {
                     "type": "array",
                     "description": "Sample array param",
                     "default": null,
-                    "x-example": null,
                     "items": {
                       "type": "string"
                     }
@@ -1145,19 +1131,17 @@
                     "type": "string",
                     "description": "Sample string param",
                     "default": null,
-                    "x-example": "[]"
+                    "example": "[]"
                   },
                   "y": {
                     "type": "integer",
                     "description": "Sample numeric param",
-                    "default": null,
-                    "x-example": null
+                    "default": null
                   },
                   "z": {
                     "type": "array",
                     "description": "Sample array param",
                     "default": null,
-                    "x-example": null,
                     "items": {
                       "type": "string"
                     }
@@ -1562,14 +1546,77 @@
                     "type": "string",
                     "description": "Sample string param",
                     "default": null,
-                    "x-example": "first",
-                    "enum": [
-                      "first",
-                      "second",
-                      "third"
-                    ],
-                    "x-enum-name": null,
-                    "x-enum-keys": []
+                    "example": "first",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "enum": ["first"],
+                        "title": "first"
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["second"],
+                        "title": "second"
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["third"],
+                        "title": "third"
+                      }
+                    ]
+                  },
+                  "webhookEvents": {
+                    "type": "array",
+                    "description": "Webhook events to subscribe to.",
+                    "items": {
+                      "type": "string",
+                      "anyOf": [
+                        {
+                          "title": "WebhookEvent",
+                          "type": "string",
+                          "oneOf": [
+                            {
+                              "type": "string",
+                              "enum": ["user.created"],
+                              "title": "UserCreated"
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["user.updated"],
+                              "title": "UserUpdated"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "webhookEvent": {
+                    "type": "string",
+                    "description": "A webhook event to subscribe to.",
+                    "anyOf": [
+                      {
+                        "title": "WebhookEvent",
+                        "type": "string",
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "enum": ["user.created"],
+                            "title": "UserCreated"
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["user.updated"],
+                            "title": "UserUpdated"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -1743,27 +1790,27 @@
                     "type": "string",
                     "description": "Sample string param",
                     "default": null,
-                    "x-example": "[REQUIRED]"
+                    "example": "[REQUIRED]"
                   },
                   "nullable": {
                     "type": "string",
                     "description": "Sample string param",
                     "default": null,
-                    "x-example": "[NULLABLE]",
-                    "x-nullable": true
+                    "example": "[NULLABLE]",
+                    "nullable": true
                   },
                   "optionalNullable": {
                     "type": "string",
                     "description": "Optional nullable string param",
                     "default": null,
-                    "x-example": "[OPTIONAL_NULLABLE]",
-                    "x-nullable": true
+                    "example": "[OPTIONAL_NULLABLE]",
+                    "nullable": true
                   },
                   "optional": {
                     "type": "string",
                     "description": "Sample string param",
                     "default": "",
-                    "x-example": "[OPTIONAL]"
+                    "example": "[OPTIONAL]"
                   }
                 },
                 "required": [
@@ -1863,7 +1910,10 @@
                   "headers": {
                     "type": "object",
                     "description": "HTTP headers of execution. Defaults to empty.",
-                    "default": null
+                    "default": null,
+                    "example": {
+                      "Content-Type": "application\/json"
+                    }
                   },
                   "scheduledAt": {
                     "type": "string",
@@ -2035,7 +2085,7 @@
             "in": "path",
             "schema": {
               "type": "string",
-              "x-example": "grant\/special&id"
+              "example": "grant\/special&id"
             }
           }
         ]
@@ -2152,7 +2202,7 @@
                   "x": {
                     "description": "Sample string param",
                     "type": "string",
-                    "x-example": "[]"
+                    "example": "[]"
                   },
                   "y": {
                     "description": "Sample numeric param",
@@ -2176,6 +2226,52 @@
                   "x",
                   "y",
                   "z",
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/upload-with-id": {
+      "post": {
+        "summary": "Upload File With ID",
+        "operationId": "generalUploadWithId",
+        "tags": [
+          "general"
+        ],
+        "description": "Upload fixture with a structurally inferred ID.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fileId": {
+                    "description": "Optional upload ID",
+                    "type": "string"
+                  },
+                  "file": {
+                    "description": "Sample file param",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "fileId",
                   "file"
                 ]
               }
@@ -2238,7 +2334,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "x-example": "12345"
+              "example": "12345"
             }
           },
           {
@@ -2251,7 +2347,7 @@
               "items": {
                 "type": "string"
               },
-              "x-example": "[]"
+              "example": []
             }
           },
           {
@@ -2261,7 +2357,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "x-example": "state"
+              "example": "state"
             }
           },
           {
@@ -2271,7 +2367,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "x-example": "http:\/\/localhost:8000\/auth\/callback"
+              "example": "http:\/\/localhost:8000\/auth\/callback"
             }
           },
           {
@@ -2281,7 +2377,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "x-example": "http:\/\/localhost:8000\/auth\/callback"
+              "example": "http:\/\/localhost:8000\/auth\/callback"
             }
           }
         ]
@@ -2358,7 +2454,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "x-example": "mock",
+              "example": "mock",
               "default": "mock"
             }
           }
@@ -2584,22 +2680,22 @@
           "message": {
             "type": "string",
             "description": "Error message.",
-            "x-example": "Not found"
+            "example": "Not found"
           },
           "code": {
             "type": "string",
             "description": "Error code.",
-            "x-example": "404"
+            "example": "404"
           },
           "type": {
             "type": "string",
             "description": "Error type. You can learn more about all the error types at https:\/\/appwrite.io\/docs\/error-codes#errorTypes",
-            "x-example": "not_found"
+            "example": "not_found"
           },
           "version": {
             "type": "string",
             "description": "Server version number.",
-            "x-example": "1.0"
+            "example": "1.0"
           }
         },
         "required": [
@@ -2616,32 +2712,60 @@
           "result": {
             "type": "string",
             "description": "Result message.",
-            "x-example": "Success"
+            "example": "Success"
           },
           "optionalResult": {
             "type": "string",
             "description": "Optional result message.",
-            "default": null,
-            "x-example": null
+            "default": null
           },
           "status": {
+            "title": "MockStatus",
             "type": "string",
             "description": "Mock status. Possible values are \"active\", \"inactive\", \"pending\", \"completed\", or \"cancelled\". Reflects the mock's state.",
-            "x-example": "active",
-            "enum": [
-              "active",
-              "inactive",
-              "pending",
-              "completed",
-              "cancelled"
-            ],
-            "x-enum-name": "MockStatus"
+            "example": "active",
+            "oneOf": [
+              {"type": "string", "enum": ["active"], "title": "active"},
+              {"type": "string", "enum": ["inactive"], "title": "inactive"},
+              {"type": "string", "enum": ["pending"], "title": "pending"},
+              {"type": "string", "enum": ["completed"], "title": "completed"},
+              {"type": "string", "enum": ["cancelled"], "title": "cancelled"}
+            ]
+          },
+          "localizedStatus": {
+            "title": "LocalizedStatus",
+            "type": "string",
+            "description": "Localized status without explicit enum keys.",
+            "example": "រាជធានី",
+            "enum": ["រាជធានី", "ខេត្ត"]
+          },
+          "provinceType": {
+            "title": "ProvinceType",
+            "type": "string",
+            "description": "Localized values with explicit semantic enum keys.",
+            "example": "រាជធានី",
+            "oneOf": [
+              {"type": "string", "enum": ["រាជធានី"], "title": "Capital"},
+              {"type": "string", "enum": ["ខេត្ត"], "title": "Province"}
+            ]
           },
           "relatedMock": {
             "type": "object",
             "description": "Optional nested mock.",
-            "x-example": null,
             "$ref": "#\/components\/schemas\/unionMock"
+          },
+          "metadataList": {
+            "type": "array",
+            "description": "Optional generic object collection.",
+            "example": [
+              {
+                "enabled": true
+              }
+            ],
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
           }
         },
         "required": [
@@ -2655,12 +2779,12 @@
           "type": {
             "type": "string",
             "description": "Mock type.",
-            "x-example": "mock"
+            "example": "mock"
           },
           "result": {
             "type": "string",
             "description": "Result message.",
-            "x-example": "Success"
+            "example": "Success"
           }
         },
         "required": [
@@ -2676,17 +2800,17 @@
           "id": {
             "type": "string",
             "description": "Player ID.",
-            "x-example": "player123"
+            "example": "player123"
           },
           "name": {
             "type": "string",
             "description": "Player name.",
-            "x-example": "John Doe"
+            "example": "John Doe"
           },
           "score": {
             "type": "integer",
             "description": "Player score.",
-            "x-example": 100
+            "example": 100
           }
         },
         "required": [
@@ -2703,7 +2827,7 @@
           "message": {
             "type": "string",
             "description": "Excluded payload message.",
-            "x-example": "should-not-be-generated"
+            "example": "should-not-be-generated"
           },
           "children": {
             "type": "array",
@@ -2723,14 +2847,14 @@
         "type": "object",
         "properties": {
           "state": {
+            "title": "zzexcludedchildstatus",
             "type": "string",
             "description": "Excluded child status.",
-            "x-example": "sleeping",
-            "enum": [
-              "sleeping",
-              "active"
-            ],
-            "x-enum-name": "zzexcludedchildstatus"
+            "example": "sleeping",
+            "oneOf": [
+              {"type": "string", "enum": ["sleeping"], "title": "sleeping"},
+              {"type": "string", "enum": ["active"], "title": "active"}
+            ]
           }
         },
         "required": [
@@ -2744,17 +2868,17 @@
           "result": {
             "type": "string",
             "description": "Excluded result message.",
-            "x-example": "excluded"
+            "example": "excluded"
           },
           "status": {
+            "title": "zzexcludedstatus",
             "type": "string",
             "description": "Excluded result status.",
-            "x-example": "queued",
-            "enum": [
-              "queued",
-              "done"
-            ],
-            "x-enum-name": "zzexcludedstatus"
+            "example": "queued",
+            "oneOf": [
+              {"type": "string", "enum": ["queued"], "title": "queued"},
+              {"type": "string", "enum": ["done"], "title": "done"}
+            ]
           }
         },
         "required": [
@@ -2770,7 +2894,7 @@
           "message": {
             "type": "string",
             "description": "Excluded method payload message.",
-            "x-example": "should-not-be-generated"
+            "example": "should-not-be-generated"
           }
         },
         "required": [
@@ -2784,17 +2908,17 @@
           "result": {
             "type": "string",
             "description": "Excluded method result message.",
-            "x-example": "excluded-method"
+            "example": "excluded-method"
           },
           "status": {
+            "title": "zzexcludedmethodstatus",
             "type": "string",
             "description": "Excluded method result status.",
-            "x-example": "pending",
-            "enum": [
-              "pending",
-              "finished"
-            ],
-            "x-enum-name": "zzexcludedmethodstatus"
+            "example": "pending",
+            "oneOf": [
+              {"type": "string", "enum": ["pending"], "title": "pending"},
+              {"type": "string", "enum": ["finished"], "title": "finished"}
+            ]
           }
         },
         "required": [
@@ -2810,12 +2934,12 @@
           "data": {
             "type": "string",
             "description": "Stub data.",
-            "x-example": "test-data"
+            "example": "test-data"
           },
           "type": {
             "type": "string",
             "description": "Stub type.",
-            "x-example": "testing"
+            "example": "testing"
           }
         },
         "required": [
@@ -2830,7 +2954,6 @@
           "mock": {
             "type": "object",
             "description": "Nested mock resolved through allOf.",
-            "x-example": null,
             "allOf": [
               {
                 "$ref": "#\/components\/schemas\/mock"
@@ -2840,7 +2963,6 @@
           "options": {
             "type": "object",
             "description": "Union of mock or stub.",
-            "x-example": null,
             "allOf": [
               {
                 "oneOf": [
@@ -2864,7 +2986,6 @@
           "entries": {
             "type": "array",
             "description": "List of mock or stub entries.",
-            "x-example": null,
             "items": {
               "anyOf": [
                 {
@@ -2879,7 +3000,6 @@
           "legacyOptions": {
             "type": "object",
             "description": "Union of mock or stub resolved through legacy items.",
-            "x-example": null,
             "items": {
               "oneOf": [
                 {
@@ -2894,7 +3014,6 @@
           "legacyMock": {
             "type": "object",
             "description": "Nested mock resolved through legacy items.",
-            "x-example": null,
             "items": {
               "$ref": "#\/components\/schemas\/mock"
             }
@@ -2902,7 +3021,6 @@
           "mocks": {
             "type": "array",
             "description": "List of mocks.",
-            "x-example": null,
             "items": {
               "$ref": "#\/components\/schemas\/mock"
             }

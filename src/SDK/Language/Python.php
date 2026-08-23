@@ -7,6 +7,7 @@ use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Model\Tag;
 use Utopia\OpenAPI\Specification;
 use stdClass;
@@ -324,7 +325,7 @@ class Python extends Language
         if (
             $value instanceof ArraySchema
             && $this->getSchemaModels($value) === []
-            && $value->items->enum === []
+            && !$this->usesEnumType($value)
         ) {
             return 'List[Any]';
         }
@@ -352,8 +353,7 @@ class Python extends Language
     protected function getBaseTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        if ($enumSchema->enum !== []) {
+        if ($this->usesEnumType($parameter)) {
             $typeName = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
             if ($schema instanceof ArraySchema) {
                 $typeName = 'List[' . $typeName . ']';
@@ -552,7 +552,7 @@ class Python extends Language
     protected function getServicePropertyType(Schema|Parameter $value, Specification $spec): string
     {
         $type = $this->getTypeName($value, $spec);
-        if (!$value instanceof Parameter || $this->getSchema($value)->enum === [] && !($this->getSchema($value) instanceof ArraySchema && $this->getSchema($value)->items->enum !== [])) {
+        if (!$value instanceof Parameter || !$this->usesEnumType($value)) {
             return $type;
         }
 
@@ -628,7 +628,7 @@ class Python extends Language
 
             $example = $this->getSchemaExample($property);
             $hasExample = $example !== null && $example !== '';
-            $enumValues = $property instanceof ArraySchema ? $property->items->enum : $property->enum;
+            $enumValues = $this->getEnumSchema($property)->enum;
             $result[$propertyName] = match ($this->getSchemaType($property)) {
                 self::TYPE_OBJECT => ($models = $this->getSchemaModels($property)) !== []
                     ? $this->getResponseModelExample($models[0], $spec, $visited)
@@ -699,14 +699,131 @@ class Python extends Language
         ));
     }
 
-    protected function toPythonValue(mixed $value): string
+    protected function toPythonValue(mixed $value, int $indent = 8): string
     {
-        $json = json_encode($value, JSON_PRETTY_PRINT | JSON_PRESERVE_ZERO_FRACTION);
-        if (!\is_string($json)) {
-            return '{}';
+        $isObject = \is_object($value);
+        if ($isObject) {
+            $value = \get_object_vars($value);
         }
 
-        return \str_replace(['true', 'false', 'null'], ['True', 'False', 'None'], $json);
+        if (\is_array($value)) {
+            if ($value === []) {
+                return $isObject ? '{}' : '[]';
+            }
+
+            $isList = !$isObject && \array_is_list($value);
+            $opening = $isList ? '[' : '{';
+            $closing = $isList ? ']' : '}';
+            $lines = [$opening];
+
+            foreach ($value as $key => $item) {
+                $prefix = $isList ? '' : $this->toPythonValue((string) $key, $indent + 4) . ': ';
+                $formatted = $this->toPythonValue($item, $indent + 4);
+                $lines[] = \str_repeat(' ', $indent + 4) . $prefix . $formatted . ',';
+            }
+
+            $lines[] = \str_repeat(' ', $indent) . $closing;
+
+            return \implode("\n", $lines);
+        }
+
+        if ($value === null) {
+            return 'None';
+        }
+        if (\is_bool($value)) {
+            return $value ? 'True' : 'False';
+        }
+
+        $json = json_encode($value, JSON_PRESERVE_ZERO_FRACTION);
+
+        return \is_string($json) ? $json : 'None';
+    }
+
+    protected function formatDocstring(string $description, int $indent): string
+    {
+        $lines = \explode("\n", \str_replace("\r\n", "\n", \trim($description)));
+        foreach ($lines as $index => $line) {
+            $line = \rtrim($line);
+            if ($index > 0 && $line !== '') {
+                $line = \str_repeat(' ', $indent) . $line;
+            }
+            $lines[$index] = $line;
+        }
+
+        return \implode("\n", $lines);
+    }
+
+    protected function formatModelFieldType(string $type): string
+    {
+        if (!\str_contains($type, 'Union[')) {
+            return $type;
+        }
+
+        $unionPosition = \strpos($type, 'Union[');
+        if ($unionPosition === false) {
+            return $type;
+        }
+
+        $prefix = \substr($type, 0, $unionPosition);
+        $innerStart = $unionPosition + \strlen('Union[');
+        $depth = 1;
+        $unionEnd = null;
+        for ($position = $innerStart, $length = \strlen($type); $position < $length; $position++) {
+            if ($type[$position] === '[') {
+                $depth++;
+            } elseif ($type[$position] === ']') {
+                $depth--;
+                if ($depth === 0) {
+                    $unionEnd = $position;
+                    break;
+                }
+            }
+        }
+
+        if ($unionEnd === null) {
+            return $type;
+        }
+
+        $outerDepth = \substr_count($prefix, '[') - \substr_count($prefix, ']');
+        $suffix = \substr($type, $unionEnd + 1);
+        if ($suffix !== \str_repeat(']', $outerDepth)) {
+            return $type;
+        }
+
+        $members = [];
+        $member = '';
+        $memberDepth = 0;
+        $union = \substr($type, $innerStart, $unionEnd - $innerStart);
+        for ($position = 0, $length = \strlen($union); $position < $length; $position++) {
+            $character = $union[$position];
+            if ($character === ',' && $memberDepth === 0) {
+                $members[] = \trim($member);
+                $member = '';
+                continue;
+            }
+
+            $member .= $character;
+            if ($character === '[') {
+                $memberDepth++;
+            } elseif ($character === ']') {
+                $memberDepth--;
+            }
+        }
+        if (\trim($member) !== '') {
+            $members[] = \trim($member);
+        }
+
+        $lines = [$prefix . ($prefix === '' ? '' : "\n" . \str_repeat(' ', 4 + ($outerDepth * 4))) . 'Union['];
+        foreach ($members as $member) {
+            $lines[] = \str_repeat(' ', 8 + ($outerDepth * 4)) . $member . ',';
+        }
+        $lines[] = \str_repeat(' ', 4 + ($outerDepth * 4)) . ']';
+
+        for ($remaining = $outerDepth; $remaining > 0; $remaining--) {
+            $lines[] = \str_repeat(' ', 4 + (($remaining - 1) * 4)) . ']';
+        }
+
+        return \implode("\n", $lines);
     }
 
     #[Override]
@@ -720,6 +837,8 @@ class Python extends Language
             new TwigFilter('getServicePropertyType', fn(Schema|Parameter $value, Tag $service, Specification $spec): string => $this->getServicePropertyType($value, $spec)),
             new TwigFilter('getServiceEnumName', fn(Parameter $parameter, Tag $service, Specification $spec): string => $this->getServiceEnumName($parameter, $spec)),
             new TwigFilter('getModelPropertyType', fn(Schema $value, string $ownerName, Specification $spec): string => $this->getModelPropertyType($value, $spec)),
+            new TwigFilter('formatDocstring', fn(string $description, int $indent): string => $this->formatDocstring($description, $indent)),
+            new TwigFilter('formatModelFieldType', fn(string $type): string => $this->formatModelFieldType($type)),
             new TwigFilter('modelPropertyNullable', fn(Schema $value): bool => !($value instanceof ArraySchema) && $value->nullable),
             new TwigFilter('getModelFieldName', fn(Schema $value, array $properties): string => $this->getModelFieldName($value, $properties)),
             new TwigFilter('getResponseType', fn(Operation $method, string $serviceName = ''): string => $this->getResponseType($method, $serviceName)),
@@ -731,14 +850,14 @@ class Python extends Language
             }),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
-                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                $enumSchema = $this->getEnumSchema($param);
                 $enumValues = $enumSchema->enum;
                 if ($enumValues === []) {
                     return '';
                 }
 
-                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
-                $enumName = $this->toPascalCase($enumSchema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
+                $enumKeys = $this->resolveEnumKeys($param);
+                $enumName = $this->toPascalCase(($enumSchema instanceof StringSchema ? $enumSchema->enumName : null) ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
                 $example = $this->getSchemaExample($param);
                 $isArray = $schema instanceof ArraySchema;
 

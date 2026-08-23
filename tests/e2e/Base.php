@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Tests\E2E;
 
 use Exception;
+use Override;
 use RecursiveIteratorIterator;
 use RecursiveDirectoryIterator;
 use FilesystemIterator;
 use Throwable;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\SDK;
+use Utopia\OpenAPI\Model\Operation;
+use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Parser;
 use PHPUnit\Framework\TestCase;
 use Twig\Error\LoaderError;
@@ -423,15 +427,25 @@ abstract class Base extends TestCase
     protected string $sdkLanguage;
     protected string $version;
 
+    #[Override]
     public function setUp(): void
     {
         \array_unshift($this->expectedOutput, $this->getExpectedSdkHeaders());
 
-        \exec('
-            cd ./mock-server && \
-            docker compose build && \
-            docker compose up -d --force-recreate
-        ');
+        $output = [];
+        $status = 0;
+
+        \exec(
+            'cd ./mock-server && docker compose build && docker compose up -d --force-recreate 2>&1',
+            $output,
+            $status
+        );
+
+        if ($status !== 0) {
+            $this->fail(
+                "Failed to start mock-server (exit {$status}):\n" . \implode("\n", $output)
+            );
+        }
     }
 
     protected function getExpectedSdkHeaders(): string
@@ -439,6 +453,7 @@ abstract class Base extends TestCase
         return "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
     }
 
+    #[Override]
     public function tearDown(): void
     {
         // Remove the mock server so local test runs don't leave containers behind
@@ -461,6 +476,10 @@ abstract class Base extends TestCase
         if (empty($spec)) {
             throw new Exception('Failed to parse spec.');
         }
+
+        $this->assertOpenEnumsAllowAnyString();
+        $this->assertUploadIdParameterInference();
+        $this->assertEnumKeysAreValid();
 
         $sdk = new SDK($this->getLanguage(), Parser::parse($spec));
 
@@ -502,6 +521,7 @@ abstract class Base extends TestCase
         $this->rmdirRecursive($dir);
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
+        $this->assertOpenEnumSuggestionsGenerated($dir);
         $this->assertExcludedFixtureWasRemoved($dir);
         $this->assertCommentsAreNotHtmlEscaped($dir);
 
@@ -557,6 +577,238 @@ abstract class Base extends TestCase
             } else {
                 $this->assertEquals($expected, $output[$index]);
             }
+        }
+    }
+
+    private function assertEnumKeysAreValid(): void
+    {
+        $specification = Parser::parse([
+            'openapi' => '3.1.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => ['/test' => ['get' => [
+                'operationId' => 'testEnumKeys',
+                'parameters' => [
+                    ['name' => 'localized', 'in' => 'query', 'schema' => [
+                        'type' => 'string',
+                        'enum' => ['រាជធានី', 'ខេត្ត', 'Test'],
+                    ]],
+                    ['name' => 'annotated', 'in' => 'query', 'schema' => [
+                        'title' => 'ProvinceType',
+                        'oneOf' => [
+                            ['const' => 'រាជធានី', 'title' => 'Capital'],
+                            ['const' => 'ខេត្ត', 'title' => 'Province'],
+                            ['const' => 'Test', 'title' => 'Test'],
+                        ],
+                    ]],
+                    ['name' => 'unsafe', 'in' => 'query', 'schema' => [
+                        'type' => 'string',
+                        'enum' => ['123', '-'],
+                    ]],
+                ],
+                'responses' => ['200' => ['description' => 'ok']],
+            ]]],
+        ]);
+        [$localized, $annotated, $unsafe] = $specification->paths['/test']->operations['get']->parameters;
+        $language = $this->getLanguage();
+
+        $this->assertSame(['Value1', 'Value2', 'Test'], $language->resolveEnumKeys($localized));
+        $this->assertSame(['Capital', 'Province', 'Test'], $language->resolveEnumKeys($annotated));
+        $this->assertSame(['Value123', 'Value2'], $language->resolveEnumKeys($unsafe));
+    }
+
+    private function assertOpenEnumsAllowAnyString(): void
+    {
+        $enum = [
+            'title' => 'WebhookEvent',
+            'oneOf' => [
+                ['const' => 'user.created', 'title' => 'UserCreated'],
+                ['const' => 'user.updated', 'title' => 'UserUpdated'],
+            ],
+        ];
+        $specification = Parser::parse([
+            'openapi' => '3.1.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => ['/test' => ['get' => [
+                'operationId' => 'testOpenEnums',
+                'parameters' => [
+                    ['name' => 'plainScalar', 'in' => 'query', 'schema' => ['type' => 'string']],
+                    ['name' => 'closedScalar', 'in' => 'query', 'schema' => $enum],
+                    ['name' => 'openScalar', 'in' => 'query', 'schema' => ['anyOf' => [$enum, ['type' => 'string']]]],
+                    ['name' => 'plainArray', 'in' => 'query', 'schema' => ['type' => 'array', 'items' => ['type' => 'string']]],
+                    ['name' => 'closedArray', 'in' => 'query', 'schema' => ['type' => 'array', 'items' => $enum]],
+                    ['name' => 'openArray', 'in' => 'query', 'schema' => ['type' => 'array', 'items' => ['anyOf' => [$enum, ['type' => 'string']]]]],
+                ],
+                'responses' => ['200' => ['description' => 'ok']],
+            ]]],
+        ]);
+        [$plainScalar, $closedScalar, $openScalar, $plainArray, $closedArray, $openArray] = $specification->paths['/test']->operations['get']->parameters;
+        $language = $this->getLanguage();
+        $permission = '["read(\\"any\\")"]';
+        $this->assertTrue($language->isPermissionString($permission));
+        $this->assertSame([[
+            'action' => 'read',
+            'role' => 'any',
+            'id' => null,
+            'innerRole' => null,
+        ]], $language->extractPermissionParts($permission));
+        foreach ([$closedScalar, $closedArray, $openScalar, $openArray] as $parameter) {
+            $enumSchema = $language->getEnumSchema($parameter);
+            $this->assertInstanceOf(StringSchema::class, $enumSchema);
+            $this->assertSame(['user.created', 'user.updated'], $enumSchema->enum);
+            $this->assertSame(['UserCreated', 'UserUpdated'], $enumSchema->enumKeys);
+            $this->assertSame('WebhookEvent', $enumSchema->enumName);
+        }
+        $this->assertFalse($language->isOpenStringEnum($closedScalar));
+        $this->assertFalse($language->isOpenStringEnum($closedArray));
+        $this->assertTrue($language->isOpenStringEnum($openScalar));
+        $this->assertTrue($language->isOpenStringEnum($openArray));
+        $this->assertTrue($language->usesEnumType($closedScalar));
+        $this->assertTrue($language->usesEnumType($closedArray));
+        $this->assertSame($language->keepsOpenEnumType(), $language->usesEnumType($openScalar));
+        $this->assertSame($language->keepsOpenEnumType(), $language->usesEnumType($openArray));
+        $this->assertStringContainsString('user.created', $language->getSuggestedEnumExample($openScalar));
+        $this->assertStringContainsString('user.created', $language->getSuggestedEnumExample($openArray));
+        $sdk = new class ($language, $specification) extends SDK {
+            /** @param list<StringSchema> $schemas @return list<StringSchema> */
+            public function mergeEnumsForTest(array $schemas): array
+            {
+                return $this->mergeEnums($schemas);
+            }
+        };
+        $mergedEnums = $sdk->mergeEnumsForTest([
+            new StringSchema(title: 'SharedEnum', enum: ['known'], open: true),
+            new StringSchema(title: 'SharedEnum', enum: ['known'], open: false),
+        ]);
+        $this->assertCount(1, $mergedEnums);
+        $this->assertFalse($mergedEnums[0]->open, 'A closed use must keep a shared enum type closed.');
+
+        if ($language->keepsOpenEnumType()) {
+            $this->assertSame('(WebhookEvent | (string & {}))', $language->getTypeName($openScalar, $specification));
+            $this->assertSame('(WebhookEvent | (string & {}))[]', $language->getTypeName($openArray, $specification));
+
+            return;
+        }
+
+        $this->assertSame(
+            $language->getTypeName($plainScalar, $specification),
+            $language->getTypeName($openScalar, $specification),
+        );
+        $this->assertSame(
+            $language->getTypeName($plainArray, $specification),
+            $language->getTypeName($openArray, $specification),
+        );
+    }
+
+    private function assertUploadIdParameterInference(): void
+    {
+        $multipart = static fn(array $properties, array $required = []): array => [
+            'requestBody' => ['content' => ['multipart/form-data' => ['schema' => [
+                'type' => 'object',
+                'properties' => $properties,
+                'required' => $required,
+            ]]]],
+            'responses' => ['200' => ['description' => 'ok']],
+        ];
+        $file = ['type' => 'string', 'format' => 'binary'];
+        $string = ['type' => 'string'];
+        $specification = Parser::parse([
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => [
+                '/file' => ['post' => $multipart(
+                    ['fileId' => $string, 'file' => $file],
+                    ['fileId', 'file'],
+                )],
+                '/code' => ['post' => $multipart(['code' => $file], ['code'])],
+                '/optional' => ['post' => $multipart(['fileId' => $string, 'file' => $file], ['file'])],
+                '/malformed' => ['post' => $multipart([
+                    'fileId' => ['type' => 'integer'],
+                    'file' => $file,
+                ])],
+                '/multiple' => ['post' => $multipart([
+                    'archive' => $file,
+                    'archiveId' => $string,
+                    'file' => $file,
+                ])],
+                '/json' => ['post' => [
+                    'requestBody' => ['content' => ['application/json' => ['schema' => [
+                        'type' => 'object',
+                        'properties' => ['fileId' => $string, 'file' => $file],
+                    ]]]],
+                    'responses' => ['200' => ['description' => 'ok']],
+                ]],
+            ],
+        ]);
+        $sdk = new class ($this->getLanguage(), $specification) extends SDK {
+            public function uploadIdParameterForTest(Operation $operation): ?Parameter
+            {
+                return $this->uploadIdParameter($operation);
+            }
+        };
+
+        $fileId = $sdk->uploadIdParameterForTest($specification->paths['/file']->operations['post']);
+        $this->assertInstanceOf(Parameter::class, $fileId);
+        $this->assertSame('fileId', $fileId->name);
+        $this->assertTrue($fileId->required);
+        $this->assertNotInstanceOf(Parameter::class, $sdk->uploadIdParameterForTest($specification->paths['/code']->operations['post']));
+        $optional = $sdk->uploadIdParameterForTest($specification->paths['/optional']->operations['post']);
+        $this->assertInstanceOf(Parameter::class, $optional);
+        $this->assertFalse($optional->required);
+        $this->assertNotInstanceOf(Parameter::class, $sdk->uploadIdParameterForTest($specification->paths['/malformed']->operations['post']));
+        $this->assertNotInstanceOf(Parameter::class, $sdk->uploadIdParameterForTest($specification->paths['/multiple']->operations['post']));
+        $this->assertNotInstanceOf(Parameter::class, $sdk->uploadIdParameterForTest($specification->paths['/json']->operations['post']));
+    }
+
+    private function assertOpenEnumSuggestionsGenerated(string $dir): void
+    {
+        $expectations = [
+            'web' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
+            'node' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
+            'react-native' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
+            'deno' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
+            'php' => ['src/Appwrite/Enums/WebhookEvent.php', 'public const USERCREATED', 'src/Appwrite/Enums/LocalizedStatus.php', 'public static function VALUE1', 'src/Appwrite/Enums/ProvinceType.php', 'public static function CAPITAL'],
+            'python' => ['appwrite/enums/webhook_event.py', 'USERCREATED = "user.created"', 'appwrite/enums/localized_status.py', 'VALUE1 = "រាជធានី"', 'appwrite/enums/province_type.py', 'CAPITAL = "រាជធានី"'],
+            'ruby' => ['lib/appwrite/enums/webhook_event.rb', "USERCREATED = 'user.created'", 'lib/appwrite/enums/localized_status.rb', "VALUE1 = 'រាជធានី'", 'lib/appwrite/enums/province_type.rb', "CAPITAL = 'រាជធានី'"],
+            'dart' => ['lib/src/enums/webhook_event.dart', 'static const String userCreated', 'lib/src/enums/localized_status.dart', 'value1(value:', 'lib/src/enums/province_type.dart', 'capital(value:'],
+            'flutter' => ['lib/src/enums/webhook_event.dart', 'static const String userCreated', 'lib/src/enums/localized_status.dart', 'value1(value:', 'lib/src/enums/province_type.dart', 'capital(value:'],
+            'kotlin' => ['src/main/kotlin/io/appwrite/enums/WebhookEvent.kt', 'const val USERCREATED', 'src/main/kotlin/io/appwrite/enums/LocalizedStatus.kt', 'VALUE1("', 'src/main/kotlin/io/appwrite/enums/ProvinceType.kt', 'CAPITAL("'],
+            'android' => ['library/src/main/java/io/appwrite/enums/WebhookEvent.kt', 'const val USERCREATED', 'library/src/main/java/io/appwrite/enums/LocalizedStatus.kt', 'VALUE1("', 'library/src/main/java/io/appwrite/enums/ProvinceType.kt', 'CAPITAL("'],
+            'swift' => ['Sources/AppwriteEnums/WebhookEvent.swift', 'public static let userCreated', 'Sources/AppwriteEnums/LocalizedStatus.swift', 'case value1', 'Sources/AppwriteEnums/ProvinceType.swift', 'case capital'],
+            'apple' => ['Sources/AppwriteEnums/WebhookEvent.swift', 'public static let userCreated', 'Sources/AppwriteEnums/LocalizedStatus.swift', 'case value1', 'Sources/AppwriteEnums/ProvinceType.swift', 'case capital'],
+            'dotnet' => ['Appwrite/Enums/WebhookEvent.cs', 'public const string UserCreated', 'Appwrite/Enums/LocalizedStatus.cs', 'public static LocalizedStatus Value1', 'Appwrite/Enums/ProvinceType.cs', 'public static ProvinceType Capital'],
+            'unity' => ['Assets/Runtime/Core/Enums/WebhookEvent.cs', 'public const string UserCreated', 'Assets/Runtime/Core/Enums/LocalizedStatus.cs', 'public static LocalizedStatus Value1', 'Assets/Runtime/Core/Enums/ProvinceType.cs', 'public static ProvinceType Capital'],
+            'rust' => ['src/enums/webhook_event.rs', 'pub const UserCreated', 'src/enums/localized_status.rs', 'Value1,', 'src/enums/province_type.rs', 'Capital,'],
+        ];
+
+        if (!isset($expectations[$this->language])) {
+            return;
+        }
+
+        [
+            $relativePath,
+            $knownValueDeclaration,
+            $localizedPath,
+            $localizedDeclaration,
+            $annotatedPath,
+            $annotatedDeclaration,
+        ] = $expectations[$this->language];
+        $path = $dir . '/' . $relativePath;
+        $this->assertFileExists($path);
+        $contents = file_get_contents($path);
+        $this->assertIsString($contents);
+        $this->assertStringContainsString($knownValueDeclaration, $contents);
+        $this->assertStringContainsString('user.updated', $contents);
+
+        foreach (
+            [
+                [$localizedPath, $localizedDeclaration],
+                [$annotatedPath, $annotatedDeclaration],
+            ] as [$enumPath, $declaration]
+        ) {
+            $this->assertFileExists($dir . '/' . $enumPath);
+            $enumContents = file_get_contents($dir . '/' . $enumPath);
+            $this->assertIsString($enumContents);
+            $this->assertStringContainsString($declaration, $enumContents);
         }
     }
 

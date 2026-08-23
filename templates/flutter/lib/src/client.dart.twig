@@ -27,7 +27,8 @@ abstract class Client {
   factory Client({
     String endPoint = '{{ (spec | endpoint) }}',
     bool selfSigned = false,
-  }) => createClient(endPoint: endPoint, selfSigned: selfSigned);
+  }) =>
+      createClient(endPoint: endPoint, selfSigned: selfSigned);
 
   /// Handle OAuth2 session creation.
   Future webAuth(Uri url, {String? callbackUrlScheme});
@@ -76,9 +77,7 @@ abstract class Client {
   Future<String> {{ clientMethodName | caseCamel }}();
 
 {% endfor %}
-{% endfor %}
-
-  /// Send the API request.
+{% endfor %}  /// Send the API request.
   Future<Response> call(
     HttpMethod method, {
     String path = '',

@@ -455,12 +455,12 @@ open class Client {
         var result = [String:Any]()
         var uploadId = idParamName != nil ? params[idParamName!] as? String : nil
 
-        if idParamName != nil {
+        if let uploadId {
             // Make a request to check if a file already exists
             do {
                 let map = try await call(
                     method: "GET",
-                    path: path + "/" + (params[idParamName!] as! String),
+                    path: path + "/" + uploadId,
                     headers: headers,
                     params: [:],
                     converter: { return $0 as! [String: Any] }

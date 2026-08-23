@@ -1,15 +1,22 @@
 {% import 'flutter/base/utils.twig' as utils %}
-        final Map<String, dynamic> apiParams = {
-            {{- utils.map_parameter((method | parameters('query'))) -}}
-            {{~ utils.map_parameter((method | parameters('body'))) }}
-        };
+{% set queryParams = method | parameters('query') %}
+{% set bodyParams = method | parameters('body') %}
+{% set securityHeaders = method | securityHeaders %}
+{% set methodHeaders = method | methodHeaders %}
+    final Map<String, dynamic> apiParams = {% if queryParams|length == 0 and bodyParams|length == 0 %}{}{% else %}{
+{{ utils.map_parameter(queryParams) }}{{ utils.map_parameter(bodyParams) }}    }{% endif %};
 
-        final Map<String, String> apiHeaders = {
-            {%~ for key, security in (method | securityHeaders) %}
-            '{{ security.name }}': client.config['{{ key | caseCamel }}'] ?? '',
-            {%~ endfor %}
-            {{~ utils.map_headers((method | methodHeaders)) }}
-        };
+    final Map<String, String> apiHeaders = {% if securityHeaders|length == 0 and methodHeaders|length == 0 %}{}{% else %}{
+{% for key, security in securityHeaders %}
+      '{{ security.name }}': client.config['{{ key | caseCamel }}'] ?? '',
+{% endfor %}
+{{ utils.map_headers(methodHeaders) }}    }{% endif %};
 
-        final res = await client.call(HttpMethod.{{ method.method.value | caseLower }}, path: apiPath, params: apiParams, headers: apiHeaders, responseType: ResponseType.bytes);
-        return res.data;
+    final res = await client.call(
+      HttpMethod.{{ method.method.value | caseLower }},
+      path: apiPath,
+      params: apiParams,
+      headers: apiHeaders,
+      responseType: ResponseType.bytes,
+    );
+    return res.data;

@@ -156,7 +156,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('typeName', fn(Schema|Parameter $value, ?Specification $spec = null): string => $this->language->getTypeName($value, $spec ?? $this->spec), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('getValidResponseModels', fn(Operation $value): array => $this->getValidResponseModels($value)));
         $this->twig->addFilter(new TwigFilter('paramDefault', fn(Schema|Parameter $value): string => $this->language->getParamDefault($value), ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('paramExample', fn(Schema|Parameter $value): string => $this->language->getParamExample($value), ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('paramExample', fn(Schema|Parameter $value): string => $this->language->isOpenStringEnum($value)
+            ? $this->language->getSuggestedEnumExample($value)
+            : $this->language->getParamExample($value), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('methodName', fn(Operation $operation): string => $this->methodName($operation)));
         $this->twig->addFilter(new TwigFilter('methodType', fn(Operation $operation): string|false => $this->methodType($operation)));
         $this->twig->addFilter(new TwigFilter('parameters', fn(Operation $operation, string $location = 'all'): array => $this->getOperationParameters($operation, $location)));
@@ -167,12 +169,13 @@ class SDK
         $this->twig->addFilter(new TwigFilter('schemaModel', fn(Schema|Parameter $value): string => $this->getSchemaModel($value)));
         $this->twig->addFilter(new TwigFilter('schemaModels', fn(Schema|Parameter $value): array => $this->getSchemaModels($value)));
         $this->twig->addFilter(new TwigFilter('schemaRequired', fn(Schema|Parameter $value): bool => $value instanceof Parameter ? $value->required : isset($this->requiredSchemas[\spl_object_id($value)])));
-        $this->twig->addFilter(new TwigFilter('schemaExample', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->extensions['x-example'] ?? $this->getSchema($value)->example));
+        $this->twig->addFilter(new TwigFilter('schemaExample', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->example));
         $this->twig->addFilter(new TwigFilter('schemaDefault', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->default));
         $this->twig->addFilter(new TwigFilter('enumName', fn(Schema|Parameter $value): string => $this->getEnumName($value)));
-        $this->twig->addFilter(new TwigFilter('enumKeys', fn(Schema|Parameter $value): array => $this->getEnumKeys($value)));
+        $this->twig->addFilter(new TwigFilter('enumKeys', fn(Schema|Parameter $value): array => $this->language->resolveEnumKeys($value)));
         $this->twig->addFilter(new TwigFilter('operations', fn(Tag $tag): array => $this->getFilteredMethods($this->getMethods($tag->name), $tag->name)));
         $this->twig->addFilter(new TwigFilter('consumes', fn(Operation $operation): array => \array_keys($operation->requestBody?->content ?? [])));
+        $this->twig->addFilter(new TwigFilter('uploadIdParameter', $this->uploadIdParameter(...)));
         $this->twig->addFilter(new TwigFilter('produces', fn(Operation $operation): array => $this->getProduces($operation)));
         $this->twig->addFilter(new TwigFilter('endpoint', fn(Specification $spec): string => $spec->servers[0]->url ?? 'https://example.com'));
         $this->twig->addFilter(new TwigFilter('appwrite', fn(Operation|SecurityScheme $value, string $key, mixed $default = null): mixed => $value->extensions['x-appwrite'][$key] ?? $default));
@@ -183,10 +186,12 @@ class SDK
         $this->twig->addFilter(new TwigFilter('securityHeaders', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::HEADER, false)));
         $this->twig->addFilter(new TwigFilter('securityQueries', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::QUERY)));
         $this->twig->addFilter(new TwigFilter('schemaNullable', fn(Schema|Parameter $value): bool => !isset($this->multipartSchemas[\spl_object_id($this->getSchema($value))]) && $this->getSchema($value)->nullable));
-        $this->twig->addFilter(new TwigFilter('enumValues', function (Schema|Parameter $value): array {
-            $schema = $this->getSchema($value);
-            return $schema instanceof ArraySchema ? $schema->items->enum : $schema->enum;
-        }));
+        $this->twig->addFilter(new TwigFilter('enumValues', fn(Schema|Parameter $value): array => $this->language->isOpenStringEnum($value) && !$this->language->keepsOpenEnumType()
+            ? []
+            : $this->language->getEnumSchema($value)->enum));
+        $this->twig->addFilter(new TwigFilter('enumSuggestions', fn(Schema|Parameter $value): array => $this->language->getEnumSchema($value)->enum));
+        $this->twig->addFilter(new TwigFilter('usesEnumType', fn(Schema|Parameter $value): bool => $this->language->usesEnumType($value)));
+        $this->twig->addFilter(new TwigFilter('openEnum', fn(Schema|Parameter $value): bool => $this->language->isOpenStringEnum($value)));
         $this->twig->addFilter(new TwigFilter('arraySchema', fn(Schema|Parameter $value): ?Schema => ($schema = $this->getSchema($value)) instanceof ArraySchema ? $schema->items : null));
         $this->twig->addFilter(new TwigFilter('emptyResponse', fn(Operation $operation): bool => \array_keys($operation->responses) === [204] || \array_keys($operation->responses) === ['204']));
         $this->twig->addFilter(new TwigFilter('fullPath', fn(Operation $operation): string => (\parse_url($this->spec->servers[0]->url ?? '', PHP_URL_PATH) ?: '') . $operation->path));
@@ -783,13 +788,13 @@ class SDK
         foreach ((array_keys($filteredServices ?? $this->getFilteredServices())) as $serviceName) {
             foreach ($this->getFilteredMethods($this->getMethods($serviceName), $serviceName) as $operation) {
                 foreach ($this->getOperationParameters($operation) as $parameter) {
-                    $schema = $this->getSchema($parameter);
-                    $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+                    $enumSchema = $this->language->getEnumSchema($parameter);
                     if ($enumSchema->enum !== []) {
                         $schemas[] = new StringSchema(
                             title: $this->getEnumName($parameter),
                             enum: $enumSchema->enum,
-                            extensions: ['x-enum-keys' => $enumSchema->extensions['x-enum-keys'] ?? []],
+                            enumKeys: $this->language->resolveEnumKeys($parameter),
+                            open: $this->language->isOpenStringEnum($parameter),
                         );
                     }
                 }
@@ -832,9 +837,14 @@ class SDK
                 continue;
             }
             foreach ($model->properties as $property) {
-                $schema = $property instanceof ArraySchema ? $property->items : $property;
-                if ($schema->enum !== []) {
-                    $enums[] = $schema;
+                $enumSchema = $this->language->getEnumSchema($property);
+                if ($enumSchema->enum !== []) {
+                    $enums[] = new StringSchema(
+                        title: $this->getEnumName($property),
+                        enum: $enumSchema->enum,
+                        enumKeys: $this->language->resolveEnumKeys($property),
+                        open: $this->language->isOpenStringEnum($property),
+                    );
                 }
             }
         }
@@ -846,25 +856,34 @@ class SDK
     {
         $values = [];
         $keys = [];
+        $open = [];
         foreach ($schemas as $schema) {
             $name = $this->getEnumName($schema);
             if ($name === '') {
                 continue;
             }
+            $open[$name] = ($open[$name] ?? true) && $this->language->isOpenStringEnum($schema);
             foreach ($schema->enum as $index => $value) {
                 if (!\in_array($value, $values[$name] ?? [], true)) {
                     $values[$name][] = $value;
-                    $keys[$name][] = $schema->extensions['x-enum-keys'][$index] ?? $value;
+                    $keys[$name][] = $schema instanceof StringSchema ? ($schema->enumKeys[$index] ?? $value) : $value;
                 }
             }
         }
 
         $enums = [];
         foreach ($values as $name => $enumValues) {
+            $merged = new StringSchema(
+                title: $name,
+                enum: $enumValues,
+                enumKeys: $keys[$name],
+                open: $open[$name],
+            );
             $enums[] = new StringSchema(
                 title: $name,
                 enum: $enumValues,
-                extensions: ['x-enum-keys' => $keys[$name]],
+                enumKeys: $this->language->resolveEnumKeys($merged),
+                open: $open[$name],
             );
         }
         return $enums;
@@ -1487,6 +1506,38 @@ class SDK
         return $operation->extensions['x-appwrite']['type'] ?? false;
     }
 
+    protected function uploadIdParameter(Operation $operation): ?Parameter
+    {
+        $content = $operation->requestBody?->content ?? [];
+        $schema = ($content[self::MULTIPART_MEDIA_TYPE] ?? null)?->schema;
+        if (!$schema instanceof ObjectSchema) {
+            return null;
+        }
+
+        $uploadId = null;
+        $binaryProperties = 0;
+        foreach ($schema->properties as $name => $property) {
+            if (!$property instanceof StringSchema || $property->format !== 'binary') {
+                continue;
+            }
+
+            $binaryProperties++;
+            if ($binaryProperties > 1) {
+                return null;
+            }
+
+            $idName = $name . 'Id';
+            $idProperty = $schema->properties[$idName] ?? null;
+            if (!$idProperty instanceof StringSchema || $idProperty->format === 'binary') {
+                continue;
+            }
+
+            $uploadId = $this->requestBodyParameter($idName, $idProperty, $schema);
+        }
+
+        return $uploadId;
+    }
+
     /** @return list<Parameter> */
     protected function getOperationParameters(Operation $operation, string $location = 'all'): array
     {
@@ -1508,14 +1559,7 @@ class SDK
                     continue;
                 }
                 foreach ($mediaType->schema->properties as $name => $schema) {
-                    $parameters[] = new Parameter(
-                        name: $name,
-                        location: ParameterLocation::QUERY,
-                        description: $schema->description,
-                        required: \in_array($name, $mediaType->schema->required, true),
-                        schema: $schema,
-                        extensions: $schema->extensions,
-                    );
+                    $parameters[] = $this->requestBodyParameter($name, $schema, $mediaType->schema);
                 }
                 break;
             }
@@ -1530,6 +1574,18 @@ class SDK
         return $parameters;
     }
 
+    private function requestBodyParameter(string $name, Schema $schema, ObjectSchema $object): Parameter
+    {
+        return new Parameter(
+            name: $name,
+            location: ParameterLocation::QUERY,
+            description: $schema->description,
+            required: \in_array($name, $object->required, true),
+            schema: $schema,
+            extensions: $schema->extensions,
+        );
+    }
+
     protected function getSchema(Schema|Parameter $value): Schema
     {
         return $value instanceof Parameter ? ($value->schema ?? new AnySchema()) : $value;
@@ -1540,7 +1596,8 @@ class SDK
         $schema = $this->getSchema($value);
         return match (true) {
             $schema instanceof StringSchema && $schema->format === 'binary' => 'file',
-            $schema instanceof StringSchema => 'string',
+            $schema instanceof StringSchema,
+            $schema instanceof CompositeSchema && $this->language->isStringEnum($schema) => 'string',
             $schema instanceof IntegerSchema => 'integer',
             $schema instanceof NumberSchema => 'number',
             $schema instanceof BooleanSchema => 'boolean',
@@ -1551,7 +1608,7 @@ class SDK
 
     protected function getSchemaName(Schema $schema): string
     {
-        return $schema->title ?? $this->schemaNames[\spl_object_id($schema)] ?? '';
+        return $this->schemaNames[\spl_object_id($schema)] ?? $schema->title ?? '';
     }
 
     protected function getSchemaModel(Schema|Parameter $value): string
@@ -1625,20 +1682,14 @@ class SDK
 
     protected function getEnumName(Schema|Parameter $value): string
     {
-        $schema = $this->getSchema($value);
-        $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
+        $enumSchema = $this->language->getEnumSchema($value);
         if ($enumSchema->enum === []) {
             return '';
         }
-        return (string) ($enumSchema->extensions['x-enum-name']
+        return (string) (($enumSchema instanceof StringSchema ? $enumSchema->enumName : null)
             ?? $enumSchema->title
             ?? $this->schemaEnumNames[\spl_object_id($enumSchema)]
             ?? ($value instanceof Parameter ? $value->name : ''));
-    }
-
-    protected function getEnumKeys(Schema|Parameter $value): array
-    {
-        return $this->getSchema($value)->extensions['x-enum-keys'] ?? [];
     }
 
     protected function normalizeSchemaReference(string $reference): string
@@ -1665,6 +1716,11 @@ class SDK
                     $this->schemaNames[$itemId] = $propertyName;
                     $this->schemaEnumNames[$itemId] = \ucfirst($modelName) . \ucfirst($propertyName);
                 }
+
+                $enumSchema = $this->language->getEnumSchema($property);
+                $enumId = \spl_object_id($enumSchema);
+                $this->schemaNames[$enumId] = $propertyName;
+                $this->schemaEnumNames[$enumId] = \ucfirst($modelName) . \ucfirst($propertyName);
             }
         }
 

@@ -1,32 +1,42 @@
 {% import 'dart/base/utils.twig' as utils %}
-    final Map<String, dynamic> apiParams = {
-      {{ utils.map_parameter((method | parameters('query'))) }}
-      {{ utils.map_parameter((method | parameters('body'))) }}
-    };
+{% set queryParams = method | parameters('query') %}
+{% set bodyParams = method | parameters('body') %}
+{% set securityHeaders = method | securityHeaders %}
+{% set methodHeaders = method | methodHeaders %}
+    final Map<String, dynamic> apiParams = {% if queryParams|length == 0 and bodyParams|length == 0 %}{}{% else %}{
+{{ utils.map_parameter(queryParams) }}{{ utils.map_parameter(bodyParams) }}    }{% endif %};
 
-    final Map<String, String> apiHeaders = {
-      {%~ for key, security in (method | securityHeaders) %}
+    final Map<String, String> apiHeaders = {% if securityHeaders|length == 0 and methodHeaders|length == 0 %}{}{% else %}{
+{% for key, security in securityHeaders %}
       '{{ security.name }}': client.config['{{ key | caseCamel }}'] ?? '',
-      {%~ endfor %}
-      {{ utils.map_headers((method | methodHeaders)) }}
-    };
+{% endfor %}
+{{ utils.map_headers(methodHeaders) }}    }{% endif %};
 
-    final res = await client.call(HttpMethod.{{ method.method.value | caseLower }}, path: apiPath, params: apiParams, headers: apiHeaders);
+    final res = await client.call(
+      HttpMethod.{{ method.method.value | caseLower }},
+      path: apiPath,
+      params: apiParams,
+      headers: apiHeaders,
+    );
 
 {% set responseModels = method | getValidResponseModels %}
 {% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}
 {% set responseDiscriminator = (method | responseDiscriminator) %}
     return {% if responseModels|length > 1 and hasResponseDiscriminator %}() {
       if (res.data is! Map<String, dynamic>) {
-        throw StateError('Unable to match response to any expected response model.');
+        throw StateError(
+          'Unable to match response to any expected response model.',
+        );
       }
 
       final response = res.data as Map<String, dynamic>;
 {% for modelName, conditions in responseDiscriminator %}
-      if ({% for field, expectedValue in conditions %}response['{{ field | escapeDollarSign }}'] == '{{ expectedValue | escapeDollarSign }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+      if ({% for field, expectedValue in conditions %}response['{{ field | escapeDollarSign }}'] == {{ expectedValue | dartString }}{% if not loop.last %} && {% endif %}{% endfor %}) {
         return models.{{ modelName | caseUcfirst | overrideIdentifier }}.fromMap(response);
       }
 {% endfor %}
 
-      throw StateError('Unable to match response to any expected response model.');
+      throw StateError(
+        'Unable to match response to any expected response model.',
+      );
     }(){% elseif (method | responseModel) and (method | responseModel) != 'any' %}models.{{(method | responseModel) | caseUcfirst | overrideIdentifier}}.fromMap(res.data){% else %}res.data{% endif %};

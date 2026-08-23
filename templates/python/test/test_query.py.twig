@@ -2,11 +2,13 @@ import unittest
 
 from {{ namespace | caseSnake }}.query import Query
 
+
 class BasicFilterQueryTest:
     def __init__(self, description: str, value, expected_values: str):
         self.description = description
         self.value = value
         self.expected_values = expected_values
+
 
 tests = [
     BasicFilterQueryTest('with a string', 's', '["s"]'),
@@ -17,6 +19,7 @@ tests = [
     BasicFilterQueryTest('with a list', ['a', 'b', 'c'], '["a","b","c"]'),
 ]
 
+
 class TestQueryMethods(unittest.TestCase):
 
     def test_equal(self):
@@ -24,7 +27,7 @@ class TestQueryMethods(unittest.TestCase):
             self.assertEqual(
                 Query.equal('attr', t.value),
                 {% verbatim %}f'{{"method":"equal","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
-                t.description
+                t.description,
             )
 
     def test_not_equal(self):
@@ -32,7 +35,7 @@ class TestQueryMethods(unittest.TestCase):
             self.assertEqual(
                 Query.not_equal('attr', t.value),
                 {% verbatim %}f'{{"method":"notEqual","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
-                t.description
+                t.description,
             )
 
     def test_less_than(self):
@@ -40,7 +43,7 @@ class TestQueryMethods(unittest.TestCase):
             self.assertEqual(
                 Query.less_than('attr', t.value),
                 {% verbatim %}f'{{"method":"lessThan","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
-                t.description
+                t.description,
             )
 
     def test_less_than_equal(self):
@@ -48,7 +51,7 @@ class TestQueryMethods(unittest.TestCase):
             self.assertEqual(
                 Query.less_than_equal('attr', t.value),
                 {% verbatim %}f'{{"method":"lessThanEqual","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
-                t.description
+                t.description,
             )
 
     def test_greater_than(self):
@@ -56,7 +59,7 @@ class TestQueryMethods(unittest.TestCase):
             self.assertEqual(
                 Query.greater_than('attr', t.value),
                 {% verbatim %}f'{{"method":"greaterThan","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
-                t.description
+                t.description,
             )
 
     def test_greater_than_equal(self):
@@ -64,11 +67,14 @@ class TestQueryMethods(unittest.TestCase):
             self.assertEqual(
                 Query.greater_than_equal('attr', t.value),
                 {% verbatim %}f'{{"method":"greaterThanEqual","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
-                t.description
+                t.description,
             )
 
     def test_search(self):
-        self.assertEqual(Query.search('attr', 'keyword1 keyword2'), '{"method":"search","attribute":"attr","values":["keyword1 keyword2"]}')
+        self.assertEqual(
+            Query.search('attr', 'keyword1 keyword2'),
+            '{"method":"search","attribute":"attr","values":["keyword1 keyword2"]}',
+        )
 
     def test_is_null(self):
         self.assertEqual(Query.is_null('attr'), '{"method":"isNull","attribute":"attr"}')

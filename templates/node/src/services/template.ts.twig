@@ -110,15 +110,15 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endfor %}
 
         const apiPath = '{{ method.path }}'{% for parameter in (method | parameters('path')) %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', encodeURIComponent(String({% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}this.client.config.{{ parameter.extensions['x-sdk-config'] | caseLower }}{% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}))){% endfor %};
-        const payload: Payload = {};
+        const apiPayload: Payload = {};
         {%~ for parameter in (method | parameters('query')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            apiPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
         {%~ endfor %}
         {%~ for parameter in (method | parameters('body')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            apiPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
         {%~ endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
@@ -143,14 +143,14 @@ export class {{ service.name | caseUcfirst }} {
             '{{ method.method.value | caseLower }}',
             uri,
             apiHeaders,
-            payload
+            apiPayload
         );
         {%~ elseif 'multipart/form-data' in (method | consumes) %}
         return this.client.chunkedUpload(
             '{{ method.method.value | caseLower }}',
             uri,
             apiHeaders,
-            payload,
+            apiPayload,
             onProgress
         );
         {%~ else %}
@@ -158,7 +158,7 @@ export class {{ service.name | caseUcfirst }} {
             '{{ method.method.value | caseLower }}',
             uri,
             apiHeaders,
-            payload,
+            apiPayload,
             {%~ if (method | methodType) == 'location' %}
             'arrayBuffer'
             {%~ endif %}

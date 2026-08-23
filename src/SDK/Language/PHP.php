@@ -9,6 +9,7 @@ use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Model\SecurityScheme;
 use Utopia\OpenAPI\Model\SecuritySchemeType;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
@@ -182,6 +183,21 @@ class PHP extends Language
                 'template'      => 'php/composer.json.twig',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'phpstan.neon',
+                'template'      => 'php/phpstan.neon',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'pint.json',
+                'template'      => 'php/pint.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'rector.php',
+                'template'      => 'php/rector.php',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'phpunit.xml',
                 'template'      => 'php/phpunit.xml.twig',
@@ -332,7 +348,7 @@ class PHP extends Language
         if ($schema instanceof ArraySchema) {
             return 'array';
         }
-        if ($schema->enum !== []) {
+        if ($this->usesEnumType($parameter)) {
             return $this->applyIdentifierOverride($this->toPascalCase($this->getSchemaEnumName($parameter, $spec)));
         }
 
@@ -503,7 +519,7 @@ class PHP extends Language
     {
         $definition = $spec->schemas[$definitionName] ?? null;
         if (!$definition instanceof ObjectSchema) {
-            return 'array()';
+            return '[]';
         }
 
         $properties = \array_filter(
@@ -513,12 +529,12 @@ class PHP extends Language
         );
 
         if ($properties === []) {
-            return 'array()';
+            return '[]';
         }
 
         $itemIndent = str_repeat('    ', $indentLevel);
         $closingIndent = str_repeat('    ', max(0, $indentLevel - 1));
-        $lines = ['array('];
+        $lines = ['['];
 
         $index = 0;
         foreach ($properties as $name => $property) {
@@ -529,7 +545,7 @@ class PHP extends Language
             $index++;
         }
 
-        $lines[] = $closingIndent . ')';
+        $lines[] = $closingIndent . ']';
 
         return implode("\n", $lines);
     }
@@ -541,17 +557,20 @@ class PHP extends Language
             if ($property instanceof ArraySchema) {
                 $itemIndent = str_repeat('    ', $indentLevel);
                 $closingIndent = str_repeat('    ', max(0, $indentLevel - 1));
-                return "array(\n" . $itemIndent . $this->getMockDefinitionPayload($model, $spec, $indentLevel + 1) . "\n" . $closingIndent . ')';
+                return "[\n" . $itemIndent . $this->getMockDefinitionPayload($model, $spec, $indentLevel + 1) . "\n" . $closingIndent . ']';
             }
             return $this->getMockDefinitionPayload($model, $spec, $indentLevel);
         }
-        if ($property->enum !== []) {
-            return '"' . $this->escapePhpString((string) $property->enum[0]) . '"';
+        $enumSchema = $this->getEnumSchema($property);
+        if ($this->usesEnumType($property)) {
+            $example = '"' . $this->escapePhpString((string) $enumSchema->enum[0]) . '"';
+
+            return $property instanceof ArraySchema ? '[' . $example . ']' : $example;
         }
 
         $example = $this->getSchemaExample($property);
         return match ($this->getSchemaType($property)) {
-            self::TYPE_OBJECT, self::TYPE_ARRAY => 'array()',
+            self::TYPE_OBJECT, self::TYPE_ARRAY => '[]',
             self::TYPE_BOOLEAN => 'true',
             self::TYPE_INTEGER => $example === null ? '1' : $this->formatPhpLiteral($example),
             self::TYPE_NUMBER => $example === null ? '1.0' : $this->formatPhpLiteral($example),
@@ -575,7 +594,7 @@ class PHP extends Language
         }
 
         if (is_array($value)) {
-            return $value === [] ? 'array()' : var_export($value, true);
+            return $value === [] ? '[]' : var_export($value, true);
         }
 
         return (string)$value;
@@ -666,21 +685,21 @@ class PHP extends Language
             ),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
-                $enumValues = $schema instanceof ArraySchema ? $schema->items->enum : $schema->enum;
+                $enumSchema = $this->getEnumSchema($param);
+                $enumValues = $enumSchema->enum;
                 if ($enumValues === []) {
                     return '';
                 }
 
-                $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-                $enumKeys = $enumSchema->extensions['x-enum-keys'] ?? [];
-                $enumName = $this->toPascalCase($enumSchema->extensions['x-enum-name'] ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
+                $enumKeys = $this->resolveEnumKeys($param);
+                $enumName = $this->toPascalCase(($enumSchema instanceof StringSchema ? $enumSchema->enumName : null) ?? ($param instanceof Parameter ? $param->name : $enumSchema->title ?? ''));
                 $example = $this->getSchemaExample($param);
                 $isArray = $schema instanceof ArraySchema;
 
                 $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
                     if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
-                        $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', (string) $enumKeys[$index]);
+                        $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', $enumKeys[$index]);
                         return $this->toUpperSnakeCase($cleaned);
                     }
                     if ($index !== false && isset($enumValues[$index])) {

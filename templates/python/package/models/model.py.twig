@@ -36,6 +36,7 @@ T = TypeVar('T')
 _PAYLOAD_ADAPTER = TypeAdapter(Dict[str, Any])
 {% endif %}
 
+
 class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generic[T]{% endif %}):
     """
     {{ definition.description }}
@@ -49,20 +50,25 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
 {% if not (property | schemaRequired) %}{% set propertyType %}Optional[{{ propertyType | trim }}]{% endset %}{% endif %}
     {{ property | getModelFieldName(definition.properties) }} : {{ propertyType | trim }}
 {% if property.description %}
-        {{ property.description | replace({"\n": "\n        "}) }}
+        {{ property.description | formatDocstring(8) }}
 {% else %}
         Typed model field.
 {% endif %}
 {% endfor %}
 {% endif %}
     """
+
 {% if definition.properties | length == 0 %}
     pass
 {% else %}
 {% for property in definition.properties %}
 {% set baseType = property | getModelPropertyType(definitionName, spec) | raw %}
 {% set propType %}{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}{{ baseType | replace({((property | schemaModel) | caseUcfirst): ((property | schemaModel) | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
-    {{ property | getModelFieldName(definition.properties) }}: {% if not (property | schemaRequired) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %} = Field({% if (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}')
+{% set fieldType %}{% if not (property | schemaRequired) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %}{% endset %}
+    {{ property | getModelFieldName(definition.properties) }}: {{ fieldType | trim | formatModelFieldType | raw }} = Field(
+        {% if (property | schemaRequired) %}...{% else %}default=None{% endif %},
+        alias='{{ (property | schemaName) }}',
+    )
 {% endfor %}
 {% endif %}
 {% if isGeneric %}
@@ -72,7 +78,9 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
         """Create {{ definitionName | caseUcfirst }} instance with typed data."""
 {% if definition.additionalProperties %}
 {% if definition.properties | length > 0 %}
-        internal_aliases = {{ '{' }}{% for property in definition.properties %}'{{ (property | schemaName) }}'{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}
+        internal_aliases = {
+{% for property in definition.properties %}            '{{ (property | schemaName) }}',
+{% endfor %}        }
         internal_fields = {k: v for k, v in data.items() if k in internal_aliases}
         user_data = {k: v for k, v in data.items() if k not in internal_aliases and k != '{{ 'data' }}'}
         nested = data.get('{{ 'data' }}')
@@ -91,14 +99,9 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
 {% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}
         if '{{ (property | schemaName) }}' in data and data['{{ (property | schemaName) }}'] is not None:
 {% if (property | schemaType) == 'array' %}
-            instance.{{ property | getModelFieldName(definition.properties) }} = [
-                {{ (property | schemaModel) | caseUcfirst }}.with_data(row, model_type)
-                for row in data['{{ (property | schemaName) }}']
-            ]
+            instance.{{ property | getModelFieldName(definition.properties) }} = [{{ (property | schemaModel) | caseUcfirst }}.with_data(row, model_type) for row in data['{{ (property | schemaName) }}']]
 {% else %}
-            instance.{{ property | getModelFieldName(definition.properties) }} = {{ (property | schemaModel) | caseUcfirst }}.with_data(
-                data['{{ (property | schemaName) }}'], model_type
-            )
+            instance.{{ property | getModelFieldName(definition.properties) }} = {{ (property | schemaModel) | caseUcfirst }}.with_data(data['{{ (property | schemaName) }}'], model_type)
 {% endif %}
 {% endif %}
 {% endfor %}

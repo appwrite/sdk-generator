@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }}\Models;
 
 {% set enumImports = [] %}
 {% for property in requestModel.properties %}
-{% if (property | enumValues) is not empty or (property | enumName) is not empty %}
+{% if (property | enumValues) is not empty %}
 {% set enumName = (property | enumName) %}
 {% if enumName not in enumImports %}
 {% set enumImports = enumImports|merge([enumName]) %}
@@ -20,6 +22,8 @@ use {{ namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overrideId
 {% set optionalProperties = requestModel.properties | filter((property) => not (property | schemaRequired)) %}
 /**
  * {{ requestModel.description | unescape | raw }}
+ *
+ * @phpstan-consistent-constructor
  */
 readonly class {{ requestModelName | caseUcfirst | overrideIdentifier }}
 {
@@ -32,19 +36,19 @@ readonly class {{ requestModelName | caseUcfirst | overrideIdentifier }}
 {% set paramDocType = property | typeName %}
 {% if (property | schemaType) == 'array' and (property | schemaModel) %}
 {% set paramDocType = 'list<' ~ ((property | schemaModel) | caseUcfirst | overrideIdentifier) ~ '>' %}
-{% elseif (property | schemaType) == 'array' and ((property | enumValues) is not empty or (property | enumName) is not empty) %}
+{% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
 {% set paramDocType = 'list<' ~ (((property | enumName)) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }} ${{ (property | schemaName) | caseCamel }} {{ property.description | unescape | lower | raw }}
+     * @param {{ paramDocType | raw }} ${{ (property | schemaName) | caseCamel }} {{ property.description | trim | unescape | lower | raw }}
 {% endfor %}
 {% for property in optionalProperties %}
 {% set paramDocType = property | typeName %}
 {% if (property | schemaType) == 'array' and (property | schemaModel) %}
 {% set paramDocType = 'list<' ~ ((property | schemaModel) | caseUcfirst | overrideIdentifier) ~ '>' %}
-{% elseif (property | schemaType) == 'array' and ((property | enumValues) is not empty or (property | enumName) is not empty) %}
+{% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
 {% set paramDocType = 'list<' ~ (((property | enumName)) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }}|null ${{ (property | schemaName) | caseCamel }} {{ property.description | unescape | lower | raw }}
+     * @param {{ paramDocType | raw }}|null ${{ (property | schemaName) | caseCamel }} {{ property.description | trim | unescape | lower | raw }}
 {% endfor %}
      */
     public function __construct(
@@ -78,12 +82,12 @@ readonly class {{ requestModelName | caseUcfirst | overrideIdentifier }}
                     static fn (mixed $item): mixed => static::hydrateTypedValue({{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}::class, $item),
                     $data['{{ (property | schemaName) }}']
                 )
-                : $data['{{ (property | schemaName) }}']{% elseif (property | schemaModel) %}static::hydrateTypedValue({{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}']){% elseif (property | schemaType) == 'array' and ((property | enumValues) is not empty or (property | enumName) is not empty) %}is_array($data['{{ (property | schemaName) }}'])
+                : $data['{{ (property | schemaName) }}']{% elseif (property | schemaModel) %}static::hydrateTypedValue({{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}']){% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}is_array($data['{{ (property | schemaName) }}'])
                 ? array_map(
                     static fn (mixed $item): mixed => static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $item),
                     $data['{{ (property | schemaName) }}']
                 )
-                : $data['{{ (property | schemaName) }}']{% elseif (property | enumValues) is not empty or (property | enumName) is not empty %}static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}']){% else %}$data['{{ (property | schemaName) }}']{% endif %}{{ (not loop.last or optionalProperties is not empty) ? ',' : '' }}
+                : $data['{{ (property | schemaName) }}']{% elseif (property | enumValues) is not empty %}static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}']){% else %}$data['{{ (property | schemaName) }}']{% endif %}{{ (not loop.last or optionalProperties is not empty) ? ',' : '' }}
 {% endfor %}
 {% for property in optionalProperties %}
             {{ (property | schemaName) | caseCamel }}: array_key_exists('{{ (property | schemaName) }}', $data)
@@ -98,7 +102,7 @@ readonly class {{ requestModelName | caseUcfirst | overrideIdentifier }}
                 )
 {% elseif (property | schemaModel) %}
                 ? static::hydrateTypedValue({{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}'], true)
-{% elseif (property | schemaType) == 'array' and ((property | enumValues) is not empty or (property | enumName) is not empty) %}
+{% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
                 ? (
                     is_array($data['{{ (property | schemaName) }}'])
                         ? array_map(
@@ -107,7 +111,7 @@ readonly class {{ requestModelName | caseUcfirst | overrideIdentifier }}
                         )
                         : $data['{{ (property | schemaName) }}']
                 )
-{% elseif (property | enumValues) is not empty or (property | enumName) is not empty %}
+{% elseif (property | enumValues) is not empty %}
                 ? static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}'], true)
 {% else %}
                 ? $data['{{ (property | schemaName) }}']

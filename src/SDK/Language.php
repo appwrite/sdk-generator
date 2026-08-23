@@ -134,6 +134,14 @@ abstract class Language
     }
 
     /**
+     * Whether method signatures keep the documented enum as a type for open string enums.
+     */
+    public function keepsOpenEnumType(): bool
+    {
+        return false;
+    }
+
+    /**
      * Language specific functions.
      */
     public function getFunctions(): array
@@ -185,6 +193,53 @@ abstract class Language
     }
 
     /**
+     * @return list<string>
+     */
+    public function resolveEnumKeys(Schema|Parameter $value): array
+    {
+        $enumSchema = $this->getEnumSchema($value);
+        if (!$enumSchema instanceof StringSchema) {
+            return [];
+        }
+
+        $keys = [];
+        $identifiers = [];
+        $used = [];
+        foreach ($enumSchema->enum as $index => $enumValue) {
+            $key = $enumSchema->enumKeys[$index] ?? '';
+            if ($key === '') {
+                $key = (string) $enumValue;
+            }
+
+            $identifier = $this->toPascalCase($key);
+            $keys[] = $key;
+            $identifiers[] = $identifier;
+            if ($identifier !== '' && !\ctype_digit($identifier[0])) {
+                $used[\strtolower($identifier)] = true;
+            }
+        }
+
+        foreach ($identifiers as $index => $identifier) {
+            if ($identifier !== '' && !\ctype_digit($identifier[0])) {
+                continue;
+            }
+
+            $base = $identifier === '' ? 'Value' . ($index + 1) : 'Value' . $identifier;
+            $candidate = $base;
+            $suffix = 2;
+            while (isset($used[\strtolower($candidate)])) {
+                $candidate = $base . $suffix;
+                $suffix++;
+            }
+
+            $keys[$index] = $candidate;
+            $used[\strtolower($candidate)] = true;
+        }
+
+        return $keys;
+    }
+
+    /**
      * Escape reserved keywords by prefixing with 'x'
      */
     public function escapeKeyword(string $value): string
@@ -198,17 +253,31 @@ abstract class Language
 
     public function isPermissionString(string $string): bool
     {
-        $pattern = '/^\["(read|update|delete|write)\(\\"[^\\"]+\\"\)"(,\s*"(read|update|delete|write)\(\\"[^\\"]+\\"\)")*\]$/';
-        return preg_match($pattern, $string) === 1;
+        $permissions = \json_decode($string, true);
+        if (!\is_array($permissions) || $permissions === []) {
+            return false;
+        }
+
+        return \array_all(
+            $permissions,
+            static fn(mixed $permission): bool => \is_string($permission)
+                && \preg_match('/^(read|update|delete|write)\("[^"]+"\)$/', $permission) === 1,
+        );
     }
 
     public function extractPermissionParts(string $string): array
     {
-        $inner = substr($string, 1, -1);
-        preg_match_all('/"(read|update|delete|write)\(\\"([^\\"]+)\\"\)"/', $inner, $matches, PREG_SET_ORDER);
+        $permissions = \json_decode($string, true);
+        if (!\is_array($permissions)) {
+            return [];
+        }
 
         $result = [];
-        foreach ($matches as $match) {
+        foreach ($permissions as $permission) {
+            if (!\is_string($permission) || \preg_match('/^(read|update|delete|write)\("([^"]+)"\)$/', $permission, $match) !== 1) {
+                continue;
+            }
+
             $action = $match[1];
             $roleString = $match[2];
 
@@ -244,7 +313,7 @@ abstract class Language
     public function hasPermissionParam(array $parameters): bool
     {
         foreach ($parameters as $parameter) {
-            $example = $this->getSchema($parameter)->extensions['x-example'] ?? $this->getSchema($parameter)->example;
+            $example = $this->getSchemaExample($parameter);
             if (!empty($example) && is_string($example) && $this->isPermissionString($example)) {
                 return true;
             }
@@ -263,7 +332,8 @@ abstract class Language
 
         return match (true) {
             $schema instanceof StringSchema && $schema->format === 'binary' => self::TYPE_FILE,
-            $schema instanceof StringSchema => self::TYPE_STRING,
+            $schema instanceof StringSchema,
+            $schema instanceof CompositeSchema && $this->isStringEnum($schema) => self::TYPE_STRING,
             $schema instanceof IntegerSchema => self::TYPE_INTEGER,
             $schema instanceof NumberSchema => self::TYPE_NUMBER,
             $schema instanceof BooleanSchema => self::TYPE_BOOLEAN,
@@ -302,7 +372,37 @@ abstract class Language
     protected function getSchemaExample(Schema|Parameter $value): mixed
     {
         $schema = $this->getSchema($value);
-        return $schema->extensions['x-example'] ?? $schema->example;
+        $example = $schema->example;
+
+        if (!\is_array($example) && !\is_object($example)) {
+            return $example;
+        }
+
+        if ($this->getSchemaType($schema) === self::TYPE_OBJECT && empty((array) $example)) {
+            return '{}';
+        }
+
+        $options = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+        if ($this->containsAssociativeArray((array) $example)) {
+            $options |= JSON_PRETTY_PRINT;
+        }
+
+        $encoded = \json_encode($example, $options);
+        return ($options & JSON_PRETTY_PRINT) === 0
+            ? \str_replace(',', ', ', $encoded)
+            : \str_replace("\n", "\n\t", $encoded);
+    }
+
+    private function containsAssociativeArray(array $value): bool
+    {
+        if (!\array_is_list($value)) {
+            return true;
+        }
+
+        return \array_any(
+            $value,
+            fn(mixed $item): bool => \is_array($item) && $this->containsAssociativeArray($item),
+        );
     }
 
     protected function getSchemaDefault(Schema|Parameter $value): mixed
@@ -323,8 +423,8 @@ abstract class Language
             return false;
         }
         $items = $schema->items;
-        return !($items instanceof CompositeSchema)
-            && !($items instanceof AnySchema)
+        return !($items instanceof AnySchema)
+            && (!($items instanceof CompositeSchema) || $this->isStringEnum($items))
             && $this->getSchemaType($items) !== '';
     }
 
@@ -343,11 +443,56 @@ abstract class Language
             && $schema->items instanceof ArraySchema;
     }
 
-    protected function getSchemaEnumName(Schema|Parameter $value, ?Specification $spec = null): string
+    public function getEnumSchema(Schema|Parameter $value): Schema
     {
         $schema = $this->getSchema($value);
         $enumSchema = $schema instanceof ArraySchema ? $schema->items : $schema;
-        $name = $enumSchema->extensions['x-enum-name']
+
+        return $enumSchema instanceof CompositeSchema
+            ? ($enumSchema->stringEnum() ?? $enumSchema)
+            : $enumSchema;
+    }
+
+    public function isStringEnum(Schema|Parameter $value): bool
+    {
+        $enumSchema = $this->getEnumSchema($value);
+
+        return $enumSchema instanceof StringSchema && $enumSchema->enum !== [];
+    }
+
+    public function isOpenStringEnum(Schema|Parameter $value): bool
+    {
+        $enumSchema = $this->getEnumSchema($value);
+
+        return $enumSchema instanceof StringSchema && $enumSchema->open;
+    }
+
+    public function usesEnumType(Schema|Parameter $value): bool
+    {
+        return $this->isStringEnum($value)
+            && (!$this->isOpenStringEnum($value) || $this->keepsOpenEnumType());
+    }
+
+    public function getSuggestedEnumExample(Schema|Parameter $value, string $lang = ''): string
+    {
+        $enumSchema = $this->getEnumSchema($value);
+        $suggestion = $enumSchema->enum[0] ?? null;
+        if (!\is_string($suggestion)) {
+            return $this->getParamExample($value, $lang);
+        }
+
+        $schema = $this->getSchema($value);
+        $example = $schema instanceof ArraySchema
+            ? new ArraySchema(items: new StringSchema(), example: [$suggestion])
+            : new StringSchema(example: $suggestion);
+
+        return $this->getParamExample($example, $lang);
+    }
+
+    protected function getSchemaEnumName(Schema|Parameter $value, ?Specification $spec = null): string
+    {
+        $enumSchema = $this->getEnumSchema($value);
+        $name = ($enumSchema instanceof StringSchema ? $enumSchema->enumName : null)
             ?? $enumSchema->title
             ?? ($value instanceof Parameter ? $value->name : null);
         if (\is_string($name) && $name !== '') {
@@ -359,8 +504,7 @@ abstract class Language
                 continue;
             }
             foreach ($model->properties as $propertyName => $property) {
-                $propertySchema = $property instanceof ArraySchema ? $property->items : $property;
-                if ($propertySchema === $enumSchema) {
+                if ($this->getEnumSchema($property) === $enumSchema) {
                     return \ucfirst($modelName) . \ucfirst($propertyName);
                 }
             }

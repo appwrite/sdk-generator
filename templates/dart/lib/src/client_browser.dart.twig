@@ -16,7 +16,7 @@ ClientBase createClient({
     ClientBrowser(endPoint: endPoint, selfSigned: selfSigned);
 
 class ClientBrowser extends ClientBase with ClientMixin {
-  static const int chunkSize = 5*1024*1024;
+  static const int chunkSize = 5 * 1024 * 1024;
   String _endPoint;
   Map<String, String>? _headers;
   @override
@@ -35,7 +35,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
       'x-sdk-language': '{{ language.name | caseLower }}',
       'x-sdk-version': '{{ sdk.version }}',
 {% for key,header in defaultHeaders %}
-      '{{key}}' : '{{header}}',
+      '{{ key }}': '{{ header }}',
 {% endfor %}
     };
 
@@ -50,19 +50,16 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
 {% for headerKey, header in globalHeaders %}
 {% if header.description %}
-    /// {{header.description}}
+  /// {{ header.description }}
 {% endif %}
-    @override
-  ClientBrowser set{{headerKey | caseUcfirst}}(value) {
-        config['{{ headerKey | caseCamel }}'] = value;
-        {%~ if (headerKey != 'Project') %}
-        addHeader('{{ header.name }}', {% if header.scheme == 'bearer' %}'Bearer $value'{% else %}value{% endif %});
-        {%~ endif %}
-        return this;
-    }
-{% endfor %}
-
   @override
+  ClientBrowser set{{ headerKey | caseUcfirst }}(value) {
+    config['{{ headerKey | caseCamel }}'] = value;
+{% if headerKey != 'Project' %}
+    addHeader('{{ header.name }}', {% if header.scheme == 'bearer' %}'Bearer $value'{% else %}value{% endif %});
+{% endif %}
+    return this;
+  }{{ "\n\n" }}{% endfor %}  @override
   ClientBrowser setSelfSigned({bool status = true}) {
     return this;
   }
@@ -114,7 +111,11 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
     late Response res;
     if (size <= chunkSize) {
-      params[paramName] = http.MultipartFile.fromBytes(paramName, file.bytes!, filename: file.filename);
+      params[paramName] = http.MultipartFile.fromBytes(
+        paramName,
+        file.bytes!,
+        filename: file.filename,
+      );
       return call(
         HttpMethod.post,
         path: path,
@@ -125,7 +126,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
     var offset = 0;
     String? uploadId;
-    if (idParamName.isNotEmpty) {
+    if (idParamName.isNotEmpty && params[idParamName] != null) {
       //make a request to check if a file already exists
       try {
         res = await call(
@@ -145,13 +146,21 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
     final totalChunks = (size / chunkSize).ceil();
 
-    Future<Response> uploadChunk(int index, int start, int end, String? id) async {
+    Future<Response> uploadChunk(
+      int index,
+      int start,
+      int end,
+      String? id,
+    ) async {
       List<int> chunk = [];
       chunk = file.bytes!.getRange(start, end).toList();
 
       final chunkParams = Map<String, dynamic>.from(params);
-      chunkParams[paramName] =
-          http.MultipartFile.fromBytes(paramName, chunk, filename: file.filename);
+      chunkParams[paramName] = http.MultipartFile.fromBytes(
+        paramName,
+        chunk,
+        filename: file.filename,
+      );
       final chunkHeaders = Map<String, String>.from(headers);
       if (id != null && id.isNotEmpty) {
         chunkHeaders['x-{{spec.info.title | caseLower }}-id'] = id;
@@ -180,7 +189,9 @@ class ClientBrowser extends ClientBase with ClientMixin {
     bool isUploadComplete(Response response) {
       final chunksUploaded = response.data['chunksUploaded'];
       final chunksTotal = response.data['chunksTotal'] ?? totalChunks;
-      return chunksUploaded is num && chunksTotal is num && chunksUploaded >= chunksTotal;
+      return chunksUploaded is num &&
+          chunksTotal is num &&
+          chunksUploaded >= chunksTotal;
     }
 
     final progress = UploadProgress(

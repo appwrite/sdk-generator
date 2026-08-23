@@ -1,15 +1,15 @@
 {% import _self as helper %}
 {% macro mockParameterValue(parameter) -%}
-{%- if (parameter | enumName) -%}
+{%- if (parameter | enumValues) is not empty -%}
 {%- if (parameter | schemaType) == 'array' -%}
-array({{ (parameter | enumName) | caseUcfirst }}::{{ ((parameter | enumKeys)[0] ?? (parameter | enumValues)[0]) | caseEnumKey }}())
+[{{ (parameter | enumName) | caseUcfirst }}::{{ ((parameter | enumKeys)[0] ?? (parameter | enumValues)[0]) | caseEnumKey }}()]
 {%- else -%}
 {{ (parameter | enumName) | caseUcfirst }}::{{ ((parameter | enumKeys)[0] ?? (parameter | enumValues)[0]) | caseEnumKey }}()
 {%- endif -%}
 {%- elseif (parameter | schemaType) == 'object' -%}
-array()
+[]
 {%- elseif (parameter | schemaType) == 'array' -%}
-array()
+[]
 {%- elseif (parameter | schemaType) == 'file' -%}
 InputFile::withData('', 'image/png')
 {%- elseif (parameter | schemaType) == 'boolean' -%}
@@ -26,16 +26,22 @@ true
 {%- endmacro %}
 <?php
 
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }}\Services;
 
 use {{ namespace | caseNamespace }}\Client;
-use {{ namespace | caseNamespace }}\InputFile;
 use Mockery;
+use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
 {% set added = [] %}
 {% for method in (service | operations) %}
 {% for parameter in (method | parameters('all')) %}
-{% if (parameter | enumName) is not empty and (parameter | enumName) not in added %}
+{% if parameter.required and (parameter | schemaType) == 'file' and 'InputFile' not in added %}
+use {{ namespace | caseNamespace }}\InputFile;
+{% set added = added|merge(['InputFile']) %}
+{% endif %}
+{% if parameter.required and (parameter | enumName) is not empty and (parameter | enumName) not in added %}
 use {{ namespace | caseNamespace }}\Enums\{{ (parameter | enumName) | caseUcfirst }};
 {% set added = added|merge([(parameter | enumName)]) %}
 {% endif %}
@@ -44,8 +50,8 @@ use {{ namespace | caseNamespace }}\Enums\{{ (parameter | enumName) | caseUcfirs
 
 final class {{ service.name | caseUcfirst }}Test extends TestCase
 {
-    private $client;
-    private ${{ service.name | caseCamel }};
+    private Client&MockInterface $client;
+    private {{ service.name | caseUcfirst }} ${{ service.name | caseCamel }};
 
     protected function setUp(): void
     {
@@ -80,17 +86,17 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
 {% if responseModels | length > 1 and responseDefinitionName and responseDiscriminator[responseDefinitionName] is defined %}
         $data = array_replace(
             {{ responseDefinitionName | mockDefinitionPayload(spec, 4) | raw -}},
-            array(
+            [
 {% for field, expectedValue in responseDiscriminator[responseDefinitionName] %}
                 "{{ field | escapeDollarSign }}" => "{{ expectedValue }}"{{ loop.last ? '' : ',' }}
 {% endfor %}
-            )
+            ]
         );
 {% else %}
         $data = {{ responseDefinitionName | mockDefinitionPayload(spec, 3) | raw -}};
 {% endif %}
 {% elseif ((method | responseModel) and (method | responseModel) == 'any') or (method | getReturn(spec) == 'array') %}
-        $data = array();
+        $data = [];
 {% else %}
         $data = '';
 {% endif %}
@@ -118,7 +124,6 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
         $this->assertSame($data, $response);
 {% endif %}
     }
-
 {% endif %}
 {% endfor %}
 }

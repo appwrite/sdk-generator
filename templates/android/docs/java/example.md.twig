@@ -1,4 +1,6 @@
 ```java
+import android.util.Log;
+
 import {{ sdk.namespace | caseDot }}.Client;
 import {{ sdk.namespace | caseDot }}.coroutines.CoroutineCallback;
 {% if (method | parameters('all')) | filter((param) => (param | schemaType) == 'file') | length > 0 %}

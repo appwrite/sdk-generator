@@ -378,11 +378,6 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '.github/workflows/format.yml',
-                'template'      => 'flutter/.github/workflows/format.yml.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '.github/workflows/test.yml',
                 'template'      => 'flutter/.github/workflows/test.yml',
             ],

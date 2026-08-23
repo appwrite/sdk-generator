@@ -2,7 +2,7 @@ import 'response.dart';
 import 'client.dart';
 import 'enums.dart';
 
-abstract class ClientBase implements Client {  
+abstract class ClientBase implements Client {
 {% for headerKey, header in globalHeaders %}
 {% if header.description %}
   /// {{header.description}}
@@ -11,7 +11,6 @@ abstract class ClientBase implements Client {
   ClientBase set{{headerKey | caseUcfirst}}(value);
 
 {% endfor %}
-
   @override
   ClientBase setSelfSigned({bool status = true});
 

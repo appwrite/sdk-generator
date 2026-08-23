@@ -155,6 +155,10 @@ class Deno extends JS
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
         $schema = $this->getSchema($parameter);
+        if (($type = $this->getEnumTypeName($parameter, $spec)) !== null) {
+            return $type;
+        }
+
         $model = $this->getSchemaModel($parameter);
         if ($model !== null) {
             $type = $this->toPascalCase($model);
