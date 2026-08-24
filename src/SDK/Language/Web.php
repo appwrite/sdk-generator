@@ -10,6 +10,7 @@ use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Specification;
 use Override;
+use stdClass;
 use Twig\TwigFilter;
 
 class Web extends JS
@@ -202,8 +203,11 @@ class Web extends JS
             return '[]';
         }
 
-        $decoded = json_decode($example, true);
-        if (!is_array($decoded)) {
+        // Decoding to stdClass rather than associative arrays keeps the JSON
+        // object-versus-array distinction: with assoc arrays a nested `[]`
+        // would render as `{}`, and `{"0": "a"}` as `['a']`.
+        $decoded = json_decode($example);
+        if (!is_array($decoded) && !$decoded instanceof stdClass) {
             return $example;
         }
 
@@ -222,13 +226,14 @@ class Web extends JS
         $pad = str_repeat('    ', $depth);
         $closePad = str_repeat('    ', $depth - 1);
 
-        if (is_array($value) && $value !== [] && array_is_list($value)) {
+        if (is_array($value) && $value !== []) {
             $rendered = array_map(fn(mixed $item): string => $this->renderJsValue($item, $depth + 1), $value);
 
             // Prettier always breaks an array whose elements are themselves all
             // arrays or objects, unless there is only one of them. Otherwise it
             // keeps the array on one line while it fits.
-            $allComposite = count($value) > 1 && array_all($value, fn(mixed $item): bool => is_array($item));
+            $allComposite = count($value) > 1
+                && array_all($value, fn(mixed $item): bool => is_array($item) || $item instanceof stdClass);
 
             $inline = '[' . implode(', ', $rendered) . ']';
             if (
@@ -248,6 +253,11 @@ class Web extends JS
         }
 
         if (is_array($value)) {
+            return '[]';
+        }
+
+        if ($value instanceof stdClass) {
+            $value = get_object_vars($value);
             if ($value === []) {
                 return '{}';
             }
