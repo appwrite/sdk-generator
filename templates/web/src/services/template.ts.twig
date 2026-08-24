@@ -29,7 +29,7 @@ export class {{ service.name | caseUcfirst }} {
     {%~ for method in (service | operations) %}
     /**
     {%~ if method.description %}
-     * {{ method.description | replace({'\n': '\n     *'}) | trimLines | raw }}
+     * {{ method.description | replace({'\n': '\n     * '}) | trimLines | raw }}
     {%~ endif %}
      *
     {%~ for parameter in (method | parameters('all')) %}
@@ -50,7 +50,7 @@ export class {{ service.name | caseUcfirst }} {
     {{ ((method | methodName) | caseCamel ~ ((method | responseModel) | getGenerics(spec))) | tsSignature([objectParam], (method | getReturn(spec)), 4, ';') | raw }}
     /**
      {%~ if method.description %}
-     * {{ method.description | replace({'\n': '\n     *'}) | trimLines | raw }}
+     * {{ method.description | replace({'\n': '\n     * '}) | trimLines | raw }}
      {%~ endif %}
      *
      {%~ for parameter in (method | parameters('all')) %}

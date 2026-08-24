@@ -14,9 +14,6 @@ use Twig\TwigFilter;
 
 class Web extends JS
 {
-    /** Prettier's default print width, mirrored by the generated .prettierrc. */
-    private const int PRINT_WIDTH = 80;
-
     public function getName(): string
     {
         return 'Web';
@@ -210,8 +207,12 @@ class Web extends JS
 
     /**
      * Recursively render a decoded JSON value as JavaScript source.
+     *
+     * `$prefix` is the width of whatever precedes the value on its first
+     * line beyond the structural indent — the `key: ` of an enclosing
+     * object entry — so the inline-fit test measures the real line.
      */
-    protected function renderJsValue(mixed $value, int $depth): string
+    protected function renderJsValue(mixed $value, int $depth, int $prefix = 0): string
     {
         $pad = str_repeat('    ', $depth);
         $closePad = str_repeat('    ', $depth - 1);
@@ -228,7 +229,7 @@ class Web extends JS
             if (
                 !$allComposite
                 && !str_contains($inline, "\n")
-                && mb_strlen($pad . $inline) <= self::PRINT_WIDTH
+                && $prefix + mb_strlen($pad . $inline) <= self::PRINT_WIDTH
             ) {
                 return $inline;
             }
@@ -248,8 +249,9 @@ class Web extends JS
 
             $entries = '';
             foreach ($value as $key => $item) {
-                $entries .= $pad . $this->getObjectKeyLiteral((string) $key)
-                    . ': ' . $this->renderJsValue($item, $depth + 1) . ",\n";
+                $keyLiteral = $this->getObjectKeyLiteral((string) $key);
+                $entries .= $pad . $keyLiteral . ': '
+                    . $this->renderJsValue($item, $depth + 1, mb_strlen($keyLiteral) + 2) . ",\n";
             }
 
             return "{\n" . $entries . $closePad . '}';
@@ -523,7 +525,7 @@ class Web extends JS
         // type (TS1257/TS17019).
         $needsParens = str_contains($type, ' extends ')
             || str_contains($type, '=>')
-            || $this->splitUnionMembers($type) !== [] && count($this->splitUnionMembers($type)) > 1;
+            || count($this->splitTopLevel($type, '|', trackGenerics: true)) > 1;
 
         return $needsParens ? '(' . $type . ')?' : $type . '?';
     }
@@ -543,7 +545,7 @@ class Web extends JS
 
         $inner = str_repeat(' ', $indent + 4);
         $body = '';
-        foreach ($this->splitTypeArguments(mb_substr($generics, 1, -1)) as $argument) {
+        foreach ($this->splitTopLevel(mb_substr($generics, 1, -1), ',', trackGenerics: true) as $argument) {
             $body .= $inner . $argument . ",\n";
         }
 
@@ -641,7 +643,7 @@ class Web extends JS
 
         $inner = str_repeat(' ', $indent + 4);
         $lines = '';
-        foreach ($this->splitTypeMembers($body) as $member) {
+        foreach ($this->splitTopLevel($body, ';', trackGenerics: true) as $member) {
             $lines .= $inner . $this->wrapConditionalType($member, $indent + 4) . ";\n";
         }
 
@@ -682,7 +684,7 @@ class Web extends JS
 
             $inner = str_repeat(' ', $indent + 4);
             $body = '';
-            foreach ($this->splitTypeArguments($tuple[2]) as $element) {
+            foreach ($this->splitTopLevel($tuple[2], ',', trackGenerics: true) as $element) {
                 $body .= $inner . $this->wrapConditionalType($element, $indent + 4) . ",\n";
             }
 
@@ -696,7 +698,7 @@ class Web extends JS
 
         $label = mb_substr($param, 0, $colon);
         $type = mb_substr($param, $colon + 2);
-        $options = $this->splitUnionMembers($type);
+        $options = $this->splitTopLevel($type, '|', trackGenerics: true);
 
         if (count($options) < 2) {
             return $param;
@@ -727,51 +729,12 @@ class Web extends JS
             return $type;
         }
 
-        $parts = $this->splitIntersectionMembers($type);
+        $parts = $this->splitTopLevel($type, '&', trackGenerics: true);
         if (count($parts) < 2) {
             return $type;
         }
 
         return implode(" &\n" . str_repeat(' ', $indent + 4), $parts);
-    }
-
-    /**
-     * Split an intersection type on top-level ampersands.
-     *
-     * @return array<int, string>
-     */
-    protected function splitIntersectionMembers(string $type): array
-    {
-        $parts = [];
-        $current = '';
-        $depth = 0;
-
-        $chars = str_split($type);
-        foreach ($chars as $index => $char) {
-            if (in_array($char, ['{', '[', '('], true)) {
-                $depth++;
-            } elseif (in_array($char, ['}', ']', ')'], true)) {
-                $depth--;
-            } elseif ($char === '<') {
-                $depth++;
-            } elseif ($char === '>' && ($chars[$index - 1] ?? '') !== '=') {
-                $depth--;
-            }
-
-            if ($char === '&' && $depth === 0) {
-                $parts[] = trim($current);
-                $current = '';
-                continue;
-            }
-
-            $current .= $char;
-        }
-
-        if (trim($current) !== '') {
-            $parts[] = trim($current);
-        }
-
-        return $parts;
     }
 
     /**
@@ -810,143 +773,13 @@ class Web extends JS
 
         $inner = str_repeat(' ', $indent + 6);
         $body = '';
-        foreach ($this->splitTypeMembers($match[1]) as $member) {
+        foreach ($this->splitTopLevel($match[1], ';', trackGenerics: true) as $member) {
             $body .= $inner . $this->wrapConditionalType($member, $indent + 6) . ";\n";
         }
 
         return "{\n" . $body . str_repeat(' ', $indent + 2) . '}';
     }
 
-    /**
-     * Split generic type arguments on top-level commas.
-     *
-     * @return array<int, string>
-     */
-    protected function splitTypeArguments(string $arguments): array
-    {
-        $parts = [];
-        $current = '';
-        $depth = 0;
-
-        $chars = str_split($arguments);
-        foreach ($chars as $index => $char) {
-            if (in_array($char, ['{', '[', '('], true)) {
-                $depth++;
-            } elseif (in_array($char, ['}', ']', ')'], true)) {
-                $depth--;
-            } elseif ($char === '<') {
-                $depth++;
-            } elseif ($char === '>' && ($chars[$index - 1] ?? '') !== '=') {
-                $depth--;
-            }
-
-            if ($char === ',' && $depth === 0) {
-                $parts[] = trim($current);
-                $current = '';
-                continue;
-            }
-
-            $current .= $char;
-        }
-
-        if (trim($current) !== '') {
-            $parts[] = trim($current);
-        }
-
-        return $parts;
-    }
-
-    /**
-     * Split a union type on top-level pipes, leaving nested types intact.
-     *
-     * @return array<int, string>
-     */
-    protected function splitUnionMembers(string $type): array
-    {
-        $options = [];
-        $current = '';
-        $depth = 0;
-
-        $chars = str_split($type);
-        foreach ($chars as $index => $char) {
-            if (in_array($char, ['{', '[', '('], true)) {
-                $depth++;
-            } elseif (in_array($char, ['}', ']', ')'], true)) {
-                $depth--;
-            } elseif ($char === '<') {
-                $depth++;
-            } elseif ($char === '>' && ($chars[$index - 1] ?? '') !== '=') {
-                // `=>` is an arrow, not a closing generic bracket.
-                $depth--;
-            }
-
-            if ($char === '|' && $depth === 0) {
-                $options[] = trim($current);
-                $current = '';
-                continue;
-            }
-
-            $current .= $char;
-        }
-
-        if (trim($current) !== '') {
-            $options[] = trim($current);
-        }
-
-        return array_values(array_filter($options, fn(string $option): bool => $option !== ''));
-    }
-
-    /**
-     * Split the members of an inline object type on top-level separators,
-     * leaving nested object, tuple, and generic types intact.
-     *
-     * @return array<int, string>
-     */
-    protected function splitTypeMembers(string $body): array
-    {
-        $members = [];
-        $current = '';
-        $depth = 0;
-
-        $chars = str_split($body);
-        foreach ($chars as $index => $char) {
-            if (in_array($char, ['{', '[', '('], true)) {
-                $depth++;
-            } elseif (in_array($char, ['}', ']', ')'], true)) {
-                $depth--;
-            } elseif ($char === '<') {
-                $depth++;
-            } elseif ($char === '>' && ($chars[$index - 1] ?? '') !== '=') {
-                // `=>` is an arrow, not a closing generic bracket.
-                $depth--;
-            }
-
-            if ($char === ';' && $depth === 0) {
-                $members[] = trim($current);
-                $current = '';
-                continue;
-            }
-
-            $current .= $char;
-        }
-
-        if (trim($current) !== '') {
-            $members[] = trim($current);
-        }
-
-        return $members;
-    }
-
-    /**
-     * Render a method signature the way Prettier would print it.
-     *
-     * Prettier keeps a signature on one line while it fits inside the print
-     * width and otherwise breaks it, so the templates cannot know the final
-     * shape without measuring. Rendering it here keeps generated SDKs
-     * formatter-clean without a post-generation pass.
-     *
-     * @param array<int, string> $params Rendered parameters, without separators.
-     */
     /**
      * Render a model property, breaking a parenthesised union array type across
      * lines when the declaration overflows the print width.
@@ -962,12 +795,19 @@ class Web extends JS
             return $label . ': ' . $type . ';';
         }
 
-        $options = $this->splitUnionMembers($match[1]);
+        $options = $this->splitTopLevel($match[1], '|', trackGenerics: true);
         if (count($options) < 2) {
             return $label . ': ' . $type . ';';
         }
 
         $inner = $pad . str_repeat(' ', 4);
+        $joined = implode(' | ', $options);
+
+        // Prettier only falls back to the leading-pipe form when the union does
+        // not fit on a single indented line inside the parentheses.
+        if (mb_strlen($inner . $joined) <= self::PRINT_WIDTH) {
+            return $label . ": (\n" . $inner . $joined . "\n" . $pad . ')[];';
+        }
 
         return $label . ": (\n" . $inner . '| '
             . implode("\n" . $inner . '| ', $options) . "\n" . $pad . ')[];';
@@ -989,7 +829,7 @@ class Web extends JS
             return $return;
         }
 
-        $options = $this->splitUnionMembers($generic[2]);
+        $options = $this->splitTopLevel($generic[2], '|', trackGenerics: true);
         if (count($options) < 2) {
             return $return;
         }
@@ -1007,6 +847,16 @@ class Web extends JS
             . implode("\n" . $inner . '| ', $options) . "\n" . $pad . '>';
     }
 
+    /**
+     * Render a method signature the way Prettier would print it.
+     *
+     * Prettier keeps a signature on one line while it fits inside the print
+     * width and otherwise breaks it, so the templates cannot know the final
+     * shape without measuring. Rendering it here keeps generated SDKs
+     * formatter-clean without a post-generation pass.
+     *
+     * @param array<int, string> $params Rendered parameters, without separators.
+     */
     protected function formatSignature(
         string $name,
         array $params,
@@ -1026,7 +876,7 @@ class Web extends JS
         // breaks the generics first and re-measures the rest of the signature.
         $generics = mb_strpos($name, '<');
         $hugged = count($params) === 1
-            && preg_match('/^(\w+\??): \{ (.+) \}$/', (string) $params[0], $hugMatch) === 1;
+            && preg_match('/^(\w+\??): \{ (.+) \}$/', $params[0], $hugMatch) === 1;
         // The first physical line is `name(param: {` when the object is hugged,
         // and `name(` otherwise; generics break when that line overflows.
         $headLine = $params === []
@@ -1041,7 +891,7 @@ class Web extends JS
             $bare = mb_substr($name, 0, $generics);
             $inner = str_repeat(' ', $indent + 4);
             $body = '';
-            foreach ($this->splitTypeArguments(mb_substr($name, $generics + 1, -1)) as $argument) {
+            foreach ($this->splitTopLevel(mb_substr($name, $generics + 1, -1), ',', trackGenerics: true) as $argument) {
                 $body .= $inner . $argument . ",\n";
             }
 
@@ -1064,8 +914,8 @@ class Web extends JS
 
         // A lone object-typed parameter is "hugged": Prettier expands the object's
         // members in place instead of breaking the parameter list itself.
-        if (count($params) === 1 && preg_match('/^(\w+\??): \{ (.+) \}$/', (string) $params[0], $match) === 1) {
-            $members = $this->splitTypeMembers($match[2]);
+        if (count($params) === 1 && preg_match('/^(\w+\??): \{ (.+) \}$/', $params[0], $match) === 1) {
+            $members = $this->splitTopLevel($match[2], ';', trackGenerics: true);
             $body = '';
             foreach ($members as $member) {
                 $body .= $inner . $this->wrapConditionalType($member, $indent + 4) . ";\n";

@@ -16,6 +16,7 @@ The generator does not auto-discover templates. Every output file must have an e
 
 | Parent | Children affected |
 |--------|------------------|
+| `JS` | `Web`, `Deno` |
 | `Web` | `Node`, `ReactNative` |
 | `Dart` | `Flutter` |
 | `Swift` | `Apple` |

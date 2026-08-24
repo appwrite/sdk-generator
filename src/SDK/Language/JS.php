@@ -13,6 +13,9 @@ use Twig\TwigFilter;
 
 abstract class JS extends Language
 {
+    /** Prettier's default print width, mirrored by the generated .prettierrc. */
+    protected const int PRINT_WIDTH = 80;
+
     protected $params = [
         'npmPackage' => 'packageName',
         'bowerPackage' => 'packageName',
@@ -222,7 +225,7 @@ abstract class JS extends Language
         $pad = str_repeat(' ', $indent);
         $oneLine = $pad . 'if (' . implode(' && ', $operands) . ') {';
 
-        if (mb_strlen($oneLine) <= 80) {
+        if (mb_strlen($oneLine) <= self::PRINT_WIDTH) {
             return 'if (' . implode(' && ', $operands) . ') {';
         }
 
@@ -251,7 +254,7 @@ abstract class JS extends Language
             $oneLine = "const client = new Client()." . $call['call']
                 . "('" . $call['argument'] . "');";
 
-            if (mb_strlen($oneLine) <= 80) {
+            if (mb_strlen($oneLine) <= self::PRINT_WIDTH) {
                 return $oneLine . $comment;
             }
 
@@ -278,7 +281,7 @@ abstract class JS extends Language
     {
         $oneLine = str_repeat(' ', $indent) . $lhs . ' = ' . $rhs . ';';
 
-        if (mb_strlen($oneLine) <= 80) {
+        if (mb_strlen($oneLine) <= self::PRINT_WIDTH) {
             return $lhs . ' = ' . $rhs . ';';
         }
 
@@ -292,45 +295,47 @@ abstract class JS extends Language
     protected function formatExampleEntry(string $key, string $value, string $comment): string
     {
         $oneLine = '    ' . $key . ': ' . $value . ',';
-        if (mb_strlen($oneLine) <= 80 || str_contains($value, "\n")) {
+        if (mb_strlen($oneLine) <= self::PRINT_WIDTH || str_contains($value, "\n")) {
             return $key . ': ' . $value . ',' . $comment;
         }
 
         // An array literal breaks one element per line; anything else moves the
         // value onto its own indented line.
         if (str_starts_with($value, '[') && str_ends_with($value, ']')) {
-            $items = $this->splitTopLevel(mb_substr($value, 1, -1));
-            // A single element never earns its own line; the comment is what
-            // pushed the entry over the width, and Prettier ignores it.
-            if (count($items) > 1) {
-                $body = '';
-                foreach ($items as $item) {
-                    $body .= '        ' . $item . ",\n";
-                }
-
-                return $key . ": [\n" . $body . '    ],' . $comment;
+            $body = '';
+            foreach ($this->splitTopLevel(mb_substr($value, 1, -1)) as $item) {
+                $body .= '        ' . $item . ",\n";
             }
+
+            return $key . ": [\n" . $body . '    ],' . $comment;
         }
 
         return $key . ":\n        " . $value . ',' . $comment;
     }
 
     /**
-     * Split a comma-separated list on top-level commas only.
+     * Split a list on a top-level delimiter, leaving quoted and bracketed
+     * segments — and, when tracking generics, `<...>` segments — intact.
      *
      * @return array<int, string>
      */
-    protected function splitTopLevel(string $body): array
+    protected function splitTopLevel(string $body, string $delimiter = ',', bool $trackGenerics = false): array
     {
         $parts = [];
         $current = '';
         $depth = 0;
         $quote = null;
+        $escaped = false;
 
-        foreach (str_split($body) as $char) {
+        $chars = str_split($body);
+        foreach ($chars as $index => $char) {
             if ($quote !== null) {
                 $current .= $char;
-                if ($char === $quote) {
+                if ($escaped) {
+                    $escaped = false;
+                } elseif ($char === '\\') {
+                    $escaped = true;
+                } elseif ($char === $quote) {
                     $quote = null;
                 }
                 continue;
@@ -342,10 +347,17 @@ abstract class JS extends Language
                 $depth++;
             } elseif (in_array($char, ['}', ']', ')'], true)) {
                 $depth--;
+            } elseif ($trackGenerics && $char === '<') {
+                $depth++;
+            } elseif ($trackGenerics && $char === '>' && ($chars[$index - 1] ?? '') !== '=') {
+                // `=>` is an arrow, not a closing generic bracket.
+                $depth--;
             }
 
-            if ($char === ',' && $depth === 0) {
-                $parts[] = trim($current);
+            if ($char === $delimiter && $depth === 0) {
+                if (trim($current) !== '') {
+                    $parts[] = trim($current);
+                }
                 $current = '';
                 continue;
             }
@@ -371,7 +383,7 @@ abstract class JS extends Language
         $names = array_values(array_filter(array_map(trim(...), $names), fn(string $n): bool => $n !== ''));
         $oneLine = 'import { ' . implode(', ', $names) . " } from '" . $module . "';";
 
-        if (mb_strlen($oneLine) <= 80) {
+        if (mb_strlen($oneLine) <= self::PRINT_WIDTH) {
             return $oneLine;
         }
 
