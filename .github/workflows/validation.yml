@@ -13,6 +13,7 @@ jobs:
     env:
       FLUTTER_VERSION: '3.35.7'
       KTLINT_VERSION: '1.8.0'
+      KTLINT_SHA256: 'a3fd620207d5c40da6ca789b95e7f823c54e854b7fade7f613e91096a3706d75'
       OSV_SCANNER_VERSION: 'v2.3.1'
     strategy:
       fail-fast: false
@@ -155,6 +156,7 @@ jobs:
           curl --fail --location --silent --show-error \
             --output /tmp/ktlint \
             "https://github.com/pinterest/ktlint/releases/download/${KTLINT_VERSION}/ktlint"
+          echo "${KTLINT_SHA256}  /tmp/ktlint" | sha256sum --check
           chmod +x /tmp/ktlint
           /tmp/ktlint --version
 
