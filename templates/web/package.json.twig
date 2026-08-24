@@ -28,7 +28,10 @@
         "build:types": "tsc --declaration --emitDeclarationOnly --outDir types",
         "build:libs": "rollup -c",
         "format": "prettier --write .",
-        "format:check": "prettier --check ."
+        "format:check": "prettier --check .",
+        "lint": "eslint .",
+        "lint:fix": "eslint --fix .",
+        "analyse": "tsc --noEmit"
     },
     "engines": {
         "node": ">=18.0.0"
@@ -37,16 +40,19 @@
         "json-bigint": "1.0.0"
     },
     "devDependencies": {
+        "@eslint/js": "10.0.1",
         "@rollup/plugin-commonjs": "29.0.3",
         "@rollup/plugin-node-resolve": "16.0.3",
         "@rollup/plugin-typescript": "12.3.0",
         "@types/json-bigint": "1.0.4",
+        "eslint": "10.9.0",
         "playwright": "1.56.1",
         "prettier": "3.9.6",
         "rollup": "4.62.5",
         "serve-handler": "6.1.7",
         "tslib": "2.8.1",
-        "typescript": "5.9.3"
+        "typescript": "5.9.3",
+        "typescript-eslint": "8.67.0"
     },
     "overrides": {
         "brace-expansion": "5.0.9"

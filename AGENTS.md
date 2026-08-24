@@ -137,12 +137,12 @@ When you change templates for a language below, regenerate and run that language
   (cd examples/apple && swift-format lint --recursive --strict --configuration .swift-format .)
   ```
 
-- **Web / Node / React Native** — Prettier
+- **Web / Node / React Native** — Prettier, ESLint, and tsc
 
   ```bash
   rm -rf examples/web
   php example.php web <platform>
-  (cd examples/web && npm ci && npm run format:check)
+  (cd examples/web && npm ci && npm run format:check && npm run lint && npm run analyse)
   ```
 
   Prettier's layout depends on the print width, so a template cannot always know

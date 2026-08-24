@@ -173,6 +173,11 @@ class Web extends JS
                 'template'      => 'web/.prettierignore',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'eslint.config.mjs',
+                'template'      => 'web/eslint.config.mjs',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'package-lock.json',
                 'template'      => 'web/package-lock.json.twig',

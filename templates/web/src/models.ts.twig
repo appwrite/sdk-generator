@@ -1,6 +1,14 @@
+{% set modelNames = [] %}
+{% for definitionName, definition in definitions %}
+{% set modelNames = modelNames | merge([definitionName | caseUcfirst]) %}
+{% endfor %}
 {% if responseEnums|length > 0 %}
 {% for responseEnum in responseEnums %}
+{# A model of the same name shadows the enum inside the namespace, which
+   would leave this import unused. #}
+{% if (responseEnum.title | caseUcfirst) not in modelNames %}
 import { {{ responseEnum.title }} } from './enums/{{ responseEnum.title | caseKebab }}';
+{% endif %}
 {% endfor %}
 {% endif %}
 

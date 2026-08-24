@@ -1,11 +1,27 @@
+{% set usesUpload = false %}
+{% set usesModels = false %}
+{% set usesException = false %}
+{% set usesService = false %}
+{% for method in (service | operations) %}
+{% if 'multipart/form-data' in (method | consumes) %}{% set usesUpload = true %}{% endif %}
+{% if (method | methodType) == 'location' or (method | methodType) == 'webAuth' %}{% set usesService = true %}{% endif %}
+{% if 'Models.' in (method | getReturn(spec)) or 'Models.' in ((method | responseModel) | getGenerics(spec)) %}{% set usesModels = true %}{% endif %}
+{% for parameter in (method | parameters('all')) %}
+{% if parameter.required %}{% set usesException = true %}{% endif %}
+{% if 'Models.' in (parameter | getPropertyType(method, spec)) %}{% set usesModels = true %}{% endif %}
+{% endfor %}
+{% endfor %}
+{% set clientImports = [] %}
+{% if usesException %}{% set clientImports = clientImports | merge([(spec.info.title | caseUcfirst) ~ 'Exception']) %}{% endif %}
+{% set clientImports = clientImports | merge(['Client', 'type Payload']) %}
+{% if usesUpload %}{% set clientImports = clientImports | merge(['UploadProgress']) %}{% endif %}
+{% if usesService %}
 import { Service } from '../service';
-import {
-    {{ spec.info.title | caseUcfirst}}Exception,
-    Client,
-    type Payload,
-    UploadProgress,
-} from '../client';
+{% endif %}
+{{ clientImports | jsImport('../client') | raw }}
+{% if usesModels %}
 import type { Models } from '../models';
+{% endif %}
 
 {% set added = [] %}
 {% for method in (service | operations) %}
@@ -143,6 +159,7 @@ export class {{ service.name | caseUcfirst }} {
         uri.searchParams.append('{{ security.name }}', this.client.config.{{ security.name | caseLower }});
         {%~ endfor %}
 
+        {%~ if (method | methodType) != 'location' and (method | methodType) != 'webAuth' %}
         const apiHeaders: { [header: string]: string } = {
             {%~ for key, security in (method | securityHeaders) %}
             {{ security.name | jsKey | raw }}: this.client.config.{{ key | caseLower }},
@@ -155,6 +172,7 @@ export class {{ service.name | caseUcfirst }} {
             {%~ endfor %}
         };
 
+        {%~ endif %}
         {%~ if (method | methodType) == 'location' or (method | methodType) == 'webAuth' %}
         {%~ if [(method | securitySchemes)]|length > 0 %}
         {%~ for node in [(method | securitySchemes)] %}

@@ -325,7 +325,7 @@ export class Realtime {
                     }
                 });
 
-                socket.addEventListener('error', (event: Event) => {
+                socket.addEventListener('error', (_event: Event) => {
                     if (
                         connectionId !== this.connectionId ||
                         socket !== this.socket

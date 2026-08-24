@@ -103,7 +103,7 @@ type RealtimeRequestSubscribe = {
 /**
  * Realtime event response structure with generic payload type.
  */
-type RealtimeResponseEvent<T extends unknown> = {
+type RealtimeResponseEvent<T> = {
     /**
      * List of event names associated with the response.
      */
@@ -850,7 +850,7 @@ class Client {
      * @param {(payload: RealtimeMessage) => void} callback Is called on every realtime update.
      * @returns {() => void} Unsubscribes from events.
      */
-    subscribe<T extends unknown>(
+    subscribe<T>(
         channels:
             | string
             | string[]
@@ -944,7 +944,7 @@ class Client {
             }
         }
 
-        let options: RequestInit = {
+        const options: RequestInit = {
             method,
             headers,
         };
@@ -967,7 +967,7 @@ class Client {
                     options.body = JSONbig.stringify(params);
                     break;
 
-                case 'multipart/form-data':
+                case 'multipart/form-data': {
                     const formData = new FormData();
 
                     for (const [key, value] of Object.entries(params)) {
@@ -985,6 +985,7 @@ class Client {
                     options.body = formData;
                     delete headers['content-type'];
                     break;
+                }
             }
         }
 
@@ -1023,7 +1024,7 @@ class Client {
         const firstPayload = { ...originalPayload };
         firstPayload[fileParam] = new File([firstChunk], file.name);
 
-        let response = await this.call(
+        const response = await this.call(
             method,
             url,
             firstChunkHeaders,
@@ -1218,7 +1219,7 @@ class Client {
         }
 
         if (400 <= response.status) {
-            let responseText = '';
+            let responseText: string;
             if (
                 response.headers
                     .get('content-type')
@@ -1268,7 +1269,7 @@ class Client {
         let output: Payload = {};
 
         for (const [key, value] of Object.entries(data)) {
-            let finalKey = prefix ? prefix + '[' + key + ']' : key;
+            const finalKey = prefix ? prefix + '[' + key + ']' : key;
             if (Array.isArray(value)) {
                 output = { ...output, ...Client.flatten(value, finalKey) };
             } else {
