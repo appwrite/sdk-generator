@@ -25,13 +25,14 @@ pub struct {{ service.name | caseUcfirst }} {
 
 impl {{ service.name | caseUcfirst }} {
     pub fn new(client: &Client) -> Self {
-        Self { client: client.clone() }
+        Self {
+            client: client.clone(),
+        }
     }
 
     pub fn client(&self) -> &Client {
         &self.client
     }
-
 {% for method in (service | operations) %}
 {% set methodNameSnake = (method | methodName) | caseSnake %}
 {% set shouldSkip = false %}
@@ -43,30 +44,30 @@ impl {{ service.name | caseUcfirst }} {
 {% endfor %}
 {% endif %}
 {% if not shouldSkip %}
-    {{ method.description | rustdocComment(4) }}
-{% if (method | parameters('all')) | length > 6 %}
-    #[allow(clippy::too_many_arguments)]
-{% endif %}
-    pub async fn {{ (method | methodName) | caseSnake | overrideIdentifier }}(
-        &self,
+{% set fnParams = ['&self'] %}
 {% for parameter in (method | parameters('all')) %}
 {% if parameter.required and not (parameter | schemaNullable) %}
-        {{ parameter.name | caseSnake | overrideIdentifier }}: {{ parameter | inputType | rustType }},
+{% set fnParams = fnParams | merge([ (parameter.name | caseSnake | overrideIdentifier) ~ ': ' ~ (parameter | inputType | rustType) ]) %}
 {% endif %}
 {% endfor %}
 {% for parameter in (method | parameters('all')) %}
 {% if not parameter.required or (parameter | schemaNullable) %}
 {% set inputTypeRaw = parameter | inputType %}
 {% if inputTypeRaw == 'impl Into<String>' %}
-        {{ parameter.name | caseSnake | overrideIdentifier }}: Option<&str>,
+{% set fnParams = fnParams | merge([ (parameter.name | caseSnake | overrideIdentifier) ~ ': Option<&str>' ]) %}
 {% elseif inputTypeRaw starts with 'impl IntoIterator' %}
-        {{ parameter.name | caseSnake | overrideIdentifier }}: Option<Vec<String>>,
+{% set fnParams = fnParams | merge([ (parameter.name | caseSnake | overrideIdentifier) ~ ': Option<Vec<String>>' ]) %}
 {% else %}
-        {{ parameter.name | caseSnake | overrideIdentifier }}: Option<{{ inputTypeRaw | rustType }}>,
+{% set fnParams = fnParams | merge([ (parameter.name | caseSnake | overrideIdentifier) ~ ': Option<' ~ (inputTypeRaw | rustType) ~ '>' ]) %}
 {% endif %}
 {% endif %}
 {% endfor %}
-    ) -> {{ method | returnType(spec, 'crate') | rustType }} {
+
+    {{ method.description | rustdocComment(4) }}
+{% if (method | parameters('all')) | length > 6 %}
+    #[allow(clippy::too_many_arguments)]
+{% endif %}
+{{ fnParams | rustfmtFn(4, 'pub async fn ' ~ ((method | methodName) | caseSnake | overrideIdentifier), method | returnType(spec, 'crate') | rustType) }}
 {% set uploadIdParameter = method | uploadIdParameter %}
 {% set uploadIDRequired = false %}
 {% if uploadIdParameter %}
@@ -83,17 +84,17 @@ impl {{ service.name | caseUcfirst }} {
 {% for parameter in (method | parameters('query')) %}
 {% if parameter.required and not (parameter | schemaNullable) %}
 {% if uploadIdParameter and parameter.name == uploadIdParameter.name %}
-        params.insert("{{ parameter.name }}".to_string(), json!({{ parameter.name | caseSnake | overrideIdentifier }}_str));
+{{ [ '"' ~ parameter.name ~ '".to_string()', 'json!(' ~ (parameter.name | caseSnake | overrideIdentifier) ~ '_str)' ] | rustfmtCall(8, 'params.insert') }}
 {% else %}
-        params.insert("{{ parameter.name }}".to_string(), json!({{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}));
+{{ [ '"' ~ parameter.name ~ '".to_string()', 'json!(' ~ (parameter | paramValue(parameter.name | caseSnake | overrideIdentifier)) ~ ')' ] | rustfmtCall(8, 'params.insert') }}
 {% endif %}
 {% else %}
 {% set inputTypeRaw = parameter | inputType %}
         if let Some(value) = {{ parameter.name | caseSnake | overrideIdentifier }} {
 {% if inputTypeRaw == 'impl Into<String>' %}
-            params.insert("{{ parameter.name }}".to_string(), json!(value));
+{{ [ '"' ~ parameter.name ~ '".to_string()', 'json!(value)' ] | rustfmtCall(12, 'params.insert') }}
 {% else %}
-            params.insert("{{ parameter.name }}".to_string(), json!({{ parameter | paramValue('value') }}));
+{{ [ '"' ~ parameter.name ~ '".to_string()', 'json!(' ~ (parameter | paramValue('value')) ~ ')' ] | rustfmtCall(12, 'params.insert') }}
 {% endif %}
         }
 {% endif %}
@@ -102,17 +103,17 @@ impl {{ service.name | caseUcfirst }} {
 {% if (parameter | schemaType) != 'file' %}
 {% if parameter.required and not (parameter | schemaNullable) %}
 {% if uploadIdParameter and parameter.name == uploadIdParameter.name %}
-        params.insert("{{ parameter.name }}".to_string(), json!({{ parameter.name | caseSnake | overrideIdentifier }}_str));
+{{ [ '"' ~ parameter.name ~ '".to_string()', 'json!(' ~ (parameter.name | caseSnake | overrideIdentifier) ~ '_str)' ] | rustfmtCall(8, 'params.insert') }}
 {% else %}
-        params.insert("{{ parameter.name }}".to_string(), json!({{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}));
+{{ [ '"' ~ parameter.name ~ '".to_string()', 'json!(' ~ (parameter | paramValue(parameter.name | caseSnake | overrideIdentifier)) ~ ')' ] | rustfmtCall(8, 'params.insert') }}
 {% endif %}
 {% else %}
 {% set inputTypeRaw = parameter | inputType %}
         if let Some(value) = {{ parameter.name | caseSnake | overrideIdentifier }} {
 {% if inputTypeRaw == 'impl Into<String>' %}
-            params.insert("{{ parameter.name }}".to_string(), json!(value));
+{{ [ '"' ~ parameter.name ~ '".to_string()', 'json!(value)' ] | rustfmtCall(12, 'params.insert') }}
 {% else %}
-            params.insert("{{ parameter.name }}".to_string(), json!({{ parameter | paramValue('value') }}));
+{{ [ '"' ~ parameter.name ~ '".to_string()', 'json!(' ~ (parameter | paramValue('value')) ~ ')' ] | rustfmtCall(12, 'params.insert') }}
 {% endif %}
         }
 {% endif %}
@@ -123,19 +124,27 @@ impl {{ service.name | caseUcfirst }} {
         let mut api_headers = HashMap::new();
 {% for parameter in (method | parameters('header')) %}
 {% if parameter.required %}
-        api_headers.insert("{{ parameter.name }}".to_string(), {{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}.to_string());
+{{ [ '"' ~ parameter.name ~ '".to_string()', (parameter | paramValue(parameter.name | caseSnake | overrideIdentifier)) ~ '.to_string()' ] | rustfmtCall(8, 'api_headers.insert') }}
 {% else %}
         if let Some(value) = {{ parameter.name | caseSnake | overrideIdentifier }} {
-            api_headers.insert("{{ parameter.name }}".to_string(), {{ parameter | paramValue('value') }}.to_string());
+{{ [ '"' ~ parameter.name ~ '".to_string()', (parameter | paramValue('value')) ~ '.to_string()' ] | rustfmtCall(12, 'api_headers.insert') }}
         }
 {% endif %}
 {% endfor %}
 {% for key, header in (method | methodHeaders) %}
-        api_headers.insert("{{ key }}".to_string(), "{{ header }}".to_string());
+{{ [ '"' ~ key ~ '".to_string()', '"' ~ header ~ '".to_string()' ] | rustfmtCall(8, 'api_headers.insert') }}
 {% endfor %}
 {% endif %}
 
-        let path = "{{ method.path }}".to_string(){% for parameter in (method | parameters('path')) %}.replace("{{ '{' }}{{ parameter.name }}{{ '}' }}", &{% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}self.client.get_headers().get("x-appwrite-{{ parameter.extensions['x-sdk-config'] | caseLower }}").cloned().unwrap_or_default(){% else %}{{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}.to_string(){% endif %}){% endfor %};
+{% set pathReplaces = [] %}
+{% for parameter in (method | parameters('path')) %}
+{% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}
+{% set pathReplaces = pathReplaces | merge(['.replace("{' ~ parameter.name ~ '}", &self.client.get_headers().get("x-appwrite-' ~ (parameter.extensions['x-sdk-config'] | caseLower) ~ '").cloned().unwrap_or_default())']) %}
+{% else %}
+{% set pathReplaces = pathReplaces | merge(['.replace("{' ~ parameter.name ~ '}", &' ~ (parameter | paramValue(parameter.name | caseSnake | overrideIdentifier)) ~ '.to_string())']) %}
+{% endif %}
+{% endfor %}
+{{ pathReplaces | rustfmtPath(8, method.path) }}
 
 {% set hasFileParam = false %}
 {% set fileParamName = '' %}
@@ -152,16 +161,15 @@ impl {{ service.name | caseUcfirst }} {
 {% endif %}
 {% endfor %}
 {% if hasFileParam %}
-        self.client.file_upload(&path, {% if hasHeaders %}Some(api_headers){% else %}None{% endif %}, params, "{{ fileParamKey }}", {{ fileParamName }}, {% if uploadIdParam %}{% if uploadIDRequired %}Some({{ uploadIdParam }}_str){% else %}{{ uploadIdParam }}_str{% endif %}{% else %}None{% endif %}).await
+{{ [ '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'params', '"' ~ fileParamKey ~ '"', fileParamName, uploadIdParam ? (uploadIDRequired ? 'Some(' ~ uploadIdParam ~ '_str)' : uploadIdParam ~ '_str') : 'None' ] | rustfmtClientAwait(8, 'file_upload') }}
 {% elseif (method | methodType) == 'webAuth' %}
-        self.client.call_location(Method::{{ method.method.value | upper }}, &path, {% if hasHeaders %}Some(api_headers){% else %}None{% endif %}, Some(params)).await
+{{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(8, 'call_location') }}
 {% elseif (method | methodType) == 'location' %}
-        self.client.call_bytes(Method::{{ method.method.value | upper }}, &path, {% if hasHeaders %}Some(api_headers){% else %}None{% endif %}, Some(params)).await
+{{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(8, 'call_bytes') }}
 {% else %}
-        self.client.call(Method::{{ method.method.value | upper }}, &path, {% if hasHeaders %}Some(api_headers){% else %}None{% endif %}, Some(params)).await
+{{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(8, 'call') }}
 {% endif %}
     }
-
 {% endif %}
 {% endfor %}
 }

@@ -60,51 +60,66 @@ The script strips Twig expressions before running `npm install`, then restores t
 
 ### Rule 7: Generated source must already be formatter-clean
 
-Keep Go templates accurate enough that their generated `.go` files are already `gofmt`-clean, Dart/Flutter templates accurate enough that their generated `.dart` files are already `dart format`-clean, Python templates accurate enough that their generated `.py` files are already Black-clean, and PHP templates accurate enough that their generated `.php` files pass Pint, PHPStan, and Rector checks. Do not add a post-generation formatting step or run a formatter to fix generated output in place—the fix belongs in the Twig template.
+A clean generation must already match the target formatter. Do not add a post-generation formatting step or run a formatter to fix generated output in place—the fix belongs in the Twig template.
 
-After changing Go templates, regenerate the affected platform and verify formatting:
+When you change templates for a language below, regenerate and run that language's check. Child SDKs inherit parent templates — regenerate those too.
 
-```bash
-php example.php go <platform>
-test -z "$(gofmt -l examples/go)"
-```
+- **Go / CLI** — `gofmt`
 
-Because `CLI` inherits from `Go`, regenerate it after shared Go template changes and verify its generated Go files too.
+  ```bash
+  php example.php go <platform>
+  test -z "$(gofmt -l examples/go)"
+  ```
 
-After changing Dart templates, regenerate the affected platform and verify formatting:
+  `CLI` inherits from `Go`. After shared Go template changes:
 
-```bash
-rm -rf examples/dart examples/flutter
-php example.php dart <platform>
-(cd examples/dart && dart pub get)
-dart format --output=none --set-exit-if-changed examples/dart
-```
+  ```bash
+  php example.php cli
+  test -z "$(gofmt -l examples/cli)"
+  ```
 
-Because `Flutter` inherits from `Dart`, regenerate it after shared Dart template changes and verify its generated Dart files too:
+- **Dart / Flutter** — `dart format`
 
-```bash
-php example.php flutter client
-(cd examples/flutter && flutter pub get)
-dart format --output=none --set-exit-if-changed examples/flutter
-```
+  ```bash
+  rm -rf examples/dart examples/flutter
+  php example.php dart <platform>
+  (cd examples/dart && dart pub get)
+  dart format --output=none --set-exit-if-changed examples/dart
+  ```
 
-After changing Python templates, regenerate the SDK and check every generated source and test file explicitly because `examples/` is gitignored:
+  `Flutter` inherits from `Dart`. After shared Dart template changes:
 
-```bash
-rm -rf examples/python
-php example.php python <platform>
-(cd examples/python && find appwrite test -name '*.py' -print0 | xargs -0 python -m black --check)
-(cd examples/python && python -m black --check setup.py)
-```
+  ```bash
+  php example.php flutter client
+  (cd examples/flutter && flutter pub get)
+  dart format --output=none --set-exit-if-changed examples/flutter
+  ```
 
-After changing PHP templates, regenerate from a clean output directory and verify the generated source and tests:
+- **Python** — Black
 
-```bash
-rm -rf examples/php
-php example.php php server
-(cd examples/php && composer install)
-(cd examples/php && composer lint && composer analyse && composer refactor)
-```
+  ```bash
+  rm -rf examples/python
+  php example.php python <platform>
+  (cd examples/python && find appwrite test -name '*.py' -print0 | xargs -0 python -m black --check)
+  (cd examples/python && python -m black --check setup.py)
+  ```
+
+- **PHP** — Pint, PHPStan, and Rector
+
+  ```bash
+  rm -rf examples/php
+  php example.php php server
+  (cd examples/php && composer install)
+  (cd examples/php && composer lint && composer analyse && composer refactor)
+  ```
+
+- **Rust** — rustfmt 1.83.0
+
+  ```bash
+  rm -rf examples/rust
+  php example.php rust server
+  (cd examples/rust && cargo +1.83.0 fmt --check --all)
+  ```
 
 ## Repository at a Glance
 
