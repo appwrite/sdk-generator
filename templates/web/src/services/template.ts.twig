@@ -62,7 +62,19 @@ export class {{ service.name | caseUcfirst }} {
      */
 {% set positional = [] %}{% for parameter in (method | parameters('all')) %}{% set positional = positional|merge([(parameter.name | caseCamel | escapeKeyword) ~ ((not parameter.required or (parameter | schemaNullable)) ? '?' : '') ~ ': ' ~ (parameter | getPropertyType(method, spec))]) %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}{% set positional = positional|merge(['onProgress?: (progress: UploadProgress) => void']) %}{% endif %}
     {{ ((method | methodName) | caseCamel ~ ((method | responseModel) | getGenerics(spec))) | tsSignature(positional, (method | getReturn(spec)), 4, ';') | raw }}
-{% set implParams = [] %}{% if (method | parameters('all'))|length > 0 %}{% set firstOptional = (not (method | parameters('all'))[0].required or ((method | parameters('all'))[0] | schemaNullable)) %}{% set objectType %}{ {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}; {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}; onProgress?: (progress: UploadProgress) => void{% endif %} }{% endset %}{% set implParams = implParams|merge(['paramsOrFirst' ~ (firstOptional ? '?' : '') ~ ': ' ~ objectType ~ ' | ' ~ ((method | parameters('all'))[0] | getPropertyType(method, spec))]) %}{% if (method | parameters('all'))|length > 1 %}{% set restTuple %}...rest: [{% for parameter in (method | parameters('all'))[1:] %}{{ (parameter | getPropertyType(method, spec)) | tsTupleElement | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, ((progress: UploadProgress) => void)?{% endif %}]{% endset %}{% set implParams = implParams|merge([restTuple]) %}{% endif %}{% endif %}
+{% set implParams = [] -%}
+{%- set allParams = method | parameters('all') -%}
+{%- if allParams|length > 0 -%}
+    {%- set firstParam = allParams[0] -%}
+    {%- set firstOptional = not firstParam.required or (firstParam | schemaNullable) -%}
+    {%- set objectType %}{ {% for parameter in allParams %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}; {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}; onProgress?: (progress: UploadProgress) => void{% endif %} }{% endset -%}
+    {%- set firstType = firstParam | getPropertyType(method, spec) -%}
+    {%- set implParams = implParams|merge(['paramsOrFirst' ~ (firstOptional ? '?' : '') ~ ': ' ~ objectType ~ ' | ' ~ firstType]) -%}
+    {%- if allParams|length > 1 -%}
+        {%- set restTuple %}...rest: [{% for parameter in allParams[1:] %}{{ (parameter | getPropertyType(method, spec)) | tsTupleElement | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, ((progress: UploadProgress) => void)?{% endif %}]{% endset -%}
+        {%- set implParams = implParams|merge([restTuple]) -%}
+    {%- endif -%}
+{%- endif %}
     {{ ((method | methodName) | caseCamel ~ ((method | responseModel) | getGenerics(spec))) | tsSignature(implParams, (method | getReturn(spec)), 4, ' {') | raw }}
         {%~ if (method | parameters('all'))|length > 0 %}
 {% set membersBody %}{% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}; {% endif %}{% endfor %}{% endset %}
