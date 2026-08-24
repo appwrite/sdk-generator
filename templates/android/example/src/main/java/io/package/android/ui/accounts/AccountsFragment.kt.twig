@@ -19,8 +19,8 @@ class AccountsFragment : Fragment() {
     private val viewModel: AccountsViewModel by viewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater ,
-        container: ViewGroup? ,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         binding = DataBindingUtil.inflate(
@@ -31,7 +31,7 @@ class AccountsFragment : Fragment() {
         )
         binding.lifecycleOwner = viewLifecycleOwner
 
-        binding.login.setOnClickListener{
+        binding.login.setOnClickListener {
             viewModel.onLogin(
                 binding.email.text.toString(),
                 binding.password.text.toString(),
@@ -40,20 +40,20 @@ class AccountsFragment : Fragment() {
                     ?.getString("fcmToken", null) ?: ""
             )
         }
-        binding.signup.setOnClickListener{
+        binding.signup.setOnClickListener {
             viewModel.onSignup(
                 binding.email.text.toString(),
                 binding.password.text.toString(),
                 binding.name.text.toString()
             )
         }
-        binding.getUser.setOnClickListener{
+        binding.getUser.setOnClickListener {
             viewModel.getUser()
         }
-        binding.oAuth.setOnClickListener{
+        binding.oAuth.setOnClickListener {
             viewModel.oAuthLogin(activity as ComponentActivity)
         }
-        binding.logout.setOnClickListener{
+        binding.logout.setOnClickListener {
             viewModel.logout()
         }
 

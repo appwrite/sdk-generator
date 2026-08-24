@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FLUTTER_VERSION: '3.35.7'
+      KTLINT_VERSION: '1.8.0'
       OSV_SCANNER_VERSION: 'v2.3.1'
     strategy:
       fail-fast: false
@@ -148,6 +149,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Setup ktlint
+        if: matrix.sdk == 'android' || matrix.sdk == 'kotlin'
+        run: |
+          curl --fail --location --silent --show-error \
+            --output /tmp/ktlint \
+            "https://github.com/pinterest/ktlint/releases/download/${KTLINT_VERSION}/ktlint"
+          chmod +x /tmp/ktlint
+          /tmp/ktlint --version
+
       - name: Setup Python
         if: matrix.sdk == 'python'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -255,10 +265,12 @@ jobs:
               swift build
               ;;
             android)
+              /tmp/ktlint '**/*.kt' '**/*.kts'
               chmod +x ./gradlew || true
               ./gradlew build -x lint
               ;;
             kotlin)
+              /tmp/ktlint '**/*.kt' '**/*.kts'
               chmod +x ./gradlew || true
               ./gradlew build
               ;;

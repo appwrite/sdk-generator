@@ -1,20 +1,20 @@
 package {{ sdk.namespace | caseDot }}.models
 
 import com.google.gson.annotations.SerializedName
-import io.appwrite.extensions.jsonCast
 {%~ for property in definition.properties %}
 {%~ if (property | enumValues) is not empty and (property | schemaType) != 'array' %}
 import {{ sdk.namespace | caseDot }}.enums.{{ (property | enumName) | caseUcfirst }}
 {%~ endif %}
 {%~ endfor %}
+import io.appwrite.extensions.jsonCast
 
 /**
- * {{ definition.description | replace({"\n": "\n * "}) | raw }}
+ * {{ definition.description | replace({"\n": "\n * "}) | kotlinDoc }}
  */
 {% if definition.properties | length != 0 or definition.additionalProperties %}data {% endif %}class {{ definition | modelType(spec) | raw }}(
     {%~ for property in definition.properties %}
     /**
-     * {{ property.description | replace({"\n": "\n     * "}) | raw }}
+     * {{ property.description | replace({"\n": "\n     * "}) | kotlinDoc }}
      */
     @SerializedName("{{ (property | schemaName) | escapeKeyword | escapeDollarSign}}")
     {% if (property | schemaRequired) -%} val
@@ -56,8 +56,8 @@ import {{ sdk.namespace | caseDot }}.enums.{{ (property | enumName) | caseUcfirs
             {{ 'data' | escapeKeyword | removeDollarSign }}
             {%~ endif %}
         )
-        {%~ endif %}
 
+        {%~ endif %}
         @Suppress("UNCHECKED_CAST")
         fun {% if definitionName | hasGenericType(spec) %}<T> {% endif %}from(
             map: Map<String, Any>,

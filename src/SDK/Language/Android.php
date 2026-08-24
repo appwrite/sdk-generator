@@ -21,6 +21,11 @@ class Android extends Kotlin
             // Config for root project
             [
                 'scope'         => 'copy',
+                'destination'   => '.editorconfig',
+                'template'      => '/kotlin/.editorconfig',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => '.github/workflows/publish.yml',
                 'template'      => '/android/.github/workflows/publish.yml',
             ],

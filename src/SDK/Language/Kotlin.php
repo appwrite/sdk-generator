@@ -448,6 +448,11 @@ class Kotlin extends Language
             // Config for root project
             [
                 'scope'         => 'copy',
+                'destination'   => '.editorconfig',
+                'template'      => '/kotlin/.editorconfig',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => '.github/workflows/publish.yml',
                 'template'      => '/kotlin/.github/workflows/publish.yml',
             ],
@@ -713,6 +718,7 @@ class Kotlin extends Language
                 return $this->toUpperSnakeCase($value);
             }),
             new TwigFilter('propertyAssignment', fn(Schema $property, Specification $spec): string => $this->getPropertyAssignment($property, $spec)),
+            new TwigFilter('kotlinDoc', static fn(string $value): string => (string) \preg_replace('/[ \t]+$/m', '', $value), ['is_safe' => ['html']]),
             new TwigFilter('javaParamExample', fn(Schema|Parameter $param): string => $this->getParamExample($param, 'java'), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', fn(Schema|Parameter $param, string $lang = 'kotlin'): string => $this->getEnumExample($param, $lang)),
             new TwigFilter('javaEnumExample', fn(Schema|Parameter $param): string => $this->getEnumExample($param, 'java')),
