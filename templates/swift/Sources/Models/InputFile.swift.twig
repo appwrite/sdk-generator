@@ -30,7 +30,9 @@ open class InputFile {
         return instance
     }
 
-    public static func fromBuffer(_ buffer: ByteBuffer, filename: String, mimeType: String) -> InputFile {
+    public static func fromBuffer(_ buffer: ByteBuffer, filename: String, mimeType: String)
+        -> InputFile
+    {
         let instance = InputFile()
         instance.filename = filename
         instance.mimeType = mimeType

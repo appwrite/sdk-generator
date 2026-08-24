@@ -121,6 +121,21 @@ When you change templates for a language below, regenerate and run that language
   (cd examples/rust && cargo +1.83.0 fmt --check --all)
   ```
 
+- **Swift / Apple** — swift-format 6.1 (4-space indent, lineLength 200)
+
+  ```bash
+  rm -rf examples/swift examples/apple
+  php example.php swift server
+  (cd examples/swift && swift-format lint --recursive --strict --configuration .swift-format .)
+  ```
+
+  `Apple` inherits from `Swift`. After shared Swift template changes:
+
+  ```bash
+  php example.php apple client
+  (cd examples/apple && swift-format lint --recursive --strict --configuration .swift-format .)
+  ```
+
 ## Repository at a Glance
 
 - **Purpose:** Generate Appwrite SDKs and tooling targets for 20+ languages/platforms from Swagger/OpenAPI specs using Twig templates

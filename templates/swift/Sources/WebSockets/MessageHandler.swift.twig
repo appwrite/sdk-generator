@@ -1,10 +1,11 @@
 import Foundation
 import NIO
-#if canImport(NIOFoundationCompat)
-import NIOFoundationCompat
-#endif
 import NIOHTTP1
 import NIOWebSocket
+
+#if canImport(NIOFoundationCompat)
+    import NIOFoundationCompat
+#endif
 
 /// Handles the HTTP pipeline for opening a WebSocket connection.
 ///

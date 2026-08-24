@@ -240,6 +240,18 @@ jobs:
               flutter test
               ;;
             apple|swift)
+              if [ ! -f .swift-format ]; then
+                echo "Generated SDK is missing .swift-format"
+                exit 1
+              fi
+              if command -v swift-format >/dev/null; then
+                swift-format lint --recursive --strict --parallel --configuration .swift-format .
+              elif swift format --help >/dev/null 2>&1; then
+                swift format lint --recursive --strict --parallel --configuration .swift-format .
+              else
+                echo "swift-format is not on PATH"
+                exit 1
+              fi
               swift build
               ;;
             android)

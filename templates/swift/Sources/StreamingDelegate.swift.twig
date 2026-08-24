@@ -1,6 +1,6 @@
+import AsyncHTTPClient
 import NIO
 import NIOHTTP1
-import AsyncHTTPClient
 
 class StreamingDelegate: HTTPClientResponseDelegate {
 
@@ -46,7 +46,8 @@ class StreamingDelegate: HTTPClientResponseDelegate {
 
     func didSendRequestHead(task: HTTPClient.Task<Response>, _ head: HTTPRequestHead) {
         if let totalBytesString = head.headers.first(name: "Content-Length"),
-           let totalBytes = Int(totalBytesString) {
+            let totalBytes = Int(totalBytesString)
+        {
             progress.totalBytes = totalBytes
         }
     }
@@ -64,7 +65,8 @@ class StreamingDelegate: HTTPClientResponseDelegate {
         case .idle:
             state = .head(head)
             if let totalBytesString = head.headers.first(name: "content-length"),
-               let totalBytes = Int(totalBytesString) {
+                let totalBytes = Int(totalBytesString)
+            {
                 progress.totalBytes = totalBytes
             }
         case .head:
@@ -107,9 +109,13 @@ class StreamingDelegate: HTTPClientResponseDelegate {
         case .idle:
             preconditionFailure("No head received before end")
         case .head(let head):
-            return Response(host: request.host, status: head.status, version: head.version, headers: head.headers, body: nil)
+            return Response(
+                host: request.host, status: head.status, version: head.version,
+                headers: head.headers, body: nil)
         case .body(let head):
-            return Response(host: request.host, status: head.status, version: head.version, headers: head.headers, body: nil)
+            return Response(
+                host: request.host, status: head.status, version: head.version,
+                headers: head.headers, body: nil)
         case .end:
             preconditionFailure("Request already processed")
         case .error(let error):

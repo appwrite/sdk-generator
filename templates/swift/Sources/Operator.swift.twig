@@ -62,7 +62,7 @@ enum OperatorValue: Codable {
     }
 }
 
-public struct Operator : Codable, CustomStringConvertible {
+public struct Operator: Codable, CustomStringConvertible {
     var method: String
     var values: [OperatorValue]?
 
@@ -150,7 +150,7 @@ public struct Operator : Codable, CustomStringConvertible {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(method, forKey: .method)
 
-        if (values != nil) {
+        if values != nil {
             try container.encode(values, forKey: .values)
         }
     }

@@ -1,15 +1,15 @@
-import SwiftUI
 import Appwrite
 import NIO
+import SwiftUI
 
 struct ExampleView: View {
-    
+
     @ObservedObject var viewModel: ViewModel
-    
+
     @State var imageToUpload = OSImage()
-    
+
     var body: some View {
-        
+
         VStack(spacing: 8) {
 
             viewModel.downloadedImage?
@@ -38,24 +38,24 @@ struct ExampleView: View {
             Button("Download image") {
                 Task { await viewModel.download() }
             }
-            
+
             Button("Upload image") {
                 viewModel.isShowPhotoLibrary = true
             }
-            
+
             Button("Subscribe") {
                 Task { await viewModel.subscribe() }
             }
         }
         #if os(macOS)
-        .onChange(of: viewModel.isShowPhotoLibrary) { showing in
-            ImagePicker.present()
-        }
+            .onChange(of: viewModel.isShowPhotoLibrary) { showing in
+                ImagePicker.present()
+            }
         #endif
         #if os(iOS) || os(visionOS)
-        .sheet(isPresented: $viewModel.isShowPhotoLibrary) {
-            ImagePicker(selectedImage: $imageToUpload)
-        }
+            .sheet(isPresented: $viewModel.isShowPhotoLibrary) {
+                ImagePicker(selectedImage: $imageToUpload)
+            }
         #endif
         .onChange(of: imageToUpload) { img in
             Task { await viewModel.upload(image: img) }

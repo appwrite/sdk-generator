@@ -2,7 +2,10 @@
             method: "{{ method.method.value | caseUpper }}",
             path: apiPath,
             headers: apiHeaders,
-            params: apiParams{% if (method | responseModel) %},
+            {%~ if (method | responseModel) %}
+            params: apiParams,
             converter: converter
+            {%~ else %}
+            params: apiParams
             {%~ endif %}
         )

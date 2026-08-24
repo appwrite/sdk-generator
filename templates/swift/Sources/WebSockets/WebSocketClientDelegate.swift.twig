@@ -3,9 +3,9 @@ import NIO
 import NIOHTTP1
 
 /// Handles messages received by a connected WebSocket server.
-public protocol WebSocketClientDelegate : AnyObject {
+public protocol WebSocketClientDelegate: AnyObject {
     func onOpen(channel: NIOCore.Channel)
-    func onMessage(text: String) throws 
+    func onMessage(text: String) throws
     func onMessage(data: Data) throws
     func onClose(channel: NIOCore.Channel, data: Data)
     func onError(error: Swift.Error?, status: HTTPResponseStatus?) throws
