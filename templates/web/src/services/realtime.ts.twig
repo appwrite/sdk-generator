@@ -211,7 +211,11 @@ export class Realtime {
         }
 
         // URL carries only the project; channels/queries are sent via the subscribe message.
+{% if language.name != 'ReactNative' %}
         let queryParams = `project=${projectId}`;
+{% else %}
+        const queryParams = `project=${projectId}`;
+{% endif %}
 
         const jwt = this.client.config.jwt;
 {% if language.name != 'ReactNative' %}

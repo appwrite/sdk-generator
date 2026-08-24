@@ -190,12 +190,15 @@ When you change templates for a language below, regenerate and run that language
   exposed as Twig filters. Extend those helpers rather than hand-wrapping output
   in a template.
 
-  `Node` and `ReactNative` read several `templates/web/src/**` files directly.
-  After shared Web template changes:
+  `Node` and `ReactNative` read several `templates/web/src/**` files directly,
+  and both ship the same checks. After shared Web template changes:
 
   ```bash
   php example.php node server
+  (cd examples/node && npm ci && npm run format:check && npm run lint && npm run analyse && npm run test)
+
   php example.php react-native client
+  (cd examples/react-native && npm ci --omit=peer && npm run format:check && npm run lint && npm run analyse)
   ```
 
 ## Repository at a Glance
