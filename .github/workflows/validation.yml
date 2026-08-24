@@ -225,6 +225,9 @@ jobs:
             web)
               npm ci
               npm audit
+              npm run format:check
+              npm run lint
+              npm run analyse
               npm run build
               ;;
             cli)

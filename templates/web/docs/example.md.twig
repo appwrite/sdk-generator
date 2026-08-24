@@ -1,32 +1,25 @@
 ```javascript
-import { Client, {{ service.name | caseUcfirst }}{% for parameter in (method | parameters('all')) %}{% if (parameter | enumValues) | length > 0%}, {{ (parameter | enumName) | caseUcfirst}}{% endif %}{% endfor %}{% if (method | parameters('all')) | hasPermissionParam %}, Permission, Role{% endif %} } from "{{ language.params.npmPackage }}";
+{% set importNames = ['Client', (service.name | caseUcfirst)] %}{% for parameter in (method | parameters('all')) %}{% if (parameter | enumValues) | length > 0 %}{% set importNames = importNames|merge([(parameter | enumName) | caseUcfirst]) %}{% endif %}{% endfor %}{% if (method | parameters('all')) | hasPermissionParam %}{% set importNames = importNames|merge(['Permission', 'Role']) %}{% endif %}{{ importNames | jsImport(language.params.npmPackage) | raw }}
 
-const client = new Client()
-    {%~ if [(method | securitySchemes)]|length > 0 %}
-    .setEndpoint('{{ endpointDocs | raw }}') // Your API Endpoint
-    {%~ for node in [(method | securitySchemes)] %}
-    {%~ for key,header in node|keys|filter(h => not node[h].extensions['x-appwrite']['optional']) %}
-    .set{{header}}('{{node[header].extensions['x-appwrite']['demo'] | raw }}'){% if loop.last %};{% endif%} // {{node[header].description}}
-    {%~ endfor %}
-    {%~ endfor %}
-    {%~ endif %}
+{% set clientCalls = [] %}{% if [(method | securitySchemes)]|length > 0 %}{% set clientCalls = clientCalls|merge([{'call': 'setEndpoint', 'argument': endpointDocs, 'comment': 'Your API Endpoint'}]) %}{% for node in [(method | securitySchemes)] %}{% for key,header in node|keys|filter(h => not node[h].extensions['x-appwrite']['optional']) %}{% set clientCalls = clientCalls|merge([{'call': ('set' ~ header), 'argument': node[header].extensions['x-appwrite']['demo'], 'comment': node[header].description}]) %}{% endfor %}{% endfor %}{% endif %}
+{{ clientCalls | jsClientChain | raw }}
 
 const {{ service.name | caseCamel | escapeKeyword }} = new {{service.name | caseUcfirst}}(client{% if [] | length %}{% for parameter in [] %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
 
 {% if (method | methodType) == 'location' %}const result = {% elseif (method | methodType) != 'webAuth' %}const result = await {% endif %}{{ service.name | caseCamel | escapeKeyword }}.{{ (method | methodName) | caseCamel }}({% if (method | parameters('all')) | length == 0 %});
 {% else %}{
 {%~ for parameter in (method | parameters('all')) %}
+{%~ set exampleValue = (parameter | enumValues) | length > 0 ? (parameter | enumExample) : (parameter | paramExample) %}
 {%~ if parameter.required %}
-    {{ parameter.name | caseCamel | escapeKeyword }}: {% if (parameter | enumValues) | length > 0 %}{{ parameter | enumExample }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %}
-
+    {{ (parameter.name | caseCamel | escapeKeyword) | jsExampleEntry(exampleValue, '') | raw }}
 {%~ else %}
-    {{ parameter.name | caseCamel | escapeKeyword }}: {% if (parameter | enumValues) | length > 0 %}{{ parameter | enumExample }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %} // optional
+    {{ (parameter.name | caseCamel | escapeKeyword) | jsExampleEntry(exampleValue, ' // optional') | raw }}
 {%~ endif %}
 {%~ endfor -%}
 });
 {% endif %}
-
 {% if (method | methodType) != 'webAuth' %}
+
 console.log(result);
 {% endif %}
 ```
