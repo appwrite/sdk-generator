@@ -384,6 +384,42 @@ abstract class JS extends Language
     }
 
     /**
+     * Quote a string the way Prettier would: single quotes unless the value
+     * itself contains one and no double quote.
+     *
+     * Control characters must be re-escaped. The example arrives as JSON, so
+     * `json_decode` has already turned sequences like `\n` into real control
+     * characters, and emitting one raw would produce an unterminated string
+     * literal that Prettier cannot even parse.
+     */
+    protected function getStringLiteral(string $value): string
+    {
+        $quote = str_contains($value, "'") && !str_contains($value, '"') ? '"' : "'";
+
+        // NUL deliberately has no `\0` shorthand here: `\0` followed by a digit
+        // forms a legacy octal escape, which is a SyntaxError in strict mode and
+        // silently decodes to the wrong character otherwise. `\x00` is always safe.
+        $escaped = str_replace(
+            ["\\", "\n", "\r", "\t", "\v", "\f", "\x08", "\u{2028}", "\u{2029}"],
+            ['\\\\', '\\n', '\\r', '\\t', '\\v', '\\f', '\\b', '\\u2028', '\\u2029'],
+            $value,
+        );
+
+        // Any remaining C0/C1 control character has no shorthand escape.
+        $escaped = preg_replace_callback(
+            '/[\x00-\x1F\x7F]/u',
+            static fn(array $match): string => sprintf('\\x%02X', ord($match[0])),
+            $escaped,
+        ) ?? $escaped;
+
+        if ($quote === "'") {
+            $escaped = str_replace("'", "\\'", $escaped);
+        }
+
+        return $quote . $escaped . $quote;
+    }
+
+    /**
      * Render an object literal key, quoting it only when it is not a valid
      * ECMAScript identifier. Prettier removes redundant quotes, so emitting
      * them unconditionally would make generated output fail its own check.
@@ -394,7 +430,7 @@ abstract class JS extends Language
             return $value;
         }
 
-        return "'" . str_replace(["\\", "'"], ["\\\\", "\\'"], $value) . "'";
+        return $this->getStringLiteral($value);
     }
 
     #[Override]
