@@ -1,8 +1,8 @@
-import Foundation
-import JSONCodable
 {% if definition.properties | filter(p => (p | enumValues) is not empty) | length > 0 %}
 import {{spec.info.title | caseUcfirst}}Enums
 {% endif %}
+import Foundation
+import JSONCodable
 
 /// {{ definition.description }}
 {% if definition.properties | length == 0 and not definition.additionalProperties %}
@@ -20,7 +20,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     }
 
     {%~ for property in definition.properties %}
-    /// {{ property.description }}
+    /// {{ property.description | trim }}
     public let {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not (property | schemaRequired) %}?{% endif %}
 
     {%~ endfor %}
@@ -94,16 +94,17 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     public func toMap() -> [String: Any] {
         return [
             {%~ for property in definition.properties %}
-            "{{ (property | schemaName) }}": {{ property | modelToMapValue(property | schemaName, property | schemaRequired) }} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            "{{ (property | schemaName) }}": {{ property | modelToMapValue(property | schemaName, property | schemaRequired) }} as Any{% if not loop.last or definition.properties | length > 1 or definition.additionalProperties %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
-            "{{ 'data' }}": (try! JSONSerialization.jsonObject(with: JSONEncoder().encode({{ 'data' | escapeSwiftKeyword | removeDollarSign }}))) as? [String: Any] ?? [:]
+            "{{ 'data' }}": (try! JSONSerialization.jsonObject(with: JSONEncoder().encode({{ 'data' | escapeSwiftKeyword | removeDollarSign }}))) as? [String: Any] ?? [:]{% if definition.properties | length > 0 %},{% endif %}
+
             {%~ endif %}
         ]
     }
 
-    public static func from(map: [String: Any] ) -> {{ definitionName | caseUcfirst }} {
+    public static func from(map: [String: Any]) -> {{ definitionName | caseUcfirst }} {
         return {{ definitionName | caseUcfirst }}(
             {%~ for property in definition.properties %}
             {%~ set isDocument = definitionName | lower == 'document' %}{# Temporary Fix until BE is fixed to return all attributes #}

@@ -1,8 +1,8 @@
-import Foundation
-import JSONCodable
 {% if requestModel.properties | filter(p => p | usesEnumType) | length > 0 %}
 import {{spec.info.title | caseUcfirst}}Enums
 {% endif %}
+import Foundation
+import JSONCodable
 
 /// {{ requestModel.description }}
 {% if requestModel.properties | length == 0 %}
@@ -17,7 +17,7 @@ open class {{ requestModelName | caseUcfirst }}: Codable {
     }
 
     {%~ for property in requestModel.properties %}
-    /// {{ property.description }}
+    /// {{ property.description | trim }}
     public {% if (property | schemaRequired) %}let{% else %}var{% endif %} {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not (property | schemaRequired) %}?{% endif %}
 
     {%~ endfor %}
@@ -36,7 +36,7 @@ open class {{ requestModelName | caseUcfirst }}: Codable {
     public func toMap() -> [String: Any?] {
         return [
             {%~ for property in requestModel.properties %}
-            "{{ (property | schemaName) }}": {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.map { $0.toMap() }{% else %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.toMap(){% endif %}{% elseif (property | schemaType) != 'array' and (property | enumValues) is not empty %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.rawValue{% elseif (property | enumValues) %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.map { $0.rawValue }{% else %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% endif %}{% if not loop.last %},{% endif %}
+            "{{ (property | schemaName) }}": {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.map { $0.toMap() }{% else %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.toMap(){% endif %}{% elseif (property | schemaType) != 'array' and (property | enumValues) is not empty %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.rawValue{% elseif (property | enumValues) %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.map { $0.rawValue }{% else %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% endif %}{% if not loop.last or requestModel.properties | length > 1 %},{% endif %}
 
             {%~ endfor %}
         ]

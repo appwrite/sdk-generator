@@ -1,7 +1,7 @@
-import Foundation
 import AsyncHTTPClient
+import Foundation
 
-extension HTTPClient.Cookie : Codable {
+extension HTTPClient.Cookie: Codable {
 
     enum CodingKeys: String, CodingKey {
         case name

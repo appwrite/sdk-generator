@@ -6,7 +6,7 @@ enum QueryValue: Codable {
     case double(Double)
     case bool(Bool)
     case query(Query)
-    case array([QueryValue])   // for nested arrays
+    case array([QueryValue])  // for nested arrays
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -50,7 +50,7 @@ enum QueryValue: Codable {
     }
 }
 
-public struct Query : Codable, CustomStringConvertible {
+public struct Query: Codable, CustomStringConvertible {
     var method: String
     var attribute: String?
     var values: [QueryValue]?
@@ -132,11 +132,11 @@ public struct Query : Codable, CustomStringConvertible {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(method, forKey: .method)
 
-        if (self.attribute != nil) {
+        if self.attribute != nil {
             try container.encode(attribute, forKey: .attribute)
         }
 
-        if (values != nil) {
+        if values != nil {
             try container.encode(values, forKey: .values)
         }
     }
@@ -516,7 +516,9 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
-    public static func distanceEqual(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> String {
+    public static func distanceEqual(
+        _ attribute: String, values: [Any], distance: Double, meters: Bool = true
+    ) -> String {
         return Query(
             method: "distanceEqual",
             attribute: attribute,
@@ -524,7 +526,9 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
-    public static func distanceNotEqual(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> String {
+    public static func distanceNotEqual(
+        _ attribute: String, values: [Any], distance: Double, meters: Bool = true
+    ) -> String {
         return Query(
             method: "distanceNotEqual",
             attribute: attribute,
@@ -532,7 +536,9 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
-    public static func distanceGreaterThan(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> String {
+    public static func distanceGreaterThan(
+        _ attribute: String, values: [Any], distance: Double, meters: Bool = true
+    ) -> String {
         return Query(
             method: "distanceGreaterThan",
             attribute: attribute,
@@ -540,7 +546,9 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
-    public static func distanceLessThan(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> String {
+    public static func distanceLessThan(
+        _ attribute: String, values: [Any], distance: Double, meters: Bool = true
+    ) -> String {
         return Query(
             method: "distanceLessThan",
             attribute: attribute,

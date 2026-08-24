@@ -1,6 +1,6 @@
-import UIKit
-import NIO
 import Appwrite
+import NIO
+import UIKit
 
 let host = "https://cloud.appwrite.io/v1"
 
@@ -13,33 +13,33 @@ class ViewController: UIViewController {
     @IBOutlet weak var downloadButton: UIButton!
     @IBOutlet weak var uploadButton: UIButton!
     @IBOutlet weak var image: UIImageView!
-    
+
     let client = Client()
         .setEndpoint(host)
         .setProject("test")
 
     let collectionId = "test"
     var bucketId = "test"
-    
+
     var fileId = "unique()"
     var documentId = "unique()"
-    
+
     lazy var account = Account(client)
     lazy var storage = Storage(client)
     lazy var realtime = Realtime(client)
     lazy var database = Database(client)
-    
+
     var response = ""
-    
+
     var picker: ImagePicker?
-    
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
     }
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         picker = ImagePicker(presentationController: self, delegate: self)
     }
 
@@ -55,7 +55,7 @@ class ViewController: UIViewController {
             self.response = String(describing: error)
         }
     }
-    
+
     @IBAction func loginClick(_ sender: Any) async {
         do {
             let response = try await account.createEmailSession(
@@ -67,7 +67,7 @@ class ViewController: UIViewController {
             self.response = String(describing: error)
         }
     }
-    
+
     @IBAction func loginWithFacebook(_ sender: UIButton) async {
         do {
             let response = try await account.createOAuth2Session(
@@ -80,7 +80,7 @@ class ViewController: UIViewController {
             self.response = String(describing: error)
         }
     }
-    
+
     @IBAction func download(_ sender: Any) async {
         do {
             let response = try await storage.getFileDownload(
@@ -93,20 +93,20 @@ class ViewController: UIViewController {
             self.response = String(describing: error)
         }
     }
-    
+
     @IBAction func upload(_ sender: Any) {
         picker?.present()
-        
+
     }
-    
+
     @IBAction func subscribe(_ sender: Any) {
-        _ = realtime.subscribe(channel:"collections.\(collectionId).documents") { message in
+        _ = realtime.subscribe(channel: "collections.\(collectionId).documents") { message in
             DispatchQueue.main.async {
                 self.text.text = String(describing: message)
             }
         }
     }
-    
+
     @IBAction func createDocument(_ sender: Any) async {
         do {
             let response = try await database.createDocument(
@@ -114,7 +114,7 @@ class ViewController: UIViewController {
                 documentId: documentId,
                 data: [
                     "name": "Name \(Int.random(in: 0...Int.max))",
-                    "description": "Description \(Int.random(in: 0...Int.max))"
+                    "description": "Description \(Int.random(in: 0...Int.max))",
                 ],
                 read: ["role:all"],
                 write: []
@@ -124,16 +124,16 @@ class ViewController: UIViewController {
             self.response = String(describing: error)
         }
     }
-    
+
 }
 
 extension ViewController: ImagePickerDelegate {
     func didSelect(image: UIImage?) async {
         let buffer = ByteBufferAllocator()
             .buffer(data: image!.jpegData(compressionQuality: 1)!)
-        
+
         let file = File(name: "my_image.jpg", buffer: buffer)
-        
+
         do {
             let response = try await storage.createFile(
                 bucketId: bucketId,

@@ -1,7 +1,7 @@
 import Foundation
 
 extension PackageInfo {
-    
+
     public static func getWindowsPackage() -> PackageInfo {
         let version = getVersionJson()
         return PackageInfo(
