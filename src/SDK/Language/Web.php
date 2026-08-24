@@ -273,14 +273,34 @@ class Web extends JS
     /**
      * Quote a string the way Prettier would: single quotes unless the value
      * itself contains one and no double quote.
+     *
+     * Control characters must be re-escaped. The example arrives as JSON, so
+     * `json_decode` has already turned sequences like `\n` into real control
+     * characters, and emitting one raw would produce an unterminated string
+     * literal that Prettier cannot even parse.
      */
     protected function getStringLiteral(string $value): string
     {
-        if (str_contains($value, "'") && !str_contains($value, '"')) {
-            return '"' . $value . '"';
+        $quote = str_contains($value, "'") && !str_contains($value, '"') ? '"' : "'";
+
+        $escaped = str_replace(
+            ["\\", "\n", "\r", "\t", "\v", "\f", "\x00", "\x08", "\u{2028}", "\u{2029}"],
+            ['\\\\', '\\n', '\\r', '\\t', '\\v', '\\f', '\\0', '\\b', '\\u2028', '\\u2029'],
+            $value,
+        );
+
+        // Any remaining C0/C1 control character has no shorthand escape.
+        $escaped = preg_replace_callback(
+            '/[\x00-\x1F\x7F]/u',
+            static fn(array $match): string => sprintf('\\x%02X', ord($match[0])),
+            $escaped,
+        ) ?? $escaped;
+
+        if ($quote === "'") {
+            $escaped = str_replace("'", "\\'", $escaped);
         }
 
-        return "'" . str_replace(["\\", "'"], ["\\\\", "\\'"], $value) . "'";
+        return $quote . $escaped . $quote;
     }
 
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
@@ -308,7 +328,7 @@ class Web extends JS
             self::TYPE_FILE => 'document.getElementById(\'uploader\').files[0]',
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => $this->getObjectExample((string) $example),
-            self::TYPE_STRING => "'{$example}'",
+            self::TYPE_STRING => $this->getStringLiteral((string) $example),
         };
     }
 
