@@ -283,9 +283,12 @@ class Web extends JS
     {
         $quote = str_contains($value, "'") && !str_contains($value, '"') ? '"' : "'";
 
+        // NUL deliberately has no `\0` shorthand here: `\0` followed by a digit
+        // forms a legacy octal escape, which is a SyntaxError in strict mode and
+        // silently decodes to the wrong character otherwise. `\x00` is always safe.
         $escaped = str_replace(
-            ["\\", "\n", "\r", "\t", "\v", "\f", "\x00", "\x08", "\u{2028}", "\u{2029}"],
-            ['\\\\', '\\n', '\\r', '\\t', '\\v', '\\f', '\\0', '\\b', '\\u2028', '\\u2029'],
+            ["\\", "\n", "\r", "\t", "\v", "\f", "\x08", "\u{2028}", "\u{2029}"],
+            ['\\\\', '\\n', '\\r', '\\t', '\\v', '\\f', '\\b', '\\u2028', '\\u2029'],
             $value,
         );
 
