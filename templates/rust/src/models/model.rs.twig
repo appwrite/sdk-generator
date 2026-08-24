@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 {% if definition.additionalProperties %}
 use std::collections::HashMap;
 {% endif %}
-{% set fieldNames = {} %}
 {% set additionalFieldName = definition.properties.data is defined ? 'additional_data' : 'data' %}
 
 {{ definition.description | rustdocComment }}
@@ -25,7 +24,9 @@ pub struct {{ definitionName | caseUcfirst | overrideIdentifier }} {
 {% endif %}
 {% endfor %}
 {% if definition.additionalProperties %}
+{% if definition.properties %}
 
+{% endif %}
     #[serde(flatten)]
     pub {{ additionalFieldName }}: HashMap<String, serde_json::Value>,
 {% endif %}
@@ -36,29 +37,34 @@ impl {{ definitionName | caseUcfirst | overrideIdentifier }} {
 {% set propertyName = (property | schemaName) %}
 {% set fieldName = propertyName matches '/^_?[A-Z_]+$/' ? propertyName | lower | trim('_') : propertyName | caseSnake %}
 {% set fieldName = fieldName | overrideIdentifier %}
+{% if not loop.first %}
+
+{% endif %}
 {% if not (property | schemaRequired) %}
     /// Set {{ fieldName }}
-    pub fn set_{{ fieldName }}(mut self, {{ fieldName }}: {{ property | propertyType(spec) | rustType }}) -> Self {
-        self.{{ fieldName }} = Some({{ fieldName }});
+{{ [ 'mut self', fieldName ~ ': ' ~ (property | propertyType(spec) | rustType) ] | rustfmtFn(4, 'pub fn set_' ~ fieldName, 'Self') }}
+{{ ('Some(' ~ fieldName ~ ')') | rustfmtAssign(8, 'self.' ~ fieldName) }}
         self
     }
 
     /// Get {{ fieldName }}
-    pub fn {{ fieldName }}(&self) -> Option<&{{ property | propertyType(spec) | rustType }}> {
-        self.{{ fieldName }}.as_ref()
+{{ [ '&self' ] | rustfmtFn(4, 'pub fn ' ~ fieldName, 'Option<&' ~ (property | propertyType(spec) | rustType) ~ '>') }}
+{{ ('.as_ref()') | rustfmtChain(8, 'self.' ~ fieldName) }}
     }
 {% else %}
     /// Get {{ fieldName }}
-    pub fn {{ fieldName }}(&self) -> &{{ property | propertyType(spec) | rustType }} {
+{{ [ '&self' ] | rustfmtFn(4, 'pub fn ' ~ fieldName, '&' ~ (property | propertyType(spec) | rustType)) }}
         &self.{{ fieldName }}
     }
 {% endif %}
-
 {% endfor %}
 {% if definition.additionalProperties %}
+{% if definition.properties %}
 
+{% endif %}
     pub fn get<T: serde::de::DeserializeOwned>(&self, key: &str) -> Option<T> {
-        self.{{ additionalFieldName }}.get(key)
+        self.{{ additionalFieldName }}
+            .get(key)
             .and_then(|v| serde_json::from_value(v.clone()).ok())
     }
 
@@ -91,7 +97,7 @@ mod tests {
         let json = serde_json::to_string(&model);
         assert!(json.is_ok());
 
-        let deserialized: Result<{{ definitionName | caseUcfirst | overrideIdentifier }}, _> = serde_json::from_str(&json.unwrap());
+{{ ('serde_json::from_str(&json.unwrap())') | rustfmtAssign(8, 'let deserialized: Result<' ~ (definitionName | caseUcfirst | overrideIdentifier) ~ ', _>') }}
         assert!(deserialized.is_ok());
     }
 }

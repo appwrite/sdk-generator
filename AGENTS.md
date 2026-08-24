@@ -60,7 +60,7 @@ The script strips Twig expressions before running `npm install`, then restores t
 
 ### Rule 7: Generated source must already be formatter-clean
 
-Keep Go templates accurate enough that their generated `.go` files are already `gofmt`-clean, Dart/Flutter templates accurate enough that their generated `.dart` files are already `dart format`-clean, Python templates accurate enough that their generated `.py` files are already Black-clean, and PHP templates accurate enough that their generated `.php` files pass Pint, PHPStan, and Rector checks. Do not add a post-generation formatting step or run a formatter to fix generated output in place—the fix belongs in the Twig template.
+Keep Go templates accurate enough that their generated `.go` files are already `gofmt`-clean, Dart/Flutter templates accurate enough that their generated `.dart` files are already `dart format`-clean, Python templates accurate enough that their generated `.py` files are already Black-clean, PHP templates accurate enough that their generated `.php` files pass Pint, PHPStan, and Rector checks, and Rust templates accurate enough that their generated `.rs` files are already rustfmt-clean. Do not add a post-generation formatting step or run a formatter to fix generated output in place—the fix belongs in the Twig template.
 
 After changing Go templates, regenerate the affected platform and verify formatting:
 
@@ -104,6 +104,14 @@ rm -rf examples/php
 php example.php php server
 (cd examples/php && composer install)
 (cd examples/php && composer lint && composer analyse && composer refactor)
+```
+
+After changing Rust templates, regenerate the SDK and verify rustfmt. Use the 1.83.0 toolchain so the check matches CI:
+
+```bash
+rm -rf examples/rust
+php example.php rust server
+(cd examples/rust && cargo +1.83.0 fmt --check --all)
 ```
 
 ## Repository at a Glance

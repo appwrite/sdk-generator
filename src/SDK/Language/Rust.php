@@ -14,6 +14,10 @@ use Twig\TwigFilter;
 
 class Rust extends Language
 {
+    protected const RUSTFMT_MAX_WIDTH = 100;
+    protected const RUSTFMT_FN_CALL_WIDTH = 60;
+    protected const RUSTFMT_CHAIN_WIDTH = 60;
+
     #[Override]
     protected $params = [
         "cratePackage" => "packageName",
@@ -567,16 +571,27 @@ class Rust extends Language
             new TwigFilter(
                 "rustdocComment",
                 function ($value, $indent = 0): string {
-                    $value = trim($value);
+                    $value = trim((string) $value);
                     $value = explode("\n", $value);
                     $indent = \str_repeat(" ", $indent);
                     foreach ($value as $key => $line) {
-                        $value[$key] = "/// " . wordwrap(trim($line), 75, "\n" . $indent . "/// ");
+                        $trimmed = trim($line);
+                        $value[$key] = $trimmed === ''
+                            ? "///"
+                            : "/// " . wordwrap($trimmed, 75, "\n" . $indent . "/// ");
                     }
                     return implode("\n" . $indent, $value);
                 },
                 ["is_safe" => ["html"]],
             ),
+            new TwigFilter("rustfmtFn", fn(array $params, int $indent, string $prefix, string $returnType): string => $this->rustfmtFn($indent, $prefix, $params, $returnType), ["is_safe" => ["html"]]),
+            new TwigFilter("rustfmtCall", fn(array $args, int $indent, string $callee, string $terminator = ';'): string => $this->rustfmtCall($indent, $callee, $args, $terminator), ["is_safe" => ["html"]]),
+            new TwigFilter("rustfmtClientAwait", fn(array $args, int $indent, string $method): string => $this->rustfmtClientAwait($indent, $method, $args), ["is_safe" => ["html"]]),
+            new TwigFilter("rustfmtPath", fn(array $replaces, int $indent, string $path): string => $this->rustfmtPath($indent, $path, $replaces), ["is_safe" => ["html"]]),
+            new TwigFilter("rustfmtMatchArm", fn(string $value, int $indent, string $pattern): string => $this->rustfmtMatchArm($indent, $pattern, $value), ["is_safe" => ["html"]]),
+            new TwigFilter("rustfmtAssign", fn(string $rhs, int $indent, string $lhs, string $terminator = ';'): string => $this->rustfmtAssign($indent, $lhs, $rhs, $terminator), ["is_safe" => ["html"]]),
+            new TwigFilter("rustfmtChain", fn(string $suffix, int $indent, string $receiver): string => $this->rustfmtChain($indent, $receiver, $suffix), ["is_safe" => ["html"]]),
+            new TwigFilter("rustfmtHeaderInsert", fn(string $valueExpr, int $indent, string $key): string => $this->rustfmtHeaderInsert($indent, $key, $valueExpr), ["is_safe" => ["html"]]),
             new TwigFilter("propertyType", fn(Schema $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getTypeName($property, $spec)),
             new TwigFilter("returnType", fn(Operation $method, Specification $spec, string $namespace, string $generic = "serde_json::Value"): string => $this->getReturnType($method)),
             new TwigFilter("caseEnumKey", fn(string $value): string => $this->toPascalCase($value)),
@@ -637,6 +652,274 @@ class Rust extends Language
             new TwigFilter("stripProtocol", fn($value): string|array => str_replace(['https://', 'http://'], '', $value)),
         ];
     }
+
+    /**
+     * Layout a function signature the way rustfmt 1.83 does at max_width 100.
+     *
+     * @param list<string> $params
+     */
+    protected function rustfmtFn(int $indent, string $prefix, array $params, string $returnType): string
+    {
+        $pad = str_repeat(' ', $indent);
+        $joined = implode(', ', $params);
+        $suffix = $returnType === '' ? ' {' : ' -> ' . $returnType . ' {';
+        $one = $pad . $prefix . '(' . $joined . ')' . $suffix;
+        if (strlen($one) <= self::RUSTFMT_MAX_WIDTH) {
+            return $one;
+        }
+
+        $lines = [$pad . $prefix . '('];
+        foreach ($params as $param) {
+            $lines[] = $pad . '    ' . $param . ',';
+        }
+        $lines[] = $pad . ')' . $suffix;
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Layout a function call the way rustfmt 1.83 does (fn_call_width 60, max_width 100).
+     *
+     * @param list<string> $args
+     */
+    protected function rustfmtCall(int $indent, string $callee, array $args, string $terminator = ';'): string
+    {
+        $pad = str_repeat(' ', $indent);
+        $joined = implode(', ', $args);
+        $one = $pad . $callee . '(' . $joined . ')' . $terminator;
+        if (strlen($joined) <= self::RUSTFMT_FN_CALL_WIDTH && strlen($one) <= self::RUSTFMT_MAX_WIDTH) {
+            return $one;
+        }
+
+        $inner = str_repeat(' ', $indent + 4);
+        $lines = [$pad . $callee . '('];
+        foreach ($args as $arg) {
+            $lines[] = $inner . $this->rustfmtJsonArg($indent + 4, $arg) . ',';
+        }
+        $lines[] = $pad . ')' . $terminator;
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * rustfmt wraps method chains inside `json!(...)` when they exceed chain_width.
+     */
+    protected function rustfmtJsonArg(int $argIndent, string $arg): string
+    {
+        $prefix = 'json!(';
+        $marker = '.into_iter().map(|s| s.into()).collect::<Vec<String>>()';
+        if (!str_starts_with($arg, $prefix) || !str_ends_with($arg, ')')) {
+            return $arg;
+        }
+
+        $inner = substr($arg, strlen($prefix), -1);
+        if (!str_ends_with($inner, $marker) || strlen($inner) <= self::RUSTFMT_CHAIN_WIDTH) {
+            return $arg;
+        }
+
+        $receiver = substr($inner, 0, -strlen($marker));
+        $innerPad = str_repeat(' ', $argIndent + 4);
+
+        return $prefix . $receiver . "\n"
+            . $innerPad . ".into_iter()\n"
+            . $innerPad . ".map(|s| s.into())\n"
+            . $innerPad . '.collect::<Vec<String>>())';
+    }
+
+    /**
+     * Layout `self.client.<method>(...).await` as a rustfmt method chain.
+     *
+     * @param list<string> $args
+     */
+    protected function rustfmtClientAwait(int $indent, string $method, array $args): string
+    {
+        $pad = str_repeat(' ', $indent);
+        $inner = str_repeat(' ', $indent + 4);
+        $joined = implode(', ', $args);
+        $call = '.' . $method . '(' . $joined . ')';
+        if (strlen($joined) <= self::RUSTFMT_FN_CALL_WIDTH && strlen($inner . $call) <= self::RUSTFMT_MAX_WIDTH) {
+            $callLine = $inner . $call;
+        } else {
+            $argPad = str_repeat(' ', $indent + 8);
+            $lines = [$inner . '.' . $method . '('];
+            foreach ($args as $arg) {
+                $lines[] = $argPad . $arg . ',';
+            }
+            $lines[] = $inner . ')';
+            $callLine = implode("\n", $lines);
+        }
+
+        return $pad . "self.client\n" . $callLine . "\n" . $inner . '.await';
+    }
+
+    /**
+     * Layout `let path = "...".to_string().replace(...)` the way rustfmt 1.83 does.
+     *
+     * @param list<string> $replaces Each entry starts with `.replace(...)`
+     */
+    protected function rustfmtPath(int $indent, string $path, array $replaces): string
+    {
+        $pad = str_repeat(' ', $indent);
+        $pathLit = '"' . $path . '"';
+        if ($replaces === []) {
+            return $pad . 'let path = ' . $pathLit . '.to_string();';
+        }
+
+        $parts = [];
+        foreach ($replaces as $replace) {
+            if (preg_match('/^\.replace\("([^"]+)", (.+)\)$/', $replace, $match) !== 1) {
+                $parts[] = ['kind' => 'raw', 'raw' => $replace];
+                continue;
+            }
+            $parts[] = ['kind' => 'replace', 'key' => $match[1], 'expr' => $match[2]];
+        }
+
+        $oneLineReplaces = '';
+        $allOneLine = true;
+        foreach ($parts as $part) {
+            if ($part['kind'] !== 'replace' || strlen('"' . $part['key'] . '", ' . $part['expr']) > self::RUSTFMT_FN_CALL_WIDTH) {
+                $allOneLine = false;
+                break;
+            }
+            $oneLineReplaces .= '.replace("' . $part['key'] . '", ' . $part['expr'] . ')';
+        }
+
+        $rhsOne = $pathLit . '.to_string()' . $oneLineReplaces;
+        $fullOne = $pad . 'let path = ' . $rhsOne . ';';
+        if ($allOneLine && strlen($rhsOne) <= self::RUSTFMT_CHAIN_WIDTH && strlen($fullOne) <= self::RUSTFMT_MAX_WIDTH) {
+            return $fullOne;
+        }
+
+        if (count($parts) === 1 && $parts[0]['kind'] === 'replace') {
+            $joined = '"' . $parts[0]['key'] . '", ' . $parts[0]['expr'];
+            $collapsedChain = $pathLit . '.to_string().replace(';
+            $prefix = $pad . 'let path = ' . $collapsedChain;
+            if (
+                strlen($joined) > self::RUSTFMT_FN_CALL_WIDTH
+                && strlen($collapsedChain) <= self::RUSTFMT_CHAIN_WIDTH
+                && strlen($prefix) <= self::RUSTFMT_MAX_WIDTH
+            ) {
+                return $prefix . "\n"
+                    . $this->rustfmtReplaceArgLines($indent + 4, $parts[0]['key'], $parts[0]['expr'])
+                    . $pad . ');';
+            }
+        }
+
+        $letLine = $pad . 'let path = ' . $pathLit;
+        if (strlen($letLine) > self::RUSTFMT_MAX_WIDTH) {
+            $chainIndent = $indent + 8;
+            $lines = [$pad . 'let path =', $pad . '    ' . $pathLit];
+        } else {
+            $chainIndent = $indent + 4;
+            $lines = [$letLine];
+        }
+
+        $chainPad = str_repeat(' ', $chainIndent);
+        $lines[] = $chainPad . '.to_string()';
+        foreach ($parts as $i => $part) {
+            $terminator = $i === array_key_last($parts) ? ';' : '';
+            if ($part['kind'] === 'raw') {
+                $lines[] = $chainPad . $part['raw'] . $terminator;
+                continue;
+            }
+            $lines[] = $this->rustfmtReplaceSegment($chainIndent, $part['key'], $part['expr'], $terminator);
+        }
+
+        return implode("\n", $lines);
+    }
+
+    protected function rustfmtReplaceSegment(int $dotIndent, string $key, string $expr, string $terminator): string
+    {
+        $pad = str_repeat(' ', $dotIndent);
+        $joined = '"' . $key . '", ' . $expr;
+        $one = $pad . '.replace(' . $joined . ')' . $terminator;
+        if (strlen($joined) <= self::RUSTFMT_FN_CALL_WIDTH && strlen($one) <= self::RUSTFMT_MAX_WIDTH) {
+            return $one;
+        }
+
+        return $pad . ".replace(\n"
+            . $this->rustfmtReplaceArgLines($dotIndent + 4, $key, $expr)
+            . $pad . ')' . $terminator;
+    }
+
+    protected function rustfmtReplaceArgLines(int $argIndent, string $key, string $expr): string
+    {
+        $argPad = str_repeat(' ', $argIndent);
+
+        return $argPad . '"' . $key . "\",\n"
+            . $argPad . $this->rustfmtChainExpr($argIndent, $expr) . ",\n";
+    }
+
+    /**
+     * rustfmt splits long method chains onto one call per line (chain_width 60).
+     */
+    protected function rustfmtChainExpr(int $indent, string $expr): string
+    {
+        if (strlen($expr) <= self::RUSTFMT_CHAIN_WIDTH) {
+            return $expr;
+        }
+
+        $segments = preg_split('/(?=\.[A-Za-z_])/', $expr, -1, PREG_SPLIT_NO_EMPTY);
+        if ($segments === false || count($segments) < 2) {
+            return $expr;
+        }
+
+        $inner = str_repeat(' ', $indent + 4);
+
+        return $segments[0] . "\n" . $inner . implode("\n" . $inner, array_slice($segments, 1));
+    }
+
+    protected function rustfmtMatchArm(int $indent, string $pattern, string $value): string
+    {
+        $pad = str_repeat(' ', $indent);
+        $one = $pad . $pattern . ' => "' . $value . '",';
+        if (strlen($one) <= self::RUSTFMT_MAX_WIDTH) {
+            return $one;
+        }
+
+        return $pad . $pattern . " => {\n"
+            . $pad . '    "' . $value . "\"\n"
+            . $pad . '}';
+    }
+
+    protected function rustfmtAssign(int $indent, string $lhs, string $rhs, string $terminator = ';'): string
+    {
+        $pad = str_repeat(' ', $indent);
+        $one = $pad . $lhs . ' = ' . $rhs . $terminator;
+        if (strlen($one) <= self::RUSTFMT_MAX_WIDTH) {
+            return $one;
+        }
+
+        return $pad . $lhs . " =\n" . $pad . '    ' . $rhs . $terminator;
+    }
+
+    protected function rustfmtChain(int $indent, string $receiver, string $suffix): string
+    {
+        $pad = str_repeat(' ', $indent);
+        $one = $pad . $receiver . $suffix;
+        if (strlen($receiver . $suffix) <= self::RUSTFMT_CHAIN_WIDTH && strlen($one) <= self::RUSTFMT_MAX_WIDTH) {
+            return $one;
+        }
+
+        return $pad . $receiver . "\n" . $pad . '    ' . $suffix;
+    }
+
+    protected function rustfmtHeaderInsert(int $indent, string $key, string $valueExpr): string
+    {
+        $args = ['"' . $key . '"', $valueExpr];
+        $joined = implode(', ', $args);
+        $chainInsert = str_repeat(' ', $indent + 4) . '.insert(' . $joined . ');';
+        if (strlen($joined) <= self::RUSTFMT_FN_CALL_WIDTH && strlen($chainInsert) <= self::RUSTFMT_MAX_WIDTH) {
+            $pad = str_repeat(' ', $indent);
+
+            return $pad . "next.config\n"
+                . $pad . "    .headers\n"
+                . $chainInsert;
+        }
+
+        return $this->rustfmtCall($indent, 'next.config.headers.insert', $args);
+    }
+
     /**
      * Snake-case using the same algorithm as the caseSnake Twig filter (SDK.php),
      * so PHP-generated variable references match template-generated declarations.

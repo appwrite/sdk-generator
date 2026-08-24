@@ -45,7 +45,7 @@ fn parse_operator(method: &str, values: Vec<Value>) -> String {
 }
 
 fn validate_numeric(value: &Value, param_name: &str) {
-     if !value.is_number() {
+    if !value.is_number() {
         panic!("{} must be a number", param_name);
     }
     if let Some(num) = value.as_f64() {
@@ -254,7 +254,10 @@ mod tests {
 
     #[test]
     fn test_increment_with_max() {
-        assert_eq!(increment_with_max(5, 100), r#"{"method":"increment","values":[5,100]}"#);
+        assert_eq!(
+            increment_with_max(5, 100),
+            r#"{"method":"increment","values":[5,100]}"#
+        );
     }
 
     #[test]
@@ -269,7 +272,10 @@ mod tests {
 
     #[test]
     fn test_decrement_with_min() {
-        assert_eq!(decrement_with_min(3, 0), r#"{"method":"decrement","values":[3,0]}"#);
+        assert_eq!(
+            decrement_with_min(3, 0),
+            r#"{"method":"decrement","values":[3,0]}"#
+        );
     }
 
     #[test]
@@ -279,7 +285,10 @@ mod tests {
 
     #[test]
     fn test_multiply_with_max() {
-        assert_eq!(multiply_with_max(3, 1000), r#"{"method":"multiply","values":[3,1000]}"#);
+        assert_eq!(
+            multiply_with_max(3, 1000),
+            r#"{"method":"multiply","values":[3,1000]}"#
+        );
     }
 
     #[test]
@@ -289,7 +298,10 @@ mod tests {
 
     #[test]
     fn test_divide_with_min() {
-        assert_eq!(divide_with_min(4, 1), r#"{"method":"divide","values":[4,1]}"#);
+        assert_eq!(
+            divide_with_min(4, 1),
+            r#"{"method":"divide","values":[4,1]}"#
+        );
     }
 
     #[test]
@@ -304,27 +316,42 @@ mod tests {
 
     #[test]
     fn test_power_with_max() {
-        assert_eq!(power_with_max(3, 100), r#"{"method":"power","values":[3,100]}"#);
+        assert_eq!(
+            power_with_max(3, 100),
+            r#"{"method":"power","values":[3,100]}"#
+        );
     }
 
     #[test]
     fn test_array_append() {
-        assert_eq!(array_append(&["item1", "item2"]), r#"{"method":"arrayAppend","values":["item1","item2"]}"#);
+        assert_eq!(
+            array_append(&["item1", "item2"]),
+            r#"{"method":"arrayAppend","values":["item1","item2"]}"#
+        );
     }
 
     #[test]
     fn test_array_prepend() {
-        assert_eq!(array_prepend(&["first", "second"]), r#"{"method":"arrayPrepend","values":["first","second"]}"#);
+        assert_eq!(
+            array_prepend(&["first", "second"]),
+            r#"{"method":"arrayPrepend","values":["first","second"]}"#
+        );
     }
 
     #[test]
     fn test_array_insert() {
-        assert_eq!(array_insert(0, "newItem"), r#"{"method":"arrayInsert","values":[0,"newItem"]}"#);
+        assert_eq!(
+            array_insert(0, "newItem"),
+            r#"{"method":"arrayInsert","values":[0,"newItem"]}"#
+        );
     }
 
     #[test]
     fn test_array_remove() {
-        assert_eq!(array_remove("oldItem"), r#"{"method":"arrayRemove","values":["oldItem"]}"#);
+        assert_eq!(
+            array_remove("oldItem"),
+            r#"{"method":"arrayRemove","values":["oldItem"]}"#
+        );
     }
 
     #[test]
@@ -334,32 +361,50 @@ mod tests {
 
     #[test]
     fn test_array_intersect() {
-        assert_eq!(array_intersect(&["a", "b", "c"]), r#"{"method":"arrayIntersect","values":["a","b","c"]}"#);
+        assert_eq!(
+            array_intersect(&["a", "b", "c"]),
+            r#"{"method":"arrayIntersect","values":["a","b","c"]}"#
+        );
     }
 
     #[test]
     fn test_array_diff() {
-        assert_eq!(array_diff(&["x", "y"]), r#"{"method":"arrayDiff","values":["x","y"]}"#);
+        assert_eq!(
+            array_diff(&["x", "y"]),
+            r#"{"method":"arrayDiff","values":["x","y"]}"#
+        );
     }
 
     #[test]
     fn test_array_filter() {
-        assert_eq!(array_filter(Condition::Equal), r#"{"method":"arrayFilter","values":["equal",null]}"#);
+        assert_eq!(
+            array_filter(Condition::Equal),
+            r#"{"method":"arrayFilter","values":["equal",null]}"#
+        );
     }
 
     #[test]
     fn test_array_filter_with_value() {
-        assert_eq!(array_filter_with_value(Condition::Equal, "test"), r#"{"method":"arrayFilter","values":["equal","test"]}"#);
+        assert_eq!(
+            array_filter_with_value(Condition::Equal, "test"),
+            r#"{"method":"arrayFilter","values":["equal","test"]}"#
+        );
     }
 
     #[test]
     fn test_string_concat() {
-        assert_eq!(string_concat("suffix"), r#"{"method":"stringConcat","values":["suffix"]}"#);
+        assert_eq!(
+            string_concat("suffix"),
+            r#"{"method":"stringConcat","values":["suffix"]}"#
+        );
     }
 
     #[test]
     fn test_string_replace() {
-        assert_eq!(string_replace("old", "new"), r#"{"method":"stringReplace","values":["old","new"]}"#);
+        assert_eq!(
+            string_replace("old", "new"),
+            r#"{"method":"stringReplace","values":["old","new"]}"#
+        );
     }
 
     #[test]

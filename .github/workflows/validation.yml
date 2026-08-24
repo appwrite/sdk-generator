@@ -185,6 +185,8 @@ jobs:
       - name: Setup Rust
         if: matrix.sdk == 'rust'
         uses: dtolnay/rust-toolchain@bd41891a8e7f4b8649f6d684415e1a6155fe4e22 # 1.83.0
+        with:
+          components: rustfmt
 
       - name: Setup Rust for Zed extension
         if: matrix.sdk == 'zed-extension'
@@ -307,6 +309,7 @@ jobs:
                 cargo +1.85.0 install cargo-audit --version 0.22.1 --locked
               fi
               cargo audit
+              cargo +1.83.0 fmt --check --all
               cargo +1.83.0 build --release
               cargo +1.83.0 test --lib
               ;;
