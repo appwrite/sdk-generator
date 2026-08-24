@@ -95,6 +95,21 @@ When you change templates for a language below, regenerate and run that language
   dart format --output=none --set-exit-if-changed examples/flutter
   ```
 
+- **Kotlin / Android** — ktlint 1.8.0 (`ktlint_official`)
+
+  ```bash
+  rm -rf examples/kotlin examples/android
+  php example.php kotlin server
+  (cd examples/kotlin && ktlint '**/*.kt' '**/*.kts')
+  ```
+
+  `Android` inherits from `Kotlin`. After shared Kotlin template changes:
+
+  ```bash
+  php example.php android client
+  (cd examples/android && ktlint '**/*.kt' '**/*.kts')
+  ```
+
 - **Python** — Black
 
   ```bash
