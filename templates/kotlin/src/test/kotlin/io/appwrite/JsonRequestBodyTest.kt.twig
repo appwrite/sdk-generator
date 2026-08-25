@@ -2,6 +2,9 @@ package {{ sdk.namespace | caseDot }}
 
 import {{ sdk.namespace | caseDot }}.extensions.toJson
 import {{ sdk.namespace | caseDot }}.extensions.toJsonRequestBody
+import kotlinx.coroutines.runBlocking
+import okhttp3.MultipartBody
+import okio.Buffer
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -29,5 +32,70 @@ class JsonRequestBodyTest {
         assertFalse(withoutNulls.contains("\"solidColorIndex\":null"))
         assertFalse(withoutNulls.contains("\"title\":null"))
         assertTrue(withoutNulls.contains("\"backgroundType\":\"SOLID_COLOR\""))
+    }
+
+    @Test
+    fun jsonPatchBodyPreservesNestedNullsAndOmitsOptionalParams() = runBlocking {
+        val request = Client().prepareRequest(
+            method = "PATCH",
+            path = "/v1/tablesdb/db/tables/tbl/rows/row",
+            headers = mapOf("content-type" to "application/json"),
+            params = mapOf(
+                "data" to mapOf(
+                    "backgroundType" to "SOLID_COLOR",
+                    "solidColorIndex" to null,
+                ),
+                "permissions" to null,
+            ),
+        )
+
+        val body = requestBodyUtf8(request.body!!)
+        assertTrue(body.contains("\"solidColorIndex\":null"))
+        assertTrue(body.contains("\"backgroundType\":\"SOLID_COLOR\""))
+        assertFalse(body.contains("permissions"))
+    }
+
+    @Test
+    fun getOmitsNullQueryParams() = runBlocking {
+        val request = Client().prepareRequest(
+            method = "GET",
+            path = "/v1/mock/tests/foo",
+            params = mapOf(
+                "x" to "1",
+                "empty" to null,
+            ),
+        )
+
+        val url = request.url.toString()
+        assertTrue(url.contains("x=1"))
+        assertFalse(url.contains("empty"))
+        assertFalse(url.contains("null"))
+    }
+
+    @Test
+    fun multipartOmitsNullParts() = runBlocking {
+        val request = Client().prepareRequest(
+            method = "POST",
+            path = "/v1/storage/files",
+            headers = mapOf("content-type" to MultipartBody.FORM.toString()),
+            params = mapOf(
+                "fileId" to "abc",
+                "permissions" to null,
+            ),
+        )
+
+        val body = request.body as MultipartBody
+        val dispositions = body.parts.map { part ->
+            part.headers?.get("Content-Disposition").orEmpty()
+        }
+        assertTrue(dispositions.any { it.contains("fileId") })
+        assertFalse(dispositions.any { it.contains("permissions") })
+        assertFalse(requestBodyUtf8(body).contains("null"))
+    }
+
+    private fun requestBodyUtf8(body: okhttp3.RequestBody): String {
+        val buffer = Buffer()
+        body.writeTo(buffer)
+        return buffer.readUtf8()
     }
 }
