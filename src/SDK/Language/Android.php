@@ -142,6 +142,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/JsonRequestBodyTest.kt',
+                'template'      => '/android/library/src/test/java/io/package/JsonRequestBodyTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/TypeExtensions.kt',
                 'template'      => '/android/library/src/main/java/io/package/extensions/TypeExtensions.kt.twig',
             ],

@@ -136,7 +136,7 @@ class Kotlin extends Language
             self::TYPE_ARRAY => $this->isUntypedNestedArray($parameter, $schema)
                 ? 'List<List<Any>>'
                 : 'List<' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '>',
-            self::TYPE_OBJECT => 'Any',
+            self::TYPE_OBJECT => 'Map<String, Any?>',
             default => 'Any',
         };
     }
@@ -565,6 +565,11 @@ class Kotlin extends Language
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/JsonExtensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/JsonRequestBodyTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/JsonRequestBodyTest.kt.twig',
             ],
             [
                 'scope'         => 'default',

@@ -2,7 +2,7 @@ package {{ sdk.namespace | caseDot }}
 
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
-import {{ sdk.namespace | caseDot }}.extensions.toJson
+import {{ sdk.namespace | caseDot }}.extensions.toJsonRequestBody
 import {{ sdk.namespace | caseDot }}.models.InputFile
 import {{ sdk.namespace | caseDot }}.models.UploadProgress
 import kotlinx.coroutines.CoroutineScope
@@ -298,8 +298,8 @@ class Client @JvmOverloads constructor(
             }
             builder.build()
         } else {
-            filteredParams
-                .toJson()
+            params
+                .toJsonRequestBody()
                 .toRequestBody("application/json".toMediaType())
         }
 
