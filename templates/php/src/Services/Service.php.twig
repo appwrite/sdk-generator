@@ -8,7 +8,11 @@ use {{ namespace | caseNamespace }}\{{ namespace | split('\\') | last | caseUcfi
 use {{ namespace | caseNamespace }}\Client;
 use {{ namespace | caseNamespace }}\Service;
 {% set added = [] %}
+{% set needsPart = false %}
 {% for method in (service | operations) %}
+{% if 'multipart/form-data' in (method | consumes) %}
+{% set needsPart = true %}
+{% endif %}
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | schemaType) == 'file' and 'InputFile' not in added %}
 use {{ namespace | caseNamespace }}\InputFile;
@@ -28,6 +32,9 @@ use {{ namespace | caseNamespace }}\Models\{{ (parameter | schemaModel) | caseUc
 {% endif %}
 {% endfor %}
 {% endfor %}
+{% if needsPart %}
+use Utopia\Psr7\Request\Multipart\Part;
+{% endif %}
 
 class {{ service.name | caseUcfirst }} extends Service
 {

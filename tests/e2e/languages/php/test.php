@@ -2,24 +2,7 @@
 
 use Appwrite\Models\ArraySerializable;
 
-include __DIR__ . '/../../sdks/php/src/Appwrite/Client.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Service.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/InputFile.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Query.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Permission.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Role.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/ID.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Operator.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/AppwriteException.php';
-foreach (glob(__DIR__ . '/../../sdks/php/src/Appwrite/Enums/*.php') as $file) {
-    include $file;
-}
-foreach (glob(__DIR__ . '/../../sdks/php/src/Appwrite/Models/*.php') as $file) {
-    include $file;
-}
-foreach (glob(__DIR__ . '/../../sdks/php/src/Appwrite/Services/*.php') as $file) {
-    include $file;
-}
+include __DIR__ . '/../../sdks/php/vendor/autoload.php';
 
 use Appwrite\AppwriteException;
 use Appwrite\Models\Player;

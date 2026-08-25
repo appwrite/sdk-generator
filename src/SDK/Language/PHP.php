@@ -219,6 +219,11 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'tests/{{ namespace | caseNamespacePath }}/ClientTest.php',
+                'template'      => 'php/tests/ClientTest.php.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ namespace | caseNamespacePath }}/Permission.php',
                 'template'      => 'php/src/Permission.php.twig',
             ],

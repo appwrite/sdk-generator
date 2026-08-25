@@ -20,9 +20,10 @@
         }
     },
     "require": {
-        "php": ">=8.2.0",
+        "php": ">=8.5",
         "ext-curl": "*",
-        "ext-json": "*"
+        "ext-json": "*",
+        "utopia-php/client": "^0.3"
 {%- if globalHeaders | hasBearerAuth %},
         "adhocore/jwt": "^1.1"
 {%- endif %}
