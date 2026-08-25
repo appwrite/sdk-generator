@@ -308,6 +308,21 @@ class ServiceTest {
         }
     }
 
+    private fun writeToFile(string: String?) {
+        val text = "${string ?: ""}\n"
+        File("result.txt").appendText(text)
+    }
+
+    private fun parse(json: String): String? {
+        return try {
+            json.fromJson<Map<String, Any>>()["result"] as? String
+        } catch (exception: Exception) {
+            null
+        }
+    }
+}
+
+class RequestNullEncodingTest {
     @Test
     fun testClientJsonBodyPreservesNestedNullsAndOmitsOptionalParams() = runBlocking {
         val client = Client()
@@ -380,18 +395,5 @@ class ServiceTest {
         val buffer = Buffer()
         body.writeTo(buffer)
         return buffer.readUtf8()
-    }
-
-    private fun writeToFile(string: String?) {
-        val text = "${string ?: ""}\n"
-        File("result.txt").appendText(text)
-    }
-
-    private fun parse(json: String): String? {
-        return try {
-            json.fromJson<Map<String, Any>>()["result"] as? String
-        } catch (exception: Exception) {
-            null
-        }
     }
 }
