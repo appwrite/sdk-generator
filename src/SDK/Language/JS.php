@@ -16,6 +16,18 @@ abstract class JS extends Language
     /** Prettier's default print width, mirrored by the generated .prettierrc. */
     protected const int PRINT_WIDTH = 80;
 
+    /**
+     * The widest lone argument Prettier will keep beside its callee.
+     *
+     * When an assignment's right-hand side is a call with a single argument,
+     * Prettier breaks after the `=` and leaves the call intact rather than
+     * exploding the argument list — but only while that argument is short
+     * enough to be worth carrying. The cutoff is fitted to Prettier's observed
+     * output rather than derived from its layout algorithm, and holds for every
+     * generated call site across the Web, Node, and React Native SDKs.
+     */
+    protected const int HUGGABLE_ARGUMENT_WIDTH = 20;
+
     protected $params = [
         'npmPackage' => 'packageName',
         'bowerPackage' => 'packageName',
@@ -242,27 +254,27 @@ abstract class JS extends Language
      *
      * @param array<int, array{call: string, argument: string, comment: string}> $calls
      */
-    protected function formatClientChain(array $calls): string
+    protected function formatClientChain(array $calls, string $constructor = 'new Client()'): string
     {
         if ($calls === []) {
-            return 'const client = new Client();';
+            return 'const client = ' . $constructor . ';';
         }
 
         if (count($calls) === 1) {
             $call = $calls[0];
             $comment = $call['comment'] === '' ? '' : ' // ' . $call['comment'];
-            $oneLine = "const client = new Client()." . $call['call']
+            $oneLine = 'const client = ' . $constructor . '.' . $call['call']
                 . "('" . $call['argument'] . "');";
 
             if (mb_strlen($oneLine) <= self::PRINT_WIDTH) {
                 return $oneLine . $comment;
             }
 
-            return "const client = new Client()." . $call['call'] . "(\n    '"
+            return 'const client = ' . $constructor . '.' . $call['call'] . "(\n    '"
                 . $call['argument'] . "',\n);" . $comment;
         }
 
-        $lines = 'const client = new Client()';
+        $lines = 'const client = ' . $constructor;
         $last = array_key_last($calls);
         foreach ($calls as $key => $call) {
             $comment = $call['comment'] === '' ? '' : ' // ' . $call['comment'];
@@ -271,6 +283,59 @@ abstract class JS extends Language
         }
 
         return $lines;
+    }
+
+    /**
+     * Render a call expression, breaking one argument per line when the
+     * single-line form exceeds the print width.
+     *
+     * @param array<int, string> $arguments
+     */
+    protected function formatArgumentList(string $callee, array $arguments, int $indent, string $suffix = ';', int $prefixWidth = 0): string
+    {
+        $arguments = array_values(array_filter(array_map(trim(...), $arguments), fn(string $a): bool => $a !== ''));
+        $oneLine = str_repeat(' ', $indent + $prefixWidth) . $callee . '(' . implode(', ', $arguments) . ')' . $suffix;
+
+        // The caller emits no separator before this expression, so an unbroken
+        // result supplies its own leading space while a broken one starts
+        // cleanly on the next line instead of leaving trailing whitespace.
+        $lead = $prefixWidth > 0 ? ' ' : '';
+
+        if ($arguments === [] || mb_strlen($oneLine) <= self::PRINT_WIDTH) {
+            return $lead . $callee . '(' . implode(', ', $arguments) . ')' . $suffix;
+        }
+
+        // A single short argument does not earn its own line: Prettier breaks
+        // after the assignment instead and leaves the call intact. It only
+        // explodes the list once an argument is long enough to be worth it.
+        if (
+            $prefixWidth > 0
+            && count($arguments) === 1
+            && mb_strlen($arguments[0]) <= self::HUGGABLE_ARGUMENT_WIDTH
+        ) {
+            $hung = str_repeat(' ', $indent + 4) . $callee . '(' . $arguments[0] . ')' . $suffix;
+
+            // Breaking after the assignment only helps if the call then fits.
+            if (mb_strlen($hung) <= self::PRINT_WIDTH) {
+                return "\n" . $hung;
+            }
+
+            // Otherwise Prettier does both: it breaks after the assignment and
+            // still explodes the argument onto its own line.
+            $deep = str_repeat(' ', $indent + 8);
+
+            return "\n" . str_repeat(' ', $indent + 4) . $callee . "(\n"
+                . $deep . $arguments[0] . ",\n"
+                . str_repeat(' ', $indent + 4) . ')' . $suffix;
+        }
+
+        $inner = str_repeat(' ', $indent + 4);
+        $body = '';
+        foreach ($arguments as $argument) {
+            $body .= $inner . $argument . ",\n";
+        }
+
+        return $lead . $callee . "(\n" . $body . str_repeat(' ', $indent) . ')' . $suffix;
     }
 
     /**
@@ -292,9 +357,10 @@ abstract class JS extends Language
      * Render one `key: value` entry of a documentation example, wrapping it the
      * way Prettier would when the single-line form overflows the print width.
      */
-    protected function formatExampleEntry(string $key, string $value, string $comment): string
+    protected function formatExampleEntry(string $key, string $value, string $comment, int $indent = 4): string
     {
-        $oneLine = '    ' . $key . ': ' . $value . ',';
+        $pad = str_repeat(' ', $indent);
+        $oneLine = $pad . $key . ': ' . $value . ',';
         if (mb_strlen($oneLine) <= self::PRINT_WIDTH || str_contains($value, "\n")) {
             return $key . ': ' . $value . ',' . $comment;
         }
@@ -310,7 +376,28 @@ abstract class JS extends Language
             return $key . ": [\n" . $body . '    ],' . $comment;
         }
 
-        return $key . ":\n        " . $value . ',' . $comment;
+        // An object literal expands one member per line, the same way an array
+        // expands its elements.
+        if (str_starts_with($value, '{ ') && str_ends_with($value, ' }')) {
+            $members = $this->splitTopLevel(mb_substr($value, 2, -2));
+            if (count($members) > 1) {
+                $body = '';
+                foreach ($members as $member) {
+                    $body .= $pad . '    ' . $member . ",\n";
+                }
+
+                return $key . ": {\n" . $body . $pad . '},' . $comment;
+            }
+        }
+
+        // Moving the value onto its own line trades the key's width for one
+        // extra indent, so Prettier only does it when the key is wider than
+        // that indent. A shorter key would gain nothing and stays inline.
+        if (mb_strlen($key) <= 6) {
+            return $key . ': ' . $value . ',' . $comment;
+        }
+
+        return $key . ":\n" . $pad . '    ' . $value . ',' . $comment;
     }
 
     /**
@@ -451,11 +538,13 @@ abstract class JS extends Language
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
             new TwigFilter('jsGuard', fn(array $operands, int $indent = 8): string => $this->formatGuard($operands, $indent), ['is_safe' => ['html']]),
-            new TwigFilter('jsClientChain', fn(array $calls): string => $this->formatClientChain($calls), ['is_safe' => ['html']]),
+            new TwigFilter('jsClientChain', fn(array $calls, string $constructor = 'new Client()'): string => $this->formatClientChain($calls, $constructor), ['is_safe' => ['html']]),
+            new TwigFilter('jsArgs', fn(string $callee, array $arguments, int $indent = 8, string $suffix = ';', int $prefixWidth = 0): string => $this->formatArgumentList($callee, $arguments, $indent, $suffix, $prefixWidth), ['is_safe' => ['html']]),
             new TwigFilter('jsAssign', fn(string $lhs, string $rhs, int $indent = 8): string => $this->formatAssignment($lhs, $rhs, $indent), ['is_safe' => ['html']]),
-            new TwigFilter('jsExampleEntry', fn(string $key, string $value, string $comment = ''): string => $this->formatExampleEntry($key, $value, $comment), ['is_safe' => ['html']]),
+            new TwigFilter('jsExampleEntry', fn(string $key, string $value, string $comment = '', int $indent = 4): string => $this->formatExampleEntry($key, $value, $comment, $indent), ['is_safe' => ['html']]),
             new TwigFilter('jsImport', fn(array $names, string $module): string => $this->formatNamedImport($names, $module), ['is_safe' => ['html']]),
             new TwigFilter('trimLines', fn(string $value): string => preg_replace('/[ \t]+$/m', '', $value) ?? $value),
+            new TwigFilter('jsString', fn(?string $value): string => $this->getStringLiteral($value ?? ''), ['is_safe' => ['html']]),
             new TwigFilter('jsKey', fn(string $value): string => $this->getObjectKeyLiteral($value), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);

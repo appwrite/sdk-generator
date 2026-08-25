@@ -287,6 +287,18 @@ class Web extends JS
         return $this->getStringLiteral((string) $value);
     }
 
+    /**
+     * The example value used for a file parameter.
+     *
+     * Overridden by targets that upload from a path rather than a browser
+     * file input. It is the only part of the example rendering that differs
+     * between the JavaScript targets, so everything else stays shared.
+     */
+    protected function getFileExample(): string
+    {
+        return 'document.getElementById(\'uploader\').files[0]';
+    }
+
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
         $type       = $this->getSchemaType($param);
@@ -297,7 +309,7 @@ class Web extends JS
         if (!$hasExample) {
             return match ($type) {
                 self::TYPE_ARRAY => '[]',
-                self::TYPE_FILE => 'document.getElementById(\'uploader\').files[0]',
+                self::TYPE_FILE => $this->getFileExample(),
                 self::TYPE_INTEGER, self::TYPE_NUMBER, self::TYPE_BOOLEAN => 'null',
                 self::TYPE_OBJECT => '{}',
                 self::TYPE_STRING => "''",
@@ -309,7 +321,7 @@ class Web extends JS
                 ? $this->getPermissionExample($example)
                 : $this->getObjectExample((string) $example),
             self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
-            self::TYPE_FILE => 'document.getElementById(\'uploader\').files[0]',
+            self::TYPE_FILE => $this->getFileExample(),
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => $this->getObjectExample((string) $example),
             self::TYPE_STRING => $this->getStringLiteral((string) $example),
@@ -773,6 +785,24 @@ class Web extends JS
     }
 
     /**
+     * Expand a `label: { ... }` member whose inline object type overflows.
+     */
+    protected function expandObjectMember(string $member, int $indent): string
+    {
+        if (preg_match('/^([^:]+): \\{ (.+) \\}$/', $member, $match) !== 1) {
+            return $member;
+        }
+
+        $inner = str_repeat(' ', $indent + 4);
+        $body = '';
+        foreach ($this->splitTopLevel($match[2], ';', trackGenerics: true) as $nested) {
+            $body .= $inner . $nested . ";\n";
+        }
+
+        return $match[1] . ": {\n" . $body . str_repeat(' ', $indent) . '}';
+    }
+
+    /**
      * Expand a single union option when it overflows on its own line.
      * Prettier aligns the expanded members past the `| ` marker.
      */
@@ -789,7 +819,15 @@ class Web extends JS
         $inner = str_repeat(' ', $indent + 6);
         $body = '';
         foreach ($this->splitTopLevel($match[1], ';', trackGenerics: true) as $member) {
-            $body .= $inner . $this->wrapConditionalType($member, $indent + 6) . ";\n";
+            $member = $this->wrapConditionalType($member, $indent + 6);
+
+            // A member that is itself an object type may still overflow, in
+            // which case Prettier expands it one level deeper as well.
+            if (mb_strlen($inner . $member . ';') > self::PRINT_WIDTH) {
+                $member = $this->expandObjectMember($member, $indent + 6);
+            }
+
+            $body .= $inner . $member . ";\n";
         }
 
         return "{\n" . $body . str_repeat(' ', $indent + 2) . '}';
@@ -970,9 +1008,23 @@ class Web extends JS
             new TwigFilter('tsAssignment', function (string $lhs, string $type, int $indent = 16): string {
                 $oneLine = str_repeat(' ', $indent) . $lhs . ' ' . $type . ',';
 
-                return mb_strlen($oneLine) <= self::PRINT_WIDTH
-                    ? $lhs . ' ' . $type
-                    : $lhs . ' ' . $this->wrapConditionalType($type, $indent);
+                if (mb_strlen($oneLine) <= self::PRINT_WIDTH) {
+                    return $lhs . ' ' . $type;
+                }
+
+                // An inline object type expands its members; anything else
+                // falls back to the conditional-type layout.
+                if (preg_match('/^\\{ (.+) \\}$/', $type, $match) === 1) {
+                    $inner = str_repeat(' ', $indent + 4);
+                    $body = '';
+                    foreach ($this->splitTopLevel($match[1], ';', trackGenerics: true) as $member) {
+                        $body .= $inner . $member . ";\n";
+                    }
+
+                    return $lhs . " {\n" . $body . str_repeat(' ', $indent) . '}';
+                }
+
+                return $lhs . ' ' . $this->wrapConditionalType($type, $indent);
             }, ['is_safe' => ['html']]),
             new TwigFilter('tsModelProperty', fn(string $label, string $type, int $indent = 8): string => $this->formatModelProperty($label, $type, $indent), ['is_safe' => ['html']]),
             new TwigFilter('tsTupleElement', fn(string $type): string => $this->formatTupleElement($type), ['is_safe' => ['html']]),

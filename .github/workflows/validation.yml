@@ -250,6 +250,9 @@ jobs:
             react-native)
               npm ci --omit=peer
               npm audit --omit=peer
+              npm run format:check
+              npm run lint
+              npm run analyse
               npm run build
               ;;
             flutter)
@@ -316,6 +319,9 @@ jobs:
             node)
               npm ci
               npm audit
+              npm run format:check
+              npm run lint
+              npm run analyse
               npm run build
               npm run test
               ;;
