@@ -575,8 +575,15 @@ func runInitFunction(command *cobra.Command, options initFunctionOptions) error 
 	repositoryURL := fmt.Sprintf("https://github.com/%s/%s", template.Owner, template.Repository)
 	clone := fmt.Sprintf("git clone --single-branch --depth 1 --sparse %s .", repositoryURL)
 	if template.Reference != "" {
+		reference := template.Reference
+		if template.ReferenceType == "tag" {
+			reference, err = resolveGitTag(templatesDir, repositoryURL, reference)
+			if err != nil {
+				return err
+			}
+		}
 		clone = fmt.Sprintf("git clone --single-branch --depth 1 --branch %s --sparse %s .",
-			template.Reference, repositoryURL)
+			reference, repositoryURL)
 	}
 	if err := runGit(templatesDir, clone); err != nil {
 		return err

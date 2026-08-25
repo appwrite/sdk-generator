@@ -45,6 +45,40 @@ func runGit(directory string, script string) error {
 	return gitError(fmt.Sprintf("%s\n%s", err, strings.TrimSpace(string(output))))
 }
 
+// resolveGitTag turns a tag pattern from template metadata (for example,
+// "0.3.*") into the newest matching concrete tag. Git clone accepts a tag or
+// branch name for --branch, but does not expand ref patterns itself.
+func resolveGitTag(directory, repository, pattern string) (string, error) {
+	if !strings.ContainsAny(pattern, "*?[") {
+		return pattern, nil
+	}
+
+	command := exec.Command("git", "ls-remote", "--refs", "--tags",
+		"--sort=-version:refname", repository, pattern)
+	command.Dir = directory
+	output, err := command.CombinedOutput()
+	if err != nil {
+		return "", gitError(fmt.Sprintf("%s\n%s", err,
+			strings.TrimSpace(string(output))))
+	}
+
+	return gitTagFromRemoteOutput(pattern, string(output))
+}
+
+func gitTagFromRemoteOutput(pattern, output string) (string, error) {
+	for _, line := range strings.Split(output, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) != 2 {
+			continue
+		}
+		if tag := strings.TrimPrefix(fields[1], "refs/tags/"); tag != fields[1] {
+			return tag, nil
+		}
+	}
+
+	return "", fmt.Errorf("no git tag matches template version %s", pattern)
+}
+
 // gitError translates a git failure into an actionable suggestion.
 //
 // Two failures are common enough to be worth naming: a git too old for
