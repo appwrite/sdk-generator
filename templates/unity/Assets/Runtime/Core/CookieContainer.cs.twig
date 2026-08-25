@@ -96,7 +96,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         private void AddCookie(Cookie cookie)
         {
             if (cookie?.Name == null) return;
-            
+
             lock (_lock)
             {
                 // Remove existing cookie with the same name, domain, and path
@@ -135,7 +135,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// <summary>
         /// Get cookie header string for request
         /// </summary>
-        public string GetCookieHeader(string domain, string path = "/") => 
+        public string GetCookieHeader(string domain, string path = "/") =>
             string.Join("; ", GetCookies(domain, path)
                 .Select(c => $"{c.Name}={c.Value}"));
 
@@ -157,7 +157,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             if (string.IsNullOrWhiteSpace(setCookieHeader) || string.IsNullOrWhiteSpace(domain)) return;
             ParseCookie(setCookieHeader.Trim(), domain);
         }
-        
+
         /// <summary>
         /// Parse a single cookie string
         /// </summary>
@@ -235,7 +235,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// <summary>
         /// Remove expired cookies (must be called within lock)
         /// </summary>
-        private void CleanExpiredCookies() => 
+        private void CleanExpiredCookies() =>
             _cookies.RemoveAll(c => c == null || c.IsExpired);
 
         /// <summary>

@@ -26,21 +26,21 @@ namespace {{ spec.info.title | caseUcfirst }}
         [Header("Connection Settings")]
         [Tooltip("Endpoint URL for {{ spec.info.title | caseUcfirst }} API (e.g., https://cloud.{{ spec.info.title | lower }}.io/v1)")]
         [SerializeField] private string endpoint = "https://cloud.{{ spec.info.title | lower }}.io/v1";
-        
+
         [Tooltip("WebSocket endpoint for realtime updates (optional)")]
         [SerializeField] private string realtimeEndpoint = "wss://cloud.{{ spec.info.title | lower }}.io/v1";
-        
+
         [Tooltip("Enable if using a self-signed SSL certificate")]
         [SerializeField] private bool selfSigned;
-        
+
         [Header("Project Settings")]
         [Tooltip("Your {{ spec.info.title | caseUcfirst }} project ID")]
         [SerializeField] private string projectId = "";
 
-        [Header("Service Initialization")] 
+        [Header("Service Initialization")]
         [Tooltip("Select which {{ spec.info.title | caseUcfirst }} services to initialize.")]
         [SerializeField] private {{ spec.info.title | caseUcfirst }}Service servicesToInitialize = {{ spec.info.title | caseUcfirst }}Service.All;
-        
+
         [Header("Advanced Settings")]
         [Tooltip("Dev key (optional). Dev keys allow bypassing rate limits and CORS errors in your development environment. WARNING: Storing dev keys in ScriptableObjects is a security risk. Do not expose this in public repositories. Consider loading from a secure location at runtime for production builds.")]
         [SerializeField] private string devKey = "";
@@ -63,15 +63,15 @@ namespace {{ spec.info.title | caseUcfirst }}
         {
             if (string.IsNullOrEmpty(endpoint))
                 Debug.LogWarning("{{ spec.info.title | caseUcfirst }}Config: Endpoint is required");
-            
+
             if (string.IsNullOrEmpty(projectId))
                 Debug.LogWarning("{{ spec.info.title | caseUcfirst }}Config: Project ID is required");
 
             if (!string.IsNullOrEmpty(devKey))
                 Debug.LogWarning("{{ spec.info.title | caseUcfirst }}Config: Dev Key is set. For security, avoid storing keys directly in assets for production builds.");
         }
-        
-        
+
+
         /// <summary>
         /// Create a client using this configuration.
         /// </summary>
@@ -91,12 +91,12 @@ namespace {{ spec.info.title | caseUcfirst }}
                     selfSigned: selfSigned);
         }
 
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         [UnityEditor.MenuItem("{{ spec.info.title | caseUcfirst }}/Create Configuration")]
         public static {{ spec.info.title | caseUcfirst }}Config CreateConfiguration()
         {
             var config = CreateInstance<{{ spec.info.title | caseUcfirst }}Config>();
-            
+
             if (!System.IO.Directory.Exists("Assets/{{ spec.info.title | caseUcfirst }}"))
             {
                 UnityEditor.AssetDatabase.CreateFolder("Assets", "{{ spec.info.title | caseUcfirst }}");
@@ -105,19 +105,19 @@ namespace {{ spec.info.title | caseUcfirst }}
             {
                 UnityEditor.AssetDatabase.CreateFolder("Assets/{{ spec.info.title | caseUcfirst }}", "Resources");
             }
-            
+
             string path = "Assets/{{ spec.info.title | caseUcfirst }}/Resources/{{ spec.info.title | caseUcfirst }}Config.asset";
             path = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(path);
-                
+
             UnityEditor.AssetDatabase.CreateAsset(config, path);
             UnityEditor.AssetDatabase.SaveAssets();
             UnityEditor.EditorUtility.FocusProjectWindow();
             UnityEditor.Selection.activeObject = config;
 
             Debug.Log($"{{ spec.info.title | caseUcfirst }} configuration created at: {path}");
-            
+
             return config;
         }
-        #endif
+#endif
     }
 }
