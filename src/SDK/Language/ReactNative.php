@@ -38,6 +38,11 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/expo-file-system-shim.d.ts',
+                'template'      => 'react-native/src/expo-file-system-shim.d.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/service.ts',
                 'template'      => 'react-native/src/service.ts.twig',
             ],
