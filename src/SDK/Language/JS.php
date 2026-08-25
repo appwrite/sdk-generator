@@ -16,6 +16,18 @@ abstract class JS extends Language
     /** Prettier's default print width, mirrored by the generated .prettierrc. */
     protected const int PRINT_WIDTH = 80;
 
+    /**
+     * The widest lone argument Prettier will keep beside its callee.
+     *
+     * When an assignment's right-hand side is a call with a single argument,
+     * Prettier breaks after the `=` and leaves the call intact rather than
+     * exploding the argument list — but only while that argument is short
+     * enough to be worth carrying. The cutoff is fitted to Prettier's observed
+     * output rather than derived from its layout algorithm, and holds for every
+     * generated call site across the Web, Node, and React Native SDKs.
+     */
+    protected const int HUGGABLE_ARGUMENT_WIDTH = 20;
+
     protected $params = [
         'npmPackage' => 'packageName',
         'bowerPackage' => 'packageName',
@@ -296,7 +308,11 @@ abstract class JS extends Language
         // A single short argument does not earn its own line: Prettier breaks
         // after the assignment instead and leaves the call intact. It only
         // explodes the list once an argument is long enough to be worth it.
-        if ($prefixWidth > 0 && count($arguments) === 1 && mb_strlen($arguments[0]) <= 20) {
+        if (
+            $prefixWidth > 0
+            && count($arguments) === 1
+            && mb_strlen($arguments[0]) <= self::HUGGABLE_ARGUMENT_WIDTH
+        ) {
             $hung = str_repeat(' ', $indent + 4) . $callee . '(' . $arguments[0] . ')' . $suffix;
 
             // Breaking after the assignment only helps if the call then fits.
