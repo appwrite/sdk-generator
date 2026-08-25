@@ -466,12 +466,11 @@ class Client
     protected function createHttpClient(bool $followRedirects): HttpClient
     {
         $adapter = new CurlAdapter(options: [
-            CURLOPT_FOLLOWLOCATION => $followRedirects,
             CURLOPT_TIMEOUT_MS => 0,
             CURLOPT_USERAGENT => php_uname('s') . '-' . php_uname('r') . ':{{ language.name | caseLower }}-' . phpversion(),
         ])->withConnectionReuse();
 
-        $client = new HttpClient($adapter);
+        $client = new HttpClient($adapter)->withFollowRedirects($followRedirects);
 
         if ($this->selfSigned) {
             $client = $client->withSslVerification(false);
