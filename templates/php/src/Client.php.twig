@@ -47,7 +47,6 @@ class Client
      *
      */
     protected array $headers = [
-        'content-type' => '',
         'user-agent' => '{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{deviceInfo}})',
         'x-sdk-name' => '{{ sdk.name }}',
         'x-sdk-platform' => '{{ sdk.platform }}',
@@ -284,6 +283,9 @@ class Client
 {% endif %}
         $headers = array_merge($this->headers, $headers);
         $contentType = strtolower((string) ($headers['content-type'] ?? ''));
+        if ($contentType === '' || $contentType === 'multipart/form-data') {
+            unset($headers['content-type']);
+        }
         $uri = $this->endpoint . $path;
 
         try {
@@ -292,25 +294,25 @@ class Client
                     $method,
                     $uri,
                     $params,
-                    $this->requestHeaders($headers)
+                    $headers
                 ),
                 $contentType === 'application/json' => $this->requestFactory->json(
                     $method,
                     $uri,
                     $this->prepareParams($params),
-                    $this->requestHeaders($headers)
+                    $headers
                 ),
                 $contentType === 'multipart/form-data' => $this->requestFactory->multipart(
                     $method,
                     $uri,
                     $this->toMultipartParts($params),
-                    $this->requestHeaders($headers, includeContentType: false)
+                    $headers
                 ),
                 default => $this->requestFactory->form(
                     $method,
                     $uri,
                     $params,
-                    $this->requestHeaders($headers)
+                    $headers
                 ),
             };
 
@@ -423,29 +425,6 @@ class Client
         }
 
         return $parts;
-    }
-
-    /**
-     * @param array<string, mixed> $headers
-     * @return array<string, string>
-     */
-    protected function requestHeaders(array $headers, bool $includeContentType = true): array
-    {
-        $requestHeaders = [];
-
-        foreach ($headers as $name => $value) {
-            if ($value === '' && strtolower((string) $name) === 'content-type') {
-                continue;
-            }
-
-            if (!$includeContentType && strtolower((string) $name) === 'content-type') {
-                continue;
-            }
-
-            $requestHeaders[$name] = $value;
-        }
-
-        return $requestHeaders;
     }
 
     protected function getHttpClient(bool $followRedirects): HttpClient
