@@ -38,7 +38,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function equal(string $attribute, mixed $value): string
     {
-        return (new Query('equal', $attribute, $value))->__toString();
+        return new Query('equal', $attribute, $value)->__toString();
     }
 
     /**
@@ -47,7 +47,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function notEqual(string $attribute, mixed $value): string
     {
-        return (new Query('notEqual', $attribute, $value))->__toString();
+        return new Query('notEqual', $attribute, $value)->__toString();
     }
 
     /**
@@ -56,7 +56,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function lessThan(string $attribute, mixed $value): string
     {
-        return (new Query('lessThan', $attribute, $value))->__toString();
+        return new Query('lessThan', $attribute, $value)->__toString();
     }
 
     /**
@@ -65,7 +65,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function lessThanEqual(string $attribute, mixed $value): string
     {
-        return (new Query('lessThanEqual', $attribute, $value))->__toString();
+        return new Query('lessThanEqual', $attribute, $value)->__toString();
     }
 
     /**
@@ -74,7 +74,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function greaterThan(string $attribute, mixed $value): string
     {
-        return (new Query('greaterThan', $attribute, $value))->__toString();
+        return new Query('greaterThan', $attribute, $value)->__toString();
     }
 
     /**
@@ -83,7 +83,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function greaterThanEqual(string $attribute, mixed $value): string
     {
-        return (new Query('greaterThanEqual', $attribute, $value))->__toString();
+        return new Query('greaterThanEqual', $attribute, $value)->__toString();
     }
 
     /**
@@ -92,7 +92,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function search(string $attribute, string $value): string
     {
-        return (new Query('search', $attribute, $value))->__toString();
+        return new Query('search', $attribute, $value)->__toString();
     }
 
     /**
@@ -101,7 +101,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function isNull(string $attribute): string
     {
-        return (new Query('isNull', $attribute))->__toString();
+        return new Query('isNull', $attribute)->__toString();
     }
 
     /**
@@ -110,7 +110,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function isNotNull(string $attribute): string
     {
-        return (new Query('isNotNull', $attribute))->__toString();
+        return new Query('isNotNull', $attribute)->__toString();
     }
 
     /**
@@ -119,7 +119,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function between(string $attribute, mixed $start, mixed $end): string
     {
-        return (new Query('between', $attribute, [$start, $end]))->__toString();
+        return new Query('between', $attribute, [$start, $end])->__toString();
     }
 
     /**
@@ -128,7 +128,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function startsWith(string $attribute, string $value): string
     {
-        return (new Query('startsWith', $attribute, $value))->__toString();
+        return new Query('startsWith', $attribute, $value)->__toString();
     }
 
     /**
@@ -137,7 +137,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function endsWith(string $attribute, string $value): string
     {
-        return (new Query('endsWith', $attribute, $value))->__toString();
+        return new Query('endsWith', $attribute, $value)->__toString();
     }
 
     /**
@@ -146,7 +146,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function select(array $attributes): string
     {
-        return (new Query('select', null, $attributes))->__toString();
+        return new Query('select', null, $attributes)->__toString();
     }
 
     /**
@@ -155,7 +155,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function cursorAfter(string $documentId): string
     {
-        return (new Query('cursorAfter', null, $documentId))->__toString();
+        return new Query('cursorAfter', null, $documentId)->__toString();
     }
 
     /**
@@ -164,7 +164,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function cursorBefore(string $documentId): string
     {
-        return (new Query('cursorBefore', null, $documentId))->__toString();
+        return new Query('cursorBefore', null, $documentId)->__toString();
     }
 
     /**
@@ -173,7 +173,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function orderAsc(string $attribute): string
     {
-        return (new Query('orderAsc', $attribute))->__toString();
+        return new Query('orderAsc', $attribute)->__toString();
     }
 
     /**
@@ -182,7 +182,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function orderDesc(string $attribute): string
     {
-        return (new Query('orderDesc', $attribute))->__toString();
+        return new Query('orderDesc', $attribute)->__toString();
     }
 
     /**
@@ -191,7 +191,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function orderRandom(): string
     {
-        return (new Query('orderRandom'))->__toString();
+        return new Query('orderRandom')->__toString();
     }
 
     /**
@@ -200,7 +200,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function limit(int $limit): string
     {
-        return (new Query('limit', null, $limit))->__toString();
+        return new Query('limit', null, $limit)->__toString();
     }
 
     /**
@@ -209,7 +209,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function offset(int $offset): string
     {
-        return (new Query('offset', null, $offset))->__toString();
+        return new Query('offset', null, $offset)->__toString();
     }
 
     /**
@@ -222,7 +222,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function contains(string $attribute, $value): string
     {
-        return (new Query('contains', $attribute, $value))->__toString();
+        return new Query('contains', $attribute, $value)->__toString();
     }
 
     /**
@@ -235,7 +235,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function containsAny(string $attribute, array $value): string
     {
-        return (new Query('containsAny', $attribute, $value))->__toString();
+        return new Query('containsAny', $attribute, $value)->__toString();
     }
 
     /**
@@ -248,7 +248,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function containsAll(string $attribute, array $value): string
     {
-        return (new Query('containsAll', $attribute, $value))->__toString();
+        return new Query('containsAll', $attribute, $value)->__toString();
     }
 
     /**
@@ -257,7 +257,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function notContains(string $attribute, $value): string
     {
-        return (new Query('notContains', $attribute, $value))->__toString();
+        return new Query('notContains', $attribute, $value)->__toString();
     }
 
     /**
@@ -266,7 +266,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function notSearch(string $attribute, string $value): string
     {
-        return (new Query('notSearch', $attribute, $value))->__toString();
+        return new Query('notSearch', $attribute, $value)->__toString();
     }
 
     /**
@@ -275,7 +275,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function notBetween(string $attribute, mixed $start, mixed $end): string
     {
-        return (new Query('notBetween', $attribute, [$start, $end]))->__toString();
+        return new Query('notBetween', $attribute, [$start, $end])->__toString();
     }
 
     /**
@@ -284,7 +284,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function notStartsWith(string $attribute, string $value): string
     {
-        return (new Query('notStartsWith', $attribute, $value))->__toString();
+        return new Query('notStartsWith', $attribute, $value)->__toString();
     }
 
     /**
@@ -293,7 +293,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function notEndsWith(string $attribute, string $value): string
     {
-        return (new Query('notEndsWith', $attribute, $value))->__toString();
+        return new Query('notEndsWith', $attribute, $value)->__toString();
     }
 
     /**
@@ -302,7 +302,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function regex(string $attribute, string $pattern): string
     {
-        return (new Query('regex', $attribute, $pattern))->__toString();
+        return new Query('regex', $attribute, $pattern)->__toString();
     }
 
     /**
@@ -311,7 +311,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function exists(array $attributes): string
     {
-        return (new Query('exists', null, $attributes))->__toString();
+        return new Query('exists', null, $attributes)->__toString();
     }
 
     /**
@@ -320,7 +320,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function notExists(array $attributes): string
     {
-        return (new Query('notExists', null, $attributes))->__toString();
+        return new Query('notExists', null, $attributes)->__toString();
     }
 
     /**
@@ -386,7 +386,7 @@ class Query implements \JsonSerializable, \Stringable
         foreach ($queries as &$query) {
             $query = \json_decode($query, true);
         }
-        return (new Query('or', null, $queries))->__toString();
+        return new Query('or', null, $queries)->__toString();
     }
 
     /**
@@ -398,7 +398,7 @@ class Query implements \JsonSerializable, \Stringable
         foreach ($queries as &$query) {
             $query = \json_decode($query, true);
         }
-        return (new Query('and', null, $queries))->__toString();
+        return new Query('and', null, $queries)->__toString();
     }
 
     /**
@@ -411,7 +411,7 @@ class Query implements \JsonSerializable, \Stringable
             $query = \json_decode($query, true);
         }
 
-        return (new Query('elemMatch', $attribute, $queries))->__toString();
+        return new Query('elemMatch', $attribute, $queries)->__toString();
     }
 
     /**
@@ -420,7 +420,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function distanceEqual(string $attribute, array $values, int|float $distance, bool $meters = true): string
     {
-        return (new Query('distanceEqual', $attribute, [[$values, $distance, $meters]]))->__toString();
+        return new Query('distanceEqual', $attribute, [[$values, $distance, $meters]])->__toString();
     }
 
     /**
@@ -429,7 +429,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function distanceNotEqual(string $attribute, array $values, int|float $distance, bool $meters = true): string
     {
-        return (new Query('distanceNotEqual', $attribute, [[$values, $distance, $meters]]))->__toString();
+        return new Query('distanceNotEqual', $attribute, [[$values, $distance, $meters]])->__toString();
     }
 
     /**
@@ -438,7 +438,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function distanceGreaterThan(string $attribute, array $values, int|float $distance, bool $meters = true): string
     {
-        return (new Query('distanceGreaterThan', $attribute, [[$values, $distance, $meters]]))->__toString();
+        return new Query('distanceGreaterThan', $attribute, [[$values, $distance, $meters]])->__toString();
     }
 
     /**
@@ -447,7 +447,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function distanceLessThan(string $attribute, array $values, int|float $distance, bool $meters = true): string
     {
-        return (new Query('distanceLessThan', $attribute, [[$values, $distance, $meters]]))->__toString();
+        return new Query('distanceLessThan', $attribute, [[$values, $distance, $meters]])->__toString();
     }
 
     /**
@@ -456,7 +456,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function vectorDot(string $attribute, array $vector): string
     {
-        return (new Query('vectorDot', $attribute, [$vector]))->__toString();
+        return new Query('vectorDot', $attribute, [$vector])->__toString();
     }
 
     /**
@@ -465,7 +465,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function vectorCosine(string $attribute, array $vector): string
     {
-        return (new Query('vectorCosine', $attribute, [$vector]))->__toString();
+        return new Query('vectorCosine', $attribute, [$vector])->__toString();
     }
 
     /**
@@ -474,7 +474,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function vectorEuclidean(string $attribute, array $vector): string
     {
-        return (new Query('vectorEuclidean', $attribute, [$vector]))->__toString();
+        return new Query('vectorEuclidean', $attribute, [$vector])->__toString();
     }
 
     /**
@@ -483,7 +483,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function intersects(string $attribute, array $values): string
     {
-        return (new Query('intersects', $attribute, [$values]))->__toString();
+        return new Query('intersects', $attribute, [$values])->__toString();
     }
 
     /**
@@ -492,7 +492,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function notIntersects(string $attribute, array $values): string
     {
-        return (new Query('notIntersects', $attribute, [$values]))->__toString();
+        return new Query('notIntersects', $attribute, [$values])->__toString();
     }
 
     /**
@@ -501,7 +501,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function crosses(string $attribute, array $values): string
     {
-        return (new Query('crosses', $attribute, [$values]))->__toString();
+        return new Query('crosses', $attribute, [$values])->__toString();
     }
 
     /**
@@ -510,7 +510,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function notCrosses(string $attribute, array $values): string
     {
-        return (new Query('notCrosses', $attribute, [$values]))->__toString();
+        return new Query('notCrosses', $attribute, [$values])->__toString();
     }
 
     /**
@@ -519,7 +519,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function overlaps(string $attribute, array $values): string
     {
-        return (new Query('overlaps', $attribute, [$values]))->__toString();
+        return new Query('overlaps', $attribute, [$values])->__toString();
     }
 
     /**
@@ -528,7 +528,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function notOverlaps(string $attribute, array $values): string
     {
-        return (new Query('notOverlaps', $attribute, [$values]))->__toString();
+        return new Query('notOverlaps', $attribute, [$values])->__toString();
     }
 
     /**
@@ -537,7 +537,7 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function touches(string $attribute, array $values): string
     {
-        return (new Query('touches', $attribute, [$values]))->__toString();
+        return new Query('touches', $attribute, [$values])->__toString();
     }
 
     /**
@@ -546,6 +546,6 @@ class Query implements \JsonSerializable, \Stringable
      */
     public static function notTouches(string $attribute, array $values): string
     {
-        return (new Query('notTouches', $attribute, [$values]))->__toString();
+        return new Query('notTouches', $attribute, [$values])->__toString();
     }
 }
