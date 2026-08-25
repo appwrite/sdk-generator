@@ -306,6 +306,28 @@ func TestResolveGitTagLeavesConcreteReferenceUnchanged(t *testing.T) {
 	}
 }
 
+func TestRunGitCommandPassesRemoteValuesLiterally(t *testing.T) {
+	directory := t.TempDir()
+	marker := filepath.Join(directory, "executed")
+	value := "0.3.1; touch " + marker
+	configPath := filepath.Join(directory, "config")
+
+	if err := runGitCommand(directory, "config", "--file", configPath,
+		"template.reference", value); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(marker); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("shell syntax in argument was executed: %v", err)
+	}
+	contents, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(contents), value) {
+		t.Fatalf("config does not contain literal value %q:\n%s", value, contents)
+	}
+}
+
 func TestValidateRuntimeAndSpecificationChoices(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		response.Header().Set("content-type", "application/json")

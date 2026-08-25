@@ -35,6 +35,17 @@ func runGit(directory string, script string) error {
 		command = exec.Command("sh", "-c", script)
 	}
 
+	return executeGit(command, directory)
+}
+
+// runGitCommand invokes Git without a shell. Use it when arguments contain
+// values received from an API or remote repository, so ref names and paths are
+// passed literally rather than interpreted as shell syntax.
+func runGitCommand(directory string, arguments ...string) error {
+	return executeGit(exec.Command("git", arguments...), directory)
+}
+
+func executeGit(command *exec.Cmd, directory string) error {
 	command.Dir = directory
 
 	output, err := command.CombinedOutput()
