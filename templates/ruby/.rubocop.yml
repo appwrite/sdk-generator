@@ -1,0 +1,26 @@
+# RuboCop layout for the generated Ruby SDK.
+# IndentationWidth 4 matches the published sdk-for-ruby house style.
+# Only Layout cops are enabled: this is a formatter check, not a full linter.
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 2.7
+  SuggestExtensions: false
+  DisabledByDefault: true
+  Exclude:
+    - '.github/**/*'
+    - 'vendor/**/*'
+    - '.bundle/**/*'
+
+Layout:
+  Enabled: true
+
+Layout/IndentationWidth:
+  Width: 4
+
+Layout/LineLength:
+  Max: 200
+  AllowedPatterns:
+    - '^\s*#'
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented

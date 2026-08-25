@@ -43,8 +43,7 @@ module {{ spec.info.title | caseUcfirst }}
             private
 
 {% endif %}
-{% for property in requestModel.properties %}
-{% if property | usesEnumType %}
+{% for property in requestModel.properties | filter(p => p | usesEnumType) %}
             def validate_{{ (property | schemaName) | caseSnake | escapeKeyword }}({{ (property | schemaName) | caseSnake | escapeKeyword }})
                 valid_{{ (property | schemaName) | caseSnake }} = [
 {% for value in property | enumValues %}
@@ -58,6 +57,7 @@ module {{ spec.info.title | caseUcfirst }}
 
                 {{ (property | schemaName) | caseSnake | escapeKeyword }}
             end
+{% if not loop.last %}
 
 {% endif %}
 {% endfor %}

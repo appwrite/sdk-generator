@@ -31,7 +31,7 @@
 {% endfor %}
 
             raise Exception, "Unable to match response to any expected response model"
-{% else %}
+{%- else %}
             @client.chunked_upload(
                 path: api_path,
                 headers: api_headers,
@@ -43,4 +43,4 @@
                 response_type: Models::{{(method | responseModel) | caseUcfirst}}
 {% endif %}
             )
-{% endif %}
+{%- endif %}
