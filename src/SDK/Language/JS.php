@@ -360,6 +360,20 @@ abstract class JS extends Language
             return $key . ": [\n" . $body . '    ],' . $comment;
         }
 
+        // An object literal expands one member per line, the same way an array
+        // expands its elements.
+        if (str_starts_with($value, '{ ') && str_ends_with($value, ' }')) {
+            $members = $this->splitTopLevel(mb_substr($value, 2, -2));
+            if (count($members) > 1) {
+                $body = '';
+                foreach ($members as $member) {
+                    $body .= $pad . '    ' . $member . ",\n";
+                }
+
+                return $key . ": {\n" . $body . $pad . '},' . $comment;
+            }
+        }
+
         // Moving the value onto its own line trades the key's width for one
         // extra indent, so Prettier only does it when the key is wider than
         // that indent. A shorter key would gain nothing and stays inline.

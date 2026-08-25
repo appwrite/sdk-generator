@@ -16,7 +16,10 @@ class ReactNative extends Web
     #[Override]
     protected function getFileExample(): string
     {
-        return 'InputFile.fromPath(\'/path/to/file\', \'filename\')';
+        // React Native uploads take the URI record that expo-file-system and
+        // the image pickers hand back, not the Node SDK's InputFile helper —
+        // which this SDK neither generates nor exports.
+        return "{ name: 'image.png', type: 'image/png', size: 1024, uri: 'file:///path/to/image.png' }";
     }
 
     #[Override]
