@@ -11,26 +11,25 @@ namespace Samples.{{ spec.info.title | caseUcfirst }}Example
     {
         [Header("Configuration")]
         [SerializeField] private {{ spec.info.title | caseUcfirst }}Config config;
-        
+
         private {{ spec.info.title | caseUcfirst }}Manager _manager;
-        
+
         private async void Start()
-        
         {
             // Method 1: Using {{ spec.info.title | caseUcfirst }}Manager (Recommended)
             await ExampleWithManager();
-            
+
             // Method 2: Using Client directly
             await ExampleWithDirectClient();
         }
-        
+
         /// <summary>
         /// Example using {{ spec.info.title | caseUcfirst }}Manager for easy setup
         /// </summary>
         private async UniTask ExampleWithManager()
         {
             Debug.Log("=== Example with {{ spec.info.title | caseUcfirst }}Manager ===");
-            
+
             // Get or create manager
             _manager = {{ spec.info.title | caseUcfirst }}Manager.Instance;
             if (_manager == null)
@@ -39,7 +38,7 @@ namespace Samples.{{ spec.info.title | caseUcfirst }}Example
                 _manager = managerGo.AddComponent<{{ spec.info.title | caseUcfirst }}Manager>();
                 _manager.SetConfig(config);
             }
-            
+
             // Initialize
             var success = await _manager.Initialize(true);
             if (!success)
@@ -47,7 +46,7 @@ namespace Samples.{{ spec.info.title | caseUcfirst }}Example
                 Debug.LogError("Failed to initialize {{ spec.info.title | caseUcfirst }}Manager");
                 return;
             }
-            
+
             // Use services through manager
             try
             {
@@ -57,11 +56,11 @@ namespace Samples.{{ spec.info.title | caseUcfirst }}Example
                 var pingResult = await client.Ping();
                 Debug.Log($"Ping result: {pingResult}");
                 {%~ endif %}
-                
+
                 // Service creation through DI container
                 // var account = _manager.GetService<Account>();
                 // var databases = _manager.GetService<Databases>();
-                
+
                 // Realtime example
                 var realtime = _manager.Realtime;
                 var subscription = realtime.Subscribe(
@@ -75,7 +74,7 @@ namespace Samples.{{ spec.info.title | caseUcfirst }}Example
                         Debug.Log($"Realtime event: {eventName}");
                     }
                 );
-                
+
                 Debug.Log("{{ spec.info.title | caseUcfirst }}Manager example completed successfully");
             }
             catch (System.Exception ex)
@@ -83,14 +82,14 @@ namespace Samples.{{ spec.info.title | caseUcfirst }}Example
                 Debug.LogError($"{{ spec.info.title | caseUcfirst }}Manager example failed: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// Example using Client directly
         /// </summary>
         private async UniTask ExampleWithDirectClient()
         {
             Debug.Log("=== Example with Direct Client ===");
-            
+
             try
             {
                 // Create and configure client

@@ -60,6 +60,9 @@ jobs:
           - sdk: dotnet
             platform: server
 
+          - sdk: unity
+            platform: client
+
           - sdk: kotlin
             platform: server
 
@@ -189,7 +192,7 @@ jobs:
         run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@${{ env.OSV_SCANNER_VERSION }}
 
       - name: Setup .NET
-        if: matrix.sdk == 'dotnet'
+        if: matrix.sdk == 'dotnet' || matrix.sdk == 'unity'
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '8.0.x'
@@ -328,9 +331,21 @@ jobs:
               ../../scripts/validate-go-examples.sh .
               ;;
             dotnet)
+              if [ ! -f .editorconfig ]; then
+                echo "Generated SDK is missing .editorconfig"
+                exit 1
+              fi
+              dotnet format whitespace --folder --verify-no-changes
               dotnet restore
               dotnet build --no-restore
               dotnet test --no-build
+              ;;
+            unity)
+              if [ ! -f .editorconfig ]; then
+                echo "Generated SDK is missing .editorconfig"
+                exit 1
+              fi
+              dotnet format whitespace --folder --verify-no-changes
               ;;
             rust)
               cargo generate-lockfile

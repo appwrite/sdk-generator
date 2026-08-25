@@ -137,6 +137,21 @@ When you change templates for a language below, regenerate and run that language
   (cd examples/rust && cargo +1.83.0 fmt --check --all)
   ```
 
+- **C# / Unity** — `dotnet format whitespace` (4-space indent)
+
+  ```bash
+  rm -rf examples/dotnet examples/unity
+  php example.php dotnet server
+  (cd examples/dotnet && dotnet format whitespace --folder --verify-no-changes)
+  ```
+
+  `Unity` inherits from `DotNet` and reuses several `templates/dotnet/Package/**` files. After shared .NET template changes:
+
+  ```bash
+  php example.php unity client
+  (cd examples/unity && dotnet format whitespace --folder --verify-no-changes)
+  ```
+
 - **Swift / Apple** — swift-format 6.1 (4-space indent, lineLength 200)
 
   ```bash

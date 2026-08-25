@@ -367,6 +367,11 @@ class DotNet extends Language
                 'template'      => 'dotnet/README.md.twig',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => '.editorconfig',
+                'template'      => 'dotnet/.editorconfig',
+            ],
+            [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{(method | methodName) | caseKebab}}.md',
                 'template'      => 'dotnet/docs/example.md.twig',
