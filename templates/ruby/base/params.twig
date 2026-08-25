@@ -9,17 +9,26 @@
 {% for parameter in (method | parameters('all')) %}
 {% if parameter.required %}
             if {{ parameter.name | caseSnake | escapeKeyword }}.nil?
-              raise {{spec.info.title | caseUcfirst}}::Exception.new('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"')
+                raise {{spec.info.title | caseUcfirst}}::Exception.new('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"')
             end
 
 {% endif %}
 {% endfor %}
+{% set requestParams = (method | parameters('query')) | merge((method | parameters('body'))) %}
+{% if requestParams | length == 0 %}
+            api_params = {}
+{% else %}
             api_params = {
-{% for parameter in (method | parameters('query')) | merge((method | parameters('body')))  %}
+{% for parameter in requestParams %}
                 {{ parameter.name }}: {{ parameter.name | caseSnake | escapeKeyword }},
 {% endfor %}
             }
-            
+{% endif %}
+
+{% set headerEntries = (method | securityHeaders) | length + (method | parameters('header')) | length + (method | methodHeaders) | length %}
+{% if headerEntries == 0 %}
+            api_headers = {}
+{% else %}
             api_headers = {
             {%~ for key, security in (method | securityHeaders) %}
                 "{{ security.name }}": @client.get_config('{{ key | caseLower }}'),
@@ -31,3 +40,4 @@
                 "{{ key }}": '{{ header }}',
 {% endfor %}
             }
+{% endif %}

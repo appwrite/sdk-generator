@@ -120,6 +120,14 @@ When you change templates for a language below, regenerate and run that language
   (cd examples/python && python -m black --check setup.py)
   ```
 
+- **Ruby** — RuboCop 1.90.0 (Layout cops, 4-space indent)
+
+  ```bash
+  rm -rf examples/ruby
+  php example.php ruby server
+  (cd examples/ruby && rubocop)
+  ```
+
 - **PHP** — Pint, PHPStan, and Rector
 
   ```bash

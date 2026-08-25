@@ -1,4 +1,4 @@
-#frozen_string_literal: true
+# frozen_string_literal: true
 
 require 'net/http'
 require 'uri'
@@ -7,15 +7,14 @@ require 'cgi'
 
 module {{ spec.info.title | caseUcfirst }}
     class Client
-
         def initialize
-            @chunk_size = 5*1024*1024
+            @chunk_size = 5 * 1024 * 1024
             @headers = {
                 'user-agent' => RUBY_PLATFORM + ':{{ language.name | caseLower }}-' + RUBY_VERSION,
-                'x-sdk-name'=> '{{ sdk.name }}',
-                'x-sdk-platform'=> '{{ sdk.platform }}',
-                'x-sdk-language'=> '{{ language.name | caseLower }}',
-                'x-sdk-version'=> '{{ sdk.version }}'{% if defaultHeaders | length > 0 %},{% endif %}
+                'x-sdk-name' => '{{ sdk.name }}',
+                'x-sdk-platform' => '{{ sdk.platform }}',
+                'x-sdk-language' => '{{ language.name | caseLower }}',
+                'x-sdk-version' => '{{ sdk.version }}'{% if defaultHeaders | length > 0 %},{% endif %}
 
 {% for key,header in defaultHeaders %}
                 '{{key}}' => '{{header}}'{% if not loop.last %},{% endif %}
@@ -225,13 +224,14 @@ module {{ spec.info.title | caseUcfirst }}
                 chunks_uploaded.to_i >= chunks_total.to_i
             end
 
-            on_progress.call({
+            progress = {
                 id: result['$id'],
-                progress: uploaded_size.to_f/size.to_f * 100.0,
+                progress: uploaded_size.to_f / size.to_f * 100.0,
                 size_uploaded: uploaded_size,
                 chunks_total: result['chunksTotal'] || total_chunks,
                 chunks_uploaded: result['chunksUploaded'] || completed_count
-            }) unless on_progress.nil?
+            }
+            on_progress.call(progress) unless on_progress.nil?
 
             mutex = Mutex.new
             queue = Queue.new
@@ -263,13 +263,14 @@ module {{ spec.info.title | caseUcfirst }}
                             uploaded_size += chunk[:ending] - chunk[:start]
                             last_result = chunk_result
                             completed_result = chunk_result if upload_complete.call(chunk_result)
-                            on_progress.call({
+                            progress = {
                                 id: upload_id,
-                                progress: uploaded_size.to_f/size.to_f * 100.0,
+                                progress: uploaded_size.to_f / size.to_f * 100.0,
                                 size_uploaded: uploaded_size,
                                 chunks_total: chunk_result['chunksTotal'] || total_chunks,
                                 chunks_uploaded: chunk_result['chunksUploaded'] || completed_count
-                            }) unless on_progress.nil?
+                            }
+                            on_progress.call(progress) unless on_progress.nil?
                         end
                     end
                 end
@@ -308,13 +309,13 @@ module {{ spec.info.title | caseUcfirst }}
             @boundary = "----A30#3ad1"
             if method != "GET"
                 case headers[:'content-type']
-                    when 'application/json'
-                        payload = params.to_json
-                    when 'multipart/form-data'
-                        payload = encode_form_data(params) + "--#{@boundary}--\r\n"
-                        headers[:'content-type'] = "multipart/form-data; boundary=#{@boundary}"
-                    else
-                        payload = encode(params)
+                when 'application/json'
+                    payload = params.to_json
+                when 'multipart/form-data'
+                    payload = encode_form_data(params) + "--#{@boundary}--\r\n"
+                    headers[:'content-type'] = "multipart/form-data; boundary=#{@boundary}"
+                else
+                    payload = encode(params)
                 end
             end
 
@@ -371,10 +372,10 @@ module {{ spec.info.title | caseUcfirst }}
             return response
         end
 
-        def encode_form_data(value, key=nil)
+        def encode_form_data(value, key = nil)
             case value
             when Hash
-                value.map { |k,v| encode_form_data(v,k) }.join
+                value.map { |k, v| encode_form_data(v, k) }.join
             when Array
                 value.map { |v| encode_form_data(v, "#{key}[]") }.join
             when nil
@@ -399,11 +400,11 @@ module {{ spec.info.title | caseUcfirst }}
 
         def encode(value, key = nil)
             case value
-            when Hash  then value.map { |k,v| encode(v, append_key(key,k)) }.join('&')
+            when Hash  then value.map { |k, v| encode(v, append_key(key, k)) }.join('&')
             when Array then value.map { |v| encode(v, "#{key}[]") }.join('&')
             when nil   then ''
             else
-            "#{key}=#{CGI.escape(value.to_s)}"
+                "#{key}=#{CGI.escape(value.to_s)}"
             end
         end
 

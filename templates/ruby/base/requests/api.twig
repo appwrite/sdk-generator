@@ -23,7 +23,7 @@
 {% endfor %}
 
             raise Exception, "Unable to match response to any expected response model"
-{% else %}
+{%- else %}
             @client.call(
                 method: '{{ method.method.value | caseUpper }}',
                 path: api_path,
@@ -35,4 +35,4 @@
                 response_type: Models::{{ (method | responseModel) | caseUcfirst }}
                 {%~ endif %}
             )
-{% endif %}
+{%- endif %}

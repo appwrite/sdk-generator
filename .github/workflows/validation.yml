@@ -14,6 +14,7 @@ jobs:
       FLUTTER_VERSION: '3.35.7'
       KTLINT_VERSION: '1.8.0'
       KTLINT_SHA256: 'a3fd620207d5c40da6ca789b95e7f823c54e854b7fade7f613e91096a3706d75'
+      RUBOCOP_VERSION: '1.90.0'
       OSV_SCANNER_VERSION: 'v2.3.1'
     strategy:
       fail-fast: false
@@ -304,6 +305,13 @@ jobs:
               gem install bundler-audit
               bundle-audit update
               bundle-audit check --no-update
+              if [ ! -f .rubocop.yml ]; then
+                echo "Generated SDK is missing .rubocop.yml"
+                exit 1
+              fi
+              gem install rubocop --version "${RUBOCOP_VERSION}"
+              rubocop --version
+              rubocop
               ;;
             node)
               npm ci
