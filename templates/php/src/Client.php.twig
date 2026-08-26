@@ -3,10 +3,15 @@
 declare(strict_types=1);
 
 namespace {{ namespace | caseNamespace }};
-{% if globalHeaders | hasBearerAuth %}
 
+{% if globalHeaders | hasBearerAuth %}
 use Ahc\Jwt\JWT;
 {% endif %}
+use Psr\Http\Client\ClientExceptionInterface;
+use Utopia\Client as HttpClient;
+use Utopia\Client\Adapter\Curl\Client as CurlAdapter;
+use Utopia\Psr7\Request\Factory as RequestFactory;
+use Utopia\Psr7\Request\Multipart\Part;
 
 class Client
 {
@@ -42,7 +47,6 @@ class Client
      *
      */
     protected array $headers = [
-        'content-type' => '',
         'user-agent' => '{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{deviceInfo}})',
         'x-sdk-name' => '{{ sdk.name }}',
         'x-sdk-platform' => '{{ sdk.platform }}',
@@ -89,10 +93,29 @@ class Client
     protected ?int $connectTimeout = null;
 
     /**
+     * Reused Utopia HTTP client (follows redirects).
+     *
+     */
+    protected ?HttpClient $httpClient = null;
+
+    /**
+     * Reused Utopia HTTP client that does not follow redirects.
+     *
+     */
+    protected ?HttpClient $httpClientNoRedirect = null;
+
+    /**
+     * PSR-7 request factory.
+     *
+     */
+    protected RequestFactory $requestFactory;
+
+    /**
      * Client constructor.
      */
     public function __construct()
     {
+        $this->requestFactory = new RequestFactory();
 {% for key,header in defaultHeaders %}
         $this->headers['{{key}}'] = '{{header}}';
 {% endfor %}
@@ -158,6 +181,7 @@ class Client
     public function setSelfSigned(bool $status = true): Client
     {
         $this->selfSigned = $status;
+        $this->resetHttpClient();
 
         return $this;
     }
@@ -171,6 +195,8 @@ class Client
         }
 
         $this->endpoint = $endpoint;
+        $this->resetHttpClient();
+
         return $this;
     }
 
@@ -181,6 +207,8 @@ class Client
     public function setTimeout(int $timeout): Client
     {
         $this->timeout = $timeout;
+        $this->resetHttpClient();
+
         return $this;
     }
 
@@ -191,6 +219,8 @@ class Client
     public function setConnectTimeout(int $connectTimeout): Client
     {
         $this->connectTimeout = $connectTimeout;
+        $this->resetHttpClient();
+
         return $this;
     }
 
@@ -226,7 +256,7 @@ class Client
         $jwt = new JWT($this->key, maxAge: self::JWT_MAX_AGE_SECONDS);
         $this->authorization = "Bearer {$jwt->encode([])}";
 
-        $this->authorizationExpiresAt = (new \DateTime())->modify('+' . (self::JWT_MAX_AGE_SECONDS - 5) . ' seconds');
+        $this->authorizationExpiresAt = new \DateTime()->modify('+' . (self::JWT_MAX_AGE_SECONDS - 5) . ' seconds');
 
         return $this->authorization;
     }
@@ -252,75 +282,57 @@ class Client
         }
 {% endif %}
         $headers = array_merge($this->headers, $headers);
-        $querySeparator = str_contains($path, '?') ? '&' : '?';
-        $ch = curl_init($this->endpoint . $path . (($method === self::METHOD_GET && $params !== []) ? $querySeparator . http_build_query($params) : ''));
-        $responseHeaders = [];
+        $contentType = strtolower((string) ($headers['content-type'] ?? ''));
+        if ($contentType === '') {
+            unset($headers['content-type']);
+        }
+        $uri = $this->endpoint . $path;
 
-        $query = match ($headers['content-type']) {
-            'application/json' => json_encode($this->prepareParams($params)),
-            'multipart/form-data' => $this->flatten($params),
-            default => http_build_query($params),
-        };
+        try {
+            $request = match (true) {
+                $method === self::METHOD_GET => $this->requestFactory->query(
+                    $method,
+                    $uri,
+                    $params,
+                    $headers
+                ),
+                $contentType === 'application/json' => $this->requestFactory->json(
+                    $method,
+                    $uri,
+                    $this->prepareParams($params),
+                    $headers
+                ),
+                $contentType === 'multipart/form-data' => $this->requestFactory->multipart(
+                    $method,
+                    $uri,
+                    $this->toMultipartParts($params),
+                    $headers
+                ),
+                default => $this->requestFactory->form(
+                    $method,
+                    $uri,
+                    $params,
+                    $headers
+                ),
+            };
 
-        $curlHeaders = [];
-        foreach ($headers as $name => $value) {
-            $curlHeaders[] = $name . ':' . $value;
+            $response = $this->getHttpClient($responseType !== 'location')->sendRequest($request);
+        } catch (ClientExceptionInterface|\JsonException $e) {
+            throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception($e->getMessage(), (int) $e->getCode());
         }
 
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, php_uname('s') . '-' . php_uname('r') . ':{{ language.name | caseLower }}-' . phpversion());
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $curlHeaders);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $responseType !== 'location');
-        curl_setopt($ch, CURLOPT_HEADERFUNCTION, function ($curl, string $header) use (&$responseHeaders): int {
-            $len = strlen($header);
-            $parts = explode(':', strtolower($header), 2);
+        $responseStatus = $response->getStatusCode();
+        $responseContentType = $response->getHeaderLine('content-type');
+        $responseBody = (string) $response->getBody();
 
-            if (count($parts) < 2) { // ignore invalid headers
-                return $len;
-            }
-
-            $responseHeaders[strtolower(trim($parts[0]))] = trim($parts[1]);
-
-            return $len;
-        });
-
-        if ($method !== self::METHOD_GET) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $query);
-        }
-
-        // Allow self signed certificates
-        if ($this->selfSigned) {
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        }
-
-        // Set timeout if configured
-        if ($this->timeout !== null) {
-            curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
-        }
-
-        // Set connect timeout if configured
-        if ($this->connectTimeout !== null) {
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->connectTimeout);
-        }
-
-        $responseBody   = curl_exec($ch);
-        $contentType    = $responseHeaders['content-type'] ?? '';
-        $responseStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        if ($responseBody === false) {
-            throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $responseStatus);
-        }
-
-        $warnings = $responseHeaders['x-{{spec.info.title | caseLower}}-warning'] ?? '';
+        $warnings = $response->getHeaderLine('x-{{spec.info.title | caseLower}}-warning');
         if ($warnings) {
             foreach (explode(';', $warnings) as $warning) {
                 \trigger_error($warning, E_USER_WARNING);
             }
         }
 
-        if (str_starts_with($contentType, 'application/json')) {
+        if (str_starts_with($responseContentType, 'application/json')) {
             $responseBody = json_decode($responseBody, true);
         }
 
@@ -332,7 +344,7 @@ class Client
         }
 
         if ($responseType === 'location') {
-            return $responseHeaders['location'];
+            return $response->getHeaderLine('location');
         }
 
         return $responseBody;
@@ -374,5 +386,83 @@ class Client
         }
 
         return $data;
+    }
+
+    /**
+     * Convert flattened params into Utopia multipart parts.
+     *
+     * @param array<array-key, mixed> $data
+     * @return array<array-key, scalar|Part>
+     */
+    protected function toMultipartParts(array $data): array
+    {
+        $parts = [];
+
+        foreach ($this->flatten($data) as $name => $value) {
+            $name = (string) $name;
+
+            if ($value instanceof Part) {
+                $parts[$name] = $value;
+                continue;
+            }
+
+            if ($value instanceof \CURLFile) {
+                $path = $value->getFilename();
+                $filename = $value->getPostFilename() !== '' ? $value->getPostFilename() : null;
+                $mimeType = $value->getMimeType() !== '' ? $value->getMimeType() : null;
+
+                if (is_file($path)) {
+                    $parts[$name] = Part::file($name, $path, $filename, $mimeType);
+                } else {
+                    $contents = @file_get_contents($path);
+                    $parts[$name] = Part::body($name, $contents === false ? '' : $contents, $filename, $mimeType);
+                }
+
+                continue;
+            }
+
+            $parts[$name] = $value;
+        }
+
+        return $parts;
+    }
+
+    protected function getHttpClient(bool $followRedirects): HttpClient
+    {
+        if ($followRedirects) {
+            return $this->httpClient ??= $this->createHttpClient(true);
+        }
+
+        return $this->httpClientNoRedirect ??= $this->createHttpClient(false);
+    }
+
+    protected function resetHttpClient(): void
+    {
+        $this->httpClient = null;
+        $this->httpClientNoRedirect = null;
+    }
+
+    protected function createHttpClient(bool $followRedirects): HttpClient
+    {
+        $adapter = new CurlAdapter(options: [
+            CURLOPT_TIMEOUT_MS => 0,
+            CURLOPT_USERAGENT => php_uname('s') . '-' . php_uname('r') . ':{{ language.name | caseLower }}-' . phpversion(),
+        ])->withConnectionReuse();
+
+        $client = new HttpClient($adapter)->withFollowRedirects($followRedirects);
+
+        if ($this->selfSigned) {
+            $client = $client->withSslVerification(false);
+        }
+
+        if ($this->timeout !== null) {
+            $client = $client->withTimeout($this->timeout);
+        }
+
+        if ($this->connectTimeout !== null) {
+            return $client->withConnectTimeout($this->connectTimeout);
+        }
+
+        return $client;
     }
 }
