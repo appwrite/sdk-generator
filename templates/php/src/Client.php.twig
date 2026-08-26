@@ -283,7 +283,7 @@ class Client
 {% endif %}
         $headers = array_merge($this->headers, $headers);
         $contentType = strtolower((string) ($headers['content-type'] ?? ''));
-        if ($contentType === '' || $contentType === 'multipart/form-data') {
+        if ($contentType === '') {
             unset($headers['content-type']);
         }
         $uri = $this->endpoint . $path;
