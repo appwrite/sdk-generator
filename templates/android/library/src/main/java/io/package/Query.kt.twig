@@ -1,7 +1,7 @@
 package {{ sdk.namespace | caseDot }}
 
-import {{ sdk.namespace | caseDot }}.extensions.toJson
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
+import {{ sdk.namespace | caseDot }}.extensions.toJson
 
 /**
  * Helper class to generate query strings.
@@ -198,7 +198,7 @@ class Query(
          * @returns The query string.
          */
         fun cursorAfter(documentId: String) = Query("cursorAfter", null, listOf(documentId)).toJson()
-        
+
         /**
          * Return only limit results.
          *

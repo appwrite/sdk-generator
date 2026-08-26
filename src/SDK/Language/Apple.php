@@ -36,6 +36,11 @@ class Apple extends Swift
                 'template'      => 'swift/LICENSE.twig',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => '.swift-format',
+                'template'      => 'swift/.swift-format',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'Package.swift',
                 'template'      => 'apple/Package.swift.twig',

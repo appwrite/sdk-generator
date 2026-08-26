@@ -1,6 +1,27 @@
+{% set usesUpload = false %}
+{% set usesModels = false %}
+{% set usesException = false %}
+{% set usesService = false %}
+{% for method in (service | operations) %}
+{% if 'multipart/form-data' in (method | consumes) %}{% set usesUpload = true %}{% endif %}
+{% if (method | methodType) == 'location' or (method | methodType) == 'webAuth' %}{% set usesService = true %}{% endif %}
+{% if 'Models.' in (method | getReturn(spec)) or 'Models.' in ((method | responseModel) | getGenerics(spec)) %}{% set usesModels = true %}{% endif %}
+{% for parameter in (method | parameters('all')) %}
+{% if parameter.required %}{% set usesException = true %}{% endif %}
+{% if 'Models.' in (parameter | getPropertyType(method, spec)) %}{% set usesModels = true %}{% endif %}
+{% endfor %}
+{% endfor %}
+{% set clientImports = [] %}
+{% if usesException %}{% set clientImports = clientImports | merge([(spec.info.title | caseUcfirst) ~ 'Exception']) %}{% endif %}
+{% set clientImports = clientImports | merge(['Client', 'type Payload']) %}
+{% if usesUpload %}{% set clientImports = clientImports | merge(['UploadProgress']) %}{% endif %}
+{% if usesService %}
 import { Service } from '../service';
-import { {{ spec.info.title | caseUcfirst}}Exception, Client, type Payload, UploadProgress } from '../client';
+{% endif %}
+{{ clientImports | jsImport('../client') | raw }}
+{% if usesModels %}
 import type { Models } from '../models';
+{% endif %}
 
 {% set added = [] %}
 {% for method in (service | operations) %}
@@ -13,7 +34,7 @@ import { {{ (parameter | enumName) | caseUcfirst }} } from '../enums/{{ (paramet
 {% endif %}
 {% endfor %}
 {% endfor %}
-
+{#- #}
 export class {{ service.name | caseUcfirst }} {
     client: Client;
 
@@ -24,7 +45,7 @@ export class {{ service.name | caseUcfirst }} {
     {%~ for method in (service | operations) %}
     /**
     {%~ if method.description %}
-     * {{ method.description | replace({'\n': '\n     * '}) | raw }}
+     * {{ method.description | replace({'\n': '\n     * '}) | trimLines | raw }}
     {%~ endif %}
      *
     {%~ for parameter in (method | parameters('all')) %}
@@ -41,10 +62,11 @@ export class {{ service.name | caseUcfirst }} {
     {%~ endif %}
      */
     {%~ if (method | parameters('all'))|length > 0 %}
-    {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}(params{% set hasRequiredParams = false %}{% for parameter in (method | parameters('all')) %}{% if parameter.required %}{% set hasRequiredParams = true %}{% endif %}{% endfor %}{% if not hasRequiredParams %}?{% endif %}: { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress?: (progress: UploadProgress) => void{% endif %} }): {{ method | getReturn(spec) | raw }};
+{% set hasRequiredParams = false %}{% for parameter in (method | parameters('all')) %}{% if parameter.required %}{% set hasRequiredParams = true %}{% endif %}{% endfor %}{% set objectParam %}params{% if not hasRequiredParams %}?{% endif %}: { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}; {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}; onProgress?: (progress: UploadProgress) => void{% endif %} }{% endset %}
+    {{ ((method | methodName) | caseCamel ~ ((method | responseModel) | getGenerics(spec))) | tsSignature([objectParam], (method | getReturn(spec)), 4, ';') | raw }}
     /**
      {%~ if method.description %}
-     * {{ method.description | replace({'\n': '\n     * '}) | raw }}
+     * {{ method.description | replace({'\n': '\n     * '}) | trimLines | raw }}
      {%~ endif %}
      *
      {%~ for parameter in (method | parameters('all')) %}
@@ -54,38 +76,51 @@ export class {{ service.name | caseUcfirst }} {
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
      * @deprecated Use the object parameter style method for a better developer experience.
      */
-    {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}({% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress?: (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }};
-    {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}(
-        {% if (method | parameters('all'))|length > 0 %}paramsOrFirst{% if not (method | parameters('all'))[0].required or ((method | parameters('all'))[0] | schemaNullable) %}?{% endif %}: { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress?: (progress: UploadProgress) => void{% endif %} } | {{ (method | parameters('all'))[0] | getPropertyType(method, spec) | raw }}{% if (method | parameters('all'))|length > 1 %},
-        ...rest: [{% for parameter in (method | parameters('all'))[1:] %}({{ parameter | getPropertyType(method, spec) | raw }})?{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %},((progress: UploadProgress) => void)?{% endif %}]{% endif %}{% endif %}
-    
-    ): {{ method | getReturn(spec) | raw }} {
+{% set positional = [] %}{% for parameter in (method | parameters('all')) %}{% set positional = positional|merge([(parameter.name | caseCamel | escapeKeyword) ~ ((not parameter.required or (parameter | schemaNullable)) ? '?' : '') ~ ': ' ~ (parameter | getPropertyType(method, spec))]) %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}{% set positional = positional|merge(['onProgress?: (progress: UploadProgress) => void']) %}{% endif %}
+    {{ ((method | methodName) | caseCamel ~ ((method | responseModel) | getGenerics(spec))) | tsSignature(positional, (method | getReturn(spec)), 4, ';') | raw }}
+{% set implParams = [] -%}
+{%- set allParams = method | parameters('all') -%}
+{%- if allParams|length > 0 -%}
+    {%- set firstParam = allParams[0] -%}
+    {%- set firstOptional = not firstParam.required or (firstParam | schemaNullable) -%}
+    {%- set objectType %}{ {% for parameter in allParams %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}; {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}; onProgress?: (progress: UploadProgress) => void{% endif %} }{% endset -%}
+    {%- set firstType = firstParam | getPropertyType(method, spec) -%}
+    {%- set implParams = implParams|merge(['paramsOrFirst' ~ (firstOptional ? '?' : '') ~ ': ' ~ objectType ~ ' | ' ~ firstType]) -%}
+    {%- if allParams|length > 1 -%}
+        {%- set restTuple %}...rest: [{% for parameter in allParams[1:] %}{{ (parameter | getPropertyType(method, spec)) | tsTupleElement | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, ((progress: UploadProgress) => void)?{% endif %}]{% endset -%}
+        {%- set implParams = implParams|merge([restTuple]) -%}
+    {%- endif -%}
+{%- endif %}
+    {{ ((method | methodName) | caseCamel ~ ((method | responseModel) | getGenerics(spec))) | tsSignature(implParams, (method | getReturn(spec)), 4, ' {') | raw }}
         {%~ if (method | parameters('all'))|length > 0 %}
-        let params: { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} };
+{% set membersBody %}{% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}; {% endif %}{% endfor %}{% endset %}
+        {{ 'let params: ' | tsObjectStatement(membersBody, ';', 8) | raw }}
         {%~ if 'multipart/form-data' in (method | consumes) %}
-        let onProgress: ((progress: UploadProgress) => void);
+        let onProgress: (progress: UploadProgress) => void;
         {%~ endif %}
-        
-        if ({{ method | getOverloadCondition(spec) | raw }}) {
-            params = (paramsOrFirst || {}) as { {% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} };
+
+        if (
+            {{ method | getOverloadCondition(spec) | raw }}
+        ) {
+            {{ 'params = (paramsOrFirst || {}) as ' | tsObjectStatement(membersBody, ';', 12) | raw }}
             {%~ if 'multipart/form-data' in (method | consumes) %}
-            onProgress = paramsOrFirst?.onProgress as ((progress: UploadProgress) => void);
+            onProgress = paramsOrFirst?.onProgress as (
+                progress: UploadProgress,
+            ) => void;
             {%~ endif %}
         } else {
             params = {
                 {%~ for parameter in (method | parameters('all')) %}
-                {{ parameter.name | caseCamel | escapeKeyword }}: {% if loop.index0 == 0 %}paramsOrFirst{% else %}rest[{{ loop.index0 - 1 }}]{% endif %} as {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %},
-{% endif %}
+                {{ ((parameter.name | caseCamel | escapeKeyword) ~ ': ' ~ (loop.index0 == 0 ? 'paramsOrFirst' : ('rest[' ~ (loop.index0 - 1) ~ ']')) ~ ' as') | tsAssignment((parameter | getPropertyType(method, spec)), 16) | raw }},
                 {%~ endfor %}
-            
             };
             {%~ if 'multipart/form-data' in (method | consumes) %}
-            onProgress = rest[{{ (method | parameters('all'))|length - 1 }}] as ((progress: UploadProgress) => void);
+            onProgress = rest[{{ (method | parameters('all'))|length - 1 }}] as (progress: UploadProgress) => void;
             {%~ endif %}
         }
-        
+
         {%~ for parameter in (method | parameters('all')) %}
-        const {{ parameter.name | caseCamel | escapeKeyword }} = params.{{ parameter.name | caseCamel | escapeKeyword }};
+        {{ ('const ' ~ (parameter.name | caseCamel | escapeKeyword)) | jsAssign(('params.' ~ (parameter.name | caseCamel | escapeKeyword)), 8) | raw }}
         {%~ endfor %}
 
         {%~ else %}
@@ -96,26 +131,27 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endif %}
         {%~ endif %}
     {%~ else %}
-    {{ (method | methodName) | caseCamel }}{{ (method | responseModel) | getGenerics(spec) | raw }}({% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress = (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }} {
+{% set bareParams = [] %}{% for parameter in (method | parameters('all')) %}{% set bareParams = bareParams|merge([(parameter.name | caseCamel | escapeKeyword) ~ ((not parameter.required or (parameter | schemaNullable)) ? '?' : '') ~ ': ' ~ (parameter | getPropertyType(method, spec))]) %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}{% set bareParams = bareParams|merge(['onProgress = (progress: UploadProgress) => void']) %}{% endif %}
+    {{ ((method | methodName) | caseCamel ~ ((method | responseModel) | getGenerics(spec))) | tsSignature(bareParams, (method | getReturn(spec)), 4, ' {') | raw }}
     {%~ endif %}
         {%~ for parameter in (method | parameters('all')) %}
         {%~ if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
-            throw new {{spec.info.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
+            {{ ('throw new ' ~ (spec.info.title | caseUcfirst) ~ 'Exception') | tsCall('\'Missing required parameter: "' ~ (parameter.name | caseCamel | escapeKeyword) ~ '"\'', ';', 12) | raw }}
         }
         {%~ endif %}
         {%~ endfor %}
-
-        const apiPath = '{{ method.path }}'{% for parameter in (method | parameters('path')) %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', encodeURIComponent(String({% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}this.client.config.{{ parameter.extensions['x-sdk-config'] | caseLower }}{% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}))){% endfor %};
+{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter.extensions['x-sdk-source']|default('')) == 'security') ? ('this.client.config.' ~ (parameter.extensions['x-sdk-config'] | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
+        {{ method.path | tsApiPath(pathReplacements, 8) | raw }}
         const payload: Payload = {};
         {%~ for parameter in (method | parameters('query')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            {{ ("payload['" ~ parameter.name ~ "']") | jsAssign((parameter.name | caseCamel | escapeKeyword), 12) | raw }}
         }
         {%~ endfor %}
         {%~ for parameter in (method | parameters('body')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            {{ ("payload['" ~ parameter.name ~ "']") | jsAssign((parameter.name | caseCamel | escapeKeyword), 12) | raw }}
         }
         {%~ endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
@@ -123,18 +159,20 @@ export class {{ service.name | caseUcfirst }} {
         uri.searchParams.append('{{ security.name }}', this.client.config.{{ security.name | caseLower }});
         {%~ endfor %}
 
+        {%~ if (method | methodType) != 'location' and (method | methodType) != 'webAuth' %}
         const apiHeaders: { [header: string]: string } = {
             {%~ for key, security in (method | securityHeaders) %}
-            '{{ security.name }}': this.client.config.{{ key | caseLower }},
+            {{ security.name | jsKey | raw }}: this.client.config.{{ key | caseLower }},
             {%~ endfor %}
             {%~ for parameter in (method | parameters('header')) %}
-            '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
+            {{ (parameter.name | caseCamel | escapeKeyword) | jsKey | raw }}: this.client.${{ parameter.name | caseCamel | escapeKeyword }},
             {%~ endfor %}
             {%~ for key, header in (method | methodHeaders) %}
-            '{{ key }}': '{{ header }}',
+            {{ key | jsKey | raw }}: '{{ header }}',
             {%~ endfor %}
-        }
+        };
 
+        {%~ endif %}
         {%~ if (method | methodType) == 'location' or (method | methodType) == 'webAuth' %}
         {%~ if [(method | securitySchemes)]|length > 0 %}
         {%~ for node in [(method | securitySchemes)] %}
@@ -147,7 +185,7 @@ export class {{ service.name | caseUcfirst }} {
         for (const [key, value] of Object.entries(Service.flatten(payload))) {
             uri.searchParams.append(key, value);
         }
-        
+
         {%~ endif %}
         {%~ if (method | methodType) == 'webAuth' %}
         if (typeof window !== 'undefined' && window?.location) {
@@ -164,15 +202,10 @@ export class {{ service.name | caseUcfirst }} {
             uri,
             apiHeaders,
             payload,
-            onProgress
+            onProgress,
         );
         {%~ else %}
-        return this.client.call(
-            '{{ method.method.value | caseLower }}',
-            uri,
-            apiHeaders,
-            payload
-        );
+        return this.client.call('{{ method.method.value | caseLower }}', uri, apiHeaders, payload);
         {%~ endif %}
     }
 {%~ if not loop.last %}

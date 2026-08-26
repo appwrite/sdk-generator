@@ -1,17 +1,21 @@
-import AsyncHTTPClient
-import Foundation
-import NIO
-import JSONCodable
 import {{spec.info.title | caseUcfirst}}Enums
 import {{spec.info.title | caseUcfirst}}Models
+import AsyncHTTPClient
+import Foundation
+import JSONCodable
+import NIO
 
-/// {{ service.description }}
+{%~ if service.description %}
+/// {{ service.description | trim }}
+{%~ else %}
+///
+{%~ endif %}
 open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
 
     {%~ for method in (service | operations) %}
     ///
     {%~ if method.description %}
-    {{~ method.description | wrap(75, '    /// ') }}
+    {{~ method.description | swiftDoc }}
     ///
     {%~ endif %}
     {%~ if (method | parameters('all')) | length > 0 %}
@@ -31,6 +35,9 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     @available(*, deprecated, message: "This API has been deprecated.")
     {%~ endif %}
     {%~ endif %}
+    {%~ if (method | parameters('all')) | length == 0 and 'multipart/form-data' not in (method | consumes) and not ((method | responseModel) | hasGenericType(spec)) %}
+    open func {{ (method | methodName) | caseCamel | overrideIdentifier }}() async throws -> {{ method | returnType(spec) | raw }} {
+    {%~ else %}
     open func {{ (method | methodName) | caseCamel | overrideIdentifier }}{% if (method | responseModel) | hasGenericType(spec) %}<T>{% endif %}(
         {%~ for parameter in (method | parameters('all')) %}
         {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or (parameter | schemaNullable) %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in (method | consumes) or (method | responseModel) | hasGenericType(spec) %},{% endif %}
@@ -43,6 +50,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         onProgress: ((UploadProgress) -> Void)? = nil
         {%~ endif %}
     ) async throws -> {{ method | returnType(spec) | raw }} {
+    {%~ endif %}
         {{~ include('swift/base/params.twig') }}
         {%~ if (method | methodHeaders) | length <= 0 and (method | securityHeaders) | length <= 0 %}
         let apiHeaders: [String: String] = [:]
@@ -51,11 +59,11 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {%- else -%} let
         {%- endif %} apiHeaders: [String: String] = [
         {%~ for key, security in (method | securityHeaders) %}
-            "{{ security.name }}": client.config["{{ key | caseCamel }}"] ?? ""{% if not loop.last or (method | methodHeaders) | length > 0 %},{% endif %}
+            "{{ security.name }}": client.config["{{ key | caseCamel }}"] ?? ""{% if not loop.last or (method | methodHeaders) | length > 0 or (method | securityHeaders) | length > 1 %},{% endif %}
 
         {%~ endfor %}
         {%~ for key, header in (method | methodHeaders) %}
-            "{{ key }}": "{{ header }}"{% if not loop.last %},{% endif %}
+            "{{ key }}": "{{ header }}"{% if not loop.last or ((method | securityHeaders) | length + (method | methodHeaders) | length) > 1 %},{% endif %}
 
         {%~ endfor %}
         ]
@@ -103,7 +111,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
 
     ///
     {%~ if method.description %}
-    {{~ method.description | wrap(75, '    /// ') }}
+    {{~ method.description | swiftDoc }}
     ///
     {%~ endif %}
     {%~ if (method | parameters('all')) | length > 0 %}
@@ -123,6 +131,9 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     @available(*, deprecated, message: "This API has been deprecated.")
     {%~ endif %}
     {%~ endif %}
+    {%~ if (method | parameters('all')) | length == 0 and 'multipart/form-data' not in (method | consumes) %}
+    open func {{ (method | methodName) | caseCamel }}() async throws -> {{ method | returnType(spec, '[String: AnyCodable]') | raw }} {
+    {%~ else %}
     open func {{ (method | methodName) | caseCamel }}(
         {%~ for parameter in (method | parameters('all')) %}
         {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or (parameter | schemaNullable) %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in (method | consumes) %},{% endif %}
@@ -132,6 +143,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         onProgress: ((UploadProgress) -> Void)? = nil
         {%~ endif %}
     ) async throws -> {{ method | returnType(spec, '[String: AnyCodable]') | raw }} {
+    {%~ endif %}
         return try await {{ (method | methodName) | caseCamel }}(
             {%~ for parameter in (method | parameters('all')) %}
             {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter.name | caseCamel | escapeSwiftKeyword }},
@@ -143,7 +155,5 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         )
     }
     {%~ endif %}
-
 {% endfor %}
-
 }

@@ -11,10 +11,10 @@ namespace {{ spec.info.title | caseUcfirst }}
     {
         [JsonPropertyName("method")]
         public string Method { get; set; } = string.Empty;
-        
+
         [JsonPropertyName("attribute")]
         public string? Attribute { get; set; }
-        
+
         [JsonPropertyName("values")]
         public List<object>? Values { get; set; }
 
@@ -157,27 +157,33 @@ namespace {{ spec.info.title | caseUcfirst }}
             return new Query("cursorAfter", null, documentId).ToString();
         }
 
-        public static string CursorBefore(string documentId) {
+        public static string CursorBefore(string documentId)
+        {
             return new Query("cursorBefore", null, documentId).ToString();
         }
 
-        public static string OrderAsc(string attribute) {
+        public static string OrderAsc(string attribute)
+        {
             return new Query("orderAsc", attribute, null).ToString();
         }
 
-        public static string OrderDesc(string attribute) {
+        public static string OrderDesc(string attribute)
+        {
             return new Query("orderDesc", attribute, null).ToString();
         }
 
-        public static string OrderRandom() {
+        public static string OrderRandom()
+        {
             return new Query("orderRandom", null, null).ToString();
         }
 
-        public static string Limit(int limit) {
+        public static string Limit(int limit)
+        {
             return new Query("limit", null, limit).ToString();
         }
 
-        public static string Offset(int offset) {
+        public static string Offset(int offset)
+        {
             return new Query("offset", null, offset).ToString();
         }
 
@@ -186,7 +192,8 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// For string attributes, checks if the string contains the substring.
         /// </summary>
         /// <remarks>For array attributes, use <see cref="ContainsAny"/> or <see cref="ContainsAll"/> instead.</remarks>
-        public static string Contains(string attribute, object value) {
+        public static string Contains(string attribute, object value)
+        {
             return new Query("contains", attribute, value).ToString();
         }
 
@@ -195,7 +202,8 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// For array and relationship attributes, matches documents where the attribute
         /// contains at least one of the given values.
         /// </summary>
-        public static string ContainsAny(string attribute, IList value) {
+        public static string ContainsAny(string attribute, IList value)
+        {
             return new Query("containsAny", attribute, value).ToString();
         }
 
@@ -204,67 +212,83 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// For array and relationship attributes, matches documents where the attribute
         /// contains every one of the given values.
         /// </summary>
-        public static string ContainsAll(string attribute, IList value) {
+        public static string ContainsAll(string attribute, IList value)
+        {
             return new Query("containsAll", attribute, value).ToString();
         }
 
-        public static string NotContains(string attribute, object value) {
+        public static string NotContains(string attribute, object value)
+        {
             return new Query("notContains", attribute, value).ToString();
         }
 
-        public static string NotSearch(string attribute, string value) {
+        public static string NotSearch(string attribute, string value)
+        {
             return new Query("notSearch", attribute, value).ToString();
         }
 
-        public static string NotBetween(string attribute, string start, string end) {
+        public static string NotBetween(string attribute, string start, string end)
+        {
             return new Query("notBetween", attribute, new List<string> { start, end }).ToString();
         }
 
-        public static string NotBetween(string attribute, int start, int end) {
+        public static string NotBetween(string attribute, int start, int end)
+        {
             return new Query("notBetween", attribute, new List<int> { start, end }).ToString();
         }
 
-        public static string NotBetween(string attribute, double start, double end) {
+        public static string NotBetween(string attribute, double start, double end)
+        {
             return new Query("notBetween", attribute, new List<double> { start, end }).ToString();
         }
 
-        public static string NotStartsWith(string attribute, string value) {
+        public static string NotStartsWith(string attribute, string value)
+        {
             return new Query("notStartsWith", attribute, value).ToString();
         }
 
-        public static string NotEndsWith(string attribute, string value) {
+        public static string NotEndsWith(string attribute, string value)
+        {
             return new Query("notEndsWith", attribute, value).ToString();
         }
 
-        public static string CreatedBefore(string value) {
+        public static string CreatedBefore(string value)
+        {
             return LessThan("$createdAt", value);
         }
 
-        public static string CreatedAfter(string value) {
+        public static string CreatedAfter(string value)
+        {
             return GreaterThan("$createdAt", value);
         }
 
-        public static string CreatedBetween(string start, string end) {
+        public static string CreatedBetween(string start, string end)
+        {
             return Between("$createdAt", start, end);
         }
 
-        public static string UpdatedBefore(string value) {
+        public static string UpdatedBefore(string value)
+        {
             return LessThan("$updatedAt", value);
         }
 
-        public static string UpdatedAfter(string value) {
+        public static string UpdatedAfter(string value)
+        {
             return GreaterThan("$updatedAt", value);
         }
 
-        public static string UpdatedBetween(string start, string end) {
+        public static string UpdatedBetween(string start, string end)
+        {
             return Between("$updatedAt", start, end);
         }
 
-        public static string Or(List<string> queries) {
+        public static string Or(List<string> queries)
+        {
             return new Query("or", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
         }
 
-        public static string And(List<string> queries) {
+        public static string And(List<string> queries)
+        {
             return new Query("and", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
         }
 
@@ -274,7 +298,8 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// <param name="attribute">The attribute containing the array to filter on.</param>
         /// <param name="queries">The list of query strings to match against array elements.</param>
         /// <returns>The query string.</returns>
-        public static string ElemMatch(string attribute, List<string> queries) {
+        public static string ElemMatch(string attribute, List<string> queries)
+        {
             var parsed = queries
                 .Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions) as object)
                 .ToList();

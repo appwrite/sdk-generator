@@ -19,7 +19,7 @@ class Role {
          * You can optionally pass verified or unverified for
          * [status] to target specific types of users.
          */
-        fun user(id: String, status: String = ""): String = if(status.isEmpty()) {
+        fun user(id: String, status: String = ""): String = if (status.isEmpty()) {
             "user:$id"
         } else {
             "user:$id/$status"
@@ -31,7 +31,7 @@ class Role {
          * You can optionally pass verified or unverified for
          * [status] to target specific types of users.
          */
-        fun users(status: String = ""): String = if(status.isEmpty()) {
+        fun users(status: String = ""): String = if (status.isEmpty()) {
             "users"
         } else {
             "users/$status"
@@ -50,7 +50,7 @@ class Role {
          * You can optionally pass a role for [role] to target
          * team members with the specified role.
          */
-        fun team(id: String, role: String = ""): String = if(role.isEmpty()) {
+        fun team(id: String, role: String = ""): String = if (role.isEmpty()) {
             "team:$id"
         } else {
             "team:$id/$role"

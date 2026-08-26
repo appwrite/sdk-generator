@@ -1,12 +1,13 @@
+import Dispatch
 import Foundation
 import NIO
-#if canImport(NIOFoundationCompat)
-import NIOFoundationCompat
-#endif
 import NIOHTTP1
-import NIOWebSocket
-import Dispatch
 import NIOSSL
+import NIOWebSocket
+
+#if canImport(NIOFoundationCompat)
+    import NIOFoundationCompat
+#endif
 
 public let WEBSOCKET_LOCKER_QUEUE = "SyncLocker"
 public let WEBSOCKET_THREAD_QUEUE = "ThreadLocker"
@@ -60,9 +61,9 @@ public class WebSocketClient {
     public var isConnected: Bool {
         channel?.isActive ?? false
     }
-    
+
     // MARK: - Stored callbacks
-    
+
     private var _openCallback: (NIOCore.Channel) -> Void = { _ in }
     var onOpen: (NIOCore.Channel) -> Void {
         get {
@@ -76,8 +77,8 @@ public class WebSocketClient {
             }
         }
     }
-    
-    private var _closeCallback: (NIOCore.Channel, Data) -> Void = { _,_ in }
+
+    private var _closeCallback: (NIOCore.Channel, Data) -> Void = { _, _ in }
     var onClose: (NIOCore.Channel, Data) -> Void {
         get {
             return locker.sync {
@@ -104,7 +105,7 @@ public class WebSocketClient {
             }
         }
     }
-    
+
     private var _binaryCallback: (Data) -> Void = { _ in }
     var onBinaryMessage: (Data) -> Void {
         get {
@@ -118,8 +119,8 @@ public class WebSocketClient {
             }
         }
     }
-    
-    private var _errorCallBack: (Swift.Error?, HTTPResponseStatus?) -> Void = { _,_ in }
+
+    private var _errorCallBack: (Swift.Error?, HTTPResponseStatus?) -> Void = { _, _ in }
     var onError: (Swift.Error?, HTTPResponseStatus?) -> Void {
         get {
             return locker.sync {
@@ -132,9 +133,9 @@ public class WebSocketClient {
             }
         }
     }
-    
+
     // MARK: - Callback setters
-    
+
     /// Set a callback to be fired when a WebSocket connection is opened.
     ///
     /// - parameters:
@@ -142,7 +143,7 @@ public class WebSocketClient {
     public func onOpen(_ callback: @escaping (NIOCore.Channel) -> Void) {
         onOpen = callback
     }
-    
+
     /// Set a callback to be fired when a WebSocket text message is received.
     ///
     /// - parameters:
@@ -174,9 +175,9 @@ public class WebSocketClient {
     public func onError(_ callback: @escaping (Swift.Error?, HTTPResponseStatus?) -> Void) {
         onError = callback
     }
-    
+
     // MARK: - Constructors
-    
+
     /// Create a new `WebSocketClient`.
     ///
     /// - parameters:
@@ -249,7 +250,7 @@ public class WebSocketClient {
             SO_REUSEPORT
         )
 
-        while(threadGroup == nil) {
+        while threadGroup == nil {
             try? await Task.sleep(nanoseconds: 10_000_000)
         }
 
@@ -259,8 +260,9 @@ public class WebSocketClient {
                 self.openChannel(channel: $0)
             }
 
-        _ = try await bootstrap
-            .connect(host: self.host,port: self.port)
+        _ =
+            try await bootstrap
+            .connect(host: self.host, port: self.port)
             .get()
     }
 
@@ -274,16 +276,20 @@ public class WebSocketClient {
             }
         )
 
-        let config: NIOHTTPClientUpgradeConfiguration = (upgraders: [basicUpgrader], completionHandler: { context in
-            context.channel.pipeline.removeHandler(httpHandler, promise: nil)
-        })
+        let config: NIOHTTPClientUpgradeConfiguration = (
+            upgraders: [basicUpgrader],
+            completionHandler: { context in
+                context.channel.pipeline.removeHandler(httpHandler, promise: nil)
+            }
+        )
 
         return channel.pipeline.addHTTPClientHandlers(withClientUpgrade: config).flatMap { _ in
             return channel.pipeline.addHandler(httpHandler).flatMap { _ in
                 if self.tlsEnabled {
                     let tlsConfig = TLSConfiguration.makeClientConfiguration()
                     let sslContext = try! NIOSSLContext(configuration: tlsConfig)
-                    let sslHandler = try! NIOSSLClientHandler(context: sslContext, serverHostname: self.host)
+                    let sslHandler = try! NIOSSLClientHandler(
+                        context: sslContext, serverHostname: self.host)
                     return channel.pipeline.addHandler(sslHandler, position: .first)
                 } else {
                     return channel.eventLoop.makeSucceededFuture(())
@@ -292,7 +298,9 @@ public class WebSocketClient {
         }
     }
 
-    private func upgradePipelineHandler(channel: NIOCore.Channel, response: HTTPResponseHead) -> EventLoopFuture<Void> {
+    private func upgradePipelineHandler(channel: NIOCore.Channel, response: HTTPResponseHead)
+        -> EventLoopFuture<Void>
+    {
         let handler = MessageHandler(client: self)
 
         if response.status == .switchingProtocols {

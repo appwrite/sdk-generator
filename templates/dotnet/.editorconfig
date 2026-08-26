@@ -1,0 +1,19 @@
+# EditorConfig for the generated .NET and Unity SDKs.
+# `dotnet format whitespace` is the canonical formatter; this file records the
+# layout that a clean generation must already match.
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.cs]
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_indent_preprocessor_directives = false

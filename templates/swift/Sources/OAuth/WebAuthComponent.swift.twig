@@ -3,7 +3,7 @@ import Foundation
 import NIO
 
 #if canImport(AuthenticationServices)
-import AuthenticationServices
+    import AuthenticationServices
 #endif
 
 ///
@@ -15,7 +15,7 @@ public class WebAuthComponent {
 
     private static var callbacks = [String: (Result<String, {{ spec.info.title | caseUcfirst}}Error>) -> Void]()
     #if canImport(AuthenticationServices)
-    private static var currentAuthSession: ASWebAuthenticationSession?
+        private static var currentAuthSession: ASWebAuthenticationSession?
     #endif
 
     ///
@@ -40,7 +40,7 @@ public class WebAuthComponent {
         callbacks[callbackScheme] = onComplete
 
         #if canImport(AuthenticationServices)
-        currentAuthSession = ASWebAuthenticationSession(
+            currentAuthSession = ASWebAuthenticationSession(
                 url: url,
                 callbackURLScheme: callbackScheme
             ) { callbackURL, error in
@@ -53,14 +53,14 @@ public class WebAuthComponent {
                 }
             }
 
-        if let session = currentAuthSession {
-            /// Indicates that the session should be a private session.
-            session.prefersEphemeralWebBrowserSession = true
-            session.presentationContextProvider = PresentationContextProvider.shared
-            session.start()
-        } else {
-            print("Failed to create ASWebAuthenticationSession")
-        }
+            if let session = currentAuthSession {
+                /// Indicates that the session should be a private session.
+                session.prefersEphemeralWebBrowserSession = true
+                session.presentationContextProvider = PresentationContextProvider.shared
+                session.start()
+            } else {
+                print("Failed to create ASWebAuthenticationSession")
+            }
         #endif
     }
 
@@ -73,20 +73,23 @@ public class WebAuthComponent {
     public static func handleIncomingCookie(from url: URL) {
 
         guard let components = URLComponents(string: url.absoluteString),
-            let queryItems = components.queryItems else {
+            let queryItems = components.queryItems
+        else {
             return
         }
-        
-        let cookieParts = [String: String](uniqueKeysWithValues: queryItems.compactMap { item in
-            item.value.map { (item.name, $0) }
-        })
+
+        let cookieParts = [String: String](
+            uniqueKeysWithValues: queryItems.compactMap { item in
+                item.value.map { (item.name, $0) }
+            })
 
         guard var domain = cookieParts["domain"],
-              let key = cookieParts["key"],
-              let secret = cookieParts["secret"] else {
+            let key = cookieParts["key"],
+            let secret = cookieParts["secret"]
+        else {
             return
         }
-    
+
         domain.remove(at: domain.startIndex)
 
         let path: String? = cookieParts["path"]
@@ -150,22 +153,22 @@ public class WebAuthComponent {
         }
 
         #if canImport(AuthenticationServices)
-        currentAuthSession = nil
+            currentAuthSession = nil
         #endif
     }
 }
 
 #if canImport(AuthenticationServices)
-/// Presentation context for the ASWebAuthenticationSession.
-class PresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
-    static let shared = PresentationContextProvider()
+    /// Presentation context for the ASWebAuthenticationSession.
+    class PresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+        static let shared = PresentationContextProvider()
 
-    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        if let mainWindow = OSApplication.shared.windows.first(where: { $0.isKeyWindow }) {
-            return mainWindow
+        func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+            if let mainWindow = OSApplication.shared.windows.first(where: { $0.isKeyWindow }) {
+                return mainWindow
+            }
+
+            return ASPresentationAnchor()
         }
-
-        return ASPresentationAnchor()
     }
-}
 #endif

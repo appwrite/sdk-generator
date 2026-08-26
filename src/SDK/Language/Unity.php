@@ -53,6 +53,11 @@ class Unity extends DotNet
     {
         $files = [
             [
+                'scope'         => 'copy',
+                'destination'   => '.editorconfig',
+                'template'      => 'dotnet/.editorconfig',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'unity/CHANGELOG.md.twig',

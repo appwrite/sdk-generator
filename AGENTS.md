@@ -16,7 +16,8 @@ The generator does not auto-discover templates. Every output file must have an e
 
 | Parent | Children affected |
 |--------|------------------|
-| `Node` | `ReactNative` |
+| `JS` | `Web`, `Deno` |
+| `Web` | `Node`, `ReactNative` |
 | `Dart` | `Flutter` |
 | `Swift` | `Apple` |
 | `Kotlin` | `Android` |
@@ -60,51 +61,145 @@ The script strips Twig expressions before running `npm install`, then restores t
 
 ### Rule 7: Generated source must already be formatter-clean
 
-Keep Go templates accurate enough that their generated `.go` files are already `gofmt`-clean, Dart/Flutter templates accurate enough that their generated `.dart` files are already `dart format`-clean, Python templates accurate enough that their generated `.py` files are already Black-clean, and PHP templates accurate enough that their generated `.php` files pass Pint, PHPStan, and Rector checks. Do not add a post-generation formatting step or run a formatter to fix generated output in place—the fix belongs in the Twig template.
+A clean generation must already match the target formatter. Do not add a post-generation formatting step or run a formatter to fix generated output in place—the fix belongs in the Twig template.
 
-After changing Go templates, regenerate the affected platform and verify formatting:
+When you change templates for a language below, regenerate and run that language's check. Child SDKs inherit parent templates — regenerate those too.
 
-```bash
-php example.php go <platform>
-test -z "$(gofmt -l examples/go)"
-```
+- **Go / CLI** — `gofmt`
 
-Because `CLI` inherits from `Go`, regenerate it after shared Go template changes and verify its generated Go files too.
+  ```bash
+  php example.php go <platform>
+  test -z "$(gofmt -l examples/go)"
+  ```
 
-After changing Dart templates, regenerate the affected platform and verify formatting:
+  `CLI` inherits from `Go`. After shared Go template changes:
 
-```bash
-rm -rf examples/dart examples/flutter
-php example.php dart <platform>
-(cd examples/dart && dart pub get)
-dart format --output=none --set-exit-if-changed examples/dart
-```
+  ```bash
+  php example.php cli
+  test -z "$(gofmt -l examples/cli)"
+  ```
 
-Because `Flutter` inherits from `Dart`, regenerate it after shared Dart template changes and verify its generated Dart files too:
+- **Dart / Flutter** — `dart format`
 
-```bash
-php example.php flutter client
-(cd examples/flutter && flutter pub get)
-dart format --output=none --set-exit-if-changed examples/flutter
-```
+  ```bash
+  rm -rf examples/dart examples/flutter
+  php example.php dart <platform>
+  (cd examples/dart && dart pub get)
+  dart format --output=none --set-exit-if-changed examples/dart
+  ```
 
-After changing Python templates, regenerate the SDK and check every generated source and test file explicitly because `examples/` is gitignored:
+  `Flutter` inherits from `Dart`. After shared Dart template changes:
 
-```bash
-rm -rf examples/python
-php example.php python <platform>
-(cd examples/python && find appwrite test -name '*.py' -print0 | xargs -0 python -m black --check)
-(cd examples/python && python -m black --check setup.py)
-```
+  ```bash
+  php example.php flutter client
+  (cd examples/flutter && flutter pub get)
+  dart format --output=none --set-exit-if-changed examples/flutter
+  ```
 
-After changing PHP templates, regenerate from a clean output directory and verify the generated source and tests:
+- **Kotlin / Android** — ktlint 1.8.0 (`ktlint_official`)
 
-```bash
-rm -rf examples/php
-php example.php php server
-(cd examples/php && composer install)
-(cd examples/php && composer lint && composer analyse && composer refactor)
-```
+  ```bash
+  rm -rf examples/kotlin examples/android
+  php example.php kotlin server
+  (cd examples/kotlin && ktlint '**/*.kt' '**/*.kts')
+  ```
+
+  `Android` inherits from `Kotlin`. After shared Kotlin template changes:
+
+  ```bash
+  php example.php android client
+  (cd examples/android && ktlint '**/*.kt' '**/*.kts')
+  ```
+
+- **Python** — Black
+
+  ```bash
+  rm -rf examples/python
+  php example.php python <platform>
+  (cd examples/python && find appwrite test -name '*.py' -print0 | xargs -0 python -m black --check)
+  (cd examples/python && python -m black --check setup.py)
+  ```
+
+- **Ruby** — RuboCop 1.90.0 (Layout cops, 4-space indent)
+
+  ```bash
+  rm -rf examples/ruby
+  php example.php ruby server
+  (cd examples/ruby && rubocop)
+  ```
+
+- **PHP** — Pint, PHPStan, and Rector
+
+  ```bash
+  rm -rf examples/php
+  php example.php php server
+  (cd examples/php && composer install)
+  (cd examples/php && composer lint && composer analyse && composer refactor)
+  ```
+
+- **Rust** — rustfmt 1.83.0
+
+  ```bash
+  rm -rf examples/rust
+  php example.php rust server
+  (cd examples/rust && cargo +1.83.0 fmt --check --all)
+  ```
+
+- **C# / Unity** — `dotnet format whitespace` (4-space indent)
+
+  ```bash
+  rm -rf examples/dotnet examples/unity
+  php example.php dotnet server
+  (cd examples/dotnet && dotnet format whitespace --folder --verify-no-changes)
+  ```
+
+  `Unity` inherits from `DotNet` and reuses several `templates/dotnet/Package/**` files. After shared .NET template changes:
+
+  ```bash
+  php example.php unity client
+  (cd examples/unity && dotnet format whitespace --folder --verify-no-changes)
+  ```
+
+- **Swift / Apple** — swift-format 6.1 (4-space indent, lineLength 200)
+
+  ```bash
+  rm -rf examples/swift examples/apple
+  php example.php swift server
+  (cd examples/swift && swift-format lint --recursive --strict --configuration .swift-format .)
+  ```
+
+  `Apple` inherits from `Swift`. After shared Swift template changes:
+
+  ```bash
+  php example.php apple client
+  (cd examples/apple && swift-format lint --recursive --strict --configuration .swift-format .)
+  ```
+
+- **Web / Node / React Native** — Prettier, ESLint, and tsc
+
+  ```bash
+  rm -rf examples/web
+  php example.php web <platform>
+  (cd examples/web && npm ci && npm run format:check && npm run lint && npm run analyse)
+  ```
+
+  Prettier's layout depends on the print width, so a template cannot always know
+  whether a construct fits on one line. `src/SDK/Language/Web.php` and
+  `src/SDK/Language/JS.php` render the width-sensitive constructs (method
+  signatures, union and conditional types, guards, assignments) through helpers
+  exposed as Twig filters. Extend those helpers rather than hand-wrapping output
+  in a template.
+
+  `Node` and `ReactNative` read several `templates/web/src/**` files directly,
+  and both ship the same checks. After shared Web template changes:
+
+  ```bash
+  php example.php node server
+  (cd examples/node && npm ci && npm run format:check && npm run lint && npm run analyse && npm run test)
+
+  php example.php react-native client
+  (cd examples/react-native && npm ci --omit=peer && npm run format:check && npm run lint && npm run analyse)
+  ```
 
 ## Repository at a Glance
 

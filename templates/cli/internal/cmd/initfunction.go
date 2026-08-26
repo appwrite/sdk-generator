@@ -573,15 +573,23 @@ func runInitFunction(command *cobra.Command, options initFunctionOptions) error 
 	defer os.RemoveAll(templatesDir)
 
 	repositoryURL := fmt.Sprintf("https://github.com/%s/%s", template.Owner, template.Repository)
-	clone := fmt.Sprintf("git clone --single-branch --depth 1 --sparse %s .", repositoryURL)
+	cloneArguments := []string{"clone", "--single-branch", "--depth", "1"}
 	if template.Reference != "" {
-		clone = fmt.Sprintf("git clone --single-branch --depth 1 --branch %s --sparse %s .",
-			template.Reference, repositoryURL)
+		reference := template.Reference
+		if template.ReferenceType == "tag" {
+			reference, err = resolveGitTag(templatesDir, repositoryURL, reference)
+			if err != nil {
+				return err
+			}
+		}
+		cloneArguments = append(cloneArguments, "--branch", reference)
 	}
-	if err := runGit(templatesDir, clone); err != nil {
+	cloneArguments = append(cloneArguments, "--sparse", repositoryURL, ".")
+	if err := runGitCommand(templatesDir, cloneArguments...); err != nil {
 		return err
 	}
-	if err := runGit(templatesDir, "git sparse-checkout add "+template.RootDirectory); err != nil {
+	if err := runGitCommand(templatesDir, "sparse-checkout", "add",
+		template.RootDirectory); err != nil {
 		return err
 	}
 	if err := os.RemoveAll(filepath.Join(templatesDir, ".git")); err != nil {

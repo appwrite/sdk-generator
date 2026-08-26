@@ -33,27 +33,51 @@ impl Query {
     }
 
     pub fn equal<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("equal".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "equal".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn not_equal<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("notEqual".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "notEqual".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn less_than<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("lessThan".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "lessThan".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn less_than_equal<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("lessThanEqual".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "lessThanEqual".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn greater_than<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("greaterThan".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "greaterThan".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn greater_than_equal<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("greaterThanEqual".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "greaterThanEqual".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn is_null<S: Into<String>>(attribute: S) -> Self {
@@ -65,28 +89,51 @@ impl Query {
     }
 
     pub fn between<S: Into<String>, V: Into<Value>>(attribute: S, start: V, end: V) -> Self {
-        Self::new("between".to_string(), Some(attribute.into()), vec![start.into(), end.into()])
+        Self::new(
+            "between".to_string(),
+            Some(attribute.into()),
+            vec![start.into(), end.into()],
+        )
     }
 
     pub fn starts_with<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("startsWith".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "startsWith".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn ends_with<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("endsWith".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "endsWith".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn select<I: IntoIterator<Item = S>, S: Into<String>>(attributes: I) -> Self {
-        let values: Vec<Value> = attributes.into_iter().map(|s| Value::String(s.into())).collect();
+        let values: Vec<Value> = attributes
+            .into_iter()
+            .map(|s| Value::String(s.into()))
+            .collect();
         Self::new("select".to_string(), None, values)
     }
 
     pub fn search<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("search".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "search".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn not_search<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("notSearch".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "notSearch".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn order_asc<S: Into<String>>(attribute: S) -> Self {
@@ -102,11 +149,19 @@ impl Query {
     }
 
     pub fn cursor_after<S: Into<String>>(document_id: S) -> Self {
-        Self::new("cursorAfter".to_string(), None, vec![Value::String(document_id.into())])
+        Self::new(
+            "cursorAfter".to_string(),
+            None,
+            vec![Value::String(document_id.into())],
+        )
     }
 
     pub fn cursor_before<S: Into<String>>(document_id: S) -> Self {
-        Self::new("cursorBefore".to_string(), None, vec![Value::String(document_id.into())])
+        Self::new(
+            "cursorBefore".to_string(),
+            None,
+            vec![Value::String(document_id.into())],
+        )
     }
 
     pub fn limit(value: u32) -> Self {
@@ -114,35 +169,67 @@ impl Query {
     }
 
     pub fn offset(value: u32) -> Self {
-        Self::new("offset".to_string(), None, vec![Value::Number(value.into())])
+        Self::new(
+            "offset".to_string(),
+            None,
+            vec![Value::Number(value.into())],
+        )
     }
 
     pub fn contains<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("contains".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "contains".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn contains_any<S: Into<String>, V: Into<Value>>(attribute: S, values: Vec<V>) -> Self {
-        Self::new("containsAny".to_string(), Some(attribute.into()), values.into_iter().map(|v| v.into()).collect())
+        Self::new(
+            "containsAny".to_string(),
+            Some(attribute.into()),
+            values.into_iter().map(|v| v.into()).collect(),
+        )
     }
 
     pub fn contains_all<S: Into<String>, V: Into<Value>>(attribute: S, values: Vec<V>) -> Self {
-        Self::new("containsAll".to_string(), Some(attribute.into()), values.into_iter().map(|v| v.into()).collect())
+        Self::new(
+            "containsAll".to_string(),
+            Some(attribute.into()),
+            values.into_iter().map(|v| v.into()).collect(),
+        )
     }
 
     pub fn not_contains<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("notContains".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "notContains".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn not_between<S: Into<String>, V: Into<Value>>(attribute: S, start: V, end: V) -> Self {
-        Self::new("notBetween".to_string(), Some(attribute.into()), vec![start.into(), end.into()])
+        Self::new(
+            "notBetween".to_string(),
+            Some(attribute.into()),
+            vec![start.into(), end.into()],
+        )
     }
 
     pub fn not_starts_with<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("notStartsWith".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "notStartsWith".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn not_ends_with<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("notEndsWith".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "notEndsWith".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn created_before<V: Into<Value>>(value: V) -> Self {
@@ -169,68 +256,148 @@ impl Query {
         Self::between("$updatedAt", start, end)
     }
 
-    pub fn distance_equal<S: Into<String>, V: Into<Value>>(attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
+    pub fn distance_equal<S: Into<String>, V: Into<Value>>(
+        attribute: S,
+        values: V,
+        distance: impl Into<Value>,
+        meters: bool,
+    ) -> Self {
         let params = Value::Array(vec![values.into(), distance.into(), Value::Bool(meters)]);
-        Self::new("distanceEqual".to_string(), Some(attribute.into()), vec![params])
+        Self::new(
+            "distanceEqual".to_string(),
+            Some(attribute.into()),
+            vec![params],
+        )
     }
 
-    pub fn distance_not_equal<S: Into<String>, V: Into<Value>>(attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
+    pub fn distance_not_equal<S: Into<String>, V: Into<Value>>(
+        attribute: S,
+        values: V,
+        distance: impl Into<Value>,
+        meters: bool,
+    ) -> Self {
         let params = Value::Array(vec![values.into(), distance.into(), Value::Bool(meters)]);
-        Self::new("distanceNotEqual".to_string(), Some(attribute.into()), vec![params])
+        Self::new(
+            "distanceNotEqual".to_string(),
+            Some(attribute.into()),
+            vec![params],
+        )
     }
 
-    pub fn distance_greater_than<S: Into<String>, V: Into<Value>>(attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
+    pub fn distance_greater_than<S: Into<String>, V: Into<Value>>(
+        attribute: S,
+        values: V,
+        distance: impl Into<Value>,
+        meters: bool,
+    ) -> Self {
         let params = Value::Array(vec![values.into(), distance.into(), Value::Bool(meters)]);
-        Self::new("distanceGreaterThan".to_string(), Some(attribute.into()), vec![params])
+        Self::new(
+            "distanceGreaterThan".to_string(),
+            Some(attribute.into()),
+            vec![params],
+        )
     }
 
-    pub fn distance_less_than<S: Into<String>, V: Into<Value>>(attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
+    pub fn distance_less_than<S: Into<String>, V: Into<Value>>(
+        attribute: S,
+        values: V,
+        distance: impl Into<Value>,
+        meters: bool,
+    ) -> Self {
         let params = Value::Array(vec![values.into(), distance.into(), Value::Bool(meters)]);
-        Self::new("distanceLessThan".to_string(), Some(attribute.into()), vec![params])
+        Self::new(
+            "distanceLessThan".to_string(),
+            Some(attribute.into()),
+            vec![params],
+        )
     }
 
     pub fn vector_dot<S: Into<String>, V: Into<Value>>(attribute: S, vector: V) -> Self {
-        Self::new("vectorDot".to_string(), Some(attribute.into()), vec![vector.into()])
+        Self::new(
+            "vectorDot".to_string(),
+            Some(attribute.into()),
+            vec![vector.into()],
+        )
     }
 
     pub fn vector_cosine<S: Into<String>, V: Into<Value>>(attribute: S, vector: V) -> Self {
-        Self::new("vectorCosine".to_string(), Some(attribute.into()), vec![vector.into()])
+        Self::new(
+            "vectorCosine".to_string(),
+            Some(attribute.into()),
+            vec![vector.into()],
+        )
     }
 
     pub fn vector_euclidean<S: Into<String>, V: Into<Value>>(attribute: S, vector: V) -> Self {
-        Self::new("vectorEuclidean".to_string(), Some(attribute.into()), vec![vector.into()])
+        Self::new(
+            "vectorEuclidean".to_string(),
+            Some(attribute.into()),
+            vec![vector.into()],
+        )
     }
 
     pub fn intersects<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
-        Self::new("intersects".to_string(), Some(attribute.into()), vec![values.into()])
+        Self::new(
+            "intersects".to_string(),
+            Some(attribute.into()),
+            vec![values.into()],
+        )
     }
 
     pub fn not_intersects<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
-        Self::new("notIntersects".to_string(), Some(attribute.into()), vec![values.into()])
+        Self::new(
+            "notIntersects".to_string(),
+            Some(attribute.into()),
+            vec![values.into()],
+        )
     }
 
     pub fn crosses<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
-        Self::new("crosses".to_string(), Some(attribute.into()), vec![values.into()])
+        Self::new(
+            "crosses".to_string(),
+            Some(attribute.into()),
+            vec![values.into()],
+        )
     }
 
     pub fn not_crosses<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
-        Self::new("notCrosses".to_string(), Some(attribute.into()), vec![values.into()])
+        Self::new(
+            "notCrosses".to_string(),
+            Some(attribute.into()),
+            vec![values.into()],
+        )
     }
 
     pub fn overlaps<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
-        Self::new("overlaps".to_string(), Some(attribute.into()), vec![values.into()])
+        Self::new(
+            "overlaps".to_string(),
+            Some(attribute.into()),
+            vec![values.into()],
+        )
     }
 
     pub fn not_overlaps<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
-        Self::new("notOverlaps".to_string(), Some(attribute.into()), vec![values.into()])
+        Self::new(
+            "notOverlaps".to_string(),
+            Some(attribute.into()),
+            vec![values.into()],
+        )
     }
 
     pub fn touches<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
-        Self::new("touches".to_string(), Some(attribute.into()), vec![values.into()])
+        Self::new(
+            "touches".to_string(),
+            Some(attribute.into()),
+            vec![values.into()],
+        )
     }
 
     pub fn not_touches<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
-        Self::new("notTouches".to_string(), Some(attribute.into()), vec![values.into()])
+        Self::new(
+            "notTouches".to_string(),
+            Some(attribute.into()),
+            vec![values.into()],
+        )
     }
 
     pub fn or<I, S>(queries: I) -> Self
@@ -258,15 +425,27 @@ impl Query {
     }
 
     pub fn regex<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
-        Self::new("regex".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+        Self::new(
+            "regex".to_string(),
+            Some(attribute.into()),
+            Self::to_array(value.into()),
+        )
     }
 
     pub fn exists<V: Into<Value>>(attributes: Vec<V>) -> Self {
-        Self::new("exists".to_string(), None, attributes.into_iter().map(|v| v.into()).collect())
+        Self::new(
+            "exists".to_string(),
+            None,
+            attributes.into_iter().map(|v| v.into()).collect(),
+        )
     }
 
     pub fn not_exists<V: Into<Value>>(attributes: Vec<V>) -> Self {
-        Self::new("notExists".to_string(), None, attributes.into_iter().map(|v| v.into()).collect())
+        Self::new(
+            "notExists".to_string(),
+            None,
+            attributes.into_iter().map(|v| v.into()).collect(),
+        )
     }
 
     pub fn elem_match<S, I, Q>(attribute: S, queries: I) -> Self
@@ -573,8 +752,7 @@ impl Query {
 
 impl std::fmt::Display for Query {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let json_str = serde_json::to_string(self)
-            .unwrap_or_else(|_| String::new());
+        let json_str = serde_json::to_string(self).unwrap_or_else(|_| String::new());
         write!(f, "{}", json_str)
     }
 }
@@ -700,7 +878,10 @@ mod tests {
     #[test]
     fn test_equal_with_array() {
         let arr = vec!["Movie1", "Movie2"];
-        let query = Query::equal("title", Value::Array(arr.iter().map(|s| Value::String(s.to_string())).collect()));
+        let query = Query::equal(
+            "title",
+            Value::Array(arr.iter().map(|s| Value::String(s.to_string())).collect()),
+        );
         let value = query.to_value();
         assert_eq!(value["method"], "equal");
         assert_eq!(value["attribute"], "title");
@@ -916,7 +1097,12 @@ mod tests {
 
     #[test]
     fn test_distance_equal() {
-        let query = Query::distance_equal("location", Value::Array(vec![Value::from(40.7128), Value::from(-74.0060)]), 5000, true);
+        let query = Query::distance_equal(
+            "location",
+            Value::Array(vec![Value::from(40.7128), Value::from(-74.0060)]),
+            5000,
+            true,
+        );
         let value = query.to_value();
         assert_eq!(value["method"], "distanceEqual");
         assert_eq!(value["attribute"], "location");
@@ -927,7 +1113,12 @@ mod tests {
 
     #[test]
     fn test_distance_not_equal() {
-        let query = Query::distance_not_equal("location", Value::Array(vec![Value::from(40.7128), Value::from(-74.0060)]), 5000, false);
+        let query = Query::distance_not_equal(
+            "location",
+            Value::Array(vec![Value::from(40.7128), Value::from(-74.0060)]),
+            5000,
+            false,
+        );
         let value = query.to_value();
         assert_eq!(value["method"], "distanceNotEqual");
         assert_eq!(value["attribute"], "location");
@@ -938,7 +1129,12 @@ mod tests {
 
     #[test]
     fn test_distance_greater_than() {
-        let query = Query::distance_greater_than("location", Value::Array(vec![Value::from(1.0), Value::from(2.0)]), 123, true);
+        let query = Query::distance_greater_than(
+            "location",
+            Value::Array(vec![Value::from(1.0), Value::from(2.0)]),
+            123,
+            true,
+        );
         let value = query.to_value();
         assert_eq!(value["method"], "distanceGreaterThan");
         assert_eq!(value["attribute"], "location");
@@ -949,7 +1145,12 @@ mod tests {
 
     #[test]
     fn test_distance_less_than() {
-        let query = Query::distance_less_than("location", Value::Array(vec![Value::from(1.0), Value::from(2.0)]), 321, false);
+        let query = Query::distance_less_than(
+            "location",
+            Value::Array(vec![Value::from(1.0), Value::from(2.0)]),
+            321,
+            false,
+        );
         let value = query.to_value();
         assert_eq!(value["method"], "distanceLessThan");
         assert_eq!(value["attribute"], "location");
@@ -960,7 +1161,10 @@ mod tests {
 
     #[test]
     fn test_vector_dot() {
-        let query = Query::vector_dot("embedding", Value::Array(vec![Value::from(0.1), Value::from(0.2), Value::from(0.3)]));
+        let query = Query::vector_dot(
+            "embedding",
+            Value::Array(vec![Value::from(0.1), Value::from(0.2), Value::from(0.3)]),
+        );
         let value = query.to_value();
         assert_eq!(value["method"], "vectorDot");
         assert_eq!(value["attribute"], "embedding");
@@ -969,7 +1173,10 @@ mod tests {
 
     #[test]
     fn test_vector_cosine() {
-        let query = Query::vector_cosine("embedding", Value::Array(vec![Value::from(0.1), Value::from(0.2), Value::from(0.3)]));
+        let query = Query::vector_cosine(
+            "embedding",
+            Value::Array(vec![Value::from(0.1), Value::from(0.2), Value::from(0.3)]),
+        );
         let value = query.to_value();
         assert_eq!(value["method"], "vectorCosine");
         assert_eq!(value["attribute"], "embedding");
@@ -978,7 +1185,10 @@ mod tests {
 
     #[test]
     fn test_vector_euclidean() {
-        let query = Query::vector_euclidean("embedding", Value::Array(vec![Value::from(0.1), Value::from(0.2), Value::from(0.3)]));
+        let query = Query::vector_euclidean(
+            "embedding",
+            Value::Array(vec![Value::from(0.1), Value::from(0.2), Value::from(0.3)]),
+        );
         let value = query.to_value();
         assert_eq!(value["method"], "vectorEuclidean");
         assert_eq!(value["attribute"], "embedding");
@@ -997,7 +1207,8 @@ mod tests {
 
     #[test]
     fn test_not_intersects() {
-        let query = Query::not_intersects("geo", Value::Array(vec![Value::from(1), Value::from(2)]));
+        let query =
+            Query::not_intersects("geo", Value::Array(vec![Value::from(1), Value::from(2)]));
         let value = query.to_value();
         assert_eq!(value["method"], "notIntersects");
         assert_eq!(value["attribute"], "geo");

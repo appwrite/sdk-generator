@@ -10,7 +10,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Utilities
     /// </summary>
     public static class {{ spec.info.title | caseUcfirst }}Utilities
     {
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         /// <summary>
         /// Quick setup for {{ spec.info.title | caseUcfirst }} in Unity (Editor Only)
         /// </summary>
@@ -18,7 +18,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Utilities
         {
             // Create configuration
             var config = {{ spec.info.title | caseUcfirst }}Config.CreateConfiguration();
-            
+
 
             // Create manager
             var managerGO = new GameObject("{{ spec.info.title | caseUcfirst }}Manager");
@@ -33,10 +33,10 @@ namespace {{ spec.info.title | caseUcfirst }}.Utilities
                 throw new InvalidOperationException("Failed to initialize {{ spec.info.title | caseUcfirst }}Manager");
             }
             //Create Realtime instance
-            var a =manager.Realtime;
+            var a = manager.Realtime;
             return manager;
         }
-        #endif
+#endif
 
         /// <summary>
         /// Run async operation with Unity-safe error handling

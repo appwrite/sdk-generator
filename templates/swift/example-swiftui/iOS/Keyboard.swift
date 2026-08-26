@@ -2,8 +2,8 @@
 // Created by Jake Barnby on 4/08/21.
 //
 
-import SwiftUI
 import Combine
+import SwiftUI
 
 final class Keyboard: ObservableObject {
 
@@ -14,7 +14,10 @@ final class Keyboard: ObservableObject {
     init() {
         NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)
             .compactMap({ (notification) -> CGFloat? in
-                guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
+                guard
+                    let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
+                        as? CGRect
+                else {
                     return nil
                 }
                 if frame.origin.y == UIScreen.main.bounds.height {

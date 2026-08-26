@@ -189,7 +189,7 @@ open class InMemoryCookieStore : CookieStore {
             return host.equals(domain, ignoreCase = true)
         } else if (lengthDiff > 0) {
             // need to check H & D component
-            val D = host.substring(lengthDiff)
+            val hostDomain = host.substring(lengthDiff)
 
             // Android-changed: b/26456024 targetSdkVersion based compatibility for domain matching
             // Android M and earlier: Cookies with domain "foo.com" would not match "bar.foo.com".
@@ -197,7 +197,7 @@ open class InMemoryCookieStore : CookieStore {
             // leading period and must therefore match "bar.foo.com".
             return if (Build.VERSION.SDK_INT <= 23 && !domain.startsWith(".")) {
                 false
-            } else D.equals(domain, ignoreCase = true)
+            } else hostDomain.equals(domain, ignoreCase = true)
         } else if (lengthDiff == -1) {
             // if domain is actually .host
             return domain[0] == '.' && host.equals(domain.substring(1), ignoreCase = true)
@@ -216,10 +216,9 @@ open class InMemoryCookieStore : CookieStore {
         for ((_, lst) in uriIndex) {
             for (c in lst) {
                 val domain = c.domain
-                if (c.version == 0 && netscapeDomainMatches(
-                        domain,
-                        host
-                    ) || c.version == 1 && HttpCookie.domainMatches(domain, host)
+                if (
+                    (c.version == 0 && netscapeDomainMatches(domain, host)) ||
+                    (c.version == 1 && HttpCookie.domainMatches(domain, host))
                 ) {
                     if (!c.hasExpired()) {
                         if (!cookies.contains(c)) {

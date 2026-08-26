@@ -680,12 +680,6 @@ func runPushDeployable(
 		return nil
 	}
 
-	if resource.Name == "function" {
-		if err := context.materializePendingFunctionRepositories(entries); err != nil {
-			return err
-		}
-	}
-
 	pushCode := options.Code
 	if pushCode {
 		confirmed, err := context.prompter.Confirm(prompt.Question{
@@ -697,6 +691,12 @@ func runPushDeployable(
 			return err
 		}
 		pushCode = confirmed
+	}
+
+	if pushCode && resource.Name == "function" {
+		if err := context.materializePendingFunctionRepositories(entries); err != nil {
+			return err
+		}
 	}
 
 	activate := true
@@ -736,7 +736,17 @@ func runPushDeployable(
 	}
 
 	summary := pushSummary{}
-	if resource.Name == "function" && len(entries) > 1 {
+	parallel := resource.Name == "function" && len(entries) > 1
+	for _, entry := range entries {
+		if entry.GetString("templateRepository") != "" {
+			// Template deployment consumes and persists one-shot state. Keep that
+			// rare batch sequential so workers never write the shared config at
+			// the same time.
+			parallel = false
+			break
+		}
+	}
+	if parallel {
 		// Individual spinners own one terminal row and cannot safely redraw the
 		// same row from several goroutines. A synchronized writer keeps every
 		// line intact and deliberately makes parallel progress use the spinner's
@@ -1074,11 +1084,13 @@ func (c *pushContext) pushDeployable(
 		}
 
 		err = c.api.Call("PUT", resource.Path+"/"+url.PathEscape(id),
-			writeBody(entry, resource.WriteKeys, resource.OmitWhenEmpty, "", ""), nil)
+			pendingSafeBody(entry, writeBody(
+				entry, resource.WriteKeys, resource.OmitWhenEmpty, "", "")), nil)
 	} else {
 		err = c.api.Call("POST", resource.Path,
-			writeBody(entry, resource.WriteKeys, resource.OmitWhenEmpty,
-				resource.IDField, id), nil)
+			pendingSafeBody(entry, writeBody(
+				entry, resource.WriteKeys, resource.OmitWhenEmpty,
+				resource.IDField, id)), nil)
 	}
 	if err != nil {
 		recordPushFailure(command, resource, name, err.Error(), summary)
@@ -1133,6 +1145,24 @@ func recordPushFailure(
 	output.Failure(command.OutOrStdout(), "Failed to push %s %s: %s",
 		resource.Singular, name, reason)
 	summary.Failed = append(summary.Failed, failedDeployment{Name: name, Reason: reason})
+}
+
+// pendingSafeBody strips VCS fields while a new repository is still pending.
+// A settings-only push must not connect the function before that repository
+// exists.
+func pendingSafeBody(entry, body *jsonx.Object) *jsonx.Object {
+	if !entry.GetBool("providerRepositoryPending") {
+		return body
+	}
+	for _, key := range []string{
+		"installationId", "providerRepositoryId", "providerBranch",
+		"providerSilentMode", "providerRootDirectory", "providerBranches",
+		"providerPaths",
+	} {
+		body.Delete(key)
+	}
+
+	return body
 }
 
 // writeBody builds a create or update body from the config entry.
@@ -1407,7 +1437,8 @@ func (c *pushContext) createGitFunctionDeployment(
 	body.Set("activate", activate)
 
 	path := "/functions/" + functionID + "/deployments/vcs"
-	if entry.GetString("templateRepository") != "" {
+	template := entry.GetString("templateRepository") != ""
+	if template {
 		path = "/functions/" + functionID + "/deployments/template"
 		body.Set("repository", entry.GetString("templateRepository"))
 		body.Set("owner", entry.GetString("templateOwner"))
@@ -1419,24 +1450,40 @@ func (c *pushContext) createGitFunctionDeployment(
 		body.Set("reference", entry.GetString("providerBranch"))
 	}
 
-	deployment := jsonx.NewObject()
-	if err := c.api.Call("POST", path, body, deployment); err != nil {
-		return nil, err
-	}
-
-	// Template coordinates are one-shot. Keeping them would merge the starter
-	// into the repository again on every explicit CLI deployment.
-	if entry.GetString("templateRepository") != "" {
+	// Consume template coordinates before the request. Once an HTTP request is
+	// attempted its outcome can be ambiguous, so leaving them consumed is the
+	// only way a retry cannot seed the starter twice.
+	if template {
+		saved := map[string]any{}
 		for _, key := range []string{
 			"templateRepository", "templateOwner", "templateRootDirectory",
 			"templateReference", "templateReferenceType",
 		} {
+			if value, ok := entry.Get(key); ok {
+				saved[key] = value
+			}
 			entry.Delete(key)
 		}
 		c.local.UpsertByID("functions", entry)
 		if err := c.local.Write(); err != nil {
-			return nil, fmt.Errorf("deployment created but template state could not be saved: %w", err)
+			for key, value := range saved {
+				entry.Set(key, value)
+			}
+			c.local.UpsertByID("functions", entry)
+
+			return nil, fmt.Errorf("template state could not be saved; nothing was deployed: %w", err)
 		}
+	}
+
+	deployment := jsonx.NewObject()
+	if err := c.api.Call("POST", path, body, deployment); err != nil {
+		if template {
+			return nil, fmt.Errorf(
+				"%w; template state was consumed before the request -- check the function's deployments before retrying",
+				err)
+		}
+
+		return nil, err
 	}
 
 	return deployment, nil

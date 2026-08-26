@@ -1,16 +1,20 @@
-const { Client } = require("../../dist/client");
-const { InputFile } = require("../../dist/inputFile");
-const { {{ service.name | caseUcfirst }} } = require("../../dist/services/{{ service.name | caseKebab }}");
+const { Client } = require('../../dist/client');
+{% if methods | hasFileParam %}
+const { InputFile } = require('../../dist/inputFile');
+{% endif %}
+const { {{ service.name | caseUcfirst }} } = require('../../dist/services/{{ service.name | caseKebab }}');
 
-const { fetch: mockedFetch, Response } = require("undici");
-jest.mock('undici', () => ({ ...jest.requireActual('undici'), fetch: jest.fn() }));
+const { fetch: mockedFetch, Response } = require('undici');
+jest.mock('undici', () => ({
+    ...jest.requireActual('undici'),
+    fetch: jest.fn(),
+}));
 
 describe('{{ service.name | caseUcfirst }}', () => {
     const client = new Client();
     const {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
 
-    {% for method in (service | operations) ~%}
-    test('test method {{ (method | methodName) | caseCamel }}()', async () => {
+{% for method in (service | operations) %}    test('test method {{ (method | methodName) | caseCamel }}()', async () => {
         {%~ if (method | methodType) == 'webAuth' %}
         const data = 'https://example.com/';
         mockedFetch.mockImplementation(() => Response.redirect(data));
@@ -18,32 +22,33 @@ describe('{{ service.name | caseUcfirst }}', () => {
         const data = new ArrayBuffer(0);
         mockedFetch.mockImplementation(() => new Response(data));
         {%~ else %}
-        {% set responseModels = method | getValidResponseModels %}
-        {% set responseModelName = '' %}
-        {% if responseModels|length > 1 %}
-        {% set responseModelName = responseModels|last %}
-        {% elseif (method | responseModel) and (method | responseModel) != 'any' %}
-        {% set responseModelName = (method | responseModel) %}
-        {% endif %}
+        {%- set responseModels = method | getValidResponseModels -%}
+        {%- set responseModelName = '' -%}
+        {%- if responseModels|length > 1 -%}
+            {%- set responseModelName = responseModels|last -%}
+        {%- elseif (method | responseModel) and (method | responseModel) != 'any' -%}
+            {%- set responseModelName = (method | responseModel) -%}
+        {%- endif -%}
         {%- if responseModelName %}
-        const data = {
+        {%- set dataBody %}
             {%- for definitionName, definition in definitions ~%}{%~ if definitionName == responseModelName -%}{%~ for property in definition.properties | filter((param) => param | schemaRequired) ~%}
-            '{{ (property | schemaName) | escapeDollarSign }}': {% if (property | schemaType) == 'object' %}{}{% elseif (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'string' %}'{{ (property | schemaExample) | escapeDollarSign }}'{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{ (property | schemaExample) }}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
-        };
+            {% set propValue %}{% if (property | schemaType) == 'object' %}{}{% elseif (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'string' %}{{ ((property | schemaExample) | escapeDollarSign) | jsString | raw }}{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{ (property | schemaExample) }}{% endif %}{% endset %}{{ (((property | schemaName) | escapeDollarSign) | jsKey) | jsExampleEntry(propValue, '', 12) | raw }}
+            {%- endfor %}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor %}{% endset %}
+        const data = {% if dataBody | trim is empty %}{}{% else %}{{ '{' }}{{ dataBody | raw }}
+        }{% endif %};
         {%~ else %}
-        const data = {message: ""};
+        const data = { message: '' };
         {%~ endif %}
         mockedFetch.mockImplementation(() => Response.json(data));
         {%~ endif %}
 
-        const response = await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}({%~ for parameter in (method | parameters('all')) | filter((param) => param.required) ~%}
-            {% if (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.fromBuffer(new Uint8Array(0), 'image.png'){% elseif (parameter | schemaType) == 'boolean' %}true{% elseif (parameter | schemaType) == 'string' %}'{% if (parameter | schemaExample) is not empty %}{{ (parameter | schemaExample) | escapeDollarSign }}{% endif %}'{% elseif (parameter | schemaType) == 'integer' %}1{% elseif (parameter | schemaType) == 'number' %}1.0{% else %}{{ (parameter | schemaExample) }}{%~ endif ~%},{%~ endfor ~%}
-        );
+        {%- set callArgs = [] %}{% for parameter in (method | parameters('all')) | filter((param) => param.required) %}{% set argValue %}{% if (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.fromBuffer(new Uint8Array(0), 'image.png'){% elseif (parameter | schemaType) == 'boolean' %}true{% elseif (parameter | schemaType) == 'string' %}{{ (((parameter | schemaExample) is not empty ? ((parameter | schemaExample) | escapeDollarSign) : '')) | jsString | raw }}{% elseif (parameter | schemaType) == 'integer' %}1{% elseif (parameter | schemaType) == 'number' %}1.0{% else %}{{ (parameter | schemaExample) }}{% endif %}{% endset %}{% set callArgs = callArgs|merge([argValue]) %}{% endfor %}
+        const response ={{ ('await ' ~ (service.name | caseCamel) ~ '.' ~ ((method | methodName) | caseCamel)) | jsArgs(callArgs, 8, ';', 17) | raw }}
 
         // Remove custom toString method on the objects to allow for clean data comparison.
         delete response.toString;
 
         expect(response).toEqual(data);
     });
-    {% endfor %}
-})
+{% endfor -%}
+});

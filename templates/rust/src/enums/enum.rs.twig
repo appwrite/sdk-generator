@@ -6,7 +6,8 @@ impl {{ enum.title | caseUcfirst | overrideIdentifier }} {
 {% for value in enum.enum %}
 {% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
     pub const {{ key | caseEnumKey | overrideIdentifier }}: &'static str = "{{ value }}";
-{% endfor %}}
+{% endfor %}
+}
 {% else %}
 use serde::{Deserialize, Serialize};
 
@@ -16,8 +17,10 @@ pub enum {{ enum.title | caseUcfirst | overrideIdentifier }} {
 {% for value in enum.enum %}
 {% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
     #[serde(rename = "{{ value }}")]
-    {% if loop.first %}#[default]
-    {% endif %}{{ key | caseEnumKey | overrideIdentifier }},
+{% if loop.first %}
+    #[default]
+{% endif %}
+    {{ key | caseEnumKey | overrideIdentifier }},
 {% endfor %}
 }
 
@@ -27,7 +30,7 @@ impl {{ enum.title | caseUcfirst | overrideIdentifier }} {
         match self {
 {% for value in enum.enum %}
 {% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
-            {{ enum.title | caseUcfirst | overrideIdentifier }}::{{ key | caseEnumKey | overrideIdentifier }} => "{{ value }}",
+{{ value | rustfmtMatchArm(12, (enum.title | caseUcfirst | overrideIdentifier) ~ '::' ~ (key | caseEnumKey | overrideIdentifier)) }}
 {% endfor %}
         }
     }

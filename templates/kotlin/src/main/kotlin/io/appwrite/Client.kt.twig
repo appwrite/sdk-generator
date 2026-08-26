@@ -2,7 +2,7 @@ package {{ sdk.namespace | caseDot }}
 
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
-import {{ sdk.namespace | caseDot }}.extensions.toJson
+import {{ sdk.namespace | caseDot }}.extensions.toJsonRequestBody
 import {{ sdk.namespace | caseDot }}.models.InputFile
 import {{ sdk.namespace | caseDot }}.models.UploadProgress
 import kotlinx.coroutines.CoroutineScope
@@ -22,8 +22,8 @@ import okhttp3.logging.HttpLoggingInterceptor
 import java.io.BufferedInputStream
 import java.io.BufferedReader
 import java.io.File
-import java.io.RandomAccessFile
 import java.io.IOException
+import java.io.RandomAccessFile
 import java.lang.IllegalArgumentException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
@@ -44,7 +44,7 @@ class Client @JvmOverloads constructor(
 ) : CoroutineScope {
 
     companion object {
-        const val CHUNK_SIZE = 5*1024*1024; // 5MB
+        const val CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
         const val MAX_CONCURRENT_UPLOADS = 8
     }
 
@@ -155,12 +155,12 @@ class Client @JvmOverloads constructor(
     }
 
     /**
-    * Set endpoint.
-    *
-    * @param endpoint
-    *
-    * @return this
-    */
+     * Set endpoint.
+     *
+     * @param endpoint
+     *
+     * @return this
+     */
     @Throws(IllegalArgumentException::class)
     fun setEndpoint(endPoint: String): Client {
         require(endPoint.startsWith("http://") || endPoint.startsWith("https://")) {
@@ -235,7 +235,7 @@ class Client @JvmOverloads constructor(
     suspend fun prepareRequest(
         method: String,
         path: String,
-        headers:  Map<String, String> = mapOf(),
+        headers: Map<String, String> = mapOf(),
         params: Map<String, Any?> = mapOf(),
     ): Request {
         val filteredParams = params
@@ -300,8 +300,8 @@ class Client @JvmOverloads constructor(
             }
             builder.build()
         } else {
-            filteredParams
-                .toJson()
+            params
+                .toJsonRequestBody()
                 .toRequestBody("application/json".toMediaType())
         }
 
@@ -326,7 +326,7 @@ class Client @JvmOverloads constructor(
     suspend fun <T> call(
         method: String,
         path: String,
-        headers:  Map<String, String> = mapOf(),
+        headers: Map<String, String> = mapOf(),
         params: Map<String, Any?> = mapOf(),
         responseType: Class<T>,
         converter: ((Any) -> T)? = null
@@ -349,7 +349,7 @@ class Client @JvmOverloads constructor(
     suspend fun redirect(
         method: String,
         path: String,
-        headers:  Map<String, String> = mapOf(),
+        headers: Map<String, String> = mapOf(),
         params: Map<String, Any?> = mapOf(),
     ): String {
         val request = prepareRequest(method, path, headers, params)
@@ -369,7 +369,7 @@ class Client @JvmOverloads constructor(
     @Throws({{ spec.info.title | caseUcfirst }}Exception::class)
     suspend fun <T> chunkedUpload(
         path: String,
-        headers:  MutableMap<String, String>,
+        headers: MutableMap<String, String>,
         params: MutableMap<String, Any?>,
         responseType: Class<T>,
         converter: ((Any) -> T),
@@ -378,7 +378,7 @@ class Client @JvmOverloads constructor(
         onProgress: ((UploadProgress) -> Unit)? = null,
     ): T {
         val input = params[paramName] as InputFile
-        val size: Long = when(input.sourceType) {
+        val size: Long = when (input.sourceType) {
             "path", "file" -> {
                 File(input.path).length()
             }
@@ -389,7 +389,7 @@ class Client @JvmOverloads constructor(
         }
 
         if (size < CHUNK_SIZE) {
-            val data = when(input.sourceType) {
+            val data = when (input.sourceType) {
                 "file", "path" -> File(input.path).asRequestBody()
                 "bytes" -> (input.data as ByteArray).toRequestBody(input.mimeType.toMediaType())
                 else -> throw UnsupportedOperationException()
@@ -431,7 +431,7 @@ class Client @JvmOverloads constructor(
 
         fun readChunk(start: Long, end: Long): ByteArray {
             val length = (end - start).toInt()
-            return when(input.sourceType) {
+            return when (input.sourceType) {
                 "file", "path" -> {
                     RandomAccessFile(input.path, "r").use { chunkFile ->
                         val chunk = ByteArray(length)

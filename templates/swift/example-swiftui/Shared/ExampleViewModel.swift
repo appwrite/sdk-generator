@@ -1,11 +1,11 @@
-import Foundation
-import SwiftUI
 import Appwrite
+import Foundation
 import NIO
+import SwiftUI
 
 extension ExampleView {
 
-    class ViewModel : ObservableObject {
+    class ViewModel: ObservableObject {
 
         @Published var downloadedImage: Image? = nil
         @Published public var username: String = "test@test.test"
@@ -50,10 +50,12 @@ extension ExampleView {
                     return
                 }
 
-                guard let target = try? await account.createPushTarget(
-                    targetId: ID.unique(),
-                    identifier: token
-                ) else {
+                guard
+                    let target = try? await account.createPushTarget(
+                        targetId: ID.unique(),
+                        identifier: token
+                    )
+                else {
                     return
                 }
 
@@ -101,11 +103,11 @@ extension ExampleView {
 
         func upload(image: OSImage) async {
             #if os(macOS)
-            let fileName = "file.tiff"
-            let mime = "image/tiff"
+                let fileName = "file.tiff"
+                let mime = "image/tiff"
             #else
-            let fileName = "file.png"
-            let mime = "image/png"
+                let fileName = "file.png"
+                let mime = "image/png"
             #endif
 
             let file = InputFile.fromData(
@@ -131,7 +133,9 @@ extension ExampleView {
         }
 
         func subscribe() async {
-            let sub1 = try? await realtime.subscribe(channels: ["databases.\(databaseId).collections.\(collectionId).documents"]) { event in
+            let sub1 = try? await realtime.subscribe(channels: [
+                "databases.\(databaseId).collections.\(collectionId).documents"
+            ]) { event in
                 DispatchQueue.main.async {
                     self.response = String(describing: event.payload!)
                 }
@@ -139,7 +143,9 @@ extension ExampleView {
 
             try? await Task.sleep(nanoseconds: UInt64(500_000_000))
 
-            _ = try? await realtime.subscribe(channels: ["databases.\(databaseId).collections.\(collectionId2).documents"]) { event in
+            _ = try? await realtime.subscribe(channels: [
+                "databases.\(databaseId).collections.\(collectionId2).documents"
+            ]) { event in
                 DispatchQueue.main.async {
                     self.response2 = String(describing: event.payload!)
                 }

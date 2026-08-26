@@ -69,14 +69,15 @@ namespace {{ spec.info.title | caseUcfirst }}
             _http = http ?? new HttpClient();
 
             _httpForRedirect = httpForRedirect ?? new HttpClient(
-                new HttpClientHandler(){
+                new HttpClientHandler()
+                {
                     AllowAutoRedirect = false
                 });
 
             _headers = new Dictionary<string, string>()
             {
                 { "content-type", "application/json" },
-                { "user-agent" , $"{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({Environment.OSVersion.Platform}; {Environment.OSVersion.VersionString})"},
+                { "user-agent", $"{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({Environment.OSVersion.Platform}; {Environment.OSVersion.VersionString})"},
                 { "x-sdk-name", "{{ sdk.name }}" },
                 { "x-sdk-platform", "{{ sdk.platform }}" },
                 { "x-sdk-language", "{{ language.name | caseLower }}" },
@@ -111,7 +112,8 @@ namespace {{ spec.info.title | caseUcfirst }}
 
         public Client SetEndpoint(string endpoint)
         {
-            if (!endpoint.StartsWith("http://") && !endpoint.StartsWith("https://")) {
+            if (!endpoint.StartsWith("http://") && !endpoint.StartsWith("https://"))
+            {
                 throw new {{spec.info.title | caseUcfirst}}Exception("Invalid endpoint URL: " + endpoint);
             }
 
@@ -123,7 +125,8 @@ namespace {{ spec.info.title | caseUcfirst }}
         {%~ if header.description %}
         /// <summary>{{header.description}}</summary>
         {%~ endif %}
-        public Client Set{{headerKey | caseUcfirst}}(string value) {
+        public Client Set{{headerKey | caseUcfirst}}(string value)
+        {
             _config["{{ headerKey | caseCamel }}"] = value;
             {%~ if (headerKey != 'Project') %}
             AddHeader("{{header.name}}", {% if header.scheme == 'bearer' %}"Bearer " + value{% else %}value{% endif %});
@@ -166,7 +169,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 new HttpMethod(method),
                 _endpoint + path + queryString);
 
-            if (headers.TryGetValue("content-type", out var contentType) && 
+            if (headers.TryGetValue("content-type", out var contentType) &&
                 "multipart/form-data".Equals(contentType, StringComparison.OrdinalIgnoreCase))
             {
                 var form = new MultipartFormDataContent();
@@ -213,7 +216,8 @@ namespace {{ spec.info.title | caseUcfirst }}
                 }
                 else
                 {
-                    if (request.Headers.Contains(header.Key)) {
+                    if (request.Headers.Contains(header.Key))
+                    {
                         request.Headers.Remove(header.Key);
                     }
                     request.Headers.Add(header.Key, header.Value);
@@ -232,7 +236,8 @@ namespace {{ spec.info.title | caseUcfirst }}
                 }
                 else
                 {
-                    if (request.Headers.Contains(header.Key)) {
+                    if (request.Headers.Contains(header.Key))
+                    {
                         request.Headers.Remove(header.Key);
                     }
                     request.Headers.Add(header.Key, header.Value);
@@ -253,7 +258,8 @@ namespace {{ spec.info.title | caseUcfirst }}
             var response = await _httpForRedirect.SendAsync(request);
             var code = (int)response.StatusCode;
 
-            if (code >= 400) {
+            if (code >= 400)
+            {
                 var text = await response.Content.ReadAsStringAsync();
                 var message = "";
                 var type = "";
@@ -264,8 +270,9 @@ namespace {{ spec.info.title | caseUcfirst }}
                     contentType = contentTypes.FirstOrDefault() ?? string.Empty;
                 }
 
-                if (contentType.Contains("application/json")) {
-                    try 
+                if (contentType.Contains("application/json"))
+                {
+                    try
                     {
                         using var errorDoc = JsonDocument.Parse(text);
                         message = errorDoc.RootElement.GetProperty("message").GetString() ?? "";
@@ -278,7 +285,9 @@ namespace {{ spec.info.title | caseUcfirst }}
                     {
                         message = text;
                     }
-                } else {
+                }
+                else
+                {
                     message = text;
                 }
 
@@ -325,13 +334,15 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             var isJson = contentType.Contains("application/json");
 
-            if (code >= 400) {
+            if (code >= 400)
+            {
                 var text = await response.Content.ReadAsStringAsync();
                 var message = "";
                 var type = "";
 
-                if (isJson) {
-                    try 
+                if (isJson)
+                {
+                    try
                     {
                         using var errorDoc = JsonDocument.Parse(text);
                         message = errorDoc.RootElement.GetProperty("message").GetString() ?? "";
@@ -344,7 +355,9 @@ namespace {{ spec.info.title | caseUcfirst }}
                     {
                         message = text;
                     }
-                } else {
+                }
+                else
+                {
                     message = text;
                 }
 
@@ -383,16 +396,16 @@ namespace {{ spec.info.title | caseUcfirst }}
         {
             if (string.IsNullOrEmpty(paramName))
                 throw new ArgumentException("Parameter name cannot be null or empty", nameof(paramName));
-                
+
             if (!parameters.ContainsKey(paramName))
                 throw new ArgumentException($"Parameter {paramName} not found", nameof(paramName));
-                
+
             var input = parameters[paramName] as InputFile;
             if (input == null)
                 throw new ArgumentException($"Parameter {paramName} must be an InputFile", nameof(paramName));
-                
+
             var size = 0L;
-            switch(input.SourceType)
+            switch (input.SourceType)
             {
                 case "path":
                     var info = new FileInfo(input.Path);
@@ -410,7 +423,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                         throw new InvalidOperationException("Byte array data is null");
                     size = bytes.Length;
                     break;
-            };
+            }
 
             var offset = 0L;
             var buffer = new byte[Math.Min(size, ChunkSize)];
@@ -418,7 +431,7 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             if (size < ChunkSize)
             {
-                switch(input.SourceType)
+                switch (input.SourceType)
                 {
                     case "path":
                         buffer = System.IO.File.ReadAllBytes(input.Path);
@@ -488,7 +501,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 var length = (int)(end - start);
                 var chunk = new byte[length];
 
-                switch(input.SourceType)
+                switch (input.SourceType)
                 {
                     case "path":
                         using (var chunkStream = System.IO.File.OpenRead(input.Path))
@@ -667,7 +680,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             // Convert to non-nullable dictionary for converter
             var nonNullableResult = result.Where(kvp => kvp.Value != null)
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value!);
-            
+
             return converter(nonNullableResult);
         }
     }

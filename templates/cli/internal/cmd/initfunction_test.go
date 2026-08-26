@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -156,6 +157,68 @@ func TestNewGitHubRepositoryIsCreatedOnlyAfterReview(t *testing.T) {
 	}
 }
 
+func TestPendingRepositoryIsNotCreatedWithoutDeployment(t *testing.T) {
+	vcsPosts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		response.Header().Set("content-type", "application/json")
+		switch {
+		case strings.Contains(request.URL.Path, "/providerRepositories"):
+			vcsPosts++
+			response.WriteHeader(http.StatusCreated)
+			_, _ = response.Write([]byte(`{"providerRepositoryId":"repository"}`))
+		case request.Method == http.MethodGet && request.URL.Path == "/functions/checkout":
+			response.WriteHeader(http.StatusNotFound)
+			_, _ = response.Write([]byte(`{"message":"not found","code":404}`))
+		case request.Method == http.MethodPost && request.URL.Path == "/functions":
+			body := jsonx.NewObject()
+			if err := json.NewDecoder(request.Body).Decode(body); err != nil {
+				t.Errorf("decode settings body: %v", err)
+			}
+			if _, exists := body.Get("installationId"); exists {
+				t.Error("settings-only push sent VCS fields for a pending repository")
+			}
+			response.WriteHeader(http.StatusCreated)
+			_, _ = response.Write([]byte(`{"$id":"checkout"}`))
+		case request.Method == http.MethodGet && request.URL.Path == "/proxy/rules":
+			_, _ = response.Write([]byte(`{"total":0,"rules":[]}`))
+		default:
+			t.Errorf("unexpected request: %s %s", request.Method, request.URL.String())
+			response.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	preferencesWith(t, fmt.Sprintf(
+		`{"current":"test","test":{"endpoint":%q,"key":"secret"}}`, server.URL))
+	directory := t.TempDir()
+	inDirectory(t, directory)
+	path := filepath.Join(directory, config.LocalFileName)
+	contents := `{"projectId":"project","functions":[{"$id":"checkout","name":"Checkout","runtime":"node-22","entrypoint":"src/main.js","installationId":"installation","providerRepositoryName":"team/checkout","providerRepositoryPrivate":true,"providerRepositoryPending":true,"providerBranch":"main","providerRootDirectory":"./"}]}`
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	command := &cobra.Command{Use: "push function"}
+	command.SetOut(&bytes.Buffer{})
+	command.SetErr(&bytes.Buffer{})
+	if err := runPushDeployable(command, deployables[0], deployOptions{
+		ResourceID: "checkout",
+		Code:       false,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if vcsPosts != 0 {
+		t.Fatalf("settings-only push created %d repositories", vcsPosts)
+	}
+	reloaded, err := config.LoadLocal(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reloaded.ResourceEntries("functions")[0].GetBool("providerRepositoryPending") {
+		t.Fatal("settings-only push cleared pending repository intent")
+	}
+}
+
 func TestFunctionPreviewShowsSelectedConfiguration(t *testing.T) {
 	buffer := &bytes.Buffer{}
 	printFunctionPreview(buffer, functionPreview{
@@ -194,6 +257,74 @@ func TestAvailableFunctionDirectoryAddsNumericSuffix(t *testing.T) {
 	}
 	if name != "my-function-3" || !renamed {
 		t.Fatalf("name = %q, renamed = %v", name, renamed)
+	}
+}
+
+func TestStarterFunctionTemplateKeepsWildcardTagVersion(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/functions/templates/starter" {
+			t.Errorf("path = %s", request.URL.Path)
+		}
+		response.Header().Set("content-type", "application/json")
+		_, _ = response.Write([]byte(`{"providerRepositoryId":"templates","providerOwner":"appwrite","providerVersion":"0.3.*","runtimes":[{"name":"bun-1.3","providerRootDirectory":"./bun/starter"}]}`))
+	}))
+	defer server.Close()
+
+	template, err := getStarterFunctionTemplate(client.New(server.URL, "test"), "bun-1.3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if template.Reference != "0.3.*" || template.ReferenceType != "tag" ||
+		template.RootDirectory != "bun/starter" {
+		t.Fatalf("template = %#v", template)
+	}
+}
+
+func TestGitTagFromRemoteOutputSelectsFirstVersionSortedTag(t *testing.T) {
+	output := "4eb58cb2\trefs/tags/0.3.1\n7717e63c\trefs/tags/0.3.0\n"
+	tag, err := gitTagFromRemoteOutput("0.3.*", output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag != "0.3.1" {
+		t.Fatalf("tag = %q, want 0.3.1", tag)
+	}
+
+	if _, err := gitTagFromRemoteOutput("9.*", ""); err == nil ||
+		!strings.Contains(err.Error(), "no git tag matches template version 9.*") {
+		t.Fatalf("missing tag error = %v", err)
+	}
+}
+
+func TestResolveGitTagLeavesConcreteReferenceUnchanged(t *testing.T) {
+	tag, err := resolveGitTag(t.TempDir(), "not-a-repository", "0.3.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag != "0.3.1" {
+		t.Fatalf("tag = %q, want 0.3.1", tag)
+	}
+}
+
+func TestRunGitCommandPassesRemoteValuesLiterally(t *testing.T) {
+	directory := t.TempDir()
+	marker := filepath.Join(directory, "executed")
+	value := "0.3.1; touch " + marker
+	configPath := filepath.Join(directory, "config")
+
+	if err := runGitCommand(directory, "config", "--file", configPath,
+		"template.reference", value); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(marker); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("shell syntax in argument was executed: %v", err)
+	}
+	contents, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(contents), value) {
+		t.Fatalf("config does not contain literal value %q:\n%s", value, contents)
 	}
 }
 
@@ -401,6 +532,7 @@ func TestRemoveOtherPreviewRulesPreservesCustomDomain(t *testing.T) {
 }
 
 func TestCreateGitFunctionDeploymentSeedsTemplateOnce(t *testing.T) {
+	path := filepath.Join(t.TempDir(), config.LocalFileName)
 	var body map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		if request.URL.Path != "/functions/checkout/deployments/template" {
@@ -409,13 +541,18 @@ func TestCreateGitFunctionDeploymentSeedsTemplateOnce(t *testing.T) {
 		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
 			t.Errorf("decode body: %v", err)
 		}
+		persisted, err := config.LoadLocal(path)
+		if err != nil {
+			t.Errorf("load config during request: %v", err)
+		} else if persisted.ResourceEntries("functions")[0].GetString("templateRepository") != "" {
+			t.Error("template coordinates were not consumed before the request")
+		}
 		response.Header().Set("content-type", "application/json")
 		response.WriteHeader(http.StatusAccepted)
 		_, _ = response.Write([]byte(`{"$id":"deployment-1","status":"waiting"}`))
 	}))
 	defer server.Close()
 
-	path := filepath.Join(t.TempDir(), config.LocalFileName)
 	contents := `{"projectId":"project","functions":[{"$id":"checkout","templateRepository":"templates","templateOwner":"appwrite","templateRootDirectory":"node/starter","templateReference":"1.0.1","templateReferenceType":"tag"}]}`
 	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
 		t.Fatal(err)

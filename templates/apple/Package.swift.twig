@@ -21,9 +21,9 @@ let package = Package(
                 {%~ if definitions is not empty %}
                 "{{spec.info.title | caseUcfirst}}Models",
                 {%~ endif %}
-                "JSONCodable"
+                "JSONCodable",
             ]
-        ),
+        )
     ],
     dependencies: [
         .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.36.0"),
@@ -41,7 +41,7 @@ let package = Package(
                 {%~ if allEnums is not empty %}
                 "{{spec.info.title | caseUcfirst}}Enums",
                 {%~ endif %}
-                "JSONCodable"
+                "JSONCodable",
             ]
         ),
         {%~ if definitions is not empty %}
@@ -51,7 +51,8 @@ let package = Package(
                 {%~ if allEnums is not empty %}
                 "{{spec.info.title | caseUcfirst}}Enums",
                 {%~ endif %}
-                "JSONCodable"
+                "JSONCodable"{% if allEnums is not empty %},{% endif %}
+
             ]
         ),
         {%~ endif %}
@@ -68,7 +69,7 @@ let package = Package(
             dependencies: [
                 "{{ spec.info.title | caseUcfirst }}"
             ]
-        )
+        ),
     ],
     swiftLanguageVersions: [.v5]
 )

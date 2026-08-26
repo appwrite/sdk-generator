@@ -136,6 +136,11 @@ class Swift extends Language
                 'template'      => 'swift/LICENSE.twig',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => '.swift-format',
+                'template'      => 'swift/.swift-format',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'Package.swift',
                 'template'      => 'swift/Package.swift.twig',
@@ -557,7 +562,7 @@ class Swift extends Language
     {
         return [
             new TwigFilter('returnType', fn(Operation $method, Specification $spec, string $generic = 'T'): string => $this->getReturnType($method, $spec, $generic)),
-            new TwigFilter('modelType', function (Schema $property, Specification $spec, string $generic = 'T : Codable'): string {
+            new TwigFilter('modelType', function (Schema $property, Specification $spec, string $generic = 'T: Codable'): string {
                 $name = $this->getSpecificationSchemaName($property, $spec);
                 $type = $this->toPascalCase($name);
                 return $this->hasGenericSchemaType($name, $spec) ? $type . '<' . $generic . '>' : $type;
@@ -636,6 +641,25 @@ class Swift extends Language
                 return '.' . $resolveKey($value);
             }),
             new TwigFilter('modelToMapValue', fn(Schema $property, string $name, bool $required): string => $this->getModelToMapValue($property, $name, $required), ['is_safe' => ['html']]),
+            new TwigFilter('swiftDoc', fn(string $value, int $width = 75, string $prefix = '    ///'): string => $this->swiftDoc($value, $width, $prefix), ['is_safe' => ['html']]),
         ];
+    }
+
+    /**
+     * Wrap documentation so empty lines are `///` with no trailing space.
+     */
+    protected function swiftDoc(string $value, int $width = 75, string $prefix = '    ///'): string
+    {
+        $out = [];
+        foreach (explode("\n", $value) as $line) {
+            foreach (explode("\n", wordwrap($line, $width, "\n")) as $part) {
+                $out[] = rtrim($part === '' ? $prefix : $prefix . ' ' . $part);
+            }
+        }
+        while ($out !== [] && array_last($out) === $prefix) {
+            array_pop($out);
+        }
+
+        return implode("\n", $out);
     }
 }

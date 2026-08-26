@@ -1,8 +1,8 @@
-import SwiftUI
 import Appwrite
-import NIO
 import Firebase
 import FirebaseMessaging
+import NIO
+import SwiftUI
 
 let host = "https://cloud.appwrite.io/v1"
 let projectId = "[YOUR_PROJECT_ID]"
@@ -15,11 +15,13 @@ let account = Account(client)
 let storage = Storage(client)
 let realtime = Realtime(client)
 
-class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate,
+    MessagingDelegate
+{
 
     func application(
         _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         FirebaseApp.configure()
 
@@ -29,14 +31,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
         let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
         UNUserNotificationCenter.current().requestAuthorization(
-          options: authOptions,
-          completionHandler: { granted, error in
-              DispatchQueue.main.async {
-                  if granted {
-                      application.registerForRemoteNotifications()
-                  }
-              }
-          }
+            options: authOptions,
+            completionHandler: { granted, error in
+                DispatchQueue.main.async {
+                    if granted {
+                        application.registerForRemoteNotifications()
+                    }
+                }
+            }
         )
 
         return true
@@ -50,7 +52,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             return
         }
 
-        UserDefaults.standard.set(fcmToken , forKey: "fcmToken")
+        UserDefaults.standard.set(fcmToken, forKey: "fcmToken")
 
         let targetId = UserDefaults.standard.string(forKey: "targetId")
 
@@ -67,7 +69,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                     identifier: fcmToken
                 )
 
-                UserDefaults.standard.set(target?.id , forKey: "targetId")
+                UserDefaults.standard.set(target?.id, forKey: "targetId")
             } else {
                 _ = try? await account.updatePushTarget(
                     targetId: targetId!,

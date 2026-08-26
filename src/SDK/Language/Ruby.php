@@ -123,6 +123,11 @@ class Ruby extends Language
                 'template'      => 'ruby/Gemfile.twig',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => '.rubocop.yml',
+                'template'      => 'ruby/.rubocop.yml',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.info.title | caseDash }}.gemspec',
                 'template'      => 'ruby/gemspec.twig',
@@ -389,6 +394,14 @@ class Ruby extends Language
     {
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
+            new TwigFilter('rtrimLines', function (mixed $value): string {
+                $lines = explode("\n", str_replace("\r\n", "\n", (string) $value));
+                foreach ($lines as $index => $line) {
+                    $lines[$index] = rtrim($line);
+                }
+
+                return implode("\n", $lines);
+            }),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
                 $enumSchema = $this->getEnumSchema($param);
