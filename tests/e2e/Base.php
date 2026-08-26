@@ -77,6 +77,11 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/models/array:passed',
     ];
 
+    protected const EXECUTION_COMPAT_RESPONSES = [
+        'execution-legacy:passed',
+        'execution-current:passed',
+    ];
+
     protected const UNION_RESPONSES = [
         'GET:/v1/mock/tests/union:passed',
         'test-data',

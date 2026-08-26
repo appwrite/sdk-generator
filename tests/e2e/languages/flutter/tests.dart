@@ -435,6 +435,30 @@ void main() async {
 
   response = await general.headers();
   print(response.result);
+
+  // Execution legacy (1.9.x functionId) vs current (resourceId/resourceType) parsing.
+  final legacyExecution = Execution.fromMap({
+    '\$id': 'exec-legacy',
+    'functionId': 'fn-legacy',
+    'status': 'completed',
+  });
+  if (legacyExecution.resourceId != 'fn-legacy' ||
+      legacyExecution.resourceType != ExecutionResourceType.functions) {
+    throw StateError('legacy Execution.fromMap failed');
+  }
+  print('execution-legacy:passed');
+
+  final currentExecution = Execution.fromMap({
+    '\$id': 'exec-current',
+    'resourceId': 'fn-current',
+    'resourceType': 'sites',
+    'status': 'completed',
+  });
+  if (currentExecution.resourceId != 'fn-current' ||
+      currentExecution.resourceType != ExecutionResourceType.sites) {
+    throw StateError('current Execution.fromMap failed');
+  }
+  print('execution-current:passed');
 }
 
 String? parse(String json) {

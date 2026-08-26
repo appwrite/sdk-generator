@@ -2766,6 +2766,11 @@
               "type": "object",
               "additionalProperties": true
             }
+          },
+          "execution": {
+            "type": "object",
+            "description": "Optional nested execution used to generate the Execution model in test SDKs.",
+            "$ref": "#\/components\/schemas\/execution"
           }
         },
         "required": [
@@ -3030,6 +3035,93 @@
           "mock",
           "options",
           "entries"
+        ]
+      },
+      "execution": {
+        "description": "Execution",
+        "type": "object",
+        "properties": {
+          "$id": {
+            "type": "string",
+            "description": "Execution ID.",
+            "example": "5e5ea5c16897e"
+          },
+          "resourceId": {
+            "type": "string",
+            "description": "Function or site ID.",
+            "example": "5e5ea6g16897e"
+          },
+          "resourceType": {
+            "title": "ExecutionResourceType",
+            "type": "string",
+            "description": "Execution resource type.",
+            "example": "functions",
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "functions"
+                ],
+                "title": "functions"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "sites"
+                ],
+                "title": "sites"
+              }
+            ]
+          },
+          "status": {
+            "title": "ExecutionStatus",
+            "type": "string",
+            "description": "Execution status.",
+            "example": "completed",
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "waiting"
+                ],
+                "title": "waiting"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "processing"
+                ],
+                "title": "processing"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "completed"
+                ],
+                "title": "completed"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "failed"
+                ],
+                "title": "failed"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "scheduled"
+                ],
+                "title": "scheduled"
+              }
+            ]
+          }
+        },
+        "required": [
+          "$id",
+          "resourceId",
+          "resourceType",
+          "status"
         ]
       }
     },
