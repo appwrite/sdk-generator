@@ -293,6 +293,61 @@ fn test_queries() {
         Query::equal("name", "Alice").to_string(),
         Query::greater_than("age", 18).to_string(),
     ]));
+    println!("{}", Query::count("*", "total"));
+    println!("{}", Query::join("orders", "$id", "customerId", "=", ""));
+    println!("{}", Query::group_by(vec!["status"]));
+    println!("{}", Query::distinct());
+    println!("{}", Query::covers("location", json!([1, 2])));
+    println!("{}", Query::count_distinct("year", "uniqueYears"));
+    println!("{}", Query::sum("price", "total"));
+    println!("{}", Query::avg("price", "avgPrice"));
+    println!("{}", Query::min("price", "lowest"));
+    println!("{}", Query::max("price", "highest"));
+    println!("{}", Query::stddev("price", "sd"));
+    println!("{}", Query::stddev_pop("price", "sdp"));
+    println!("{}", Query::stddev_samp("price", "sds"));
+    println!("{}", Query::variance("price", "var"));
+    println!("{}", Query::var_pop("price", "vp"));
+    println!("{}", Query::var_samp("price", "vs"));
+    println!("{}", Query::bit_and("flags", "band"));
+    println!("{}", Query::bit_or("flags", "bor"));
+    println!("{}", Query::bit_xor("flags", "bxor"));
+    println!("{}", Query::having(vec![Query::greater_than("total", 1).to_string()]));
+    println!("{}", Query::left_join("orders", "$id", "customerId", "=", "ord"));
+    println!("{}", Query::right_join("orders", "$id", "customerId", "=", ""));
+    println!("{}", Query::full_outer_join("orders", "$id", "customerId", "=", ""));
+    println!("{}", Query::cross_join("orders", "ord"));
+    println!("{}", Query::on("$id", "customerId", "="));
+    println!("{}", Query::left_join_on("orders", "ord", vec![
+        Query::on("$id", "customerId", "=").to_string(),
+        Query::equal("ord.status", "paid").to_string(),
+    ]));
+    println!("{}", Query::not_covers("location", json!([1, 2])));
+    println!("{}", Query::spatial_equals("location", json!([1, 2])));
+    println!("{}", Query::not_spatial_equals("location", json!([1, 2])));
+    let page_queries = Query::page(2, 10);
+    println!("{}", page_queries[0]);
+    println!("{}", page_queries[1]);
+    println!("{}", Query::builder().limit(1).build()[0]);
+    let built = Query::builder().limit(1).build();
+    let nested = json!([built.clone()]);
+    if Client::flatten_value(nested) == json!(built) {
+        println!("flatten-builder:ok");
+    } else {
+        println!("flatten-builder:fail");
+    }
+    let geometry = json!([[1, 2], [3, 4]]);
+    if Client::flatten_value(geometry.clone()) == geometry {
+        println!("flatten-geometry:ok");
+    } else {
+        println!("flatten-geometry:fail");
+    }
+    let query_list = json!([Query::limit(1).to_string()]);
+    if Client::flatten_value(query_list.clone()) == query_list {
+        println!("flatten-list:ok");
+    } else {
+        println!("flatten-list:fail");
+    }
 }
 
 fn test_permission_helpers() {

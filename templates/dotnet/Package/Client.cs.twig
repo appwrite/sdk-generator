@@ -154,6 +154,11 @@ namespace {{ spec.info.title | caseUcfirst }}
             Dictionary<string, string> headers,
             Dictionary<string, object?> parameters)
         {
+            foreach (var key in parameters.Keys.ToList())
+            {
+                parameters[key] = Query.Flatten(parameters[key]);
+            }
+
             var methodGet = "GET".Equals(method, StringComparison.OrdinalIgnoreCase);
 
             var queryString = methodGet && parameters.Count > 0 ?

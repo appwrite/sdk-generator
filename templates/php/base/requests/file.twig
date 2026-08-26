@@ -225,7 +225,7 @@
 {% else %}
         $clientConfig = \Closure::bind(fn (): array => [$this->endpoint, $this->headers, $this->selfSigned, $this->timeout, $this->connectTimeout], $this->client, Client::class);
 {% endif %}
-        $flattenParams = \Closure::bind(fn (array $params): array => $this->flatten($params), $this->client, Client::class);
+        $flattenParams = \Closure::bind(fn (array $params): array => $this->flattenForm($params), $this->client, Client::class);
         [$endpoint, $globalHeaders, $selfSigned, $timeout, $connectTimeout] = $clientConfig();
         $responseHeaders = [];
         $lastResponse = $response;

@@ -330,6 +330,41 @@ Query.select(['field1', 'field2'])      // return only specified fields
 // Logical
 Query.or([Query.equal('a', 1), Query.equal('b', 2)])   // OR condition
 Query.and([Query.greaterThan('age', 18), Query.lessThan('age', 65)])  // explicit AND (queries are AND by default)
+
+// Aggregations (optional alias)
+Query.count('*', 'total')
+Query.sum('amount', 'revenue')
+Query.avg('score', 'avgScore')
+Query.min('price', 'minPrice')
+Query.max('price', 'maxPrice')
+
+// Grouping
+Query.groupBy(['status', 'year'])
+Query.having([Query.greaterThan('total', 1)])
+Query.distinct()
+
+// Joins (table id, left key, right key, operator, alias)
+Query.join('orders', '$id', 'customerId')
+Query.leftJoin('orders', '$id', 'customerId', '=', 'ord')
+Query.leftJoin('orders', 'ord', [
+    Query.on('$id', 'customerId'),
+    Query.equal('ord.status', 'paid'),
+])
+
+// Fluent builder. Pass build() into list methods.
+const queries = Query.builder()
+    .equal('status', 'published')
+    .leftJoin('orders', '$id', 'customerId', '=', 'ord')
+    .count('*', 'total')
+    .groupBy(['status'])
+    .limit(25)
+    .build();
+
+await tablesDB.listRows({
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    queries,
+});
 ```
 
 ### File Storage

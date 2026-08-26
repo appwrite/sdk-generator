@@ -9,6 +9,7 @@ from threading import Lock
 from .input_file import InputFile
 from .exception import {{spec.info.title | caseUcfirst}}Exception
 from .encoders.value_class_encoder import ValueClassEncoder
+from .query import Query
 
 
 class Client:
@@ -69,6 +70,8 @@ class Client:
 
         if params is None:
             params = {}
+
+        params = {key: Query._flatten(value) for key, value in params.items()}
 
         data = {}
         files = {}

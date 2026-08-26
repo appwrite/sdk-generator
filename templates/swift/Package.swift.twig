@@ -15,8 +15,12 @@ let package = Package(
             name: "{{spec.info.title | caseUcfirst}}",
             targets: [
                 "{{spec.info.title | caseUcfirst}}",
+                {%~ if allEnums is not empty %}
                 "{{spec.info.title | caseUcfirst}}Enums",
+                {%~ endif %}
+                {%~ if definitions is not empty %}
                 "{{spec.info.title | caseUcfirst}}Models",
+                {%~ endif %}
                 "JSONCodable",
             ]
         )

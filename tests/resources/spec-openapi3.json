@@ -1617,6 +1617,28 @@
                         "type": "string"
                       }
                     ]
+                  },
+                  "kind": {
+                    "description": "Mock kind encoded as a oneOf of string enums.",
+                    "example": "alpha",
+                    "title": "MockKind",
+                    "type": "string",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "alpha"
+                        ],
+                        "title": "alpha"
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "beta"
+                        ],
+                        "title": "beta"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -2730,6 +2752,16 @@
               {"type": "string", "enum": ["pending"], "title": "pending"},
               {"type": "string", "enum": ["completed"], "title": "completed"},
               {"type": "string", "enum": ["cancelled"], "title": "cancelled"}
+            ]
+          },
+          "kind": {
+            "description": "Mock kind encoded as a oneOf of string enums.",
+            "example": "alpha",
+            "title": "MockKind",
+            "type": "string",
+            "oneOf": [
+              {"type": "string", "enum": ["alpha"], "title": "alpha"},
+              {"type": "string", "enum": ["beta"], "title": "beta"}
             ]
           },
           "localizedStatus": {

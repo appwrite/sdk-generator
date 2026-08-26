@@ -329,7 +329,10 @@ open class Client {
         headers: [String: String] = [:],
         params: [String: Any?] = [:]
     ) throws -> HTTPClientRequest {
-        let validParams = params.filter { $0.value != nil }
+        let validParams =
+            params
+            .mapValues { flatten($0) }
+            .filter { $0.value != nil }
 
         let queryParameters =
             method == "GET" && !validParams.isEmpty
@@ -712,6 +715,87 @@ open class Client {
             key: "origin",
             value: "{{ spec.info.title | caseLower }}-\(operatingSystem)://\(packageInfo.packageName)"
         )
+    }
+
+    public func flatten(_ value: Any?) -> Any? {
+        if let builder = value as? Query.Builder {
+            return builder.build()
+        }
+        if let query = value as? Query {
+            return query.description
+        }
+        if let builders = value as? [Query.Builder] {
+            return builders.flatMap { $0.build() }
+        }
+        if let queries = value as? [Query] {
+            return queries.map { $0.description }
+        }
+        if let strings = value as? [String] {
+            return strings
+        }
+        guard let items = arrayElements(value) else {
+            return value
+        }
+
+        var out: [Any] = []
+        var changed = false
+        for item in items {
+            let flat = flatten(item)
+            if let strings = flat as? [String], !(item is any StringProtocol) {
+                out.append(contentsOf: strings)
+                changed = true
+                continue
+            }
+            if item is Query.Builder || item is Query {
+                if let list = arrayElements(flat) {
+                    out.append(contentsOf: list)
+                } else if let flat {
+                    out.append(flat)
+                }
+                changed = true
+                continue
+            }
+            if arrayElements(item) != nil, let list = arrayElements(flat), list.allSatisfy({ $0 is String }) {
+                out.append(contentsOf: list)
+                changed = true
+                continue
+            }
+            if let flat {
+                out.append(flat)
+            }
+        }
+        return changed ? out : value
+    }
+
+    private func arrayElements(_ value: Any?) -> [Any]? {
+        guard let value, !(value is any StringProtocol) else {
+            return nil
+        }
+        if let typed = value as? [Query.Builder] {
+            return typed
+        }
+        if let typed = value as? [Query] {
+            return typed
+        }
+        if let typed = value as? [String] {
+            return typed
+        }
+        if let array = value as? NSArray {
+            return (0..<array.count).map { array[$0] as Any }
+        }
+        if let typed = value as? [Any] {
+            return typed
+        }
+        if let typed = value as? [Any?] {
+            return typed.compactMap { $0 }
+        }
+        let mirror = Mirror(reflecting: value)
+        switch mirror.displayStyle {
+        case .collection, .set:
+            return mirror.children.map { $0.value }
+        default:
+            return nil
+        }
     }
 }
 

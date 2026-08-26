@@ -3,8 +3,9 @@
 declare(strict_types=1);
 
 namespace {{ namespace | caseNamespace }};
-{% if globalHeaders | hasBearerAuth %}
 
+use {{ namespace | caseNamespace }}\Query\Builder as QueryBuilder;
+{% if globalHeaders | hasBearerAuth %}
 use Ahc\Jwt\JWT;
 {% endif %}
 
@@ -252,13 +253,14 @@ class Client
         }
 {% endif %}
         $headers = array_merge($this->headers, $headers);
+        $params = \array_map(self::flatten(...), $params);
         $querySeparator = str_contains($path, '?') ? '&' : '?';
         $ch = curl_init($this->endpoint . $path . (($method === self::METHOD_GET && $params !== []) ? $querySeparator . http_build_query($params) : ''));
         $responseHeaders = [];
 
         $query = match ($headers['content-type']) {
             'application/json' => json_encode($this->prepareParams($params)),
-            'multipart/form-data' => $this->flatten($params),
+            'multipart/form-data' => $this->flattenForm($params),
             default => http_build_query($params),
         };
 
@@ -340,9 +342,8 @@ class Client
 
     /**
      * Flatten params array to PHP multiple format
-     *
      */
-    protected function flatten(array $data, string $prefix = ''): array
+    protected function flattenForm(array $data, string $prefix = ''): array
     {
         $output = [];
 
@@ -350,7 +351,7 @@ class Client
             $finalKey = $prefix ? "{$prefix}[{$key}]" : $key;
 
             if (is_array($value)) {
-                $output = array_merge($output, $this->flatten($value, $finalKey));
+                $output = array_merge($output, $this->flattenForm($value, $finalKey));
             } else {
                 $output[$finalKey] = $value;
             }
@@ -361,7 +362,6 @@ class Client
 
     /**
      * Prepare params for JSON encoding by converting model objects to arrays
-     *
      */
     protected function prepareParams($data)
     {
@@ -374,5 +374,58 @@ class Client
         }
 
         return $data;
+    }
+
+    public static function flatten(mixed $value): mixed
+    {
+        if ($value instanceof QueryBuilder) {
+            return $value->build();
+        }
+        if ($value instanceof Query) {
+            return $value->__toString();
+        }
+        if (!\is_array($value) || !\array_is_list($value)) {
+            return $value;
+        }
+
+        $out = [];
+        $changed = false;
+        foreach ($value as $item) {
+            $flat = self::flatten($item);
+            if ($item instanceof QueryBuilder || $item instanceof Query) {
+                if (\is_array($flat)) {
+                    array_push($out, ...$flat);
+                } else {
+                    $out[] = $flat;
+                }
+                $changed = true;
+                continue;
+            }
+            if (\is_array($item) && \array_is_list($item) && self::isStringList($flat)) {
+                array_push($out, ...$flat);
+                $changed = true;
+                continue;
+            }
+            if ($flat !== $item) {
+                $changed = true;
+            }
+            $out[] = $flat;
+        }
+
+        return $changed ? $out : $value;
+    }
+
+    private static function isStringList(mixed $value): bool
+    {
+        if (!\is_array($value) || !\array_is_list($value)) {
+            return false;
+        }
+        foreach ($value as $item) {
+            if (!\is_string($item)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

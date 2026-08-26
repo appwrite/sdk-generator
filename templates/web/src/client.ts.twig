@@ -1,6 +1,6 @@
 import { Models } from './models';
 import { Channel, ActionableChannel, ResolvedChannel } from './channel';
-import { Query } from './query';
+import { flattenParam, normalizeQueries, type QueryInput } from './query';
 import { ID } from './id';
 import JSONbigModule from 'json-bigint';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
@@ -394,9 +394,9 @@ class Client {
         'x-sdk-platform': '{{ sdk.platform }}',
         'x-sdk-language': '{{ language.name | caseLower }}',
         'x-sdk-version': '{{ sdk.version }}',
-        {%~ for key,header in defaultHeaders %}
+{%~ for key,header in defaultHeaders %}
         '{{key}}': '{{header}}',
-        {%~ endfor %}
+{%~ endfor %}
     };
 
     /**
@@ -525,26 +525,26 @@ class Client {
     }
 
 {%~ endif %}
-    {%~ for headerKey, header in globalHeaders %}
+{%~ for headerKey, header in globalHeaders %}
     /**
      * Set {{headerKey | caseUcfirst}}
      *
-    {%~ if header.description %}
+{%~ if header.description %}
      * {{header.description}}
      *
-    {%~ endif %}
+{%~ endif %}
      * @param value string
      *
      * @return {this}
      */
     set{{headerKey | caseUcfirst}}(value: string): this {
-        {%~ if (headerKey != 'Project') %}
+{%~ if (headerKey != 'Project') %}
         this.headers['{{ header.name }}'] = {% if header.scheme == 'bearer' %}`Bearer ${value}`{% else %}value{% endif %};
-        {%~ endif %}
+{%~ endif %}
         this.config.{{ headerKey | caseLower }} = value;
         return this;
     }
-    {%~ endfor %}
+{%~ endfor %}
 
     private realtime: Realtime = {
         socket: undefined,
@@ -859,7 +859,7 @@ class Client {
             | ResolvedChannel
             | (Channel<any> | ActionableChannel | ResolvedChannel)[],
         callback: (payload: RealtimeResponseEvent<T>) => void,
-        queries: (string | Query)[] = [],
+        queries: QueryInput = [],
     ): () => void {
         const channelArray = Array.isArray(channels) ? channels : [channels];
         // Convert Channel instances to strings
@@ -878,9 +878,7 @@ class Client {
             this.realtime.channels.add(channel),
         );
 
-        const queryStrings = (queries ?? []).map((q) =>
-            typeof q === 'string' ? q : q.toString(),
-        );
+        const queryStrings = normalizeQueries(queries);
 
         let subscriptionId = '';
         const attempts = this.realtime.subscriptions.size + 1;
@@ -933,10 +931,21 @@ class Client {
     ): { uri: string; options: RequestInit } {
         method = method.toUpperCase();
 
+        for (const key of Object.keys(params)) {
+            params[key] = flattenParam(params[key]);
+        }
+
         headers = Object.assign({}, this.headers, headers);
 
-{% set guard = ["typeof window !== 'undefined'", 'window.localStorage'] %}{% if sdk.platform == 'console' %}{% set guard = guard|merge(['this.shouldUseFallbackCredentials(url)']) %}{% endif %}
-        {{ guard | jsGuard(8) | raw }}
+{%~ if sdk.platform == 'console' %}
+        if (
+            typeof window !== 'undefined' &&
+            window.localStorage &&
+            this.shouldUseFallbackCredentials(url)
+        ) {
+{%~ else %}
+        if (typeof window !== 'undefined' && window.localStorage) {
+{%~ endif %}
             const cookieFallback =
                 window.localStorage.getItem('cookieFallback');
             if (cookieFallback) {
@@ -1154,20 +1163,20 @@ class Client {
         return finalResponse ?? lastResponse;
     }
 
-    {%~ for clientMethodName, clientMethods in clientMethods %}
-    {%~ for clientMethod in clientMethods %}
+{%~ for clientMethodName, clientMethods in clientMethods %}
+{%~ for clientMethod in clientMethods %}
     async {{ clientMethodName | caseCamel }}(): Promise<unknown> {
         return this.call('{{ clientMethod.method.value | caseUpper }}', new URL(this.config.endpoint + '{{ clientMethod.path }}'), {
-            {%~ for key, security in (clientMethod | securityHeaders) %}
-            {{ security.name | jsKey | raw }}: this.config.{{ key | caseLower }},
-            {%~ endfor %}
-            {%~ for key, header in (clientMethod | methodHeaders) %}
-            {{ key | jsKey | raw }}: '{{ header }}',
-            {%~ endfor %}
+{%~ for key, security in (clientMethod | securityHeaders) %}
+            '{{ security.name }}': this.config.{{ key | caseLower }},
+{%~ endfor %}
+{%~ for key, header in (clientMethod | methodHeaders) %}
+            {% if key matches '/^[A-Za-z_$][A-Za-z0-9_$]*$/' %}{{ key }}{% else %}'{{ key }}'{% endif %}: '{{ header }}',
+{%~ endfor %}
         });
     }
-    {%~ endfor %}
-    {%~ endfor %}
+{%~ endfor %}
+{%~ endfor %}
 
     async call(
         method: string,
@@ -1219,7 +1228,7 @@ class Client {
         }
 
         if (400 <= response.status) {
-            let responseText: string;
+            let responseText;
             if (
                 response.headers
                     .get('content-type')
@@ -1243,9 +1252,12 @@ class Client {
         if (
             typeof window !== 'undefined' &&
             window.localStorage &&
-            cookieFallback{% if sdk.platform == 'console' %} &&
-            this.shouldUseFallbackCredentials(url){% endif %}
-
+{%~ if sdk.platform == 'console' %}
+            cookieFallback &&
+            this.shouldUseFallbackCredentials(url)
+{%~ else %}
+            cookieFallback
+{%~ endif %}
         ) {
             window.console.warn(
                 '{{spec.info.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.',
@@ -1282,7 +1294,7 @@ class Client {
 }
 
 export { Client, {{spec.info.title | caseUcfirst}}Exception };
-export { Query } from './query';
+export { Query, QueryBuilder, flattenParam } from './query';
 export type { Models, Payload, UploadProgress };
 export type { RealtimeResponseEvent };
-export type { QueryTypes, QueryTypesList } from './query';
+export type { QueryTypes, QueryTypesList, QueryInput } from './query';

@@ -5,6 +5,7 @@ import {
     General,
     Realtime,
     Query,
+    flattenParam,
     Permission,
     Role,
     ID,
@@ -290,6 +291,45 @@ import {
         Query.equal('name', 'Alice'),
         Query.greaterThan('age', 18),
     ]));
+    console.log(Query.count('*', 'total'));
+    console.log(Query.join('orders', '$id', 'customerId'));
+    console.log(Query.groupBy(['status']));
+    console.log(Query.distinct());
+    console.log(Query.covers('location', [1, 2]));
+    console.log(Query.countDistinct('year', 'uniqueYears'));
+    console.log(Query.sum('price', 'total'));
+    console.log(Query.avg('price', 'avgPrice'));
+    console.log(Query.min('price', 'lowest'));
+    console.log(Query.max('price', 'highest'));
+    console.log(Query.stddev('price', 'sd'));
+    console.log(Query.stddevPop('price', 'sdp'));
+    console.log(Query.stddevSamp('price', 'sds'));
+    console.log(Query.variance('price', 'var'));
+    console.log(Query.varPop('price', 'vp'));
+    console.log(Query.varSamp('price', 'vs'));
+    console.log(Query.bitAnd('flags', 'band'));
+    console.log(Query.bitOr('flags', 'bor'));
+    console.log(Query.bitXor('flags', 'bxor'));
+    console.log(Query.having([Query.greaterThan('total', 1)]));
+    console.log(Query.leftJoin('orders', '$id', 'customerId', '=', 'ord'));
+    console.log(Query.rightJoin('orders', '$id', 'customerId'));
+    console.log(Query.fullOuterJoin('orders', '$id', 'customerId'));
+    console.log(Query.crossJoin('orders', 'ord'));
+    console.log(Query.on('$id', 'customerId'));
+    console.log(Query.leftJoin('orders', 'ord', [
+        Query.on('$id', 'customerId'),
+        Query.equal('ord.status', 'paid'),
+    ]));
+    console.log(Query.notCovers('location', [1, 2]));
+    console.log(Query.spatialEquals('location', [1, 2]));
+    console.log(Query.notSpatialEquals('location', [1, 2]));
+    const pageQueries = Query.page(2, 10);
+    console.log(pageQueries[0]);
+    console.log(pageQueries[1]);
+    console.log(Query.builder().limit(1).build()[0]);
+    console.log(JSON.stringify(flattenParam([Query.builder().limit(1)])) === JSON.stringify([Query.limit(1)]) ? 'flatten-builder:ok' : 'flatten-builder:fail');
+    console.log(JSON.stringify(flattenParam([[1, 2], [3, 4]])) === JSON.stringify([[1, 2], [3, 4]]) ? 'flatten-geometry:ok' : 'flatten-geometry:fail');
+    console.log(JSON.stringify(flattenParam([Query.limit(1)])) === JSON.stringify([Query.limit(1)]) ? 'flatten-list:ok' : 'flatten-list:fail');
 
     // Permission & Role helper tests
     console.log(Permission.read(Role.any()));

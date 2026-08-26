@@ -110,6 +110,8 @@ module {{ spec.info.title | caseUcfirst }}
             params: {},
             response_type: nil
         )
+            params = params.transform_values { |value| Query._flatten(value) }
+
             separator = path.include?('?') ? '&' : '?'
             uri = URI.parse(@endpoint + path + ((method == "GET" && params.length) ? separator + encode(params) : ''))
 

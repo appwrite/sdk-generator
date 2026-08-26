@@ -6,6 +6,7 @@ include __DIR__ . '/../../sdks/php/src/Appwrite/Client.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Service.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/InputFile.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Query.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Query/Builder.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Permission.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Role.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/ID.php';
@@ -347,6 +348,48 @@ echo Query::elemMatch('friends', [
     Query::equal('name', ['Alice']),
     Query::greaterThan('age', 18)
 ]) . "\n";
+echo Query::count('*', 'total') . "\n";
+echo Query::join('orders', '$id', 'customerId') . "\n";
+echo Query::groupBy(['status']) . "\n";
+echo Query::distinct() . "\n";
+echo Query::covers('location', [1, 2]) . "\n";
+echo Query::countDistinct('year', 'uniqueYears') . "\n";
+echo Query::sum('price', 'total') . "\n";
+echo Query::avg('price', 'avgPrice') . "\n";
+echo Query::min('price', 'lowest') . "\n";
+echo Query::max('price', 'highest') . "\n";
+echo Query::stddev('price', 'sd') . "\n";
+echo Query::stddevPop('price', 'sdp') . "\n";
+echo Query::stddevSamp('price', 'sds') . "\n";
+echo Query::variance('price', 'var') . "\n";
+echo Query::varPop('price', 'vp') . "\n";
+echo Query::varSamp('price', 'vs') . "\n";
+echo Query::bitAnd('flags', 'band') . "\n";
+echo Query::bitOr('flags', 'bor') . "\n";
+echo Query::bitXor('flags', 'bxor') . "\n";
+echo Query::having([Query::greaterThan('total', 1)]) . "\n";
+echo Query::leftJoin('orders', '$id', 'customerId', '=', 'ord') . "\n";
+echo Query::rightJoin('orders', '$id', 'customerId') . "\n";
+echo Query::fullOuterJoin('orders', '$id', 'customerId') . "\n";
+echo Query::crossJoin('orders', 'ord') . "\n";
+echo Query::on('$id', 'customerId') . "\n";
+echo Query::leftJoin('orders', 'ord', [
+    Query::on('$id', 'customerId'),
+    Query::equal('ord.status', 'paid'),
+]) . "\n";
+echo Query::notCovers('location', [1, 2]) . "\n";
+echo Query::spatialEquals('location', [1, 2]) . "\n";
+echo Query::notSpatialEquals('location', [1, 2]) . "\n";
+$page = Query::page(2, 10);
+echo $page[0] . "\n";
+echo $page[1] . "\n";
+echo Query::builder()->limit(1)->build()[0] . "\n";
+$flatBuilder = Client::flatten([Query::builder()->limit(1)]);
+echo ((is_array($flatBuilder) ? array_values($flatBuilder) : []) === [Query::limit(1)] ? 'flatten-builder:ok' : 'flatten-builder:fail') . "\n";
+$geometry = [[1, 2], [3, 4]];
+echo (Client::flatten($geometry) === $geometry ? 'flatten-geometry:ok' : 'flatten-geometry:fail') . "\n";
+$flatList = Client::flatten([Query::limit(1)]);
+echo ((is_array($flatList) ? array_values($flatList) : []) === [Query::limit(1)] ? 'flatten-list:ok' : 'flatten-list:fail') . "\n";
 
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";
