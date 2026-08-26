@@ -45,12 +45,12 @@ class {{ definitionName | caseUcfirst | overrideIdentifier }} implements Model {
 {% if not (property | schemaRequired) %}              {% else %}        {% endif %}),
 {% if not (property | schemaRequired) %}            )
           : null{% else %}      ){% endif %}{% elseif property | schemaRequired %}enums.{{ enumName | caseUcfirst }}.values.firstWhere(
-        (e) => e.value == map['{{ propertyName | escapeDollarSign }}'],
+        (e) => e.value == {% if propertyName == 'resourceType' %}(map['resourceType'] ?? 'functions'){% else %}map['{{ propertyName | escapeDollarSign }}']{% endif %},
       ){% else %}map['{{ propertyName | escapeDollarSign }}'] != null
           ? enums.{{ enumName | caseUcfirst }}.values.firstWhere(
               (e) => e.value == map['{{ propertyName | escapeDollarSign }}'],
             )
-          : null{% endif %}{% else %}{% if (property | schemaType) == 'array' %}List.from(map['{{ propertyName | escapeDollarSign }}'] ?? []){% else %}map['{{ propertyName | escapeDollarSign }}']{% if (property | schemaType) == "number" %}{% if not (property | schemaRequired) %}?{% endif %}.toDouble(){% endif %}{% if (property | schemaType) == "string" %}{% if not (property | schemaRequired) %}?{% endif %}.toString(){% endif %}{% endif %}{% endif %},
+          : null{% endif %}{% else %}{% if (property | schemaType) == 'array' %}List.from(map['{{ propertyName | escapeDollarSign }}'] ?? []){% elseif propertyName == 'resourceId' %}(map['resourceId'] ?? map['functionId']).toString(){% else %}map['{{ propertyName | escapeDollarSign }}']{% if (property | schemaType) == "number" %}{% if not (property | schemaRequired) %}?{% endif %}.toDouble(){% endif %}{% if (property | schemaType) == "string" %}{% if not (property | schemaRequired) %}?{% endif %}.toString(){% endif %}{% endif %}{% endif %},
 {% endfor %}
 {% if definition.additionalProperties %}
       {{ 'data' | escapeKeyword }}: map["{{ 'data' | escapeDollarSign }}"] ?? map,
