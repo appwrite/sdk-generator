@@ -1,6 +1,6 @@
+import {{ spec.info.title | caseUcfirst }}
 import Foundation
 import XCTest
-import {{ spec.info.title | caseUcfirst }}
 
 class Tests: XCTestCase {
     func method(_ raw: String) -> String {
@@ -89,10 +89,12 @@ class Tests: XCTestCase {
     }
 
     func testNestedLeftJoin() {
-        let raw = Query.leftJoin("orders", alias: "ord", on: [
-            Query.on("$id", "customerId"),
-            Query.equal("ord.status", value: "paid"),
-        ])
+        let raw = Query.leftJoin(
+            "orders", alias: "ord",
+            on: [
+                Query.on("$id", "customerId"),
+                Query.equal("ord.status", value: "paid"),
+            ])
         let object = try! JSONSerialization.jsonObject(with: Data(raw.utf8)) as! [String: Any]
         XCTAssertEqual(object["method"] as? String, "leftJoin")
         let values = object["values"] as! [Any]

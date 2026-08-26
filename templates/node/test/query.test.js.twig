@@ -1,245 +1,247 @@
-const { Query, normalizeQueries, flattenParam } = require("../dist/query");
+const { Query, normalizeQueries, flattenParam } = require('../dist/query');
 
 const tests = [
     {
         description: 'with a string',
         value: 's',
-        expectedValues: '["s"]'
+        expectedValues: '["s"]',
     },
     {
         description: 'with a integer',
         value: 1,
-        expectedValues: '[1]'
+        expectedValues: '[1]',
     },
     {
         description: 'with a double',
         value: 1.2,
-        expectedValues: '[1.2]'
+        expectedValues: '[1.2]',
     },
     {
         description: 'with a whole number double',
         value: 1.0,
-        expectedValues: '[1]'
+        expectedValues: '[1]',
     },
     {
         description: 'with a bool',
         value: false,
-        expectedValues: '[false]'
+        expectedValues: '[false]',
     },
     {
         description: 'with a list',
         value: ['a', 'b', 'c'],
-        expectedValues: '["a","b","c"]'
-    }
+        expectedValues: '["a","b","c"]',
+    },
 ];
 
 describe('Query', () => {
     describe('basic filter equal', () => {
         for (const t of tests) {
             test(t.description, () =>
-                expect(Query.equal("attr", t.value))
-                    .toEqual(`{"method":"equal","attribute":"attr","values":${t.expectedValues}}`)
-            )
+                expect(Query.equal('attr', t.value)).toEqual(
+                    `{"method":"equal","attribute":"attr","values":${t.expectedValues}}`,
+                ),
+            );
         }
-    })
+    });
 
     describe('basic filter notEqual', () => {
         for (const t of tests) {
             test(t.description, () =>
-                expect(Query.notEqual("attr", t.value))
-                    .toEqual(`{"method":"notEqual","attribute":"attr","values":${t.expectedValues}}`)
-            )
+                expect(Query.notEqual('attr', t.value)).toEqual(
+                    `{"method":"notEqual","attribute":"attr","values":${t.expectedValues}}`,
+                ),
+            );
         }
     });
 
     describe('basic filter lessThan', () => {
         for (const t of tests) {
             test(t.description, () =>
-                expect(Query.lessThan("attr", t.value))
-                    .toEqual(`{"method":"lessThan","attribute":"attr","values":${t.expectedValues}}`)
-            )
+                expect(Query.lessThan('attr', t.value)).toEqual(
+                    `{"method":"lessThan","attribute":"attr","values":${t.expectedValues}}`,
+                ),
+            );
         }
     });
 
     describe('basic filter lessThanEqual', () => {
         for (const t of tests) {
             test(t.description, () =>
-                expect(Query.lessThanEqual("attr", t.value))
-                    .toEqual(`{"method":"lessThanEqual","attribute":"attr","values":${t.expectedValues}}`)
-            )
+                expect(Query.lessThanEqual('attr', t.value)).toEqual(
+                    `{"method":"lessThanEqual","attribute":"attr","values":${t.expectedValues}}`,
+                ),
+            );
         }
     });
 
     describe('basic filter greaterThan', () => {
         for (const t of tests) {
             test(t.description, () =>
-                expect(Query.greaterThan("attr", t.value))
-                    .toEqual(`{"method":"greaterThan","attribute":"attr","values":${t.expectedValues}}`)
-            )
+                expect(Query.greaterThan('attr', t.value)).toEqual(
+                    `{"method":"greaterThan","attribute":"attr","values":${t.expectedValues}}`,
+                ),
+            );
         }
     });
 
     describe('basic filter greaterThanEqual', () => {
         for (const t of tests) {
             test(t.description, () =>
-                expect(Query.greaterThanEqual("attr", t.value))
-                    .toEqual(`{"method":"greaterThanEqual","attribute":"attr","values":${t.expectedValues}}`)
-            )
+                expect(Query.greaterThanEqual('attr', t.value)).toEqual(
+                    `{"method":"greaterThanEqual","attribute":"attr","values":${t.expectedValues}}`,
+                ),
+            );
         }
     });
 
     test('search', () =>
-        expect(Query.search('attr', 'keyword1 keyword2'))
-            .toEqual(`{"method":"search","attribute":"attr","values":["keyword1 keyword2"]}`)
-    );
+        expect(Query.search('attr', 'keyword1 keyword2')).toEqual(
+            `{"method":"search","attribute":"attr","values":["keyword1 keyword2"]}`,
+        ));
 
     test('isNull', () =>
-        expect(Query.isNull('attr'))
-            .toEqual(`{"method":"isNull","attribute":"attr"}`)
-    );
+        expect(Query.isNull('attr')).toEqual(
+            `{"method":"isNull","attribute":"attr"}`,
+        ));
 
     test('isNotNull', () =>
-        expect(Query.isNotNull('attr'))
-            .toEqual(`{"method":"isNotNull","attribute":"attr"}`)
-    );
+        expect(Query.isNotNull('attr')).toEqual(
+            `{"method":"isNotNull","attribute":"attr"}`,
+        ));
 
     describe('between', () => {
         test('with integers', () =>
-            expect(Query.between('attr', 1, 2))
-                .toEqual(`{"method":"between","attribute":"attr","values":[1,2]}`)
-        );
+            expect(Query.between('attr', 1, 2)).toEqual(
+                `{"method":"between","attribute":"attr","values":[1,2]}`,
+            ));
         test('with doubles', () =>
-            expect(Query.between('attr', 1.2, 2.2))
-                .toEqual(`{"method":"between","attribute":"attr","values":[1.2,2.2]}`)
-        );
+            expect(Query.between('attr', 1.2, 2.2)).toEqual(
+                `{"method":"between","attribute":"attr","values":[1.2,2.2]}`,
+            ));
         test('with strings', () =>
-            expect(Query.between('attr',"a","z"))
-                .toEqual(`{"method":"between","attribute":"attr","values":["a","z"]}`)
-        );
+            expect(Query.between('attr', 'a', 'z')).toEqual(
+                `{"method":"between","attribute":"attr","values":["a","z"]}`,
+            ));
     });
 
     test('select', () =>
-        expect(Query.select(['attr1', 'attr2']))
-            .toEqual(`{"method":"select","values":["attr1","attr2"]}`)
-    );
+        expect(Query.select(['attr1', 'attr2'])).toEqual(
+            `{"method":"select","values":["attr1","attr2"]}`,
+        ));
 
     test('orderAsc', () =>
-        expect(Query.orderAsc('attr'))
-            .toEqual(`{"method":"orderAsc","attribute":"attr"}`)
-    );
+        expect(Query.orderAsc('attr')).toEqual(
+            `{"method":"orderAsc","attribute":"attr"}`,
+        ));
 
     test('orderDesc', () =>
-        expect(Query.orderDesc('attr'))
-            .toEqual(`{"method":"orderDesc","attribute":"attr"}`)
-    );
+        expect(Query.orderDesc('attr')).toEqual(
+            `{"method":"orderDesc","attribute":"attr"}`,
+        ));
 
     test('cursorBefore', () =>
-        expect(Query.cursorBefore('attr'))
-            .toEqual('{"method":"cursorBefore","values":["attr"]}')
-    );
+        expect(Query.cursorBefore('attr')).toEqual(
+            '{"method":"cursorBefore","values":["attr"]}',
+        ));
 
     test('cursorAfter', () =>
-        expect(Query.cursorAfter('attr'))
-            .toEqual('{"method":"cursorAfter","values":["attr"]}')
-    );
+        expect(Query.cursorAfter('attr')).toEqual(
+            '{"method":"cursorAfter","values":["attr"]}',
+        ));
 
     test('limit', () =>
-        expect(Query.limit(1))
-            .toEqual('{"method":"limit","values":[1]}')
-    );
+        expect(Query.limit(1)).toEqual('{"method":"limit","values":[1]}'));
 
     test('offset', () =>
-        expect(Query.offset(1))
-            .toEqual('{"method":"offset","values":[1]}')
-    );
+        expect(Query.offset(1)).toEqual('{"method":"offset","values":[1]}'));
 
     test('count with alias', () =>
-        expect(Query.count('*', 'total'))
-            .toEqual('{"method":"count","attribute":"*","values":["total"]}')
-    );
+        expect(Query.count('*', 'total')).toEqual(
+            '{"method":"count","attribute":"*","values":["total"]}',
+        ));
 
     test('count without alias', () =>
-        expect(Query.count())
-            .toEqual('{"method":"count","attribute":"*"}')
-    );
+        expect(Query.count()).toEqual('{"method":"count","attribute":"*"}'));
 
     test('countDistinct', () =>
-        expect(Query.countDistinct('year', 'uniqueYears'))
-            .toEqual('{"method":"countDistinct","attribute":"year","values":["uniqueYears"]}')
-    );
+        expect(Query.countDistinct('year', 'uniqueYears')).toEqual(
+            '{"method":"countDistinct","attribute":"year","values":["uniqueYears"]}',
+        ));
 
     test('sum', () =>
-        expect(Query.sum('price', 'total'))
-            .toEqual('{"method":"sum","attribute":"price","values":["total"]}')
-    );
+        expect(Query.sum('price', 'total')).toEqual(
+            '{"method":"sum","attribute":"price","values":["total"]}',
+        ));
 
     test('avg', () =>
-        expect(Query.avg('price', 'avgPrice'))
-            .toEqual('{"method":"avg","attribute":"price","values":["avgPrice"]}')
-    );
+        expect(Query.avg('price', 'avgPrice')).toEqual(
+            '{"method":"avg","attribute":"price","values":["avgPrice"]}',
+        ));
 
     test('min', () =>
-        expect(Query.min('price', 'lowest'))
-            .toEqual('{"method":"min","attribute":"price","values":["lowest"]}')
-    );
+        expect(Query.min('price', 'lowest')).toEqual(
+            '{"method":"min","attribute":"price","values":["lowest"]}',
+        ));
 
     test('max', () =>
-        expect(Query.max('price', 'highest'))
-            .toEqual('{"method":"max","attribute":"price","values":["highest"]}')
-    );
+        expect(Query.max('price', 'highest')).toEqual(
+            '{"method":"max","attribute":"price","values":["highest"]}',
+        ));
 
     test('stddev', () =>
-        expect(Query.stddev('price', 'sd'))
-            .toEqual('{"method":"stddev","attribute":"price","values":["sd"]}')
-    );
+        expect(Query.stddev('price', 'sd')).toEqual(
+            '{"method":"stddev","attribute":"price","values":["sd"]}',
+        ));
 
     test('stddevPop', () =>
-        expect(Query.stddevPop('price', 'sdp'))
-            .toEqual('{"method":"stddevPop","attribute":"price","values":["sdp"]}')
-    );
+        expect(Query.stddevPop('price', 'sdp')).toEqual(
+            '{"method":"stddevPop","attribute":"price","values":["sdp"]}',
+        ));
 
     test('stddevSamp', () =>
-        expect(Query.stddevSamp('price', 'sds'))
-            .toEqual('{"method":"stddevSamp","attribute":"price","values":["sds"]}')
-    );
+        expect(Query.stddevSamp('price', 'sds')).toEqual(
+            '{"method":"stddevSamp","attribute":"price","values":["sds"]}',
+        ));
 
     test('variance', () =>
-        expect(Query.variance('price', 'var'))
-            .toEqual('{"method":"variance","attribute":"price","values":["var"]}')
-    );
+        expect(Query.variance('price', 'var')).toEqual(
+            '{"method":"variance","attribute":"price","values":["var"]}',
+        ));
 
     test('varPop', () =>
-        expect(Query.varPop('price', 'vp'))
-            .toEqual('{"method":"varPop","attribute":"price","values":["vp"]}')
-    );
+        expect(Query.varPop('price', 'vp')).toEqual(
+            '{"method":"varPop","attribute":"price","values":["vp"]}',
+        ));
 
     test('varSamp', () =>
-        expect(Query.varSamp('price', 'vs'))
-            .toEqual('{"method":"varSamp","attribute":"price","values":["vs"]}')
-    );
+        expect(Query.varSamp('price', 'vs')).toEqual(
+            '{"method":"varSamp","attribute":"price","values":["vs"]}',
+        ));
 
     test('bitAnd', () =>
-        expect(Query.bitAnd('flags', 'band'))
-            .toEqual('{"method":"bitAnd","attribute":"flags","values":["band"]}')
-    );
+        expect(Query.bitAnd('flags', 'band')).toEqual(
+            '{"method":"bitAnd","attribute":"flags","values":["band"]}',
+        ));
 
     test('bitOr', () =>
-        expect(Query.bitOr('flags', 'bor'))
-            .toEqual('{"method":"bitOr","attribute":"flags","values":["bor"]}')
-    );
+        expect(Query.bitOr('flags', 'bor')).toEqual(
+            '{"method":"bitOr","attribute":"flags","values":["bor"]}',
+        ));
 
     test('bitXor', () =>
-        expect(Query.bitXor('flags', 'bxor'))
-            .toEqual('{"method":"bitXor","attribute":"flags","values":["bxor"]}')
-    );
+        expect(Query.bitXor('flags', 'bxor')).toEqual(
+            '{"method":"bitXor","attribute":"flags","values":["bxor"]}',
+        ));
 
     test('groupBy', () =>
-        expect(Query.groupBy(['status', 'year']))
-            .toEqual('{"method":"groupBy","values":["status","year"]}')
-    );
+        expect(Query.groupBy(['status', 'year'])).toEqual(
+            '{"method":"groupBy","values":["status","year"]}',
+        ));
 
     test('having nests parsed queries', () => {
-        const having = JSON.parse(Query.having([Query.greaterThan('total', 1)]));
+        const having = JSON.parse(
+            Query.having([Query.greaterThan('total', 1)]),
+        );
         expect(having.method).toEqual('having');
         expect(having.values[0].method).toEqual('greaterThan');
         expect(having.values[0].attribute).toEqual('total');
@@ -247,40 +249,42 @@ describe('Query', () => {
     });
 
     test('distinct', () =>
-        expect(Query.distinct())
-            .toEqual('{"method":"distinct"}')
-    );
+        expect(Query.distinct()).toEqual('{"method":"distinct"}'));
 
     test('join', () =>
-        expect(Query.join('orders', '$id', 'customerId'))
-            .toEqual('{"method":"join","attribute":"orders","values":["$id","=","customerId"]}')
-    );
+        expect(Query.join('orders', '$id', 'customerId')).toEqual(
+            '{"method":"join","attribute":"orders","values":["$id","=","customerId"]}',
+        ));
 
     test('leftJoin with alias', () =>
-        expect(Query.leftJoin('orders', '$id', 'customerId', '=', 'ord'))
-            .toEqual('{"method":"leftJoin","attribute":"orders","values":["$id","=","customerId","ord"]}')
-    );
+        expect(
+            Query.leftJoin('orders', '$id', 'customerId', '=', 'ord'),
+        ).toEqual(
+            '{"method":"leftJoin","attribute":"orders","values":["$id","=","customerId","ord"]}',
+        ));
 
     test('rightJoin', () =>
-        expect(Query.rightJoin('orders', '$id', 'customerId'))
-            .toEqual('{"method":"rightJoin","attribute":"orders","values":["$id","=","customerId"]}')
-    );
+        expect(Query.rightJoin('orders', '$id', 'customerId')).toEqual(
+            '{"method":"rightJoin","attribute":"orders","values":["$id","=","customerId"]}',
+        ));
 
     test('fullOuterJoin', () =>
-        expect(Query.fullOuterJoin('orders', '$id', 'customerId'))
-            .toEqual('{"method":"fullOuterJoin","attribute":"orders","values":["$id","=","customerId"]}')
-    );
+        expect(Query.fullOuterJoin('orders', '$id', 'customerId')).toEqual(
+            '{"method":"fullOuterJoin","attribute":"orders","values":["$id","=","customerId"]}',
+        ));
 
     test('on', () =>
-        expect(Query.on('$id', 'customerId'))
-            .toEqual('{"method":"on","values":["$id","=","customerId"]}')
-    );
+        expect(Query.on('$id', 'customerId')).toEqual(
+            '{"method":"on","values":["$id","=","customerId"]}',
+        ));
 
     test('nested leftJoin', () => {
-        const query = JSON.parse(Query.leftJoin('orders', 'ord', [
-            Query.on('$id', 'customerId'),
-            Query.equal('ord.status', 'paid'),
-        ]));
+        const query = JSON.parse(
+            Query.leftJoin('orders', 'ord', [
+                Query.on('$id', 'customerId'),
+                Query.equal('ord.status', 'paid'),
+            ]),
+        );
         expect(query.method).toEqual('leftJoin');
         expect(query.attribute).toEqual('orders');
         expect(query.values[0]).toEqual('ord');
@@ -289,29 +293,29 @@ describe('Query', () => {
     });
 
     test('crossJoin', () =>
-        expect(Query.crossJoin('orders', 'ord'))
-            .toEqual('{"method":"crossJoin","attribute":"orders","values":["ord"]}')
-    );
+        expect(Query.crossJoin('orders', 'ord')).toEqual(
+            '{"method":"crossJoin","attribute":"orders","values":["ord"]}',
+        ));
 
     test('vectorDot', () =>
-        expect(Query.vectorDot('embedding', [0.1, 0.2]))
-            .toEqual('{"method":"vectorDot","attribute":"embedding","values":[[0.1,0.2]]}')
-    );
+        expect(Query.vectorDot('embedding', [0.1, 0.2])).toEqual(
+            '{"method":"vectorDot","attribute":"embedding","values":[[0.1,0.2]]}',
+        ));
 
     test('notCovers', () =>
-        expect(Query.notCovers('location', [1, 2]))
-            .toEqual('{"method":"notCovers","attribute":"location","values":[[1,2]]}')
-    );
+        expect(Query.notCovers('location', [1, 2])).toEqual(
+            '{"method":"notCovers","attribute":"location","values":[[1,2]]}',
+        ));
 
     test('spatialEquals', () =>
-        expect(Query.spatialEquals('location', [1, 2]))
-            .toEqual('{"method":"spatialEquals","attribute":"location","values":[[1,2]]}')
-    );
+        expect(Query.spatialEquals('location', [1, 2])).toEqual(
+            '{"method":"spatialEquals","attribute":"location","values":[[1,2]]}',
+        ));
 
     test('notSpatialEquals', () =>
-        expect(Query.notSpatialEquals('location', [1, 2]))
-            .toEqual('{"method":"notSpatialEquals","attribute":"location","values":[[1,2]]}')
-    );
+        expect(Query.notSpatialEquals('location', [1, 2])).toEqual(
+            '{"method":"notSpatialEquals","attribute":"location","values":[[1,2]]}',
+        ));
 
     test('page', () => {
         const queries = Query.page(2, 10);
@@ -347,7 +351,12 @@ describe('Query', () => {
     });
 
     test('normalize page wrapped in array', () => {
-        expect(normalizeQueries([Query.equal('status', 'active'), Query.page(2, 10)])).toEqual([
+        expect(
+            normalizeQueries([
+                Query.equal('status', 'active'),
+                Query.page(2, 10),
+            ]),
+        ).toEqual([
             Query.equal('status', 'active'),
             Query.limit(10),
             Query.offset(10),
@@ -355,15 +364,20 @@ describe('Query', () => {
     });
 
     test('flattenParam spreads wrapped builder', () => {
-        expect(flattenParam([Query.builder().limit(1)])).toEqual([Query.limit(1)]);
+        expect(flattenParam([Query.builder().limit(1)])).toEqual([
+            Query.limit(1),
+        ]);
     });
 
     test('flattenParam keeps nested numeric arrays', () => {
-        const geometry = [[1, 2], [3, 4]];
+        const geometry = [
+            [1, 2],
+            [3, 4],
+        ];
         expect(flattenParam(geometry)).toBe(geometry);
     });
 
     test('flattenParam keeps query string list', () => {
         expect(flattenParam([Query.limit(1)])).toEqual([Query.limit(1)]);
     });
-})
+});

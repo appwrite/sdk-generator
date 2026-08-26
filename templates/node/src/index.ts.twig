@@ -1,4 +1,10 @@
-export { Client, Query, QueryBuilder, flattenParam, {{spec.info.title | caseUcfirst}}Exception } from './client';
+export {
+    Client,
+    Query,
+    QueryBuilder,
+    flattenParam,
+    {{spec.info.title | caseUcfirst}}Exception,
+} from './client';
 {% for service in services %}
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}

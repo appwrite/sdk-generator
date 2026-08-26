@@ -10,7 +10,9 @@ pub struct Builder {
 
 impl Builder {
     pub fn new() -> Self {
-        Self { queries: Vec::new() }
+        Self {
+            queries: Vec::new(),
+        }
     }
 
     pub fn build(&self) -> Vec<String> {
@@ -32,7 +34,11 @@ impl Builder {
         self
     }
 
-    pub fn less_than_equal<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+    pub fn less_than_equal<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        value: V,
+    ) -> Self {
         self.queries.push(Query::less_than_equal(attribute, value));
         self
     }
@@ -42,8 +48,13 @@ impl Builder {
         self
     }
 
-    pub fn greater_than_equal<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
-        self.queries.push(Query::greater_than_equal(attribute, value));
+    pub fn greater_than_equal<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        value: V,
+    ) -> Self {
+        self.queries
+            .push(Query::greater_than_equal(attribute, value));
         self
     }
 
@@ -57,7 +68,12 @@ impl Builder {
         self
     }
 
-    pub fn between<S: Into<String>, V: Into<Value>>(mut self, attribute: S, start: V, end: V) -> Self {
+    pub fn between<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        start: V,
+        end: V,
+    ) -> Self {
         self.queries.push(Query::between(attribute, start, end));
         self
     }
@@ -127,12 +143,20 @@ impl Builder {
         self
     }
 
-    pub fn contains_any<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: Vec<V>) -> Self {
+    pub fn contains_any<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        values: Vec<V>,
+    ) -> Self {
         self.queries.push(Query::contains_any(attribute, values));
         self
     }
 
-    pub fn contains_all<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: Vec<V>) -> Self {
+    pub fn contains_all<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        values: Vec<V>,
+    ) -> Self {
         self.queries.push(Query::contains_all(attribute, values));
         self
     }
@@ -142,17 +166,30 @@ impl Builder {
         self
     }
 
-    pub fn not_between<S: Into<String>, V: Into<Value>>(mut self, attribute: S, start: V, end: V) -> Self {
+    pub fn not_between<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        start: V,
+        end: V,
+    ) -> Self {
         self.queries.push(Query::not_between(attribute, start, end));
         self
     }
 
-    pub fn not_starts_with<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+    pub fn not_starts_with<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        value: V,
+    ) -> Self {
         self.queries.push(Query::not_starts_with(attribute, value));
         self
     }
 
-    pub fn not_ends_with<S: Into<String>, V: Into<Value>>(mut self, attribute: S, value: V) -> Self {
+    pub fn not_ends_with<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        value: V,
+    ) -> Self {
         self.queries.push(Query::not_ends_with(attribute, value));
         self
     }
@@ -187,23 +224,54 @@ impl Builder {
         self
     }
 
-    pub fn distance_equal<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
-        self.queries.push(Query::distance_equal(attribute, values, distance, meters));
+    pub fn distance_equal<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        values: V,
+        distance: impl Into<Value>,
+        meters: bool,
+    ) -> Self {
+        self.queries
+            .push(Query::distance_equal(attribute, values, distance, meters));
         self
     }
 
-    pub fn distance_not_equal<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
-        self.queries.push(Query::distance_not_equal(attribute, values, distance, meters));
+    pub fn distance_not_equal<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        values: V,
+        distance: impl Into<Value>,
+        meters: bool,
+    ) -> Self {
+        self.queries.push(Query::distance_not_equal(
+            attribute, values, distance, meters,
+        ));
         self
     }
 
-    pub fn distance_greater_than<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
-        self.queries.push(Query::distance_greater_than(attribute, values, distance, meters));
+    pub fn distance_greater_than<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        values: V,
+        distance: impl Into<Value>,
+        meters: bool,
+    ) -> Self {
+        self.queries.push(Query::distance_greater_than(
+            attribute, values, distance, meters,
+        ));
         self
     }
 
-    pub fn distance_less_than<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
-        self.queries.push(Query::distance_less_than(attribute, values, distance, meters));
+    pub fn distance_less_than<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        values: V,
+        distance: impl Into<Value>,
+        meters: bool,
+    ) -> Self {
+        self.queries.push(Query::distance_less_than(
+            attribute, values, distance, meters,
+        ));
         self
     }
 
@@ -212,7 +280,11 @@ impl Builder {
         self
     }
 
-    pub fn not_intersects<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+    pub fn not_intersects<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        values: V,
+    ) -> Self {
         self.queries.push(Query::not_intersects(attribute, values));
         self
     }
@@ -232,7 +304,11 @@ impl Builder {
         self
     }
 
-    pub fn not_overlaps<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+    pub fn not_overlaps<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        values: V,
+    ) -> Self {
         self.queries.push(Query::not_overlaps(attribute, values));
         self
     }
@@ -295,7 +371,11 @@ impl Builder {
         self
     }
 
-    pub fn count_distinct(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
+    pub fn count_distinct(
+        mut self,
+        attribute: impl Into<String>,
+        alias: impl Into<String>,
+    ) -> Self {
         self.queries.push(Query::count_distinct(attribute, alias));
         self
     }
@@ -396,7 +476,8 @@ impl Builder {
         operator: impl Into<String>,
         alias: impl Into<String>,
     ) -> Self {
-        self.queries.push(Query::join(table, left, right, operator, alias));
+        self.queries
+            .push(Query::join(table, left, right, operator, alias));
         self
     }
 
@@ -408,11 +489,17 @@ impl Builder {
         operator: impl Into<String>,
         alias: impl Into<String>,
     ) -> Self {
-        self.queries.push(Query::left_join(table, left, right, operator, alias));
+        self.queries
+            .push(Query::left_join(table, left, right, operator, alias));
         self
     }
 
-    pub fn left_join_on<I, S>(mut self, table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    pub fn left_join_on<I, S>(
+        mut self,
+        table: impl Into<String>,
+        alias: impl Into<String>,
+        on: I,
+    ) -> Self
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -429,7 +516,8 @@ impl Builder {
         operator: impl Into<String>,
         alias: impl Into<String>,
     ) -> Self {
-        self.queries.push(Query::right_join(table, left, right, operator, alias));
+        self.queries
+            .push(Query::right_join(table, left, right, operator, alias));
         self
     }
 
@@ -441,7 +529,8 @@ impl Builder {
         operator: impl Into<String>,
         alias: impl Into<String>,
     ) -> Self {
-        self.queries.push(Query::full_outer_join(table, left, right, operator, alias));
+        self.queries
+            .push(Query::full_outer_join(table, left, right, operator, alias));
         self
     }
 
@@ -450,21 +539,34 @@ impl Builder {
         self
     }
 
-    pub fn vector_dot<S: Into<String>, N: Into<Value>>(mut self, attribute: S, vector: Vec<N>) -> Self {
+    pub fn vector_dot<S: Into<String>, N: Into<Value>>(
+        mut self,
+        attribute: S,
+        vector: Vec<N>,
+    ) -> Self {
         let values = Value::Array(vector.into_iter().map(|n| n.into()).collect());
         self.queries.push(Query::vector_dot(attribute, values));
         self
     }
 
-    pub fn vector_cosine<S: Into<String>, N: Into<Value>>(mut self, attribute: S, vector: Vec<N>) -> Self {
+    pub fn vector_cosine<S: Into<String>, N: Into<Value>>(
+        mut self,
+        attribute: S,
+        vector: Vec<N>,
+    ) -> Self {
         let values = Value::Array(vector.into_iter().map(|n| n.into()).collect());
         self.queries.push(Query::vector_cosine(attribute, values));
         self
     }
 
-    pub fn vector_euclidean<S: Into<String>, N: Into<Value>>(mut self, attribute: S, vector: Vec<N>) -> Self {
+    pub fn vector_euclidean<S: Into<String>, N: Into<Value>>(
+        mut self,
+        attribute: S,
+        vector: Vec<N>,
+    ) -> Self {
         let values = Value::Array(vector.into_iter().map(|n| n.into()).collect());
-        self.queries.push(Query::vector_euclidean(attribute, values));
+        self.queries
+            .push(Query::vector_euclidean(attribute, values));
         self
     }
 
@@ -478,13 +580,22 @@ impl Builder {
         self
     }
 
-    pub fn spatial_equals<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
+    pub fn spatial_equals<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        values: V,
+    ) -> Self {
         self.queries.push(Query::spatial_equals(attribute, values));
         self
     }
 
-    pub fn not_spatial_equals<S: Into<String>, V: Into<Value>>(mut self, attribute: S, values: V) -> Self {
-        self.queries.push(Query::not_spatial_equals(attribute, values));
+    pub fn not_spatial_equals<S: Into<String>, V: Into<Value>>(
+        mut self,
+        attribute: S,
+        values: V,
+    ) -> Self {
+        self.queries
+            .push(Query::not_spatial_equals(attribute, values));
         self
     }
 

@@ -329,7 +329,8 @@ open class Client {
         headers: [String: String] = [:],
         params: [String: Any?] = [:]
     ) throws -> HTTPClientRequest {
-        let validParams = params
+        let validParams =
+            params
             .mapValues { flatten($0) }
             .filter { $0.value != nil }
 

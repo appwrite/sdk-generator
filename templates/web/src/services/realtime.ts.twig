@@ -212,7 +212,11 @@ export class Realtime {
         }
 
         // URL carries only the project; channels/queries are sent via the subscribe message.
+{%~ if language.name == 'ReactNative' %}
+        const queryParams = `project=${projectId}`;
+{%~ else %}
         let queryParams = `project=${projectId}`;
+{%~ endif %}
 
         const jwt = this.client.config.jwt;
 {% if language.name != 'ReactNative' %}
@@ -263,9 +267,7 @@ export class Realtime {
                         : new WebSocketCtor(url, undefined, {
                               headers: {
                                   Origin: `{{ spec.info.title | caseLower }}-${Platform.OS}://${this.client.config.platform}`,
-                                  ...(jwt
-                                      ? { 'x-{{ spec.info.title | caseLower }}-jwt': jwt }
-                                      : {}),
+                                  ...(jwt ? { 'x-{{ spec.info.title | caseLower }}-jwt': jwt } : {}),
                               },
                           }));
 {% else %}
@@ -330,7 +332,7 @@ export class Realtime {
                     }
                 });
 
-                socket.addEventListener('error', (event: Event) => {
+                socket.addEventListener('error', (_event: Event) => {
                     if (
                         connectionId !== this.connectionId ||
                         socket !== this.socket
@@ -539,10 +541,7 @@ export class Realtime {
      */
     public async subscribe(
         channels: (
-            | string
-            | Channel<any>
-            | ActionableChannel
-            | ResolvedChannel
+            string | Channel<any> | ActionableChannel | ResolvedChannel
         )[],
         callback: (event: RealtimeResponseEvent<any>) => void,
         queries?: QueryInput,
@@ -570,10 +569,7 @@ export class Realtime {
      */
     public async subscribe<T>(
         channels: (
-            | string
-            | Channel<any>
-            | ActionableChannel
-            | ResolvedChannel
+            string | Channel<any> | ActionableChannel | ResolvedChannel
         )[],
         callback: (event: RealtimeResponseEvent<T>) => void,
         queries?: QueryInput,

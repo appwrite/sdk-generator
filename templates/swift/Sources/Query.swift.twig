@@ -912,7 +912,8 @@ public struct Query: Codable, CustomStringConvertible {
         }
         for query in on {
             if let data = query.data(using: .utf8),
-               let parsed = try? JSONDecoder().decode(Query.self, from: data) {
+                let parsed = try? JSONDecoder().decode(Query.self, from: data)
+            {
                 values.append(parsed)
             }
         }

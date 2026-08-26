@@ -103,7 +103,7 @@ type RealtimeRequestSubscribe = {
 /**
  * Realtime event response structure with generic payload type.
  */
-type RealtimeResponseEvent<T extends unknown> = {
+type RealtimeResponseEvent<T> = {
     /**
      * List of event names associated with the response.
      */
@@ -422,18 +422,14 @@ class Client {
      */
     setEndpoint(endpoint: string): this {
         if (!endpoint || typeof endpoint !== 'string') {
-            throw new {{spec.info.title | caseUcfirst}}Exception(
-                'Endpoint must be a valid string',
-            );
+            throw new {{spec.info.title | caseUcfirst}}Exception('Endpoint must be a valid string');
         }
 
         if (
             !endpoint.startsWith('http://') &&
             !endpoint.startsWith('https://')
         ) {
-            throw new {{spec.info.title | caseUcfirst}}Exception(
-                'Invalid endpoint URL: ' + endpoint,
-            );
+            throw new {{spec.info.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
         }
 
         this.config.endpoint = endpoint;
@@ -453,9 +449,7 @@ class Client {
      */
     setEndpointRealtime(endpointRealtime: string): this {
         if (!endpointRealtime || typeof endpointRealtime !== 'string') {
-            throw new {{spec.info.title | caseUcfirst}}Exception(
-                'Endpoint must be a valid string',
-            );
+            throw new {{spec.info.title | caseUcfirst}}Exception('Endpoint must be a valid string');
         }
 
         if (
@@ -856,7 +850,7 @@ class Client {
      * @param {(payload: RealtimeMessage) => void} callback Is called on every realtime update.
      * @returns {() => void} Unsubscribes from events.
      */
-    subscribe<T extends unknown>(
+    subscribe<T>(
         channels:
             | string
             | string[]
@@ -943,7 +937,15 @@ class Client {
 
         headers = Object.assign({}, this.headers, headers);
 
-        if (typeof window !== 'undefined' && window.localStorage{% if sdk.platform == 'console' %} && this.shouldUseFallbackCredentials(url){% endif %}) {
+{%~ if sdk.platform == 'console' %}
+        if (
+            typeof window !== 'undefined' &&
+            window.localStorage &&
+            this.shouldUseFallbackCredentials(url)
+        ) {
+{%~ else %}
+        if (typeof window !== 'undefined' && window.localStorage) {
+{%~ endif %}
             const cookieFallback =
                 window.localStorage.getItem('cookieFallback');
             if (cookieFallback) {
@@ -951,7 +953,7 @@ class Client {
             }
         }
 
-        let options: RequestInit = {
+        const options: RequestInit = {
             method,
             headers,
         };
@@ -974,7 +976,7 @@ class Client {
                     options.body = JSONbig.stringify(params);
                     break;
 
-                case 'multipart/form-data':
+                case 'multipart/form-data': {
                     const formData = new FormData();
 
                     for (const [key, value] of Object.entries(params)) {
@@ -992,6 +994,7 @@ class Client {
                     options.body = formData;
                     delete headers['content-type'];
                     break;
+                }
             }
         }
 
@@ -1030,7 +1033,7 @@ class Client {
         const firstPayload = { ...originalPayload };
         firstPayload[fileParam] = new File([firstChunk], file.name);
 
-        let response = await this.call(
+        const response = await this.call(
             method,
             url,
             firstChunkHeaders,
@@ -1163,18 +1166,14 @@ class Client {
 {%~ for clientMethodName, clientMethods in clientMethods %}
 {%~ for clientMethod in clientMethods %}
     async {{ clientMethodName | caseCamel }}(): Promise<unknown> {
-        return this.call(
-            '{{ clientMethod.method.value | caseUpper }}',
-            new URL(this.config.endpoint + '{{ clientMethod.path }}'),
-            {
+        return this.call('{{ clientMethod.method.value | caseUpper }}', new URL(this.config.endpoint + '{{ clientMethod.path }}'), {
 {%~ for key, security in (clientMethod | securityHeaders) %}
-                '{{ security.name }}': this.config.{{ key | caseLower }},
+            '{{ security.name }}': this.config.{{ key | caseLower }},
 {%~ endfor %}
 {%~ for key, header in (clientMethod | methodHeaders) %}
-                '{{ key }}': '{{ header }}',
+            {% if key matches '/^[A-Za-z_$][A-Za-z0-9_$]*$/' %}{{ key }}{% else %}'{{ key }}'{% endif %}: '{{ header }}',
 {%~ endfor %}
-            },
-        );
+        });
     }
 {%~ endfor %}
 {%~ endfor %}
@@ -1229,7 +1228,7 @@ class Client {
         }
 
         if (400 <= response.status) {
-            let responseText = '';
+            let responseText;
             if (
                 response.headers
                     .get('content-type')
@@ -1250,7 +1249,16 @@ class Client {
 
         const cookieFallback = response.headers.get('X-Fallback-Cookies');
 
-        if (typeof window !== 'undefined' && window.localStorage && cookieFallback{% if sdk.platform == 'console' %} && this.shouldUseFallbackCredentials(url){% endif %}) {
+        if (
+            typeof window !== 'undefined' &&
+            window.localStorage &&
+{%~ if sdk.platform == 'console' %}
+            cookieFallback &&
+            this.shouldUseFallbackCredentials(url)
+{%~ else %}
+            cookieFallback
+{%~ endif %}
+        ) {
             window.console.warn(
                 '{{spec.info.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.',
             );
@@ -1273,7 +1281,7 @@ class Client {
         let output: Payload = {};
 
         for (const [key, value] of Object.entries(data)) {
-            let finalKey = prefix ? prefix + '[' + key + ']' : key;
+            const finalKey = prefix ? prefix + '[' + key + ']' : key;
             if (Array.isArray(value)) {
                 output = { ...output, ...Client.flatten(value, finalKey) };
             } else {

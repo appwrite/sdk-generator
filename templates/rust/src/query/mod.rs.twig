@@ -526,7 +526,10 @@ impl Query {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        let values: Vec<Value> = attributes.into_iter().map(|s| Value::String(s.into())).collect();
+        let values: Vec<Value> = attributes
+            .into_iter()
+            .map(|s| Value::String(s.into()))
+            .collect();
         Self::new("groupBy".to_string(), None, values)
     }
 
@@ -630,7 +633,11 @@ impl Query {
         Self::nested_join("rightJoin", table, alias, on)
     }
 
-    pub fn full_outer_join_on<I, S>(table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    pub fn full_outer_join_on<I, S>(
+        table: impl Into<String>,
+        alias: impl Into<String>,
+        on: I,
+    ) -> Self
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -639,19 +646,35 @@ impl Query {
     }
 
     pub fn covers<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
-        Self::new("covers".to_string(), Some(attribute.into()), vec![values.into()])
+        Self::new(
+            "covers".to_string(),
+            Some(attribute.into()),
+            vec![values.into()],
+        )
     }
 
     pub fn not_covers<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
-        Self::new("notCovers".to_string(), Some(attribute.into()), vec![values.into()])
+        Self::new(
+            "notCovers".to_string(),
+            Some(attribute.into()),
+            vec![values.into()],
+        )
     }
 
     pub fn spatial_equals<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
-        Self::new("spatialEquals".to_string(), Some(attribute.into()), vec![values.into()])
+        Self::new(
+            "spatialEquals".to_string(),
+            Some(attribute.into()),
+            vec![values.into()],
+        )
     }
 
     pub fn not_spatial_equals<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
-        Self::new("notSpatialEquals".to_string(), Some(attribute.into()), vec![values.into()])
+        Self::new(
+            "notSpatialEquals".to_string(),
+            Some(attribute.into()),
+            vec![values.into()],
+        )
     }
 
     pub fn page(page: u32, per_page: u32) -> Vec<Self> {
@@ -715,7 +738,12 @@ impl Query {
         Self::new(method.to_string(), Some(table.into()), values)
     }
 
-    fn nested_join<I, S>(method: &str, table: impl Into<String>, alias: impl Into<String>, on: I) -> Self
+    fn nested_join<I, S>(
+        method: &str,
+        table: impl Into<String>,
+        alias: impl Into<String>,
+        on: I,
+    ) -> Self
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -1422,17 +1450,26 @@ mod tests {
 
     #[test]
     fn test_stddev_pop() {
-        assert_eq!(Query::stddev_pop("price", "sdp").to_value()["method"], "stddevPop");
+        assert_eq!(
+            Query::stddev_pop("price", "sdp").to_value()["method"],
+            "stddevPop"
+        );
     }
 
     #[test]
     fn test_stddev_samp() {
-        assert_eq!(Query::stddev_samp("price", "sds").to_value()["method"], "stddevSamp");
+        assert_eq!(
+            Query::stddev_samp("price", "sds").to_value()["method"],
+            "stddevSamp"
+        );
     }
 
     #[test]
     fn test_variance() {
-        assert_eq!(Query::variance("price", "var").to_value()["method"], "variance");
+        assert_eq!(
+            Query::variance("price", "var").to_value()["method"],
+            "variance"
+        );
     }
 
     #[test]
@@ -1442,12 +1479,18 @@ mod tests {
 
     #[test]
     fn test_var_samp() {
-        assert_eq!(Query::var_samp("price", "vs").to_value()["method"], "varSamp");
+        assert_eq!(
+            Query::var_samp("price", "vs").to_value()["method"],
+            "varSamp"
+        );
     }
 
     #[test]
     fn test_bit_and() {
-        assert_eq!(Query::bit_and("flags", "band").to_value()["method"], "bitAnd");
+        assert_eq!(
+            Query::bit_and("flags", "band").to_value()["method"],
+            "bitAnd"
+        );
     }
 
     #[test]
@@ -1457,7 +1500,10 @@ mod tests {
 
     #[test]
     fn test_bit_xor() {
-        assert_eq!(Query::bit_xor("flags", "bxor").to_value()["method"], "bitXor");
+        assert_eq!(
+            Query::bit_xor("flags", "bxor").to_value()["method"],
+            "bitXor"
+        );
     }
 
     #[test]
@@ -1561,7 +1607,11 @@ mod tests {
 
     #[test]
     fn test_not_covers() {
-        let value = Query::not_covers("location", Value::Array(vec![Value::from(1), Value::from(2)])).to_value();
+        let value = Query::not_covers(
+            "location",
+            Value::Array(vec![Value::from(1), Value::from(2)]),
+        )
+        .to_value();
         assert_eq!(value["method"], "notCovers");
         assert_eq!(value["values"][0][0], 1);
         assert_eq!(value["values"][0][1], 2);
@@ -1569,13 +1619,21 @@ mod tests {
 
     #[test]
     fn test_spatial_equals() {
-        let value = Query::spatial_equals("location", Value::Array(vec![Value::from(1), Value::from(2)])).to_value();
+        let value = Query::spatial_equals(
+            "location",
+            Value::Array(vec![Value::from(1), Value::from(2)]),
+        )
+        .to_value();
         assert_eq!(value["method"], "spatialEquals");
     }
 
     #[test]
     fn test_not_spatial_equals() {
-        let value = Query::not_spatial_equals("location", Value::Array(vec![Value::from(1), Value::from(2)])).to_value();
+        let value = Query::not_spatial_equals(
+            "location",
+            Value::Array(vec![Value::from(1), Value::from(2)]),
+        )
+        .to_value();
         assert_eq!(value["method"], "notSpatialEquals");
     }
 

@@ -319,7 +319,8 @@ open class Client {
         sink: ((ByteBuffer) -> Void)? = nil,
         converter: ((Any) throws -> T)? = nil
     ) async throws -> T {
-        let validParams = params
+        let validParams =
+            params
             .mapValues { flatten($0) }
             .filter { $0.value != nil }
 
