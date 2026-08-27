@@ -38,7 +38,6 @@ jobs:
           Node18,
           Node20,
           PHP85,
-          PHPNamespace,
           Python39,
           Python310,
           Python311,
