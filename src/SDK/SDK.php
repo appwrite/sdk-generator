@@ -279,6 +279,7 @@ class SDK
     public function setNamespace(string $namespace): SDK
     {
         $this->setParam('namespace', $namespace);
+        $this->language->setParam('namespace', $namespace);
 
         return $this;
     }

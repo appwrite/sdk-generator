@@ -336,7 +336,7 @@ class PHP extends Language
             return $className;
         }
 
-        return '\\' . $this->normalizeNamespace($spec?->info->title ?? '') . '\\Models\\' . $className;
+        return '\\' . $this->normalizeNamespace($this->params['namespace'] ?? ($spec?->info->title ?? '')) . '\\Models\\' . $className;
     }
 
     protected function getResponseModels(Operation $method, ?Specification $spec): array
