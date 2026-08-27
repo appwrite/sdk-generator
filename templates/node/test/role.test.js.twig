@@ -1,14 +1,22 @@
-const { Role } = require("../dist/role");
+const { Role } = require('../dist/role');
 
 describe('Role', () => {
     test('any', () => expect(Role.any()).toEqual('any'));
-    test('user without status', () => expect(Role.user('custom')).toEqual('user:custom'));
-    test('user with status', () => expect(Role.user('custom', 'verified')).toEqual('user:custom/verified'));
+    test('user without status', () =>
+        expect(Role.user('custom')).toEqual('user:custom'));
+    test('user with status', () =>
+        expect(Role.user('custom', 'verified')).toEqual(
+            'user:custom/verified',
+        ));
     test('users without status', () => expect(Role.users()).toEqual('users'));
-    test('users with status', () => expect(Role.users('verified')).toEqual('users/verified'));
+    test('users with status', () =>
+        expect(Role.users('verified')).toEqual('users/verified'));
     test('guests', () => expect(Role.guests()).toEqual('guests'));
-    test('team without role', () => expect(Role.team('custom')).toEqual('team:custom'))
-    test('team with role', () => expect(Role.team('custom', 'owner')).toEqual('team:custom/owner'))
-    test('member', () => expect(Role.member('custom')).toEqual('member:custom'))
-    test('label', () => expect(Role.label('admin')).toEqual('label:admin'))
-})
+    test('team without role', () =>
+        expect(Role.team('custom')).toEqual('team:custom'));
+    test('team with role', () =>
+        expect(Role.team('custom', 'owner')).toEqual('team:custom/owner'));
+    test('member', () =>
+        expect(Role.member('custom')).toEqual('member:custom'));
+    test('label', () => expect(Role.label('admin')).toEqual('label:admin'));
+});

@@ -8,12 +8,12 @@ import {{ sdk.namespace | caseDot }}.enums.{{ (property | enumName) | caseUcfirs
 {%~ endfor %}
 
 /**
- * {{ requestModel.description | replace({"\n": "\n * "}) | raw }}
+ * {{ requestModel.description | replace({"\n": "\n * "}) | kotlinDoc }}
  */
 data class {{ requestModelName | caseUcfirst }}(
     {%~ for property in requestModel.properties %}
     /**
-     * {{ property.description | replace({"\n": "\n     * "}) | raw }}
+     * {{ property.description | replace({"\n": "\n     * "}) | kotlinDoc }}
      */
     @SerializedName("{{ (property | schemaName) | escapeKeyword | escapeDollarSign}}")
     {% if (property | schemaRequired) -%} val

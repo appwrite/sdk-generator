@@ -136,7 +136,7 @@ class Kotlin extends Language
             self::TYPE_ARRAY => $this->isUntypedNestedArray($parameter, $schema)
                 ? 'List<List<Any>>'
                 : 'List<' . $this->getTypeName($this->getArraySchema($parameter) ?? $schema) . '>',
-            self::TYPE_OBJECT => 'Any',
+            self::TYPE_OBJECT => 'Map<String, Any?>',
             default => 'Any',
         };
     }
@@ -448,6 +448,11 @@ class Kotlin extends Language
             // Config for root project
             [
                 'scope'         => 'copy',
+                'destination'   => '.editorconfig',
+                'template'      => '/kotlin/.editorconfig',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => '.github/workflows/publish.yml',
                 'template'      => '/kotlin/.github/workflows/publish.yml',
             ],
@@ -560,6 +565,11 @@ class Kotlin extends Language
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/JsonExtensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/JsonRequestBodyTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/JsonRequestBodyTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -713,6 +723,7 @@ class Kotlin extends Language
                 return $this->toUpperSnakeCase($value);
             }),
             new TwigFilter('propertyAssignment', fn(Schema $property, Specification $spec): string => $this->getPropertyAssignment($property, $spec)),
+            new TwigFilter('kotlinDoc', static fn(string $value): string => (string) \preg_replace('/[ \t]+$/m', '', $value), ['is_safe' => ['html']]),
             new TwigFilter('javaParamExample', fn(Schema|Parameter $param): string => $this->getParamExample($param, 'java'), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', fn(Schema|Parameter $param, string $lang = 'kotlin'): string => $this->getEnumExample($param, $lang)),
             new TwigFilter('javaEnumExample', fn(Schema|Parameter $param): string => $this->getEnumExample($param, 'java')),

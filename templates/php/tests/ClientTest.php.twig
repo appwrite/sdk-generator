@@ -1,11 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{ namespace | caseNamespace }};
 
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
+use ReflectionProperty;
+use Utopia\Client as HttpClient;
 
-final class ClientTest extends TestCase {
-    public function testSetEndpointInvalidThrowsException(): void {
+final class ClientTest extends TestCase
+{
+    public function testSetEndpointInvalidThrowsException(): void
+    {
         $this->expectException({{ namespace | split('\\') | last | caseUcfirst }}Exception::class);
         $this->expectExceptionMessage('Invalid endpoint URL: invalid-endpoint');
 
@@ -13,7 +20,8 @@ final class ClientTest extends TestCase {
         $client->setEndpoint('invalid-endpoint');
     }
 
-    public function testSetEndpointWithoutProtocolThrowsException(): void {
+    public function testSetEndpointWithoutProtocolThrowsException(): void
+    {
         $this->expectException({{ namespace | split('\\') | last | caseUcfirst }}Exception::class);
         $this->expectExceptionMessage('Invalid endpoint URL: example.com');
 
@@ -21,7 +29,8 @@ final class ClientTest extends TestCase {
         $client->setEndpoint('example.com');
     }
 
-    public function testChaining(): void {
+    public function testChaining(): void
+    {
         $client = new Client();
         $result = $client
             ->setEndpoint('https://example.com')
@@ -31,29 +40,73 @@ final class ClientTest extends TestCase {
         $this->assertInstanceOf(Client::class, $result);
     }
 
-    public function testSetEndpointReturnsClient(): void {
+    public function testSetEndpointReturnsClient(): void
+    {
         $client = new Client();
         $result = $client->setEndpoint('https://example.com');
         $this->assertSame($client, $result);
     }
 
-    public function testSetSelfSignedReturnsClient(): void {
+    public function testSetSelfSignedReturnsClient(): void
+    {
         $client = new Client();
         $result = $client->setSelfSigned(true);
         $this->assertSame($client, $result);
     }
 
-    public function testAddHeaderReturnsClient(): void {
+    public function testAddHeaderReturnsClient(): void
+    {
         $client = new Client();
         $result = $client->addHeader('X-Custom', 'value');
         $this->assertSame($client, $result);
     }
 {% for headerKey, header in globalHeaders %}
 
-    public function testSet{{headerKey | caseUcfirst}}ReturnsClient(): void {
+    public function testSet{{headerKey | caseUcfirst}}ReturnsClient(): void
+    {
         $client = new Client();
         $result = $client->set{{headerKey | caseUcfirst}}('test-value');
         $this->assertSame($client, $result);
     }
 {% endfor %}
+
+    public function testHttpClientIsReusedUntilTransportOptionsChange(): void
+    {
+        $client = new Client();
+        $client->setEndpoint('https://example.com/v1');
+
+        $first = $this->httpClient($client, true);
+        $this->assertInstanceOf(HttpClient::class, $first);
+        $this->assertSame($first, $this->httpClient($client, true));
+
+        $noRedirect = $this->httpClient($client, false);
+        $this->assertInstanceOf(HttpClient::class, $noRedirect);
+        $this->assertNotSame($first, $noRedirect);
+
+        $client->setTimeout(5);
+        $this->assertNull(new ReflectionProperty(Client::class, 'httpClient')->getValue($client));
+        $rebuilt = $this->httpClient($client, true);
+        $this->assertInstanceOf(HttpClient::class, $rebuilt);
+        $this->assertNotSame($first, $rebuilt);
+    }
+
+    public function testSelfSignedAndConnectTimeoutResetHttpClient(): void
+    {
+        $client = new Client();
+        $original = $this->httpClient($client, true);
+
+        $client->setSelfSigned(true);
+        $this->assertNotSame($original, $this->httpClient($client, true));
+
+        $afterSelfSigned = $this->httpClient($client, true);
+        $client->setConnectTimeout(2);
+        $this->assertNotSame($afterSelfSigned, $this->httpClient($client, true));
+    }
+
+    private function httpClient(Client $client, bool $followRedirects): HttpClient
+    {
+        $method = new ReflectionMethod(Client::class, 'getHttpClient');
+
+        return $method->invoke($client, $followRedirects);
+    }
 }

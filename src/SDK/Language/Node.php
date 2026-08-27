@@ -13,6 +13,12 @@ use Twig\TwigFilter;
 class Node extends Web
 {
     #[Override]
+    protected function getFileExample(): string
+    {
+        return 'InputFile.fromPath(\'/path/to/file\', \'filename\')';
+    }
+
+    #[Override]
     public function getName(): string
     {
         return 'NodeJS';
@@ -62,37 +68,6 @@ class Node extends Web
             'webAuth' => 'Promise<string>',
             'location' => 'Promise<ArrayBuffer>',
             default => parent::getReturn($method, $spec),
-        };
-    }
-
-    #[Override]
-    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
-    {
-        $type       = $this->getSchemaType($param);
-        $example    = $this->getSchemaExample($param);
-
-        $hasExample = !empty($example) || $example === 0 || $example === false;
-
-        if (!$hasExample) {
-            return match ($type) {
-                self::TYPE_ARRAY => '[]',
-                self::TYPE_FILE => 'InputFile.fromPath(\'/path/to/file\', \'filename\')',
-                self::TYPE_INTEGER, self::TYPE_NUMBER, self::TYPE_BOOLEAN => 'null',
-                self::TYPE_OBJECT => '{}',
-                self::TYPE_STRING => "''",
-            };
-        }
-
-        return match ($type) {
-            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
-            self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
-            self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
-            self::TYPE_OBJECT => ($example === '{}')
-            ? '{}'
-            : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT))
-                ? preg_replace('/\n/', "\n    ", $formatted)
-                : $example),
-            self::TYPE_STRING => "'{$example}'",
         };
     }
 
@@ -267,6 +242,21 @@ class Node extends Web
                 'scope'         => 'copy',
                 'destination'   => '.npmrc',
                 'template'      => 'node/.npmrc',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.prettierrc',
+                'template'      => 'node/.prettierrc',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.prettierignore',
+                'template'      => 'node/.prettierignore',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'eslint.config.mjs',
+                'template'      => 'node/eslint.config.mjs',
             ],
             [
                 'scope'         => 'default',

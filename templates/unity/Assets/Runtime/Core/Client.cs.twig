@@ -20,7 +20,7 @@ namespace {{ spec.info.title | caseUcfirst }}
     {
         private const string SESSION_PREF = "{{ spec.info.title | caseUcfirst }}_Session";
         private const string JWT_PREF = "{{ spec.info.title | caseUcfirst }}_JWT";
-    
+
         public string Endpoint => _endpoint;
         public Dictionary<string, string> Config => _config;
         public CookieContainer CookieContainer => _cookieContainer;
@@ -72,7 +72,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             _headers = new Dictionary<string, string>()
             {
                 { "content-type", "application/json" },
-                { "user-agent" , $"{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({Environment.OSVersion.Platform}; {Environment.OSVersion.VersionString})"},
+                { "user-agent", $"{{spec.info.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({Environment.OSVersion.Platform}; {Environment.OSVersion.VersionString})"},
                 { "x-sdk-name", "{{ sdk.name }}" },
                 { "x-sdk-platform", "{{ sdk.platform }}" },
                 { "x-sdk-language", "{{ language.name | caseLower }}" },
@@ -200,7 +200,8 @@ namespace {{ spec.info.title | caseUcfirst }}
 
         private void ConfigureEndpoint(string endpoint)
         {
-            if (!endpoint.StartsWith("http://") && !endpoint.StartsWith("https://")) {
+            if (!endpoint.StartsWith("http://") && !endpoint.StartsWith("https://"))
+            {
                 throw new {{ spec.info.title | caseUcfirst }}Exception("Invalid endpoint URL: " + endpoint);
             }
 
@@ -209,7 +210,8 @@ namespace {{ spec.info.title | caseUcfirst }}
 
         private static string ValidateRealtimeEndpoint(string endpointRealtime)
         {
-            if (!endpointRealtime.StartsWith("ws://") && !endpointRealtime.StartsWith("wss://")) {
+            if (!endpointRealtime.StartsWith("ws://") && !endpointRealtime.StartsWith("wss://"))
+            {
                 throw new {{ spec.info.title | caseUcfirst }}Exception("Invalid realtime endpoint URL: " + endpointRealtime);
             }
 
@@ -330,10 +332,13 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// </summary>
         private void LoadSession()
         {
-            try {
+            try
+            {
                 LoadPref(SESSION_PREF, "session", "X-{{ spec.info.title | caseUcfirst }}-Session");
                 LoadPref(JWT_PREF, "jwt", "X-{{ spec.info.title | caseUcfirst }}-JWT");
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Debug.LogWarning($"Failed to load session: {ex.Message}");
             }
         }
@@ -352,21 +357,26 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// </summary>
         private void SaveSession()
         {
-            try {
+            try
+            {
                 SavePref("session", SESSION_PREF);
                 SavePref("jwt", JWT_PREF);
                 PlayerPrefs.Save();
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Debug.LogWarning($"Failed to save session: {ex.Message}");
             }
         }
 
         private void SavePref(string configKey, string prefKey)
         {
-            if (_config.ContainsKey(configKey)) {
+            if (_config.ContainsKey(configKey))
+            {
                 PlayerPrefs.SetString(prefKey, _config[configKey]);
             }
-            else {
+            else
+            {
                 PlayerPrefs.DeleteKey(prefKey);
             }
         }
@@ -376,12 +386,15 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// </summary>
         public void DeleteSessionStorage()
         {
-            try {
+            try
+            {
                 PlayerPrefs.DeleteKey(SESSION_PREF);
                 PlayerPrefs.DeleteKey(JWT_PREF);
                 PlayerPrefs.Save();
                 _cookieContainer.DeleteCookieStorage();
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Debug.LogWarning($"Failed to delete session storage: {ex.Message}");
             }
         }
@@ -397,8 +410,8 @@ namespace {{ spec.info.title | caseUcfirst }}
                 ? (path.Contains("?") ? "&" : "?") + parameters.ToQueryString()
                 : string.Empty;
             var url = _endpoint + path + queryString;
-            
-            var isMultipart = headers.TryGetValue("Content-Type", out var contentType) && 
+
+            var isMultipart = headers.TryGetValue("Content-Type", out var contentType) &&
                               "multipart/form-data".Equals(contentType, StringComparison.OrdinalIgnoreCase);
 
             UnityWebRequest request;
@@ -529,7 +542,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             request.redirectLimit = 0; // Disable auto-redirect
 
             var operation = request.SendWebRequest();
-            
+
             while (!operation.isDone)
             {
                 await UniTask.Yield();
@@ -711,16 +724,16 @@ namespace {{ spec.info.title | caseUcfirst }}
         {
             if (string.IsNullOrEmpty(paramName))
                 throw new ArgumentException("Parameter name cannot be null or empty", nameof(paramName));
-                
+
             if (!parameters.ContainsKey(paramName))
                 throw new ArgumentException($"Parameter {paramName} not found", nameof(paramName));
-                
+
             var input = parameters[paramName] as InputFile;
             if (input == null)
                 throw new ArgumentException($"Parameter {paramName} must be an InputFile", nameof(paramName));
-                
+
             var size = 0L;
-            switch(input.SourceType)
+            switch (input.SourceType)
             {
                 case "path":
                     var info = new FileInfo(input.Path);
@@ -741,7 +754,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                         throw new InvalidOperationException("Byte array data is null");
                     size = bytes.Length;
                     break;
-            };
+            }
 
             try
             {
@@ -751,7 +764,7 @@ namespace {{ spec.info.title | caseUcfirst }}
 
                 if (size < ChunkSize)
                 {
-                    switch(input.SourceType)
+                    switch (input.SourceType)
                     {
                         case "path":
                         case "stream":
@@ -776,12 +789,12 @@ namespace {{ spec.info.title | caseUcfirst }}
                     };
 
                     var multipartParameters = new Dictionary<string, object?>(parameters);
-                    multipartParameters[paramName] = new InputFile 
-                    { 
-                        Data = buffer, 
-                        Filename = input.Filename, 
-                        MimeType = input.MimeType, 
-                        SourceType = "bytes" 
+                    multipartParameters[paramName] = new InputFile
+                    {
+                        Data = buffer,
+                        Filename = input.Filename,
+                        MimeType = input.MimeType,
+                        SourceType = "bytes"
                     };
 
                     return await Call(
@@ -819,7 +832,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 {
                     byte[] chunkData;
 
-                    switch(input.SourceType)
+                    switch (input.SourceType)
                     {
                         case "path":
                         case "stream":
@@ -858,12 +871,12 @@ namespace {{ spec.info.title | caseUcfirst }}
                     };
 
                     var chunkParameters = new Dictionary<string, object?>(parameters);
-                    chunkParameters[paramName] = new InputFile 
-                    { 
+                    chunkParameters[paramName] = new InputFile
+                    {
                         Data = chunkData,
-                        Filename = input.Filename, 
-                        MimeType = input.MimeType, 
-                        SourceType = "bytes" 
+                        Filename = input.Filename,
+                        MimeType = input.MimeType,
+                        SourceType = "bytes"
                     };
 
                     result = await Call<Dictionary<string, object?>>(
@@ -899,7 +912,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 // Convert to non-nullable dictionary for converter
                 var nonNullableResult = result.Where(kvp => kvp.Value != null)
                     .ToDictionary(kvp => kvp.Key, kvp => kvp.Value!);
-                
+
                 return converter(nonNullableResult);
             }
             finally

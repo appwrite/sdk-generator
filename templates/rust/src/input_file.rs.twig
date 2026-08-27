@@ -63,7 +63,9 @@ impl InputFile {
             .to_string();
 
         Ok(Self {
-            source: InputFileSource::Path { path: path.to_path_buf() },
+            source: InputFileSource::Path {
+                path: path.to_path_buf(),
+            },
             filename,
             mime_type: mime_type.map(|s| s.to_string()),
         })
@@ -80,7 +82,9 @@ impl InputFile {
             .to_string();
 
         Ok(Self {
-            source: InputFileSource::Path { path: path.to_path_buf() },
+            source: InputFileSource::Path {
+                path: path.to_path_buf(),
+            },
             filename,
             mime_type: mime_type.map(|s| s.to_string()),
         })
@@ -101,27 +105,21 @@ impl InputFile {
     pub async fn size(&self) -> Result<u64> {
         match &self.source {
             InputFileSource::Bytes { data } => Ok(data.len() as u64),
-            InputFileSource::Path { path } => {
-                Ok(fs::metadata(path).await?.len())
-            }
+            InputFileSource::Path { path } => Ok(fs::metadata(path).await?.len()),
         }
     }
 
     pub fn size_sync(&self) -> Result<u64> {
         match &self.source {
             InputFileSource::Bytes { data } => Ok(data.len() as u64),
-            InputFileSource::Path { path } => {
-                Ok(std::fs::metadata(path)?.len())
-            }
+            InputFileSource::Path { path } => Ok(std::fs::metadata(path)?.len()),
         }
     }
 
     pub async fn read_all(&self) -> Result<Bytes> {
         match &self.source {
             InputFileSource::Bytes { data } => Ok(data.clone()),
-            InputFileSource::Path { path } => {
-                Ok(Bytes::from(fs::read(path).await?))
-            }
+            InputFileSource::Path { path } => Ok(Bytes::from(fs::read(path).await?)),
         }
     }
 
@@ -137,14 +135,12 @@ impl InputFile {
                     total_size,
                 })
             }
-            InputFileSource::Bytes { data } => {
-                Ok(ChunkedReader {
-                    file: None,
-                    data: Some(data.clone()),
-                    position: 0,
-                    total_size: data.len() as u64,
-                })
-            }
+            InputFileSource::Bytes { data } => Ok(ChunkedReader {
+                file: None,
+                data: Some(data.clone()),
+                position: 0,
+                total_size: data.len() as u64,
+            }),
         }
     }
 
@@ -163,11 +159,9 @@ impl InputFile {
     pub fn is_empty(&self) -> bool {
         match &self.source {
             InputFileSource::Bytes { data } => data.is_empty(),
-            InputFileSource::Path { path } => {
-                std::fs::metadata(path)
-                    .map(|m| m.len() == 0)
-                    .unwrap_or(true)
-            }
+            InputFileSource::Path { path } => std::fs::metadata(path)
+                .map(|m| m.len() == 0)
+                .unwrap_or(true),
         }
     }
 }
@@ -232,7 +226,10 @@ impl ChunkedReader {
         if position > self.total_size {
             return Err(crate::error::{{ spec.info.title | caseUcfirst }}Error::new(
                 0,
-                format!("Seek position {} exceeds file size {}", position, self.total_size),
+                format!(
+                    "Seek position {} exceeds file size {}",
+                    position, self.total_size
+                ),
                 None,
                 String::new(),
             ));

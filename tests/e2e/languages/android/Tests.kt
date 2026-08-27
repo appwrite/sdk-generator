@@ -13,7 +13,6 @@ import io.appwrite.Operator
 import io.appwrite.Condition
 import io.appwrite.enums.MockType
 import io.appwrite.extensions.fromJson
-import io.appwrite.extensions.toJson
 import io.appwrite.models.Error
 import io.appwrite.models.InputFile
 import io.appwrite.models.Mock
@@ -29,8 +28,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import okhttp3.MultipartBody
 import okhttp3.Response
+import okio.Buffer
 import org.junit.After
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -483,5 +486,83 @@ class ServiceTest {
         } catch (exception: Exception) {
             null
         }
+    }
+}
+
+@Config(manifest=Config.NONE)
+@RunWith(AndroidJUnit4::class)
+class RequestNullEncodingTest {
+    @Test
+    fun testClientJsonBodyPreservesNestedNullsAndOmitsOptionalParams() = runBlocking {
+        val client = Client(ApplicationProvider.getApplicationContext())
+            .setProject("123456")
+            .setSelfSigned(true)
+        val request = client.prepareRequest(
+            method = "PATCH",
+            path = "/v1/tablesdb/db/tables/tbl/rows/row",
+            headers = mapOf("content-type" to "application/json"),
+            params = mapOf(
+                "data" to mapOf(
+                    "backgroundType" to "SOLID_COLOR",
+                    "solidColorIndex" to null,
+                ),
+                "permissions" to null,
+            )
+        )
+
+        val body = requestBodyUtf8(request.body!!)
+        assertTrue(body.contains("\"solidColorIndex\":null"))
+        assertTrue(body.contains("\"backgroundType\":\"SOLID_COLOR\""))
+        assertFalse(body.contains("permissions"))
+    }
+
+    @Test
+    fun testClientGetOmitsNullQueryParams() = runBlocking {
+        val client = Client(ApplicationProvider.getApplicationContext())
+            .setProject("123456")
+            .setSelfSigned(true)
+        val request = client.prepareRequest(
+            method = "GET",
+            path = "/v1/mock/tests/foo",
+            params = mapOf(
+                "x" to "1",
+                "empty" to null,
+            )
+        )
+
+        val url = request.url.toString()
+        assertTrue(url.contains("x=1"))
+        assertFalse(url.contains("empty"))
+        assertFalse(url.contains("null"))
+    }
+
+    @Test
+    fun testClientMultipartOmitsNullParts() = runBlocking {
+        val client = Client(ApplicationProvider.getApplicationContext())
+            .setProject("123456")
+            .setSelfSigned(true)
+        val request = client.prepareRequest(
+            method = "POST",
+            path = "/v1/storage/files",
+            headers = mapOf("content-type" to MultipartBody.FORM.toString()),
+            params = mapOf(
+                "fileId" to "abc",
+                "permissions" to null,
+            )
+        )
+
+        val body = request.body as MultipartBody
+        val dispositions = body.parts.map { part ->
+            part.headers?.get("Content-Disposition").orEmpty()
+        }
+        assertTrue(dispositions.any { it.contains("fileId") })
+        assertFalse(dispositions.any { it.contains("permissions") })
+        assertFalse(requestBodyUtf8(body).contains("null"))
+    }
+
+    private fun requestBodyUtf8(body: okhttp3.RequestBody): String {
+        val buffer = Buffer()
+        body.writeTo(buffer)
+        return buffer.readUtf8()
     }
 }

@@ -31,7 +31,8 @@ namespace {{ spec.info.title | caseUcfirst }}.Editor
         {
             if (EditorApplication.isCompiling || EditorApplication.isUpdating || EditorPrefs.GetBool(SETUP_COMPLETED_KEY, false)) return;
 
-            RefreshPackageStatus(() => {
+            RefreshPackageStatus(() =>
+            {
                 if (!HasUniTask || !HasWebSocket)
                 {
                     if (!EditorPrefs.GetBool(SHOW_SETUP_DIALOG_KEY, false))
@@ -46,7 +47,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Editor
                 }
             });
         }
-        
+
         /// <summary>
         /// Asynchronously checks installed packages and invokes the callback when finished.
         /// </summary>
@@ -54,7 +55,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Editor
         {
             if (_isBusy) return;
             _isBusy = true;
-            
+
             var request = Client.List();
             // Subscribe to the editor update event to poll the request status each frame
             EditorApplication.update += CheckProgress;
@@ -62,7 +63,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Editor
             void CheckProgress()
             {
                 if (!request.IsCompleted) return;
-                
+
                 EditorApplication.update -= CheckProgress; // Unsubscribe so we don't call it again
                 if (request.Status == StatusCode.Success)
                 {
@@ -77,7 +78,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Editor
                 onRefreshed?.Invoke(); // Invoke the callback
             }
         }
-        
+
         public static void InstallUniTask(Action onCompleted) => InstallPackage(UNITASK_PACKAGE_URL, onCompleted);
         public static void InstallWebSocket(Action onCompleted) => InstallPackage(WEBSOCKET_PACKAGE_URL, onCompleted);
 
@@ -123,7 +124,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Editor
             void CheckInstallProgress()
             {
                 if (!request.IsCompleted) return;
-                
+
                 EditorApplication.update -= CheckInstallProgress;
                 if (request.Status == StatusCode.Success)
                 {
@@ -140,15 +141,15 @@ namespace {{ spec.info.title | caseUcfirst }}.Editor
                 }
             }
         }
-        
+
         private static void InstallPackage(string packageUrl, Action onCompleted)
         {
             if (_isBusy) return;
-            
+
             var queue = new Queue<string>();
             queue.Enqueue(packageUrl);
-            
-            InstallNextPackage(queue,() => onCompleted?.Invoke(), Debug.LogError);
+
+            InstallNextPackage(queue, () => onCompleted?.Invoke(), Debug.LogError);
         }
 
         private static void ShowSetupWindow()

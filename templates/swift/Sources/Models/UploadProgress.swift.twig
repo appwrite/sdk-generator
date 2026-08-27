@@ -5,7 +5,9 @@ public class UploadProgress {
     public let chunksTotal: Int
     public let chunksUploaded: Int
 
-    public init(id: String, progress: Double, sizeUploaded: Int, chunksTotal: Int, chunksUploaded: Int) {
+    public init(
+        id: String, progress: Double, sizeUploaded: Int, chunksTotal: Int, chunksUploaded: Int
+    ) {
         self.id = id
         self.progress = progress
         self.sizeUploaded = sizeUploaded

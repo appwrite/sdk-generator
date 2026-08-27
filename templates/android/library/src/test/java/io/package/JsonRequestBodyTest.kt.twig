@@ -1,0 +1,33 @@
+package {{ sdk.namespace | caseDot }}
+
+import {{ sdk.namespace | caseDot }}.extensions.toJson
+import {{ sdk.namespace | caseDot }}.extensions.toJsonRequestBody
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class JsonRequestBodyTest {
+    @Test
+    fun jsonRequestBodyPreservesNestedNullsAndOmitsOptionalParams() {
+        val params = mapOf(
+            "data" to mapOf(
+                "backgroundType" to "SOLID_COLOR",
+                "solidColorIndex" to null,
+                "title" to null,
+            ),
+            "permissions" to null,
+        )
+
+        val body = params.toJsonRequestBody()
+        assertTrue(body.contains("\"solidColorIndex\":null"))
+        assertTrue(body.contains("\"title\":null"))
+        assertTrue(body.contains("\"backgroundType\":\"SOLID_COLOR\""))
+        assertFalse(body.contains("permissions"))
+
+        // Default Gson still omits nulls so Query/Operator JSON stays compact.
+        val withoutNulls = params.filterValues { it != null }.toJson()
+        assertFalse(withoutNulls.contains("\"solidColorIndex\":null"))
+        assertFalse(withoutNulls.contains("\"title\":null"))
+        assertTrue(withoutNulls.contains("\"backgroundType\":\"SOLID_COLOR\""))
+    }
+}

@@ -21,6 +21,11 @@ class Android extends Kotlin
             // Config for root project
             [
                 'scope'         => 'copy',
+                'destination'   => '.editorconfig',
+                'template'      => '/kotlin/.editorconfig',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => '.github/workflows/publish.yml',
                 'template'      => '/android/.github/workflows/publish.yml',
             ],
@@ -134,6 +139,11 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
                 'template'      => '/android/library/src/main/java/io/package/extensions/JsonExtensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/JsonRequestBodyTest.kt',
+                'template'      => '/android/library/src/test/java/io/package/JsonRequestBodyTest.kt.twig',
             ],
             [
                 'scope'         => 'default',

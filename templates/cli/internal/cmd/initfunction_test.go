@@ -260,6 +260,74 @@ func TestAvailableFunctionDirectoryAddsNumericSuffix(t *testing.T) {
 	}
 }
 
+func TestStarterFunctionTemplateKeepsWildcardTagVersion(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/functions/templates/starter" {
+			t.Errorf("path = %s", request.URL.Path)
+		}
+		response.Header().Set("content-type", "application/json")
+		_, _ = response.Write([]byte(`{"providerRepositoryId":"templates","providerOwner":"appwrite","providerVersion":"0.3.*","runtimes":[{"name":"bun-1.3","providerRootDirectory":"./bun/starter"}]}`))
+	}))
+	defer server.Close()
+
+	template, err := getStarterFunctionTemplate(client.New(server.URL, "test"), "bun-1.3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if template.Reference != "0.3.*" || template.ReferenceType != "tag" ||
+		template.RootDirectory != "bun/starter" {
+		t.Fatalf("template = %#v", template)
+	}
+}
+
+func TestGitTagFromRemoteOutputSelectsFirstVersionSortedTag(t *testing.T) {
+	output := "4eb58cb2\trefs/tags/0.3.1\n7717e63c\trefs/tags/0.3.0\n"
+	tag, err := gitTagFromRemoteOutput("0.3.*", output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag != "0.3.1" {
+		t.Fatalf("tag = %q, want 0.3.1", tag)
+	}
+
+	if _, err := gitTagFromRemoteOutput("9.*", ""); err == nil ||
+		!strings.Contains(err.Error(), "no git tag matches template version 9.*") {
+		t.Fatalf("missing tag error = %v", err)
+	}
+}
+
+func TestResolveGitTagLeavesConcreteReferenceUnchanged(t *testing.T) {
+	tag, err := resolveGitTag(t.TempDir(), "not-a-repository", "0.3.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag != "0.3.1" {
+		t.Fatalf("tag = %q, want 0.3.1", tag)
+	}
+}
+
+func TestRunGitCommandPassesRemoteValuesLiterally(t *testing.T) {
+	directory := t.TempDir()
+	marker := filepath.Join(directory, "executed")
+	value := "0.3.1; touch " + marker
+	configPath := filepath.Join(directory, "config")
+
+	if err := runGitCommand(directory, "config", "--file", configPath,
+		"template.reference", value); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(marker); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("shell syntax in argument was executed: %v", err)
+	}
+	contents, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(contents), value) {
+		t.Fatalf("config does not contain literal value %q:\n%s", value, contents)
+	}
+}
+
 func TestValidateRuntimeAndSpecificationChoices(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		response.Header().Set("content-type", "application/json")

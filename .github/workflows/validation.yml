@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FLUTTER_VERSION: '3.35.7'
+      KTLINT_VERSION: '1.8.0'
+      KTLINT_SHA256: 'a3fd620207d5c40da6ca789b95e7f823c54e854b7fade7f613e91096a3706d75'
+      RUBOCOP_VERSION: '1.90.0'
       OSV_SCANNER_VERSION: 'v2.3.1'
     strategy:
       fail-fast: false
@@ -57,6 +60,9 @@ jobs:
 
           - sdk: dotnet
             platform: server
+
+          - sdk: unity
+            platform: client
 
           - sdk: kotlin
             platform: server
@@ -148,6 +154,16 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Setup ktlint
+        if: matrix.sdk == 'android' || matrix.sdk == 'kotlin'
+        run: |
+          curl --fail --location --silent --show-error \
+            --output /tmp/ktlint \
+            "https://github.com/pinterest/ktlint/releases/download/${KTLINT_VERSION}/ktlint"
+          echo "${KTLINT_SHA256}  /tmp/ktlint" | sha256sum --check
+          chmod +x /tmp/ktlint
+          /tmp/ktlint --version
+
       - name: Setup Python
         if: matrix.sdk == 'python'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -177,7 +193,7 @@ jobs:
         run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@${{ env.OSV_SCANNER_VERSION }}
 
       - name: Setup .NET
-        if: matrix.sdk == 'dotnet'
+        if: matrix.sdk == 'dotnet' || matrix.sdk == 'unity'
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '8.0.x'
@@ -185,6 +201,8 @@ jobs:
       - name: Setup Rust
         if: matrix.sdk == 'rust'
         uses: dtolnay/rust-toolchain@bd41891a8e7f4b8649f6d684415e1a6155fe4e22 # 1.83.0
+        with:
+          components: rustfmt
 
       - name: Setup Rust for Zed extension
         if: matrix.sdk == 'zed-extension'
@@ -211,6 +229,9 @@ jobs:
             web)
               npm ci
               npm audit
+              npm run format:check
+              npm run lint
+              npm run analyse
               npm run build
               ;;
             cli)
@@ -229,6 +250,9 @@ jobs:
             react-native)
               npm ci --omit=peer
               npm audit --omit=peer
+              npm run format:check
+              npm run lint
+              npm run analyse
               npm run build
               ;;
             flutter)
@@ -238,13 +262,27 @@ jobs:
               flutter test
               ;;
             apple|swift)
+              if [ ! -f .swift-format ]; then
+                echo "Generated SDK is missing .swift-format"
+                exit 1
+              fi
+              if command -v swift-format >/dev/null; then
+                swift-format lint --recursive --strict --parallel --configuration .swift-format .
+              elif swift format --help >/dev/null 2>&1; then
+                swift format lint --recursive --strict --parallel --configuration .swift-format .
+              else
+                echo "swift-format is not on PATH"
+                exit 1
+              fi
               swift build
               ;;
             android)
+              /tmp/ktlint '**/*.kt' '**/*.kts'
               chmod +x ./gradlew || true
               ./gradlew build -x lint
               ;;
             kotlin)
+              /tmp/ktlint '**/*.kt' '**/*.kts'
               chmod +x ./gradlew || true
               ./gradlew build
               ;;
@@ -270,10 +308,20 @@ jobs:
               gem install bundler-audit
               bundle-audit update
               bundle-audit check --no-update
+              if [ ! -f .rubocop.yml ]; then
+                echo "Generated SDK is missing .rubocop.yml"
+                exit 1
+              fi
+              gem install rubocop --version "${RUBOCOP_VERSION}"
+              rubocop --version
+              rubocop
               ;;
             node)
               npm ci
               npm audit
+              npm run format:check
+              npm run lint
+              npm run analyse
               npm run build
               npm run test
               ;;
@@ -297,9 +345,21 @@ jobs:
               ../../scripts/validate-go-examples.sh .
               ;;
             dotnet)
+              if [ ! -f .editorconfig ]; then
+                echo "Generated SDK is missing .editorconfig"
+                exit 1
+              fi
+              dotnet format whitespace --folder --verify-no-changes
               dotnet restore
               dotnet build --no-restore
               dotnet test --no-build
+              ;;
+            unity)
+              if [ ! -f .editorconfig ]; then
+                echo "Generated SDK is missing .editorconfig"
+                exit 1
+              fi
+              dotnet format whitespace --folder --verify-no-changes
               ;;
             rust)
               cargo generate-lockfile
@@ -307,6 +367,7 @@ jobs:
                 cargo +1.85.0 install cargo-audit --version 0.22.1 --locked
               fi
               cargo audit
+              cargo +1.83.0 fmt --check --all
               cargo +1.83.0 build --release
               cargo +1.83.0 test --lib
               ;;

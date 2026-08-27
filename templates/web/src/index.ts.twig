@@ -11,7 +11,12 @@ export { {{service.name | caseUcfirst}} } from './services/{{service.name | case
 {% endfor %}
 export { Realtime } from './services/realtime';
 export { AnalyticsTracking } from './services/analytics-tracking';
-export type { Models, Payload, RealtimeResponseEvent, UploadProgress } from './client';
+export type {
+    Models,
+    Payload,
+    RealtimeResponseEvent,
+    UploadProgress,
+} from './client';
 export type { RealtimeSubscription } from './services/realtime';
 export type {
     AnalyticsEventEmitter,

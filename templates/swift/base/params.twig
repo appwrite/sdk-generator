@@ -13,14 +13,14 @@
         {%- else -%} let
         {%- endif %} apiParams: [String: Any?] = [
         {%~ for parameter in (method | parameters('query')) | merge((method | parameters('body'))) %}
-            "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if (parameter | enumValues) is not empty %}{% if (parameter | schemaType) == 'array' %}{% if not parameter.required %}?{% endif %}.map { $0.rawValue }{% else %}{% if not parameter.required %}?{% endif %}.rawValue{% endif %}{% endif %}{% if not loop.last or ((method | methodType) == 'webAuth' and [(method | securitySchemes)] | length > 0) %},{% endif %}
+            "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if (parameter | enumValues) is not empty %}{% if (parameter | schemaType) == 'array' %}{% if not parameter.required %}?{% endif %}.map { $0.rawValue }{% else %}{% if not parameter.required %}?{% endif %}.rawValue{% endif %}{% endif %}{% if not loop.last or ((method | parameters('query')) | merge((method | parameters('body')))) | length > 1 or ((method | methodType) == 'webAuth' and [(method | securitySchemes)] | length > 0) %},{% endif %}
 
         {%~ endfor %}
         {%~ if (method | methodType) == 'webAuth' %}
         {%~ if [(method | securitySchemes)] | length > 0 %}
         {%~ for node in [(method | securitySchemes)] %}
         {%~ for key,header in node | keys %}
-            "{{ header | caseLower }}": client.config["{{ header | caseLower }}"]{% if not loop.last %},{% endif %}
+            "{{ header | caseLower }}": client.config["{{ header | caseLower }}"]{% if not loop.last or ((method | parameters('query')) | merge((method | parameters('body')))) | length > 0 or (node | keys) | length > 1 %},{% endif %}
 
         {%~ endfor %}
         {%~ endfor %}
