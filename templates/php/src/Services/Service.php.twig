@@ -52,7 +52,7 @@ class {{ service.name | caseUcfirst }} extends Service
 {% set deprecated_message = '' %}
     /**
 {% if method.description %}
-{{ method.description | split('\n') | map(line => line | trim) | join('\n') | trim | wrap(75, '     * ') | replace({'     * \n': '     *\n'}) }}
+{{ method.description | split('\n') | map(line => line | trim) | join('\n') | trim | wrap(75, '     * ') | replace({'     * \n': '     *\n'}) | raw }}
      *
 {% endif %}
      * @throws {{ namespace | split('\\') | last | caseUcfirst}}Exception

@@ -32,11 +32,10 @@ $client = (new Client())
 
 ${{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($client);
 
-$result = ${{ service.name | caseCamel }}->{{ (method | methodName) | caseCamel }}({% if (method | parameters('all')) | length == 0 %});{% endif %}
-
-    {%~ for parameter in (method | parameters('all')) %}
-    {{ parameter.name | caseCamel }}: {% if (parameter | enumValues) | length > 0%}{{ parameter | enumExample }}{% else%}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
-
-    {%~ endfor -%}
-{% if (method | parameters('all')) | length > 0 %});{% endif %}{{ '\n' }}
+$result = ${{ service.name | caseCamel }}->{{ (method | methodName) | caseCamel }}(
+{%- for parameter in (method | parameters('all')) -%}
+    {{ '\n' }}    {{ parameter.name | caseCamel }}: {% if (parameter | enumValues) | length > 0%}{{ parameter | enumExample }}{% else%}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
+{%- endfor -%}
+{%- if (method | parameters('all')) | length > 0 %}{{ '\n' }}{% endif -%}
+);
 ```
