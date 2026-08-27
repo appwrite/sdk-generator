@@ -22,33 +22,27 @@ from ..enums.{{ (parameter | enumName) | caseSnake }} import {{ (parameter | enu
 {% set modelName = (parameter | schemaModel) %}
 {% if modelName %}
 {% if modelName not in added %}
-{% if (modelName | caseUcfirst) == (service.name | caseUcfirst) %}
-from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }} as {{ modelName | caseUcfirst }}Model
-{% else %}
-from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }}
-{% endif %}
+{% set modelRef = modelName | getServiceModelName(service, spec) %}
+from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }}{% if modelRef != (modelName | caseUcfirst) %} as {{ modelRef }}{% endif %}
+
 {% set added = added|merge([modelName]) %}
 {% endif %}
 {% endif %}
 {% endfor %}
 {% if (method | responseModel) and (method | responseModel) != 'any' %}
 {% if (method | responseModel) not in added %}
-{% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}
-from ..models.{{ (method | responseModel) | caseSnake }} import {{ (method | responseModel) | caseUcfirst }} as {{ (method | responseModel) | caseUcfirst }}Model
-{% else %}
-from ..models.{{ (method | responseModel) | caseSnake }} import {{ (method | responseModel) | caseUcfirst }}
-{% endif %}
+{% set modelRef = (method | responseModel) | getServiceModelName(service, spec) %}
+from ..models.{{ (method | responseModel) | caseSnake }} import {{ (method | responseModel) | caseUcfirst }}{% if modelRef != ((method | responseModel) | caseUcfirst) %} as {{ modelRef }}{% endif %}
+
 {% set added = added|merge([(method | responseModel)]) %}
 {% endif %}
 {% endif %}
 {% if (method | responseModels)|length > 1 %}
 {% for responseModel in (method | responseModels) %}
 {% if responseModel and responseModel != 'any' and responseModel not in added %}
-{% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}
-from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }} as {{ responseModel | caseUcfirst }}Model
-{% else %}
-from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }}
-{% endif %}
+{% set modelRef = responseModel | getServiceModelName(service, spec) %}
+from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }}{% if modelRef != (responseModel | caseUcfirst) %} as {{ modelRef }}{% endif %}
+
 {% set added = added|merge([responseModel]) %}
 {% endif %}
 {% endfor %}
@@ -99,11 +93,11 @@ str
 {% elseif (method | methodType) == 'location' %}
 bytes
 {% elseif validResponseModels|length > 1 %}
-Union[{% for responseModel in validResponseModels %}{% if not loop.first %}, {% endif %}{% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ responseModel | caseUcfirst }}Model{% else %}{{ responseModel | caseUcfirst }}{% endif %}{% endfor %}]
+Union[{% for responseModel in validResponseModels %}{% if not loop.first %}, {% endif %}{{ responseModel | getServiceModelName(service, spec) }}{% endfor %}]
 {% elseif validResponseModels|length == 1 %}
-{% if (validResponseModels[0] | caseUcfirst) == (service.name | caseUcfirst) %}{{ validResponseModels[0] | caseUcfirst }}Model{% else %}{{ validResponseModels[0] | caseUcfirst }}{% endif %}
+{{ validResponseModels[0] | getServiceModelName(service, spec) }}
 {% elseif (method | responseModel) and (method | responseModel) != 'any' %}
-{% if isGenericResponse %}{% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %}[T]{% elseif ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %}
+{{ (method | responseModel) | getServiceModelName(service, spec) }}{% if isGenericResponse %}[T]{% endif %}
 {% else %}
 Dict[str, Any]
 {% endif %}
@@ -142,12 +136,12 @@ Dict[str, Any]
             Authentication response as a string
 {% elseif (method | methodType) == 'location' %}        bytes
             Response as bytes
-{% elseif validResponseModels|length > 1 %}        {{ method | getResponseType(service.name) }}
+{% elseif validResponseModels|length > 1 %}        {{ method | getResponseType(service, spec) }}
             API response as one of the typed response models
-{% elseif validResponseModels|length == 1 %}        {{ method | getResponseType(service.name) }}
+{% elseif validResponseModels|length == 1 %}        {{ method | getResponseType(service, spec) }}
             API response as a typed Pydantic model
-{% elseif (method | responseModel) and (method | responseModel) != 'any' %}{% if isGenericResponse %}        {% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %}[T]
-{% else %}        {{ method | getResponseType(service.name) }}
+{% elseif (method | responseModel) and (method | responseModel) != 'any' %}{% if isGenericResponse %}        {{ (method | responseModel) | getServiceModelName(service, spec) }}[T]
+{% else %}        {{ method | getResponseType(service, spec) }}
 {% endif %}            API response as a typed Pydantic model
 {% else %}        Dict[str, Any]
             API response as a dictionary

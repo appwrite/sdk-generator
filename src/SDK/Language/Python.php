@@ -527,9 +527,10 @@ class Python extends Language
      *
      * Must stay identical to the `-> ...` annotation the service template
      * emits: a multi-model response is a `Union[...]`, and a model whose name
-     * collides with its own service is imported under a `Model` suffix.
+     * collides with its own service, or with an enum that service imports, is
+     * imported under a `Model` suffix.
      */
-    protected function getResponseType(Operation $method, string $serviceName = ''): string
+    protected function getResponseType(Operation $method, ?Tag $service = null, ?Specification $spec = null): string
     {
         $models = \array_filter(
             $this->getOperationResponseModels($method),
@@ -540,19 +541,65 @@ class Python extends Language
         }
 
         $names = \array_map(
-            fn(string $model): string => $this->getServiceModelTypeName($model, $serviceName),
+            fn(string $model): string => $this->getServiceModelName($model, $service, $spec),
             \array_values($models)
         );
 
         return \count($names) > 1 ? 'Union[' . \implode(', ', $names) . ']' : $names[0];
     }
 
-    protected function getServiceModelTypeName(string $model, string $serviceName): string
+    /**
+     * The name a model is imported under inside a service module.
+     *
+     * A model is aliased with a `Model` suffix when its name collides with the
+     * service itself or with an enum the same service imports: two
+     * `from .. import Addon` lines shadow one another, and the enum landing in
+     * `_parse_response()` raises `AttributeError` on `model_validate`.
+     */
+    protected function getServiceModelName(string $model, ?Tag $service, ?Specification $spec): string
     {
         $name = $this->toPascalCase($model);
-        return $serviceName !== '' && $name === $this->toPascalCase($serviceName)
+        if (!$service instanceof Tag) {
+            return $name;
+        }
+
+        if ($name === $this->toPascalCase($service->name)) {
+            return $name . 'Model';
+        }
+
+        return \in_array($name, $this->getServiceEnumNames($service, $spec), true)
             ? $name . 'Model'
             : $name;
+    }
+
+    /**
+     * Every enum name a service module imports, in the form the service
+     * template writes it.
+     *
+     * @return list<string>
+     */
+    protected function getServiceEnumNames(Tag $service, ?Specification $spec): array
+    {
+        if (!$spec instanceof Specification) {
+            return [];
+        }
+
+        $names = [];
+        foreach ($spec->operations() as $operation) {
+            if (!\in_array($service->name, $operation->tags, true)) {
+                continue;
+            }
+
+            foreach ($this->getOperationParameters($operation) as $parameter) {
+                if (!$this->usesEnumType($parameter)) {
+                    continue;
+                }
+
+                $names[] = $this->getServiceEnumName($parameter, $spec);
+            }
+        }
+
+        return \array_values(\array_unique($names));
     }
 
     protected function getServicePropertyType(Schema|Parameter $value, Specification $spec): string
@@ -989,7 +1036,8 @@ class Python extends Language
             new TwigFilter('formatCall', fn(string $statement): string => $this->formatCall($statement)),
             new TwigFilter('modelPropertyNullable', fn(Schema $value): bool => !($value instanceof ArraySchema) && $value->nullable),
             new TwigFilter('getModelFieldName', fn(Schema $value, array $properties): string => $this->getModelFieldName($value, $properties)),
-            new TwigFilter('getResponseType', fn(Operation $method, string $serviceName = ''): string => $this->getResponseType($method, $serviceName)),
+            new TwigFilter('getResponseType', fn(Operation $method, ?Tag $service = null, ?Specification $spec = null): string => $this->getResponseType($method, $service, $spec)),
+            new TwigFilter('getServiceModelName', fn(string $model, ?Tag $service = null, ?Specification $spec = null): string => $this->getServiceModelName($model, $service, $spec)),
             new TwigFilter('formatParamValue', function (string $paramName, string $paramType, bool $isMultipartFormData): string {
                 if ($isMultipartFormData && $paramType === self::TYPE_BOOLEAN) {
                     return "str({$paramName}).lower() if type({$paramName}) is bool else {$paramName}";

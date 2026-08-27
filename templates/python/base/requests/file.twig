@@ -37,17 +37,17 @@
 {% for modelName, conditions in responseDiscriminator %}
 
         if {% for field, expectedValue in conditions %}response.get('{{ field }}') == '{{ expectedValue }}'{% if not loop.last %} and {% endif %}{% endfor %}:
-            return self._parse_response(response, model={% if (modelName | caseUcfirst) == (service.name | caseUcfirst) %}{{ modelName | caseUcfirst }}Model{% else %}{{ modelName | caseUcfirst }}{% endif %})
+            return self._parse_response(response, model={{ modelName | getServiceModelName(service, spec) }})
 {% endfor %}
 
         raise AppwriteException('Unable to match response to any known model')
 {% else %}
 
-        return self._parse_response(response, model={% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %})
+        return self._parse_response(response, model={{ (method | responseModel) | getServiceModelName(service, spec) }})
 {% endif %}
 {% elseif (method | responseModel) and (method | responseModel) != 'any' %}
 
-        return self._parse_response(response, model={% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %})
+        return self._parse_response(response, model={{ (method | responseModel) | getServiceModelName(service, spec) }})
 {% else %}
 
         return response
