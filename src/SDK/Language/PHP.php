@@ -336,7 +336,12 @@ class PHP extends Language
             return $className;
         }
 
-        return '\\' . $this->normalizeNamespace($spec?->info->title ?? '') . '\\Models\\' . $className;
+        // The SDK's configured namespace, not the spec title: an SDK that renames its
+        // root (the Manager SDK is Cloud\Platform) writes its models under that root, so
+        // a fully qualified name built from the title points at a class that never exists.
+        $namespace = $this->params['namespace'] ?? '';
+
+        return '\\' . $this->normalizeNamespace($namespace ?: ($spec?->info->title ?? '')) . '\\Models\\' . $className;
     }
 
     protected function getResponseModels(Operation $method, ?Specification $spec): array
