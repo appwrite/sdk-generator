@@ -746,6 +746,41 @@ class Python extends Language
     }
 
     /**
+     * Maps every character of a line to whether it sits inside a Python string
+     * literal, so a parenthesis written in an alias such as 'name(legacy)' is not
+     * read as call syntax while matching delimiters.
+     *
+     * @return array<bool>
+     */
+    protected function quotedPositions(string $line): array
+    {
+        $quoted = [];
+        $quote = null;
+
+        for ($position = 0, $length = \strlen($line); $position < $length; $position++) {
+            $character = $line[$position];
+
+            if ($quote !== null) {
+                $quoted[$position] = true;
+                if ($character === $quote && $line[$position - 1] !== '\\') {
+                    $quote = null;
+                }
+                continue;
+            }
+
+            if ($character === "'" || $character === '"') {
+                $quote = $character;
+                $quoted[$position] = true;
+                continue;
+            }
+
+            $quoted[$position] = false;
+        }
+
+        return $quoted;
+    }
+
+    /**
      * Collapses a call rendered on one line, or explodes its arguments with a magic
      * trailing comma when the line is longer than Black's configured line length.
      * Black keeps a call that fits on one line as it is, so emitting the exploded
@@ -766,9 +801,18 @@ class Python extends Language
             return $statement;
         }
 
+        $quoted = $this->quotedPositions($line);
+        if ($quoted[\strlen($line) - 1]) {
+            return $statement;
+        }
+
         $depth = 0;
         $open = null;
         for ($position = \strlen($line) - 1; $position >= 0; $position--) {
+            if ($quoted[$position]) {
+                continue;
+            }
+
             $character = $line[$position];
             if ($character === ')') {
                 $depth++;
@@ -810,21 +854,12 @@ class Python extends Language
         $split = [];
         $argument = '';
         $depth = 0;
-        $quote = null;
+        $quoted = $this->quotedPositions($arguments);
 
         for ($position = 0, $length = \strlen($arguments); $position < $length; $position++) {
             $character = $arguments[$position];
 
-            if ($quote !== null) {
-                $argument .= $character;
-                if ($character === $quote && $arguments[$position - 1] !== '\\') {
-                    $quote = null;
-                }
-                continue;
-            }
-
-            if ($character === "'" || $character === '"') {
-                $quote = $character;
+            if ($quoted[$position]) {
                 $argument .= $character;
                 continue;
             }
