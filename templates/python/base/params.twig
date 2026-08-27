@@ -12,13 +12,11 @@
 {% for parameter in (method | parameters('query')) -%}
 {% if not parameter.required %}
         if {{ parameter.name | escapeKeyword | caseSnake }} is not None:
-            api_params['{{ parameter.name }}'] = self._normalize_value(
-                {{ parameter.name | escapeKeyword | caseSnake }},
-            )
+{% set queryParam %}            api_params['{{ parameter.name }}'] = self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }}){% endset %}
+{{ queryParam | formatCall | raw }}
 {% else %}
-        api_params['{{ parameter.name }}'] = self._normalize_value(
-            {{ parameter.name | escapeKeyword | caseSnake }},
-        )
+{% set queryParam %}        api_params['{{ parameter.name }}'] = self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }}){% endset %}
+{{ queryParam | formatCall | raw }}
 {% endif -%}
 {% endfor -%}
 {% for parameter in (method | parameters('body'))|merge(method.parameters.formData|default([])) -%}
@@ -27,13 +25,11 @@
 {% set formattedValue = paramName | formatParamValue((parameter | schemaType), isMultipart) -%}
 {% if not parameter.required %}
         if {{ paramName }} is not None:
-            api_params['{{ parameter.name }}'] = self._normalize_value(
-                {{ formattedValue }},
-            )
+{% set bodyParam %}            api_params['{{ parameter.name }}'] = self._normalize_value({{ formattedValue }}){% endset %}
+{{ bodyParam | formatCall | raw }}
 {% else %}
-        api_params['{{ parameter.name }}'] = self._normalize_value(
-            {{ formattedValue }},
-        )
+{% set bodyParam %}        api_params['{{ parameter.name }}'] = self._normalize_value({{ formattedValue }}){% endset %}
+{{ bodyParam | formatCall | raw }}
 {% endif -%}
 {% endfor -%}
 {% endif %}
