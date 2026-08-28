@@ -333,6 +333,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/src/realtime_error_handling_test.dart',
+                'template'      => 'flutter/test/src/realtime_error_handling_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/src/enums_test.dart',
                 'template'      => 'dart/test/src/enums_test.dart.twig',
             ],
