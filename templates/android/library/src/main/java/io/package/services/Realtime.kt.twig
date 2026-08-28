@@ -50,11 +50,11 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         private val subscriptionLock = Any()
         private val presenceLock = Any()
-
-        private val onErrorCallbacks = CopyOnWriteArrayList<(Throwable?, Int?) -> Unit>()
-        private val onCloseCallbacks = CopyOnWriteArrayList<() -> Unit>()
-        private val onOpenCallbacks = CopyOnWriteArrayList<() -> Unit>()
     }
+
+    private val onErrorCallbacks = CopyOnWriteArrayList<(Throwable?, Int?) -> Unit>()
+    private val onCloseCallbacks = CopyOnWriteArrayList<() -> Unit>()
+    private val onOpenCallbacks = CopyOnWriteArrayList<() -> Unit>()
 
     fun onError(callback: (error: Throwable?, statusCode: Int?) -> Unit) {
         onErrorCallbacks.add(callback)
@@ -66,6 +66,18 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
     fun onOpen(callback: () -> Unit) {
         onOpenCallbacks.add(callback)
+    }
+
+    private fun dispatchError(error: Throwable?, statusCode: Int?) {
+        onErrorCallbacks.forEach { runCatching { it(error, statusCode) } }
+    }
+
+    private fun dispatchClose() {
+        onCloseCallbacks.forEach { runCatching { it() } }
+    }
+
+    private fun dispatchOpen() {
+        onOpenCallbacks.forEach { runCatching { it() } }
     }
 
     private fun createSocket() {
@@ -406,8 +418,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             super.onOpen(webSocket, response)
             if (isStale(webSocket)) return
             reconnectAttempts = 0
-            onOpenCallbacks.forEach { it() }
             startHeartbeat()
+            dispatchOpen()
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
@@ -426,7 +438,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                     }
                 } catch (e: Throwable) {
                     val statusCode = (e as? {{ spec.info.title | caseUcfirst }}Exception)?.code
-                    onErrorCallbacks.forEach { it(e, statusCode) }
+                    dispatchError(e, statusCode)
                 }
             }
         }
@@ -477,12 +489,12 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             if (isStale(webSocket)) return
             appConnected = false
             stopHeartbeat()
-            onCloseCallbacks.forEach { it() }
             // Release the companion ref so createSocket() (called below or by
             // a concurrent subscribe()/upsertPresence()) can open a new one.
             synchronized(subscriptionLock) {
                 if (socket === webSocket) socket = null
             }
+            dispatchClose()
             if (!reconnect || code == RealtimeCode.POLICY_VIOLATION.value) {
                 reconnect = true
                 return
@@ -514,7 +526,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             synchronized(subscriptionLock) {
                 if (socket === webSocket) socket = null
             }
-            onErrorCallbacks.forEach { it(t, null) }
+            dispatchError(t, null)
         }
     }
 }
