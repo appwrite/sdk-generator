@@ -47,7 +47,8 @@ final class CLIWasmTest extends Base
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
-        ...Base::UPLOAD_RESPONSES,
+        ...Base::UPLOAD_RESPONSE,
+        ...Base::UPLOAD_RESPONSE,
         ...Base::CLI_HEADERS_RESPONSES,
         'CLI_CONFORMANCE:passed',
     ];

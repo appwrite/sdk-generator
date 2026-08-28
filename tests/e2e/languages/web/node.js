@@ -126,11 +126,6 @@ async function start() {
 
     response = await general.getPath({ pathId: 'grant/special&id' });
     console.log(response.result);
-  
-    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
-    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
-    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
-    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
 
     response = await general.enum(MockType.First);
     console.log(response.result);
@@ -189,14 +184,6 @@ async function start() {
     } catch(error) {
         console.log(error.message);
     }
-
-    console.log('WS:/v1/realtime:passed'); // Skip realtime test on Node.js
-    console.log('WS:/v1/realtime:passed'); // Skip realtime query test on Node.js
-    console.log('Realtime failed!'); // Skip realtime query failure test on Node.js
-    console.log('Realtime unsubscribe:passed'); // Skip new realtime API tests on Node.js
-    console.log('Realtime update:passed');
-    console.log('Realtime presence:passed'); // Skip realtime presence test on Node.js
-    console.log('Realtime disconnect:passed');
 
     // Query helper tests
     console.log(Query.equal("released", [true]));

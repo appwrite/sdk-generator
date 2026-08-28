@@ -76,12 +76,6 @@ func main() {
 			"--x", "string", "--y", "123", "--z", "string in array",
 			"--file", filepath.Join("..", "..", "..", "resources", file)))
 	}
-	// UPLOAD_RESPONSES expects four entries and the CLI exercises two: it has no
-	// chunked variants of its own. Echoed rather than skipped so the indices of
-	// everything after this still line up.
-	fmt.Println("POST:/v1/mock/tests/general/upload:passed")
-	fmt.Println("POST:/v1/mock/tests/general/upload:passed")
-
 	fmt.Println(headers)
 
 	// Run for their exit status, not their output: neither is in the expectation
