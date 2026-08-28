@@ -211,9 +211,6 @@
             );
             console.log(response.result);
 
-            console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip InputFile tests
-            console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip InputFile tests
-
             // Upload (Object params)
             response = await general.upload({
                 x: 'string',
@@ -230,9 +227,6 @@
                 file: document.getElementById("file2").files[0]
             });
             console.log(response.result);
-
-            console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip InputFile tests
-            console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip InputFile tests
 
             response = await general.enum(MockType.First);
             console.log(response.result);
