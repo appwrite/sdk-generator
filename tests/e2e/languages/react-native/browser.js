@@ -70,6 +70,10 @@ import {
         }
     });
 
+    let responseRealtimeError = 'Realtime error:failed';
+    realtime.onError(() => { responseRealtimeError = 'Realtime error:passed'; });
+    const rtsubError = await realtime.subscribe(['error'], () => {});
+
     // Foo
     response = await foo.get('string', 123, ['string in array']);
     console.log(response.result);
@@ -169,6 +173,7 @@ import {
     console.log(responseRealtime);
     console.log(responseRealtimeWithQueries);
     console.log(responseRealtimeWithQueriesFailure);
+    console.log(responseRealtimeError);
 
     try {
         await rtsubWithQueriesFailure.unsubscribe();

@@ -138,6 +138,12 @@ class ServiceTest {
             }
         }
 
+        var realtimeErrorResponse = "Realtime error:failed"
+        realtime.onError { _, _ ->
+            realtimeErrorResponse = "Realtime error:passed"
+        }
+        realtime.subscribe("error", payloadType = Any::class.java) { }
+
         runBlocking {
             var mock: Mock
 
@@ -252,6 +258,7 @@ class ServiceTest {
             writeToFile(realtimeResponse)
             writeToFile(realtimeResponseWithQueries)
             writeToFile(realtimeResponseWithQueriesFailure)
+            writeToFile(realtimeErrorResponse)
 
             try {
                 rtsubWithQueriesFailure.unsubscribe()

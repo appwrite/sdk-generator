@@ -90,6 +90,14 @@ class Tests: XCTestCase {
             print("Realtime presence:passed")
         }
 
+        var realtimeErrorResponse = "Realtime error:failed"
+        let expectationError = XCTestExpectation(description: "realtime error")
+        realtime.onError { _, _ in
+            realtimeErrorResponse = "Realtime error:passed"
+            expectationError.fulfill()
+        }
+        _ = try await realtime.subscribe(channels: ["error"]) { _ in }
+
         var mock: Mock
 
         // Foo Tests
@@ -217,6 +225,9 @@ class Tests: XCTestCase {
         } else {
             print("Realtime failed")
         }
+
+        await fulfillment(of: [expectationError], timeout: 20.0)
+        print(realtimeErrorResponse)
 
         do {
             try await rtsubWithQueriesFailure.unsubscribe()
