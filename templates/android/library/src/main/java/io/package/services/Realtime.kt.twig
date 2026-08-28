@@ -50,11 +50,11 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         private val subscriptionLock = Any()
         private val presenceLock = Any()
-    }
 
-    private val onErrorCallbacks = CopyOnWriteArrayList<(Throwable?, Int?) -> Unit>()
-    private val onCloseCallbacks = CopyOnWriteArrayList<() -> Unit>()
-    private val onOpenCallbacks = CopyOnWriteArrayList<() -> Unit>()
+        private val onErrorCallbacks = CopyOnWriteArrayList<(Throwable?, Int?) -> Unit>()
+        private val onCloseCallbacks = CopyOnWriteArrayList<() -> Unit>()
+        private val onOpenCallbacks = CopyOnWriteArrayList<() -> Unit>()
+    }
 
     fun onError(callback: (error: Throwable?, statusCode: Int?) -> Unit) {
         onErrorCallbacks.add(callback)
@@ -173,6 +173,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             pendingPresence = null
         }
         appConnected = false
+        onErrorCallbacks.clear()
+        onCloseCallbacks.clear()
+        onOpenCallbacks.clear()
     }
 
     private fun sendPendingSubscribes() {
