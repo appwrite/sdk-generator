@@ -104,6 +104,13 @@ namespace AppwriteTests
                 }
             });
 
+            var realtimeErrorResponse = "Realtime error:failed";
+            realtime.OnError += (error) =>
+            {
+                realtimeErrorResponse = "Realtime error:passed";
+            };
+            realtime.Subscribe(new[] { "error" }, (eventData) => { });
+
             await Task.Delay(5000);
 
             // Ping test
@@ -232,6 +239,7 @@ namespace AppwriteTests
             LogResult(realtimeResponse);
             LogResult(realtimeResponseWithQueries);
             LogResult(realtimeResponseWithQueriesFailure);
+            LogResult(realtimeErrorResponse);
 
             try
             {

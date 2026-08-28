@@ -218,6 +218,23 @@ void main() async {
     print("Realtime failed!");
   }
 
+  final errorRealtime = Realtime(client);
+  final rtError = Completer<void>();
+  final errorSub = errorRealtime.subscribe(["error"]);
+  errorSub.stream.listen(
+    (_) {},
+    onError: (e) {
+      if (!rtError.isCompleted) rtError.complete();
+    },
+  );
+  try {
+    await rtError.future.timeout(Duration(seconds: 10));
+    print("Realtime error:passed");
+  } catch (e) {
+    print("Realtime error:failed");
+  }
+  await errorRealtime.disconnect();
+
   try {
     await rtsubWithQueriesFailure.unsubscribe();
 

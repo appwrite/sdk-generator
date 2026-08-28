@@ -126,6 +126,7 @@ abstract class Base extends TestCase
         'WS:/v1/realtime:passed',
         'WS:/v1/realtime:passed',
         'Realtime failed!',
+        'Realtime error:passed',
         'Realtime unsubscribe:passed',
         'Realtime update:passed',
         'Realtime presence:passed',

@@ -19,6 +19,7 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.CoroutineContext
 
@@ -49,6 +50,34 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         private val subscriptionLock = Any()
         private val presenceLock = Any()
+
+        private val onErrorCallbacks = CopyOnWriteArrayList<(Throwable?, Int?) -> Unit>()
+        private val onCloseCallbacks = CopyOnWriteArrayList<() -> Unit>()
+        private val onOpenCallbacks = CopyOnWriteArrayList<() -> Unit>()
+    }
+
+    fun onError(callback: (error: Throwable?, statusCode: Int?) -> Unit) {
+        onErrorCallbacks.add(callback)
+    }
+
+    fun onClose(callback: () -> Unit) {
+        onCloseCallbacks.add(callback)
+    }
+
+    fun onOpen(callback: () -> Unit) {
+        onOpenCallbacks.add(callback)
+    }
+
+    private fun dispatchError(error: Throwable?, statusCode: Int?) {
+        onErrorCallbacks.forEach { runCatching { it(error, statusCode) } }
+    }
+
+    private fun dispatchClose() {
+        onCloseCallbacks.forEach { runCatching { it() } }
+    }
+
+    private fun dispatchOpen() {
+        onOpenCallbacks.forEach { runCatching { it() } }
     }
 
     private fun createSocket() {
@@ -144,6 +173,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             pendingPresence = null
         }
         appConnected = false
+        onErrorCallbacks.clear()
+        onCloseCallbacks.clear()
+        onOpenCallbacks.clear()
     }
 
     private fun sendPendingSubscribes() {
@@ -390,6 +422,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             if (isStale(webSocket)) return
             reconnectAttempts = 0
             startHeartbeat()
+            dispatchOpen()
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
@@ -398,12 +431,17 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
             launch(IO) {
                 if (isStale(webSocket)) return@launch
-                val message = text.fromJson<RealtimeResponse>()
-                when (message.type) {
-                    TYPE_ERROR -> handleResponseError(message)
-                    TYPE_CONNECTED -> handleResponseConnected(message)
-                    TYPE_EVENT -> handleResponseEvent(message)
-                    TYPE_PONG -> {}
+                try {
+                    val message = text.fromJson<RealtimeResponse>()
+                    when (message.type) {
+                        TYPE_ERROR -> handleResponseError(message)
+                        TYPE_CONNECTED -> handleResponseConnected(message)
+                        TYPE_EVENT -> handleResponseEvent(message)
+                        TYPE_PONG -> {}
+                    }
+                } catch (e: Throwable) {
+                    val statusCode = (e as? {{ spec.info.title | caseUcfirst }}Exception)?.code
+                    dispatchError(e, statusCode)
                 }
             }
         }
@@ -459,6 +497,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             synchronized(subscriptionLock) {
                 if (socket === webSocket) socket = null
             }
+            dispatchClose()
             if (!reconnect || code == RealtimeCode.POLICY_VIOLATION.value) {
                 reconnect = true
                 return
@@ -490,7 +529,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             synchronized(subscriptionLock) {
                 if (socket === webSocket) socket = null
             }
-            t.printStackTrace()
+            dispatchError(t, null)
         }
     }
 }
