@@ -305,7 +305,7 @@ class Go extends Language
                     $output .= 'map[string]interface{}{}';
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= $this->getTypeName($param) . '{}';
+                    $output .= $this->getTypeName($param) . '{"example"}';
                     break;
                 case self::TYPE_FILE:
                     $output .= 'file.NewInputFile("/path/to/file.png", "file.png")';
