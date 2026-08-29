@@ -302,11 +302,21 @@ class Go extends Language
                     $output .= '""';
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= 'map[string]interface{}{}';
-                    break;
+                    $output .= 'map[string] interface{}{}';
+                break;
                 case self::TYPE_ARRAY:
-                    $output .= $this->getTypeName($param) . '{"example"}';
-                    break;
+                $typeName = $this->getTypeName($param);
+               if (str_contains($typeName, 'string')) {
+               $output .= '[]string{"example"}';
+               } elseif (str_contains($typeName, 'int') || str_contains($typeName, 'float64') || str_contains($typeName, 'int64')) {
+               $output .= $typeName . '{0}';
+               } elseif (str_contains($typeName, 'bool')) {
+               $output .= $typeName . '{false}';
+               } else {
+               $output .= $typeName . '{}';
+               }
+               break;
+                
                 case self::TYPE_FILE:
                     $output .= 'file.NewInputFile("/path/to/file.png", "file.png")';
                     break;
