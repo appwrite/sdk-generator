@@ -304,17 +304,16 @@ class Go extends Language
                 case self::TYPE_OBJECT:
                     $output .= 'map[string] interface{}{}';
                 break;
+                
                 case self::TYPE_ARRAY:
                 $typeName = $this->getTypeName($param);
-               if (str_contains($typeName, 'string')) {
-               $output .= '[]string{"example"}';
-               } elseif (str_contains($typeName, 'int') || str_contains($typeName, 'float64') || str_contains($typeName, 'int64')) {
-               $output .= $typeName . '{0}';
-               } elseif (str_contains($typeName, 'bool')) {
-               $output .= $typeName . '{false}';
-               } else {
-               $output .= $typeName . '{}';
-               }
+                $output .= match ($typeName) {
+               '[]string' => '[]string{"example"}',
+               '[]int', '[]int64', '[]float64' => $typeName . '{0}',
+               '[]bool' => $typeName . '{false}',
+                default => $typeName . '{}',
+                 };
+                
                break;
                 
                 case self::TYPE_FILE:
