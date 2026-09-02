@@ -70,6 +70,13 @@ jobs:
           - sdk: rust
             platform: server
 
+          # Documentation targets
+          - sdk: graphql
+            platform: client
+
+          - sdk: graphql
+            platform: server
+
           # Tooling targets
           - sdk: zed-extension
             platform: console
@@ -374,6 +381,16 @@ jobs:
             zed-extension)
               cargo +1.86.0 fmt --check
               cargo +1.86.0 check --target wasm32-wasip1
+              ;;
+            graphql)
+              invalid=0
+              while IFS= read -r -d '' example; do
+                if ! grep -Eq '^(query|mutation) \{|^POST .+ HTTP/1\.1$' "$example"; then
+                  echo "GraphQL example has no operation: $example"
+                  invalid=1
+                fi
+              done < <(find docs/examples -type f -name '*.md' -print0)
+              exit "$invalid"
               ;;
             *)
               echo "Unknown SDK: ${{ matrix.sdk }}"
