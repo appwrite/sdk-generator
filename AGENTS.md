@@ -359,6 +359,8 @@ composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-s
 
 The tests in `tests/e2e/` generate an SDK from `tests/resources/spec-openapi3.json` into `tests/e2e/sdks/` and run it in Docker against a mock API. Parser behavior is tested by `utopia-php/openapi` rather than this repository. The mock server (`./mock-server`) is started in `setUp()` and removed in `tearDown()` (`docker compose down`); after interrupted runs, clean up with `cd mock-server && docker compose down`.
 
+Do not add unit tests for generator contracts that should be exercised through the generated SDKs. Add or extend the relevant e2e fixture and language paths instead.
+
 ```bash
 vendor/bin/phpunit tests/e2e/PHP85Test.php # one language e2e (needs Docker)
 ```

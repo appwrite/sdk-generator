@@ -1504,7 +1504,23 @@ class SDK
 
     protected function methodType(Operation $operation): string|false
     {
-        return $operation->extensions['x-appwrite']['type'] ?? false;
+        $type = $operation->extensions['x-appwrite']['type'] ?? '';
+        if (\is_string($type) && $type !== '') {
+            return $type;
+        }
+
+        $schema = $operation->requestBody?->content[self::MULTIPART_MEDIA_TYPE]?->schema ?? null;
+        if (!$schema instanceof ObjectSchema) {
+            return false;
+        }
+
+        foreach ($schema->properties as $property) {
+            if ($property instanceof StringSchema && $property->format === 'binary') {
+                return 'upload';
+            }
+        }
+
+        return false;
     }
 
     protected function uploadIdParameter(Operation $operation): ?Parameter
