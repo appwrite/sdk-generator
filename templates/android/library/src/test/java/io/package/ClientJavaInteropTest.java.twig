@@ -1,0 +1,25 @@
+package {{ sdk.namespace | caseDot }};
+
+import static org.junit.Assert.assertEquals;
+
+import android.content.Context;
+import androidx.test.core.app.ApplicationProvider;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.annotation.Config;
+
+@Config(manifest = Config.NONE)
+@RunWith(AndroidJUnit4.class)
+public final class ClientJavaInteropTest {
+    @Test
+    public void endpointSettersAreFluentFromJava() {
+        Context context = ApplicationProvider.getApplicationContext();
+        Client client = new Client(context)
+            .setEndpoint("https://cloud.appwrite.io/v1")
+            .setEndpointRealtime("wss://cloud.appwrite.io/v1");
+
+        assertEquals("https://cloud.appwrite.io/v1", client.getEndpoint());
+        assertEquals("wss://cloud.appwrite.io/v1", client.getEndpointRealtime());
+    }
+}
