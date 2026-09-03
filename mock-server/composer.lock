@@ -2132,16 +2132,16 @@
         },
         {
             "name": "utopia-php/cli",
-            "version": "0.24.3",
+            "version": "0.24.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/cli.git",
-                "reference": "d6a27f2902e777c2985e834ffb3e662130fd7ecc"
+                "reference": "39d590ffe67b0d63f107ad45533a85163899bc08"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/cli/zipball/d6a27f2902e777c2985e834ffb3e662130fd7ecc",
-                "reference": "d6a27f2902e777c2985e834ffb3e662130fd7ecc",
+                "url": "https://api.github.com/repos/utopia-php/cli/zipball/39d590ffe67b0d63f107ad45533a85163899bc08",
+                "reference": "39d590ffe67b0d63f107ad45533a85163899bc08",
                 "shasum": ""
             },
             "require": {
@@ -2173,9 +2173,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/cli/issues",
-                "source": "https://github.com/utopia-php/cli/tree/0.24.3"
+                "source": "https://github.com/utopia-php/cli/tree/0.24.4"
             },
-            "time": "2026-06-26T10:48:18+00:00"
+            "time": "2026-09-02T15:57:19+00:00"
         },
         {
             "name": "utopia-php/compression",
