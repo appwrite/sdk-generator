@@ -132,11 +132,6 @@ abstract class Language
      */
     public function getMethodType(Operation $operation, ?Specification $spec = null): string|false
     {
-        $type = $operation->extensions['x-appwrite']['type'] ?? '';
-        if (\is_string($type) && $type !== '') {
-            return $type;
-        }
-
         $requestSchema = $operation->requestBody?->content[self::MULTIPART_MEDIA_TYPE]?->schema ?? null;
         if ($requestSchema !== null && $spec instanceof Specification) {
             $requestSchema = $spec->resolveSchema($requestSchema);
