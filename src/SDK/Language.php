@@ -20,6 +20,8 @@ use Utopia\OpenAPI\Specification;
 
 abstract class Language
 {
+    private const string MULTIPART_MEDIA_TYPE = 'multipart/form-data';
+
     public const TYPE_INTEGER = 'integer';
     public const TYPE_NUMBER = 'number';
     public const TYPE_STRING = 'string';
@@ -123,6 +125,47 @@ abstract class Language
         }
 
         return \lcfirst(\substr($operation->id, \strlen($serviceName)));
+    }
+
+    /**
+     * Derive SDK transport behavior from standard OpenAPI operation fields.
+     */
+    public function getMethodType(Operation $operation): string|false
+    {
+        $type = $operation->extensions['x-appwrite']['type'] ?? '';
+        if (\is_string($type) && $type !== '') {
+            return $type;
+        }
+
+        $requestSchema = $operation->requestBody?->content[self::MULTIPART_MEDIA_TYPE]?->schema ?? null;
+        if ($requestSchema instanceof ObjectSchema) {
+            foreach ($requestSchema->properties as $property) {
+                if ($property instanceof StringSchema && $property->format === 'binary') {
+                    return 'upload';
+                }
+            }
+        }
+
+        if (\in_array('graphql', $operation->tags, true)) {
+            return 'graphql';
+        }
+
+        foreach ($operation->responses as $status => $response) {
+            $status = (int) $status;
+            foreach ($response->content as $mediaType) {
+                if (!$mediaType->schema instanceof StringSchema || $mediaType->schema->format !== 'binary') {
+                    continue;
+                }
+                if ($status >= 300 && $status < 400) {
+                    return 'webAuth';
+                }
+                if ($status >= 200 && $status < 300) {
+                    return 'location';
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

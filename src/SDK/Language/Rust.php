@@ -518,7 +518,7 @@ class Rust extends Language
 
     protected function getReturnType(Operation $method): string
     {
-        return match ($method->extensions['x-appwrite']['type'] ?? '') {
+        return match ($this->getMethodType($method)) {
             'webAuth' => 'crate::error::Result<String>',
             'location' => 'crate::error::Result<Vec<u8>>',
             default => $this->getResponseReturnType($method),

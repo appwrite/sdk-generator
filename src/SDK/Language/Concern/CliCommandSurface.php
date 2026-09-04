@@ -371,7 +371,7 @@ trait CliCommandSurface
     protected function isCliGraphQLInput(Parameter $parameter, Operation $method, Tag $service): bool
     {
         return $service->name === 'graphql'
-            && ($method->extensions['x-appwrite']['type'] ?? '') === 'graphql'
+            && $this->getMethodType($method) === 'graphql'
             && $parameter->name === 'query';
     }
 
@@ -385,7 +385,7 @@ trait CliCommandSurface
             };
         }
 
-        if ($service->name === 'graphql' && ($method->extensions['x-appwrite']['type'] ?? '') === 'graphql') {
+        if ($service->name === 'graphql' && $this->getMethodType($method) === 'graphql') {
             return match ($this->getMethodName($method)) {
                 'query' => 'Execute a GraphQL query.',
                 'mutation' => 'Execute a GraphQL mutation.',

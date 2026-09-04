@@ -198,7 +198,7 @@ class ReactNative extends Web
     #[Override]
     public function getReturn(Operation $method, Specification $spec): string
     {
-        return match ($method->extensions['x-appwrite']['type'] ?? '') {
+        return match ($this->getMethodType($method)) {
             'webAuth' => 'void | URL',
             'location' => 'Promise<ArrayBuffer>',
             default => parent::getReturn($method, $spec),

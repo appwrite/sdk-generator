@@ -35,7 +35,6 @@
         "x-appwrite": {
           "group": null,
           "cookies": false,
-          "type": "",
           "demo": "ping\/get.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -90,7 +89,6 @@
         "x-appwrite": {
           "weight": 270,
           "cookies": false,
-          "type": "",
           "demo": "bar\/get.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a get request.",
           "rate-limit": 0,
@@ -174,7 +172,6 @@
         "x-appwrite": {
           "weight": 271,
           "cookies": false,
-          "type": "",
           "demo": "bar\/post.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a post request.",
           "rate-limit": 0,
@@ -259,7 +256,6 @@
         "x-appwrite": {
           "weight": 273,
           "cookies": false,
-          "type": "",
           "demo": "bar\/put.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a put request.",
           "rate-limit": 0,
@@ -344,7 +340,6 @@
         "x-appwrite": {
           "weight": 272,
           "cookies": false,
-          "type": "",
           "demo": "bar\/patch.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a patch request.",
           "rate-limit": 0,
@@ -429,7 +424,6 @@
         "x-appwrite": {
           "weight": 274,
           "cookies": false,
-          "type": "",
           "demo": "bar\/delete.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a delete request.",
           "rate-limit": 0,
@@ -516,7 +510,6 @@
         "x-appwrite": {
           "weight": 300,
           "cookies": false,
-          "type": "",
           "demo": "general\/create-player.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate a player with request model.",
           "rate-limit": 0,
@@ -588,7 +581,6 @@
         "x-appwrite": {
           "weight": 301,
           "cookies": false,
-          "type": "",
           "demo": "general\/create-players.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate players with array of request models.",
           "rate-limit": 0,
@@ -663,7 +655,6 @@
         "x-appwrite": {
           "weight": 301,
           "cookies": false,
-          "type": "",
           "demo": "general\/excluded-method.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
           "rate-limit": 0,
@@ -743,7 +734,6 @@
         "x-appwrite": {
           "weight": 265,
           "cookies": false,
-          "type": "",
           "demo": "foo\/get.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a get request.",
           "rate-limit": 0,
@@ -827,7 +817,6 @@
         "x-appwrite": {
           "weight": 266,
           "cookies": false,
-          "type": "",
           "demo": "foo\/post.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a post request.",
           "rate-limit": 0,
@@ -912,7 +901,6 @@
         "x-appwrite": {
           "weight": 268,
           "cookies": false,
-          "type": "",
           "demo": "foo\/put.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a put request.",
           "rate-limit": 0,
@@ -997,7 +985,6 @@
         "x-appwrite": {
           "weight": 267,
           "cookies": false,
-          "type": "",
           "demo": "foo\/patch.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a patch request.",
           "rate-limit": 0,
@@ -1082,7 +1069,6 @@
         "x-appwrite": {
           "weight": 269,
           "cookies": false,
-          "type": "",
           "demo": "foo\/delete.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a delete request.",
           "rate-limit": 0,
@@ -1169,7 +1155,6 @@
         "x-appwrite": {
           "weight": 285,
           "cookies": false,
-          "type": "",
           "demo": "general\/error400.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a 400 failed request.",
           "rate-limit": 0,
@@ -1221,7 +1206,6 @@
         "x-appwrite": {
           "weight": 286,
           "cookies": false,
-          "type": "",
           "demo": "general\/error500.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a 500 failed request.",
           "rate-limit": 0,
@@ -1273,7 +1257,6 @@
         "x-appwrite": {
           "weight": 287,
           "cookies": false,
-          "type": "",
           "demo": "general\/error502.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a 502 bad gateway.",
           "rate-limit": 0,
@@ -1321,7 +1304,6 @@
         "x-appwrite": {
           "weight": 276,
           "cookies": false,
-          "type": "location",
           "demo": "general\/download.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a file download request.",
           "rate-limit": 0,
@@ -1375,7 +1357,6 @@
         "x-appwrite": {
           "weight": 282,
           "cookies": false,
-          "type": "",
           "demo": "general\/empty.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock an empty response.",
           "rate-limit": 0,
@@ -1420,7 +1401,6 @@
         "x-appwrite": {
           "weight": 284,
           "cookies": false,
-          "type": "",
           "demo": "general\/list-rows.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a queryable list request.",
           "rate-limit": 0,
@@ -1486,7 +1466,6 @@
         "x-appwrite": {
           "weight": 284,
           "cookies": false,
-          "type": "",
           "demo": "general\/enum.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock an enum parameter.",
           "rate-limit": 0,
@@ -1639,7 +1618,6 @@
         "x-appwrite": {
           "weight": 281,
           "cookies": false,
-          "type": "",
           "demo": "general\/get-cookie.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a cookie response.",
           "rate-limit": 0,
@@ -1691,7 +1669,6 @@
         "x-appwrite": {
           "weight": 275,
           "cookies": false,
-          "type": "",
           "demo": "general\/headers.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterReturn headers from the request",
           "rate-limit": 0,
@@ -1748,7 +1725,6 @@
         "x-appwrite": {
           "weight": 283,
           "cookies": false,
-          "type": "",
           "demo": "general\/nullable.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a nullable parameter.",
           "rate-limit": 0,
@@ -1834,7 +1810,6 @@
         "x-appwrite": {
           "weight": 1,
           "cookies": false,
-          "type": "",
           "demo": "functions\/create-execution.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate a new function execution.",
           "rate-limit": 0,
@@ -1938,7 +1913,6 @@
         "x-appwrite": {
           "weight": 278,
           "cookies": false,
-          "type": "",
           "demo": "general\/redirect.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a redirect request.",
           "rate-limit": 0,
@@ -1986,7 +1960,6 @@
         "x-appwrite": {
           "weight": 279,
           "cookies": false,
-          "type": "",
           "demo": "general\/redirected.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a redirected request.",
           "rate-limit": 0,
@@ -2038,7 +2011,6 @@
         "x-appwrite": {
           "weight": 280,
           "cookies": false,
-          "type": "",
           "demo": "general\/get-path.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock an encoded path parameter request.",
           "rate-limit": 0,
@@ -2102,7 +2074,6 @@
         "x-appwrite": {
           "weight": 280,
           "cookies": false,
-          "type": "",
           "demo": "general\/set-cookie.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a set cookie request.",
           "rate-limit": 0,
@@ -2290,7 +2261,6 @@
         "x-appwrite": {
           "weight": 265,
           "cookies": false,
-          "type": "webAuth",
           "demo": "general\/oauth2.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a oauth2 request.",
           "rate-limit": 10,
@@ -2322,7 +2292,15 @@
         ],
         "responses": {
           "301": {
-            "description": "No content"
+            "description": "No content",
+            "content": {
+              "text\/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -2393,7 +2371,6 @@
         "x-appwrite": {
           "weight": 302,
           "cookies": false,
-          "type": "",
           "demo": "mock\/get-union.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
           "rate-limit": 0,
@@ -2471,7 +2448,6 @@
         "x-appwrite": {
           "weight": 303,
           "cookies": false,
-          "type": "",
           "demo": "zzexcludedservice\/get.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
           "rate-limit": 0,
@@ -2520,7 +2496,6 @@
         "x-appwrite": {
           "weight": 304,
           "cookies": false,
-          "type": "",
           "demo": "zzexcludedservice\/post.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
           "rate-limit": 0,

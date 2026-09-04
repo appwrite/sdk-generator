@@ -442,7 +442,7 @@ class Go extends Language
 
     protected function getReturnType(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string
     {
-        $type = $method->extensions['x-appwrite']['type'] ?? '';
+        $type = $this->getMethodType($method);
         if ($type === 'webAuth') {
             return 'bool';
         }
