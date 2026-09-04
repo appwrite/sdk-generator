@@ -13,7 +13,6 @@ use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\ParameterLocation;
-use Utopia\OpenAPI\Model\ReferenceSchema;
 use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
@@ -137,13 +136,13 @@ abstract class Language
             return $type;
         }
 
-        $requestSchema = $this->resolveSchema(
-            $operation->requestBody?->content[self::MULTIPART_MEDIA_TYPE]?->schema ?? null,
-            $spec,
-        );
+        $requestSchema = $operation->requestBody?->content[self::MULTIPART_MEDIA_TYPE]?->schema ?? null;
+        if ($requestSchema !== null && $spec instanceof Specification) {
+            $requestSchema = $spec->resolveSchema($requestSchema);
+        }
         if ($requestSchema instanceof ObjectSchema) {
             foreach ($requestSchema->properties as $property) {
-                $property = $this->resolveSchema($property, $spec);
+                $property = $spec?->resolveSchema($property) ?? $property;
                 if ($property instanceof StringSchema && $property->format === 'binary') {
                     return 'upload';
                 }
@@ -157,7 +156,10 @@ abstract class Language
         foreach ($operation->responses as $status => $response) {
             $status = (int) $status;
             foreach ($response->content as $contentType => $mediaType) {
-                $schema = $this->resolveSchema($mediaType->schema, $spec);
+                $schema = $mediaType->schema;
+                if ($schema !== null && $spec instanceof Specification) {
+                    $schema = $spec->resolveSchema($schema);
+                }
                 if (
                     \str_contains(\strtolower($contentType), 'json')
                     || !$schema instanceof StringSchema
@@ -175,20 +177,6 @@ abstract class Language
         }
 
         return false;
-    }
-
-    private function resolveSchema(?Schema $schema, ?Specification $spec): ?Schema
-    {
-        $visited = [];
-        while ($schema instanceof ReferenceSchema && $spec instanceof Specification) {
-            $name = $this->normalizeSchemaReference($schema->reference);
-            if (isset($visited[$name]) || !isset($spec->schemas[$name])) {
-                break;
-            }
-            $visited[$name] = true;
-            $schema = $spec->schemas[$name];
-        }
-        return $schema;
     }
 
     /**
