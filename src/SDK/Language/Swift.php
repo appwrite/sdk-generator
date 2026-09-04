@@ -533,7 +533,7 @@ class Swift extends Language
 
     protected function getReturnType(Operation $method, Specification $spec, string $generic = 'T'): string
     {
-        $methodType = $method->extensions['x-appwrite']['type'] ?? '';
+        $methodType = $this->getMethodType($method, $spec);
         if ($methodType === 'webAuth') {
             return 'String?';
         }

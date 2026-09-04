@@ -516,9 +516,9 @@ class Rust extends Language
         };
     }
 
-    protected function getReturnType(Operation $method): string
+    protected function getReturnType(Operation $method, Specification $spec): string
     {
-        return match ($method->extensions['x-appwrite']['type'] ?? '') {
+        return match ($this->getMethodType($method, $spec)) {
             'webAuth' => 'crate::error::Result<String>',
             'location' => 'crate::error::Result<Vec<u8>>',
             default => $this->getResponseReturnType($method),
@@ -593,7 +593,7 @@ class Rust extends Language
             new TwigFilter("rustfmtChain", fn(string $suffix, int $indent, string $receiver): string => $this->rustfmtChain($indent, $receiver, $suffix), ["is_safe" => ["html"]]),
             new TwigFilter("rustfmtHeaderInsert", fn(string $valueExpr, int $indent, string $key): string => $this->rustfmtHeaderInsert($indent, $key, $valueExpr), ["is_safe" => ["html"]]),
             new TwigFilter("propertyType", fn(Schema $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getTypeName($property, $spec)),
-            new TwigFilter("returnType", fn(Operation $method, Specification $spec, string $namespace, string $generic = "serde_json::Value"): string => $this->getReturnType($method)),
+            new TwigFilter("returnType", fn(Operation $method, Specification $spec, string $namespace, string $generic = "serde_json::Value"): string => $this->getReturnType($method, $spec)),
             new TwigFilter("caseEnumKey", fn(string $value): string => $this->toPascalCase($value)),
             new TwigFilter("docsArgumentExample", function (Schema|Parameter $param, string $crateName): string {
                 if ($this->getSchemaType($param) === self::TYPE_FILE) {

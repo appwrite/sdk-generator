@@ -615,7 +615,7 @@ class PHP extends Language
 
     protected function getReturn(Operation $method, ?Specification $spec = null): string
     {
-        if ((\count($method->responses) === 1 && isset($method->responses[204])) || \in_array($method->extensions['x-appwrite']['type'] ?? '', ['location', 'webAuth'], true)) {
+        if ((\count($method->responses) === 1 && isset($method->responses[204])) || \in_array($this->getMethodType($method, $spec), ['location', 'webAuth'], true)) {
             return 'string';
         }
 

@@ -160,7 +160,7 @@ class SDK
             ? $this->language->getSuggestedEnumExample($value)
             : $this->language->getParamExample($value), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('methodName', fn(Operation $operation): string => $this->methodName($operation)));
-        $this->twig->addFilter(new TwigFilter('methodType', fn(Operation $operation): string|false => $this->methodType($operation)));
+        $this->twig->addFilter(new TwigFilter('methodType', fn(Operation $operation): string|false => $this->language->getMethodType($operation, $this->spec)));
         $this->twig->addFilter(new TwigFilter('parameters', fn(Operation $operation, string $location = 'all'): array => $this->getOperationParameters($operation, $location)));
         $this->twig->addFilter(new TwigFilter('responseModel', fn(Operation $operation): string => $this->getResponseModel($operation)));
         $this->twig->addFilter(new TwigFilter('responseModels', fn(Operation $operation): array => $this->getValidResponseModels($operation)));
@@ -1166,7 +1166,7 @@ class SDK
             }
         }
 
-        return isset($excludeIndex['types'][$this->methodType($method) ?: '']);
+        return isset($excludeIndex['types'][$this->language->getMethodType($method, $this->spec) ?: '']);
     }
 
     protected function getExcludedDefinitions(): array
@@ -1292,7 +1292,7 @@ class SDK
             }
         }
 
-        if ($operation instanceof Operation && \in_array($this->methodType($operation), $types, true)) {
+        if ($operation instanceof Operation && \in_array($this->language->getMethodType($operation, $this->spec), $types, true)) {
             return true;
         }
         return \in_array($params['definitionName'] ?? '', $definitions, true);
@@ -1300,17 +1300,17 @@ class SDK
 
     protected function hasUploads(array $methods): bool
     {
-        return array_any($methods, fn(Operation $method): bool => $this->methodType($method) === 'upload');
+        return array_any($methods, fn(Operation $method): bool => $this->language->getMethodType($method, $this->spec) === 'upload');
     }
 
     protected function hasLocation(array $methods): bool
     {
-        return array_any($methods, fn(Operation $method): bool => $this->methodType($method) === 'location');
+        return array_any($methods, fn(Operation $method): bool => $this->language->getMethodType($method, $this->spec) === 'location');
     }
 
     protected function hasWebAuth(array $methods): bool
     {
-        return array_any($methods, fn(Operation $method): bool => $this->methodType($method) === 'webAuth');
+        return array_any($methods, fn(Operation $method): bool => $this->language->getMethodType($method, $this->spec) === 'webAuth');
     }
 
     protected function isConsoleOnly(string $serviceName): bool
@@ -1500,27 +1500,6 @@ class SDK
     protected function methodName(Operation $operation): string
     {
         return $this->language->getMethodName($operation);
-    }
-
-    protected function methodType(Operation $operation): string|false
-    {
-        $type = $operation->extensions['x-appwrite']['type'] ?? '';
-        if (\is_string($type) && $type !== '') {
-            return $type;
-        }
-
-        $schema = $operation->requestBody?->content[self::MULTIPART_MEDIA_TYPE]?->schema ?? null;
-        if (!$schema instanceof ObjectSchema) {
-            return false;
-        }
-
-        foreach ($schema->properties as $property) {
-            if ($property instanceof StringSchema && $property->format === 'binary') {
-                return 'upload';
-            }
-        }
-
-        return false;
     }
 
     protected function uploadIdParameter(Operation $operation): ?Parameter
@@ -1823,7 +1802,7 @@ class SDK
 
         // Insertion order is the emitted order, and the GraphQL marker comes
         // before the negotiated headers in every published SDK.
-        if ($this->methodType($operation) === 'graphql') {
+        if ($this->language->getMethodType($operation, $this->spec) === 'graphql') {
             $headers['x-sdk-graphql'] = 'true';
         }
 
