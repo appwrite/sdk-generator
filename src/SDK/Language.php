@@ -13,6 +13,7 @@ use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\ParameterLocation;
+use Utopia\OpenAPI\Model\ReferenceSchema;
 use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
