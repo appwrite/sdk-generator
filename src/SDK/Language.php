@@ -130,16 +130,20 @@ abstract class Language
     /**
      * Derive SDK transport behavior from standard OpenAPI operation fields.
      */
-    public function getMethodType(Operation $operation): string|false
+    public function getMethodType(Operation $operation, ?Specification $spec = null): string|false
     {
         $type = $operation->extensions['x-appwrite']['type'] ?? '';
         if (\is_string($type) && $type !== '') {
             return $type;
         }
 
-        $requestSchema = $operation->requestBody?->content[self::MULTIPART_MEDIA_TYPE]?->schema ?? null;
+        $requestSchema = $this->resolveSchema(
+            $operation->requestBody?->content[self::MULTIPART_MEDIA_TYPE]?->schema ?? null,
+            $spec,
+        );
         if ($requestSchema instanceof ObjectSchema) {
             foreach ($requestSchema->properties as $property) {
+                $property = $this->resolveSchema($property, $spec);
                 if ($property instanceof StringSchema && $property->format === 'binary') {
                     return 'upload';
                 }
@@ -153,10 +157,11 @@ abstract class Language
         foreach ($operation->responses as $status => $response) {
             $status = (int) $status;
             foreach ($response->content as $contentType => $mediaType) {
+                $schema = $this->resolveSchema($mediaType->schema, $spec);
                 if (
                     \str_contains(\strtolower($contentType), 'json')
-                    || !$mediaType->schema instanceof StringSchema
-                    || $mediaType->schema->format !== 'binary'
+                    || !$schema instanceof StringSchema
+                    || $schema->format !== 'binary'
                 ) {
                     continue;
                 }
@@ -170,6 +175,20 @@ abstract class Language
         }
 
         return false;
+    }
+
+    private function resolveSchema(?Schema $schema, ?Specification $spec): ?Schema
+    {
+        $visited = [];
+        while ($schema instanceof ReferenceSchema && $spec instanceof Specification) {
+            $name = $this->normalizeSchemaReference($schema->reference);
+            if (isset($visited[$name]) || !isset($spec->schemas[$name])) {
+                break;
+            }
+            $visited[$name] = true;
+            $schema = $spec->schemas[$name];
+        }
+        return $schema;
     }
 
     /**

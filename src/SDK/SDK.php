@@ -1504,7 +1504,7 @@ class SDK
 
     protected function methodType(Operation $operation): string|false
     {
-        return $this->language->getMethodType($operation);
+        return $this->language->getMethodType($operation, $this->spec);
     }
 
     protected function uploadIdParameter(Operation $operation): ?Parameter

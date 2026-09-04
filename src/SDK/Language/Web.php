@@ -409,7 +409,7 @@ class Web extends JS
 
     public function getReturn(Operation $method, Specification $spec): string
     {
-        $type = $this->getMethodType($method);
+        $type = $this->getMethodType($method, $spec);
         if ($type === 'webAuth') {
             return 'void | string';
         }

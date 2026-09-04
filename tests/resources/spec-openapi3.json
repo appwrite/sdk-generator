@@ -2437,6 +2437,72 @@
         ]
       }
     },
+    "\/mock\/tests\/graphql": {
+      "post": {
+        "summary": "GraphQL query",
+        "operationId": "graphqlQuery",
+        "tags": [
+          "graphql"
+        ],
+        "description": "Execute a GraphQL query.",
+        "x-appwrite": {
+          "weight": 302,
+          "cookies": false,
+          "demo": "graphql\/query.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GraphQL response",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application\/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "GraphQL document.",
+                    "example": "query { __typename }"
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/zzexcludedservice": {
       "get": {
         "summary": "Get Excluded Fixture",

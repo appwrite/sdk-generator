@@ -514,7 +514,7 @@ class Apple extends Swift
     #[Override]
     protected function getReturnType(Operation $method, Specification $spec, string $generic = 'T'): string
     {
-        if ($this->getMethodType($method) === 'webAuth') {
+        if ($this->getMethodType($method, $spec) === 'webAuth') {
             return 'Bool';
         }
 
