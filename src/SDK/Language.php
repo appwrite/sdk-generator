@@ -152,8 +152,12 @@ abstract class Language
 
         foreach ($operation->responses as $status => $response) {
             $status = (int) $status;
-            foreach ($response->content as $mediaType) {
-                if (!$mediaType->schema instanceof StringSchema || $mediaType->schema->format !== 'binary') {
+            foreach ($response->content as $contentType => $mediaType) {
+                if (
+                    \str_contains(\strtolower($contentType), 'json')
+                    || !$mediaType->schema instanceof StringSchema
+                    || $mediaType->schema->format !== 'binary'
+                ) {
                     continue;
                 }
                 if ($status >= 300 && $status < 400) {
