@@ -542,9 +542,8 @@
                 "type": "object",
                 "properties": {
                   "player": {
-                    "type": "object",
+                    "$ref": "#\/components\/schemas\/player",
                     "description": "Player object.",
-                    "x-model": "player",
                     "default": null
                   }
                 },
@@ -613,7 +612,6 @@
                   "players": {
                     "type": "array",
                     "description": "Array of player objects.",
-                    "x-model": "player",
                     "default": null,
                     "items": {
                       "$ref": "#\/components\/schemas\/player"
@@ -691,9 +689,8 @@
                 "type": "object",
                 "properties": {
                   "payload": {
-                    "type": "object",
+                    "$ref": "#\/components\/schemas\/zzexcludedmethodpayload",
                     "description": "Excluded general fixture payload.",
-                    "x-model": "zzexcludedmethodpayload",
                     "default": null
                   }
                 },
@@ -2537,9 +2534,8 @@
                 "type": "object",
                 "properties": {
                   "payload": {
-                    "type": "object",
+                    "$ref": "#\/components\/schemas\/zzexcludedpayload",
                     "description": "Excluded fixture payload.",
-                    "x-model": "zzexcludedpayload",
                     "default": null
                   }
                 },

@@ -401,16 +401,8 @@ abstract class Language
 
     protected function getSchemaModel(Schema|Parameter $value): ?string
     {
-        $schema = $this->getSchema($value);
-        $models = $this->getSchemaModels($schema);
-        if (\count($models) === 1) {
-            return $models[0];
-        }
-        if ($schema instanceof ArraySchema) {
-            return $schema->items->extensions['x-model'] ?? $schema->extensions['x-model'] ?? null;
-        }
-
-        return $schema->extensions['x-model'] ?? null;
+        $models = $this->getSchemaModels($value);
+        return \count($models) === 1 ? $models[0] : null;
     }
 
     protected function getArraySchemaModel(Schema|Parameter $value): ?string
