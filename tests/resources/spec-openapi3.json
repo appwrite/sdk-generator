@@ -542,7 +542,11 @@
                 "type": "object",
                 "properties": {
                   "player": {
-                    "$ref": "#\/components\/schemas\/player",
+                    "allOf": [
+                      {
+                        "$ref": "#\/components\/schemas\/player"
+                      }
+                    ],
                     "description": "Player object.",
                     "default": null
                   }
@@ -689,7 +693,11 @@
                 "type": "object",
                 "properties": {
                   "payload": {
-                    "$ref": "#\/components\/schemas\/zzexcludedmethodpayload",
+                    "allOf": [
+                      {
+                        "$ref": "#\/components\/schemas\/zzexcludedmethodpayload"
+                      }
+                    ],
                     "description": "Excluded general fixture payload.",
                     "default": null
                   }
@@ -2534,7 +2542,11 @@
                 "type": "object",
                 "properties": {
                   "payload": {
-                    "$ref": "#\/components\/schemas\/zzexcludedpayload",
+                    "allOf": [
+                      {
+                        "$ref": "#\/components\/schemas\/zzexcludedpayload"
+                      }
+                    ],
                     "description": "Excluded fixture payload.",
                     "default": null
                   }
