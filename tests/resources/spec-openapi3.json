@@ -34,7 +34,6 @@
         "description": "Send a ping to project as part of onboarding.",
         "x-appwrite": {
           "group": null,
-          "cookies": false,
           "demo": "ping\/get.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -88,7 +87,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 270,
-          "cookies": false,
           "demo": "bar\/get.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a get request.",
           "rate-limit": 0,
@@ -171,7 +169,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 271,
-          "cookies": false,
           "demo": "bar\/post.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a post request.",
           "rate-limit": 0,
@@ -255,7 +252,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 273,
-          "cookies": false,
           "demo": "bar\/put.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a put request.",
           "rate-limit": 0,
@@ -339,7 +335,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 272,
-          "cookies": false,
           "demo": "bar\/patch.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a patch request.",
           "rate-limit": 0,
@@ -423,7 +418,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 274,
-          "cookies": false,
           "demo": "bar\/delete.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a delete request.",
           "rate-limit": 0,
@@ -509,7 +503,6 @@
         "description": "Create a new player using a request model.",
         "x-appwrite": {
           "weight": 300,
-          "cookies": false,
           "demo": "general\/create-player.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate a player with request model.",
           "rate-limit": 0,
@@ -580,7 +573,6 @@
         "description": "Create multiple players using an array of request models.",
         "x-appwrite": {
           "weight": 301,
-          "cookies": false,
           "demo": "general\/create-players.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate players with array of request models.",
           "rate-limit": 0,
@@ -654,7 +646,6 @@
         "description": "Fixture-only general method used to verify method exclusion does not remove the whole service.",
         "x-appwrite": {
           "weight": 301,
-          "cookies": false,
           "demo": "general\/excluded-method.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
           "rate-limit": 0,
@@ -733,7 +724,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 265,
-          "cookies": false,
           "demo": "foo\/get.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a get request.",
           "rate-limit": 0,
@@ -816,7 +806,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 266,
-          "cookies": false,
           "demo": "foo\/post.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a post request.",
           "rate-limit": 0,
@@ -900,7 +889,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 268,
-          "cookies": false,
           "demo": "foo\/put.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a put request.",
           "rate-limit": 0,
@@ -984,7 +972,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 267,
-          "cookies": false,
           "demo": "foo\/patch.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a patch request.",
           "rate-limit": 0,
@@ -1068,7 +1055,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 269,
-          "cookies": false,
           "demo": "foo\/delete.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a delete request.",
           "rate-limit": 0,
@@ -1154,7 +1140,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 285,
-          "cookies": false,
           "demo": "general\/error400.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a 400 failed request.",
           "rate-limit": 0,
@@ -1205,7 +1190,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 286,
-          "cookies": false,
           "demo": "general\/error500.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a 500 failed request.",
           "rate-limit": 0,
@@ -1256,7 +1240,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 287,
-          "cookies": false,
           "demo": "general\/error502.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a 502 bad gateway.",
           "rate-limit": 0,
@@ -1303,7 +1286,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 276,
-          "cookies": false,
           "demo": "general\/download.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a file download request.",
           "rate-limit": 0,
@@ -1356,7 +1338,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 282,
-          "cookies": false,
           "demo": "general\/empty.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock an empty response.",
           "rate-limit": 0,
@@ -1400,7 +1381,6 @@
         "description": "Mock a queryable list request.",
         "x-appwrite": {
           "weight": 284,
-          "cookies": false,
           "demo": "general\/list-rows.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a queryable list request.",
           "rate-limit": 0,
@@ -1465,7 +1445,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 284,
-          "cookies": false,
           "demo": "general\/enum.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock an enum parameter.",
           "rate-limit": 0,
@@ -1617,7 +1596,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 281,
-          "cookies": false,
           "demo": "general\/get-cookie.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a cookie response.",
           "rate-limit": 0,
@@ -1668,7 +1646,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 275,
-          "cookies": false,
           "demo": "general\/headers.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterReturn headers from the request",
           "rate-limit": 0,
@@ -1724,7 +1701,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 283,
-          "cookies": false,
           "demo": "general\/nullable.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a nullable parameter.",
           "rate-limit": 0,
@@ -1809,7 +1785,6 @@
         "description": "Create a new function execution.",
         "x-appwrite": {
           "weight": 1,
-          "cookies": false,
           "demo": "functions\/create-execution.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate a new function execution.",
           "rate-limit": 0,
@@ -1912,7 +1887,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 278,
-          "cookies": false,
           "demo": "general\/redirect.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a redirect request.",
           "rate-limit": 0,
@@ -1959,7 +1933,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 279,
-          "cookies": false,
           "demo": "general\/redirected.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a redirected request.",
           "rate-limit": 0,
@@ -2010,7 +1983,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 280,
-          "cookies": false,
           "demo": "general\/get-path.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock an encoded path parameter request.",
           "rate-limit": 0,
@@ -2073,7 +2045,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 280,
-          "cookies": false,
           "demo": "general\/set-cookie.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a set cookie request.",
           "rate-limit": 0,
@@ -2124,7 +2095,6 @@
         "description": "",
         "x-appwrite": {
           "weight": 277,
-          "cookies": false,
           "demo": "general\/upload.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a file upload request.",
           "rate-limit": 0,
@@ -2260,7 +2230,6 @@
         "description": "OAuth 2",
         "x-appwrite": {
           "weight": 265,
-          "cookies": false,
           "demo": "general\/oauth2.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a oauth2 request.",
           "rate-limit": 10,
@@ -2370,7 +2339,6 @@
         "description": "Test union response types",
         "x-appwrite": {
           "weight": 302,
-          "cookies": false,
           "demo": "mock\/get-union.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
           "rate-limit": 0,
@@ -2447,7 +2415,6 @@
         "description": "Execute a GraphQL query.",
         "x-appwrite": {
           "weight": 302,
-          "cookies": false,
           "demo": "graphql\/query.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
           "rate-limit": 0,
@@ -2513,7 +2480,6 @@
         "description": "Fixture-only service used to verify excluded services do not leak generated artifacts.",
         "x-appwrite": {
           "weight": 303,
-          "cookies": false,
           "demo": "zzexcludedservice\/get.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
           "rate-limit": 0,
@@ -2561,7 +2527,6 @@
         "description": "Fixture-only request model path used to verify excluded services also exclude models.",
         "x-appwrite": {
           "weight": 304,
-          "cookies": false,
           "demo": "zzexcludedservice\/post.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
           "rate-limit": 0,
