@@ -158,7 +158,7 @@ php example.php <target> <platform> <format>
 
 `<platform>` can be `console`, `client`, or `server`. If omitted, it defaults to `console`.
 
-`<format>` can be `openapi3` or `swagger2`. If omitted, it defaults to `openapi3`. Both formats produce identical SDKs.
+`<format>` can be `openapi3` or `swagger2`. If omitted, it defaults to `openapi3`. Remote OpenAPI 3 generation uses the current `2.0.x` specs; because Swagger 2 documents are not published for `2.0.x`, remote Swagger 2 generation uses the latest available `1.8.x` specs.
 
 Examples:
 
