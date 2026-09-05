@@ -1609,15 +1609,8 @@ class SDK
 
     protected function getSchemaModel(Schema|Parameter $value): string
     {
-        $schema = $this->getSchema($value);
-        $models = $this->getSchemaModels($schema);
-        if (\count($models) === 1) {
-            return $models[0];
-        }
-        if ($schema instanceof ArraySchema) {
-            return (string) ($schema->items->extensions['x-model'] ?? $schema->extensions['x-model'] ?? '');
-        }
-        return (string) ($schema->extensions['x-model'] ?? '');
+        $models = $this->getSchemaModels($value);
+        return \count($models) === 1 ? $models[0] : '';
     }
 
     /** @return list<string> */
