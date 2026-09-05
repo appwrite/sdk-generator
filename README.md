@@ -44,7 +44,7 @@ use Appwrite\SDK\Language\PHP;
 use Utopia\OpenAPI\Parser;
 
 // Parse an OpenAPI 2, 3.0, or 3.1 document into the canonical specification model.
-$version = '1.9.x';
+$version = '2.0.x';
 $platform = 'server';
 $content = file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/open-api3-{$version}-{$platform}.json");
 $spec = Parser::parse($content);
@@ -86,7 +86,7 @@ $spec = Parser::parse([
     'info' => [
         'title' => 'Appwrite',
         'description' => 'Appwrite backend as a service',
-        'version' => '1.9.x',
+        'version' => '2.0.x',
         'license' => [
             'name' => 'BSD-3-Clause',
             'url' => 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
@@ -99,7 +99,7 @@ $sdk = new SDK(new Skills(), $spec);
 
 $sdk
     ->setName('Appwrite')
-    ->setVersion('1.9.x')
+    ->setVersion('2.0.x')
 ;
 
 $sdk->generate(__DIR__ . '/examples/skills');
