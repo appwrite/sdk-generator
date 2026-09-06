@@ -32,7 +32,8 @@ use Appwrite\SDK\Language\ZedExtension;
 
 final class Config
 {
-    public const string VERSION = '1.9.x';
+    public const string VERSION = '2.0.x';
+    public const string SWAGGER2_VERSION = '1.8.x';
     public const string SPECS_URL = 'https://raw.githubusercontent.com/appwrite/specs/main/specs';
     public const string TITLE = 'Appwrite';
     public const string DESCRIPTION = 'Appwrite backend as a service';
@@ -154,7 +155,7 @@ try {
         throw new Exception("Unsupported spec format: $specFormat (expected 'openapi3' or 'swagger2')");
     }
 
-    $version = Config::VERSION;
+    $version = $specFormat === 'swagger2' ? Config::SWAGGER2_VERSION : Config::VERSION;
     $sdkTargets = [
         'php',
         'unity',
