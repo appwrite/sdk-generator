@@ -94,7 +94,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -172,7 +171,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -251,7 +249,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -330,7 +327,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -409,7 +405,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -490,7 +485,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -559,7 +553,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -637,6 +630,10 @@
             {
               "name": "createExcludedGeneralFixture",
               "namespace": "general",
+              "platforms": [
+                "client",
+                "server"
+              ],
               "auth": {
                 "Project": []
               }
@@ -704,7 +701,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -782,7 +778,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -861,7 +856,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -940,7 +934,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1019,7 +1012,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1100,7 +1092,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1146,7 +1137,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1191,7 +1181,8 @@
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
-            "client"
+            "client",
+            "server"
           ],
           "packaging": false,
           "auth": {
@@ -1234,7 +1225,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1282,7 +1272,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1321,7 +1310,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1381,7 +1369,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1528,7 +1515,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1574,7 +1560,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1625,7 +1610,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1803,7 +1787,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1845,7 +1828,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1891,7 +1873,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1949,7 +1930,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1995,7 +1975,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -2126,7 +2105,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -2284,6 +2262,105 @@
             }
           }
         ]
+      }
+    },
+    "\/mock\/tests\/general\/zzconsoleonly": {
+      "get": {
+        "summary": "Console Only Fixture",
+        "operationId": "generalZzconsoleonly",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture-only method available to console SDKs alone; verifies platform selection drops it elsewhere.",
+        "x-appwrite": {
+          "weight": 302,
+          "demo": "general\/zzconsoleonly.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "packaging": false,
+          "platforms": [
+            "console"
+          ]
+        },
+        "security": [
+          {
+            "Project": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Any",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/any"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/platform-alias": {
+      "get": {
+        "summary": "Platform Alias Fixture",
+        "operationId": "generalGetPlatformAlias",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture-only method whose alias differs per platform; verifies alias selection.",
+        "x-appwrite": {
+          "weight": 303,
+          "demo": "general\/platform-alias.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "packaging": false,
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "methods": [
+            {
+              "name": "zzplatformalias",
+              "namespace": "general",
+              "platforms": [
+                "client"
+              ],
+              "description": "zzplatformclientalias variant."
+            },
+            {
+              "name": "zzplatformalias",
+              "namespace": "general",
+              "platforms": [
+                "server"
+              ],
+              "description": "zzplatformserveralias variant."
+            }
+          ]
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Any",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/any"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "\/mock\/tests\/graphql": {
@@ -2933,6 +3010,17 @@
         "name": "X-Appwrite-Session",
         "description": "The user session to authenticate with",
         "in": "header"
+      },
+      "Zzserveronlyheader": {
+        "type": "apiKey",
+        "name": "X-Appwrite-Zzserveronlyheader",
+        "description": "Fixture-only header offered to server SDKs alone.",
+        "in": "header",
+        "x-appwrite": {
+          "platforms": [
+            "server"
+          ]
+        }
       },
       "Locale": {
         "type": "apiKey",

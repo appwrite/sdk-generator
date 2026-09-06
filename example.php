@@ -114,9 +114,7 @@ try {
         if (isset($config['exclude'])) {
             $sdk->setExclude($config['exclude']);
         }
-        if (isset($config['platform'])) {
-            $sdk->setPlatform($config['platform']);
-        }
+        $sdk->setPlatform($config['platform'] ?? $GLOBALS['platform']);
 
         return $sdk;
     }

@@ -30,7 +30,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\E2E\\": "tests/e2e/"
+            "Tests\\E2E\\": "tests/e2e/",
+            "Tests\\Generation\\": "tests/generation/"
         }
     },
     "require": {
