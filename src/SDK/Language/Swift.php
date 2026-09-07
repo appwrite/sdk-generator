@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
+use stdClass;
 use Utopia\OpenAPI\Model\AnySchema;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\ObjectSchema;
@@ -458,7 +459,7 @@ class Swift extends Language
                         $output .= $this->getPermissionExample($example);
                         break;
                     }
-                    $decoded = json_decode((string) $example, true);
+                    $decoded = json_decode((string) $example);
                     $output .= is_array($decoded) ? $this->jsonToSwiftLiteral($decoded) : $example;
                     break;
                 case self::TYPE_BOOLEAN:
@@ -468,12 +469,8 @@ class Swift extends Language
                     $output .= "\"{$example}\"";
                     break;
                 case self::TYPE_OBJECT:
-                    $decoded = json_decode((string) $example, true);
-                    if ($decoded && is_array($decoded)) {
-                        $output .= $this->jsonToSwiftLiteral($decoded);
-                    } else {
-                        $output .= '[:]';
-                    }
+                    $decoded = json_decode((string) $example);
+                    $output .= is_object($decoded) ? $this->jsonToSwiftLiteral($decoded) : '[:]';
                     break;
             }
         }
@@ -484,43 +481,68 @@ class Swift extends Language
     /**
      * Converts a decoded JSON value into a Swift array or dictionary literal.
      *
-     * JSON objects become `[key: value]` dictionaries and JSON lists become
-     * `[value, ...]` arrays; a Swift example must not carry JavaScript-style
-     * `{ ... }` object literals.
+     * The value must be decoded without the associative flag so that JSON
+     * objects arrive as `stdClass` and JSON lists as arrays; PHP arrays alone
+     * cannot tell an empty `{}` from an empty `[]`. Objects become `[key: value]`
+     * dictionaries and lists become `[value, ...]` arrays, because a Swift
+     * example must not carry JavaScript-style `{ ... }` object literals.
      */
-    protected function jsonToSwiftLiteral(array $data, int $indent = 0): string
+    protected function jsonToSwiftLiteral(array|stdClass $data, int $indent = 0): string
     {
-        if ($data === []) {
-            return '[:]';
+        $isList = is_array($data);
+        $entries = $isList ? $data : get_object_vars($data);
+
+        if ($entries === []) {
+            return $isList ? '[]' : '[:]';
         }
 
         $baseIndent = str_repeat('    ', $indent);
         $itemIndent = str_repeat('    ', $indent + 1);
-        $isList = array_is_list($data);
         $output = "[\n";
 
-        $keys = array_keys($data);
+        $keys = array_keys($entries);
         foreach ($keys as $index => $key) {
-            $node = $data[$key];
-
-            if (is_array($node)) {
-                $value = $this->jsonToSwiftLiteral($node, $indent + 1);
-            } elseif (is_string($node)) {
-                $value = '"' . $node . '"';
-            } elseif (is_bool($node)) {
-                $value = $node ? 'true' : 'false';
-            } elseif (is_null($node)) {
-                $value = 'nil';
-            } else {
-                $value = $node;
-            }
-
+            $value = $this->swiftLiteral($entries[$key], $indent + 1);
             $comma = ($index < count($keys) - 1) ? ',' : '';
-            $entry = $isList ? $value : '"' . $key . '": ' . $value;
+            $entry = $isList ? $value : $this->swiftString((string) $key) . ': ' . $value;
             $output .= '    ' . $itemIndent . $entry . $comma . "\n";
         }
 
         return $output . ('    ' . $baseIndent . ']');
+    }
+
+    protected function swiftLiteral(mixed $value, int $indent): string
+    {
+        return match (true) {
+            is_array($value), $value instanceof stdClass => $this->jsonToSwiftLiteral($value, $indent),
+            is_string($value) => $this->swiftString($value),
+            is_bool($value) => $value ? 'true' : 'false',
+            is_null($value) => 'nil',
+            default => (string) $value,
+        };
+    }
+
+    /**
+     * Renders a Swift string literal. Backslashes and quotes are escaped so
+     * JSON content such as `say "hi"` or `\(name)` survives as text, and control
+     * characters use Swift's `\u{...}` form.
+     */
+    protected function swiftString(string $value): string
+    {
+        $escaped = preg_replace_callback(
+            '/[\\"\x00-\x1F]/',
+            fn(array $match): string => match ($match[0]) {
+                '\\' => '\\\\',
+                '"' => '\\"',
+                "\n" => '\\n',
+                "\r" => '\\r',
+                "\t" => '\\t',
+                default => sprintf('\\u{%X}', ord($match[0])),
+            },
+            $value
+        );
+
+        return '"' . $escaped . '"';
     }
 
     public function getModelToMapValue(Schema $property, string $propertyName, bool $required): string

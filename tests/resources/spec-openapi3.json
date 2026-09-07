@@ -648,7 +648,7 @@
                     "type": "array",
                     "description": "Array of document objects.",
                     "default": null,
-                    "example": "[{\"$id\":\"one\",\"title\":\"hello\"}]",
+                    "example": "[{\"$id\":\"one\",\"title\":\"say \\\"hello\\\"\"}]",
                     "items": {
                       "type": "object"
                     }
