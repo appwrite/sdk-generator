@@ -338,9 +338,10 @@ Pass as first argument to generate only that SDK:
 - **Silent no-op:** A new `.twig` file with no `getFiles()` entry — generation runs successfully but the file is never created
 - **Wrong scope:** Using `default` scope when you need `service` scope means your template can't access `{{ service.name }}`
 - **Copy scope surprises:** A `copy`-scoped file with Twig syntax — the syntax is output literally, not rendered
-- **Spec fetch failure:** `example.php` requires internet access to fetch the live spec from GitHub; generation fails with an exception if the fetch returns empty. Spec URL pattern (prefix is `open-api3` or `swagger2` depending on the format):
+- **Spec fetch failure:** `example.php` requires internet access to fetch the live spec from GitHub; generation fails with an exception if the fetch returns empty. OpenAPI 3 is one canonical document per version and the generator selects the platform from it (`x-appwrite.platforms`); Swagger 2 documents are still per platform:
   ```
-  https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/open-api3-{version}-{platform}.json
+  https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/open-api3-{version}.json
+  https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/swagger2-{version}-{platform}.json
   ```
 - **Spec formats:** `example.php` parses every document through `Utopia\OpenAPI\Parser`. OpenAPI 3 is fetched by default; Swagger 2 is also supported. Pass the fetched format as the third argument:
   ```bash
