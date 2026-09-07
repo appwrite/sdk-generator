@@ -30,6 +30,33 @@ composer require {{ language.params.composerVendor }}/{{ language.params.compose
 
 Requires PHP 8.5 or later.
 
+### Custom HTTP transport
+
+For applications that configure their own HTTP transport, pass any PSR-18 client to the constructor. Hosts that run SDK calls concurrently, such as Swoole coroutines, should pass a pooled client so no cURL handle is shared between coroutines:
+
+```php
+use {{ namespace | caseNamespace }}\Client;
+use Utopia\Client as HttpClient;
+use Utopia\Client\Adapter\SwooleCoroutine\Client as SwooleAdapter;
+use Utopia\Client\Pool as PooledClient;
+use Utopia\Pools\Adapter\Swoole as SwoolePool;
+use Utopia\Pools\Pool;
+
+$client = new Client(new PooledClient(new Pool(
+    new SwoolePool(),
+    '{{ language.params.composerPackage }}',
+    128,
+    fn (): HttpClient => new HttpClient(new SwooleAdapter())
+        ->withConnectionReuse()
+        ->withTimeout(5)
+        ->withConnectTimeout(2),
+    timeout: 3.0,
+)));
+$client->setEndpoint('{{ spec | endpoint }}');
+```
+
+Configure timeouts, TLS, redirects, and connection reuse on the injected transport. The SDK's `setTimeout()`, `setConnectTimeout()`, and `setSelfSigned()` methods only configure the default cURL transport. Endpoint, authentication, headers, request encoding, and response handling remain the SDK's responsibility. A transport used with `responseType: 'location'` must have redirect following disabled.
+
 {% if sdk.gettingStarted %}
 
 {{ sdk.gettingStarted|raw }}

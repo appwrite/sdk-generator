@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace {{ namespace | caseNamespace }};
 
-use Closure;
-use LogicException;
-use Override;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use ReflectionMethod;
 use ReflectionProperty;
 use Utopia\Client as HttpClient;
-use Utopia\Client\Adapter\Curl\Client as CurlAdapter;
+use Utopia\Psr7\Response;
+use Utopia\Psr7\Stream;
 
 final class ClientTest extends TestCase
 {
@@ -107,137 +108,79 @@ final class ClientTest extends TestCase
         $this->assertNotSame($afterSelfSigned, $this->httpClient($client, true));
     }
 
-    public function testSetPoolSizeRejectsSizesBelowOne(): void
+    public function testInjectedTransportReceivesEncodedRequests(): void
     {
-        $this->expectException({{ namespace | split('\\') | last | caseUcfirst }}Exception::class);
-        $this->expectExceptionMessage('Pool size must be at least 1: 0');
+        $received = [];
+        $transport = $this->createMock(ClientInterface::class);
+        $transport->expects($this->once())->method('sendRequest')
+            ->willReturnCallback(function (RequestInterface $request) use (&$received): ResponseInterface {
+                $received[] = $request;
 
-        new Client()->setPoolSize(0);
+                return new Response(body: new Stream('{"received":true}'))
+                    ->withHeader('content-type', 'application/json');
+            });
+
+        $client = new Client($transport)
+            ->setEndpoint('https://example.com/v1')
+            ->addHeader('x-test', 'injected');
+
+        $this->assertSame(['received' => true], $client->call(Client::METHOD_POST, '/items', ['content-type' => 'application/json'], ['name' => 'item']));
+        $this->assertCount(1, $received);
+        $this->assertSame('POST', $received[0]->getMethod());
+        $this->assertSame('https://example.com/v1/items', (string) $received[0]->getUri());
+        $this->assertSame(['name' => 'item'], json_decode((string) $received[0]->getBody(), true));
+        $this->assertSame('injected', $received[0]->getHeaderLine('x-test'));
     }
 
-    public function testCoroutinesLeasePooledClientsPerRedirectMode(): void
+    public function testInjectedTransportSurvivesFailureAndConfigurationChanges(): void
     {
-        $client = $this->coroutineClient();
-        $client->setEndpoint('https://example.com/v1');
+        $received = [];
+        $transport = $this->createMock(ClientInterface::class);
+        $transport->expects($this->exactly(2))->method('sendRequest')
+            ->willReturnCallback(function (RequestInterface $request) use (&$received): ResponseInterface {
+                $received[] = (string) $request->getUri();
 
-        $pool = $this->pool($client, true);
-        $this->assertSame($pool, $this->pool($client, true));
-        $this->assertSame(Client::DEFAULT_POOL_SIZE, $pool->size);
+                return count($received) === 1
+                    ? new Response(503, body: new Stream('{"message":"Unavailable","type":"unavailable"}'))->withHeader('content-type', 'application/json')
+                    : new Response(body: new Stream('null'))->withHeader('content-type', 'application/json');
+            });
+        $client = new Client($transport)->setEndpoint('https://first.example');
 
-        $noRedirect = $this->pool($client, false);
-        $this->assertNotSame($pool, $noRedirect);
-
-        $first = $pool->use(fn (HttpClient $leased): HttpClient => $leased);
-        $this->assertSame($first, $pool->use(fn (HttpClient $leased): HttpClient => $leased));
-        $this->assertNotSame($first, $noRedirect->use(fn (HttpClient $leased): HttpClient => $leased));
-
-        $this->assertNull(new ReflectionProperty(Client::class, 'httpClient')->getValue($client));
-        $this->assertNull(new ReflectionProperty(Client::class, 'httpClientNoRedirect')->getValue($client));
-    }
-
-    public function testTransportOptionsRebuildPools(): void
-    {
-        $client = $this->coroutineClient();
-
-        $original = $this->pool($client, true);
-        $client->setTimeout(5);
-        $this->assertNotSame($original, $this->pool($client, true));
-
-        $afterTimeout = $this->pool($client, true);
-        $client->setPoolSize(3);
-        $resized = $this->pool($client, true);
-        $this->assertNotSame($afterTimeout, $resized);
-        $this->assertSame(3, $resized->size);
-    }
-
-    public function testPoolReturnsLeasedClientAfterFailure(): void
-    {
-        $pool = new QueuePool(1, fn (): HttpClient => new HttpClient(new CurlAdapter()));
-
+        $failure = null;
         try {
-            $pool->use(fn (HttpClient $leased): never => throw new LogicException('transfer failed'));
-        } catch (LogicException) {
-            // The pool must still return the client after a failed transfer.
+            $client->call(Client::METHOD_GET, '/fail');
+        } catch ({{ namespace | split('\\') | last | caseUcfirst }}Exception $error) {
+            $failure = $error;
         }
 
-        $this->assertSame(1, $pool->idle());
-        $pool->use(fn (HttpClient $leased): HttpClient => $leased);
-        $this->assertSame(1, $pool->idle());
-        $this->assertSame(1, $pool->created);
+        $client->setEndpoint('https://second.example')->setTimeout(5)->setConnectTimeout(2)->setSelfSigned(true);
+        $this->assertNull($client->call(Client::METHOD_GET, '/next', params: ['project' => 'project-1']));
+        $this->assertInstanceOf({{ namespace | split('\\') | last | caseUcfirst }}Exception::class, $failure);
+        $this->assertSame(503, $failure->getCode());
+        $this->assertSame(['https://first.example/fail', 'https://second.example/next?project=project-1'], $received);
+        $this->assertSame($transport, $this->httpClient($client, true));
+        $this->assertSame($transport, $this->httpClient($client, false));
     }
 
-    private function coroutineClient(): Client
+    public function testLocationResponseUsesInjectedTransport(): void
     {
-        return new class () extends Client {
-            #[Override]
-            protected function inCoroutine(): bool
-            {
-                return true;
-            }
+        $transport = $this->createMock(ClientInterface::class);
+        $transport->expects($this->once())->method('sendRequest')
+            ->willReturnCallback(function (RequestInterface $request): ResponseInterface {
+                $this->assertSame('GET', $request->getMethod());
+                $this->assertSame('https://example.com/redirect', (string) $request->getUri());
 
-            #[Override]
-            protected function createPool(Closure $factory): QueuePool
-            {
-                return new QueuePool($this->poolSize, $factory);
-            }
-        };
+                return new Response(302)->withHeader('location', 'https://storage.example/file');
+            });
+
+        $client = new Client($transport)->setEndpoint('https://example.com');
+        $this->assertSame('https://storage.example/file', $client->call(Client::METHOD_GET, '/redirect', responseType: 'location'));
     }
 
-    private function pool(Client $client, bool $followRedirects): QueuePool
-    {
-        $pool = new ReflectionMethod(Client::class, 'pool')->invoke($client, $followRedirects);
-        $this->assertInstanceOf(QueuePool::class, $pool);
-
-        return $pool;
-    }
-
-    private function httpClient(Client $client, bool $followRedirects): HttpClient
+    private function httpClient(Client $client, bool $followRedirects): ClientInterface
     {
         $method = new ReflectionMethod(Client::class, 'getHttpClient');
 
         return $method->invoke($client, $followRedirects);
-    }
-}
-
-/**
- * Pool that hands out clients from a plain queue so the lease and return
- * bookkeeping runs without a Swoole coroutine.
- */
-final class QueuePool extends Pool
-{
-    public int $created = 0;
-
-    /** @var list<HttpClient> */
-    private array $queue = [];
-
-    /**
-     * @param Closure(): HttpClient $factory
-     */
-    public function __construct(public readonly int $size, private readonly Closure $factory)
-    {
-        parent::__construct($size, $factory);
-    }
-
-    public function idle(): int
-    {
-        return count($this->queue);
-    }
-
-    #[Override]
-    protected function pop(): HttpClient
-    {
-        if ($this->queue !== []) {
-            return array_shift($this->queue);
-        }
-
-        $this->created++;
-
-        return ($this->factory)();
-    }
-
-    #[Override]
-    protected function push(HttpClient $client): void
-    {
-        $this->queue[] = $client;
     }
 }
