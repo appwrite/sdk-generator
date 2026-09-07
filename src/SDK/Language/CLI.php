@@ -1014,6 +1014,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/watch/watch_test.go',
+                'template'      => 'cli/internal/watch/watch_test.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/prompt/prompt.go',
                 'template'      => 'cli/internal/prompt/prompt.go',
             ],

@@ -45,7 +45,9 @@ import kotlin.coroutines.resume
 
 class Client @JvmOverloads constructor(
     context: Context,
+    @set:JvmSynthetic
     var endpoint: String = "{{(spec | endpoint)}}",
+    @set:JvmSynthetic
     var endpointRealtime: String? = null,
     private var selfSigned: Boolean = false
 ) : CoroutineScope {

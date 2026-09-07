@@ -86,10 +86,6 @@ for (const file of ['file.png', 'large_file.mp4']) {
         '--file', join('..', '..', '..', 'resources', file),
     ))
 }
-// Preserve the shared expectation indices for unsupported chunked variants.
-console.log('POST:/v1/mock/tests/general/upload:passed')
-console.log('POST:/v1/mock/tests/general/upload:passed')
-
 console.log(headers)
 
 run('general', 'redirect')

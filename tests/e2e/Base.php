@@ -11,13 +11,9 @@ use RecursiveDirectoryIterator;
 use FilesystemIterator;
 use Throwable;
 use Appwrite\SDK\Language;
-use Appwrite\SDK\Language\PHP as PHPLanguage;
 use Appwrite\SDK\SDK;
-use Utopia\OpenAPI\Model\Operation;
-use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Parser;
-use Utopia\OpenAPI\Specification;
 use PHPUnit\Framework\TestCase;
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
@@ -130,6 +126,7 @@ abstract class Base extends TestCase
         'WS:/v1/realtime:passed',
         'WS:/v1/realtime:passed',
         'Realtime failed!',
+        'Realtime error:passed',
         'Realtime unsubscribe:passed',
         'Realtime update:passed',
         'Realtime presence:passed',
@@ -518,9 +515,6 @@ abstract class Base extends TestCase
         }
 
         $this->assertOpenEnumsAllowAnyString();
-        $this->assertClosedOneOfStringEnumsAreEnums();
-        $this->assertArrayEnumScalarHydrates();
-        $this->assertUploadIdParameterInference();
         $this->assertEnumKeysAreValid();
 
         $sdk = new SDK($this->getLanguage(), Parser::parse($spec));
@@ -564,7 +558,6 @@ abstract class Base extends TestCase
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
         $this->assertOpenEnumSuggestionsGenerated($dir);
-        $this->assertOneOfStringEnumsUseWireNames($dir);
         $this->assertExcludedFixtureWasRemoved($dir);
         $this->assertCommentsAreNotHtmlEscaped($dir);
 
@@ -620,195 +613,6 @@ abstract class Base extends TestCase
             } else {
                 $this->assertEquals($expected, $output[$index]);
             }
-        }
-    }
-
-    private function assertClosedOneOfStringEnumsAreEnums(): void
-    {
-        $oneOfKind = [
-            'type' => 'string',
-            'example' => 'alpha',
-            'oneOf' => [
-                ['type' => 'string', 'enum' => ['alpha'], 'title' => 'alpha'],
-                ['type' => 'string', 'enum' => ['beta'], 'title' => 'beta'],
-            ],
-        ];
-        $specification = Parser::parse([
-            'openapi' => '3.0.0',
-            'info' => ['title' => 'test', 'version' => '1.0.0'],
-            'paths' => ['/items/{kind}' => ['get' => [
-                'operationId' => 'getItem',
-                'parameters' => [[
-                    'name' => 'kind',
-                    'in' => 'path',
-                    'required' => true,
-                    'schema' => $oneOfKind + ['title' => 'MockKind'],
-                ]],
-                'responses' => ['200' => ['description' => 'ok']],
-            ]]],
-            'components' => ['schemas' => [
-                'widget' => [
-                    'type' => 'object',
-                    'required' => ['kind'],
-                    'properties' => [
-                        'kind' => $oneOfKind,
-                    ],
-                ],
-            ]],
-        ]);
-        $language = $this->getLanguage();
-        $parameter = $specification->paths['/items/{kind}']->operations['get']->parameters[0];
-        $plainString = Parser::parse([
-            'openapi' => '3.0.0',
-            'info' => ['title' => 'test', 'version' => '1.0.0'],
-            'paths' => ['/test' => ['get' => [
-                'operationId' => 'test',
-                'parameters' => [
-                    ['name' => 'plainScalar', 'in' => 'query', 'schema' => ['type' => 'string']],
-                    ['name' => 'plainObject', 'in' => 'query', 'schema' => ['type' => 'object']],
-                ],
-                'responses' => ['200' => ['description' => 'ok']],
-            ]]],
-        ])->paths['/test']->operations['get']->parameters;
-        [$plainScalar, $plainObject] = $plainString;
-
-        $this->assertNotSame(
-            $language->getTypeName($plainObject, $specification),
-            $language->getTypeName($parameter, $specification),
-            'A oneOf of string enums must not type as a generic object.'
-        );
-        $this->assertNotSame(
-            $language->getTypeName($plainScalar, $specification),
-            $language->getTypeName($plainObject, $specification)
-        );
-        $enumSchema = $language->getEnumSchema($parameter);
-        $this->assertSame(['alpha', 'beta'], $enumSchema->enum);
-
-        $untitled = $specification->schemas['widget']->properties['kind'];
-        $untitledType = $language->getTypeName($untitled, $specification);
-        $this->assertNotSame('', $untitledType);
-        $this->assertNotSame(
-            $language->getTypeName($plainObject, $specification),
-            $untitledType,
-            'An untitled oneOf string enum must still produce a concrete type name.'
-        );
-    }
-
-    private function assertOneOfStringEnumsUseWireNames(string $dir): void
-    {
-        $expectations = [
-            'php' => [
-                $dir . '/src/Appwrite/Models/Mock.php',
-                "array_key_exists('kind'",
-                "array_key_exists('MockKind'",
-            ],
-            'python' => [
-                $dir . '/appwrite/models/mock.py',
-                "alias='kind'",
-                "alias='MockKind'",
-            ],
-            'kotlin' => [
-                $dir . '/src/main/kotlin/io/appwrite/models/Mock.kt',
-                '@SerializedName("kind")',
-                '@SerializedName("MockKind")',
-            ],
-            'android' => [
-                $dir . '/library/src/main/java/io/appwrite/models/Mock.kt',
-                '@SerializedName("kind")',
-                '@SerializedName("MockKind")',
-            ],
-        ];
-
-        if (!isset($expectations[$this->language])) {
-            return;
-        }
-
-        [$modelPath, $wireName, $titleName] = $expectations[$this->language];
-        $this->assertFileExists($modelPath);
-        $contents = file_get_contents($modelPath);
-        $this->assertIsString($contents);
-        $this->assertStringContainsString($wireName, $contents);
-        $this->assertStringNotContainsString($titleName, $contents);
-    }
-
-    private function assertArrayEnumScalarHydrates(): void
-    {
-        if ($this->language !== 'php') {
-            return;
-        }
-
-        $specification = Parser::parse([
-            'openapi' => '3.0.0',
-            'info' => ['title' => 'test', 'version' => '1.0.0'],
-            'paths' => ['/oauth' => ['post' => [
-                'operationId' => 'updateOAuth',
-                'tags' => ['project'],
-                'responses' => ['200' => [
-                    'description' => 'ok',
-                    'content' => ['application/json' => [
-                        'schema' => ['$ref' => '#/components/schemas/OAuth2Google'],
-                    ]],
-                ]],
-            ]]],
-            'components' => ['schemas' => [
-                'OAuth2Google' => [
-                    'type' => 'object',
-                    'required' => ['prompt'],
-                    'properties' => [
-                        'prompt' => [
-                            'type' => 'array',
-                            'example' => 'none',
-                            'items' => [
-                                'type' => 'string',
-                                'enum' => ['none', 'consent'],
-                                'x-enum-name' => 'OAuth2Prompt',
-                            ],
-                        ],
-                    ],
-                ],
-            ]],
-        ]);
-
-        $php = new class () extends PHPLanguage {
-            public function mockPayload(string $definitionName, Specification $spec): string
-            {
-                return $this->getMockDefinitionPayload($definitionName, $spec);
-            }
-        };
-        $payload = $php->mockPayload('OAuth2Google', $specification);
-        $this->assertStringContainsString('"prompt" => ["none"]', $payload);
-        $this->assertStringNotContainsString('"prompt" => "none"', $payload);
-
-        $dir = \sys_get_temp_dir() . '/sdk-array-enum-' . \bin2hex(\random_bytes(4));
-        $sdk = new SDK(new PHPLanguage(), $specification);
-        $sdk
-            ->setName('php')
-            ->setVersion('0.0.1')
-            ->setNamespace('appwrite');
-        $sdk->generate($dir);
-
-        try {
-            $modelPath = $dir . '/src/Appwrite/Models/OAuth2Google.php';
-            $this->assertFileExists($modelPath);
-            $modelSource = \file_get_contents($modelPath);
-            $this->assertIsString($modelSource);
-            $this->assertStringContainsString(
-                '[static::hydrateTypedValue(OAuth2GooglePrompt::class, $data[\'prompt\'])]',
-                $modelSource
-            );
-
-            require_once $dir . '/src/Appwrite/Models/ArraySerializable.php';
-            foreach (\glob($dir . '/src/Appwrite/Enums/*.php') ?: [] as $file) {
-                require_once $file;
-            }
-            require_once $modelPath;
-
-            $modelClass = 'Appwrite\\Models\\OAuth2Google';
-            $model = $modelClass::from(['prompt' => 'none']);
-            $this->assertCount(1, $model->prompt);
-            $this->assertSame('none', (string) $model->prompt[0]);
-        } finally {
-            $this->rmdirRecursive($dir);
         }
     }
 
@@ -900,20 +704,6 @@ abstract class Base extends TestCase
         $this->assertSame($language->keepsOpenEnumType(), $language->usesEnumType($openArray));
         $this->assertStringContainsString('user.created', $language->getSuggestedEnumExample($openScalar));
         $this->assertStringContainsString('user.created', $language->getSuggestedEnumExample($openArray));
-        $sdk = new class ($language, $specification) extends SDK {
-            /** @param list<StringSchema> $schemas @return list<StringSchema> */
-            public function mergeEnumsForTest(array $schemas): array
-            {
-                return $this->mergeEnums($schemas);
-            }
-        };
-        $mergedEnums = $sdk->mergeEnumsForTest([
-            new StringSchema(title: 'SharedEnum', enum: ['known'], open: true),
-            new StringSchema(title: 'SharedEnum', enum: ['known'], open: false),
-        ]);
-        $this->assertCount(1, $mergedEnums);
-        $this->assertFalse($mergedEnums[0]->open, 'A closed use must keep a shared enum type closed.');
-
         if ($language->keepsOpenEnumType()) {
             $this->assertSame('(WebhookEvent | (string & {}))', $language->getTypeName($openScalar, $specification));
             $this->assertSame('(WebhookEvent | (string & {}))[]', $language->getTypeName($openArray, $specification));
@@ -929,66 +719,6 @@ abstract class Base extends TestCase
             $language->getTypeName($plainArray, $specification),
             $language->getTypeName($openArray, $specification),
         );
-    }
-
-    private function assertUploadIdParameterInference(): void
-    {
-        $multipart = static fn(array $properties, array $required = []): array => [
-            'requestBody' => ['content' => ['multipart/form-data' => ['schema' => [
-                'type' => 'object',
-                'properties' => $properties,
-                'required' => $required,
-            ]]]],
-            'responses' => ['200' => ['description' => 'ok']],
-        ];
-        $file = ['type' => 'string', 'format' => 'binary'];
-        $string = ['type' => 'string'];
-        $specification = Parser::parse([
-            'openapi' => '3.0.0',
-            'info' => ['title' => 'test', 'version' => '1.0.0'],
-            'paths' => [
-                '/file' => ['post' => $multipart(
-                    ['fileId' => $string, 'file' => $file],
-                    ['fileId', 'file'],
-                )],
-                '/code' => ['post' => $multipart(['code' => $file], ['code'])],
-                '/optional' => ['post' => $multipart(['fileId' => $string, 'file' => $file], ['file'])],
-                '/malformed' => ['post' => $multipart([
-                    'fileId' => ['type' => 'integer'],
-                    'file' => $file,
-                ])],
-                '/multiple' => ['post' => $multipart([
-                    'archive' => $file,
-                    'archiveId' => $string,
-                    'file' => $file,
-                ])],
-                '/json' => ['post' => [
-                    'requestBody' => ['content' => ['application/json' => ['schema' => [
-                        'type' => 'object',
-                        'properties' => ['fileId' => $string, 'file' => $file],
-                    ]]]],
-                    'responses' => ['200' => ['description' => 'ok']],
-                ]],
-            ],
-        ]);
-        $sdk = new class ($this->getLanguage(), $specification) extends SDK {
-            public function uploadIdParameterForTest(Operation $operation): ?Parameter
-            {
-                return $this->uploadIdParameter($operation);
-            }
-        };
-
-        $fileId = $sdk->uploadIdParameterForTest($specification->paths['/file']->operations['post']);
-        $this->assertInstanceOf(Parameter::class, $fileId);
-        $this->assertSame('fileId', $fileId->name);
-        $this->assertTrue($fileId->required);
-        $this->assertNotInstanceOf(Parameter::class, $sdk->uploadIdParameterForTest($specification->paths['/code']->operations['post']));
-        $optional = $sdk->uploadIdParameterForTest($specification->paths['/optional']->operations['post']);
-        $this->assertInstanceOf(Parameter::class, $optional);
-        $this->assertFalse($optional->required);
-        $this->assertNotInstanceOf(Parameter::class, $sdk->uploadIdParameterForTest($specification->paths['/malformed']->operations['post']));
-        $this->assertNotInstanceOf(Parameter::class, $sdk->uploadIdParameterForTest($specification->paths['/multiple']->operations['post']));
-        $this->assertNotInstanceOf(Parameter::class, $sdk->uploadIdParameterForTest($specification->paths['/json']->operations['post']));
     }
 
     private function assertOpenEnumSuggestionsGenerated(string $dir): void

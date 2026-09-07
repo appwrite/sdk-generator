@@ -1,8 +1,10 @@
 /// {{spec.info.title | caseUcfirst}} {{sdk.name}} SDK
 ///
-/// This SDK is compatible with Appwrite server version {{spec.info.version | split('.') | slice(0,2) | join('.') ~ '.x' }}.
-/// For older versions, please check
-/// [previous releases](https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}/releases).
+/// This SDK targets Appwrite server version {{spec.info.version | split('.') | slice(0,2) | join('.') ~ '.x' }} as shipped on Appwrite Cloud.
+/// Self-hosted releases can lag behind Cloud — if you run an older self-hosted
+/// build, use a matching older SDK from
+/// [previous releases](https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}/releases)
+/// when APIs differ.
 library {{ language.params.packageName }};
 
 import 'dart:async';

@@ -65,10 +65,8 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
 {% set baseType = property | getModelPropertyType(definitionName, spec) | raw %}
 {% set propType %}{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}{{ baseType | replace({((property | schemaModel) | caseUcfirst): ((property | schemaModel) | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
 {% set fieldType %}{% if not (property | schemaRequired) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %}{% endset %}
-    {{ property | getModelFieldName(definition.properties) }}: {{ fieldType | trim | formatModelFieldType | raw }} = Field(
-        {% if (property | schemaRequired) %}...{% else %}default=None{% endif %},
-        alias='{{ (property | schemaName) }}',
-    )
+{% set field %}    {{ property | getModelFieldName(definition.properties) }}: {{ fieldType | trim | formatModelFieldType | raw }} = Field({% if (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}'){% endset %}
+{{ field | formatCall | raw }}
 {% endfor %}
 {% endif %}
 {% if isGeneric %}

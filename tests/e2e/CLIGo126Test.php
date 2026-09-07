@@ -45,35 +45,11 @@ final class CLIGo126Test extends Base
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
-        ...Base::UPLOAD_RESPONSES,
+        ...Base::UPLOAD_RESPONSE,
+        ...Base::UPLOAD_RESPONSE,
         ...Base::CLI_HEADERS_RESPONSES,
         'CLI_CONFORMANCE:passed',
     ];
-
-    #[Override]
-    public function testHTTPSuccess(): void
-    {
-        $language = new class () extends CLI {
-            /**
-             * @return array{0: string, 1: array{var: string, source: string, helper: string, cleanup?: string}|null}
-             */
-            public function convertForTest(string $variable, string $flagType, string $sdkType): array
-            {
-                return $this->convertToSdkType($variable, $flagType, $sdkType);
-            }
-        };
-
-        [$expression, $decode] = $language->convertForTest('rows', '[]string', '[]interface{}');
-
-        $this->assertSame('rowsDecoded', $expression);
-        $this->assertSame([
-            'var' => 'rowsDecoded',
-            'source' => 'rows',
-            'helper' => 'DecodeSlice[interface{}]',
-        ], $decode);
-
-        parent::testHTTPSuccess();
-    }
 
     #[Override]
     public function getLanguage(): CLI

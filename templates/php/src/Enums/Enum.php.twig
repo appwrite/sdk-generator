@@ -41,9 +41,8 @@ class {{ enum.title | caseUcfirst | overrideIdentifier }} implements JsonSeriali
 {% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
     public static function {{ key | caseEnumKey }}(): {{ enum.title | caseUcfirst | overrideIdentifier}}
     {
-        if (!isset(self::${{ key | caseEnumKey }})) {
-            self::${{ key | caseEnumKey }} = new {{ enum.title | caseUcfirst | overrideIdentifier }}('{{ value }}');
-        }
+        self::${{ key | caseEnumKey }} ??= new {{ enum.title | caseUcfirst | overrideIdentifier }}('{{ value }}');
+
         return self::${{ key | caseEnumKey }};
     }
 {% endfor %}

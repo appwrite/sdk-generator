@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"crypto/sha256"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -21,10 +22,11 @@ type Ignored func(relative string) bool
 
 // Watcher reports changes beneath a directory.
 type Watcher struct {
-	watcher *fsnotify.Watcher
-	root    string
-	ignored Ignored
-	done    chan struct{}
+	watcher      *fsnotify.Watcher
+	root         string
+	ignored      Ignored
+	fingerprints map[string][sha256.Size]byte
+	done         chan struct{}
 }
 
 // Start watches a directory tree, calling changed with each relative,
@@ -39,7 +41,13 @@ func Start(root string, ignored Ignored, changed func(string)) (*Watcher, error)
 		return nil, err
 	}
 
-	w := &Watcher{watcher: watcher, root: root, ignored: ignored, done: make(chan struct{})}
+	w := &Watcher{
+		watcher:      watcher,
+		root:         root,
+		ignored:      ignored,
+		fingerprints: make(map[string][sha256.Size]byte),
+		done:         make(chan struct{}),
+	}
 
 	if err := w.addTree(root); err != nil {
 		watcher.Close()
@@ -60,16 +68,24 @@ func (w *Watcher) addTree(directory string) error {
 			// while the user is editing.
 			return nil
 		}
-		if !entry.IsDir() {
-			return nil
-		}
-
 		relative, err := w.relative(path)
 		if err != nil {
 			return nil
 		}
 		if relative != "" && w.ignored(relative) {
-			return filepath.SkipDir
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+
+			return nil
+		}
+
+		if !entry.IsDir() {
+			if fingerprint, err := fingerprint(path); err == nil {
+				w.fingerprints[relative] = fingerprint
+			}
+
+			return nil
 		}
 
 		return w.watcher.Add(path)
@@ -124,15 +140,61 @@ func (w *Watcher) handle(event fsnotify.Event, changed func(string)) {
 		return
 	}
 
-	if event.Has(fsnotify.Create) {
-		if info, err := os.Stat(event.Name); err == nil && info.IsDir() {
+	info, statErr := os.Stat(event.Name)
+	if statErr == nil && info.IsDir() {
+		if event.Has(fsnotify.Create) {
 			// A directory created after the initial walk has to be registered
 			// or nothing inside it is ever seen.
 			_ = w.addTree(event.Name)
+			changed(relative)
 		}
+
+		// Directory metadata is not part of the function bundle.
+		return
+	}
+	if statErr != nil {
+		// A missing file is a real change only when it, or a directory beneath
+		// it, existed in the last snapshot. Unknown paths can disappear between
+		// the event and the stat.
+		removed := false
+		prefix := strings.TrimSuffix(relative, "/") + "/"
+		for known := range w.fingerprints {
+			if known == relative || strings.HasPrefix(known, prefix) {
+				delete(w.fingerprints, known)
+				removed = true
+			}
+		}
+		if removed {
+			changed(relative)
+		}
+
+		return
+	}
+
+	fingerprint, err := fingerprint(event.Name)
+	if err != nil {
+		return
+	}
+
+	previous, existed := w.fingerprints[relative]
+	w.fingerprints[relative] = fingerprint
+	if existed && previous == fingerprint {
+		return
 	}
 
 	changed(relative)
+}
+
+// fingerprint identifies file contents rather than filesystem metadata.
+// Editors and monorepo tools commonly touch or chmod source files without
+// changing them; treating those notifications as edits creates reload loops.
+func fingerprint(path string) ([sha256.Size]byte, error) {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return [sha256.Size]byte{}, err
+	}
+
+	return sha256.Sum256(contents), nil
 }
 
 // Close stops watching.

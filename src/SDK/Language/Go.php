@@ -310,7 +310,13 @@ class Go extends Language
                     $output .= 'map[string]interface{}{}';
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= $this->getTypeName($param) . '{}';
+                    $typeName = $this->getTypeName($param);
+                    $output .= match ($typeName) {
+                        '[]string' => '[]string{"example"}',
+                        '[]int', '[]int64', '[]float64' => $typeName . '{0}',
+                        '[]bool' => $typeName . '{false}',
+                        default => $typeName . '{}',
+                    };
                     break;
                 case self::TYPE_FILE:
                     $output .= 'file.NewInputFile("/path/to/file.png", "file.png")';
@@ -441,7 +447,7 @@ class Go extends Language
 
     protected function getReturnType(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string
     {
-        $type = $method->extensions['x-appwrite']['type'] ?? '';
+        $type = $this->getMethodType($method, $spec);
         if ($type === 'webAuth') {
             return 'bool';
         }

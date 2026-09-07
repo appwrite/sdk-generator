@@ -105,6 +105,16 @@ class Protocol
             }
             $connection->subscribe($subscriptionId, $channels, $queries);
 
+            if (in_array('error', $channels, true)) {
+                $this->error(
+                    $server,
+                    $connection->fd,
+                    'Team is marked as read-only, so you cannot invite new members.',
+                    1008
+                );
+                continue;
+            }
+
             $eventPayload = ['response' => 'WS:/v1/realtime:passed'];
             if (!$this->subscriptionMatchesPayload($queries, $eventPayload)) {
                 continue;

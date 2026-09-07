@@ -60,7 +60,7 @@ class Operator implements \JsonSerializable, \Stringable
         if ($max !== null) {
             $values[] = $max;
         }
-        return (new Operator('increment', $values))->__toString();
+        return new Operator('increment', $values)->__toString();
     }
 
     /**
@@ -79,7 +79,7 @@ class Operator implements \JsonSerializable, \Stringable
         if ($min !== null) {
             $values[] = $min;
         }
-        return (new Operator('decrement', $values))->__toString();
+        return new Operator('decrement', $values)->__toString();
     }
 
     /**
@@ -98,7 +98,7 @@ class Operator implements \JsonSerializable, \Stringable
         if ($max !== null) {
             $values[] = $max;
         }
-        return (new Operator('multiply', $values))->__toString();
+        return new Operator('multiply', $values)->__toString();
     }
 
     /**
@@ -120,7 +120,7 @@ class Operator implements \JsonSerializable, \Stringable
         if ($min !== null) {
             $values[] = $min;
         }
-        return (new Operator('divide', $values))->__toString();
+        return new Operator('divide', $values)->__toString();
     }
 
     /**
@@ -135,7 +135,7 @@ class Operator implements \JsonSerializable, \Stringable
         if ($divisor === 0 || $divisor === 0.0) {
             throw new \InvalidArgumentException('Divisor cannot be zero');
         }
-        return (new Operator('modulo', [$divisor]))->__toString();
+        return new Operator('modulo', [$divisor])->__toString();
     }
 
     /**
@@ -154,7 +154,7 @@ class Operator implements \JsonSerializable, \Stringable
         if ($max !== null) {
             $values[] = $max;
         }
-        return (new Operator('power', $values))->__toString();
+        return new Operator('power', $values)->__toString();
     }
 
     /**
@@ -163,7 +163,7 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function arrayAppend(array $values): string
     {
-        return (new Operator('arrayAppend', $values))->__toString();
+        return new Operator('arrayAppend', $values)->__toString();
     }
 
     /**
@@ -172,7 +172,7 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function arrayPrepend(array $values): string
     {
-        return (new Operator('arrayPrepend', $values))->__toString();
+        return new Operator('arrayPrepend', $values)->__toString();
     }
 
     /**
@@ -181,7 +181,7 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function arrayInsert(int $index, mixed $value): string
     {
-        return (new Operator('arrayInsert', [$index, $value]))->__toString();
+        return new Operator('arrayInsert', [$index, $value])->__toString();
     }
 
     /**
@@ -190,7 +190,7 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function arrayRemove(mixed $value): string
     {
-        return (new Operator('arrayRemove', [$value]))->__toString();
+        return new Operator('arrayRemove', [$value])->__toString();
     }
 
     /**
@@ -199,7 +199,7 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function arrayUnique(): string
     {
-        return (new Operator('arrayUnique', []))->__toString();
+        return new Operator('arrayUnique', [])->__toString();
     }
 
     /**
@@ -208,7 +208,7 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function arrayIntersect(array $values): string
     {
-        return (new Operator('arrayIntersect', $values))->__toString();
+        return new Operator('arrayIntersect', $values)->__toString();
     }
 
     /**
@@ -217,7 +217,7 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function arrayDiff(array $values): string
     {
-        return (new Operator('arrayDiff', $values))->__toString();
+        return new Operator('arrayDiff', $values)->__toString();
     }
 
     /**
@@ -227,7 +227,7 @@ class Operator implements \JsonSerializable, \Stringable
     public static function arrayFilter(string $condition, mixed $value = null): string
     {
         $values = [$condition, $value];
-        return (new Operator('arrayFilter', $values))->__toString();
+        return new Operator('arrayFilter', $values)->__toString();
     }
 
     /**
@@ -236,7 +236,7 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function stringConcat(mixed $value): string
     {
-        return (new Operator('stringConcat', [$value]))->__toString();
+        return new Operator('stringConcat', [$value])->__toString();
     }
 
     /**
@@ -245,7 +245,7 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function stringReplace(string $search, string $replace): string
     {
-        return (new Operator('stringReplace', [$search, $replace]))->__toString();
+        return new Operator('stringReplace', [$search, $replace])->__toString();
     }
 
     /**
@@ -254,7 +254,7 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function toggle(): string
     {
-        return (new Operator('toggle', []))->__toString();
+        return new Operator('toggle', [])->__toString();
     }
 
     /**
@@ -263,7 +263,7 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function dateAddDays(int $days): string
     {
-        return (new Operator('dateAddDays', [$days]))->__toString();
+        return new Operator('dateAddDays', [$days])->__toString();
     }
 
     /**
@@ -272,7 +272,7 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function dateSubDays(int $days): string
     {
-        return (new Operator('dateSubDays', [$days]))->__toString();
+        return new Operator('dateSubDays', [$days])->__toString();
     }
 
     /**
@@ -281,6 +281,6 @@ class Operator implements \JsonSerializable, \Stringable
      */
     public static function dateSetNow(): string
     {
-        return (new Operator('dateSetNow', []))->__toString();
+        return new Operator('dateSetNow', [])->__toString();
     }
 }

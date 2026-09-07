@@ -20,6 +20,8 @@ use Utopia\OpenAPI\Specification;
 
 abstract class Language
 {
+    private const string MULTIPART_MEDIA_TYPE = 'multipart/form-data';
+
     public const TYPE_INTEGER = 'integer';
     public const TYPE_NUMBER = 'number';
     public const TYPE_STRING = 'string';
@@ -123,6 +125,54 @@ abstract class Language
         }
 
         return \lcfirst(\substr($operation->id, \strlen($serviceName)));
+    }
+
+    /**
+     * Derive SDK transport behavior from standard OpenAPI operation fields.
+     */
+    public function getMethodType(Operation $operation, ?Specification $spec = null): string|false
+    {
+        $requestSchema = $operation->requestBody?->content[self::MULTIPART_MEDIA_TYPE]?->schema ?? null;
+        if ($requestSchema !== null && $spec instanceof Specification) {
+            $requestSchema = $spec->resolveSchema($requestSchema);
+        }
+        if ($requestSchema instanceof ObjectSchema) {
+            foreach ($requestSchema->properties as $property) {
+                $property = $spec?->resolveSchema($property) ?? $property;
+                if ($property instanceof StringSchema && $property->format === 'binary') {
+                    return 'upload';
+                }
+            }
+        }
+
+        if (\in_array('graphql', $operation->tags, true)) {
+            return 'graphql';
+        }
+
+        foreach ($operation->responses as $status => $response) {
+            $status = (int) $status;
+            foreach ($response->content as $contentType => $mediaType) {
+                $schema = $mediaType->schema;
+                if ($schema !== null && $spec instanceof Specification) {
+                    $schema = $spec->resolveSchema($schema);
+                }
+                if (
+                    \str_contains(\strtolower($contentType), 'json')
+                    || !$schema instanceof StringSchema
+                    || $schema->format !== 'binary'
+                ) {
+                    continue;
+                }
+                if ($status >= 300 && $status < 400) {
+                    return 'webAuth';
+                }
+                if ($status >= 200 && $status < 300) {
+                    return 'location';
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -351,16 +401,8 @@ abstract class Language
 
     protected function getSchemaModel(Schema|Parameter $value): ?string
     {
-        $schema = $this->getSchema($value);
-        $models = $this->getSchemaModels($schema);
-        if (\count($models) === 1) {
-            return $models[0];
-        }
-        if ($schema instanceof ArraySchema) {
-            return $schema->items->extensions['x-model'] ?? $schema->extensions['x-model'] ?? null;
-        }
-
-        return $schema->extensions['x-model'] ?? null;
+        $models = $this->getSchemaModels($value);
+        return \count($models) === 1 ? $models[0] : null;
     }
 
     protected function getArraySchemaModel(Schema|Parameter $value): ?string

@@ -409,7 +409,7 @@ class Web extends JS
 
     public function getReturn(Operation $method, Specification $spec): string
     {
-        $type = $method->extensions['x-appwrite']['type'] ?? '';
+        $type = $this->getMethodType($method, $spec);
         if ($type === 'webAuth') {
             return 'void | string';
         }

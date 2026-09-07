@@ -7,7 +7,7 @@ namespace Tests\E2E;
 use Override;
 use Appwrite\SDK\Language\PHP;
 
-final class PHP83Test extends Base
+final class PHP85Test extends Base
 {
     #[Override]
     protected string $sdkName = 'php';
@@ -23,10 +23,12 @@ final class PHP83Test extends Base
     #[Override]
     protected string $class = PHP::class;
     #[Override]
-    protected array $build = [];
+    protected array $build = [
+        'composer install --working-dir=tests/e2e/sdks/php --no-interaction --no-dev --prefer-dist',
+    ];
     #[Override]
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app php:8.3-cli-alpine php tests/e2e/languages/php/test.php';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app php:8.5-cli-alpine php tests/e2e/languages/php/test.php';
 
     #[Override]
     protected array $expectedOutput = [
