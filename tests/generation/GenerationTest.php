@@ -53,6 +53,11 @@ final class GenerationTest extends TestCase
      * Fixture tokens and the platforms whose generated tree may contain them.
      * An empty list means the token must never appear. Every token is a single
      * lowercase word so it survives each language's identifier casing.
+     *
+     * `zzcredentialdemo` is the demo value of a scheme offered everywhere but
+     * documented as a credential on server alone, so it reaches the examples of
+     * the derived-auth fixture and the server alias only through
+     * `x-sdk-credentials`.
      */
     private const array TOKENS = [
         'zzexcludedservice' => [],
@@ -68,16 +73,18 @@ final class GenerationTest extends TestCase
         'zzplatformclientalias' => ['client'],
         'zzplatformserveralias' => ['server'],
         'zzserveronlyheader' => ['server'],
+        'zzcredentialdemo' => ['server'],
     ];
 
     /**
-     * Targets that render no header setters or no alias descriptions, so the
-     * tokens carried by those never appear in their trees on any platform.
+     * Targets that render no header setters, alias descriptions or example
+     * credentials, so the tokens carried by those never appear in their trees.
      */
     private const array UNRENDERED = [
-        'cli' => ['zzserveronlyheader'],
-        'rest' => ['zzplatformclientalias', 'zzplatformserveralias', 'zzserveronlyheader'],
-        'graphql' => ['zzplatformclientalias', 'zzplatformserveralias', 'zzserveronlyheader'],
+        'cli' => ['zzserveronlyheader', 'zzcredentialdemo'],
+        'unity' => ['zzcredentialdemo'],
+        'rest' => ['zzplatformclientalias', 'zzplatformserveralias', 'zzserveronlyheader', 'zzcredentialdemo'],
+        'graphql' => ['zzplatformclientalias', 'zzplatformserveralias', 'zzserveronlyheader', 'zzcredentialdemo'],
     ];
 
     /**

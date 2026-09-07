@@ -2,6 +2,8 @@
 
 namespace Appwrite\SDK\Language;
 
+use Appwrite\SDK\Extension;
+use Appwrite\SDK\Extension\Appwrite;
 use Appwrite\SDK\Language\Concern\CliCommandSurface;
 use Override;
 use Utopia\OpenAPI\Model\Operation;
@@ -269,7 +271,7 @@ class CLI extends Go
                     $variable,
                     $flagType,
                     $sdkType,
-                    (bool) ($method->extensions['x-appwrite']['packaging'] ?? false),
+                    (bool) ($method->extensions[Extension::APPWRITE->value][Appwrite::PACKAGING->value] ?? false),
                 );
 
                 if ($decode !== null) {
