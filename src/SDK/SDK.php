@@ -1862,7 +1862,7 @@ class SDK
             }
             if ($schemes !== [] || $pathSchemes !== []) {
                 $appwrite = $scheme->extensions[Extension::APPWRITE->value] ?? [];
-                $always = ($appwrite['optional'] ?? false) === true || ($appwrite['location'] ?? '') === 'path';
+                $always = ($appwrite[Appwrite::OPTIONAL->value] ?? false) === true || ($appwrite[Appwrite::LOCATION->value] ?? '') === 'path';
                 $documented = !$credential && \in_array($this->getParam('platform'), $scheme->extensions[Extension::SDK_CREDENTIALS->value] ?? [], true);
                 if (!$always && !$documented) {
                     continue;
