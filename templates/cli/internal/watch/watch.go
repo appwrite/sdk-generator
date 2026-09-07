@@ -6,19 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
-
-// settle is how long a path stays quiet before its events are inspected.
-//
-// A save is rarely one event: os.WriteFile and most editors truncate and then
-// write, and some write a temporary file and rename it over the original.
-// Fingerprinting between those steps sees an empty or half-written file and
-// reports a change that never happened. Waiting for the burst to end means
-// the fingerprint describes the file the user actually saved.
-const settle = 50 * time.Millisecond
 
 // Replaces chokidar for `run`'s live reload.
 //
@@ -116,9 +106,6 @@ func (w *Watcher) relative(path string) (string, error) {
 }
 
 func (w *Watcher) run(changed func(string)) {
-	pending := make(map[string]fsnotify.Event)
-	var settled <-chan time.Time
-
 	for {
 		select {
 		case <-w.done:
@@ -128,18 +115,7 @@ func (w *Watcher) run(changed func(string)) {
 			if !ok {
 				return
 			}
-			merged := pending[event.Name]
-			merged.Name = event.Name
-			merged.Op |= event.Op
-			pending[event.Name] = merged
-			settled = time.After(settle)
-
-		case <-settled:
-			settled = nil
-			for name, event := range pending {
-				delete(pending, name)
-				w.handle(event, changed)
-			}
+			w.handle(event, changed)
 
 		case _, ok := <-w.watcher.Errors:
 			if !ok {
