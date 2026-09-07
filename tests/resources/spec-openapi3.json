@@ -596,6 +596,73 @@
         }
       }
     },
+    "\/mock\/tests\/general\/documents": {
+      "post": {
+        "summary": "Create Documents",
+        "operationId": "generalCreateDocuments",
+        "tags": [
+          "general"
+        ],
+        "description": "Create documents from an array of plain objects.",
+        "x-appwrite": {
+          "demo": "general\/create-documents.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application\/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "documents": {
+                    "type": "array",
+                    "description": "Array of document objects.",
+                    "default": null,
+                    "example": "[{\"$id\":\"one\",\"title\":\"hello\"}]",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "required": [
+                  "documents"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/excluded-method": {
       "post": {
         "summary": "Create Excluded General Fixture",
@@ -1569,6 +1636,84 @@
             }
           }
         }
+      }
+    },
+    "\/mock\/tests\/general\/optional": {
+      "get": {
+        "summary": "Get Optional",
+        "operationId": "generalGetOptional",
+        "tags": [
+          "general"
+        ],
+        "description": "Mock a request whose parameters are all optional.",
+        "x-appwrite": {
+          "demo": "general\/get-optional.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "width",
+            "description": "Sample optional numeric param",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": -1
+            }
+          },
+          {
+            "name": "height",
+            "description": "Sample optional numeric param",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": -1
+            }
+          },
+          {
+            "name": "name",
+            "description": "Sample optional string param",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ]
       }
     },
     "\/mock\/tests\/general\/nullable": {

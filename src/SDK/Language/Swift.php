@@ -454,7 +454,12 @@ class Swift extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
+                    if ($this->isPermissionString($example)) {
+                        $output .= $this->getPermissionExample($example);
+                        break;
+                    }
+                    $decoded = json_decode((string) $example, true);
+                    $output .= is_array($decoded) ? $this->jsonToSwiftLiteral($decoded) : $example;
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -465,7 +470,7 @@ class Swift extends Language
                 case self::TYPE_OBJECT:
                     $decoded = json_decode((string) $example, true);
                     if ($decoded && is_array($decoded)) {
-                        $output .= $this->jsonToSwiftDict($decoded);
+                        $output .= $this->jsonToSwiftLiteral($decoded);
                     } else {
                         $output .= '[:]';
                     }
@@ -477,9 +482,13 @@ class Swift extends Language
     }
 
     /**
-     * Converts JSON Object To Swift Native Dictionary
+     * Converts a decoded JSON value into a Swift array or dictionary literal.
+     *
+     * JSON objects become `[key: value]` dictionaries and JSON lists become
+     * `[value, ...]` arrays; a Swift example must not carry JavaScript-style
+     * `{ ... }` object literals.
      */
-    protected function jsonToSwiftDict(array $data, int $indent = 0): string
+    protected function jsonToSwiftLiteral(array $data, int $indent = 0): string
     {
         if ($data === []) {
             return '[:]';
@@ -487,6 +496,7 @@ class Swift extends Language
 
         $baseIndent = str_repeat('    ', $indent);
         $itemIndent = str_repeat('    ', $indent + 1);
+        $isList = array_is_list($data);
         $output = "[\n";
 
         $keys = array_keys($data);
@@ -494,7 +504,7 @@ class Swift extends Language
             $node = $data[$key];
 
             if (is_array($node)) {
-                $value = $this->jsonToSwiftDict($node, $indent + 1);
+                $value = $this->jsonToSwiftLiteral($node, $indent + 1);
             } elseif (is_string($node)) {
                 $value = '"' . $node . '"';
             } elseif (is_bool($node)) {
@@ -506,7 +516,8 @@ class Swift extends Language
             }
 
             $comma = ($index < count($keys) - 1) ? ',' : '';
-            $output .= '    ' . $itemIndent . '"' . $key . '": ' . $value . $comma . "\n";
+            $entry = $isList ? $value : '"' . $key . '": ' . $value;
+            $output .= '    ' . $itemIndent . $entry . $comma . "\n";
         }
 
         return $output . ('    ' . $baseIndent . ']');

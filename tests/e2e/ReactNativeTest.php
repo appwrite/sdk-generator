@@ -49,6 +49,7 @@ final class ReactNativeTest extends Base
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
+        ...Base::OPTIONAL_PARAM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,

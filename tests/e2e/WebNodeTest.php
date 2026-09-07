@@ -45,6 +45,7 @@ final class WebNodeTest extends Base
         ...Base::PATH_PARAM_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
+        ...Base::OPTIONAL_PARAM_RESPONSES,
         ...Base::UNION_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,

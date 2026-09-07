@@ -71,6 +71,15 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/models/array:passed',
     ];
 
+    protected const OBJECT_ARRAY_RESPONSES = [
+        'POST:/v1/mock/tests/general/documents:passed',
+    ];
+
+    protected const OPTIONAL_PARAM_RESPONSES = [
+        'width=-1,height=128,name=omitted',
+        'width=0,height=64,name=zero',
+    ];
+
     protected const UNION_RESPONSES = [
         'GET:/v1/mock/tests/union:passed',
         'test-data',

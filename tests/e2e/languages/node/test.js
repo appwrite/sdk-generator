@@ -219,6 +219,13 @@ async function start() {
     ]);
     console.log(response.result);
 
+    // All-optional positional params keep their trailing arguments
+    response = await general.getOptional(undefined, 128, 'omitted');
+    console.log(response.result);
+
+    response = await general.getOptional(0, 64, 'zero');
+    console.log(response.result);
+
     try {
         response = await general.error400();
     } catch(error) {

@@ -286,6 +286,32 @@ final class GenerationTest extends TestCase
         }
     }
 
+    /**
+     * A JSON example for an untyped object array must render as Swift
+     * dictionary literals, not as the JavaScript-style `{ ... }` the spec carries.
+     */
+    #[DataProvider('swiftLanguages')]
+    public function testObjectArrayExamplesUseSwiftLiterals(string $name, string $platform): void
+    {
+        $files = $this->generate($name, $platform);
+        $path = 'docs/examples/general/create-documents.md';
+
+        $this->assertArrayHasKey($path, $files, "{$name}/{$platform} did not generate {$path}");
+        $this->assertStringContainsString('"$id": "one"', $files[$path]);
+        $this->assertStringNotContainsString('{', $files[$path]);
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function swiftLanguages(): array
+    {
+        return [
+            'swift' => ['swift', 'server'],
+            'apple' => ['apple', 'client'],
+        ];
+    }
+
     #[DataProvider('languages')]
     public function testEnumsAreDeclared(string $name): void
     {
