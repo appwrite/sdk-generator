@@ -279,6 +279,11 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Pool.php',
+                'template'      => 'php/src/Pool.php.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ namespace | caseNamespacePath }}/{{ namespace | split(\'\\\\\') | last | caseUcfirst}}Exception.php',
                 'template'      => 'php/src/Exception.php.twig',
             ],

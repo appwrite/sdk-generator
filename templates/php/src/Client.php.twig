@@ -7,7 +7,10 @@ namespace {{ namespace | caseNamespace }};
 {% if globalHeaders | hasBearerAuth %}
 use Ahc\Jwt\JWT;
 {% endif %}
+use Closure;
 use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use Utopia\Client as HttpClient;
 use Utopia\Client\Adapter\Curl\Client as CurlAdapter;
 use Utopia\Psr7\Request\Factory as RequestFactory;
@@ -26,6 +29,7 @@ class Client
     public const METHOD_TRACE = 'TRACE';
 
     public const CHUNK_SIZE = 5 * 1024 * 1024;
+    public const DEFAULT_POOL_SIZE = 64;
 {% if globalHeaders | hasBearerAuth %}
     public const JWT_MAX_AGE_SECONDS = 3600;
 {% endif %}
@@ -103,6 +107,19 @@ class Client
      *
      */
     protected ?HttpClient $httpClientNoRedirect = null;
+
+    /**
+     * HTTP clients leased to Swoole coroutines, keyed by redirect mode.
+     *
+     * @var array<int, Pool>
+     */
+    protected array $pools = [];
+
+    /**
+     * Maximum HTTP clients leased to Swoole coroutines at once.
+     *
+     */
+    protected int $poolSize = self::DEFAULT_POOL_SIZE;
 
     /**
      * PSR-7 request factory.
@@ -225,6 +242,26 @@ class Client
     }
 
     /**
+     * Set Pool Size
+     *
+     * Maximum number of HTTP clients leased to Swoole coroutines at once.
+     * Coroutines beyond this number wait for a client to be returned.
+     *
+     * @throws {{ namespace | split('\\') | last | caseUcfirst}}Exception
+     */
+    public function setPoolSize(int $size): Client
+    {
+        if ($size < 1) {
+            throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception('Pool size must be at least 1: ' . $size);
+        }
+
+        $this->poolSize = $size;
+        $this->resetHttpClient();
+
+        return $this;
+    }
+
+    /**
      */
     public function addHeader(string $key, string $value): Client
     {
@@ -316,7 +353,7 @@ class Client
                 ),
             };
 
-            $response = $this->getHttpClient($responseType !== 'location')->sendRequest($request);
+            $response = $this->send($request, $responseType !== 'location');
         } catch (ClientExceptionInterface|\JsonException $e) {
             throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception($e->getMessage(), (int) $e->getCode());
         }
@@ -427,6 +464,40 @@ class Client
         return $parts;
     }
 
+    protected function send(RequestInterface $request, bool $followRedirects): ResponseInterface
+    {
+        if (!$this->inCoroutine()) {
+            return $this->getHttpClient($followRedirects)->sendRequest($request);
+        }
+
+        // A cURL handle belongs to the coroutine driving its transfer, so
+        // concurrent coroutines lease separate clients instead of sharing the
+        // ones kept on this instance.
+        return $this->pool($followRedirects)->use(
+            fn (HttpClient $client): ResponseInterface => $client->sendRequest($request)
+        );
+    }
+
+    protected function inCoroutine(): bool
+    {
+        return \extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
+    }
+
+    protected function pool(bool $followRedirects): Pool
+    {
+        return $this->pools[(int) $followRedirects] ??= $this->createPool(
+            fn (): HttpClient => $this->createHttpClient($followRedirects)
+        );
+    }
+
+    /**
+     * @param Closure(): HttpClient $factory
+     */
+    protected function createPool(Closure $factory): Pool
+    {
+        return new Pool($this->poolSize, $factory);
+    }
+
     protected function getHttpClient(bool $followRedirects): HttpClient
     {
         if ($followRedirects) {
@@ -440,6 +511,7 @@ class Client
     {
         $this->httpClient = null;
         $this->httpClientNoRedirect = null;
+        $this->pools = [];
     }
 
     protected function createHttpClient(bool $followRedirects): HttpClient

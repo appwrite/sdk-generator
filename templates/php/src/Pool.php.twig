@@ -1,0 +1,72 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace | caseNamespace }};
+
+use Closure;
+use Swoole\Coroutine\Channel;
+use Utopia\Client as HttpClient;
+
+/**
+ * Bounded pool of HTTP clients for Swoole coroutines.
+ *
+ * A cURL handle may only be driven by the coroutine that started its transfer,
+ * so concurrent coroutines cannot share one HTTP client. Clients are created
+ * on demand up to the pool size; once every client is leased, further
+ * coroutines wait for one to be returned. Connections stay reusable without
+ * the number of handles growing with concurrency.
+ */
+class Pool
+{
+    private ?Channel $idle = null;
+
+    private int $created = 0;
+
+    /**
+     * @param Closure(): HttpClient $factory
+     */
+    public function __construct(
+        private readonly int $size,
+        private readonly Closure $factory,
+    ) {
+    }
+
+    /**
+     * Lease a client for the duration of the callback.
+     *
+     * @template T
+     *
+     * @param Closure(HttpClient): T $callback
+     *
+     * @return T
+     */
+    public function use(Closure $callback): mixed
+    {
+        $client = $this->pop();
+
+        try {
+            return $callback($client);
+        } finally {
+            $this->push($client);
+        }
+    }
+
+    protected function pop(): HttpClient
+    {
+        $this->idle ??= new Channel($this->size);
+
+        if ($this->idle->isEmpty() && $this->created < $this->size) {
+            $this->created++;
+
+            return ($this->factory)();
+        }
+
+        return $this->idle->pop();
+    }
+
+    protected function push(HttpClient $client): void
+    {
+        $this->idle?->push($client);
+    }
+}

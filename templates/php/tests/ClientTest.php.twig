@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace {{ namespace | caseNamespace }};
 
+use Closure;
+use LogicException;
+use Override;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use ReflectionProperty;
 use Utopia\Client as HttpClient;
+use Utopia\Client\Adapter\Curl\Client as CurlAdapter;
 
 final class ClientTest extends TestCase
 {
@@ -103,10 +107,137 @@ final class ClientTest extends TestCase
         $this->assertNotSame($afterSelfSigned, $this->httpClient($client, true));
     }
 
+    public function testSetPoolSizeRejectsSizesBelowOne(): void
+    {
+        $this->expectException({{ namespace | split('\\') | last | caseUcfirst }}Exception::class);
+        $this->expectExceptionMessage('Pool size must be at least 1: 0');
+
+        new Client()->setPoolSize(0);
+    }
+
+    public function testCoroutinesLeasePooledClientsPerRedirectMode(): void
+    {
+        $client = $this->coroutineClient();
+        $client->setEndpoint('https://example.com/v1');
+
+        $pool = $this->pool($client, true);
+        $this->assertSame($pool, $this->pool($client, true));
+        $this->assertSame(Client::DEFAULT_POOL_SIZE, $pool->size);
+
+        $noRedirect = $this->pool($client, false);
+        $this->assertNotSame($pool, $noRedirect);
+
+        $first = $pool->use(fn (HttpClient $leased): HttpClient => $leased);
+        $this->assertSame($first, $pool->use(fn (HttpClient $leased): HttpClient => $leased));
+        $this->assertNotSame($first, $noRedirect->use(fn (HttpClient $leased): HttpClient => $leased));
+
+        $this->assertNull(new ReflectionProperty(Client::class, 'httpClient')->getValue($client));
+        $this->assertNull(new ReflectionProperty(Client::class, 'httpClientNoRedirect')->getValue($client));
+    }
+
+    public function testTransportOptionsRebuildPools(): void
+    {
+        $client = $this->coroutineClient();
+
+        $original = $this->pool($client, true);
+        $client->setTimeout(5);
+        $this->assertNotSame($original, $this->pool($client, true));
+
+        $afterTimeout = $this->pool($client, true);
+        $client->setPoolSize(3);
+        $resized = $this->pool($client, true);
+        $this->assertNotSame($afterTimeout, $resized);
+        $this->assertSame(3, $resized->size);
+    }
+
+    public function testPoolReturnsLeasedClientAfterFailure(): void
+    {
+        $pool = new QueuePool(1, fn (): HttpClient => new HttpClient(new CurlAdapter()));
+
+        try {
+            $pool->use(fn (HttpClient $leased): never => throw new LogicException('transfer failed'));
+        } catch (LogicException) {
+            // The pool must still return the client after a failed transfer.
+        }
+
+        $this->assertSame(1, $pool->idle());
+        $pool->use(fn (HttpClient $leased): HttpClient => $leased);
+        $this->assertSame(1, $pool->idle());
+        $this->assertSame(1, $pool->created);
+    }
+
+    private function coroutineClient(): Client
+    {
+        return new class () extends Client {
+            #[Override]
+            protected function inCoroutine(): bool
+            {
+                return true;
+            }
+
+            #[Override]
+            protected function createPool(Closure $factory): QueuePool
+            {
+                return new QueuePool($this->poolSize, $factory);
+            }
+        };
+    }
+
+    private function pool(Client $client, bool $followRedirects): QueuePool
+    {
+        $pool = new ReflectionMethod(Client::class, 'pool')->invoke($client, $followRedirects);
+        $this->assertInstanceOf(QueuePool::class, $pool);
+
+        return $pool;
+    }
+
     private function httpClient(Client $client, bool $followRedirects): HttpClient
     {
         $method = new ReflectionMethod(Client::class, 'getHttpClient');
 
         return $method->invoke($client, $followRedirects);
+    }
+}
+
+/**
+ * Pool that hands out clients from a plain queue so the lease and return
+ * bookkeeping runs without a Swoole coroutine.
+ */
+final class QueuePool extends Pool
+{
+    public int $created = 0;
+
+    /** @var list<HttpClient> */
+    private array $queue = [];
+
+    /**
+     * @param Closure(): HttpClient $factory
+     */
+    public function __construct(public readonly int $size, private readonly Closure $factory)
+    {
+        parent::__construct($size, $factory);
+    }
+
+    public function idle(): int
+    {
+        return count($this->queue);
+    }
+
+    #[Override]
+    protected function pop(): HttpClient
+    {
+        if ($this->queue !== []) {
+            return array_shift($this->queue);
+        }
+
+        $this->created++;
+
+        return ($this->factory)();
+    }
+
+    #[Override]
+    protected function push(HttpClient $client): void
+    {
+        $this->queue[] = $client;
     }
 }
