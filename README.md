@@ -46,7 +46,7 @@ use Utopia\OpenAPI\Parser;
 // Parse an OpenAPI 2, 3.0, or 3.1 document into the canonical specification model.
 $version = '2.0.x';
 $platform = 'server';
-$content = file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/open-api3-{$version}-{$platform}.json");
+$content = file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/open-api3-{$version}.json");
 $spec = Parser::parse($content);
 
 // Create language instance
