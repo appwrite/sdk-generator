@@ -434,13 +434,8 @@ class Client
         if (!\is_array($value) || !\array_is_list($value)) {
             return false;
         }
-        foreach ($value as $item) {
-            if (!\is_string($item)) {
-                return false;
-            }
-        }
 
-        return true;
+        return array_all($value, fn($item): bool => \is_string($item));
     }
 
     /**
