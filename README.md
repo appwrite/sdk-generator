@@ -44,6 +44,7 @@ use Appwrite\SDK\Language\PHP;
 use Utopia\OpenAPI\Parser;
 
 // Parse an OpenAPI 2, 3.0, or 3.1 document into the canonical specification model.
+// One document covers every SDK platform; the SDK selects its own below.
 $version = '2.0.x';
 $platform = 'server';
 $content = file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/open-api3-{$version}.json");
@@ -61,6 +62,7 @@ $lang // Set language or platform specific options
 $sdk  = new SDK($lang, $spec);
 
 $sdk
+    ->setPlatform($platform) // Keep the operations, aliases and security schemes available to this platform
     ->setCoverImage('https://github.com/appwrite/appwrite/raw/main/public/images/github.png')
     ->setLicenseContent('License content here.')
     ->setVersion('v1.1.0')
