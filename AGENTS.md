@@ -357,12 +357,16 @@ composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-s
 
 ## Running Tests
 
-The tests in `tests/e2e/` generate an SDK from `tests/resources/spec-openapi3.json` into `tests/e2e/sdks/` and run it in Docker against a mock API. Parser behavior is tested by `utopia-php/openapi` rather than this repository. The mock server (`./mock-server`) is started in `setUp()` and removed in `tearDown()` (`docker compose down`); after interrupted runs, clean up with `cd mock-server && docker compose down`.
+Both suites generate from the shared fixture `tests/resources/spec-openapi3.json`. Parser behavior is tested by `utopia-php/openapi` rather than this repository.
 
-Do not add unit tests for generator contracts that should be exercised through the generated SDKs. Add or extend the relevant e2e fixture and language paths instead.
+- **`tests/generation/`** proves the *shape* of what the generator emits: for every language and platform it generates into `tests/generation/sdks/` and checks the tree against declarative tables. Excluded fixtures must never appear, platform-bound fixtures (`x-appwrite.platforms` on operations, method aliases and security schemes) must appear on their platforms alone, enums must be declared, Go comments must not carry HTML entities. Fixture tokens are single lowercase `zz*` words so they survive every language's identifier casing. No Docker, runs in seconds.
+- **`tests/e2e/`** proves *behavior*: each language test generates into `tests/e2e/sdks/`, compiles the SDK in Docker and runs `tests/e2e/languages/<lang>` against the mock API, comparing the printed lines to `expectedOutput`. The mock server (`./mock-server`) is started in `setUp()` and removed in `tearDown()` (`docker compose down`); after interrupted runs, clean up with `cd mock-server && docker compose down`.
+
+Put a check where it belongs: something the SDK *does* goes in a language script and `expectedOutput`; something the tree *contains or lacks* goes in a `GenerationTest` table. Do not add unit tests for generator internals that either suite can express.
 
 ```bash
-vendor/bin/phpunit tests/e2e/PHP85Test.php # one language e2e (needs Docker)
+vendor/bin/phpunit --testsuite Generation   # every language, no Docker
+vendor/bin/phpunit tests/e2e/PHP85Test.php  # one language e2e (needs Docker)
 ```
 
 If local PHP is missing, is not the required version, or has extension issues, use the matching PHP Docker image as a fallback for that command.

@@ -315,6 +315,9 @@ class SDK
     public function setPlatform(string $platform): SDK
     {
         $this->setParam('platform', $platform);
+        $this->operationsByServiceCache = null;
+        $this->filteredServicesCache = null;
+        $this->filteredModelDataCache = null;
 
         return $this;
     }
@@ -532,6 +535,10 @@ class SDK
 
         $operations = [];
         foreach ($this->spec->operations() as $operation) {
+            if (!$this->isAvailable($operation->extensions['x-appwrite']['platforms'] ?? null)) {
+                continue;
+            }
+
             $operation = $this->annotateSecurityPathParameters($operation);
             $aliases = $operation->extensions['x-appwrite']['methods'] ?? [];
             if (!\is_array($aliases) || $aliases === []) {
@@ -542,7 +549,7 @@ class SDK
             }
 
             foreach ($aliases as $alias) {
-                if (!\is_array($alias)) {
+                if (!\is_array($alias) || !$this->isAvailable($alias['platforms'] ?? null)) {
                     continue;
                 }
 
@@ -558,12 +565,33 @@ class SDK
         return $this->operationsByServiceCache = $operations;
     }
 
+    /**
+     * Whether an `x-appwrite.platforms` list admits the platform this SDK is
+     * generated for. Operations, method aliases and security schemes carry
+     * one; a missing list means available everywhere, as does generating
+     * without a platform.
+     */
+    protected function isAvailable(mixed $platforms): bool
+    {
+        $platform = $this->getParam('platform');
+
+        return $platform === '' || !\is_array($platforms) || \in_array($platform, $platforms, true);
+    }
+
+    /** A security scheme by name, or null when unknown or not offered on this platform. */
+    protected function getSecurityScheme(string $name): ?SecurityScheme
+    {
+        $scheme = $this->spec->securitySchemes[$name] ?? null;
+
+        return $scheme instanceof SecurityScheme && $this->isAvailable($scheme->extensions['x-appwrite']['platforms'] ?? null) ? $scheme : null;
+    }
+
     protected function annotateSecurityPathParameters(Operation $operation): Operation
     {
         $securityParameters = [];
         foreach ($operation->security[0]->schemes ?? [] as $schemeName => $scopes) {
-            $scheme = $this->spec->securitySchemes[$schemeName] ?? null;
-            if ($scheme === null || ($scheme->extensions['x-appwrite']['location'] ?? '') !== 'path') {
+            $scheme = $this->getSecurityScheme($schemeName);
+            if (!$scheme instanceof SecurityScheme || ($scheme->extensions['x-appwrite']['location'] ?? '') !== 'path') {
                 continue;
             }
             $parameterName = (string) ($scheme->extensions['x-appwrite']['param'] ?? $scheme->name ?? $schemeName);
@@ -761,6 +789,9 @@ class SDK
     {
         $clientMethods = [];
         foreach ($this->spec->operations() as $method) {
+            if (!$this->isAvailable($method->extensions['x-appwrite']['platforms'] ?? null)) {
+                continue;
+            }
             foreach ($method->tags as $serviceName) {
                 if ($this->isClientMethod($method, $serviceName)) {
                     $clientMethods[$serviceName][$this->methodName($method)] = $method;
@@ -1738,7 +1769,11 @@ class SDK
     protected function getGlobalHeaders(): array
     {
         $headers = [];
-        foreach ($this->spec->securitySchemes as $name => $scheme) {
+        foreach (\array_keys($this->spec->securitySchemes) as $name) {
+            $scheme = $this->getSecurityScheme($name);
+            if (!$scheme instanceof SecurityScheme) {
+                continue;
+            }
             if (
                 ($scheme->type === SecuritySchemeType::API_KEY && $scheme->location === ParameterLocation::HEADER)
                 || ($scheme->type === SecuritySchemeType::HTTP && $scheme->scheme === 'bearer')
@@ -1823,8 +1858,8 @@ class SDK
         $schemes = [];
         $pathSchemes = [];
         foreach (\array_keys($auth) as $name) {
-            $scheme = $this->spec->securitySchemes[$name] ?? null;
-            if ($scheme === null) {
+            $scheme = $this->getSecurityScheme((string) $name);
+            if (!$scheme instanceof SecurityScheme) {
                 continue;
             }
             if (($scheme->extensions['x-appwrite']['location'] ?? '') === 'path' && $scheme->name !== null) {
@@ -1841,8 +1876,8 @@ class SDK
     {
         $schemes = [];
         foreach ($operation->security[0]->schemes ?? [] as $name => $scopes) {
-            $scheme = $this->spec->securitySchemes[$name] ?? null;
-            if ($scheme === null) {
+            $scheme = $this->getSecurityScheme($name);
+            if (!$scheme instanceof SecurityScheme) {
                 continue;
             }
             if (($scheme->extensions['x-appwrite']['location'] ?? '') === 'path') {
