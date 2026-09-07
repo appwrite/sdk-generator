@@ -8,6 +8,7 @@ use Utopia\OpenAPI\Model\BooleanSchema;
 use Utopia\OpenAPI\Model\CompositeSchema;
 use MatthiasMullie\Minify\JS;
 use MatthiasMullie\Minify\CSS;
+use Appwrite\SDK\Extension\Appwrite;
 use Exception;
 use Throwable;
 use Utopia\OpenAPI\Model\Composition;
@@ -178,7 +179,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('uploadIdParameter', $this->uploadIdParameter(...)));
         $this->twig->addFilter(new TwigFilter('produces', fn(Operation $operation): array => $this->getProduces($operation)));
         $this->twig->addFilter(new TwigFilter('endpoint', fn(Specification $spec): string => $spec->servers[0]->url ?? 'https://example.com'));
-        $this->twig->addFilter(new TwigFilter('appwrite', fn(Operation|SecurityScheme $value, string $key, mixed $default = null): mixed => $value->extensions['x-appwrite'][$key] ?? $default));
+        $this->twig->addFilter(new TwigFilter('appwrite', fn(Operation|SecurityScheme $value, string $key, mixed $default = null): mixed => $value->extensions[Extension::APPWRITE->value][$key] ?? $default));
         $this->twig->addFilter(new TwigFilter('extension', fn(Schema|Parameter $value, string $key, mixed $default = null): mixed => $this->getSchema($value)->extensions[$key] ?? $default));
         $this->twig->addFilter(new TwigFilter('methodHeaders', fn(Operation $operation): array => $this->getMethodHeaders($operation)));
         $this->twig->addFilter(new TwigFilter('responseDiscriminator', fn(Operation $operation): array => $this->getResponseDiscriminator($operation)));
@@ -535,12 +536,12 @@ class SDK
 
         $operations = [];
         foreach ($this->spec->operations() as $operation) {
-            if (!$this->isAvailable($operation->extensions['x-appwrite']['platforms'] ?? null)) {
+            if (!$this->isAvailable($operation->extensions[Extension::APPWRITE->value][Appwrite::PLATFORMS->value] ?? null)) {
                 continue;
             }
 
             $operation = $this->annotateSecurityPathParameters($operation);
-            $aliases = $operation->extensions['x-appwrite']['methods'] ?? [];
+            $aliases = $operation->extensions[Extension::APPWRITE->value][Appwrite::METHODS->value] ?? [];
             if (!\is_array($aliases) || $aliases === []) {
                 foreach ($operation->tags as $serviceName) {
                     $operations[$serviceName][] = $operation;
@@ -583,7 +584,7 @@ class SDK
     {
         $scheme = $this->spec->securitySchemes[$name] ?? null;
 
-        return $scheme instanceof SecurityScheme && $this->isAvailable($scheme->extensions['x-appwrite']['platforms'] ?? null) ? $scheme : null;
+        return $scheme instanceof SecurityScheme && $this->isAvailable($scheme->extensions[Extension::APPWRITE->value][Appwrite::PLATFORMS->value] ?? null) ? $scheme : null;
     }
 
     protected function annotateSecurityPathParameters(Operation $operation): Operation
@@ -591,11 +592,11 @@ class SDK
         $securityParameters = [];
         foreach ($operation->security[0]->schemes ?? [] as $schemeName => $scopes) {
             $scheme = $this->getSecurityScheme($schemeName);
-            if (!$scheme instanceof SecurityScheme || ($scheme->extensions['x-appwrite']['location'] ?? '') !== 'path') {
+            if (!$scheme instanceof SecurityScheme || ($scheme->extensions[Extension::APPWRITE->value][Appwrite::LOCATION->value] ?? '') !== 'path') {
                 continue;
             }
-            $parameterName = (string) ($scheme->extensions['x-appwrite']['param'] ?? $scheme->name ?? $schemeName);
-            $securityParameters[$parameterName] = (string) ($scheme->extensions['x-appwrite']['config'] ?? $scheme->name ?? $schemeName);
+            $parameterName = (string) ($scheme->extensions[Extension::APPWRITE->value][Appwrite::PARAM->value] ?? $scheme->name ?? $schemeName);
+            $securityParameters[$parameterName] = (string) ($scheme->extensions[Extension::APPWRITE->value][Appwrite::CONFIG->value] ?? $scheme->name ?? $schemeName);
         }
         if ($securityParameters === []) {
             return $operation;
@@ -622,8 +623,8 @@ class SDK
                 allowReserved: $parameter->allowReserved,
                 extensions: [
                     ...$parameter->extensions,
-                    'x-sdk-source' => 'security',
-                    'x-sdk-config' => $config,
+                    Extension::SDK_SOURCE->value => 'security',
+                    Extension::SDK_CONFIG->value => $config,
                 ],
             );
         }
@@ -650,7 +651,7 @@ class SDK
     protected function createAliasedOperation(Operation $operation, array $alias, string $serviceName): Operation
     {
         $methodName = (string) ($alias['name'] ?? $this->methodName($operation));
-        $appwrite = $operation->extensions['x-appwrite'] ?? [];
+        $appwrite = $operation->extensions[Extension::APPWRITE->value] ?? [];
         $appwrite['auth'] = $alias['auth'] ?? [];
         if (isset($alias['deprecated'])) {
             $appwrite['deprecated'] = $alias['deprecated'];
@@ -659,7 +660,7 @@ class SDK
         }
 
         $extensions = $operation->extensions;
-        $extensions['x-appwrite'] = $appwrite;
+        $extensions[Extension::APPWRITE->value] = $appwrite;
 
         return new Operation(
             id: $serviceName . \ucfirst($methodName),
@@ -789,7 +790,7 @@ class SDK
     {
         $clientMethods = [];
         foreach ($this->spec->operations() as $method) {
-            if (!$this->isAvailable($method->extensions['x-appwrite']['platforms'] ?? null)) {
+            if (!$this->isAvailable($method->extensions[Extension::APPWRITE->value][Appwrite::PLATFORMS->value] ?? null)) {
                 continue;
             }
             foreach ($method->tags as $serviceName) {
@@ -971,7 +972,7 @@ class SDK
             if (!isset($reachable[$name])) {
                 continue;
             }
-            if ($schema->extensions['x-request-model'] ?? false) {
+            if ($schema->extensions[Extension::REQUEST_MODEL->value] ?? false) {
                 $requestModels[$name] = $schema;
             } else {
                 $definitions[$name] = $schema;
@@ -1571,7 +1572,7 @@ class SDK
         $parameters = [];
         if ($location !== 'body') {
             foreach ($operation->parameters as $parameter) {
-                if ($location === 'all' && ($parameter->extensions['x-sdk-source'] ?? '') === 'security') {
+                if ($location === 'all' && ($parameter->extensions[Extension::SDK_SOURCE->value] ?? '') === 'security') {
                     continue;
                 }
                 if ($location === 'all' || $parameter->location->value === $location) {
@@ -1660,15 +1661,6 @@ class SDK
                 \array_push($models, ...$this->getSchemaModels($member));
             }
             return \array_values(\array_unique($models));
-        }
-        foreach (['x-oneOf', 'x-anyOf'] as $key) {
-            if (!\is_array($schema->extensions[$key] ?? null)) {
-                continue;
-            }
-            return \array_values(\array_filter(\array_map(
-                fn(array $member): string => $this->normalizeSchemaReference((string) ($member['$ref'] ?? '')),
-                $schema->extensions[$key],
-            )));
         }
         return [];
     }
@@ -1818,7 +1810,7 @@ class SDK
             }
         }
         if ($produces === []) {
-            $produces = $operation->extensions['x-appwrite']['produces'] ?? [];
+            $produces = $operation->extensions[Extension::APPWRITE->value][Appwrite::PRODUCES->value] ?? [];
         }
         return $produces;
     }
@@ -1848,13 +1840,22 @@ class SDK
         return $headers;
     }
 
-    /** @return array<string, SecurityScheme> */
+    /**
+     * The schemes an example configures on the client before calling a method.
+     *
+     * A per-platform document lists them flat; the canonical document keys them
+     * by platform, since client and console examples configure the project only
+     * while server examples add one credential.
+     *
+     * @return array<string, SecurityScheme>
+     */
     protected function getOperationAuthSchemes(Operation $operation): array
     {
-        $auth = $operation->extensions['x-appwrite']['auth'] ?? [];
+        $auth = $operation->extensions[Extension::APPWRITE->value][Appwrite::AUTH->value] ?? [];
         if (!\is_array($auth)) {
             return [];
         }
+        $auth = $auth[$this->getParam('platform')] ?? $auth;
         $schemes = [];
         $pathSchemes = [];
         foreach (\array_keys($auth) as $name) {
@@ -1862,7 +1863,7 @@ class SDK
             if (!$scheme instanceof SecurityScheme) {
                 continue;
             }
-            if (($scheme->extensions['x-appwrite']['location'] ?? '') === 'path' && $scheme->name !== null) {
+            if (($scheme->extensions[Extension::APPWRITE->value][Appwrite::LOCATION->value] ?? '') === 'path' && $scheme->name !== null) {
                 $pathSchemes[\ucfirst($this->helperCamelCase($scheme->name))] = $scheme;
             } else {
                 $schemes[$name] = $scheme;
@@ -1880,7 +1881,7 @@ class SDK
             if (!$scheme instanceof SecurityScheme) {
                 continue;
             }
-            if (($scheme->extensions['x-appwrite']['location'] ?? '') === 'path') {
+            if (($scheme->extensions[Extension::APPWRITE->value][Appwrite::LOCATION->value] ?? '') === 'path') {
                 if (!$location instanceof ParameterLocation) {
                     $schemes[$name] = $scheme;
                 }
@@ -1913,7 +1914,7 @@ class SDK
     {
         $cases = [];
 
-        $extended = $discriminator->extensions['x-mapping'] ?? null;
+        $extended = $discriminator->extensions[Extension::MAPPING->value] ?? null;
         if (\is_array($extended)) {
             foreach ($extended as $reference => $conditions) {
                 if (!\is_array($conditions)) {

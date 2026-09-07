@@ -86,7 +86,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 270,
           "demo": "bar\/get.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -163,7 +162,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 271,
           "demo": "bar\/post.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -241,7 +239,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 273,
           "demo": "bar\/put.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -319,7 +316,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 272,
           "demo": "bar\/patch.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -397,7 +393,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 274,
           "demo": "bar\/delete.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -477,7 +472,6 @@
         ],
         "description": "Create a new player using a request model.",
         "x-appwrite": {
-          "weight": 300,
           "demo": "general\/create-player.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -545,7 +539,6 @@
         ],
         "description": "Create multiple players using an array of request models.",
         "x-appwrite": {
-          "weight": 301,
           "demo": "general\/create-players.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -612,7 +605,6 @@
         ],
         "description": "Fixture-only general method used to verify method exclusion does not remove the whole service.",
         "x-appwrite": {
-          "weight": 301,
           "demo": "general\/excluded-method.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -693,7 +685,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 265,
           "demo": "foo\/get.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -770,7 +761,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 266,
           "demo": "foo\/post.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -848,7 +838,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 268,
           "demo": "foo\/put.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -926,7 +915,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 267,
           "demo": "foo\/patch.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1004,7 +992,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 269,
           "demo": "foo\/delete.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1084,7 +1071,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 285,
           "demo": "general\/error400.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1129,7 +1115,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 286,
           "demo": "general\/error500.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1174,7 +1159,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 287,
           "demo": "general\/error502.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1217,7 +1201,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 276,
           "demo": "general\/download.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1264,7 +1247,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 282,
           "demo": "general\/empty.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1302,7 +1284,6 @@
         ],
         "description": "Mock a queryable list request.",
         "x-appwrite": {
-          "weight": 284,
           "demo": "general\/list-rows.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1361,7 +1342,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 284,
           "demo": "general\/enum.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1507,7 +1487,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 281,
           "demo": "general\/get-cookie.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1552,7 +1531,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 275,
           "demo": "general\/headers.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1602,7 +1580,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 283,
           "demo": "general\/nullable.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1681,7 +1658,6 @@
         ],
         "description": "Create a new function execution.",
         "x-appwrite": {
-          "weight": 1,
           "demo": "functions\/create-execution.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1779,7 +1755,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 278,
           "demo": "general\/redirect.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1820,7 +1795,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 279,
           "demo": "general\/redirected.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1865,7 +1839,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 280,
           "demo": "general\/get-path.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1922,7 +1895,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 280,
           "demo": "general\/set-cookie.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1967,7 +1939,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 277,
           "demo": "general\/upload.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -2097,7 +2068,6 @@
         ],
         "description": "OAuth 2",
         "x-appwrite": {
-          "weight": 265,
           "demo": "general\/oauth2.md",
           "rate-limit": 10,
           "rate-time": 3600,
@@ -2201,7 +2171,6 @@
         ],
         "description": "Test union response types",
         "x-appwrite": {
-          "weight": 302,
           "demo": "mock\/get-union.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -2273,7 +2242,6 @@
         ],
         "description": "Fixture-only method available to console SDKs alone; verifies platform selection drops it elsewhere.",
         "x-appwrite": {
-          "weight": 302,
           "demo": "general\/zzconsoleonly.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -2312,7 +2280,6 @@
         ],
         "description": "Fixture-only method whose alias differs per platform; verifies alias selection.",
         "x-appwrite": {
-          "weight": 303,
           "demo": "general\/platform-alias.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -2330,7 +2297,10 @@
               "platforms": [
                 "client"
               ],
-              "description": "zzplatformclientalias variant."
+              "description": "zzplatformclientalias variant.",
+              "auth": {
+                "Project": []
+              }
             },
             {
               "name": "zzplatformalias",
@@ -2338,9 +2308,65 @@
               "platforms": [
                 "server"
               ],
-              "description": "zzplatformserveralias variant."
+              "description": "zzplatformserveralias variant.",
+              "auth": {
+                "server": {
+                  "Project": [],
+                  "JWT": []
+                }
+              }
             }
           ]
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Any",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/any"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/zzderivedauth": {
+      "get": {
+        "summary": "Platform Auth Fixture",
+        "operationId": "generalZzderivedauth",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture-only method whose example credentials are keyed by platform, as in the canonical document.",
+        "x-appwrite": {
+          "demo": "general\/zzderivedauth.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "packaging": false,
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "auth": {
+            "client": {
+              "Project": []
+            },
+            "server": {
+              "Project": [],
+              "Key": []
+            }
+          }
         },
         "security": [
           {
@@ -2372,7 +2398,6 @@
         ],
         "description": "Execute a GraphQL query.",
         "x-appwrite": {
-          "weight": 302,
           "demo": "graphql\/query.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -2436,7 +2461,6 @@
         ],
         "description": "Fixture-only service used to verify excluded services do not leak generated artifacts.",
         "x-appwrite": {
-          "weight": 303,
           "demo": "zzexcludedservice\/get.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -2479,7 +2503,6 @@
         ],
         "description": "Fixture-only request model path used to verify excluded services also exclude models.",
         "x-appwrite": {
-          "weight": 304,
           "demo": "zzexcludedservice\/post.md",
           "rate-limit": 0,
           "rate-time": 3600,

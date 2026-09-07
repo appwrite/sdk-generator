@@ -2,6 +2,8 @@
 
 namespace Appwrite\SDK\Language;
 
+use Appwrite\SDK\Extension;
+use Appwrite\SDK\Extension\Appwrite;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
@@ -559,7 +561,7 @@ class Rust extends Language
             }
         }
         if ($produces === []) {
-            $produces = $method->extensions['x-appwrite']['produces'] ?? [];
+            $produces = $method->extensions[Extension::APPWRITE->value][Appwrite::PRODUCES->value] ?? [];
         }
         return $produces;
     }

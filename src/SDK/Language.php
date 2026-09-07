@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK;
 
+use Appwrite\SDK\Extension;
 use Utopia\OpenAPI\Model\AnySchema;
 use Normalizer;
 use Utopia\OpenAPI\Model\ArraySchema;
@@ -627,7 +628,7 @@ abstract class Language
     {
         $parameters = \array_values(\array_filter(
             $operation->parameters,
-            static fn(Parameter $parameter): bool => ($parameter->extensions['x-sdk-source'] ?? '') !== 'security',
+            static fn(Parameter $parameter): bool => ($parameter->extensions[Extension::SDK_SOURCE->value] ?? '') !== 'security',
         ));
         foreach ($operation->requestBody?->content ?? [] as $mediaType) {
             if (!$mediaType->schema instanceof ObjectSchema) {

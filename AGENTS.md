@@ -284,6 +284,7 @@ public function getFiles(): array
 | Which files get generated | `src/SDK/Language/<Lang>.php` → `getFiles()` |
 | Type mappings for a language | `src/SDK/Language/<Lang>.php` → `getTypeName()` |
 | Available Twig filters | `src/SDK/SDK.php` (around line 62) |
+| Vendor extensions the generator reads | `src/SDK/Extension.php` and `src/SDK/Extension/Appwrite.php`; add a case before reading a new key |
 | Canonical spec parser and DTOs | `utopia-php/openapi` (VCS dependency) |
 | SDK grouping and filtering | `src/SDK/SDK.php` |
 | Generation orchestration | `src/SDK/SDK.php` → `generate()` |

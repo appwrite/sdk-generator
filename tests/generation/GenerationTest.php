@@ -260,6 +260,32 @@ final class GenerationTest extends TestCase
         }
     }
 
+    /**
+     * A canonical document keys `x-appwrite.auth` by platform. The fixture's
+     * platform-auth operation lists `Project` for client and `Project, Key` for
+     * server, and the server alias variant lists `Project, JWT`.
+     */
+    public function testExampleCredentialsFollowPlatformAuth(): void
+    {
+        $examples = [
+            ['server', 'docs/examples/general/zzderivedauth.md', ['->setproject(', '->setkey('], ['->setjwt(', '->setsession(']],
+            ['client', 'docs/examples/general/zzderivedauth.md', ['->setproject('], ['->setkey(', '->setjwt(', '->setsession(']],
+            ['server', 'docs/examples/general/zzplatformalias.md', ['->setproject(', '->setjwt('], ['->setkey(', '->setsession(']],
+            ['client', 'docs/examples/general/zzplatformalias.md', ['->setproject('], ['->setkey(', '->setjwt(', '->setsession(']],
+        ];
+
+        foreach ($examples as [$platform, $path, $present, $absent]) {
+            $files = $this->generate('php', $platform);
+            $this->assertArrayHasKey($path, $files, "php/{$platform} did not generate {$path}");
+            foreach ($present as $call) {
+                $this->assertStringContainsString($call, $files[$path], "php/{$platform} {$path} lacks {$call}");
+            }
+            foreach ($absent as $call) {
+                $this->assertStringNotContainsString($call, $files[$path], "php/{$platform} {$path} configures {$call}");
+            }
+        }
+    }
+
     #[DataProvider('languages')]
     public function testEnumsAreDeclared(string $name): void
     {
