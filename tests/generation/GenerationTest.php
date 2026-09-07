@@ -53,11 +53,6 @@ final class GenerationTest extends TestCase
      * Fixture tokens and the platforms whose generated tree may contain them.
      * An empty list means the token must never appear. Every token is a single
      * lowercase word so it survives each language's identifier casing.
-     *
-     * `zzcredentialdemo` is the demo value of a scheme offered everywhere but
-     * documented as a credential on server alone, so it reaches the examples of
-     * the derived-auth fixture and the server alias only through
-     * `x-sdk-credentials`.
      */
     private const array TOKENS = [
         'zzexcludedservice' => [],
@@ -73,18 +68,16 @@ final class GenerationTest extends TestCase
         'zzplatformclientalias' => ['client'],
         'zzplatformserveralias' => ['server'],
         'zzserveronlyheader' => ['server'],
-        'zzcredentialdemo' => ['server'],
     ];
 
     /**
-     * Targets that render no header setters, alias descriptions or example
-     * credentials, so the tokens carried by those never appear in their trees.
+     * Targets that render no header setters or no alias descriptions, so the
+     * tokens carried by those never appear in their trees on any platform.
      */
     private const array UNRENDERED = [
-        'cli' => ['zzserveronlyheader', 'zzcredentialdemo'],
-        'unity' => ['zzcredentialdemo'],
-        'rest' => ['zzplatformclientalias', 'zzplatformserveralias', 'zzserveronlyheader', 'zzcredentialdemo'],
-        'graphql' => ['zzplatformclientalias', 'zzplatformserveralias', 'zzserveronlyheader', 'zzcredentialdemo'],
+        'cli' => ['zzserveronlyheader'],
+        'rest' => ['zzplatformclientalias', 'zzplatformserveralias', 'zzserveronlyheader'],
+        'graphql' => ['zzplatformclientalias', 'zzplatformserveralias', 'zzserveronlyheader'],
     ];
 
     /**
@@ -269,17 +262,19 @@ final class GenerationTest extends TestCase
 
     /**
      * Example credentials come from the security requirement and
-     * `x-sdk-credentials` alone: the derived-auth fixture requires
-     * `Project, Zzcredential, Key, JWT`, and the server alias carries its own
-     * `Project, Zzcredential` requirement.
+     * `x-sdk-credentials` alone. The derived-auth fixture requires
+     * `Project, Key, JWT`, so server examples configure the project and the
+     * first server credential, Key, and client examples the project only. The
+     * server alias carries its own `Project, JWT` requirement, so its example
+     * configures JWT instead of the operation's Key.
      */
     public function testExampleCredentialsAreDerived(): void
     {
         $examples = [
-            ['server', 'docs/examples/general/zzderivedauth.md', ['->setproject(', '->setzzcredential('], ['->setkey(', '->setjwt(']],
-            ['client', 'docs/examples/general/zzderivedauth.md', ['->setproject('], ['->setzzcredential(', '->setkey(', '->setjwt(']],
-            ['server', 'docs/examples/general/zzplatformalias.md', ['->setproject(', '->setzzcredential('], ['->setkey(', '->setjwt(']],
-            ['client', 'docs/examples/general/zzplatformalias.md', ['->setproject('], ['->setzzcredential(', '->setkey(', '->setjwt(']],
+            ['server', 'docs/examples/general/zzderivedauth.md', ['->setproject(', '->setkey('], ['->setjwt(', '->setsession(']],
+            ['client', 'docs/examples/general/zzderivedauth.md', ['->setproject('], ['->setkey(', '->setjwt(', '->setsession(']],
+            ['server', 'docs/examples/general/zzplatformalias.md', ['->setproject(', '->setjwt('], ['->setkey(', '->setsession(']],
+            ['client', 'docs/examples/general/zzplatformalias.md', ['->setproject('], ['->setkey(', '->setjwt(', '->setsession(']],
         ];
 
         foreach ($examples as [$platform, $path, $present, $absent]) {

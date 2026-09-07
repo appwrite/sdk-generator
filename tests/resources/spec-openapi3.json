@@ -2205,7 +2205,7 @@
               "security": [
                 {
                   "Project": [],
-                  "Zzcredential": []
+                  "JWT": []
                 }
               ]
             }
@@ -2255,7 +2255,6 @@
         "security": [
           {
             "Project": [],
-            "Zzcredential": [],
             "Key": [],
             "JWT": []
           }
@@ -2915,18 +2914,6 @@
         "name": "X-Appwrite-Session",
         "description": "The user session to authenticate with",
         "in": "header",
-        "x-sdk-credentials": [
-          "server"
-        ]
-      },
-      "Zzcredential": {
-        "type": "apiKey",
-        "name": "X-Appwrite-Zzcredential",
-        "description": "Fixture-only credential that server examples configure.",
-        "in": "header",
-        "x-appwrite": {
-          "demo": "zzcredentialdemo"
-        },
         "x-sdk-credentials": [
           "server"
         ]
