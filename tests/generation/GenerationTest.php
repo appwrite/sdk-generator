@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Generation;
 
+use Iterator;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Apple;
@@ -284,6 +285,37 @@ final class GenerationTest extends TestCase
                 $this->assertStringNotContainsString($call, $files[$path], "php/{$platform} {$path} configures {$call}");
             }
         }
+    }
+
+    /**
+     * A JSON example for an untyped object array must render as Swift
+     * dictionary literals, not as the JavaScript-style `{ ... }` the spec
+     * carries. Quotes inside example strings must stay escaped, and an empty
+     * array example must stay an array rather than becoming a dictionary.
+     */
+    #[DataProvider('swiftLanguages')]
+    public function testObjectArrayExamplesUseSwiftLiterals(string $name, string $platform): void
+    {
+        $files = $this->generate($name, $platform);
+
+        $documents = 'docs/examples/general/create-documents.md';
+        $this->assertArrayHasKey($documents, $files, "{$name}/{$platform} did not generate {$documents}");
+        $this->assertStringContainsString('"$id": "one"', $files[$documents]);
+        $this->assertStringContainsString('"title": "say \\"hello\\""', $files[$documents]);
+        $this->assertStringNotContainsString('{', $files[$documents]);
+
+        $oauth = 'docs/examples/general/oauth-2.md';
+        $this->assertArrayHasKey($oauth, $files, "{$name}/{$platform} did not generate {$oauth}");
+        $this->assertStringContainsString('scopes: []', $files[$oauth]);
+    }
+
+    /**
+     * @return Iterator<string, array{string, string}>
+     */
+    public static function swiftLanguages(): Iterator
+    {
+        yield 'swift' => ['swift', 'server'];
+        yield 'apple' => ['apple', 'client'];
     }
 
     #[DataProvider('languages')]

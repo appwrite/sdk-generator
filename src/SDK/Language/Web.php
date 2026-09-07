@@ -502,9 +502,13 @@ class Web extends JS
      * onto one operand per line. Emitting the pre-broken form keeps the generated
      * SDK formatter-clean without a post-generation pass.
      *
+     * When every parameter is optional, an omitted first argument only selects
+     * the object form when nothing follows it; `getPhoto(undefined, 128)` must
+     * still dispatch positionally or the trailing arguments are discarded.
+     *
      * @param array<int, string> $keys
      */
-    protected function formatOverloadCondition(bool $hasRequired, array $keys): string
+    protected function formatOverloadCondition(bool $hasRequired, array $keys, bool $hasRest = false): string
     {
         $indent = str_repeat(' ', 12);
         $shape = [
@@ -531,8 +535,11 @@ class Web extends JS
             // so Prettier indents its operands one level deeper.
             $nested = $indent . str_repeat(' ', 4);
             $body = implode(' &&' . "\n" . $nested, $shape);
+            $omitted = $hasRest
+                ? "(typeof paramsOrFirst === 'undefined' && rest.length === 0)"
+                : "typeof paramsOrFirst === 'undefined'";
 
-            return '!paramsOrFirst ||' . "\n" . $indent . '(' . $body . ')';
+            return $omitted . ' ||' . "\n" . $indent . '(' . $body . ')';
         }
 
         return implode(' &&' . "\n" . $indent, $shape);
@@ -1061,7 +1068,9 @@ class Web extends JS
                     }
                 }
 
-                return $this->formatOverloadCondition($hasRequired, $keys);
+                $hasRest = count($params) > 1;
+
+                return $this->formatOverloadCondition($hasRequired, $keys, $hasRest);
             }, ['is_safe' => ['html']]),
         ]);
     }
