@@ -315,6 +315,9 @@ class SDK
     public function setPlatform(string $platform): SDK
     {
         $this->setParam('platform', $platform);
+        $this->operationsByServiceCache = null;
+        $this->filteredServicesCache = null;
+        $this->filteredModelDataCache = null;
 
         return $this;
     }
@@ -786,6 +789,9 @@ class SDK
     {
         $clientMethods = [];
         foreach ($this->spec->operations() as $method) {
+            if (!$this->isAvailable($method->extensions['x-appwrite']['platforms'] ?? null)) {
+                continue;
+            }
             foreach ($method->tags as $serviceName) {
                 if ($this->isClientMethod($method, $serviceName)) {
                     $clientMethods[$serviceName][$this->methodName($method)] = $method;

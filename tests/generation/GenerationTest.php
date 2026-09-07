@@ -71,6 +71,16 @@ final class GenerationTest extends TestCase
     ];
 
     /**
+     * Targets that render no header setters or no alias descriptions, so the
+     * tokens carried by those never appear in their trees on any platform.
+     */
+    private const array UNRENDERED = [
+        'cli' => ['zzserveronlyheader'],
+        'rest' => ['zzplatformclientalias', 'zzplatformserveralias', 'zzserveronlyheader'],
+        'graphql' => ['zzplatformclientalias', 'zzplatformserveralias', 'zzserveronlyheader'],
+    ];
+
+    /**
      * Where each language declares the fixture enums, and the declaration each
      * kind of enum value takes: a titled `oneOf` branch, a value without a safe
      * identifier, and an annotated localized value.
@@ -218,9 +228,7 @@ final class GenerationTest extends TestCase
 
     /**
      * Excluded fixtures never leak, and platform-bound fixtures appear on their
-     * platforms alone. Presence is asserted only where the language renders the
-     * token at all, so a target without header setters or alias descriptions
-     * still proves it leaks nothing.
+     * platforms alone, except where the target renders no such token at all.
      */
     #[DataProvider('languages')]
     public function testFixtureSelection(string $name): void
@@ -243,9 +251,12 @@ final class GenerationTest extends TestCase
                 $this->fail("{$name}/{$platform} leaks `{$token}`: " . \implode(', ', $found[$platform]));
             }
 
-            if ($found !== []) {
-                $this->assertSame($platforms, \array_keys($found), "{$name} renders `{$token}` on some platforms but not all of: " . \implode(', ', $platforms));
+            if (\in_array($token, self::UNRENDERED[$name] ?? [], true)) {
+                $this->assertSame([], $found, "{$name} now renders `{$token}`; drop it from UNRENDERED");
+                continue;
             }
+
+            $this->assertSame($platforms, \array_keys($found), "{$name} lacks `{$token}` on: " . \implode(', ', \array_diff($platforms, \array_keys($found))));
         }
     }
 
