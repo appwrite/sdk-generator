@@ -45,7 +45,14 @@
             "console"
           ],
           "packaging": false,
-          "public": true
+          "public": true,
+          "auth": {
+            "Project": [],
+            "Admin": [],
+            "Key": [],
+            "JWT": [],
+            "Session": []
+          }
         },
         "security": [
           {
@@ -88,7 +95,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -161,7 +171,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -235,7 +248,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -309,7 +325,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -383,7 +402,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -459,7 +481,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -523,7 +548,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -587,6 +615,9 @@
             "server"
           ],
           "packaging": false,
+          "auth": {
+            "Project": []
+          },
           "methods": [
             {
               "name": "createExcludedGeneralFixture",
@@ -594,7 +625,10 @@
               "platforms": [
                 "client",
                 "server"
-              ]
+              ],
+              "auth": {
+                "Project": []
+              }
             }
           ]
         },
@@ -660,7 +694,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -733,7 +770,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -807,7 +847,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -881,7 +924,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -955,7 +1001,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1031,7 +1080,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1072,7 +1124,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1113,7 +1168,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1152,7 +1210,11 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": [],
+            "ImpersonateUserId": []
+          }
         },
         "security": [
           {
@@ -1194,7 +1256,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1228,7 +1293,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1283,7 +1351,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1425,7 +1496,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1466,7 +1540,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1512,7 +1589,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1586,7 +1666,10 @@
           "platforms": [
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1682,6 +1765,9 @@
             "server"
           ],
           "packaging": false,
+          "auth": {
+            "Project": []
+          },
           "produces": [
             "text\/html"
           ]
@@ -1718,7 +1804,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1759,7 +1848,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1812,7 +1904,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1853,7 +1948,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -1980,6 +2078,9 @@
             "server"
           ],
           "packaging": false,
+          "auth": {
+            "Project": []
+          },
           "produces": [
             "text\/plain"
           ]
@@ -2079,7 +2180,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -2193,7 +2297,10 @@
               "platforms": [
                 "client"
               ],
-              "description": "zzplatformclientalias variant."
+              "description": "zzplatformclientalias variant.",
+              "auth": {
+                "Project": []
+              }
             },
             {
               "name": "zzplatformalias",
@@ -2202,12 +2309,12 @@
                 "server"
               ],
               "description": "zzplatformserveralias variant.",
-              "security": [
-                {
+              "auth": {
+                "server": {
                   "Project": [],
                   "JWT": []
                 }
-              ]
+              }
             }
           ]
         },
@@ -2234,12 +2341,12 @@
     },
     "\/mock\/tests\/general\/zzderivedauth": {
       "get": {
-        "summary": "Derived Auth Fixture",
+        "summary": "Platform Auth Fixture",
         "operationId": "generalZzderivedauth",
         "tags": [
           "general"
         ],
-        "description": "Fixture-only method without x-appwrite.auth; example credentials derive from the security requirement.",
+        "description": "Fixture-only method whose example credentials are keyed by platform, as in the canonical document.",
         "x-appwrite": {
           "demo": "general\/zzderivedauth.md",
           "rate-limit": 0,
@@ -2250,7 +2357,16 @@
           "platforms": [
             "client",
             "server"
-          ]
+          ],
+          "auth": {
+            "client": {
+              "Project": []
+            },
+            "server": {
+              "Project": [],
+              "Key": []
+            }
+          }
         },
         "security": [
           {
@@ -2291,7 +2407,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -2351,7 +2470,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -2390,7 +2512,10 @@
             "client",
             "server"
           ],
-          "packaging": false
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
         },
         "security": [
           {
@@ -2891,10 +3016,7 @@
         "description": "Your secret API key",
         "in": "header",
         "x-appwrite": {
-          "demo": "919c2d18fb5d4...a2ae413da83346ad2",
-          "credentials": [
-            "server"
-          ]
+          "demo": "919c2d18fb5d4...a2ae413da83346ad2"
         }
       },
       "JWT": {
@@ -2903,22 +3025,14 @@
         "description": "Your secret JSON Web Token",
         "in": "header",
         "x-appwrite": {
-          "demo": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ...",
-          "credentials": [
-            "server"
-          ]
+          "demo": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ..."
         }
       },
       "Session": {
         "type": "apiKey",
         "name": "X-Appwrite-Session",
         "description": "The user session to authenticate with",
-        "in": "header",
-        "x-appwrite": {
-          "credentials": [
-            "server"
-          ]
-        }
+        "in": "header"
       },
       "Zzserveronlyheader": {
         "type": "apiKey",

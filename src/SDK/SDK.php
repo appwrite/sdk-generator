@@ -2,13 +2,13 @@
 
 namespace Appwrite\SDK;
 
-use Appwrite\SDK\Extension\Appwrite;
 use Utopia\OpenAPI\Model\AnySchema;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\BooleanSchema;
 use Utopia\OpenAPI\Model\CompositeSchema;
 use MatthiasMullie\Minify\JS;
 use MatthiasMullie\Minify\CSS;
+use Appwrite\SDK\Extension\Appwrite;
 use Exception;
 use Throwable;
 use Utopia\OpenAPI\Model\Composition;
@@ -24,7 +24,6 @@ use Utopia\OpenAPI\Model\ReferenceSchema;
 use Utopia\OpenAPI\Model\RequestBody;
 use Utopia\OpenAPI\Model\Response;
 use Utopia\OpenAPI\Model\Schema;
-use Utopia\OpenAPI\Model\SecurityRequirement;
 use Utopia\OpenAPI\Model\SecurityScheme;
 use Utopia\OpenAPI\Model\SecuritySchemeType;
 use Utopia\OpenAPI\Model\StringSchema;
@@ -653,6 +652,7 @@ class SDK
     {
         $methodName = (string) ($alias['name'] ?? $this->methodName($operation));
         $appwrite = $operation->extensions[Extension::APPWRITE->value] ?? [];
+        $appwrite['auth'] = $alias['auth'] ?? [];
         if (isset($alias['deprecated'])) {
             $appwrite['deprecated'] = $alias['deprecated'];
         } else {
@@ -673,9 +673,7 @@ class SDK
             parameters: $operation->parameters,
             requestBody: $this->createAliasedRequestBody($operation->requestBody, $alias),
             responses: $this->createAliasedResponses($operation, $alias),
-            security: \is_array($alias['security'] ?? null)
-                ? \array_map(static fn(array $requirement): SecurityRequirement => new SecurityRequirement($requirement), $alias['security'])
-                : $operation->security,
+            security: $operation->security,
             servers: $operation->servers,
             externalDocumentation: $operation->externalDocumentation,
             extensions: $extensions,
@@ -1843,31 +1841,27 @@ class SDK
     }
 
     /**
-     * The schemes an example configures on the client before calling a method:
-     * the security requirement's first scheme, at most one further scheme whose
-     * `x-appwrite.credentials` names this platform, and every optional or path-bound
-     * scheme.
+     * The schemes an example configures on the client before calling a method.
+     *
+     * A per-platform document lists them flat; the canonical document keys them
+     * by platform, since client and console examples configure the project only
+     * while server examples add one credential.
      *
      * @return array<string, SecurityScheme>
      */
     protected function getOperationAuthSchemes(Operation $operation): array
     {
-        $credential = false;
+        $auth = $operation->extensions[Extension::APPWRITE->value][Appwrite::AUTH->value] ?? [];
+        if (!\is_array($auth)) {
+            return [];
+        }
+        $auth = $auth[$this->getParam('platform')] ?? $auth;
         $schemes = [];
         $pathSchemes = [];
-        foreach (\array_keys($operation->security[0]->schemes ?? []) as $name) {
+        foreach (\array_keys($auth) as $name) {
             $scheme = $this->getSecurityScheme((string) $name);
             if (!$scheme instanceof SecurityScheme) {
                 continue;
-            }
-            if ($schemes !== [] || $pathSchemes !== []) {
-                $appwrite = $scheme->extensions[Extension::APPWRITE->value] ?? [];
-                $always = ($appwrite[Appwrite::OPTIONAL->value] ?? false) === true || ($appwrite[Appwrite::LOCATION->value] ?? '') === 'path';
-                $documented = !$credential && \in_array($this->getParam('platform'), $appwrite[Appwrite::CREDENTIALS->value] ?? [], true);
-                if (!$always && !$documented) {
-                    continue;
-                }
-                $credential = $credential || $documented;
             }
             if (($scheme->extensions[Extension::APPWRITE->value][Appwrite::LOCATION->value] ?? '') === 'path' && $scheme->name !== null) {
                 $pathSchemes[\ucfirst($this->helperCamelCase($scheme->name))] = $scheme;

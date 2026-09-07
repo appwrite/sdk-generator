@@ -261,14 +261,11 @@ final class GenerationTest extends TestCase
     }
 
     /**
-     * Example credentials come from the security requirement and
-     * `x-appwrite.credentials` alone. The derived-auth fixture requires
-     * `Project, Key, JWT`, so server examples configure the project and the
-     * first server credential, Key, and client examples the project only. The
-     * server alias carries its own `Project, JWT` requirement, so its example
-     * configures JWT instead of the operation's Key.
+     * A canonical document keys `x-appwrite.auth` by platform. The fixture's
+     * platform-auth operation lists `Project` for client and `Project, Key` for
+     * server, and the server alias variant lists `Project, JWT`.
      */
-    public function testExampleCredentialsAreDerived(): void
+    public function testExampleCredentialsFollowPlatformAuth(): void
     {
         $examples = [
             ['server', 'docs/examples/general/zzderivedauth.md', ['->setproject(', '->setkey('], ['->setjwt(', '->setsession(']],

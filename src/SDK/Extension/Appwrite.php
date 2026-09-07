@@ -33,6 +33,6 @@ enum Appwrite: string
     /** On a security scheme: configured by examples whenever an operation accepts it. */
     case OPTIONAL = 'optional';
 
-    /** On a security scheme: the SDK platforms whose examples configure it as a credential. */
-    case CREDENTIALS = 'credentials';
+    /** Schemes an example configures on the client, flat or keyed by SDK platform. */
+    case AUTH = 'auth';
 }
