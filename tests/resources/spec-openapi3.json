@@ -2891,11 +2891,11 @@
         "description": "Your secret API key",
         "in": "header",
         "x-appwrite": {
-          "demo": "919c2d18fb5d4...a2ae413da83346ad2"
-        },
-        "x-sdk-credentials": [
-          "server"
-        ]
+          "demo": "919c2d18fb5d4...a2ae413da83346ad2",
+          "credentials": [
+            "server"
+          ]
+        }
       },
       "JWT": {
         "type": "apiKey",
@@ -2903,20 +2903,22 @@
         "description": "Your secret JSON Web Token",
         "in": "header",
         "x-appwrite": {
-          "demo": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ..."
-        },
-        "x-sdk-credentials": [
-          "server"
-        ]
+          "demo": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ...",
+          "credentials": [
+            "server"
+          ]
+        }
       },
       "Session": {
         "type": "apiKey",
         "name": "X-Appwrite-Session",
         "description": "The user session to authenticate with",
         "in": "header",
-        "x-sdk-credentials": [
-          "server"
-        ]
+        "x-appwrite": {
+          "credentials": [
+            "server"
+          ]
+        }
       },
       "Zzserveronlyheader": {
         "type": "apiKey",

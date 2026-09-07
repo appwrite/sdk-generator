@@ -262,7 +262,7 @@ final class GenerationTest extends TestCase
 
     /**
      * Example credentials come from the security requirement and
-     * `x-sdk-credentials` alone. The derived-auth fixture requires
+     * `x-appwrite.credentials` alone. The derived-auth fixture requires
      * `Project, Key, JWT`, so server examples configure the project and the
      * first server credential, Key, and client examples the project only. The
      * server alias carries its own `Project, JWT` requirement, so its example

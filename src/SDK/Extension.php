@@ -12,9 +12,6 @@ enum Extension: string
     /** Appwrite metadata on operations and security schemes; its keys are the {@see Extension\Appwrite} cases. */
     case APPWRITE = 'x-appwrite';
 
-    /** On a security scheme: the SDK platforms whose examples configure it as a credential. */
-    case SDK_CREDENTIALS = 'x-sdk-credentials';
-
     /** On a component schema: generated as a request model rather than a response model. */
     case REQUEST_MODEL = 'x-request-model';
 

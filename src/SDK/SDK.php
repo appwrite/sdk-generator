@@ -1845,7 +1845,7 @@ class SDK
     /**
      * The schemes an example configures on the client before calling a method:
      * the security requirement's first scheme, at most one further scheme whose
-     * `x-sdk-credentials` names this platform, and every optional or path-bound
+     * `x-appwrite.credentials` names this platform, and every optional or path-bound
      * scheme.
      *
      * @return array<string, SecurityScheme>
@@ -1863,7 +1863,7 @@ class SDK
             if ($schemes !== [] || $pathSchemes !== []) {
                 $appwrite = $scheme->extensions[Extension::APPWRITE->value] ?? [];
                 $always = ($appwrite[Appwrite::OPTIONAL->value] ?? false) === true || ($appwrite[Appwrite::LOCATION->value] ?? '') === 'path';
-                $documented = !$credential && \in_array($this->getParam('platform'), $scheme->extensions[Extension::SDK_CREDENTIALS->value] ?? [], true);
+                $documented = !$credential && \in_array($this->getParam('platform'), $appwrite[Appwrite::CREDENTIALS->value] ?? [], true);
                 if (!$always && !$documented) {
                     continue;
                 }
