@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [{{ sdk.version }}] - TBD
 
-### Changed
-- **Breaking:** Methods whose responses declare no content now return `Result<()>` instead of `Result<serde_json::Value>`. Callers binding these results must use `()`; no response body has been added.
-- Requests default to `Accept: application/json` when responses declare no content. Explicit response media types remain unchanged; `x-appwrite.produces` is no longer used.
-
 ### Added
 - Initial release of {{ spec.info.title }} Rust SDK
 - Full support for {{ spec.info.title }} API {{ spec.info.version }}
