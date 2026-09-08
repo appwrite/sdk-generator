@@ -1,6 +1,6 @@
-{%~ set requiredStringPathParameters = (method | parameters('path')) | filter(parameter => parameter.required and not (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty and (parameter.extensions['x-sdk-source']|default('')) != 'security') %}
+{%~ set requiredStringPathParameters = (method | parameters('path')) | filter(parameter => parameter.required and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty and (parameter.extensions['x-sdk-source']|default('')) != 'security') %}
 {%~ for parameter in requiredStringPathParameters %}
-        if {{ parameter.name | caseCamel | escapeSwiftKeyword }}.isEmpty {
+        if {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if (parameter | schemaNullable) %}?.isEmpty == true{% else %}.isEmpty{% endif %} {
             throw {{ spec.info.title | caseUcfirst }}Error(message: "Missing required parameter: \"{{ parameter.name | caseCamel | escapeSwiftKeyword }}\"")
         }
 {%~ endfor %}

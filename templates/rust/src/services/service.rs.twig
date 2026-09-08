@@ -136,11 +136,15 @@ impl {{ service.name | caseUcfirst }} {
 {% endfor %}
 {% endif %}
 {% for parameter in (method | parameters('path')) %}
-{% if (parameter.extensions['x-sdk-source']|default('')) != 'security' and parameter.required and not (parameter | schemaNullable) and (parameter | inputType) == 'impl Into<String>' %}
+{% if (parameter.extensions['x-sdk-source']|default('')) != 'security' and parameter.required and (parameter | inputType) == 'impl Into<String>' %}
 {% set pathParam = parameter.name | caseSnake | overrideIdentifier %}
 
+{% if (parameter | schemaNullable) %}
+        if {{ pathParam }} == Some("") {
+{% else %}
         let {{ pathParam }} = {{ pathParam }}.into();
         if {{ pathParam }}.is_empty() {
+{% endif %}
 {{ [ '0', '"Missing required parameter: \\"' ~ (parameter.name | caseCamel) ~ '\\""', 'None', 'String::new()' ] | rustfmtCall(12, 'return Err(crate::error::' ~ (spec.info.title | caseUcfirst) ~ 'Error::new', ');') }}
         }
 {% endif %}

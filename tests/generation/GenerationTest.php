@@ -374,6 +374,46 @@ final class GenerationTest extends TestCase
         }
     }
 
+    /** @return iterable<string, array{string, string, string, string}> */
+    public static function nullablePathGuards(): iterable
+    {
+        yield 'python' => ['python', 'appwrite/services/zznullablepath.py', "if zznullablepathid == '':", "if zzrequiredpathid is None or zzrequiredpathid == '':"];
+        yield 'dart' => ['dart', 'lib/services/zznullablepath.dart', 'if (zznullablepathid?.isEmpty == true) {', 'if (zzrequiredpathid.isEmpty) {'];
+        yield 'flutter' => ['flutter', 'lib/services/zznullablepath.dart', 'if (zznullablepathid?.isEmpty == true) {', 'if (zzrequiredpathid.isEmpty) {'];
+        yield 'kotlin' => ['kotlin', 'src/main/kotlin/io/appwrite/services/Zznullablepath.kt', 'if (zznullablepathid?.isEmpty() == true) {', 'if (zzrequiredpathid.isEmpty()) {'];
+        yield 'android' => ['android', 'library/src/main/java/io/appwrite/services/Zznullablepath.kt', 'if (zznullablepathid?.isEmpty() == true) {', 'if (zzrequiredpathid.isEmpty()) {'];
+        yield 'swift' => ['swift', 'Sources/Appwrite/Services/Zznullablepath.swift', 'if zznullablepathid?.isEmpty == true {', 'if zzrequiredpathid.isEmpty {'];
+        yield 'apple' => ['apple', 'Sources/Appwrite/Services/Zznullablepath.swift', 'if zznullablepathid?.isEmpty == true {', 'if zzrequiredpathid.isEmpty {'];
+        yield 'rust' => ['rust', 'src/services/zznullablepath.rs', 'if zznullablepathid == Some("") {', 'if zzrequiredpathid.is_empty() {'];
+    }
+
+    #[DataProvider('nullablePathGuards')]
+    public function testRequiredNullableStringPathParametersRejectOnlyEmptyStrings(string $name, string $path, string $nullableGuard, string $requiredGuard): void
+    {
+        // This single-operation fixture isolates the guards from other methods.
+        // Keep it out of e2e: nullable path interpolation has separate, pre-existing
+        // type errors in some targets, and its null serialization is not defined here.
+        $specification = Parser::parse((string) \file_get_contents(__DIR__ . '/../resources/spec-nullable-path.json'));
+        $dir = self::OUTPUT . '/' . $name . '/nullable-path';
+        $this->removeDirectory($dir);
+        new SDK($this->language($name), $specification)
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace(\in_array($name, ['android', 'kotlin'], true) ? 'io.appwrite' : 'appwrite')
+            ->generate($dir);
+
+        $this->assertFileExists($dir . '/' . $path);
+        $method = (string) \file_get_contents($dir . '/' . $path);
+        foreach ([$nullableGuard => 'zznullablepathid', $requiredGuard => 'zzrequiredpathid'] as $guard => $parameter) {
+            $this->assertStringContainsString($guard, $method);
+            $guardBody = \substr($method, (int) \strpos($method, $guard), 400);
+            $this->assertStringContainsString('Missing required parameter: ' . $parameter, \str_replace(['\\', '"', "'"], '', $guardBody));
+        }
+        // No extra rejection for null, nullable enums/numbers, or query/body strings.
+        $this->assertSame(2, \substr_count($method, 'Missing required parameter:'));
+    }
+
     public function testRustBodylessResponsesUseUnitWithJsonAccept(): void
     {
         $files = $this->generate('rust', 'server');

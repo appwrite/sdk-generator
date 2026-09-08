@@ -1,0 +1,61 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Appwrite", "version": "1.0.0" },
+  "servers": [{ "url": "https://localhost/v1" }],
+  "tags": [{ "name": "zznullablepath" }],
+  "paths": {
+    "/nullable/{zznullablepathid}/{zzrequiredpathid}/{zznumber}/{zzenum}": {
+      "post": {
+        "operationId": "zznullablepathCheck",
+        "tags": ["zznullablepath"],
+        "parameters": [
+          {
+            "name": "zznullablepathid",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "nullable": true }
+          },
+          {
+            "name": "zzrequiredpathid",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "zznumber",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "nullable": true }
+          },
+          {
+            "name": "zzenum",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "nullable": true, "enum": ["first", "second"], "title": "Zzpathenum" }
+          },
+          {
+            "name": "zzquery",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "nullable": true }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["zzbody"],
+                "properties": {
+                  "zzbody": { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "204": { "description": "No content" } }
+      }
+    }
+  }
+}

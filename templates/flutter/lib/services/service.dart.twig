@@ -29,8 +29,8 @@ part of '../{{ language.params.packageName }}.dart';
 {% set pathParameters = method | parameters('path') %}
 {% set securityQueries = method | securityQueries %}
 {% for parameter in pathParameters %}
-{% if parameter.required and (parameter.extensions['x-sdk-source']|default('')) != 'security' and (parameter | typeName) == 'String' and not (parameter | schemaNullable) %}
-    if ({{ parameter.name | caseCamel | overrideIdentifier }}.isEmpty) {
+{% if parameter.required and (parameter.extensions['x-sdk-source']|default('')) != 'security' and (parameter | typeName) == 'String' %}
+    if ({{ parameter.name | caseCamel | overrideIdentifier }}{% if (parameter | schemaNullable) %}?.isEmpty == true{% else %}.isEmpty{% endif %}) {
       throw {{ spec.info.title | caseUcfirst }}Exception(
         'Missing required parameter: "{{ parameter.name | caseCamel | overrideIdentifier }}"',
       );

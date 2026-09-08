@@ -65,8 +65,8 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     ): {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} {
     {%~ endif %}
     {%~ for parameter in pathParameters %}
-    {%~ if parameter.required and not (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty and (parameter.extensions['x-sdk-source']|default('')) != 'security' %}
-        if ({{ parameter.name | caseCamel }}.isEmpty()) {
+    {%~ if parameter.required and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty and (parameter.extensions['x-sdk-source']|default('')) != 'security' %}
+        if ({{ parameter.name | caseCamel }}{% if (parameter | schemaNullable) %}?.isEmpty() == true{% else %}.isEmpty(){% endif %}) {
             throw {{ spec.info.title | caseUcfirst }}Exception("Missing required parameter: \"{{ parameter.name | caseCamel }}\"")
         }
     {%~ endif %}
