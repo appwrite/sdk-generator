@@ -415,6 +415,11 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {% endfor %}
 {% else %}
+{% if (method | securityHeaders) is empty and (method | parameters('header')) is empty and (method | methodHeaders) is empty %}
+{% set callArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', '{}', 'payload'] %}
+{% if (method | methodType) == 'location' %}{% set callArgs = callArgs | merge(["'arrayBuffer'"]) %}{% endif %}
+        return{{ 'this.client.call' | jsArgs(callArgs, 8, ';', 7) | raw }}
+{% else %}
         return this.client.call(
             '{{ method.method.value | caseLower }}',
             uri,
@@ -432,6 +437,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             payload{% if (method | methodType) == 'location' %},
             'arrayBuffer'{% endif %},
         );
+{% endif %}
 {% endif %}
 {% endif %}
     }

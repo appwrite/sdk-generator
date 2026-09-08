@@ -318,6 +318,35 @@ final class GenerationTest extends TestCase
         yield 'apple' => ['apple', 'client'];
     }
 
+    /** @return Iterator<string, array{string, string}> */
+    public static function webLanguages(): Iterator
+    {
+        yield 'web client' => ['web', 'client'];
+        yield 'web console' => ['web', 'console'];
+        yield 'node server' => ['node', 'server'];
+        yield 'react-native client' => ['react-native', 'client'];
+    }
+
+    #[DataProvider('webLanguages')]
+    public function testEmptyRequestHeadersAreFormatterClean(string $name, string $platform): void
+    {
+        $files = $this->generate($name, $platform);
+        $service = $files['src/services/general.ts'];
+        $this->assertStringContainsString('zznoheaders(', $service);
+
+        $emptyHeaders = $name === 'react-native'
+            ? "return this.client.call('get', uri, {}, payload);"
+            : 'const apiheaders: { [header: string]: string } = {};';
+        $this->assertStringContainsString($emptyHeaders, $service);
+        $this->assertDoesNotMatchRegularExpression('/\{\s+\}/', $service);
+
+        // Populated header objects must retain their existing multiline layout.
+        if ($platform !== 'console') {
+            $this->assertStringContainsString("'x-appwrite-project': this.client.config.project,", $service);
+        }
+        $this->assertStringContainsString("accept: 'application/json',", $service);
+    }
+
     #[DataProvider('languages')]
     public function testEnumsAreDeclared(string $name): void
     {
