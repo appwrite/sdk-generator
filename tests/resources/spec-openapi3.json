@@ -2550,7 +2550,7 @@
         "tags": [
           "general"
         ],
-        "description": "Fixture-only method whose example credentials are keyed by platform, as in the canonical document.",
+        "description": "Fixture-only method whose example credentials are keyed by platform; Session is accepted in only one security alternative and must not be configured by examples.",
         "x-appwrite": {
           "demo": "general\/zzderivedauth.md",
           "rate-limit": 0,
@@ -2568,7 +2568,8 @@
             },
             "server": {
               "Project": [],
-              "Key": []
+              "Key": [],
+              "Session": []
             }
           }
         },
@@ -2577,6 +2578,12 @@
             "Project": [],
             "Key": [],
             "JWT": []
+          },
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": [],
+            "Session": []
           }
         ],
         "responses": {

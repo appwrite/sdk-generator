@@ -590,7 +590,7 @@ class SDK
     protected function annotateSecurityPathParameters(Operation $operation): Operation
     {
         $securityParameters = [];
-        foreach ($operation->security[0]->schemes ?? [] as $schemeName => $scopes) {
+        foreach ($operation->acceptedSecuritySchemeNames() as $schemeName) {
             $scheme = $this->getSecurityScheme($schemeName);
             if (!$scheme instanceof SecurityScheme || ($scheme->extensions[Extension::APPWRITE->value][Appwrite::LOCATION->value] ?? '') !== 'path') {
                 continue;
@@ -1858,7 +1858,13 @@ class SDK
         $auth = $auth[$this->getParam('platform')] ?? $auth;
         $schemes = [];
         $pathSchemes = [];
+        $optional = \array_diff($operation->acceptedSecuritySchemeNames(), $operation->requiredSecuritySchemeNames());
         foreach (\array_keys($auth) as $name) {
+            // Example configuration is independent of API authentication. Only
+            // omit a candidate when security explicitly makes it optional.
+            if (\in_array($name, $optional, true)) {
+                continue;
+            }
             $scheme = $this->getSecurityScheme((string) $name);
             if (!$scheme instanceof SecurityScheme) {
                 continue;
@@ -1876,7 +1882,7 @@ class SDK
     protected function getOperationSecuritySchemes(Operation $operation, ?ParameterLocation $location = null, bool $includeGlobal = true): array
     {
         $schemes = [];
-        foreach ($operation->security[0]->schemes ?? [] as $name => $scopes) {
+        foreach ($operation->acceptedSecuritySchemeNames() as $name) {
             $scheme = $this->getSecurityScheme($name);
             if (!$scheme instanceof SecurityScheme) {
                 continue;
