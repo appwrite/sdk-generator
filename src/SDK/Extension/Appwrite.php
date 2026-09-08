@@ -15,9 +15,6 @@ enum Appwrite: string
     /** Method aliases generated from one operation. */
     case METHODS = 'methods';
 
-    /** Content types an operation produces when no response declares content. */
-    case PRODUCES = 'produces';
-
     /** Whether an operation is part of a packaging flow. */
     case PACKAGING = 'packaging';
 
