@@ -374,6 +374,21 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testRustBodylessResponsesUseUnitWithJsonAccept(): void
+    {
+        $files = $this->generate('rust', 'server');
+        $general = $files['src/services/general.rs'];
+
+        foreach (['empty', 'redirect'] as $method) {
+            $this->assertMatchesRegularExpression(
+                '/pub async fn ' . $method . '\(&self\) -> crate::error::result<\(\)> \{[^}]*api_headers\.insert\("accept"\.to_string\(\), "application\/json"\.to_string\(\)\);/s',
+                $general,
+            );
+        }
+
+        $this->assertStringContainsString('"application/json, text/plain".to_string()', $general);
+    }
+
     #[DataProvider('languages')]
     public function testEnumsAreDeclared(string $name): void
     {
