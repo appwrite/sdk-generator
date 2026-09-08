@@ -66,6 +66,14 @@ print(response.result)
 response = general.redirect()
 print(response['result'])
 
+for id, plain in [('', '0'), ('0', '')]:
+    try:
+        general.validate_path(plain, id)
+        raise AssertionError('Empty path parameter was accepted')
+    except AppwriteException as error:
+        print(error.message)
+print(general.validate_path('0', '0').result)
+
 response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png'))
 print(response.result)
 

@@ -1972,6 +1972,71 @@
         }
       }
     },
+    "\/mock\/tests\/general\/path-validation\/{id}\/{plain}": {
+      "get": {
+        "summary": "Path validation",
+        "operationId": "generalValidatePath",
+        "tags": [
+          "general"
+        ],
+        "description": "Reject empty required nullable and nonnullable string path parameters before transport.",
+        "x-appwrite": {
+          "demo": "general\/validate-path.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "plain",
+            "description": "Required nonnullable path ID.",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "description": "Required nullable path ID.",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/path\/{pathId}": {
       "get": {
         "summary": "Path Param",

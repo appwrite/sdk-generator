@@ -80,6 +80,17 @@ class Tests: XCTestCase {
         let result = try await general.redirect()
         print((result as! [String: Any])["result"] as! String)
 
+        for (id, plain) in [("", "0"), ("0", "")] {
+            do {
+                _ = try await general.validatePath(plain: plain, id: id)
+                XCTFail("Empty path parameter was accepted")
+            } catch let error as AppwriteError {
+                print(error.message)
+            }
+        }
+        print(try await general.validatePath(plain: "0", id: "0").result)
+        print(try await general.validatePath(plain: "0", id: nil).result)
+
         do {
             var file = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)

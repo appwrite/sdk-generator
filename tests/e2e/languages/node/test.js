@@ -9,7 +9,8 @@ const {
     MockType,
     Foo,
     Bar,
-    General
+    General,
+    AppwriteException
 } = require('./dist/index.js');
 const { InputFile } = require('./dist/inputFile.js');
 const { readFile } = require('fs/promises');
@@ -143,6 +144,18 @@ async function start() {
 
     // General
     response = await general.redirect();
+    console.log(response.result);
+
+    for (const [id, plain] of [['', '0'], ['0', '']]) {
+        try {
+            await general.validatePath({ id, plain });
+            throw new Error('Empty path parameter was accepted');
+        } catch (error) {
+            if (!(error instanceof AppwriteException)) throw error;
+            console.log(error.message);
+        }
+    }
+    response = await general.validatePath({ id: '0', plain: '0' });
     console.log(response.result);
 
     response = await general.getPath({ pathId: 'grant/special&id' });

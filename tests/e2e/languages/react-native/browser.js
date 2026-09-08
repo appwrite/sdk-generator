@@ -3,6 +3,7 @@ import {
     Foo,
     Bar,
     General,
+    AppwriteException,
     Realtime,
     Query,
     Permission,
@@ -124,6 +125,18 @@ import {
 
     // General
     response = await general.redirect();
+    console.log(response.result);
+
+    for (const [id, plain] of [['', '0'], ['0', '']]) {
+        try {
+            await general.validatePath({ id, plain });
+            throw new Error('Empty path parameter was accepted');
+        } catch (error) {
+            if (!(error instanceof AppwriteException)) throw error;
+            console.log(error.message);
+        }
+    }
+    response = await general.validatePath({ id: '0', plain: '0' });
     console.log(response.result);
 
     // Download

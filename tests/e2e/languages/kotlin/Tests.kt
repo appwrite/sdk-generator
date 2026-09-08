@@ -101,6 +101,17 @@ class ServiceTest {
             val result = general.redirect()
             writeToFile((result as Map<String, Any>)["result"] as String)
 
+            for ((id, plain) in listOf("" to "0", "0" to "")) {
+                try {
+                    general.validatePath(plain, id)
+                    error("Empty path parameter was accepted")
+                } catch (e: AppwriteException) {
+                    writeToFile(e.message ?: "Missing exception message")
+                }
+            }
+            writeToFile(general.validatePath("0", "0").result)
+            writeToFile(general.validatePath("0", null).result)
+
             try {
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../resources/file.png"))
                 writeToFile(mock.result)
