@@ -24,29 +24,6 @@
     }
   ],
   "paths": {
-    "/mock/tests/general/zznoheaders": {
-      "get": {
-        "summary": "No request headers",
-        "operationId": "generalZznoheaders",
-        "tags": [
-          "general"
-        ],
-        "security": [],
-        "x-appwrite": {
-          "platforms": [
-            "client",
-            "server",
-            "console"
-          ],
-          "auth": {}
-        },
-        "responses": {
-          "204": {
-            "description": "No content"
-          }
-        }
-      }
-    },
     "\/ping": {
       "get": {
         "summary": "Ping",

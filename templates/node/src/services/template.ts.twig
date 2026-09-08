@@ -156,9 +156,6 @@ export class {{ service.name | caseUcfirst }} {
         uri.searchParams.append('{{ security.name }}', this.client.config.{{ security.name | caseLower }});
         {%~ endfor %}
 
-        {%~ if (method | securityHeaders) is empty and (method | parameters('header')) is empty and (method | methodHeaders) is empty %}
-        const apiHeaders: { [header: string]: string } = {};
-        {%~ else %}
         const apiHeaders: { [header: string]: string } = {
             {%~ for key, security in (method | securityHeaders) %}
             {{ security.name | jsKey | raw }}: this.client.config.{{ key | caseLower }},
@@ -170,7 +167,6 @@ export class {{ service.name | caseUcfirst }} {
             {{ key | jsKey | raw }}: '{{ header }}',
             {%~ endfor %}
         };
-        {%~ endif %}
 
         {%~ if (method | methodType) == 'webAuth' %}
         return{{ 'this.client.redirect' | jsArgs(["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload'], 8, ';', 7) | raw }}
