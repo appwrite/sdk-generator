@@ -1912,10 +1912,7 @@
           "packaging": false,
           "auth": {
             "Project": []
-          },
-          "produces": [
-            "text\/html"
-          ]
+          }
         },
         "security": [
           {
@@ -2225,10 +2222,7 @@
           "packaging": false,
           "auth": {
             "Project": []
-          },
-          "produces": [
-            "text\/plain"
-          ]
+          }
         },
         "security": [
           {
