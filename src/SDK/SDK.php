@@ -1810,7 +1810,7 @@ class SDK
             }
         }
         if ($produces === []) {
-            $produces = $operation->extensions[Extension::APPWRITE->value][Appwrite::PRODUCES->value] ?? [];
+            $produces = ['application/json'];
         }
         return $produces;
     }
