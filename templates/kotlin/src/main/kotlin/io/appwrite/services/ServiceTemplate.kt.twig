@@ -64,6 +64,13 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ endif %}
     ): {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} {
     {%~ endif %}
+    {%~ for parameter in pathParameters %}
+    {%~ if parameter.required and not (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty and (parameter.extensions['x-sdk-source']|default('')) != 'security' %}
+        if ({{ parameter.name | caseCamel }}.isEmpty()) {
+            throw {{ spec.info.title | caseUcfirst }}Exception("Missing required parameter: \"{{ parameter.name | caseCamel }}\"")
+        }
+    {%~ endif %}
+    {%~ endfor %}
         val apiPath = {% if pathParameters is empty and securityQueries is empty %}"{{ method.path }}"{% else %}("{{ method.path }}"
         {%~ for parameter in pathParameters %}
             .replace("{{ '{' ~ parameter.name ~ '}' }}", {% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}client.config["{{ parameter.extensions['x-sdk-config'] | caseCamel }}"].orEmpty(){% else %}{{ parameter.name | caseCamel }}{% if (parameter | enumValues) is not empty %}.value{% endif %}{% endif %})

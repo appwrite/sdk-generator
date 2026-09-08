@@ -40,6 +40,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Services
 {% endif %}
         public {% if (method | methodType) == "webAuth" %}async {% endif ~%} UniTask{% if (method | methodType) == "webAuth" %}{% else %}<{{ utils.resultType(spec.info.title, method) }}>{% endif %} {{ (method | methodName) | caseUcfirst }}({{ utils.method_parameters((method | parameters('all')), (method | consumes)) }})
         {
+            {{- include('dotnet/base/guards.twig') }}
             var apiPath = "{{ method.path }}"{% if (method | parameters('path')) | length == 0 %};{% endif %}
 
             {{~ include('dotnet/base/params.twig') }}

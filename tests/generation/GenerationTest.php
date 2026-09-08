@@ -318,6 +318,62 @@ final class GenerationTest extends TestCase
         yield 'apple' => ['apple', 'client'];
     }
 
+    /**
+     * Per target: how it spells "this required string path parameter is empty",
+     * and how it names the parameter back to the caller, for the fixture's
+     * `GET /mock/tests/general/path/{pathId}`. A target with no entry renders no
+     * service methods. Every SDK names the API parameter, `pathId`, except
+     * Python, whose guards have always used the argument's own snake case.
+     *
+     * An empty ID collapses out of the interpolated path, so the request lands
+     * on the shorter route: `getDeployment(fn, '')` becomes a listing of every
+     * deployment. The SDK is the only layer that still knows which operation the
+     * caller named, so the guard belongs here.
+     */
+    private const array EMPTY_PATH_GUARDS = [
+        'php' => ['$pathid === \'\'', 'pathid'],
+        'web' => ['pathid === \'\'', 'pathid'],
+        'node' => ['pathid === \'\'', 'pathid'],
+        'deno' => ['pathid === \'\'', 'pathid'],
+        'react-native' => ['pathid === \'\'', 'pathid'],
+        'python' => ['path_id == \'\'', 'path_id'],
+        'ruby' => ['path_id == \'\'', 'pathid'],
+        'go' => ['pathid == ""', 'pathid'],
+        'dart' => ['pathid.isempty', 'pathid'],
+        'flutter' => ['pathid.isempty', 'pathid'],
+        'kotlin' => ['pathid.isempty()', 'pathid'],
+        'android' => ['pathid.isempty()', 'pathid'],
+        'swift' => ['pathid.isempty', 'pathid'],
+        'apple' => ['pathid.isempty', 'pathid'],
+        'dotnet' => ['pathid == ""', 'pathid'],
+        'unity' => ['pathid == ""', 'pathid'],
+        'rust' => ['path_id.is_empty()', 'pathid'],
+    ];
+
+    /**
+     * A required string path parameter rejects the empty string, and the error
+     * names the parameter. Quotes reach the generated source escaped in some
+     * targets and bare in others, so the message is matched without them.
+     */
+    #[DataProvider('languages')]
+    public function testEmptyPathParametersAreRejected(string $name): void
+    {
+        if (!isset(self::EMPTY_PATH_GUARDS[$name])) {
+            $this->markTestSkipped("{$name} renders no service methods.");
+        }
+
+        [$guard, $parameter] = self::EMPTY_PATH_GUARDS[$name];
+        $files = $this->generate($name, 'server');
+        $guarded = \array_filter($files, static fn(string $contents): bool => \str_contains($contents, $guard));
+
+        $this->assertNotEmpty($guarded, "{$name} guards no path parameter with `{$guard}`");
+
+        foreach ($guarded as $path => $contents) {
+            $unquoted = \str_replace(['\\', '"', "'"], '', $contents);
+            $this->assertStringContainsString("missing required parameter: {$parameter}", $unquoted, "{$name}: {$path} rejects an empty path parameter without naming it");
+        }
+    }
+
     #[DataProvider('languages')]
     public function testEnumsAreDeclared(string $name): void
     {

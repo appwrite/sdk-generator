@@ -127,6 +127,12 @@ async function start() {
     response = await general.getPath({ pathId: 'grant/special&id' });
     console.log(response.result);
 
+    try {
+        await general.getPath({ pathId: '' });
+    } catch (error) {
+        console.log(error.message);
+    }
+
     response = await general.enum(MockType.First);
     console.log(response.result);
 

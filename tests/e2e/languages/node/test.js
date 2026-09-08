@@ -148,6 +148,12 @@ async function start() {
     response = await general.getPath({ pathId: 'grant/special&id' });
     console.log(response.result);
 
+    try {
+        await general.getPath({ pathId: '' });
+    } catch (error) {
+        console.log(error.message);
+    }
+
     // Upload
     response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png'));
     console.log(response.result);

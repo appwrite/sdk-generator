@@ -47,6 +47,9 @@ abstract class Base extends TestCase
 
     protected const PATH_PARAM_RESPONSES = [
         'GET:/v1/mock/tests/general/path/grant%2Fspecial%26id:passed',
+        // An empty id collapses out of the path, so the SDK rejects it before
+        // the request is built rather than letting it reach the shorter route.
+        'Missing required parameter: "pathId"',
     ];
 
     protected const OAUTH_RESPONSES = [

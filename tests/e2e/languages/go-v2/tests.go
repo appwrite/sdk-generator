@@ -122,6 +122,11 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	}
 	fmt.Printf("%s\n", pathResponse.Result)
 
+	// An empty id would collapse out of the path and reach the route above it.
+	if _, err := general.GetPath(""); err != nil {
+		fmt.Printf("%s\n", err)
+	}
+
 	testGeneralUpload(client, stringInArray)
 	testGeneralUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)

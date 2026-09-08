@@ -1,0 +1,9 @@
+{%~ for parameter in (method | parameters('path')) %}
+{%- if parameter.required and (parameter.extensions['x-sdk-source']|default('')) != 'security' and (parameter | schemaType) == 'string' and not (parameter | usesEnumType) %}
+
+            if ({{ parameter.name | caseCamel | escapeKeyword }} == "")
+            {
+                throw new {{ spec.info.title | caseUcfirst }}Exception("Missing required parameter: \"{{ parameter.name | caseCamel | escapeKeyword }}\"");
+            }
+{% endif %}
+{%~ endfor %}

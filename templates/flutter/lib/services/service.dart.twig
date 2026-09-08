@@ -28,6 +28,16 @@ part of '../{{ language.params.packageName }}.dart';
   {% if (method | methodType) == 'webAuth' %}Future{% elseif (method | methodType) == 'location' %}Future<Uint8List>{% else %}{% set responseModels = method | getValidResponseModels %}{% if responseModels|length > 1 %}Future<models.Model>{% elseif (method | responseModel) and (method | responseModel) != 'any' %}Future<models.{{ (method | responseModel) | caseUcfirst | overrideIdentifier }}>{% else %}Future{% endif %}{% endif %} {{ (method | methodName) | caseCamel | overrideIdentifier }}({{ _self.method_parameters((method | parameters('all')), (method | consumes)) }}) async {
 {% set pathParameters = method | parameters('path') %}
 {% set securityQueries = method | securityQueries %}
+{% for parameter in pathParameters %}
+{% if parameter.required and (parameter.extensions['x-sdk-source']|default('')) != 'security' and (parameter | typeName) == 'String' and not (parameter | schemaNullable) %}
+    if ({{ parameter.name | caseCamel | overrideIdentifier }}.isEmpty) {
+      throw {{ spec.info.title | caseUcfirst }}Exception(
+        'Missing required parameter: "{{ parameter.name | caseCamel | overrideIdentifier }}"',
+      );
+    }
+
+{% endif %}
+{% endfor %}
 {% if pathParameters|length == 0 and securityQueries|length == 0 %}
     final String apiPath = '{{ method.path }}';
 {% elseif pathParameters|length == 1 and securityQueries|length == 0 %}
