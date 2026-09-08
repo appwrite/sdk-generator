@@ -137,6 +137,17 @@ void main() async {
   final res = await general.redirect();
   print(res['result']);
 
+  for (final ids in [['', '0'], ['0', '']]) {
+    try {
+      await general.validatePath(id: ids[0], plain: ids[1]);
+      throw StateError('Empty path parameter was accepted');
+    } on AppwriteException catch (e) {
+      print(e.message);
+    }
+  }
+  print((await general.validatePath(id: '0', plain: '0')).result);
+  print((await general.validatePath(id: null, plain: '0')).result);
+
   var file = InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);

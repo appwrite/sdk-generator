@@ -114,6 +114,19 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	}
 	fmt.Printf("%s\n", (*response).(map[string]interface{})["result"].(string))
 
+	for _, ids := range [][2]string{{"", "0"}, {"0", ""}} {
+		if _, err := general.ValidatePath(ids[1], ids[0]); err != nil {
+			fmt.Println(err)
+		} else {
+			panic("Empty path parameter was accepted")
+		}
+	}
+	validated, err := general.ValidatePath("0", "0")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(validated.Result)
+
 	// The mock route is registered at the ENCODED path, so this only reaches it
 	// if the id is escaped on the way into the URL.
 	pathResponse, err := general.GetPath("grant/special&id")
@@ -121,11 +134,6 @@ func testGeneralService(client client.Client, stringInArray []string) {
 		fmt.Printf("general.GetPath => error %v", err)
 	}
 	fmt.Printf("%s\n", pathResponse.Result)
-
-	// An empty id would collapse out of the path and reach the route above it.
-	if _, err := general.GetPath(""); err != nil {
-		fmt.Printf("%s\n", err)
-	}
 
 	testGeneralUpload(client, stringInArray)
 	testGeneralUpload(client, stringInArray)

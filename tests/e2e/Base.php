@@ -47,9 +47,20 @@ abstract class Base extends TestCase
 
     protected const PATH_PARAM_RESPONSES = [
         'GET:/v1/mock/tests/general/path/grant%2Fspecial%26id:passed',
-        // An empty id collapses out of the path, so the SDK rejects it before
-        // the request is built rather than letting it reach the shorter route.
-        'Missing required parameter: "pathId"',
+    ];
+
+    // One behavioral contract, invoked by each SDK's language adapter.
+    // The mock never emits these errors: reaching it cannot pass the rejection checks.
+    protected const PATH_VALIDATION_RESPONSES = [
+        'Missing required parameter: "id"',
+        'Missing required parameter: "plain"',
+        'GET:/v1/mock/tests/general/path-validation/0/0:passed',
+    ];
+
+    // Dart/Flutter, Kotlin/Android, Swift/Apple and Rust keep a null path
+    // segment as literal "null", never as an empty segment.
+    protected const NULL_PATH_RESPONSE = [
+        'GET:/v1/mock/tests/general/path-validation/null/0:passed',
     ];
 
     protected const OAUTH_RESPONSES = [

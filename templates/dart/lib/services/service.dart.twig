@@ -43,7 +43,7 @@ part of '../{{ language.params.packageName }}.dart';
 {% set wrapPath = method.path|length > 39 %}
     final String apiPath ={% if wrapPath %}{{ "\n" }}        {% else %} {% endif %}'{{ method.path }}'.replaceAll(
       '{{ '{' }}{{ pathParameters|first.name }}{{ '}' }}',
-      {% if (pathParameters|first.extensions['x-sdk-source']|default('')) == 'security' %}client.config['{{ pathParameters|first.extensions['x-sdk-config'] | caseLower }}'] ?? ''{% else %}{{ pathParameters|first.name | caseCamel | overrideIdentifier }}{% if (pathParameters|first | enumValues) | length > 0 %}.value{% endif %}{% endif %},
+      {% if (pathParameters|first.extensions['x-sdk-source']|default('')) == 'security' %}client.config['{{ pathParameters|first.extensions['x-sdk-config'] | caseLower }}'] ?? ''{% else %}{{ pathParameters|first.name | caseCamel | overrideIdentifier }}{% if (pathParameters|first | enumValues) | length > 0 %}.value{% endif %}{% if pathParameters|first.required and (pathParameters|first | schemaNullable) and (pathParameters|first | typeName) == 'String' %}.toString(){% endif %}{% endif %},
     );
 {% else %}
 {% set wrapPath = method.path|length > 51 %}
@@ -51,7 +51,7 @@ part of '../{{ language.params.packageName }}.dart';
 {% for parameter in pathParameters %}
 {% if wrapPath %}            {% else %}        {% endif %}.replaceAll(
 {% if wrapPath %}              {% else %}          {% endif %}'{{ '{' }}{{ parameter.name }}{{ '}' }}',
-{% if wrapPath %}              {% else %}          {% endif %}{% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}client.config['{{ parameter.extensions['x-sdk-config'] | caseLower }}'] ?? ''{% else %}{{ parameter.name | caseCamel | overrideIdentifier }}{% if (parameter | enumValues) | length > 0 %}.value{% endif %}{% endif %},
+{% if wrapPath %}              {% else %}          {% endif %}{% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}client.config['{{ parameter.extensions['x-sdk-config'] | caseLower }}'] ?? ''{% else %}{{ parameter.name | caseCamel | overrideIdentifier }}{% if (parameter | enumValues) | length > 0 %}.value{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | typeName) == 'String' %}.toString(){% endif %}{% endif %},
 {% if wrapPath %}            {% else %}        {% endif %}){% if loop.last and securityQueries|length == 0 %};{% endif %}{{ "\n" -}}
 {% endfor %}
 {% for security in securityQueries %}

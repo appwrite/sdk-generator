@@ -475,6 +475,21 @@ App::get('/v1/mock/tests/general/path/grant%2Fspecial%26id')
     ->action(function () {
     });
 
+// Shared nullable-path e2e contract. Null is serialized literally by targets
+// that previously could not compile nullable string interpolation.
+foreach (['0', 'null'] as $id) {
+    App::get('/v1/mock/tests/general/path-validation/' . $id . '/0')
+        ->desc('Path validation')
+        ->groups(['mock'])
+        ->label('scope', 'public')
+        ->label('sdk.response.code', Response::STATUS_CODE_OK)
+        ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+        ->label('sdk.response.model', Response::MODEL_MOCK)
+        ->label('sdk.mock', true)
+        ->action(function () {
+        });
+}
+
 App::get('/v1/mock/tests/general/set-cookie')
     ->desc('Set Cookie')
     ->groups(['mock'])

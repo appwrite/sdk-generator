@@ -154,6 +154,8 @@ impl {{ service.name | caseUcfirst }} {
 {% for parameter in (method | parameters('path')) %}
 {% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}
 {% set pathReplaces = pathReplaces | merge(['.replace("{' ~ parameter.name ~ '}", &self.client.get_headers().get("x-appwrite-' ~ (parameter.extensions['x-sdk-config'] | caseLower) ~ '").cloned().unwrap_or_default())']) %}
+{% elseif parameter.required and (parameter | schemaNullable) and (parameter | inputType) == 'impl Into<String>' %}
+{% set pathReplaces = pathReplaces | merge(['.replace("{' ~ parameter.name ~ '}", ' ~ (parameter.name | caseSnake | overrideIdentifier) ~ '.unwrap_or("null"))']) %}
 {% elseif parameter.required and not (parameter | schemaNullable) and (parameter | inputType) == 'impl Into<String>' %}
 {% set pathReplaces = pathReplaces | merge(['.replace("{' ~ parameter.name ~ '}", &' ~ (parameter.name | caseSnake | overrideIdentifier) ~ ')']) %}
 {% else %}
