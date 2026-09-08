@@ -92,6 +92,8 @@ func main() {
 		}
 	}
 
+	harness.typesDependencies()
+	fmt.Println("CLI_TYPES_DEPENDENCIES:passed")
 	fmt.Println("CLI_CONFORMANCE:passed")
 }
 
@@ -107,6 +109,88 @@ func (h *harness) command(args ...string) *exec.Cmd {
 	)
 
 	return command
+}
+
+// typesDependencies runs from a monorepo root, not the nested output directory.
+// Only local configuration is used; no Appwrite project is read or written.
+func (h *harness) typesDependencies() {
+	cli, err := filepath.Abs(binary)
+	if err != nil {
+		fail(err)
+	}
+
+	cases := []struct {
+		name       string
+		manifest   string // Empty means package.json is absent.
+		deno       bool
+		dependency string
+	}{
+		{"no-package", "", false, "appwrite"},
+		{"missing-sections", `{}`, false, "appwrite"},
+		{"null-sections", `{"dependencies":null,"devDependencies":null}`, false, "appwrite"},
+		{"empty-sections", `{"dependencies":{},"devDependencies":{}}`, false, "appwrite"},
+		{"appwrite-dependencies", `{"dependencies":{"appwrite":"1"}}`, false, "appwrite"},
+		{"node-dependencies", `{"dependencies":{"node-appwrite":"1"}}`, false, "node-appwrite"},
+		{"appwrite-dev", `{"devDependencies":{"appwrite":"1"}}`, false, "appwrite"},
+		{"node-dev", `{"devDependencies":{"node-appwrite":"1"}}`, false, "node-appwrite"},
+		{"appwrite-dev-null-dependencies", `{"dependencies":null,"devDependencies":{"appwrite":"1"}}`, false, "appwrite"},
+		{"node-dev-null-dependencies", `{"dependencies":null,"devDependencies":{"node-appwrite":"1"}}`, false, "node-appwrite"},
+		{"node-null-dev", `{"dependencies":{"node-appwrite":"1"},"devDependencies":null}`, false, "node-appwrite"},
+		{"node-dev-empty-dependencies", `{"dependencies":{},"devDependencies":{"node-appwrite":"1"}}`, false, "node-appwrite"},
+		{"node-dev-unrelated-dependencies", `{"dependencies":{"other":"1"},"devDependencies":{"node-appwrite":"1"}}`, false, "node-appwrite"},
+		{"runtime-node-before-dev-appwrite", `{"dependencies":{"node-appwrite":"1"},"devDependencies":{"appwrite":"1"}}`, false, "node-appwrite"},
+		{"runtime-appwrite-before-dev-node", `{"dependencies":{"appwrite":"1"},"devDependencies":{"node-appwrite":"1"}}`, false, "appwrite"},
+		{"runtime-package-preference", `{"dependencies":{"node-appwrite":"1","appwrite":"1"}}`, false, "appwrite"},
+		{"dev-package-preference", `{"devDependencies":{"node-appwrite":"1","appwrite":"1"}}`, false, "appwrite"},
+		{"console-preference", `{"devDependencies":{"@appwrite.io/console":"1","react-native-appwrite":"1","appwrite":"1","node-appwrite":"1"}}`, false, "@appwrite.io/console"},
+		{"react-native-preference", `{"devDependencies":{"react-native-appwrite":"1","appwrite":"1","node-appwrite":"1"}}`, false, "react-native-appwrite"},
+		{"empty-versions", `{"dependencies":{"appwrite":""},"devDependencies":{"appwrite":"","node-appwrite":"1"}}`, false, "node-appwrite"},
+		{"deno-default", "", true, "npm:node-appwrite"},
+		{"deno-null-sections", `{"dependencies":null,"devDependencies":null}`, true, "npm:node-appwrite"},
+		{"dev-before-deno", `{"devDependencies":{"node-appwrite":"1"}}`, true, "node-appwrite"},
+		{"invalid-package", `{`, false, "appwrite"},
+		{"invalid-package-deno", `{`, true, "npm:node-appwrite"},
+	}
+
+	for _, test := range cases {
+		directory := filepath.Join(h.home, "types", test.name)
+		output := filepath.Join("packages", "appwrite-types", "src")
+		if err := os.MkdirAll(filepath.Join(directory, output), 0o700); err != nil {
+			fail(err)
+		}
+		files := map[string]string{
+			"appwrite.config.json":                 `{"projectId":"offline","collections":[{"$id":"water","databaseId":"main","name":"Fixed Water Sources","attributes":[{"key":"name","type":"string","required":true}]}]}`,
+			"packages/appwrite-types/package.json": `{"name":"appwrite-types","private":true}`,
+		}
+		if test.manifest != "" {
+			files["package.json"] = test.manifest
+		}
+		if test.deno {
+			files["deno.json"] = `{}`
+		}
+		for name, content := range files {
+			if err := os.WriteFile(filepath.Join(directory, name), []byte(content), 0o600); err != nil {
+				fail(err)
+			}
+		}
+
+		command := h.command("types", output, "--language=ts", "--verbose")
+		command.Path = cli
+		command.Dir = directory
+		if output, err := command.CombinedOutput(); err != nil {
+			fail(fmt.Errorf("types %s: %w\n%s", test.name, err, output))
+		}
+		generated, err := os.ReadFile(filepath.Join(directory, output, "appwrite.d.ts"))
+		if err != nil {
+			fail(err)
+		}
+		want := "import type { Models } from '" + test.dependency + "';"
+		if !strings.HasPrefix(string(generated), want+"\n") ||
+			!strings.Contains(string(generated), "export type FixedWaterSources = Models.Row & {") ||
+			!strings.Contains(string(generated), "name: string;") {
+			fail(fmt.Errorf("types %s: expected %s and collection fields, got:\n%s", test.name, want, generated))
+		}
+	}
 }
 
 // run executes the CLI and returns its stdout, requiring a zero exit.

@@ -263,16 +263,20 @@ var appwriteDependencies = []string{
 func AppwriteDependency(directory string) string {
 	if declared, err := os.ReadFile(filepath.Join(directory, "package.json")); err == nil {
 		var manifest struct {
-			Dependencies map[string]string `json:"dependencies"`
+			Dependencies    map[string]string `json:"dependencies"`
+			DevDependencies map[string]string `json:"devDependencies"`
 		}
 		// An unparseable package.json falls through to the deno.json check
 		// rather than failing the detection.
 		if json.Unmarshal(declared, &manifest) == nil {
-			// Truthiness, not presence: a dependency declared with an empty
-			// version string is skipped.
-			for _, name := range appwriteDependencies {
-				if manifest.Dependencies[name] != "" {
-					return name
+			// Keep runtime dependencies ahead of development dependencies, with
+			// the same package preference order within each section.
+			for _, dependencies := range []map[string]string{manifest.Dependencies, manifest.DevDependencies} {
+				// Truthiness, not presence: an empty version string is skipped.
+				for _, name := range appwriteDependencies {
+					if dependencies[name] != "" {
+						return name
+					}
 				}
 			}
 		}
