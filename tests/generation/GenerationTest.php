@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Generation;
 
+use Twig\Error\RuntimeError;
 use Iterator;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\Language\Android;
@@ -30,6 +31,8 @@ use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\SDK;
 use FilesystemIterator;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -161,16 +164,32 @@ final class GenerationTest extends TestCase
      *
      * @return array<string, string>
      */
-    private function generate(string $name, string $platform): array
+    private function generate(string $name, string $platform, string $unionVariant = ''): array
     {
-        if (isset(self::$generated[$name][$platform])) {
-            return self::$generated[$name][$platform];
+        $key = $platform . $unionVariant;
+        if (isset(self::$generated[$name][$key])) {
+            return self::$generated[$name][$key];
         }
 
-        $dir = self::OUTPUT . '/' . $name . '/' . $platform;
+        $dir = self::OUTPUT . '/' . $name . '/' . $key;
         $this->removeDirectory($dir);
 
-        $sdk = new SDK($this->language($name), Parser::parse((string) \file_get_contents(self::FIXTURE)));
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        if ($unionVariant !== '') {
+            $union = &$document->paths->{'/mock/tests/union'}->get->responses->{'200'}->content->{'application/json'}->schema;
+            $branches = [];
+            foreach ($union->discriminator->mapping as $value => $reference) {
+                $branches[] = ['allOf' => [
+                    ['$ref' => $reference],
+                    ['type' => 'object', 'required' => ['type'], 'properties' => [
+                        'type' => ['enum' => [$unionVariant === '-ambiguous' ? 'mock' : ($unionVariant === '-boolean' ? true : $value)]],
+                    ]],
+                ]];
+            }
+            $union = ['anyOf' => $branches];
+            unset($union);
+        }
+        $sdk = new SDK($this->language($name), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
         $sdk
             ->setName('test')
             ->setVersion('0.0.1')
@@ -195,7 +214,45 @@ final class GenerationTest extends TestCase
             }
         }
 
-        return self::$generated[$name][$platform] = $files;
+        return self::$generated[$name][$key] = $files;
+    }
+
+    #[DataProvider('languages')]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testConditionalReferencesPreserveGeneratedTrees(string $name): void
+    {
+        foreach (['client', 'server'] as $platform) {
+            $legacy = $this->generate($name, $platform);
+            $conditional = $this->generate($name, $platform, '-conditional');
+            $this->assertSame(\array_keys($legacy), \array_keys($conditional));
+            foreach (array_keys($legacy) as $path) {
+                $root = self::OUTPUT . '/' . $name . '/' . $platform;
+                $this->assertSame(
+                    \file_get_contents($root . '/' . $path),
+                    \file_get_contents($root . '-conditional/' . $path),
+                    "{$name}/{$platform}/{$path} changed for equivalent conditional references",
+                );
+            }
+        }
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testAmbiguousConditionalResponsesFailGeneration(): void
+    {
+        $this->expectException(RuntimeError::class);
+        $this->expectExceptionMessage('Conditional response cases overlap at equal specificity.');
+        $this->generate('php', 'server', '-ambiguous');
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testUnsupportedTypedConditionsFailRatherThanStringify(): void
+    {
+        $this->expectException(RuntimeError::class);
+        $this->expectExceptionMessage('Non-string conditional response literals are not yet supported.');
+        $this->generate('php', 'server', '-boolean');
     }
 
     private function removeDirectory(string $dir): void

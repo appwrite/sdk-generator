@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK;
 
+use UnexpectedValueException;
 use Utopia\OpenAPI\Model\AnySchema;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\BooleanSchema;
@@ -1911,8 +1912,9 @@ class SDK
      * schema. A union whose members differ by a combination of properties
      * cannot be expressed with it — five Appwrite attribute models share
      * `type: string` and are told apart only by `format`, so `mapping` can
-     * name just one of them. `x-mapping` carries the full rule set, keyed by
-     * reference, and is preferred when present.
+     * name just one of them. Legacy `x-mapping` carries the full rule set,
+     * keyed by reference, and is preferred over the ordinary mapping. New
+     * constrained unions are read separately through conditionalReferences().
      *
      * @return array<string, array<string, mixed>>
      */
@@ -1949,15 +1951,50 @@ class SDK
         return $cases;
     }
 
+    /** @return array<string, array<string, string>> */
+    protected function getConditionalCases(CompositeSchema $schema): array
+    {
+        $cases = [];
+        foreach ($schema->conditionalReferences() as $branch) {
+            $name = $this->normalizeSchemaReference($branch['reference']);
+            if ($name === '' || \array_key_exists($name, $cases)) {
+                throw new UnexpectedValueException('Conditional response references must identify distinct models.');
+            }
+            $conditions = [];
+            foreach ($branch['conditions'] as $condition) {
+                // Response templates currently compare string literals. Fail rather
+                // than silently stringify a boolean or numeric selection rule.
+                if (!\is_string($condition['value'])) {
+                    throw new UnexpectedValueException('Non-string conditional response literals are not yet supported.');
+                }
+                $conditions[$condition['propertyName']] = $condition['value'];
+            }
+            foreach ($cases as $existing) {
+                if (\count($existing) !== \count($conditions)) {
+                    continue;
+                }
+                $disjoint = array_any($conditions, fn($value, $property): bool => \array_key_exists((string) $property, $existing) && $existing[$property] !== $value);
+                if (!$disjoint) {
+                    throw new UnexpectedValueException('Conditional response cases overlap at equal specificity.');
+                }
+            }
+            $cases[$name] = $conditions;
+        }
+        return $cases;
+    }
+
     protected function getResponseDiscriminator(Operation $operation): array
     {
         foreach ($operation->responses as $response) {
             foreach ($response->content as $mediaType) {
                 $schema = $mediaType->schema;
-                if (!$schema instanceof CompositeSchema || !$schema->discriminator instanceof Discriminator) {
+                if (!$schema instanceof CompositeSchema) {
                     continue;
                 }
-                $mapping = $this->getDiscriminatorCases($schema->discriminator);
+                $mapping = $this->getConditionalCases($schema);
+                if ($mapping === [] && $schema->discriminator instanceof Discriminator) {
+                    $mapping = $this->getDiscriminatorCases($schema->discriminator);
+                }
                 if ($mapping === []) {
                     continue;
                 }
