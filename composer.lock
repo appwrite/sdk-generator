@@ -450,26 +450,21 @@
         },
         {
             "name": "utopia-php/openapi",
-            "version": "0.2.1",
+            "version": "0.2.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/openapi.git",
-                "reference": "725109d69e298ae8d88f1ffc05f6d86624233abd"
+                "reference": "5807f43771c8c48561d84c190f93bfdc0119ff8a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/openapi/zipball/725109d69e298ae8d88f1ffc05f6d86624233abd",
-                "reference": "725109d69e298ae8d88f1ffc05f6d86624233abd",
+                "url": "https://api.github.com/repos/utopia-php/openapi/zipball/5807f43771c8c48561d84c190f93bfdc0119ff8a",
+                "reference": "5807f43771c8c48561d84c190f93bfdc0119ff8a",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
                 "php": ">=8.5"
-            },
-            "require-dev": {
-                "laravel/pint": "^1.0",
-                "phpunit/phpunit": "^13.3",
-                "rector/rector": "^2.0"
             },
             "type": "library",
             "autoload": {
@@ -484,9 +479,9 @@
             "description": "Framework-independent OpenAPI 2.0, 3.0, and 3.1 parser with an immutable canonical model",
             "support": {
                 "issues": "https://github.com/utopia-php/openapi/issues",
-                "source": "https://github.com/utopia-php/openapi/tree/0.2.1"
+                "source": "https://github.com/utopia-php/openapi/tree/0.2.3"
             },
-            "time": "2026-09-04T16:56:24+00:00"
+            "time": "2026-09-08T17:32:23+00:00"
         }
     ],
     "packages-dev": [
