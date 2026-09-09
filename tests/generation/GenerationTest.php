@@ -264,7 +264,8 @@ final class GenerationTest extends TestCase
     /**
      * A canonical document keys `x-appwrite.auth` by platform. The fixture's
      * platform-auth operation lists `Project` for client and `Project, Key` for
-     * server, and the server alias variant lists `Project, JWT`.
+     * server plus an optional Session, and the server alias variant lists
+     * `Project, JWT`. Optional security must not become example configuration.
      */
     public function testExampleCredentialsFollowPlatformAuth(): void
     {

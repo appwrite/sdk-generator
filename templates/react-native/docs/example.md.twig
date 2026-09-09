@@ -1,7 +1,7 @@
 ```javascript
 {% set importNames = ['Client', (service.name | caseUcfirst)] %}{% for parameter in (method | parameters('all')) %}{% if (parameter | enumValues) | length > 0 %}{% set importNames = importNames|merge([(parameter | enumName) | caseUcfirst]) %}{% endif %}{% endfor %}{% if (method | parameters('all')) | hasPermissionParam %}{% set importNames = importNames|merge(['Permission', 'Role']) %}{% endif %}{{ importNames | jsImport(language.params.npmPackage) | raw }}
 
-{% set clientCalls = [] %}{% if [(method | securitySchemes)]|length > 0 %}{% set clientCalls = clientCalls|merge([{'call': 'setEndpoint', 'argument': endpointDocs, 'comment': 'Your API Endpoint'}]) %}{% for node in [(method | securitySchemes)] %}{% for key,header in node|keys|filter(h => not node[h].extensions['x-appwrite']['optional']) %}{% set clientCalls = clientCalls|merge([{'call': ('set' ~ header), 'argument': node[header].extensions['x-appwrite']['demo'], 'comment': node[header].description}]) %}{% endfor %}{% endfor %}{% endif %}
+{% set clientCalls = [] %}{% if [(method | securitySchemes)]|length > 0 %}{% set clientCalls = clientCalls|merge([{'call': 'setEndpoint', 'argument': endpointDocs, 'comment': 'Your API Endpoint'}]) %}{% for node in [(method | securitySchemes)] %}{% for key,header in node|keys %}{% set clientCalls = clientCalls|merge([{'call': ('set' ~ header), 'argument': node[header].extensions['x-appwrite']['demo'], 'comment': node[header].description}]) %}{% endfor %}{% endfor %}{% endif %}
 {{ clientCalls | jsClientChain | raw }}
 
 const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client{% if [] | length %}{% for parameter in [] %}, {{ parameter | paramExample }}{% endfor %}{% endif %});

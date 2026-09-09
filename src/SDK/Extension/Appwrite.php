@@ -27,9 +27,6 @@ enum Appwrite: string
     /** On a path-bound security scheme: the client config key that fills it. */
     case CONFIG = 'config';
 
-    /** On a security scheme: configured by examples whenever an operation accepts it. */
-    case OPTIONAL = 'optional';
-
     /** Schemes an example configures on the client, flat or keyed by SDK platform. */
     case AUTH = 'auth';
 }
