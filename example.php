@@ -114,9 +114,7 @@ try {
         if (isset($config['exclude'])) {
             $sdk->setExclude($config['exclude']);
         }
-        if (isset($config['platform'])) {
-            $sdk->setPlatform($config['platform']);
-        }
+        $sdk->setPlatform($config['platform'] ?? $GLOBALS['platform']);
 
         return $sdk;
     }
@@ -197,8 +195,10 @@ try {
         if ($specFile) {
             $spec = file_get_contents($specFile);
         } else {
-            $specPrefix = $specFormat === 'swagger2' ? 'swagger2' : 'open-api3';
-            $spec = getSSLPage(Config::SPECS_URL . "/{$version}/{$specPrefix}-{$version}-{$platform}.json");
+            // OpenAPI 3 ships one canonical document per version; the generator selects the platform from it.
+            $spec = getSSLPage($specFormat === 'swagger2'
+                ? Config::SPECS_URL . "/{$version}/swagger2-{$version}-{$platform}.json"
+                : Config::SPECS_URL . "/{$version}/open-api3-{$version}.json");
         }
 
         if(empty($spec)) {

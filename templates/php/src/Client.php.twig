@@ -9,6 +9,7 @@ use {{ namespace | caseNamespace }}\Query\Builder as QueryBuilder;
 use Ahc\Jwt\JWT;
 {% endif %}
 use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Client\ClientInterface;
 use Utopia\Client as HttpClient;
 use Utopia\Client\Adapter\Curl\Client as CurlAdapter;
 use Utopia\Psr7\Request\Factory as RequestFactory;
@@ -112,9 +113,10 @@ class Client
     protected RequestFactory $requestFactory;
 
     /**
-     * Client constructor.
+     * An injected PSR-18 transport owns its timeout, TLS, connection reuse and
+     * redirect configuration. Without one, the SDK configures its cURL client.
      */
-    public function __construct()
+    public function __construct(private readonly ?ClientInterface $transport = null)
     {
         $this->requestFactory = new RequestFactory();
 {% for key,header in defaultHeaders %}
@@ -477,8 +479,12 @@ class Client
         return $parts;
     }
 
-    protected function getHttpClient(bool $followRedirects): HttpClient
+    protected function getHttpClient(bool $followRedirects): ClientInterface
     {
+        if ($this->transport instanceof ClientInterface) {
+            return $this->transport;
+        }
+
         if ($followRedirects) {
             return $this->httpClient ??= $this->createHttpClient(true);
         }

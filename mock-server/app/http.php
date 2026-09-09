@@ -19,6 +19,7 @@ use Utopia\Swoole\Response as UtopiaSwooleResponse;
 use Utopia\Validator\Text;
 use Utopia\Validator\Integer;
 use Utopia\Validator\ArrayList;
+use Utopia\Validator\Assoc;
 use Utopia\Validator\Host;
 use Utopia\Validator\Nullable;
 use Utopia\Validator\WhiteList;
@@ -474,6 +475,21 @@ App::get('/v1/mock/tests/general/path/grant%2Fspecial%26id')
     ->action(function () {
     });
 
+// Shared nullable-path e2e contract. Null is serialized literally by targets
+// that previously could not compile nullable string interpolation.
+foreach (['0', 'null'] as $id) {
+    App::get('/v1/mock/tests/general/path-validation/' . $id . '/0')
+        ->desc('Path validation')
+        ->groups(['mock'])
+        ->label('scope', 'public')
+        ->label('sdk.response.code', Response::STATUS_CODE_OK)
+        ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+        ->label('sdk.response.model', Response::MODEL_MOCK)
+        ->label('sdk.mock', true)
+        ->action(function () {
+        });
+}
+
 App::get('/v1/mock/tests/general/set-cookie')
     ->desc('Set Cookie')
     ->groups(['mock'])
@@ -545,6 +561,26 @@ App::get('/v1/mock/tests/general/list-rows')
         $response->json(['result' => \json_encode($queries)]);
     });
 
+App::get('/v1/mock/tests/general/optional')
+    ->desc('Get Optional')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'getOptional')
+    ->label('sdk.description', 'Mock a request whose parameters are all optional.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('width', -1, new Integer(true), 'Sample optional numeric param', true)
+    ->param('height', -1, new Integer(true), 'Sample optional numeric param', true)
+    ->param('name', '', new Text(100), 'Sample optional string param', true)
+    ->inject('response')
+    ->action(function (int $width, int $height, string $name, UtopiaSwooleResponse $response) {
+        $response->json(['result' => "width={$width},height={$height},name={$name}"]);
+    });
+
 App::post('/v1/mock/tests/general/nullable')
     ->desc('Nullable Test')
     ->groups(['mock'])
@@ -604,6 +640,31 @@ App::post('/v1/mock/tests/general/models/array')
     ->param('players', [], new ArrayList(new PlayerValidator(), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Array of player objects.', model: Player::class)
     ->action(function (array $players) {
         /** @var Player[] $players */
+    });
+
+App::post('/v1/mock/tests/general/documents')
+    ->desc('Create Documents')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'createDocuments')
+    ->label('sdk.description', 'Create documents from an array of plain objects.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('documents', [], new ArrayList(new Assoc(), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Array of document objects.')
+    ->action(function (array $documents) {
+        if ($documents === []) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Documents must not be empty');
+        }
+
+        foreach ($documents as $document) {
+            if (!\is_array($document) || !isset($document['$id'])) {
+                throw new Exception(Exception::GENERAL_MOCK, 'Each document must be an object with an $id');
+            }
+        }
     });
 
 App::get('/v1/mock/tests/union')

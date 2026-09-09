@@ -9,6 +9,13 @@ extension Encodable {
     public func toJson() throws -> String {
         return String(data: try jsonEncoder.encode(self), encoding: .utf8)!
     }
+
+    /// Encodes the value into a Foundation JSON object so it can be nested in
+    /// a larger `JSONSerialization` payload without being double-encoded.
+    public func toJsonObject() throws -> Any {
+        return try JSONSerialization.jsonObject(
+            with: jsonEncoder.encode(self), options: [.fragmentsAllowed])
+    }
 }
 
 extension String {

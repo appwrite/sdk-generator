@@ -1,9 +1,14 @@
         api_params = {}
 {% if (method | parameters('all')) | length -%}
 {% for parameter in (method | parameters('all')) -%}
-{% if parameter.required and not (parameter | schemaNullable) %}
-        if {{ parameter.name | escapeKeyword | caseSnake }} is None:
-            raise {{spec.info.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | escapeKeyword | caseSnake }}"')
+{% if parameter.required %}
+{%- set paramName = parameter.name | escapeKeyword | caseSnake -%}
+{# Nullability permits None, not an empty string that collapses out of the path. Exact comparison preserves 0 and False. #}
+{%- set emptyPath = parameter.location.value == 'path' and (parameter | schemaType) == 'string' and not (parameter | usesEnumType) %}
+{% if not (parameter | schemaNullable) or emptyPath %}
+        if {% if not (parameter | schemaNullable) %}{{ paramName }} is None{% if emptyPath %} or {% endif %}{% endif %}{% if emptyPath %}{{ paramName }} == ''{% endif %}:
+            raise {{spec.info.title | caseUcfirst}}Exception('Missing required parameter: "{{ paramName }}"')
+{% endif -%}
 {% endif -%}
 {% endfor -%}
 {% for parameter in (method | parameters('path')) %}

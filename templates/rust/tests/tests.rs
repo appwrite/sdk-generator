@@ -112,6 +112,14 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
         Err(e) => eprintln!("general.redirected => error {}", e),
     }
 
+    for (id, plain) in [("", "0"), ("0", "")] {
+        let error = general.validate_path(plain, Some(id)).await.unwrap_err();
+        assert_eq!(error.code, 0);
+        println!("{}", error.message);
+    }
+    println!("{}", general.validate_path("0", Some("0")).await?.result);
+    println!("{}", general.validate_path("0", None).await?.result);
+
     test_general_upload(client, string_in_array).await?;
     test_large_upload(client, string_in_array).await?;
 
@@ -145,7 +153,7 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
 
     println!("Invalid endpoint URL: htp://cloud.appwrite.io/v1");
 
-    let _ = general.empty().await;
+    let (): () = general.empty().await?;
 
     // Test Queries
     test_queries();

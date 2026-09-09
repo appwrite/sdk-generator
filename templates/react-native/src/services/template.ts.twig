@@ -138,7 +138,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
     {%~ endif %}
 {% for parameter in (method | parameters('all')) %}
 {% if parameter.required %}
-        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
+        {{ parameter | jsRequiredGuard((parameter.name | caseCamel | escapeKeyword), 8) | raw }}
             {{ ('throw new ' ~ (spec.info.title | caseUcfirst) ~ 'Exception') | tsCall('\'Missing required parameter: "' ~ (parameter.name | caseCamel | escapeKeyword) ~ '"\'', ';', 12) | raw }}
         }
 
@@ -456,6 +456,14 @@ export class {{ service.name | caseUcfirst }} extends Service {
      */
 {% set bareParams = [] %}{% for parameter in (method | parameters('all')) %}{% set bareParams = bareParams|merge([(parameter.name | caseCamel | escapeKeyword) ~ ((not parameter.required or (parameter | schemaNullable)) ? '?' : '') ~ ': ' ~ (parameter | getPropertyType(method, spec))]) %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}{% set bareParams = bareParams|merge(['onProgress = (progress: UploadProgress) => void']) %}{% endif %}
     {{ ((method | methodName) | caseCamel ~ 'URL') | tsSignature(bareParams, 'URL', 4, ' {') | raw }}
+{% for parameter in (method | parameters('all')) %}
+{% if parameter.required %}
+        {{ parameter | jsRequiredGuard((parameter.name | caseCamel | escapeKeyword), 8) | raw }}
+            {{ ('throw new ' ~ (spec.info.title | caseUcfirst) ~ 'Exception') | tsCall('\'Missing required parameter: "' ~ (parameter.name | caseCamel | escapeKeyword) ~ '"\'', ';', 12) | raw }}
+        }
+
+{% endif %}
+{% endfor %}
 {% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter.extensions['x-sdk-source']|default('')) == 'security') ? ('this.client.config.' ~ (parameter.extensions['x-sdk-config'] | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
         {{ method.path | tsApiPath(pathReplacements, 8) | raw }}
         const payload: Payload = {};

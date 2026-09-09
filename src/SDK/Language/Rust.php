@@ -543,10 +543,8 @@ class Rust extends Language
             return 'crate::error::Result<crate::models::' . $this->toPascalCase($models[0]) . '>';
         }
 
-        // Emptiness follows the produced content types, not the response
-        // codes: a 204 whose produced type is recorded in x-appwrite still
-        // returns a body to deserialize, and narrowing it to `()` would be a
-        // breaking change for every caller binding the result.
+        // Response content determines whether a body exists, independently
+        // of the default Accept header used for content negotiation.
         return $this->getProducedTypes($method) === []
             ? 'crate::error::Result<()>'
             : 'crate::error::Result<serde_json::Value>';
@@ -562,9 +560,6 @@ class Rust extends Language
                     $produces[] = $contentType;
                 }
             }
-        }
-        if ($produces === []) {
-            $produces = $method->extensions['x-appwrite']['produces'] ?? [];
         }
         return $produces;
     }

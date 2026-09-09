@@ -76,6 +76,18 @@ async function start() {
   // @ts-ignore
   console.log(response.result);
 
+  for (const [id, plain] of [["", "0"], ["0", ""]]) {
+    try {
+      await general.validatePath(plain, id);
+      throw new Error("Empty path parameter was accepted");
+    } catch (error) {
+      if (!(error instanceof appwrite.AppwriteException)) throw error;
+      console.log(error.message);
+    }
+  }
+  response = await general.validatePath("0", "0");
+  console.log(response.result);
+
   response = await general.upload(
     "string",
     123,

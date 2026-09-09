@@ -159,6 +159,20 @@ namespace AppwriteTests
             var result = await general.Redirect();
             LogResult((result as Dictionary<string, object>)["result"]);
 
+            foreach (var ids in new[] { new[] { "", "0" }, new[] { "0", "" } })
+            {
+                try
+                {
+                    await general.ValidatePath(ids[1], ids[0]);
+                    throw new System.Exception("Empty path parameter was accepted");
+                }
+                catch (AppwriteException e)
+                {
+                    LogResult(e.Message);
+                }
+            }
+            LogResult((await general.ValidatePath("0", "0")).Result);
+
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../resources/file.png"));
             LogResult(mock.Result);
 

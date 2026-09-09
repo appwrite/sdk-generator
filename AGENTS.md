@@ -284,6 +284,7 @@ public function getFiles(): array
 | Which files get generated | `src/SDK/Language/<Lang>.php` → `getFiles()` |
 | Type mappings for a language | `src/SDK/Language/<Lang>.php` → `getTypeName()` |
 | Available Twig filters | `src/SDK/SDK.php` (around line 62) |
+| Vendor extensions the generator reads | `src/SDK/Extension.php` and `src/SDK/Extension/Appwrite.php`; add a case before reading a new key |
 | Canonical spec parser and DTOs | `utopia-php/openapi` (VCS dependency) |
 | SDK grouping and filtering | `src/SDK/SDK.php` |
 | Generation orchestration | `src/SDK/SDK.php` → `generate()` |
@@ -337,9 +338,10 @@ Pass as first argument to generate only that SDK:
 - **Silent no-op:** A new `.twig` file with no `getFiles()` entry — generation runs successfully but the file is never created
 - **Wrong scope:** Using `default` scope when you need `service` scope means your template can't access `{{ service.name }}`
 - **Copy scope surprises:** A `copy`-scoped file with Twig syntax — the syntax is output literally, not rendered
-- **Spec fetch failure:** `example.php` requires internet access to fetch the live spec from GitHub; generation fails with an exception if the fetch returns empty. Spec URL pattern (prefix is `open-api3` or `swagger2` depending on the format):
+- **Spec fetch failure:** `example.php` requires internet access to fetch the live spec from GitHub; generation fails with an exception if the fetch returns empty. OpenAPI 3 is one canonical document per version and the generator selects the platform from it (`x-appwrite.platforms`); Swagger 2 documents are still per platform:
   ```
-  https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/open-api3-{version}-{platform}.json
+  https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/open-api3-{version}.json
+  https://raw.githubusercontent.com/appwrite/specs/main/specs/{version}/swagger2-{version}-{platform}.json
   ```
 - **Spec formats:** `example.php` parses every document through `Utopia\OpenAPI\Parser`. OpenAPI 3 is fetched by default; Swagger 2 is also supported. Pass the fetched format as the third argument:
   ```bash
@@ -357,12 +359,16 @@ composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-s
 
 ## Running Tests
 
-The tests in `tests/e2e/` generate an SDK from `tests/resources/spec-openapi3.json` into `tests/e2e/sdks/` and run it in Docker against a mock API. Parser behavior is tested by `utopia-php/openapi` rather than this repository. The mock server (`./mock-server`) is started in `setUp()` and removed in `tearDown()` (`docker compose down`); after interrupted runs, clean up with `cd mock-server && docker compose down`.
+Both suites generate from the shared fixture `tests/resources/spec-openapi3.json`. Parser behavior is tested by `utopia-php/openapi` rather than this repository.
 
-Do not add unit tests for generator contracts that should be exercised through the generated SDKs. Add or extend the relevant e2e fixture and language paths instead.
+- **`tests/generation/`** proves the *shape* of what the generator emits: for every language and platform it generates into `tests/generation/sdks/` and checks the tree against declarative tables. Excluded fixtures must never appear, platform-bound fixtures (`x-appwrite.platforms` on operations, method aliases and security schemes) must appear on their platforms alone, enums must be declared, Go comments must not carry HTML entities. Fixture tokens are single lowercase `zz*` words so they survive every language's identifier casing. No Docker, runs in seconds.
+- **`tests/e2e/`** proves *behavior*: each language test generates into `tests/e2e/sdks/`, compiles the SDK in Docker and runs `tests/e2e/languages/<lang>` against the mock API, comparing the printed lines to `expectedOutput`. The mock server (`./mock-server`) is started in `setUp()` and removed in `tearDown()` (`docker compose down`); after interrupted runs, clean up with `cd mock-server && docker compose down`.
+
+Put a check where it belongs: something the SDK *does* goes in a language script and `expectedOutput`; something the tree *contains or lacks* goes in a `GenerationTest` table. Do not add unit tests for generator internals that either suite can express.
 
 ```bash
-vendor/bin/phpunit tests/e2e/PHP85Test.php # one language e2e (needs Docker)
+vendor/bin/phpunit --testsuite Generation   # every language, no Docker
+vendor/bin/phpunit tests/e2e/PHP85Test.php  # one language e2e (needs Docker)
 ```
 
 If local PHP is missing, is not the required version, or has extension issues, use the matching PHP Docker image as a fallback for that command.

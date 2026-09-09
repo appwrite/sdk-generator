@@ -3,6 +3,7 @@ import {
     Foo,
     Bar,
     General,
+    AppwriteException,
     Realtime,
     Query,
     flattenParam,
@@ -127,6 +128,18 @@ import {
     response = await general.redirect();
     console.log(response.result);
 
+    for (const [id, plain] of [['', '0'], ['0', '']]) {
+        try {
+            await general.validatePath({ id, plain });
+            throw new Error('Empty path parameter was accepted');
+        } catch (error) {
+            if (!(error instanceof AppwriteException)) throw error;
+            console.log(error.message);
+        }
+    }
+    response = await general.validatePath({ id: '0', plain: '0' });
+    console.log(response.result);
+
     // Download
     console.log(new TextDecoder().decode(await general.download()));
 
@@ -141,6 +154,13 @@ import {
         { id: 'player1', name: 'John Doe', score: 100 },
         { id: 'player2', name: 'Jane Doe', score: 200 },
     ]);
+    console.log(response.result);
+
+    // All-optional positional params keep their trailing arguments
+    response = await general.getOptional(undefined, 128, 'omitted');
+    console.log(response.result);
+
+    response = await general.getOptional(0, 64, 'zero');
     console.log(response.result);
 
     // Exception responses

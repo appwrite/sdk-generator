@@ -170,6 +170,16 @@ echo $response->result . "\n";
 $response = $general->redirect();
 echo $response['result'] . "\n";
 
+foreach ([['', '0'], ['0', '']] as [$id, $plain]) {
+    try {
+        $general->validatePath($plain, $id);
+        throw new RuntimeException('Empty path parameter was accepted');
+    } catch (AppwriteException $error) {
+        echo $error->getMessage() . "\n";
+    }
+}
+echo $general->validatePath('0', '0')->result . "\n";
+
 $response = $general->getUnion();
 echo $response->result . "\n";
 

@@ -86,7 +86,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 270,
           "demo": "bar\/get.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -94,7 +93,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -164,7 +162,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 271,
           "demo": "bar\/post.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -172,7 +169,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -243,7 +239,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 273,
           "demo": "bar\/put.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -251,7 +246,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -322,7 +316,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 272,
           "demo": "bar\/patch.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -330,7 +323,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -401,7 +393,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 274,
           "demo": "bar\/delete.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -409,7 +400,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -482,7 +472,6 @@
         ],
         "description": "Create a new player using a request model.",
         "x-appwrite": {
-          "weight": 300,
           "demo": "general\/create-player.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -490,7 +479,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -551,7 +539,6 @@
         ],
         "description": "Create multiple players using an array of request models.",
         "x-appwrite": {
-          "weight": 301,
           "demo": "general\/create-players.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -559,7 +546,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -610,6 +596,73 @@
         }
       }
     },
+    "\/mock\/tests\/general\/documents": {
+      "post": {
+        "summary": "Create Documents",
+        "operationId": "generalCreateDocuments",
+        "tags": [
+          "general"
+        ],
+        "description": "Create documents from an array of plain objects.",
+        "x-appwrite": {
+          "demo": "general\/create-documents.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application\/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "documents": {
+                    "type": "array",
+                    "description": "Array of document objects.",
+                    "default": null,
+                    "example": "[{\"$id\":\"one\",\"title\":\"say \\\"hello\\\"\"}]",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "required": [
+                  "documents"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/excluded-method": {
       "post": {
         "summary": "Create Excluded General Fixture",
@@ -619,7 +672,6 @@
         ],
         "description": "Fixture-only general method used to verify method exclusion does not remove the whole service.",
         "x-appwrite": {
-          "weight": 301,
           "demo": "general\/excluded-method.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -637,6 +689,10 @@
             {
               "name": "createExcludedGeneralFixture",
               "namespace": "general",
+              "platforms": [
+                "client",
+                "server"
+              ],
               "auth": {
                 "Project": []
               }
@@ -696,7 +752,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 265,
           "demo": "foo\/get.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -704,7 +759,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -774,7 +828,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 266,
           "demo": "foo\/post.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -782,7 +835,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -853,7 +905,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 268,
           "demo": "foo\/put.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -861,7 +912,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -932,7 +982,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 267,
           "demo": "foo\/patch.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -940,7 +989,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1011,7 +1059,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 269,
           "demo": "foo\/delete.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1019,7 +1066,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1092,7 +1138,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 285,
           "demo": "general\/error400.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1100,7 +1145,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1138,7 +1182,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 286,
           "demo": "general\/error500.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1146,7 +1189,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1184,14 +1226,14 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 287,
           "demo": "general\/error502.md",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
-            "client"
+            "client",
+            "server"
           ],
           "packaging": false,
           "auth": {
@@ -1226,7 +1268,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 276,
           "demo": "general\/download.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1234,7 +1275,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1274,7 +1314,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 282,
           "demo": "general\/empty.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1282,7 +1321,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1313,7 +1351,6 @@
         ],
         "description": "Mock a queryable list request.",
         "x-appwrite": {
-          "weight": 284,
           "demo": "general\/list-rows.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1321,7 +1358,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1373,7 +1409,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 284,
           "demo": "general\/enum.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1381,7 +1416,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1542,7 +1576,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 281,
           "demo": "general\/get-cookie.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1550,7 +1583,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1588,7 +1620,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 275,
           "demo": "general\/headers.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1596,7 +1627,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1630,6 +1660,84 @@
         }
       }
     },
+    "\/mock\/tests\/general\/optional": {
+      "get": {
+        "summary": "Get Optional",
+        "operationId": "generalGetOptional",
+        "tags": [
+          "general"
+        ],
+        "description": "Mock a request whose parameters are all optional.",
+        "x-appwrite": {
+          "demo": "general\/get-optional.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "width",
+            "description": "Sample optional numeric param",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": -1
+            }
+          },
+          {
+            "name": "height",
+            "description": "Sample optional numeric param",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": -1
+            }
+          },
+          {
+            "name": "name",
+            "description": "Sample optional string param",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/nullable": {
       "post": {
         "summary": "Nullable Test",
@@ -1639,7 +1747,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 283,
           "demo": "general\/nullable.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1647,7 +1754,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1719,7 +1825,6 @@
         ],
         "description": "Create a new function execution.",
         "x-appwrite": {
-          "weight": 1,
           "demo": "functions\/create-execution.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1817,7 +1922,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 278,
           "demo": "general\/redirect.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1825,16 +1929,12 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
           "auth": {
             "Project": []
-          },
-          "produces": [
-            "text\/html"
-          ]
+          }
         },
         "security": [
           {
@@ -1859,7 +1959,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 279,
           "demo": "general\/redirected.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1867,7 +1966,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1896,6 +1994,71 @@
         }
       }
     },
+    "\/mock\/tests\/general\/path-validation\/{id}\/{plain}": {
+      "get": {
+        "summary": "Path validation",
+        "operationId": "generalValidatePath",
+        "tags": [
+          "general"
+        ],
+        "description": "Reject empty required nullable and nonnullable string path parameters before transport.",
+        "x-appwrite": {
+          "demo": "general\/validate-path.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "plain",
+            "description": "Required nonnullable path ID.",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "description": "Required nullable path ID.",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/path\/{pathId}": {
       "get": {
         "summary": "Path Param",
@@ -1905,7 +2068,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 280,
           "demo": "general\/get-path.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1913,7 +2075,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -1963,7 +2124,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 280,
           "demo": "general\/set-cookie.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -1971,7 +2131,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -2009,7 +2168,6 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 277,
           "demo": "general\/upload.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -2017,7 +2175,6 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
@@ -2140,7 +2297,6 @@
         ],
         "description": "OAuth 2",
         "x-appwrite": {
-          "weight": 265,
           "demo": "general\/oauth2.md",
           "rate-limit": 10,
           "rate-time": 3600,
@@ -2148,16 +2304,12 @@
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
           "auth": {
             "Project": []
-          },
-          "produces": [
-            "text\/plain"
-          ]
+          }
         },
         "security": [
           {
@@ -2245,7 +2397,6 @@
         ],
         "description": "Test union response types",
         "x-appwrite": {
-          "weight": 302,
           "demo": "mock\/get-union.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -2308,6 +2459,169 @@
         ]
       }
     },
+    "\/mock\/tests\/general\/zzconsoleonly": {
+      "get": {
+        "summary": "Console Only Fixture",
+        "operationId": "generalZzconsoleonly",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture-only method available to console SDKs alone; verifies platform selection drops it elsewhere.",
+        "x-appwrite": {
+          "demo": "general\/zzconsoleonly.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "packaging": false,
+          "platforms": [
+            "console"
+          ]
+        },
+        "security": [
+          {
+            "Project": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Any",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/any"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/platform-alias": {
+      "get": {
+        "summary": "Platform Alias Fixture",
+        "operationId": "generalGetPlatformAlias",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture-only method whose alias differs per platform; verifies alias selection.",
+        "x-appwrite": {
+          "demo": "general\/platform-alias.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "packaging": false,
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "methods": [
+            {
+              "name": "zzplatformalias",
+              "namespace": "general",
+              "platforms": [
+                "client"
+              ],
+              "description": "zzplatformclientalias variant.",
+              "auth": {
+                "Project": []
+              }
+            },
+            {
+              "name": "zzplatformalias",
+              "namespace": "general",
+              "platforms": [
+                "server"
+              ],
+              "description": "zzplatformserveralias variant.",
+              "auth": {
+                "server": {
+                  "Project": [],
+                  "JWT": []
+                }
+              }
+            }
+          ]
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Any",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/any"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/zzderivedauth": {
+      "get": {
+        "summary": "Platform Auth Fixture",
+        "operationId": "generalZzderivedauth",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture-only method whose example credentials are keyed by platform; Session is accepted in only one security alternative and must not be configured by examples.",
+        "x-appwrite": {
+          "demo": "general\/zzderivedauth.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "packaging": false,
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "auth": {
+            "client": {
+              "Project": []
+            },
+            "server": {
+              "Project": [],
+              "Key": [],
+              "Session": []
+            }
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          },
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": [],
+            "Session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Any",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/any"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/graphql": {
       "post": {
         "summary": "GraphQL query",
@@ -2317,7 +2631,6 @@
         ],
         "description": "Execute a GraphQL query.",
         "x-appwrite": {
-          "weight": 302,
           "demo": "graphql\/query.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -2381,7 +2694,6 @@
         ],
         "description": "Fixture-only service used to verify excluded services do not leak generated artifacts.",
         "x-appwrite": {
-          "weight": 303,
           "demo": "zzexcludedservice\/get.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -2424,7 +2736,6 @@
         ],
         "description": "Fixture-only request model path used to verify excluded services also exclude models.",
         "x-appwrite": {
-          "weight": 304,
           "demo": "zzexcludedservice\/post.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -2965,6 +3276,17 @@
         "name": "X-Appwrite-Session",
         "description": "The user session to authenticate with",
         "in": "header"
+      },
+      "Zzserveronlyheader": {
+        "type": "apiKey",
+        "name": "X-Appwrite-Zzserveronlyheader",
+        "description": "Fixture-only header offered to server SDKs alone.",
+        "in": "header",
+        "x-appwrite": {
+          "platforms": [
+            "server"
+          ]
+        }
       },
       "Locale": {
         "type": "apiKey",
