@@ -218,6 +218,16 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/src/analytics_observer.dart',
+                'template'      => 'flutter/lib/src/analytics_observer.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/analytics_tracking.dart',
+                'template'      => 'flutter/lib/src/analytics_tracking.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/src/cookie_manager.dart',
                 'template'      => 'flutter/lib/src/cookie_manager.dart.twig',
             ],
