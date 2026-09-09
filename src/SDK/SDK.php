@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK;
 
+use UnexpectedValueException;
 use Utopia\OpenAPI\Model\AnySchema;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\BooleanSchema;
@@ -1905,47 +1906,55 @@ class SDK
     }
 
     /**
-     * The conditions that select each member of a discriminated union.
+     * Standard single-property discriminator cases. Compound selection is
+     * represented by constrained unions, not vendor extensions.
      *
-     * The standard `mapping` is single-valued: one property value names one
-     * schema. A union whose members differ by a combination of properties
-     * cannot be expressed with it — five Appwrite attribute models share
-     * `type: string` and are told apart only by `format`, so `mapping` can
-     * name just one of them. `x-mapping` carries the full rule set, keyed by
-     * reference, and is preferred when present.
-     *
-     * @return array<string, array<string, mixed>>
+     * @return array<string, array<string, string>>
      */
     protected function getDiscriminatorCases(Discriminator $discriminator): array
     {
         $cases = [];
-
-        $extended = $discriminator->extensions[Extension::MAPPING->value] ?? null;
-        if (\is_array($extended)) {
-            foreach ($extended as $reference => $conditions) {
-                if (!\is_array($conditions)) {
-                    continue;
-                }
-                $name = $this->normalizeSchemaReference((string) $reference);
-                if ($name === '') {
-                    continue;
-                }
-                $cases[$name] = \array_filter($conditions, static fn(mixed $value): bool => $value !== null);
-            }
-        }
-
-        if ($cases !== []) {
-            return $cases;
-        }
 
         foreach ($discriminator->mapping as $value => $reference) {
             $name = $this->normalizeSchemaReference($reference);
             if ($name === '') {
                 continue;
             }
-            $cases[$name] = [$discriminator->propertyName => $value];
+            $cases[$name] = [$discriminator->propertyName => (string) $value];
         }
 
+        return $cases;
+    }
+
+    /** @return array<string, array<string, string>> */
+    protected function getConditionalCases(CompositeSchema $schema): array
+    {
+        $cases = [];
+        foreach ($schema->conditionalReferences() as $branch) {
+            $name = $this->normalizeSchemaReference($branch['reference']);
+            if ($name === '' || \array_key_exists($name, $cases)) {
+                throw new UnexpectedValueException('Conditional response references must identify distinct models.');
+            }
+            $conditions = [];
+            foreach ($branch['conditions'] as $condition) {
+                // Appwrite specs use string conditions. Reject unsupported types
+                // rather than silently stringify their selection rules.
+                if (!\is_string($condition['value'])) {
+                    throw new UnexpectedValueException('Conditional response literals must be strings.');
+                }
+                $conditions[$condition['propertyName']] = $condition['value'];
+            }
+            foreach ($cases as $existing) {
+                if (\count($existing) !== \count($conditions)) {
+                    continue;
+                }
+                $disjoint = array_any($conditions, fn($value, $property): bool => \array_key_exists((string) $property, $existing) && $existing[$property] !== $value);
+                if (!$disjoint) {
+                    throw new UnexpectedValueException('Conditional response cases overlap at equal specificity.');
+                }
+            }
+            $cases[$name] = $conditions;
+        }
         return $cases;
     }
 
@@ -1954,10 +1963,13 @@ class SDK
         foreach ($operation->responses as $response) {
             foreach ($response->content as $mediaType) {
                 $schema = $mediaType->schema;
-                if (!$schema instanceof CompositeSchema || !$schema->discriminator instanceof Discriminator) {
+                if (!$schema instanceof CompositeSchema) {
                     continue;
                 }
-                $mapping = $this->getDiscriminatorCases($schema->discriminator);
+                $mapping = $this->getConditionalCases($schema);
+                if ($mapping === [] && $schema->discriminator instanceof Discriminator) {
+                    $mapping = $this->getDiscriminatorCases($schema->discriminator);
+                }
                 if ($mapping === []) {
                     continue;
                 }

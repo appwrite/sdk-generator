@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4d31f79ecd8867a5fecb647eb11ea22d",
+    "content-hash": "737e524fbb8b8bf3cbc459c670344c55",
     "packages": [
         {
             "name": "matthiasmullie/minify",
@@ -450,26 +450,21 @@
         },
         {
             "name": "utopia-php/openapi",
-            "version": "0.2.2",
+            "version": "0.2.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/openapi.git",
-                "reference": "d39d668feb18425091431bf8baca26a678daf0af"
+                "reference": "a988ff180b973743339509d040a774ffe48aa906"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/openapi/zipball/d39d668feb18425091431bf8baca26a678daf0af",
-                "reference": "d39d668feb18425091431bf8baca26a678daf0af",
+                "url": "https://api.github.com/repos/utopia-php/openapi/zipball/a988ff180b973743339509d040a774ffe48aa906",
+                "reference": "a988ff180b973743339509d040a774ffe48aa906",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
                 "php": ">=8.5"
-            },
-            "require-dev": {
-                "laravel/pint": "^1.0",
-                "phpunit/phpunit": "^13.3",
-                "rector/rector": "^2.0"
             },
             "type": "library",
             "autoload": {
@@ -484,9 +479,9 @@
             "description": "Framework-independent OpenAPI 2.0, 3.0, and 3.1 parser with an immutable canonical model",
             "support": {
                 "issues": "https://github.com/utopia-php/openapi/issues",
-                "source": "https://github.com/utopia-php/openapi/tree/0.2.2"
+                "source": "https://github.com/utopia-php/openapi/tree/0.2.4"
             },
-            "time": "2026-09-08T17:06:56+00:00"
+            "time": "2026-09-09T11:17:58+00:00"
         }
     ],
     "packages-dev": [

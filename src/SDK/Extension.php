@@ -15,9 +15,6 @@ enum Extension: string
     /** On a component schema: generated as a request model rather than a response model. */
     case REQUEST_MODEL = 'x-request-model';
 
-    /** On a discriminator: a mapping keyed by a combination of property values. */
-    case MAPPING = 'x-mapping';
-
     /** Generator annotation on a path parameter filled from a security scheme. */
     case SDK_SOURCE = 'x-sdk-source';
 
