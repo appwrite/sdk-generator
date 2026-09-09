@@ -2402,21 +2402,28 @@
             "content": {
               "application\/json": {
                 "schema": {
-                  "oneOf": [
+                  "anyOf": [
                     {
-                      "$ref": "#\/components\/schemas\/unionMock"
+                      "allOf": [
+                        {"$ref": "#\/components\/schemas\/unionMock"},
+                        {
+                          "type": "object",
+                          "required": ["type"],
+                          "properties": {"type": {"enum": ["mock"]}}
+                        }
+                      ]
                     },
                     {
-                      "$ref": "#\/components\/schemas\/unionStub"
+                      "allOf": [
+                        {"$ref": "#\/components\/schemas\/unionStub"},
+                        {
+                          "type": "object",
+                          "required": ["type"],
+                          "properties": {"type": {"enum": ["stub"]}}
+                        }
+                      ]
                     }
-                  ],
-                  "discriminator": {
-                    "propertyName": "type",
-                    "mapping": {
-                      "mock": "#\/components\/schemas\/unionMock",
-                      "stub": "#\/components\/schemas\/unionStub"
-                    }
-                  }
+                  ]
                 }
               }
             }

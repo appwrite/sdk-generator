@@ -177,16 +177,35 @@ final class GenerationTest extends TestCase
         $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
         if ($unionVariant !== '') {
             $union = &$document->paths->{'/mock/tests/union'}->get->responses->{'200'}->content->{'application/json'}->schema;
-            $branches = [];
-            foreach ($union->discriminator->mapping as $value => $reference) {
-                $branches[] = ['allOf' => [
-                    ['$ref' => $reference],
-                    ['type' => 'object', 'required' => ['type'], 'properties' => [
-                        'type' => ['enum' => [$unionVariant === '-ambiguous' ? 'mock' : ($unionVariant === '-boolean' ? true : $value)]],
-                    ]],
-                ]];
+            $references = [];
+            $mapping = [];
+            foreach ($union->anyOf as $branch) {
+                $reference = $branch->allOf[0]->{'$ref'};
+                $value = $branch->allOf[1]->properties->type->enum[0];
+                $references[] = ['$ref' => $reference];
+                $mapping[$value] = $reference;
+                if ($unionVariant === '-ambiguous' || $unionVariant === '-boolean') {
+                    $branch->allOf[1]->properties->type->enum = [$unionVariant === '-ambiguous' ? 'mock' : true];
+                }
             }
-            $union = ['anyOf' => $branches];
+            if ($unionVariant === '-compound') {
+                $constraints = $union->anyOf[1]->allOf[1];
+                $constraints->properties->type->enum = ['mock'];
+                $constraints->required[] = 'format';
+                $constraints->properties->format = (object) ['enum' => ['stub']];
+                // Constrained branches must take precedence over a standard
+                // discriminator that cannot describe the compound selection.
+                $union->discriminator = (object) ['propertyName' => 'type', 'mapping' => (object) ['wrong' => '#/components/schemas/unionMock']];
+            }
+            if ($unionVariant === '-standard' || $unionVariant === '-extension') {
+                $union = ['oneOf' => $references, 'discriminator' => ['propertyName' => 'type', 'mapping' => $mapping]];
+                if ($unionVariant === '-extension') {
+                    $union['discriminator']['x-mapping'] = [
+                        '#/components/schemas/unionMock' => ['type' => 'wrong'],
+                        '#/components/schemas/unionStub' => ['type' => 'wrong'],
+                    ];
+                }
+            }
             unset($union);
         }
         $sdk = new SDK($this->language($name), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
@@ -223,18 +242,39 @@ final class GenerationTest extends TestCase
     public function testConditionalReferencesPreserveGeneratedTrees(string $name): void
     {
         foreach (['client', 'server'] as $platform) {
-            $legacy = $this->generate($name, $platform);
-            $conditional = $this->generate($name, $platform, '-conditional');
-            $this->assertSame(\array_keys($legacy), \array_keys($conditional));
-            foreach (array_keys($legacy) as $path) {
+            $standard = $this->generate($name, $platform, '-standard');
+            $conditional = $this->generate($name, $platform);
+            $this->assertSame(\array_keys($standard), \array_keys($conditional));
+            foreach (array_keys($standard) as $path) {
                 $root = self::OUTPUT . '/' . $name . '/' . $platform;
                 $this->assertSame(
                     \file_get_contents($root . '/' . $path),
-                    \file_get_contents($root . '-conditional/' . $path),
+                    \file_get_contents($root . '-standard/' . $path),
                     "{$name}/{$platform}/{$path} changed for equivalent conditional references",
                 );
             }
         }
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testCompoundSelectionPrecedesBroadFallback(): void
+    {
+        $source = $this->generate('php', 'server', '-compound')['src/Appwrite/Services/General.php'];
+        $this->assertStringContainsString("(\$response['format'] ?? null) === 'stub'", $source);
+        $specialized = strpos($source, '\\appwrite\\models\\unionstub::from($response)');
+        $broad = strpos($source, '\\appwrite\\models\\unionmock::from($response)');
+        $this->assertNotFalse($specialized);
+        $this->assertNotFalse($broad);
+        $this->assertLessThan($broad, $specialized);
+        $this->assertStringNotContainsString("=== 'wrong'", $source);
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testDiscriminatorExtensionsDoNotAffectGeneratedOutput(): void
+    {
+        $this->assertSame($this->generate('php', 'server'), $this->generate('php', 'server', '-extension'));
     }
 
     #[RunInSeparateProcess]
@@ -251,7 +291,7 @@ final class GenerationTest extends TestCase
     public function testUnsupportedTypedConditionsFailRatherThanStringify(): void
     {
         $this->expectException(RuntimeError::class);
-        $this->expectExceptionMessage('Non-string conditional response literals are not yet supported.');
+        $this->expectExceptionMessage('Conditional response literals must be strings.');
         $this->generate('php', 'server', '-boolean');
     }
 

@@ -1906,46 +1906,21 @@ class SDK
     }
 
     /**
-     * The conditions that select each member of a discriminated union.
+     * Standard single-property discriminator cases. Compound selection is
+     * represented by constrained unions, not vendor extensions.
      *
-     * The standard `mapping` is single-valued: one property value names one
-     * schema. A union whose members differ by a combination of properties
-     * cannot be expressed with it — five Appwrite attribute models share
-     * `type: string` and are told apart only by `format`, so `mapping` can
-     * name just one of them. Legacy `x-mapping` carries the full rule set,
-     * keyed by reference, and is preferred over the ordinary mapping. New
-     * constrained unions are read separately through conditionalReferences().
-     *
-     * @return array<string, array<string, mixed>>
+     * @return array<string, array<string, string>>
      */
     protected function getDiscriminatorCases(Discriminator $discriminator): array
     {
         $cases = [];
-
-        $extended = $discriminator->extensions[Extension::MAPPING->value] ?? null;
-        if (\is_array($extended)) {
-            foreach ($extended as $reference => $conditions) {
-                if (!\is_array($conditions)) {
-                    continue;
-                }
-                $name = $this->normalizeSchemaReference((string) $reference);
-                if ($name === '') {
-                    continue;
-                }
-                $cases[$name] = \array_filter($conditions, static fn(mixed $value): bool => $value !== null);
-            }
-        }
-
-        if ($cases !== []) {
-            return $cases;
-        }
 
         foreach ($discriminator->mapping as $value => $reference) {
             $name = $this->normalizeSchemaReference($reference);
             if ($name === '') {
                 continue;
             }
-            $cases[$name] = [$discriminator->propertyName => $value];
+            $cases[$name] = [$discriminator->propertyName => (string) $value];
         }
 
         return $cases;
@@ -1962,10 +1937,10 @@ class SDK
             }
             $conditions = [];
             foreach ($branch['conditions'] as $condition) {
-                // Response templates currently compare string literals. Fail rather
-                // than silently stringify a boolean or numeric selection rule.
+                // Appwrite specs use string conditions. Reject unsupported types
+                // rather than silently stringify their selection rules.
                 if (!\is_string($condition['value'])) {
-                    throw new UnexpectedValueException('Non-string conditional response literals are not yet supported.');
+                    throw new UnexpectedValueException('Conditional response literals must be strings.');
                 }
                 $conditions[$condition['propertyName']] = $condition['value'];
             }
