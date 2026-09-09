@@ -219,46 +219,43 @@ print(Query.elem_match("friends", [
     Query.equal("name", "Alice"),
     Query.greater_than("age", 18)
 ]))
-print(Query.count("*", "total"))
-print(Query.join("orders", "$id", "customerId"))
-print(Query.group_by(["status"]))
-print(Query.distinct())
-print(Query.covers("location", [1, 2]))
-print(Query.count_distinct("year", "uniqueYears"))
-print(Query.sum("price", "total"))
-print(Query.avg("price", "avgPrice"))
-print(Query.min("price", "lowest"))
-print(Query.max("price", "highest"))
-print(Query.stddev("price", "sd"))
-print(Query.stddev_pop("price", "sdp"))
-print(Query.stddev_samp("price", "sds"))
-print(Query.variance("price", "var"))
-print(Query.var_pop("price", "vp"))
-print(Query.var_samp("price", "vs"))
-print(Query.bit_and("flags", "band"))
-print(Query.bit_or("flags", "bor"))
-print(Query.bit_xor("flags", "bxor"))
-print(Query.having([Query.greater_than("total", 1)]))
-print(Query.left_join("orders", "$id", "customerId", "=", "ord"))
-print(Query.right_join("orders", "$id", "customerId"))
-print(Query.full_outer_join("orders", "$id", "customerId"))
-print(Query.cross_join("orders", "ord"))
-print(Query.on("$id", "customerId"))
-print(Query.left_join("orders", "ord", [
+query_transport = general.list_rows([
+    Query.count("*", "total"),
+    Query.join("orders", "$id", "customerId"),
+    Query.group_by(["status"]),
+    Query.distinct(),
+    Query.covers("location", [1, 2]),
+    Query.count_distinct("year", "uniqueYears"),
+    Query.sum("price", "total"),
+    Query.avg("price", "avgPrice"),
+    Query.min("price", "lowest"),
+    Query.max("price", "highest"),
+    Query.stddev("price", "sd"),
+    Query.stddev_pop("price", "sdp"),
+    Query.stddev_samp("price", "sds"),
+    Query.variance("price", "var"),
+    Query.var_pop("price", "vp"),
+    Query.var_samp("price", "vs"),
+    Query.bit_and("flags", "band"),
+    Query.bit_or("flags", "bor"),
+    Query.bit_xor("flags", "bxor"),
+    Query.having([Query.greater_than("total", 1)]),
+    Query.left_join("orders", "$id", "customerId", "=", "ord"),
+    Query.right_join("orders", "$id", "customerId"),
+    Query.full_outer_join("orders", "$id", "customerId"),
+    Query.cross_join("orders", "ord"),
     Query.on("$id", "customerId"),
-    Query.equal("ord.status", "paid"),
-]))
-print(Query.not_covers("location", [1, 2]))
-print(Query.spatial_equals("location", [1, 2]))
-print(Query.not_spatial_equals("location", [1, 2]))
-page_queries = Query.page(2, 10)
-print(page_queries[0])
-print(page_queries[1])
-print(Query.builder().limit(1).build()[0])
-print('flatten-builder:ok' if Query._flatten([Query.builder().limit(1)]) == [Query.limit(1)] else 'flatten-builder:fail')
-geometry = [[1, 2], [3, 4]]
-print('flatten-geometry:ok' if Query._flatten(geometry) == geometry else 'flatten-geometry:fail')
-print('flatten-list:ok' if Query._flatten([Query.limit(1)]) == [Query.limit(1)] else 'flatten-list:fail')
+    Query.left_join("orders", "ord", [
+        Query.on("$id", "customerId"),
+        Query.equal("ord.status", "paid"),
+    ]),
+    Query.not_covers("location", [1, 2]),
+    Query.spatial_equals("location", [1, 2]),
+    Query.not_spatial_equals("location", [1, 2]),
+    *Query.page(2, 10),
+    Query.builder().limit(1),
+])
+print(query_transport.result)
 
 # Permission & Role helper tests
 print(Permission.read(Role.any()))

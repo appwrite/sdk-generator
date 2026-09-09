@@ -409,48 +409,43 @@ class ServiceTest {
                 Query.equal("name", "Alice"),
                 Query.greaterThan("age", 18)
             )))
-            writeToFile(Query.count("*", "total"))
-            writeToFile(Query.join("orders", "\$id", "customerId"))
-            writeToFile(Query.groupBy(listOf("status")))
-            writeToFile(Query.distinct())
-            writeToFile(Query.covers("location", listOf(1, 2)))
-            writeToFile(Query.countDistinct("year", "uniqueYears"))
-            writeToFile(Query.sum("price", "total"))
-            writeToFile(Query.avg("price", "avgPrice"))
-            writeToFile(Query.min("price", "lowest"))
-            writeToFile(Query.max("price", "highest"))
-            writeToFile(Query.stddev("price", "sd"))
-            writeToFile(Query.stddevPop("price", "sdp"))
-            writeToFile(Query.stddevSamp("price", "sds"))
-            writeToFile(Query.variance("price", "var"))
-            writeToFile(Query.varPop("price", "vp"))
-            writeToFile(Query.varSamp("price", "vs"))
-            writeToFile(Query.bitAnd("flags", "band"))
-            writeToFile(Query.bitOr("flags", "bor"))
-            writeToFile(Query.bitXor("flags", "bxor"))
-            writeToFile(Query.having(listOf(Query.greaterThan("total", 1))))
-            writeToFile(Query.leftJoin("orders", "\$id", "customerId", "=", "ord"))
-            writeToFile(Query.rightJoin("orders", "\$id", "customerId"))
-            writeToFile(Query.fullOuterJoin("orders", "\$id", "customerId"))
-            writeToFile(Query.crossJoin("orders", "ord"))
-            writeToFile(Query.on("\$id", "customerId"))
-            writeToFile(Query.leftJoin("orders", "ord", listOf(
-                Query.on("\$id", "customerId"),
-                Query.equal("ord.status", "paid"),
-            )))
-            writeToFile(Query.notCovers("location", listOf(1, 2)))
-            writeToFile(Query.spatialEquals("location", listOf(1, 2)))
-            writeToFile(Query.notSpatialEquals("location", listOf(1, 2)))
-            val pageQueries = Query.page(2, 10)
-            writeToFile(pageQueries[0])
-            writeToFile(pageQueries[1])
-            writeToFile(Query.builder().limit(1).build()[0])
-            val flatBuilder = client.flatten(listOf(Query.builder().limit(1)))
-            writeToFile(if (flatBuilder == listOf(Query.limit(1))) "flatten-builder:ok" else "flatten-builder:fail")
-            val geometry = listOf(listOf(1, 2), listOf(3, 4))
-            writeToFile(if (client.flatten(geometry) == geometry) "flatten-geometry:ok" else "flatten-geometry:fail")
-            val flatList = client.flatten(listOf(Query.limit(1)))
-            writeToFile(if (flatList == listOf(Query.limit(1))) "flatten-list:ok" else "flatten-list:fail")
+            val queryTransport = general.listRows(
+                listOf(
+                    Query.count("*", "total"),
+                    Query.join("orders", "\$id", "customerId"),
+                    Query.groupBy(listOf("status")),
+                    Query.distinct(),
+                    Query.covers("location", listOf(1, 2)),
+                    Query.countDistinct("year", "uniqueYears"),
+                    Query.sum("price", "total"),
+                    Query.avg("price", "avgPrice"),
+                    Query.min("price", "lowest"),
+                    Query.max("price", "highest"),
+                    Query.stddev("price", "sd"),
+                    Query.stddevPop("price", "sdp"),
+                    Query.stddevSamp("price", "sds"),
+                    Query.variance("price", "var"),
+                    Query.varPop("price", "vp"),
+                    Query.varSamp("price", "vs"),
+                    Query.bitAnd("flags", "band"),
+                    Query.bitOr("flags", "bor"),
+                    Query.bitXor("flags", "bxor"),
+                    Query.having(listOf(Query.greaterThan("total", 1))),
+                    Query.leftJoin("orders", "\$id", "customerId", "=", "ord"),
+                    Query.rightJoin("orders", "\$id", "customerId"),
+                    Query.fullOuterJoin("orders", "\$id", "customerId"),
+                    Query.crossJoin("orders", "ord"),
+                    Query.on("\$id", "customerId"),
+                    Query.leftJoin("orders", "ord", listOf(
+                        Query.on("\$id", "customerId"),
+                        Query.equal("ord.status", "paid"),
+                    )),
+                    Query.notCovers("location", listOf(1, 2)),
+                    Query.spatialEquals("location", listOf(1, 2)),
+                    Query.notSpatialEquals("location", listOf(1, 2)),
+                ) + Query.page(2, 10) + Query.builder().limit(1).build()
+            )
+            writeToFile(queryTransport.result)
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))

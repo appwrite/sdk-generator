@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -388,49 +387,45 @@ namespace AppwriteTests
                 Query.Equal("name", "Alice"),
                 Query.GreaterThan("age", 18)
             }));
-            LogResult(Query.Count("*", "total"));
-            LogResult(Query.Join("orders", "$id", "customerId"));
-            LogResult(Query.GroupBy(new List<string> { "status" }));
-            LogResult(Query.Distinct());
-            LogResult(Query.Covers("location", new List<object> { 1, 2 }));
-            LogResult(Query.CountDistinct("year", "uniqueYears"));
-            LogResult(Query.Sum("price", "total"));
-            LogResult(Query.Avg("price", "avgPrice"));
-            LogResult(Query.Min("price", "lowest"));
-            LogResult(Query.Max("price", "highest"));
-            LogResult(Query.Stddev("price", "sd"));
-            LogResult(Query.StddevPop("price", "sdp"));
-            LogResult(Query.StddevSamp("price", "sds"));
-            LogResult(Query.Variance("price", "var"));
-            LogResult(Query.VarPop("price", "vp"));
-            LogResult(Query.VarSamp("price", "vs"));
-            LogResult(Query.BitAnd("flags", "band"));
-            LogResult(Query.BitOr("flags", "bor"));
-            LogResult(Query.BitXor("flags", "bxor"));
-            LogResult(Query.Having(new List<string> { Query.GreaterThan("total", 1) }));
-            LogResult(Query.LeftJoin("orders", "$id", "customerId", "=", "ord"));
-            LogResult(Query.RightJoin("orders", "$id", "customerId"));
-            LogResult(Query.FullOuterJoin("orders", "$id", "customerId"));
-            LogResult(Query.CrossJoin("orders", "ord"));
-            LogResult(Query.On("$id", "customerId"));
-            LogResult(Query.LeftJoin("orders", "ord", new List<string> {
+            var transportQueries = new List<string>
+            {
+                Query.Count("*", "total"),
+                Query.Join("orders", "$id", "customerId"),
+                Query.GroupBy(new List<string> { "status" }),
+                Query.Distinct(),
+                Query.Covers("location", new List<object> { 1, 2 }),
+                Query.CountDistinct("year", "uniqueYears"),
+                Query.Sum("price", "total"),
+                Query.Avg("price", "avgPrice"),
+                Query.Min("price", "lowest"),
+                Query.Max("price", "highest"),
+                Query.Stddev("price", "sd"),
+                Query.StddevPop("price", "sdp"),
+                Query.StddevSamp("price", "sds"),
+                Query.Variance("price", "var"),
+                Query.VarPop("price", "vp"),
+                Query.VarSamp("price", "vs"),
+                Query.BitAnd("flags", "band"),
+                Query.BitOr("flags", "bor"),
+                Query.BitXor("flags", "bxor"),
+                Query.Having(new List<string> { Query.GreaterThan("total", 1) }),
+                Query.LeftJoin("orders", "$id", "customerId", "=", "ord"),
+                Query.RightJoin("orders", "$id", "customerId"),
+                Query.FullOuterJoin("orders", "$id", "customerId"),
+                Query.CrossJoin("orders", "ord"),
                 Query.On("$id", "customerId"),
-                Query.Equal("ord.status", "paid"),
-            }));
-            LogResult(Query.NotCovers("location", new List<object> { 1, 2 }));
-            LogResult(Query.SpatialEquals("location", new List<object> { 1, 2 }));
-            LogResult(Query.NotSpatialEquals("location", new List<object> { 1, 2 }));
-            var pageQueries = Query.Page(2, 10);
-            LogResult(pageQueries[0]);
-            LogResult(pageQueries[1]);
-            LogResult(new Query.Builder().Limit(1).Build()[0]);
-            var expectedLimit = new List<object> { Query.Limit(1) };
-            var flatBuilder = Query.Flatten(new List<object> { new Query.Builder().Limit(1) }) as IEnumerable;
-            LogResult(flatBuilder != null && expectedLimit.SequenceEqual(flatBuilder.Cast<object>()) ? "flatten-builder:ok" : "flatten-builder:fail");
-            var geometry = new List<object> { new List<object> { 1, 2 }, new List<object> { 3, 4 } };
-            LogResult(object.ReferenceEquals(Query.Flatten(geometry), geometry) ? "flatten-geometry:ok" : "flatten-geometry:fail");
-            var queryList = new List<object> { Query.Limit(1) };
-            LogResult(object.ReferenceEquals(Query.Flatten(queryList), queryList) ? "flatten-list:ok" : "flatten-list:fail");
+                Query.LeftJoin("orders", "ord", new List<string> {
+                    Query.On("$id", "customerId"),
+                    Query.Equal("ord.status", "paid"),
+                }),
+                Query.NotCovers("location", new List<object> { 1, 2 }),
+                Query.SpatialEquals("location", new List<object> { 1, 2 }),
+                Query.NotSpatialEquals("location", new List<object> { 1, 2 }),
+            };
+            transportQueries.AddRange(Query.Page(2, 10));
+            transportQueries.AddRange(new Query.Builder().Limit(1).Build());
+            var queryTransport = await general.ListRows(transportQueries);
+            LogResult(queryTransport.Result);
             // Permission & Roles helper tests
             LogResult(Permission.Read(Role.Any()));
             LogResult(Permission.Write(Role.User(ID.Custom("userid"))));

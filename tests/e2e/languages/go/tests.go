@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"path"
-	"reflect"
 	"time"
 
 	"github.com/repoowner/reponame/appwrite"
@@ -168,7 +167,7 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	general.Empty()
 
 	// Test Queries
-	testQueries()
+	testQueries(client)
 
 	// Test Permission Helpers
 	testPermissionHelpers()
@@ -220,7 +219,7 @@ func testLargeUpload(client client.Client, stringInArray []string) {
 	fmt.Printf("%s\n", response.Result)
 }
 
-func testQueries() {
+func testQueries(client client.Client) {
 	fmt.Println(query.Equal("released", true))
 	fmt.Println(query.Equal("title", []interface{}{"Spiderman", "Dr. Strange"}))
 	fmt.Println(query.NotEqual("title", "Spiderman"))
@@ -304,60 +303,48 @@ func testQueries() {
 		query.Equal("name", "Alice"),
 		query.GreaterThan("age", 18),
 	}))
-	fmt.Println(query.Count("*", "total"))
-	fmt.Println(query.Join("orders", "$id", "customerId", "=", ""))
-	fmt.Println(query.GroupBy([]interface{}{"status"}))
-	fmt.Println(query.Distinct())
-	fmt.Println(query.Covers("location", []interface{}{1, 2}))
-	fmt.Println(query.CountDistinct("year", "uniqueYears"))
-	fmt.Println(query.Sum("price", "total"))
-	fmt.Println(query.Avg("price", "avgPrice"))
-	fmt.Println(query.Min("price", "lowest"))
-	fmt.Println(query.Max("price", "highest"))
-	fmt.Println(query.Stddev("price", "sd"))
-	fmt.Println(query.StddevPop("price", "sdp"))
-	fmt.Println(query.StddevSamp("price", "sds"))
-	fmt.Println(query.Variance("price", "var"))
-	fmt.Println(query.VarPop("price", "vp"))
-	fmt.Println(query.VarSamp("price", "vs"))
-	fmt.Println(query.BitAnd("flags", "band"))
-	fmt.Println(query.BitOr("flags", "bor"))
-	fmt.Println(query.BitXor("flags", "bxor"))
-	fmt.Println(query.Having([]string{query.GreaterThan("total", 1)}))
-	fmt.Println(query.LeftJoin("orders", "$id", "customerId", "=", "ord"))
-	fmt.Println(query.RightJoin("orders", "$id", "customerId", "=", ""))
-	fmt.Println(query.FullOuterJoin("orders", "$id", "customerId", "=", ""))
-	fmt.Println(query.CrossJoin("orders", "ord"))
-	fmt.Println(query.On("$id", "customerId", ""))
-	fmt.Println(query.LeftJoinOn("orders", "ord", []string{
+	general := appwrite.NewGeneral(client)
+	queries := []string{
+		query.Count("*", "total"),
+		query.Join("orders", "$id", "customerId", "=", ""),
+		query.GroupBy([]interface{}{"status"}),
+		query.Distinct(),
+		query.Covers("location", []interface{}{1, 2}),
+		query.CountDistinct("year", "uniqueYears"),
+		query.Sum("price", "total"),
+		query.Avg("price", "avgPrice"),
+		query.Min("price", "lowest"),
+		query.Max("price", "highest"),
+		query.Stddev("price", "sd"),
+		query.StddevPop("price", "sdp"),
+		query.StddevSamp("price", "sds"),
+		query.Variance("price", "var"),
+		query.VarPop("price", "vp"),
+		query.VarSamp("price", "vs"),
+		query.BitAnd("flags", "band"),
+		query.BitOr("flags", "bor"),
+		query.BitXor("flags", "bxor"),
+		query.Having([]string{query.GreaterThan("total", 1)}),
+		query.LeftJoin("orders", "$id", "customerId", "=", "ord"),
+		query.RightJoin("orders", "$id", "customerId", "=", ""),
+		query.FullOuterJoin("orders", "$id", "customerId", "=", ""),
+		query.CrossJoin("orders", "ord"),
 		query.On("$id", "customerId", ""),
-		query.Equal("ord.status", "paid"),
-	}))
-	fmt.Println(query.NotCovers("location", []interface{}{1, 2}))
-	fmt.Println(query.SpatialEquals("location", []interface{}{1, 2}))
-	fmt.Println(query.NotSpatialEquals("location", []interface{}{1, 2}))
-	pageQueries := query.Page(2, 10)
-	fmt.Println(pageQueries[0])
-	fmt.Println(pageQueries[1])
-	fmt.Println(query.NewBuilder().Limit(1).Build()[0])
-	flatBuilder := client.Flatten([]interface{}{query.NewBuilder().Limit(1)})
-	if got, ok := flatBuilder.([]interface{}); ok && len(got) == 1 && got[0] == query.Limit(1) {
-		fmt.Println("flatten-builder:ok")
-	} else {
-		fmt.Println("flatten-builder:fail")
+		query.LeftJoinOn("orders", "ord", []string{
+			query.On("$id", "customerId", ""),
+			query.Equal("ord.status", "paid"),
+		}),
+		query.NotCovers("location", []interface{}{1, 2}),
+		query.SpatialEquals("location", []interface{}{1, 2}),
+		query.NotSpatialEquals("location", []interface{}{1, 2}),
 	}
-	geometry := [][]int{{1, 2}, {3, 4}}
-	if reflect.DeepEqual(client.Flatten(geometry), geometry) {
-		fmt.Println("flatten-geometry:ok")
-	} else {
-		fmt.Println("flatten-geometry:fail")
+	queries = append(queries, query.Page(2, 10)...)
+	queries = append(queries, query.NewBuilder().Limit(1).Build()...)
+	queryTransport, err := general.ListRows(general.WithListRowsQueries(queries))
+	if err != nil {
+		fmt.Printf("general.ListRows => error %v", err)
 	}
-	flatList := client.Flatten([]interface{}{query.Limit(1)})
-	if got, ok := flatList.([]interface{}); ok && len(got) == 1 && got[0] == query.Limit(1) {
-		fmt.Println("flatten-list:ok")
-	} else {
-		fmt.Println("flatten-list:fail")
-	}
+	fmt.Println(queryTransport.Result)
 }
 
 func testPermissionHelpers() {

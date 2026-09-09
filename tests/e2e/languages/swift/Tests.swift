@@ -265,42 +265,44 @@ class Tests: XCTestCase {
             Query.equal("name", value: "Alice"),
             Query.greaterThan("age", value: 18)
         ]))
-        print(Query.count("*", alias: "total"))
-        print(Query.join("orders", left: "$id", right: "customerId"))
-        print(Query.groupBy(["status"]))
-        print(Query.distinct())
-        print(Query.covers("location", values: [1, 2]))
-        print(Query.countDistinct("year", alias: "uniqueYears"))
-        print(Query.sum("price", alias: "total"))
-        print(Query.avg("price", alias: "avgPrice"))
-        print(Query.min("price", alias: "lowest"))
-        print(Query.max("price", alias: "highest"))
-        print(Query.stddev("price", alias: "sd"))
-        print(Query.stddevPop("price", alias: "sdp"))
-        print(Query.stddevSamp("price", alias: "sds"))
-        print(Query.variance("price", alias: "var"))
-        print(Query.varPop("price", alias: "vp"))
-        print(Query.varSamp("price", alias: "vs"))
-        print(Query.bitAnd("flags", alias: "band"))
-        print(Query.bitOr("flags", alias: "bor"))
-        print(Query.bitXor("flags", alias: "bxor"))
-        print(Query.having([Query.greaterThan("total", value: 1)]))
-        print(Query.leftJoin("orders", left: "$id", right: "customerId", operator: "=", alias: "ord"))
-        print(Query.rightJoin("orders", left: "$id", right: "customerId"))
-        print(Query.fullOuterJoin("orders", left: "$id", right: "customerId"))
-        print(Query.crossJoin("orders", alias: "ord"))
-        print(Query.on("$id", "customerId"))
-        print(Query.leftJoin("orders", alias: "ord", on: [
+        let transportQueries: [String] = [
+            Query.count("*", alias: "total"),
+            Query.join("orders", left: "$id", right: "customerId"),
+            Query.groupBy(["status"]),
+            Query.distinct(),
+            Query.covers("location", values: [1, 2]),
+            Query.countDistinct("year", alias: "uniqueYears"),
+            Query.sum("price", alias: "total"),
+            Query.avg("price", alias: "avgPrice"),
+            Query.min("price", alias: "lowest"),
+            Query.max("price", alias: "highest"),
+            Query.stddev("price", alias: "sd"),
+            Query.stddevPop("price", alias: "sdp"),
+            Query.stddevSamp("price", alias: "sds"),
+            Query.variance("price", alias: "var"),
+            Query.varPop("price", alias: "vp"),
+            Query.varSamp("price", alias: "vs"),
+            Query.bitAnd("flags", alias: "band"),
+            Query.bitOr("flags", alias: "bor"),
+            Query.bitXor("flags", alias: "bxor"),
+            Query.having([Query.greaterThan("total", value: 1)]),
+            Query.leftJoin("orders", left: "$id", right: "customerId", operator: "=", alias: "ord"),
+            Query.rightJoin("orders", left: "$id", right: "customerId"),
+            Query.fullOuterJoin("orders", left: "$id", right: "customerId"),
+            Query.crossJoin("orders", alias: "ord"),
             Query.on("$id", "customerId"),
-            Query.equal("ord.status", value: "paid"),
-        ]))
-        print(Query.notCovers("location", values: [1, 2]))
-        print(Query.spatialEquals("location", values: [1, 2]))
-        print(Query.notSpatialEquals("location", values: [1, 2]))
-        let pageQueries = Query.page(2, perPage: 10)
-        print(pageQueries[0])
-        print(pageQueries[1])
-        print(Query.builder().limit(1).build()[0])
+            Query.leftJoin("orders", alias: "ord", on: [
+                Query.on("$id", "customerId"),
+                Query.equal("ord.status", value: "paid"),
+            ]),
+            Query.notCovers("location", values: [1, 2]),
+            Query.spatialEquals("location", values: [1, 2]),
+            Query.notSpatialEquals("location", values: [1, 2]),
+        ]
+        let queryTransport = try await general.listRows(
+            queries: transportQueries + Query.page(2, perPage: 10) + Query.builder().limit(1).build()
+        )
+        print(queryTransport.result)
 
         // Permission & Role helper tests
         print(Permission.read(Role.any()))

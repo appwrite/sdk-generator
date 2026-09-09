@@ -46,7 +46,7 @@ final class DartBetaTest extends Base
         ...Base::EXCEPTION_RESPONSES,
         ...Base::OAUTH_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
-        ...Base::QUERY_FLATTEN_RESPONSES,
+        Base::QUERY_TRANSPORT_RESPONSE,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES

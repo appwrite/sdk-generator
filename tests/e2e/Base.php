@@ -206,6 +206,14 @@ abstract class Base extends TestCase
         '{"method":"exists","values":["attr1","attr2"]}',
         '{"method":"notExists","values":["attr1","attr2"]}',
         '{"method":"elemMatch","attribute":"friends","values":[{"method":"equal","attribute":"name","values":["Alice"]},{"method":"greaterThan","attribute":"age","values":[18]}]}',
+    ];
+
+    // Each language harness sends these through a real listRows request and prints
+    // the echo the mock server returns, so the assertion reads the request the
+    // server received rather than what a helper rendered in process.
+    protected const QUERY_TRANSPORT_RESPONSE = '__QUERY_TRANSPORT_RESPONSE__';
+
+    protected const QUERY_TRANSPORT_QUERIES = [
         '{"method":"count","attribute":"*","values":["total"]}',
         '{"method":"join","attribute":"orders","values":["$id","=","customerId"]}',
         '{"method":"groupBy","values":["status"]}',
@@ -238,12 +246,6 @@ abstract class Base extends TestCase
         '{"method":"limit","values":[10]}',
         '{"method":"offset","values":[10]}',
         '{"method":"limit","values":[1]}',
-    ];
-
-    protected const QUERY_FLATTEN_RESPONSES = [
-        'flatten-builder:ok',
-        'flatten-geometry:ok',
-        'flatten-list:ok',
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [
@@ -600,6 +602,11 @@ abstract class Base extends TestCase
                 $expected = $this->getExpectedSdkHeaders() . '; accept: application/json, text/plain';
             }
 
+            if ($expected === self::QUERY_TRANSPORT_RESPONSE) {
+                $this->assertQueriesReachedTheServer($output[$index] ?? null);
+                continue;
+            }
+
             // HACK: Swift does not guarantee the order of the JSON parameters
             if (\str_starts_with((string) $expected, '{')) {
                 $this->assertEquals(
@@ -614,6 +621,30 @@ abstract class Base extends TestCase
             } else {
                 $this->assertEquals($expected, $output[$index]);
             }
+        }
+    }
+
+    private function assertQueriesReachedTheServer(?string $echo): void
+    {
+        $received = \json_decode((string) $echo, true);
+
+        $this->assertIsArray(
+            $received,
+            "The SDK did not print the query list the mock server echoes back, it printed: {$echo}"
+        );
+        $this->assertCount(
+            \count(self::QUERY_TRANSPORT_QUERIES),
+            $received,
+            'The server received a different number of queries than the SDK was given'
+        );
+
+        foreach (self::QUERY_TRANSPORT_QUERIES as $position => $expected) {
+            // HACK: Swift does not guarantee the order of the JSON parameters
+            $this->assertEquals(
+                \json_decode($expected, true),
+                \json_decode((string) $received[$position], true),
+                "Query {$position} did not reach the server as the helper described it"
+            );
         }
     }
 

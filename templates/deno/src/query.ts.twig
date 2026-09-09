@@ -629,7 +629,7 @@ export class Query {
       values.push(alias);
     }
     for (const query of on) {
-      values.push(JSONbig.parse(query));
+      values.push(JSON.parse(query));
     }
     return new Query(method, table, values).toString();
   }

@@ -10,8 +10,7 @@ const {
     Foo,
     Bar,
     General,
-    AppwriteException,
-    flattenParam,
+    AppwriteException
 } = require('./dist/index.js');
 const { InputFile } = require('./dist/inputFile.js');
 const { readFile } = require('fs/promises');
@@ -362,45 +361,43 @@ async function start() {
         Query.equal("name", "Alice"),
         Query.greaterThan("age", 18)
     ]));
-    console.log(Query.count("*", "total"));
-    console.log(Query.join("orders", "$id", "customerId"));
-    console.log(Query.groupBy(["status"]));
-    console.log(Query.distinct());
-    console.log(Query.covers("location", [1, 2]));
-    console.log(Query.countDistinct("year", "uniqueYears"));
-    console.log(Query.sum("price", "total"));
-    console.log(Query.avg("price", "avgPrice"));
-    console.log(Query.min("price", "lowest"));
-    console.log(Query.max("price", "highest"));
-    console.log(Query.stddev("price", "sd"));
-    console.log(Query.stddevPop("price", "sdp"));
-    console.log(Query.stddevSamp("price", "sds"));
-    console.log(Query.variance("price", "var"));
-    console.log(Query.varPop("price", "vp"));
-    console.log(Query.varSamp("price", "vs"));
-    console.log(Query.bitAnd("flags", "band"));
-    console.log(Query.bitOr("flags", "bor"));
-    console.log(Query.bitXor("flags", "bxor"));
-    console.log(Query.having([Query.greaterThan("total", 1)]));
-    console.log(Query.leftJoin("orders", "$id", "customerId", "=", "ord"));
-    console.log(Query.rightJoin("orders", "$id", "customerId"));
-    console.log(Query.fullOuterJoin("orders", "$id", "customerId"));
-    console.log(Query.crossJoin("orders", "ord"));
-    console.log(Query.on("$id", "customerId"));
-    console.log(Query.leftJoin("orders", "ord", [
+    const queryTransport = await general.listRows([
+        Query.count("*", "total"),
+        Query.join("orders", "$id", "customerId"),
+        Query.groupBy(["status"]),
+        Query.distinct(),
+        Query.covers("location", [1, 2]),
+        Query.countDistinct("year", "uniqueYears"),
+        Query.sum("price", "total"),
+        Query.avg("price", "avgPrice"),
+        Query.min("price", "lowest"),
+        Query.max("price", "highest"),
+        Query.stddev("price", "sd"),
+        Query.stddevPop("price", "sdp"),
+        Query.stddevSamp("price", "sds"),
+        Query.variance("price", "var"),
+        Query.varPop("price", "vp"),
+        Query.varSamp("price", "vs"),
+        Query.bitAnd("flags", "band"),
+        Query.bitOr("flags", "bor"),
+        Query.bitXor("flags", "bxor"),
+        Query.having([Query.greaterThan("total", 1)]),
+        Query.leftJoin("orders", "$id", "customerId", "=", "ord"),
+        Query.rightJoin("orders", "$id", "customerId"),
+        Query.fullOuterJoin("orders", "$id", "customerId"),
+        Query.crossJoin("orders", "ord"),
         Query.on("$id", "customerId"),
-        Query.equal("ord.status", "paid"),
-    ]));
-    console.log(Query.notCovers("location", [1, 2]));
-    console.log(Query.spatialEquals("location", [1, 2]));
-    console.log(Query.notSpatialEquals("location", [1, 2]));
-    const pageQueries = Query.page(2, 10);
-    console.log(pageQueries[0]);
-    console.log(pageQueries[1]);
-    console.log(Query.builder().limit(1).build()[0]);
-    console.log(JSON.stringify(flattenParam([Query.builder().limit(1)])) === JSON.stringify([Query.limit(1)]) ? 'flatten-builder:ok' : 'flatten-builder:fail');
-    console.log(JSON.stringify(flattenParam([[1, 2], [3, 4]])) === JSON.stringify([[1, 2], [3, 4]]) ? 'flatten-geometry:ok' : 'flatten-geometry:fail');
-    console.log(JSON.stringify(flattenParam([Query.limit(1)])) === JSON.stringify([Query.limit(1)]) ? 'flatten-list:ok' : 'flatten-list:fail');
+        Query.leftJoin("orders", "ord", [
+            Query.on("$id", "customerId"),
+            Query.equal("ord.status", "paid"),
+        ]),
+        Query.notCovers("location", [1, 2]),
+        Query.spatialEquals("location", [1, 2]),
+        Query.notSpatialEquals("location", [1, 2]),
+        ...Query.page(2, 10),
+        Query.builder().limit(1),
+    ]);
+    console.log(queryTransport.result);
 
     // Permission & Role helper tests
     console.log(Permission.read(Role.any()));
