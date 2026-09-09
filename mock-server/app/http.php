@@ -695,6 +695,35 @@ App::get('/v1/mock/tests/union')
         }
     });
 
+App::get('/v1/mock/tests/compound')
+    ->desc('Get compound union')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->param('type', 'mock', new Text(16), 'Mock response scenario', true)
+    ->inject('response')
+    ->action(function (string $type, UtopiaSwooleResponse $response) {
+        $payload = ['type' => 'mock', 'result' => 'compound-mock'];
+        switch ($type) {
+            case 'stub':
+                $payload['format'] = 'stub';
+                $payload['data'] = 'compound-stub';
+                break;
+            case 'unknown':
+                $payload['format'] = 'unknown';
+                break;
+            case 'null':
+                $payload['format'] = null;
+                break;
+            case 'boolean':
+                $payload['type'] = true;
+                break;
+            case 'missing':
+                unset($payload['type']);
+                break;
+        }
+        $response->json($payload);
+    });
+
 App::get('/v1/mock/tests/general/400-error')
     ->desc('400 Error')
     ->groups(['mock'])

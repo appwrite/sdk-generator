@@ -1,5 +1,7 @@
 <?php
 
+use Appwrite\Models\UnionStub;
+use Appwrite\Models\UnionMock;
 use Appwrite\Models\ArraySerializable;
 
 include __DIR__ . '/../../sdks/php/vendor/autoload.php';
@@ -186,6 +188,30 @@ echo $response->result . "\n";
 $response = $general->getUnion('stub');
 echo $response->data . "\n";
 echo $response->type . "\n";
+
+$response = $general->getCompound('stub');
+if (!$response instanceof UnionStub || $response->data !== 'compound-stub') {
+    throw new RuntimeException('Compound response did not select the specialized model.');
+}
+echo "compound specialization: passed\n";
+
+foreach (['mock', 'unknown', 'null'] as $scenario) {
+    $response = $general->getCompound($scenario);
+    if (!$response instanceof UnionMock || $response->result !== 'compound-mock') {
+        throw new RuntimeException('Compound response did not retain its broad fallback.');
+    }
+}
+echo "compound fallback: passed\n";
+
+foreach (['boolean', 'missing'] as $scenario) {
+    try {
+        $general->getCompound($scenario);
+        throw new RuntimeException('Invalid compound response selected a model.');
+    } catch (UnexpectedValueException) {
+        // Missing or incorrectly typed selection fields must not match.
+    }
+}
+echo "compound invalid response: passed\n";
 
 $data = file_get_contents(__DIR__ . '/../../../resources/file.png');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'image/png', 'file.png'));

@@ -2425,18 +2425,18 @@
               "application\/json": {
                 "schema": {
                   "oneOf": [
-                    {
-                      "$ref": "#\/components\/schemas\/unionMock"
-                    },
-                    {
-                      "$ref": "#\/components\/schemas\/unionStub"
-                    }
+                    {"$ref": "#\/components\/schemas\/unionMock"},
+                    {"$ref": "#\/components\/schemas\/unionStub"}
                   ],
                   "discriminator": {
                     "propertyName": "type",
                     "mapping": {
                       "mock": "#\/components\/schemas\/unionMock",
                       "stub": "#\/components\/schemas\/unionStub"
+                    },
+                    "x-mapping": {
+                      "#\/components\/schemas\/unionMock": {"type": "wrong"},
+                      "#\/components\/schemas\/unionStub": {"type": "wrong"}
                     }
                   }
                 }
@@ -2457,6 +2457,55 @@
             }
           }
         ]
+      }
+    },
+    "/mock/tests/compound": {
+      "get": {
+        "summary": "Get compound union",
+        "operationId": "generalGetCompound",
+        "tags": ["general"],
+        "description": "Test overlapping conditions, broad fallback and ignored discriminator metadata.",
+        "x-appwrite": {
+          "platforms": ["client", "server"],
+          "scope": "public",
+          "auth": {"Project": []}
+        },
+        "security": [{"Project": [], "Key": [], "JWT": []}],
+        "parameters": [{
+          "name": "type",
+          "in": "query",
+          "required": false,
+          "description": "Mock response scenario.",
+          "schema": {"type": "string", "default": "mock", "example": "stub"}
+        }],
+        "responses": {
+          "200": {
+            "description": "Overlapping mock or specialized stub",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {"allOf": [
+                      {"$ref": "#/components/schemas/unionMock"},
+                      {"type": "object", "required": ["type"], "properties": {"type": {"enum": ["mock"]}}}
+                    ]},
+                    {"allOf": [
+                      {"$ref": "#/components/schemas/unionStub"},
+                      {"type": "object", "required": ["type", "format"], "properties": {
+                        "type": {"enum": ["mock"]},
+                        "format": {"enum": ["stub"]}
+                      }}
+                    ]}
+                  ],
+                  "discriminator": {
+                    "propertyName": "type",
+                    "mapping": {"mock": "#/components/schemas/unionMock"}
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "\/mock\/tests\/general\/zzconsoleonly": {
