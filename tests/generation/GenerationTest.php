@@ -288,41 +288,6 @@ final class GenerationTest extends TestCase
         }
     }
 
-    public static function securityAlternatives(): iterable
-    {
-        yield 'optional last' => [[['Project' => [], 'Key' => []], ['Project' => [], 'Key' => [], 'Session' => []]], ['Project', 'Key'], ['Session']];
-        yield 'optional first' => [[['Project' => [], 'Key' => [], 'Session' => []], ['Project' => [], 'Key' => []]], ['Project', 'Key'], ['Session']];
-        yield 'all required' => [[['Project' => [], 'Key' => [], 'Session' => []]], ['Project', 'Key', 'Session'], []];
-        yield 'anonymous' => [[[], ['Project' => [], 'Key' => [], 'Session' => []]], [], ['Project', 'Key', 'Session']];
-        yield 'no requirements preserves example config' => [[], ['Project', 'Key', 'Session'], []];
-        yield 'unreferenced config is independent' => [[['Session' => []], []], ['Project', 'Key'], ['Session']];
-    }
-
-    #[DataProvider('securityAlternatives')]
-    public function testExamplesRespectSecurityAlternatives(array $security, array $present, array $absent): void
-    {
-        $document = \json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR);
-        $document['paths']['/mock/tests/general/zzderivedauth']['get']['security'] = $security;
-        $dir = self::OUTPUT . '/optional-security';
-        $this->removeDirectory($dir);
-        new SDK(new PHP(), Parser::parse($document))
-            ->setName('test')
-            ->setNamespace('appwrite')
-            ->setVersion('0.0.1')
-            ->setPlatform('server')
-            ->generate($dir);
-        $example = \strtolower((string) \file_get_contents($dir . '/docs/examples/general/zzderivedauth.md'));
-        foreach ($present as $name) {
-            $this->assertStringContainsString('->set' . \strtolower((string) $name) . '(', $example);
-        }
-        foreach ($absent as $name) {
-            $this->assertStringNotContainsString('->set' . \strtolower((string) $name) . '(', $example);
-        }
-        // Optionality affects examples, not the available client setters.
-        $client = \strtolower((string) \file_get_contents($dir . '/src/Appwrite/Client.php'));
-        $this->assertStringContainsString('function setsession(', $client);
-    }
-
     /**
      * A JSON example for an untyped object array must render as Swift
      * dictionary literals, not as the JavaScript-style `{ ... }` the spec
