@@ -1,0 +1,152 @@
+package {{ sdk.namespace | caseDot }}
+
+import com.google.gson.JsonParser
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class QueryTest {
+    private fun method(json: String): String =
+        JsonParser.parseString(json).asJsonObject.get("method").asString
+
+    @Test
+    fun countDistinct() {
+        assertEquals("countDistinct", method(Query.countDistinct("year", "uniqueYears")))
+    }
+
+    @Test
+    fun sum() {
+        assertEquals("sum", method(Query.sum("price", "total")))
+    }
+
+    @Test
+    fun avg() {
+        assertEquals("avg", method(Query.avg("price", "avgPrice")))
+    }
+
+    @Test
+    fun min() {
+        assertEquals("min", method(Query.min("price", "lowest")))
+    }
+
+    @Test
+    fun max() {
+        assertEquals("max", method(Query.max("price", "highest")))
+    }
+
+    @Test
+    fun stddev() {
+        assertEquals("stddev", method(Query.stddev("price", "sd")))
+    }
+
+    @Test
+    fun stddevPop() {
+        assertEquals("stddevPop", method(Query.stddevPop("price", "sdp")))
+    }
+
+    @Test
+    fun stddevSamp() {
+        assertEquals("stddevSamp", method(Query.stddevSamp("price", "sds")))
+    }
+
+    @Test
+    fun variance() {
+        assertEquals("variance", method(Query.variance("price", "var")))
+    }
+
+    @Test
+    fun varPop() {
+        assertEquals("varPop", method(Query.varPop("price", "vp")))
+    }
+
+    @Test
+    fun varSamp() {
+        assertEquals("varSamp", method(Query.varSamp("price", "vs")))
+    }
+
+    @Test
+    fun bitAnd() {
+        assertEquals("bitAnd", method(Query.bitAnd("flags", "band")))
+    }
+
+    @Test
+    fun bitOr() {
+        assertEquals("bitOr", method(Query.bitOr("flags", "bor")))
+    }
+
+    @Test
+    fun bitXor() {
+        assertEquals("bitXor", method(Query.bitXor("flags", "bxor")))
+    }
+
+    @Test
+    fun having() {
+        assertEquals("having", method(Query.having(listOf(Query.greaterThan("total", 1)))))
+    }
+
+    @Test
+    fun leftJoin() {
+        assertEquals("leftJoin", method(Query.leftJoin("orders", "\$id", "customerId", "=", "ord")))
+    }
+
+    @Test
+    fun rightJoin() {
+        assertEquals("rightJoin", method(Query.rightJoin("orders", "\$id", "customerId")))
+    }
+
+    @Test
+    fun fullOuterJoin() {
+        assertEquals("fullOuterJoin", method(Query.fullOuterJoin("orders", "\$id", "customerId")))
+    }
+
+    @Test
+    fun crossJoin() {
+        assertEquals("crossJoin", method(Query.crossJoin("orders", "ord")))
+    }
+
+    @Test
+    fun on() {
+        assertEquals("on", method(Query.on("\$id", "customerId")))
+    }
+
+    @Test
+    fun nestedLeftJoin() {
+        val json = JsonParser.parseString(
+            Query.leftJoin(
+                "orders",
+                "ord",
+                listOf(
+                    Query.on("\$id", "customerId"),
+                    Query.equal("ord.status", "paid"),
+                )
+            )
+        ).asJsonObject
+        assertEquals("leftJoin", json.get("method").asString)
+        val values = json.get("values").asJsonArray
+        assertEquals("ord", values[0].asString)
+        assertEquals("on", values[1].asJsonObject.get("method").asString)
+        assertEquals("equal", values[2].asJsonObject.get("method").asString)
+    }
+
+    @Test
+    fun notCovers() {
+        assertEquals("notCovers", method(Query.notCovers("location", listOf(1, 2))))
+    }
+
+    @Test
+    fun spatialEquals() {
+        assertEquals("spatialEquals", method(Query.spatialEquals("location", listOf(1, 2))))
+    }
+
+    @Test
+    fun notSpatialEquals() {
+        assertEquals("notSpatialEquals", method(Query.notSpatialEquals("location", listOf(1, 2))))
+    }
+
+    @Test
+    fun page() {
+        val queries = Query.page(2, 10)
+        assertEquals(2, queries.size)
+        assertEquals("limit", method(queries[0]))
+        assertEquals("offset", method(queries[1]))
+    }
+}

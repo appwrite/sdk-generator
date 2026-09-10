@@ -110,6 +110,11 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'query/builder.go',
+                'template'      => 'go/query/builder.go.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'operator/operator.go',
                 'template'      => 'go/operator.go.twig',
             ],

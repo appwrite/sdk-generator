@@ -1695,6 +1695,7 @@ class SDK
 
     protected function getEnumName(Schema|Parameter $value): string
     {
+        $original = $this->getSchema($value);
         $enumSchema = $this->language->getEnumSchema($value);
         if ($enumSchema->enum === []) {
             return '';
@@ -1702,6 +1703,7 @@ class SDK
         return (string) (($enumSchema instanceof StringSchema ? $enumSchema->enumName : null)
             ?? $enumSchema->title
             ?? $this->schemaEnumNames[\spl_object_id($enumSchema)]
+            ?? $this->schemaEnumNames[\spl_object_id($original)]
             ?? ($value instanceof Parameter ? $value->name : ''));
     }
 

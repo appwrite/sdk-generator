@@ -1,0 +1,507 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace {{ spec.info.title | caseUcfirst }}
+{
+    public partial class Query
+    {
+        public class Builder
+        {
+            private readonly List<string> queries = new List<string>();
+
+            public List<string> Build()
+            {
+                return new List<string>(queries);
+            }
+
+            public Builder Equal(string attribute, object value)
+            {
+                return Push(Query.Equal(attribute, value));
+            }
+
+            public Builder NotEqual(string attribute, object value)
+            {
+                return Push(Query.NotEqual(attribute, value));
+            }
+
+            public Builder LessThan(string attribute, object value)
+            {
+                return Push(Query.LessThan(attribute, value));
+            }
+
+            public Builder LessThanEqual(string attribute, object value)
+            {
+                return Push(Query.LessThanEqual(attribute, value));
+            }
+
+            public Builder GreaterThan(string attribute, object value)
+            {
+                return Push(Query.GreaterThan(attribute, value));
+            }
+
+            public Builder GreaterThanEqual(string attribute, object value)
+            {
+                return Push(Query.GreaterThanEqual(attribute, value));
+            }
+
+            public Builder Search(string attribute, string value)
+            {
+                return Push(Query.Search(attribute, value));
+            }
+
+            public Builder IsNull(string attribute)
+            {
+                return Push(Query.IsNull(attribute));
+            }
+
+            public Builder IsNotNull(string attribute)
+            {
+                return Push(Query.IsNotNull(attribute));
+            }
+
+            public Builder Between(string attribute, string start, string end)
+            {
+                return Push(Query.Between(attribute, start, end));
+            }
+
+            public Builder Between(string attribute, int start, int end)
+            {
+                return Push(Query.Between(attribute, start, end));
+            }
+
+            public Builder Between(string attribute, double start, double end)
+            {
+                return Push(Query.Between(attribute, start, end));
+            }
+
+            public Builder StartsWith(string attribute, string value)
+            {
+                return Push(Query.StartsWith(attribute, value));
+            }
+
+            public Builder EndsWith(string attribute, string value)
+            {
+                return Push(Query.EndsWith(attribute, value));
+            }
+
+            public Builder Select(List<string> attributes)
+            {
+                return Push(Query.Select(attributes));
+            }
+
+            public Builder CursorAfter(string documentId)
+            {
+                return Push(Query.CursorAfter(documentId));
+            }
+
+            public Builder CursorBefore(string documentId)
+            {
+                return Push(Query.CursorBefore(documentId));
+            }
+
+            public Builder OrderAsc(string attribute)
+            {
+                return Push(Query.OrderAsc(attribute));
+            }
+
+            public Builder OrderDesc(string attribute)
+            {
+                return Push(Query.OrderDesc(attribute));
+            }
+
+            public Builder OrderRandom()
+            {
+                return Push(Query.OrderRandom());
+            }
+
+            public Builder Limit(int limit)
+            {
+                return Push(Query.Limit(limit));
+            }
+
+            public Builder Offset(int offset)
+            {
+                return Push(Query.Offset(offset));
+            }
+
+            public Builder Contains(string attribute, object value)
+            {
+                return Push(Query.Contains(attribute, value));
+            }
+
+            public Builder ContainsAny(string attribute, IList value)
+            {
+                return Push(Query.ContainsAny(attribute, value));
+            }
+
+            public Builder ContainsAll(string attribute, IList value)
+            {
+                return Push(Query.ContainsAll(attribute, value));
+            }
+
+            public Builder NotContains(string attribute, object value)
+            {
+                return Push(Query.NotContains(attribute, value));
+            }
+
+            public Builder NotSearch(string attribute, string value)
+            {
+                return Push(Query.NotSearch(attribute, value));
+            }
+
+            public Builder NotBetween(string attribute, string start, string end)
+            {
+                return Push(Query.NotBetween(attribute, start, end));
+            }
+
+            public Builder NotBetween(string attribute, int start, int end)
+            {
+                return Push(Query.NotBetween(attribute, start, end));
+            }
+
+            public Builder NotBetween(string attribute, double start, double end)
+            {
+                return Push(Query.NotBetween(attribute, start, end));
+            }
+
+            public Builder NotStartsWith(string attribute, string value)
+            {
+                return Push(Query.NotStartsWith(attribute, value));
+            }
+
+            public Builder NotEndsWith(string attribute, string value)
+            {
+                return Push(Query.NotEndsWith(attribute, value));
+            }
+
+            public Builder Regex(string attribute, string pattern)
+            {
+                return Push(Query.Regex(attribute, pattern));
+            }
+
+            public Builder Exists(List<string> attributes)
+            {
+                return Push(Query.Exists(attributes));
+            }
+
+            public Builder NotExists(List<string> attributes)
+            {
+                return Push(Query.NotExists(attributes));
+            }
+
+            public Builder CreatedBefore(string value)
+            {
+                return Push(Query.CreatedBefore(value));
+            }
+
+            public Builder CreatedAfter(string value)
+            {
+                return Push(Query.CreatedAfter(value));
+            }
+
+            public Builder CreatedBetween(string start, string end)
+            {
+                return Push(Query.CreatedBetween(start, end));
+            }
+
+            public Builder UpdatedBefore(string value)
+            {
+                return Push(Query.UpdatedBefore(value));
+            }
+
+            public Builder UpdatedAfter(string value)
+            {
+                return Push(Query.UpdatedAfter(value));
+            }
+
+            public Builder UpdatedBetween(string start, string end)
+            {
+                return Push(Query.UpdatedBetween(start, end));
+            }
+
+            public Builder Or(List<string> queries)
+            {
+                return Push(Query.Or(queries));
+            }
+
+            public Builder And(List<string> queries)
+            {
+                return Push(Query.And(queries));
+            }
+
+            public Builder ElemMatch(string attribute, List<string> queries)
+            {
+                return Push(Query.ElemMatch(attribute, queries));
+            }
+
+            public Builder DistanceEqual(string attribute, object values, double distance, bool meters = true)
+            {
+                return Push(Query.DistanceEqual(attribute, values, distance, meters));
+            }
+
+            public Builder DistanceNotEqual(string attribute, object values, double distance, bool meters = true)
+            {
+                return Push(Query.DistanceNotEqual(attribute, values, distance, meters));
+            }
+
+            public Builder DistanceGreaterThan(string attribute, object values, double distance, bool meters = true)
+            {
+                return Push(Query.DistanceGreaterThan(attribute, values, distance, meters));
+            }
+
+            public Builder DistanceLessThan(string attribute, object values, double distance, bool meters = true)
+            {
+                return Push(Query.DistanceLessThan(attribute, values, distance, meters));
+            }
+
+            public Builder Intersects(string attribute, object values)
+            {
+                return Push(Query.Intersects(attribute, values));
+            }
+
+            public Builder NotIntersects(string attribute, object values)
+            {
+                return Push(Query.NotIntersects(attribute, values));
+            }
+
+            public Builder Crosses(string attribute, object values)
+            {
+                return Push(Query.Crosses(attribute, values));
+            }
+
+            public Builder NotCrosses(string attribute, object values)
+            {
+                return Push(Query.NotCrosses(attribute, values));
+            }
+
+            public Builder Overlaps(string attribute, object values)
+            {
+                return Push(Query.Overlaps(attribute, values));
+            }
+
+            public Builder NotOverlaps(string attribute, object values)
+            {
+                return Push(Query.NotOverlaps(attribute, values));
+            }
+
+            public Builder Touches(string attribute, object values)
+            {
+                return Push(Query.Touches(attribute, values));
+            }
+
+            public Builder NotTouches(string attribute, object values)
+            {
+                return Push(Query.NotTouches(attribute, values));
+            }
+
+            public Builder Count(string attribute = "*", string alias = "")
+            {
+                return Push(Query.Count(attribute, alias));
+            }
+
+            public Builder CountDistinct(string attribute, string alias = "")
+            {
+                return Push(Query.CountDistinct(attribute, alias));
+            }
+
+            public Builder Sum(string attribute, string alias = "")
+            {
+                return Push(Query.Sum(attribute, alias));
+            }
+
+            public Builder Avg(string attribute, string alias = "")
+            {
+                return Push(Query.Avg(attribute, alias));
+            }
+
+            public Builder Min(string attribute, string alias = "")
+            {
+                return Push(Query.Min(attribute, alias));
+            }
+
+            public Builder Max(string attribute, string alias = "")
+            {
+                return Push(Query.Max(attribute, alias));
+            }
+
+            public Builder Stddev(string attribute, string alias = "")
+            {
+                return Push(Query.Stddev(attribute, alias));
+            }
+
+            public Builder StddevPop(string attribute, string alias = "")
+            {
+                return Push(Query.StddevPop(attribute, alias));
+            }
+
+            public Builder StddevSamp(string attribute, string alias = "")
+            {
+                return Push(Query.StddevSamp(attribute, alias));
+            }
+
+            public Builder Variance(string attribute, string alias = "")
+            {
+                return Push(Query.Variance(attribute, alias));
+            }
+
+            public Builder VarPop(string attribute, string alias = "")
+            {
+                return Push(Query.VarPop(attribute, alias));
+            }
+
+            public Builder VarSamp(string attribute, string alias = "")
+            {
+                return Push(Query.VarSamp(attribute, alias));
+            }
+
+            public Builder BitAnd(string attribute, string alias = "")
+            {
+                return Push(Query.BitAnd(attribute, alias));
+            }
+
+            public Builder BitOr(string attribute, string alias = "")
+            {
+                return Push(Query.BitOr(attribute, alias));
+            }
+
+            public Builder BitXor(string attribute, string alias = "")
+            {
+                return Push(Query.BitXor(attribute, alias));
+            }
+
+            public Builder GroupBy(List<string> attributes)
+            {
+                return Push(Query.GroupBy(attributes));
+            }
+
+            public Builder Having(List<string> queries)
+            {
+                return Push(Query.Having(queries));
+            }
+
+            public Builder Distinct()
+            {
+                return Push(Query.Distinct());
+            }
+
+            public Builder Join(string table, string left, string right, string @operator = "=", string alias = "")
+            {
+                return Push(Query.Join(table, left, right, @operator, alias));
+            }
+
+            public Builder Join(string table, List<string> on)
+            {
+                return Push(Query.Join(table, on));
+            }
+
+            public Builder Join(string table, string alias, List<string> on)
+            {
+                return Push(Query.Join(table, alias, on));
+            }
+
+            public Builder LeftJoin(string table, string left, string right, string @operator = "=", string alias = "")
+            {
+                return Push(Query.LeftJoin(table, left, right, @operator, alias));
+            }
+
+            public Builder LeftJoin(string table, List<string> on)
+            {
+                return Push(Query.LeftJoin(table, on));
+            }
+
+            public Builder LeftJoin(string table, string alias, List<string> on)
+            {
+                return Push(Query.LeftJoin(table, alias, on));
+            }
+
+            public Builder RightJoin(string table, string left, string right, string @operator = "=", string alias = "")
+            {
+                return Push(Query.RightJoin(table, left, right, @operator, alias));
+            }
+
+            public Builder RightJoin(string table, List<string> on)
+            {
+                return Push(Query.RightJoin(table, on));
+            }
+
+            public Builder RightJoin(string table, string alias, List<string> on)
+            {
+                return Push(Query.RightJoin(table, alias, on));
+            }
+
+            public Builder FullOuterJoin(string table, string left, string right, string @operator = "=", string alias = "")
+            {
+                return Push(Query.FullOuterJoin(table, left, right, @operator, alias));
+            }
+
+            public Builder FullOuterJoin(string table, List<string> on)
+            {
+                return Push(Query.FullOuterJoin(table, on));
+            }
+
+            public Builder FullOuterJoin(string table, string alias, List<string> on)
+            {
+                return Push(Query.FullOuterJoin(table, alias, on));
+            }
+
+            public Builder CrossJoin(string table, string alias = "")
+            {
+                return Push(Query.CrossJoin(table, alias));
+            }
+
+            public Builder VectorDot(string attribute, List<double> vector)
+            {
+                return Push(Query.VectorDot(attribute, vector));
+            }
+
+            public Builder VectorCosine(string attribute, List<double> vector)
+            {
+                return Push(Query.VectorCosine(attribute, vector));
+            }
+
+            public Builder VectorEuclidean(string attribute, List<double> vector)
+            {
+                return Push(Query.VectorEuclidean(attribute, vector));
+            }
+
+            public Builder Covers(string attribute, object values)
+            {
+                return Push(Query.Covers(attribute, values));
+            }
+
+            public Builder NotCovers(string attribute, object values)
+            {
+                return Push(Query.NotCovers(attribute, values));
+            }
+
+            public Builder SpatialEquals(string attribute, object values)
+            {
+                return Push(Query.SpatialEquals(attribute, values));
+            }
+
+            public Builder NotSpatialEquals(string attribute, object values)
+            {
+                return Push(Query.NotSpatialEquals(attribute, values));
+            }
+
+            public Builder Page(int page, int perPage = 25)
+            {
+                return Push(Query.Page(page, perPage));
+            }
+
+            private Builder Push(string query)
+            {
+                queries.Add(query);
+                return this;
+            }
+
+            private Builder Push(IEnumerable<string> query)
+            {
+                queries.AddRange(query);
+                return this;
+            }
+        }
+    }
+}

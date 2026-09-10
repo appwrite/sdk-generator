@@ -156,7 +156,7 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     let (): () = general.empty().await?;
 
     // Test Queries
-    test_queries();
+    test_queries(client).await?;
 
     // Test Permission Helpers
     test_permission_helpers();
@@ -226,7 +226,7 @@ async fn test_large_upload(client: &Client, string_in_array: &[String]) -> Resul
     Ok(())
 }
 
-fn test_queries() {
+async fn test_queries(client: &Client) -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", Query::equal("released", true));
     println!("{}", Query::equal("title", vec!["Spiderman", "Dr. Strange"]));
     println!("{}", Query::not_equal("title", "Spiderman"));
@@ -301,6 +301,46 @@ fn test_queries() {
         Query::equal("name", "Alice").to_string(),
         Query::greater_than("age", 18).to_string(),
     ]));
+    let general = General::new(client);
+    let mut queries: Vec<String> = vec![
+        Query::count("*", "total").to_string(),
+        Query::join("orders", "$id", "customerId", "=", "").to_string(),
+        Query::group_by(vec!["status"]).to_string(),
+        Query::distinct().to_string(),
+        Query::covers("location", json!([1, 2])).to_string(),
+        Query::count_distinct("year", "uniqueYears").to_string(),
+        Query::sum("price", "total").to_string(),
+        Query::avg("price", "avgPrice").to_string(),
+        Query::min("price", "lowest").to_string(),
+        Query::max("price", "highest").to_string(),
+        Query::stddev("price", "sd").to_string(),
+        Query::stddev_pop("price", "sdp").to_string(),
+        Query::stddev_samp("price", "sds").to_string(),
+        Query::variance("price", "var").to_string(),
+        Query::var_pop("price", "vp").to_string(),
+        Query::var_samp("price", "vs").to_string(),
+        Query::bit_and("flags", "band").to_string(),
+        Query::bit_or("flags", "bor").to_string(),
+        Query::bit_xor("flags", "bxor").to_string(),
+        Query::having(vec![Query::greater_than("total", 1).to_string()]).to_string(),
+        Query::left_join("orders", "$id", "customerId", "=", "ord").to_string(),
+        Query::right_join("orders", "$id", "customerId", "=", "").to_string(),
+        Query::full_outer_join("orders", "$id", "customerId", "=", "").to_string(),
+        Query::cross_join("orders", "ord").to_string(),
+        Query::on("$id", "customerId", "=").to_string(),
+        Query::left_join_on("orders", "ord", vec![
+            Query::on("$id", "customerId", "=").to_string(),
+            Query::equal("ord.status", "paid").to_string(),
+        ]).to_string(),
+        Query::not_covers("location", json!([1, 2])).to_string(),
+        Query::spatial_equals("location", json!([1, 2])).to_string(),
+        Query::not_spatial_equals("location", json!([1, 2])).to_string(),
+    ];
+    queries.extend(Query::page(2, 10).iter().map(|query| query.to_string()));
+    queries.extend(Query::builder().limit(1).build());
+    println!("{}", general.list_rows(Some(queries)).await?.result);
+
+    Ok(())
 }
 
 fn test_permission_helpers() {

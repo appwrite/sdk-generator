@@ -220,11 +220,574 @@ class Query(
 
         fun notTouches(attribute: String, values: List<Any>) = Query("notTouches", attribute, listOf(values)).toJson()
 
+        /**
+         * Count rows of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to count. Defaults to `*`.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun count(attribute: String = "*", alias: String = "") = Query("count", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Count distinct values of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to count.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun countDistinct(attribute: String, alias: String = "") = Query("countDistinct", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Sum values of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to sum.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun sum(attribute: String, alias: String = "") = Query("sum", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Average values of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to average.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun avg(attribute: String, alias: String = "") = Query("avg", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Minimum value of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun min(attribute: String, alias: String = "") = Query("min", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Maximum value of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun max(attribute: String, alias: String = "") = Query("max", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Standard deviation of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun stddev(attribute: String, alias: String = "") = Query("stddev", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Population standard deviation of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun stddevPop(attribute: String, alias: String = "") = Query("stddevPop", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Sample standard deviation of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun stddevSamp(attribute: String, alias: String = "") = Query("stddevSamp", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Variance of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun variance(attribute: String, alias: String = "") = Query("variance", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Population variance of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun varPop(attribute: String, alias: String = "") = Query("varPop", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Sample variance of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun varSamp(attribute: String, alias: String = "") = Query("varSamp", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Bitwise AND of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun bitAnd(attribute: String, alias: String = "") = Query("bitAnd", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Bitwise OR of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun bitOr(attribute: String, alias: String = "") = Query("bitOr", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Bitwise XOR of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        fun bitXor(attribute: String, alias: String = "") = Query("bitXor", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Group results by [attributes].
+         *
+         * @param attributes Attributes to group by.
+         * @returns The query string.
+         */
+        fun groupBy(attributes: List<String>) = Query("groupBy", null, attributes).toJson()
+
+        /**
+         * Filter grouped results. [queries] are nested like `and`/`or`.
+         *
+         * @param queries Nested query strings.
+         * @returns The query string.
+         */
+        fun having(queries: List<String>) = Query("having", null, queries.map { it.fromJson<Query>() }).toJson()
+
+        /**
+         * Select distinct rows.
+         *
+         * @returns The query string.
+         */
+        fun distinct() = Query("distinct").toJson()
+
+        /**
+         * Column-to-column join ON condition.
+         *
+         * @param left Left-hand column.
+         * @param right Right-hand column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @returns The query string.
+         */
+        fun on(left: String, right: String, operator: String = "=") = Query("on", values = listOf(left, operator, right)).toJson()
+
+        /**
+         * Inner join. [table] is the joined collection/table ID.
+         *
+         * @param table Joined table ID.
+         * @param left Left-hand join column.
+         * @param right Right-hand join column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @param alias Optional table alias.
+         * @returns The query string.
+         */
+        fun join(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("join", table, left, right, operator, alias)
+
+        /**
+         * Inner join with nested ON queries and no alias.
+         *
+         * @param table Joined table ID.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        fun join(table: String, on: List<String>) = nestedJoin("join", table, "", on)
+
+        /**
+         * Inner join with nested ON queries and an alias.
+         *
+         * @param table Joined table ID.
+         * @param alias Table alias.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        fun join(table: String, alias: String, on: List<String>) = nestedJoin("join", table, alias, on)
+
+        /**
+         * Left join. [table] is the joined collection/table ID.
+         *
+         * @param table Joined table ID.
+         * @param left Left-hand join column.
+         * @param right Right-hand join column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @param alias Optional table alias.
+         * @returns The query string.
+         */
+        fun leftJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("leftJoin", table, left, right, operator, alias)
+
+        /**
+         * Left join with nested ON queries and no alias.
+         *
+         * @param table Joined table ID.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        fun leftJoin(table: String, on: List<String>) = nestedJoin("leftJoin", table, "", on)
+
+        /**
+         * Left join with nested ON queries and an alias.
+         *
+         * @param table Joined table ID.
+         * @param alias Table alias.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        fun leftJoin(table: String, alias: String, on: List<String>) = nestedJoin("leftJoin", table, alias, on)
+
+        /**
+         * Right join. [table] is the joined collection/table ID.
+         *
+         * @param table Joined table ID.
+         * @param left Left-hand join column.
+         * @param right Right-hand join column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @param alias Optional table alias.
+         * @returns The query string.
+         */
+        fun rightJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("rightJoin", table, left, right, operator, alias)
+
+        /**
+         * Right join with nested ON queries and no alias.
+         *
+         * @param table Joined table ID.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        fun rightJoin(table: String, on: List<String>) = nestedJoin("rightJoin", table, "", on)
+
+        /**
+         * Right join with nested ON queries and an alias.
+         *
+         * @param table Joined table ID.
+         * @param alias Table alias.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        fun rightJoin(table: String, alias: String, on: List<String>) = nestedJoin("rightJoin", table, alias, on)
+
+        /**
+         * Full outer join. [table] is the joined collection/table ID.
+         *
+         * @param table Joined table ID.
+         * @param left Left-hand join column.
+         * @param right Right-hand join column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @param alias Optional table alias.
+         * @returns The query string.
+         */
+        fun fullOuterJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("fullOuterJoin", table, left, right, operator, alias)
+
+        /**
+         * Full outer join with nested ON queries and no alias.
+         *
+         * @param table Joined table ID.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        fun fullOuterJoin(table: String, on: List<String>) = nestedJoin("fullOuterJoin", table, "", on)
+
+        /**
+         * Full outer join with nested ON queries and an alias.
+         *
+         * @param table Joined table ID.
+         * @param alias Table alias.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        fun fullOuterJoin(table: String, alias: String, on: List<String>) = nestedJoin("fullOuterJoin", table, alias, on)
+
+        /**
+         * Cross join. [table] is the joined collection/table ID.
+         *
+         * @param table Joined table ID.
+         * @param alias Optional table alias.
+         * @returns The query string.
+         */
+        fun crossJoin(table: String, alias: String = "") = Query("crossJoin", table, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Filter resources where [attribute] covers the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun covers(attribute: String, values: List<Any>) = Query("covers", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where [attribute] does not cover the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun notCovers(attribute: String, values: List<Any>) = Query("notCovers", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where [attribute] is spatially equal to the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun spatialEquals(attribute: String, values: List<Any>) = Query("spatialEquals", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where [attribute] is not spatially equal to the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun notSpatialEquals(attribute: String, values: List<Any>) = Query("notSpatialEquals", attribute, listOf(values)).toJson()
+
+        /**
+         * Return limit and offset queries for 1-based page pagination.
+         *
+         * @param page 1-based page number.
+         * @param perPage Rows per page. Defaults to 25.
+         * @returns Limit and offset query strings.
+         */
+        fun page(page: Int, perPage: Int = 25): List<String> {
+            require(page >= 1) { "Page must be >= 1, got $page" }
+            require(perPage >= 1) { "Per page must be >= 1, got $perPage" }
+            return listOf(limit(perPage), offset((page - 1) * perPage))
+        }
+
+        /**
+         * Start a fluent query builder.
+         *
+         * @returns A new query builder.
+         */
+        fun builder() = Builder()
+
+        private fun joinQuery(method: String, table: String, left: String, right: String, operator: String, alias: String): String {
+            val values = if (alias.isNotEmpty()) listOf(left, operator, right, alias) else listOf(left, operator, right)
+            return Query(method, table, values).toJson()
+        }
+
+        private fun nestedJoin(method: String, table: String, alias: String, on: List<String>): String {
+            val values = mutableListOf<Any>()
+            if (alias.isNotEmpty()) {
+                values.add(alias)
+            }
+            on.forEach { values.add(it.fromJson<Query>()) }
+            return Query(method, table, values).toJson()
+        }
+
         private fun parseValue(value: Any): List<Any> {
             return when (value) {
                 is List<*> -> value as List<Any>
                 else -> listOf(value)
             }
         }
+    }
+
+    class Builder {
+        private val queries = mutableListOf<String>()
+
+        fun build(): List<String> = queries.toList()
+
+        fun equal(attribute: String, value: Any) = push(Query.equal(attribute, value))
+
+        fun notEqual(attribute: String, value: Any) = push(Query.notEqual(attribute, value))
+
+        fun lessThan(attribute: String, value: Any) = push(Query.lessThan(attribute, value))
+
+        fun lessThanEqual(attribute: String, value: Any) = push(Query.lessThanEqual(attribute, value))
+
+        fun greaterThan(attribute: String, value: Any) = push(Query.greaterThan(attribute, value))
+
+        fun greaterThanEqual(attribute: String, value: Any) = push(Query.greaterThanEqual(attribute, value))
+
+        fun search(attribute: String, value: String) = push(Query.search(attribute, value))
+
+        fun isNull(attribute: String) = push(Query.isNull(attribute))
+
+        fun isNotNull(attribute: String) = push(Query.isNotNull(attribute))
+
+        fun between(attribute: String, start: Any, end: Any) = push(Query.between(attribute, start, end))
+
+        fun startsWith(attribute: String, value: String) = push(Query.startsWith(attribute, value))
+
+        fun endsWith(attribute: String, value: String) = push(Query.endsWith(attribute, value))
+
+        fun select(attributes: List<String>) = push(Query.select(attributes))
+
+        fun cursorAfter(documentId: String) = push(Query.cursorAfter(documentId))
+
+        fun cursorBefore(documentId: String) = push(Query.cursorBefore(documentId))
+
+        fun orderAsc(attribute: String) = push(Query.orderAsc(attribute))
+
+        fun orderDesc(attribute: String) = push(Query.orderDesc(attribute))
+
+        fun orderRandom() = push(Query.orderRandom())
+
+        fun limit(limit: Int) = push(Query.limit(limit))
+
+        fun offset(offset: Int) = push(Query.offset(offset))
+
+        fun contains(attribute: String, value: Any) = push(Query.contains(attribute, value))
+
+        fun containsAny(attribute: String, value: List<Any>) = push(Query.containsAny(attribute, value))
+
+        fun containsAll(attribute: String, value: List<Any>) = push(Query.containsAll(attribute, value))
+
+        fun notContains(attribute: String, value: Any) = push(Query.notContains(attribute, value))
+
+        fun notSearch(attribute: String, value: String) = push(Query.notSearch(attribute, value))
+
+        fun notBetween(attribute: String, start: Any, end: Any) = push(Query.notBetween(attribute, start, end))
+
+        fun notStartsWith(attribute: String, value: String) = push(Query.notStartsWith(attribute, value))
+
+        fun notEndsWith(attribute: String, value: String) = push(Query.notEndsWith(attribute, value))
+
+        fun regex(attribute: String, pattern: String) = push(Query.regex(attribute, pattern))
+
+        fun exists(attributes: List<String>) = push(Query.exists(attributes))
+
+        fun notExists(attributes: List<String>) = push(Query.notExists(attributes))
+
+        fun createdBefore(value: String) = push(Query.createdBefore(value))
+
+        fun createdAfter(value: String) = push(Query.createdAfter(value))
+
+        fun createdBetween(start: String, end: String) = push(Query.createdBetween(start, end))
+
+        fun updatedBefore(value: String) = push(Query.updatedBefore(value))
+
+        fun updatedAfter(value: String) = push(Query.updatedAfter(value))
+
+        fun updatedBetween(start: String, end: String) = push(Query.updatedBetween(start, end))
+
+        fun or(queries: List<String>) = push(Query.or(queries))
+
+        fun and(queries: List<String>) = push(Query.and(queries))
+
+        fun elemMatch(attribute: String, queries: List<String>) = push(Query.elemMatch(attribute, queries))
+
+        fun distanceEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceEqual(attribute, values, distance, meters))
+
+        fun distanceNotEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceNotEqual(attribute, values, distance, meters))
+
+        fun distanceGreaterThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceGreaterThan(attribute, values, distance, meters))
+
+        fun distanceLessThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceLessThan(attribute, values, distance, meters))
+
+        fun intersects(attribute: String, values: List<Any>) = push(Query.intersects(attribute, values))
+
+        fun notIntersects(attribute: String, values: List<Any>) = push(Query.notIntersects(attribute, values))
+
+        fun crosses(attribute: String, values: List<Any>) = push(Query.crosses(attribute, values))
+
+        fun notCrosses(attribute: String, values: List<Any>) = push(Query.notCrosses(attribute, values))
+
+        fun overlaps(attribute: String, values: List<Any>) = push(Query.overlaps(attribute, values))
+
+        fun notOverlaps(attribute: String, values: List<Any>) = push(Query.notOverlaps(attribute, values))
+
+        fun touches(attribute: String, values: List<Any>) = push(Query.touches(attribute, values))
+
+        fun notTouches(attribute: String, values: List<Any>) = push(Query.notTouches(attribute, values))
+
+        fun count(attribute: String = "*", alias: String = "") = push(Query.count(attribute, alias))
+
+        fun countDistinct(attribute: String, alias: String = "") = push(Query.countDistinct(attribute, alias))
+
+        fun sum(attribute: String, alias: String = "") = push(Query.sum(attribute, alias))
+
+        fun avg(attribute: String, alias: String = "") = push(Query.avg(attribute, alias))
+
+        fun min(attribute: String, alias: String = "") = push(Query.min(attribute, alias))
+
+        fun max(attribute: String, alias: String = "") = push(Query.max(attribute, alias))
+
+        fun stddev(attribute: String, alias: String = "") = push(Query.stddev(attribute, alias))
+
+        fun stddevPop(attribute: String, alias: String = "") = push(Query.stddevPop(attribute, alias))
+
+        fun stddevSamp(attribute: String, alias: String = "") = push(Query.stddevSamp(attribute, alias))
+
+        fun variance(attribute: String, alias: String = "") = push(Query.variance(attribute, alias))
+
+        fun varPop(attribute: String, alias: String = "") = push(Query.varPop(attribute, alias))
+
+        fun varSamp(attribute: String, alias: String = "") = push(Query.varSamp(attribute, alias))
+
+        fun bitAnd(attribute: String, alias: String = "") = push(Query.bitAnd(attribute, alias))
+
+        fun bitOr(attribute: String, alias: String = "") = push(Query.bitOr(attribute, alias))
+
+        fun bitXor(attribute: String, alias: String = "") = push(Query.bitXor(attribute, alias))
+
+        fun groupBy(attributes: List<String>) = push(Query.groupBy(attributes))
+
+        fun having(queries: List<String>) = push(Query.having(queries))
+
+        fun distinct() = push(Query.distinct())
+
+        fun join(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.join(table, left, right, operator, alias))
+
+        fun join(table: String, on: List<String>) = push(Query.join(table, on))
+
+        fun join(table: String, alias: String, on: List<String>) = push(Query.join(table, alias, on))
+
+        fun leftJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.leftJoin(table, left, right, operator, alias))
+
+        fun leftJoin(table: String, on: List<String>) = push(Query.leftJoin(table, on))
+
+        fun leftJoin(table: String, alias: String, on: List<String>) = push(Query.leftJoin(table, alias, on))
+
+        fun rightJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.rightJoin(table, left, right, operator, alias))
+
+        fun rightJoin(table: String, on: List<String>) = push(Query.rightJoin(table, on))
+
+        fun rightJoin(table: String, alias: String, on: List<String>) = push(Query.rightJoin(table, alias, on))
+
+        fun fullOuterJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.fullOuterJoin(table, left, right, operator, alias))
+
+        fun fullOuterJoin(table: String, on: List<String>) = push(Query.fullOuterJoin(table, on))
+
+        fun fullOuterJoin(table: String, alias: String, on: List<String>) = push(Query.fullOuterJoin(table, alias, on))
+
+        fun crossJoin(table: String, alias: String = "") = push(Query.crossJoin(table, alias))
+
+        fun vectorDot(attribute: String, vector: List<Number>) = push(Query.vectorDot(attribute, vector))
+
+        fun vectorCosine(attribute: String, vector: List<Number>) = push(Query.vectorCosine(attribute, vector))
+
+        fun vectorEuclidean(attribute: String, vector: List<Number>) = push(Query.vectorEuclidean(attribute, vector))
+
+        fun covers(attribute: String, values: List<Any>) = push(Query.covers(attribute, values))
+
+        fun notCovers(attribute: String, values: List<Any>) = push(Query.notCovers(attribute, values))
+
+        fun spatialEquals(attribute: String, values: List<Any>) = push(Query.spatialEquals(attribute, values))
+
+        fun notSpatialEquals(attribute: String, values: List<Any>) = push(Query.notSpatialEquals(attribute, values))
+
+        fun page(page: Int, perPage: Int = 25) = push(Query.page(page, perPage))
+
+        private fun push(query: String) = apply { queries.add(query) }
+
+        private fun push(query: List<String>) = apply { queries.addAll(query) }
     }
 }

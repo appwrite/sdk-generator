@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"{{ sdk | goPackagePath }}/file"
+	"{{ sdk | goPackagePath }}/query"
 )
 
 const (
@@ -435,6 +436,12 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 
 // Call an API using Client
 func (client *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (*ClientResponse, error) {
+	if params != nil {
+		for key, value := range params {
+			params[key] = flattenValue(value)
+		}
+	}
+
 	if client.Client == nil {
 		// Create HTTP client
 		httpClient, err := GetDefaultClient(client.Timeout)
@@ -753,4 +760,83 @@ func flatten(params interface{}, prefix string, result *map[string]string) error
 		(*result)[prefix] = toString(params)
 	}
 	return nil
+}
+
+func Flatten(value interface{}) interface{} {
+	return flattenValue(value)
+}
+
+func flattenValue(value interface{}) interface{} {
+	if value == nil {
+		return nil
+	}
+	switch v := value.(type) {
+	case *query.Builder:
+		if v == nil {
+			return value
+		}
+		return v.Build()
+	case query.Builder:
+		return v.Build()
+	}
+
+	reflected := reflect.ValueOf(value)
+	if reflected.Kind() != reflect.Slice && reflected.Kind() != reflect.Array {
+		return value
+	}
+
+	out := make([]interface{}, 0, reflected.Len())
+	changed := false
+	for i := 0; i < reflected.Len(); i++ {
+		item := reflected.Index(i).Interface()
+		flat := flattenValue(item)
+		switch item.(type) {
+		case *query.Builder, query.Builder:
+			if list, ok := flat.([]string); ok {
+				for _, entry := range list {
+					out = append(out, entry)
+				}
+				changed = true
+				continue
+			}
+		}
+		if nested, ok := item.([]string); ok {
+			for _, entry := range nested {
+				out = append(out, entry)
+			}
+			if len(nested) > 0 {
+				changed = true
+			}
+			continue
+		}
+		if nested, ok := item.([]interface{}); ok && isStringSlice(flattenValue(nested)) {
+			for _, entry := range flattenValue(nested).([]interface{}) {
+				out = append(out, entry)
+			}
+			changed = true
+			continue
+		}
+		if !reflect.DeepEqual(flat, item) {
+			changed = true
+		}
+		out = append(out, flat)
+	}
+	if !changed {
+		return value
+	}
+	return out
+}
+
+func isStringSlice(value interface{}) bool {
+	items, ok := value.([]interface{})
+	if !ok {
+		_, ok := value.([]string)
+		return ok
+	}
+	for _, item := range items {
+		if _, ok := item.(string); !ok {
+			return false
+		}
+	}
+	return true
 }

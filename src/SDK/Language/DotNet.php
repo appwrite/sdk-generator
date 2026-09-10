@@ -418,6 +418,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '{{ spec.info.title | caseUcfirst }}/Query/Builder.cs',
+                'template'      => 'dotnet/Package/Query/Builder.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.info.title | caseUcfirst }}/Operator.cs',
                 'template'      => 'dotnet/Package/Operator.cs.twig',
             ],

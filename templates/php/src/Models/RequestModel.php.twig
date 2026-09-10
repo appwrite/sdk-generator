@@ -87,7 +87,7 @@ readonly class {{ requestModelName | caseUcfirst | overrideIdentifier }}
                     static fn (mixed $item): mixed => static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $item),
                     $data['{{ (property | schemaName) }}']
                 )
-                : $data['{{ (property | schemaName) }}']{% elseif (property | enumValues) is not empty %}static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}']){% else %}$data['{{ (property | schemaName) }}']{% endif %}{{ (not loop.last or optionalProperties is not empty) ? ',' : '' }}
+                : [static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}'])]{% elseif (property | enumValues) is not empty %}static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}']){% else %}$data['{{ (property | schemaName) }}']{% endif %}{{ (not loop.last or optionalProperties is not empty) ? ',' : '' }}
 {% endfor %}
 {% for property in optionalProperties %}
             {{ (property | schemaName) | caseCamel }}: array_key_exists('{{ (property | schemaName) }}', $data)
@@ -109,7 +109,7 @@ readonly class {{ requestModelName | caseUcfirst | overrideIdentifier }}
                             static fn (mixed $item): mixed => static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $item),
                             $data['{{ (property | schemaName) }}']
                         )
-                        : $data['{{ (property | schemaName) }}']
+                        : [static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}'])]
                 )
 {% elseif (property | enumValues) is not empty %}
                 ? static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}'], true)

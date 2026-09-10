@@ -1,0 +1,553 @@
+<?php
+
+namespace {{ namespace | caseNamespace }}\Query;
+
+use {{ namespace | caseNamespace }}\Query;
+
+class Builder
+{
+    /**
+     * @var list<string>
+     */
+    private array $queries = [];
+
+    /**
+     * @return list<string>
+     */
+    public function build(): array
+    {
+        return $this->queries;
+    }
+
+    public function equal(string $attribute, mixed $value): self
+    {
+        return $this->push(Query::equal($attribute, $value));
+    }
+
+    public function notEqual(string $attribute, mixed $value): self
+    {
+        return $this->push(Query::notEqual($attribute, $value));
+    }
+
+    public function lessThan(string $attribute, mixed $value): self
+    {
+        return $this->push(Query::lessThan($attribute, $value));
+    }
+
+    public function lessThanEqual(string $attribute, mixed $value): self
+    {
+        return $this->push(Query::lessThanEqual($attribute, $value));
+    }
+
+    public function greaterThan(string $attribute, mixed $value): self
+    {
+        return $this->push(Query::greaterThan($attribute, $value));
+    }
+
+    public function greaterThanEqual(string $attribute, mixed $value): self
+    {
+        return $this->push(Query::greaterThanEqual($attribute, $value));
+    }
+
+    public function search(string $attribute, string $value): self
+    {
+        return $this->push(Query::search($attribute, $value));
+    }
+
+    public function isNull(string $attribute): self
+    {
+        return $this->push(Query::isNull($attribute));
+    }
+
+    public function isNotNull(string $attribute): self
+    {
+        return $this->push(Query::isNotNull($attribute));
+    }
+
+    public function between(string $attribute, mixed $start, mixed $end): self
+    {
+        return $this->push(Query::between($attribute, $start, $end));
+    }
+
+    public function startsWith(string $attribute, string $value): self
+    {
+        return $this->push(Query::startsWith($attribute, $value));
+    }
+
+    public function endsWith(string $attribute, string $value): self
+    {
+        return $this->push(Query::endsWith($attribute, $value));
+    }
+
+    /**
+     * @param array<string> $attributes
+     */
+    public function select(array $attributes): self
+    {
+        return $this->push(Query::select($attributes));
+    }
+
+    public function cursorAfter(string $documentId): self
+    {
+        return $this->push(Query::cursorAfter($documentId));
+    }
+
+    public function cursorBefore(string $documentId): self
+    {
+        return $this->push(Query::cursorBefore($documentId));
+    }
+
+    public function orderAsc(string $attribute): self
+    {
+        return $this->push(Query::orderAsc($attribute));
+    }
+
+    public function orderDesc(string $attribute): self
+    {
+        return $this->push(Query::orderDesc($attribute));
+    }
+
+    public function orderRandom(): self
+    {
+        return $this->push(Query::orderRandom());
+    }
+
+    public function limit(int $limit): self
+    {
+        return $this->push(Query::limit($limit));
+    }
+
+    public function offset(int $offset): self
+    {
+        return $this->push(Query::offset($offset));
+    }
+
+    public function contains(string $attribute, mixed $value): self
+    {
+        return $this->push(Query::contains($attribute, $value));
+    }
+
+    /**
+     * @param array<mixed> $value
+     */
+    public function containsAny(string $attribute, array $value): self
+    {
+        return $this->push(Query::containsAny($attribute, $value));
+    }
+
+    /**
+     * @param array<mixed> $value
+     */
+    public function containsAll(string $attribute, array $value): self
+    {
+        return $this->push(Query::containsAll($attribute, $value));
+    }
+
+    public function notContains(string $attribute, mixed $value): self
+    {
+        return $this->push(Query::notContains($attribute, $value));
+    }
+
+    public function notSearch(string $attribute, string $value): self
+    {
+        return $this->push(Query::notSearch($attribute, $value));
+    }
+
+    public function notBetween(string $attribute, mixed $start, mixed $end): self
+    {
+        return $this->push(Query::notBetween($attribute, $start, $end));
+    }
+
+    public function notStartsWith(string $attribute, string $value): self
+    {
+        return $this->push(Query::notStartsWith($attribute, $value));
+    }
+
+    public function notEndsWith(string $attribute, string $value): self
+    {
+        return $this->push(Query::notEndsWith($attribute, $value));
+    }
+
+    public function regex(string $attribute, string $pattern): self
+    {
+        return $this->push(Query::regex($attribute, $pattern));
+    }
+
+    /**
+     * @param array<string> $attributes
+     */
+    public function exists(array $attributes): self
+    {
+        return $this->push(Query::exists($attributes));
+    }
+
+    /**
+     * @param array<string> $attributes
+     */
+    public function notExists(array $attributes): self
+    {
+        return $this->push(Query::notExists($attributes));
+    }
+
+    public function createdBefore(string $value): self
+    {
+        return $this->push(Query::createdBefore($value));
+    }
+
+    public function createdAfter(string $value): self
+    {
+        return $this->push(Query::createdAfter($value));
+    }
+
+    public function createdBetween(string $start, string $end): self
+    {
+        return $this->push(Query::createdBetween($start, $end));
+    }
+
+    public function updatedBefore(string $value): self
+    {
+        return $this->push(Query::updatedBefore($value));
+    }
+
+    public function updatedAfter(string $value): self
+    {
+        return $this->push(Query::updatedAfter($value));
+    }
+
+    public function updatedBetween(string $start, string $end): self
+    {
+        return $this->push(Query::updatedBetween($start, $end));
+    }
+
+    /**
+     * @param array<string> $queries
+     */
+    public function or(array $queries): self
+    {
+        return $this->push(Query::or($queries));
+    }
+
+    /**
+     * @param array<string> $queries
+     */
+    public function and(array $queries): self
+    {
+        return $this->push(Query::and($queries));
+    }
+
+    /**
+     * @param array<string> $queries
+     */
+    public function elemMatch(string $attribute, array $queries): self
+    {
+        return $this->push(Query::elemMatch($attribute, $queries));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function distanceEqual(string $attribute, array $values, int|float $distance, bool $meters = true): self
+    {
+        return $this->push(Query::distanceEqual($attribute, $values, $distance, $meters));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function distanceNotEqual(string $attribute, array $values, int|float $distance, bool $meters = true): self
+    {
+        return $this->push(Query::distanceNotEqual($attribute, $values, $distance, $meters));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function distanceGreaterThan(string $attribute, array $values, int|float $distance, bool $meters = true): self
+    {
+        return $this->push(Query::distanceGreaterThan($attribute, $values, $distance, $meters));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function distanceLessThan(string $attribute, array $values, int|float $distance, bool $meters = true): self
+    {
+        return $this->push(Query::distanceLessThan($attribute, $values, $distance, $meters));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function intersects(string $attribute, array $values): self
+    {
+        return $this->push(Query::intersects($attribute, $values));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function notIntersects(string $attribute, array $values): self
+    {
+        return $this->push(Query::notIntersects($attribute, $values));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function crosses(string $attribute, array $values): self
+    {
+        return $this->push(Query::crosses($attribute, $values));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function notCrosses(string $attribute, array $values): self
+    {
+        return $this->push(Query::notCrosses($attribute, $values));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function overlaps(string $attribute, array $values): self
+    {
+        return $this->push(Query::overlaps($attribute, $values));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function notOverlaps(string $attribute, array $values): self
+    {
+        return $this->push(Query::notOverlaps($attribute, $values));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function touches(string $attribute, array $values): self
+    {
+        return $this->push(Query::touches($attribute, $values));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function notTouches(string $attribute, array $values): self
+    {
+        return $this->push(Query::notTouches($attribute, $values));
+    }
+
+    public function count(string $attribute = '*', string $alias = ''): self
+    {
+        return $this->push(Query::count($attribute, $alias));
+    }
+
+    public function countDistinct(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::countDistinct($attribute, $alias));
+    }
+
+    public function sum(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::sum($attribute, $alias));
+    }
+
+    public function avg(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::avg($attribute, $alias));
+    }
+
+    public function min(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::min($attribute, $alias));
+    }
+
+    public function max(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::max($attribute, $alias));
+    }
+
+    public function stddev(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::stddev($attribute, $alias));
+    }
+
+    public function stddevPop(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::stddevPop($attribute, $alias));
+    }
+
+    public function stddevSamp(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::stddevSamp($attribute, $alias));
+    }
+
+    public function variance(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::variance($attribute, $alias));
+    }
+
+    public function varPop(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::varPop($attribute, $alias));
+    }
+
+    public function varSamp(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::varSamp($attribute, $alias));
+    }
+
+    public function bitAnd(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::bitAnd($attribute, $alias));
+    }
+
+    public function bitOr(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::bitOr($attribute, $alias));
+    }
+
+    public function bitXor(string $attribute, string $alias = ''): self
+    {
+        return $this->push(Query::bitXor($attribute, $alias));
+    }
+
+    /**
+     * @param array<string> $attributes
+     */
+    public function groupBy(array $attributes): self
+    {
+        return $this->push(Query::groupBy($attributes));
+    }
+
+    /**
+     * @param array<string> $queries
+     */
+    public function having(array $queries): self
+    {
+        return $this->push(Query::having($queries));
+    }
+
+    public function distinct(): self
+    {
+        return $this->push(Query::distinct());
+    }
+
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    public function join(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): self
+    {
+        return $this->push(Query::join($table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias));
+    }
+
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    public function leftJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): self
+    {
+        return $this->push(Query::leftJoin($table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias));
+    }
+
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    public function rightJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): self
+    {
+        return $this->push(Query::rightJoin($table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias));
+    }
+
+    /**
+     * @param string|array<string> $leftOrAliasOrOn
+     * @param string|array<string> $rightOrOn
+     */
+    public function fullOuterJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): self
+    {
+        return $this->push(Query::fullOuterJoin($table, $leftOrAliasOrOn, $rightOrOn, $operator, $alias));
+    }
+
+    public function crossJoin(string $table, string $alias = ''): self
+    {
+        return $this->push(Query::crossJoin($table, $alias));
+    }
+
+    /**
+     * @param array<int|float> $vector
+     */
+    public function vectorDot(string $attribute, array $vector): self
+    {
+        return $this->push(Query::vectorDot($attribute, $vector));
+    }
+
+    /**
+     * @param array<int|float> $vector
+     */
+    public function vectorCosine(string $attribute, array $vector): self
+    {
+        return $this->push(Query::vectorCosine($attribute, $vector));
+    }
+
+    /**
+     * @param array<int|float> $vector
+     */
+    public function vectorEuclidean(string $attribute, array $vector): self
+    {
+        return $this->push(Query::vectorEuclidean($attribute, $vector));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function covers(string $attribute, array $values): self
+    {
+        return $this->push(Query::covers($attribute, $values));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function notCovers(string $attribute, array $values): self
+    {
+        return $this->push(Query::notCovers($attribute, $values));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function spatialEquals(string $attribute, array $values): self
+    {
+        return $this->push(Query::spatialEquals($attribute, $values));
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    public function notSpatialEquals(string $attribute, array $values): self
+    {
+        return $this->push(Query::notSpatialEquals($attribute, $values));
+    }
+
+    public function page(int $page, int $perPage = 25): self
+    {
+        return $this->push(Query::page($page, $perPage));
+    }
+
+    /**
+     * @param string|list<string> $query
+     */
+    private function push(string|array $query): self
+    {
+        if (\is_array($query)) {
+            array_push($this->queries, ...$query);
+        } else {
+            $this->queries[] = $query;
+        }
+
+        return $this;
+    }
+}
