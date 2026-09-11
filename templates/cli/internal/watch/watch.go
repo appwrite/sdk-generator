@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -105,7 +106,16 @@ func (w *Watcher) relative(path string) (string, error) {
 	return filepath.ToSlash(relative), nil
 }
 
+// Wait for a quiet interval before fingerprinting: a truncate-and-rewrite can
+// otherwise be observed as an empty file before the writer restores its bytes.
+const settleDelay = 100 * time.Millisecond
+
 func (w *Watcher) run(changed func(string)) {
+	pending := make(map[string]fsnotify.Event)
+	timer := time.NewTimer(settleDelay)
+	timer.Stop()
+	defer timer.Stop()
+
 	for {
 		select {
 		case <-w.done:
@@ -115,7 +125,19 @@ func (w *Watcher) run(changed func(string)) {
 			if !ok {
 				return
 			}
-			w.handle(event, changed)
+			relative, err := w.relative(event.Name)
+			if err != nil || relative == "" || w.ignored(relative) {
+				continue
+			}
+			event.Op |= pending[event.Name].Op
+			pending[event.Name] = event
+			timer.Reset(settleDelay)
+
+		case <-timer.C:
+			for path, event := range pending {
+				w.handle(event, changed)
+				delete(pending, path)
+			}
 
 		case _, ok := <-w.watcher.Errors:
 			if !ok {
