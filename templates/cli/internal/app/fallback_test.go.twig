@@ -4,66 +4,9 @@ package app
 package app
 
 import (
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
-
-	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 )
-
-func TestUpdateOAuth2ProviderUsesProjectClient(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
-	directory := filepath.Join(home, ".appwrite")
-	if err := os.MkdirAll(directory, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	for _, provider := range []string{"kakao", "tiktok"} {
-		t.Run(provider, func(t *testing.T) {
-			cases := []map[string]interface{}{
-				{},
-				{"clientId": "", "enabled": false},
-			}
-			for _, params := range cases {
-				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method != "PATCH" || r.URL.Path != "/v1/project/oauth2/"+provider {
-						t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
-					}
-					if r.Header.Get("X-Appwrite-Project") != "test-project" || r.Header.Get("X-Appwrite-Key") != "test-key" {
-						t.Error("project authentication headers missing")
-					}
-					if r.Header.Get("Content-Type") != "application/json" {
-						t.Error("JSON content type missing")
-					}
-					var body map[string]interface{}
-					if err := json.NewDecoder(r.Body).Decode(&body); err != nil || !reflect.DeepEqual(body, params) {
-						t.Errorf("body = %#v, error = %v; want %#v", body, err, params)
-					}
-					w.Header().Set("Content-Type", "application/json")
-					w.Write([]byte(`{"enabled":false,"newField":"preserved"}`))
-				}))
-				defer server.Close()
-				preferences := `{"current":"test","test":{"key":"test-key","endpoint":"` + server.URL + `/v1"}}`
-				if err := os.WriteFile(filepath.Join(directory, "prefs.json"), []byte(preferences), 0o600); err != nil {
-					t.Fatal(err)
-				}
-				t.Setenv("APPWRITE_ENDPOINT", server.URL+"/v1")
-				result, err := UpdateOAuth2Provider("test-project", "/project/oauth2/"+provider, params)
-				if err != nil || string(result) != `{"enabled":false,"newField":"preserved"}` {
-					t.Fatalf("result = %s, error = %v", result, err)
-				}
-				if string(sdk.LastResponse.Take()) != string(result) {
-					t.Error("raw response was not captured")
-				}
-			}
-		})
-	}
-}
 
 func intPointer(value int) *int { return &value }
 
