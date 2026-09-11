@@ -45,11 +45,11 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/redirect/done:passed',
     ];
 
-    // The mock never emits the first two messages: a request that reaches it
+    // The mock never emits the first two exceptions: a request that reaches it
     // cannot pass the rejection checks.
     protected const ARRAY_PARAMETER_RESPONSES = [
-        'Invalid parameter: "queries" must be a list of strings.',
-        'Invalid parameter: "z" must be a list of strings.',
+        '{"message":"Invalid parameter: \"queries\" must be a list of strings.","type":"sdk_input_validation","code":0,"response":null}',
+        '{"message":"Invalid parameter: \"z\" must be a list of strings.","type":"sdk_input_validation","code":0,"response":null}',
         '["not JSON","first"]',
         '{"result":"POST:/v1/mock/tests/general/documents:passed","documents":[{"$id":"first"}],"labels":["ready",null]}',
         'Invalid `queries` param: Value must a valid array no longer than 100 items and Value must be a valid string and at least 1 chars and no longer than 4096 chars',

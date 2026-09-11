@@ -72,13 +72,13 @@ try:
     general.list_rows([{'method': 'limit', 'values': [1]}])
     raise AssertionError('Invalid string list was accepted')
 except AppwriteException as error:
-    print(error.message)
+    print(json.dumps({'message': error.message, 'type': error.type, 'code': error.code, 'response': error.response}))
 
 try:
     foo.post('string', 123, [1])
     raise AssertionError('Invalid string list was accepted')
 except AppwriteException as error:
-    print(error.message)
+    print(json.dumps({'message': error.message, 'type': error.type, 'code': error.code, 'response': error.response}))
 
 print(general.list_rows(['not JSON', MockType.FIRST]).result)
 print(json.dumps(general.create_documents([{'$id': 'first'}], labels=['ready', None]).to_dict()))
