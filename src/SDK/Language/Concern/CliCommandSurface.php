@@ -313,6 +313,10 @@ trait CliCommandSurface
         $commandVar = lcfirst($serviceName) . ucfirst((string) $methodName) . 'Command';
         $isTopLevel = in_array($methodName, self::TOP_LEVEL_COMMANDS[$serviceName] ?? [], true);
         $implementation = self::CONSOLE_FALLBACK_METHODS[$serviceName][$methodName] ?? null;
+        // These providers are in the console spec but not the pinned Go SDK yet.
+        if ($serviceName === 'project' && in_array($methodName, ['updateOAuth2Kakao', 'updateOAuth2TikTok'], true)) {
+            $implementation = 'updateOAuth2Provider';
+        }
 
         $targets = [
             [

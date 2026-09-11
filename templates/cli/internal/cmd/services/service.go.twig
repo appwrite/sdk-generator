@@ -275,6 +275,15 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 				limitFlag, offsetFlag, search)
 {% elseif implementation == 'getOrganizationForSession' %}
 			result, err := app.GetOrganizationForSession({{ scopedFlag ? scope.idVar : '""' }})
+{% elseif implementation == 'updateOAuth2Provider' %}
+			params := map[string]interface{}{}
+{% for parameter in (method | parameters('all')) %}
+{% set opt = getCliOption(parameter) %}
+			if cmd.Flags().Changed("{{ opt.flag }}") {
+				params["{{ parameter.name }}"] = {{ opt.var }}
+			}
+{% endfor %}
+			result, err := app.UpdateOAuth2Provider({{ scopedFlag ? scope.idVar : '""' }}, "{{ method.path }}", params)
 {% elseif sdk.test %}
 {# Joined rather than suffixed per argument: a trailing ", " leaves a method
    with no arguments after it reading `Method(id, )`, which compiles but is not
