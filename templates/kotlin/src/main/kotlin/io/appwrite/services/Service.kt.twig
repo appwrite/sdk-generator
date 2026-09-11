@@ -1,14 +1,5 @@
 package {{ sdk.namespace | caseDot }}.services
 
 import {{ sdk.namespace | caseDot }}.Client
-import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
 
-abstract class Service(val client: Client) {
-    // Erased generics let other item types through casts and Java callers.
-    // Enum items are allowed because they serialize to their string value.
-    protected fun validateStringList(name: String, value: List<*>?, nullableItems: Boolean = false) {
-        if (value?.any { it !is String && it !is Enum<*> && !(nullableItems && it == null) } == true) {
-            throw {{ spec.info.title | caseUcfirst }}Exception("Invalid parameter: \"$name\" must be a list of strings.", 0, "sdk_input_validation")
-        }
-    }
-}
+abstract class Service(val client: Client)

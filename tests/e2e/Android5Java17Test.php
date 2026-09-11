@@ -39,7 +39,6 @@ final class Android5Java17Test extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::ARRAY_PARAMETER_RESPONSES,
-        ...Base::STRING_LIST_VALIDATION_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::NULL_PATH_RESPONSE,
         ...Base::UPLOAD_RESPONSES,
