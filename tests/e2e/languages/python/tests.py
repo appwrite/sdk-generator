@@ -12,6 +12,7 @@ from appwrite.operator import Operator, Condition
 from appwrite.enums.mock_type import MockType
 from appwrite.models.player import Player
 
+import json
 import os.path
 
 client = Client()
@@ -66,6 +67,45 @@ print(response.result)
 response = general.redirect()
 print(response['result'])
 
+print(general.list_rows(['not JSON', MockType.FIRST]).result)
+print(general.create_documents([{'$id': 'first'}], labels=['ready']).result)
+
+# String-list items are checked against the schema before any request.
+try:
+    general.list_rows([{'method': 'limit', 'values': [1]}])
+    raise AssertionError('Invalid string list was accepted')
+except AppwriteException as error:
+    print(json.dumps({'message': error.message, 'type': error.type, 'code': error.code, 'response': error.response}))
+
+try:
+    foo.post('string', 123, [1])
+    raise AssertionError('Invalid string list was accepted')
+except AppwriteException as error:
+    print(json.dumps({'message': error.message, 'type': error.type, 'code': error.code, 'response': error.response}))
+
+print(general.create_documents([{'$id': 'first'}], labels=['ready', None]).result)
+
+# Nested lists serialize by index, so raw calls reach API validation.
+try:
+    client.call('get', '/mock/tests/general/list-rows', params={'queries': [{'method': 'limit', 'values': [1]}]})
+    raise AssertionError('Nested query was accepted')
+except AppwriteException as error:
+    print(error.message)
+
+response = client.call(
+    'post',
+    '/mock/tests/general/documents',
+    {'content-type': 'multipart/form-data', 'X-Appwrite-Project': 'console'},
+    {
+        'documents': [
+            {'$id': 'first', 'values': [0, 1.5, True, False]},
+            {'$id': 'second', 'nested': [{'name': 'Zoë', 'values': [[1, 2]]}]},
+        ],
+        'file': InputFile.from_bytes(b'fixture', 'fixture.txt', 'text/plain'),
+    },
+)
+print(response['result'])
+
 for id, plain in [('', '0'), ('0', '')]:
     try:
         general.validate_path(plain, id)
@@ -98,8 +138,8 @@ response = general.create_player(Player(id='player1', name='John Doe', score=100
 print(response.result)
 
 response = general.create_players([
-    {'id': 'player1', 'name': 'John Doe', 'score': 100},
-    {'id': 'player2', 'name': 'Jane Doe', 'score': 200}
+    Player(id='player1', name='John Doe', score=100),
+    Player(id='player2', name='Jane Doe', score=200),
 ])
 print(response.result)
 

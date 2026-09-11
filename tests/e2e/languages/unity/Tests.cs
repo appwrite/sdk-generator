@@ -158,6 +158,16 @@ namespace AppwriteTests
             var result = await general.Redirect();
             LogResult((result as Dictionary<string, object>)["result"]);
 
+            // Array parameter tests
+            mock = await general.ListRows(new List<string> { "not JSON", MockType.First.Value });
+            LogResult(mock.Result);
+
+            mock = await general.CreateDocuments(
+                documents: new List<object> { new Dictionary<string, object> { { "$id", "first" } } },
+                labels: new List<string> { "ready" }
+            );
+            LogResult(mock.Result);
+
             foreach (var ids in new[] { new[] { "", "0" }, new[] { "0", "" } })
             {
                 try

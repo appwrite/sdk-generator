@@ -3,5 +3,14 @@ module {{spec.info.title | caseUcfirst }}
         def initialize(client)
             @client = client
         end
+
+        private
+
+        def validate_string_list(name, value, nullable_items: false)
+            return if value.nil?
+            return if value.is_a?(Array) && value.all? { |item| item.is_a?(String) || (nullable_items && item.nil?) }
+
+            raise {{spec.info.title | caseUcfirst}}::Exception.new("Invalid parameter: \"#{name}\" must be a list of strings.", 0, 'sdk_input_validation')
+        end
     end
 end
