@@ -14,12 +14,7 @@ from appwrite.models.player import Player
 
 import json
 import os.path
-
-
-class NoRequestClient(Client):
-    def call(self, *args, **kwargs):
-        raise AssertionError('Invalid input reached the request boundary')
-
+import requests_mock
 
 client = Client()
 foo = Foo(client)
@@ -75,33 +70,34 @@ print(response['result'])
 
 # String-list validation follows the declared item type across query and body
 # parameters, before reaching the request boundary.
-invalid_general = General(NoRequestClient())
-invalid_foo = Foo(NoRequestClient())
-for values in ['query', {'method': 'limit'}, [1], [True], [None], [['nested']], ['valid', {'method': 'limit'}]]:
-    calls = [
-        (invalid_general.list_rows, {'queries': values}, 'queries'),
-        (invalid_foo.get, {'x': 'string', 'y': 123, 'z': values}, 'z'),
-        (invalid_foo.post, {'x': 'string', 'y': 123, 'z': values}, 'z'),
-    ]
-    if values != [None]:
-        calls.append((invalid_general.create_documents, {'documents': [{'$id': 'one'}], 'labels': values}, 'labels'))
-    for method, arguments, name in calls:
-        try:
-            method(**arguments)
-            raise AssertionError('Invalid string list was accepted')
-        except AppwriteException as error:
-            if error.type != 'sdk_input_validation' or error.code != 0 or error.response is not None:
-                raise
-            if name not in error.message:
-                raise AssertionError('Validation error did not identify the parameter')
+with requests_mock.Mocker() as http:
+    for values in ['query', {'method': 'limit'}, [1], [True], [None], [['nested']], ['valid', {'method': 'limit'}]]:
+        calls = [
+            (general.list_rows, {'queries': values}, 'queries'),
+            (foo.get, {'x': 'string', 'y': 123, 'z': values}, 'z'),
+            (foo.post, {'x': 'string', 'y': 123, 'z': values}, 'z'),
+        ]
+        if values != [None]:
+            calls.append((general.create_documents, {'documents': [{'$id': 'one'}], 'labels': values}, 'labels'))
+        for method, arguments, name in calls:
+            try:
+                method(**arguments)
+                raise AssertionError('Invalid string list was accepted')
+            except AppwriteException as error:
+                if error.type != 'sdk_input_validation' or error.code != 0 or error.response is not None:
+                    raise
+                if name not in error.message:
+                    raise AssertionError('Validation error did not identify the parameter')
 
-for arguments, name in [({'x': None, 'y': 123, 'z': [1]}, 'x'), ({'x': 'string', 'y': 123, 'z': None}, 'z')]:
-    try:
-        invalid_foo.get(**arguments)
-        raise AssertionError('Missing required parameter was accepted')
-    except AppwriteException as error:
-        if error.message != f'Missing required parameter: "{name}"':
-            raise
+    for arguments, name in [({'x': None, 'y': 123, 'z': [1]}, 'x'), ({'x': 'string', 'y': 123, 'z': None}, 'z')]:
+        try:
+            foo.get(**arguments)
+            raise AssertionError('Missing required parameter was accepted')
+        except AppwriteException as error:
+            if error.message != f'Missing required parameter: "{name}"':
+                raise
+    if http.called:
+        raise AssertionError('Invalid input submitted an HTTP request')
 print('String list validation:passed')
 
 # String contents are unchanged; this validates types, not JSON syntax or enum
