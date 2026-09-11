@@ -9,4 +9,22 @@ abstract class Service
     public function __construct(protected Client $client)
     {
     }
+
+    protected function validateStringList(string $name, ?array $value, bool $nullableItems = false): void
+    {
+        if ($value === null) {
+            return;
+        }
+
+        // Enum objects serialize to their string value.
+        $valid = array_is_list($value) && array_all(
+            $value,
+            fn (mixed $item): bool => ($nullableItems && $item === null)
+                || is_string($item instanceof \JsonSerializable ? $item->jsonSerialize() : $item)
+        );
+
+        if (!$valid) {
+            throw new {{ namespace | split('\\') | last | caseUcfirst }}Exception('Invalid parameter: "' . $name . '" must be a list of strings.', 0, 'sdk_input_validation');
+        }
+    }
 }

@@ -114,6 +114,21 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	}
 	fmt.Printf("%s\n", (*response).(map[string]interface{})["result"].(string))
 
+	listRowsResponse, err := general.ListRows(general.WithListRowsQueries([]string{"not JSON", "first"}))
+	if err != nil {
+		fmt.Printf("general.ListRows => error %v", err)
+	}
+	fmt.Printf("%s\n", listRowsResponse.Result)
+
+	documentsResponse, err := general.CreateDocuments(
+		[]interface{}{map[string]interface{}{"$id": "first"}},
+		general.WithCreateDocumentsLabels([]string{"ready"}),
+	)
+	if err != nil {
+		fmt.Printf("general.CreateDocuments => error %v", err)
+	}
+	fmt.Printf("%s\n", documentsResponse.Result)
+
 	for _, ids := range [][2]string{{"", "0"}, {"0", ""}} {
 		if _, err := general.ValidatePath(ids[1], ids[0]); err != nil {
 			fmt.Println(err)

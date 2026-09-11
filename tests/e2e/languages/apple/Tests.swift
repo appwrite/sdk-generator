@@ -139,6 +139,12 @@ class Tests: XCTestCase {
         let result = try await general.redirect()
         print((result as! [String: Any])["result"] as! String)
 
+        mock = try await general.listRows(queries: ["not JSON", MockType.first.rawValue])
+        print(mock.result)
+
+        mock = try await general.createDocuments(documents: [AnyCodable(["$id": "first"])], labels: ["ready"])
+        print(mock.result)
+
         for (id, plain) in [("", "0"), ("0", "")] {
             do {
                 _ = try await general.validatePath(plain: plain, id: id)
@@ -199,12 +205,6 @@ class Tests: XCTestCase {
         mock = try await general.createPlayers(players: [
             Player(id: "player1", name: "John Doe", score: 100),
             Player(id: "player2", name: "Jane Doe", score: 200)
-        ])
-        print(mock.result)
-
-        mock = try await general.createDocuments(documents: [
-            AnyCodable(["$id": "one", "title": "hello"]),
-            AnyCodable(["$id": "two", "title": "world"])
         ])
         print(mock.result)
 

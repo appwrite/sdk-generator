@@ -67,6 +67,9 @@ print(response.result)
 response = general.redirect()
 print(response['result'])
 
+print(general.list_rows(['not JSON', MockType.FIRST]).result)
+print(general.create_documents([{'$id': 'first'}], labels=['ready']).result)
+
 # String-list items are checked against the schema before any request.
 try:
     general.list_rows([{'method': 'limit', 'values': [1]}])
@@ -80,8 +83,7 @@ try:
 except AppwriteException as error:
     print(json.dumps({'message': error.message, 'type': error.type, 'code': error.code, 'response': error.response}))
 
-print(general.list_rows(['not JSON', MockType.FIRST]).result)
-print(json.dumps(general.create_documents([{'$id': 'first'}], labels=['ready', None]).to_dict()))
+print(general.create_documents([{'$id': 'first'}], labels=['ready', None]).result)
 
 # Nested lists serialize by index, so raw calls reach API validation.
 try:
@@ -102,7 +104,7 @@ response = client.call(
         'file': InputFile.from_bytes(b'fixture', 'fixture.txt', 'text/plain'),
     },
 )
-print(json.dumps(response))
+print(response['result'])
 
 for id, plain in [('', '0'), ('0', '')]:
     try:

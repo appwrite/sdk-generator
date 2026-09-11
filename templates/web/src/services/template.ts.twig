@@ -141,6 +141,15 @@ export class {{ service.name | caseUcfirst }} {
         }
         {%~ endif %}
         {%~ endfor %}
+        {%~ for parameter in (method | parameters('all')) %}
+        {%~ if (parameter | schemaType) == 'array' and ((parameter | arraySchema) | schemaType) == 'string' %}
+        {%~ set validationArgs = ["'" ~ (parameter.name | caseCamel | escapeKeyword) ~ "'", (parameter.name | caseCamel | escapeKeyword)] %}
+        {%~ if (parameter | arraySchema) | schemaNullable %}
+        {%~ set validationArgs = validationArgs | merge(['true']) %}
+        {%~ endif %}
+        {{ 'Client.validateStringList' | jsArgs(validationArgs, 8) | raw }}
+        {%~ endif %}
+        {%~ endfor %}
 {% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter.extensions['x-sdk-source']|default('')) == 'security') ? ('this.client.config.' ~ (parameter.extensions['x-sdk-config'] | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
         {{ method.path | tsApiPath(pathReplacements, 8) | raw }}
         const payload: Payload = {};

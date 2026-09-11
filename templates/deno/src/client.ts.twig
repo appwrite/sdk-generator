@@ -156,6 +156,17 @@ export class Client {
         return json;
     }
 
+    static validateStringList(name: string, value: unknown, nullableItems: boolean = false): void {
+        // Missing values are left to the generated required-parameter checks.
+        if (value === null || typeof value === 'undefined') {
+            return;
+        }
+
+        if (!Array.isArray(value) || value.some((item) => typeof item !== 'string' && !(nullableItems && item === null))) {
+            throw new {{spec.info.title | caseUcfirst}}Exception(`Invalid parameter: "${name}" must be a list of strings.`, 0, 'sdk_input_validation');
+        }
+    }
+
     static flatten(data: Payload, prefix = ''): Payload {
         let output: Payload = {};
 

@@ -38,6 +38,8 @@ final class Python310Test extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::ARRAY_PARAMETER_RESPONSES,
+        ...Base::STRING_LIST_VALIDATION_RESPONSES,
+        ...Base::NESTED_LIST_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,

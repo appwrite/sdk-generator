@@ -45,15 +45,23 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/redirect/done:passed',
     ];
 
-    // The mock never emits the first two exceptions: a request that reaches it
-    // cannot pass the rejection checks.
+    // One contract for every SDK: string lists reach the API unchanged.
     protected const ARRAY_PARAMETER_RESPONSES = [
+        '["not JSON","first"]',
+        '{"documents":[{"$id":"first"}],"labels":["ready"]}',
+    ];
+
+    // SDKs that can receive a non-string list item at runtime reject it before
+    // any request; the mock never emits these exceptions.
+    protected const STRING_LIST_VALIDATION_RESPONSES = [
         '{"message":"Invalid parameter: \"queries\" must be a list of strings.","type":"sdk_input_validation","code":0,"response":null}',
         '{"message":"Invalid parameter: \"z\" must be a list of strings.","type":"sdk_input_validation","code":0,"response":null}',
-        '["not JSON","first"]',
-        '{"result":"POST:/v1/mock/tests/general/documents:passed","documents":[{"$id":"first"}],"labels":["ready",null]}',
+        '{"documents":[{"$id":"first"}],"labels":["ready",null]}',
+    ];
+
+    protected const NESTED_LIST_RESPONSES = [
         'Invalid `queries` param: Value must a valid array no longer than 100 items and Value must be a valid string and at least 1 chars and no longer than 4096 chars',
-        '{"result":"POST:/v1/mock/tests/general/documents:passed","documents":[{"$id":"first","values":["0","1.5","true","false"]},{"$id":"second","nested":[{"name":"Zoë","values":[["1","2"]]}]}],"labels":null}',
+        '{"documents":[{"$id":"first","values":["0","1.5","true","false"]},{"$id":"second","nested":[{"name":"Zoë","values":[["1","2"]]}]}],"labels":null}',
     ];
 
     protected const PATH_PARAM_RESPONSES = [
@@ -94,10 +102,6 @@ abstract class Base extends TestCase
     protected const MODEL_RESPONSES = [
         'POST:/v1/mock/tests/general/models:passed',
         'POST:/v1/mock/tests/general/models/array:passed',
-    ];
-
-    protected const OBJECT_ARRAY_RESPONSES = [
-        'POST:/v1/mock/tests/general/documents:passed',
     ];
 
     protected const OPTIONAL_PARAM_RESPONSES = [

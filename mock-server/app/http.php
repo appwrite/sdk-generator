@@ -669,9 +669,7 @@ App::post('/v1/mock/tests/general/documents')
         }
 
         $response->json([
-            'result' => 'POST:/v1/mock/tests/general/documents:passed',
-            'documents' => $documents,
-            'labels' => $labels,
+            'result' => \json_encode(['documents' => $documents, 'labels' => $labels]),
         ]);
     });
 

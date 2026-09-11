@@ -56,6 +56,26 @@ puts response.result
 response = general.redirect()
 puts response["result"]
 
+puts general.list_rows(queries: ['not JSON', MockType::FIRST]).result
+puts general.create_documents(documents: [{'$id': 'first'}], labels: ['ready']).result
+
+# String-list items are checked against the schema before any request.
+begin
+    general.list_rows(queries: [{method: 'limit', values: [1]}])
+    raise 'Invalid string list was accepted'
+rescue Appwrite::Exception => error
+    puts({message: error.message, type: error.type, code: error.code, response: error.response}.to_json)
+end
+
+begin
+    foo.post(x: 'string', y: 123, z: [1])
+    raise 'Invalid string list was accepted'
+rescue Appwrite::Exception => error
+    puts({message: error.message, type: error.type, code: error.code, response: error.response}.to_json)
+end
+
+puts general.create_documents(documents: [{'$id': 'first'}], labels: ['ready', nil]).result
+
 [['', '0'], ['0', '']].each do |id, plain|
     begin
         general.validate_path(id: id, plain: plain)

@@ -13,6 +13,7 @@ import io.appwrite.Operator
 import io.appwrite.Condition
 import io.appwrite.enums.MockType
 import io.appwrite.extensions.fromJson
+import io.appwrite.extensions.toJsonWithNulls
 import io.appwrite.models.Error
 import io.appwrite.models.InputFile
 import io.appwrite.models.Mock
@@ -180,6 +181,24 @@ class ServiceTest {
             // General Tests
             val result = general.redirect()
             writeToFile((result as Map<String, Any>)["result"] as String)
+
+            writeToFile(general.listRows(listOf("not JSON", MockType.FIRST) as List<String>).result)
+            writeToFile(general.createDocuments(listOf(mapOf("\$id" to "first")), listOf("ready")).result)
+
+            // Erased generics let a cast pass non-string items; they are rejected before any request.
+            try {
+                general.listRows(listOf(mapOf("method" to "limit", "values" to listOf(1))) as List<String>)
+                error("Invalid string list was accepted")
+            } catch (e: AppwriteException) {
+                writeToFile(mapOf("message" to e.message, "type" to e.type, "code" to e.code, "response" to e.response).toJsonWithNulls())
+            }
+            try {
+                foo.post("string", 123, listOf(1) as List<String>)
+                error("Invalid string list was accepted")
+            } catch (e: AppwriteException) {
+                writeToFile(mapOf("message" to e.message, "type" to e.type, "code" to e.code, "response" to e.response).toJsonWithNulls())
+            }
+            writeToFile(general.createDocuments(listOf(mapOf("\$id" to "first")), listOf("ready", null) as List<String>).result)
 
             for ((id, plain) in listOf("" to "0", "0" to "")) {
                 try {
