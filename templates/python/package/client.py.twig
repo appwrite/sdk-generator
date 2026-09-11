@@ -281,8 +281,10 @@ class Client:
 
         for key in data:
             value = data[key] if isinstance(data, dict) else key
-            finalKey = prefix + '[' + key + ']' if prefix else key
-            finalKey = prefix + '[' + str(i) + ']' if isinstance(data, list) else finalKey
+            if isinstance(data, list):
+                finalKey = prefix + '[' + str(i) + ']'
+            else:
+                finalKey = prefix + '[' + key + ']' if prefix else key
             i += 1
 
             if isinstance(value, list) or isinstance(value, dict):

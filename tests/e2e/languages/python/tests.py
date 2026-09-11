@@ -12,6 +12,7 @@ from appwrite.operator import Operator, Condition
 from appwrite.enums.mock_type import MockType
 from appwrite.models.player import Player
 
+import json
 import os.path
 
 client = Client()
@@ -64,6 +65,46 @@ print(response.result)
 # General Tests
 
 response = general.redirect()
+print(response['result'])
+
+# Query strings keep their contents, while other scalar array values use the
+# same string representation as scalar query parameters.
+queries = [Query.equal('name', 'Zoë'), Query.limit(1)]
+for values, expected in [
+    (queries, queries),
+    ([0, 1.5, True, False], ['0', '1.5', 'true', 'false']),
+]:
+    if json.loads(general.list_rows(values).result) != expected:
+        raise AssertionError('Query parameter values changed during serialization')
+print('Query parameter serialization:passed')
+
+# Invalid nested queries reach API validation instead of crashing the SDK.
+for values in [
+    [{'method': 'limit', 'values': [1]}],
+    [['nested']],
+    [Query.limit(1), {'method': 'limit', 'values': [1]}],
+]:
+    try:
+        general.list_rows(values)
+        raise AssertionError('Nested query was accepted')
+    except AppwriteException as error:
+        if error.code != 400 or 'queries' not in error.message:
+            raise
+print('Nested query validation:400')
+
+# Object arrays are valid for other parameters, including multipart requests.
+response = client.call(
+    'post',
+    '/mock/tests/general/documents',
+    {'content-type': 'multipart/form-data', 'X-Appwrite-Project': 'console'},
+    {
+        'documents': [
+            {'$id': 'first', 'values': [0, 1.5, True, False]},
+            {'$id': 'second', 'nested': [{'name': 'Zoë', 'values': [[1, 2]]}]},
+        ],
+        'file': InputFile.from_bytes(b'fixture', 'fixture.txt', 'text/plain'),
+    },
+)
 print(response['result'])
 
 for id, plain in [('', '0'), ('0', '')]:
