@@ -622,9 +622,15 @@ class Client {
             const responseText = await response.text();
             let data: any = { message: responseText };
             if (
-                response.headers.get('content-type')?.includes('application/json')
+                response.headers
+                    .get('content-type')
+                    ?.includes('application/json')
             ) {
-                data = JSONbig.parse(responseText);
+                try {
+                    data = JSONbig.parse(responseText);
+                } catch {
+                    // Keep the raw body as the message when the JSON is malformed
+                }
             }
             throw new {{spec.info.title | caseUcfirst}}Exception(
                 data?.message,
