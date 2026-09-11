@@ -15,6 +15,12 @@ from appwrite.models.player import Player
 import json
 import os.path
 
+
+class NoRequestClient(Client):
+    def call(self, *args, **kwargs):
+        raise AssertionError('Invalid input reached the request boundary')
+
+
 client = Client()
 foo = Foo(client)
 bar = Bar(client)
@@ -67,44 +73,96 @@ print(response.result)
 response = general.redirect()
 print(response['result'])
 
-# Query strings keep their contents, while other scalar array values use the
-# same string representation as scalar query parameters.
+# String-list validation follows the declared item type across query and body
+# parameters, before reaching the request boundary.
+invalid_general = General(NoRequestClient())
+invalid_foo = Foo(NoRequestClient())
+for values in ['query', {'method': 'limit'}, [1], [True], [None], [['nested']], ['valid', {'method': 'limit'}]]:
+    calls = [
+        (invalid_general.list_rows, {'queries': values}, 'queries'),
+        (invalid_foo.get, {'x': 'string', 'y': 123, 'z': values}, 'z'),
+        (invalid_foo.post, {'x': 'string', 'y': 123, 'z': values}, 'z'),
+    ]
+    if values != [None]:
+        calls.append((invalid_general.create_documents, {'documents': [{'$id': 'one'}], 'labels': values}, 'labels'))
+    for method, arguments, name in calls:
+        try:
+            method(**arguments)
+            raise AssertionError('Invalid string list was accepted')
+        except AppwriteException as error:
+            if error.type != 'sdk_input_validation' or error.code != 0 or error.response is not None:
+                raise
+            if name not in error.message:
+                raise AssertionError('Validation error did not identify the parameter')
+
+for arguments, name in [({'x': None, 'y': 123, 'z': [1]}, 'x'), ({'x': 'string', 'y': 123, 'z': None}, 'z')]:
+    try:
+        invalid_foo.get(**arguments)
+        raise AssertionError('Missing required parameter was accepted')
+    except AppwriteException as error:
+        if error.message != f'Missing required parameter: "{name}"':
+            raise
+print('String list validation:passed')
+
+# String contents are unchanged; this validates types, not JSON syntax or enum
+# membership. Optional lists and normalized Enum values remain supported.
 queries = [Query.equal('name', 'Zoë'), Query.limit(1)]
 for values, expected in [
+    (None, []),
+    ([], []),
     (queries, queries),
-    ([0, 1.5, True, False], ['0', '1.5', 'true', 'false']),
+    (['not JSON', MockType.FIRST], ['not JSON', 'first']),
 ]:
     if json.loads(general.list_rows(values).result) != expected:
         raise AssertionError('Query parameter values changed during serialization')
+
+# The generic request serializer also handles scalar array values independently
+# of generated service parameter validation.
+response = client.call('get', '/mock/tests/general/list-rows', params={'queries': [0, 1.5, True, False]})
+if json.loads(response['result']) != ['0', '1.5', 'true', 'false']:
+    raise AssertionError('Scalar array values changed during serialization')
 print('Query parameter serialization:passed')
 
-# Invalid nested queries reach API validation instead of crashing the SDK.
+# Raw requests still reach API validation for invalid nested queries.
 for values in [
     [{'method': 'limit', 'values': [1]}],
     [['nested']],
     [Query.limit(1), {'method': 'limit', 'values': [1]}],
 ]:
     try:
-        general.list_rows(values)
+        client.call('get', '/mock/tests/general/list-rows', params={'queries': values})
         raise AssertionError('Nested query was accepted')
     except AppwriteException as error:
         if error.code != 400 or 'queries' not in error.message:
             raise
 print('Nested query validation:400')
 
-# Object arrays are valid for other parameters, including multipart requests.
+# Generated object-array parameters preserve their contents, and nullable
+# string-list items follow the schema independently of outer optionality.
+documents = [
+    {'$id': 'first', 'values': [0, 1.5, True, False]},
+    {'$id': 'second', 'nested': [{'name': 'Zoë', 'values': [[1, 2]]}]},
+]
+for labels, expected in [(None, None), ([], []), (['ready', None], ['ready', None]), ([MockType.FIRST], ['first'])]:
+    response = general.create_documents(documents, labels=labels)
+    if response.to_dict()['documents'] != documents or response.to_dict()['labels'] != expected:
+        raise AssertionError('Object arrays or nullable string-list items changed')
+
+# Multipart serialization preserves the nested structure at the API boundary.
 response = client.call(
     'post',
     '/mock/tests/general/documents',
     {'content-type': 'multipart/form-data', 'X-Appwrite-Project': 'console'},
     {
-        'documents': [
-            {'$id': 'first', 'values': [0, 1.5, True, False]},
-            {'$id': 'second', 'nested': [{'name': 'Zoë', 'values': [[1, 2]]}]},
-        ],
+        'documents': documents,
         'file': InputFile.from_bytes(b'fixture', 'fixture.txt', 'text/plain'),
     },
 )
+if response['documents'] != [
+    {'$id': 'first', 'values': ['0', '1.5', 'true', 'false']},
+    {'$id': 'second', 'nested': [{'name': 'Zoë', 'values': [['1', '2']]}]},
+]:
+    raise AssertionError('Multipart document values or nesting changed')
 print(response['result'])
 
 for id, plain in [('', '0'), ('0', '')]:
@@ -139,8 +197,8 @@ response = general.create_player(Player(id='player1', name='John Doe', score=100
 print(response.result)
 
 response = general.create_players([
-    {'id': 'player1', 'name': 'John Doe', 'score': 100},
-    {'id': 'player2', 'name': 'Jane Doe', 'score': 200}
+    Player(id='player1', name='John Doe', score=100),
+    Player(id='player2', name='Jane Doe', score=200),
 ])
 print(response.result)
 

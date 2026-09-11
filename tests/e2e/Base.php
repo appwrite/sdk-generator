@@ -46,6 +46,7 @@ abstract class Base extends TestCase
     ];
 
     protected const ARRAY_PARAMETER_RESPONSES = [
+        'String list validation:passed',
         'Query parameter serialization:passed',
         'Nested query validation:400',
         'POST:/v1/mock/tests/general/documents:passed',
