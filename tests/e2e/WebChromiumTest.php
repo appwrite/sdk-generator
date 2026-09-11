@@ -50,6 +50,7 @@ final class WebChromiumTest extends Base
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
         ...Base::OPTIONAL_PARAM_RESPONSES,
+        ...Base::OBJECT_PARAM_RESPONSES,
         ...Base::UNION_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,

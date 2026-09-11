@@ -1716,6 +1716,72 @@
         ]
       }
     },
+    "\/mock\/tests\/general\/query": {
+      "post": {
+        "summary": "Create Query",
+        "operationId": "generalCreateQuery",
+        "tags": [
+          "general"
+        ],
+        "description": "Mock a request whose only parameter is a free-form object.",
+        "x-appwrite": {
+          "demo": "general\/create-query.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application\/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "object",
+                    "description": "Sample free-form object param",
+                    "default": null,
+                    "example": {
+                      "query": "query { mock }"
+                    }
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/nullable": {
       "post": {
         "summary": "Nullable Test",

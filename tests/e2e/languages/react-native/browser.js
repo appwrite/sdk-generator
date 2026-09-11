@@ -162,6 +162,13 @@ import {
     response = await general.getOptional(0, 64, 'zero');
     console.log(response.result);
 
+    // A lone object param keeps its own `query` key, as in graphql.query({ query, variables })
+    response = await general.createQuery({ query: 'query { mock }', variables: { id: 1 } });
+    console.log(response.result);
+
+    response = await general.createQuery({ query: { query: 'query { mock }' } });
+    console.log(response.result);
+
     // Exception responses
     try {
         response = await general.error400();
