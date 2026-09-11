@@ -630,11 +630,6 @@ class CLI extends Go
                 'template'      => 'cli/internal/cmd/login_test.go',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'internal/cmd/oauthprovider_test.go',
-                'template'      => 'cli/internal/cmd/oauthprovider_test.go.twig',
-            ],
-            [
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/shorthand_test.go',
                 'template'      => 'cli/internal/cmd/shorthand_test.go',

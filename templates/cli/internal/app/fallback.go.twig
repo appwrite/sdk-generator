@@ -7,7 +7,6 @@ package app
 package app
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -39,26 +38,6 @@ const (
 	pageSize              = 100
 	enrichmentConcurrency = 8
 )
-
-// UpdateOAuth2Provider covers providers not yet exposed by the pinned Go SDK.
-// Use its client so authentication, response capture and HTTP policy stay the same.
-func UpdateOAuth2Provider(projectID, path string, params map[string]interface{}) (json.RawMessage, error) {
-	client, err := ClientForProject(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	response, err := client.Call("PATCH", path, map[string]interface{}{
-		"X-Appwrite-Project": client.Config["project"],
-		"content-type":       "application/json",
-		"accept":             "application/json",
-	}, params)
-	if err != nil {
-		return nil, err
-	}
-
-	return sdkclient.ResponseBody(response)
-}
 
 // isRouteMissing reports whether an error means the Cloud-only route is absent.
 func isRouteMissing(err error) bool {
