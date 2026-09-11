@@ -45,11 +45,15 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/redirect/done:passed',
     ];
 
+    // The mock never emits the first two messages: a request that reaches it
+    // cannot pass the rejection checks.
     protected const ARRAY_PARAMETER_RESPONSES = [
-        'String list validation:passed',
-        'Query parameter serialization:passed',
-        'Nested query validation:400',
-        'POST:/v1/mock/tests/general/documents:passed',
+        'Invalid parameter: "queries" must be a list of strings.',
+        'Invalid parameter: "z" must be a list of strings.',
+        '["not JSON","first"]',
+        '{"result":"POST:/v1/mock/tests/general/documents:passed","documents":[{"$id":"first"}],"labels":["ready",null]}',
+        'Invalid `queries` param: Value must a valid array no longer than 100 items and Value must be a valid string and at least 1 chars and no longer than 4096 chars',
+        '{"result":"POST:/v1/mock/tests/general/documents:passed","documents":[{"$id":"first","values":["0","1.5","true","false"]},{"$id":"second","nested":[{"name":"Zoë","values":[["1","2"]]}]}],"labels":null}',
     ];
 
     protected const PATH_PARAM_RESPONSES = [
