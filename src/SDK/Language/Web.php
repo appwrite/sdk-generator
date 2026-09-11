@@ -507,8 +507,9 @@ class Web extends JS
      * still dispatch positionally or the trailing arguments are discarded.
      *
      * @param array<int, string> $keys
+     * @param array<int, string> $operands
      */
-    protected function formatOverloadCondition(bool $hasRequired, array $keys, bool $hasRest = false): string
+    protected function formatOverloadCondition(bool $hasRequired, array $keys, bool $hasRest = false, array $operands = []): string
     {
         $indent = str_repeat(' ', 12);
         $shape = [
@@ -529,6 +530,8 @@ class Web extends JS
                 ? $group
                 : '(' . implode(' ||' . "\n" . $groupIndent . str_repeat(' ', 4), $keys) . ')';
         }
+
+        array_push($shape, ...$operands);
 
         if (!$hasRequired) {
             // The optional-params form nests the object test inside `!paramsOrFirst || (...)`,
@@ -1057,6 +1060,7 @@ class Web extends JS
                     || str_starts_with($firstParamType, 'boolean');
 
                 $keys = [];
+                $operands = [];
                 if (!$isPrimitive) {
                     foreach ($params as $param) {
                         $name = $this->escapeKeyword($this->toCamelCase($param->name));
@@ -1066,11 +1070,17 @@ class Web extends JS
                     if (isset($method->requestBody?->content['multipart/form-data'])) {
                         $keys[] = "'onProgress' in paramsOrFirst";
                     }
+
+                    // A lone free-form object can carry its own parameter name as a key, as in
+                    // graphql.query({ query: '...', variables }), so a string there is the positional form.
+                    if (count($params) === 1 && $firstParamType === 'object') {
+                        $operands[] = 'typeof paramsOrFirst.' . $this->escapeKeyword($this->toCamelCase($params[0]->name)) . " !== 'string'";
+                    }
                 }
 
                 $hasRest = count($params) > 1;
 
-                return $this->formatOverloadCondition($hasRequired, $keys, $hasRest);
+                return $this->formatOverloadCondition($hasRequired, $keys, $hasRest, $operands);
             }, ['is_safe' => ['html']]),
         ]);
     }

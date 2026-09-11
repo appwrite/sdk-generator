@@ -94,6 +94,11 @@ abstract class Base extends TestCase
         'width=0,height=64,name=zero',
     ];
 
+    protected const OBJECT_PARAM_RESPONSES = [
+        '{"query":"query { mock }","variables":{"id":1}}',
+        '{"query":"query { mock }"}',
+    ];
+
     protected const UNION_RESPONSES = [
         'GET:/v1/mock/tests/union:passed',
         'test-data',
