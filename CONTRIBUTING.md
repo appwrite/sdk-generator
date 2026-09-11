@@ -137,6 +137,48 @@ composer lint-twig
 
 **Note:** If you encounter linting errors that seem incorrect for code generation templates, please discuss in your PR rather than disabling the linter.
 
+## Linting Generated Markdown with Vale
+
+We use [Vale](https://vale.sh/) to lint all generated Markdown documentation. Vale checks ensure consistent writing style across all SDK documentation.
+
+**To lint generated Markdown locally:**
+```bash
+# First, generate the SDK you're working on
+php example.php <target>
+
+# Then run Vale on the generated output
+vale examples/<target>
+
+# Or use the composer script (runs against all examples)
+composer lint-markdown
+```
+
+**Requirements:**
+- [Vale](https://vale.sh/) must be installed
+
+**Configuration:**
+- Located in `.vale.ini`
+- Uses Google style as base with Appwrite-specific customizations
+- API documentation (`docs/`) has relaxed rules since content comes from the OpenAPI spec
+- README files follow stricter guidelines
+
+**What Vale checks:**
+- Proper sentence-style capitalization in headings
+- Avoidance of first-person pronouns
+- Consistent terminology usage
+- Proper punctuation and formatting
+
+**Fixing violations:**
+- For violations in API documentation (`docs/`): These come from the OpenAPI spec and are suppressed via configuration
+- For violations in README files: Update the template in `templates/<lang>/README.md.twig`
+- For violations in code examples: Update the template in `templates/<lang>/docs/example.md.twig`
+
+After fixing template violations, regenerate the SDK and run Vale again to verify:
+```bash
+php example.php <target>
+vale examples/<target>
+```
+
 ## SDK Checklist
 
 It is very important for us to create a consistent structure and architecture, as well as a language-native feel for the SDKs we generate.

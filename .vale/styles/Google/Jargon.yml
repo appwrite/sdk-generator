@@ -1,0 +1,13 @@
+extends: existence
+message: "Avoid the jargon '%s'."
+link: https://developers.google.com/style/jargon
+level: suggestion
+ignorecase: true
+# The guide also cites 'solution', 'support', and 'workload' as overloaded
+# terms, but those have ordinary technical meanings and accounted for every hit
+# on a 950-file corpus, so only the unambiguous figurative terms are listed.
+tokens:
+  - break-glass
+  - camel ?case
+  - out-of-the-box
+  - swim ?lane
