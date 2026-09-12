@@ -305,6 +305,20 @@ namespace {{ spec.info.title | caseUcfirst }}
             return new Query("elemMatch", attribute, parsed).ToString();
         }
 
+        /// <summary>
+        /// Constrain populated related documents on a relationship attribute.
+        /// </summary>
+        /// <param name="attribute">The relationship attribute to query.</param>
+        /// <param name="queries">Filter, order, select, and pagination queries applied to related documents.</param>
+        /// <returns>The query string.</returns>
+        public static string Relationship(string attribute, List<string> queries)
+        {
+            var parsed = queries
+                .Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions) as object)
+                .ToList();
+            return new Query("relationship", attribute, parsed).ToString();
+        }
+
         public static string DistanceEqual(string attribute, object values, double distance, bool meters = true)
         {
             return new Query("distanceEqual", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();

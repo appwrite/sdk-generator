@@ -230,6 +230,20 @@ class Query:
         return str(Query("elemMatch", attribute, [json.loads(query) for query in queries]))
 
     @staticmethod
+    def relationship(attribute, queries):
+        """
+        Constrain populated related documents on a relationship attribute.
+
+        Args:
+            attribute: The relationship attribute to query.
+            queries: Filter, order, select, and pagination queries applied to related documents.
+
+        Returns:
+            The query string.
+        """
+        return str(Query("relationship", attribute, [json.loads(query) for query in queries]))
+
+    @staticmethod
     def distance_equal(attribute, values, distance, meters=True):
         return str(Query("distanceEqual", attribute, [[values, distance, meters]]))
 

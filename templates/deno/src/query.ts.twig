@@ -289,6 +289,20 @@ export class Query {
     ).toString();
 
   /**
+   * Constrain populated related documents on a relationship attribute.
+   *
+   * @param {string} attribute The relationship attribute to query.
+   * @param {string[]} queries Filter, order, select, and pagination queries applied to related documents.
+   * @returns {string}
+   */
+  static relationship = (attribute: string, queries: string[]): string =>
+    new Query(
+      "relationship",
+      attribute,
+      queries.map((query) => JSON.parse(query))
+    ).toString();
+
+  /**
    * Filter resources where attribute is at a specific distance from the given coordinates.
    *
    * @param {string} attribute
