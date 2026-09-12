@@ -301,6 +301,10 @@ fn test_queries() {
         Query::equal("name", "Alice").to_string(),
         Query::greater_than("age", 18).to_string(),
     ]));
+    println!("{}", Query::relationship("comments", vec![
+        Query::equal("approved", true).to_string(),
+        Query::limit(2).to_string(),
+    ]));
 }
 
 fn test_permission_helpers() {

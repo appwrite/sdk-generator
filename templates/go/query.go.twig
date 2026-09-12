@@ -520,3 +520,24 @@ func ElemMatch(attribute string, queries []string) string {
 		Values:    &parsedQueries,
 	})
 }
+
+// Relationship constrains populated related documents on a relationship attribute.
+//
+// attribute: The relationship attribute to query.
+// queries: Filter, order, select, and pagination queries applied to related documents.
+// Returns the query string.
+func Relationship(attribute string, queries []string) string {
+	var parsedQueries []interface{}
+	for _, query := range queries {
+		var q interface{}
+		if err := json.Unmarshal([]byte(query), &q); err != nil {
+			continue
+		}
+		parsedQueries = append(parsedQueries, q)
+	}
+	return parseQuery(queryOptions{
+		Method:    "relationship",
+		Attribute: &attribute,
+		Values:    &parsedQueries,
+	})
+}
