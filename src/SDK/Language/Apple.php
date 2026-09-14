@@ -248,6 +248,11 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Services/Push.swift',
+                'template'      => '/apple/Sources/Services/Push.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/WebSockets/HTTPHandler.swift',
                 'template'      => '/swift/Sources/WebSockets/HTTPHandler.swift.twig',
             ],
