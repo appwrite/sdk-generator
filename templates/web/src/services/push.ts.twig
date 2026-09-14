@@ -1,0 +1,399 @@
+import { Buffer } from 'buffer';
+import mqtt, {
+    type IClientOptions,
+    type IConnackPacket,
+    type IPublishPacket,
+    type MqttClient,
+} from 'mqtt';
+
+import { Client } from '../client';
+import { Service } from '../service';
+
+/** A message delivered on a subscribed topic (the MQTT analog of a Realtime event). */
+export interface PushMessage {
+    topic: string;
+    payload: Uint8Array;
+    qos: number;
+}
+
+export type MessageCallback = (message: PushMessage) => void | Promise<void>;
+export type Unsubscribe = () => void;
+
+export interface PushOptions {
+    /**
+     * The MQTT-over-WebSocket URL. Defaults to the {{spec.info.title | caseUcfirst}} endpoint with its
+     * scheme switched to `ws`/`wss` and `/mqtt` appended.
+     */
+    url?: string;
+    /**
+     * A fixed client id. Each connection needs its own: an MQTT server evicts the
+     * older session when a new one connects with the same id, so a shared id would
+     * make concurrent clients kick each other off. Defaults to a per-connection id.
+     */
+    clientId?: string;
+    /** MQTT keepalive in seconds (PINGREQ interval). Defaults to 60. */
+    keepalive?: number;
+    /**
+     * Auto-reconnect interval in ms. 0 (default) disables it — a one-shot connection.
+     * A long-lived client sets this > 0 so the socket comes back after a drop;
+     * subscriptions are re-registered on every reconnect (see {@link resubscribeAll}),
+     * because `clean: true` keeps no session.
+     */
+    reconnectPeriod?: number;
+    /** Notified on connection lifecycle changes, for a UI to reflect. */
+    onStatus?: (status: PushStatus, detail?: string) => void;
+}
+
+export type PushStatus =
+    | 'connecting'
+    | 'connected'
+    | 'reconnecting'
+    | 'offline'
+    | 'closed'
+    | 'error';
+
+type AuthMethod = 'appwrite-jwt' | 'appwrite-session' | '';
+
+/**
+ * {{spec.info.title | caseUcfirst}} native push service — the Realtime analog over an MQTT broker, without
+ * FCM or APNS. In the browser the transport is MQTT 5 over WebSocket. Foreground
+ * delivery only: while the page is open the connection stays up and each message is
+ * handed to your callback.
+ *
+ * Mirrors the Realtime service: `new Push(client).subscribe(topics, callback)` opens
+ * the connection lazily and returns an `unsubscribe` callable. The credential is read
+ * off the client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`),
+ * the same way every other service reads auth.
+ *
+ *     const client = new Client().setEndpoint(...).setProject(...).setJWT(jwt);
+ *     const push = new Push(client);
+ *     const unsubscribe = await push.subscribe('user/123/#', (m) =>
+ *       console.log(m.topic, new TextDecoder().decode(m.payload)),
+ *     );
+ */
+export class Push extends Service {
+    private readonly url?: string;
+    private readonly clientId?: string;
+    private readonly keepalive: number;
+    private readonly reconnectPeriod: number;
+    private readonly onStatus?: (status: PushStatus, detail?: string) => void;
+
+    private mqtt: MqttClient | null = null;
+    private connecting: Promise<void> | null = null;
+    /** Set once the first CONNACK lands, so 'connect' events after are reconnects. */
+    private everConnected = false;
+
+    private foreground = false;
+    private foregroundTitle?: string;
+
+    // Local id -> { topic, callback }. The id is never sent to the broker; it only
+    // lets the same topic carry more than one callback.
+    private readonly subscriptions = new Map<
+        string,
+        { topic: string; callback: MessageCallback }
+    >();
+
+    constructor(client: Client, options: PushOptions = {}) {
+        super(client);
+        this.url = options.url;
+        this.clientId = options.clientId;
+        this.keepalive = options.keepalive ?? 60;
+        this.reconnectPeriod = options.reconnectPeriod ?? 0;
+        this.onStatus = options.onStatus;
+    }
+
+    /**
+     * Also surface every delivered message as a browser notification while the tab is
+     * open. Requests the `Notification` permission on the spot. In the browser this is
+     * inherently foreground (open-tab) delivery — there is no background/closed-tab
+     * mode without a service worker + push subscription.
+     *
+     * @param options.title Fixed notification title. Defaults to the message topic.
+     */
+    setForeground(options: { title?: string } = {}): this {
+        this.foreground = true;
+        this.foregroundTitle = options.title;
+        if (
+            typeof Notification !== 'undefined' &&
+            Notification.permission === 'default'
+        ) {
+            void Notification.requestPermission();
+        }
+        return this;
+    }
+
+    // --- realtime-like API ---
+
+    /**
+     * Subscribe to one or more topics. Resolves to an unsubscribe callable.
+     *
+     * Awaiting resolves only once the broker has acked every SUBSCRIBE (SUBACK):
+     * the broker only starts routing a topic once its subscription is registered,
+     * so publishing before the ack races the message ahead of the subscription and
+     * it is dropped (no retained replay on MQTT). Awaiting here makes
+     * subscribe-then-publish reliable.
+     */
+    async subscribe(
+        topics: string | string[],
+        callback: MessageCallback,
+    ): Promise<Unsubscribe> {
+        const topicList = typeof topics === 'string' ? [topics] : topics;
+
+        const client = await this.connect();
+
+        const ids: string[] = [];
+        await Promise.all(
+            topicList.map((topic) => {
+                const id = randomId();
+                ids.push(id);
+                this.subscriptions.set(id, { topic, callback });
+                return new Promise<void>((resolve, reject) => {
+                    client.subscribe(topic, { qos: 1 }, (err) =>
+                        err ? reject(err) : resolve(),
+                    );
+                });
+            }),
+        );
+
+        return () => {
+            for (const id of ids) {
+                const entry = this.subscriptions.get(id);
+                this.subscriptions.delete(id);
+                if (entry && this.mqtt) {
+                    this.mqtt.unsubscribe(entry.topic);
+                }
+            }
+            if (this.subscriptions.size === 0) {
+                this.close();
+            }
+        };
+    }
+
+    /**
+     * Publish a message to a topic. For testing the fan-out — real pushes come from
+     * the server, not clients. Resolves once the broker acks (QoS 1).
+     */
+    async publish(
+        topic: string,
+        payload: string | Uint8Array,
+        qos: 0 | 1 | 2 = 1,
+    ): Promise<void> {
+        const client = await this.connect();
+        await new Promise<void>((resolve, reject) => {
+            client.publish(topic, Buffer.from(payload), { qos }, (err) =>
+                err ? reject(err) : resolve(),
+            );
+        });
+    }
+
+    /** Tear down the connection. */
+    close(): void {
+        if (this.mqtt) {
+            this.mqtt.end(true);
+            this.mqtt = null;
+        }
+        this.connecting = null;
+        this.everConnected = false;
+    }
+
+    /**
+     * Re-register every active subscription. Called on each reconnect: with
+     * `clean: true` the broker keeps no session, so a reconnected client starts with
+     * zero subscriptions and would otherwise silently stop receiving.
+     */
+    private resubscribeAll(): void {
+        const client = this.mqtt;
+        if (!client) {
+            return;
+        }
+        for (const { topic } of this.subscriptions.values()) {
+            client.subscribe(topic, { qos: 1 }, (err) => {
+                if (err) {
+                    this.onStatus?.(
+                        'error',
+                        `resubscribe ${topic}: ${err.message}`,
+                    );
+                }
+            });
+        }
+    }
+
+    // --- internals ---
+
+    private connect(): Promise<MqttClient> {
+        if (this.mqtt) {
+            return Promise.resolve(this.mqtt);
+        }
+        if (!this.connecting) {
+            this.connecting = this.open();
+        }
+        return this.connecting.then(() => this.mqtt!);
+    }
+
+    private endpointUrl(): string {
+        if (this.url) {
+            return this.url;
+        }
+        const endpoint =
+            this.client.config.endpointRealtime !== ''
+                ? this.client.config.endpointRealtime
+                : this.client.config.endpoint;
+        return `${endpoint.replace('https://', 'wss://').replace('http://', 'ws://')}/mqtt`;
+    }
+
+    private async open(): Promise<void> {
+        // Read the credential set on the client (via Client.setJWT / setSession).
+        let authMethod: AuthMethod;
+        let credential: string;
+        if (this.client.config.jwt) {
+            authMethod = 'appwrite-jwt';
+            credential = this.client.config.jwt;
+        } else if (this.client.config.session) {
+            authMethod = 'appwrite-session';
+            credential = this.client.config.session;
+        } else {
+            throw new Error(
+                'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
+            );
+        }
+
+        const project = this.client.config.project ?? '';
+        const clientId =
+            this.clientId || `appwrite-${project}-${randomId().slice(0, 8)}`;
+
+        this.onStatus?.('connecting');
+
+        const options: IClientOptions = {
+            clientId,
+            protocolVersion: 5,
+            clean: true, // cleanStart
+            keepalive: this.keepalive,
+            reconnectPeriod: this.reconnectPeriod,
+            manualConnect: true,
+            // Enhanced auth carried in CONNECT properties.
+            properties: {
+                authenticationMethod: authMethod,
+                authenticationData: Buffer.from(credential),
+                userProperties: { projectId: project },
+            },
+        };
+
+        const client = mqtt.connect(this.endpointUrl(), options);
+        this.mqtt = client;
+
+        client.on('message', (_topic, _payload, packet) => {
+            void this.dispatch(packet);
+        });
+
+        // Persistent lifecycle listeners. On a reconnect the broker has no session for
+        // us (clean: true), so we must re-register every subscription.
+        client.on('connect', () => {
+            if (this.everConnected) {
+                this.resubscribeAll();
+            }
+            this.everConnected = true;
+            this.onStatus?.('connected');
+        });
+        client.on('reconnect', () => this.onStatus?.('reconnecting'));
+        client.on('offline', () => this.onStatus?.('offline'));
+        client.on('close', () => this.onStatus?.('closed'));
+        client.on('error', (err) =>
+            this.onStatus?.(
+                'error',
+                err instanceof Error ? err.message : String(err),
+            ),
+        );
+
+        await new Promise<void>((resolve, reject) => {
+            const onConnect = (packet: IConnackPacket) => {
+                cleanup();
+                const rc = packet.reasonCode ?? packet.returnCode ?? 0;
+                if (rc !== 0) {
+                    this.close();
+                    reject(
+                        new Error(
+                            `MQTT authentication failed (CONNACK reason ${rc})`,
+                        ),
+                    );
+                } else {
+                    resolve();
+                }
+            };
+            const onError = (err: Error) => {
+                cleanup();
+                this.close();
+                reject(err);
+            };
+            const cleanup = () => {
+                client.removeListener('connect', onConnect);
+                client.removeListener('error', onError);
+            };
+            client.on('connect', onConnect);
+            client.on('error', onError);
+            client.connect();
+        });
+    }
+
+    /** Fan a delivered packet out to every subscription whose filter matches. */
+    private async dispatch(packet: IPublishPacket): Promise<void> {
+        const message: PushMessage = {
+            topic: packet.topic.toString(),
+            payload: Buffer.isBuffer(packet.payload)
+                ? packet.payload
+                : Buffer.from(packet.payload),
+            qos: packet.qos,
+        };
+        for (const { topic: filter, callback } of this.subscriptions.values()) {
+            if (matches(filter, message.topic)) {
+                await callback(message);
+            }
+        }
+        this.notify(message);
+    }
+
+    /** Post a browser notification for a message when foreground mode is on. */
+    private notify(message: PushMessage): void {
+        if (
+            !this.foreground ||
+            typeof Notification === 'undefined' ||
+            Notification.permission !== 'granted'
+        ) {
+            return;
+        }
+        try {
+            new Notification(this.foregroundTitle ?? message.topic, {
+                body: new TextDecoder().decode(message.payload),
+            });
+        } catch {
+            // Some browsers only allow notifications from a service worker; ignore.
+        }
+    }
+}
+
+/** A hex id, uuid4-like enough for a client-generated client id suffix. */
+function randomId(): string {
+    let out = '';
+    for (let i = 0; i < 32; i++) {
+        out += Math.floor(Math.random() * 16).toString(16);
+    }
+    return out;
+}
+
+/** MQTT topic-filter match with '+' (single level) and '#' (multi level). */
+export function matches(filter: string, topic: string): boolean {
+    const filterParts = filter.split('/');
+    const topicParts = topic.split('/');
+    for (let i = 0; i < filterParts.length; i++) {
+        const part = filterParts[i];
+        if (part === '#') {
+            return true;
+        }
+        if (i >= topicParts.length) {
+            return false;
+        }
+        if (part !== '+' && part !== topicParts[i]) {
+            return false;
+        }
+    }
+    return filterParts.length === topicParts.length;
+}
