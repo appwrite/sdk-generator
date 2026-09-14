@@ -245,6 +245,22 @@ describe('Query', () => {
         assertEquals(parsed.values[1].values, [18]);
     });
 
+    test('relationship', () => {
+        const inner1 = Query.equal('approved', true);
+        const inner2 = Query.limit(2);
+        const result = Query.relationship('comments', [inner1, inner2]);
+        const parsed = JSON.parse(result);
+
+        assertEquals(parsed.method, 'relationship');
+        assertEquals(parsed.attribute, 'comments');
+        assertEquals(parsed.values.length, 2);
+        assertEquals(parsed.values[0].method, 'equal');
+        assertEquals(parsed.values[0].attribute, 'approved');
+        assertEquals(parsed.values[0].values, [true]);
+        assertEquals(parsed.values[1].method, 'limit');
+        assertEquals(parsed.values[1].values, [2]);
+    });
+
     test('createdBefore', () => assertEquals(
         Query.createdBefore('2023-01-01').toString(),
         `{"method":"lessThan","attribute":"$createdAt","values":["2023-01-01"]}`,

@@ -171,6 +171,7 @@ Query.cursorBefore("[ROW_ID]")
 Query.select(["field1", "field2"])
 Query.or([Query.equal("a", value: 1), Query.equal("b", value: 2)])   // OR
 Query.and([Query.greaterThan("age", value: 18), Query.lessThan("age", value: 65)])  // AND (default)
+Query.relationship("comments", queries: [Query.equal("approved", value: true), Query.limit(25)])  // related documents
 ```
 
 ### File Storage

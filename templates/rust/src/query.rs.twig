@@ -458,6 +458,19 @@ impl Query {
         Self::new("elemMatch".to_string(), Some(attribute.into()), values)
     }
 
+    pub fn relationship<S, I, Q>(attribute: S, queries: I) -> Self
+    where
+        S: Into<String>,
+        I: IntoIterator<Item = Q>,
+        Q: AsRef<str>,
+    {
+        let values: Vec<Value> = queries
+            .into_iter()
+            .filter_map(|query| serde_json::from_str(query.as_ref()).ok())
+            .collect();
+        Self::new("relationship".to_string(), Some(attribute.into()), values)
+    }
+
     /// Convert query to JSON value (matches Go/Python SDK format)
     pub fn to_value(self) -> Value {
         let mut obj = serde_json::Map::new();

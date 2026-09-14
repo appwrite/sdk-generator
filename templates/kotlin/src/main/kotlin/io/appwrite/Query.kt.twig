@@ -134,6 +134,15 @@ class Query(
         fun elemMatch(attribute: String, queries: List<String>) = Query("elemMatch", attribute, queries.map { it.fromJson<Query>() }).toJson()
 
         /**
+         * Constrain populated related documents on a relationship attribute.
+         *
+         * @param attribute The relationship attribute to query.
+         * @param queries Filter, order, select, and pagination queries applied to related documents.
+         * @returns The query string.
+         */
+        fun relationship(attribute: String, queries: List<String>) = Query("relationship", attribute, queries.map { it.fromJson<Query>() }).toJson()
+
+        /**
          * Filter resources where attribute is at a specific distance from the given coordinates.
          *
          * @param attribute The attribute to filter on.

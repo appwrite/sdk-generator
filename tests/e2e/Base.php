@@ -206,6 +206,7 @@ abstract class Base extends TestCase
         '{"method":"exists","values":["attr1","attr2"]}',
         '{"method":"notExists","values":["attr1","attr2"]}',
         '{"method":"elemMatch","attribute":"friends","values":[{"method":"equal","attribute":"name","values":["Alice"]},{"method":"greaterThan","attribute":"age","values":[18]}]}',
+        '{"method":"relationship","attribute":"comments","values":[{"method":"equal","attribute":"approved","values":[true]},{"method":"limit","values":[2]}]}',
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [

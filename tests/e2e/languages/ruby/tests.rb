@@ -227,6 +227,10 @@ puts Query.elem_match("friends", [
   Query.equal("name", "Alice"),
   Query.greater_than("age", 18)
 ])
+puts Query.relationship("comments", [
+  Query.equal("approved", true),
+  Query.limit(2)
+])
 
 # Permission & Role helper tests
 puts Permission.read(Role.any())

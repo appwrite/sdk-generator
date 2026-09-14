@@ -219,6 +219,10 @@ print(Query.elem_match("friends", [
     Query.equal("name", "Alice"),
     Query.greater_than("age", 18)
 ]))
+print(Query.relationship("comments", [
+    Query.equal("approved", True),
+    Query.limit(2)
+]))
 
 # Permission & Role helper tests
 print(Permission.read(Role.any()))
