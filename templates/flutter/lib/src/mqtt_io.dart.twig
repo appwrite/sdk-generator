@@ -1,0 +1,293 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
+import 'dart:typed_data';
+import 'package:mqtt5_client/mqtt5_client.dart';
+import 'package:mqtt5_client/mqtt5_server_client.dart';
+import 'package:typed_data/typed_data.dart' as typed;
+import 'client.dart';
+import 'exception.dart';
+import 'mqtt.dart';
+import 'mqtt_message.dart';
+
+Push createPush(
+  Client client, {
+  String? host,
+  int port = 1883,
+  bool? tls,
+  bool tlsInsecure = false,
+  String? clientId,
+  int keepAlive = 60,
+}) =>
+    PushIO(
+      client,
+      host: host,
+      port: port,
+      tls: tls,
+      tlsInsecure: tlsInsecure,
+      clientId: clientId,
+      keepAlive: keepAlive,
+    );
+
+class _PushSubscription {
+  final String filter;
+  final PushCallback callback;
+
+  const _PushSubscription(this.filter, this.callback);
+}
+
+class PushIO implements Push {
+  @override
+  final Client client;
+
+  final String _host;
+  final int _port;
+  final bool _tls;
+  final bool _tlsInsecure;
+  final String? _clientId;
+  final int _keepAlive;
+
+  MqttServerClient? _mqtt;
+  Future<void>? _connecting;
+
+  // Local id -> subscription (topic filter + callback). The id is never sent to
+  // the broker; it only lets the same topic carry more than one callback.
+  final Map<String, _PushSubscription> _subscriptions = {};
+  // topic filter -> completer resolved on SUBACK.
+  final Map<String, Completer<void>> _subAcks = {};
+
+  PushIO(
+    this.client, {
+    String? host,
+    int port = 1883,
+    bool? tls,
+    bool tlsInsecure = false,
+    String? clientId,
+    int keepAlive = 60,
+  })  : _host = host ?? _endpointHost(client),
+        _port = port,
+        _tls = tls ?? (port == 8883),
+        _tlsInsecure = tlsInsecure,
+        _clientId = clientId,
+        _keepAlive = keepAlive;
+
+  static String _endpointHost(Client client) {
+    try {
+      return Uri.parse(client.endPoint).host;
+    } catch (_) {
+      return 'localhost';
+    }
+  }
+
+  @override
+  Future<PushUnsubscribe> subscribe(
+      Object topics, PushCallback callback) async {
+    final topicList =
+        topics is String ? <String>[topics] : List<String>.from(topics as List);
+
+    final mqtt = await _connect();
+
+    final ids = <String>[];
+    final acks = <Future<void>>[];
+    for (final topic in topicList) {
+      final id = _randomId();
+      ids.add(id);
+      _subscriptions[id] = _PushSubscription(topic, callback);
+
+      final completer = Completer<void>();
+      _subAcks[topic] = completer;
+      acks.add(completer.future);
+
+      final subscription = MqttSubscription.withMaximumQos(
+        MqttSubscriptionTopic(topic),
+        MqttQos.atLeastOnce,
+      );
+      mqtt.subscribeWithSubscriptionList([subscription]);
+    }
+
+    // The broker only starts routing a topic once its subscription is registered,
+    // so publishing before the SUBACK races the message ahead of the subscription
+    // and it is dropped (no retained replay on MQTT). Awaiting makes it reliable.
+    await Future.wait(acks);
+
+    return () {
+      for (final id in ids) {
+        final entry = _subscriptions.remove(id);
+        if (entry != null) {
+          _mqtt?.unsubscribeStringTopic(entry.filter);
+        }
+      }
+      if (_subscriptions.isEmpty) {
+        close();
+      }
+    };
+  }
+
+  @override
+  Future<void> publish(String topic, String payload, {int qos = 1}) async {
+    final mqtt = await _connect();
+    final data = typed.Uint8Buffer()..addAll(utf8.encode(payload));
+    mqtt.publishMessage(topic, _qos(qos), data);
+  }
+
+  @override
+  void close() {
+    _mqtt?.disconnect();
+    _mqtt = null;
+    _connecting = null;
+  }
+
+  Future<MqttServerClient> _connect() {
+    final mqtt = _mqtt;
+    if (mqtt != null &&
+        mqtt.connectionStatus?.state == MqttConnectionState.connected) {
+      return Future.value(mqtt);
+    }
+    return (_connecting ??= _open()).then((_) => _mqtt!);
+  }
+
+  Future<void> _open() async {
+    // Read the credential set on the client (via Client.setJWT / setSession).
+    final jwt = client.config['jwt'];
+    final session = client.config['session'];
+    final String authMethod;
+    final String credential;
+    if (jwt != null && jwt.isNotEmpty) {
+      authMethod = 'appwrite-jwt';
+      credential = jwt;
+    } else if (session != null && session.isNotEmpty) {
+      authMethod = 'appwrite-session';
+      credential = session;
+    } else {
+      throw {{spec.info.title | caseUcfirst}}Exception(
+          'No credential set on the client; call Client.setJWT() or Client.setSession() first.');
+    }
+
+    final project = client.config['project'] ?? '';
+    final clientId =
+        _clientId ?? 'appwrite-$project-${_randomId().substring(0, 8)}';
+
+    final mqtt = MqttServerClient.withPort(_host, clientId, _port);
+    mqtt.keepAlivePeriod = _keepAlive;
+    // Re-register every subscription automatically after a dropped connection.
+    mqtt.autoReconnect = true;
+    mqtt.resubscribeOnAutoReconnect = true;
+    mqtt.onSubscribed = _onSubscribed;
+    mqtt.onSubscribeFail = _onSubscribeFail;
+
+    if (_tls) {
+      mqtt.secure = true;
+      if (_tlsInsecure) {
+        mqtt.onBadCertificate = (dynamic certificate) => true;
+      }
+    }
+
+    // Enhanced auth carried in the CONNECT properties, plus the project id as a
+    // user property — exactly like the Python and React Native clients.
+    final authData = typed.Uint8Buffer()..addAll(utf8.encode(credential));
+    final connectMessage = MqttConnectMessage()
+        .withClientIdentifier(clientId)
+        .startClean()
+        .keepAliveFor(_keepAlive)
+        .withAuthenticationMethod(authMethod)
+        .withAuthenticationData(authData);
+    connectMessage.addUserPropertyPair('projectId', project);
+    mqtt.connectionMessage = connectMessage;
+
+    _mqtt = mqtt;
+    mqtt.updates.listen(_onData);
+
+    try {
+      await mqtt.connect();
+    } catch (e) {
+      close();
+      throw {{spec.info.title | caseUcfirst}}Exception(e.toString());
+    }
+
+    final status = mqtt.connectionStatus;
+    if (status == null || status.state != MqttConnectionState.connected) {
+      close();
+      throw {{spec.info.title | caseUcfirst}}Exception(
+          'MQTT authentication failed (CONNACK reason ${status?.reasonCode})');
+    }
+  }
+
+  void _onData(List<MqttReceivedMessage<MqttMessage>> events) {
+    for (final received in events) {
+      final publish = received.payload;
+      if (publish is! MqttPublishMessage) {
+        continue;
+      }
+      final topic = received.topic ?? '';
+      final bytes = publish.payload.message;
+      final payload =
+          bytes == null ? Uint8List(0) : Uint8List.fromList(bytes.toList());
+      final message = PushMessage(
+        topic: topic,
+        payload: payload,
+        qos: publish.header?.qos.index ?? 0,
+      );
+      for (final subscription in _subscriptions.values) {
+        if (_matches(subscription.filter, topic)) {
+          subscription.callback(message);
+        }
+      }
+    }
+  }
+
+  void _onSubscribed(MqttSubscription subscription) {
+    final completer = _subAcks.remove(subscription.topic.rawTopic);
+    if (completer != null && !completer.isCompleted) {
+      completer.complete();
+    }
+  }
+
+  void _onSubscribeFail(MqttSubscription subscription) {
+    final topic = subscription.topic.rawTopic;
+    final completer = _subAcks.remove(topic);
+    if (completer != null && !completer.isCompleted) {
+      completer
+          .completeError({{spec.info.title | caseUcfirst}}Exception('Failed to subscribe to $topic'));
+    }
+  }
+
+  MqttQos _qos(int qos) {
+    switch (qos) {
+      case 0:
+        return MqttQos.atMostOnce;
+      case 2:
+        return MqttQos.exactlyOnce;
+      default:
+        return MqttQos.atLeastOnce;
+    }
+  }
+}
+
+/// A hex id, uuid4-like enough for a client-generated subId / client id suffix.
+String _randomId() {
+  final random = Random();
+  final buffer = StringBuffer();
+  for (var i = 0; i < 32; i++) {
+    buffer.write(random.nextInt(16).toRadixString(16));
+  }
+  return buffer.toString();
+}
+
+/// MQTT topic-filter match with '+' (single level) and '#' (multi level).
+bool _matches(String filter, String topic) {
+  final filterParts = filter.split('/');
+  final topicParts = topic.split('/');
+  for (var i = 0; i < filterParts.length; i++) {
+    final part = filterParts[i];
+    if (part == '#') {
+      return true;
+    }
+    if (i >= topicParts.length) {
+      return false;
+    }
+    if (part != '+' && part != topicParts[i]) {
+      return false;
+    }
+  }
+  return filterParts.length == topicParts.length;
+}

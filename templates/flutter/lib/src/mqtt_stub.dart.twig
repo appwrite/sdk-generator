@@ -1,0 +1,17 @@
+import 'mqtt.dart';
+import 'client.dart';
+
+/// Implemented in `mqtt_io.dart`. Native push relies on a raw TCP socket, so it is
+/// only available on platforms with `dart:io` (mobile and desktop), not the web.
+Push createPush(
+  Client client, {
+  String? host,
+  int port = 1883,
+  bool? tls,
+  bool tlsInsecure = false,
+  String? clientId,
+  int keepAlive = 60,
+}) =>
+    throw UnsupportedError(
+      'Native push is not supported on this platform; it requires dart:io.',
+    );
