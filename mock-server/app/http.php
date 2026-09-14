@@ -581,6 +581,24 @@ App::get('/v1/mock/tests/general/optional')
         $response->json(['result' => "width={$width},height={$height},name={$name}"]);
     });
 
+App::post('/v1/mock/tests/general/query')
+    ->desc('Create Query')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'createQuery')
+    ->label('sdk.description', 'Mock a request whose only parameter is a free-form object.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('query', [], new Assoc(), 'Sample free-form object param')
+    ->inject('response')
+    ->action(function (array $query, UtopiaSwooleResponse $response) {
+        $response->json(['result' => \json_encode($query)]);
+    });
+
 App::post('/v1/mock/tests/general/nullable')
     ->desc('Nullable Test')
     ->groups(['mock'])
