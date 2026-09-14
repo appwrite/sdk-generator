@@ -110,6 +110,11 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Push.cs',
+                'template'      => 'unity/Assets/Runtime/Push.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Channel.cs',
                 'template'      => 'unity/Assets/Runtime/Channel.cs.twig',
             ],
@@ -299,6 +304,16 @@ class Unity extends DotNet
                 'scope'         => 'copy',
                 'destination'   => 'Assets/Runtime/Core/Plugins/System.Text.Json.dll.meta',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Text.Json.dll.meta',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/MQTTnet.dll',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/MQTTnet.dll',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/MQTTnet.dll.meta',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/MQTTnet.dll.meta',
             ],
             [
                 'scope'         => 'copy',

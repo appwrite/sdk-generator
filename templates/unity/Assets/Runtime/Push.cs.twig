@@ -1,0 +1,310 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
+using MQTTnet;
+using MQTTnet.Client;
+using MQTTnet.Formatter;
+using MQTTnet.Protocol;
+using UnityEngine;
+
+namespace {{ spec.info.title | caseUcfirst }}
+{
+    /// <summary>
+    /// A message delivered on a subscribed topic — the MQTT push analog of a realtime event.
+    /// </summary>
+    public class PushMessage
+    {
+        public string Topic { get; }
+        public byte[] Payload { get; }
+        public int Qos { get; }
+
+        public PushMessage(string topic, byte[] payload, int qos)
+        {
+            Topic = topic;
+            Payload = payload;
+            Qos = qos;
+        }
+
+        /// <summary>The payload decoded as a UTF-8 string.</summary>
+        public string Text => Encoding.UTF8.GetString(Payload);
+    }
+
+    /// <summary>
+    /// {{ spec.info.title | caseUcfirst }} native push service — the realtime analog delivered over an MQTT broker,
+    /// without FCM or APNS. Foreground delivery only: while the app is running the
+    /// connection stays open and each message is handed to your callback on the main thread.
+    ///
+    /// Like <c>Realtime</c>, this is a <see cref="MonoBehaviour"/>; create it through
+    /// <c>{{ spec.info.title | caseUcfirst }}Manager</c> rather than constructing it directly.
+    /// </summary>
+    public class Push : MonoBehaviour
+    {
+        private Client _client;
+        private IMqttClient _mqtt;
+
+        private string _host;
+        private int _port = 1883;
+        private bool? _tls;
+        private bool _tlsInsecure;
+        private string _clientId;
+        private int _keepAlive = 60;
+
+        // Local id -> (topic filter, callback). The id is never sent to the broker; it
+        // only lets the same topic carry more than one callback.
+        private readonly Dictionary<string, (string Filter, Action<PushMessage> Callback)> _subscriptions = new();
+
+        // MQTTnet delivers on background threads; hop callbacks back to the main thread.
+        private readonly ConcurrentQueue<Action> _mainThread = new();
+
+        private bool Tls => _tls ?? (_port == 8883);
+
+        public void Initialize(Client client)
+        {
+            _client = client;
+        }
+
+        /// <summary>Configure the broker connection. Call before the first subscribe.</summary>
+        public Push Configure(
+            string host = null,
+            int port = 1883,
+            bool? tls = null,
+            bool tlsInsecure = false,
+            string clientId = null,
+            int keepAlive = 60)
+        {
+            _host = host;
+            _port = port;
+            _tls = tls;
+            _tlsInsecure = tlsInsecure;
+            _clientId = clientId;
+            _keepAlive = keepAlive;
+            return this;
+        }
+
+        /// <summary>
+        /// Subscribe to one or more topics. Returns an unsubscribe callable.
+        ///
+        /// Awaits the broker's SUBACK: the broker only starts routing a topic once its
+        /// subscription is registered, so publishing before the ack races the message
+        /// ahead of the subscription and it is dropped (no retained replay on MQTT).
+        /// </summary>
+        public async Task<Action> Subscribe(string topic, Action<PushMessage> callback)
+        {
+            return await Subscribe(new[] { topic }, callback);
+        }
+
+        public async Task<Action> Subscribe(IEnumerable<string> topics, Action<PushMessage> callback)
+        {
+            var client = await Connect();
+
+            var ids = new List<string>();
+            var builder = new MqttClientSubscribeOptionsBuilder();
+            foreach (var topic in topics)
+            {
+                var id = Guid.NewGuid().ToString();
+                ids.Add(id);
+                lock (_subscriptions)
+                {
+                    _subscriptions[id] = (topic, callback);
+                }
+                builder = builder.WithTopicFilter(f => f
+                    .WithTopic(topic)
+                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce));
+            }
+
+            await client.SubscribeAsync(builder.Build());
+
+            return () =>
+            {
+                lock (_subscriptions)
+                {
+                    foreach (var id in ids)
+                    {
+                        if (_subscriptions.TryGetValue(id, out var entry))
+                        {
+                            _subscriptions.Remove(id);
+                            _ = _mqtt?.UnsubscribeAsync(entry.Filter);
+                        }
+                    }
+
+                    if (_subscriptions.Count == 0)
+                    {
+                        Close();
+                    }
+                }
+            };
+        }
+
+        /// <summary>
+        /// Publish a message to a topic. For testing the fan-out — real pushes come from
+        /// the server, not clients.
+        /// </summary>
+        public async Task Publish(string topic, string payload, int qos = 1)
+        {
+            var client = await Connect();
+            var message = new MqttApplicationMessageBuilder()
+                .WithTopic(topic)
+                .WithPayload(Encoding.UTF8.GetBytes(payload))
+                .WithQualityOfServiceLevel(QosOf(qos))
+                .Build();
+            await client.PublishAsync(message);
+        }
+
+        /// <summary>Tear down the connection and drop all active subscriptions.</summary>
+        public void Close()
+        {
+            if (_mqtt != null)
+            {
+                _ = _mqtt.DisconnectAsync();
+                _mqtt.Dispose();
+                _mqtt = null;
+            }
+        }
+
+        private async Task<IMqttClient> Connect()
+        {
+            if (_mqtt != null && _mqtt.IsConnected)
+            {
+                return _mqtt;
+            }
+
+            // Read the credential set on the client (via Client.SetJWT / SetSession).
+            var jwt = _client.Config.GetValueOrDefault("jwt");
+            var session = _client.Config.GetValueOrDefault("session");
+            string authMethod;
+            string credential;
+            if (!string.IsNullOrEmpty(jwt))
+            {
+                authMethod = "appwrite-jwt";
+                credential = jwt;
+            }
+            else if (!string.IsNullOrEmpty(session))
+            {
+                authMethod = "appwrite-session";
+                credential = session;
+            }
+            else
+            {
+                throw new {{ spec.info.title | caseUcfirst }}Exception("No credential set on the client; call Client.SetJWT() or Client.SetSession() first.");
+            }
+
+            var host = _host ?? new Uri(_client.Endpoint).Host;
+            var project = _client.Config.GetValueOrDefault("project") ?? "";
+            var clientId = _clientId ?? $"appwrite-{project}-{Guid.NewGuid().ToString().Substring(0, 8)}";
+
+            var optionsBuilder = new MqttClientOptionsBuilder()
+                .WithProtocolVersion(MqttProtocolVersion.V500)
+                .WithClientId(clientId)
+                .WithTcpServer(host, _port)
+                .WithCleanSession(true)
+                .WithKeepAlivePeriod(TimeSpan.FromSeconds(_keepAlive))
+                .WithAuthentication(authMethod, Encoding.UTF8.GetBytes(credential))
+                .WithUserProperty("projectId", project);
+
+            if (Tls)
+            {
+                var insecure = _tlsInsecure;
+                optionsBuilder = optionsBuilder.WithTlsOptions(o =>
+                {
+                    o.UseTls(true);
+                    if (insecure)
+                    {
+                        o.WithCertificateValidationHandler(_ => true);
+                    }
+                });
+            }
+
+            var client = new MqttFactory().CreateMqttClient();
+            client.ApplicationMessageReceivedAsync += OnMessage;
+            _mqtt = client;
+
+            var result = await client.ConnectAsync(optionsBuilder.Build());
+            if (result.ResultCode != MqttClientConnectResultCode.Success)
+            {
+                Close();
+                throw new {{ spec.info.title | caseUcfirst }}Exception($"MQTT authentication failed (CONNACK reason {result.ResultCode})");
+            }
+
+            return client;
+        }
+
+        private Task OnMessage(MqttApplicationMessageReceivedEventArgs args)
+        {
+            var topic = args.ApplicationMessage.Topic;
+            var payload = args.ApplicationMessage.PayloadSegment.ToArray();
+            var qos = (int)args.ApplicationMessage.QualityOfServiceLevel;
+            var message = new PushMessage(topic, payload, qos);
+
+            List<Action<PushMessage>> callbacks;
+            lock (_subscriptions)
+            {
+                callbacks = new List<Action<PushMessage>>();
+                foreach (var entry in _subscriptions.Values)
+                {
+                    if (Matches(entry.Filter, topic))
+                    {
+                        callbacks.Add(entry.Callback);
+                    }
+                }
+            }
+
+            foreach (var callback in callbacks)
+            {
+                _mainThread.Enqueue(() => callback(message));
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private void Update()
+        {
+            while (_mainThread.TryDequeue(out var action))
+            {
+                action();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            Close();
+        }
+
+        private static MqttQualityOfServiceLevel QosOf(int qos)
+        {
+            return qos switch
+            {
+                0 => MqttQualityOfServiceLevel.AtMostOnce,
+                2 => MqttQualityOfServiceLevel.ExactlyOnce,
+                _ => MqttQualityOfServiceLevel.AtLeastOnce,
+            };
+        }
+
+        /// <summary>MQTT topic-filter match with '+' (single level) and '#' (multi level).</summary>
+        private static bool Matches(string filter, string topic)
+        {
+            var filterParts = filter.Split('/');
+            var topicParts = topic.Split('/');
+            for (var i = 0; i < filterParts.Length; i++)
+            {
+                if (filterParts[i] == "#")
+                {
+                    return true;
+                }
+
+                if (i >= topicParts.Length)
+                {
+                    return false;
+                }
+
+                if (filterParts[i] != "+" && filterParts[i] != topicParts[i])
+                {
+                    return false;
+                }
+            }
+
+            return filterParts.Length == topicParts.Length;
+        }
+    }
+}

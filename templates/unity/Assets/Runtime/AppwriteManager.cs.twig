@@ -19,6 +19,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         
         private Client _client;
         private Realtime _realtime;
+        private Push _push;
         private bool _isInitialized;
         
         private readonly Dictionary<Type, object> _services = new();
@@ -41,16 +42,37 @@ namespace {{ spec.info.title | caseUcfirst }}
             } 
         }
         
-        public Realtime Realtime 
-        { 
-            get 
-            { 
+        public Realtime Realtime
+        {
+            get
+            {
                 if (ReferenceEquals(_realtime, null))
                     Debug.LogWarning("Realtime was not initialized. Call Initialize(true) to enable it.");
-                return _realtime; 
-            } 
+                return _realtime;
+            }
         }
-        
+
+        /// <summary>
+        /// Native push (MQTT) service. Created lazily on first access — set a
+        /// credential and subscribe, e.g. <c>Push.SetJWT(jwt)</c>.
+        /// </summary>
+        public Push Push
+        {
+            get
+            {
+                if (_client == null)
+                    throw new InvalidOperationException("{{ spec.info.title | caseUcfirst }} client is not initialized. Call Initialize() first.");
+                if (ReferenceEquals(_push, null))
+                {
+                    var pushGo = new GameObject("Push");
+                    pushGo.transform.SetParent(transform);
+                    _push = pushGo.AddComponent<Push>();
+                    _push.Initialize(_client);
+                }
+                return _push;
+            }
+        }
+
         public bool IsInitialized => _isInitialized;
         public {{ spec.info.title | caseUcfirst }}Config Config => config;
 
