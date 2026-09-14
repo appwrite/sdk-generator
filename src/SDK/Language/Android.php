@@ -202,6 +202,16 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/Push.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/Push.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushService.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushService.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/Extensions.kt',
                 'template'      => '/android/library/src/main/java/io/package/cookies/Extensions.kt.twig',
             ],

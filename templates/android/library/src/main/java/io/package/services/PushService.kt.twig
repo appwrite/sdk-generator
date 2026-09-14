@@ -1,0 +1,105 @@
+package {{ sdk.namespace | caseDot }}.services
+
+import android.app.Service
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
+import android.os.IBinder
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.ServiceCompat
+import com.hivemq.client.mqtt.datatypes.MqttQos
+import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
+
+/**
+ * Foreground service that keeps the {{ spec.info.title | caseUcfirst }} push (MQTT) connection alive while the
+ * app is backgrounded or closed. It owns its own MQTT client (so it survives process
+ * restarts), subscribes to the topics configured through [Push.setForeground] +
+ * `subscribe`, invokes any in-process listeners, and posts a local notification per
+ * message. Started by PushForeground; not meant to be started directly.
+ */
+class PushService : Service() {
+    private var mqtt: Mqtt5AsyncClient? = null
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        startForegroundCompat()
+        connectAndSubscribe()
+        // Ask Android to recreate the service (and re-run this connect) if it is killed.
+        return START_STICKY
+    }
+
+    private fun startForegroundCompat() {
+        val notification = NotificationCompat.Builder(this, PushForeground.CHANNEL_ID)
+            .setContentTitle(PushForeground.ongoingTitle)
+            .setContentText("Listening for messages")
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setOngoing(true)
+            .build()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ServiceCompat.startForeground(
+                this,
+                PushForeground.NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+            )
+        } else {
+            startForeground(PushForeground.NOTIFICATION_ID, notification)
+        }
+    }
+
+    private fun connectAndSubscribe() {
+        if (mqtt != null) {
+            return
+        }
+        val config = PushForeground.config ?: return
+
+        val client = buildPushClient(config)
+        mqtt = client
+        try {
+            client.pushConnect(config)
+            for (topic in PushForeground.topics) {
+                client.subscribeWith()
+                    .topicFilter(topic)
+                    .qos(MqttQos.AT_LEAST_ONCE)
+                    .callback { publish -> onMessage(publish.toPushMessage()) }
+                    .send()
+            }
+        } catch (e: Exception) {
+            // Connection failed; the service stays up and Android may restart it.
+        }
+    }
+
+    private fun onMessage(message: PushMessage) {
+        for (listener in PushForeground.listeners) {
+            listener(message)
+        }
+        postNotification(message)
+    }
+
+    private fun postNotification(message: PushMessage) {
+        val manager = NotificationManagerCompat.from(this)
+        if (!manager.areNotificationsEnabled()) {
+            return
+        }
+        val notification = NotificationCompat.Builder(this, PushForeground.CHANNEL_ID)
+            .setContentTitle(message.topic)
+            .setContentText(message.string)
+            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setAutoCancel(true)
+            .build()
+        try {
+            manager.notify(message.hashCode(), notification)
+        } catch (e: SecurityException) {
+            // POST_NOTIFICATIONS not granted; nothing to show.
+        }
+    }
+
+    override fun onDestroy() {
+        mqtt?.disconnect()
+        mqtt = null
+        super.onDestroy()
+    }
+}

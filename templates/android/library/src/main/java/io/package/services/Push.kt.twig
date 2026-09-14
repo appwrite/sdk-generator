@@ -1,0 +1,467 @@
+package {{ sdk.namespace | caseDot }}.services
+
+import android.Manifest
+import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.hivemq.client.mqtt.MqttClient
+import com.hivemq.client.mqtt.datatypes.MqttQos
+import com.hivemq.client.mqtt.datatypes.MqttUtf8String
+import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
+import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientConfig
+import com.hivemq.client.mqtt.mqtt5.auth.Mqtt5EnhancedAuthMechanism
+import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5Auth
+import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5AuthBuilder
+import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5EnhancedAuthBuilder
+import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5Connect
+import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck
+import com.hivemq.client.mqtt.mqtt5.message.disconnect.Mqtt5Disconnect
+import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish
+import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.Service
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
+import java.net.URI
+import java.security.KeyStore
+import java.security.Provider
+import java.security.cert.X509Certificate
+import java.util.UUID
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
+import javax.net.ssl.ManagerFactoryParameters
+import javax.net.ssl.TrustManager
+import javax.net.ssl.TrustManagerFactory
+import javax.net.ssl.TrustManagerFactorySpi
+import javax.net.ssl.X509TrustManager
+
+/**
+ * A message delivered on a subscribed topic — the MQTT push analog of a realtime event.
+ */
+data class PushMessage(
+    val topic: String,
+    val payload: ByteArray,
+    val qos: Int,
+) {
+    /** The payload decoded as a UTF-8 string. */
+    val string: String
+        get() = String(payload, Charsets.UTF_8)
+}
+
+/**
+ * {{ spec.info.title | caseUcfirst }} native push service — the realtime analog delivered over an MQTT broker,
+ * without FCM or APNS.
+ *
+ * By default this is foreground delivery: while the app process is alive the connection
+ * stays open and each message is handed to your callback. Call [setForeground] to also
+ * run inside an Android foreground service, so delivery continues while the app is
+ * backgrounded or closed and every message is posted as a local notification.
+ *
+ * The credential is read off the client — set a JWT or session on it
+ * (`Client.setJWT` / `Client.setSession`), the same way every other service reads auth.
+ *
+ * ```kotlin
+ * val client = Client().setEndpoint("...").setProject("...").setJWT(jwt)
+ * val push = Push(client)
+ * val unsubscribe = push.subscribe("user/123/#") { message ->
+ *     println("${'$'}{message.topic}: ${'$'}{message.string}")
+ * }
+ * // ...later
+ * unsubscribe()
+ * ```
+ */
+class Push @JvmOverloads constructor(
+    client: Client,
+    host: String? = null,
+    private val port: Int = 1883,
+    tls: Boolean? = null,
+    private val tlsInsecure: Boolean = false,
+    private val clientId: String? = null,
+    private val keepAlive: Int = 60,
+) : Service(client) {
+
+    private val host: String = host
+        ?: runCatching { URI(client.endpoint).host }.getOrNull()
+        ?: "localhost"
+
+    // A gateway that terminates mqtts on :8883 gets TLS on by default.
+    private val tls: Boolean = tls ?: (port == 8883)
+
+    private var mqtt: Mqtt5AsyncClient? = null
+
+    // Local id -> topic filter. HiveMQ fans matching publishes out to each
+    // subscription's own callback; this map only tracks filters for unsubscribe.
+    private val subscriptions = ConcurrentHashMap<String, String>()
+
+    private var foreground = false
+    private var appContext: Context? = null
+
+    /**
+     * Run delivery inside an Android foreground service so messages keep arriving while
+     * the app is backgrounded or closed, each posted as a local notification.
+     *
+     * Requires the `POST_NOTIFICATIONS` runtime permission on Android 13+ — request it
+     * from an Activity with [requestNotificationPermission] before subscribing.
+     *
+     * @param context      any Context (its application context is retained).
+     * @param channelName  user-visible name of the notification channel.
+     */
+    @JvmOverloads
+    fun setForeground(
+        context: Context,
+        channelName: String = "Notifications",
+        ongoingTitle: String = "{{ spec.info.title | caseUcfirst }}",
+    ): Push {
+        foreground = true
+        appContext = context.applicationContext
+        PushForeground.channelName = channelName
+        PushForeground.ongoingTitle = ongoingTitle
+        createNotificationChannel(context.applicationContext, channelName)
+        return this
+    }
+
+    /** Subscribe to a single topic. Returns an unsubscribe callable. */
+    fun subscribe(topic: String, callback: (PushMessage) -> Unit): () -> Unit =
+        subscribe(listOf(topic), callback)
+
+    /**
+     * Subscribe to one or more topics. Returns an unsubscribe callable.
+     *
+     * Blocks until the broker has acknowledged every SUBSCRIBE (SUBACK): the broker
+     * only starts routing a topic once its subscription is registered, so publishing
+     * before the ack races the message ahead of the subscription and it is dropped
+     * (no retained replay on MQTT).
+     */
+    fun subscribe(topics: List<String>, callback: (PushMessage) -> Unit): () -> Unit {
+        if (foreground) {
+            return subscribeForeground(topics, callback)
+        }
+
+        val client = connect()
+
+        val ids = mutableListOf<String>()
+        for (topic in topics) {
+            val id = UUID.randomUUID().toString()
+            ids.add(id)
+            subscriptions[id] = topic
+            client.subscribeWith()
+                .topicFilter(topic)
+                .qos(MqttQos.AT_LEAST_ONCE)
+                .callback { publish -> callback(publish.toPushMessage()) }
+                .send()
+                .get()
+        }
+
+        return {
+            for (id in ids) {
+                val topic = subscriptions.remove(id)
+                if (topic != null) {
+                    mqtt?.unsubscribeWith()?.topicFilter(topic)?.send()
+                }
+            }
+            if (subscriptions.isEmpty()) {
+                close()
+            }
+        }
+    }
+
+    private fun subscribeForeground(topics: List<String>, callback: (PushMessage) -> Unit): () -> Unit {
+        val context = appContext
+            ?: throw {{ spec.info.title | caseUcfirst }}Exception("setForeground() must be called before subscribing in foreground mode.")
+
+        PushForeground.config = buildConfig()
+        PushForeground.topics = topics.toList()
+        PushForeground.listeners.add(callback)
+        PushForeground.start(context)
+
+        return {
+            PushForeground.listeners.remove(callback)
+            if (PushForeground.listeners.isEmpty()) {
+                PushForeground.stop(context)
+            }
+        }
+    }
+
+    /**
+     * Publish a message to a topic. For testing the fan-out — real pushes come from
+     * the server, not clients. Blocks until the broker acks (QoS 1).
+     */
+    @JvmOverloads
+    fun publish(topic: String, payload: String, qos: Int = 1) {
+        val client = connect()
+        client.publishWith()
+            .topic(topic)
+            .qos(qosOf(qos))
+            .payload(payload.toByteArray(Charsets.UTF_8))
+            .send()
+            .get()
+    }
+
+    /** Tear down the connection and drop all active subscriptions. */
+    fun close() {
+        mqtt?.disconnect()
+        mqtt = null
+    }
+
+    private fun connect(): Mqtt5AsyncClient {
+        mqtt?.let { existing ->
+            if (existing.state.isConnected) {
+                return existing
+            }
+        }
+
+        val config = buildConfig()
+        val client = buildPushClient(config)
+        mqtt = client
+
+        try {
+            client.pushConnect(config)
+        } catch (e: Exception) {
+            close()
+            throw {{ spec.info.title | caseUcfirst }}Exception(e.message ?: "MQTT connection failed")
+        }
+
+        return client
+    }
+
+    private fun buildConfig(): PushConfig {
+        val (authMethod, credential) = resolvePushAuth(client)
+        return PushConfig(
+            host = host,
+            port = port,
+            tls = tls,
+            tlsInsecure = tlsInsecure,
+            clientId = clientId,
+            keepAlive = keepAlive,
+            authMethod = authMethod,
+            credential = credential,
+            project = client.config["project"] ?: "",
+        )
+    }
+
+    private fun createNotificationChannel(context: Context, channelName: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                PushForeground.CHANNEL_ID,
+                channelName,
+                NotificationManager.IMPORTANCE_HIGH,
+            )
+            context.getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
+        }
+    }
+
+    companion object {
+        /**
+         * Request the `POST_NOTIFICATIONS` runtime permission (Android 13+). Call from an
+         * Activity before [setForeground]/[subscribe]; on older versions it is a no-op.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun requestNotificationPermission(activity: Activity, requestCode: Int = 9412) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                return
+            }
+            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    activity,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    requestCode,
+                )
+            }
+        }
+    }
+}
+
+/** Connection parameters shared between the in-process client and the foreground service. */
+internal data class PushConfig(
+    val host: String,
+    val port: Int,
+    val tls: Boolean,
+    val tlsInsecure: Boolean,
+    val clientId: String?,
+    val keepAlive: Int,
+    val authMethod: String,
+    val credential: String,
+    val project: String,
+)
+
+/** Read the credential set on the client (via Client.setJWT / setSession). */
+internal fun resolvePushAuth(client: Client): Pair<String, String> {
+    val jwt = client.config["jwt"]
+    val session = client.config["session"]
+    return when {
+        !jwt.isNullOrEmpty() -> "appwrite-jwt" to jwt
+        !session.isNullOrEmpty() -> "appwrite-session" to session
+        else -> throw {{ spec.info.title | caseUcfirst }}Exception(
+            "No credential set on the client; call Client.setJWT() or Client.setSession() first.",
+        )
+    }
+}
+
+/** Build (but do not connect) an MQTT 5 client from [config]. */
+internal fun buildPushClient(config: PushConfig): Mqtt5AsyncClient {
+    val id = config.clientId
+        ?: "appwrite-${config.project}-${UUID.randomUUID().toString().substring(0, 8)}"
+
+    var builder = MqttClient.builder()
+        .useMqttVersion5()
+        .identifier(id)
+        .serverHost(config.host)
+        .serverPort(config.port)
+
+    if (config.tls) {
+        builder = if (config.tlsInsecure) {
+            builder.sslConfig()
+                .trustManagerFactory(PushInsecureTrustManagerFactory)
+                .hostnameVerifier { _, _ -> true }
+                .applySslConfig()
+        } else {
+            builder.sslWithDefaultConfig()
+        }
+    }
+
+    return builder.buildAsync()
+}
+
+/** Connect with {{ spec.info.title | caseUcfirst }} enhanced auth; blocks until CONNACK (throws on failure). */
+internal fun Mqtt5AsyncClient.pushConnect(config: PushConfig) {
+    connectWith()
+        .enhancedAuth(PushAuthMechanism(config.authMethod, config.credential))
+        .cleanStart(true)
+        .keepAlive(config.keepAlive)
+        .userProperties()
+        .add("projectId", config.project)
+        .applyUserProperties()
+        .send()
+        .get()
+}
+
+internal fun Mqtt5Publish.toPushMessage(): PushMessage =
+    PushMessage(
+        topic = topic.toString(),
+        payload = payloadAsBytes,
+        qos = qos.code,
+    )
+
+internal fun qosOf(qos: Int): MqttQos = when (qos) {
+    0 -> MqttQos.AT_MOST_ONCE
+    2 -> MqttQos.EXACTLY_ONCE
+    else -> MqttQos.AT_LEAST_ONCE
+}
+
+/**
+ * Single-step MQTT 5 enhanced auth: the method and credential are placed in the CONNECT
+ * packet and the broker accepts them in the CONNACK, with no AUTH round-trip.
+ */
+internal class PushAuthMechanism(
+    private val method: String,
+    private val credential: String,
+) : Mqtt5EnhancedAuthMechanism {
+
+    override fun getMethod(): MqttUtf8String = MqttUtf8String.of(method)
+
+    override fun getTimeout(): Int = 30
+
+    override fun onAuth(
+        clientConfig: Mqtt5ClientConfig,
+        connect: Mqtt5Connect,
+        authBuilder: Mqtt5EnhancedAuthBuilder,
+    ): CompletableFuture<Void> {
+        authBuilder.data(credential.toByteArray(Charsets.UTF_8))
+        return CompletableFuture.completedFuture(null)
+    }
+
+    override fun onReAuth(
+        clientConfig: Mqtt5ClientConfig,
+        authBuilder: Mqtt5AuthBuilder,
+    ): CompletableFuture<Void> {
+        authBuilder.data(credential.toByteArray(Charsets.UTF_8))
+        return CompletableFuture.completedFuture(null)
+    }
+
+    override fun onContinue(
+        clientConfig: Mqtt5ClientConfig,
+        auth: Mqtt5Auth,
+        authBuilder: Mqtt5AuthBuilder,
+    ): CompletableFuture<Boolean> = CompletableFuture.completedFuture(true)
+
+    override fun onAuthSuccess(
+        clientConfig: Mqtt5ClientConfig,
+        connAck: Mqtt5ConnAck,
+    ): CompletableFuture<Boolean> = CompletableFuture.completedFuture(true)
+
+    override fun onReAuthSuccess(
+        clientConfig: Mqtt5ClientConfig,
+        auth: Mqtt5Auth,
+    ): CompletableFuture<Boolean> = CompletableFuture.completedFuture(true)
+
+    override fun onAuthRejected(clientConfig: Mqtt5ClientConfig, connAck: Mqtt5ConnAck) = Unit
+
+    override fun onReAuthRejected(clientConfig: Mqtt5ClientConfig, disconnect: Mqtt5Disconnect) = Unit
+
+    override fun onAuthError(clientConfig: Mqtt5ClientConfig, cause: Throwable) = Unit
+
+    override fun onReAuthError(clientConfig: Mqtt5ClientConfig, cause: Throwable) = Unit
+}
+
+/**
+ * A [TrustManagerFactory] that accepts any certificate — used when `tlsInsecure` is set
+ * (for a broker whose certificate does not chain to a public root).
+ */
+internal object PushInsecureTrustManagerFactory : TrustManagerFactory(
+    object : TrustManagerFactorySpi() {
+        override fun engineInit(keyStore: KeyStore?) = Unit
+
+        override fun engineInit(parameters: ManagerFactoryParameters?) = Unit
+
+        override fun engineGetTrustManagers(): Array<TrustManager> = arrayOf(
+            object : X509TrustManager {
+                override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) = Unit
+
+                override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) = Unit
+
+                override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+            },
+        )
+    },
+    @Suppress("DEPRECATION") object : Provider("{{ spec.info.title | caseUcfirst }}Insecure", 1.0, "insecure trust-all") {},
+    "{{ spec.info.title | caseUcfirst }}Insecure",
+)
+
+/**
+ * Shared state for the foreground service: the connection config, the topics to watch,
+ * the in-process listeners (invoked while the app is alive), and the notification setup.
+ */
+internal object PushForeground {
+    const val CHANNEL_ID = "{{ spec.info.title | caseLower }}-push"
+    const val NOTIFICATION_ID = 1911
+
+    @Volatile
+    var config: PushConfig? = null
+
+    @Volatile
+    var topics: List<String> = emptyList()
+
+    @Volatile
+    var channelName: String = "Notifications"
+
+    @Volatile
+    var ongoingTitle: String = "{{ spec.info.title | caseUcfirst }}"
+
+    val listeners = CopyOnWriteArrayList<(PushMessage) -> Unit>()
+
+    fun start(context: Context) {
+        val intent = android.content.Intent(context, PushService::class.java)
+        ContextCompat.startForegroundService(context, intent)
+    }
+
+    fun stop(context: Context) {
+        context.stopService(android.content.Intent(context, PushService::class.java))
+    }
+}
