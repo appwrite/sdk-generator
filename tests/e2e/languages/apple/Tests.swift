@@ -3,13 +3,77 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
-import Appwrite
+@testable import Appwrite
 import JSONCodable
 import AppwriteEnums
 import AsyncHTTPClient
 import NIO
 
 class Tests: XCTestCase {
+
+    #if !canImport(AuthenticationServices)
+    // The Linux runner exercises callback ownership without opening a browser.
+    func testOAuthRejectsOverlappingLogins() {
+        let url = URL(string: "https://localhost/oauth")!
+        let callback = URL(string: "appwrite-callback-test://success")!
+
+        for scheme in ["appwrite-callback-test", "appwrite-callback-other"] {
+            var first = [Result<String, AppwriteError>]()
+            var second = [Result<String, AppwriteError>]()
+            WebAuthComponent.authenticate(url: url, callbackScheme: "appwrite-callback-test") { first.append($0) }
+            WebAuthComponent.authenticate(url: url, callbackScheme: scheme) { second.append($0) }
+
+            XCTAssertTrue(first.isEmpty)
+            XCTAssertEqual(second.count, 1)
+            XCTAssertThrowsError(try second.first?.get())
+
+            WebAuthComponent.onCallback(scheme: "appwrite-callback-test", url: callback)
+            WebAuthComponent.onCallback()
+            XCTAssertEqual(first.count, 1)
+            XCTAssertEqual(try first.first?.get(), callback.absoluteString)
+            XCTAssertEqual(second.count, 1)
+        }
+    }
+
+    func testOAuthCancellationCompletesOnce() {
+        var results = [Result<String, AppwriteError>]()
+        WebAuthComponent.authenticate(url: URL(string: "https://localhost/oauth")!, callbackScheme: "test") { results.append($0) }
+
+        WebAuthComponent.onCallback()
+        WebAuthComponent.onCallback()
+
+        XCTAssertEqual(results.count, 1)
+        XCTAssertThrowsError(try results.first?.get())
+    }
+
+    func testOAuthCompletionCanStartAnotherLogin() {
+        let url = URL(string: "https://localhost/oauth")!
+        let callback = URL(string: "test://success")!
+
+        for succeeds in [true, false] {
+            var first = [Result<String, AppwriteError>]()
+            var second = [Result<String, AppwriteError>]()
+            WebAuthComponent.authenticate(url: url, callbackScheme: "test") { result in
+                first.append(result)
+                WebAuthComponent.authenticate(url: url, callbackScheme: "test") { second.append($0) }
+            }
+
+            if succeeds {
+                WebAuthComponent.onCallback(scheme: "test", url: callback)
+            } else {
+                WebAuthComponent.onCallback()
+            }
+            XCTAssertEqual(first.count, 1)
+            XCTAssertTrue(second.isEmpty)
+
+            WebAuthComponent.onCallback(scheme: "test", url: callback)
+            WebAuthComponent.onCallback()
+            XCTAssertEqual(first.count, 1)
+            XCTAssertEqual(second.count, 1)
+            XCTAssertEqual(try second.first?.get(), callback.absoluteString)
+        }
+    }
+    #endif
 
     override func setUp() {
         super.setUp()
