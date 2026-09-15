@@ -4,6 +4,7 @@ namespace Appwrite\SDK\Language;
 
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\Parameter;
+use Utopia\OpenAPI\Model\ParameterLocation;
 use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
@@ -231,19 +232,51 @@ abstract class JS extends Language
      *
      * @param array<int, string> $operands
      */
-    protected function formatGuard(array $operands, int $indent): string
+    protected function formatGuard(array $operands, int $indent, string $operator = '&&'): string
     {
         $operands = array_values(array_filter(array_map(trim(...), $operands), fn(string $o): bool => $o !== ''));
         $pad = str_repeat(' ', $indent);
-        $oneLine = $pad . 'if (' . implode(' && ', $operands) . ') {';
+        $glue = ' ' . $operator . ' ';
+        $oneLine = $pad . 'if (' . implode($glue, $operands) . ') {';
 
         if (mb_strlen($oneLine) <= self::PRINT_WIDTH) {
-            return 'if (' . implode(' && ', $operands) . ') {';
+            return 'if (' . implode($glue, $operands) . ') {';
         }
 
         $inner = $pad . str_repeat(' ', 4);
 
-        return "if (\n" . $inner . implode(" &&\n" . $inner, $operands) . "\n" . $pad . ') {';
+        return "if (\n" . $inner . implode(' ' . $operator . "\n" . $inner, $operands) . "\n" . $pad . ') {';
+    }
+
+    /**
+     * Render the guard that rejects a missing required argument.
+     *
+     * A required path parameter also rejects the empty string: it would
+     * disappear from the interpolated URL and silently turn, say, a fetch of
+     * one deployment into a listing of all of them. Only the empty string is
+     * rejected — `'0'`, `0` and `false` are legitimate identifiers — and only
+     * for plain string parameters, since an enum-typed argument cannot be
+     * compared to `''` without a TypeScript error.
+     */
+    protected function formatRequiredGuard(Parameter $parameter, string $variable, int $indent): string
+    {
+        $operands = ['typeof ' . $variable . " === 'undefined'"];
+
+        if ($this->rejectsEmptyValue($parameter)) {
+            $operands[] = $variable . " === ''";
+        }
+
+        return $this->formatGuard($operands, $indent, '||');
+    }
+
+    private function rejectsEmptyValue(Parameter $parameter): bool
+    {
+        $schema = $this->getSchema($parameter);
+
+        return $parameter->location === ParameterLocation::PATH
+            && $schema instanceof StringSchema
+            && $schema->format !== 'binary'
+            && !$this->isStringEnum($parameter);
     }
 
     /**
@@ -537,7 +570,8 @@ abstract class JS extends Language
     {
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
-            new TwigFilter('jsGuard', fn(array $operands, int $indent = 8): string => $this->formatGuard($operands, $indent), ['is_safe' => ['html']]),
+            new TwigFilter('jsGuard', fn(array $operands, int $indent = 8, string $operator = '&&'): string => $this->formatGuard($operands, $indent, $operator), ['is_safe' => ['html']]),
+            new TwigFilter('jsRequiredGuard', fn(Parameter $parameter, string $variable, int $indent = 8): string => $this->formatRequiredGuard($parameter, $variable, $indent), ['is_safe' => ['html']]),
             new TwigFilter('jsClientChain', fn(array $calls, string $constructor = 'new Client()'): string => $this->formatClientChain($calls, $constructor), ['is_safe' => ['html']]),
             new TwigFilter('jsArgs', fn(string $callee, array $arguments, int $indent = 8, string $suffix = ';', int $prefixWidth = 0): string => $this->formatArgumentList($callee, $arguments, $indent, $suffix, $prefixWidth), ['is_safe' => ['html']]),
             new TwigFilter('jsAssign', fn(string $lhs, string $rhs, int $indent = 8): string => $this->formatAssignment($lhs, $rhs, $indent), ['is_safe' => ['html']]),

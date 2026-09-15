@@ -4,6 +4,7 @@ import Foundation
 import FoundationNetworking
 #endif
 import Appwrite
+import JSONCodable
 import AppwriteEnums
 import AsyncHTTPClient
 import NIO
@@ -90,6 +91,14 @@ class Tests: XCTestCase {
             print("Realtime presence:passed")
         }
 
+        var realtimeErrorResponse = "Realtime error:failed"
+        let expectationError = XCTestExpectation(description: "realtime error")
+        realtime.onError { _, _ in
+            realtimeErrorResponse = "Realtime error:passed"
+            expectationError.fulfill()
+        }
+        _ = try await realtime.subscribe(channels: ["error"]) { _ in }
+
         var mock: Mock
 
         // Foo Tests
@@ -129,6 +138,17 @@ class Tests: XCTestCase {
         // General Tests
         let result = try await general.redirect()
         print((result as! [String: Any])["result"] as! String)
+
+        for (id, plain) in [("", "0"), ("0", "")] {
+            do {
+                _ = try await general.validatePath(plain: plain, id: id)
+                XCTFail("Empty path parameter was accepted")
+            } catch let error as AppwriteError {
+                print(error.message)
+            }
+        }
+        print(try await general.validatePath(plain: "0", id: "0").result)
+        print(try await general.validatePath(plain: "0", id: nil).result)
 
         do {
             var file = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
@@ -182,6 +202,12 @@ class Tests: XCTestCase {
         ])
         print(mock.result)
 
+        mock = try await general.createDocuments(documents: [
+            AnyCodable(["$id": "one", "title": "hello"]),
+            AnyCodable(["$id": "two", "title": "world"])
+        ])
+        print(mock.result)
+
         do {
             try await general.error400()
         } catch let error as AppwriteError {
@@ -217,6 +243,9 @@ class Tests: XCTestCase {
         } else {
             print("Realtime failed")
         }
+
+        await fulfillment(of: [expectationError], timeout: 20.0)
+        print(realtimeErrorResponse)
 
         do {
             try await rtsubWithQueriesFailure.unsubscribe()

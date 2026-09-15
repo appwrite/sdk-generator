@@ -147,7 +147,18 @@ func (srv *{{ service.name | caseUcfirst }}) {{ ((method | methodName) ~ 'Params
 {%~ endif %}
 {% endif %}
 {% set returnType = method | returnType(spec, spec.info.title | caseLower) %}
+{# An empty ID collapses out of the path and turns a get into the list above it.
+   Enums and non-strings have no empty spelling, so they are left alone. #}
+{% set guardedPathParameters = (method | parameters('path')) | filter(p => p.required and (p.extensions['x-sdk-source']|default('')) != 'security' and (p | schemaType) == 'string' and (p | enumValues) | length == 0) %}
 func (srv *{{ service.name | caseUcfirst }}) {{ (method | methodName) | caseUcfirst }}({{ params }}) ({% if returnType == 'models.Model' %}{{ returnType }}{% else %}*{{ returnType }}{% endif %}, error) {
+{% for parameter in guardedPathParameters %}
+	if {{ parameter.name | caseUcfirst }} == "" {
+		return nil, errors.New("Missing required parameter: \"{{ parameter.name | caseCamel }}\"")
+	}
+{% endfor %}
+{% if guardedPathParameters | length > 0 %}
+
+{% endif %}
 {% if (method | parameters('path'))|length > 0 %}
 	r := strings.NewReplacer({% for parameter in (method | parameters('path')) %}"{{ '{' }}{{ parameter.name }}{{ '}' }}", client.EncodePath({% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}srv.client.Config["{{ parameter.extensions['x-sdk-config'] | caseLower }}"]{% else %}{{ parameter.name | caseUcfirst }}{% endif %}){% if not loop.last %}, {% endif %}{% endfor %})
 	path := r.Replace("{{ method.path }}")
@@ -181,6 +192,14 @@ func (srv *{{ service.name | caseUcfirst }}) {{ (method | methodName) | caseUcfi
 {%~ endif %}
 {% endif %}
 func (srv *{{ service.name | caseUcfirst }}) {{ (method | methodName) | caseUcfirst }}URL({{ params }}) (*string, error) {
+{% for parameter in guardedPathParameters %}
+	if {{ parameter.name | caseUcfirst }} == "" {
+		return nil, errors.New("Missing required parameter: \"{{ parameter.name | caseCamel }}\"")
+	}
+{% endfor %}
+{% if guardedPathParameters | length > 0 %}
+
+{% endif %}
 {% if (method | parameters('path'))|length > 0 %}
 	r := strings.NewReplacer({% for parameter in (method | parameters('path')) %}"{{ '{' }}{{ parameter.name }}{{ '}' }}", client.EncodePath({% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}srv.client.Config["{{ parameter.extensions['x-sdk-config'] | caseLower }}"]{% else %}{{ parameter.name | caseUcfirst }}{% endif %}){% if not loop.last %}, {% endif %}{% endfor %})
 	path := r.Replace("{{ method.path }}")

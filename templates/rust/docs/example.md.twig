@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new();
     client.set_endpoint("{{ endpointDocs | raw }}"); // Your API Endpoint
 {% for node in [(method | securitySchemes)] %}
-{% for key, header in node|keys|filter(h => not node[h].extensions['x-appwrite']['optional']) %}
+{% for key, header in node|keys %}
     client.set_{{ header | caseSnake }}("{{ node[header].extensions['x-appwrite']['demo'] | raw }}"); // {{ node[header].description }}
 {% endfor %}
 {% endfor %}

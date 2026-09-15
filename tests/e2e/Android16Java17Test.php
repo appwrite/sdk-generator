@@ -38,6 +38,8 @@ final class Android16Java17Test extends Base
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
+        ...Base::PATH_VALIDATION_RESPONSES,
+        ...Base::NULL_PATH_RESPONSE,
         ...Base::UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,

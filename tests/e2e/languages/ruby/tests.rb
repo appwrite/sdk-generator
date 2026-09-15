@@ -56,6 +56,16 @@ puts response.result
 response = general.redirect()
 puts response["result"]
 
+[['', '0'], ['0', '']].each do |id, plain|
+    begin
+        general.validate_path(id: id, plain: plain)
+        raise 'Empty path parameter was accepted'
+    rescue Appwrite::Exception => error
+        puts error.message
+    end
+end
+puts general.validate_path(id: '0', plain: '0').result
+
 begin
     response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_path('./tests/resources/file.png'))
     puts response.result

@@ -22,7 +22,7 @@
 {% for modelName, conditions in responseDiscriminator %}
 
         if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
-            return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
+            return \{{ namespace | caseNamespace }}\Models\{{ modelName | caseUcfirst }}::from($response);
         }
 {% endfor %}
 

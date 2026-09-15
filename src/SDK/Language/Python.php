@@ -18,6 +18,12 @@ use Twig\TwigFilter;
 
 class Python extends Language
 {
+    /**
+     * Black's line length for generated SDKs, kept in step with the `[tool.black]`
+     * block in `templates/python/pyproject.toml.twig`.
+     */
+    public const int LINE_LENGTH = 120;
+
     #[Override]
     protected $params = [
         'pipPackage' => 'packageName',
@@ -739,6 +745,147 @@ class Python extends Language
         return \is_string($json) ? $json : 'None';
     }
 
+    /**
+     * Maps every character of a line to whether it sits inside a Python string
+     * literal, so a parenthesis written in an alias such as 'name(legacy)' is not
+     * read as call syntax while matching delimiters.
+     *
+     * @return array<bool>
+     */
+    protected function quotedPositions(string $line): array
+    {
+        $quoted = [];
+        $quote = null;
+
+        for ($position = 0, $length = \strlen($line); $position < $length; $position++) {
+            $character = $line[$position];
+
+            if ($quote !== null) {
+                $quoted[$position] = true;
+                if ($character === $quote && $line[$position - 1] !== '\\') {
+                    $quote = null;
+                }
+                continue;
+            }
+
+            if ($character === "'" || $character === '"') {
+                $quote = $character;
+                $quoted[$position] = true;
+                continue;
+            }
+
+            $quoted[$position] = false;
+        }
+
+        return $quoted;
+    }
+
+    /**
+     * Collapses a call rendered on one line, or explodes its arguments with a magic
+     * trailing comma when the line is longer than Black's configured line length.
+     * Black keeps a call that fits on one line as it is, so emitting the exploded
+     * form unconditionally leaves generated code broken across lines for no reason.
+     * The line length is set in `templates/python/pyproject.toml.twig`.
+     */
+    protected function formatCall(string $statement): string
+    {
+        $lines = \explode("\n", $statement);
+        $line = \array_pop($lines);
+
+        if ($line === null || \strlen(\rtrim($line)) <= self::LINE_LENGTH) {
+            return $statement;
+        }
+
+        $line = \rtrim($line);
+        if (!\str_ends_with($line, ')')) {
+            return $statement;
+        }
+
+        $quoted = $this->quotedPositions($line);
+        if ($quoted[\strlen($line) - 1]) {
+            return $statement;
+        }
+
+        $depth = 0;
+        $open = null;
+        for ($position = \strlen($line) - 1; $position >= 0; $position--) {
+            if ($quoted[$position]) {
+                continue;
+            }
+
+            $character = $line[$position];
+            if ($character === ')') {
+                $depth++;
+            } elseif ($character === '(') {
+                $depth--;
+                if ($depth === 0) {
+                    $open = $position;
+                    break;
+                }
+            }
+        }
+
+        if ($open === null) {
+            return $statement;
+        }
+
+        $indent = \strlen($line) - \strlen(\ltrim($line));
+        $arguments = \substr($line, $open + 1, -1);
+        if (\trim($arguments) === '') {
+            return $statement;
+        }
+
+        $exploded = [\substr($line, 0, $open + 1)];
+        foreach ($this->splitArguments($arguments) as $argument) {
+            $exploded[] = \str_repeat(' ', $indent + 4) . $argument . ',';
+        }
+        $exploded[] = \str_repeat(' ', $indent) . ')';
+
+        $lines[] = \implode("\n", $exploded);
+
+        return \implode("\n", $lines);
+    }
+
+    /**
+     * @return array<string>
+     */
+    protected function splitArguments(string $arguments): array
+    {
+        $split = [];
+        $argument = '';
+        $depth = 0;
+        $quoted = $this->quotedPositions($arguments);
+
+        for ($position = 0, $length = \strlen($arguments); $position < $length; $position++) {
+            $character = $arguments[$position];
+
+            if ($quoted[$position]) {
+                $argument .= $character;
+                continue;
+            }
+
+            if ($character === ',' && $depth === 0) {
+                $split[] = \trim($argument);
+                $argument = '';
+                continue;
+            }
+
+            if (\in_array($character, ['(', '[', '{'], true)) {
+                $depth++;
+            } elseif (\in_array($character, [')', ']', '}'], true)) {
+                $depth--;
+            }
+
+            $argument .= $character;
+        }
+
+        if (\trim($argument) !== '') {
+            $split[] = \trim($argument);
+        }
+
+        return $split;
+    }
+
     protected function formatDocstring(string $description, int $indent): string
     {
         $lines = \explode("\n", \str_replace("\r\n", "\n", \trim($description)));
@@ -839,6 +986,7 @@ class Python extends Language
             new TwigFilter('getModelPropertyType', fn(Schema $value, string $ownerName, Specification $spec): string => $this->getModelPropertyType($value, $spec)),
             new TwigFilter('formatDocstring', fn(string $description, int $indent): string => $this->formatDocstring($description, $indent)),
             new TwigFilter('formatModelFieldType', fn(string $type): string => $this->formatModelFieldType($type)),
+            new TwigFilter('formatCall', fn(string $statement): string => $this->formatCall($statement)),
             new TwigFilter('modelPropertyNullable', fn(Schema $value): bool => !($value instanceof ArraySchema) && $value->nullable),
             new TwigFilter('getModelFieldName', fn(Schema $value, array $properties): string => $this->getModelFieldName($value, $properties)),
             new TwigFilter('getResponseType', fn(Operation $method, string $serviceName = ''): string => $this->getResponseType($method, $serviceName)),

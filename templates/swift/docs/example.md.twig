@@ -12,7 +12,7 @@ let client = Client()
 {% if [(method | securitySchemes)]|length > 0 %}
     .setEndpoint("{{ endpointDocs | raw }}") // Your API Endpoint
 {% for node in [(method | securitySchemes)] %}
-{% for key,header in node|keys|filter(h => not node[h].extensions['x-appwrite']['optional']) %}
+{% for key,header in node|keys %}
     .set{{header | caseUcfirst}}("{{node[header].extensions['x-appwrite']['demo'] | raw }}") // {{node[header].description}}
 {% endfor %}
 {% endfor %}

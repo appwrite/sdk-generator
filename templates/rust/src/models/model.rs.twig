@@ -16,10 +16,14 @@ pub struct {{ definitionName | caseUcfirst | overrideIdentifier }} {
 {% set fieldName = fieldName | overrideIdentifier %}
     {{ property.description | rustdocComment(4) }}
     #[serde(rename = "{{ (property | schemaName) }}")]
-{% if (property | schemaRequired) %}
+{% if (property | schemaRequired) and not (property | schemaNullable) %}
     pub {{ fieldName }}: {{ property | propertyType(spec) | rustType }},
 {% else %}
+{% if not (property | schemaRequired) %}
     #[serde(skip_serializing_if = "Option::is_none")]
+{% else %}
+    #[serde(deserialize_with = "Option::deserialize")]
+{% endif %}
     pub {{ fieldName }}: Option<{{ property | propertyType(spec) | rustType }}>,
 {% endif %}
 {% endfor %}
@@ -40,7 +44,7 @@ impl {{ definitionName | caseUcfirst | overrideIdentifier }} {
 {% if not loop.first %}
 
 {% endif %}
-{% if not (property | schemaRequired) %}
+{% if not (property | schemaRequired) or (property | schemaNullable) %}
     /// Set {{ fieldName }}
 {{ [ 'mut self', fieldName ~ ': ' ~ (property | propertyType(spec) | rustType) ] | rustfmtFn(4, 'pub fn set_' ~ fieldName, 'Self') }}
 {{ ('Some(' ~ fieldName ~ ')') | rustfmtAssign(8, 'self.' ~ fieldName) }}

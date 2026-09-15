@@ -371,7 +371,7 @@ trait CliCommandSurface
     protected function isCliGraphQLInput(Parameter $parameter, Operation $method, Tag $service): bool
     {
         return $service->name === 'graphql'
-            && ($method->extensions['x-appwrite']['type'] ?? '') === 'graphql'
+            && $this->getMethodType($method) === 'graphql'
             && $parameter->name === 'query';
     }
 
@@ -385,7 +385,7 @@ trait CliCommandSurface
             };
         }
 
-        if ($service->name === 'graphql' && ($method->extensions['x-appwrite']['type'] ?? '') === 'graphql') {
+        if ($service->name === 'graphql' && $this->getMethodType($method) === 'graphql') {
             return match ($this->getMethodName($method)) {
                 'query' => 'Execute a GraphQL query.',
                 'mutation' => 'Execute a GraphQL mutation.',
@@ -556,7 +556,9 @@ trait CliCommandSurface
             self::TYPE_OBJECT => '\'{ "key": "value" }\'',
             self::TYPE_NUMBER, self::TYPE_INTEGER => (string) $example,
             self::TYPE_BOOLEAN => $example ? 'true' : 'false',
-            self::TYPE_STRING => (string) $example,
+            self::TYPE_STRING => \preg_match('/[^A-Za-z0-9_@%+=:,\.\/-]/', (string) $example)
+                ? "'" . \str_replace("'", "'\"'\"'", (string) $example) . "'"
+                : (string) $example,
             self::TYPE_FILE => "'path/to/file.png'",
             default => '',
         };

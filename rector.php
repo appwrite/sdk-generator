@@ -20,6 +20,7 @@ return RectorConfig::configure()
     ->withSkipPath(__DIR__ . '/vendor')
     ->withSkipPath(__DIR__ . '/tests/resources')
     ->withSkipPath(__DIR__ . '/tests/e2e/sdks/*')
+    ->withSkipPath(__DIR__ . '/tests/generation/sdks/*')
     ->withPhpSets(php85: true)
     ->withPreparedSets(
         deadCode: true,

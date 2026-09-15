@@ -1,6 +1,15 @@
+{%~ set requiredStringPathParameters = (method | parameters('path')) | filter(parameter => parameter.required and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty and (parameter.extensions['x-sdk-source']|default('')) != 'security') %}
+{%~ for parameter in requiredStringPathParameters %}
+        if {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if (parameter | schemaNullable) %}?.isEmpty == true{% else %}.isEmpty{% endif %} {
+            throw {{ spec.info.title | caseUcfirst }}Error(message: "Missing required parameter: \"{{ parameter.name | caseCamel | escapeSwiftKeyword }}\"")
+        }
+{%~ endfor %}
+{%~ if requiredStringPathParameters is not empty %}
+
+{%~ endif %}
         let apiPath: String = "{{ method.path }}"
         {%~ for parameter in (method | parameters('path')) %}
-            .replacingOccurrences(of: "{{ '{' }}{{ parameter.name }}{{ '}' }}", with: {% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}client.config["{{ parameter.extensions['x-sdk-config'] | caseCamel }}"] ?? ""{% else %}{{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if (parameter | enumValues) is not empty %}.rawValue{% endif %}{% endif %})
+            .replacingOccurrences(of: "{{ '{' }}{{ parameter.name }}{{ '}' }}", with: {% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}client.config["{{ parameter.extensions['x-sdk-config'] | caseCamel }}"] ?? ""{% else %}{{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if (parameter | enumValues) is not empty %}.rawValue{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty %} ?? "null"{% endif %}{% endif %})
         {%~ endfor %}
         {%~ for security in (method | securityQueries) %}
             + "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=\(client.config["{{ security.name | caseCamel }}"]?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"

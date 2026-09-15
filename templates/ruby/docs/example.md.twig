@@ -19,7 +19,7 @@ include {{ spec.info.title | caseUcfirst }}::Role
 client = Client.new
     .set_endpoint('{{ endpointDocs | raw }}') # Your API Endpoint
     {%~ for node in [(method | securitySchemes)] %}
-    {%~ for key,header in node|keys|filter(h => not node[h].extensions['x-appwrite']['optional']) %}
+    {%~ for key,header in node|keys %}
     .set_{{header|caseSnake}}('{{node[header].extensions['x-appwrite']['demo'] | raw }}') # {{node[header].description}}
     {%~ endfor %}
     {%~ endfor %}

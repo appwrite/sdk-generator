@@ -7,7 +7,7 @@
 ```
 {% if method.description %}
 
-** {{ method.description }} **
+** {{ method.description | raw }} **
 {% endif %}
 
 {% if (method | parameters('all')) is not empty  %}

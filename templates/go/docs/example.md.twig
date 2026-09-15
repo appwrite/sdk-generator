@@ -20,7 +20,7 @@ func main() {
 {% if [(method | securitySchemes)]|length > 0 %}
 		appwrite.WithEndpoint("{{ endpointDocs | raw }}"),
 {% for node in [(method | securitySchemes)] %}
-{% for key,header in node|keys|filter(h => not node[h].extensions['x-appwrite']['optional']) %}
+{% for key,header in node|keys %}
 		appwrite.With{{header}}("{{node[header].extensions['x-appwrite']['demo'] | raw }}"),
 {% endfor %}
 {% endfor %}

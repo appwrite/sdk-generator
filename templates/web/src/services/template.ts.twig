@@ -136,7 +136,7 @@ export class {{ service.name | caseUcfirst }} {
     {%~ endif %}
         {%~ for parameter in (method | parameters('all')) %}
         {%~ if parameter.required %}
-        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
+        {{ parameter | jsRequiredGuard((parameter.name | caseCamel | escapeKeyword), 8) | raw }}
             {{ ('throw new ' ~ (spec.info.title | caseUcfirst) ~ 'Exception') | tsCall('\'Missing required parameter: "' ~ (parameter.name | caseCamel | escapeKeyword) ~ '"\'', ';', 12) | raw }}
         }
         {%~ endif %}

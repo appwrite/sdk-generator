@@ -34,8 +34,6 @@
         "description": "Send a ping to project as part of onboarding.",
         "x-appwrite": {
           "group": null,
-          "cookies": false,
-          "type": "",
           "demo": "ping\/get.md",
           "rate-limit": 0,
           "rate-time": 3600,
@@ -88,24 +86,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 270,
-          "cookies": false,
-          "type": "",
           "demo": "bar\/get.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a get request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -172,24 +162,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 271,
-          "cookies": false,
-          "type": "",
           "demo": "bar\/post.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a post request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "\/mock\/tests\/bar",
-          "offline-key": "{required}",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -257,24 +239,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 273,
-          "cookies": false,
-          "type": "",
           "demo": "bar\/put.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a put request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -342,24 +316,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 272,
-          "cookies": false,
-          "type": "",
           "demo": "bar\/patch.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a patch request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -427,24 +393,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 274,
-          "cookies": false,
-          "type": "",
           "demo": "bar\/delete.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a delete request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -514,24 +472,16 @@
         ],
         "description": "Create a new player using a request model.",
         "x-appwrite": {
-          "weight": 300,
-          "cookies": false,
-          "type": "",
           "demo": "general\/create-player.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate a player with request model.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -562,9 +512,12 @@
                 "type": "object",
                 "properties": {
                   "player": {
-                    "type": "object",
+                    "allOf": [
+                      {
+                        "$ref": "#\/components\/schemas\/player"
+                      }
+                    ],
                     "description": "Player object.",
-                    "x-model": "player",
                     "default": null
                   }
                 },
@@ -586,24 +539,16 @@
         ],
         "description": "Create multiple players using an array of request models.",
         "x-appwrite": {
-          "weight": 301,
-          "cookies": false,
-          "type": "",
           "demo": "general\/create-players.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate players with array of request models.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -636,7 +581,6 @@
                   "players": {
                     "type": "array",
                     "description": "Array of player objects.",
-                    "x-model": "player",
                     "default": null,
                     "items": {
                       "$ref": "#\/components\/schemas\/player"
@@ -645,6 +589,73 @@
                 },
                 "required": [
                   "players"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/documents": {
+      "post": {
+        "summary": "Create Documents",
+        "operationId": "generalCreateDocuments",
+        "tags": [
+          "general"
+        ],
+        "description": "Create documents from an array of plain objects.",
+        "x-appwrite": {
+          "demo": "general\/create-documents.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application\/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "documents": {
+                    "type": "array",
+                    "description": "Array of document objects.",
+                    "default": null,
+                    "example": "[{\"$id\":\"one\",\"title\":\"say \\\"hello\\\"\"}]",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "required": [
+                  "documents"
                 ]
               }
             }
@@ -661,11 +672,7 @@
         ],
         "description": "Fixture-only general method used to verify method exclusion does not remove the whole service.",
         "x-appwrite": {
-          "weight": 301,
-          "cookies": false,
-          "type": "",
           "demo": "general\/excluded-method.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
@@ -675,9 +682,6 @@
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           },
@@ -685,6 +689,10 @@
             {
               "name": "createExcludedGeneralFixture",
               "namespace": "general",
+              "platforms": [
+                "client",
+                "server"
+              ],
               "auth": {
                 "Project": []
               }
@@ -717,9 +725,12 @@
                 "type": "object",
                 "properties": {
                   "payload": {
-                    "type": "object",
+                    "allOf": [
+                      {
+                        "$ref": "#\/components\/schemas\/zzexcludedmethodpayload"
+                      }
+                    ],
                     "description": "Excluded general fixture payload.",
-                    "x-model": "zzexcludedmethodpayload",
                     "default": null
                   }
                 },
@@ -741,24 +752,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 265,
-          "cookies": false,
-          "type": "",
           "demo": "foo\/get.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a get request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -825,24 +828,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 266,
-          "cookies": false,
-          "type": "",
           "demo": "foo\/post.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a post request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -910,24 +905,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 268,
-          "cookies": false,
-          "type": "",
           "demo": "foo\/put.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a put request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -995,24 +982,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 267,
-          "cookies": false,
-          "type": "",
           "demo": "foo\/patch.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a patch request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -1080,24 +1059,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 269,
-          "cookies": false,
-          "type": "",
           "demo": "foo\/delete.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a delete request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -1167,24 +1138,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 285,
-          "cookies": false,
-          "type": "",
           "demo": "general\/error400.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a 400 failed request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -1219,24 +1182,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 286,
-          "cookies": false,
-          "type": "",
           "demo": "general\/error500.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a 500 failed request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -1271,22 +1226,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 287,
-          "cookies": false,
-          "type": "",
           "demo": "general\/error502.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a 502 bad gateway.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
-            "client"
+            "client",
+            "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -1319,24 +1268,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 276,
-          "cookies": false,
-          "type": "location",
           "demo": "general\/download.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a file download request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": [],
             "ImpersonateUserId": []
@@ -1373,24 +1314,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 282,
-          "cookies": false,
-          "type": "",
           "demo": "general\/empty.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock an empty response.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -1418,24 +1351,16 @@
         ],
         "description": "Mock a queryable list request.",
         "x-appwrite": {
-          "weight": 284,
-          "cookies": false,
-          "type": "",
           "demo": "general\/list-rows.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a queryable list request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -1484,24 +1409,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 284,
-          "cookies": false,
-          "type": "",
           "demo": "general\/enum.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock an enum parameter.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -1637,24 +1554,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 281,
-          "cookies": false,
-          "type": "",
           "demo": "general\/get-cookie.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a cookie response.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -1689,24 +1598,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 275,
-          "cookies": false,
-          "type": "",
           "demo": "general\/headers.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterReturn headers from the request",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -1737,6 +1638,84 @@
         }
       }
     },
+    "\/mock\/tests\/general\/optional": {
+      "get": {
+        "summary": "Get Optional",
+        "operationId": "generalGetOptional",
+        "tags": [
+          "general"
+        ],
+        "description": "Mock a request whose parameters are all optional.",
+        "x-appwrite": {
+          "demo": "general\/get-optional.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "width",
+            "description": "Sample optional numeric param",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": -1
+            }
+          },
+          {
+            "name": "height",
+            "description": "Sample optional numeric param",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": -1
+            }
+          },
+          {
+            "name": "name",
+            "description": "Sample optional string param",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/nullable": {
       "post": {
         "summary": "Nullable Test",
@@ -1746,24 +1725,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 283,
-          "cookies": false,
-          "type": "",
           "demo": "general\/nullable.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a nullable parameter.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -1832,11 +1803,7 @@
         ],
         "description": "Create a new function execution.",
         "x-appwrite": {
-          "weight": 1,
-          "cookies": false,
-          "type": "",
           "demo": "functions\/create-execution.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate a new function execution.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
@@ -1845,9 +1812,6 @@
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -1936,30 +1900,19 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 278,
-          "cookies": false,
-          "type": "",
           "demo": "general\/redirect.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a redirect request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
-          },
-          "produces": [
-            "text\/html"
-          ]
+          }
         },
         "security": [
           {
@@ -1984,24 +1937,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 279,
-          "cookies": false,
-          "type": "",
           "demo": "general\/redirected.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a redirected request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -2027,6 +1972,71 @@
         }
       }
     },
+    "\/mock\/tests\/general\/path-validation\/{id}\/{plain}": {
+      "get": {
+        "summary": "Path validation",
+        "operationId": "generalValidatePath",
+        "tags": [
+          "general"
+        ],
+        "description": "Reject empty required nullable and nonnullable string path parameters before transport.",
+        "x-appwrite": {
+          "demo": "general\/validate-path.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "plain",
+            "description": "Required nonnullable path ID.",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "description": "Required nullable path ID.",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/path\/{pathId}": {
       "get": {
         "summary": "Path Param",
@@ -2036,24 +2046,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 280,
-          "cookies": false,
-          "type": "",
           "demo": "general\/get-path.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock an encoded path parameter request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -2100,24 +2102,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 280,
-          "cookies": false,
-          "type": "",
           "demo": "general\/set-cookie.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a set cookie request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -2152,24 +2146,16 @@
         ],
         "description": "",
         "x-appwrite": {
-          "weight": 277,
-          "cookies": false,
-          "type": "",
           "demo": "general\/upload.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a file upload request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -2289,30 +2275,19 @@
         ],
         "description": "OAuth 2",
         "x-appwrite": {
-          "weight": 265,
-          "cookies": false,
-          "type": "webAuth",
           "demo": "general\/oauth2.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a oauth2 request.",
           "rate-limit": 10,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
           "platforms": [
             "client",
-            "server",
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
-          },
-          "produces": [
-            "text\/plain"
-          ]
+          }
         },
         "security": [
           {
@@ -2323,7 +2298,15 @@
         ],
         "responses": {
           "301": {
-            "description": "No content"
+            "description": "No content",
+            "content": {
+              "text\/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -2392,11 +2375,7 @@
         ],
         "description": "Test union response types",
         "x-appwrite": {
-          "weight": 302,
-          "cookies": false,
-          "type": "",
           "demo": "mock\/get-union.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
@@ -2406,9 +2385,6 @@
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -2427,18 +2403,18 @@
               "application\/json": {
                 "schema": {
                   "oneOf": [
-                    {
-                      "$ref": "#\/components\/schemas\/unionMock"
-                    },
-                    {
-                      "$ref": "#\/components\/schemas\/unionStub"
-                    }
+                    {"$ref": "#\/components\/schemas\/unionMock"},
+                    {"$ref": "#\/components\/schemas\/unionStub"}
                   ],
                   "discriminator": {
                     "propertyName": "type",
                     "mapping": {
                       "mock": "#\/components\/schemas\/unionMock",
                       "stub": "#\/components\/schemas\/unionStub"
+                    },
+                    "x-mapping": {
+                      "#\/components\/schemas\/unionMock": {"type": "wrong"},
+                      "#\/components\/schemas\/unionStub": {"type": "wrong"}
                     }
                   }
                 }
@@ -2461,20 +2437,228 @@
         ]
       }
     },
-    "\/mock\/tests\/zzexcludedservice": {
+    "/mock/tests/compound": {
       "get": {
-        "summary": "Get Excluded Fixture",
-        "operationId": "zzexcludedserviceGetExcludedFixture",
-        "tags": [
-          "zzexcludedservice"
-        ],
-        "description": "Fixture-only service used to verify excluded services do not leak generated artifacts.",
+        "summary": "Get compound union",
+        "operationId": "generalGetCompound",
+        "tags": ["general"],
+        "description": "Test overlapping conditions, broad fallback and ignored discriminator metadata.",
         "x-appwrite": {
-          "weight": 303,
-          "cookies": false,
-          "type": "",
-          "demo": "zzexcludedservice\/get.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
+          "platforms": ["client", "server"],
+          "scope": "public",
+          "auth": {"Project": []}
+        },
+        "security": [{"Project": [], "Key": [], "JWT": []}],
+        "parameters": [{
+          "name": "type",
+          "in": "query",
+          "required": false,
+          "description": "Mock response scenario.",
+          "schema": {"type": "string", "default": "mock", "example": "stub"}
+        }],
+        "responses": {
+          "200": {
+            "description": "Overlapping mock or specialized stub",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {"allOf": [
+                      {"$ref": "#/components/schemas/unionMock"},
+                      {"type": "object", "required": ["type"], "properties": {"type": {"enum": ["mock"]}}}
+                    ]},
+                    {"allOf": [
+                      {"$ref": "#/components/schemas/unionStub"},
+                      {"type": "object", "required": ["type", "format"], "properties": {
+                        "type": {"enum": ["mock"]},
+                        "format": {"enum": ["stub"]}
+                      }}
+                    ]}
+                  ],
+                  "discriminator": {
+                    "propertyName": "type",
+                    "mapping": {"mock": "#/components/schemas/unionMock"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/zzconsoleonly": {
+      "get": {
+        "summary": "Console Only Fixture",
+        "operationId": "generalZzconsoleonly",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture-only method available to console SDKs alone; verifies platform selection drops it elsewhere.",
+        "x-appwrite": {
+          "demo": "general\/zzconsoleonly.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "packaging": false,
+          "platforms": [
+            "console"
+          ]
+        },
+        "security": [
+          {
+            "Project": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Any",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/any"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/platform-alias": {
+      "get": {
+        "summary": "Platform Alias Fixture",
+        "operationId": "generalGetPlatformAlias",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture-only method whose alias differs per platform; verifies alias selection.",
+        "x-appwrite": {
+          "demo": "general\/platform-alias.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "packaging": false,
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "methods": [
+            {
+              "name": "zzplatformalias",
+              "namespace": "general",
+              "platforms": [
+                "client"
+              ],
+              "description": "zzplatformclientalias variant.",
+              "auth": {
+                "Project": []
+              }
+            },
+            {
+              "name": "zzplatformalias",
+              "namespace": "general",
+              "platforms": [
+                "server"
+              ],
+              "description": "zzplatformserveralias variant.",
+              "auth": {
+                "server": {
+                  "Project": [],
+                  "JWT": []
+                }
+              }
+            }
+          ]
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Any",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/any"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/zzderivedauth": {
+      "get": {
+        "summary": "Platform Auth Fixture",
+        "operationId": "generalZzderivedauth",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture-only method whose example credentials are keyed by platform; Session is accepted in only one security alternative and must not be configured by examples.",
+        "x-appwrite": {
+          "demo": "general\/zzderivedauth.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "packaging": false,
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "auth": {
+            "client": {
+              "Project": []
+            },
+            "server": {
+              "Project": [],
+              "Key": [],
+              "Session": []
+            }
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          },
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": [],
+            "Session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Any",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/any"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/graphql": {
+      "post": {
+        "summary": "GraphQL query",
+        "operationId": "graphqlQuery",
+        "tags": [
+          "graphql"
+        ],
+        "description": "Execute a GraphQL query.",
+        "x-appwrite": {
+          "demo": "graphql\/query.md",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
@@ -2484,9 +2668,69 @@
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GraphQL response",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application\/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "GraphQL document.",
+                    "example": "query { __typename }"
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/zzexcludedservice": {
+      "get": {
+        "summary": "Get Excluded Fixture",
+        "operationId": "zzexcludedserviceGetExcludedFixture",
+        "tags": [
+          "zzexcludedservice"
+        ],
+        "description": "Fixture-only service used to verify excluded services do not leak generated artifacts.",
+        "x-appwrite": {
+          "demo": "zzexcludedservice\/get.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
           "auth": {
             "Project": []
           }
@@ -2519,11 +2763,7 @@
         ],
         "description": "Fixture-only request model path used to verify excluded services also exclude models.",
         "x-appwrite": {
-          "weight": 304,
-          "cookies": false,
-          "type": "",
           "demo": "zzexcludedservice\/post.md",
-          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
@@ -2533,9 +2773,6 @@
             "server"
           ],
           "packaging": false,
-          "offline-model": "",
-          "offline-key": "",
-          "offline-response-key": "$id",
           "auth": {
             "Project": []
           }
@@ -2566,9 +2803,12 @@
                 "type": "object",
                 "properties": {
                   "payload": {
-                    "type": "object",
+                    "allOf": [
+                      {
+                        "$ref": "#\/components\/schemas\/zzexcludedpayload"
+                      }
+                    ],
                     "description": "Excluded fixture payload.",
-                    "x-model": "zzexcludedpayload",
                     "default": null
                   }
                 },
@@ -2585,85 +2825,67 @@
   "tags": [
     {
       "name": "account",
-      "description": "The Account service allows you to authenticate and manage a user account.",
-      "x-globalAttributes": []
+      "description": "The Account service allows you to authenticate and manage a user account."
     },
     {
       "name": "avatars",
-      "description": "The Avatars service aims to help you complete everyday tasks related to your app image, icons, and avatars.",
-      "x-globalAttributes": []
+      "description": "The Avatars service aims to help you complete everyday tasks related to your app image, icons, and avatars."
     },
     {
       "name": "databases",
-      "description": "The Databases service allows you to create structured collections of documents, query and filter lists of documents",
-      "x-globalAttributes": [
-        "databaseId"
-      ]
+      "description": "The Databases service allows you to create structured collections of documents, query and filter lists of documents"
     },
     {
       "name": "locale",
-      "description": "The Locale service allows you to customize your app based on your users' location.",
-      "x-globalAttributes": []
+      "description": "The Locale service allows you to customize your app based on your users' location."
     },
     {
       "name": "health",
-      "description": "The Health service allows you to both validate and monitor your Appwrite server's health.",
-      "x-globalAttributes": []
+      "description": "The Health service allows you to both validate and monitor your Appwrite server's health."
     },
     {
       "name": "projects",
-      "description": "The Project service allows you to manage all the projects in your Appwrite server.",
-      "x-globalAttributes": []
+      "description": "The Project service allows you to manage all the projects in your Appwrite server."
     },
     {
       "name": "project",
-      "description": "The Project service allows you to manage all the projects in your Appwrite server.",
-      "x-globalAttributes": []
+      "description": "The Project service allows you to manage all the projects in your Appwrite server."
     },
     {
       "name": "storage",
-      "description": "The Storage service allows you to manage your project files.",
-      "x-globalAttributes": []
+      "description": "The Storage service allows you to manage your project files."
     },
     {
       "name": "teams",
-      "description": "The Teams service allows you to group users of your project and to enable them to share read and write access to your project resources",
-      "x-globalAttributes": []
+      "description": "The Teams service allows you to group users of your project and to enable them to share read and write access to your project resources"
     },
     {
       "name": "users",
-      "description": "The Users service allows you to manage your project users.",
-      "x-globalAttributes": []
+      "description": "The Users service allows you to manage your project users."
     },
     {
       "name": "functions",
-      "description": "The Functions Service allows you view, create and manage your Cloud Functions.",
-      "x-globalAttributes": []
+      "description": "The Functions Service allows you view, create and manage your Cloud Functions."
     },
     {
       "name": "proxy",
-      "description": "The Proxy Service allows you to configure actions for your domains beyond DNS configuration.",
-      "x-globalAttributes": []
+      "description": "The Proxy Service allows you to configure actions for your domains beyond DNS configuration."
     },
     {
       "name": "graphql",
-      "description": "The GraphQL API allows you to query and mutate your Appwrite server using GraphQL.",
-      "x-globalAttributes": []
+      "description": "The GraphQL API allows you to query and mutate your Appwrite server using GraphQL."
     },
     {
       "name": "console",
-      "description": "The Console service allows you to interact with console relevant informations.",
-      "x-globalAttributes": []
+      "description": "The Console service allows you to interact with console relevant informations."
     },
     {
       "name": "migrations",
-      "description": "The Migrations service allows you to migrate third-party data to your Appwrite project.",
-      "x-globalAttributes": []
+      "description": "The Migrations service allows you to migrate third-party data to your Appwrite project."
     },
     {
       "name": "zzexcludedservice",
-      "description": "Fixture-only excluded service used by tests.",
-      "x-globalAttributes": []
+      "description": "Fixture-only excluded service used by tests."
     }
   ],
   "components": {
@@ -3071,6 +3293,17 @@
         "name": "X-Appwrite-Session",
         "description": "The user session to authenticate with",
         "in": "header"
+      },
+      "Zzserveronlyheader": {
+        "type": "apiKey",
+        "name": "X-Appwrite-Zzserveronlyheader",
+        "description": "Fixture-only header offered to server SDKs alone.",
+        "in": "header",
+        "x-appwrite": {
+          "platforms": [
+            "server"
+          ]
+        }
       },
       "Locale": {
         "type": "apiKey",

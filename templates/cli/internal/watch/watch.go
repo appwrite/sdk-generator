@@ -1,10 +1,13 @@
 package watch
 
 import (
+	"crypto/sha256"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -21,10 +24,13 @@ type Ignored func(relative string) bool
 
 // Watcher reports changes beneath a directory.
 type Watcher struct {
-	watcher *fsnotify.Watcher
-	root    string
-	ignored Ignored
-	done    chan struct{}
+	watcher      *fsnotify.Watcher
+	root         string
+	ignored      Ignored
+	fingerprints map[string][sha256.Size]byte
+	done         chan struct{}
+	finished     chan struct{}
+	stop         sync.Once
 }
 
 // Start watches a directory tree, calling changed with each relative,
@@ -39,7 +45,14 @@ func Start(root string, ignored Ignored, changed func(string)) (*Watcher, error)
 		return nil, err
 	}
 
-	w := &Watcher{watcher: watcher, root: root, ignored: ignored, done: make(chan struct{})}
+	w := &Watcher{
+		watcher:      watcher,
+		root:         root,
+		ignored:      ignored,
+		fingerprints: make(map[string][sha256.Size]byte),
+		done:         make(chan struct{}),
+		finished:     make(chan struct{}),
+	}
 
 	if err := w.addTree(root); err != nil {
 		watcher.Close()
@@ -60,16 +73,24 @@ func (w *Watcher) addTree(directory string) error {
 			// while the user is editing.
 			return nil
 		}
-		if !entry.IsDir() {
-			return nil
-		}
-
 		relative, err := w.relative(path)
 		if err != nil {
 			return nil
 		}
 		if relative != "" && w.ignored(relative) {
-			return filepath.SkipDir
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+
+			return nil
+		}
+
+		if !entry.IsDir() {
+			if fingerprint, err := fingerprint(path); err == nil {
+				w.fingerprints[relative] = fingerprint
+			}
+
+			return nil
 		}
 
 		return w.watcher.Add(path)
@@ -89,7 +110,42 @@ func (w *Watcher) relative(path string) (string, error) {
 	return filepath.ToSlash(relative), nil
 }
 
+// Wait for a quiet interval before fingerprinting: a truncate-and-rewrite can
+// otherwise be observed as an empty file before the writer restores its bytes.
+const settleDelay = 100 * time.Millisecond
+
+// A tree that never falls quiet would defer its changes forever, so a path is
+// fingerprinted this long after its first event however busy the tree stays.
+const settleLimit = time.Second
+
+// pending is a change waiting for its path to settle.
+//
+// The wait is per path rather than shared: a file first touched late in a busy
+// stretch still needs its own quiet interval, and a shared deadline would hand
+// it whatever milliseconds happened to be left.
+type pending struct {
+	event    fsnotify.Event
+	quiet    time.Time // no further events since
+	deadline time.Time // measured from the first event
+}
+
+// due reports when the change has to be handled, whether or not it settled.
+func (p *pending) due() time.Time {
+	if p.deadline.Before(p.quiet) {
+		return p.deadline
+	}
+
+	return p.quiet
+}
+
 func (w *Watcher) run(changed func(string)) {
+	defer close(w.finished)
+
+	changes := make(map[string]*pending)
+	timer := time.NewTimer(settleDelay)
+	timer.Stop()
+	defer timer.Stop()
+
 	for {
 		select {
 		case <-w.done:
@@ -99,7 +155,31 @@ func (w *Watcher) run(changed func(string)) {
 			if !ok {
 				return
 			}
-			w.handle(event, changed)
+			relative, err := w.relative(event.Name)
+			if err != nil || relative == "" || w.ignored(relative) {
+				continue
+			}
+			now := time.Now()
+			change, waiting := changes[event.Name]
+			if !waiting {
+				change = &pending{deadline: now.Add(settleLimit)}
+				changes[event.Name] = change
+			}
+			event.Op |= change.event.Op
+			change.event = event
+			change.quiet = now.Add(settleDelay)
+			schedule(timer, changes, now)
+
+		case <-timer.C:
+			now := time.Now()
+			for path, change := range changes {
+				if now.Before(change.due()) {
+					continue
+				}
+				w.handle(change.event, changed)
+				delete(changes, path)
+			}
+			schedule(timer, changes, now)
 
 		case _, ok := <-w.watcher.Errors:
 			if !ok {
@@ -110,6 +190,23 @@ func (w *Watcher) run(changed func(string)) {
 			// over one would be worse than missing it.
 		}
 	}
+}
+
+// schedule arms the timer for the earliest change due.
+func schedule(timer *time.Timer, changes map[string]*pending, now time.Time) {
+	var next time.Time
+	for _, change := range changes {
+		if due := change.due(); next.IsZero() || due.Before(next) {
+			next = due
+		}
+	}
+	if next.IsZero() {
+		timer.Stop()
+
+		return
+	}
+
+	timer.Reset(max(0, next.Sub(now)))
 }
 
 func (w *Watcher) handle(event fsnotify.Event, changed func(string)) {
@@ -124,22 +221,74 @@ func (w *Watcher) handle(event fsnotify.Event, changed func(string)) {
 		return
 	}
 
-	if event.Has(fsnotify.Create) {
-		if info, err := os.Stat(event.Name); err == nil && info.IsDir() {
+	info, statErr := os.Stat(event.Name)
+	if statErr == nil && info.IsDir() {
+		if event.Has(fsnotify.Create) {
 			// A directory created after the initial walk has to be registered
 			// or nothing inside it is ever seen.
 			_ = w.addTree(event.Name)
+			changed(relative)
 		}
+
+		// Directory metadata is not part of the function bundle.
+		return
+	}
+	if statErr != nil {
+		// A missing file is a real change only when it, or a directory beneath
+		// it, existed in the last snapshot. Unknown paths can disappear between
+		// the event and the stat.
+		removed := false
+		prefix := strings.TrimSuffix(relative, "/") + "/"
+		for known := range w.fingerprints {
+			if known == relative || strings.HasPrefix(known, prefix) {
+				delete(w.fingerprints, known)
+				removed = true
+			}
+		}
+		if removed {
+			changed(relative)
+		}
+
+		return
+	}
+
+	fingerprint, err := fingerprint(event.Name)
+	if err != nil {
+		return
+	}
+
+	previous, existed := w.fingerprints[relative]
+	w.fingerprints[relative] = fingerprint
+	if existed && previous == fingerprint {
+		return
 	}
 
 	changed(relative)
 }
 
-// Close stops watching.
-func (w *Watcher) Close() error {
-	close(w.done)
+// fingerprint identifies file contents rather than filesystem metadata.
+// Editors and monorepo tools commonly touch or chmod source files without
+// changing them; treating those notifications as edits creates reload loops.
+func fingerprint(path string) ([sha256.Size]byte, error) {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return [sha256.Size]byte{}, err
+	}
 
-	return w.watcher.Close()
+	return sha256.Sum256(contents), nil
+}
+
+// Close stops watching and waits for any change already being handled, so no
+// callback runs once it returns. It is safe to call more than once.
+func (w *Watcher) Close() error {
+	var err error
+	w.stop.Do(func() {
+		close(w.done)
+		err = w.watcher.Close()
+	})
+	<-w.finished
+
+	return err
 }
 
 // PrefixIgnored adapts a path-based predicate so a directory is skipped when

@@ -1,4 +1,4 @@
-const { Client, Foo, Bar, General, Query, Permission, Role, ID, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
+const { AppwriteException, Client, Foo, Bar, General, Query, Permission, Role, ID, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
@@ -124,13 +124,20 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
 
+    for (const [id, plain] of [['', '0'], ['0', '']]) {
+        try {
+            await general.validatePath({ id, plain });
+            throw new Error('Empty path parameter was accepted');
+        } catch (error) {
+            if (!(error instanceof AppwriteException)) throw error;
+            console.log(error.message);
+        }
+    }
+    response = await general.validatePath({ id: '0', plain: '0' });
+    console.log(response.result);
+
     response = await general.getPath({ pathId: 'grant/special&id' });
     console.log(response.result);
-  
-    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
-    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
-    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
-    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
 
     response = await general.enum(MockType.First);
     console.log(response.result);
@@ -143,6 +150,13 @@ async function start() {
         { id: 'player1', name: 'John Doe', score: 100 },
         { id: 'player2', name: 'Jane Doe', score: 200 }
     ]);
+    console.log(response.result);
+
+    // All-optional positional params keep their trailing arguments
+    response = await general.getOptional(undefined, 128, 'omitted');
+    console.log(response.result);
+
+    response = await general.getOptional(0, 64, 'zero');
     console.log(response.result);
 
     // Union types test - returns `mock` type
@@ -189,14 +203,6 @@ async function start() {
     } catch(error) {
         console.log(error.message);
     }
-
-    console.log('WS:/v1/realtime:passed'); // Skip realtime test on Node.js
-    console.log('WS:/v1/realtime:passed'); // Skip realtime query test on Node.js
-    console.log('Realtime failed!'); // Skip realtime query failure test on Node.js
-    console.log('Realtime unsubscribe:passed'); // Skip new realtime API tests on Node.js
-    console.log('Realtime update:passed');
-    console.log('Realtime presence:passed'); // Skip realtime presence test on Node.js
-    console.log('Realtime disconnect:passed');
 
     // Query helper tests
     console.log(Query.equal("released", [true]));

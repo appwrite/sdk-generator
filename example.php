@@ -32,7 +32,8 @@ use Appwrite\SDK\Language\ZedExtension;
 
 final class Config
 {
-    public const string VERSION = '1.9.x';
+    public const string VERSION = '2.0.x';
+    public const string SWAGGER2_VERSION = '1.8.x';
     public const string SPECS_URL = 'https://raw.githubusercontent.com/appwrite/specs/main/specs';
     public const string TITLE = 'Appwrite';
     public const string DESCRIPTION = 'Appwrite backend as a service';
@@ -113,9 +114,7 @@ try {
         if (isset($config['exclude'])) {
             $sdk->setExclude($config['exclude']);
         }
-        if (isset($config['platform'])) {
-            $sdk->setPlatform($config['platform']);
-        }
+        $sdk->setPlatform($config['platform'] ?? $GLOBALS['platform']);
 
         return $sdk;
     }
@@ -154,7 +153,7 @@ try {
         throw new Exception("Unsupported spec format: $specFormat (expected 'openapi3' or 'swagger2')");
     }
 
-    $version = Config::VERSION;
+    $version = $specFormat === 'swagger2' ? Config::SWAGGER2_VERSION : Config::VERSION;
     $sdkTargets = [
         'php',
         'unity',
@@ -196,8 +195,10 @@ try {
         if ($specFile) {
             $spec = file_get_contents($specFile);
         } else {
-            $specPrefix = $specFormat === 'swagger2' ? 'swagger2' : 'open-api3';
-            $spec = getSSLPage(Config::SPECS_URL . "/{$version}/{$specPrefix}-{$version}-{$platform}.json");
+            // OpenAPI 3 ships one canonical document per version; the generator selects the platform from it.
+            $spec = getSSLPage($specFormat === 'swagger2'
+                ? Config::SPECS_URL . "/{$version}/swagger2-{$version}-{$platform}.json"
+                : Config::SPECS_URL . "/{$version}/open-api3-{$version}.json");
         }
 
         if(empty($spec)) {

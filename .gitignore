@@ -2,6 +2,7 @@
 .dart_tool
 /vendor/
 /tests/e2e/sdks
+/tests/generation/sdks
 /.vscode
 .vs
 .phpunit.*

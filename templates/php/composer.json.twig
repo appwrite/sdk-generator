@@ -23,6 +23,7 @@
         "php": ">=8.5",
         "ext-curl": "*",
         "ext-json": "*",
+        "psr/http-client": "^1.0",
         "utopia-php/client": "^0.4.1"
 {%- if globalHeaders | hasBearerAuth %},
         "adhocore/jwt": "^1.1"
@@ -36,14 +37,6 @@
         "phpstan/phpstan-mockery": "^2.0",
         "phpunit/phpunit": "^12",
         "rector/rector": "^2.2"
-    },
-    "provide": {
-        "ext-protobuf": "*"
-    },
-    "config": {
-        "platform": {
-            "ext-protobuf": "1.0"
-        }
     },
     "prefer-stable": true,
     "minimum-stability": "dev"

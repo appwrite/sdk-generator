@@ -44,9 +44,10 @@ use Appwrite\SDK\Language\PHP;
 use Utopia\OpenAPI\Parser;
 
 // Parse an OpenAPI 2, 3.0, or 3.1 document into the canonical specification model.
-$version = '1.9.x';
+// One document covers every SDK platform; the SDK selects its own below.
+$version = '2.0.x';
 $platform = 'server';
-$content = file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/open-api3-{$version}-{$platform}.json");
+$content = file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/open-api3-{$version}.json");
 $spec = Parser::parse($content);
 
 // Create language instance
@@ -61,6 +62,7 @@ $lang // Set language or platform specific options
 $sdk  = new SDK($lang, $spec);
 
 $sdk
+    ->setPlatform($platform) // Keep the operations, aliases and security schemes available to this platform
     ->setCoverImage('https://github.com/appwrite/appwrite/raw/main/public/images/github.png')
     ->setLicenseContent('License content here.')
     ->setVersion('v1.1.0')
@@ -86,7 +88,7 @@ $spec = Parser::parse([
     'info' => [
         'title' => 'Appwrite',
         'description' => 'Appwrite backend as a service',
-        'version' => '1.9.x',
+        'version' => '2.0.x',
         'license' => [
             'name' => 'BSD-3-Clause',
             'url' => 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
@@ -99,7 +101,7 @@ $sdk = new SDK(new Skills(), $spec);
 
 $sdk
     ->setName('Appwrite')
-    ->setVersion('1.9.x')
+    ->setVersion('2.0.x')
 ;
 
 $sdk->generate(__DIR__ . '/examples/skills');
@@ -158,7 +160,7 @@ php example.php <target> <platform> <format>
 
 `<platform>` can be `console`, `client`, or `server`. If omitted, it defaults to `console`.
 
-`<format>` can be `openapi3` or `swagger2`. If omitted, it defaults to `openapi3`. Both formats produce identical SDKs.
+`<format>` can be `openapi3` or `swagger2`. If omitted, it defaults to `openapi3`. Remote OpenAPI 3 generation uses the current `2.0.x` specs; because Swagger 2 documents are not published for `2.0.x`, remote Swagger 2 generation uses the latest available `1.8.x` specs.
 
 Examples:
 

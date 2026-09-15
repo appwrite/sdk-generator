@@ -2,12 +2,14 @@
 
 namespace Appwrite\SDK;
 
+use UnexpectedValueException;
 use Utopia\OpenAPI\Model\AnySchema;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\BooleanSchema;
 use Utopia\OpenAPI\Model\CompositeSchema;
 use MatthiasMullie\Minify\JS;
 use MatthiasMullie\Minify\CSS;
+use Appwrite\SDK\Extension\Appwrite;
 use Exception;
 use Throwable;
 use Utopia\OpenAPI\Model\Composition;
@@ -160,7 +162,7 @@ class SDK
             ? $this->language->getSuggestedEnumExample($value)
             : $this->language->getParamExample($value), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('methodName', fn(Operation $operation): string => $this->methodName($operation)));
-        $this->twig->addFilter(new TwigFilter('methodType', fn(Operation $operation): string|false => $this->methodType($operation)));
+        $this->twig->addFilter(new TwigFilter('methodType', fn(Operation $operation): string|false => $this->language->getMethodType($operation, $this->spec)));
         $this->twig->addFilter(new TwigFilter('parameters', fn(Operation $operation, string $location = 'all'): array => $this->getOperationParameters($operation, $location)));
         $this->twig->addFilter(new TwigFilter('responseModel', fn(Operation $operation): string => $this->getResponseModel($operation)));
         $this->twig->addFilter(new TwigFilter('responseModels', fn(Operation $operation): array => $this->getValidResponseModels($operation)));
@@ -178,7 +180,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('uploadIdParameter', $this->uploadIdParameter(...)));
         $this->twig->addFilter(new TwigFilter('produces', fn(Operation $operation): array => $this->getProduces($operation)));
         $this->twig->addFilter(new TwigFilter('endpoint', fn(Specification $spec): string => $spec->servers[0]->url ?? 'https://example.com'));
-        $this->twig->addFilter(new TwigFilter('appwrite', fn(Operation|SecurityScheme $value, string $key, mixed $default = null): mixed => $value->extensions['x-appwrite'][$key] ?? $default));
+        $this->twig->addFilter(new TwigFilter('appwrite', fn(Operation|SecurityScheme $value, string $key, mixed $default = null): mixed => $value->extensions[Extension::APPWRITE->value][$key] ?? $default));
         $this->twig->addFilter(new TwigFilter('extension', fn(Schema|Parameter $value, string $key, mixed $default = null): mixed => $this->getSchema($value)->extensions[$key] ?? $default));
         $this->twig->addFilter(new TwigFilter('methodHeaders', fn(Operation $operation): array => $this->getMethodHeaders($operation)));
         $this->twig->addFilter(new TwigFilter('responseDiscriminator', fn(Operation $operation): array => $this->getResponseDiscriminator($operation)));
@@ -279,6 +281,7 @@ class SDK
     public function setNamespace(string $namespace): SDK
     {
         $this->setParam('namespace', $namespace);
+        $this->language->setParam('namespace', $namespace);
 
         return $this;
     }
@@ -314,6 +317,9 @@ class SDK
     public function setPlatform(string $platform): SDK
     {
         $this->setParam('platform', $platform);
+        $this->operationsByServiceCache = null;
+        $this->filteredServicesCache = null;
+        $this->filteredModelDataCache = null;
 
         return $this;
     }
@@ -531,8 +537,12 @@ class SDK
 
         $operations = [];
         foreach ($this->spec->operations() as $operation) {
+            if (!$this->isAvailable($operation->extensions[Extension::APPWRITE->value][Appwrite::PLATFORMS->value] ?? null)) {
+                continue;
+            }
+
             $operation = $this->annotateSecurityPathParameters($operation);
-            $aliases = $operation->extensions['x-appwrite']['methods'] ?? [];
+            $aliases = $operation->extensions[Extension::APPWRITE->value][Appwrite::METHODS->value] ?? [];
             if (!\is_array($aliases) || $aliases === []) {
                 foreach ($operation->tags as $serviceName) {
                     $operations[$serviceName][] = $operation;
@@ -541,7 +551,7 @@ class SDK
             }
 
             foreach ($aliases as $alias) {
-                if (!\is_array($alias)) {
+                if (!\is_array($alias) || !$this->isAvailable($alias['platforms'] ?? null)) {
                     continue;
                 }
 
@@ -557,16 +567,37 @@ class SDK
         return $this->operationsByServiceCache = $operations;
     }
 
+    /**
+     * Whether an `x-appwrite.platforms` list admits the platform this SDK is
+     * generated for. Operations, method aliases and security schemes carry
+     * one; a missing list means available everywhere, as does generating
+     * without a platform.
+     */
+    protected function isAvailable(mixed $platforms): bool
+    {
+        $platform = $this->getParam('platform');
+
+        return $platform === '' || !\is_array($platforms) || \in_array($platform, $platforms, true);
+    }
+
+    /** A security scheme by name, or null when unknown or not offered on this platform. */
+    protected function getSecurityScheme(string $name): ?SecurityScheme
+    {
+        $scheme = $this->spec->securitySchemes[$name] ?? null;
+
+        return $scheme instanceof SecurityScheme && $this->isAvailable($scheme->extensions[Extension::APPWRITE->value][Appwrite::PLATFORMS->value] ?? null) ? $scheme : null;
+    }
+
     protected function annotateSecurityPathParameters(Operation $operation): Operation
     {
         $securityParameters = [];
-        foreach ($operation->security[0]->schemes ?? [] as $schemeName => $scopes) {
-            $scheme = $this->spec->securitySchemes[$schemeName] ?? null;
-            if ($scheme === null || ($scheme->extensions['x-appwrite']['location'] ?? '') !== 'path') {
+        foreach ($operation->acceptedSecuritySchemeNames() as $schemeName) {
+            $scheme = $this->getSecurityScheme($schemeName);
+            if (!$scheme instanceof SecurityScheme || ($scheme->extensions[Extension::APPWRITE->value][Appwrite::LOCATION->value] ?? '') !== 'path') {
                 continue;
             }
-            $parameterName = (string) ($scheme->extensions['x-appwrite']['param'] ?? $scheme->name ?? $schemeName);
-            $securityParameters[$parameterName] = (string) ($scheme->extensions['x-appwrite']['config'] ?? $scheme->name ?? $schemeName);
+            $parameterName = (string) ($scheme->extensions[Extension::APPWRITE->value][Appwrite::PARAM->value] ?? $scheme->name ?? $schemeName);
+            $securityParameters[$parameterName] = (string) ($scheme->extensions[Extension::APPWRITE->value][Appwrite::CONFIG->value] ?? $scheme->name ?? $schemeName);
         }
         if ($securityParameters === []) {
             return $operation;
@@ -593,8 +624,8 @@ class SDK
                 allowReserved: $parameter->allowReserved,
                 extensions: [
                     ...$parameter->extensions,
-                    'x-sdk-source' => 'security',
-                    'x-sdk-config' => $config,
+                    Extension::SDK_SOURCE->value => 'security',
+                    Extension::SDK_CONFIG->value => $config,
                 ],
             );
         }
@@ -621,7 +652,7 @@ class SDK
     protected function createAliasedOperation(Operation $operation, array $alias, string $serviceName): Operation
     {
         $methodName = (string) ($alias['name'] ?? $this->methodName($operation));
-        $appwrite = $operation->extensions['x-appwrite'] ?? [];
+        $appwrite = $operation->extensions[Extension::APPWRITE->value] ?? [];
         $appwrite['auth'] = $alias['auth'] ?? [];
         if (isset($alias['deprecated'])) {
             $appwrite['deprecated'] = $alias['deprecated'];
@@ -630,7 +661,7 @@ class SDK
         }
 
         $extensions = $operation->extensions;
-        $extensions['x-appwrite'] = $appwrite;
+        $extensions[Extension::APPWRITE->value] = $appwrite;
 
         return new Operation(
             id: $serviceName . \ucfirst($methodName),
@@ -760,6 +791,9 @@ class SDK
     {
         $clientMethods = [];
         foreach ($this->spec->operations() as $method) {
+            if (!$this->isAvailable($method->extensions[Extension::APPWRITE->value][Appwrite::PLATFORMS->value] ?? null)) {
+                continue;
+            }
             foreach ($method->tags as $serviceName) {
                 if ($this->isClientMethod($method, $serviceName)) {
                     $clientMethods[$serviceName][$this->methodName($method)] = $method;
@@ -939,7 +973,7 @@ class SDK
             if (!isset($reachable[$name])) {
                 continue;
             }
-            if ($schema->extensions['x-request-model'] ?? false) {
+            if ($schema->extensions[Extension::REQUEST_MODEL->value] ?? false) {
                 $requestModels[$name] = $schema;
             } else {
                 $definitions[$name] = $schema;
@@ -1165,7 +1199,7 @@ class SDK
             }
         }
 
-        return isset($excludeIndex['types'][$this->methodType($method) ?: '']);
+        return isset($excludeIndex['types'][$this->language->getMethodType($method, $this->spec) ?: '']);
     }
 
     protected function getExcludedDefinitions(): array
@@ -1291,7 +1325,7 @@ class SDK
             }
         }
 
-        if ($operation instanceof Operation && \in_array($this->methodType($operation), $types, true)) {
+        if ($operation instanceof Operation && \in_array($this->language->getMethodType($operation, $this->spec), $types, true)) {
             return true;
         }
         return \in_array($params['definitionName'] ?? '', $definitions, true);
@@ -1299,17 +1333,17 @@ class SDK
 
     protected function hasUploads(array $methods): bool
     {
-        return array_any($methods, fn(Operation $method): bool => $this->methodType($method) === 'upload');
+        return array_any($methods, fn(Operation $method): bool => $this->language->getMethodType($method, $this->spec) === 'upload');
     }
 
     protected function hasLocation(array $methods): bool
     {
-        return array_any($methods, fn(Operation $method): bool => $this->methodType($method) === 'location');
+        return array_any($methods, fn(Operation $method): bool => $this->language->getMethodType($method, $this->spec) === 'location');
     }
 
     protected function hasWebAuth(array $methods): bool
     {
-        return array_any($methods, fn(Operation $method): bool => $this->methodType($method) === 'webAuth');
+        return array_any($methods, fn(Operation $method): bool => $this->language->getMethodType($method, $this->spec) === 'webAuth');
     }
 
     protected function isConsoleOnly(string $serviceName): bool
@@ -1501,11 +1535,6 @@ class SDK
         return $this->language->getMethodName($operation);
     }
 
-    protected function methodType(Operation $operation): string|false
-    {
-        return $operation->extensions['x-appwrite']['type'] ?? false;
-    }
-
     protected function uploadIdParameter(Operation $operation): ?Parameter
     {
         $content = $operation->requestBody?->content ?? [];
@@ -1544,7 +1573,7 @@ class SDK
         $parameters = [];
         if ($location !== 'body') {
             foreach ($operation->parameters as $parameter) {
-                if ($location === 'all' && ($parameter->extensions['x-sdk-source'] ?? '') === 'security') {
+                if ($location === 'all' && ($parameter->extensions[Extension::SDK_SOURCE->value] ?? '') === 'security') {
                     continue;
                 }
                 if ($location === 'all' || $parameter->location->value === $location) {
@@ -1613,15 +1642,8 @@ class SDK
 
     protected function getSchemaModel(Schema|Parameter $value): string
     {
-        $schema = $this->getSchema($value);
-        $models = $this->getSchemaModels($schema);
-        if (\count($models) === 1) {
-            return $models[0];
-        }
-        if ($schema instanceof ArraySchema) {
-            return (string) ($schema->items->extensions['x-model'] ?? $schema->extensions['x-model'] ?? '');
-        }
-        return (string) ($schema->extensions['x-model'] ?? '');
+        $models = $this->getSchemaModels($value);
+        return \count($models) === 1 ? $models[0] : '';
     }
 
     /** @return list<string> */
@@ -1640,15 +1662,6 @@ class SDK
                 \array_push($models, ...$this->getSchemaModels($member));
             }
             return \array_values(\array_unique($models));
-        }
-        foreach (['x-oneOf', 'x-anyOf'] as $key) {
-            if (!\is_array($schema->extensions[$key] ?? null)) {
-                continue;
-            }
-            return \array_values(\array_filter(\array_map(
-                fn(array $member): string => $this->normalizeSchemaReference((string) ($member['$ref'] ?? '')),
-                $schema->extensions[$key],
-            )));
         }
         return [];
     }
@@ -1749,7 +1762,11 @@ class SDK
     protected function getGlobalHeaders(): array
     {
         $headers = [];
-        foreach ($this->spec->securitySchemes as $name => $scheme) {
+        foreach (\array_keys($this->spec->securitySchemes) as $name) {
+            $scheme = $this->getSecurityScheme($name);
+            if (!$scheme instanceof SecurityScheme) {
+                continue;
+            }
             if (
                 ($scheme->type === SecuritySchemeType::API_KEY && $scheme->location === ParameterLocation::HEADER)
                 || ($scheme->type === SecuritySchemeType::HTTP && $scheme->scheme === 'bearer')
@@ -1794,7 +1811,7 @@ class SDK
             }
         }
         if ($produces === []) {
-            $produces = $operation->extensions['x-appwrite']['produces'] ?? [];
+            $produces = ['application/json'];
         }
         return $produces;
     }
@@ -1806,7 +1823,7 @@ class SDK
 
         // Insertion order is the emitted order, and the GraphQL marker comes
         // before the negotiated headers in every published SDK.
-        if ($this->methodType($operation) === 'graphql') {
+        if ($this->language->getMethodType($operation, $this->spec) === 'graphql') {
             $headers['x-sdk-graphql'] = 'true';
         }
 
@@ -1824,21 +1841,36 @@ class SDK
         return $headers;
     }
 
-    /** @return array<string, SecurityScheme> */
+    /**
+     * The schemes an example configures on the client before calling a method.
+     *
+     * A per-platform document lists them flat; the canonical document keys them
+     * by platform, since client and console examples configure the project only
+     * while server examples add one credential.
+     *
+     * @return array<string, SecurityScheme>
+     */
     protected function getOperationAuthSchemes(Operation $operation): array
     {
-        $auth = $operation->extensions['x-appwrite']['auth'] ?? [];
+        $auth = $operation->extensions[Extension::APPWRITE->value][Appwrite::AUTH->value] ?? [];
         if (!\is_array($auth)) {
             return [];
         }
+        $auth = $auth[$this->getParam('platform')] ?? $auth;
         $schemes = [];
         $pathSchemes = [];
+        $optional = \array_diff($operation->acceptedSecuritySchemeNames(), $operation->requiredSecuritySchemeNames());
         foreach (\array_keys($auth) as $name) {
-            $scheme = $this->spec->securitySchemes[$name] ?? null;
-            if ($scheme === null) {
+            // Example configuration is independent of API authentication. Only
+            // omit a candidate when security explicitly makes it optional.
+            if (\in_array($name, $optional, true)) {
                 continue;
             }
-            if (($scheme->extensions['x-appwrite']['location'] ?? '') === 'path' && $scheme->name !== null) {
+            $scheme = $this->getSecurityScheme((string) $name);
+            if (!$scheme instanceof SecurityScheme) {
+                continue;
+            }
+            if (($scheme->extensions[Extension::APPWRITE->value][Appwrite::LOCATION->value] ?? '') === 'path' && $scheme->name !== null) {
                 $pathSchemes[\ucfirst($this->helperCamelCase($scheme->name))] = $scheme;
             } else {
                 $schemes[$name] = $scheme;
@@ -1851,12 +1883,12 @@ class SDK
     protected function getOperationSecuritySchemes(Operation $operation, ?ParameterLocation $location = null, bool $includeGlobal = true): array
     {
         $schemes = [];
-        foreach ($operation->security[0]->schemes ?? [] as $name => $scopes) {
-            $scheme = $this->spec->securitySchemes[$name] ?? null;
-            if ($scheme === null) {
+        foreach ($operation->acceptedSecuritySchemeNames() as $name) {
+            $scheme = $this->getSecurityScheme($name);
+            if (!$scheme instanceof SecurityScheme) {
                 continue;
             }
-            if (($scheme->extensions['x-appwrite']['location'] ?? '') === 'path') {
+            if (($scheme->extensions[Extension::APPWRITE->value][Appwrite::LOCATION->value] ?? '') === 'path') {
                 if (!$location instanceof ParameterLocation) {
                     $schemes[$name] = $scheme;
                 }
@@ -1874,47 +1906,55 @@ class SDK
     }
 
     /**
-     * The conditions that select each member of a discriminated union.
+     * Standard single-property discriminator cases. Compound selection is
+     * represented by constrained unions, not vendor extensions.
      *
-     * The standard `mapping` is single-valued: one property value names one
-     * schema. A union whose members differ by a combination of properties
-     * cannot be expressed with it — five Appwrite attribute models share
-     * `type: string` and are told apart only by `format`, so `mapping` can
-     * name just one of them. `x-mapping` carries the full rule set, keyed by
-     * reference, and is preferred when present.
-     *
-     * @return array<string, array<string, mixed>>
+     * @return array<string, array<string, string>>
      */
     protected function getDiscriminatorCases(Discriminator $discriminator): array
     {
         $cases = [];
-
-        $extended = $discriminator->extensions['x-mapping'] ?? null;
-        if (\is_array($extended)) {
-            foreach ($extended as $reference => $conditions) {
-                if (!\is_array($conditions)) {
-                    continue;
-                }
-                $name = $this->normalizeSchemaReference((string) $reference);
-                if ($name === '') {
-                    continue;
-                }
-                $cases[$name] = \array_filter($conditions, static fn(mixed $value): bool => $value !== null);
-            }
-        }
-
-        if ($cases !== []) {
-            return $cases;
-        }
 
         foreach ($discriminator->mapping as $value => $reference) {
             $name = $this->normalizeSchemaReference($reference);
             if ($name === '') {
                 continue;
             }
-            $cases[$name] = [$discriminator->propertyName => $value];
+            $cases[$name] = [$discriminator->propertyName => (string) $value];
         }
 
+        return $cases;
+    }
+
+    /** @return array<string, array<string, string>> */
+    protected function getConditionalCases(CompositeSchema $schema): array
+    {
+        $cases = [];
+        foreach ($schema->conditionalReferences() as $branch) {
+            $name = $this->normalizeSchemaReference($branch['reference']);
+            if ($name === '' || \array_key_exists($name, $cases)) {
+                throw new UnexpectedValueException('Conditional response references must identify distinct models.');
+            }
+            $conditions = [];
+            foreach ($branch['conditions'] as $condition) {
+                // Appwrite specs use string conditions. Reject unsupported types
+                // rather than silently stringify their selection rules.
+                if (!\is_string($condition['value'])) {
+                    throw new UnexpectedValueException('Conditional response literals must be strings.');
+                }
+                $conditions[$condition['propertyName']] = $condition['value'];
+            }
+            foreach ($cases as $existing) {
+                if (\count($existing) !== \count($conditions)) {
+                    continue;
+                }
+                $disjoint = array_any($conditions, fn($value, $property): bool => \array_key_exists((string) $property, $existing) && $existing[$property] !== $value);
+                if (!$disjoint) {
+                    throw new UnexpectedValueException('Conditional response cases overlap at equal specificity.');
+                }
+            }
+            $cases[$name] = $conditions;
+        }
         return $cases;
     }
 
@@ -1923,10 +1963,13 @@ class SDK
         foreach ($operation->responses as $response) {
             foreach ($response->content as $mediaType) {
                 $schema = $mediaType->schema;
-                if (!$schema instanceof CompositeSchema || !$schema->discriminator instanceof Discriminator) {
+                if (!$schema instanceof CompositeSchema) {
                     continue;
                 }
-                $mapping = $this->getDiscriminatorCases($schema->discriminator);
+                $mapping = $this->getConditionalCases($schema);
+                if ($mapping === [] && $schema->discriminator instanceof Discriminator) {
+                    $mapping = $this->getDiscriminatorCases($schema->discriminator);
+                }
                 if ($mapping === []) {
                     continue;
                 }
