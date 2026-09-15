@@ -482,8 +482,6 @@ type deployable struct {
 	// blank rather than sent as "", because blank means "unchanged" for them.
 	// Not every field: an empty `schedule` really does mean "unschedule it".
 	OmitWhenEmpty []string
-	// ConsoleURL renders the deployment's page on a self-hosted console.
-	ConsoleURL func(base, slug, resourceID, deploymentID string) string
 }
 
 var deployables = []deployable{
@@ -510,10 +508,6 @@ var deployables = []deployable{
 		},
 		DeploymentKeys: []string{"entrypoint", "commands"},
 		OmitWhenEmpty:  []string{"entrypoint"},
-		ConsoleURL: func(base, slug, resourceID, deploymentID string) string {
-			return fmt.Sprintf("%s/console/%s/functions/function-%s/deployment-%s",
-				base, slug, resourceID, deploymentID)
-		},
 	},
 	{
 		resourceIdentity: siteIdentity,
@@ -537,10 +531,6 @@ var deployables = []deployable{
 			"vars",
 		},
 		DeploymentKeys: []string{"installCommand", "buildCommand", "outputDirectory"},
-		ConsoleURL: func(base, slug, resourceID, deploymentID string) string {
-			return fmt.Sprintf("%s/console/%s/sites/site-%s/deployments/deployment-%s",
-				base, slug, resourceID, deploymentID)
-		},
 	},
 }
 
@@ -2037,57 +2027,7 @@ func (c *pushContext) deploymentConsoleURL(
 	resource deployable,
 	id, deploymentID string,
 ) string {
-	endpoint := c.api.Endpoint
-	projectID := c.local.Data.GetString("projectId")
-
-	if origin, cloud := config.CloudConsoleURL(endpoint); cloud {
-		return fmt.Sprintf("%s/projects/%s%s/deployments/%s",
-			origin, projectID, resource.itemPath(id), deploymentID)
-	}
-
-	return resource.ConsoleURL(
-		consoleBaseURL(endpoint),
-		c.consoleProjectSlug(projectID),
-		id, deploymentID)
-}
-
-// consoleProjectSlug is the project segment of a self-hosted console URL. It
-// needs the project's region, which only the console can answer.
-func (c *pushContext) consoleProjectSlug(projectID string) string {
-	region := c.projectRegion(projectID)
-	if region == "" {
-		region = "default"
-	}
-
-	return "project-" + region + "-" + projectID
-}
-
-// projectRegion reads a self-hosted project's region from the console.
-//
-// A failure is not an error: the region only shapes a link, and a push that
-// worked should not report a failure because a URL is less precise.
-func (c *pushContext) projectRegion(projectID string) string {
-	console, _, err := consoleClient()
-	if err != nil {
-		return ""
-	}
-
-	// Best effort, like the rest of this function: io.Discard because the
-	// "resolved from project" notice belongs to the command the user ran, not
-	// to a lookup done to decorate a URL.
-	organizationID, err := resolveOrganizationID(
-		io.Discard, console, c.local.Data.GetString("organizationId"), projectID)
-	if err != nil {
-		return ""
-	}
-
-	project := jsonx.NewObject()
-	err = console.Clone().WithoutResponseFormat().
-		SetOrganization(organizationID).
-		Call("GET", pathProjects+"/"+url.PathEscape(projectID), nil, project)
-	if err != nil {
-		return ""
-	}
-
-	return project.GetString("region")
+	return fmt.Sprintf("%s/projects/%s%s/deployments/%s",
+		consoleBaseURL(c.api.Endpoint), c.local.Data.GetString("projectId"),
+		resource.itemPath(id), deploymentID)
 }

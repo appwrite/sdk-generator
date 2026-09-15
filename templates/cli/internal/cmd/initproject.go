@@ -290,13 +290,9 @@ func chooseOrganization(api *client.Client, prompter prompt.Prompter, endpoint s
 		return "", err
 	}
 	if len(teams) == 0 {
-		link := consoleBaseURL(endpoint) + "/console"
-		if origin, ok := config.CloudConsoleURL(endpoint); ok {
-			link = origin + "/"
-		}
-
 		return "", fmt.Errorf(
-			"no organizations found. Please create a new organization at %s", link)
+			"no organizations found. Please create a new organization at %s/",
+			consoleBaseURL(endpoint))
 	}
 
 	options := make([]prompt.Option, 0, len(teams))
@@ -458,7 +454,13 @@ func selectionLabel(name, id string) string {
 	return name + " (" + id + ")"
 }
 
-// consoleBaseURL strips the /v1 suffix so a console link can be built.
+// consoleBaseURL is the origin console links are built on: the new console on
+// Cloud, which is not served from the API host, and the instance root when
+// self-hosted.
 func consoleBaseURL(endpoint string) string {
+	if origin, cloud := config.CloudConsoleURL(endpoint); cloud {
+		return origin
+	}
+
 	return strings.TrimSuffix(strings.TrimSuffix(endpoint, "/"), "/v1")
 }
