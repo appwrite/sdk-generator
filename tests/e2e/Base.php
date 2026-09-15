@@ -140,6 +140,12 @@ abstract class Base extends TestCase
         'Realtime disconnect:passed',
     ];
 
+    // Native push (MQTT) round-trip against the mock broker: subscribe, publish, receive.
+    protected const PUSH_RESPONSES = [
+        'Push subscribe:passed',
+        'Push message:passed',
+    ];
+
     protected const QUERY_HELPER_RESPONSES = [
         '{"method":"equal","attribute":"released","values":[true]}',
         '{"method":"equal","attribute":"title","values":["Spiderman","Dr. Strange"]}',
