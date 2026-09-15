@@ -21,6 +21,7 @@ import io.appwrite.models.RealtimeSubscriptionUpdate
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
+import io.appwrite.services.Push
 import io.appwrite.services.Realtime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -490,6 +491,24 @@ class ServiceTest {
 
             mock = general.headers()
             writeToFile(mock.result)
+
+            // Native push (MQTT) round-trip against the mock broker.
+            client.setJWT("e2e-jwt")
+            val push = Push(client, host = "mqtt", port = 1883, tls = false)
+            val pushLatch = java.util.concurrent.CountDownLatch(1)
+            var pushBody = "Push message:failed"
+            val pushUnsub = push.subscribe("e2e/push") { message ->
+                if (message.string == "push-payload") {
+                    pushBody = "Push message:passed"
+                }
+                pushLatch.countDown()
+            }
+            writeToFile("Push subscribe:passed")
+            push.publish("e2e/push", "push-payload")
+            pushLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)
+            writeToFile(pushBody)
+            pushUnsub()
+            push.close()
         }
     }
 
