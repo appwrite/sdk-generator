@@ -1,7 +1,10 @@
 import Foundation
 import MQTTNIO
 import NIOCore
-import UserNotifications
+
+#if canImport(UserNotifications)
+    import UserNotifications
+#endif
 
 /// A message delivered on a subscribed topic — the MQTT push analog of a realtime event.
 public struct PushMessage {
@@ -47,7 +50,7 @@ open class Push: Service {
     private var foregroundTitle: String?
 
     private var mqtt: MQTTClient?
-    private var connecting: Task<MQTTClient, Error>?
+    private var connecting: Task<MQTTClient, Swift.Error>?
 
     // Guards the mutable state below; the publish listener fires on an event loop.
     private let sync = DispatchQueue(label: "{{ spec.info.title | caseLower }}.push")
@@ -90,7 +93,9 @@ open class Push: Service {
     public func setForeground(title: String? = nil) -> Self {
         foreground = true
         foregroundTitle = title
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+        #if canImport(UserNotifications)
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+        #endif
         return self
     }
 
@@ -177,7 +182,7 @@ open class Push: Service {
         }
         // Single-flight: concurrent callers await one in-flight connection instead of
         // each opening its own (and never see a client before its CONNACK succeeds).
-        let task: Task<MQTTClient, Error> = sync.sync {
+        let task: Task<MQTTClient, Swift.Error> = sync.sync {
             if let inflight = self.connecting {
                 return inflight
             }
@@ -287,12 +292,14 @@ open class Push: Service {
 
     private func notify(_ message: PushMessage) {
         guard foreground else { return }
-        let content = UNMutableNotificationContent()
-        content.title = foregroundTitle ?? message.topic
-        content.body = message.string
-        content.sound = .default
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
+        #if canImport(UserNotifications)
+            let content = UNMutableNotificationContent()
+            content.title = foregroundTitle ?? message.topic
+            content.body = message.string
+            content.sound = .default
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request)
+        #endif
     }
 
     private func qosOf(_ qos: Int) -> MQTTQoS {
