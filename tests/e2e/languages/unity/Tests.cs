@@ -467,13 +467,34 @@ namespace AppwriteTests
 
             mock = await general.Headers();
             LogResult(mock.Result);
-            
+
+            // Native push (MQTT) round-trip against the mock broker.
+            client.SetJWT("e2e-jwt");
+            var pushObject = new GameObject("PushTest");
+            var push = pushObject.AddComponent<Push>();
+            push.Initialize(client);
+            push.Configure(host: "mqtt", port: 1883, tls: false);
+            var pushTcs = new TaskCompletionSource<string>();
+            var pushUnsub = await push.Subscribe("e2e/push", (message) =>
+            {
+                pushTcs.TrySetResult(message.Text);
+            });
+            LogResult("Push subscribe:passed");
+            await push.Publish("e2e/push", "push-payload");
+            var pushWinner = await Task.WhenAny(pushTcs.Task, Task.Delay(10000));
+            LogResult(pushWinner == pushTcs.Task && pushTcs.Task.Result == "push-payload"
+                ? "Push message:passed"
+                : "Push message:failed");
+            pushUnsub();
+            push.Close();
+            Object.DestroyImmediate(pushObject);
+
             // Cleanup Realtime GameObject
             if (realtimeObject)
             {
                 Object.DestroyImmediate(realtimeObject);
             }
-            
+
         }
     }
 }
