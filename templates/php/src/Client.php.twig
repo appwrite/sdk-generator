@@ -295,7 +295,7 @@ class Client
                 $method === self::METHOD_GET => $this->requestFactory->query(
                     $method,
                     $uri,
-                    $params,
+                    $this->prepareParams($params),
                     $headers
                 ),
                 $contentType === 'application/json' => $this->requestFactory->json(
@@ -374,7 +374,8 @@ class Client
     }
 
     /**
-     * Prepare params for JSON encoding by converting model objects to arrays
+     * Prepare params for encoding by converting model objects to arrays and
+     * enum objects to their values
      *
      */
     protected function prepareParams($data)
@@ -385,6 +386,10 @@ class Client
 
         if (is_object($data) && method_exists($data, 'toArray')) {
             return $data->toArray();
+        }
+
+        if ($data instanceof \JsonSerializable) {
+            return $data->jsonSerialize();
         }
 
         return $data;

@@ -67,6 +67,12 @@ void main() async {
   final res = await general.redirect();
   print(res['result']);
 
+  response = await general.listRows(queries: ['not JSON', MockType.first.value]);
+  print(response.result);
+
+  response = await general.createDocuments(documents: [{r'$id': 'first'}], labels: ['ready']);
+  print(response.result);
+
   for (final ids in [['', '0'], ['0', '']]) {
     try {
       await general.validatePath(id: ids[0], plain: ids[1]);

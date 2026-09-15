@@ -172,6 +172,26 @@ echo $response->result . "\n";
 $response = $general->redirect();
 echo $response['result'] . "\n";
 
+echo $general->listRows(['not JSON', MockType::FIRST()])->result . "\n";
+echo $general->createDocuments([['$id' => 'first']], ['ready'])->result . "\n";
+
+// String-list items are checked against the schema before any request.
+try {
+    $general->listRows([['method' => 'limit', 'values' => [1]]]);
+    throw new RuntimeException('Invalid string list was accepted');
+} catch (AppwriteException $error) {
+    echo json_encode(['message' => $error->getMessage(), 'type' => $error->getType(), 'code' => $error->getCode(), 'response' => $error->getResponse()], JSON_THROW_ON_ERROR) . "\n";
+}
+
+try {
+    $foo->post('string', 123, [1]);
+    throw new RuntimeException('Invalid string list was accepted');
+} catch (AppwriteException $error) {
+    echo json_encode(['message' => $error->getMessage(), 'type' => $error->getType(), 'code' => $error->getCode(), 'response' => $error->getResponse()], JSON_THROW_ON_ERROR) . "\n";
+}
+
+echo $general->createDocuments([['$id' => 'first']], ['ready', null])->result . "\n";
+
 foreach ([['', '0'], ['0', '']] as [$id, $plain]) {
     try {
         $general->validatePath($plain, $id);

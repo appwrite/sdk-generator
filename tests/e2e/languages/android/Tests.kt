@@ -181,6 +181,9 @@ class ServiceTest {
             val result = general.redirect()
             writeToFile((result as Map<String, Any>)["result"] as String)
 
+            writeToFile(general.listRows(listOf("not JSON", MockType.FIRST.value)).result)
+            writeToFile(general.createDocuments(listOf(mapOf("\$id" to "first")), listOf("ready")).result)
+
             for ((id, plain) in listOf("" to "0", "0" to "")) {
                 try {
                     general.validatePath(plain, id)

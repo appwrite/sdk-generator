@@ -9,6 +9,12 @@
 
 {% endif %}
 {% endfor %}
+{% for parameter in (method | parameters('all')) %}
+{% if (parameter | schemaType) == 'array' and ((parameter | arraySchema) | schemaType) == 'string' %}
+            validate_string_list('{{ parameter.name | caseCamel | escapeKeyword }}', {{ parameter.name | caseSnake | escapeKeyword }}{% if (parameter | arraySchema) | schemaNullable %}, nullable_items: true{% endif %})
+
+{% endif %}
+{% endfor %}
             api_path = '{{ method.path }}'
 {% for parameter in (method | parameters('path')) %}
                 .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}@client.get_config('{{ parameter.extensions['x-sdk-config'] | caseLower }}'){% else %}{{ parameter.name | caseSnake | escapeKeyword }}{% endif %})

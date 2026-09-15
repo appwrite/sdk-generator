@@ -75,6 +75,35 @@ async function start() {
   // @ts-ignore
   console.log(response.result);
 
+  response = await general.listRows(["not JSON", appwrite.MockType.First]);
+  console.log(response.result);
+
+  response = await general.createDocuments([{ $id: "first" }], ["ready"]);
+  console.log(response.result);
+
+  // String-list items are checked against the schema before any request.
+  try {
+    // @ts-ignore
+    await general.listRows([{ method: "limit", values: [1] }]);
+    throw new Error("Invalid string list was accepted");
+  } catch (error) {
+    if (!(error instanceof appwrite.AppwriteException)) throw error;
+    console.log(JSON.stringify({ message: error.message, type: error.type, code: error.code, response: error.response }));
+  }
+
+  try {
+    // @ts-ignore
+    await foo.post("string", 123, [1]);
+    throw new Error("Invalid string list was accepted");
+  } catch (error) {
+    if (!(error instanceof appwrite.AppwriteException)) throw error;
+    console.log(JSON.stringify({ message: error.message, type: error.type, code: error.code, response: error.response }));
+  }
+
+  // @ts-ignore
+  response = await general.createDocuments([{ $id: "first" }], ["ready", null]);
+  console.log(response.result);
+
   for (const [id, plain] of [["", "0"], ["0", ""]]) {
     try {
       await general.validatePath(plain, id);

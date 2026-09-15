@@ -555,7 +555,7 @@ App::get('/v1/mock/tests/general/list-rows')
     ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
     ->label('sdk.response.model', Response::MODEL_MOCK)
     ->label('sdk.mock', true)
-    ->param('queries', [], new ArrayList(new Text(4096), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Array of query strings generated using the Query class provided by the SDK.')
+    ->param('queries', [], new ArrayList(new Text(4096), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Array of query strings generated using the Query class provided by the SDK.', true)
     ->inject('response')
     ->action(function (array $queries, UtopiaSwooleResponse $response) {
         $response->json(['result' => \json_encode($queries)]);
@@ -655,7 +655,9 @@ App::post('/v1/mock/tests/general/documents')
     ->label('sdk.response.model', Response::MODEL_MOCK)
     ->label('sdk.mock', true)
     ->param('documents', [], new ArrayList(new Assoc(), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Array of document objects.')
-    ->action(function (array $documents) {
+    ->param('labels', null, new Nullable(new ArrayList(new Nullable(new Text(256)), APP_LIMIT_ARRAY_PARAMS_SIZE)), 'Optional labels, including null values.', true)
+    ->inject('response')
+    ->action(function (array $documents, ?array $labels, UtopiaSwooleResponse $response) {
         if ($documents === []) {
             throw new Exception(Exception::GENERAL_MOCK, 'Documents must not be empty');
         }
@@ -665,6 +667,10 @@ App::post('/v1/mock/tests/general/documents')
                 throw new Exception(Exception::GENERAL_MOCK, 'Each document must be an object with an $id');
             }
         }
+
+        $response->json([
+            'result' => \json_encode(['documents' => $documents, 'labels' => $labels]),
+        ]);
     });
 
 App::get('/v1/mock/tests/union')

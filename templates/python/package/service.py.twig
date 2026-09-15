@@ -29,6 +29,20 @@ class Service:
 
         return value
 
+    def _validate_string_list(self, name: str, value: Any, nullable_items: bool = False) -> None:
+        """Validate item types; generated required checks handle missing lists."""
+        if value is None:
+            return
+
+        if not isinstance(value, list) or any(
+            not isinstance(self._normalize_value(item), str) and not (nullable_items and item is None) for item in value
+        ):
+            expected = 'strings or None' if nullable_items else 'strings'
+            raise AppwriteException(
+                f'Invalid parameter: "{name}" must be a list of {expected}.',
+                type='sdk_input_validation',
+            )
+
     def _parse_response(self, response: Any, model: Optional[Type[ModelType]] = None) -> Any:
         if model is None:
             return response

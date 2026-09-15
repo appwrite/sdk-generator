@@ -1,5 +1,6 @@
 use appwrite::{
     Client,
+    enums::MockType,
     id::ID,
     input_file::InputFile,
     operator::{self, Condition},
@@ -110,6 +111,19 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     match general.redirected().await {
         Ok(response) => println!("{}", response.result),
         Err(e) => eprintln!("general.redirected => error {}", e),
+    }
+
+    let queries = vec!["not JSON".to_string(), MockType::First.to_string()];
+    match general.list_rows(Some(queries)).await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("general.list_rows => error {}", e),
+    }
+
+    let documents = vec![json!({"$id": "first"})];
+    let labels = vec!["ready".to_string()];
+    match general.create_documents(documents, Some(labels)).await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("general.create_documents => error {}", e),
     }
 
     for (id, plain) in [("", "0"), ("0", "")] {
