@@ -618,6 +618,28 @@ class Client {
             redirect: 'manual',
         });
 
+        if (400 <= response.status) {
+            const responseText = await response.text();
+            let data: any = { message: responseText };
+            if (
+                response.headers
+                    .get('content-type')
+                    ?.includes('application/json')
+            ) {
+                try {
+                    data = JSONbig.parse(responseText);
+                } catch {
+                    // Keep the raw body as the message when the JSON is malformed
+                }
+            }
+            throw new {{spec.info.title | caseUcfirst}}Exception(
+                data?.message,
+                response.status,
+                data?.type,
+                responseText,
+            );
+        }
+
         if (response.status !== 301 && response.status !== 302) {
             throw new {{spec.info.title | caseUcfirst}}Exception('Invalid redirect', response.status);
         }
