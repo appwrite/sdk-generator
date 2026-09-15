@@ -303,7 +303,7 @@ internal data class PushConfig(
 
 /** Read the credential set on the client (via Client.setJWT / setSession). */
 internal fun resolvePushAuth(client: Client): Pair<String, String> {
-    val jwt = client.config["jwt"]
+    val jwt = client.config["jwt"] ?: client.config["jWT"]
     val session = client.config["session"]
     return when {
         !jwt.isNullOrEmpty() -> "appwrite-jwt" to jwt
