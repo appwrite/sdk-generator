@@ -45,7 +45,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         private IMqttClient _mqtt;
 
         private string _host;
-        private int _port = 1883;
+        private int? _port;
         private bool? _tls;
         private bool _tlsInsecure;
         private string _clientId;
@@ -58,7 +58,23 @@ namespace {{ spec.info.title | caseUcfirst }}
         // MQTTnet delivers on background threads; hop callbacks back to the main thread.
         private readonly ConcurrentQueue<Action> _mainThread = new();
 
-        private bool Tls => _tls ?? (_port == 8883);
+        // Secure by default: TLS on when the endpoint is https (or port 8883), so the
+        // credential in the CONNECT packet is not sent over a plaintext socket.
+        private bool Tls => _tls ?? (_port == 8883 || IsSecureEndpoint());
+
+        private int Port => _port ?? (Tls ? 8883 : 1883);
+
+        private bool IsSecureEndpoint()
+        {
+            try
+            {
+                return new Uri(_client.Endpoint).Scheme == "https";
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         public void Initialize(Client client)
         {
@@ -68,7 +84,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// <summary>Configure the broker connection. Call before the first subscribe.</summary>
         public Push Configure(
             string host = null,
-            int port = 1883,
+            int? port = null,
             bool? tls = null,
             bool tlsInsecure = false,
             string clientId = null,
@@ -125,7 +141,21 @@ namespace {{ spec.info.title | caseUcfirst }}
                         if (_subscriptions.TryGetValue(id, out var entry))
                         {
                             _subscriptions.Remove(id);
-                            _ = _mqtt?.UnsubscribeAsync(entry.Filter);
+                            // Only unsubscribe the broker filter once its last local callback is gone.
+                            var stillUsed = false;
+                            foreach (var other in _subscriptions.Values)
+                            {
+                                if (other.Filter == entry.Filter)
+                                {
+                                    stillUsed = true;
+                                    break;
+                                }
+                            }
+
+                            if (!stillUsed)
+                            {
+                                _ = _mqtt?.UnsubscribeAsync(entry.Filter);
+                            }
                         }
                     }
 
@@ -197,7 +227,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             var optionsBuilder = new MqttClientOptionsBuilder()
                 .WithProtocolVersion(MqttProtocolVersion.V500)
                 .WithClientId(clientId)
-                .WithTcpServer(host, _port)
+                .WithTcpServer(host, Port)
                 .WithCleanSession(true)
                 .WithKeepAlivePeriod(TimeSpan.FromSeconds(_keepAlive))
                 .WithAuthentication(authMethod, Encoding.UTF8.GetBytes(credential))
