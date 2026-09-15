@@ -201,8 +201,8 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
 
             // Read the credential set on the client (via Client.SetJWT / SetSession).
-            var jwt = _client.Config.GetValueOrDefault("jwt");
-            var session = _client.Config.GetValueOrDefault("session");
+            var jwt = _client.GetJWT();
+            var session = _client.GetSession();
             string authMethod;
             string credential;
             if (!string.IsNullOrEmpty(jwt))
