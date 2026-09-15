@@ -13,7 +13,7 @@ import 'mqtt_message.dart';
 Push createPush(
   Client client, {
   String? host,
-  int port = 1883,
+  int? port,
   bool? tls,
   bool tlsInsecure = false,
   String? clientId,
@@ -53,23 +53,56 @@ class PushIO implements Push {
   // Local id -> subscription (topic filter + callback). The id is never sent to
   // the broker; it only lets the same topic carry more than one callback.
   final Map<String, _PushSubscription> _subscriptions = {};
-  // topic filter -> completer resolved on SUBACK.
-  final Map<String, Completer<void>> _subAcks = {};
+  // topic filter -> FIFO queue of completers resolved on each SUBACK. A queue (not a
+  // single completer) so two concurrent subscribes to the same topic both resolve.
+  final Map<String, List<Completer<void>>> _subAcks = {};
 
-  PushIO(
-    this.client, {
+  factory PushIO(
+    Client client, {
     String? host,
-    int port = 1883,
+    int? port,
     bool? tls,
     bool tlsInsecure = false,
     String? clientId,
     int keepAlive = 60,
-  })  : _host = host ?? _endpointHost(client),
+  }) {
+    // Secure by default: TLS on when the endpoint is https (or port 8883), so the
+    // credential in the CONNECT packet is not sent over a plaintext socket.
+    final resolvedTls = tls ?? (port == 8883 || _endpointSecure(client));
+    final resolvedPort = port ?? (resolvedTls ? 8883 : 1883);
+    return PushIO._(
+      client,
+      host: host ?? _endpointHost(client),
+      port: resolvedPort,
+      tls: resolvedTls,
+      tlsInsecure: tlsInsecure,
+      clientId: clientId,
+      keepAlive: keepAlive,
+    );
+  }
+
+  PushIO._(
+    this.client, {
+    required String host,
+    required int port,
+    required bool tls,
+    required bool tlsInsecure,
+    required String? clientId,
+    required int keepAlive,
+  })  : _host = host,
         _port = port,
-        _tls = tls ?? (port == 8883),
+        _tls = tls,
         _tlsInsecure = tlsInsecure,
         _clientId = clientId,
         _keepAlive = keepAlive;
+
+  static bool _endpointSecure(Client client) {
+    try {
+      return Uri.parse(client.endPoint).scheme == 'https';
+    } catch (_) {
+      return false;
+    }
+  }
 
   static String _endpointHost(Client client) {
     try {
@@ -95,7 +128,7 @@ class PushIO implements Push {
       _subscriptions[id] = _PushSubscription(topic, callback);
 
       final completer = Completer<void>();
-      _subAcks[topic] = completer;
+      (_subAcks[topic] ??= <Completer<void>>[]).add(completer);
       acks.add(completer.future);
 
       final subscription = MqttSubscription.withMaximumQos(
@@ -113,7 +146,10 @@ class PushIO implements Push {
     return () {
       for (final id in ids) {
         final entry = _subscriptions.remove(id);
-        if (entry != null) {
+        // Only unsubscribe the broker filter once its last local callback is gone.
+        final stillUsed =
+            _subscriptions.values.any((s) => s.filter == entry?.filter);
+        if (entry != null && !stillUsed) {
           _mqtt?.unsubscribeStringTopic(entry.filter);
         }
       }
@@ -143,7 +179,17 @@ class PushIO implements Push {
         mqtt.connectionStatus?.state == MqttConnectionState.connected) {
       return Future.value(mqtt);
     }
-    return (_connecting ??= _open()).then((_) => _mqtt!);
+    var connecting = _connecting;
+    if (connecting == null) {
+      connecting = _open();
+      _connecting = connecting;
+      // A failed open must not poison future attempts — clear the cached in-flight
+      // future so a later subscribe/publish can retry.
+      unawaited(connecting.catchError((Object _) {
+        _connecting = null;
+      }));
+    }
+    return connecting.then((_) => _mqtt!);
   }
 
   Future<void> _open() async {
@@ -235,8 +281,20 @@ class PushIO implements Push {
     }
   }
 
+  Completer<void>? _takeSubAck(String? topic) {
+    final queue = _subAcks[topic];
+    if (queue == null || queue.isEmpty) {
+      return null;
+    }
+    final completer = queue.removeAt(0);
+    if (queue.isEmpty) {
+      _subAcks.remove(topic);
+    }
+    return completer;
+  }
+
   void _onSubscribed(MqttSubscription subscription) {
-    final completer = _subAcks.remove(subscription.topic.rawTopic);
+    final completer = _takeSubAck(subscription.topic.rawTopic);
     if (completer != null && !completer.isCompleted) {
       completer.complete();
     }
@@ -244,7 +302,7 @@ class PushIO implements Push {
 
   void _onSubscribeFail(MqttSubscription subscription) {
     final topic = subscription.topic.rawTopic;
-    final completer = _subAcks.remove(topic);
+    final completer = _takeSubAck(topic);
     if (completer != null && !completer.isCompleted) {
       completer
           .completeError({{spec.info.title | caseUcfirst}}Exception('Failed to subscribe to $topic'));
