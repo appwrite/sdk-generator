@@ -18,6 +18,25 @@ services:
     networks:
       - mockapi
 
+  mqtt:
+    container_name: mqtt
+    build:
+      context: .
+      args:
+        DEBUG: "false"
+        TESTING: "true"
+        VERSION: "dev"
+    entrypoint:
+      - php
+      - app/mqtt.php
+    volumes:
+      - ./app:/usr/src/code/app
+      - ./src:/usr/src/code/src
+    ports:
+      - "1883:1883"
+    networks:
+      - mockapi
+
 networks:
   mockapi:
     name: mockapi

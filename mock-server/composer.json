@@ -6,6 +6,14 @@
             "Utopia\\MockServer\\": "src/"
         }
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/utopia-php/mqtt"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "require": {
         "utopia-php/framework": "^0.33",
         "utopia-php/database": "^0.48",
@@ -13,7 +21,8 @@
         "utopia-php/console": "^0.2",
         "utopia-php/swoole": "^1.0.2",
         "utopia-php/websocket": "^1.0",
-        "utopia-php/query": "^0.6.0"
+        "utopia-php/query": "^0.6.0",
+        "utopia-php/mqtt": "dev-dev"
     },
     "require-dev": {
         "swoole/ide-helper": "6.2.2"
