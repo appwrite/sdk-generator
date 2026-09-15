@@ -77,7 +77,7 @@ data class PushMessage(
 class Push @JvmOverloads constructor(
     client: Client,
     host: String? = null,
-    private val port: Int = 1883,
+    port: Int? = null,
     tls: Boolean? = null,
     private val tlsInsecure: Boolean = false,
     private val clientId: String? = null,
@@ -88,8 +88,12 @@ class Push @JvmOverloads constructor(
         ?: runCatching { URI(client.endpoint).host }.getOrNull()
         ?: "localhost"
 
-    // A gateway that terminates mqtts on :8883 gets TLS on by default.
-    private val tls: Boolean = tls ?: (port == 8883)
+    // Secure by default: TLS on when the endpoint is https (or port 8883), so the
+    // credential in the CONNECT packet is not sent over a plaintext socket.
+    private val tls: Boolean = tls
+        ?: (port == 8883 || runCatching { URI(client.endpoint).scheme }.getOrNull() == "https")
+
+    private val port: Int = port ?: (if (this.tls) 8883 else 1883)
 
     private var mqtt: Mqtt5AsyncClient? = null
 
@@ -159,7 +163,8 @@ class Push @JvmOverloads constructor(
         return {
             for (id in ids) {
                 val topic = subscriptions.remove(id)
-                if (topic != null) {
+                // Only unsubscribe the broker filter once its last local callback is gone.
+                if (topic != null && !subscriptions.containsValue(topic)) {
                     mqtt?.unsubscribeWith()?.topicFilter(topic)?.send()
                 }
             }
@@ -174,9 +179,14 @@ class Push @JvmOverloads constructor(
             ?: throw {{ spec.info.title | caseUcfirst }}Exception("setForeground() must be called before subscribing in foreground mode.")
 
         PushForeground.config = buildConfig()
-        PushForeground.topics = topics.toList()
+        // Accumulate topics across subscriptions (union) so a second subscribe does not
+        // drop the first's topics; add any new ones to the running service too.
+        val added = PushForeground.addTopics(topics)
         PushForeground.listeners.add(callback)
         PushForeground.start(context)
+        if (added.isNotEmpty()) {
+            PushForeground.subscribeMore?.invoke(added)
+        }
 
         return {
             PushForeground.listeners.remove(callback)
@@ -445,8 +455,8 @@ internal object PushForeground {
     @Volatile
     var config: PushConfig? = null
 
-    @Volatile
-    var topics: List<String> = emptyList()
+    // Accumulated union of every foreground subscription's topics.
+    private val topicSet = java.util.Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
 
     @Volatile
     var channelName: String = "Notifications"
@@ -454,7 +464,19 @@ internal object PushForeground {
     @Volatile
     var ongoingTitle: String = "{{ spec.info.title | caseUcfirst }}"
 
+    // Set by the running service so newly-added topics can be subscribed live.
+    @Volatile
+    var subscribeMore: ((List<String>) -> Unit)? = null
+
     val listeners = CopyOnWriteArrayList<(PushMessage) -> Unit>()
+
+    /** Add [topics] to the tracked set; returns only the ones not already present. */
+    fun addTopics(topics: List<String>): List<String> {
+        val added = topics.filter { topicSet.add(it) }
+        return added
+    }
+
+    fun topics(): List<String> = topicSet.toList()
 
     fun start(context: Context) {
         val intent = android.content.Intent(context, PushService::class.java)

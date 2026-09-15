@@ -13,10 +13,11 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 
 /**
  * Foreground service that keeps the {{ spec.info.title | caseUcfirst }} push (MQTT) connection alive while the
- * app is backgrounded or closed. It owns its own MQTT client (so it survives process
- * restarts), subscribes to the topics configured through [Push.setForeground] +
+ * app is backgrounded or swiped away (the process stays alive). It owns its own MQTT
+ * client, subscribes to the topics configured through [Push.setForeground] +
  * `subscribe`, invokes any in-process listeners, and posts a local notification per
- * message. Started by PushForeground; not meant to be started directly.
+ * message. Started by PushForeground; not meant to be started directly. A hard process
+ * kill is not recovered (see the START_NOT_STICKY note in onStartCommand).
  */
 class PushService : Service() {
     private var mqtt: Mqtt5AsyncClient? = null
@@ -26,8 +27,10 @@ class PushService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForegroundCompat()
         connectAndSubscribe()
-        // Ask Android to recreate the service (and re-run this connect) if it is killed.
-        return START_STICKY
+        // NOT sticky: the credential/topics/listeners live only in the process, so a
+        // kill-and-recreate could not restore the connection anyway. This covers
+        // backgrounding and swipe-away (process alive), not a hard process kill.
+        return START_NOT_STICKY
     }
 
     private fun startForegroundCompat() {
@@ -60,15 +63,22 @@ class PushService : Service() {
         mqtt = client
         try {
             client.pushConnect(config)
-            for (topic in PushForeground.topics) {
-                client.subscribeWith()
-                    .topicFilter(topic)
-                    .qos(MqttQos.AT_LEAST_ONCE)
-                    .callback { publish -> onMessage(publish.toPushMessage()) }
-                    .send()
-            }
+            subscribeTopics(PushForeground.topics())
+            // Let later foreground subscriptions add their topics to this live client.
+            PushForeground.subscribeMore = { topics -> subscribeTopics(topics) }
         } catch (e: Exception) {
-            // Connection failed; the service stays up and Android may restart it.
+            // Connection failed; the service stays up until stopped.
+        }
+    }
+
+    private fun subscribeTopics(topics: List<String>) {
+        val client = mqtt ?: return
+        for (topic in topics) {
+            client.subscribeWith()
+                .topicFilter(topic)
+                .qos(MqttQos.AT_LEAST_ONCE)
+                .callback { publish -> onMessage(publish.toPushMessage()) }
+                .send()
         }
     }
 
@@ -98,6 +108,7 @@ class PushService : Service() {
     }
 
     override fun onDestroy() {
+        PushForeground.subscribeMore = null
         mqtt?.disconnect()
         mqtt = null
         super.onDestroy()
