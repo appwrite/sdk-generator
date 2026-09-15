@@ -22,13 +22,13 @@ import (
 func TestMissingGitHubInstallationOffersConsoleLinkAndLocalFallback(t *testing.T) {
 	setupURL := githubInstallationSetupURL(
 		"https://sgp.cloud.appwrite.io/v1", "project-id")
-	wantURL := "https://cloud.appwrite.io/console/project-sgp-project-id/settings"
+	wantURL := "https://appwrite.io/projects/project-id/settings"
 	if setupURL != wantURL {
 		t.Fatalf("setup URL = %q, want %q", setupURL, wantURL)
 	}
 	baseURL := githubInstallationSetupURL(
 		"https://cloud.appwrite.io/v1", "project-id")
-	if baseURL != "https://cloud.appwrite.io/console/project-project-id/settings" {
+	if baseURL != wantURL {
 		t.Fatalf("base Cloud setup URL = %q", baseURL)
 	}
 
