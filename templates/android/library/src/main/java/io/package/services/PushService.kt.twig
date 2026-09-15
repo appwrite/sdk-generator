@@ -63,9 +63,10 @@ class PushService : Service() {
         mqtt = client
         try {
             client.pushConnect(config)
-            subscribeTopics(PushForeground.topics())
-            // Let later foreground subscriptions add their topics to this live client.
-            PushForeground.subscribeMore = { topics -> subscribeTopics(topics) }
+            // Install the live subscriber and get the current topic union atomically, so
+            // a topic added concurrently by another subscription is not lost.
+            val initial = PushForeground.attach { topics -> subscribeTopics(topics) }
+            subscribeTopics(initial)
         } catch (e: Exception) {
             // Connection failed; the service stays up until stopped.
         }
@@ -83,9 +84,8 @@ class PushService : Service() {
     }
 
     private fun onMessage(message: PushMessage) {
-        for (listener in PushForeground.listeners) {
-            listener(message)
-        }
+        // Fan out to each listener whose own topics match, then post a notification.
+        PushForeground.dispatch(message)
         postNotification(message)
     }
 
@@ -108,7 +108,7 @@ class PushService : Service() {
     }
 
     override fun onDestroy() {
-        PushForeground.subscribeMore = null
+        PushForeground.detach()
         mqtt?.disconnect()
         mqtt = null
         super.onDestroy()

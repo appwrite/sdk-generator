@@ -179,17 +179,14 @@ class Push @JvmOverloads constructor(
             ?: throw {{ spec.info.title | caseUcfirst }}Exception("setForeground() must be called before subscribing in foreground mode.")
 
         PushForeground.config = buildConfig()
-        // Accumulate topics across subscriptions (union) so a second subscribe does not
-        // drop the first's topics; add any new ones to the running service too.
-        val added = PushForeground.addTopics(topics)
-        PushForeground.listeners.add(callback)
+        // Register the listener with its own topics (so deliveries are filtered per
+        // subscription) and add any new topics to the running service. register() is
+        // atomic with the service's attach(), so a topic is never lost to a race.
+        val listener = PushForeground.register(topics, callback)
         PushForeground.start(context)
-        if (added.isNotEmpty()) {
-            PushForeground.subscribeMore?.invoke(added)
-        }
 
         return {
-            PushForeground.listeners.remove(callback)
+            PushForeground.unregister(listener)
             if (PushForeground.listeners.isEmpty()) {
                 PushForeground.stop(context)
             }
@@ -444,9 +441,16 @@ internal object PushInsecureTrustManagerFactory : TrustManagerFactory(
     "{{ spec.info.title | caseUcfirst }}Insecure",
 )
 
+/** A foreground subscription: the topics it wants and the callback to invoke for them. */
+internal class PushListener(
+    val topics: Set<String>,
+    val callback: (PushMessage) -> Unit,
+)
+
 /**
- * Shared state for the foreground service: the connection config, the topics to watch,
- * the in-process listeners (invoked while the app is alive), and the notification setup.
+ * Shared state for the foreground service: the connection config, the union of topics to
+ * watch, the in-process listeners (each with its own topics, invoked while the app is
+ * alive), and the notification setup.
  */
 internal object PushForeground {
     const val CHANNEL_ID = "{{ spec.info.title | caseLower }}-push"
@@ -455,28 +459,58 @@ internal object PushForeground {
     @Volatile
     var config: PushConfig? = null
 
-    // Accumulated union of every foreground subscription's topics.
-    private val topicSet = java.util.Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
-
     @Volatile
     var channelName: String = "Notifications"
 
     @Volatile
     var ongoingTitle: String = "{{ spec.info.title | caseUcfirst }}"
 
-    // Set by the running service so newly-added topics can be subscribed live.
-    @Volatile
-    var subscribeMore: ((List<String>) -> Unit)? = null
+    // Guards the topic union and the live-subscriber hook so add+subscribe and
+    // attach+snapshot are atomic — no topic is lost to their interleaving.
+    private val lock = Any()
+    private val topicSet = linkedSetOf<String>()
+    private var subscriber: ((List<String>) -> Unit)? = null
 
-    val listeners = CopyOnWriteArrayList<(PushMessage) -> Unit>()
+    val listeners = CopyOnWriteArrayList<PushListener>()
 
-    /** Add [topics] to the tracked set; returns only the ones not already present. */
-    fun addTopics(topics: List<String>): List<String> {
-        val added = topics.filter { topicSet.add(it) }
-        return added
+    /** Register a foreground subscription; subscribes any new topics on the live service. */
+    fun register(topics: List<String>, callback: (PushMessage) -> Unit): PushListener {
+        val listener = PushListener(topics.toSet(), callback)
+        listeners.add(listener)
+        synchronized(lock) {
+            val added = topics.filter { topicSet.add(it) }
+            if (added.isNotEmpty()) {
+                subscriber?.invoke(added)
+            }
+        }
+        return listener
     }
 
-    fun topics(): List<String> = topicSet.toList()
+    fun unregister(listener: PushListener) {
+        listeners.remove(listener)
+    }
+
+    /**
+     * Called by the service once connected: installs the live subscriber and returns the
+     * current topic union to subscribe. Atomic with [register].
+     */
+    fun attach(subscriber: (List<String>) -> Unit): List<String> = synchronized(lock) {
+        this.subscriber = subscriber
+        topicSet.toList()
+    }
+
+    fun detach() {
+        synchronized(lock) { subscriber = null }
+    }
+
+    /** Fan a message out to every listener whose topics match. */
+    fun dispatch(message: PushMessage) {
+        for (listener in listeners) {
+            if (listener.topics.any { matchesTopic(it, message.topic) }) {
+                listener.callback(message)
+            }
+        }
+    }
 
     fun start(context: Context) {
         val intent = android.content.Intent(context, PushService::class.java)
@@ -486,4 +520,22 @@ internal object PushForeground {
     fun stop(context: Context) {
         context.stopService(android.content.Intent(context, PushService::class.java))
     }
+}
+
+/** MQTT topic-filter match with '+' (single level) and '#' (multi level). */
+internal fun matchesTopic(filter: String, topic: String): Boolean {
+    val filterParts = filter.split('/')
+    val topicParts = topic.split('/')
+    for (i in filterParts.indices) {
+        if (filterParts[i] == "#") {
+            return true
+        }
+        if (i >= topicParts.size) {
+            return false
+        }
+        if (filterParts[i] != "+" && filterParts[i] != topicParts[i]) {
+            return false
+        }
+    }
+    return filterParts.size == topicParts.size
 }
