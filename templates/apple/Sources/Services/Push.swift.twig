@@ -1,5 +1,6 @@
-import CocoaMQTT
 import Foundation
+import MQTTNIO
+import NIOCore
 import UserNotifications
 
 /// A message delivered on a subscribed topic — the MQTT push analog of a realtime event.
@@ -20,15 +21,15 @@ public struct PushMessage {
 }
 
 /// {{ spec.info.title | caseUcfirst }} native push service — the realtime analog delivered over an MQTT broker,
-/// without FCM or APNS. Foreground delivery only: while the app is in the foreground
-/// the connection stays open and each message is handed to your callback.
+/// without FCM or APNS. Built on SwiftNIO (MQTTNIO), the same stack the rest of the SDK's
+/// networking uses.
 ///
-/// Mirrors the realtime service: `Push(client).subscribe(topic, callback:)` opens the
-/// connection lazily and returns an unsubscribe callable. The credential is read off
-/// the client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`), the
-/// same way every other service reads auth.
+/// Mirrors the realtime service: `{{ spec.info.title | caseUcfirst }}Push(client).subscribe(topic, callback:)` opens the
+/// connection lazily and returns an unsubscribe callable. The credential is read off the
+/// client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`), the same
+/// way every other service reads auth.
 ///
-///     let push = Push(client)
+///     let push = {{ spec.info.title | caseUcfirst }}Push(client)
 ///     let unsubscribe = try await push.subscribe("user/123/#") { message in
 ///         print("\(message.topic): \(message.string)")
 ///     }
@@ -36,7 +37,7 @@ public struct PushMessage {
 ///     unsubscribe()
 open class Push: Service {
     private let host: String
-    private let port: UInt16
+    private let port: Int
     private let tls: Bool
     private let tlsInsecure: Bool
     private let clientId: String?
@@ -45,31 +46,31 @@ open class Push: Service {
     private var foreground = false
     private var foregroundTitle: String?
 
-    private var mqtt: CocoaMQTT5?
+    private var mqtt: MQTTClient?
+    private var connecting: Task<MQTTClient, Error>?
 
-    // Guards the mutable state below; the CocoaMQTT closures fire on its event loop.
+    // Guards the mutable state below; the publish listener fires on an event loop.
     private let sync = DispatchQueue(label: "{{ spec.info.title | caseLower }}.push")
 
     // Local id -> (topic filter, callback). The id is never sent to the broker; it
     // only lets the same topic carry more than one callback.
     private var subscriptions: [String: (filter: String, callback: (PushMessage) -> Void)] = [:]
 
-    private var connectContinuation: CheckedContinuation<Void, Error>?
-    private var subscribeContinuations: [CheckedContinuation<Void, Error>] = []
-
     public init(
         _ client: Client,
         host: String? = nil,
-        port: UInt16 = 1883,
+        port: Int? = nil,
         tls: Bool? = nil,
         tlsInsecure: Bool = false,
         clientId: String? = nil,
         keepAlive: UInt16 = 60
     ) {
         self.host = host ?? URL(string: client.endPoint)?.host ?? "localhost"
-        self.port = port
-        // A gateway that terminates mqtts on :8883 gets TLS on by default.
-        self.tls = tls ?? (port == 8883)
+        // Secure by default: TLS on when the endpoint is https (or port 8883), so the
+        // credential in the CONNECT packet is not sent over a plaintext socket.
+        let secure = tls ?? (port == 8883 || URL(string: client.endPoint)?.scheme == "https")
+        self.tls = secure
+        self.port = port ?? (secure ? 8883 : 1883)
         self.tlsInsecure = tlsInsecure
         self.clientId = clientId
         self.keepAlive = keepAlive
@@ -116,24 +117,31 @@ open class Push: Service {
             sync.sync { subscriptions[id] = (topic, callback) }
         }
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            sync.async {
-                self.subscribeContinuations.append(continuation)
-                mqtt.subscribe(topics.map { MqttSubscription(topic: $0, qos: .qos1) })
-            }
-        }
+        _ = try await mqtt.v5.subscribe(
+            to: topics.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: .atLeastOnce) }
+        )
 
         return { [weak self] in
             guard let self else { return }
-            self.sync.sync {
+            let filters = self.sync.sync { () -> [String] in
+                var removed: [String] = []
                 for id in ids {
                     if let entry = self.subscriptions.removeValue(forKey: id) {
-                        self.mqtt?.unsubscribe(entry.filter)
+                        // Only unsubscribe the broker filter once its last local callback is gone.
+                        let stillUsed = self.subscriptions.values.contains { $0.filter == entry.filter }
+                        if !stillUsed {
+                            removed.append(entry.filter)
+                        }
                     }
                 }
-                if self.subscriptions.isEmpty {
-                    self.closeLocked()
-                }
+                return removed
+            }
+            let client: MQTTClient? = self.sync.sync { self.mqtt }
+            if let client, !filters.isEmpty {
+                Task { try? await client.v5.unsubscribe(from: filters) }
+            }
+            if self.sync.sync(execute: { self.subscriptions.isEmpty }) {
+                self.close()
             }
         }
     }
@@ -142,24 +150,57 @@ open class Push: Service {
     /// the server, not clients.
     public func publish(_ topic: String, message: String, qos: Int = 1) async throws {
         let mqtt = try await connect()
-        mqtt.publish(topic, withString: message, qos: qosOf(qos), properties: MqttPublishProperties())
+        _ = try await mqtt.v5.publish(
+            to: topic,
+            payload: ByteBuffer(string: message),
+            qos: qosOf(qos)
+        )
     }
 
     /// Tear down the connection and drop all active subscriptions.
     public func close() {
-        sync.sync { closeLocked() }
-    }
-
-    private func closeLocked() {
-        mqtt?.disconnect()
-        mqtt = nil
-    }
-
-    private func connect() async throws -> CocoaMQTT5 {
-        if let existing = sync.sync(execute: { mqtt }) {
+        let client = sync.sync { () -> MQTTClient? in
+            let existing = mqtt
+            mqtt = nil
+            connecting?.cancel()
+            connecting = nil
             return existing
         }
+        guard let client else { return }
+        _ = try? client.disconnect().wait()
+        try? client.syncShutdownGracefully()
+    }
 
+    private func connect() async throws -> MQTTClient {
+        if let existing = sync.sync(execute: { self.mqtt }) {
+            return existing
+        }
+        // Single-flight: concurrent callers await one in-flight connection instead of
+        // each opening its own (and never see a client before its CONNACK succeeds).
+        let task: Task<MQTTClient, Error> = sync.sync {
+            if let inflight = self.connecting {
+                return inflight
+            }
+            let created = Task { () throws -> MQTTClient in
+                do {
+                    let client = try await self.open()
+                    self.sync.sync {
+                        self.mqtt = client
+                        self.connecting = nil
+                    }
+                    return client
+                } catch {
+                    self.sync.sync { self.connecting = nil }
+                    throw error
+                }
+            }
+            self.connecting = created
+            return created
+        }
+        return try await task.value
+    }
+
+    private func open() async throws -> MQTTClient {
         // Read the credential set on the client (via Client.setJWT / setSession).
         let authMethod: String
         let credential: String
@@ -176,69 +217,67 @@ open class Push: Service {
         let project = client.config["project"] ?? ""
         let id = clientId ?? "appwrite-\(project)-\(UUID().uuidString.prefix(8))"
 
-        let mqtt = CocoaMQTT5(clientID: id, host: host, port: port)
-        mqtt.keepAlive = keepAlive
-        mqtt.cleanSession = true
-        mqtt.enableSSL = tls
-        mqtt.allowUntrustCACertificate = tlsInsecure
+        var tlsConfiguration: MQTTClient.TLSConfigurationType?
+        if tls && tlsInsecure {
+            #if canImport(Network)
+                tlsConfiguration = .ts(TSTLSConfiguration(certificateVerification: .none))
+            #endif
+        }
+
+        let configuration = MQTTClient.Configuration(
+            version: .v5_0,
+            keepAliveInterval: .seconds(Int64(keepAlive)),
+            useSSL: tls,
+            tlsConfiguration: tlsConfiguration
+        )
+
+        let mqtt = MQTTClient(
+            host: host,
+            port: port,
+            identifier: id,
+            eventLoopGroupProvider: .createNew,
+            configuration: configuration
+        )
+
+        // One listener fans every delivery out to the matching local callbacks.
+        mqtt.addPublishListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self] (result: Result<MQTTPublishInfo, Swift.Error>) in
+            if case .success(let publish) = result {
+                self?.dispatch(publish)
+            }
+        }
 
         // Enhanced auth carried in the CONNECT properties, plus the project id as a
         // user property — exactly like the Python and React Native clients.
-        let connectProperties = MqttConnectProperties()
-        connectProperties.authenticationMethod = authMethod
-        connectProperties.authenticationData = [UInt8](credential.utf8)
-        connectProperties.userProperties = ["projectId": project]
-        mqtt.connectProperties = connectProperties
+        let properties = MQTTProperties([
+            .authenticationMethod(authMethod),
+            .authenticationData(ByteBuffer(bytes: Array(credential.utf8))),
+            .userProperty("projectId", project),
+        ])
 
-        mqtt.didConnectAck = { [weak self] _, ack, _ in
-            self?.sync.async {
-                let continuation = self?.connectContinuation
-                self?.connectContinuation = nil
-                if ack == .success {
-                    continuation?.resume()
-                } else {
-                    self?.closeLocked()
-                    continuation?.resume(throwing: {{ spec.info.title | caseUcfirst }}Error(message: "MQTT authentication failed (CONNACK reason \(ack.rawValue))"))
-                }
+        do {
+            let ack = try await mqtt.v5.connect(cleanStart: true, properties: properties)
+            if ack.reason != .success {
+                try? mqtt.syncShutdownGracefully()
+                throw {{ spec.info.title | caseUcfirst }}Error(message: "MQTT authentication failed (CONNACK reason \(ack.reason))")
             }
-        }
-
-        mqtt.didSubscribeTopics = { [weak self] _, _, failed, _ in
-            self?.sync.async {
-                guard let continuation = self?.subscribeContinuations.first else { return }
-                self?.subscribeContinuations.removeFirst()
-                if failed.isEmpty {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: {{ spec.info.title | caseUcfirst }}Error(message: "Failed to subscribe to \(failed.joined(separator: ", "))"))
-                }
-            }
-        }
-
-        mqtt.didReceiveMessage = { [weak self] _, message, _, _ in
-            self?.dispatch(message)
-        }
-
-        sync.sync { self.mqtt = mqtt }
-
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            sync.async {
-                self.connectContinuation = continuation
-                _ = mqtt.connect()
-            }
+        } catch let error as {{ spec.info.title | caseUcfirst }}Error {
+            throw error
+        } catch {
+            try? mqtt.syncShutdownGracefully()
+            throw {{ spec.info.title | caseUcfirst }}Error(message: error.localizedDescription)
         }
 
         return mqtt
     }
 
-    private func dispatch(_ message: CocoaMQTT5Message) {
+    private func dispatch(_ publish: MQTTPublishInfo) {
         let pushMessage = PushMessage(
-            topic: message.topic,
-            payload: message.payload,
-            qos: Int(message.qos.rawValue)
+            topic: publish.topicName,
+            payload: [UInt8](publish.payload.readableBytesView),
+            qos: Int(publish.qos.rawValue)
         )
         let callbacks = sync.sync {
-            subscriptions.values.filter { matches(filter: $0.filter, topic: message.topic) }.map(\.callback)
+            subscriptions.values.filter { matches(filter: $0.filter, topic: publish.topicName) }.map(\.callback)
         }
         for callback in callbacks {
             callback(pushMessage)
@@ -256,11 +295,10 @@ open class Push: Service {
         UNUserNotificationCenter.current().add(request)
     }
 
-    private func qosOf(_ qos: Int) -> CocoaMQTTQoS {
+    private func qosOf(_ qos: Int) -> MQTTQoS {
         switch qos {
-        case 0: return .qos0
-        case 2: return .qos2
-        default: return .qos1
+        case 0: return .atMostOnce
+        default: return .atLeastOnce
         }
     }
 }

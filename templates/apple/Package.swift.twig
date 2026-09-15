@@ -24,7 +24,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.36.1"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.102.0"),
-        .package(url: "https://github.com/emqx/CocoaMQTT.git", from: "2.4.1"),
+        .package(url: "https://github.com/swift-server-community/mqtt-nio.git", from: "2.13.0"),
     ],
     targets: [
         .target(
@@ -32,7 +32,8 @@ let package = Package(
             dependencies: [
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "NIOWebSocket", package: "swift-nio"),
-                .product(name: "CocoaMQTT", package: "CocoaMQTT"),
+                .product(name: "NIOCore", package: "swift-nio"),
+                .product(name: "MQTTNIO", package: "mqtt-nio"),
                 {%~ if definitions is not empty %}
                 "{{spec.info.title | caseUcfirst}}Models",
                 {%~ endif %}
