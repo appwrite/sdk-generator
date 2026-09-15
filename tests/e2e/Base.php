@@ -232,12 +232,6 @@ abstract class Base extends TestCase
         '{"data":{"enabled":true},"status":"ok","extra":"kept"}',
     ];
 
-    protected const CLI_CONSOLE_URL_RESPONSES = [
-        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/sites/site-chirag-profile-website/deployments/deployment-123',
-        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/functions/function-sample-function/deployment-123',
-        'https://abc.example.com/console/project-default-self-hosted-project/sites/site-docs/deployments/deployment-456',
-    ];
-
     protected const CLI_HEADERS_RESPONSES = [
         'x-sdk-name: cli; x-sdk-platform: server; x-sdk-language: cli; '
             . 'x-sdk-version: 0.0.1; accept: application/json, text/plain',
