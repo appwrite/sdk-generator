@@ -482,7 +482,7 @@ type deployable struct {
 	// blank rather than sent as "", because blank means "unchanged" for them.
 	// Not every field: an empty `schedule` really does mean "unschedule it".
 	OmitWhenEmpty []string
-	// ConsoleURL renders the deployment's console page.
+	// ConsoleURL renders the deployment's page on a self-hosted console.
 	ConsoleURL func(base, slug, resourceID, deploymentID string) string
 }
 
@@ -2040,34 +2040,26 @@ func (c *pushContext) deploymentConsoleURL(
 	endpoint := c.api.Endpoint
 	projectID := c.local.Data.GetString("projectId")
 
+	if origin, cloud := config.CloudConsoleURL(endpoint); cloud {
+		return fmt.Sprintf("%s/projects/%s%s/deployments/%s",
+			origin, projectID, resource.itemPath(id), deploymentID)
+	}
+
 	return resource.ConsoleURL(
-		consoleBaseURL(config.NormalizeCloudConsoleEndpoint(endpoint)),
-		c.consoleProjectSlug(endpoint, projectID),
+		consoleBaseURL(endpoint),
+		c.consoleProjectSlug(projectID),
 		id, deploymentID)
 }
 
-// consoleProjectSlug is the project segment of a console URL. A self-hosted
-// project needs its region, which only the console can answer.
-func (c *pushContext) consoleProjectSlug(endpoint, projectID string) string {
-	parsed, err := url.Parse(endpoint)
-	if err != nil {
-		return "project-" + projectID
+// consoleProjectSlug is the project segment of a self-hosted console URL. It
+// needs the project's region, which only the console can answer.
+func (c *pushContext) consoleProjectSlug(projectID string) string {
+	region := c.projectRegion(projectID)
+	if region == "" {
+		region = "default"
 	}
 
-	if _, cloud := config.CloudBaseHost(endpoint); !cloud {
-		region := c.projectRegion(projectID)
-		if region == "" {
-			region = "default"
-		}
-
-		return "project-" + region + "-" + projectID
-	}
-
-	if label, _, _ := strings.Cut(parsed.Hostname(), "."); len(label) == 3 {
-		return "project-" + label + "-" + projectID
-	}
-
-	return "project-" + projectID
+	return "project-" + region + "-" + projectID
 }
 
 // projectRegion reads a self-hosted project's region from the console.

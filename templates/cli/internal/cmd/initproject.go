@@ -290,9 +290,13 @@ func chooseOrganization(api *client.Client, prompter prompt.Prompter, endpoint s
 		return "", err
 	}
 	if len(teams) == 0 {
+		link := consoleBaseURL(endpoint) + "/console"
+		if origin, ok := config.CloudConsoleURL(endpoint); ok {
+			link = origin + "/"
+		}
+
 		return "", fmt.Errorf(
-			"no organizations found. Please create a new organization at %s/console/onboarding",
-			consoleBaseURL(endpoint))
+			"no organizations found. Please create a new organization at %s", link)
 	}
 
 	options := make([]prompt.Option, 0, len(teams))
