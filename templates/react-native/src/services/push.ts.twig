@@ -116,18 +116,21 @@ export class Push extends Service {
     constructor(client: Client, options: PushOptions = {}) {
         super(client);
 
-        const endpointHost = (() => {
-            try {
-                return new URL(client.config.endpoint ?? '').hostname;
-            } catch {
-                return '';
-            }
-        })();
+        let endpointHost = '';
+        let endpointSecure = false;
+        try {
+            const url = new URL(client.config.endpoint ?? '');
+            endpointHost = url.hostname;
+            endpointSecure = url.protocol === 'https:';
+        } catch {
+            // leave defaults
+        }
 
         this.host = options.host || endpointHost || 'localhost';
-        this.port = options.port ?? 1883;
-        // A gateway that terminates mqtts on :8883 gets TLS on by default.
-        this.tls = options.tls ?? this.port === 8883;
+        // Secure by default: TLS on when the endpoint is https (or port 8883), so the
+        // credential in the CONNECT packet is not sent over a plaintext socket.
+        this.tls = options.tls ?? (options.port === 8883 || endpointSecure);
+        this.port = options.port ?? (this.tls ? 8883 : 1883);
         this.tlsInsecure = options.tlsInsecure ?? false;
         this.clientId = options.clientId;
         this.keepalive = options.keepalive ?? 60;
@@ -191,7 +194,11 @@ export class Push extends Service {
             for (const id of ids) {
                 const entry = this.subscriptions.get(id);
                 this.subscriptions.delete(id);
-                if (entry && this.mqtt) {
+                // Only unsubscribe the broker filter once its last local callback is gone.
+                const stillUsed = [...this.subscriptions.values()].some(
+                    (s) => s.topic === entry?.topic,
+                );
+                if (entry && this.mqtt && !stillUsed) {
                     this.mqtt.unsubscribe(entry.topic);
                 }
             }
@@ -334,6 +341,11 @@ export class Push extends Service {
         }
         if (!this.connecting) {
             this.connecting = this.open();
+            // A failed open must not poison future attempts — clear the cached
+            // in-flight promise so a later subscribe/publish can retry.
+            this.connecting.catch(() => {
+                this.connecting = null;
+            });
         }
         return this.connecting.then(() => this.mqtt!);
     }

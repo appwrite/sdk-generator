@@ -2,7 +2,7 @@ import './polyfills';
 
 import { Buffer } from 'buffer';
 import { Duplex } from 'readable-stream';
-import TcpSocket from 'react-native-tcp-socket';
+import type TcpSocketType from 'react-native-tcp-socket';
 import type { IStream } from 'mqtt';
 
 export interface TcpStreamOptions {
@@ -32,6 +32,14 @@ export function createTcpStream({
     tls,
     tlsInsecure,
 }: TcpStreamOptions): IStream {
+    // `react-native-tcp-socket` is an optional peer: require it lazily here (only when
+    // a native push connection is actually opened) so merely importing the SDK does
+    // not force Metro to resolve it.
+    /* eslint-disable @typescript-eslint/no-require-imports */
+    const TcpSocket: typeof TcpSocketType =
+        require('react-native-tcp-socket').default;
+    /* eslint-enable @typescript-eslint/no-require-imports */
+
     let connected = false;
     // Writes MQTT.js issues before the TCP handshake completes are held here and
     // flushed on connect, so the CONNECT packet is never dropped on the opening socket.
