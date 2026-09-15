@@ -194,7 +194,7 @@ class PushIO implements Push {
 
   Future<void> _open() async {
     // Read the credential set on the client (via Client.setJWT / setSession).
-    final jwt = client.config['jwt'];
+    final jwt = client.config['jwt'] ?? client.config['jWT'];
     final session = client.config['session'];
     final String authMethod;
     final String credential;
@@ -241,7 +241,6 @@ class PushIO implements Push {
     mqtt.connectionMessage = connectMessage;
 
     _mqtt = mqtt;
-    mqtt.updates.listen(_onData);
 
     try {
       await mqtt.connect();
@@ -256,6 +255,10 @@ class PushIO implements Push {
       throw {{spec.info.title | caseUcfirst}}Exception(
           'MQTT authentication failed (CONNACK reason ${status?.reasonCode})');
     }
+
+    // Attach the delivery listener only after CONNACK — the `updates` stream is not
+    // available until the connection is established.
+    mqtt.updates.listen(_onData);
   }
 
   void _onData(List<MqttReceivedMessage<MqttMessage>> events) {
