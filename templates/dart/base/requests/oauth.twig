@@ -1,9 +1,9 @@
 {% import 'dart/base/utils.twig' as utils %}
 {% set queryParams = method | parameters('query') %}
 {% set bodyParams = method | parameters('body') %}
-    final Map<String, dynamic> params = {% if queryParams|length == 0 and bodyParams|length == 0 and ([(method | securitySchemes)]|length == 0) %}{}{% else %}{
-{{ utils.map_parameter(queryParams) }}{{ utils.map_parameter(bodyParams) }}{% if [(method | securitySchemes)]|length > 0 %}
-{% for node in [(method | securitySchemes)] %}
+    final Map<String, dynamic> params = {% if queryParams|length == 0 and bodyParams|length == 0 and ([(method | urlSecuritySchemes)]|length == 0) %}{}{% else %}{
+{{ utils.map_parameter(queryParams) }}{{ utils.map_parameter(bodyParams) }}{% if [(method | urlSecuritySchemes)]|length > 0 %}
+{% for node in [(method | urlSecuritySchemes)] %}
 {% for key, header in node|keys %}
       '{{header|caseLower}}': client.config['{{header|caseLower}}'],
 {% endfor %}

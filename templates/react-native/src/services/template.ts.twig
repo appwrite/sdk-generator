@@ -165,8 +165,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
         uri.searchParams.append('{{ security.name }}', this.client.config.{{ security.name | caseLower }});
         {%~ endfor %}
 {% if (method | methodType) == 'location' or (method | methodType) == 'webAuth' %}
-{% if [(method | securitySchemes)]|length > 0 %}
-{% for node in [(method | securitySchemes)] %}
+{% if [(method | urlSecuritySchemes)]|length > 0 %}
+{% for node in [(method | urlSecuritySchemes)] %}
 {% for key,header in node|keys %}
         payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
 
@@ -484,7 +484,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
         {%~ for security in (method | securityQueries) %}
         uri.searchParams.append('{{ security.name }}', this.client.config.{{ security.name | caseLower }});
         {%~ endfor %}
-{% for node in [(method | securitySchemes)] %}
+{% for node in [(method | urlSecuritySchemes)] %}
 {% for key,header in node|keys %}
         payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
 

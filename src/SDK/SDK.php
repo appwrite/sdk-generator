@@ -185,6 +185,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('methodHeaders', fn(Operation $operation): array => $this->getMethodHeaders($operation)));
         $this->twig->addFilter(new TwigFilter('responseDiscriminator', fn(Operation $operation): array => $this->getResponseDiscriminator($operation)));
         $this->twig->addFilter(new TwigFilter('securitySchemes', fn(Operation $operation): array => $this->getOperationAuthSchemes($operation)));
+        $this->twig->addFilter(new TwigFilter('urlSecuritySchemes', fn(Operation $operation): array => $this->getOperationAuthSchemes($operation, optional: true)));
         $this->twig->addFilter(new TwigFilter('securityHeaders', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::HEADER, false)));
         $this->twig->addFilter(new TwigFilter('securityQueries', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::QUERY)));
         $this->twig->addFilter(new TwigFilter('schemaNullable', fn(Schema|Parameter $value): bool => !isset($this->multipartSchemas[\spl_object_id($this->getSchema($value))]) && $this->getSchema($value)->nullable));
@@ -1848,9 +1849,12 @@ class SDK
      * by platform, since client and console examples configure the project only
      * while server examples add one credential.
      *
+     * Location and OAuth URLs also keep the optional ones: headers cannot follow
+     * a browser navigation, so the query string is the only way to apply them.
+     *
      * @return array<string, SecurityScheme>
      */
-    protected function getOperationAuthSchemes(Operation $operation): array
+    protected function getOperationAuthSchemes(Operation $operation, bool $optional = false): array
     {
         $auth = $operation->extensions[Extension::APPWRITE->value][Appwrite::AUTH->value] ?? [];
         if (!\is_array($auth)) {
@@ -1859,11 +1863,11 @@ class SDK
         $auth = $auth[$this->getParam('platform')] ?? $auth;
         $schemes = [];
         $pathSchemes = [];
-        $optional = \array_diff($operation->acceptedSecuritySchemeNames(), $operation->requiredSecuritySchemeNames());
+        $skipped = $optional ? [] : \array_diff($operation->acceptedSecuritySchemeNames(), $operation->requiredSecuritySchemeNames());
         foreach (\array_keys($auth) as $name) {
             // Example configuration is independent of API authentication. Only
             // omit a candidate when security explicitly makes it optional.
-            if (\in_array($name, $optional, true)) {
+            if (\in_array($name, $skipped, true)) {
                 continue;
             }
             $scheme = $this->getSecurityScheme((string) $name);
