@@ -316,11 +316,8 @@ App::get('/v1/mock/tests/general/download')
     ->inject('response')
     ->action(function (Request $request, UtopiaSwooleResponse $response) {
 
-        // Location methods render from their own request template, so they are the
-        // easiest place to lose a credential. Server SDKs send headers; a client
-        // SDK returns a URL for the browser to open, so its credentials arrive in
-        // the query string. The real API accepts both and rejects a request that
-        // carries neither.
+        // Client SDKs build a URL for the browser, so credentials may arrive in
+        // the query string instead of headers. The real API accepts both.
         $project = $request->getHeader('x-appwrite-project', '') ?: $request->getParam('project', '');
         if (empty($project)) {
             throw new Exception(Exception::GENERAL_MOCK, 'Missing project ID');

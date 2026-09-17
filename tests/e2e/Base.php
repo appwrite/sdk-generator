@@ -45,8 +45,6 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/redirect/done:passed',
     ];
 
-    // A client URL builder is opened by the browser, so every configured
-    // credential has to travel in the query string, optional ones included.
     protected const LOCATION_RESPONSES = [
         'GET:/v1/mock/tests/general/download:passed',
         'GET:/v1/mock/tests/general/download:passed:as:impersonated',
