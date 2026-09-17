@@ -50,6 +50,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         private bool _tlsInsecure;
         private string _clientId;
         private int _keepAlive = 60;
+        private bool _reliableDelivery = true;
 
         // Local id -> (topic filter, callback). The id is never sent to the broker; it
         // only lets the same topic carry more than one callback.
@@ -81,14 +82,23 @@ namespace {{ spec.info.title | caseUcfirst }}
             _client = client;
         }
 
-        /// <summary>Configure the broker connection. Call before the first subscribe.</summary>
+        /// <summary>
+        /// Configure the broker connection. Call before the first subscribe.
+        ///
+        /// <paramref name="reliableDelivery"/> (default true) picks the delivery guarantee
+        /// once, for the whole connection: true subscribes and publishes at QoS 1 with clean
+        /// start off, so the broker keeps this client's replay cursor and redelivers messages
+        /// missed during a brief disconnect; false uses QoS 0 and clean start on (at-most-once,
+        /// may be lost, cursor purged — no replay).
+        /// </summary>
         public Push Configure(
             string host = null,
             int? port = null,
             bool? tls = null,
             bool tlsInsecure = false,
             string clientId = null,
-            int keepAlive = 60)
+            int keepAlive = 60,
+            bool reliableDelivery = true)
         {
             _host = host;
             _port = port;
@@ -96,8 +106,14 @@ namespace {{ spec.info.title | caseUcfirst }}
             _tlsInsecure = tlsInsecure;
             _clientId = clientId;
             _keepAlive = keepAlive;
+            _reliableDelivery = reliableDelivery;
             return this;
         }
+
+        // QoS for both subscribe and publish, chosen once by reliableDelivery:
+        // at-least-once (1) when reliable, at-most-once (0) when not.
+        private MqttQualityOfServiceLevel DefaultQos =>
+            _reliableDelivery ? MqttQualityOfServiceLevel.AtLeastOnce : MqttQualityOfServiceLevel.AtMostOnce;
 
         /// <summary>
         /// Subscribe to one or more topics. Returns an unsubscribe callable.
@@ -127,7 +143,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 }
                 builder = builder.WithTopicFilter(f => f
                     .WithTopic(topic)
-                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce));
+                    .WithQualityOfServiceLevel(DefaultQos));
             }
 
             await client.SubscribeAsync(builder.Build());
@@ -169,15 +185,15 @@ namespace {{ spec.info.title | caseUcfirst }}
 
         /// <summary>
         /// Publish a message to a topic. For testing the fan-out — real pushes come from
-        /// the server, not clients.
+        /// the server, not clients. QoS follows reliableDelivery.
         /// </summary>
-        public async Task Publish(string topic, string payload, int qos = 1)
+        public async Task Publish(string topic, string payload)
         {
             var client = await Connect();
             var message = new MqttApplicationMessageBuilder()
                 .WithTopic(topic)
                 .WithPayload(Encoding.UTF8.GetBytes(payload))
-                .WithQualityOfServiceLevel(QosOf(qos))
+                .WithQualityOfServiceLevel(DefaultQos)
                 .Build();
             await client.PublishAsync(message);
         }
@@ -222,13 +238,18 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             var host = _host ?? new Uri(_client.Endpoint).Host;
             var project = _client.Config.GetValueOrDefault("project") ?? "";
-            var clientId = _clientId ?? $"appwrite-{project}-{Guid.NewGuid().ToString().Substring(0, 8)}";
+            // An empty client id lets the broker derive a stable per-user id, which is how it
+            // keys the offline-replay cursor — so reliable delivery resumes across reconnects
+            // without us inventing an id. Pass clientId to override.
+            var clientId = _clientId ?? "";
 
             var optionsBuilder = new MqttClientOptionsBuilder()
                 .WithProtocolVersion(MqttProtocolVersion.V500)
                 .WithClientId(clientId)
                 .WithTcpServer(host, Port)
-                .WithCleanSession(true)
+                // Clean start off in reliable mode so the broker keeps this client's replay
+                // cursor and redelivers what it missed; on when non-reliable so it is purged.
+                .WithCleanSession(!_reliableDelivery)
                 .WithKeepAlivePeriod(TimeSpan.FromSeconds(_keepAlive))
                 .WithAuthentication(authMethod, Encoding.UTF8.GetBytes(credential))
                 .WithUserProperty("projectId", project);
@@ -299,16 +320,6 @@ namespace {{ spec.info.title | caseUcfirst }}
         private void OnDestroy()
         {
             Close();
-        }
-
-        private static MqttQualityOfServiceLevel QosOf(int qos)
-        {
-            return qos switch
-            {
-                0 => MqttQualityOfServiceLevel.AtMostOnce,
-                2 => MqttQualityOfServiceLevel.ExactlyOnce,
-                _ => MqttQualityOfServiceLevel.AtLeastOnce,
-            };
         }
 
         /// <summary>MQTT topic-filter match with '+' (single level) and '#' (multi level).</summary>
