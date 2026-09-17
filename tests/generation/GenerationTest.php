@@ -297,7 +297,8 @@ final class GenerationTest extends TestCase
      * A canonical document keys `x-appwrite.auth` by platform. The fixture's
      * platform-auth operation lists `Project` for client and `Project, Key` for
      * server plus an optional Session, and the server alias variant lists
-     * `Project, JWT`. Optional security must not become example configuration.
+     * `Project, JWT`. Optional security must not become example configuration;
+     * the Web E2E proves it still reaches a location method's query string.
      */
     public function testExampleCredentialsFollowPlatformAuth(): void
     {
@@ -306,6 +307,7 @@ final class GenerationTest extends TestCase
             ['client', 'docs/examples/general/zzderivedauth.md', ['->setproject('], ['->setkey(', '->setjwt(', '->setsession(']],
             ['server', 'docs/examples/general/zzplatformalias.md', ['->setproject(', '->setjwt('], ['->setkey(', '->setsession(']],
             ['client', 'docs/examples/general/zzplatformalias.md', ['->setproject('], ['->setkey(', '->setjwt(', '->setsession(']],
+            ['client', 'docs/examples/general/download.md', ['->setproject('], ['->setimpersonateuserid(']],
         ];
 
         foreach ($examples as [$platform, $path, $present, $absent]) {

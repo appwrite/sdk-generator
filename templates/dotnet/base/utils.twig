@@ -9,7 +9,7 @@
 {% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.ToString()'}}{% elseif (parameter | enumValues) is not empty and (parameter | schemaType) == 'array' %}{{ parameter.name | caseCamel | escapeKeyword }}?.Select(e => e.Value).ToList(){% elseif (parameter | enumValues) is not empty %}{{ parameter.name | caseCamel | escapeKeyword }}?.Value{% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}
 {% endmacro %}
 {% macro methodNeedsSecurityParameters(method) %}
-{% if ((method | methodType) == "webAuth" or (method | methodType) == "location") and [(method | securitySchemes)]|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
+{% if ((method | methodType) == "webAuth" or (method | methodType) == "location") and [(method | locationSchemes)]|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
 {% macro resultType(namespace, method) %}
 {% if (method | methodType) == "webAuth" %}bool{% elseif (method | methodType) == "location" %}byte[]{% elseif (method | responseModels)|length > 1 %}object{% elseif not (method | responseModel) or (method | responseModel) == 'any' %}object{% else %}Models.{{(method | responseModel) | caseUcfirst | overrideIdentifier }}{% endif %}

@@ -45,6 +45,11 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/redirect/done:passed',
     ];
 
+    protected const LOCATION_RESPONSES = [
+        'GET:/v1/mock/tests/general/download:passed',
+        'GET:/v1/mock/tests/general/download:passed:as:impersonated',
+    ];
+
     protected const PATH_PARAM_RESPONSES = [
         'GET:/v1/mock/tests/general/path/grant%2Fspecial%26id:passed',
     ];
