@@ -27,12 +27,12 @@ public struct PushMessage {
 /// without FCM or APNS. Built on SwiftNIO (MQTTNIO), the same stack the rest of the SDK's
 /// networking uses.
 ///
-/// Mirrors the realtime service: `{{ spec.info.title | caseUcfirst }}Push(client).subscribe(topic, callback:)` opens the
+/// Mirrors the realtime service: `Push(client).subscribe(topic, callback:)` opens the
 /// connection lazily and returns an unsubscribe callable. The credential is read off the
 /// client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`), the same
 /// way every other service reads auth.
 ///
-///     let push = {{ spec.info.title | caseUcfirst }}Push(client)
+///     let push = Push(client)
 ///     let unsubscribe = try await push.subscribe("user/123/#") { message in
 ///         print("\(message.topic): \(message.string)")
 ///     }
@@ -45,6 +45,7 @@ open class Push: Service {
     private let tlsInsecure: Bool
     private let clientId: String?
     private let keepAlive: UInt16
+    private let reliableDelivery: Bool
 
     private var foreground = false
     private var foregroundTitle: String?
@@ -66,7 +67,8 @@ open class Push: Service {
         tls: Bool? = nil,
         tlsInsecure: Bool = false,
         clientId: String? = nil,
-        keepAlive: UInt16 = 60
+        keepAlive: UInt16 = 60,
+        reliableDelivery: Bool = true
     ) {
         self.host = host ?? URL(string: client.endPoint)?.host ?? "localhost"
         // Secure by default: TLS on when the endpoint is https (or port 8883), so the
@@ -77,7 +79,14 @@ open class Push: Service {
         self.tlsInsecure = tlsInsecure
         self.clientId = clientId
         self.keepAlive = keepAlive
+        self.reliableDelivery = reliableDelivery
         super.init(client)
+    }
+
+    // QoS for both subscribe and publish, chosen once by `reliableDelivery`:
+    // at-least-once when reliable, at-most-once when not.
+    private var defaultQos: MQTTQoS {
+        reliableDelivery ? .atLeastOnce : .atMostOnce
     }
 
     /// Also surface every delivered message as a local notification via
@@ -123,7 +132,7 @@ open class Push: Service {
         }
 
         _ = try await mqtt.v5.subscribe(
-            to: topics.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: .atLeastOnce) }
+            to: topics.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: defaultQos) }
         )
 
         return { [weak self] in
@@ -152,13 +161,13 @@ open class Push: Service {
     }
 
     /// Publish a message to a topic. For testing the fan-out — real pushes come from
-    /// the server, not clients.
-    public func publish(_ topic: String, message: String, qos: Int = 1) async throws {
+    /// the server, not clients. QoS follows `reliableDelivery`.
+    public func publish(_ topic: String, message: String) async throws {
         let mqtt = try await connect()
         _ = try await mqtt.v5.publish(
             to: topic,
             payload: ByteBuffer(string: message),
-            qos: qosOf(qos)
+            qos: defaultQos
         )
     }
 
@@ -220,7 +229,10 @@ open class Push: Service {
         }
 
         let project = client.config["project"] ?? ""
-        let id = clientId ?? "appwrite-\(project)-\(UUID().uuidString.prefix(8))"
+        // An empty identifier lets the broker derive a stable per-user id, which is how it
+        // keys the offline-replay cursor — so reliable delivery resumes across reconnects
+        // without us inventing an id. Pass `clientId` to override.
+        let id = clientId ?? ""
 
         var tlsConfiguration: MQTTClient.TLSConfigurationType?
         if tls && tlsInsecure {
@@ -260,7 +272,9 @@ open class Push: Service {
         ])
 
         do {
-            let ack = try await mqtt.v5.connect(cleanStart: true, properties: properties)
+            // Clean start off in reliable mode so the broker keeps this client's replay
+            // cursor and redelivers what it missed; on when non-reliable so it is purged.
+            let ack = try await mqtt.v5.connect(cleanStart: !reliableDelivery, properties: properties)
             if ack.reason != .success {
                 try? mqtt.syncShutdownGracefully()
                 throw {{ spec.info.title | caseUcfirst }}Error(message: "MQTT authentication failed (CONNACK reason \(ack.reason))")
@@ -302,12 +316,6 @@ open class Push: Service {
         #endif
     }
 
-    private func qosOf(_ qos: Int) -> MQTTQoS {
-        switch qos {
-        case 0: return .atMostOnce
-        default: return .atLeastOnce
-        }
-    }
 }
 
 /// MQTT topic-filter match with `+` (single level) and `#` (multi level).
