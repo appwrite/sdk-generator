@@ -64,6 +64,13 @@ data class PushMessage(
  * The credential is read off the client — set a JWT or session on it
  * (`Client.setJWT` / `Client.setSession`), the same way every other service reads auth.
  *
+ * [reliableDelivery] (default `true`) picks the delivery guarantee once, for the whole
+ * connection: `true` subscribes and publishes at QoS 1 and opens a persistent session
+ * (clean start off, a stable client id, a session-expiry window), so messages missed
+ * during a brief disconnect are replayed on reconnect; `false` uses QoS 0 and a clean,
+ * ephemeral session (at-most-once, may be lost, no replay). Offline replay also requires
+ * the broker to persist sessions.
+ *
  * ```kotlin
  * val client = Client().setEndpoint("...").setProject("...").setJWT(jwt)
  * val push = Push(client)
@@ -82,6 +89,7 @@ class Push @JvmOverloads constructor(
     private val tlsInsecure: Boolean = false,
     private val clientId: String? = null,
     private val keepAlive: Int = 60,
+    private val reliableDelivery: Boolean = true,
 ) : Service(client) {
 
     private val host: String = host
@@ -154,7 +162,7 @@ class Push @JvmOverloads constructor(
             subscriptions[id] = topic
             client.subscribeWith()
                 .topicFilter(topic)
-                .qos(MqttQos.AT_LEAST_ONCE)
+                .qos(defaultQos)
                 .callback { publish -> callback(publish.toPushMessage()) }
                 .send()
                 .get()
@@ -195,18 +203,22 @@ class Push @JvmOverloads constructor(
 
     /**
      * Publish a message to a topic. For testing the fan-out — real pushes come from
-     * the server, not clients. Blocks until the broker acks (QoS 1).
+     * the server, not clients. Blocks until the broker acks. QoS follows [reliableDelivery].
      */
-    @JvmOverloads
-    fun publish(topic: String, payload: String, qos: Int = 1) {
+    fun publish(topic: String, payload: String) {
         val client = connect()
         client.publishWith()
             .topic(topic)
-            .qos(qosOf(qos))
+            .qos(defaultQos)
             .payload(payload.toByteArray(Charsets.UTF_8))
             .send()
             .get()
     }
+
+    // QoS for both subscribe and publish, chosen once by [reliableDelivery]:
+    // at-least-once (1) when reliable, at-most-once (0) when not.
+    private val defaultQos: MqttQos
+        get() = if (reliableDelivery) MqttQos.AT_LEAST_ONCE else MqttQos.AT_MOST_ONCE
 
     /** Tear down the connection and drop all active subscriptions. */
     fun close() {
@@ -247,6 +259,7 @@ class Push @JvmOverloads constructor(
             authMethod = authMethod,
             credential = credential,
             project = client.config["project"] ?: "",
+            reliableDelivery = reliableDelivery,
         )
     }
 
@@ -296,6 +309,7 @@ internal data class PushConfig(
     val authMethod: String,
     val credential: String,
     val project: String,
+    val reliableDelivery: Boolean,
 )
 
 /** Read the credential set on the client (via Client.setJWT / setSession). */
@@ -313,14 +327,14 @@ internal fun resolvePushAuth(client: Client): Pair<String, String> {
 
 /** Build (but do not connect) an MQTT 5 client from [config]. */
 internal fun buildPushClient(config: PushConfig): Mqtt5AsyncClient {
-    val id = config.clientId
-        ?: "appwrite-${config.project}-${UUID.randomUUID().toString().substring(0, 8)}"
-
     var builder = MqttClient.builder()
         .useMqttVersion5()
-        .identifier(id)
         .serverHost(config.host)
         .serverPort(config.port)
+
+    // Only set an identifier when the caller supplied one; otherwise send none so the
+    // broker derives a stable per-user id (the key it uses for the offline-replay cursor).
+    config.clientId?.let { builder = builder.identifier(it) }
 
     if (config.tls) {
         builder = if (config.tlsInsecure) {
@@ -340,7 +354,9 @@ internal fun buildPushClient(config: PushConfig): Mqtt5AsyncClient {
 internal fun Mqtt5AsyncClient.pushConnect(config: PushConfig) {
     connectWith()
         .enhancedAuth(PushAuthMechanism(config.authMethod, config.credential))
-        .cleanStart(true)
+        // Clean start off in reliable mode so the broker keeps this client's replay
+        // cursor and redelivers what it missed; on in non-reliable mode so it is purged.
+        .cleanStart(!config.reliableDelivery)
         .keepAlive(config.keepAlive)
         .userProperties()
         .add("projectId", config.project)
@@ -355,12 +371,6 @@ internal fun Mqtt5Publish.toPushMessage(): PushMessage =
         payload = payloadAsBytes,
         qos = qos.code,
     )
-
-internal fun qosOf(qos: Int): MqttQos = when (qos) {
-    0 -> MqttQos.AT_MOST_ONCE
-    2 -> MqttQos.EXACTLY_ONCE
-    else -> MqttQos.AT_LEAST_ONCE
-}
 
 /**
  * Single-step MQTT 5 enhanced auth: the method and credential are placed in the CONNECT

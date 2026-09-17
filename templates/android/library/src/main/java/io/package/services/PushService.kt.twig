@@ -78,10 +78,15 @@ class PushService : Service() {
 
     private fun subscribeTopics(topics: List<String>) {
         val client = mqtt ?: return
+        val qos = if (PushForeground.config?.reliableDelivery != false) {
+            MqttQos.AT_LEAST_ONCE
+        } else {
+            MqttQos.AT_MOST_ONCE
+        }
         for (topic in topics) {
             client.subscribeWith()
                 .topicFilter(topic)
-                .qos(MqttQos.AT_LEAST_ONCE)
+                .qos(qos)
                 .callback { publish -> onMessage(publish.toPushMessage()) }
                 .send()
         }
