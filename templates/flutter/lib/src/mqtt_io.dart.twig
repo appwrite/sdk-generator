@@ -18,6 +18,7 @@ Push createPush(
   bool tlsInsecure = false,
   String? clientId,
   int keepAlive = 60,
+  bool reliableDelivery = true,
 }) =>
     PushIO(
       client,
@@ -27,6 +28,7 @@ Push createPush(
       tlsInsecure: tlsInsecure,
       clientId: clientId,
       keepAlive: keepAlive,
+      reliableDelivery: reliableDelivery,
     );
 
 class _PushSubscription {
@@ -46,6 +48,7 @@ class PushIO implements Push {
   final bool _tlsInsecure;
   final String? _clientId;
   final int _keepAlive;
+  final bool _reliableDelivery;
 
   MqttServerClient? _mqtt;
   Future<void>? _connecting;
@@ -65,6 +68,7 @@ class PushIO implements Push {
     bool tlsInsecure = false,
     String? clientId,
     int keepAlive = 60,
+    bool reliableDelivery = true,
   }) {
     // Secure by default: TLS on when the endpoint is https (or port 8883), so the
     // credential in the CONNECT packet is not sent over a plaintext socket.
@@ -78,6 +82,7 @@ class PushIO implements Push {
       tlsInsecure: tlsInsecure,
       clientId: clientId,
       keepAlive: keepAlive,
+      reliableDelivery: reliableDelivery,
     );
   }
 
@@ -89,12 +94,14 @@ class PushIO implements Push {
     required bool tlsInsecure,
     required String? clientId,
     required int keepAlive,
+    required bool reliableDelivery,
   })  : _host = host,
         _port = port,
         _tls = tls,
         _tlsInsecure = tlsInsecure,
         _clientId = clientId,
-        _keepAlive = keepAlive;
+        _keepAlive = keepAlive,
+        _reliableDelivery = reliableDelivery;
 
   static bool _endpointSecure(Client client) {
     try {
@@ -133,7 +140,7 @@ class PushIO implements Push {
 
       final subscription = MqttSubscription.withMaximumQos(
         MqttSubscriptionTopic(topic),
-        MqttQos.atLeastOnce,
+        _defaultQos,
       );
       mqtt.subscribeWithSubscriptionList([subscription]);
     }
@@ -160,11 +167,16 @@ class PushIO implements Push {
   }
 
   @override
-  Future<void> publish(String topic, String payload, {int qos = 1}) async {
+  Future<void> publish(String topic, String payload) async {
     final mqtt = await _connect();
     final data = typed.Uint8Buffer()..addAll(utf8.encode(payload));
-    mqtt.publishMessage(topic, _qos(qos), data);
+    mqtt.publishMessage(topic, _defaultQos, data);
   }
+
+  // QoS for both subscribe and publish, chosen once by [reliableDelivery]:
+  // at-least-once (1) when reliable, at-most-once (0) when not.
+  MqttQos get _defaultQos =>
+      _reliableDelivery ? MqttQos.atLeastOnce : MqttQos.atMostOnce;
 
   @override
   void close() {
@@ -210,8 +222,10 @@ class PushIO implements Push {
     }
 
     final project = client.config['project'] ?? '';
-    final clientId =
-        _clientId ?? 'appwrite-$project-${_randomId().substring(0, 8)}';
+    // An empty client id lets the broker derive a stable per-user id, which is how it
+    // keys the offline-replay cursor — so reliable delivery resumes across reconnects
+    // without us inventing an id. Pass [clientId] only to override that.
+    final clientId = _clientId ?? '';
 
     final mqtt = MqttServerClient.withPort(_host, clientId, _port);
     mqtt.keepAlivePeriod = _keepAlive;
@@ -233,10 +247,15 @@ class PushIO implements Push {
     final authData = typed.Uint8Buffer()..addAll(utf8.encode(credential));
     final connectMessage = MqttConnectMessage()
         .withClientIdentifier(clientId)
-        .startClean()
         .keepAliveFor(_keepAlive)
         .withAuthenticationMethod(authMethod)
         .withAuthenticationData(authData);
+    // Clean start is the only session flag the broker reads: false (the default) keeps
+    // the offline-replay cursor so a reconnect resumes where it left off; true purges
+    // it. The replay window itself is the broker's concern — we set no session expiry.
+    if (!_reliableDelivery) {
+      connectMessage.startClean();
+    }
     connectMessage.addUserPropertyPair('projectId', project);
     mqtt.connectionMessage = connectMessage;
 
@@ -309,17 +328,6 @@ class PushIO implements Push {
     if (completer != null && !completer.isCompleted) {
       completer
           .completeError({{spec.info.title | caseUcfirst}}Exception('Failed to subscribe to $topic'));
-    }
-  }
-
-  MqttQos _qos(int qos) {
-    switch (qos) {
-      case 0:
-        return MqttQos.atMostOnce;
-      case 2:
-        return MqttQos.exactlyOnce;
-      default:
-        return MqttQos.atLeastOnce;
     }
   }
 }

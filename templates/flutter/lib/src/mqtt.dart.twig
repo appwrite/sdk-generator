@@ -33,6 +33,13 @@ abstract class Push extends Service {
   /// [host] defaults to the endpoint's hostname and [tls] defaults to `true` when
   /// [port] is 8883. [tlsInsecure] skips TLS certificate verification (useful when
   /// the broker carries a certificate that does not chain to a public root).
+  ///
+  /// [reliableDelivery] (default `true`) picks the delivery guarantee once, for the
+  /// whole connection: `true` subscribes and publishes at QoS 1 with clean start off,
+  /// so the broker keeps this client's replay cursor and redelivers messages missed
+  /// during a brief disconnect on reconnect; `false` uses QoS 0 and clean start on
+  /// (at-most-once, may be lost, cursor purged — no replay). The broker owns the replay
+  /// window and derives a stable per-user id when no [clientId] is given.
   factory Push(
     Client client, {
     String? host,
@@ -41,6 +48,7 @@ abstract class Push extends Service {
     bool tlsInsecure = false,
     String? clientId,
     int keepAlive = 60,
+    bool reliableDelivery = true,
   }) =>
       createPush(
         client,
@@ -50,19 +58,20 @@ abstract class Push extends Service {
         tlsInsecure: tlsInsecure,
         clientId: clientId,
         keepAlive: keepAlive,
+        reliableDelivery: reliableDelivery,
       );
 
   /// Subscribe to one or more topics, resolving to an unsubscribe callable.
   ///
-  /// [topics] is a single topic string or a list of them. Each topic is
-  /// registered with the broker under its own client-generated id, and the future
-  /// resolves only once every subscription has been acknowledged (SUBACK), so a
-  /// subscribe-then-publish is reliable.
+  /// [topics] is a single topic string or a list of them. The future resolves only
+  /// once every subscription has been acknowledged (SUBACK), so a subscribe-then-
+  /// publish is reliable. Delivery QoS follows [reliableDelivery].
   Future<PushUnsubscribe> subscribe(Object topics, PushCallback callback);
 
   /// Publish a message to a topic. For testing the fan-out — real pushes come from
   /// the server, not clients. Resolves once the broker has been handed the message.
-  Future<void> publish(String topic, String payload, {int qos});
+  /// Publish QoS follows [reliableDelivery].
+  Future<void> publish(String topic, String payload);
 
   /// Tear down the connection and drop all active subscriptions.
   void close();
