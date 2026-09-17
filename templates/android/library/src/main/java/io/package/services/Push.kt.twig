@@ -465,11 +465,13 @@ internal object PushForeground {
     @Volatile
     var ongoingTitle: String = "{{ spec.info.title | caseUcfirst }}"
 
-    // Guards the topic union and the live-subscriber hook so add+subscribe and
-    // attach+snapshot are atomic — no topic is lost to their interleaving.
+    // Guards the topic union and the live subscribe/unsubscribe hooks so add+subscribe,
+    // remove+unsubscribe and attach+snapshot are atomic — no topic is lost to, or left
+    // active by, their interleaving.
     private val lock = Any()
     private val topicSet = linkedSetOf<String>()
     private var subscriber: ((List<String>) -> Unit)? = null
+    private var unsubscriber: ((List<String>) -> Unit)? = null
 
     val listeners = CopyOnWriteArrayList<PushListener>()
 
@@ -486,30 +488,59 @@ internal object PushForeground {
         return listener
     }
 
+    /**
+     * Drop a foreground subscription and unsubscribe from the broker any topic that no
+     * remaining listener still wants, so removed topics stop delivering (and stop
+     * producing notifications). Removing the listener first means the topic union is
+     * recomputed from only the survivors.
+     */
     fun unregister(listener: PushListener) {
         listeners.remove(listener)
+        synchronized(lock) {
+            val stillWanted = listeners.flatMapTo(mutableSetOf()) { it.topics }
+            val removed = topicSet.filter { it !in stillWanted }
+            if (removed.isNotEmpty()) {
+                topicSet.removeAll(removed.toSet())
+                unsubscriber?.invoke(removed)
+            }
+        }
     }
 
     /**
-     * Called by the service once connected: installs the live subscriber and returns the
-     * current topic union to subscribe. Atomic with [register].
+     * Called by the service once connected: installs the live subscribe/unsubscribe hooks
+     * and returns the current topic union to subscribe. Atomic with [register] /
+     * [unregister].
      */
-    fun attach(subscriber: (List<String>) -> Unit): List<String> = synchronized(lock) {
-        this.subscriber = subscriber
+    fun attach(
+        subscribe: (List<String>) -> Unit,
+        unsubscribe: (List<String>) -> Unit,
+    ): List<String> = synchronized(lock) {
+        this.subscriber = subscribe
+        this.unsubscriber = unsubscribe
         topicSet.toList()
     }
 
     fun detach() {
-        synchronized(lock) { subscriber = null }
+        synchronized(lock) {
+            subscriber = null
+            unsubscriber = null
+        }
     }
 
-    /** Fan a message out to every listener whose topics match. */
-    fun dispatch(message: PushMessage) {
+    /**
+     * Fan a message out to every listener whose topics match. Returns true if at least
+     * one listener matched, so the caller only notifies for messages someone still wants
+     * (an in-flight message for a just-removed topic matches nothing and is dropped).
+     */
+    fun dispatch(message: PushMessage): Boolean {
+        var matched = false
         for (listener in listeners) {
             if (listener.topics.any { matchesTopic(it, message.topic) }) {
+                matched = true
                 listener.callback(message)
             }
         }
+        return matched
     }
 
     fun start(context: Context) {

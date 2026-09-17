@@ -63,9 +63,13 @@ class PushService : Service() {
         mqtt = client
         try {
             client.pushConnect(config)
-            // Install the live subscriber and get the current topic union atomically, so
-            // a topic added concurrently by another subscription is not lost.
-            val initial = PushForeground.attach { topics -> subscribeTopics(topics) }
+            // Install the live subscribe/unsubscribe hooks and get the current topic union
+            // atomically, so a topic added or removed concurrently is neither lost nor left
+            // active.
+            val initial = PushForeground.attach(
+                { topics -> subscribeTopics(topics) },
+                { topics -> unsubscribeTopics(topics) },
+            )
             subscribeTopics(initial)
         } catch (e: Exception) {
             // Connection failed; the service stays up until stopped.
@@ -83,10 +87,22 @@ class PushService : Service() {
         }
     }
 
+    private fun unsubscribeTopics(topics: List<String>) {
+        val client = mqtt ?: return
+        for (topic in topics) {
+            client.unsubscribeWith()
+                .topicFilter(topic)
+                .send()
+        }
+    }
+
     private fun onMessage(message: PushMessage) {
-        // Fan out to each listener whose own topics match, then post a notification.
-        PushForeground.dispatch(message)
-        postNotification(message)
+        // Fan out to each listener whose own topics match; only notify when one did, so a
+        // message that arrives for a just-removed topic (unsubscribe still in flight)
+        // produces no unwanted notification.
+        if (PushForeground.dispatch(message)) {
+            postNotification(message)
+        }
     }
 
     private fun postNotification(message: PushMessage) {
