@@ -124,6 +124,14 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
 
+    // Location URL builder carries the configured credentials in the query string
+    response = await fetch(general.download());
+    console.log(await response.text());
+    client.setImpersonateUserId('impersonated');
+    response = await fetch(general.download());
+    console.log(await response.text());
+    client.setImpersonateUserId('');
+
     for (const [id, plain] of [['', '0'], ['0', '']]) {
         try {
             await general.validatePath({ id, plain });

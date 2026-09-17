@@ -297,8 +297,8 @@ final class GenerationTest extends TestCase
      * A canonical document keys `x-appwrite.auth` by platform. The fixture's
      * platform-auth operation lists `Project` for client and `Project, Key` for
      * server plus an optional Session, and the server alias variant lists
-     * `Project, JWT`. Optional security must not become example configuration,
-     * but it must still reach a location method's query string.
+     * `Project, JWT`. Optional security must not become example configuration;
+     * the Web E2E proves it still reaches a location method's query string.
      */
     public function testExampleCredentialsFollowPlatformAuth(): void
     {
@@ -320,11 +320,6 @@ final class GenerationTest extends TestCase
                 $this->assertStringNotContainsString($call, $files[$path], "php/{$platform} {$path} configures {$call}");
             }
         }
-
-        // A URL builder carries its credentials in the query string, so an
-        // optional impersonation scheme must still reach the location payload.
-        $download = $this->generate('web', 'client')['src/services/general.ts'];
-        $this->assertStringContainsString("payload['impersonateuserid'] = this.client.config.impersonateuserid;", $download);
     }
 
     /**
