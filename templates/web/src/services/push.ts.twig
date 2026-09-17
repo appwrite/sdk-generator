@@ -29,6 +29,8 @@ export interface PushOptions {
      * A fixed client id. Each connection needs its own: an MQTT server evicts the
      * older session when a new one connects with the same id, so a shared id would
      * make concurrent clients kick each other off. Defaults to a per-connection id.
+     * The broker keys its offline-replay cursor on this id, so pass a stable value to
+     * resume replay across page reloads / app restarts.
      */
     clientId?: string;
     /** MQTT keepalive in seconds (PINGREQ interval). Defaults to 60. */
@@ -36,10 +38,16 @@ export interface PushOptions {
     /**
      * Auto-reconnect interval in ms. 0 (default) disables it — a one-shot connection.
      * A long-lived client sets this > 0 so the socket comes back after a drop;
-     * subscriptions are re-registered on every reconnect (see {@link resubscribeAll}),
-     * because `clean: true` keeps no session.
+     * subscriptions are re-registered on every reconnect (see {@link resubscribeAll}).
      */
     reconnectPeriod?: number;
+    /**
+     * Delivery guarantee for the whole connection. `true` (default) subscribes and
+     * publishes at QoS 1 with clean start off, so the broker keeps this client's replay
+     * cursor and redelivers messages missed during a brief disconnect; `false` uses
+     * QoS 0 and clean start on (at-most-once, may be lost, cursor purged — no replay).
+     */
+    reliableDelivery?: boolean;
     /** Notified on connection lifecycle changes, for a UI to reflect. */
     onStatus?: (status: PushStatus, detail?: string) => void;
 }
@@ -76,6 +84,7 @@ export class Push extends Service {
     private readonly clientId?: string;
     private readonly keepalive: number;
     private readonly reconnectPeriod: number;
+    private readonly reliableDelivery: boolean;
     private readonly onStatus?: (status: PushStatus, detail?: string) => void;
 
     private mqtt: MqttClient | null = null;
@@ -99,7 +108,14 @@ export class Push extends Service {
         this.clientId = options.clientId;
         this.keepalive = options.keepalive ?? 60;
         this.reconnectPeriod = options.reconnectPeriod ?? 0;
+        this.reliableDelivery = options.reliableDelivery ?? true;
         this.onStatus = options.onStatus;
+    }
+
+    // QoS for both subscribe and publish, chosen once by `reliableDelivery`:
+    // at-least-once (1) when reliable, at-most-once (0) when not.
+    private get defaultQos(): 0 | 1 {
+        return this.reliableDelivery ? 1 : 0;
     }
 
     /**
@@ -148,7 +164,7 @@ export class Push extends Service {
                 ids.push(id);
                 this.subscriptions.set(id, { topic, callback });
                 return new Promise<void>((resolve, reject) => {
-                    client.subscribe(topic, { qos: 1 }, (err) =>
+                    client.subscribe(topic, { qos: this.defaultQos }, (err) =>
                         err ? reject(err) : resolve(),
                     );
                 });
@@ -175,17 +191,16 @@ export class Push extends Service {
 
     /**
      * Publish a message to a topic. For testing the fan-out — real pushes come from
-     * the server, not clients. Resolves once the broker acks (QoS 1).
+     * the server, not clients. Resolves once the broker acks. QoS follows `reliableDelivery`.
      */
-    async publish(
-        topic: string,
-        payload: string | Uint8Array,
-        qos: 0 | 1 | 2 = 1,
-    ): Promise<void> {
+    async publish(topic: string, payload: string | Uint8Array): Promise<void> {
         const client = await this.connect();
         await new Promise<void>((resolve, reject) => {
-            client.publish(topic, Buffer.from(payload), { qos }, (err) =>
-                err ? reject(err) : resolve(),
+            client.publish(
+                topic,
+                Buffer.from(payload),
+                { qos: this.defaultQos },
+                (err) => (err ? reject(err) : resolve()),
             );
         });
     }
@@ -201,9 +216,9 @@ export class Push extends Service {
     }
 
     /**
-     * Re-register every active subscription. Called on each reconnect: with
-     * `clean: true` the broker keeps no session, so a reconnected client starts with
-     * zero subscriptions and would otherwise silently stop receiving.
+     * Re-register every active subscription. Called on each reconnect so a client that
+     * reconnects with a fresh (or cleared) session does not silently stop receiving;
+     * re-subscribing an existing filter is idempotent.
      */
     private resubscribeAll(): void {
         const client = this.mqtt;
@@ -211,7 +226,7 @@ export class Push extends Service {
             return;
         }
         for (const { topic } of this.subscriptions.values()) {
-            client.subscribe(topic, { qos: 1 }, (err) => {
+            client.subscribe(topic, { qos: this.defaultQos }, (err) => {
                 if (err) {
                     this.onStatus?.(
                         'error',
@@ -275,7 +290,7 @@ export class Push extends Service {
         const options: IClientOptions = {
             clientId,
             protocolVersion: 5,
-            clean: true, // cleanStart
+            clean: !this.reliableDelivery, // clean start off = keep the replay cursor
             keepalive: this.keepalive,
             reconnectPeriod: this.reconnectPeriod,
             manualConnect: true,
@@ -294,8 +309,8 @@ export class Push extends Service {
             void this.dispatch(packet);
         });
 
-        // Persistent lifecycle listeners. On a reconnect the broker has no session for
-        // us (clean: true), so we must re-register every subscription.
+        // Persistent lifecycle listeners. Re-register every subscription on reconnect
+        // (harmless if the broker resumed our session).
         client.on('connect', () => {
             if (this.everConnected) {
                 this.resubscribeAll();
