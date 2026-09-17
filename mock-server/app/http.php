@@ -316,19 +316,20 @@ App::get('/v1/mock/tests/general/download')
     ->inject('response')
     ->action(function (Request $request, UtopiaSwooleResponse $response) {
 
-        // Location methods render from their own request template, so they are the
-        // easiest place to lose the project header. The real API pairs an API key
-        // against this header and rejects the request without it.
-        if (empty($request->getHeader('x-appwrite-project', ''))) {
+        // Client SDKs build a URL for the browser, so credentials may arrive in
+        // the query string instead of headers. The real API accepts both.
+        $project = $request->getHeader('x-appwrite-project', '') ?: $request->getParam('project', '');
+        if (empty($project)) {
             throw new Exception(Exception::GENERAL_MOCK, 'Missing project ID');
         }
+        $impersonate = $request->getHeader('x-appwrite-impersonate-user-id', '') ?: $request->getParam('impersonateuserid', '');
 
         $response
             ->setContentType('text/plain')
             ->addHeader('Content-Disposition', 'attachment; filename="test.txt"')
             ->addHeader('Expires', \date('D, d M Y H:i:s', \time() + (60 * 60 * 24 * 45)) . ' GMT') // 45 days cache
             ->addHeader('X-Peak', \memory_get_peak_usage())
-            ->send("GET:/v1/mock/tests/general/download:passed");
+            ->send('GET:/v1/mock/tests/general/download:passed' . ($impersonate === '' ? '' : ':as:' . $impersonate));
     });
 
 App::post('/v1/mock/tests/general/upload')
