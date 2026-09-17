@@ -110,6 +110,31 @@ final class GenerationTest extends TestCase
         'rust' => ['src/enums/webhook_event.rs', 'pub const UserCreated', 'src/enums/localized_status.rs', 'Value1,', 'src/enums/province_type.rs', 'Capital,'],
     ];
 
+    /**
+     * Where each language writes the fixture's request model. `player` is
+     * carried only by request bodies, never returned, so it is classified as
+     * an input model by reachability alone — the fixture declares no vendor
+     * extension saying so.
+     *
+     * @var array<string, string>
+     */
+    private const array REQUEST_MODELS = [
+        'php' => 'src/Appwrite/Models/Player.php',
+        'node' => 'src/models/player.ts',
+        'ruby' => 'lib/appwrite/models/player.rb',
+        'python' => 'appwrite/models/player.py',
+        'dart' => 'lib/src/models/player.dart',
+        'flutter' => 'lib/src/models/player.dart',
+        'go' => 'models/player.go',
+        'swift' => 'Sources/AppwriteModels/Player.swift',
+        'apple' => 'Sources/AppwriteModels/Player.swift',
+        'dotnet' => 'Appwrite/Models/Player.cs',
+        'android' => 'library/src/main/java/io/appwrite/models/Player.kt',
+        'kotlin' => 'src/main/kotlin/io/appwrite/models/Player.kt',
+        'unity' => 'Runtime/Core/Models/Player.cs',
+        'rust' => 'src/models/player.rs',
+    ];
+
     /** @var array<string, array<string, string>> generated tree per language and platform */
     private static array $generated = [];
 
@@ -389,6 +414,24 @@ final class GenerationTest extends TestCase
      * an unsafe filter arrives as `&quot;` rather than `"`. Go doc comments are
      * read as plain text, so the entity is what the reader sees.
      */
+    /**
+     * A schema reachable only from a request body is generated as a request
+     * model. Go labels the two kinds apart in the file itself, so it also
+     * proves the request-model scope, not the definition scope, wrote the file.
+     */
+    public function testRequestModelsComeFromBodyOnlySchemas(): void
+    {
+        foreach (self::REQUEST_MODELS as $name => $path) {
+            $files = $this->generate($name, 'server');
+            $this->assertArrayHasKey($path, $files, "{$name} does not generate the fixture request model");
+        }
+
+        // generate() lowercases contents so tokens survive each language's casing.
+        $go = $this->generate('go', 'server');
+        $this->assertStringContainsString('// player request model', $go['models/player.go']);
+        $this->assertStringContainsString('// mock model', $go['models/mock.go']);
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);
