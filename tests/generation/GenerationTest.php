@@ -391,21 +391,16 @@ final class GenerationTest extends TestCase
      */
     /**
      * A schema reachable only from a request body is generated as a request
-     * model, in every target that generates them. The targets are taken from
-     * each language's own `requestModel` scope rather than listed here, and
-     * the fixture schema is looked for anywhere in the tree, so neither a
-     * renamed destination nor a rearranged template breaks this.
-     *
-     * Go is asserted directly because it is the one target whose output names
-     * the two kinds apart, and that name is the only place the generated tree
+     * model. Go names the two kinds apart, the only place a generated tree
      * shows which scope produced a model.
      */
     public function testRequestModelsComeFromBodyOnlySchemas(): void
     {
-        $targets = $this->requestModelLanguages();
-        $this->assertNotEmpty($targets, 'no language declares a requestModel scope');
+        foreach (\array_keys(self::languageClasses()) as $name) {
+            if (!\in_array('requestModel', \array_column($this->language($name)->getFiles(), 'scope'), true)) {
+                continue;
+            }
 
-        foreach ($targets as $name) {
             $this->assertNotEmpty(
                 $this->filesContaining($this->generate($name, 'server'), 'player'),
                 "{$name} does not generate the body-only fixture schema"
@@ -416,27 +411,6 @@ final class GenerationTest extends TestCase
         $this->assertArrayHasKey('models/player.go', $go, 'go no longer generates the body-only fixture schema as a model');
         $this->assertStringContainsString('request model', $go['models/player.go']);
         $this->assertStringNotContainsString('request model', $go['models/mock.go']);
-    }
-
-    /**
-     * The languages that generate request models at all, read from the scopes
-     * they declare.
-     *
-     * @return list<string>
-     */
-    private function requestModelLanguages(): array
-    {
-        $names = [];
-        foreach (\array_keys(self::languageClasses()) as $name) {
-            foreach ($this->language($name)->getFiles() as $file) {
-                if (($file['scope'] ?? '') === 'requestModel') {
-                    $names[] = $name;
-                    break;
-                }
-            }
-        }
-
-        return $names;
     }
 
     public function testGoModelCommentsAreNotHtmlEscaped(): void
