@@ -1962,9 +1962,12 @@ func functionDomainForTarget(domains []string, target string) (string, error) {
 // Appwrite Network edge suffix is deliberately left unchanged.
 func (c *pushContext) ruleDomains(resource deployable, variables *jsonx.Object) []string {
 	configured := variables.GetString("_APP_DOMAIN_" + strings.ToUpper(resource.Label))
-	if resource.Name == "function" {
-		// Prefer the Sites suffix for edge Functions. A regional Cloud response
-		// may also expose a region-prefixed appwrite.network Functions suffix.
+	if _, cloud := config.CloudBaseHost(c.api.Endpoint); cloud && resource.Name == "function" {
+		// On Cloud the Sites suffix is appwrite.network, which is also the
+		// Functions edge suffix, so it leads for functionDomainForTarget. A
+		// regional Cloud response may also expose a region-prefixed
+		// appwrite.network Functions suffix. Self-hosted installs give the two
+		// products unrelated domains, so there the Functions suffix stands alone.
 		configured = variables.GetString("_APP_DOMAIN_SITES") + "," + configured
 	}
 
