@@ -322,6 +322,20 @@ namespace {{ spec.info.title | caseUcfirst }}
             return this;
         }
 
+        /// <summary>
+        /// Set the push endpoint
+        ///
+        /// The MQTT broker URL the Push service connects to, e.g. "mqtt://host:1883" or
+        /// "mqtts://host:8883".
+        /// </summary>
+        /// <param name="endpoint">The MQTT broker URL</param>
+        /// <returns>Client instance for method chaining</returns>
+        public Client SetPushEndpoint(string endpoint)
+        {
+            _config["endpointPush"] = endpoint;
+            return this;
+        }
+
         public Dictionary<string, string> GetHeaders()
         {
             return new Dictionary<string, string>(_headers);

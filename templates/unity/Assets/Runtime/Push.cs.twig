@@ -59,21 +59,53 @@ namespace {{ spec.info.title | caseUcfirst }}
         // MQTTnet delivers on background threads; hop callbacks back to the main thread.
         private readonly ConcurrentQueue<Action> _mainThread = new();
 
-        // Secure by default: TLS on when the endpoint is https (or port 8883), so the
+        // The broker location comes from Client.SetPushEndpoint() when set (e.g.
+        // "mqtts://host:8883"), otherwise from the regular endpoint.
+        private string PushEndpoint
+        {
+            get
+            {
+                var endpoint = _client.Config.GetValueOrDefault("endpointPush");
+                return string.IsNullOrEmpty(endpoint) ? _client.Endpoint : endpoint;
+            }
+        }
+
+        // Secure by default: TLS on when the endpoint scheme is secure (or port 8883), so the
         // credential in the CONNECT packet is not sent over a plaintext socket.
         private bool Tls => _tls ?? (_port == 8883 || IsSecureEndpoint());
 
-        private int Port => _port ?? (Tls ? 8883 : 1883);
+        // Take the port from the push endpoint only (a regular http/https endpoint's port is
+        // the API port, not the broker's); otherwise fall back to the MQTT default.
+        private int Port => _port ?? EndpointPort() ?? (Tls ? 8883 : 1883);
 
         private bool IsSecureEndpoint()
         {
             try
             {
-                return new Uri(_client.Endpoint).Scheme == "https";
+                var scheme = new Uri(PushEndpoint).Scheme;
+                return scheme == "https" || scheme == "wss" || scheme == "mqtts" || scheme == "ssl";
             }
             catch
             {
                 return false;
+            }
+        }
+
+        private int? EndpointPort()
+        {
+            if (string.IsNullOrEmpty(_client.Config.GetValueOrDefault("endpointPush")))
+            {
+                return null;
+            }
+
+            try
+            {
+                var port = new Uri(PushEndpoint).Port;
+                return port == -1 ? (int?)null : port;
+            }
+            catch
+            {
+                return null;
             }
         }
 
@@ -236,7 +268,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 throw new {{ spec.info.title | caseUcfirst }}Exception("No credential set on the client; call Client.SetJWT() or Client.SetSession() first.");
             }
 
-            var host = _host ?? new Uri(_client.Endpoint).Host;
+            var host = _host ?? new Uri(PushEndpoint).Host;
             var project = _client.Config.GetValueOrDefault("project") ?? "";
             // An empty client id lets the broker derive a stable per-user id, which is how it
             // keys the offline-replay cursor — so reliable delivery resumes across reconnects

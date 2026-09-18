@@ -470,10 +470,10 @@ namespace AppwriteTests
 
             // Native push (MQTT) round-trip against the mock broker.
             client.SetJWT("e2e-jwt");
+            client.SetPushEndpoint("mqtt://mqtt:1883");
             var pushObject = new GameObject("PushTest");
             var push = pushObject.AddComponent<Push>();
             push.Initialize(client);
-            push.Configure(host: "mqtt", port: 1883, tls: false);
             var pushTcs = new TaskCompletionSource<string>();
             var pushUnsub = await push.Subscribe("e2e/push", (message) =>
             {
