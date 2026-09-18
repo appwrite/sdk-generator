@@ -70,12 +70,19 @@ open class Push: Service {
         keepAlive: UInt16 = 60,
         reliableDelivery: Bool = true
     ) {
-        self.host = host ?? URL(string: client.endPoint)?.host ?? "localhost"
-        // Secure by default: TLS on when the endpoint is https (or port 8883), so the
-        // credential in the CONNECT packet is not sent over a plaintext socket.
-        let secure = tls ?? (port == 8883 || URL(string: client.endPoint)?.scheme == "https")
+        // The broker location is taken from Client.setPushEndpoint() when set (e.g.
+        // "mqtts://host:8883"), otherwise from the regular endpoint.
+        let pushEndpoint = client.endPointPush ?? client.endPoint
+        let url = URL(string: pushEndpoint)
+        self.host = host ?? url?.host ?? "localhost"
+        // Secure by default: TLS on when the endpoint scheme is secure (https/wss/mqtts/ssl)
+        // or the port is 8883, so the credential in the CONNECT packet is not sent in the clear.
+        let secure = tls ?? (port == 8883 || ["https", "wss", "mqtts", "ssl"].contains(url?.scheme ?? ""))
         self.tls = secure
-        self.port = port ?? (secure ? 8883 : 1883)
+        // Take the port from the push endpoint only (a regular http/https endpoint's port is
+        // the API port, not the broker's); otherwise fall back to the MQTT default.
+        let pushPort = client.endPointPush != nil ? url?.port : nil
+        self.port = port ?? pushPort ?? (secure ? 8883 : 1883)
         self.tlsInsecure = tlsInsecure
         self.clientId = clientId
         self.keepAlive = keepAlive

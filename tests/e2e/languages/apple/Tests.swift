@@ -469,8 +469,9 @@ class Tests: XCTestCase {
         print(mock.result)
 
         // Native push (MQTT) round-trip against the mock broker.
-        client.setJWT("e2e-jwt")
-        let push = Push(client, host: "mqtt", port: 1883, tls: false)
+        _ = client.setJWT("e2e-jwt")
+        _ = client.setPushEndpoint("mqtt://mqtt:1883")
+        let push = Push(client)
         let pushExpectation = XCTestExpectation(description: "push message")
         var pushBody = "Push message:failed"
         let pushUnsubscribe = try await push.subscribe("e2e/push") { message in
