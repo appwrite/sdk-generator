@@ -29,7 +29,7 @@
             let rtsubFailureFiredAfterUnsubscribe = false;
 
             // Init SDK
-            const { Client, Foo, Bar, General, Realtime, Query, Permission, Role, ID, Channel, Operator, Condition, MockType } = Appwrite;
+            const { Client, Foo, Bar, General, Realtime, Push, Query, Permission, Role, ID, Channel, Operator, Condition, MockType } = Appwrite;
             const client = new Client();
 
             const foo = new Foo(client);
@@ -532,6 +532,24 @@
 
             response = await general.headers();
             console.log(response.result);
+
+            // Native push (MQTT over WebSocket) round-trip against the mock broker.
+            client.setJWT('e2e-jwt');
+            const push = new Push(client, { url: 'ws://mqtt:8083/mqtt' });
+            let pushResolve;
+            const pushReceived = new Promise((resolve) => { pushResolve = resolve; });
+            const pushUnsub = await push.subscribe('e2e/push', (m) => {
+                pushResolve(new TextDecoder().decode(m.payload));
+            });
+            console.log('Push subscribe:passed');
+            await push.publish('e2e/push', 'push-payload');
+            const pushPayload = await Promise.race([
+                pushReceived,
+                new Promise((resolve) => setTimeout(() => resolve('timeout'), 5000)),
+            ]);
+            console.log(pushPayload === 'push-payload' ? 'Push message:passed' : 'Push message:failed');
+            pushUnsub();
+            push.close();
 
         });
     </script>
