@@ -255,8 +255,13 @@ export class Push extends Service {
     }
 
     private endpointUrl(): string {
+        // An explicit `url` option wins, then the push endpoint set on the client
+        // (Client.setPushEndpoint), then the regular endpoint with `/mqtt` appended.
         if (this.url) {
             return this.url;
+        }
+        if (this.client.config.endpointPush !== '') {
+            return this.client.config.endpointPush;
         }
         const endpoint =
             this.client.config.endpointRealtime !== ''

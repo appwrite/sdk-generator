@@ -535,7 +535,8 @@
 
             // Native push (MQTT over WebSocket) round-trip against the mock broker.
             client.setJWT('e2e-jwt');
-            const push = new Push(client, { url: 'ws://mqtt:8083/mqtt' });
+            client.setPushEndpoint('ws://mqtt:8083/mqtt');
+            const push = new Push(client);
             let pushResolve;
             const pushReceived = new Promise((resolve) => { pushResolve = resolve; });
             const pushUnsub = await push.subscribe('e2e/push', (m) => {
