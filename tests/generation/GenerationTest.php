@@ -389,6 +389,30 @@ final class GenerationTest extends TestCase
      * an unsafe filter arrives as `&quot;` rather than `"`. Go doc comments are
      * read as plain text, so the entity is what the reader sees.
      */
+    /**
+     * A schema reachable only from a request body is generated as a request
+     * model. Go names the two kinds apart, the only place a generated tree
+     * shows which scope produced a model.
+     */
+    public function testRequestModelsComeFromBodyOnlySchemas(): void
+    {
+        foreach (\array_keys(self::languageClasses()) as $name) {
+            if (!\in_array('requestModel', \array_column($this->language($name)->getFiles(), 'scope'), true)) {
+                continue;
+            }
+
+            $this->assertNotEmpty(
+                $this->filesContaining($this->generate($name, 'server'), 'player'),
+                "{$name} does not generate the body-only fixture schema"
+            );
+        }
+
+        $go = $this->generate('go', 'server');
+        $this->assertArrayHasKey('models/player.go', $go, 'go no longer generates the body-only fixture schema as a model');
+        $this->assertStringContainsString('request model', $go['models/player.go']);
+        $this->assertStringNotContainsString('request model', $go['models/mock.go']);
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);

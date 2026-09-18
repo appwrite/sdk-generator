@@ -932,24 +932,60 @@ class SDK
         }
 
         $excluded = $this->getExcludedDefinitions();
-        $queue = [];
+        $responseSeeds = [];
+        $bodySeeds = [];
         foreach (array_keys($this->getFilteredServices()) as $serviceName) {
             foreach ($this->getFilteredMethods($this->getMethods($serviceName), $serviceName) as $operation) {
                 foreach ($this->getValidResponseModels($operation) as $modelName) {
-                    $queue[$modelName] = true;
+                    $responseSeeds[$modelName] = true;
                 }
-                foreach ($this->getOperationParameters($operation) as $parameter) {
+                foreach ($this->getOperationParameters($operation, 'body') as $parameter) {
                     foreach ($this->getSchemaDependencyNames($parameter) as $modelName) {
-                        $queue[$modelName] = true;
+                        $bodySeeds[$modelName] = true;
+                    }
+                }
+                foreach ($operation->parameters as $parameter) {
+                    foreach ($this->getSchemaDependencyNames($parameter) as $modelName) {
+                        $responseSeeds[$modelName] = true;
                     }
                 }
             }
         }
 
+        // A schema carried only by a request body is an input model: it is
+        // serialised, never parsed. Anything a response can return is a
+        // definition, even when a body sends it too, so no schema is
+        // generated twice under two names.
+        $responseReachable = $this->getReachableSchemaNames($responseSeeds, $excluded);
+        $bodyReachable = $this->getReachableSchemaNames($bodySeeds, $excluded);
+
+        $definitions = [];
+        $requestModels = [];
+        foreach ($this->spec->schemas as $name => $schema) {
+            if (isset($responseReachable[$name])) {
+                $definitions[$name] = $schema;
+            } elseif (isset($bodyReachable[$name])) {
+                $requestModels[$name] = $schema;
+            }
+        }
+
+        return $this->filteredModelDataCache = [
+            'definitions' => $definitions,
+            'requestModels' => $requestModels,
+        ];
+    }
+
+    /**
+     * @param  array<string, true>  $seeds
+     * @param  array<string, mixed>  $excluded
+     * @return array<string, true>
+     */
+    protected function getReachableSchemaNames(array $seeds, array $excluded): array
+    {
         $reachable = [];
-        while ($queue !== []) {
-            $name = array_key_first($queue);
-            unset($queue[$name]);
+        while ($seeds !== []) {
+            $name = array_key_first($seeds);
+            unset($seeds[$name]);
 
             if ($name === 'any' || isset($excluded[$name]) || isset($reachable[$name])) {
                 continue;
@@ -963,28 +999,12 @@ class SDK
             $reachable[$name] = true;
             foreach ($this->getSchemaDependencies($schema) as $dependency) {
                 if (!isset($excluded[$dependency])) {
-                    $queue[$dependency] = true;
+                    $seeds[$dependency] = true;
                 }
             }
         }
 
-        $definitions = [];
-        $requestModels = [];
-        foreach ($this->spec->schemas as $name => $schema) {
-            if (!isset($reachable[$name])) {
-                continue;
-            }
-            if ($schema->extensions[Extension::REQUEST_MODEL->value] ?? false) {
-                $requestModels[$name] = $schema;
-            } else {
-                $definitions[$name] = $schema;
-            }
-        }
-
-        return $this->filteredModelDataCache = [
-            'definitions' => $definitions,
-            'requestModels' => $requestModels,
-        ];
+        return $reachable;
     }
 
     /**
