@@ -36,6 +36,8 @@ use Utopia\Mqtt\Packet\Suback;
 use Utopia\Mqtt\Packet\Subscribe;
 use Utopia\Mqtt\Packet\Unsuback;
 use Utopia\Mqtt\Packet\Unsubscribe;
+use Utopia\Mqtt\Properties;
+use Utopia\Mqtt\Property;
 use Utopia\Mqtt\Server;
 
 class MockHandler implements Handler
@@ -56,7 +58,16 @@ class MockHandler implements Handler
         }
         $connection->setClientId($clientId);
 
-        return Connack::accept();
+        // Echo the authentication method in the CONNACK. MQTT 5 enhanced-auth clients that use
+        // a challenge/response mechanism (HiveMQ on Android) require the accepting CONNACK to
+        // carry the same Authentication Method they sent, or they abort the connection.
+        $properties = null;
+        if (!empty($connect->authMethod)) {
+            $properties = (new Properties())
+                ->add(new Property(Property::AUTHENTICATION_METHOD, $connect->authMethod));
+        }
+
+        return Connack::accept(false, $properties);
     }
 
     public function onAuthenticate(Auth $auth, Connection $connection): Connack|Auth|Disconnect
