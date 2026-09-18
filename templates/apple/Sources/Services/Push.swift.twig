@@ -1,0 +1,345 @@
+import Foundation
+import MQTTNIO
+import NIOCore
+
+#if canImport(UserNotifications)
+    import UserNotifications
+#endif
+
+/// A message delivered on a subscribed topic — the MQTT push analog of a realtime event.
+public struct PushMessage {
+    /// The topic the message was published to.
+    public let topic: String
+
+    /// The raw message payload.
+    public let payload: [UInt8]
+
+    /// The MQTT quality of service the message was delivered with.
+    public let qos: Int
+
+    /// The payload decoded as a UTF-8 string.
+    public var string: String {
+        String(decoding: payload, as: UTF8.self)
+    }
+}
+
+/// {{ spec.info.title | caseUcfirst }} native push service — the realtime analog delivered over an MQTT broker,
+/// without FCM or APNS. Built on SwiftNIO (MQTTNIO), the same stack the rest of the SDK's
+/// networking uses.
+///
+/// Mirrors the realtime service: `Push(client).subscribe(topic, callback:)` opens the
+/// connection lazily and returns an unsubscribe callable. The credential is read off the
+/// client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`), the same
+/// way every other service reads auth.
+///
+///     let push = Push(client)
+///     let unsubscribe = try await push.subscribe("user/123/#") { message in
+///         print("\(message.topic): \(message.string)")
+///     }
+///     // ...later
+///     unsubscribe()
+open class Push: Service {
+    private let host: String
+    private let port: Int
+    private let tls: Bool
+    private let tlsInsecure: Bool
+    private let clientId: String?
+    private let keepAlive: UInt16
+    private let reliableDelivery: Bool
+
+    private var foreground = false
+    private var foregroundTitle: String?
+
+    private var mqtt: MQTTClient?
+    private var connecting: Task<MQTTClient, Swift.Error>?
+
+    // Guards the mutable state below; the publish listener fires on an event loop.
+    private let sync = DispatchQueue(label: "{{ spec.info.title | caseLower }}.push")
+
+    // Local id -> (topic filter, callback). The id is never sent to the broker; it
+    // only lets the same topic carry more than one callback.
+    private var subscriptions: [String: (filter: String, callback: (PushMessage) -> Void)] = [:]
+
+    public init(
+        _ client: Client,
+        host: String? = nil,
+        port: Int? = nil,
+        tls: Bool? = nil,
+        tlsInsecure: Bool = false,
+        clientId: String? = nil,
+        keepAlive: UInt16 = 60,
+        reliableDelivery: Bool = true
+    ) {
+        // The broker location is taken from Client.setPushEndpoint() when set (e.g.
+        // "mqtts://host:8883"), otherwise from the regular endpoint.
+        let pushEndpoint = client.endPointPush ?? client.endPoint
+        let url = URL(string: pushEndpoint)
+        self.host = host ?? url?.host ?? "localhost"
+        // Secure by default: TLS on when the endpoint scheme is secure (https/wss/mqtts/ssl)
+        // or the port is 8883, so the credential in the CONNECT packet is not sent in the clear.
+        let secure = tls ?? (port == 8883 || ["https", "wss", "mqtts", "ssl"].contains(url?.scheme ?? ""))
+        self.tls = secure
+        // Take the port from the push endpoint only (a regular http/https endpoint's port is
+        // the API port, not the broker's); otherwise fall back to the MQTT default.
+        let pushPort = client.endPointPush != nil ? url?.port : nil
+        self.port = port ?? pushPort ?? (secure ? 8883 : 1883)
+        self.tlsInsecure = tlsInsecure
+        self.clientId = clientId
+        self.keepAlive = keepAlive
+        self.reliableDelivery = reliableDelivery
+        super.init(client)
+    }
+
+    // QoS for both subscribe and publish, chosen once by `reliableDelivery`:
+    // at-least-once when reliable, at-most-once when not.
+    private var defaultQos: MQTTQoS {
+        reliableDelivery ? .atLeastOnce : .atMostOnce
+    }
+
+    /// Also surface every delivered message as a local notification via
+    /// `UserNotifications`, requesting authorization on the spot.
+    ///
+    /// Note: iOS cannot keep a raw MQTT socket alive once the app is fully killed
+    /// (that requires APNs) — this covers delivery while the app is running or briefly
+    /// backgrounded. Presentation while the app is in the foreground follows the host
+    /// app's `UNUserNotificationCenterDelegate`.
+    ///
+    /// - Parameter title: Fixed notification title. Defaults to the message topic.
+    @discardableResult
+    public func setForeground(title: String? = nil) -> Self {
+        foreground = true
+        foregroundTitle = title
+        #if canImport(UserNotifications)
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+        #endif
+        return self
+    }
+
+    /// Subscribe to a single topic. Returns an unsubscribe callable.
+    @discardableResult
+    public func subscribe(_ topic: String, callback: @escaping (PushMessage) -> Void) async throws -> () -> Void {
+        try await subscribe([topic], callback: callback)
+    }
+
+    /// Subscribe to one or more topics. Returns an unsubscribe callable.
+    ///
+    /// Suspends until the broker has acknowledged the SUBSCRIBE (SUBACK): the broker
+    /// only starts routing a topic once its subscription is registered, so publishing
+    /// before the ack races the message ahead of the subscription and it is dropped
+    /// (no retained replay on MQTT).
+    @discardableResult
+    public func subscribe(_ topics: [String], callback: @escaping (PushMessage) -> Void) async throws -> () -> Void {
+        let mqtt = try await connect()
+
+        var ids: [String] = []
+        for topic in topics {
+            let id = UUID().uuidString
+            ids.append(id)
+            sync.sync { subscriptions[id] = (topic, callback) }
+        }
+
+        _ = try await mqtt.v5.subscribe(
+            to: topics.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: defaultQos) }
+        )
+
+        return { [weak self] in
+            guard let self else { return }
+            let filters = self.sync.sync { () -> [String] in
+                var removed: [String] = []
+                for id in ids {
+                    if let entry = self.subscriptions.removeValue(forKey: id) {
+                        // Only unsubscribe the broker filter once its last local callback is gone.
+                        let stillUsed = self.subscriptions.values.contains { $0.filter == entry.filter }
+                        if !stillUsed {
+                            removed.append(entry.filter)
+                        }
+                    }
+                }
+                return removed
+            }
+            let client: MQTTClient? = self.sync.sync { self.mqtt }
+            if let client, !filters.isEmpty {
+                Task { try? await client.v5.unsubscribe(from: filters) }
+            }
+            if self.sync.sync(execute: { self.subscriptions.isEmpty }) {
+                self.close()
+            }
+        }
+    }
+
+    /// Publish a message to a topic. For testing the fan-out — real pushes come from
+    /// the server, not clients. QoS follows `reliableDelivery`.
+    public func publish(_ topic: String, message: String) async throws {
+        let mqtt = try await connect()
+        _ = try await mqtt.v5.publish(
+            to: topic,
+            payload: ByteBuffer(string: message),
+            qos: defaultQos
+        )
+    }
+
+    /// Tear down the connection and drop all active subscriptions.
+    public func close() {
+        let client = sync.sync { () -> MQTTClient? in
+            let existing = mqtt
+            mqtt = nil
+            connecting?.cancel()
+            connecting = nil
+            return existing
+        }
+        guard let client else { return }
+        _ = try? client.disconnect().wait()
+        try? client.syncShutdownGracefully()
+    }
+
+    private func connect() async throws -> MQTTClient {
+        if let existing = sync.sync(execute: { self.mqtt }) {
+            return existing
+        }
+        // Single-flight: concurrent callers await one in-flight connection instead of
+        // each opening its own (and never see a client before its CONNACK succeeds).
+        let task: Task<MQTTClient, Swift.Error> = sync.sync {
+            if let inflight = self.connecting {
+                return inflight
+            }
+            let created = Task { () throws -> MQTTClient in
+                do {
+                    let client = try await self.open()
+                    self.sync.sync {
+                        self.mqtt = client
+                        self.connecting = nil
+                    }
+                    return client
+                } catch {
+                    self.sync.sync { self.connecting = nil }
+                    throw error
+                }
+            }
+            self.connecting = created
+            return created
+        }
+        return try await task.value
+    }
+
+    private func open() async throws -> MQTTClient {
+        // Read the credential set on the client (via Client.setJWT / setSession).
+        let authMethod: String
+        let credential: String
+        if let jwt = client.config["jwt"], !jwt.isEmpty {
+            authMethod = "appwrite-jwt"
+            credential = jwt
+        } else if let session = client.config["session"], !session.isEmpty {
+            authMethod = "appwrite-session"
+            credential = session
+        } else {
+            throw {{ spec.info.title | caseUcfirst }}Error(message: "No credential set on the client; call Client.setJWT() or Client.setSession() first.")
+        }
+
+        let project = client.config["project"] ?? ""
+        // A non-empty identifier is required for a persistent session (clean start off) —
+        // some MQTT clients/brokers reject a zero-length id in that mode. The broker keys its
+        // offline-replay cursor on this id; pass a stable `clientId` to resume replay across
+        // restarts (the generated one is stable only for this client's lifetime).
+        let id = clientId ?? "appwrite-\(project)-\(UUID().uuidString.prefix(8))"
+
+        var tlsConfiguration: MQTTClient.TLSConfigurationType?
+        if tls && tlsInsecure {
+            #if canImport(Network)
+                tlsConfiguration = .ts(TSTLSConfiguration(certificateVerification: .none))
+            #endif
+        }
+
+        let configuration = MQTTClient.Configuration(
+            version: .v5_0,
+            keepAliveInterval: .seconds(Int64(keepAlive)),
+            useSSL: tls,
+            tlsConfiguration: tlsConfiguration
+        )
+
+        let mqtt = MQTTClient(
+            host: host,
+            port: port,
+            identifier: id,
+            eventLoopGroupProvider: .createNew,
+            configuration: configuration
+        )
+
+        // One listener fans every delivery out to the matching local callbacks.
+        mqtt.addPublishListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self] (result: Result<MQTTPublishInfo, Swift.Error>) in
+            if case .success(let publish) = result {
+                self?.dispatch(publish)
+            }
+        }
+
+        // Enhanced auth carried in the CONNECT properties, plus the project id as a
+        // user property — exactly like the Python and React Native clients.
+        let properties = MQTTProperties([
+            .authenticationMethod(authMethod),
+            .authenticationData(ByteBuffer(bytes: Array(credential.utf8))),
+            .userProperty("projectId", project),
+        ])
+
+        do {
+            // Clean start off in reliable mode so the broker keeps this client's replay
+            // cursor and redelivers what it missed; on when non-reliable so it is purged.
+            let ack = try await mqtt.v5.connect(cleanStart: !reliableDelivery, properties: properties)
+            if ack.reason != .success {
+                try? mqtt.syncShutdownGracefully()
+                throw {{ spec.info.title | caseUcfirst }}Error(message: "MQTT authentication failed (CONNACK reason \(ack.reason))")
+            }
+        } catch let error as {{ spec.info.title | caseUcfirst }}Error {
+            throw error
+        } catch {
+            try? mqtt.syncShutdownGracefully()
+            throw {{ spec.info.title | caseUcfirst }}Error(message: error.localizedDescription)
+        }
+
+        return mqtt
+    }
+
+    private func dispatch(_ publish: MQTTPublishInfo) {
+        let pushMessage = PushMessage(
+            topic: publish.topicName,
+            payload: [UInt8](publish.payload.readableBytesView),
+            qos: Int(publish.qos.rawValue)
+        )
+        let callbacks = sync.sync {
+            subscriptions.values.filter { matches(filter: $0.filter, topic: publish.topicName) }.map(\.callback)
+        }
+        for callback in callbacks {
+            callback(pushMessage)
+        }
+        notify(pushMessage)
+    }
+
+    private func notify(_ message: PushMessage) {
+        guard foreground else { return }
+        #if canImport(UserNotifications)
+            let content = UNMutableNotificationContent()
+            content.title = foregroundTitle ?? message.topic
+            content.body = message.string
+            content.sound = .default
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request)
+        #endif
+    }
+
+}
+
+/// MQTT topic-filter match with `+` (single level) and `#` (multi level).
+private func matches(filter: String, topic: String) -> Bool {
+    let filterParts = filter.split(separator: "/", omittingEmptySubsequences: false)
+    let topicParts = topic.split(separator: "/", omittingEmptySubsequences: false)
+    for (index, part) in filterParts.enumerated() {
+        if part == "#" {
+            return true
+        }
+        if index >= topicParts.count {
+            return false
+        }
+        if part != "+" && part != topicParts[index] {
+            return false
+        }
+    }
+    return filterParts.count == topicParts.count
+}

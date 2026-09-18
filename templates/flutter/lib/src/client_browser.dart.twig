@@ -99,6 +99,12 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }
 
   @override
+  ClientBrowser setPushEndpoint(String endPoint) {
+    config['endpointPush'] = endPoint;
+    return this;
+  }
+
+  @override
   ClientBrowser addHeader(String key, String value) {
     _headers![key] = value;
 

@@ -1,0 +1,547 @@
+import '../lib/polyfills';
+
+import { Buffer } from 'buffer';
+// The RN/Metro build of `mqtt` (dist/mqtt.esm.js, picked via the package's
+// "react-native" export condition) exposes ONLY a default export — there is no
+// named `MqttClient` at runtime, so importing it as a value yields undefined
+// ("undefined cannot be used as a constructor"). Import the default and read the
+// class off it; keep MqttClient as a type-only import (erased at runtime).
+import mqtt, {
+    type IClientOptions,
+    type IConnackPacket,
+    type IPublishPacket,
+    type MqttClient,
+} from 'mqtt';
+
+import { Client } from '../client';
+import { createTcpStream } from '../lib/tcp-stream';
+import { Service } from '../service';
+
+/** A message delivered on a subscribed topic (the MQTT analog of a Realtime event). */
+export interface PushMessage {
+    topic: string;
+    payload: Buffer;
+    qos: number;
+}
+
+export type MessageCallback = (message: PushMessage) => void | Promise<void>;
+export type Unsubscribe = () => void;
+
+export interface PushOptions {
+    /** Broker host. Defaults to the {{spec.info.title | caseUcfirst}} endpoint's hostname. */
+    host?: string;
+    /** Broker port. Defaults to 1883, or 8883 when `tls` is on. */
+    port?: number;
+    /** Whether to use TLS. Defaults to true when `port` is 8883. */
+    tls?: boolean;
+    /**
+     * Skip TLS certificate verification. Honored only on transports that reach the
+     * TLS options — the raw TCP socket used here, not a WebSocket.
+     */
+    tlsInsecure?: boolean;
+    /**
+     * A fixed client id. Each connection needs its own: an MQTT server evicts the
+     * older session when a new one connects with the same id, so a shared id would
+     * make concurrent clients kick each other off. Defaults to a per-connection id.
+     * The broker keys its offline-replay cursor on this id, so pass a stable value to
+     * resume replay across app restarts.
+     */
+    clientId?: string;
+    /**
+     * MQTT keepalive in seconds (PINGREQ interval). Defaults to 60. On mobile a
+     * shorter value (30–45) detects a NAT/Doze-dropped socket sooner.
+     */
+    keepalive?: number;
+    /**
+     * Auto-reconnect interval in ms. 0 (default) disables it — a one-shot connection.
+     * A long-lived client sets this > 0 so the socket comes back after a drop;
+     * subscriptions are re-registered on every reconnect (see {@link resubscribeAll}).
+     */
+    reconnectPeriod?: number;
+    /**
+     * Delivery guarantee for the whole connection. `true` (default) subscribes and
+     * publishes at QoS 1 with clean start off, so the broker keeps this client's replay
+     * cursor and redelivers messages missed during a brief disconnect; `false` uses
+     * QoS 0 and clean start on (at-most-once, may be lost, cursor purged — no replay).
+     */
+    reliableDelivery?: boolean;
+    /** Notified on connection lifecycle changes, for a UI/notification to reflect. */
+    onStatus?: (status: PushStatus, detail?: string) => void;
+}
+
+export type PushStatus =
+    | 'connecting'
+    | 'connected'
+    | 'reconnecting'
+    | 'offline'
+    | 'closed'
+    | 'error';
+
+type AuthMethod = 'appwrite-jwt' | 'appwrite-session' | '';
+
+/**
+ * {{spec.info.title | caseUcfirst}} native push service — the Realtime analog over an MQTT broker, without
+ * FCM or APNS. Foreground delivery only: while the app is in the foreground the
+ * connection stays open and each message is handed to your callback.
+ *
+ * Mirrors the Realtime service: `new Push(client).subscribe(topics, callback)` opens
+ * the connection lazily and returns an `unsubscribe` callable. The credential is read
+ * off the client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`),
+ * the same way every other service reads auth.
+ *
+ *     const client = new Client().setEndpoint(...).setProject(...).setJWT(jwt);
+ *     const push = new Push(client);
+ *     const unsubscribe = await push.subscribe('user/123/#', (m) =>
+ *       console.log(m.topic, m.payload.toString()),
+ *     );
+ */
+export class Push extends Service {
+    private readonly host: string;
+    private readonly port: number;
+    private readonly tls: boolean;
+    private readonly tlsInsecure: boolean;
+    private readonly clientId?: string;
+    private readonly keepalive: number;
+    private readonly reconnectPeriod: number;
+    private readonly reliableDelivery: boolean;
+    private readonly onStatus?: (status: PushStatus, detail?: string) => void;
+
+    private mqtt: MqttClient | null = null;
+    private connecting: Promise<void> | null = null;
+    /** Set once the first CONNACK lands, so 'connect' events after are reconnects. */
+    private everConnected = false;
+
+    private foreground = false;
+    private foregroundTitle?: string;
+    private foregroundStarted = false;
+
+    // Local id -> { topic, callback }. The id is never sent to the broker; it only
+    // lets the same topic carry more than one callback.
+    private readonly subscriptions = new Map<
+        string,
+        { topic: string; callback: MessageCallback }
+    >();
+
+    constructor(client: Client, options: PushOptions = {}) {
+        super(client);
+
+        // The broker location comes from Client.setPushEndpoint() when set (e.g.
+        // "mqtts://host:8883"), otherwise from the regular endpoint.
+        let endpointHost = '';
+        let endpointSecure = false;
+        let endpointPort: number | null = null;
+        try {
+            const url = new URL(
+                client.config.endpointPush || client.config.endpoint || '',
+            );
+            endpointHost = url.hostname;
+            endpointSecure = ['https:', 'wss:', 'mqtts:', 'ssl:'].includes(
+                url.protocol,
+            );
+            // Take the port from the push endpoint only (a regular http/https endpoint's
+            // port is the API port, not the broker's).
+            endpointPort =
+                client.config.endpointPush && url.port
+                    ? Number(url.port)
+                    : null;
+        } catch {
+            // leave defaults
+        }
+
+        this.host = options.host || endpointHost || 'localhost';
+        // Secure by default: TLS on when the endpoint scheme is secure (or port 8883), so the
+        // credential in the CONNECT packet is not sent over a plaintext socket.
+        this.tls = options.tls ?? (options.port === 8883 || endpointSecure);
+        this.port = options.port ?? endpointPort ?? (this.tls ? 8883 : 1883);
+        this.tlsInsecure = options.tlsInsecure ?? false;
+        this.clientId = options.clientId;
+        this.keepalive = options.keepalive ?? 60;
+        this.reconnectPeriod = options.reconnectPeriod ?? 0;
+        this.reliableDelivery = options.reliableDelivery ?? true;
+        this.onStatus = options.onStatus;
+    }
+
+    // QoS for both subscribe and publish, chosen once by `reliableDelivery`:
+    // at-least-once (1) when reliable, at-most-once (0) when not.
+    private get defaultQos(): 0 | 1 {
+        return this.reliableDelivery ? 1 : 0;
+    }
+
+    /**
+     * Keep receiving while the app is backgrounded or closed (Android), posting a
+     * local notification per message. Runs the connection inside an Android foreground
+     * service via `react-native-background-actions` and posts notifications via
+     * `expo-notifications` — install both as peer dependencies, and note this needs a
+     * dev/standalone build (native modules do not run in Expo Go).
+     *
+     * @param options.title Fixed notification title. Defaults to the message topic.
+     */
+    setForeground(options: { title?: string } = {}): this {
+        this.foreground = true;
+        this.foregroundTitle = options.title;
+        return this;
+    }
+
+    // --- realtime-like API ---
+
+    /**
+     * Subscribe to one or more topics. Resolves to an unsubscribe callable.
+     *
+     * Awaiting resolves only once the broker has acked every SUBSCRIBE (SUBACK):
+     * the broker only starts routing a topic once its subscription is registered,
+     * so publishing before the ack races the message ahead of the subscription and
+     * it is dropped (no retained replay on MQTT). Awaiting here makes
+     * subscribe-then-publish reliable.
+     */
+    async subscribe(
+        topics: string | string[],
+        callback: MessageCallback,
+    ): Promise<Unsubscribe> {
+        const topicList = typeof topics === 'string' ? [topics] : topics;
+
+        if (this.foreground) {
+            await this.startForeground();
+        }
+
+        const client = await this.connect();
+
+        const ids: string[] = [];
+        await Promise.all(
+            topicList.map((topic) => {
+                const id = randomId();
+                ids.push(id);
+                this.subscriptions.set(id, { topic, callback });
+                return new Promise<void>((resolve, reject) => {
+                    client.subscribe(topic, { qos: this.defaultQos }, (err) =>
+                        err ? reject(err) : resolve(),
+                    );
+                });
+            }),
+        );
+
+        return () => {
+            for (const id of ids) {
+                const entry = this.subscriptions.get(id);
+                this.subscriptions.delete(id);
+                // Only unsubscribe the broker filter once its last local callback is gone.
+                const stillUsed = [...this.subscriptions.values()].some(
+                    (s) => s.topic === entry?.topic,
+                );
+                if (entry && this.mqtt && !stillUsed) {
+                    this.mqtt.unsubscribe(entry.topic);
+                }
+            }
+            if (this.subscriptions.size === 0) {
+                this.close();
+            }
+        };
+    }
+
+    /**
+     * Publish a message to a topic. For testing the fan-out — real pushes come from
+     * the server, not clients. Resolves once the broker acks. QoS follows `reliableDelivery`.
+     */
+    async publish(topic: string, payload: string | Buffer): Promise<void> {
+        const client = await this.connect();
+        await new Promise<void>((resolve, reject) => {
+            client.publish(topic, payload, { qos: this.defaultQos }, (err) =>
+                err ? reject(err) : resolve(),
+            );
+        });
+    }
+
+    /** Tear down the connection (and stop the foreground service, if running). */
+    close(): void {
+        if (this.mqtt) {
+            this.mqtt.end(true);
+            this.mqtt = null;
+        }
+        this.connecting = null;
+        this.everConnected = false;
+        if (this.foregroundStarted) {
+            this.foregroundStarted = false;
+            try {
+                /* eslint-disable @typescript-eslint/no-require-imports */
+                const backgroundActions: typeof import('react-native-background-actions').default =
+                    require('react-native-background-actions').default;
+                /* eslint-enable @typescript-eslint/no-require-imports */
+                void backgroundActions.stop();
+            } catch {
+                // not installed or already stopped
+            }
+        }
+    }
+
+    /**
+     * Start the Android foreground service (keeps the process alive so the in-process
+     * MQTT socket keeps delivering) and request notification permission. No-op after
+     * the first call.
+     */
+    private async startForeground(): Promise<void> {
+        if (this.foregroundStarted) {
+            return;
+        }
+        this.foregroundStarted = true;
+        try {
+            /* eslint-disable @typescript-eslint/no-require-imports */
+            const notifications: typeof import('expo-notifications') = require('expo-notifications');
+            const backgroundActions: typeof import('react-native-background-actions').default =
+                require('react-native-background-actions').default;
+            /* eslint-enable @typescript-eslint/no-require-imports */
+            await notifications.requestPermissionsAsync();
+            await notifications.setNotificationChannelAsync('appwrite-push', {
+                name: 'Notifications',
+                importance: notifications.AndroidImportance.HIGH,
+            });
+            if (!backgroundActions.isRunning()) {
+                await backgroundActions.start(
+                    // The MQTT client runs in this same JS context; the task only has to
+                    // stay pending to keep the foreground service (and process) alive.
+                    () => new Promise<void>(() => undefined),
+                    {
+                        taskName: 'appwritePush',
+                        taskTitle: this.foregroundTitle ?? '{{spec.info.title | caseUcfirst}}',
+                        taskDesc: 'Listening for messages',
+                    },
+                );
+            }
+        } catch (err) {
+            this.foregroundStarted = false;
+            throw new Error(
+                'setForeground() requires the "react-native-background-actions" and ' +
+                    '"expo-notifications" peer dependencies',
+                { cause: err },
+            );
+        }
+    }
+
+    /** Post a local notification for a message when foreground mode is on. */
+    private async notify(message: PushMessage): Promise<void> {
+        if (!this.foreground) {
+            return;
+        }
+        try {
+            /* eslint-disable @typescript-eslint/no-require-imports */
+            const notifications: typeof import('expo-notifications') = require('expo-notifications');
+            /* eslint-enable @typescript-eslint/no-require-imports */
+            await notifications.scheduleNotificationAsync({
+                content: {
+                    title: this.foregroundTitle ?? message.topic,
+                    body: message.payload.toString(),
+                },
+                trigger: null,
+            });
+        } catch {
+            // expo-notifications not installed; skip.
+        }
+    }
+
+    /**
+     * Re-register every active subscription. Called on each reconnect: with
+     * a fresh (or cleared) session the broker keeps no subscriptions, so a reconnected client starts with
+     * zero subscriptions and would otherwise silently stop receiving.
+     */
+    private resubscribeAll(): void {
+        const client = this.mqtt;
+        if (!client) {
+            return;
+        }
+        for (const { topic } of this.subscriptions.values()) {
+            client.subscribe(topic, { qos: this.defaultQos }, (err) => {
+                if (err) {
+                    this.onStatus?.(
+                        'error',
+                        `resubscribe ${topic}: ${err.message}`,
+                    );
+                }
+            });
+        }
+    }
+
+    // --- internals ---
+
+    private connect(): Promise<MqttClient> {
+        if (this.mqtt) {
+            return Promise.resolve(this.mqtt);
+        }
+        if (!this.connecting) {
+            this.connecting = this.open();
+            // A failed open must not poison future attempts — clear the cached
+            // in-flight promise so a later subscribe/publish can retry.
+            this.connecting.catch(() => {
+                this.connecting = null;
+            });
+        }
+        return this.connecting.then(() => this.mqtt!);
+    }
+
+    private async open(): Promise<void> {
+        // Read the credential set on the client (via Client.setJWT / setSession).
+        let authMethod: AuthMethod;
+        let credential: string;
+        if (this.client.config.jwt) {
+            authMethod = 'appwrite-jwt';
+            credential = this.client.config.jwt;
+        } else if (this.client.config.session) {
+            authMethod = 'appwrite-session';
+            credential = this.client.config.session;
+        } else {
+            throw new Error(
+                'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
+            );
+        }
+
+        const project = this.client.config.project ?? '';
+        const clientId =
+            this.clientId || `appwrite-${project}-${randomId().slice(0, 8)}`;
+
+        this.onStatus?.('connecting');
+
+        const options: IClientOptions = {
+            clientId,
+            protocolVersion: 5,
+            clean: !this.reliableDelivery, // clean start off = keep the replay cursor
+            keepalive: this.keepalive,
+            // 0 = one-shot. > 0 lets a long-lived client auto-reconnect.
+            reconnectPeriod: this.reconnectPeriod,
+            manualConnect: true,
+            // Enhanced auth carried in CONNECT properties.
+            properties: {
+                authenticationMethod: authMethod,
+                authenticationData: Buffer.from(credential),
+                userProperties: { projectId: project },
+            },
+            // Ack QoS 1 deliveries by hand, after the callback has processed the
+            // message. On the broker a subscriber's PUBACK is what advances its replay
+            // cursor, so acking automatically on arrival — before the callback runs —
+            // would advance past a message a failing callback never actually handled.
+            customHandleAcks: (_topic, _message, packet, cb) => {
+                this.dispatch(packet as IPublishPacket)
+                    // cb(0): send the PUBACK now that the callback has processed it.
+                    .then(() => cb(0))
+                    // On failure, do not ack: the message stays unacked and the broker
+                    // replays it on reconnect (at-least-once).
+                    .catch((err) =>
+                        cb(err instanceof Error ? err : new Error(String(err))),
+                    );
+            },
+        };
+
+        // Raw TCP only: build the transport from a native socket, never a WebSocket.
+        const client = new mqtt.MqttClient(
+            () =>
+                createTcpStream({
+                    host: this.host,
+                    port: this.port,
+                    tls: this.tls,
+                    tlsInsecure: this.tlsInsecure,
+                }),
+            options,
+        );
+        this.mqtt = client;
+
+        // Dispatch QoS 0 deliveries (which never reach customHandleAcks). QoS 1/2 are
+        // dispatched from customHandleAcks; ignore them here to avoid a double dispatch.
+        client.on('message', (_topic, _payload, packet) => {
+            if (packet.qos === 0) {
+                void this.dispatch(packet);
+            }
+        });
+
+        // Persistent lifecycle listeners. On a reconnect the broker has no session for
+        // us on a cleared session, so we must re-register every subscription.
+        client.on('connect', () => {
+            if (this.everConnected) {
+                this.resubscribeAll();
+            }
+            this.everConnected = true;
+            this.onStatus?.('connected');
+        });
+        client.on('reconnect', () => this.onStatus?.('reconnecting'));
+        client.on('offline', () => this.onStatus?.('offline'));
+        client.on('close', () => this.onStatus?.('closed'));
+        // A persistent error listener also prevents mqtt.js from throwing on
+        // post-connect errors once the one-shot handler below is removed.
+        client.on('error', (err) =>
+            this.onStatus?.(
+                'error',
+                err instanceof Error ? err.message : String(err),
+            ),
+        );
+
+        await new Promise<void>((resolve, reject) => {
+            const onConnect = (packet: IConnackPacket) => {
+                cleanup();
+                // reasonCode (v5) / returnCode (v3) of 0 means accepted.
+                const rc = packet.reasonCode ?? packet.returnCode ?? 0;
+                if (rc !== 0) {
+                    this.close();
+                    reject(
+                        new Error(
+                            `MQTT authentication failed (CONNACK reason ${rc})`,
+                        ),
+                    );
+                } else {
+                    resolve();
+                }
+            };
+            const onError = (err: Error) => {
+                cleanup();
+                this.close();
+                reject(err);
+            };
+            const cleanup = () => {
+                client.removeListener('connect', onConnect);
+                client.removeListener('error', onError);
+            };
+            client.on('connect', onConnect);
+            client.on('error', onError);
+            client.connect();
+        });
+    }
+
+    /** Fan a delivered packet out to every subscription whose filter matches. */
+    private async dispatch(packet: IPublishPacket): Promise<void> {
+        const message: PushMessage = {
+            topic: packet.topic.toString(),
+            payload: Buffer.isBuffer(packet.payload)
+                ? packet.payload
+                : Buffer.from(packet.payload),
+            qos: packet.qos,
+        };
+        for (const { topic: filter, callback } of this.subscriptions.values()) {
+            if (matches(filter, message.topic)) {
+                await callback(message);
+            }
+        }
+        await this.notify(message);
+    }
+}
+
+/** A hex id, uuid4-like enough for a client-generated subId / client id suffix. */
+function randomId(): string {
+    let out = '';
+    for (let i = 0; i < 32; i++) {
+        out += Math.floor(Math.random() * 16).toString(16);
+    }
+    return out;
+}
+
+/** MQTT topic-filter match with '+' (single level) and '#' (multi level). */
+export function matches(filter: string, topic: string): boolean {
+    const filterParts = filter.split('/');
+    const topicParts = topic.split('/');
+    for (let i = 0; i < filterParts.length; i++) {
+        const part = filterParts[i];
+        if (part === '#') {
+            return true;
+        }
+        if (i >= topicParts.length) {
+            return false;
+        }
+        if (part !== '+' && part !== topicParts[i]) {
+            return false;
+        }
+    }
+    return filterParts.length === topicParts.length;
+}

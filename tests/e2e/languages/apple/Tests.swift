@@ -467,6 +467,25 @@ class Tests: XCTestCase {
 
         mock = try await general.headers()
         print(mock.result)
+
+        // Native push (MQTT) round-trip against the mock broker.
+        _ = client.setJWT("e2e-jwt")
+        _ = client.setPushEndpoint("mqtt://mqtt:1883")
+        let push = Push(client)
+        let pushExpectation = XCTestExpectation(description: "push message")
+        var pushBody = "Push message:failed"
+        let pushUnsubscribe = try await push.subscribe("e2e/push") { message in
+            if message.string == "push-payload" {
+                pushBody = "Push message:passed"
+            }
+            pushExpectation.fulfill()
+        }
+        print("Push subscribe:passed")
+        try await push.publish("e2e/push", message: "push-payload")
+        await fulfillment(of: [pushExpectation], timeout: 10)
+        print(pushBody)
+        pushUnsubscribe()
+        push.close()
     }
 
     func parse(from json: String) -> String? {

@@ -12,6 +12,7 @@ export { Client, Query, {{spec.info.title | caseUcfirst}}Exception } from './cli
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}
 export { Realtime } from './services/realtime';
+export { Push } from './services/push';
 export type {
     Models,
     Payload,
@@ -19,6 +20,7 @@ export type {
     UploadProgress,
 } from './client';
 export type { RealtimeSubscription } from './services/realtime';
+export type { PushMessage, PushOptions, PushStatus } from './services/push';
 export type { QueryTypes, QueryTypesList } from './query';
 export { Permission } from './permission';
 export { Role } from './role';

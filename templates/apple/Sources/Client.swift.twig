@@ -23,6 +23,8 @@ open class Client {
 
     open var endPointRealtime: String? = nil
 
+    open var endPointPush: String? = nil
+
     open var headers: [String: String] = [
         "content-type": "application/json",
         "x-sdk-name": "{{ sdk.name }}",
@@ -200,6 +202,21 @@ open class Client {
         }
 
         self.endPointRealtime = endPoint
+        return self
+    }
+
+    ///
+    /// Set push endpoint.
+    ///
+    /// The MQTT broker URL the Push service connects to, e.g. `mqtt://host:1883` or
+    /// `mqtts://host:8883`.
+    ///
+    /// @param String endPoint
+    ///
+    /// @return Client
+    ///
+    open func setPushEndpoint(_ endPoint: String) -> Client {
+        self.endPointPush = endPoint
         return self
     }
 

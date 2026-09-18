@@ -1,0 +1,78 @@
+import 'mqtt_stub.dart' if (dart.library.io) 'mqtt_io.dart';
+import 'service.dart';
+import 'client.dart';
+import 'mqtt_message.dart';
+
+/// A callback invoked for every message delivered on a subscribed topic.
+typedef PushCallback = void Function(PushMessage message);
+
+/// Cancels a subscription created with [Push.subscribe].
+typedef PushUnsubscribe = void Function();
+
+/// {{spec.info.title | caseUcfirst}} native push service — the realtime analog delivered over an MQTT
+/// broker, without FCM or APNS. Foreground delivery only: while the app is in the
+/// foreground the connection stays open and each message is handed to your callback.
+///
+/// Mirrors the realtime service: `Push(client).subscribe(topics, callback)` opens the
+/// connection lazily and returns an unsubscribe callable. The credential is read off
+/// the client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`),
+/// the same way every other service reads auth.
+///
+/// ```dart
+/// final client = Client().setEndpoint('...').setProject('...').setJWT(jwt);
+/// final push = Push(client);
+/// final unsubscribe = await push.subscribe('user/123/#', (message) {
+///   print('${message.topic}: ${message.string}');
+/// });
+///
+/// unsubscribe();
+/// ```
+abstract class Push extends Service {
+  /// Initializes a [Push] service.
+  ///
+  /// [host] defaults to the endpoint's hostname and [tls] defaults to `true` when
+  /// [port] is 8883. [tlsInsecure] skips TLS certificate verification (useful when
+  /// the broker carries a certificate that does not chain to a public root).
+  ///
+  /// [reliableDelivery] (default `true`) picks the delivery guarantee once, for the
+  /// whole connection: `true` subscribes and publishes at QoS 1 with clean start off,
+  /// so the broker keeps this client's replay cursor and redelivers messages missed
+  /// during a brief disconnect on reconnect; `false` uses QoS 0 and clean start on
+  /// (at-most-once, may be lost, cursor purged — no replay). The broker owns the replay
+  /// window and derives a stable per-user id when no [clientId] is given.
+  factory Push(
+    Client client, {
+    String? host,
+    int? port,
+    bool? tls,
+    bool tlsInsecure = false,
+    String? clientId,
+    int keepAlive = 60,
+    bool reliableDelivery = true,
+  }) =>
+      createPush(
+        client,
+        host: host,
+        port: port,
+        tls: tls,
+        tlsInsecure: tlsInsecure,
+        clientId: clientId,
+        keepAlive: keepAlive,
+        reliableDelivery: reliableDelivery,
+      );
+
+  /// Subscribe to one or more topics, resolving to an unsubscribe callable.
+  ///
+  /// [topics] is a single topic string or a list of them. The future resolves only
+  /// once every subscription has been acknowledged (SUBACK), so a subscribe-then-
+  /// publish is reliable. Delivery QoS follows [reliableDelivery].
+  Future<PushUnsubscribe> subscribe(Object topics, PushCallback callback);
+
+  /// Publish a message to a topic. For testing the fan-out — real pushes come from
+  /// the server, not clients. Resolves once the broker has been handed the message.
+  /// Publish QoS follows [reliableDelivery].
+  Future<void> publish(String topic, String payload);
+
+  /// Tear down the connection and drop all active subscriptions.
+  void close();
+}

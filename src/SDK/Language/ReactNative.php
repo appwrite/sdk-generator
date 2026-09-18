@@ -64,6 +64,21 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/services/push.ts',
+                'template'      => 'react-native/src/services/push.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/lib/tcp-stream.ts',
+                'template'      => 'react-native/src/lib/tcp-stream.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/lib/polyfills.ts',
+                'template'      => 'react-native/src/lib/polyfills.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/models.ts',
                 'template'      => 'react-native/src/models.ts.twig',
             ],

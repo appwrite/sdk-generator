@@ -3,6 +3,8 @@ export { Client, {{spec.info.title | caseUcfirst}}Exception } from './client';
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}
 export { Realtime } from './services/realtime';
+export { Push } from './services/push';
+export type { PushMessage, PushOptions, PushStatus } from './services/push';
 export type {
     Models,
     Payload,

@@ -368,6 +368,7 @@ class Client {
     config: {
         endpoint: string;
         endpointRealtime: string;
+        endpointPush: string;
 {%~ for headerKey, header in globalHeaders %}
         {{ headerKey | caseLower }}: string;
 {%~ endfor %}
@@ -378,6 +379,7 @@ class Client {
     } = {
         endpoint: '{{ (spec | endpoint) }}',
         endpointRealtime: '',
+        endpointPush: '',
 {%~ for headerKey, header in globalHeaders %}
         {{ headerKey | caseLower }}: '',
 {%~ endfor %}
@@ -462,6 +464,33 @@ class Client {
         }
 
         this.config.endpointRealtime = endpointRealtime;
+        return this;
+    }
+
+    /**
+     * Set Push Endpoint
+     *
+     * The MQTT-over-WebSocket URL the {{ spec.info.title | caseUcfirst }}Push service connects to.
+     *
+     * @param {string} endpointPush
+     *
+     * @returns {this}
+     */
+    setPushEndpoint(endpointPush: string): this {
+        if (!endpointPush || typeof endpointPush !== 'string') {
+            throw new {{spec.info.title | caseUcfirst}}Exception('Endpoint must be a valid string');
+        }
+
+        if (
+            !endpointPush.startsWith('ws://') &&
+            !endpointPush.startsWith('wss://')
+        ) {
+            throw new {{spec.info.title | caseUcfirst}}Exception(
+                'Invalid push endpoint URL: ' + endpointPush,
+            );
+        }
+
+        this.config.endpointPush = endpointPush;
         return this;
     }
 

@@ -463,6 +463,26 @@ void main() async {
 
   response = await general.headers();
   print(response.result);
+
+  // Native push (MQTT) round-trip against the mock broker.
+  client.setJWT('e2e-jwt');
+  client.setPushEndpoint('mqtt://mqtt:1883');
+  final push = Push(client);
+  final pushReceived = Completer<PushMessage>();
+  final pushUnsub = await push.subscribe('e2e/push', (m) {
+    if (!pushReceived.isCompleted) {
+      pushReceived.complete(m);
+    }
+  });
+  print('Push subscribe:passed');
+  await push.publish('e2e/push', 'push-payload');
+  final pushMessage =
+      await pushReceived.future.timeout(const Duration(seconds: 10));
+  print(pushMessage.string == 'push-payload'
+      ? 'Push message:passed'
+      : 'Push message:failed');
+  pushUnsub();
+  push.close();
 }
 
 String? parse(String json) {
