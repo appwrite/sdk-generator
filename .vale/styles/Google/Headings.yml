@@ -1,0 +1,32 @@
+extends: capitalization
+message: "'%s' should use sentence-style capitalization."
+link: "https://developers.google.com/style/capitalization#capitalization-in-titles-and-headings"
+level: warning
+scope: heading
+match: $sentence
+# No `indicators: [":"]` here. That makes Vale require a capital after a colon,
+# which is the Microsoft convention this rule was originally copied from. This
+# guide says the opposite: "the first word after a colon is generally
+# lowercase" (developers.google.com/style/colons), and Colons.yml enforces
+# exactly that. See issue #58.
+exceptions:
+  - Azure
+  - CLI
+  - Cosmos
+  - Docker
+  - Emmet
+  - gRPC
+  - I
+  - Kubernetes
+  - Linux
+  - macOS
+  - Marketplace
+  - MongoDB
+  - REPL
+  - Studio
+  - TypeScript
+  - URLs
+  - Visual
+  - VS
+  - Windows
+  - JSON

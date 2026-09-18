@@ -1,0 +1,13 @@
+extends: existence
+message: "Avoid time-based words like '%s' in product documentation."
+link: https://developers.google.com/style/timeless-documentation
+level: suggestion
+ignorecase: true
+# The guide also names 'now' and 'new', but both have common senses that aren't
+# time-anchored ('create a new project'): adding them took a 950-file corpus of
+# technical documentation from 14 hits to 117. 'recently' is left out too — every
+# hit in that corpus was the UI idiom 'recently used'.
+tokens:
+  - currently
+  - latest
+  - soon
