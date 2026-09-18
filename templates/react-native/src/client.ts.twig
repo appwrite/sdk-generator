@@ -180,6 +180,7 @@ class Client {
     config: { [key: string]: string } = {
         endpoint: '{{ (spec | endpoint) }}',
         endpointRealtime: '',
+        endpointPush: '',
         platform: '',
 {% for headerKey, header in globalHeaders %}
 {% if headerKey | caseLower != 'platform' %}
@@ -260,6 +261,25 @@ class Client {
         }
 
         this.config.endpointRealtime = endpointRealtime;
+        return this;
+    }
+
+    /**
+     * Set Push Endpoint
+     *
+     * The MQTT broker URL the {{ spec.info.title | caseUcfirst }}Push service connects to, e.g.
+     * `mqtt://host:1883` or `mqtts://host:8883`.
+     *
+     * @param {string} endpointPush
+     *
+     * @returns {this}
+     */
+    setPushEndpoint(endpointPush: string): this {
+        if (!endpointPush || typeof endpointPush !== 'string') {
+            throw new {{spec.info.title | caseUcfirst}}Exception('Endpoint must be a valid string');
+        }
+
+        this.config.endpointPush = endpointPush;
         return this;
     }
 

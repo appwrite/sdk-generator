@@ -125,21 +125,34 @@ export class Push extends Service {
     constructor(client: Client, options: PushOptions = {}) {
         super(client);
 
+        // The broker location comes from Client.setPushEndpoint() when set (e.g.
+        // "mqtts://host:8883"), otherwise from the regular endpoint.
         let endpointHost = '';
         let endpointSecure = false;
+        let endpointPort: number | null = null;
         try {
-            const url = new URL(client.config.endpoint ?? '');
+            const url = new URL(
+                client.config.endpointPush || client.config.endpoint || '',
+            );
             endpointHost = url.hostname;
-            endpointSecure = url.protocol === 'https:';
+            endpointSecure = ['https:', 'wss:', 'mqtts:', 'ssl:'].includes(
+                url.protocol,
+            );
+            // Take the port from the push endpoint only (a regular http/https endpoint's
+            // port is the API port, not the broker's).
+            endpointPort =
+                client.config.endpointPush && url.port
+                    ? Number(url.port)
+                    : null;
         } catch {
             // leave defaults
         }
 
         this.host = options.host || endpointHost || 'localhost';
-        // Secure by default: TLS on when the endpoint is https (or port 8883), so the
+        // Secure by default: TLS on when the endpoint scheme is secure (or port 8883), so the
         // credential in the CONNECT packet is not sent over a plaintext socket.
         this.tls = options.tls ?? (options.port === 8883 || endpointSecure);
-        this.port = options.port ?? (this.tls ? 8883 : 1883);
+        this.port = options.port ?? endpointPort ?? (this.tls ? 8883 : 1883);
         this.tlsInsecure = options.tlsInsecure ?? false;
         this.clientId = options.clientId;
         this.keepalive = options.keepalive ?? 60;
