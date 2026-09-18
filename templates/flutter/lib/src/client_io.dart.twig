@@ -129,6 +129,12 @@ class ClientIO extends ClientBase with ClientMixin {
   }
 
   @override
+  ClientIO setPushEndpoint(String endPoint) {
+    config['endpointPush'] = endPoint;
+    return this;
+  }
+
+  @override
   ClientIO addHeader(String key, String value) {
     _headers![key] = value;
 

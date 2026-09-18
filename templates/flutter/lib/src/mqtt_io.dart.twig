@@ -70,13 +70,17 @@ class PushIO implements Push {
     int keepAlive = 60,
     bool reliableDelivery = true,
   }) {
-    // Secure by default: TLS on when the endpoint is https (or port 8883), so the
+    // The broker location comes from Client.setPushEndpoint() when set (e.g.
+    // "mqtts://host:8883"), otherwise from the regular endpoint.
+    final pushEndpoint = client.config['endpointPush'] ?? client.endPoint;
+    // Secure by default: TLS on when the endpoint scheme is secure (or port 8883), so the
     // credential in the CONNECT packet is not sent over a plaintext socket.
-    final resolvedTls = tls ?? (port == 8883 || _endpointSecure(client));
-    final resolvedPort = port ?? (resolvedTls ? 8883 : 1883);
+    final resolvedTls = tls ?? (port == 8883 || _secureScheme(pushEndpoint));
+    final resolvedPort =
+        port ?? _pushEndpointPort(client) ?? (resolvedTls ? 8883 : 1883);
     return PushIO._(
       client,
-      host: host ?? _endpointHost(client),
+      host: host ?? _hostOf(pushEndpoint),
       port: resolvedPort,
       tls: resolvedTls,
       tlsInsecure: tlsInsecure,
@@ -103,19 +107,39 @@ class PushIO implements Push {
         _keepAlive = keepAlive,
         _reliableDelivery = reliableDelivery;
 
-  static bool _endpointSecure(Client client) {
+  static bool _secureScheme(String endpoint) {
     try {
-      return Uri.parse(client.endPoint).scheme == 'https';
+      final scheme = Uri.parse(endpoint).scheme;
+      return scheme == 'https' ||
+          scheme == 'wss' ||
+          scheme == 'mqtts' ||
+          scheme == 'ssl';
     } catch (_) {
       return false;
     }
   }
 
-  static String _endpointHost(Client client) {
+  static String _hostOf(String endpoint) {
     try {
-      return Uri.parse(client.endPoint).host;
+      final host = Uri.parse(endpoint).host;
+      return host.isEmpty ? 'localhost' : host;
     } catch (_) {
       return 'localhost';
+    }
+  }
+
+  // Take the port from an explicitly-set push endpoint only (a regular http/https
+  // endpoint's port is the API port, not the broker's).
+  static int? _pushEndpointPort(Client client) {
+    final endpoint = client.config['endpointPush'];
+    if (endpoint == null) {
+      return null;
+    }
+    try {
+      final port = Uri.parse(endpoint).port;
+      return port == 0 ? null : port;
+    } catch (_) {
+      return null;
     }
   }
 

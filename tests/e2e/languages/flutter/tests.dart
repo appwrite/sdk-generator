@@ -466,7 +466,8 @@ void main() async {
 
   // Native push (MQTT) round-trip against the mock broker.
   client.setJWT('e2e-jwt');
-  final push = Push(client, host: 'mqtt', port: 1883, tls: false);
+  client.setPushEndpoint('mqtt://mqtt:1883');
+  final push = Push(client);
   final pushReceived = Completer<PushMessage>();
   final pushUnsub = await push.subscribe('e2e/push', (m) {
     if (!pushReceived.isCompleted) {
