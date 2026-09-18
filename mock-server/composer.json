@@ -21,8 +21,7 @@
         "utopia-php/console": "^0.2",
         "utopia-php/swoole": "^1.0.2",
         "utopia-php/websocket": "^1.0",
-        "utopia-php/query": "^0.6.0",
-        "utopia-php/mqtt": "dev-dev"
+        "utopia-php/query": "^0.6.0"
     },
     "require-dev": {
         "swoole/ide-helper": "6.2.2"

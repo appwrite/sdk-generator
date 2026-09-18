@@ -2,187 +2,120 @@
 
 /**
  * A minimal but real MQTT broker (utopia-php/mqtt) used by the e2e suite so the native
- * push SDKs can be exercised end to end. It speaks MQTT 3.1.1 and 5.0: authenticates the
- * CONNECT (credential "deny" is refused), tracks subscriptions per connection, fans
- * PUBLISH out to matching subscribers (+ / # wildcards), and answers PING and re-auth.
- * State lives in the single worker (setWorkerNumber(1)).
+ * push SDKs can be exercised end to end. The library owns framing, decoding, per-version
+ * encoding, packet ids, the QoS handshake, keep-alive reaping and subscription matching
+ * (+ / # wildcards); this file only supplies test policy through a Handler:
  *
- * Adapted from utopia-php/mqtt tests/servers/Swoole/server.php.
+ *  - CONNECT is accepted unless the credential is the literal "deny" (so a test can assert
+ *    a rejected connection); the projectId user property becomes the connection prefix.
+ *  - SUBSCRIBE grants every filter at the requested QoS (capped at QoS 1).
+ *  - a client PUBLISH is fanned out to the matching subscribers the broker hands us.
+ *
+ * It listens on both transports the library ships: plain TCP (1883) and WebSocket (8083),
+ * so the TCP SDKs and the browser/WebSocket SDK can both reach it.
+ *
+ * The broker needs utopia-php/mqtt (dev), which requires utopia-php/telemetry ^0.4 — a
+ * constraint no utopia-php/framework release (used by the mock HTTP server) allows. So its
+ * dependencies live in a separate manifest (composer.mqtt.json) installed to ./vendor-mqtt,
+ * kept apart from the HTTP mock's ./vendor; this file loads that one.
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../vendor-mqtt/autoload.php';
 
 use Utopia\Mqtt\Adapter;
+use Utopia\Mqtt\Connection;
+use Utopia\Mqtt\Handler;
 use Utopia\Mqtt\Packet;
-use Utopia\Mqtt\Packet\V3;
-use Utopia\Mqtt\Packet\V5;
-use Utopia\Mqtt\Properties;
-use Utopia\Mqtt\Property;
+use Utopia\Mqtt\Packet\Auth;
+use Utopia\Mqtt\Packet\Connack;
+use Utopia\Mqtt\Packet\Connect;
+use Utopia\Mqtt\Packet\Disconnect;
+use Utopia\Mqtt\Packet\Publish;
+use Utopia\Mqtt\Packet\Puback;
+use Utopia\Mqtt\Packet\Suback;
+use Utopia\Mqtt\Packet\Subscribe;
+use Utopia\Mqtt\Packet\Unsuback;
+use Utopia\Mqtt\Packet\Unsubscribe;
 use Utopia\Mqtt\Server;
 
-/** @var array<int, int> fd => protocol level (4 or 5) */
-$protocol = [];
-/** @var array<int, array<int, string>> fd => topic filters */
-$subscriptions = [];
+class MockHandler implements Handler
+{
+    public function onConnect(Connect $connect, Connection $connection): Connack|Auth
+    {
+        $connection->prefix = $connect->userProperties()['projectId'] ?? '';
 
-$matches = function (string $filter, string $topic): bool {
-    $f = explode('/', $filter);
-    $t = explode('/', $topic);
-    foreach ($f as $i => $segment) {
-        if ($segment === '#') {
-            return true;
+        if (($connect->authData ?? '') === 'deny') {
+            return Connack::refuse(Connack::NOT_AUTHORIZED);
         }
-        if (!isset($t[$i])) {
-            return false;
+
+        // Mirror the real broker: derive a stable per-connection id when the client sends
+        // none, so an empty client id (the SDKs' default in reliable mode) is accepted.
+        $clientId = $connect->clientId;
+        if ($clientId === '') {
+            $clientId = 'custom_' . $connection->prefix . '_' . \spl_object_id($connection);
         }
-        if ($segment !== '+' && $segment !== $t[$i]) {
-            return false;
+        $connection->setClientId($clientId);
+
+        return Connack::accept();
+    }
+
+    public function onAuthenticate(Auth $auth, Connection $connection): Connack|Auth|Disconnect
+    {
+        return Auth::success($auth->method);
+    }
+
+    public function onSubscribe(Subscribe $subscribe, Connection $connection): Suback
+    {
+        $suback = new Suback();
+        foreach ($subscribe->filters() as $filter) {
+            $suback->grant(\min($filter->qos, Packet::QOS_1));
+        }
+
+        return $suback;
+    }
+
+    public function onUnsubscribe(Unsubscribe $unsubscribe, Connection $connection): Unsuback
+    {
+        $unsuback = new Unsuback();
+        // One success code per filter (the broker has already dropped them from its index).
+        $count = \count($unsubscribe->filters());
+        for ($i = 0; $i < $count; $i++) {
+            $unsuback->success();
+        }
+
+        return $unsuback;
+    }
+
+    /**
+     * Fan a client PUBLISH out to the matching subscribers the broker resolved, each at the
+     * QoS granted to that subscription (clamped by the message QoS).
+     *
+     * @param iterable<array{0: Connection, 1: int}> $subscribers
+     */
+    public function onPublish(Publish $publish, Connection $connection, iterable $subscribers): void
+    {
+        foreach ($subscribers as [$subscriber, $grantedQos]) {
+            $subscriber->publish($publish->topic, $publish->payload, qos: \min($publish->qos, $grantedQos));
         }
     }
-    return count($f) === count($t);
-};
 
-$adapter = new Adapter\Swoole('0.0.0.0', 1883);
-$adapter->setWorkerNumber(1);
+    public function onPuback(Puback $puback, Connection $connection): void
+    {
+        $connection->acknowledge($puback->packetId);
+    }
 
-$server = new Server($adapter);
+    public function onDisconnect(?Disconnect $disconnect, Connection $connection): void
+    {
+    }
+}
 
-$server
-    ->onStart(fn () => print("mqtt broker started\n"))
-    ->onReceive(function (int $fd, string $data) use ($server, $matches, &$protocol, &$subscriptions) {
-        $packet = Packet::parse($data);
+$maxPacketSize = 64000;
+$adapter = new Adapter\Swoole([
+    new Adapter\Swoole\Tcp('0.0.0.0', 1883, $maxPacketSize),
+    new Adapter\Swoole\WebSocket('0.0.0.0', 8083, $maxPacketSize),
+], workers: 1);
 
-        switch ($packet->type) {
-            case Packet::CONNECT:
-                $body = $packet->body;
-                [, $offset] = Packet::readString($body, 0); // "MQTT"
-                $level = ord($body[$offset]);
-                $offset++;
-                $flags = ord($body[$offset]);
-                $offset++;
-                $offset += 2; // keep alive
-                $protocol[$fd] = $level;
-
-                if ($level >= 5) {
-                    [$properties] = Properties::parse($body, $offset);
-                    $credential = $properties->get(Property::AUTHENTICATION_DATA);
-                    if ($credential === 'deny') {
-                        $server->send($fd, V5::connack(V5::REASON_NOT_AUTHORIZED));
-                        $server->close($fd);
-                        break;
-                    }
-                    // Reflect the decoded auth method + metadata so the e2e can verify them.
-                    $ack = (new Properties())
-                        ->add(new Property(Property::AUTHENTICATION_METHOD, (string) $properties->get(Property::AUTHENTICATION_METHOD)))
-                        ->add(new Property(Property::USER, $properties->user()));
-                    $server->send($fd, V5::connack(V5::REASON_SUCCESS, $ack));
-                    break;
-                }
-
-                // 3.1.1: read client id, then username/password per the connect flags.
-                [, $offset] = Packet::readString($body, $offset); // client id
-                $password = '';
-                if ($flags & 0x80) {
-                    [, $offset] = Packet::readString($body, $offset); // username
-                }
-                if ($flags & 0x40) {
-                    [$password, $offset] = Packet::readString($body, $offset);
-                }
-                if ($password === 'deny') {
-                    $server->send($fd, V3::connack(V3::RETURN_NOT_AUTHORIZED));
-                    $server->close($fd);
-                    break;
-                }
-                $server->send($fd, V3::connack(V3::RETURN_ACCEPTED));
-                break;
-
-            case Packet::SUBSCRIBE:
-                $body = $packet->body;
-                $packetId = substr($body, 0, 2);
-                $offset = 2;
-                if (($protocol[$fd] ?? 4) >= 5) {
-                    $offset = Properties::skip($body, $offset);
-                }
-                $codes = '';
-                while ($offset < strlen($body)) {
-                    [$filter, $offset] = Packet::readString($body, $offset);
-                    $offset++; // options byte
-                    $subscriptions[$fd][] = $filter;
-                    $codes .= chr(Packet::QOS_1); // grant QoS 1
-                }
-                $server->send($fd, ($protocol[$fd] >= 5)
-                    ? V5::suback($packetId, $codes)
-                    : V3::suback($packetId, $codes));
-                break;
-
-            case Packet::UNSUBSCRIBE:
-                $body = $packet->body;
-                $packetId = substr($body, 0, 2);
-                $offset = 2;
-                if (($protocol[$fd] ?? 4) >= 5) {
-                    $offset = Properties::skip($body, $offset);
-                }
-                $count = 0;
-                while ($offset < strlen($body)) {
-                    [$filter, $offset] = Packet::readString($body, $offset);
-                    $subscriptions[$fd] = array_values(array_filter(
-                        $subscriptions[$fd] ?? [],
-                        fn (string $f) => $f !== $filter
-                    ));
-                    $count++;
-                }
-                $server->send($fd, ($protocol[$fd] >= 5)
-                    ? V5::unsuback($packetId, $count)
-                    : V3::unsuback($packetId));
-                break;
-
-            case Packet::PUBLISH:
-                $qos = $packet->qos();
-                [$topic, $offset] = Packet::readString($packet->body, 0);
-                $packetId = '';
-                if ($qos > 0) {
-                    $packetId = substr($packet->body, $offset, 2);
-                    $offset += 2;
-                }
-                $properties = new Properties();
-                if (($protocol[$fd] ?? 4) >= 5) {
-                    [$properties, $offset] = Properties::parse($packet->body, $offset);
-                }
-                $payload = substr($packet->body, $offset);
-
-                foreach ($subscriptions as $subscriberFd => $filters) {
-                    foreach ($filters as $filter) {
-                        if ($matches($filter, $topic)) {
-                            $server->send($subscriberFd, ($protocol[$subscriberFd] ?? 4) >= 5
-                                ? V5::publish($topic, $payload, 0, 0, $properties) // forward properties unchanged
-                                : V3::publish($topic, $payload, 0, 0));
-                            break; // one delivery per subscriber
-                        }
-                    }
-                }
-
-                if ($qos === 1) {
-                    $server->send($fd, ($protocol[$fd] >= 5)
-                        ? V5::puback($packetId)
-                        : V3::puback($packetId));
-                }
-                break;
-
-            case Packet::PINGREQ:
-                $server->send($fd, Packet::pingresp());
-                break;
-
-            case Packet::AUTH:
-                // Re-authentication: acknowledge with an AUTH success.
-                $server->send($fd, V5::auth(V5::AUTH_SUCCESS));
-                break;
-
-            case Packet::DISCONNECT:
-                $server->close($fd);
-                break;
-        }
-    })
-    ->onClose(function (int $fd) use (&$protocol, &$subscriptions) {
-        unset($protocol[$fd], $subscriptions[$fd]);
-    })
-    ->start();
+$server = new Server($adapter, new MockHandler());
+$server->onStart(fn () => print("mqtt broker started\n"));
+$server->error(fn (\Throwable $error, string $action) => \fwrite(STDERR, "mqtt {$action} error: " . $error->getMessage() . "\n"));
+$server->start();

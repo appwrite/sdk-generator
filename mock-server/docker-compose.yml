@@ -18,6 +18,11 @@ services:
     networks:
       - mockapi
 
+  # The MQTT broker (app/mqtt.php) runs from the same image as the HTTP mock but loads its
+  # own vendor (./vendor-mqtt, see the Dockerfile): the current utopia-php/mqtt needs
+  # utopia-php/telemetry ^0.4, which conflicts with the HTTP mock's utopia-php/framework. It
+  # serves both transports the library ships — plain TCP (1883) for the native SDKs and
+  # WebSocket (8083) for the browser SDK.
   mqtt:
     container_name: mqtt
     build:
@@ -31,9 +36,9 @@ services:
       - app/mqtt.php
     volumes:
       - ./app:/usr/src/code/app
-      - ./src:/usr/src/code/src
     ports:
       - "1883:1883"
+      - "8083:8083"
     networks:
       - mockapi
 
