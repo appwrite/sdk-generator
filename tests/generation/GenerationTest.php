@@ -468,6 +468,7 @@ final class GenerationTest extends TestCase
                 'security' => $legacy ? [['ProjectPath' => []]] : [],
                 'parameters' => [
                     ['name' => 'project_id', 'in' => 'path', 'required' => true, 'description' => 'Project ID.', 'schema' => ['type' => 'string']],
+                    ['name' => 'project_id', 'in' => 'query', 'required' => true, 'description' => 'Project ID to act on.', 'schema' => ['type' => 'string']],
                     ['name' => 'grant_id', 'in' => 'query', 'required' => true, 'description' => 'Grant ID.', 'schema' => ['type' => 'string']],
                 ],
                 'responses' => ['204' => ['description' => 'ok']],
@@ -479,9 +480,10 @@ final class GenerationTest extends TestCase
 
         $files = $this->generateDocument($document(false), 'php', 'path-config');
         $service = $files['src/Appwrite/Services/General.php'];
+        \preg_match('/function approve\(([^)]*)\)/', $service, $signature);
 
-        $this->assertStringContainsString('public function approve(string $grantId', $service);
-        $this->assertStringContainsString("[\$this->client->getConfig('project')]", $service);
+        $this->assertStringContainsString("getConfig('project')", $service);
+        $this->assertSame(1, \substr_count($signature[1] ?? '', '$projectId'));
         $this->assertStringNotContainsString('X-Appwrite-Project', $service);
         $this->assertSame($files, $this->generateDocument($document(true), 'php', 'path-config-legacy'));
     }
