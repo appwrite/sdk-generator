@@ -1,5 +1,5 @@
 {%~ for parameter in (method | parameters('path')) %}
-{%- if parameter.required and (parameter.extensions['x-sdk-source']|default('')) != 'security' and (parameter | schemaType) == 'string' and not (parameter | usesEnumType) %}
+{%- if parameter.required and not (parameter | configKey(method)) and (parameter | schemaType) == 'string' and not (parameter | usesEnumType) %}
 
             if ({{ parameter.name | caseCamel | escapeKeyword }} == "")
             {

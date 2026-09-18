@@ -413,6 +413,99 @@ final class GenerationTest extends TestCase
         $this->assertStringNotContainsString('request model', $go['models/mock.go']);
     }
 
+    /**
+     * The generated tree for an inline document, for tests that need a shape
+     * the shared fixture does not carry.
+     *
+     * @param  array<string, mixed>  $document
+     * @return array<string, string>
+     */
+    private function generateDocument(array $document, string $name, string $key): array
+    {
+        $dir = self::OUTPUT . '/' . $name . '/' . $key;
+        $this->removeDirectory($dir);
+
+        $sdk = new SDK($this->language($name), Parser::parse($document));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        $files = [];
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
+            if ($file->isFile()) {
+                $files[\substr((string) $file->getPathname(), \strlen($dir) + 1)] = (string) \file_get_contents($file->getPathname());
+            }
+        }
+
+        return $files;
+    }
+
+    /**
+     * A document declaring one operation whose path parameter is filled from
+     * client configuration, in either spelling. The legacy one binds it with a
+     * path security scheme, the current one with `x-appwrite.config`; both must
+     * generate the same SDK, and neither sends the project as a header.
+     *
+     * @return array<string, mixed>
+     */
+    private function pathConfigDocument(bool $legacy): array
+    {
+        $schemes = ['Project' => ['type' => 'apiKey', 'name' => 'X-Appwrite-Project', 'in' => 'header', 'x-appwrite' => ['demo' => '<YOUR_PROJECT_ID>']]];
+        if ($legacy) {
+            $schemes['ProjectPath'] = ['type' => 'apiKey', 'name' => 'project', 'in' => 'query', 'x-appwrite' => ['location' => 'path', 'param' => 'project_id', 'demo' => '<YOUR_PROJECT_ID>']];
+        }
+
+        $appwrite = $legacy
+            ? ['auth' => ['server' => ['ProjectPath' => []]]]
+            : ['config' => ['project_id' => 'project'], 'auth' => ['server' => ['Project' => []]]];
+
+        return [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'general']],
+            'components' => ['securitySchemes' => $schemes],
+            'paths' => ['/tests/{project_id}/approve' => ['post' => [
+                'operationId' => 'generalApprove',
+                'tags' => ['general'],
+                'summary' => 'Approve',
+                'description' => 'Approve.',
+                'security' => $legacy ? [['ProjectPath' => []]] : [],
+                'parameters' => [
+                    ['name' => 'project_id', 'in' => 'path', 'required' => true, 'description' => 'Project ID.', 'schema' => ['type' => 'string']],
+                    ['name' => 'grant_id', 'in' => 'query', 'required' => true, 'description' => 'Grant ID.', 'schema' => ['type' => 'string']],
+                ],
+                'responses' => ['204' => ['description' => 'ok']],
+                'x-appwrite' => $appwrite,
+            ]]],
+        ];
+    }
+
+    /**
+     * A path parameter listed in the operation's `x-appwrite.config` is filled
+     * from the client rather than from an argument, and a document still saying
+     * that with a path-bound security scheme generates the same SDK.
+     */
+    public function testPathParametersFilledFromClientConfig(): void
+    {
+        $files = $this->generateDocument($this->pathConfigDocument(false), 'php', 'path-config');
+        $service = $files['src/Appwrite/Services/General.php'];
+
+        $this->assertStringContainsString('public function approve(string $grantId', $service);
+        $this->assertStringNotContainsString('$projectId', $service);
+        $this->assertStringContainsString("[\$this->client->getConfig('project')]", $service);
+        $this->assertStringNotContainsString('X-Appwrite-Project', $service);
+        $this->assertStringContainsString("setProject('<YOUR_PROJECT_ID>')", $files['docs/examples/general/approve.md']);
+
+        $legacy = $this->generateDocument($this->pathConfigDocument(true), 'php', 'path-config-legacy');
+        $this->assertSame($service, $legacy['src/Appwrite/Services/General.php']);
+        $this->assertSame($files['docs/examples/general/approve.md'], $legacy['docs/examples/general/approve.md']);
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);
