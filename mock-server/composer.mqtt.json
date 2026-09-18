@@ -13,6 +13,7 @@
         "utopia-php/mqtt": "dev-dev"
     },
     "config": {
+        "vendor-dir": "vendor-mqtt",
         "allow-plugins": {
             "php-http/discovery": true,
             "tbachert/spi": true

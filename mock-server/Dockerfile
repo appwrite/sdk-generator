@@ -54,7 +54,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 WORKDIR /usr/src/code
 
 COPY --from=composer /usr/local/src/vendor /usr/src/code/vendor
-COPY --from=composer_mqtt /usr/local/src/vendor /usr/src/code/vendor-mqtt
+COPY --from=composer_mqtt /usr/local/src/vendor-mqtt /usr/src/code/vendor-mqtt
 
 # Add Source Code
 COPY ./src /usr/src/code/src

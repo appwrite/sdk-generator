@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "090d066846f1c5e6cd032d799c729ecd",
+    "content-hash": "1f5958f67c03c9ae3faf6f4a94236e7f",
     "packages": [
         {
             "name": "brick/math",
@@ -1884,12 +1884,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/mqtt.git",
-                "reference": "53ff974d0a179f07035241a8b8df0ca1b15a2ff5"
+                "reference": "8708a7aca051aacb53d4618402e332abc09f7de1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/mqtt/zipball/53ff974d0a179f07035241a8b8df0ca1b15a2ff5",
-                "reference": "53ff974d0a179f07035241a8b8df0ca1b15a2ff5",
+                "url": "https://api.github.com/repos/utopia-php/mqtt/zipball/8708a7aca051aacb53d4618402e332abc09f7de1",
+                "reference": "8708a7aca051aacb53d4618402e332abc09f7de1",
                 "shasum": ""
             },
             "require": {
@@ -1943,7 +1943,7 @@
                 "source": "https://github.com/utopia-php/mqtt/tree/dev",
                 "issues": "https://github.com/utopia-php/mqtt/issues"
             },
-            "time": "2026-09-17T15:41:04+00:00"
+            "time": "2026-09-18T06:30:45+00:00"
         },
         {
             "name": "utopia-php/telemetry",
