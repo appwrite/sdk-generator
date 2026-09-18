@@ -493,27 +493,23 @@ class ServiceTest {
             writeToFile(mock.result)
 
             // Native push (MQTT) round-trip against the mock broker.
-            try {
-                client.setJWT("e2e-jwt")
-                client.setPushEndpoint("mqtt://mqtt:1883")
-                val push = Push(client)
-                val pushLatch = java.util.concurrent.CountDownLatch(1)
-                var pushBody = "Push message:failed"
-                val pushUnsub = push.subscribe("e2e/push") { message ->
-                    if (message.string == "push-payload") {
-                        pushBody = "Push message:passed"
-                    }
-                    pushLatch.countDown()
+            client.setJWT("e2e-jwt")
+            client.setPushEndpoint("mqtt://mqtt:1883")
+            val push = Push(client)
+            val pushLatch = java.util.concurrent.CountDownLatch(1)
+            var pushBody = "Push message:failed"
+            val pushUnsub = push.subscribe("e2e/push") { message ->
+                if (message.string == "push-payload") {
+                    pushBody = "Push message:passed"
                 }
-                writeToFile("Push subscribe:passed")
-                push.publish("e2e/push", "push-payload")
-                pushLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)
-                writeToFile(pushBody)
-                pushUnsub()
-                push.close()
-            } catch (e: Throwable) {
-                writeToFile("PUSH_DEBUG: " + e.toString() + " || cause: " + (e.cause?.toString() ?: "none"))
+                pushLatch.countDown()
             }
+            writeToFile("Push subscribe:passed")
+            push.publish("e2e/push", "push-payload")
+            pushLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)
+            writeToFile(pushBody)
+            pushUnsub()
+            push.close()
         }
     }
 
