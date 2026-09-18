@@ -18,13 +18,13 @@ enum Appwrite: string
     /** Whether an operation is part of a packaging flow. */
     case PACKAGING = 'packaging';
 
-    /** On a security scheme: `path` when the scheme is supplied as a path parameter. */
+    /** Legacy, on a security scheme: `path` when the scheme is supplied as a path parameter. */
     case LOCATION = 'location';
 
-    /** On a path-bound security scheme: the path parameter it fills. */
+    /** Legacy, on a path-bound security scheme: the path parameter it fills. */
     case PARAM = 'param';
 
-    /** On a path-bound security scheme: the client config key that fills it. */
+    /** On an operation: path parameters filled from client configuration, as parameter name => config key. */
     case CONFIG = 'config';
 
     /** Schemes an example configures on the client, flat or keyed by SDK platform. */

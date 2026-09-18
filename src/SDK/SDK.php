@@ -181,6 +181,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('produces', fn(Operation $operation): array => $this->getProduces($operation)));
         $this->twig->addFilter(new TwigFilter('endpoint', fn(Specification $spec): string => $spec->servers[0]->url ?? 'https://example.com'));
         $this->twig->addFilter(new TwigFilter('appwrite', fn(Operation|SecurityScheme $value, string $key, mixed $default = null): mixed => $value->extensions[Extension::APPWRITE->value][$key] ?? $default));
+        $this->twig->addFilter(new TwigFilter('configKey', fn(Parameter $parameter, Operation $operation): string => $this->getParameterConfigKey($parameter, $operation)));
         $this->twig->addFilter(new TwigFilter('extension', fn(Schema|Parameter $value, string $key, mixed $default = null): mixed => $this->getSchema($value)->extensions[$key] ?? $default));
         $this->twig->addFilter(new TwigFilter('methodHeaders', fn(Operation $operation): array => $this->getMethodHeaders($operation)));
         $this->twig->addFilter(new TwigFilter('responseDiscriminator', fn(Operation $operation): array => $this->getResponseDiscriminator($operation)));
@@ -542,7 +543,7 @@ class SDK
                 continue;
             }
 
-            $operation = $this->annotateSecurityPathParameters($operation);
+            $operation = $this->normalizePathConfig($operation);
             $aliases = $operation->extensions[Extension::APPWRITE->value][Appwrite::METHODS->value] ?? [];
             if (!\is_array($aliases) || $aliases === []) {
                 foreach ($operation->tags as $serviceName) {
@@ -589,47 +590,37 @@ class SDK
         return $scheme instanceof SecurityScheme && $this->isAvailable($scheme->extensions[Extension::APPWRITE->value][Appwrite::PLATFORMS->value] ?? null) ? $scheme : null;
     }
 
-    protected function annotateSecurityPathParameters(Operation $operation): Operation
+    /**
+     * The path parameters an operation fills from client configuration, as
+     * parameter name => config key, read from `x-appwrite.config`.
+     *
+     * Older documents said the same thing with a path-bound security scheme
+     * instead, so those are normalised into the operation block on the way in
+     * and every reader downstream sees one shape.
+     */
+    protected function normalizePathConfig(Operation $operation): Operation
     {
-        $securityParameters = [];
+        $appwrite = $operation->extensions[Extension::APPWRITE->value] ?? [];
+        if (!\is_array($appwrite) || ($appwrite[Appwrite::CONFIG->value] ?? []) !== []) {
+            return $operation;
+        }
+
+        $config = [];
         foreach ($operation->acceptedSecuritySchemeNames() as $schemeName) {
             $scheme = $this->getSecurityScheme($schemeName);
             if (!$scheme instanceof SecurityScheme || ($scheme->extensions[Extension::APPWRITE->value][Appwrite::LOCATION->value] ?? '') !== 'path') {
                 continue;
             }
             $parameterName = (string) ($scheme->extensions[Extension::APPWRITE->value][Appwrite::PARAM->value] ?? $scheme->name ?? $schemeName);
-            $securityParameters[$parameterName] = (string) ($scheme->extensions[Extension::APPWRITE->value][Appwrite::CONFIG->value] ?? $scheme->name ?? $schemeName);
+            $config[$parameterName] = (string) ($scheme->extensions[Extension::APPWRITE->value][Appwrite::CONFIG->value] ?? $scheme->name ?? $schemeName);
         }
-        if ($securityParameters === []) {
+        if ($config === []) {
             return $operation;
         }
 
-        $parameters = [];
-        foreach ($operation->parameters as $parameter) {
-            $config = $securityParameters[$parameter->name] ?? null;
-            if ($config === null || $parameter->location !== ParameterLocation::PATH) {
-                $parameters[] = $parameter;
-                continue;
-            }
-            $parameters[] = new Parameter(
-                name: $parameter->name,
-                location: $parameter->location,
-                description: $parameter->description,
-                required: $parameter->required,
-                deprecated: $parameter->deprecated,
-                allowEmptyValue: $parameter->allowEmptyValue,
-                schema: $parameter->schema,
-                content: $parameter->content,
-                style: $parameter->style,
-                explode: $parameter->explode,
-                allowReserved: $parameter->allowReserved,
-                extensions: [
-                    ...$parameter->extensions,
-                    Extension::SDK_SOURCE->value => 'security',
-                    Extension::SDK_CONFIG->value => $config,
-                ],
-            );
-        }
+        $appwrite[Appwrite::CONFIG->value] = $config;
+        $extensions = $operation->extensions;
+        $extensions[Extension::APPWRITE->value] = $appwrite;
 
         return new Operation(
             id: $operation->id,
@@ -639,14 +630,26 @@ class SDK
             summary: $operation->summary,
             description: $operation->description,
             deprecated: $operation->deprecated,
-            parameters: $parameters,
+            parameters: $operation->parameters,
             requestBody: $operation->requestBody,
             responses: $operation->responses,
             security: $operation->security,
             servers: $operation->servers,
             externalDocumentation: $operation->externalDocumentation,
-            extensions: $operation->extensions,
+            extensions: $extensions,
         );
+    }
+
+    /** The client config key that fills a path parameter, or '' when the caller passes it. */
+    protected function getParameterConfigKey(Parameter $parameter, Operation $operation): string
+    {
+        if ($parameter->location !== ParameterLocation::PATH) {
+            return '';
+        }
+
+        $config = $operation->extensions[Extension::APPWRITE->value][Appwrite::CONFIG->value] ?? [];
+
+        return \is_array($config) ? (string) ($config[$parameter->name] ?? '') : '';
     }
 
     /** @param array<string, mixed> $alias */
@@ -1594,7 +1597,7 @@ class SDK
         $parameters = [];
         if ($location !== 'body') {
             foreach ($operation->parameters as $parameter) {
-                if ($location === 'all' && ($parameter->extensions[Extension::SDK_SOURCE->value] ?? '') === 'security') {
+                if ($location === 'all' && $this->getParameterConfigKey($parameter, $operation) !== '') {
                     continue;
                 }
                 if ($location === 'all' || $parameter->location->value === $location) {
@@ -1862,15 +1865,6 @@ class SDK
         return $headers;
     }
 
-    /**
-     * The schemes an example configures on the client before calling a method.
-     *
-     * A per-platform document lists them flat; the canonical document keys them
-     * by platform, since client and console examples configure the project only
-     * while server examples add one credential.
-     *
-     * @return array<string, SecurityScheme>
-     */
     /**
      * The schemes `x-appwrite.auth` configures for an operation. Examples skip
      * the optional ones; a URL builder has no request to carry headers, so
