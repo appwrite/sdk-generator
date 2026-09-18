@@ -494,7 +494,8 @@ class ServiceTest {
 
             // Native push (MQTT) round-trip against the mock broker.
             client.setJWT("e2e-jwt")
-            val push = Push(client, host = "mqtt", port = 1883, tls = false)
+            client.setPushEndpoint("mqtt://mqtt:1883")
+            val push = Push(client)
             val pushLatch = java.util.concurrent.CountDownLatch(1)
             var pushBody = "Push message:failed"
             val pushUnsub = push.subscribe("e2e/push") { message ->

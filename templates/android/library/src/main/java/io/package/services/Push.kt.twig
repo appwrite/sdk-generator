@@ -92,16 +92,24 @@ class Push @JvmOverloads constructor(
     private val reliableDelivery: Boolean = true,
 ) : Service(client) {
 
+    // The broker location is taken from Client.setPushEndpoint() when set (e.g.
+    // "mqtts://host:8883"), otherwise from the regular endpoint.
+    private val pushEndpoint: String = client.endpointPush ?: client.endpoint
+
     private val host: String = host
-        ?: runCatching { URI(client.endpoint).host }.getOrNull()
+        ?: runCatching { URI(pushEndpoint).host }.getOrNull()
         ?: "localhost"
 
-    // Secure by default: TLS on when the endpoint is https (or port 8883), so the
-    // credential in the CONNECT packet is not sent over a plaintext socket.
+    // Secure by default: TLS on when the endpoint scheme is secure (https/wss/mqtts/ssl) or
+    // the port is 8883, so the credential in the CONNECT packet is not sent in the clear.
     private val tls: Boolean = tls
-        ?: (port == 8883 || runCatching { URI(client.endpoint).scheme }.getOrNull() == "https")
+        ?: (port == 8883 || runCatching { URI(pushEndpoint).scheme }.getOrNull() in listOf("https", "wss", "mqtts", "ssl"))
 
-    private val port: Int = port ?: (if (this.tls) 8883 else 1883)
+    // Take the port from the push endpoint only (a regular http/https endpoint's port is the
+    // API port, not the broker's); otherwise fall back to the MQTT default for the TLS mode.
+    private val port: Int = port
+        ?: client.endpointPush?.let { runCatching { URI(it).port.takeIf { p -> p != -1 } }.getOrNull() }
+        ?: (if (this.tls) 8883 else 1883)
 
     private var mqtt: Mqtt5AsyncClient? = null
 
