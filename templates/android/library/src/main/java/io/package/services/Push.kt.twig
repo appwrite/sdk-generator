@@ -335,14 +335,18 @@ internal fun resolvePushAuth(client: Client): Pair<String, String> {
 
 /** Build (but do not connect) an MQTT 5 client from [config]. */
 internal fun buildPushClient(config: PushConfig): Mqtt5AsyncClient {
+    // A non-empty identifier is required for a persistent session (clean start off): HiveMQ
+    // sends an empty id expecting the broker to assign one, which it does not. The broker
+    // keys its offline-replay cursor on this id; pass a stable clientId to resume replay
+    // across restarts (the generated one is stable only for this client's lifetime).
+    val id = config.clientId
+        ?: "appwrite-${config.project}-${UUID.randomUUID().toString().substring(0, 8)}"
+
     var builder = MqttClient.builder()
         .useMqttVersion5()
+        .identifier(id)
         .serverHost(config.host)
         .serverPort(config.port)
-
-    // Only set an identifier when the caller supplied one; otherwise send none so the
-    // broker derives a stable per-user id (the key it uses for the offline-replay cursor).
-    config.clientId?.let { builder = builder.identifier(it) }
 
     if (config.tls) {
         builder = if (config.tlsInsecure) {

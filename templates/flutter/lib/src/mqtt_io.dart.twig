@@ -246,10 +246,12 @@ class PushIO implements Push {
     }
 
     final project = client.config['project'] ?? '';
-    // An empty client id lets the broker derive a stable per-user id, which is how it
-    // keys the offline-replay cursor — so reliable delivery resumes across reconnects
-    // without us inventing an id. Pass [clientId] only to override that.
-    final clientId = _clientId ?? '';
+    // A non-empty client id is required for a persistent session (clean start off) — some
+    // MQTT clients/brokers reject a zero-length id in that mode. The broker keys its
+    // offline-replay cursor on this id; pass a stable [clientId] to resume replay across
+    // restarts (the generated one is stable only for this client's lifetime).
+    final clientId =
+        _clientId ?? 'appwrite-$project-${_randomId().substring(0, 8)}';
 
     final mqtt = MqttServerClient.withPort(_host, clientId, _port);
     mqtt.keepAlivePeriod = _keepAlive;

@@ -236,10 +236,11 @@ open class Push: Service {
         }
 
         let project = client.config["project"] ?? ""
-        // An empty identifier lets the broker derive a stable per-user id, which is how it
-        // keys the offline-replay cursor — so reliable delivery resumes across reconnects
-        // without us inventing an id. Pass `clientId` to override.
-        let id = clientId ?? ""
+        // A non-empty identifier is required for a persistent session (clean start off) —
+        // some MQTT clients/brokers reject a zero-length id in that mode. The broker keys its
+        // offline-replay cursor on this id; pass a stable `clientId` to resume replay across
+        // restarts (the generated one is stable only for this client's lifetime).
+        let id = clientId ?? "appwrite-\(project)-\(UUID().uuidString.prefix(8))"
 
         var tlsConfiguration: MQTTClient.TLSConfigurationType?
         if tls && tlsInsecure {
