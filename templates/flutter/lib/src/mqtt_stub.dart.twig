@@ -11,6 +11,7 @@ Push createPush(
   bool tlsInsecure = false,
   String? clientId,
   int keepAlive = 60,
+  bool reliableDelivery = true,
 }) =>
     throw UnsupportedError(
       'Native push is not supported on this platform; it requires dart:io.',
