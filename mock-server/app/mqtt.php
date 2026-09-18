@@ -97,6 +97,13 @@ class MockHandler implements Handler
         foreach ($subscribers as [$subscriber, $grantedQos]) {
             $subscriber->publish($publish->topic, $publish->payload, qos: \min($publish->qos, $grantedQos));
         }
+
+        // A client PUBLISH at QoS 1 expects a PUBACK. The library leaves this to the handler
+        // (real deployments are server -> client only, so clients never publish), so the mock
+        // must ack it or the publisher's publish() call hangs.
+        if ($publish->qos > 0) {
+            $connection->puback($publish->packetId);
+        }
     }
 
     public function onPuback(Puback $puback, Connection $connection): void
@@ -109,8 +116,46 @@ class MockHandler implements Handler
     }
 }
 
+/**
+ * The library's Swoole adapter relies on Swoole's default WebSocket handshake, which does
+ * not echo the `Sec-WebSocket-Protocol: mqtt` subprotocol. Browser MQTT clients (MQTT.js)
+ * send that header and reject the connection unless the server echoes it back — a real
+ * deployment gets this from the proxy in front of the broker. Since the e2e browser talks
+ * to the broker directly, add a compliant handshake here that echoes it. TCP is untouched.
+ */
+class WebSocketProtocolAdapter extends Adapter\Swoole
+{
+    public function start(): void
+    {
+        // $server is protected on the parent and already created in its constructor; add the
+        // handshake handler before the parent registers its own handlers and starts.
+        if ($this->server instanceof \Swoole\WebSocket\Server) {
+            $this->server->on('handshake', function (\Swoole\Http\Request $request, \Swoole\Http\Response $response): bool {
+                $key = $request->header['sec-websocket-key'] ?? '';
+                $accept = \base64_encode(\sha1($key . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true));
+
+                $response->header('Upgrade', 'websocket');
+                $response->header('Connection', 'Upgrade');
+                $response->header('Sec-WebSocket-Accept', $accept);
+                $response->header('Sec-WebSocket-Version', '13');
+                if (isset($request->header['sec-websocket-protocol'])) {
+                    // MQTT-over-WebSocket uses the "mqtt" subprotocol; echo it so the client accepts.
+                    $response->header('Sec-WebSocket-Protocol', 'mqtt');
+                }
+
+                $response->status(101);
+                $response->end();
+
+                return true;
+            });
+        }
+
+        parent::start();
+    }
+}
+
 $maxPacketSize = 64000;
-$adapter = new Adapter\Swoole([
+$adapter = new WebSocketProtocolAdapter([
     new Adapter\Swoole\Tcp('0.0.0.0', 1883, $maxPacketSize),
     new Adapter\Swoole\WebSocket('0.0.0.0', 8083, $maxPacketSize),
 ], workers: 1);
