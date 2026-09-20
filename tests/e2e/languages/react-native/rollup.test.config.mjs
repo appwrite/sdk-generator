@@ -50,7 +50,7 @@ export default {
                 outDir: 'dist',
                 rootDir: '.',
             },
-            include: ['src/**/*.ts', 'browser.js'],
+            include: ['src/**/*.ts', 'browser.js', 'shims/**/*.js'],
             exclude: ['node_modules/**', 'dist/**'],
         }),
     ],
