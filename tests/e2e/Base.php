@@ -144,6 +144,7 @@ abstract class Base extends TestCase
     protected const PUSH_RESPONSES = [
         'Push subscribe:passed',
         'Push message:passed',
+        'Push qos:passed',
     ];
 
     protected const QUERY_HELPER_RESPONSES = [

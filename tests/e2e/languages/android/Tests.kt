@@ -499,15 +499,21 @@ class ServiceTest {
             val push = Push(client)
             val pushLatch = java.util.concurrent.CountDownLatch(1)
             var pushBody = "Push message:failed"
+            var pushQos = "Push qos:failed"
             val pushUnsub = push.subscribe("e2e/push") { message ->
                 if (message.string == "push-payload") {
                     pushBody = "Push message:passed"
+                }
+                if (message.qos == 1) {
+                    pushQos = "Push qos:passed"
                 }
                 pushLatch.countDown()
             }
             writeToFile("Push subscribe:passed")
             pushLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)
             writeToFile(pushBody)
+            // reliableDelivery (default) => QoS 1 end to end.
+            writeToFile(pushQos)
             pushUnsub()
             push.close()
         }

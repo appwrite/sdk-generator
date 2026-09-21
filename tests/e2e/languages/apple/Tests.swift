@@ -474,15 +474,21 @@ class Tests: XCTestCase {
         let push = Push(client)
         let pushExpectation = XCTestExpectation(description: "push message")
         var pushBody = "Push message:failed"
+        var pushQos = "Push qos:failed"
         let pushUnsubscribe = try await push.subscribe("e2e/push") { message in
             if message.string == "push-payload" {
                 pushBody = "Push message:passed"
+            }
+            if message.qos == 1 {
+                pushQos = "Push qos:passed"
             }
             pushExpectation.fulfill()
         }
         print("Push subscribe:passed")
         await fulfillment(of: [pushExpectation], timeout: 10)
         print(pushBody)
+        // reliableDelivery (default) => QoS 1 end to end.
+        print(pushQos)
         pushUnsubscribe()
         push.close()
     }

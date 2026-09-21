@@ -481,6 +481,8 @@ void main() async {
   print(pushMessage.string == 'push-payload'
       ? 'Push message:passed'
       : 'Push message:failed');
+  // reliableDelivery (default) => QoS 1 end to end.
+  print(pushMessage.qos == 1 ? 'Push qos:passed' : 'Push qos:failed');
   pushUnsub();
   push.close();
 }
