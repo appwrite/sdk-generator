@@ -47,6 +47,11 @@ open class Push: Service {
     private let keepAlive: UInt16
     private let reliableDelivery: Bool
 
+    // Resolved once per instance: a reconnect rebuilds the MQTTClient, and if each rebuild drew
+    // a new random id the broker would treat it as a new session and drop this client's replay
+    // cursor. Reusing one id keeps the persistent session stable.
+    private let resolvedClientId: String
+
     private var foreground = false
     private var foregroundTitle: String?
 
@@ -87,6 +92,8 @@ open class Push: Service {
         self.clientId = clientId
         self.keepAlive = keepAlive
         self.reliableDelivery = reliableDelivery
+        let project = client.config["project"] ?? ""
+        self.resolvedClientId = clientId ?? "appwrite-\(project)-\(UUID().uuidString.prefix(8))"
         super.init(client)
     }
 
@@ -236,11 +243,11 @@ open class Push: Service {
         }
 
         let project = client.config["project"] ?? ""
-        // A non-empty identifier is required for a persistent session (clean start off) —
-        // some MQTT clients/brokers reject a zero-length id in that mode. The broker keys its
-        // offline-replay cursor on this id; pass a stable `clientId` to resume replay across
-        // restarts (the generated one is stable only for this client's lifetime).
-        let id = clientId ?? "appwrite-\(project)-\(UUID().uuidString.prefix(8))"
+        // A non-empty identifier is required for a persistent session (clean start off) — some
+        // MQTT clients/brokers reject a zero-length id in that mode. The broker keys its
+        // offline-replay cursor on this id, resolved once per instance (see resolvedClientId)
+        // so a reconnect rebuild reuses it and resumes the same session.
+        let id = resolvedClientId
 
         var tlsConfiguration: MQTTClient.TLSConfigurationType?
         if tls && tlsInsecure {
