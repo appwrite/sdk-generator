@@ -205,15 +205,8 @@ class PushIO implements Push {
     return unsubscribe;
   }
 
-  @override
-  Future<void> publish(String topic, String payload) async {
-    final mqtt = await _connect();
-    final data = typed.Uint8Buffer()..addAll(utf8.encode(payload));
-    mqtt.publishMessage(topic, _defaultQos, data);
-  }
-
-  // QoS for both subscribe and publish, chosen once by [reliableDelivery]:
-  // at-least-once (1) when reliable, at-most-once (0) when not.
+  // QoS for subscribe, chosen once by [reliableDelivery]: at-least-once (1) when
+  // reliable, at-most-once (0) when not.
   MqttQos get _defaultQos =>
       _reliableDelivery ? MqttQos.atLeastOnce : MqttQos.atMostOnce;
 

@@ -68,11 +68,6 @@ abstract class Push extends Service {
   /// publish is reliable. Delivery QoS follows [reliableDelivery].
   Future<PushUnsubscribe> subscribe(Object topics, PushCallback callback);
 
-  /// Publish a message to a topic. For testing the fan-out — real pushes come from
-  /// the server, not clients. Resolves once the broker has been handed the message.
-  /// Publish QoS follows [reliableDelivery].
-  Future<void> publish(String topic, String payload);
-
   /// Tear down the connection and drop all active subscriptions.
   void close();
 }

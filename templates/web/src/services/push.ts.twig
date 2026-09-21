@@ -201,22 +201,6 @@ export class Push extends Service {
         return unsubscribe;
     }
 
-    /**
-     * Publish a message to a topic. For testing the fan-out — real pushes come from
-     * the server, not clients. Resolves once the broker acks. QoS follows `reliableDelivery`.
-     */
-    async publish(topic: string, payload: string | Uint8Array): Promise<void> {
-        const client = await this.connect();
-        await new Promise<void>((resolve, reject) => {
-            client.publish(
-                topic,
-                Buffer.from(payload),
-                { qos: this.defaultQos },
-                (err) => (err ? reject(err) : resolve()),
-            );
-        });
-    }
-
     /** Tear down the connection. */
     close(): void {
         if (this.mqtt) {

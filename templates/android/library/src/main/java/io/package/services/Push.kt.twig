@@ -224,22 +224,8 @@ class Push @JvmOverloads constructor(
         }
     }
 
-    /**
-     * Publish a message to a topic. For testing the fan-out — real pushes come from
-     * the server, not clients. Blocks until the broker acks. QoS follows [reliableDelivery].
-     */
-    fun publish(topic: String, payload: String) {
-        val client = connect()
-        client.publishWith()
-            .topic(topic)
-            .qos(defaultQos)
-            .payload(payload.toByteArray(Charsets.UTF_8))
-            .send()
-            .get()
-    }
-
-    // QoS for both subscribe and publish, chosen once by [reliableDelivery]:
-    // at-least-once (1) when reliable, at-most-once (0) when not.
+    // QoS for subscribe, chosen once by [reliableDelivery]: at-least-once (1) when
+    // reliable, at-most-once (0) when not.
     private val defaultQos: MqttQos
         get() = if (reliableDelivery) MqttQos.AT_LEAST_ONCE else MqttQos.AT_MOST_ONCE
 

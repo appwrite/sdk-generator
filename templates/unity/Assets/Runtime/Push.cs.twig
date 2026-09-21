@@ -232,21 +232,6 @@ namespace {{ spec.info.title | caseUcfirst }}
             return unsubscribe;
         }
 
-        /// <summary>
-        /// Publish a message to a topic. For testing the fan-out — real pushes come from
-        /// the server, not clients. QoS follows reliableDelivery.
-        /// </summary>
-        public async Task Publish(string topic, string payload)
-        {
-            var client = await Connect();
-            var message = new MqttApplicationMessageBuilder()
-                .WithTopic(topic)
-                .WithPayload(Encoding.UTF8.GetBytes(payload))
-                .WithQualityOfServiceLevel(DefaultQos)
-                .Build();
-            await client.PublishAsync(message);
-        }
-
         /// <summary>Tear down the connection and drop all active subscriptions.</summary>
         public void Close()
         {

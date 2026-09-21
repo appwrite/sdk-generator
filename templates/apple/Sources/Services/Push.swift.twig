@@ -195,17 +195,6 @@ open class Push: Service {
         }
     }
 
-    /// Publish a message to a topic. For testing the fan-out — real pushes come from
-    /// the server, not clients. QoS follows `reliableDelivery`.
-    public func publish(_ topic: String, message: String) async throws {
-        let mqtt = try await connect()
-        _ = try await mqtt.v5.publish(
-            to: topic,
-            payload: ByteBuffer(string: message),
-            qos: defaultQos
-        )
-    }
-
     /// Tear down the connection and drop all active subscriptions.
     public func close() {
         let client = sync.sync { () -> MQTTClient? in
