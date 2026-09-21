@@ -480,7 +480,6 @@ namespace AppwriteTests
                 pushTcs.TrySetResult(message.Text);
             });
             LogResult("Push subscribe:passed");
-            await push.Publish("e2e/push", "push-payload");
             var pushWinner = await Task.WhenAny(pushTcs.Task, Task.Delay(10000));
             LogResult(pushWinner == pushTcs.Task && pushTcs.Task.Result == "push-payload"
                 ? "Push message:passed"

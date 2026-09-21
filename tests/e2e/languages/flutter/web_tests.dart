@@ -17,7 +17,8 @@ void main() async {
   print(
       "x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}");
 
-  // Native push (MQTT over WebSocket) round-trip against the mock broker.
+  // Native push (MQTT over WebSocket): subscribe, then the mock broker delivers a
+  // message (server-initiated, as in production — the SDK has no publish method).
   client.setJWT('e2e-jwt');
   client.setPushEndpoint('ws://mqtt:8083/mqtt');
   final push = Push(client);
@@ -28,7 +29,6 @@ void main() async {
     }
   });
   print('Push subscribe:passed');
-  await push.publish('e2e/push', 'push-payload');
   final pushMessage =
       await pushReceived.future.timeout(const Duration(seconds: 10));
   print(pushMessage.string == 'push-payload'

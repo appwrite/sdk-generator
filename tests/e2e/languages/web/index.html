@@ -533,7 +533,8 @@
             response = await general.headers();
             console.log(response.result);
 
-            // Native push (MQTT over WebSocket) round-trip against the mock broker.
+            // Native push (MQTT over WebSocket): subscribe, then the mock broker delivers a
+            // message (server-initiated, as in production — the SDK has no publish method).
             client.setJWT('e2e-jwt');
             client.setPushEndpoint('ws://mqtt:8083/mqtt');
             const push = new Push(client);
@@ -543,7 +544,6 @@
                 pushResolve(new TextDecoder().decode(m.payload));
             });
             console.log('Push subscribe:passed');
-            await push.publish('e2e/push', 'push-payload');
             const pushPayload = await Promise.race([
                 pushReceived,
                 new Promise((resolve) => setTimeout(() => resolve('timeout'), 5000)),

@@ -464,7 +464,8 @@ void main() async {
   response = await general.headers();
   print(response.result);
 
-  // Native push (MQTT) round-trip against the mock broker.
+  // Native push (MQTT): subscribe, then the mock broker delivers a message
+  // (server-initiated, as in production — the SDK has no publish method).
   client.setJWT('e2e-jwt');
   client.setPushEndpoint('mqtt://mqtt:1883');
   final push = Push(client);
@@ -475,7 +476,6 @@ void main() async {
     }
   });
   print('Push subscribe:passed');
-  await push.publish('e2e/push', 'push-payload');
   final pushMessage =
       await pushReceived.future.timeout(const Duration(seconds: 10));
   print(pushMessage.string == 'push-payload'

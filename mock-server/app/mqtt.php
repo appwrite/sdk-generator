@@ -8,8 +8,9 @@
  *
  *  - CONNECT is accepted unless the credential is the literal "deny" (so a test can assert
  *    a rejected connection); the projectId user property becomes the connection prefix.
- *  - SUBSCRIBE grants every filter at the requested QoS (capped at QoS 1).
- *  - a client PUBLISH is fanned out to the matching subscribers the broker hands us.
+ *  - SUBSCRIBE grants every filter at the requested QoS (capped at QoS 1) and then, mirroring
+ *    real server-initiated push, delivers a message on the subscribed topic so the e2e can
+ *    assert receipt — the SDKs only subscribe, they have no publish method.
  *
  * It listens on both transports the library ships: plain TCP (1883) and WebSocket (8083),
  * so the TCP SDKs and the browser/WebSocket SDK can both reach it.
@@ -79,7 +80,17 @@ class MockHandler implements Handler
     {
         $suback = new Suback();
         foreach ($subscribe->filters() as $filter) {
-            $suback->grant(\min($filter->qos, Packet::QOS_1));
+            $grantedQos = \min($filter->qos, Packet::QOS_1);
+            $suback->grant($grantedQos);
+
+            // Real push is server-initiated (server -> client); the SDKs only subscribe and
+            // have no publish method. So, mirroring the real broker, deliver a message on the
+            // subscribed topic here so the e2e can assert receipt. Deferred one tick so it
+            // lands after the SUBACK the library sends when this handler returns.
+            $topic = $filter->topic;
+            \Swoole\Timer::after(100, static function () use ($connection, $topic, $grantedQos) {
+                $connection->publish($topic, 'push-payload', qos: $grantedQos);
+            });
         }
 
         return $suback;

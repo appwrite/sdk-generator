@@ -492,7 +492,8 @@ class ServiceTest {
             mock = general.headers()
             writeToFile(mock.result)
 
-            // Native push (MQTT) round-trip against the mock broker.
+            // Native push (MQTT): subscribe, then the mock broker delivers a message
+            // (server-initiated, as in production — the SDK has no publish method).
             client.setJWT("e2e-jwt")
             client.setPushEndpoint("mqtt://mqtt:1883")
             val push = Push(client)
@@ -505,7 +506,6 @@ class ServiceTest {
                 pushLatch.countDown()
             }
             writeToFile("Push subscribe:passed")
-            push.publish("e2e/push", "push-payload")
             pushLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)
             writeToFile(pushBody)
             pushUnsub()

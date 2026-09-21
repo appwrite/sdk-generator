@@ -481,7 +481,6 @@ class Tests: XCTestCase {
             pushExpectation.fulfill()
         }
         print("Push subscribe:passed")
-        try await push.publish("e2e/push", message: "push-payload")
         await fulfillment(of: [pushExpectation], timeout: 10)
         print(pushBody)
         pushUnsubscribe()
