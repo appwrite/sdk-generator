@@ -1,0 +1,158 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' show DartPluginRegistrant;
+
+import 'package:flutter/widgets.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:path_provider/path_provider.dart';
+
+import 'client.dart';
+import 'mqtt.dart';
+
+/// Android/iOS background delivery for the native ({{ 'dart:io' }}) push service.
+///
+/// Flutter cannot keep the app's own isolate running once the app is closed, so
+/// [setForeground] runs the push connection inside a background isolate held alive by an
+/// Android foreground service ([FlutterBackgroundService]). That isolate owns the single
+/// MQTT connection, posts a local notification per message ([FlutterLocalNotificationsPlugin]),
+/// and forwards each message back to the app (when it is alive) over a service event so
+/// in-app callbacks still fire — mirroring the Android/React Native SDKs' foreground mode.
+///
+/// Config is handed to the isolate through a small JSON file in the app documents
+/// directory (the isolate does not share the app's memory); credentials therefore live on
+/// disk while foreground mode is active, so only enable it when that is acceptable.
+
+const String _channelId = '{{ spec.info.title | caseLower }}-push';
+const String _channelName = 'Notifications';
+const String _messageEvent = '{{ spec.info.title | caseLower }}.push.message';
+const String _stopEvent = '{{ spec.info.title | caseLower }}.push.stop';
+
+Future<File> _configFile() async {
+  final dir = await getApplicationDocumentsDirectory();
+  return File('${dir.path}/{{ spec.info.title | caseLower }}_push_foreground.json');
+}
+
+/// The service event the app listens on to forward background messages to callbacks.
+String get pushForegroundMessageEvent => _messageEvent;
+
+/// Persist the connection config + topics, then configure and start the background
+/// service. Called on the app isolate by the foreground subscribe path.
+Future<void> startPushForeground(
+  Client client, {
+  required String title,
+  required List<String> topics,
+  required bool reliableDelivery,
+}) async {
+  final config = <String, dynamic>{
+    'endpoint': client.endPoint,
+    'endpointPush': client.config['endpointPush'],
+    'project': client.config['project'] ?? '',
+    'jwt': client.config['jwt'] ?? client.config['jWT'],
+    'session': client.config['session'],
+    'reliableDelivery': reliableDelivery,
+    'title': title,
+    'topics': topics,
+  };
+  (await _configFile()).writeAsStringSync(jsonEncode(config));
+
+  final service = FlutterBackgroundService();
+  await service.configure(
+    androidConfiguration: AndroidConfiguration(
+      onStart: pushForegroundEntry,
+      isForegroundMode: true,
+      autoStart: false,
+      notificationChannelId: _channelId,
+      initialNotificationTitle: title,
+      initialNotificationContent: 'Listening for messages',
+    ),
+    iosConfiguration: IosConfiguration(
+      onForeground: pushForegroundEntry,
+      autoStart: false,
+    ),
+  );
+
+  if (!await service.isRunning()) {
+    await service.startService();
+  }
+}
+
+/// Ask the background service to disconnect and stop.
+void stopPushForeground() {
+  FlutterBackgroundService().invoke(_stopEvent);
+}
+
+/// Background isolate entry point: opens the connection, subscribes to the persisted
+/// topics, posts a notification per message and forwards it to the app.
+@pragma('vm:entry-point')
+Future<void> pushForegroundEntry(ServiceInstance service) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  DartPluginRegistrant.ensureInitialized();
+
+  final notifications = FlutterLocalNotificationsPlugin();
+  await notifications.initialize(
+    const InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(),
+    ),
+  );
+
+  final Map<String, dynamic> config;
+  try {
+    config =
+        jsonDecode((await _configFile()).readAsStringSync()) as Map<String, dynamic>;
+  } catch (_) {
+    service.stopSelf();
+    return;
+  }
+
+  final client = Client()
+      .setEndpoint(config['endpoint'] as String)
+      .setProject(config['project'] as String);
+  final jwt = config['jwt'] as String?;
+  final session = config['session'] as String?;
+  if (jwt != null && jwt.isNotEmpty) {
+    client.setJWT(jwt);
+  } else if (session != null && session.isNotEmpty) {
+    client.setSession(session);
+  }
+  final endpointPush = config['endpointPush'] as String?;
+  if (endpointPush != null && endpointPush.isNotEmpty) {
+    client.setPushEndpoint(endpointPush);
+  }
+
+  final push = Push(
+    client,
+    reliableDelivery: config['reliableDelivery'] as bool? ?? true,
+  );
+  final title = config['title'] as String?;
+  final topics = (config['topics'] as List).cast<String>();
+
+  service.on(_stopEvent).listen((_) {
+    push.close();
+    service.stopSelf();
+  });
+
+  await push.subscribe(topics, (message) {
+    notifications.show(
+      message.topic.hashCode,
+      title ?? message.topic,
+      message.string,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          _channelName,
+          importance: Importance.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+    );
+    // Forward to the app isolate (if alive) so in-app callbacks still fire.
+    service.invoke(_messageEvent, {
+      'topic': message.topic,
+      'payload': message.string,
+      'qos': message.qos,
+    });
+  });
+}

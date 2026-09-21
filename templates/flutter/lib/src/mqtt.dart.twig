@@ -10,8 +10,9 @@ typedef PushCallback = void Function(PushMessage message);
 typedef PushUnsubscribe = void Function();
 
 /// {{spec.info.title | caseUcfirst}} native push service — the realtime analog delivered over an MQTT
-/// broker, without FCM or APNS. Foreground delivery only: while the app is in the
-/// foreground the connection stays open and each message is handed to your callback.
+/// broker, without FCM or APNS. While the app is alive the connection stays open and each
+/// message is handed to your callback; call [setForeground] to also keep receiving (and
+/// post a notification per message) while the app is backgrounded or closed.
 ///
 /// Mirrors the realtime service: `Push(client).subscribe(topics, callback)` opens the
 /// connection lazily and returns an unsubscribe callable. The credential is read off
@@ -60,6 +61,21 @@ abstract class Push extends Service {
         keepAlive: keepAlive,
         reliableDelivery: reliableDelivery,
       );
+
+  /// Also keep delivering while the app is backgrounded or closed, posting a local
+  /// notification per message.
+  ///
+  /// On mobile (`dart:io`) this runs the connection inside an Android foreground service
+  /// (a background isolate via `flutter_background_service`) so it survives the app being
+  /// closed, and shows each message with `flutter_local_notifications`. A hard process
+  /// kill or iOS's background limits still apply — killed-app delivery needs FCM/APNS,
+  /// which is out of scope. On the web there is no background execution: `setForeground`
+  /// shows a browser notification per message only while the tab is open.
+  ///
+  /// Chain it before subscribing: `Push(client).setForeground().subscribe(...)`. Requires
+  /// the `flutter_background_service` and `flutter_local_notifications` peers and, on
+  /// Android, the `FOREGROUND_SERVICE` / `POST_NOTIFICATIONS` manifest permissions.
+  Push setForeground({String? title});
 
   /// Subscribe to one or more topics, resolving to an unsubscribe callable.
   ///

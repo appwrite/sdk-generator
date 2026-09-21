@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
+import 'dart:html' as html;
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:mqtt5_client/mqtt5_client.dart';
@@ -54,6 +56,12 @@ class PushWeb implements Push {
 
   MqttBrowserClient? _mqtt;
   Future<void>? _connecting;
+
+  // Foreground mode on the web: there is no background execution (a tab cannot hold a
+  // socket once closed), so [setForeground] just shows a browser notification per message
+  // while the tab is open.
+  bool _foreground = false;
+  String? _foregroundTitle;
 
   // Resolved once per instance: a reconnect rebuilds the client, and if each rebuild drew a new
   // random id the broker would treat it as a new session and drop this client's replay cursor.
@@ -163,6 +171,16 @@ class PushWeb implements Push {
       } catch (_) {}
     }
     return '/mqtt';
+  }
+
+  @override
+  Push setForeground({String? title}) {
+    _foreground = true;
+    _foregroundTitle = title;
+    if (html.Notification.permission != 'granted') {
+      html.Notification.requestPermission();
+    }
+    return this;
   }
 
   @override
@@ -342,10 +360,16 @@ class PushWeb implements Push {
         payload: payload,
         qos: publish.header?.qos.index ?? 0,
       );
+      var matched = false;
       for (final subscription in _subscriptions.values) {
         if (_matches(subscription.filter, topic)) {
+          matched = true;
           subscription.callback(message);
         }
+      }
+      // Show a browser notification per delivered message when foreground mode is on.
+      if (matched && _foreground && html.Notification.permission == 'granted') {
+        html.Notification(_foregroundTitle ?? topic, body: message.string);
       }
     }
   }

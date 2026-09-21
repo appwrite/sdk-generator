@@ -183,6 +183,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/src/mqtt_foreground.dart',
+                'template'      => 'flutter/lib/src/mqtt_foreground.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/src/mqtt_message.dart',
                 'template'      => 'flutter/lib/src/mqtt_message.dart.twig',
             ],

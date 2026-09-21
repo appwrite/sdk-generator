@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:mqtt5_client/mqtt5_client.dart';
 import 'package:mqtt5_client/mqtt5_server_client.dart';
 import 'package:typed_data/typed_data.dart' as typed;
 import 'client.dart';
 import 'exception.dart';
 import 'mqtt.dart';
+import 'mqtt_foreground.dart';
 import 'mqtt_message.dart';
 
 Push createPush(
@@ -58,6 +60,15 @@ class PushIO implements Push {
   // Reusing one id keeps the persistent session stable.
   late final String _resolvedClientId = _clientId ??
       'appwrite-${client.config['project'] ?? ''}-${_randomId().substring(0, 8)}';
+
+  // Foreground (background-service) mode: set by [setForeground]. When on, the connection
+  // runs in a background isolate (mqtt_foreground.dart) that also posts notifications; the
+  // app-side keeps its own callback map and forwards messages the service relays back.
+  bool _foreground = false;
+  String? _foregroundTitle;
+  final Map<String, _PushSubscription> _foregroundSubs = {};
+  final Set<String> _foregroundTopics = {};
+  StreamSubscription<Map<String, dynamic>?>? _serviceListener;
 
   // Local id -> subscription (topic filter + callback). The id is never sent to
   // the broker; it only lets the same topic carry more than one callback.
@@ -150,10 +161,21 @@ class PushIO implements Push {
   }
 
   @override
+  Push setForeground({String? title}) {
+    _foreground = true;
+    _foregroundTitle = title;
+    return this;
+  }
+
+  @override
   Future<PushUnsubscribe> subscribe(
       Object topics, PushCallback callback) async {
     final topicList =
         topics is String ? <String>[topics] : List<String>.from(topics as List);
+
+    if (_foreground) {
+      return _subscribeForeground(topicList, callback);
+    }
 
     final mqtt = await _connect();
 
@@ -205,6 +227,55 @@ class PushIO implements Push {
     return unsubscribe;
   }
 
+  // Foreground mode: the connection lives in the background service isolate. Register the
+  // callback locally (so it fires while the app is alive), add the topic to the service's
+  // set, start the service, and forward messages it relays back to matching callbacks.
+  Future<PushUnsubscribe> _subscribeForeground(
+      List<String> topicList, PushCallback callback) async {
+    final ids = <String>[];
+    for (final topic in topicList) {
+      final id = _randomId();
+      ids.add(id);
+      _foregroundSubs[id] = _PushSubscription(topic, callback);
+      _foregroundTopics.add(topic);
+    }
+
+    _serviceListener ??=
+        FlutterBackgroundService().on(pushForegroundMessageEvent).listen((data) {
+      if (data == null) {
+        return;
+      }
+      final topic = data['topic'] as String? ?? '';
+      final payload =
+          Uint8List.fromList(utf8.encode(data['payload'] as String? ?? ''));
+      final message =
+          PushMessage(topic: topic, payload: payload, qos: data['qos'] as int? ?? 0);
+      for (final sub in _foregroundSubs.values) {
+        if (_matches(sub.filter, topic)) {
+          sub.callback(message);
+        }
+      }
+    });
+
+    await startPushForeground(
+      client,
+      title: _foregroundTitle ?? '{{spec.info.title | caseUcfirst}}',
+      topics: _foregroundTopics.toList(),
+      reliableDelivery: _reliableDelivery,
+    );
+
+    return () {
+      for (final id in ids) {
+        _foregroundSubs.remove(id);
+      }
+      if (_foregroundSubs.isEmpty) {
+        _serviceListener?.cancel();
+        _serviceListener = null;
+        stopPushForeground();
+      }
+    };
+  }
+
   // QoS for subscribe, chosen once by [reliableDelivery]: at-least-once (1) when
   // reliable, at-most-once (0) when not.
   MqttQos get _defaultQos =>
@@ -215,6 +286,11 @@ class PushIO implements Push {
     _mqtt?.disconnect();
     _mqtt = null;
     _connecting = null;
+    _serviceListener?.cancel();
+    _serviceListener = null;
+    if (_foreground) {
+      stopPushForeground();
+    }
   }
 
   Future<MqttServerClient> _connect() {
