@@ -91,7 +91,8 @@ open class Push: Service {
         self.tlsInsecure = tlsInsecure
         let project = client.config["project"] ?? ""
         let pushClientId = client.pushClientId
-        self.resolvedClientId = (pushClientId?.isEmpty == false)
+        self.resolvedClientId =
+            (pushClientId?.isEmpty == false)
             ? pushClientId!
             : "appwrite-\(project)-\(UUID().uuidString.prefix(8))"
         super.init(client)
