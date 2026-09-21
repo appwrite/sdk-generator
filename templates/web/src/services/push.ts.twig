@@ -95,21 +95,28 @@ export class Push extends Service {
     }
 
     /**
-     * Also surface every delivered message as a browser notification while the tab is
-     * open. Requests the `Notification` permission on the spot. In the browser there is
-     * no true background/closed-tab delivery (that needs a service worker + push
-     * subscription); this covers open-tab presentation.
+     * Enable (or disable) surfacing every delivered message as a browser notification
+     * while the tab is open. Requests the `Notification` permission on the spot. In the
+     * browser there is no true background/closed-tab delivery (that needs a service worker
+     * + push subscription); this covers open-tab presentation. `setBackground(false)`
+     * turns it off.
      *
+     * @param enabled Whether to show notifications. Defaults to true.
      * @param options.title Fixed notification title. Defaults to the message topic.
      */
-    setBackground(options: { title?: string } = {}): this {
-        this.background = true;
-        this.backgroundTitle = options.title;
-        if (
-            typeof Notification !== 'undefined' &&
-            Notification.permission === 'default'
-        ) {
-            void Notification.requestPermission();
+    setBackground(
+        enabled: boolean = true,
+        options: { title?: string } = {},
+    ): this {
+        this.background = enabled;
+        if (enabled) {
+            this.backgroundTitle = options.title;
+            if (
+                typeof Notification !== 'undefined' &&
+                Notification.permission === 'default'
+            ) {
+                void Notification.requestPermission();
+            }
         }
         return this;
     }
@@ -247,7 +254,7 @@ export class Push extends Service {
 
     private endpointUrl(): string {
         // The push endpoint set on the client (Client.setPushEndpoint) wins, else the
-        // regular endpoint with its scheme switched to ws/wss and `/mqtt` appended.
+        // regular endpoint with its scheme switched to ws/wss.
         if (this.client.config.endpointPush !== '') {
             return this.client.config.endpointPush;
         }
@@ -255,7 +262,9 @@ export class Push extends Service {
             this.client.config.endpointRealtime !== ''
                 ? this.client.config.endpointRealtime
                 : this.client.config.endpoint;
-        return `${endpoint.replace('https://', 'wss://').replace('http://', 'ws://')}/mqtt`;
+        return endpoint
+            .replace('https://', 'wss://')
+            .replace('http://', 'ws://');
     }
 
     private async open(): Promise<void> {
