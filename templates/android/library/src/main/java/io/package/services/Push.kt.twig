@@ -170,19 +170,7 @@ class Push @JvmOverloads constructor(
         val client = connect()
 
         val ids = mutableListOf<String>()
-        for (topic in topics) {
-            val id = UUID.randomUUID().toString()
-            ids.add(id)
-            subscriptions[id] = topic
-            client.subscribeWith()
-                .topicFilter(topic)
-                .qos(defaultQos)
-                .callback { publish -> callback(publish.toPushMessage()) }
-                .send()
-                .get()
-        }
-
-        return {
+        val unsubscribe: () -> Unit = {
             for (id in ids) {
                 val topic = subscriptions.remove(id)
                 // Only unsubscribe the broker filter once its last local callback is gone.
@@ -194,6 +182,27 @@ class Push @JvmOverloads constructor(
                 close()
             }
         }
+
+        // If any SUBSCRIBE fails, roll this call's registrations back (and drop any
+        // now-unused broker filter) so a failed subscribe leaks no callback, then rethrow.
+        try {
+            for (topic in topics) {
+                val id = UUID.randomUUID().toString()
+                ids.add(id)
+                subscriptions[id] = topic
+                client.subscribeWith()
+                    .topicFilter(topic)
+                    .qos(defaultQos)
+                    .callback { publish -> callback(publish.toPushMessage()) }
+                    .send()
+                    .get()
+            }
+        } catch (e: Exception) {
+            unsubscribe()
+            throw e
+        }
+
+        return unsubscribe
     }
 
     private fun subscribeForeground(topics: List<String>, callback: (PushMessage) -> Unit): () -> Unit {
