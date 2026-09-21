@@ -476,7 +476,7 @@ class Tests: XCTestCase {
         var pushBody = "Push message:failed"
         var pushQos = "Push qos:failed"
         let pushUnsubscribe = try await push.subscribe("e2e/push") { message in
-            if message.string == "push-payload" {
+            if message.string == "push-payload" && message.topic == "e2e/push" {
                 pushBody = "Push message:passed"
             }
             if message.qos == 1 {

@@ -541,14 +541,14 @@
             let pushResolve;
             const pushReceived = new Promise((resolve) => { pushResolve = resolve; });
             const pushUnsub = await push.subscribe('e2e/push', (m) => {
-                pushResolve({ text: new TextDecoder().decode(m.payload), qos: m.qos });
+                pushResolve({ text: new TextDecoder().decode(m.payload), qos: m.qos, topic: m.topic });
             });
             console.log('Push subscribe:passed');
             const pushMsg = await Promise.race([
                 pushReceived,
-                new Promise((resolve) => setTimeout(() => resolve({ text: 'timeout', qos: -1 }), 5000)),
+                new Promise((resolve) => setTimeout(() => resolve({ text: 'timeout', qos: -1, topic: '' }), 5000)),
             ]);
-            console.log(pushMsg.text === 'push-payload' ? 'Push message:passed' : 'Push message:failed');
+            console.log(pushMsg.text === 'push-payload' && pushMsg.topic === 'e2e/push' ? 'Push message:passed' : 'Push message:failed');
             // reliableDelivery (default) => QoS 1 end to end.
             console.log(pushMsg.qos === 1 ? 'Push qos:passed' : 'Push qos:failed');
             pushUnsub();

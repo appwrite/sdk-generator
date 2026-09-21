@@ -478,7 +478,7 @@ void main() async {
   print('Push subscribe:passed');
   final pushMessage =
       await pushReceived.future.timeout(const Duration(seconds: 10));
-  print(pushMessage.string == 'push-payload'
+  print(pushMessage.string == 'push-payload' && pushMessage.topic == 'e2e/push'
       ? 'Push message:passed'
       : 'Push message:failed');
   // reliableDelivery (default) => QoS 1 end to end.

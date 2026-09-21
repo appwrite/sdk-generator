@@ -501,7 +501,7 @@ class ServiceTest {
             var pushBody = "Push message:failed"
             var pushQos = "Push qos:failed"
             val pushUnsub = push.subscribe("e2e/push") { message ->
-                if (message.string == "push-payload") {
+                if (message.string == "push-payload" && message.topic == "e2e/push") {
                     pushBody = "Push message:passed"
                 }
                 if (message.qos == 1) {

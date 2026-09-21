@@ -9,8 +9,9 @@
  *  - CONNECT is accepted unless the credential is the literal "deny" (so a test can assert
  *    a rejected connection); the projectId user property becomes the connection prefix.
  *  - SUBSCRIBE grants every filter at the requested QoS (capped at QoS 1) and then, mirroring
- *    real server-initiated push, delivers a message on the subscribed topic so the e2e can
- *    assert receipt — the SDKs only subscribe, they have no publish method.
+ *    real server-initiated push, publishes the test message to the fixed topic "e2e/push"
+ *    through the broker's subscription index/fan-out — so a client receives it only if its
+ *    subscription matches. The SDKs only subscribe; they have no publish method.
  *
  * It listens on both transports the library ships: plain TCP (1883) and WebSocket (8083),
  * so the TCP SDKs and the browser/WebSocket SDK can both reach it.
@@ -44,6 +45,9 @@ use Utopia\Mqtt\Server;
 
 class MockHandler implements Handler
 {
+    /** Set after construction so onSubscribe can route through the broker's fan-out. */
+    public ?Server $server = null;
+
     public function onConnect(Connect $connect, Connection $connection): Connack|Auth
     {
         $connection->prefix = $connect->userProperties()['projectId'] ?? '';
@@ -81,18 +85,21 @@ class MockHandler implements Handler
     {
         $suback = new Suback();
         foreach ($subscribe->filters() as $filter) {
-            $grantedQos = \min($filter->qos, Packet::QOS_1);
-            $suback->grant($grantedQos);
-
-            // Real push is server-initiated (server -> client); the SDKs only subscribe and
-            // have no publish method. So, mirroring the real broker, deliver a message on the
-            // subscribed topic here so the e2e can assert receipt. Deferred one tick so it
-            // lands after the SUBACK the library sends when this handler returns.
-            $topic = $filter->topic;
-            \Swoole\Timer::after(100, static function () use ($connection, $topic, $grantedQos) {
-                $connection->publish($topic, 'push-payload', qos: $grantedQos);
-            });
+            $suback->grant(\min($filter->qos, Packet::QOS_1));
         }
+
+        // Real push is server-initiated (server -> client); the SDKs only subscribe and have no
+        // publish method. After the SUBACK, publish the test message to the fixed topic
+        // "e2e/push" through the broker's subscription index/fan-out (Server::subscribers), not
+        // a direct echo on this socket — so a client only receives it if its subscription
+        // actually matches "e2e/push", exercising real topic routing. Deferred one tick so it
+        // lands after the SUBACK the library sends when this handler returns.
+        $prefix = $connection->prefix;
+        \Swoole\Timer::after(100, function () use ($prefix) {
+            foreach ($this->server?->subscribers($prefix, 'e2e/push') ?? [] as [$subscriber, $grantedQos]) {
+                $subscriber->publish('e2e/push', 'push-payload', qos: \min($grantedQos, Packet::QOS_1));
+            }
+        });
 
         return $suback;
     }
@@ -145,7 +152,9 @@ $adapter = new Adapter\Swoole([
     new Adapter\Swoole\WebSocket('0.0.0.0', 8083, $maxPacketSize),
 ], workers: 1);
 
-$server = new Server($adapter, new MockHandler());
+$handler = new MockHandler();
+$server = new Server($adapter, $handler);
+$handler->server = $server;
 $server->onStart(fn () => print("mqtt broker started\n"));
 $server->error(fn (\Throwable $error, string $action) => \fwrite(STDERR, "mqtt {$action} error: " . $error->getMessage() . "\n"));
 $server->start();

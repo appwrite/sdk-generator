@@ -482,7 +482,7 @@ namespace AppwriteTests
             LogResult("Push subscribe:passed");
             var pushWinner = await Task.WhenAny(pushTcs.Task, Task.Delay(10000));
             var pushOk = pushWinner == pushTcs.Task;
-            LogResult(pushOk && pushTcs.Task.Result.Text == "push-payload"
+            LogResult(pushOk && pushTcs.Task.Result.Text == "push-payload" && pushTcs.Task.Result.Topic == "e2e/push"
                 ? "Push message:passed"
                 : "Push message:failed");
             // reliableDelivery (default) => QoS 1 end to end.
