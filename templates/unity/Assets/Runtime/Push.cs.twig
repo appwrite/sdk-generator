@@ -183,9 +183,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                     .WithQualityOfServiceLevel(DefaultQos));
             }
 
-            await client.SubscribeAsync(builder.Build());
-
-            return () =>
+            Action unsubscribe = () =>
             {
                 lock (_subscriptions)
                 {
@@ -218,6 +216,20 @@ namespace {{ spec.info.title | caseUcfirst }}
                     }
                 }
             };
+
+            // If the SUBSCRIBE fails, roll this call's registrations back (and drop any
+            // now-unused broker filter) so a failed subscribe leaks no callback, then rethrow.
+            try
+            {
+                await client.SubscribeAsync(builder.Build());
+            }
+            catch
+            {
+                unsubscribe();
+                throw;
+            }
+
+            return unsubscribe;
         }
 
         /// <summary>
