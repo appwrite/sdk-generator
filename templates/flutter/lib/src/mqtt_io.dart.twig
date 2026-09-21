@@ -53,6 +53,12 @@ class PushIO implements Push {
   MqttServerClient? _mqtt;
   Future<void>? _connecting;
 
+  // Resolved once per instance: a reconnect rebuilds the client, and if each rebuild drew a new
+  // random id the broker would treat it as a new session and drop this client's replay cursor.
+  // Reusing one id keeps the persistent session stable.
+  late final String _resolvedClientId = _clientId ??
+      'appwrite-${client.config['project'] ?? ''}-${_randomId().substring(0, 8)}';
+
   // Local id -> subscription (topic filter + callback). The id is never sent to
   // the broker; it only lets the same topic carry more than one callback.
   final Map<String, _PushSubscription> _subscriptions = {};
@@ -248,10 +254,9 @@ class PushIO implements Push {
     final project = client.config['project'] ?? '';
     // A non-empty client id is required for a persistent session (clean start off) — some
     // MQTT clients/brokers reject a zero-length id in that mode. The broker keys its
-    // offline-replay cursor on this id; pass a stable [clientId] to resume replay across
-    // restarts (the generated one is stable only for this client's lifetime).
-    final clientId =
-        _clientId ?? 'appwrite-$project-${_randomId().substring(0, 8)}';
+    // offline-replay cursor on this id, resolved once per instance (see [_resolvedClientId])
+    // so a reconnect rebuild reuses it and resumes the same session.
+    final clientId = _resolvedClientId;
 
     final mqtt = MqttServerClient.withPort(_host, clientId, _port);
     mqtt.keepAlivePeriod = _keepAlive;
