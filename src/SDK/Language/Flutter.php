@@ -178,8 +178,8 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/src/mqtt_stub.dart',
-                'template'      => 'flutter/lib/src/mqtt_stub.dart.twig',
+                'destination'   => '/lib/src/mqtt_browser.dart',
+                'template'      => 'flutter/lib/src/mqtt_browser.dart.twig',
             ],
             [
                 'scope'         => 'default',
