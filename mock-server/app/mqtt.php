@@ -18,9 +18,9 @@
  *
  * The broker needs utopia-php/mqtt, which requires utopia-php/telemetry ^0.4 — a constraint
  * the mock HTTP server's utopia-php/framework (older telemetry line, carries param(model:))
- * does not allow. So it installs into a separate ./vendor-mqtt, kept apart from the HTTP
- * mock's ./vendor; the manifest is inlined in the Dockerfile (no composer.mqtt.json). This
- * file loads that vendor.
+ * does not allow. So its dependencies live in a separate manifest (composer.mqtt.json, with a
+ * committed composer.mqtt.lock) installed to ./vendor-mqtt, kept apart from the HTTP mock's
+ * ./vendor; this file loads that one.
  */
 
 require_once __DIR__ . '/../vendor-mqtt/autoload.php';
