@@ -51,6 +51,8 @@ class Client @JvmOverloads constructor(
     var endpointRealtime: String? = null,
     @set:JvmSynthetic
     var endpointPush: String? = null,
+    @set:JvmSynthetic
+    var pushClientId: String? = null,
     private var selfSigned: Boolean = false
 ) : CoroutineScope {
 
@@ -231,6 +233,22 @@ class Client @JvmOverloads constructor(
      */
     fun setPushEndpoint(endpoint: String): Client {
         this.endpointPush = endpoint
+        return this
+    }
+
+    /**
+     * Set push client id
+     *
+     * A stable client id for the [io.appwrite.services.Push] service. The broker keys its
+     * offline-replay cursor on this id, so pass a stable value to resume replay across
+     * restarts. Defaults to a per-connection id when unset.
+     *
+     * @param pushClientId
+     *
+     * @return this
+     */
+    fun setPushClientId(pushClientId: String): Client {
+        this.pushClientId = pushClientId
         return this
     }
 

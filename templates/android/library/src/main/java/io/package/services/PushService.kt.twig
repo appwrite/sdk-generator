@@ -14,7 +14,7 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 /**
  * Foreground service that keeps the {{ spec.info.title | caseUcfirst }} push (MQTT) connection alive while the
  * app is backgrounded or swiped away (the process stays alive). It owns its own MQTT
- * client, subscribes to the topics configured through [Push.setForeground] +
+ * client, subscribes to the topics configured through [Push.setBackground] +
  * `subscribe`, invokes any in-process listeners, and posts a local notification per
  * message. Started by PushForeground; not meant to be started directly. A hard process
  * kill is not recovered (see the START_NOT_STICKY note in onStartCommand).
@@ -78,7 +78,7 @@ class PushService : Service() {
 
     private fun subscribeTopics(topics: List<String>) {
         val client = mqtt ?: return
-        val qos = if (PushForeground.config?.reliableDelivery != false) {
+        val qos = if (PushForeground.config?.replay != false) {
             MqttQos.AT_LEAST_ONCE
         } else {
             MqttQos.AT_MOST_ONCE
