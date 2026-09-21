@@ -65,11 +65,11 @@ data class PushMessage(
  * (`Client.setJWT` / `Client.setSession`), the same way every other service reads auth.
  *
  * [reliableDelivery] (default `true`) picks the delivery guarantee once, for the whole
- * connection: `true` subscribes and publishes at QoS 1 and opens a persistent session
- * (clean start off, a stable client id, a session-expiry window), so messages missed
- * during a brief disconnect are replayed on reconnect; `false` uses QoS 0 and a clean,
- * ephemeral session (at-most-once, may be lost, no replay). Offline replay also requires
- * the broker to persist sessions.
+ * connection: `true` subscribes and publishes at QoS 1 with clean start off and a stable
+ * client id, so the broker keeps this client's replay cursor and redelivers messages missed
+ * during a brief disconnect on reconnect; `false` uses QoS 0 and a clean, ephemeral session
+ * (at-most-once, may be lost, no replay). The broker owns the replay window server-side (no
+ * MQTT session-expiry is set); pass a stable [clientId] to resume replay across restarts.
  *
  * ```kotlin
  * val client = Client().setEndpoint("...").setProject("...").setJWT(jwt)
@@ -110,6 +110,12 @@ class Push @JvmOverloads constructor(
     private val port: Int = port
         ?: client.endpointPush?.let { runCatching { URI(it).port.takeIf { p -> p != -1 } }.getOrNull() }
         ?: (if (this.tls) 8883 else 1883)
+
+    // Resolve the fallback client id once per instance: a reconnect rebuilds the MQTT client,
+    // and if each rebuild drew a new random id the broker would treat it as a new session and
+    // drop this client's replay cursor. Reusing one id keeps the persistent session stable.
+    private val resolvedClientId: String = clientId
+        ?: "appwrite-${client.config["project"] ?: ""}-${UUID.randomUUID().toString().substring(0, 8)}"
 
     private var mqtt: Mqtt5AsyncClient? = null
 
@@ -262,7 +268,7 @@ class Push @JvmOverloads constructor(
             port = port,
             tls = tls,
             tlsInsecure = tlsInsecure,
-            clientId = clientId,
+            clientId = resolvedClientId,
             keepAlive = keepAlive,
             authMethod = authMethod,
             credential = credential,
@@ -312,7 +318,7 @@ internal data class PushConfig(
     val port: Int,
     val tls: Boolean,
     val tlsInsecure: Boolean,
-    val clientId: String?,
+    val clientId: String,
     val keepAlive: Int,
     val authMethod: String,
     val credential: String,
@@ -336,15 +342,12 @@ internal fun resolvePushAuth(client: Client): Pair<String, String> {
 /** Build (but do not connect) an MQTT 5 client from [config]. */
 internal fun buildPushClient(config: PushConfig): Mqtt5AsyncClient {
     // A non-empty identifier is required for a persistent session (clean start off): HiveMQ
-    // sends an empty id expecting the broker to assign one, which it does not. The broker
-    // keys its offline-replay cursor on this id; pass a stable clientId to resume replay
-    // across restarts (the generated one is stable only for this client's lifetime).
-    val id = config.clientId
-        ?: "appwrite-${config.project}-${UUID.randomUUID().toString().substring(0, 8)}"
-
+    // sends an empty id expecting the broker to assign one, which it does not. The broker keys
+    // its offline-replay cursor on this id; it is resolved once per Push instance (see
+    // resolvedClientId) so a reconnect rebuild reuses it and resumes the same session.
     var builder = MqttClient.builder()
         .useMqttVersion5()
-        .identifier(id)
+        .identifier(config.clientId)
         .serverHost(config.host)
         .serverPort(config.port)
 
