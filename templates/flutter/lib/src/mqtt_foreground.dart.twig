@@ -201,9 +201,18 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
     }
   }
 
+  // Serialize topic updates: applyTopics awaits push.subscribe, so overlapping runs could
+  // otherwise subscribe a topic twice (losing an unsubscribe handle) or apply out of order.
+  // Chaining runs them one at a time, in arrival order; catchError keeps the chain alive.
+  var topicQueue = Future<void>.value();
+  void queueTopics(List<String> topics) {
+    topicQueue =
+        topicQueue.then((_) => applyTopics(topics)).catchError((Object _) {});
+  }
+
   service.on(_topicsEvent).listen((data) {
     final topics = ((data?['topics'] as List?) ?? const <dynamic>[]).cast<String>();
-    applyTopics(topics);
+    queueTopics(topics);
   });
 
   service.on(_stopEvent).listen((_) async {
@@ -215,5 +224,5 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
     service.stopSelf();
   });
 
-  await applyTopics((config['topics'] as List).cast<String>());
+  queueTopics((config['topics'] as List).cast<String>());
 }
