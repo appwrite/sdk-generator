@@ -181,6 +181,7 @@ class Client {
         endpoint: '{{ (spec | endpoint) }}',
         endpointRealtime: '',
         endpointPush: '',
+        pushClientId: '',
         platform: '',
 {% for headerKey, header in globalHeaders %}
 {% if headerKey | caseLower != 'platform' %}
@@ -280,6 +281,26 @@ class Client {
         }
 
         this.config.endpointPush = endpointPush;
+        return this;
+    }
+
+    /**
+     * Set Push Client Id
+     *
+     * A stable client id for the {{ spec.info.title | caseUcfirst }}Push service. The broker keys its
+     * offline-replay cursor on this id, so pass a stable value to resume replay across
+     * app restarts. Defaults to a per-connection id when unset.
+     *
+     * @param {string} pushClientId
+     *
+     * @returns {this}
+     */
+    setPushClientId(pushClientId: string): this {
+        if (!pushClientId || typeof pushClientId !== 'string') {
+            throw new {{spec.info.title | caseUcfirst}}Exception('Client id must be a valid string');
+        }
+
+        this.config.pushClientId = pushClientId;
         return this;
     }
 
