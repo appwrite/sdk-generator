@@ -67,7 +67,6 @@ class PushIO implements Push {
   bool _foreground = false;
   String? _foregroundTitle;
   final Map<String, _PushSubscription> _foregroundSubs = {};
-  final Set<String> _foregroundTopics = {};
   StreamSubscription<Map<String, dynamic>?>? _serviceListener;
 
   // Local id -> subscription (topic filter + callback). The id is never sent to
@@ -228,8 +227,8 @@ class PushIO implements Push {
   }
 
   // Foreground mode: the connection lives in the background service isolate. Register the
-  // callback locally (so it fires while the app is alive), add the topic to the service's
-  // set, start the service, and forward messages it relays back to matching callbacks.
+  // callback locally (so it fires while the app is alive), (re)sync the service with the
+  // current topic union, and forward messages it relays back to matching callbacks.
   Future<PushUnsubscribe> _subscribeForeground(
       List<String> topicList, PushCallback callback) async {
     final ids = <String>[];
@@ -237,7 +236,6 @@ class PushIO implements Push {
       final id = _randomId();
       ids.add(id);
       _foregroundSubs[id] = _PushSubscription(topic, callback);
-      _foregroundTopics.add(topic);
     }
 
     _serviceListener ??=
@@ -257,12 +255,7 @@ class PushIO implements Push {
       }
     });
 
-    await startPushForeground(
-      client,
-      title: _foregroundTitle ?? '{{spec.info.title | caseUcfirst}}',
-      topics: _foregroundTopics.toList(),
-      reliableDelivery: _reliableDelivery,
-    );
+    await _syncForeground();
 
     return () {
       for (final id in ids) {
@@ -271,10 +264,22 @@ class PushIO implements Push {
       if (_foregroundSubs.isEmpty) {
         _serviceListener?.cancel();
         _serviceListener = null;
-        stopPushForeground();
+        unawaited(stopPushForeground());
+      } else {
+        // Prune the removed topics from the running isolate so they stop delivering.
+        unawaited(_syncForeground());
       }
     };
   }
+
+  // The current union of foreground topics, kept in sync with the background service.
+  Future<void> _syncForeground() => syncPushForeground(
+        client,
+        title: _foregroundTitle ?? '{{spec.info.title | caseUcfirst}}',
+        topics:
+            _foregroundSubs.values.map((s) => s.filter).toSet().toList(),
+        reliableDelivery: _reliableDelivery,
+      );
 
   // QoS for subscribe, chosen once by [reliableDelivery]: at-least-once (1) when
   // reliable, at-most-once (0) when not.
@@ -289,7 +294,7 @@ class PushIO implements Push {
     _serviceListener?.cancel();
     _serviceListener = null;
     if (_foreground) {
-      stopPushForeground();
+      unawaited(stopPushForeground());
     }
   }
 

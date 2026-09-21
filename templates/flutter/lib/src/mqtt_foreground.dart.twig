@@ -21,25 +21,25 @@ import 'mqtt.dart';
 /// in-app callbacks still fire — mirroring the Android/React Native SDKs' foreground mode.
 ///
 /// Config is handed to the isolate through a small JSON file in the app documents
-/// directory (the isolate does not share the app's memory); credentials therefore live on
-/// disk while foreground mode is active, so only enable it when that is acceptable.
+/// directory (the isolate does not share the app's memory), and the running isolate is kept
+/// in sync via service events. The config file (which holds the credential) is deleted when
+/// foreground delivery stops.
 
 const String _channelId = '{{ spec.info.title | caseLower }}-push';
 const String _channelName = 'Notifications';
 const String _messageEvent = '{{ spec.info.title | caseLower }}.push.message';
+const String _topicsEvent = '{{ spec.info.title | caseLower }}.push.topics';
 const String _stopEvent = '{{ spec.info.title | caseLower }}.push.stop';
+
+/// The service event the app listens on to forward background messages to callbacks.
+String get pushForegroundMessageEvent => _messageEvent;
 
 Future<File> _configFile() async {
   final dir = await getApplicationDocumentsDirectory();
   return File('${dir.path}/{{ spec.info.title | caseLower }}_push_foreground.json');
 }
 
-/// The service event the app listens on to forward background messages to callbacks.
-String get pushForegroundMessageEvent => _messageEvent;
-
-/// Persist the connection config + topics, then configure and start the background
-/// service. Called on the app isolate by the foreground subscribe path.
-Future<void> startPushForeground(
+Future<void> _writeConfig(
   Client client, {
   required String title,
   required List<String> topics,
@@ -56,8 +56,42 @@ Future<void> startPushForeground(
     'topics': topics,
   };
   (await _configFile()).writeAsStringSync(jsonEncode(config));
+}
+
+// Delete the config file (which holds the credential) so it does not linger on disk after
+// foreground delivery ends.
+Future<void> _deleteConfig() async {
+  try {
+    final file = await _configFile();
+    if (file.existsSync()) {
+      file.deleteSync();
+    }
+  } catch (_) {}
+}
+
+/// Start the background service (or, if already running, update its topics live). Called on
+/// the app isolate by the foreground subscribe/unsubscribe paths with the current topic set.
+Future<void> syncPushForeground(
+  Client client, {
+  required String title,
+  required List<String> topics,
+  required bool reliableDelivery,
+}) async {
+  await _writeConfig(
+    client,
+    title: title,
+    topics: topics,
+    reliableDelivery: reliableDelivery,
+  );
 
   final service = FlutterBackgroundService();
+  if (await service.isRunning()) {
+    // The isolate is already up: hand it the new topic set so a later subscribe/unsubscribe
+    // takes effect without a restart.
+    service.invoke(_topicsEvent, {'topics': topics});
+    return;
+  }
+
   await service.configure(
     androidConfiguration: AndroidConfiguration(
       onStart: pushForegroundEntry,
@@ -72,19 +106,18 @@ Future<void> startPushForeground(
       autoStart: false,
     ),
   );
-
-  if (!await service.isRunning()) {
-    await service.startService();
-  }
+  await service.startService();
 }
 
-/// Ask the background service to disconnect and stop.
-void stopPushForeground() {
+/// Ask the background service to disconnect and stop, and delete the config file.
+Future<void> stopPushForeground() async {
   FlutterBackgroundService().invoke(_stopEvent);
+  await _deleteConfig();
 }
 
 /// Background isolate entry point: opens the connection, subscribes to the persisted
-/// topics, posts a notification per message and forwards it to the app.
+/// topics (kept in sync via [_topicsEvent]), posts a notification per message and forwards
+/// it to the app.
 @pragma('vm:entry-point')
 Future<void> pushForegroundEntry(ServiceInstance service) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -103,6 +136,7 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
     config =
         jsonDecode((await _configFile()).readAsStringSync()) as Map<String, dynamic>;
   } catch (_) {
+    await _deleteConfig();
     service.stopSelf();
     return;
   }
@@ -127,32 +161,59 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
     reliableDelivery: config['reliableDelivery'] as bool? ?? true,
   );
   final title = config['title'] as String?;
-  final topics = (config['topics'] as List).cast<String>();
 
-  service.on(_stopEvent).listen((_) {
+  // One broker subscription per topic so topics can be added/removed independently as the
+  // app's subscriptions change.
+  final subscriptions = <String, PushUnsubscribe>{};
+
+  Future<void> applyTopics(List<String> topics) async {
+    final wanted = topics.toSet();
+    for (final topic in subscriptions.keys.toList()) {
+      if (!wanted.contains(topic)) {
+        subscriptions.remove(topic)?.call();
+      }
+    }
+    for (final topic in wanted) {
+      if (subscriptions.containsKey(topic)) {
+        continue;
+      }
+      subscriptions[topic] = await push.subscribe(topic, (message) {
+        notifications.show(
+          message.topic.hashCode,
+          title ?? message.topic,
+          message.string,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              _channelId,
+              _channelName,
+              importance: Importance.high,
+            ),
+            iOS: DarwinNotificationDetails(),
+          ),
+        );
+        // Forward to the app isolate (if alive) so in-app callbacks still fire.
+        service.invoke(_messageEvent, {
+          'topic': message.topic,
+          'payload': message.string,
+          'qos': message.qos,
+        });
+      });
+    }
+  }
+
+  service.on(_topicsEvent).listen((data) {
+    final topics = ((data?['topics'] as List?) ?? const <dynamic>[]).cast<String>();
+    applyTopics(topics);
+  });
+
+  service.on(_stopEvent).listen((_) async {
+    for (final unsubscribe in subscriptions.values) {
+      unsubscribe();
+    }
     push.close();
+    await _deleteConfig();
     service.stopSelf();
   });
 
-  await push.subscribe(topics, (message) {
-    notifications.show(
-      message.topic.hashCode,
-      title ?? message.topic,
-      message.string,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId,
-          _channelName,
-          importance: Importance.high,
-        ),
-        iOS: DarwinNotificationDetails(),
-      ),
-    );
-    // Forward to the app isolate (if alive) so in-app callbacks still fire.
-    service.invoke(_messageEvent, {
-      'topic': message.topic,
-      'payload': message.string,
-      'qos': message.qos,
-    });
-  });
+  await applyTopics((config['topics'] as List).cast<String>());
 }
