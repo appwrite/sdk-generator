@@ -206,20 +206,21 @@ export class Push extends Service {
         const client = await this.connect();
 
         const ids: string[] = [];
-        await Promise.all(
-            topicList.map((topic) => {
-                const id = randomId();
-                ids.push(id);
-                this.subscriptions.set(id, { topic, callback });
-                return new Promise<void>((resolve, reject) => {
+        const acks: Promise<void>[] = [];
+        for (const topic of topicList) {
+            const id = randomId();
+            ids.push(id);
+            this.subscriptions.set(id, { topic, callback });
+            acks.push(
+                new Promise<void>((resolve, reject) => {
                     client.subscribe(topic, { qos: this.defaultQos }, (err) =>
                         err ? reject(err) : resolve(),
                     );
-                });
-            }),
-        );
+                }),
+            );
+        }
 
-        return () => {
+        const unsubscribe = () => {
             for (const id of ids) {
                 const entry = this.subscriptions.get(id);
                 this.subscriptions.delete(id);
@@ -235,6 +236,17 @@ export class Push extends Service {
                 this.close();
             }
         };
+
+        // If any topic's subscribe fails, roll this call's registrations back (and drop
+        // any now-unused broker filter) so a failed subscribe leaks no callback, then rethrow.
+        try {
+            await Promise.all(acks);
+        } catch (err) {
+            unsubscribe();
+            throw err;
+        }
+
+        return unsubscribe;
     }
 
     /**
