@@ -59,6 +59,13 @@ class PushIO implements Push {
   final Map<String, _PushSubscription> _backgroundSubs = {};
   StreamSubscription<Map<String, dynamic>?>? _serviceListener;
 
+  // Serializes background config writes (topic syncs and replay changes). Each write is a
+  // file write plus a service event, so unserialized rapid calls could interleave and apply
+  // out of order — an earlier one finishing last would leave stale clean-start/QoS. Chaining
+  // runs them in call order; each reads the current state when it runs, so the last requested
+  // value always wins.
+  Future<void> _backgroundSync = Future<void>.value();
+
   // Local id -> subscription (topic filter + callback). The id is never sent to
   // the broker; it only lets the same topic carry more than one callback.
   final Map<String, _PushSubscription> _subscriptions = {};
@@ -147,13 +154,14 @@ class PushIO implements Push {
     _replay = enabled;
     if (_background) {
       // The connection lives in the background isolate, so a local reconnect would no-op.
-      // Hand the new guarantee to the isolate so it rebuilds with the new clean-start/QoS.
-      unawaited(setPushForegroundReplay(
-        client,
-        title: _backgroundTitleOrDefault,
-        topics: _backgroundTopics,
-        replay: _replay,
-      ));
+      // Hand the new guarantee to the isolate (serialized so rapid toggles apply in order
+      // and the last requested value wins) to rebuild with the new clean-start/QoS.
+      unawaited(_enqueueBackground(() => setPushForegroundReplay(
+            client,
+            title: _backgroundTitleOrDefault,
+            topics: _backgroundTopics,
+            replay: _replay,
+          )));
     } else if (_mqtt != null) {
       // If already connected in the other mode, reconnect so the new clean-start takes
       // effect, then resubscribe active topics at the new QoS.
@@ -317,13 +325,22 @@ class PushIO implements Push {
   List<String> get _backgroundTopics =>
       _backgroundSubs.values.map((s) => s.filter).toSet().toList();
 
+  // Run a background config write after any already-queued one, so writes never interleave
+  // or reorder. The returned future carries this write's own result to its caller, while the
+  // chain itself never rejects (a failed write must not stall later ones).
+  Future<void> _enqueueBackground(Future<void> Function() op) {
+    final result = _backgroundSync.then((_) => op());
+    _backgroundSync = result.then((_) {}, onError: (Object _) {});
+    return result;
+  }
+
   // The current union of foreground topics, kept in sync with the background service.
-  Future<void> _syncBackground() => syncPushForeground(
+  Future<void> _syncBackground() => _enqueueBackground(() => syncPushForeground(
         client,
         title: _backgroundTitleOrDefault,
         topics: _backgroundTopics,
         replay: _replay,
-      );
+      ));
 
   // QoS for subscribe, chosen by [setReplayMessages]: at-least-once (1) when replay is on,
   // at-most-once (0) when off.
