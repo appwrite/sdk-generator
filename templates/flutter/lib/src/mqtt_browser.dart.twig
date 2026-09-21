@@ -191,12 +191,7 @@ class PushWeb implements Push {
       mqtt.subscribeWithSubscriptionList([subscription]);
     }
 
-    // The broker only starts routing a topic once its subscription is registered,
-    // so publishing before the SUBACK races the message ahead of the subscription
-    // and it is dropped (no retained replay on MQTT). Awaiting makes it reliable.
-    await Future.wait(acks);
-
-    return () {
+    void unsubscribe() {
       for (final id in ids) {
         final entry = _subscriptions.remove(id);
         // Only unsubscribe the broker filter once its last local callback is gone.
@@ -209,7 +204,21 @@ class PushWeb implements Push {
       if (_subscriptions.isEmpty) {
         close();
       }
-    };
+    }
+
+    // The broker only starts routing a topic once its subscription is registered,
+    // so publishing before the SUBACK races the message ahead of the subscription
+    // and it is dropped (no retained replay on MQTT). Awaiting makes it reliable.
+    // If any topic's SUBACK fails, roll this call's registrations back (and drop any
+    // now-unused broker filter) so a failed subscribe leaks no callback, then rethrow.
+    try {
+      await Future.wait(acks);
+    } catch (_) {
+      unsubscribe();
+      rethrow;
+    }
+
+    return unsubscribe;
   }
 
   @override
