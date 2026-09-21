@@ -19,48 +19,11 @@ export interface PushMessage {
 export type MessageCallback = (message: PushMessage) => void | Promise<void>;
 export type Unsubscribe = () => void;
 
-export interface PushOptions {
-    /**
-     * The MQTT-over-WebSocket URL. Defaults to the {{spec.info.title | caseUcfirst}} endpoint with its
-     * scheme switched to `ws`/`wss` and `/mqtt` appended.
-     */
-    url?: string;
-    /**
-     * A fixed client id. Each connection needs its own: an MQTT server evicts the
-     * older session when a new one connects with the same id, so a shared id would
-     * make concurrent clients kick each other off. Defaults to a per-connection id.
-     * The broker keys its offline-replay cursor on this id, so pass a stable value to
-     * resume replay across page reloads / app restarts.
-     */
-    clientId?: string;
-    /** MQTT keepalive in seconds (PINGREQ interval). Defaults to 60. */
-    keepalive?: number;
-    /**
-     * Auto-reconnect interval in ms. 0 (default) disables it — a one-shot connection.
-     * A long-lived client sets this > 0 so the socket comes back after a drop;
-     * subscriptions are re-registered on every reconnect (see {@link resubscribeAll}).
-     */
-    reconnectPeriod?: number;
-    /**
-     * Delivery guarantee for the whole connection. `true` (default) subscribes and
-     * publishes at QoS 1 with clean start off, so the broker keeps this client's replay
-     * cursor and redelivers messages missed during a brief disconnect; `false` uses
-     * QoS 0 and clean start on (at-most-once, may be lost, cursor purged — no replay).
-     */
-    reliableDelivery?: boolean;
-    /** Notified on connection lifecycle changes, for a UI to reflect. */
-    onStatus?: (status: PushStatus, detail?: string) => void;
-}
-
-export type PushStatus =
-    | 'connecting'
-    | 'connected'
-    | 'reconnecting'
-    | 'offline'
-    | 'closed'
-    | 'error';
-
 type AuthMethod = 'appwrite-jwt' | 'appwrite-session' | '';
+
+// Fixed connection tuning — not exposed as options.
+const KEEP_ALIVE_SECONDS = 60;
+const RECONNECT_PERIOD_MS = 2000;
 
 /**
  * {{spec.info.title | caseUcfirst}} native push service — the Realtime analog over an MQTT broker, without
@@ -80,20 +43,21 @@ type AuthMethod = 'appwrite-jwt' | 'appwrite-session' | '';
  *     );
  */
 export class Push extends Service {
-    private readonly url?: string;
-    private readonly clientId?: string;
-    private readonly keepalive: number;
-    private readonly reconnectPeriod: number;
-    private readonly reliableDelivery: boolean;
-    private readonly onStatus?: (status: PushStatus, detail?: string) => void;
+    // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this
+    // client's replay cursor. Default on; toggle with setReplayMessages().
+    private replay = true;
 
     private mqtt: MqttClient | null = null;
     private connecting: Promise<void> | null = null;
     /** Set once the first CONNACK lands, so 'connect' events after are reconnects. */
     private everConnected = false;
 
-    private foreground = false;
-    private foregroundTitle?: string;
+    private background = false;
+    private backgroundTitle?: string;
+
+    private onOpenCb?: () => void;
+    private onCloseCb?: () => void;
+    private onErrorCb?: (error: Error) => void;
 
     // Local id -> { topic, callback }. The id is never sent to the broker; it only
     // lets the same topic carry more than one callback.
@@ -102,39 +66,69 @@ export class Push extends Service {
         { topic: string; callback: MessageCallback }
     >();
 
-    constructor(client: Client, options: PushOptions = {}) {
+    constructor(client: Client) {
         super(client);
-        this.url = options.url;
-        this.clientId = options.clientId;
-        this.keepalive = options.keepalive ?? 60;
-        this.reconnectPeriod = options.reconnectPeriod ?? 0;
-        this.reliableDelivery = options.reliableDelivery ?? true;
-        this.onStatus = options.onStatus;
     }
 
-    // QoS for both subscribe and publish, chosen once by `reliableDelivery`:
-    // at-least-once (1) when reliable, at-most-once (0) when not.
+    // QoS for subscribe, chosen by replay mode: at-least-once (1) when replaying missed
+    // messages, at-most-once (0) when not.
     private get defaultQos(): 0 | 1 {
-        return this.reliableDelivery ? 1 : 0;
+        return this.replay ? 1 : 0;
+    }
+
+    /**
+     * Toggle replay of messages missed while disconnected. `true` (the default)
+     * subscribes at QoS 1 with clean start off, so the broker keeps this client's replay
+     * cursor and redelivers missed messages on reconnect; `false` uses QoS 0 and a clean
+     * session (at-most-once, no replay). Can be called at any time: if the connection is
+     * already open in the other mode it reconnects and resubscribes at the new QoS.
+     */
+    setReplayMessages(enabled: boolean = true): this {
+        if (enabled === this.replay) {
+            return this;
+        }
+        this.replay = enabled;
+        if (this.mqtt) {
+            void this.reconnect();
+        }
+        return this;
     }
 
     /**
      * Also surface every delivered message as a browser notification while the tab is
-     * open. Requests the `Notification` permission on the spot. In the browser this is
-     * inherently foreground (open-tab) delivery — there is no background/closed-tab
-     * mode without a service worker + push subscription.
+     * open. Requests the `Notification` permission on the spot. In the browser there is
+     * no true background/closed-tab delivery (that needs a service worker + push
+     * subscription); this covers open-tab presentation.
      *
      * @param options.title Fixed notification title. Defaults to the message topic.
      */
-    setForeground(options: { title?: string } = {}): this {
-        this.foreground = true;
-        this.foregroundTitle = options.title;
+    setBackground(options: { title?: string } = {}): this {
+        this.background = true;
+        this.backgroundTitle = options.title;
         if (
             typeof Notification !== 'undefined' &&
             Notification.permission === 'default'
         ) {
             void Notification.requestPermission();
         }
+        return this;
+    }
+
+    /** Register a callback invoked when the connection opens (CONNACK success). */
+    onOpen(callback: () => void): this {
+        this.onOpenCb = callback;
+        return this;
+    }
+
+    /** Register a callback invoked when the connection closes. */
+    onClose(callback: () => void): this {
+        this.onCloseCb = callback;
+        return this;
+    }
+
+    /** Register a callback invoked on a connection error. */
+    onError(callback: (error: Error) => void): this {
+        this.onErrorCb = callback;
         return this;
     }
 
@@ -222,15 +216,16 @@ export class Push extends Service {
             return;
         }
         for (const { topic } of this.subscriptions.values()) {
-            client.subscribe(topic, { qos: this.defaultQos }, (err) => {
-                if (err) {
-                    this.onStatus?.(
-                        'error',
-                        `resubscribe ${topic}: ${err.message}`,
-                    );
-                }
-            });
+            client.subscribe(topic, { qos: this.defaultQos }, () => {});
         }
+    }
+
+    // Reconnect and resubscribe active topics at the current QoS — used when the replay
+    // mode changes while the connection is open (clean start is a CONNECT-level flag).
+    private async reconnect(): Promise<void> {
+        this.close();
+        await this.connect();
+        this.resubscribeAll();
     }
 
     // --- internals ---
@@ -251,11 +246,8 @@ export class Push extends Service {
     }
 
     private endpointUrl(): string {
-        // An explicit `url` option wins, then the push endpoint set on the client
-        // (Client.setPushEndpoint), then the regular endpoint with `/mqtt` appended.
-        if (this.url) {
-            return this.url;
-        }
+        // The push endpoint set on the client (Client.setPushEndpoint) wins, else the
+        // regular endpoint with its scheme switched to ws/wss and `/mqtt` appended.
         if (this.client.config.endpointPush !== '') {
             return this.client.config.endpointPush;
         }
@@ -283,17 +275,18 @@ export class Push extends Service {
         }
 
         const project = this.client.config.project ?? '';
+        // A stable client id (Client.setPushClientId) lets the broker resume this client's
+        // replay cursor across reloads; otherwise a per-connection id is generated.
         const clientId =
-            this.clientId || `appwrite-${project}-${randomId().slice(0, 8)}`;
-
-        this.onStatus?.('connecting');
+            this.client.config.pushClientId ||
+            `appwrite-${project}-${randomId().slice(0, 8)}`;
 
         const options: IClientOptions = {
             clientId,
             protocolVersion: 5,
-            clean: !this.reliableDelivery, // clean start off = keep the replay cursor
-            keepalive: this.keepalive,
-            reconnectPeriod: this.reconnectPeriod,
+            clean: !this.replay, // clean start off = keep the replay cursor
+            keepalive: KEEP_ALIVE_SECONDS,
+            reconnectPeriod: RECONNECT_PERIOD_MS,
             manualConnect: true,
             // Enhanced auth carried in CONNECT properties.
             properties: {
@@ -311,21 +304,19 @@ export class Push extends Service {
         });
 
         // Persistent lifecycle listeners. Re-register every subscription on reconnect
-        // (harmless if the broker resumed our session).
+        // (harmless if the broker resumed our session), and surface the lifecycle to the
+        // caller's onOpen/onClose/onError hooks.
         client.on('connect', () => {
             if (this.everConnected) {
                 this.resubscribeAll();
             }
             this.everConnected = true;
-            this.onStatus?.('connected');
+            this.onOpenCb?.();
         });
-        client.on('reconnect', () => this.onStatus?.('reconnecting'));
-        client.on('offline', () => this.onStatus?.('offline'));
-        client.on('close', () => this.onStatus?.('closed'));
+        client.on('close', () => this.onCloseCb?.());
         client.on('error', (err) =>
-            this.onStatus?.(
-                'error',
-                err instanceof Error ? err.message : String(err),
+            this.onErrorCb?.(
+                err instanceof Error ? err : new Error(String(err)),
             ),
         );
 
@@ -376,17 +367,17 @@ export class Push extends Service {
         this.notify(message);
     }
 
-    /** Post a browser notification for a message when foreground mode is on. */
+    /** Post a browser notification for a message when background mode is on. */
     private notify(message: PushMessage): void {
         if (
-            !this.foreground ||
+            !this.background ||
             typeof Notification === 'undefined' ||
             Notification.permission !== 'granted'
         ) {
             return;
         }
         try {
-            new Notification(this.foregroundTitle ?? message.topic, {
+            new Notification(this.backgroundTitle ?? message.topic, {
                 body: new TextDecoder().decode(message.payload),
             });
         } catch {
