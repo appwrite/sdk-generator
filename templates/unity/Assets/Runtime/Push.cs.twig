@@ -52,6 +52,11 @@ namespace {{ spec.info.title | caseUcfirst }}
         private int _keepAlive = 60;
         private bool _reliableDelivery = true;
 
+        // Resolved once, then reused: a reconnect rebuilds the MQTT client, and if each rebuild
+        // drew a new random id the broker would treat it as a new session and drop this client's
+        // replay cursor. Reusing one id keeps the persistent session stable.
+        private string _resolvedClientId;
+
         // Local id -> (topic filter, callback). The id is never sent to the broker; it
         // only lets the same topic carry more than one callback.
         private readonly Dictionary<string, (string Filter, Action<PushMessage> Callback)> _subscriptions = new();
@@ -272,9 +277,10 @@ namespace {{ spec.info.title | caseUcfirst }}
             var project = _client.Config.GetValueOrDefault("project") ?? "";
             // A non-empty client id is required for a persistent session (clean start off) —
             // some MQTT clients/brokers reject a zero-length id in that mode. The broker keys
-            // its offline-replay cursor on this id; pass a stable clientId to resume replay
-            // across restarts (the generated one is stable only for this client's lifetime).
-            var clientId = _clientId ?? $"appwrite-{project}-{Guid.NewGuid().ToString().Substring(0, 8)}";
+            // its offline-replay cursor on this id; resolve it once so a reconnect rebuild reuses
+            // it and resumes the same session (pass a stable clientId to resume across restarts).
+            _resolvedClientId ??= _clientId ?? $"appwrite-{project}-{Guid.NewGuid().ToString().Substring(0, 8)}";
+            var clientId = _resolvedClientId;
 
             var optionsBuilder = new MqttClientOptionsBuilder()
                 .WithProtocolVersion(MqttProtocolVersion.V500)
