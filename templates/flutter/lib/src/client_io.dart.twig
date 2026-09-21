@@ -135,6 +135,12 @@ class ClientIO extends ClientBase with ClientMixin {
   }
 
   @override
+  ClientIO setPushClientId(String pushClientId) {
+    config['pushClientId'] = pushClientId;
+    return this;
+  }
+
+  @override
   ClientIO addHeader(String key, String value) {
     _headers![key] = value;
 

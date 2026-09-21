@@ -12,26 +12,8 @@ import 'mqtt.dart';
 import 'mqtt_foreground.dart';
 import 'mqtt_message.dart';
 
-Push createPush(
-  Client client, {
-  String? host,
-  int? port,
-  bool? tls,
-  bool tlsInsecure = false,
-  String? clientId,
-  int keepAlive = 60,
-  bool reliableDelivery = true,
-}) =>
-    PushIO(
-      client,
-      host: host,
-      port: port,
-      tls: tls,
-      tlsInsecure: tlsInsecure,
-      clientId: clientId,
-      keepAlive: keepAlive,
-      reliableDelivery: reliableDelivery,
-    );
+Push createPush(Client client, {bool tlsInsecure = false}) =>
+    PushIO(client, tlsInsecure: tlsInsecure);
 
 class _PushSubscription {
   final String filter;
@@ -39,6 +21,9 @@ class _PushSubscription {
 
   const _PushSubscription(this.filter, this.callback);
 }
+
+// Fixed connection tuning — not exposed as an option.
+const int _keepAliveSeconds = 60;
 
 class PushIO implements Push {
   @override
@@ -48,25 +33,30 @@ class PushIO implements Push {
   final int _port;
   final bool _tls;
   final bool _tlsInsecure;
-  final String? _clientId;
-  final int _keepAlive;
-  final bool _reliableDelivery;
+
+  // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this client's
+  // replay cursor. Default on; toggle with setReplayMessages().
+  bool _replay = true;
 
   MqttServerClient? _mqtt;
   Future<void>? _connecting;
 
-  // Resolved once per instance: a reconnect rebuilds the client, and if each rebuild drew a new
-  // random id the broker would treat it as a new session and drop this client's replay cursor.
-  // Reusing one id keeps the persistent session stable.
-  late final String _resolvedClientId = _clientId ??
-      'appwrite-${client.config['project'] ?? ''}-${_randomId().substring(0, 8)}';
+  void Function()? _onOpen;
+  void Function()? _onClose;
+  void Function(Object error)? _onError;
 
-  // Foreground (background-service) mode: set by [setForeground]. When on, the connection
+  // Resolved once per instance: a reconnect rebuilds the client, and if each rebuild drew a
+  // new random id the broker would treat it as a new session and drop this client's replay
+  // cursor. A stable id from Client.setPushClientId() resumes replay across restarts;
+  // otherwise a per-instance id is generated. Reusing one id keeps the session stable.
+  late final String _resolvedClientId = _pushClientId();
+
+  // Background (foreground-service) mode: set by [setBackground]. When on, the connection
   // runs in a background isolate (mqtt_foreground.dart) that also posts notifications; the
   // app-side keeps its own callback map and forwards messages the service relays back.
-  bool _foreground = false;
-  String? _foregroundTitle;
-  final Map<String, _PushSubscription> _foregroundSubs = {};
+  bool _background = false;
+  String? _backgroundTitle;
+  final Map<String, _PushSubscription> _backgroundSubs = {};
   StreamSubscription<Map<String, dynamic>?>? _serviceListener;
 
   // Local id -> subscription (topic filter + callback). The id is never sent to
@@ -76,33 +66,21 @@ class PushIO implements Push {
   // single completer) so two concurrent subscribes to the same topic both resolve.
   final Map<String, List<Completer<void>>> _subAcks = {};
 
-  factory PushIO(
-    Client client, {
-    String? host,
-    int? port,
-    bool? tls,
-    bool tlsInsecure = false,
-    String? clientId,
-    int keepAlive = 60,
-    bool reliableDelivery = true,
-  }) {
+  factory PushIO(Client client, {bool tlsInsecure = false}) {
     // The broker location comes from Client.setPushEndpoint() when set (e.g.
     // "mqtts://host:8883"), otherwise from the regular endpoint.
     final pushEndpoint = client.config['endpointPush'] ?? client.endPoint;
-    // Secure by default: TLS on when the endpoint scheme is secure (or port 8883), so the
-    // credential in the CONNECT packet is not sent over a plaintext socket.
-    final resolvedTls = tls ?? (port == 8883 || _secureScheme(pushEndpoint));
+    // Secure by default: TLS on when the endpoint scheme is secure, so the credential in the
+    // CONNECT packet is not sent over a plaintext socket.
+    final resolvedTls = _secureScheme(pushEndpoint);
     final resolvedPort =
-        port ?? _pushEndpointPort(client) ?? (resolvedTls ? 8883 : 1883);
+        _pushEndpointPort(client) ?? (resolvedTls ? 8883 : 1883);
     return PushIO._(
       client,
-      host: host ?? _hostOf(pushEndpoint),
+      host: _hostOf(pushEndpoint),
       port: resolvedPort,
       tls: resolvedTls,
       tlsInsecure: tlsInsecure,
-      clientId: clientId,
-      keepAlive: keepAlive,
-      reliableDelivery: reliableDelivery,
     );
   }
 
@@ -112,16 +90,18 @@ class PushIO implements Push {
     required int port,
     required bool tls,
     required bool tlsInsecure,
-    required String? clientId,
-    required int keepAlive,
-    required bool reliableDelivery,
   })  : _host = host,
         _port = port,
         _tls = tls,
-        _tlsInsecure = tlsInsecure,
-        _clientId = clientId,
-        _keepAlive = keepAlive,
-        _reliableDelivery = reliableDelivery;
+        _tlsInsecure = tlsInsecure;
+
+  String _pushClientId() {
+    final id = client.config['pushClientId'];
+    if (id != null && id.isNotEmpty) {
+      return id;
+    }
+    return 'appwrite-${client.config['project'] ?? ''}-${_randomId().substring(0, 8)}';
+  }
 
   static bool _secureScheme(String endpoint) {
     try {
@@ -160,10 +140,60 @@ class PushIO implements Push {
   }
 
   @override
-  Push setForeground({String? title}) {
-    _foreground = true;
-    _foregroundTitle = title;
+  Push setReplayMessages([bool enabled = true]) {
+    if (enabled == _replay) {
+      return this;
+    }
+    _replay = enabled;
+    // If already connected in the other mode, reconnect so the new clean-start takes
+    // effect, then resubscribe active topics at the new QoS.
+    if (_mqtt != null) {
+      unawaited(_reconnect());
+    }
     return this;
+  }
+
+  @override
+  Push setBackground([bool enabled = true, String? title]) {
+    _background = enabled;
+    if (enabled) {
+      _backgroundTitle = title;
+    } else {
+      _serviceListener?.cancel();
+      _serviceListener = null;
+      unawaited(stopPushForeground());
+    }
+    return this;
+  }
+
+  @override
+  Push onOpen(void Function() callback) {
+    _onOpen = callback;
+    return this;
+  }
+
+  @override
+  Push onClose(void Function() callback) {
+    _onClose = callback;
+    return this;
+  }
+
+  @override
+  Push onError(void Function(Object error) callback) {
+    _onError = callback;
+    return this;
+  }
+
+  Future<void> _reconnect() async {
+    close();
+    await _connect();
+    for (final sub in _subscriptions.values) {
+      final subscription = MqttSubscription.withMaximumQos(
+        MqttSubscriptionTopic(sub.filter),
+        _defaultQos,
+      );
+      _mqtt?.subscribeWithSubscriptionList([subscription]);
+    }
   }
 
   @override
@@ -172,8 +202,8 @@ class PushIO implements Push {
     final topicList =
         topics is String ? <String>[topics] : List<String>.from(topics as List);
 
-    if (_foreground) {
-      return _subscribeForeground(topicList, callback);
+    if (_background) {
+      return _subscribeBackground(topicList, callback);
     }
 
     final mqtt = await _connect();
@@ -229,13 +259,13 @@ class PushIO implements Push {
   // Foreground mode: the connection lives in the background service isolate. Register the
   // callback locally (so it fires while the app is alive), (re)sync the service with the
   // current topic union, and forward messages it relays back to matching callbacks.
-  Future<PushUnsubscribe> _subscribeForeground(
+  Future<PushUnsubscribe> _subscribeBackground(
       List<String> topicList, PushCallback callback) async {
     final ids = <String>[];
     for (final topic in topicList) {
       final id = _randomId();
       ids.add(id);
-      _foregroundSubs[id] = _PushSubscription(topic, callback);
+      _backgroundSubs[id] = _PushSubscription(topic, callback);
     }
 
     _serviceListener ??=
@@ -248,43 +278,43 @@ class PushIO implements Push {
           Uint8List.fromList(utf8.encode(data['payload'] as String? ?? ''));
       final message =
           PushMessage(topic: topic, payload: payload, qos: data['qos'] as int? ?? 0);
-      for (final sub in _foregroundSubs.values) {
+      for (final sub in _backgroundSubs.values) {
         if (_matches(sub.filter, topic)) {
           sub.callback(message);
         }
       }
     });
 
-    await _syncForeground();
+    await _syncBackground();
 
     return () {
       for (final id in ids) {
-        _foregroundSubs.remove(id);
+        _backgroundSubs.remove(id);
       }
-      if (_foregroundSubs.isEmpty) {
+      if (_backgroundSubs.isEmpty) {
         _serviceListener?.cancel();
         _serviceListener = null;
         unawaited(stopPushForeground());
       } else {
         // Prune the removed topics from the running isolate so they stop delivering.
-        unawaited(_syncForeground());
+        unawaited(_syncBackground());
       }
     };
   }
 
   // The current union of foreground topics, kept in sync with the background service.
-  Future<void> _syncForeground() => syncPushForeground(
+  Future<void> _syncBackground() => syncPushForeground(
         client,
-        title: _foregroundTitle ?? '{{spec.info.title | caseUcfirst}}',
+        title: _backgroundTitle ?? '{{spec.info.title | caseUcfirst}}',
         topics:
-            _foregroundSubs.values.map((s) => s.filter).toSet().toList(),
-        reliableDelivery: _reliableDelivery,
+            _backgroundSubs.values.map((s) => s.filter).toSet().toList(),
+        replay: _replay,
       );
 
   // QoS for subscribe, chosen once by [reliableDelivery]: at-least-once (1) when
   // reliable, at-most-once (0) when not.
   MqttQos get _defaultQos =>
-      _reliableDelivery ? MqttQos.atLeastOnce : MqttQos.atMostOnce;
+      _replay ? MqttQos.atLeastOnce : MqttQos.atMostOnce;
 
   @override
   void close() {
@@ -293,7 +323,7 @@ class PushIO implements Push {
     _connecting = null;
     _serviceListener?.cancel();
     _serviceListener = null;
-    if (_foreground) {
+    if (_background) {
       unawaited(stopPushForeground());
     }
   }
@@ -342,12 +372,14 @@ class PushIO implements Push {
     final clientId = _resolvedClientId;
 
     final mqtt = MqttServerClient.withPort(_host, clientId, _port);
-    mqtt.keepAlivePeriod = _keepAlive;
+    mqtt.keepAlivePeriod = _keepAliveSeconds;
     // Re-register every subscription automatically after a dropped connection.
     mqtt.autoReconnect = true;
     mqtt.resubscribeOnAutoReconnect = true;
     mqtt.onSubscribed = _onSubscribed;
     mqtt.onSubscribeFail = _onSubscribeFail;
+    mqtt.onConnected = () => _onOpen?.call();
+    mqtt.onDisconnected = () => _onClose?.call();
 
     if (_tls) {
       mqtt.secure = true;
@@ -361,13 +393,13 @@ class PushIO implements Push {
     final authData = typed.Uint8Buffer()..addAll(utf8.encode(credential));
     final connectMessage = MqttConnectMessage()
         .withClientIdentifier(clientId)
-        .keepAliveFor(_keepAlive)
+        .keepAliveFor(_keepAliveSeconds)
         .withAuthenticationMethod(authMethod)
         .withAuthenticationData(authData);
     // Clean start is the only session flag the broker reads: false (the default) keeps
     // the offline-replay cursor so a reconnect resumes where it left off; true purges
     // it. The replay window itself is the broker's concern — we set no session expiry.
-    if (!_reliableDelivery) {
+    if (!_replay) {
       connectMessage.startClean();
     }
     connectMessage.addUserPropertyPair('projectId', project);
@@ -379,14 +411,17 @@ class PushIO implements Push {
       await mqtt.connect();
     } catch (e) {
       close();
+      _onError?.call(e);
       throw {{spec.info.title | caseUcfirst}}Exception(e.toString());
     }
 
     final status = mqtt.connectionStatus;
     if (status == null || status.state != MqttConnectionState.connected) {
       close();
-      throw {{spec.info.title | caseUcfirst}}Exception(
+      final error = {{spec.info.title | caseUcfirst}}Exception(
           'MQTT authentication failed (CONNACK reason ${status?.reasonCode})');
+      _onError?.call(error);
+      throw error;
     }
 
     // Attach the delivery listener only after CONNACK — the `updates` stream is not

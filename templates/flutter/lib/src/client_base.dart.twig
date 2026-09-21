@@ -24,6 +24,9 @@ abstract class ClientBase implements Client {
   Client setPushEndpoint(String endPoint);
 
   @override
+  Client setPushClientId(String pushClientId);
+
+  @override
   ClientBase addHeader(String key, String value);
 
   @override

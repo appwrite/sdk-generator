@@ -43,7 +43,7 @@ Future<void> _writeConfig(
   Client client, {
   required String title,
   required List<String> topics,
-  required bool reliableDelivery,
+  required bool replay,
 }) async {
   final config = <String, dynamic>{
     'endpoint': client.endPoint,
@@ -51,7 +51,8 @@ Future<void> _writeConfig(
     'project': client.config['project'] ?? '',
     'jwt': client.config['jwt'] ?? client.config['jWT'],
     'session': client.config['session'],
-    'reliableDelivery': reliableDelivery,
+    'pushClientId': client.config['pushClientId'],
+    'replay': replay,
     'title': title,
     'topics': topics,
   };
@@ -75,13 +76,13 @@ Future<void> syncPushForeground(
   Client client, {
   required String title,
   required List<String> topics,
-  required bool reliableDelivery,
+  required bool replay,
 }) async {
   await _writeConfig(
     client,
     title: title,
     topics: topics,
-    reliableDelivery: reliableDelivery,
+    replay: replay,
   );
 
   final service = FlutterBackgroundService();
@@ -155,11 +156,13 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
   if (endpointPush != null && endpointPush.isNotEmpty) {
     client.setPushEndpoint(endpointPush);
   }
+  final pushClientId = config['pushClientId'] as String?;
+  if (pushClientId != null && pushClientId.isNotEmpty) {
+    client.setPushClientId(pushClientId);
+  }
 
-  final push = Push(
-    client,
-    reliableDelivery: config['reliableDelivery'] as bool? ?? true,
-  );
+  final push = Push(client)
+    ..setReplayMessages(config['replay'] as bool? ?? true);
   final title = config['title'] as String?;
 
   // One broker subscription per topic so topics can be added/removed independently as the
