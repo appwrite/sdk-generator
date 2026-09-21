@@ -64,12 +64,11 @@ data class PushMessage(
  * The credential is read off the client — set a JWT or session on it
  * (`Client.setJWT` / `Client.setSession`), the same way every other service reads auth.
  *
- * [replay] (default `true`) picks the delivery guarantee once, for the whole
- * connection: `true` subscribes and publishes at QoS 1 with clean start off and a stable
- * client id, so the broker keeps this client's replay cursor and redelivers messages missed
- * during a brief disconnect on reconnect; `false` uses QoS 0 and a clean, ephemeral session
- * (at-most-once, may be lost, no replay). The broker owns the replay window server-side (no
- * MQTT session-expiry is set); pass a stable [clientId] to resume replay across restarts.
+ * Message replay is on by default (QoS 1, clean start off) so the broker keeps this client's
+ * replay cursor and redelivers messages missed during a brief disconnect; call
+ * [setReplayMessages] with `false` for QoS 0 and a clean, ephemeral session (at-most-once,
+ * no replay). The broker owns the replay window server-side (no MQTT session-expiry is set);
+ * call `Client.setPushClientId(...)` with a stable id to resume replay across restarts.
  *
  * ```kotlin
  * val client = Client().setEndpoint("...").setProject("...").setJWT(jwt)
@@ -96,7 +95,7 @@ class Push @JvmOverloads constructor(
     // Secure by default: TLS on when the endpoint scheme is secure (https/wss/mqtts/ssl), so
     // the credential in the CONNECT packet is not sent in the clear.
     private val tls: Boolean =
-        runCatching { URI(pushEndpoint).scheme }.getOrNull() in listOf("https", "wss", "mqtts", "ssl")
+        runCatching { URI(pushEndpoint).scheme }.getOrNull()?.lowercase() in listOf("https", "wss", "mqtts", "ssl")
 
     // Take the port from the push endpoint only (a regular http/https endpoint's port is the
     // API port, not the broker's); otherwise fall back to the MQTT default for the TLS mode.
@@ -173,7 +172,13 @@ class Push @JvmOverloads constructor(
             return this
         }
         replay = enabled
-        if (mqtt != null) {
+        if (background) {
+            // The connection lives in the foreground service (its own MQTT client), so a
+            // local reconnect would no-op. Update the shared config and ask the service to
+            // rebuild with the new clean-start/QoS.
+            PushForeground.config = buildConfig()
+            appContext?.let { PushForeground.restart(it) }
+        } else if (mqtt != null) {
             reconnect()
         }
         return this
@@ -564,6 +569,10 @@ internal object PushForeground {
     const val CHANNEL_ID = "{{ spec.info.title | caseLower }}-push"
     const val NOTIFICATION_ID = 1911
 
+    // Intent action asking a running service to rebuild its connection from the current
+    // [config] (e.g. after the replay mode changed), instead of leaving the old one up.
+    const val ACTION_RECONNECT = "{{ sdk.namespace | caseDot }}.push.RECONNECT"
+
     @Volatile
     var config: PushConfig? = null
 
@@ -653,6 +662,15 @@ internal object PushForeground {
 
     fun start(context: Context) {
         val intent = android.content.Intent(context, PushService::class.java)
+        ContextCompat.startForegroundService(context, intent)
+    }
+
+    // Ask the running service to rebuild its connection from the current [config] (a fresh
+    // start command with a reconnect action; onStartCommand tears the old client down and
+    // reconnects rather than no-opping on the already-connected client).
+    fun restart(context: Context) {
+        val intent = android.content.Intent(context, PushService::class.java)
+            .setAction(ACTION_RECONNECT)
         ContextCompat.startForegroundService(context, intent)
     }
 
