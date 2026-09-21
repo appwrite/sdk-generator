@@ -29,7 +29,12 @@ const String _channelId = '{{ spec.info.title | caseLower }}-push';
 const String _channelName = 'Notifications';
 const String _messageEvent = '{{ spec.info.title | caseLower }}.push.message';
 const String _topicsEvent = '{{ spec.info.title | caseLower }}.push.topics';
+const String _replayEvent = '{{ spec.info.title | caseLower }}.push.replay';
 const String _stopEvent = '{{ spec.info.title | caseLower }}.push.stop';
+
+// How long to wait before retrying a background subscription that failed (SUBACK/connect),
+// so delivery converges instead of silently missing messages.
+const Duration _retryDelay = Duration(seconds: 2);
 
 /// The service event the app listens on to forward background messages to callbacks.
 String get pushForegroundMessageEvent => _messageEvent;
@@ -110,6 +115,27 @@ Future<void> syncPushForeground(
   await service.startService();
 }
 
+/// Change the delivery guarantee (replay) of the running background isolate, and persist it
+/// so a fresh start uses it too. A running isolate rebuilds its connection with the new
+/// clean-start/QoS and resubscribes — a plain topics sync would leave the old guarantee.
+Future<void> setPushForegroundReplay(
+  Client client, {
+  required String title,
+  required List<String> topics,
+  required bool replay,
+}) async {
+  await _writeConfig(
+    client,
+    title: title,
+    topics: topics,
+    replay: replay,
+  );
+  final service = FlutterBackgroundService();
+  if (await service.isRunning()) {
+    service.invoke(_replayEvent, {'replay': replay});
+  }
+}
+
 /// Ask the background service to disconnect and stop, and delete the config file.
 Future<void> stopPushForeground() async {
   FlutterBackgroundService().invoke(_stopEvent);
@@ -161,8 +187,9 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
     client.setPushClientId(pushClientId);
   }
 
-  final push = Push(client)
-    ..setReplayMessages(config['replay'] as bool? ?? true);
+  // Mutable so a live replay change (see [_replayEvent]) can rebuild the connection with the
+  // new clean-start/QoS; [applyTopics] captures the variable, so it always uses the current one.
+  var push = Push(client)..setReplayMessages(config['replay'] as bool? ?? true);
   final title = config['title'] as String?;
 
   // One broker subscription per topic so topics can be added/removed independently as the
@@ -206,16 +233,48 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
 
   // Serialize topic updates: applyTopics awaits push.subscribe, so overlapping runs could
   // otherwise subscribe a topic twice (losing an unsubscribe handle) or apply out of order.
-  // Chaining runs them one at a time, in arrival order; catchError keeps the chain alive.
+  // Chaining runs them one at a time, in arrival order.
   var topicQueue = Future<void>.value();
+  // The last requested topic set, so a failed subscribe can be retried against what is
+  // currently wanted (topics may have changed again by the time the retry fires).
+  var wantedTopics = <String>[];
+  var retryScheduled = false;
+
   void queueTopics(List<String> topics) {
-    topicQueue =
-        topicQueue.then((_) => applyTopics(topics)).catchError((Object _) {});
+    wantedTopics = topics;
+    // A subscribe can fail (SUBACK refused, connection dropped mid-CONNECT); applyTopics
+    // skips already-subscribed topics, so retrying the current wanted set converges on the
+    // missing ones instead of silently dropping them.
+    topicQueue = topicQueue.then((_) => applyTopics(topics)).catchError((Object _) {
+      if (retryScheduled) {
+        return;
+      }
+      retryScheduled = true;
+      Timer(_retryDelay, () {
+        retryScheduled = false;
+        queueTopics(wantedTopics);
+      });
+    });
   }
 
   service.on(_topicsEvent).listen((data) {
     final topics = ((data?['topics'] as List?) ?? const <dynamic>[]).cast<String>();
     queueTopics(topics);
+  });
+
+  service.on(_replayEvent).listen((data) {
+    final replay = data?['replay'] as bool? ?? true;
+    // Rebuild the connection with the new guarantee, then resubscribe the wanted topics
+    // (through queueTopics so a failed resubscribe still retries).
+    topicQueue = topicQueue.then((_) async {
+      for (final unsubscribe in subscriptions.values) {
+        unsubscribe();
+      }
+      subscriptions.clear();
+      push.close();
+      push = Push(client)..setReplayMessages(replay);
+    }).catchError((Object _) {});
+    queueTopics(wantedTopics);
   });
 
   service.on(_stopEvent).listen((_) async {

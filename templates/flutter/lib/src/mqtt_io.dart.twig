@@ -145,9 +145,18 @@ class PushIO implements Push {
       return this;
     }
     _replay = enabled;
-    // If already connected in the other mode, reconnect so the new clean-start takes
-    // effect, then resubscribe active topics at the new QoS.
-    if (_mqtt != null) {
+    if (_background) {
+      // The connection lives in the background isolate, so a local reconnect would no-op.
+      // Hand the new guarantee to the isolate so it rebuilds with the new clean-start/QoS.
+      unawaited(setPushForegroundReplay(
+        client,
+        title: _backgroundTitleOrDefault,
+        topics: _backgroundTopics,
+        replay: _replay,
+      ));
+    } else if (_mqtt != null) {
+      // If already connected in the other mode, reconnect so the new clean-start takes
+      // effect, then resubscribe active topics at the new QoS.
       unawaited(_reconnect());
     }
     return this;
@@ -302,17 +311,22 @@ class PushIO implements Push {
     };
   }
 
+  String get _backgroundTitleOrDefault =>
+      _backgroundTitle ?? '{{spec.info.title | caseUcfirst}}';
+
+  List<String> get _backgroundTopics =>
+      _backgroundSubs.values.map((s) => s.filter).toSet().toList();
+
   // The current union of foreground topics, kept in sync with the background service.
   Future<void> _syncBackground() => syncPushForeground(
         client,
-        title: _backgroundTitle ?? '{{spec.info.title | caseUcfirst}}',
-        topics:
-            _backgroundSubs.values.map((s) => s.filter).toSet().toList(),
+        title: _backgroundTitleOrDefault,
+        topics: _backgroundTopics,
         replay: _replay,
       );
 
-  // QoS for subscribe, chosen once by [reliableDelivery]: at-least-once (1) when
-  // reliable, at-most-once (0) when not.
+  // QoS for subscribe, chosen by [setReplayMessages]: at-least-once (1) when replay is on,
+  // at-most-once (0) when off.
   MqttQos get _defaultQos =>
       _replay ? MqttQos.atLeastOnce : MqttQos.atMostOnce;
 
