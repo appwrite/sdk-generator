@@ -156,12 +156,19 @@ class PushIO implements Push {
       // The connection lives in the background isolate, so a local reconnect would no-op.
       // Hand the new guarantee to the isolate (serialized so rapid toggles apply in order
       // and the last requested value wins) to rebuild with the new clean-start/QoS.
-      unawaited(_enqueueBackground(() => setPushForegroundReplay(
-            client,
-            title: _backgroundTitleOrDefault,
-            topics: _backgroundTopics,
-            replay: _replay,
-          )));
+      unawaited(_enqueueBackground(() async {
+        // Skip if background was turned off after this was queued, so a stale write can't
+        // recreate the credential file after shutdown deleted it.
+        if (!_background) {
+          return;
+        }
+        await setPushForegroundReplay(
+          client,
+          title: _backgroundTitleOrDefault,
+          topics: _backgroundTopics,
+          replay: _replay,
+        );
+      }));
     } else if (_mqtt != null) {
       // If already connected in the other mode, reconnect so the new clean-start takes
       // effect, then resubscribe active topics at the new QoS.
@@ -178,7 +185,7 @@ class PushIO implements Push {
     } else {
       _serviceListener?.cancel();
       _serviceListener = null;
-      unawaited(stopPushForeground());
+      _enqueueStop();
     }
     return this;
   }
@@ -311,7 +318,7 @@ class PushIO implements Push {
       if (_backgroundSubs.isEmpty) {
         _serviceListener?.cancel();
         _serviceListener = null;
-        unawaited(stopPushForeground());
+        _enqueueStop();
       } else {
         // Prune the removed topics from the running isolate so they stop delivering.
         unawaited(_syncBackground());
@@ -335,12 +342,25 @@ class PushIO implements Push {
   }
 
   // The current union of foreground topics, kept in sync with the background service.
-  Future<void> _syncBackground() => _enqueueBackground(() => syncPushForeground(
-        client,
-        title: _backgroundTitleOrDefault,
-        topics: _backgroundTopics,
-        replay: _replay,
-      ));
+  Future<void> _syncBackground() => _enqueueBackground(() async {
+        // Skip if background was turned off after this was queued, so a stale write can't
+        // recreate the credential file after shutdown deleted it.
+        if (!_background) {
+          return;
+        }
+        await syncPushForeground(
+          client,
+          title: _backgroundTitleOrDefault,
+          topics: _backgroundTopics,
+          replay: _replay,
+        );
+      });
+
+  // Enqueue the background stop after any pending config write, so the credential file is
+  // always deleted last — a write queued just before shutdown cannot recreate it afterwards.
+  void _enqueueStop() {
+    unawaited(_enqueueBackground(() => stopPushForeground()));
+  }
 
   // QoS for subscribe, chosen by [setReplayMessages]: at-least-once (1) when replay is on,
   // at-most-once (0) when off.
@@ -355,7 +375,8 @@ class PushIO implements Push {
     _serviceListener?.cancel();
     _serviceListener = null;
     if (_background) {
-      unawaited(stopPushForeground());
+      _background = false;
+      _enqueueStop();
     }
   }
 
