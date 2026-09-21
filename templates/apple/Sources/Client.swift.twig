@@ -25,6 +25,8 @@ open class Client {
 
     open var endPointPush: String? = nil
 
+    open var pushClientId: String? = nil
+
     open var headers: [String: String] = [
         "content-type": "application/json",
         "x-sdk-name": "{{ sdk.name }}",
@@ -217,6 +219,22 @@ open class Client {
     ///
     open func setPushEndpoint(_ endPoint: String) -> Client {
         self.endPointPush = endPoint
+        return self
+    }
+
+    ///
+    /// Set push client id.
+    ///
+    /// A stable client id for the Push service. The broker keys its offline-replay cursor on
+    /// this id, so pass a stable value to resume replay across restarts. Defaults to a
+    /// per-connection id when unset.
+    ///
+    /// @param String pushClientId
+    ///
+    /// @return Client
+    ///
+    open func setPushClientId(_ pushClientId: String) -> Client {
+        self.pushClientId = pushClientId
         return self
     }
 

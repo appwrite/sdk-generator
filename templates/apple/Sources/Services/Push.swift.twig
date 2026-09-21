@@ -39,24 +39,33 @@ public struct PushMessage {
 ///     // ...later
 ///     unsubscribe()
 open class Push: Service {
+    // Fixed keep-alive (PINGREQ interval) in seconds — not exposed as an option.
+    private static let keepAliveSeconds: UInt16 = 60
+
     private let host: String
     private let port: Int
     private let tls: Bool
     private let tlsInsecure: Bool
-    private let clientId: String?
-    private let keepAlive: UInt16
-    private let reliableDelivery: Bool
+
+    // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this client's
+    // replay cursor. Default on; toggle with setReplayMessages().
+    private var replay = true
 
     // Resolved once per instance: a reconnect rebuilds the MQTTClient, and if each rebuild drew
     // a new random id the broker would treat it as a new session and drop this client's replay
-    // cursor. Reusing one id keeps the persistent session stable.
+    // cursor. A stable id from Client.setPushClientId() resumes replay across restarts;
+    // otherwise one is generated. Reusing one id keeps it stable.
     private let resolvedClientId: String
 
-    private var foreground = false
-    private var foregroundTitle: String?
+    private var background = false
+    private var backgroundTitle: String?
 
     private var mqtt: MQTTClient?
     private var connecting: Task<MQTTClient, Swift.Error>?
+
+    private var onOpenCb: (() -> Void)?
+    private var onCloseCb: (() -> Void)?
+    private var onErrorCb: ((Swift.Error) -> Void)?
 
     // Guards the mutable state below; the publish listener fires on an event loop.
     private let sync = DispatchQueue(label: "{{ spec.info.title | caseLower }}.push")
@@ -65,61 +74,109 @@ open class Push: Service {
     // only lets the same topic carry more than one callback.
     private var subscriptions: [String: (filter: String, callback: (PushMessage) -> Void)] = [:]
 
-    public init(
-        _ client: Client,
-        host: String? = nil,
-        port: Int? = nil,
-        tls: Bool? = nil,
-        tlsInsecure: Bool = false,
-        clientId: String? = nil,
-        keepAlive: UInt16 = 60,
-        reliableDelivery: Bool = true
-    ) {
+    public init(_ client: Client, tlsInsecure: Bool = false) {
         // The broker location is taken from Client.setPushEndpoint() when set (e.g.
         // "mqtts://host:8883"), otherwise from the regular endpoint.
         let pushEndpoint = client.endPointPush ?? client.endPoint
         let url = URL(string: pushEndpoint)
-        self.host = host ?? url?.host ?? "localhost"
-        // Secure by default: TLS on when the endpoint scheme is secure (https/wss/mqtts/ssl)
-        // or the port is 8883, so the credential in the CONNECT packet is not sent in the clear.
-        let secure = tls ?? (port == 8883 || ["https", "wss", "mqtts", "ssl"].contains(url?.scheme ?? ""))
+        self.host = url?.host ?? "localhost"
+        // Secure by default: TLS on when the endpoint scheme is secure (https/wss/mqtts/ssl),
+        // so the credential in the CONNECT packet is not sent in the clear.
+        let secure = ["https", "wss", "mqtts", "ssl"].contains(url?.scheme ?? "")
         self.tls = secure
         // Take the port from the push endpoint only (a regular http/https endpoint's port is
         // the API port, not the broker's); otherwise fall back to the MQTT default.
         let pushPort = client.endPointPush != nil ? url?.port : nil
-        self.port = port ?? pushPort ?? (secure ? 8883 : 1883)
+        self.port = pushPort ?? (secure ? 8883 : 1883)
         self.tlsInsecure = tlsInsecure
-        self.clientId = clientId
-        self.keepAlive = keepAlive
-        self.reliableDelivery = reliableDelivery
         let project = client.config["project"] ?? ""
-        self.resolvedClientId = clientId ?? "appwrite-\(project)-\(UUID().uuidString.prefix(8))"
+        let pushClientId = client.pushClientId
+        self.resolvedClientId = (pushClientId?.isEmpty == false)
+            ? pushClientId!
+            : "appwrite-\(project)-\(UUID().uuidString.prefix(8))"
         super.init(client)
     }
 
-    // QoS for both subscribe and publish, chosen once by `reliableDelivery`:
-    // at-least-once when reliable, at-most-once when not.
+    // QoS for subscribe, chosen by replay mode: at-least-once when replaying missed
+    // messages, at-most-once when not.
     private var defaultQos: MQTTQoS {
-        reliableDelivery ? .atLeastOnce : .atMostOnce
+        replay ? .atLeastOnce : .atMostOnce
     }
 
-    /// Also surface every delivered message as a local notification via
+    /// Toggle replay of messages missed while disconnected. `true` (the default) subscribes
+    /// at QoS 1 with clean start off, so the broker keeps this client's replay cursor and
+    /// redelivers missed messages on reconnect; `false` uses QoS 0 and a clean session. May
+    /// be called any time: if already connected in the other mode it reconnects and
+    /// resubscribes at the new QoS.
+    @discardableResult
+    public func setReplayMessages(_ enabled: Bool = true) -> Self {
+        if enabled == replay {
+            return self
+        }
+        replay = enabled
+        if sync.sync(execute: { self.mqtt }) != nil {
+            Task { try? await reconnect() }
+        }
+        return self
+    }
+
+    /// Enable (or disable) surfacing every delivered message as a local notification via
     /// `UserNotifications`, requesting authorization on the spot.
     ///
     /// Note: iOS cannot keep a raw MQTT socket alive once the app is fully killed
     /// (that requires APNs) — this covers delivery while the app is running or briefly
     /// backgrounded. Presentation while the app is in the foreground follows the host
-    /// app's `UNUserNotificationCenterDelegate`.
+    /// app's `UNUserNotificationCenterDelegate`. `setBackground(false)` turns it off.
     ///
-    /// - Parameter title: Fixed notification title. Defaults to the message topic.
+    /// - Parameters:
+    ///   - enabled: Whether to show notifications. Defaults to true.
+    ///   - title: Fixed notification title. Defaults to the message topic.
     @discardableResult
-    public func setForeground(title: String? = nil) -> Self {
-        foreground = true
-        foregroundTitle = title
-        #if canImport(UserNotifications)
-            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
-        #endif
+    public func setBackground(_ enabled: Bool = true, title: String? = nil) -> Self {
+        background = enabled
+        if enabled {
+            backgroundTitle = title
+            #if canImport(UserNotifications)
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+            #endif
+        }
         return self
+    }
+
+    /// Register a callback invoked when the connection opens (CONNACK success).
+    @discardableResult
+    public func onOpen(_ callback: @escaping () -> Void) -> Self {
+        onOpenCb = callback
+        return self
+    }
+
+    /// Register a callback invoked when the connection closes.
+    @discardableResult
+    public func onClose(_ callback: @escaping () -> Void) -> Self {
+        onCloseCb = callback
+        return self
+    }
+
+    /// Register a callback invoked on a connection error.
+    @discardableResult
+    public func onError(_ callback: @escaping (Swift.Error) -> Void) -> Self {
+        onErrorCb = callback
+        return self
+    }
+
+    // Reconnect and resubscribe active topics at the current QoS — used when the replay
+    // mode changes while the connection is open (clean start is a CONNECT-level flag).
+    private func reconnect() async throws {
+        let filters = sync.sync {
+            Array(Set(subscriptions.values.map(\.filter)))
+        }
+        close()
+        let mqtt = try await connect()
+        if !filters.isEmpty {
+            _ = try await mqtt.v5.subscribe(
+                to: filters.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: defaultQos) }
+            )
+        }
     }
 
     /// Subscribe to a single topic. Returns an unsubscribe callable.
@@ -268,7 +325,7 @@ open class Push: Service {
 
         let configuration = MQTTClient.Configuration(
             version: .v5_0,
-            keepAliveInterval: .seconds(Int64(keepAlive)),
+            keepAliveInterval: .seconds(Int64(Push.keepAliveSeconds)),
             useSSL: tls,
             tlsConfiguration: tlsConfiguration
         )
@@ -288,6 +345,11 @@ open class Push: Service {
             }
         }
 
+        // Surface the connection lifecycle to the caller's onClose/onError hooks.
+        mqtt.addCloseListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self] _ in
+            self?.onCloseCb?()
+        }
+
         // Enhanced auth carried in the CONNECT properties, plus the project id as a
         // user property — exactly like the Python and React Native clients.
         let properties = MQTTProperties([
@@ -297,20 +359,23 @@ open class Push: Service {
         ])
 
         do {
-            // Clean start off in reliable mode so the broker keeps this client's replay
-            // cursor and redelivers what it missed; on when non-reliable so it is purged.
-            let ack = try await mqtt.v5.connect(cleanStart: !reliableDelivery, properties: properties)
+            // Clean start off in replay mode so the broker keeps this client's replay
+            // cursor and redelivers what it missed; on when replay is off so it is purged.
+            let ack = try await mqtt.v5.connect(cleanStart: !replay, properties: properties)
             if ack.reason != .success {
                 try? mqtt.syncShutdownGracefully()
                 throw {{ spec.info.title | caseUcfirst }}Error(message: "MQTT authentication failed (CONNACK reason \(ack.reason))")
             }
         } catch let error as {{ spec.info.title | caseUcfirst }}Error {
+            onErrorCb?(error)
             throw error
         } catch {
             try? mqtt.syncShutdownGracefully()
+            onErrorCb?(error)
             throw {{ spec.info.title | caseUcfirst }}Error(message: error.localizedDescription)
         }
 
+        onOpenCb?()
         return mqtt
     }
 
@@ -330,10 +395,10 @@ open class Push: Service {
     }
 
     private func notify(_ message: PushMessage) {
-        guard foreground else { return }
+        guard background else { return }
         #if canImport(UserNotifications)
             let content = UNMutableNotificationContent()
-            content.title = foregroundTitle ?? message.topic
+            content.title = backgroundTitle ?? message.topic
             content.body = message.string
             content.sound = .default
             let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
