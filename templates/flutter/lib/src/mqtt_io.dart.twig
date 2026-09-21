@@ -182,6 +182,13 @@ class PushIO implements Push {
     _background = enabled;
     if (enabled) {
       _backgroundTitle = title;
+      // Toggled back on while subscriptions are still held: re-attach the forwarder and
+      // re-sync so a stop queued by the preceding setBackground(false) can't leave delivery
+      // down (the conditional stop also skips itself once it sees background is wanted again).
+      if (_backgroundSubs.isNotEmpty) {
+        _attachServiceListener();
+        unawaited(_syncBackground());
+      }
     } else {
       _serviceListener?.cancel();
       _serviceListener = null;
@@ -292,22 +299,7 @@ class PushIO implements Push {
       _backgroundSubs[id] = _PushSubscription(topic, callback);
     }
 
-    _serviceListener ??=
-        FlutterBackgroundService().on(pushForegroundMessageEvent).listen((data) {
-      if (data == null) {
-        return;
-      }
-      final topic = data['topic'] as String? ?? '';
-      final payload =
-          Uint8List.fromList(utf8.encode(data['payload'] as String? ?? ''));
-      final message =
-          PushMessage(topic: topic, payload: payload, qos: data['qos'] as int? ?? 0);
-      for (final sub in _backgroundSubs.values) {
-        if (_matches(sub.filter, topic)) {
-          sub.callback(message);
-        }
-      }
-    });
+    _attachServiceListener();
 
     await _syncBackground();
 
@@ -324,6 +316,27 @@ class PushIO implements Push {
         unawaited(_syncBackground());
       }
     };
+  }
+
+  // Listen for messages the background isolate relays back and forward them to matching
+  // in-app callbacks (so callbacks still fire while the app is alive). Idempotent.
+  void _attachServiceListener() {
+    _serviceListener ??=
+        FlutterBackgroundService().on(pushForegroundMessageEvent).listen((data) {
+      if (data == null) {
+        return;
+      }
+      final topic = data['topic'] as String? ?? '';
+      final payload =
+          Uint8List.fromList(utf8.encode(data['payload'] as String? ?? ''));
+      final message =
+          PushMessage(topic: topic, payload: payload, qos: data['qos'] as int? ?? 0);
+      for (final sub in _backgroundSubs.values) {
+        if (_matches(sub.filter, topic)) {
+          sub.callback(message);
+        }
+      }
+    });
   }
 
   String get _backgroundTitleOrDefault =>
@@ -359,7 +372,15 @@ class PushIO implements Push {
   // Enqueue the background stop after any pending config write, so the credential file is
   // always deleted last — a write queued just before shutdown cannot recreate it afterwards.
   void _enqueueStop() {
-    unawaited(_enqueueBackground(() => stopPushForeground()));
+    unawaited(_enqueueBackground(() async {
+      // Skip if the service is still wanted by the time this runs — background was toggled
+      // back on and subscriptions remain — so a stale stop can't tear down a live connection
+      // or delete a credential config that is still in use.
+      if (_background && _backgroundSubs.isNotEmpty) {
+        return;
+      }
+      await stopPushForeground();
+    }));
   }
 
   // QoS for subscribe, chosen by [setReplayMessages]: at-least-once (1) when replay is on,
