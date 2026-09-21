@@ -82,7 +82,7 @@ open class Push: Service {
         self.host = url?.host ?? "localhost"
         // Secure by default: TLS on when the endpoint scheme is secure (https/wss/mqtts/ssl),
         // so the credential in the CONNECT packet is not sent in the clear.
-        let secure = ["https", "wss", "mqtts", "ssl"].contains(url?.scheme ?? "")
+        let secure = ["https", "wss", "mqtts", "ssl"].contains((url?.scheme ?? "").lowercased())
         self.tls = secure
         // Take the port from the push endpoint only (a regular http/https endpoint's port is
         // the API port, not the broker's); otherwise fall back to the MQTT default.
