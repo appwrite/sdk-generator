@@ -472,6 +472,8 @@ class Tests: XCTestCase {
         _ = client.setJWT("e2e-jwt")
         _ = client.setPushEndpoint("mqtt://mqtt:1883")
         let push = Push(client)
+        let pushOpenExpectation = XCTestExpectation(description: "push open")
+        _ = push.onOpen { pushOpenExpectation.fulfill() }
         let pushExpectation = XCTestExpectation(description: "push message")
         var pushBody = "Push message:failed"
         var pushQos = "Push qos:failed"
@@ -485,6 +487,10 @@ class Tests: XCTestCase {
             pushExpectation.fulfill()
         }
         print("Push subscribe:passed")
+        // onOpen fires during subscribe (the connection is established there), so by now the
+        // expectation is already fulfilled and this returns immediately.
+        let pushOpenResult = XCTWaiter().wait(for: [pushOpenExpectation], timeout: 10)
+        print(pushOpenResult == .completed ? "Push open:passed" : "Push open:failed")
         await fulfillment(of: [pushExpectation], timeout: 10)
         print(pushBody)
         // reliableDelivery (default) => QoS 1 end to end.

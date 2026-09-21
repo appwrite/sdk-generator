@@ -469,6 +469,12 @@ void main() async {
   client.setJWT('e2e-jwt');
   client.setPushEndpoint('mqtt://mqtt:1883');
   final push = Push(client);
+  final pushOpened = Completer<void>();
+  push.onOpen(() {
+    if (!pushOpened.isCompleted) {
+      pushOpened.complete();
+    }
+  });
   final pushReceived = Completer<PushMessage>();
   final pushUnsub = await push.subscribe('e2e/push', (m) {
     if (!pushReceived.isCompleted) {
@@ -476,6 +482,12 @@ void main() async {
     }
   });
   print('Push subscribe:passed');
+  try {
+    await pushOpened.future.timeout(const Duration(seconds: 10));
+    print('Push open:passed');
+  } catch (_) {
+    print('Push open:failed');
+  }
   final pushMessage =
       await pushReceived.future.timeout(const Duration(seconds: 10));
   print(pushMessage.string == 'push-payload' && pushMessage.topic == 'e2e/push'

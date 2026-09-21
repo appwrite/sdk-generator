@@ -497,6 +497,8 @@ class ServiceTest {
             client.setJWT("e2e-jwt")
             client.setPushEndpoint("mqtt://mqtt:1883")
             val push = Push(client)
+            val pushOpenLatch = java.util.concurrent.CountDownLatch(1)
+            push.onOpen { pushOpenLatch.countDown() }
             val pushLatch = java.util.concurrent.CountDownLatch(1)
             var pushBody = "Push message:failed"
             var pushQos = "Push qos:failed"
@@ -510,6 +512,13 @@ class ServiceTest {
                 pushLatch.countDown()
             }
             writeToFile("Push subscribe:passed")
+            writeToFile(
+                if (pushOpenLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                    "Push open:passed"
+                } else {
+                    "Push open:failed"
+                },
+            )
             pushLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)
             writeToFile(pushBody)
             // reliableDelivery (default) => QoS 1 end to end.

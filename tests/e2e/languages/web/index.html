@@ -538,12 +538,20 @@
             client.setJWT('e2e-jwt');
             client.setPushEndpoint('ws://mqtt:8083');
             const push = new Push(client);
+            let pushOpenResolve;
+            const pushOpened = new Promise((resolve) => { pushOpenResolve = resolve; });
+            push.onOpen(() => pushOpenResolve());
             let pushResolve;
             const pushReceived = new Promise((resolve) => { pushResolve = resolve; });
             const pushUnsub = await push.subscribe('e2e/push', (m) => {
                 pushResolve({ text: new TextDecoder().decode(m.payload), qos: m.qos, topic: m.topic });
             });
             console.log('Push subscribe:passed');
+            const pushOpenOk = await Promise.race([
+                pushOpened.then(() => true),
+                new Promise((resolve) => setTimeout(() => resolve(false), 5000)),
+            ]);
+            console.log(pushOpenOk ? 'Push open:passed' : 'Push open:failed');
             const pushMsg = await Promise.race([
                 pushReceived,
                 new Promise((resolve) => setTimeout(() => resolve({ text: 'timeout', qos: -1, topic: '' }), 5000)),

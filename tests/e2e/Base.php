@@ -140,9 +140,11 @@ abstract class Base extends TestCase
         'Realtime disconnect:passed',
     ];
 
-    // Native push (MQTT) round-trip against the mock broker: subscribe, publish, receive.
+    // Native push (MQTT) round-trip against the mock broker: subscribe, receive, and the
+    // connection lifecycle hook (onOpen) firing.
     protected const PUSH_RESPONSES = [
         'Push subscribe:passed',
+        'Push open:passed',
         'Push message:passed',
         'Push qos:passed',
     ];

@@ -474,12 +474,18 @@ namespace AppwriteTests
             var pushObject = new GameObject("PushTest");
             var push = pushObject.AddComponent<Push>();
             push.Initialize(client);
+            var pushOpenTcs = new TaskCompletionSource<bool>();
+            push.OnOpen(() => pushOpenTcs.TrySetResult(true));
             var pushTcs = new TaskCompletionSource<PushMessage>();
             var pushUnsub = await push.Subscribe("e2e/push", (message) =>
             {
                 pushTcs.TrySetResult(message);
             });
             LogResult("Push subscribe:passed");
+            var pushOpenWinner = await Task.WhenAny(pushOpenTcs.Task, Task.Delay(10000));
+            LogResult(pushOpenWinner == pushOpenTcs.Task
+                ? "Push open:passed"
+                : "Push open:failed");
             var pushWinner = await Task.WhenAny(pushTcs.Task, Task.Delay(10000));
             var pushOk = pushWinner == pushTcs.Task;
             LogResult(pushOk && pushTcs.Task.Result.Text == "push-payload" && pushTcs.Task.Result.Topic == "e2e/push"
