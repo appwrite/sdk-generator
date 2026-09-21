@@ -32,12 +32,20 @@ export function createTcpStream({
     tls,
     tlsInsecure,
 }: TcpStreamOptions): IStream {
-    // `react-native-tcp-socket` is an optional peer: require it lazily here (only when
-    // a native push connection is actually opened) so merely importing the SDK does
-    // not force Metro to resolve it.
+    // `react-native-tcp-socket` is an optional peer. Requiring it inside try/catch marks it
+    // as an optional dependency for Metro, so merely importing the SDK (without native push)
+    // does not fail the bundler when the peer is absent; it is also only required lazily here,
+    // when a native push connection is actually opened. A missing peer surfaces as a clear
+    // error at that point rather than a Metro resolution failure on any SDK import.
     /* eslint-disable @typescript-eslint/no-require-imports */
-    const TcpSocket: typeof TcpSocketType =
-        require('react-native-tcp-socket').default;
+    let TcpSocket: typeof TcpSocketType;
+    try {
+        TcpSocket = require('react-native-tcp-socket').default;
+    } catch {
+        throw new Error(
+            "Native push requires the optional peer 'react-native-tcp-socket'. Install it to use Push on React Native.",
+        );
+    }
     /* eslint-enable @typescript-eslint/no-require-imports */
 
     let connected = false;
