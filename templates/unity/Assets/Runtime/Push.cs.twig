@@ -44,17 +44,23 @@ namespace {{ spec.info.title | caseUcfirst }}
         private Client _client;
         private IMqttClient _mqtt;
 
-        private string _host;
-        private int? _port;
-        private bool? _tls;
         private bool _tlsInsecure;
-        private string _clientId;
-        private int _keepAlive = 60;
-        private bool _reliableDelivery = true;
+
+        // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this
+        // client's replay cursor. Default on; toggle with SetReplayMessages().
+        private bool _replay = true;
+
+        private Action _onOpen;
+        private Action _onClose;
+        private Action<Exception> _onError;
+
+        // Fixed keep-alive (PINGREQ interval) in seconds — not exposed as an option.
+        private const int KeepAliveSeconds = 60;
 
         // Resolved once, then reused: a reconnect rebuilds the MQTT client, and if each rebuild
         // drew a new random id the broker would treat it as a new session and drop this client's
-        // replay cursor. Reusing one id keeps the persistent session stable.
+        // replay cursor. A stable id from Client.SetPushClientId() resumes replay across
+        // restarts; otherwise one is generated. Reusing one id keeps it stable.
         private string _resolvedClientId;
 
         // Local id -> (topic filter, callback). The id is never sent to the broker; it
@@ -75,13 +81,13 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
         }
 
-        // Secure by default: TLS on when the endpoint scheme is secure (or port 8883), so the
-        // credential in the CONNECT packet is not sent over a plaintext socket.
-        private bool Tls => _tls ?? (_port == 8883 || IsSecureEndpoint());
+        // Secure by default: TLS on when the endpoint scheme is secure, so the credential in
+        // the CONNECT packet is not sent over a plaintext socket.
+        private bool Tls => IsSecureEndpoint();
 
         // Take the port from the push endpoint only (a regular http/https endpoint's port is
         // the API port, not the broker's); otherwise fall back to the MQTT default.
-        private int Port => _port ?? EndpointPort() ?? (Tls ? 8883 : 1883);
+        private int Port => EndpointPort() ?? (Tls ? 8883 : 1883);
 
         private bool IsSecureEndpoint()
         {
@@ -120,37 +126,64 @@ namespace {{ spec.info.title | caseUcfirst }}
         }
 
         /// <summary>
-        /// Configure the broker connection. Call before the first subscribe.
-        ///
-        /// <paramref name="reliableDelivery"/> (default true) picks the delivery guarantee
-        /// once, for the whole connection: true subscribes and publishes at QoS 1 with clean
-        /// start off, so the broker keeps this client's replay cursor and redelivers messages
-        /// missed during a brief disconnect; false uses QoS 0 and clean start on (at-most-once,
-        /// may be lost, cursor purged — no replay).
+        /// Configure the broker connection. Call before the first subscribe. Only TLS
+        /// certificate verification is configurable here; the broker location comes from
+        /// Client.SetPushEndpoint() and a stable id from Client.SetPushClientId().
         /// </summary>
-        public Push Configure(
-            string host = null,
-            int? port = null,
-            bool? tls = null,
-            bool tlsInsecure = false,
-            string clientId = null,
-            int keepAlive = 60,
-            bool reliableDelivery = true)
+        public Push Configure(bool tlsInsecure = false)
         {
-            _host = host;
-            _port = port;
-            _tls = tls;
             _tlsInsecure = tlsInsecure;
-            _clientId = clientId;
-            _keepAlive = keepAlive;
-            _reliableDelivery = reliableDelivery;
             return this;
         }
 
-        // QoS for both subscribe and publish, chosen once by reliableDelivery:
-        // at-least-once (1) when reliable, at-most-once (0) when not.
+        /// <summary>
+        /// Toggle replay of messages missed while disconnected. true (the default) subscribes
+        /// at QoS 1 with clean start off, so the broker keeps this client's replay cursor and
+        /// redelivers missed messages on reconnect; false uses QoS 0 and a clean session. Can
+        /// be called at any time: if already connected in the other mode it reconnects and
+        /// resubscribes at the new QoS.
+        /// </summary>
+        public Push SetReplayMessages(bool enabled = true)
+        {
+            if (enabled == _replay)
+            {
+                return this;
+            }
+
+            _replay = enabled;
+            if (_mqtt != null)
+            {
+                _ = Reconnect();
+            }
+
+            return this;
+        }
+
+        /// <summary>Register a callback invoked when the connection opens.</summary>
+        public Push OnOpen(Action callback)
+        {
+            _onOpen = callback;
+            return this;
+        }
+
+        /// <summary>Register a callback invoked when the connection closes.</summary>
+        public Push OnClose(Action callback)
+        {
+            _onClose = callback;
+            return this;
+        }
+
+        /// <summary>Register a callback invoked on a connection error.</summary>
+        public Push OnError(Action<Exception> callback)
+        {
+            _onError = callback;
+            return this;
+        }
+
+        // QoS for subscribe, chosen by replay mode: at-least-once (1) when replaying missed
+        // messages, at-most-once (0) when not.
         private MqttQualityOfServiceLevel DefaultQos =>
-            _reliableDelivery ? MqttQualityOfServiceLevel.AtLeastOnce : MqttQualityOfServiceLevel.AtMostOnce;
+            _replay ? MqttQualityOfServiceLevel.AtLeastOnce : MqttQualityOfServiceLevel.AtMostOnce;
 
         /// <summary>
         /// Subscribe to one or more topics. Returns an unsubscribe callable.
@@ -270,23 +303,27 @@ namespace {{ spec.info.title | caseUcfirst }}
                 throw new {{ spec.info.title | caseUcfirst }}Exception("No credential set on the client; call Client.SetJWT() or Client.SetSession() first.");
             }
 
-            var host = _host ?? new Uri(PushEndpoint).Host;
+            var host = new Uri(PushEndpoint).Host;
             var project = _client.Config.GetValueOrDefault("project") ?? "";
             // A non-empty client id is required for a persistent session (clean start off) —
             // some MQTT clients/brokers reject a zero-length id in that mode. The broker keys
             // its offline-replay cursor on this id; resolve it once so a reconnect rebuild reuses
-            // it and resumes the same session (pass a stable clientId to resume across restarts).
-            _resolvedClientId ??= _clientId ?? $"appwrite-{project}-{Guid.NewGuid().ToString().Substring(0, 8)}";
+            // it and resumes the same session. A stable id from Client.SetPushClientId() resumes
+            // replay across restarts; otherwise one is generated.
+            var pushClientId = _client.Config.GetValueOrDefault("pushClientId");
+            _resolvedClientId ??= string.IsNullOrEmpty(pushClientId)
+                ? $"appwrite-{project}-{Guid.NewGuid().ToString().Substring(0, 8)}"
+                : pushClientId;
             var clientId = _resolvedClientId;
 
             var optionsBuilder = new MqttClientOptionsBuilder()
                 .WithProtocolVersion(MqttProtocolVersion.V500)
                 .WithClientId(clientId)
                 .WithTcpServer(host, Port)
-                // Clean start off in reliable mode so the broker keeps this client's replay
-                // cursor and redelivers what it missed; on when non-reliable so it is purged.
-                .WithCleanSession(!_reliableDelivery)
-                .WithKeepAlivePeriod(TimeSpan.FromSeconds(_keepAlive))
+                // Clean start off in replay mode so the broker keeps this client's replay
+                // cursor and redelivers what it missed; on when replay is off so it is purged.
+                .WithCleanSession(!_replay)
+                .WithKeepAlivePeriod(TimeSpan.FromSeconds(KeepAliveSeconds))
                 .WithAuthentication(authMethod, Encoding.UTF8.GetBytes(credential))
                 .WithUserProperty("projectId", project);
 
@@ -305,16 +342,70 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             var client = new MqttFactory().CreateMqttClient();
             client.ApplicationMessageReceivedAsync += OnMessage;
+            // Surface the connection lifecycle to onOpen/onClose/onError, on the main thread.
+            client.ConnectedAsync += _ =>
+            {
+                _mainThread.Enqueue(() => _onOpen?.Invoke());
+                return Task.CompletedTask;
+            };
+            client.DisconnectedAsync += e =>
+            {
+                _mainThread.Enqueue(() =>
+                {
+                    _onClose?.Invoke();
+                    if (e.Exception != null)
+                    {
+                        _onError?.Invoke(e.Exception);
+                    }
+                });
+                return Task.CompletedTask;
+            };
             _mqtt = client;
 
             var result = await client.ConnectAsync(optionsBuilder.Build());
             if (result.ResultCode != MqttClientConnectResultCode.Success)
             {
                 Close();
-                throw new {{ spec.info.title | caseUcfirst }}Exception($"MQTT authentication failed (CONNACK reason {result.ResultCode})");
+                var error = new {{ spec.info.title | caseUcfirst }}Exception($"MQTT authentication failed (CONNACK reason {result.ResultCode})");
+                _mainThread.Enqueue(() => _onError?.Invoke(error));
+                throw error;
             }
 
             return client;
+        }
+
+        // Reconnect and resubscribe active topics at the current QoS — used when the replay
+        // mode changes while the connection is open (clean start is a CONNECT-level flag).
+        private async Task Reconnect()
+        {
+            List<string> filters;
+            lock (_subscriptions)
+            {
+                var set = new HashSet<string>();
+                foreach (var entry in _subscriptions.Values)
+                {
+                    set.Add(entry.Filter);
+                }
+
+                filters = new List<string>(set);
+            }
+
+            Close();
+            var client = await Connect();
+            if (filters.Count == 0)
+            {
+                return;
+            }
+
+            var builder = new MqttClientSubscribeOptionsBuilder();
+            foreach (var filter in filters)
+            {
+                builder = builder.WithTopicFilter(f => f
+                    .WithTopic(filter)
+                    .WithQualityOfServiceLevel(DefaultQos));
+            }
+
+            await client.SubscribeAsync(builder.Build());
         }
 
         private Task OnMessage(MqttApplicationMessageReceivedEventArgs args)
