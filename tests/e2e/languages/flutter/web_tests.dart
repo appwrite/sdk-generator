@@ -20,7 +20,7 @@ void main() async {
   // Native push (MQTT over WebSocket): subscribe, then the mock broker delivers a
   // message (server-initiated, as in production — the SDK has no publish method).
   client.setJWT('e2e-jwt');
-  client.setPushEndpoint('ws://mqtt:8083/mqtt');
+  client.setPushEndpoint('ws://mqtt:8083');
   final push = Push(client);
   final pushReceived = Completer<PushMessage>();
   final pushUnsub = await push.subscribe('e2e/push', (m) {
