@@ -145,9 +145,30 @@ open class Push: Service {
             sync.sync { subscriptions[id] = (topic, callback) }
         }
 
-        _ = try await mqtt.v5.subscribe(
-            to: topics.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: defaultQos) }
-        )
+        do {
+            _ = try await mqtt.v5.subscribe(
+                to: topics.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: defaultQos) }
+            )
+        } catch {
+            // The SUBSCRIBE failed; roll this call's registrations back (and drop any broker
+            // filter no other local subscriber owns) so a failed subscribe leaks no callback.
+            let filters = sync.sync { () -> [String] in
+                var removed: [String] = []
+                for id in ids {
+                    if let entry = subscriptions.removeValue(forKey: id) {
+                        let stillUsed = subscriptions.values.contains { $0.filter == entry.filter }
+                        if !stillUsed {
+                            removed.append(entry.filter)
+                        }
+                    }
+                }
+                return removed
+            }
+            if !filters.isEmpty {
+                try? await mqtt.v5.unsubscribe(from: filters)
+            }
+            throw error
+        }
 
         return { [weak self] in
             guard let self else { return }
