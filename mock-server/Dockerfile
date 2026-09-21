@@ -24,21 +24,22 @@ RUN set -eu; \
 
 FROM composer:2.10 AS composer_mqtt
 
-# app/mqtt.php (the mock MQTT broker) has its own dependency set: the current utopia-php/mqtt
-# needs utopia-php/telemetry ^0.4, which conflicts with the HTTP mock's utopia-php/framework,
-# so it can't share the vendor above. Install it separately into its own vendor.
+# app/mqtt.php (the mock MQTT broker) has its own dependency set: utopia-php/mqtt needs
+# utopia-php/telemetry ^0.4, which conflicts with the HTTP mock's utopia-php/framework (it
+# pins the older telemetry line and only that version carries the param(model:) the mock
+# uses). So it can't share the vendor above and is installed separately into ./vendor-mqtt.
+# The manifest is inlined here (no committed composer.mqtt.json/.lock); the broker is
+# test-only infra, so an unlocked resolve of a pinned utopia-php/mqtt tag is fine.
 WORKDIR /usr/local/src/
 
-COPY composer.mqtt.lock /usr/local/src/composer.lock
-COPY composer.mqtt.json /usr/local/src/composer.json
-
 RUN set -eu; \
+    printf '%s' '{"repositories":[{"type":"vcs","url":"https://github.com/utopia-php/mqtt"}],"require":{"utopia-php/mqtt":"0.0.1"},"minimum-stability":"dev","prefer-stable":true,"config":{"vendor-dir":"vendor-mqtt","allow-plugins":{"php-http/discovery":true,"tbachert/spi":true}}}' > composer.json; \
     n=0; \
-    until composer install --ignore-platform-reqs --optimize-autoloader \
+    until composer update --ignore-platform-reqs --optimize-autoloader \
         --no-plugins --no-scripts --prefer-dist --no-interaction; do \
         n=$((n + 1)); \
         if [ "${n}" -ge 5 ]; then exit 1; fi; \
-        echo "composer install (mqtt) failed, retrying ${n}/5..."; \
+        echo "composer update (mqtt) failed, retrying ${n}/5..."; \
         sleep $((n * 5)); \
     done
 

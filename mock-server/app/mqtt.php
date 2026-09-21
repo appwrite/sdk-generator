@@ -15,10 +15,11 @@
  * It listens on both transports the library ships: plain TCP (1883) and WebSocket (8083),
  * so the TCP SDKs and the browser/WebSocket SDK can both reach it.
  *
- * The broker needs utopia-php/mqtt (dev), which requires utopia-php/telemetry ^0.4 — a
- * constraint no utopia-php/framework release (used by the mock HTTP server) allows. So its
- * dependencies live in a separate manifest (composer.mqtt.json) installed to ./vendor-mqtt,
- * kept apart from the HTTP mock's ./vendor; this file loads that one.
+ * The broker needs utopia-php/mqtt, which requires utopia-php/telemetry ^0.4 — a constraint
+ * the mock HTTP server's utopia-php/framework (older telemetry line, carries param(model:))
+ * does not allow. So it installs into a separate ./vendor-mqtt, kept apart from the HTTP
+ * mock's ./vendor; the manifest is inlined in the Dockerfile (no composer.mqtt.json). This
+ * file loads that vendor.
  */
 
 require_once __DIR__ . '/../vendor-mqtt/autoload.php';
