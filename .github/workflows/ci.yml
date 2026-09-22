@@ -53,7 +53,8 @@ jobs:
           # TODO: Re-enable Unity2021 after the CI Unity license is restored.
           WebChromium,
           WebNode,
-          ReactNative
+          ReactNative,
+          ReactNativePush
         ]
 
     steps:
