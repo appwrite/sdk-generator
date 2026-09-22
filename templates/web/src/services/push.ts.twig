@@ -362,10 +362,17 @@ export class Push extends Service {
         }
 
         const project = this.client.config.project ?? '';
-        // Send an empty client id when the app did not set one: the broker derives a stable
-        // id server-side (keyed on the credential/project) so the replay cursor resumes across
-        // reloads. Client.setPushClientId(id) overrides it with an explicit id.
-        const clientId = this.client.config.pushClientId ?? '';
+        // Client id, when the app did not set one with Client.setPushClientId(). Unlike the
+        // native SDKs (which send an empty id and let the broker derive a stable one), mqtt.js
+        // rejects an empty id with clean start off, so derive a stable per-user id here: the
+        // userId decoded from the JWT, else the session secret. A stable id keeps the broker's
+        // replay cursor resuming across reloads.
+        const clientId =
+            this.client.config.pushClientId ||
+            userIdFromJwt(this.client.config.jwt) ||
+            this.client.config.session ||
+            this.client.config.jwt ||
+            '';
 
         const options: IClientOptions = {
             clientId,
@@ -481,6 +488,31 @@ export class Push extends Service {
         } catch {
             // Some browsers only allow notifications from a service worker; ignore.
         }
+    }
+}
+
+/**
+ * The userId claim from an {{spec.info.title | caseUcfirst}} JWT, used as the default MQTT client id so the
+ * broker's replay cursor is stable per user. Returns '' when the token is not a decodable JWT
+ * (e.g. a plain string), so the caller can fall back to the session or raw credential.
+ */
+function userIdFromJwt(jwt?: string): string {
+    if (!jwt) {
+        return '';
+    }
+    const parts = jwt.split('.');
+    if (parts.length < 2) {
+        return '';
+    }
+    try {
+        const json = Buffer.from(
+            parts[1].replace(/-/g, '+').replace(/_/g, '/'),
+            'base64',
+        ).toString('utf-8');
+        const payload = JSON.parse(json);
+        return typeof payload.userId === 'string' ? payload.userId : '';
+    } catch {
+        return '';
     }
 }
 
