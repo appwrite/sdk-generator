@@ -93,6 +93,11 @@ open class Push: Service {
     private var onCloseCb: (() -> Void)?
     private var onErrorCb: ((Swift.Error) -> Void)?
 
+    // Set by close() so the close listener does not try to reconnect a deliberate teardown.
+    private var closing = false
+    // True while a reconnect loop is running, so a burst of close events starts only one.
+    private var reconnecting = false
+
     // Guards the mutable state below; the publish listener fires on an event loop.
     private let sync = DispatchQueue(label: "{{ spec.info.title | caseLower }}.push")
 
@@ -295,6 +300,8 @@ open class Push: Service {
     /// Tear down the connection and drop all active subscriptions.
     public func close() {
         let client = sync.sync { () -> MQTTClient? in
+            // Mark this a deliberate close so the close listener does not reconnect.
+            closing = true
             let existing = mqtt
             mqtt = nil
             connecting?.cancel()
@@ -342,8 +349,9 @@ open class Push: Service {
         return try await task.value
     }
 
-    private func open() async throws -> MQTTClient {
-        // Read the credential set on the client (via Client.setJWT / setSession).
+    // Read the credential off the client and build the CONNECT properties (enhanced auth plus
+    // the project id). Rebuilt on every connect so a reconnect picks up a refreshed credential.
+    private func connectProperties() throws -> MQTTProperties {
         let authMethod: String
         let credential: String
         if let jwt = client.config["jwt"], !jwt.isEmpty {
@@ -355,8 +363,19 @@ open class Push: Service {
         } else {
             throw {{ spec.info.title | caseUcfirst }}Error(message: "No credential set on the client; call Client.setJWT() or Client.setSession() first.")
         }
-
         let project = client.config["project"] ?? ""
+        return MQTTProperties([
+            .authenticationMethod(authMethod),
+            .authenticationData(ByteBuffer(bytes: Array(credential.utf8))),
+            .userProperty("projectId", project),
+        ])
+    }
+
+    private func open() async throws -> MQTTClient {
+        // A fresh connect clears any prior deliberate-close flag.
+        sync.sync { closing = false }
+        let properties = try connectProperties()
+
         // A non-empty identifier is required for a persistent session (clean start off) — some
         // MQTT clients/brokers reject a zero-length id in that mode. The broker keys its
         // offline-replay cursor on this id, resolved once per instance (see resolvedClientId)
@@ -392,18 +411,12 @@ open class Push: Service {
             }
         }
 
-        // Surface the connection lifecycle to the caller's onClose/onError hooks.
+        // Surface the connection lifecycle to the caller's onClose hook, and recover from an
+        // unexpected drop (a deliberate close() is skipped via the `closing` flag).
         mqtt.addCloseListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self] _ in
             self?.onCloseCb?()
+            self?.handleUnexpectedClose()
         }
-
-        // Enhanced auth carried in the CONNECT properties, plus the project id as a
-        // user property — exactly like the Python and React Native clients.
-        let properties = MQTTProperties([
-            .authenticationMethod(authMethod),
-            .authenticationData(ByteBuffer(bytes: Array(credential.utf8))),
-            .userProperty("projectId", project),
-        ])
 
         do {
             // Clean start is always off, so the broker keeps this client's session and can
@@ -424,6 +437,58 @@ open class Push: Service {
 
         onOpenCb?()
         return mqtt
+    }
+
+    // Called from the close listener. Starts one reconnect loop for an unexpected drop, unless
+    // this was a deliberate close(), there are no subscriptions, or a loop is already running.
+    private func handleUnexpectedClose() {
+        let client = sync.sync { () -> MQTTClient? in
+            if closing || reconnecting || subscriptions.isEmpty {
+                return nil
+            }
+            reconnecting = true
+            return mqtt
+        }
+        guard let client else { return }
+        Task {
+            await reconnectLoop(client)
+            sync.sync { self.reconnecting = false }
+        }
+    }
+
+    // Reconnect the same client with exponential backoff (capped at 30s) and resubscribe every
+    // active filter, so an existing subscription resumes delivery without an app-level subscribe.
+    private func reconnectLoop(_ client: MQTTClient) async {
+        var delaySeconds: UInt64 = 1
+        while true {
+            // Stop if closed, drained, or the client was replaced by a fresh connect.
+            if sync.sync(execute: { closing || subscriptions.isEmpty || mqtt !== client }) {
+                return
+            }
+            try? await Task.sleep(nanoseconds: delaySeconds * 1_000_000_000)
+            if sync.sync(execute: { closing || subscriptions.isEmpty || mqtt !== client }) {
+                return
+            }
+            do {
+                let properties = try connectProperties()
+                let ack = try await client.v5.connect(cleanStart: false, properties: properties)
+                if ack.reason == .success {
+                    let infos = sync.sync { () -> [MQTTSubscribeInfoV5] in
+                        Set(subscriptions.values.map { $0.filter }).map {
+                            MQTTSubscribeInfoV5(topicFilter: $0, qos: effectiveQos($0))
+                        }
+                    }
+                    if !infos.isEmpty {
+                        _ = try? await client.v5.subscribe(to: infos)
+                    }
+                    onOpenCb?()
+                    return
+                }
+            } catch {
+                // Keep retrying until closed or drained.
+            }
+            delaySeconds = min(delaySeconds * 2, 30)
+        }
     }
 
     private func dispatch(_ publish: MQTTPublishInfo) {

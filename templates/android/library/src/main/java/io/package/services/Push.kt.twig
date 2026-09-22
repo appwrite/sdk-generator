@@ -567,6 +567,12 @@ internal fun buildPushClient(
         .identifier(config.clientId)
         .serverHost(config.host)
         .serverPort(config.port)
+        // Recover from an unexpected disconnect (network drop, broker restart) with HiveMQ's
+        // exponential backoff. A user-initiated disconnect() (see close()) does not trigger it.
+        // Because clean start is off and the client id is stable, the broker resumes the same
+        // session — subscriptions and the QoS-1 replay cursor persist, so delivery continues
+        // without resubscribing (which would stack a second per-subscription callback).
+        .automaticReconnectWithDefaultConfig()
 
     if (onConnected != null) {
         builder = builder.addConnectedListener { onConnected() }

@@ -44,6 +44,13 @@ namespace {{ spec.info.title | caseUcfirst }}
         private Client _client;
         private IMqttClient _mqtt;
 
+        // Set by Close() so the disconnect handler does not reconnect a deliberate teardown.
+        private bool _closing;
+        // True while a reconnect loop runs, so a burst of disconnects starts only one.
+        private bool _reconnecting;
+        // The last connect options, reused when reconnecting after an unexpected drop.
+        private MqttClientOptions _options;
+
         private Action _onOpen;
         private Action _onClose;
         private Action<Exception> _onError;
@@ -357,6 +364,8 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// <summary>Tear down the connection and drop all active subscriptions.</summary>
         public void Close()
         {
+            // Mark this a deliberate close so the disconnect handler does not reconnect.
+            _closing = true;
             if (_mqtt != null)
             {
                 _ = _mqtt.DisconnectAsync();
@@ -452,11 +461,22 @@ namespace {{ spec.info.title | caseUcfirst }}
                         _onError?.Invoke(e.Exception);
                     }
                 });
+                // Recover from an unexpected drop; a deliberate Close() sets _closing.
+                if (!_closing && !_reconnecting)
+                {
+                    _reconnecting = true;
+                    _ = ReconnectWithBackoff();
+                }
+
                 return Task.CompletedTask;
             };
             _mqtt = client;
 
-            var result = await client.ConnectAsync(optionsBuilder.Build());
+            var options = optionsBuilder.Build();
+            _options = options;
+            _closing = false;
+
+            var result = await client.ConnectAsync(options);
             if (result.ResultCode != MqttClientConnectResultCode.Success)
             {
                 Close();
@@ -466,6 +486,76 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
 
             return client;
+        }
+
+        // Reconnect the client with exponential backoff (capped at 30s) and resubscribe every
+        // active filter, so an existing subscription resumes delivery after an unexpected drop
+        // without an app-level Subscribe(). A deliberate Close() stops the loop.
+        private async Task ReconnectWithBackoff()
+        {
+            var delayMs = 1000;
+            try
+            {
+                while (!_closing)
+                {
+                    var client = _mqtt;
+                    var options = _options;
+                    if (client == null || options == null)
+                    {
+                        return;
+                    }
+
+                    await Task.Delay(delayMs);
+                    if (_closing || _mqtt != client)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        await client.ConnectAsync(options);
+
+                        List<string> filters;
+                        lock (_subscriptions)
+                        {
+                            var set = new HashSet<string>();
+                            foreach (var entry in _subscriptions.Values)
+                            {
+                                set.Add(entry.Filter);
+                            }
+
+                            filters = new List<string>(set);
+                        }
+
+                        if (filters.Count > 0)
+                        {
+                            var rebuild = new MqttClientSubscribeOptionsBuilder();
+                            foreach (var f in filters)
+                            {
+                                var filter = f;
+                                rebuild = rebuild.WithTopicFilter(x => x
+                                    .WithTopic(filter)
+                                    .WithQualityOfServiceLevel(EffectiveQos(filter)));
+                            }
+
+                            await client.SubscribeAsync(rebuild.Build());
+                        }
+
+                        _mainThread.Enqueue(() => _onOpen?.Invoke());
+                        return;
+                    }
+                    catch
+                    {
+                        // Connection still failing; back off and retry.
+                    }
+
+                    delayMs = Math.Min(delayMs * 2, 30000);
+                }
+            }
+            finally
+            {
+                _reconnecting = false;
+            }
         }
 
         private Task OnMessage(MqttApplicationMessageReceivedEventArgs args)
