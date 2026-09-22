@@ -43,6 +43,13 @@ export interface SubscribeOptions {
     background?: boolean;
     /** Notification title for this subscription's messages. Defaults to the message topic. */
     title?: string;
+    /**
+     * Redeliver messages missed while disconnected. `true` (the default) subscribes at
+     * QoS 1 so the broker holds this topic's messages and redelivers them on reconnect;
+     * `false` uses QoS 0 (at-most-once, may be lost). Per-subscription — the connection
+     * always keeps its session (clean start off).
+     */
+    reDeliverIfMissed?: boolean;
 }
 
 /**
@@ -67,12 +74,12 @@ const RECONNECT_PERIOD_MS = 2000;
  * message is handed to your callback; a subscription can also opt into background
  * delivery (Android foreground service + local notification per message).
  *
- * `setReplayMessages` is connection-level and can only be set before the first
- * `subscribe` — changing it throws while subscriptions are live, so unsubscribe
- * everything, set it, then resubscribe. TLS (and skipping cert verification via a
- * `?tlsInsecure=true` query flag) is derived from the endpoint URL, so the whole
- * connection is described in one place. `subscribe` opens the connection lazily and
- * returns a {@link PushSubscription} handle (unlike Realtime's bare
+ * The connection has no tunables — it always keeps its session (clean start off) so the
+ * broker can redeliver missed messages, and reliability is chosen per subscription via
+ * `reDeliverIfMissed`. TLS (and skipping cert verification via a `?tlsInsecure=true` query
+ * flag) is derived from the endpoint URL, so the whole connection is described in one
+ * place. `subscribe` opens the connection lazily and returns a {@link PushSubscription}
+ * handle (unlike Realtime's bare
  * unsubscribe callable — Push carries per-subscription state). The credential is read off
  * the client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`), the
  * same way every other service reads auth.
@@ -89,11 +96,6 @@ export class Push extends Service {
     private readonly port: number;
     private readonly tls: boolean;
     private readonly tlsInsecure: boolean;
-
-    // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this
-    // client's replay cursor. Default on; change with setReplayMessages() before the
-    // first subscribe.
-    private replay = true;
 
     private mqtt: MqttClient | null = null;
     private connecting: Promise<void> | null = null;
@@ -116,6 +118,7 @@ export class Push extends Service {
             callback: MessageCallback;
             background: boolean;
             title?: string;
+            qos: 0 | 1;
         }
     >();
 
@@ -159,26 +162,15 @@ export class Push extends Service {
         this.tlsInsecure = endpointInsecure;
     }
 
-    // QoS for subscribe, chosen by replay mode: at-least-once (1) when replaying missed
-    // messages, at-most-once (0) when not.
-    private get defaultQos(): 0 | 1 {
-        return this.replay ? 1 : 0;
-    }
-
-    /**
-     * Toggle replay of messages missed while disconnected. `true` (the default)
-     * subscribes at QoS 1 with clean start off, so the broker keeps this client's replay
-     * cursor and redelivers missed messages on reconnect; `false` uses QoS 0 and a clean
-     * session (at-most-once, no replay).
-     *
-     * This is a connection-level setting that fixes the CONNECT clean-start flag and the
-     * subscribe QoS, so it cannot change while subscriptions are live — it throws in that
-     * case. To switch, unsubscribe everything (or `close()`), call this, then resubscribe.
-     */
-    setReplayMessages(enabled: boolean = true): this {
-        this.assertNoSubscriptions('setReplayMessages');
-        this.replay = enabled;
-        return this;
+    // The broker subscription for a filter uses the highest QoS any local subscription on
+    // it wants, so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
+    private effectiveQos(filter: string): 0 | 1 {
+        for (const sub of this.subscriptions.values()) {
+            if (sub.topic === filter && sub.qos === 1) {
+                return 1;
+            }
+        }
+        return 0;
     }
 
     /** Register a callback invoked when the connection opens (CONNACK success). */
@@ -211,7 +203,8 @@ export class Push extends Service {
      * subscribe-then-publish reliable.
      *
      * Pass `{ background: true, title }` to also keep receiving while backgrounded and
-     * post a notification per matching message; toggle it later with the handle's `update`.
+     * post a notification per matching message, and `{ reDeliverIfMissed: false }` for
+     * at-most-once (QoS 0) delivery; toggle either later with the handle's `update`.
      */
     async subscribe(
         topics: string | string[],
@@ -220,6 +213,7 @@ export class Push extends Service {
     ): Promise<PushSubscription> {
         const topicList = typeof topics === 'string' ? [topics] : topics;
         const background = options.background ?? false;
+        const qos: 0 | 1 = (options.reDeliverIfMissed ?? true) ? 1 : 0;
 
         // Start the foreground service before connecting so a missing peer dependency
         // surfaces a clear error up front, matching the connection failure path.
@@ -239,11 +233,14 @@ export class Push extends Service {
                 callback,
                 background,
                 title: options.title,
+                qos,
             });
             acks.push(
                 new Promise<void>((resolve, reject) => {
-                    client.subscribe(topic, { qos: this.defaultQos }, (err) =>
-                        err ? reject(err) : resolve(),
+                    client.subscribe(
+                        topic,
+                        { qos: this.effectiveQos(topic) },
+                        (err) => (err ? reject(err) : resolve()),
                     );
                 }),
             );
@@ -279,6 +276,7 @@ export class Push extends Service {
         }
 
         const update = (next: SubscribeOptions) => {
+            const changedFilters = new Set<string>();
             for (const id of ids) {
                 const entry = this.subscriptions.get(id);
                 if (!entry) {
@@ -290,6 +288,20 @@ export class Push extends Service {
                 if (next.title !== undefined) {
                     entry.title = next.title;
                 }
+                if (next.reDeliverIfMissed !== undefined) {
+                    const q: 0 | 1 = next.reDeliverIfMissed ? 1 : 0;
+                    if (q !== entry.qos) {
+                        entry.qos = q;
+                        changedFilters.add(entry.topic);
+                    }
+                }
+            }
+            // Re-SUBSCRIBE the affected filters at their new effective QoS (a SUBSCRIBE to an
+            // existing filter just updates its QoS — no unsubscribe gap).
+            for (const filter of changedFilters) {
+                this.mqtt?.subscribe(filter, {
+                    qos: this.effectiveQos(filter),
+                });
             }
             this.syncBackgroundService();
         };
@@ -418,17 +430,14 @@ export class Push extends Service {
         if (!client) {
             return;
         }
-        for (const { topic } of this.subscriptions.values()) {
-            client.subscribe(topic, { qos: this.defaultQos }, () => {});
-        }
-    }
-
-    // A connection-level setter cannot change once a subscription pins the CONNECT flags.
-    private assertNoSubscriptions(method: string): void {
-        if (this.subscriptions.size > 0 || this.mqtt) {
-            throw new Error(
-                `${method}() is a connection-level setting and cannot change while ` +
-                    'subscriptions are active; unsubscribe all (or close()) first.',
+        const filters = new Set(
+            [...this.subscriptions.values()].map((s) => s.topic),
+        );
+        for (const filter of filters) {
+            client.subscribe(
+                filter,
+                { qos: this.effectiveQos(filter) },
+                () => {},
             );
         }
     }
@@ -476,7 +485,7 @@ export class Push extends Service {
         const options: IClientOptions = {
             clientId,
             protocolVersion: 5,
-            clean: !this.replay, // clean start off = keep the replay cursor
+            clean: false, // always keep the session so the broker can replay QoS-1 topics
             keepalive: KEEP_ALIVE_SECONDS,
             reconnectPeriod: RECONNECT_PERIOD_MS,
             manualConnect: true,
