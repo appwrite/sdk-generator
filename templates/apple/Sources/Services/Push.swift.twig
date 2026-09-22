@@ -31,9 +31,9 @@ public struct PushMessage {
 /// gone) and `update(background:title:)` toggles its options live without resubscribing.
 public final class PushSubscription {
     private let unsubscribeAction: () -> Void
-    private let updateAction: (Bool?, String?) -> Void
+    private let updateAction: (Bool?, String?, Bool?) -> Void
 
-    init(unsubscribe: @escaping () -> Void, update: @escaping (Bool?, String?) -> Void) {
+    init(unsubscribe: @escaping () -> Void, update: @escaping (Bool?, String?, Bool?) -> Void) {
         self.unsubscribeAction = unsubscribe
         self.updateAction = update
     }
@@ -43,10 +43,12 @@ public final class PushSubscription {
         unsubscribeAction()
     }
 
-    /// Live-update this subscription's background delivery and/or notification title.
-    /// Only the arguments you pass change; the rest stay as they were.
-    public func update(background: Bool? = nil, title: String? = nil) {
-        updateAction(background, title)
+    /// Live-update this subscription's background delivery, notification title and/or
+    /// `reDeliverIfMissed` (QoS). Only the arguments you pass change; the rest stay as they
+    /// were. Changing `reDeliverIfMissed` re-subscribes this subscription's topics at the
+    /// new QoS.
+    public func update(background: Bool? = nil, title: String? = nil, reDeliverIfMissed: Bool? = nil) {
+        updateAction(background, title, reDeliverIfMissed)
     }
 }
 
@@ -55,13 +57,13 @@ public final class PushSubscription {
 /// networking uses. While the app is alive the connection stays open and each message is
 /// handed to your callback; a subscription can also opt into a local notification per message.
 ///
-/// `setReplayMessages` is a connection-level setting fixed for the life of the subscriptions
-/// — it throws while any subscription is live, so unsubscribe everything, set it, then
-/// resubscribe. TLS (and skipping cert verification via a `?tlsInsecure=true` query flag) is
-/// derived from the endpoint, so the whole connection is described in one place. `subscribe`
-/// opens the connection lazily and returns a `PushSubscription` handle. The credential is
-/// read off the client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`),
-/// the same way every other service reads auth.
+/// The connection has no tunables — it always keeps its session (clean start off) so the
+/// broker can redeliver missed messages, and reliability is chosen per subscription via
+/// `subscribe`'s `reDeliverIfMissed`. TLS (and skipping cert verification via a
+/// `?tlsInsecure=true` query flag) is derived from the endpoint, so the whole connection is
+/// described in one place. `subscribe` opens the connection lazily and returns a
+/// `PushSubscription` handle. The credential is read off the client — set a JWT or session
+/// on it (`Client.setJWT` / `Client.setSession`), the same way every other service reads auth.
 ///
 ///     let push = Push(client)
 ///     let sub = try await push.subscribe("user/123/#") { message in
@@ -77,10 +79,6 @@ open class Push: Service {
     private let port: Int
     private let tls: Bool
     private let tlsInsecure: Bool
-
-    // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this client's
-    // replay cursor. Default on; change with setReplayMessages() before the first subscribe.
-    private var replay = true
 
     // Resolved once per instance: a reconnect rebuilds the MQTTClient, and if each rebuild drew
     // a new random id the broker would treat it as a new session and drop this client's replay
@@ -100,7 +98,7 @@ open class Push: Service {
 
     // Local id -> subscription (topic filter, callback, per-sub options). The id is never
     // sent to the broker; it only lets the same topic carry more than one callback.
-    private var subscriptions: [String: (filter: String, callback: (PushMessage) -> Void, background: Bool, title: String?)] = [:]
+    private var subscriptions: [String: (filter: String, callback: (PushMessage) -> Void, background: Bool, title: String?, reDeliver: Bool)] = [:]
 
     public override init(_ client: Client) {
         // The broker location is taken from Client.setPushEndpoint() when set (e.g.
@@ -130,30 +128,12 @@ open class Push: Service {
         super.init(client)
     }
 
-    // QoS for subscribe, chosen by replay mode: at-least-once when replaying missed
-    // messages, at-most-once when not.
-    private var defaultQos: MQTTQoS {
-        replay ? .atLeastOnce : .atMostOnce
-    }
-
-    /// Toggle replay of messages missed while disconnected. `true` (the default) subscribes
-    /// at QoS 1 with clean start off, so the broker keeps this client's replay cursor and
-    /// redelivers missed messages on reconnect; `false` uses QoS 0 and a clean session.
-    ///
-    /// This is a connection-level setting that fixes the CONNECT clean-start flag and the
-    /// subscribe QoS, so it cannot change while subscriptions are live — it throws in that
-    /// case. To switch, unsubscribe everything (or `close()`), call this, then resubscribe.
-    @discardableResult
-    public func setReplayMessages(_ enabled: Bool = true) throws -> Self {
-        let active = sync.sync { !self.subscriptions.isEmpty || self.mqtt != nil }
-        if active {
-            throw {{ spec.info.title | caseUcfirst }}Error(
-                message:
-                    "setReplayMessages() is a connection-level setting and cannot change while subscriptions are active; unsubscribe all (or close()) first."
-            )
-        }
-        replay = enabled
-        return self
+    // The broker subscription for a filter uses the highest QoS any local subscription on
+    // it wants, so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
+    // Call while holding `sync`.
+    private func effectiveQos(_ filter: String) -> MQTTQoS {
+        let reliable = subscriptions.values.contains { $0.filter == filter && $0.reDeliver }
+        return reliable ? .atLeastOnce : .atMostOnce
     }
 
     /// Register a callback invoked when the connection opens (CONNACK success).
@@ -179,8 +159,8 @@ open class Push: Service {
 
     /// Subscribe to a single topic. Returns a `PushSubscription` handle.
     @discardableResult
-    public func subscribe(_ topic: String, background: Bool = false, title: String? = nil, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
-        try await subscribe([topic], background: background, title: title, callback: callback)
+    public func subscribe(_ topic: String, background: Bool = false, title: String? = nil, reDeliverIfMissed: Bool = true, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
+        try await subscribe([topic], background: background, title: title, reDeliverIfMissed: reDeliverIfMissed, callback: callback)
     }
 
     /// Subscribe to one or more topics. Returns a `PushSubscription` handle.
@@ -192,11 +172,14 @@ open class Push: Service {
     ///
     /// Set `background` to also surface each matching message as a local notification (via
     /// `UserNotifications`, requesting authorization on the spot) with `title` (defaulting to
-    /// the message topic). Note: iOS cannot keep a raw MQTT socket alive once the app is
-    /// fully killed (that requires APNs) — this covers delivery while the app is running or
-    /// briefly backgrounded. Toggle it later with `PushSubscription.update`.
+    /// the message topic), and `reDeliverIfMissed: false` for at-most-once (QoS 0) delivery.
+    /// Note: iOS cannot keep a raw MQTT socket alive once the app is fully killed (that
+    /// requires APNs) — this covers delivery while the app is running or briefly backgrounded.
+    /// Toggle either later with `PushSubscription.update`.
     @discardableResult
-    public func subscribe(_ topics: [String], background: Bool = false, title: String? = nil, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
+    public func subscribe(_ topics: [String], background: Bool = false, title: String? = nil, reDeliverIfMissed: Bool = true, callback: @escaping (PushMessage) -> Void) async throws
+        -> PushSubscription
+    {
         if background {
             requestNotificationAuthorization()
         }
@@ -207,13 +190,14 @@ open class Push: Service {
         for topic in topics {
             let id = UUID().uuidString
             ids.append(id)
-            sync.sync { subscriptions[id] = (topic, callback, background, title) }
+            sync.sync { subscriptions[id] = (topic, callback, background, title, reDeliverIfMissed) }
         }
 
         do {
-            _ = try await mqtt.v5.subscribe(
-                to: topics.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: defaultQos) }
-            )
+            let infos = sync.sync {
+                topics.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: effectiveQos($0)) }
+            }
+            _ = try await mqtt.v5.subscribe(to: infos)
         } catch {
             // The SUBSCRIBE failed; roll this call's registrations back (and drop any broker
             // filter no other local subscriber owns) so a failed subscribe leaks no callback.
@@ -259,9 +243,10 @@ open class Push: Service {
             }
         }
 
-        let update: (Bool?, String?) -> Void = { [weak self] newBackground, newTitle in
+        let update: (Bool?, String?, Bool?) -> Void = { [weak self] newBackground, newTitle, newReDeliver in
             guard let self else { return }
-            self.sync.sync {
+            let (client, changed) = self.sync.sync { () -> (MQTTClient?, [String]) in
+                var changedFilters: [String] = []
                 for id in ids {
                     if var entry = self.subscriptions[id] {
                         if let newBackground {
@@ -270,12 +255,24 @@ open class Push: Service {
                         if let newTitle {
                             entry.title = newTitle
                         }
+                        if let newReDeliver, newReDeliver != entry.reDeliver {
+                            entry.reDeliver = newReDeliver
+                            changedFilters.append(entry.filter)
+                        }
                         self.subscriptions[id] = entry
                     }
                 }
+                return (self.mqtt, changedFilters)
             }
             if newBackground == true {
                 self.requestNotificationAuthorization()
+            }
+            // Re-SUBSCRIBE the affected filters at their new effective QoS.
+            if let client, !changed.isEmpty {
+                let infos = self.sync.sync {
+                    changed.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: self.effectiveQos($0)) }
+                }
+                Task { _ = try? await client.v5.subscribe(to: infos) }
             }
         }
 
@@ -396,9 +393,9 @@ open class Push: Service {
         ])
 
         do {
-            // Clean start off in replay mode so the broker keeps this client's replay
-            // cursor and redelivers what it missed; on when replay is off so it is purged.
-            let ack = try await mqtt.v5.connect(cleanStart: !replay, properties: properties)
+            // Clean start is always off, so the broker keeps this client's session and can
+            // redeliver missed messages to QoS-1 subscriptions on reconnect.
+            let ack = try await mqtt.v5.connect(cleanStart: false, properties: properties)
             if ack.reason != .success {
                 try? mqtt.syncShutdownGracefully()
                 throw {{ spec.info.title | caseUcfirst }}Error(message: "MQTT authentication failed (CONNACK reason \(ack.reason))")
