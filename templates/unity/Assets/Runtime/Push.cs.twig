@@ -64,7 +64,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         // restarts; otherwise one is generated. Reusing one id keeps it stable.
         private string _resolvedClientId;
 
-        // Local id -> (topic filter, callback, reDeliver). The id is never sent to the broker;
+        // Local id -> (topic filter, callback, retry). The id is never sent to the broker;
         // it only lets the same topic carry more than one callback.
         private readonly Dictionary<string, (string Filter, Action<PushMessage> Callback, bool ReDeliver)> _subscriptions = new();
 
@@ -194,13 +194,13 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// subscription is registered, so publishing before the ack races the message
         /// ahead of the subscription and it is dropped (no retained replay on MQTT).
         ///
-        /// <paramref name="reDeliverIfMissed"/> chooses this subscription's QoS: true (the
+        /// <paramref name="retry"/> chooses this subscription's QoS: true (the
         /// default) subscribes at QoS 1 so the broker holds this topic's messages and
         /// redelivers them on reconnect; false uses QoS 0 (at-most-once, may be lost).
         /// </summary>
-        public async Task<PushSubscription> Subscribe(string topic, Action<PushMessage> callback, bool reDeliverIfMissed = true)
+        public async Task<PushSubscription> Subscribe(string topic, Action<PushMessage> callback, bool retry = true)
         {
-            return await Subscribe(new[] { topic }, callback, reDeliverIfMissed);
+            return await Subscribe(new[] { topic }, callback, retry);
         }
 
         // MQTTnet reports broker-rejected filters in the SUBACK result rather than throwing,
@@ -221,7 +221,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             return true;
         }
 
-        public async Task<PushSubscription> Subscribe(IEnumerable<string> topics, Action<PushMessage> callback, bool reDeliverIfMissed = true)
+        public async Task<PushSubscription> Subscribe(IEnumerable<string> topics, Action<PushMessage> callback, bool retry = true)
         {
             var client = await Connect();
 
@@ -232,7 +232,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 ids.Add(id);
                 lock (_subscriptions)
                 {
-                    _subscriptions[id] = (topic, callback, reDeliverIfMissed);
+                    _subscriptions[id] = (topic, callback, retry);
                 }
             }
 
@@ -339,9 +339,9 @@ namespace {{ spec.info.title | caseUcfirst }}
                 throw;
             }
 
-            Action<bool?> update = (reDeliver) =>
+            Action<bool?> update = (retry) =>
             {
-                if (reDeliver == null)
+                if (retry == null)
                 {
                     return;
                 }
@@ -351,9 +351,9 @@ namespace {{ spec.info.title | caseUcfirst }}
                 {
                     foreach (var id in ids)
                     {
-                        if (_subscriptions.TryGetValue(id, out var entry) && entry.ReDeliver != reDeliver.Value)
+                        if (_subscriptions.TryGetValue(id, out var entry) && entry.ReDeliver != retry.Value)
                         {
-                            _subscriptions[id] = (entry.Filter, entry.Callback, reDeliver.Value);
+                            _subscriptions[id] = (entry.Filter, entry.Callback, retry.Value);
                             if (!changed.Contains(entry.Filter))
                             {
                                 changed.Add(entry.Filter);
@@ -681,10 +681,10 @@ namespace {{ spec.info.title | caseUcfirst }}
         public void Unsubscribe() => _unsubscribe();
 
         /// <summary>
-        /// Live-update this subscription's <paramref name="reDeliverIfMissed"/> (QoS),
+        /// Live-update this subscription's <paramref name="retry"/> (QoS),
         /// re-subscribing its topics at the new QoS. (Unity has no background/notification mode,
         /// so QoS is the only per-subscription option.)
         /// </summary>
-        public void Update(bool? reDeliverIfMissed = null) => _update(reDeliverIfMissed);
+        public void Update(bool? retry = null) => _update(retry);
     }
 }

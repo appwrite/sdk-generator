@@ -28,12 +28,12 @@ export interface SubscribeOptions {
     /** Notification title for this subscription. Defaults to the message topic. */
     title?: string;
     /**
-     * Redeliver messages missed while disconnected. `true` (the default) subscribes at
-     * QoS 1 so the broker holds this topic's messages and redelivers them on reconnect;
+     * Retry delivery of messages missed while disconnected. `true` (the default) subscribes
+     * at QoS 1 so the broker holds this topic's messages and redelivers them on reconnect;
      * `false` uses QoS 0 (at-most-once, may be lost). Per-subscription — the connection
      * always keeps its session (clean start off).
      */
-    reDeliverIfMissed?: boolean;
+    retry?: boolean;
 }
 
 /**
@@ -60,7 +60,7 @@ const RECONNECT_PERIOD_MS = 2000;
  *
  * The connection has no tunables — it always keeps its session (clean start off) so the
  * broker can redeliver missed messages, and reliability is chosen per subscription via
- * `reDeliverIfMissed`. `subscribe` opens the connection lazily and returns a
+ * `retry`. `subscribe` opens the connection lazily and returns a
  * {@link PushSubscription} handle (unlike Realtime's bare unsubscribe callable — Push
  * carries per-subscription state). The credential is read off the client — set a JWT or
  * session on it (`Client.setJWT` / `Client.setSession`), the same way every other service
@@ -141,7 +141,7 @@ export class Push extends Service {
      * subscribe-then-publish reliable.
      *
      * Pass `{ background: true, title }` to also show a browser notification per matching
-     * message while the tab is open, and `{ reDeliverIfMissed: false }` for at-most-once
+     * message while the tab is open, and `{ retry: false }` for at-most-once
      * (QoS 0) delivery; toggle either later with the handle's `update`.
      */
     async subscribe(
@@ -151,7 +151,7 @@ export class Push extends Service {
     ): Promise<PushSubscription> {
         const topicList = typeof topics === 'string' ? [topics] : topics;
         const background = options.background ?? false;
-        const qos: 0 | 1 = (options.reDeliverIfMissed ?? true) ? 1 : 0;
+        const qos: 0 | 1 = (options.retry ?? true) ? 1 : 0;
 
         if (background) {
             this.requestNotificationPermission();
@@ -239,8 +239,8 @@ export class Push extends Service {
                 if (next.title !== undefined) {
                     entry.title = next.title;
                 }
-                if (next.reDeliverIfMissed !== undefined) {
-                    const q: 0 | 1 = next.reDeliverIfMissed ? 1 : 0;
+                if (next.retry !== undefined) {
+                    const q: 0 | 1 = next.retry ? 1 : 0;
                     if (q !== entry.qos) {
                         previous.set(id, entry.qos);
                         entry.qos = q;

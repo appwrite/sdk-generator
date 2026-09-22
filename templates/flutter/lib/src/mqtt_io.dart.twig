@@ -19,15 +19,15 @@ class _Subscription {
   final PushCallback callback;
   bool background;
   String? title;
-  bool reDeliver;
+  bool retry;
 
   _Subscription(this.filter, this.callback,
-      {this.background = false, this.title, this.reDeliver = true});
+      {this.background = false, this.title, this.retry = true});
 }
 
 class _SubscriptionHandle implements PushSubscription {
   final void Function() _unsubscribe;
-  final void Function({bool? background, String? title, bool? reDeliverIfMissed})
+  final void Function({bool? background, String? title, bool? retry})
       _update;
 
   _SubscriptionHandle(this._unsubscribe, this._update);
@@ -36,11 +36,11 @@ class _SubscriptionHandle implements PushSubscription {
   void unsubscribe() => _unsubscribe();
 
   @override
-  void update({bool? background, String? title, bool? reDeliverIfMissed}) =>
+  void update({bool? background, String? title, bool? retry}) =>
       _update(
           background: background,
           title: title,
-          reDeliverIfMissed: reDeliverIfMissed);
+          retry: retry);
 }
 
 // Fixed connection tuning — not exposed as an option.
@@ -198,7 +198,7 @@ class PushIO implements Push {
     PushCallback callback, {
     bool background = false,
     String? title,
-    bool reDeliverIfMissed = true,
+    bool retry = true,
   }) async {
     final topicList =
         topics is String ? <String>[topics] : List<String>.from(topics as List);
@@ -208,7 +208,7 @@ class PushIO implements Push {
       final id = _randomId();
       ids.add(id);
       _subscriptions[id] = _Subscription(topic, callback,
-          background: background, title: title, reDeliver: reDeliverIfMissed);
+          background: background, title: title, retry: retry);
     }
 
     try {
@@ -230,11 +230,11 @@ class PushIO implements Push {
 
     return _SubscriptionHandle(
       () => _unsubscribeIds(ids),
-      ({bool? background, String? title, bool? reDeliverIfMissed}) => _updateIds(
+      ({bool? background, String? title, bool? retry}) => _updateIds(
           ids,
           background: background,
           title: title,
-          reDeliverIfMissed: reDeliverIfMissed),
+          retry: retry),
     );
   }
 
@@ -322,7 +322,7 @@ class PushIO implements Push {
   // so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
   MqttQos _effectiveQos(String filter) {
     final reliable = _subscriptions.values
-        .any((s) => s.filter == filter && s.reDeliver);
+        .any((s) => s.filter == filter && s.retry);
     return reliable ? MqttQos.atLeastOnce : MqttQos.atMostOnce;
   }
 
@@ -419,7 +419,7 @@ class PushIO implements Push {
     final maybeDowngrade = <String>{};
     for (final id in ids) {
       final entry = _subscriptions.remove(id);
-      if (entry != null && entry.reDeliver) {
+      if (entry != null && entry.retry) {
         maybeDowngrade.add(entry.filter);
       }
       // Only unsubscribe the broker filter once its last local callback is gone.
@@ -454,7 +454,7 @@ class PushIO implements Push {
   }
 
   void _updateIds(List<String> ids,
-      {bool? background, String? title, bool? reDeliverIfMissed}) {
+      {bool? background, String? title, bool? retry}) {
     for (final id in ids) {
       final sub = _subscriptions[id];
       if (sub == null) {
@@ -466,8 +466,8 @@ class PushIO implements Push {
       if (title != null) {
         sub.title = title;
       }
-      if (reDeliverIfMissed != null) {
-        sub.reDeliver = reDeliverIfMissed;
+      if (retry != null) {
+        sub.retry = retry;
       }
     }
     // reconcile re-subscribes (in-process) / re-syncs the isolate at the new effective QoS.

@@ -17,10 +17,10 @@ abstract class PushSubscription {
   void unsubscribe();
 
   /// Live-update this subscription's [background] delivery, notification [title] and/or
-  /// [reDeliverIfMissed] (QoS). Only the arguments you pass change; the rest stay as they
-  /// were. Changing [reDeliverIfMissed] re-subscribes this subscription's topics at the
+  /// [retry] (QoS). Only the arguments you pass change; the rest stay as they
+  /// were. Changing [retry] re-subscribes this subscription's topics at the
   /// new QoS.
-  void update({bool? background, String? title, bool? reDeliverIfMissed});
+  void update({bool? background, String? title, bool? retry});
 }
 
 /// {{spec.info.title | caseUcfirst}} native push service — the realtime analog delivered over an MQTT
@@ -31,7 +31,7 @@ abstract class PushSubscription {
 ///
 /// The connection has no tunables — it always keeps its session (clean start off) so the
 /// broker can redeliver missed messages, and reliability is chosen per subscription via
-/// [subscribe]'s `reDeliverIfMissed`. TLS (and skipping cert verification via a
+/// [subscribe]'s `retry`. TLS (and skipping cert verification via a
 /// `?tlsInsecure=true` query flag) is derived from the endpoint, so the whole connection
 /// is described in one place. `subscribe` opens the connection lazily and returns a
 /// [PushSubscription] handle. The credential is read off the client — set a JWT or session
@@ -73,7 +73,7 @@ abstract class Push extends Service {
   /// the isolate forwards messages but not its connection lifecycle, so [onOpen]/[onError]
   /// do not fire for it.
   ///
-  /// [reDeliverIfMissed] chooses this subscription's delivery guarantee: `true` (the
+  /// [retry] chooses this subscription's delivery guarantee: `true` (the
   /// default) subscribes at QoS 1 so the broker holds this topic's messages and redelivers
   /// them on reconnect; `false` uses QoS 0 (at-most-once, may be lost). The connection
   /// always keeps its session, so replay is a purely per-subscription choice.
@@ -91,7 +91,7 @@ abstract class Push extends Service {
     PushCallback callback, {
     bool background,
     String? title,
-    bool reDeliverIfMissed,
+    bool retry,
   });
 
   /// Tear down the connection and drop all active subscriptions.

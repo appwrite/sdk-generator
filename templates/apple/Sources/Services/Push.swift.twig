@@ -44,11 +44,11 @@ public final class PushSubscription {
     }
 
     /// Live-update this subscription's background delivery, notification title and/or
-    /// `reDeliverIfMissed` (QoS). Only the arguments you pass change; the rest stay as they
-    /// were. Changing `reDeliverIfMissed` re-subscribes this subscription's topics at the
+    /// `retry` (QoS). Only the arguments you pass change; the rest stay as they
+    /// were. Changing `retry` re-subscribes this subscription's topics at the
     /// new QoS.
-    public func update(background: Bool? = nil, title: String? = nil, reDeliverIfMissed: Bool? = nil) {
-        updateAction(background, title, reDeliverIfMissed)
+    public func update(background: Bool? = nil, title: String? = nil, retry: Bool? = nil) {
+        updateAction(background, title, retry)
     }
 }
 
@@ -59,7 +59,7 @@ public final class PushSubscription {
 ///
 /// The connection has no tunables — it always keeps its session (clean start off) so the
 /// broker can redeliver missed messages, and reliability is chosen per subscription via
-/// `subscribe`'s `reDeliverIfMissed`. TLS (and skipping cert verification via a
+/// `subscribe`'s `retry`. TLS (and skipping cert verification via a
 /// `?tlsInsecure=true` query flag) is derived from the endpoint, so the whole connection is
 /// described in one place. `subscribe` opens the connection lazily and returns a
 /// `PushSubscription` handle. The credential is read off the client — set a JWT or session
@@ -103,7 +103,7 @@ open class Push: Service {
 
     // Local id -> subscription (topic filter, callback, per-sub options). The id is never
     // sent to the broker; it only lets the same topic carry more than one callback.
-    private var subscriptions: [String: (filter: String, callback: (PushMessage) -> Void, background: Bool, title: String?, reDeliver: Bool)] = [:]
+    private var subscriptions: [String: (filter: String, callback: (PushMessage) -> Void, background: Bool, title: String?, retry: Bool)] = [:]
 
     public override init(_ client: Client) {
         // The broker location is taken from Client.setPushEndpoint() when set (e.g.
@@ -136,7 +136,7 @@ open class Push: Service {
     // it wants, so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
     // Call while holding `sync`.
     private func effectiveQos(_ filter: String) -> MQTTQoS {
-        let reliable = subscriptions.values.contains { $0.filter == filter && $0.reDeliver }
+        let reliable = subscriptions.values.contains { $0.filter == filter && $0.retry }
         return reliable ? .atLeastOnce : .atMostOnce
     }
 
@@ -163,8 +163,8 @@ open class Push: Service {
 
     /// Subscribe to a single topic. Returns a `PushSubscription` handle.
     @discardableResult
-    public func subscribe(_ topic: String, background: Bool = false, title: String? = nil, reDeliverIfMissed: Bool = true, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
-        try await subscribe([topic], background: background, title: title, reDeliverIfMissed: reDeliverIfMissed, callback: callback)
+    public func subscribe(_ topic: String, background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
+        try await subscribe([topic], background: background, title: title, retry: retry, callback: callback)
     }
 
     /// Subscribe to one or more topics. Returns a `PushSubscription` handle.
@@ -176,12 +176,12 @@ open class Push: Service {
     ///
     /// Set `background` to also surface each matching message as a local notification (via
     /// `UserNotifications`, requesting authorization on the spot) with `title` (defaulting to
-    /// the message topic), and `reDeliverIfMissed: false` for at-most-once (QoS 0) delivery.
+    /// the message topic), and `retry: false` for at-most-once (QoS 0) delivery.
     /// Note: iOS cannot keep a raw MQTT socket alive once the app is fully killed (that
     /// requires APNs) — this covers delivery while the app is running or briefly backgrounded.
     /// Toggle either later with `PushSubscription.update`.
     @discardableResult
-    public func subscribe(_ topics: [String], background: Bool = false, title: String? = nil, reDeliverIfMissed: Bool = true, callback: @escaping (PushMessage) -> Void) async throws
+    public func subscribe(_ topics: [String], background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws
         -> PushSubscription
     {
         if background {
@@ -194,7 +194,7 @@ open class Push: Service {
         for topic in topics {
             let id = UUID().uuidString
             ids.append(id)
-            sync.sync { subscriptions[id] = (topic, callback, background, title, reDeliverIfMissed) }
+            sync.sync { subscriptions[id] = (topic, callback, background, title, retry) }
         }
 
         do {
@@ -230,7 +230,7 @@ open class Push: Service {
                 var maybeDowngrade = Set<String>()
                 for id in ids {
                     if let entry = self.subscriptions.removeValue(forKey: id) {
-                        if entry.reDeliver {
+                        if entry.retry {
                             maybeDowngrade.insert(entry.filter)
                         }
                         // Only unsubscribe the broker filter once its last local callback is gone.
@@ -272,8 +272,8 @@ open class Push: Service {
                         if let newTitle {
                             entry.title = newTitle
                         }
-                        if let newReDeliver, newReDeliver != entry.reDeliver {
-                            entry.reDeliver = newReDeliver
+                        if let newReDeliver, newReDeliver != entry.retry {
+                            entry.retry = newReDeliver
                             changedFilters.append(entry.filter)
                         }
                         self.subscriptions[id] = entry

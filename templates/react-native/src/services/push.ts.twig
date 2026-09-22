@@ -44,12 +44,12 @@ export interface SubscribeOptions {
     /** Notification title for this subscription's messages. Defaults to the message topic. */
     title?: string;
     /**
-     * Redeliver messages missed while disconnected. `true` (the default) subscribes at
-     * QoS 1 so the broker holds this topic's messages and redelivers them on reconnect;
+     * Retry delivery of messages missed while disconnected. `true` (the default) subscribes
+     * at QoS 1 so the broker holds this topic's messages and redelivers them on reconnect;
      * `false` uses QoS 0 (at-most-once, may be lost). Per-subscription — the connection
      * always keeps its session (clean start off).
      */
-    reDeliverIfMissed?: boolean;
+    retry?: boolean;
 }
 
 /**
@@ -76,7 +76,7 @@ const RECONNECT_PERIOD_MS = 2000;
  *
  * The connection has no tunables — it always keeps its session (clean start off) so the
  * broker can redeliver missed messages, and reliability is chosen per subscription via
- * `reDeliverIfMissed`. TLS (and skipping cert verification via a `?tlsInsecure=true` query
+ * `retry`. TLS (and skipping cert verification via a `?tlsInsecure=true` query
  * flag) is derived from the endpoint URL, so the whole connection is described in one
  * place. `subscribe` opens the connection lazily and returns a {@link PushSubscription}
  * handle (unlike Realtime's bare
@@ -203,7 +203,7 @@ export class Push extends Service {
      * subscribe-then-publish reliable.
      *
      * Pass `{ background: true, title }` to also keep receiving while backgrounded and
-     * post a notification per matching message, and `{ reDeliverIfMissed: false }` for
+     * post a notification per matching message, and `{ retry: false }` for
      * at-most-once (QoS 0) delivery; toggle either later with the handle's `update`.
      */
     async subscribe(
@@ -213,7 +213,7 @@ export class Push extends Service {
     ): Promise<PushSubscription> {
         const topicList = typeof topics === 'string' ? [topics] : topics;
         const background = options.background ?? false;
-        const qos: 0 | 1 = (options.reDeliverIfMissed ?? true) ? 1 : 0;
+        const qos: 0 | 1 = (options.retry ?? true) ? 1 : 0;
 
         // Start the foreground service before connecting so a missing peer dependency
         // surfaces a clear error up front, matching the connection failure path.
@@ -305,8 +305,8 @@ export class Push extends Service {
                 if (next.title !== undefined) {
                     entry.title = next.title;
                 }
-                if (next.reDeliverIfMissed !== undefined) {
-                    const q: 0 | 1 = next.reDeliverIfMissed ? 1 : 0;
+                if (next.retry !== undefined) {
+                    const q: 0 | 1 = next.retry ? 1 : 0;
                     if (q !== entry.qos) {
                         previous.set(id, entry.qos);
                         entry.qos = q;

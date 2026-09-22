@@ -69,12 +69,12 @@ class PushSubscription internal constructor(
 
     /**
      * Live-update this subscription's background delivery, notification title and/or
-     * `reDeliverIfMissed` (QoS). Only the arguments you pass change; the rest stay as they
-     * were. Changing `reDeliverIfMissed` re-subscribes this subscription's topics at the new QoS.
+     * `retry` (QoS). Only the arguments you pass change; the rest stay as they
+     * were. Changing `retry` re-subscribes this subscription's topics at the new QoS.
      */
     @JvmOverloads
-    fun update(background: Boolean? = null, title: String? = null, reDeliverIfMissed: Boolean? = null) =
-        updateAction(background, title, reDeliverIfMissed)
+    fun update(background: Boolean? = null, title: String? = null, retry: Boolean? = null) =
+        updateAction(background, title, retry)
 }
 
 /**
@@ -94,7 +94,7 @@ class PushSubscription internal constructor(
  *
  * The connection always keeps its session (clean start off) so the broker can redeliver
  * missed messages, and reliability is chosen per subscription via [subscribe]'s
- * `reDeliverIfMissed`. The broker owns the replay window server-side (no MQTT session-expiry
+ * `retry`. The broker owns the replay window server-side (no MQTT session-expiry
  * is set); call `Client.setPushClientId(...)` with a stable id to resume replay across
  * restarts. TLS (and skipping cert verification via a `?tlsInsecure=true` query flag) is
  * derived from the endpoint, so the whole connection is described in one place.
@@ -167,13 +167,13 @@ class Push(client: Client) : Service(client) {
         val callback: (PushMessage) -> Unit,
         var background: Boolean,
         var title: String?,
-        var reDeliver: Boolean,
+        var retry: Boolean,
     )
 
     // The broker subscription for a filter uses the highest QoS any subscription on it wants,
     // so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
     private fun effectiveQos(filter: String): MqttQos =
-        if (subscriptions.values.any { it.filter == filter && it.reDeliver }) {
+        if (subscriptions.values.any { it.filter == filter && it.retry }) {
             MqttQos.AT_LEAST_ONCE
         } else {
             MqttQos.AT_MOST_ONCE
@@ -208,11 +208,11 @@ class Push(client: Client) : Service(client) {
         topic: String,
         background: Boolean = false,
         title: String? = null,
-        reDeliverIfMissed: Boolean = true,
+        retry: Boolean = true,
         context: Context? = null,
         callback: (PushMessage) -> Unit,
     ): PushSubscription =
-        subscribe(listOf(topic), background, title, reDeliverIfMissed, context, callback)
+        subscribe(listOf(topic), background, title, retry, context, callback)
 
     /**
      * Subscribe to one or more topics. Returns a [PushSubscription] handle.
@@ -225,7 +225,7 @@ class Push(client: Client) : Service(client) {
      * Set [background] to keep receiving while the app is backgrounded or closed (an Android
      * foreground service) and post a notification per matching message with [title]
      * (defaulting to the message topic); a [context] is required the first time background is
-     * enabled so the service can start. [reDeliverIfMissed] chooses this subscription's QoS
+     * enabled so the service can start. [retry] chooses this subscription's QoS
      * (`true` -> QoS 1 default, `false` -> QoS 0). Toggle any of these later with
      * [PushSubscription.update].
      *
@@ -240,7 +240,7 @@ class Push(client: Client) : Service(client) {
         topics: List<String>,
         background: Boolean = false,
         title: String? = null,
-        reDeliverIfMissed: Boolean = true,
+        retry: Boolean = true,
         context: Context? = null,
         callback: (PushMessage) -> Unit,
     ): PushSubscription {
@@ -252,7 +252,7 @@ class Push(client: Client) : Service(client) {
         for (topic in topics) {
             val id = UUID.randomUUID().toString()
             ids.add(id)
-            subscriptions[id] = Sub(topic, callback, background, title, reDeliverIfMissed)
+            subscriptions[id] = Sub(topic, callback, background, title, retry)
         }
 
         // If any SUBSCRIBE fails, roll this call's registrations back and return to a
@@ -367,7 +367,7 @@ class Push(client: Client) : Service(client) {
         for (id in ids) {
             val entry = subscriptions.remove(id)
             val filter = entry?.filter
-            if (entry?.reDeliver == true && filter != null) {
+            if (entry?.retry == true && filter != null) {
                 maybeDowngrade.add(filter)
             }
             // In-process only: drop the broker filter once its last local callback is gone.
@@ -394,7 +394,7 @@ class Push(client: Client) : Service(client) {
         }
     }
 
-    private fun updateIds(ids: List<String>, background: Boolean?, title: String?, reDeliverIfMissed: Boolean?) {
+    private fun updateIds(ids: List<String>, background: Boolean?, title: String?, retry: Boolean?) {
         val changedFilters = mutableSetOf<String>()
         for (id in ids) {
             val sub = subscriptions[id] ?: continue
@@ -404,8 +404,8 @@ class Push(client: Client) : Service(client) {
             if (title != null) {
                 sub.title = title
             }
-            if (reDeliverIfMissed != null && reDeliverIfMissed != sub.reDeliver) {
-                sub.reDeliver = reDeliverIfMissed
+            if (retry != null && retry != sub.retry) {
+                sub.retry = retry
                 changedFilters.add(sub.filter)
             }
         }
@@ -424,7 +424,7 @@ class Push(client: Client) : Service(client) {
     private fun backgroundWanted(): Boolean = subscriptions.values.any { it.background }
 
     private fun currentListeners(): List<PushListener> =
-        subscriptions.values.map { PushListener(setOf(it.filter), it.callback, it.background, it.title, it.reDeliver) }
+        subscriptions.values.map { PushListener(setOf(it.filter), it.callback, it.background, it.title, it.retry) }
 
     /** Tear down the connection and drop all active subscriptions. */
     fun close() {
@@ -705,7 +705,7 @@ internal class PushListener(
     val callback: (PushMessage) -> Unit,
     val background: Boolean,
     val title: String?,
-    val reDeliver: Boolean,
+    val retry: Boolean,
 )
 
 /**
@@ -755,7 +755,7 @@ internal object PushForeground {
             val wanted = linkedMapOf<String, MqttQos>()
             for (listener in newListeners) {
                 for (topic in listener.topics) {
-                    if (listener.reDeliver || wanted[topic] == MqttQos.AT_LEAST_ONCE) {
+                    if (listener.retry || wanted[topic] == MqttQos.AT_LEAST_ONCE) {
                         wanted[topic] = MqttQos.AT_LEAST_ONCE
                     } else {
                         wanted[topic] = wanted[topic] ?: MqttQos.AT_MOST_ONCE
