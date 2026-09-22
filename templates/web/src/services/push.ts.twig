@@ -335,13 +335,9 @@ export class Push extends Service {
         if (this.client.config.endpointPush !== '') {
             return this.client.config.endpointPush;
         }
-        // Otherwise default to a `push.` host on the regular endpoint (like realtime derives
-        // from the endpoint, but on the push subdomain), scheme switched to ws/wss.
-        const endpoint =
-            this.client.config.endpointRealtime !== ''
-                ? this.client.config.endpointRealtime
-                : this.client.config.endpoint;
-        const wsEndpoint = endpoint
+        // Otherwise default to a `push.` host on the regular API endpoint (not the
+        // independently-configurable realtime endpoint), scheme switched to ws/wss.
+        const wsEndpoint = this.client.config.endpoint
             .replace('https://', 'wss://')
             .replace('http://', 'ws://');
         // Prefix the host with `push.` (scheme://host/path -> scheme://push.host/path).
