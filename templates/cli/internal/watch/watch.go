@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -27,6 +29,8 @@ type Watcher struct {
 	ignored      Ignored
 	fingerprints map[string][sha256.Size]byte
 	done         chan struct{}
+	finished     chan struct{}
+	stop         sync.Once
 }
 
 // Start watches a directory tree, calling changed with each relative,
@@ -47,6 +51,7 @@ func Start(root string, ignored Ignored, changed func(string)) (*Watcher, error)
 		ignored:      ignored,
 		fingerprints: make(map[string][sha256.Size]byte),
 		done:         make(chan struct{}),
+		finished:     make(chan struct{}),
 	}
 
 	if err := w.addTree(root); err != nil {
@@ -105,7 +110,42 @@ func (w *Watcher) relative(path string) (string, error) {
 	return filepath.ToSlash(relative), nil
 }
 
+// Wait for a quiet interval before fingerprinting: a truncate-and-rewrite can
+// otherwise be observed as an empty file before the writer restores its bytes.
+const settleDelay = 100 * time.Millisecond
+
+// A tree that never falls quiet would defer its changes forever, so a path is
+// fingerprinted this long after its first event however busy the tree stays.
+const settleLimit = time.Second
+
+// pending is a change waiting for its path to settle.
+//
+// The wait is per path rather than shared: a file first touched late in a busy
+// stretch still needs its own quiet interval, and a shared deadline would hand
+// it whatever milliseconds happened to be left.
+type pending struct {
+	event    fsnotify.Event
+	quiet    time.Time // no further events since
+	deadline time.Time // measured from the first event
+}
+
+// due reports when the change has to be handled, whether or not it settled.
+func (p *pending) due() time.Time {
+	if p.deadline.Before(p.quiet) {
+		return p.deadline
+	}
+
+	return p.quiet
+}
+
 func (w *Watcher) run(changed func(string)) {
+	defer close(w.finished)
+
+	changes := make(map[string]*pending)
+	timer := time.NewTimer(settleDelay)
+	timer.Stop()
+	defer timer.Stop()
+
 	for {
 		select {
 		case <-w.done:
@@ -115,7 +155,31 @@ func (w *Watcher) run(changed func(string)) {
 			if !ok {
 				return
 			}
-			w.handle(event, changed)
+			relative, err := w.relative(event.Name)
+			if err != nil || relative == "" || w.ignored(relative) {
+				continue
+			}
+			now := time.Now()
+			change, waiting := changes[event.Name]
+			if !waiting {
+				change = &pending{deadline: now.Add(settleLimit)}
+				changes[event.Name] = change
+			}
+			event.Op |= change.event.Op
+			change.event = event
+			change.quiet = now.Add(settleDelay)
+			schedule(timer, changes, now)
+
+		case <-timer.C:
+			now := time.Now()
+			for path, change := range changes {
+				if now.Before(change.due()) {
+					continue
+				}
+				w.handle(change.event, changed)
+				delete(changes, path)
+			}
+			schedule(timer, changes, now)
 
 		case _, ok := <-w.watcher.Errors:
 			if !ok {
@@ -126,6 +190,23 @@ func (w *Watcher) run(changed func(string)) {
 			// over one would be worse than missing it.
 		}
 	}
+}
+
+// schedule arms the timer for the earliest change due.
+func schedule(timer *time.Timer, changes map[string]*pending, now time.Time) {
+	var next time.Time
+	for _, change := range changes {
+		if due := change.due(); next.IsZero() || due.Before(next) {
+			next = due
+		}
+	}
+	if next.IsZero() {
+		timer.Stop()
+
+		return
+	}
+
+	timer.Reset(max(0, next.Sub(now)))
 }
 
 func (w *Watcher) handle(event fsnotify.Event, changed func(string)) {
@@ -197,11 +278,17 @@ func fingerprint(path string) ([sha256.Size]byte, error) {
 	return sha256.Sum256(contents), nil
 }
 
-// Close stops watching.
+// Close stops watching and waits for any change already being handled, so no
+// callback runs once it returns. It is safe to call more than once.
 func (w *Watcher) Close() error {
-	close(w.done)
+	var err error
+	w.stop.Do(func() {
+		close(w.done)
+		err = w.watcher.Close()
+	})
+	<-w.finished
 
-	return w.watcher.Close()
+	return err
 }
 
 // PrefixIgnored adapts a path-based predicate so a directory is skipped when

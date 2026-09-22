@@ -1288,6 +1288,12 @@
             "Project": [],
             "Key": [],
             "JWT": []
+          },
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": [],
+            "ImpersonateUserId": []
           }
         ],
         "responses": {

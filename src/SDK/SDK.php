@@ -181,10 +181,12 @@ class SDK
         $this->twig->addFilter(new TwigFilter('produces', fn(Operation $operation): array => $this->getProduces($operation)));
         $this->twig->addFilter(new TwigFilter('endpoint', fn(Specification $spec): string => $spec->servers[0]->url ?? 'https://example.com'));
         $this->twig->addFilter(new TwigFilter('appwrite', fn(Operation|SecurityScheme $value, string $key, mixed $default = null): mixed => $value->extensions[Extension::APPWRITE->value][$key] ?? $default));
+        $this->twig->addFilter(new TwigFilter('configKey', fn(Parameter $parameter, Operation $operation): string => $this->getParameterConfigKey($parameter, $operation)));
         $this->twig->addFilter(new TwigFilter('extension', fn(Schema|Parameter $value, string $key, mixed $default = null): mixed => $this->getSchema($value)->extensions[$key] ?? $default));
         $this->twig->addFilter(new TwigFilter('methodHeaders', fn(Operation $operation): array => $this->getMethodHeaders($operation)));
         $this->twig->addFilter(new TwigFilter('responseDiscriminator', fn(Operation $operation): array => $this->getResponseDiscriminator($operation)));
         $this->twig->addFilter(new TwigFilter('securitySchemes', fn(Operation $operation): array => $this->getOperationAuthSchemes($operation)));
+        $this->twig->addFilter(new TwigFilter('locationSchemes', fn(Operation $operation): array => $this->getOperationAuthSchemes($operation, true)));
         $this->twig->addFilter(new TwigFilter('securityHeaders', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::HEADER, false)));
         $this->twig->addFilter(new TwigFilter('securityQueries', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::QUERY)));
         $this->twig->addFilter(new TwigFilter('schemaNullable', fn(Schema|Parameter $value): bool => !isset($this->multipartSchemas[\spl_object_id($this->getSchema($value))]) && $this->getSchema($value)->nullable));
@@ -541,7 +543,7 @@ class SDK
                 continue;
             }
 
-            $operation = $this->annotateSecurityPathParameters($operation);
+            $operation = $this->normalizePathConfig($operation);
             $aliases = $operation->extensions[Extension::APPWRITE->value][Appwrite::METHODS->value] ?? [];
             if (!\is_array($aliases) || $aliases === []) {
                 foreach ($operation->tags as $serviceName) {
@@ -588,47 +590,37 @@ class SDK
         return $scheme instanceof SecurityScheme && $this->isAvailable($scheme->extensions[Extension::APPWRITE->value][Appwrite::PLATFORMS->value] ?? null) ? $scheme : null;
     }
 
-    protected function annotateSecurityPathParameters(Operation $operation): Operation
+    /**
+     * The path parameters an operation fills from client configuration, as
+     * parameter name => config key, read from `x-appwrite.config`.
+     *
+     * Older documents said the same thing with a path-bound security scheme
+     * instead, so those are normalised into the operation block on the way in
+     * and every reader downstream sees one shape.
+     */
+    protected function normalizePathConfig(Operation $operation): Operation
     {
-        $securityParameters = [];
+        $appwrite = $operation->extensions[Extension::APPWRITE->value] ?? [];
+        if (!\is_array($appwrite) || ($appwrite[Appwrite::CONFIG->value] ?? []) !== []) {
+            return $operation;
+        }
+
+        $config = [];
         foreach ($operation->acceptedSecuritySchemeNames() as $schemeName) {
             $scheme = $this->getSecurityScheme($schemeName);
             if (!$scheme instanceof SecurityScheme || ($scheme->extensions[Extension::APPWRITE->value][Appwrite::LOCATION->value] ?? '') !== 'path') {
                 continue;
             }
             $parameterName = (string) ($scheme->extensions[Extension::APPWRITE->value][Appwrite::PARAM->value] ?? $scheme->name ?? $schemeName);
-            $securityParameters[$parameterName] = (string) ($scheme->extensions[Extension::APPWRITE->value][Appwrite::CONFIG->value] ?? $scheme->name ?? $schemeName);
+            $config[$parameterName] = (string) ($scheme->extensions[Extension::APPWRITE->value][Appwrite::CONFIG->value] ?? $scheme->name ?? $schemeName);
         }
-        if ($securityParameters === []) {
+        if ($config === []) {
             return $operation;
         }
 
-        $parameters = [];
-        foreach ($operation->parameters as $parameter) {
-            $config = $securityParameters[$parameter->name] ?? null;
-            if ($config === null || $parameter->location !== ParameterLocation::PATH) {
-                $parameters[] = $parameter;
-                continue;
-            }
-            $parameters[] = new Parameter(
-                name: $parameter->name,
-                location: $parameter->location,
-                description: $parameter->description,
-                required: $parameter->required,
-                deprecated: $parameter->deprecated,
-                allowEmptyValue: $parameter->allowEmptyValue,
-                schema: $parameter->schema,
-                content: $parameter->content,
-                style: $parameter->style,
-                explode: $parameter->explode,
-                allowReserved: $parameter->allowReserved,
-                extensions: [
-                    ...$parameter->extensions,
-                    Extension::SDK_SOURCE->value => 'security',
-                    Extension::SDK_CONFIG->value => $config,
-                ],
-            );
-        }
+        $appwrite[Appwrite::CONFIG->value] = $config;
+        $extensions = $operation->extensions;
+        $extensions[Extension::APPWRITE->value] = $appwrite;
 
         return new Operation(
             id: $operation->id,
@@ -638,14 +630,26 @@ class SDK
             summary: $operation->summary,
             description: $operation->description,
             deprecated: $operation->deprecated,
-            parameters: $parameters,
+            parameters: $operation->parameters,
             requestBody: $operation->requestBody,
             responses: $operation->responses,
             security: $operation->security,
             servers: $operation->servers,
             externalDocumentation: $operation->externalDocumentation,
-            extensions: $operation->extensions,
+            extensions: $extensions,
         );
+    }
+
+    /** The client config key that fills a path parameter, or '' when the caller passes it. */
+    protected function getParameterConfigKey(Parameter $parameter, Operation $operation): string
+    {
+        if ($parameter->location !== ParameterLocation::PATH) {
+            return '';
+        }
+
+        $config = $operation->extensions[Extension::APPWRITE->value][Appwrite::CONFIG->value] ?? [];
+
+        return \is_array($config) ? (string) ($config[$parameter->name] ?? '') : '';
     }
 
     /** @param array<string, mixed> $alias */
@@ -931,24 +935,60 @@ class SDK
         }
 
         $excluded = $this->getExcludedDefinitions();
-        $queue = [];
+        $responseSeeds = [];
+        $bodySeeds = [];
         foreach (array_keys($this->getFilteredServices()) as $serviceName) {
             foreach ($this->getFilteredMethods($this->getMethods($serviceName), $serviceName) as $operation) {
                 foreach ($this->getValidResponseModels($operation) as $modelName) {
-                    $queue[$modelName] = true;
+                    $responseSeeds[$modelName] = true;
                 }
-                foreach ($this->getOperationParameters($operation) as $parameter) {
+                foreach ($this->getOperationParameters($operation, 'body') as $parameter) {
                     foreach ($this->getSchemaDependencyNames($parameter) as $modelName) {
-                        $queue[$modelName] = true;
+                        $bodySeeds[$modelName] = true;
+                    }
+                }
+                foreach ($operation->parameters as $parameter) {
+                    foreach ($this->getSchemaDependencyNames($parameter) as $modelName) {
+                        $responseSeeds[$modelName] = true;
                     }
                 }
             }
         }
 
+        // A schema carried only by a request body is an input model: it is
+        // serialised, never parsed. Anything a response can return is a
+        // definition, even when a body sends it too, so no schema is
+        // generated twice under two names.
+        $responseReachable = $this->getReachableSchemaNames($responseSeeds, $excluded);
+        $bodyReachable = $this->getReachableSchemaNames($bodySeeds, $excluded);
+
+        $definitions = [];
+        $requestModels = [];
+        foreach ($this->spec->schemas as $name => $schema) {
+            if (isset($responseReachable[$name])) {
+                $definitions[$name] = $schema;
+            } elseif (isset($bodyReachable[$name])) {
+                $requestModels[$name] = $schema;
+            }
+        }
+
+        return $this->filteredModelDataCache = [
+            'definitions' => $definitions,
+            'requestModels' => $requestModels,
+        ];
+    }
+
+    /**
+     * @param  array<string, true>  $seeds
+     * @param  array<string, mixed>  $excluded
+     * @return array<string, true>
+     */
+    protected function getReachableSchemaNames(array $seeds, array $excluded): array
+    {
         $reachable = [];
-        while ($queue !== []) {
-            $name = array_key_first($queue);
-            unset($queue[$name]);
+        while ($seeds !== []) {
+            $name = array_key_first($seeds);
+            unset($seeds[$name]);
 
             if ($name === 'any' || isset($excluded[$name]) || isset($reachable[$name])) {
                 continue;
@@ -962,28 +1002,12 @@ class SDK
             $reachable[$name] = true;
             foreach ($this->getSchemaDependencies($schema) as $dependency) {
                 if (!isset($excluded[$dependency])) {
-                    $queue[$dependency] = true;
+                    $seeds[$dependency] = true;
                 }
             }
         }
 
-        $definitions = [];
-        $requestModels = [];
-        foreach ($this->spec->schemas as $name => $schema) {
-            if (!isset($reachable[$name])) {
-                continue;
-            }
-            if ($schema->extensions[Extension::REQUEST_MODEL->value] ?? false) {
-                $requestModels[$name] = $schema;
-            } else {
-                $definitions[$name] = $schema;
-            }
-        }
-
-        return $this->filteredModelDataCache = [
-            'definitions' => $definitions,
-            'requestModels' => $requestModels,
-        ];
+        return $reachable;
     }
 
     /**
@@ -1573,7 +1597,7 @@ class SDK
         $parameters = [];
         if ($location !== 'body') {
             foreach ($operation->parameters as $parameter) {
-                if ($location === 'all' && ($parameter->extensions[Extension::SDK_SOURCE->value] ?? '') === 'security') {
+                if ($location === 'all' && $this->getParameterConfigKey($parameter, $operation) !== '') {
                     continue;
                 }
                 if ($location === 'all' || $parameter->location->value === $location) {
@@ -1844,15 +1868,13 @@ class SDK
     }
 
     /**
-     * The schemes an example configures on the client before calling a method.
-     *
-     * A per-platform document lists them flat; the canonical document keys them
-     * by platform, since client and console examples configure the project only
-     * while server examples add one credential.
+     * The schemes `x-appwrite.auth` configures for an operation. Examples skip
+     * the optional ones; a URL builder has no request to carry headers, so
+     * every scheme it lists becomes a query parameter and none may be dropped.
      *
      * @return array<string, SecurityScheme>
      */
-    protected function getOperationAuthSchemes(Operation $operation): array
+    protected function getOperationAuthSchemes(Operation $operation, bool $includeOptional = false): array
     {
         $auth = $operation->extensions[Extension::APPWRITE->value][Appwrite::AUTH->value] ?? [];
         if (!\is_array($auth)) {
@@ -1861,10 +1883,10 @@ class SDK
         $auth = $auth[$this->getParam('platform')] ?? $auth;
         $schemes = [];
         $pathSchemes = [];
-        $optional = \array_diff($operation->acceptedSecuritySchemeNames(), $operation->requiredSecuritySchemeNames());
+        $optional = $includeOptional
+            ? []
+            : \array_diff($operation->acceptedSecuritySchemeNames(), $operation->requiredSecuritySchemeNames());
         foreach (\array_keys($auth) as $name) {
-            // Example configuration is independent of API authentication. Only
-            // omit a candidate when security explicitly makes it optional.
             if (\in_array($name, $optional, true)) {
                 continue;
             }

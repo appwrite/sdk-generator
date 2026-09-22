@@ -144,7 +144,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% endif %}
 {% endfor %}
-{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter.extensions['x-sdk-source']|default('')) == 'security') ? ('this.client.config.' ~ (parameter.extensions['x-sdk-config'] | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
+{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter | configKey(method))) ? ('this.client.config.' ~ ((parameter | configKey(method)) | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
         {{ method.path | tsApiPath(pathReplacements, 8) | raw }}
         const payload: Payload = {};
 
@@ -165,8 +165,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
         uri.searchParams.append('{{ security.name }}', this.client.config.{{ security.name | caseLower }});
         {%~ endfor %}
 {% if (method | methodType) == 'location' or (method | methodType) == 'webAuth' %}
-{% if [(method | securitySchemes)]|length > 0 %}
-{% for node in [(method | securitySchemes)] %}
+{% if [(method | locationSchemes)]|length > 0 %}
+{% for node in [(method | locationSchemes)] %}
 {% for key,header in node|keys %}
         payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
 
@@ -187,6 +187,16 @@ export class {{ service.name | caseUcfirst }} extends Service {
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
         if (size <= Service.CHUNK_SIZE) {
+            payload['{{ parameter.name }}'] = Service.filePart(
+                {{ parameter.name | caseCamel | escapeKeyword }}.uri,
+                {{ parameter.name | caseCamel | escapeKeyword }}.name,
+                {{ parameter.name | caseCamel | escapeKeyword }}.type,
+                () =>
+                    FileSystem.readAsStringAsync({{ parameter.name | caseCamel | escapeKeyword }}.uri, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    }),
+            );
+
             return this.client.call(
                 '{{ method.method.value | caseLower }}',
                 uri,
@@ -267,11 +277,12 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 });
             }
 
-            payload['{{ parameter.name }}'] = {{ '{' }}
-                uri: firstPath,
-                name: {{ parameter.name | caseCamel | escapeKeyword }}.name,
-                type: {{ parameter.name | caseCamel | escapeKeyword }}.type,
-            };
+            payload['{{ parameter.name }}'] = Service.filePart(
+                firstPath,
+                {{ parameter.name | caseCamel | escapeKeyword }}.name,
+                {{ parameter.name | caseCamel | escapeKeyword }}.type,
+                async () => firstChunk,
+            );
 
             response = await this.client.call(
                 '{{ method.method.value | caseLower }}',
@@ -350,11 +361,12 @@ export class {{ service.name | caseUcfirst }} extends Service {
             }
 
             const chunkPayload = { ...payload };
-            chunkPayload['{{ parameter.name }}'] = {{ '{' }}
-                uri: chunkPath,
-                name: {{ parameter.name | caseCamel | escapeKeyword }}.name,
-                type: {{ parameter.name | caseCamel | escapeKeyword }}.type,
-            };
+            chunkPayload['{{ parameter.name }}'] = Service.filePart(
+                chunkPath,
+                {{ parameter.name | caseCamel | escapeKeyword }}.name,
+                {{ parameter.name | caseCamel | escapeKeyword }}.type,
+                async () => chunkData,
+            );
 
             const chunkResponse = await this.client.call(
                 '{{ method.method.value | caseLower }}',
@@ -464,7 +476,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% endif %}
 {% endfor %}
-{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter.extensions['x-sdk-source']|default('')) == 'security') ? ('this.client.config.' ~ (parameter.extensions['x-sdk-config'] | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
+{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter | configKey(method))) ? ('this.client.config.' ~ ((parameter | configKey(method)) | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
         {{ method.path | tsApiPath(pathReplacements, 8) | raw }}
         const payload: Payload = {};
 
@@ -484,7 +496,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
         {%~ for security in (method | securityQueries) %}
         uri.searchParams.append('{{ security.name }}', this.client.config.{{ security.name | caseLower }});
         {%~ endfor %}
-{% for node in [(method | securitySchemes)] %}
+{% for node in [(method | locationSchemes)] %}
 {% for key,header in node|keys %}
         payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
 

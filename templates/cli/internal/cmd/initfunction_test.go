@@ -22,13 +22,13 @@ import (
 func TestMissingGitHubInstallationOffersConsoleLinkAndLocalFallback(t *testing.T) {
 	setupURL := githubInstallationSetupURL(
 		"https://sgp.cloud.appwrite.io/v1", "project-id")
-	wantURL := "https://cloud.appwrite.io/console/project-sgp-project-id/settings"
+	wantURL := "https://appwrite.io/projects/project-id/settings"
 	if setupURL != wantURL {
 		t.Fatalf("setup URL = %q, want %q", setupURL, wantURL)
 	}
 	baseURL := githubInstallationSetupURL(
 		"https://cloud.appwrite.io/v1", "project-id")
-	if baseURL != "https://cloud.appwrite.io/console/project-project-id/settings" {
+	if baseURL != wantURL {
 		t.Fatalf("base Cloud setup URL = %q", baseURL)
 	}
 
@@ -395,6 +395,65 @@ func TestRuleDomainsKeepsEdgeGlobalAndRegionalisesCompute(t *testing.T) {
 	if len(domains) != 2 || domains[0] != "stage.appwrite.network" ||
 		domains[1] != "fra.stage.appwrite.run" {
 		t.Fatalf("domains = %#v", domains)
+	}
+}
+
+func TestSelfHostedPushRulesOnTheFunctionsDomain(t *testing.T) {
+	domain := ""
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		response.Header().Set("content-type", "application/json")
+		switch {
+		case request.Method == http.MethodGet && request.URL.Path == "/functions/checkout":
+			response.WriteHeader(http.StatusNotFound)
+			_, _ = response.Write([]byte(`{"message":"not found","code":404}`))
+		case request.Method == http.MethodPost && request.URL.Path == "/functions":
+			response.WriteHeader(http.StatusCreated)
+			_, _ = response.Write([]byte(`{"$id":"checkout"}`))
+		case request.Method == http.MethodGet && request.URL.Path == "/console/variables":
+			_, _ = response.Write([]byte(
+				`{"_APP_DOMAIN_SITES":"sites.example.com","_APP_DOMAIN_FUNCTIONS":"functions.example.com"}`))
+		case request.Method == http.MethodGet && request.URL.Path == "/proxy/rules":
+			_, _ = response.Write([]byte(`{"total":0,"rules":[]}`))
+		case request.Method == http.MethodPost && request.URL.Path == "/proxy/rules/function":
+			body := jsonx.NewObject()
+			if err := json.NewDecoder(request.Body).Decode(body); err != nil {
+				t.Errorf("decode rule body: %v", err)
+			}
+			domain = body.GetString("domain")
+			response.WriteHeader(http.StatusCreated)
+			_, _ = response.Write([]byte(`{"$id":"rule"}`))
+		default:
+			t.Errorf("unexpected request: %s %s", request.Method, request.URL.String())
+			response.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	// A cookie, not a key: ensureDefaultRule reads the domains from the console
+	// endpoint, which an API key cannot reach.
+	preferencesWith(t, fmt.Sprintf(
+		`{"current":"test","test":{"endpoint":%q,"key":"secret","cookie":"a_session_console=session"}}`,
+		server.URL))
+	directory := t.TempDir()
+	inDirectory(t, directory)
+	path := filepath.Join(directory, config.LocalFileName)
+	contents := `{"projectId":"project","functions":[{"$id":"checkout","name":"Checkout","runtime":"node-22","entrypoint":"src/main.js"}]}`
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	command := &cobra.Command{Use: "push function"}
+	command.SetOut(&bytes.Buffer{})
+	command.SetErr(&bytes.Buffer{})
+	if err := runPushDeployable(command, deployables[0], deployOptions{
+		ResourceID: "checkout",
+		Code:       false,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.HasSuffix(domain, ".functions.example.com") {
+		t.Fatalf("rule domain = %q", domain)
 	}
 }
 

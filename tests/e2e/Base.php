@@ -45,6 +45,11 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/redirect/done:passed',
     ];
 
+    protected const LOCATION_RESPONSES = [
+        'GET:/v1/mock/tests/general/download:passed',
+        'GET:/v1/mock/tests/general/download:passed:as:impersonated',
+    ];
+
     protected const PATH_PARAM_RESPONSES = [
         'GET:/v1/mock/tests/general/path/grant%2Fspecial%26id:passed',
     ];
@@ -270,12 +275,6 @@ abstract class Base extends TestCase
         '{"theme":"dark","timezone":"UTC"}',
         '{"$id":"row1","custom":"value","nested":{"enabled":true}}',
         '{"data":{"enabled":true},"status":"ok","extra":"kept"}',
-    ];
-
-    protected const CLI_CONSOLE_URL_RESPONSES = [
-        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/sites/site-chirag-profile-website/deployments/deployment-123',
-        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/functions/function-sample-function/deployment-123',
-        'https://abc.example.com/console/project-default-self-hosted-project/sites/site-docs/deployments/deployment-456',
     ];
 
     protected const CLI_HEADERS_RESPONSES = [
