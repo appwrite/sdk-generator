@@ -4,7 +4,12 @@ export { {{service.name | caseUcfirst}} } from './services/{{service.name | case
 {% endfor %}
 export { Realtime } from './services/realtime';
 export { Push } from './services/push';
-export type { PushMessage, PushOptions } from './services/push';
+export type {
+    PushMessage,
+    PushOptions,
+    MessageCallback,
+    Unsubscribe,
+} from './services/push';
 export type {
     Models,
     Payload,
