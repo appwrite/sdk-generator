@@ -57,6 +57,10 @@ declare module 'react-native-background-actions' {
         taskName: string;
         taskTitle: string;
         taskDesc: string;
+        // Required by react-native-background-actions for its ongoing notification;
+        // omitting it makes start() throw "Task icon not found".
+        taskIcon: { name: string; type: string };
+        foregroundServiceType?: string[];
     }
 
     interface BackgroundActions {

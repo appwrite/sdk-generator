@@ -389,14 +389,25 @@ export class Push extends Service {
                         taskName: 'appwritePush',
                         taskTitle: '{{spec.info.title | caseUcfirst}}',
                         taskDesc: 'Listening for messages',
+                        // taskIcon is required by react-native-background-actions — without
+                        // it start() throws "Task icon not found". ic_launcher/mipmap exists
+                        // in every Expo/RN Android app, so it is a safe default.
+                        taskIcon: { name: 'ic_launcher', type: 'mipmap' },
+                        // Match the dataSync foregroundServiceType the config plugin injects
+                        // into the manifest, so the service is valid on Android 14+.
+                        foregroundServiceType: ['dataSync'],
                     },
                 );
             }
         } catch (err) {
             this.backgroundActive = false;
+            // Surface the real failure (e.g. a missing taskIcon, or a missing peer module)
+            // instead of assuming it is always a missing dependency.
+            const detail = err instanceof Error ? err.message : String(err);
             throw new Error(
-                'background delivery requires the "react-native-background-actions" and ' +
-                    '"expo-notifications" peer dependencies',
+                `background delivery failed to start: ${detail} (it needs the ` +
+                    '"react-native-background-actions" and "expo-notifications" peer ' +
+                    'dependencies)',
                 { cause: err },
             );
         }
