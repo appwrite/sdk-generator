@@ -470,22 +470,30 @@ open class Push: Service {
                 return
             }
             do {
-                let properties = try connectProperties()
-                let ack = try await client.v5.connect(cleanStart: false, properties: properties)
-                if ack.reason == .success {
-                    let infos = sync.sync { () -> [MQTTSubscribeInfoV5] in
-                        Set(subscriptions.values.map { $0.filter }).map {
-                            MQTTSubscribeInfoV5(topicFilter: $0, qos: effectiveQos($0))
-                        }
+                // Only (re)connect when the client is actually down. If a prior iteration
+                // connected but then failed to resubscribe, the client is still active, so
+                // re-connecting it would be a no-op that never restores routing — retry the
+                // subscribe instead.
+                if !client.isActive() {
+                    let properties = try connectProperties()
+                    let ack = try await client.v5.connect(cleanStart: false, properties: properties)
+                    if ack.reason != .success {
+                        delaySeconds = min(delaySeconds * 2, 30)
+                        continue
                     }
-                    // Let a resubscription failure fall through to the retry loop rather than
-                    // reporting a recovery that left the handles without broker routing.
-                    if !infos.isEmpty {
-                        _ = try await client.v5.subscribe(to: infos)
-                    }
-                    onOpenCb?()
-                    return
                 }
+                let infos = sync.sync { () -> [MQTTSubscribeInfoV5] in
+                    Set(subscriptions.values.map { $0.filter }).map {
+                        MQTTSubscribeInfoV5(topicFilter: $0, qos: effectiveQos($0))
+                    }
+                }
+                // Let a resubscription failure fall through to the retry loop rather than
+                // reporting a recovery that left the handles without broker routing.
+                if !infos.isEmpty {
+                    _ = try await client.v5.subscribe(to: infos)
+                }
+                onOpenCb?()
+                return
             } catch {
                 // Keep retrying until closed or drained.
             }

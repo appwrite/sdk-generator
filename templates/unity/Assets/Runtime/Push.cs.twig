@@ -513,7 +513,14 @@ namespace {{ spec.info.title | caseUcfirst }}
 
                     try
                     {
-                        await client.ConnectAsync(options);
+                        // Only (re)connect when the client is actually down. If a prior
+                        // iteration connected but failed to resubscribe, the client is still
+                        // connected, so reconnecting would throw and never restore routing —
+                        // retry the subscribe instead.
+                        if (!client.IsConnected)
+                        {
+                            await client.ConnectAsync(options);
+                        }
 
                         List<string> filters;
                         lock (_subscriptions)
