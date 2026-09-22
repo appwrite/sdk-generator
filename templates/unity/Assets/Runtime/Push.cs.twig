@@ -44,11 +44,6 @@ namespace {{ spec.info.title | caseUcfirst }}
         private Client _client;
         private IMqttClient _mqtt;
 
-        // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this
-        // client's replay cursor. Default on; change with SetReplayMessages() before the
-        // first subscribe.
-        private bool _replay = true;
-
         private Action _onOpen;
         private Action _onClose;
         private Action<Exception> _onError;
@@ -62,9 +57,9 @@ namespace {{ spec.info.title | caseUcfirst }}
         // restarts; otherwise one is generated. Reusing one id keeps it stable.
         private string _resolvedClientId;
 
-        // Local id -> (topic filter, callback). The id is never sent to the broker; it
-        // only lets the same topic carry more than one callback.
-        private readonly Dictionary<string, (string Filter, Action<PushMessage> Callback)> _subscriptions = new();
+        // Local id -> (topic filter, callback, reDeliver). The id is never sent to the broker;
+        // it only lets the same topic carry more than one callback.
+        private readonly Dictionary<string, (string Filter, Action<PushMessage> Callback, bool ReDeliver)> _subscriptions = new();
 
         // MQTTnet delivers on background threads; hop callbacks back to the main thread.
         private readonly ConcurrentQueue<Action> _mainThread = new();
@@ -146,28 +141,22 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
         }
 
-        /// <summary>
-        /// Toggle replay of messages missed while disconnected. true (the default) subscribes
-        /// at QoS 1 with clean start off, so the broker keeps this client's replay cursor and
-        /// redelivers missed messages on reconnect; false uses QoS 0 and a clean session.
-        ///
-        /// This is a connection-level setting that fixes the CONNECT clean-start flag and the
-        /// subscribe QoS, so it cannot change while subscriptions are live — it throws in that
-        /// case. To switch, unsubscribe everything (or Close()), call this, then resubscribe.
-        /// </summary>
-        public Push SetReplayMessages(bool enabled = true)
+        // The broker subscription for a filter uses the highest QoS any subscription on it
+        // wants, so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
+        private MqttQualityOfServiceLevel EffectiveQos(string filter)
         {
             lock (_subscriptions)
             {
-                if (_subscriptions.Count > 0 || _mqtt != null)
+                foreach (var entry in _subscriptions.Values)
                 {
-                    throw new {{ spec.info.title | caseUcfirst }}Exception(
-                        "SetReplayMessages() is a connection-level setting and cannot change while subscriptions are active; unsubscribe all (or Close()) first.");
+                    if (entry.Filter == filter && entry.ReDeliver)
+                    {
+                        return MqttQualityOfServiceLevel.AtLeastOnce;
+                    }
                 }
             }
 
-            _replay = enabled;
-            return this;
+            return MqttQualityOfServiceLevel.AtMostOnce;
         }
 
         /// <summary>Register a callback invoked when the connection opens.</summary>
@@ -191,40 +180,44 @@ namespace {{ spec.info.title | caseUcfirst }}
             return this;
         }
 
-        // QoS for subscribe, chosen by replay mode: at-least-once (1) when replaying missed
-        // messages, at-most-once (0) when not.
-        private MqttQualityOfServiceLevel DefaultQos =>
-            _replay ? MqttQualityOfServiceLevel.AtLeastOnce : MqttQualityOfServiceLevel.AtMostOnce;
-
         /// <summary>
         /// Subscribe to one or more topics. Returns a <see cref="PushSubscription"/> handle.
         ///
         /// Awaits the broker's SUBACK: the broker only starts routing a topic once its
         /// subscription is registered, so publishing before the ack races the message
         /// ahead of the subscription and it is dropped (no retained replay on MQTT).
+        ///
+        /// <paramref name="reDeliverIfMissed"/> chooses this subscription's QoS: true (the
+        /// default) subscribes at QoS 1 so the broker holds this topic's messages and
+        /// redelivers them on reconnect; false uses QoS 0 (at-most-once, may be lost).
         /// </summary>
-        public async Task<PushSubscription> Subscribe(string topic, Action<PushMessage> callback)
+        public async Task<PushSubscription> Subscribe(string topic, Action<PushMessage> callback, bool reDeliverIfMissed = true)
         {
-            return await Subscribe(new[] { topic }, callback);
+            return await Subscribe(new[] { topic }, callback, reDeliverIfMissed);
         }
 
-        public async Task<PushSubscription> Subscribe(IEnumerable<string> topics, Action<PushMessage> callback)
+        public async Task<PushSubscription> Subscribe(IEnumerable<string> topics, Action<PushMessage> callback, bool reDeliverIfMissed = true)
         {
             var client = await Connect();
 
             var ids = new List<string>();
-            var builder = new MqttClientSubscribeOptionsBuilder();
             foreach (var topic in topics)
             {
                 var id = Guid.NewGuid().ToString();
                 ids.Add(id);
                 lock (_subscriptions)
                 {
-                    _subscriptions[id] = (topic, callback);
+                    _subscriptions[id] = (topic, callback, reDeliverIfMissed);
                 }
+            }
+
+            var builder = new MqttClientSubscribeOptionsBuilder();
+            foreach (var topic in topics)
+            {
+                var filter = topic;
                 builder = builder.WithTopicFilter(f => f
-                    .WithTopic(topic)
-                    .WithQualityOfServiceLevel(DefaultQos));
+                    .WithTopic(filter)
+                    .WithQualityOfServiceLevel(EffectiveQos(filter)));
             }
 
             Action unsubscribe = () =>
@@ -273,7 +266,48 @@ namespace {{ spec.info.title | caseUcfirst }}
                 throw;
             }
 
-            return new PushSubscription(unsubscribe);
+            Action<bool?> update = (reDeliver) =>
+            {
+                if (reDeliver == null)
+                {
+                    return;
+                }
+
+                var changed = new List<string>();
+                lock (_subscriptions)
+                {
+                    foreach (var id in ids)
+                    {
+                        if (_subscriptions.TryGetValue(id, out var entry) && entry.ReDeliver != reDeliver.Value)
+                        {
+                            _subscriptions[id] = (entry.Filter, entry.Callback, reDeliver.Value);
+                            if (!changed.Contains(entry.Filter))
+                            {
+                                changed.Add(entry.Filter);
+                            }
+                        }
+                    }
+                }
+
+                // Re-subscribe the affected filters at their new effective QoS. MQTTnet uses a
+                // single central receive handler, so resubscribing does not duplicate callbacks.
+                var mqtt = _mqtt;
+                if (mqtt != null && changed.Count > 0)
+                {
+                    var rebuild = new MqttClientSubscribeOptionsBuilder();
+                    foreach (var f in changed)
+                    {
+                        var filter = f;
+                        rebuild = rebuild.WithTopicFilter(x => x
+                            .WithTopic(filter)
+                            .WithQualityOfServiceLevel(EffectiveQos(filter)));
+                    }
+
+                    _ = mqtt.SubscribeAsync(rebuild.Build());
+                }
+            };
+
+            return new PushSubscription(unsubscribe, update);
         }
 
         /// <summary>Tear down the connection and drop all active subscriptions.</summary>
@@ -336,9 +370,9 @@ namespace {{ spec.info.title | caseUcfirst }}
                 .WithProtocolVersion(MqttProtocolVersion.V500)
                 .WithClientId(clientId)
                 .WithTcpServer(host, Port)
-                // Clean start off in replay mode so the broker keeps this client's replay
-                // cursor and redelivers what it missed; on when replay is off so it is purged.
-                .WithCleanSession(!_replay)
+                // Clean start is always off, so the broker keeps this client's session and can
+                // redeliver missed messages to QoS-1 subscriptions on reconnect.
+                .WithCleanSession(false)
                 .WithKeepAlivePeriod(TimeSpan.FromSeconds(KeepAliveSeconds))
                 .WithAuthentication(authMethod, Encoding.UTF8.GetBytes(credential))
                 .WithUserProperty("projectId", project);
@@ -459,21 +493,30 @@ namespace {{ spec.info.title | caseUcfirst }}
     }
 
     /// <summary>
-    /// Handle for a live subscription created with <see cref="Push.Subscribe(string, Action{PushMessage})"/>.
+    /// Handle for a live subscription created with <see cref="Push.Subscribe(string, Action{PushMessage}, bool)"/>.
     /// Unlike the realtime service's bare unsubscribe callable, this is returned as a handle for
     /// parity with the other SDKs; call <see cref="Unsubscribe"/> to drop the subscription (which
-    /// closes the connection once the last one is gone).
+    /// closes the connection once the last one is gone) and <see cref="Update"/> to change its QoS.
     /// </summary>
     public class PushSubscription
     {
         private readonly Action _unsubscribe;
+        private readonly Action<bool?> _update;
 
-        internal PushSubscription(Action unsubscribe)
+        internal PushSubscription(Action unsubscribe, Action<bool?> update)
         {
             _unsubscribe = unsubscribe;
+            _update = update;
         }
 
         /// <summary>Drop this subscription. Closes the connection once the last one is gone.</summary>
         public void Unsubscribe() => _unsubscribe();
+
+        /// <summary>
+        /// Live-update this subscription's <paramref name="reDeliverIfMissed"/> (QoS),
+        /// re-subscribing its topics at the new QoS. (Unity has no background/notification mode,
+        /// so QoS is the only per-subscription option.)
+        /// </summary>
+        public void Update(bool? reDeliverIfMissed = null) => _update(reDeliverIfMissed);
     }
 }
