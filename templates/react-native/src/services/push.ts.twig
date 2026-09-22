@@ -25,14 +25,34 @@ export interface PushMessage {
 }
 
 export type MessageCallback = (message: PushMessage) => void | Promise<void>;
-export type Unsubscribe = () => void;
 
-export interface PushOptions {
+/** Per-subscription options passed to `subscribe` and `PushSubscription.update`. */
+export interface SubscribeOptions {
     /**
-     * Skip TLS certificate verification (self-signed brokers / testing). Honored only on
-     * the raw TCP socket used here.
+     * Keep receiving this subscription's messages while the app is backgrounded or closed
+     * (Android), posting a local notification per message. Runs the connection inside an
+     * Android foreground service via `react-native-background-actions` and posts
+     * notifications via `expo-notifications` — install both as peer dependencies, add this
+     * package to your Expo `plugins` (it ships an `app.plugin.js` config plugin that
+     * injects the Android 14+ foregroundServiceType and permissions), and note this needs
+     * a dev/standalone build (native modules do not run in Expo Go). Defaults to false.
+     *
+     * The foreground service is reference-counted across subscriptions: it runs while any
+     * live subscription has this on, and stops once the last one goes away.
      */
-    tlsInsecure?: boolean;
+    background?: boolean;
+    /** Notification title for this subscription's messages. Defaults to the message topic. */
+    title?: string;
+}
+
+/**
+ * Handle for a live subscription. `unsubscribe()` drops it (and closes the connection
+ * once the last one is gone); `update()` toggles this subscription's background/title
+ * without resubscribing.
+ */
+export interface PushSubscription {
+    unsubscribe(): void;
+    update(options: SubscribeOptions): void;
 }
 
 type AuthMethod = 'appwrite-jwt' | 'appwrite-session' | '';
@@ -43,19 +63,26 @@ const RECONNECT_PERIOD_MS = 2000;
 
 /**
  * {{spec.info.title | caseUcfirst}} native push service — the Realtime analog over an MQTT broker, without
- * FCM or APNS. Foreground delivery only: while the app is in the foreground the
- * connection stays open and each message is handed to your callback.
+ * FCM or APNS. While the app is in the foreground the connection stays open and each
+ * message is handed to your callback; a subscription can also opt into background
+ * delivery (Android foreground service + local notification per message).
  *
- * Mirrors the Realtime service: `new Push(client).subscribe(topics, callback)` opens
- * the connection lazily and returns an `unsubscribe` callable. The credential is read
- * off the client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`),
- * the same way every other service reads auth.
+ * `setReplayMessages` is connection-level and can only be set before the first
+ * `subscribe` — changing it throws while subscriptions are live, so unsubscribe
+ * everything, set it, then resubscribe. TLS (and skipping cert verification via a
+ * `?tlsInsecure=true` query flag) is derived from the endpoint URL, so the whole
+ * connection is described in one place. `subscribe` opens the connection lazily and
+ * returns a {@link PushSubscription} handle (unlike Realtime's bare
+ * unsubscribe callable — Push carries per-subscription state). The credential is read off
+ * the client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`), the
+ * same way every other service reads auth.
  *
  *     const client = new Client().setEndpoint(...).setProject(...).setJWT(jwt);
  *     const push = new Push(client);
- *     const unsubscribe = await push.subscribe('user/123/#', (m) =>
+ *     const sub = await push.subscribe('user/123/#', (m) =>
  *       console.log(m.topic, m.payload.toString()),
  *     );
+ *     // sub.update({ background: true }); sub.unsubscribe();
  */
 export class Push extends Service {
     private readonly host: string;
@@ -64,7 +91,8 @@ export class Push extends Service {
     private readonly tlsInsecure: boolean;
 
     // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this
-    // client's replay cursor. Default on; toggle with setReplayMessages().
+    // client's replay cursor. Default on; change with setReplayMessages() before the
+    // first subscribe.
     private replay = true;
 
     private mqtt: MqttClient | null = null;
@@ -72,22 +100,26 @@ export class Push extends Service {
     /** Set once the first CONNACK lands, so 'connect' events after are reconnects. */
     private everConnected = false;
 
-    private background = false;
-    private backgroundTitle?: string;
-    private backgroundStarted = false;
+    /** Whether the Android foreground service is currently running. */
+    private backgroundActive = false;
 
     private onOpenCb?: () => void;
     private onCloseCb?: () => void;
     private onErrorCb?: (error: Error) => void;
 
-    // Local id -> { topic, callback }. The id is never sent to the broker; it only
-    // lets the same topic carry more than one callback.
+    // Local id -> subscription state. The id is never sent to the broker; it only lets
+    // the same topic carry more than one callback (each with its own options).
     private readonly subscriptions = new Map<
         string,
-        { topic: string; callback: MessageCallback }
+        {
+            topic: string;
+            callback: MessageCallback;
+            background: boolean;
+            title?: string;
+        }
     >();
 
-    constructor(client: Client, options: PushOptions = {}) {
+    constructor(client: Client) {
         super(client);
 
         // The broker location comes from Client.setPushEndpoint() when set (e.g.
@@ -95,6 +127,7 @@ export class Push extends Service {
         let endpointHost = '';
         let endpointSecure = false;
         let endpointPort: number | null = null;
+        let endpointInsecure = false;
         try {
             const url = new URL(
                 client.config.endpointPush || client.config.endpoint || '',
@@ -109,6 +142,11 @@ export class Push extends Service {
                 client.config.endpointPush && url.port
                     ? Number(url.port)
                     : null;
+            // Skip TLS cert verification (self-signed brokers / testing) via a query flag
+            // on the push endpoint, e.g. "mqtts://host:8883?tlsInsecure=true" — so the
+            // whole connection is described by one URL, not a second config knob.
+            const insecure = url.searchParams.get('tlsInsecure');
+            endpointInsecure = insecure === 'true' || insecure === '1';
         } catch {
             // leave defaults
         }
@@ -118,7 +156,7 @@ export class Push extends Service {
         // in the CONNECT packet is not sent over a plaintext socket.
         this.tls = endpointSecure;
         this.port = endpointPort ?? (this.tls ? 8883 : 1883);
-        this.tlsInsecure = options.tlsInsecure ?? false;
+        this.tlsInsecure = endpointInsecure;
     }
 
     // QoS for subscribe, chosen by replay mode: at-least-once (1) when replaying missed
@@ -131,17 +169,15 @@ export class Push extends Service {
      * Toggle replay of messages missed while disconnected. `true` (the default)
      * subscribes at QoS 1 with clean start off, so the broker keeps this client's replay
      * cursor and redelivers missed messages on reconnect; `false` uses QoS 0 and a clean
-     * session (at-most-once, no replay). Can be called at any time: if the connection is
-     * already open in the other mode it reconnects and resubscribes at the new QoS.
+     * session (at-most-once, no replay).
+     *
+     * This is a connection-level setting that fixes the CONNECT clean-start flag and the
+     * subscribe QoS, so it cannot change while subscriptions are live — it throws in that
+     * case. To switch, unsubscribe everything (or `close()`), call this, then resubscribe.
      */
     setReplayMessages(enabled: boolean = true): this {
-        if (enabled === this.replay) {
-            return this;
-        }
+        this.assertNoSubscriptions('setReplayMessages');
         this.replay = enabled;
-        if (this.mqtt) {
-            void this.reconnect();
-        }
         return this;
     }
 
@@ -163,51 +199,31 @@ export class Push extends Service {
         return this;
     }
 
-    /**
-     * Enable (or disable) receiving while the app is backgrounded or closed (Android),
-     * posting a local notification per message. Runs the connection inside an Android
-     * foreground service via `react-native-background-actions` and posts notifications via
-     * `expo-notifications` — install both as peer dependencies, and note this needs a
-     * dev/standalone build (native modules do not run in Expo Go). On Android 14+ the
-     * foreground service also needs a `foregroundServiceType` and the matching runtime
-     * permissions; add this package to your Expo `plugins` (it ships an `app.plugin.js`
-     * config plugin) so prebuild injects them into the manifest. `setBackground(false)`
-     * turns it off and stops the service if running.
-     *
-     * @param enabled Whether background delivery is on. Defaults to true.
-     * @param options.title Fixed notification title. Defaults to the message topic.
-     */
-    setBackground(
-        enabled: boolean = true,
-        options: { title?: string } = {},
-    ): this {
-        this.background = enabled;
-        if (enabled) {
-            this.backgroundTitle = options.title;
-        } else {
-            this.stopBackground();
-        }
-        return this;
-    }
-
     // --- realtime-like API ---
 
     /**
-     * Subscribe to one or more topics. Resolves to an unsubscribe callable.
+     * Subscribe to one or more topics. Resolves to a {@link PushSubscription} handle.
      *
      * Awaiting resolves only once the broker has acked every SUBSCRIBE (SUBACK):
      * the broker only starts routing a topic once its subscription is registered,
      * so publishing before the ack races the message ahead of the subscription and
      * it is dropped (no retained replay on MQTT). Awaiting here makes
      * subscribe-then-publish reliable.
+     *
+     * Pass `{ background: true, title }` to also keep receiving while backgrounded and
+     * post a notification per matching message; toggle it later with the handle's `update`.
      */
     async subscribe(
         topics: string | string[],
         callback: MessageCallback,
-    ): Promise<Unsubscribe> {
+        options: SubscribeOptions = {},
+    ): Promise<PushSubscription> {
         const topicList = typeof topics === 'string' ? [topics] : topics;
+        const background = options.background ?? false;
 
-        if (this.background) {
+        // Start the foreground service before connecting so a missing peer dependency
+        // surfaces a clear error up front, matching the connection failure path.
+        if (background) {
             await this.startBackground();
         }
 
@@ -218,7 +234,12 @@ export class Push extends Service {
         for (const topic of topicList) {
             const id = randomId();
             ids.push(id);
-            this.subscriptions.set(id, { topic, callback });
+            this.subscriptions.set(id, {
+                topic,
+                callback,
+                background,
+                title: options.title,
+            });
             acks.push(
                 new Promise<void>((resolve, reject) => {
                     client.subscribe(topic, { qos: this.defaultQos }, (err) =>
@@ -242,6 +263,9 @@ export class Push extends Service {
             }
             if (this.subscriptions.size === 0) {
                 this.close();
+            } else {
+                // A removed sub may have been the last background one.
+                this.syncBackgroundService();
             }
         };
 
@@ -254,7 +278,23 @@ export class Push extends Service {
             throw err;
         }
 
-        return unsubscribe;
+        const update = (next: SubscribeOptions) => {
+            for (const id of ids) {
+                const entry = this.subscriptions.get(id);
+                if (!entry) {
+                    continue;
+                }
+                if (next.background !== undefined) {
+                    entry.background = next.background;
+                }
+                if (next.title !== undefined) {
+                    entry.title = next.title;
+                }
+            }
+            this.syncBackgroundService();
+        };
+
+        return { unsubscribe, update };
     }
 
     /** Tear down the connection (and stop the foreground service, if running). */
@@ -268,12 +308,33 @@ export class Push extends Service {
         this.stopBackground();
     }
 
+    /** True while any live subscription has opted into background delivery. */
+    private hasBackgroundSubs(): boolean {
+        for (const sub of this.subscriptions.values()) {
+            if (sub.background) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Reconcile the reference-counted foreground service with whether any live
+    // subscription still wants background delivery.
+    private syncBackgroundService(): void {
+        const want = this.hasBackgroundSubs();
+        if (want && !this.backgroundActive) {
+            void this.startBackground();
+        } else if (!want && this.backgroundActive) {
+            this.stopBackground();
+        }
+    }
+
     /** Stop the Android foreground service if it is running (no-op otherwise). */
     private stopBackground(): void {
-        if (!this.backgroundStarted) {
+        if (!this.backgroundActive) {
             return;
         }
-        this.backgroundStarted = false;
+        this.backgroundActive = false;
         try {
             /* eslint-disable @typescript-eslint/no-require-imports */
             const backgroundActions: typeof import('react-native-background-actions').default =
@@ -291,10 +352,10 @@ export class Push extends Service {
      * the first call.
      */
     private async startBackground(): Promise<void> {
-        if (this.backgroundStarted) {
+        if (this.backgroundActive) {
             return;
         }
-        this.backgroundStarted = true;
+        this.backgroundActive = true;
         try {
             /* eslint-disable @typescript-eslint/no-require-imports */
             const notifications: typeof import('expo-notifications') = require('expo-notifications');
@@ -313,33 +374,30 @@ export class Push extends Service {
                     () => new Promise<void>(() => undefined),
                     {
                         taskName: 'appwritePush',
-                        taskTitle: this.backgroundTitle ?? '{{spec.info.title | caseUcfirst}}',
+                        taskTitle: '{{spec.info.title | caseUcfirst}}',
                         taskDesc: 'Listening for messages',
                     },
                 );
             }
         } catch (err) {
-            this.backgroundStarted = false;
+            this.backgroundActive = false;
             throw new Error(
-                'setBackground() requires the "react-native-background-actions" and ' +
+                'background delivery requires the "react-native-background-actions" and ' +
                     '"expo-notifications" peer dependencies',
                 { cause: err },
             );
         }
     }
 
-    /** Post a local notification for a message when background mode is on. */
-    private async notify(message: PushMessage): Promise<void> {
-        if (!this.background) {
-            return;
-        }
+    /** Post a local notification for a message a background subscription matched. */
+    private async notify(message: PushMessage, title?: string): Promise<void> {
         try {
             /* eslint-disable @typescript-eslint/no-require-imports */
             const notifications: typeof import('expo-notifications') = require('expo-notifications');
             /* eslint-enable @typescript-eslint/no-require-imports */
             await notifications.scheduleNotificationAsync({
                 content: {
-                    title: this.backgroundTitle ?? message.topic,
+                    title: title ?? message.topic,
                     body: message.payload.toString(),
                 },
                 trigger: null,
@@ -364,18 +422,14 @@ export class Push extends Service {
         }
     }
 
-    // Reconnect and resubscribe active topics at the current QoS — used when the replay
-    // mode changes while the connection is open (clean start is a CONNECT-level flag).
-    // Only the MQTT client is torn down; background mode (if on) stays running.
-    private async reconnect(): Promise<void> {
-        if (this.mqtt) {
-            this.mqtt.end(true);
-            this.mqtt = null;
+    // A connection-level setter cannot change once a subscription pins the CONNECT flags.
+    private assertNoSubscriptions(method: string): void {
+        if (this.subscriptions.size > 0 || this.mqtt) {
+            throw new Error(
+                `${method}() is a connection-level setting and cannot change while ` +
+                    'subscriptions are active; unsubscribe all (or close()) first.',
+            );
         }
-        this.connecting = null;
-        this.everConnected = false;
-        await this.connect();
-        this.resubscribeAll();
     }
 
     // --- internals ---
@@ -526,12 +580,16 @@ export class Push extends Service {
                 : Buffer.from(packet.payload),
             qos: packet.qos,
         };
-        for (const { topic: filter, callback } of this.subscriptions.values()) {
-            if (matches(filter, message.topic)) {
-                await callback(message);
+        for (const sub of this.subscriptions.values()) {
+            if (matches(sub.topic, message.topic)) {
+                await sub.callback(message);
+                // Notification is per-subscription: only subs that opted in post one,
+                // each with its own title.
+                if (sub.background) {
+                    await this.notify(message, sub.title);
+                }
             }
         }
-        await this.notify(message);
     }
 }
 
@@ -545,7 +603,7 @@ function randomId(): string {
 }
 
 /** MQTT topic-filter match with '+' (single level) and '#' (multi level). */
-export function matches(filter: string, topic: string): boolean {
+function matches(filter: string, topic: string): boolean {
     const filterParts = filter.split('/');
     const topicParts = topic.split('/');
     for (let i = 0; i < filterParts.length; i++) {
