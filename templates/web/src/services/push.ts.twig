@@ -17,7 +17,27 @@ export interface PushMessage {
 }
 
 export type MessageCallback = (message: PushMessage) => void | Promise<void>;
-export type Unsubscribe = () => void;
+
+/** Per-subscription options passed to `subscribe` and `PushSubscription.update`. */
+export interface SubscribeOptions {
+    /**
+     * Also surface each matching message as a browser notification while the tab is
+     * open. Defaults to false.
+     */
+    background?: boolean;
+    /** Notification title for this subscription. Defaults to the message topic. */
+    title?: string;
+}
+
+/**
+ * Handle for a live subscription. `unsubscribe()` drops it (and closes the connection
+ * once the last one is gone); `update()` toggles this subscription's per-message options
+ * without resubscribing.
+ */
+export interface PushSubscription {
+    unsubscribe(): void;
+    update(options: SubscribeOptions): void;
+}
 
 type AuthMethod = 'appwrite-jwt' | 'appwrite-session' | '';
 
@@ -27,24 +47,29 @@ const RECONNECT_PERIOD_MS = 2000;
 
 /**
  * {{spec.info.title | caseUcfirst}} native push service — the Realtime analog over an MQTT broker, without
- * FCM or APNS. In the browser the transport is MQTT 5 over WebSocket. Foreground
- * delivery only: while the page is open the connection stays up and each message is
- * handed to your callback.
+ * FCM or APNS. In the browser the transport is MQTT 5 over WebSocket: while the page is
+ * open the connection stays up and each message is handed to your callback, and a
+ * subscription may also opt into a browser notification per message.
  *
- * Mirrors the Realtime service: `new Push(client).subscribe(topics, callback)` opens
- * the connection lazily and returns an `unsubscribe` callable. The credential is read
+ * Connection settings (`setReplayMessages`) are connection-level and can only be set
+ * before the first `subscribe` — changing one throws while subscriptions are live, so
+ * unsubscribe everything, set it, then resubscribe. `subscribe` opens the connection
+ * lazily and returns a {@link PushSubscription} handle (unlike Realtime's bare
+ * unsubscribe callable — Push carries per-subscription state). The credential is read
  * off the client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`),
  * the same way every other service reads auth.
  *
  *     const client = new Client().setEndpoint(...).setProject(...).setJWT(jwt);
  *     const push = new Push(client);
- *     const unsubscribe = await push.subscribe('user/123/#', (m) =>
+ *     const sub = await push.subscribe('user/123/#', (m) =>
  *       console.log(m.topic, new TextDecoder().decode(m.payload)),
  *     );
+ *     // sub.update({ background: true }); sub.unsubscribe();
  */
 export class Push extends Service {
     // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this
-    // client's replay cursor. Default on; toggle with setReplayMessages().
+    // client's replay cursor. Default on; change with setReplayMessages() before the
+    // first subscribe.
     private replay = true;
 
     private mqtt: MqttClient | null = null;
@@ -52,18 +77,20 @@ export class Push extends Service {
     /** Set once the first CONNACK lands, so 'connect' events after are reconnects. */
     private everConnected = false;
 
-    private background = false;
-    private backgroundTitle?: string;
-
     private onOpenCb?: () => void;
     private onCloseCb?: () => void;
     private onErrorCb?: (error: Error) => void;
 
-    // Local id -> { topic, callback }. The id is never sent to the broker; it only
-    // lets the same topic carry more than one callback.
+    // Local id -> subscription state. The id is never sent to the broker; it only lets
+    // the same topic carry more than one callback (each with its own options).
     private readonly subscriptions = new Map<
         string,
-        { topic: string; callback: MessageCallback }
+        {
+            topic: string;
+            callback: MessageCallback;
+            background: boolean;
+            title?: string;
+        }
     >();
 
     constructor(client: Client) {
@@ -80,44 +107,15 @@ export class Push extends Service {
      * Toggle replay of messages missed while disconnected. `true` (the default)
      * subscribes at QoS 1 with clean start off, so the broker keeps this client's replay
      * cursor and redelivers missed messages on reconnect; `false` uses QoS 0 and a clean
-     * session (at-most-once, no replay). Can be called at any time: if the connection is
-     * already open in the other mode it reconnects and resubscribes at the new QoS.
+     * session (at-most-once, no replay).
+     *
+     * This is a connection-level setting that fixes the CONNECT clean-start flag and the
+     * subscribe QoS, so it cannot change while subscriptions are live — it throws in that
+     * case. To switch, unsubscribe everything (or `close()`), call this, then resubscribe.
      */
     setReplayMessages(enabled: boolean = true): this {
-        if (enabled === this.replay) {
-            return this;
-        }
+        this.assertNoSubscriptions('setReplayMessages');
         this.replay = enabled;
-        if (this.mqtt) {
-            void this.reconnect();
-        }
-        return this;
-    }
-
-    /**
-     * Enable (or disable) surfacing every delivered message as a browser notification
-     * while the tab is open. Requests the `Notification` permission on the spot. In the
-     * browser there is no true background/closed-tab delivery (that needs a service worker
-     * + push subscription); this covers open-tab presentation. `setBackground(false)`
-     * turns it off.
-     *
-     * @param enabled Whether to show notifications. Defaults to true.
-     * @param options.title Fixed notification title. Defaults to the message topic.
-     */
-    setBackground(
-        enabled: boolean = true,
-        options: { title?: string } = {},
-    ): this {
-        this.background = enabled;
-        if (enabled) {
-            this.backgroundTitle = options.title;
-            if (
-                typeof Notification !== 'undefined' &&
-                Notification.permission === 'default'
-            ) {
-                void Notification.requestPermission();
-            }
-        }
         return this;
     }
 
@@ -142,19 +140,28 @@ export class Push extends Service {
     // --- realtime-like API ---
 
     /**
-     * Subscribe to one or more topics. Resolves to an unsubscribe callable.
+     * Subscribe to one or more topics. Resolves to a {@link PushSubscription} handle.
      *
      * Awaiting resolves only once the broker has acked every SUBSCRIBE (SUBACK):
      * the broker only starts routing a topic once its subscription is registered,
      * so publishing before the ack races the message ahead of the subscription and
      * it is dropped (no retained replay on MQTT). Awaiting here makes
      * subscribe-then-publish reliable.
+     *
+     * Pass `{ background: true, title }` to also show a browser notification per matching
+     * message while the tab is open; toggle it later with the handle's `update`.
      */
     async subscribe(
         topics: string | string[],
         callback: MessageCallback,
-    ): Promise<Unsubscribe> {
+        options: SubscribeOptions = {},
+    ): Promise<PushSubscription> {
         const topicList = typeof topics === 'string' ? [topics] : topics;
+        const background = options.background ?? false;
+
+        if (background) {
+            this.requestNotificationPermission();
+        }
 
         const client = await this.connect();
 
@@ -163,7 +170,12 @@ export class Push extends Service {
         for (const topic of topicList) {
             const id = randomId();
             ids.push(id);
-            this.subscriptions.set(id, { topic, callback });
+            this.subscriptions.set(id, {
+                topic,
+                callback,
+                background,
+                title: options.title,
+            });
             acks.push(
                 new Promise<void>((resolve, reject) => {
                     client.subscribe(topic, { qos: this.defaultQos }, (err) =>
@@ -199,7 +211,26 @@ export class Push extends Service {
             throw err;
         }
 
-        return unsubscribe;
+        const update = (next: SubscribeOptions) => {
+            const enabling = next.background === true;
+            for (const id of ids) {
+                const entry = this.subscriptions.get(id);
+                if (!entry) {
+                    continue;
+                }
+                if (next.background !== undefined) {
+                    entry.background = next.background;
+                }
+                if (next.title !== undefined) {
+                    entry.title = next.title;
+                }
+            }
+            if (enabling) {
+                this.requestNotificationPermission();
+            }
+        };
+
+        return { unsubscribe, update };
     }
 
     /** Tear down the connection. */
@@ -227,12 +258,14 @@ export class Push extends Service {
         }
     }
 
-    // Reconnect and resubscribe active topics at the current QoS — used when the replay
-    // mode changes while the connection is open (clean start is a CONNECT-level flag).
-    private async reconnect(): Promise<void> {
-        this.close();
-        await this.connect();
-        this.resubscribeAll();
+    // A connection-level setter cannot change once a subscription pins the CONNECT flags.
+    private assertNoSubscriptions(method: string): void {
+        if (this.subscriptions.size > 0 || this.mqtt) {
+            throw new Error(
+                `${method}() is a connection-level setting and cannot change while ` +
+                    'subscriptions are active; unsubscribe all (or close()) first.',
+            );
+        }
     }
 
     // --- internals ---
@@ -368,25 +401,37 @@ export class Push extends Service {
                 : Buffer.from(packet.payload),
             qos: packet.qos,
         };
-        for (const { topic: filter, callback } of this.subscriptions.values()) {
-            if (matches(filter, message.topic)) {
-                await callback(message);
+        for (const sub of this.subscriptions.values()) {
+            if (matches(sub.topic, message.topic)) {
+                await sub.callback(message);
+                // Notification is per-subscription: only subs that opted in post one,
+                // each with its own title.
+                if (sub.background) {
+                    this.notify(message, sub.title);
+                }
             }
         }
-        this.notify(message);
     }
 
-    /** Post a browser notification for a message when background mode is on. */
-    private notify(message: PushMessage): void {
+    private requestNotificationPermission(): void {
         if (
-            !this.background ||
+            typeof Notification !== 'undefined' &&
+            Notification.permission === 'default'
+        ) {
+            void Notification.requestPermission();
+        }
+    }
+
+    /** Post a browser notification for a message a background subscription matched. */
+    private notify(message: PushMessage, title?: string): void {
+        if (
             typeof Notification === 'undefined' ||
             Notification.permission !== 'granted'
         ) {
             return;
         }
         try {
-            new Notification(this.backgroundTitle ?? message.topic, {
+            new Notification(title ?? message.topic, {
                 body: new TextDecoder().decode(message.payload),
             });
         } catch {
@@ -405,7 +450,7 @@ function randomId(): string {
 }
 
 /** MQTT topic-filter match with '+' (single level) and '#' (multi level). */
-export function matches(filter: string, topic: string): boolean {
+function matches(filter: string, topic: string): boolean {
     const filterParts = filter.split('/');
     const topicParts = topic.split('/');
     for (let i = 0; i < filterParts.length; i++) {
