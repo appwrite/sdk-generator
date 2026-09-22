@@ -297,6 +297,7 @@ class PushWeb implements Push {
     _mqtt?.disconnect();
     _mqtt = null;
     _connecting = null;
+    _subscriptions.clear();
   }
 
   Future<MqttBrowserClient> _connect() {

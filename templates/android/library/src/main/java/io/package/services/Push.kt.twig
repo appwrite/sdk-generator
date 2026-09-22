@@ -229,15 +229,20 @@ class Push(client: Client) : Service(client) {
     /**
      * Subscribe to one or more topics. Returns a [PushSubscription] handle.
      *
-     * Blocks until the broker has acknowledged every SUBSCRIBE (SUBACK): the broker
-     * only starts routing a topic once its subscription is registered, so publishing
-     * before the ack races the message ahead of the subscription and it is dropped
-     * (no retained replay on MQTT).
+     * For a foreground subscription this blocks until the broker has acknowledged every
+     * SUBSCRIBE (SUBACK): the broker only starts routing a topic once its subscription is
+     * registered, so publishing before the ack races the message ahead of the subscription
+     * and it is dropped (no retained replay on MQTT).
      *
      * Set [background] to keep receiving while the app is backgrounded or closed (an Android
      * foreground service) and post a notification per matching message with [title]
      * (defaulting to the message topic); a [context] is required the first time background is
      * enabled so the service can start. Toggle it later with [PushSubscription.update].
+     *
+     * Note: a `background` subscription hands the connection to the foreground service, which
+     * connects and subscribes asynchronously — so it returns once the service has been handed
+     * the subscription, **not** after SUBACK (the SUBACK guarantee above holds for foreground
+     * subscriptions). Use [onOpen]/[onError] to observe the background connection lifecycle.
      */
     @JvmOverloads
     fun subscribe(
@@ -395,6 +400,7 @@ class Push(client: Client) : Service(client) {
     fun close() {
         mqtt?.disconnect()
         mqtt = null
+        subscriptions.clear()
         if (serviceActive) {
             serviceActive = false
             appContext?.let { PushForeground.stop(it) }

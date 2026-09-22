@@ -285,6 +285,11 @@ namespace {{ spec.info.title | caseUcfirst }}
                 _mqtt.Dispose();
                 _mqtt = null;
             }
+
+            lock (_subscriptions)
+            {
+                _subscriptions.Clear();
+            }
         }
 
         private async Task<IMqttClient> Connect()

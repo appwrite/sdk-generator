@@ -297,7 +297,7 @@ export class Push extends Service {
         return { unsubscribe, update };
     }
 
-    /** Tear down the connection (and stop the foreground service, if running). */
+    /** Tear down the connection, drop all subscriptions (and stop the foreground service). */
     close(): void {
         if (this.mqtt) {
             this.mqtt.end(true);
@@ -305,6 +305,7 @@ export class Push extends Service {
         }
         this.connecting = null;
         this.everConnected = false;
+        this.subscriptions.clear();
         this.stopBackground();
     }
 

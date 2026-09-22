@@ -456,6 +456,7 @@ class PushIO implements Push {
     _connecting = null;
     _serviceListener?.cancel();
     _serviceListener = null;
+    _subscriptions.clear();
     if (_isolateActive) {
       _isolateActive = false;
       _enqueueStop();

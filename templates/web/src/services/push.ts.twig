@@ -233,7 +233,7 @@ export class Push extends Service {
         return { unsubscribe, update };
     }
 
-    /** Tear down the connection. */
+    /** Tear down the connection and drop all active subscriptions. */
     close(): void {
         if (this.mqtt) {
             this.mqtt.end(true);
@@ -241,6 +241,7 @@ export class Push extends Service {
         }
         this.connecting = null;
         this.everConnected = false;
+        this.subscriptions.clear();
     }
 
     /**
