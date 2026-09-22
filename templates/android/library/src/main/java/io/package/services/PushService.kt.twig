@@ -8,7 +8,6 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
-import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 
 /**
@@ -78,15 +77,10 @@ class PushService : Service() {
 
     private fun subscribeTopics(topics: List<String>) {
         val client = mqtt ?: return
-        val qos = if (PushForeground.config?.replay != false) {
-            MqttQos.AT_LEAST_ONCE
-        } else {
-            MqttQos.AT_MOST_ONCE
-        }
         for (topic in topics) {
             client.subscribeWith()
                 .topicFilter(topic)
-                .qos(qos)
+                .qos(PushForeground.qosFor(topic))
                 .callback { publish -> onMessage(publish.toPushMessage()) }
                 .send()
         }

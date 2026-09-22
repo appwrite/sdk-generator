@@ -62,17 +62,19 @@ data class PushMessage(
  */
 class PushSubscription internal constructor(
     private val unsubscribeAction: () -> Unit,
-    private val updateAction: (Boolean?, String?) -> Unit,
+    private val updateAction: (Boolean?, String?, Boolean?) -> Unit,
 ) {
     /** Drop this subscription. Closes the connection once the last one is gone. */
     fun unsubscribe() = unsubscribeAction()
 
     /**
-     * Live-update this subscription's background delivery and/or notification title.
-     * Only the arguments you pass change; the rest stay as they were.
+     * Live-update this subscription's background delivery, notification title and/or
+     * `reDeliverIfMissed` (QoS). Only the arguments you pass change; the rest stay as they
+     * were. Changing `reDeliverIfMissed` re-subscribes this subscription's topics at the new QoS.
      */
     @JvmOverloads
-    fun update(background: Boolean? = null, title: String? = null) = updateAction(background, title)
+    fun update(background: Boolean? = null, title: String? = null, reDeliverIfMissed: Boolean? = null) =
+        updateAction(background, title, reDeliverIfMissed)
 }
 
 /**
@@ -90,12 +92,12 @@ class PushSubscription internal constructor(
  * The credential is read off the client — set a JWT or session on it
  * (`Client.setJWT` / `Client.setSession`), the same way every other service reads auth.
  *
- * [setReplayMessages] is a connection-level setting fixed for the life of the subscriptions
- * — it throws while any subscription is live, so unsubscribe everything, set it, then
- * resubscribe. The broker owns the replay window server-side (no MQTT session-expiry is set);
- * call `Client.setPushClientId(...)` with a stable id to resume replay across restarts. TLS
- * (and skipping cert verification via a `?tlsInsecure=true` query flag) is derived from the
- * endpoint, so the whole connection is described in one place.
+ * The connection always keeps its session (clean start off) so the broker can redeliver
+ * missed messages, and reliability is chosen per subscription via [subscribe]'s
+ * `reDeliverIfMissed`. The broker owns the replay window server-side (no MQTT session-expiry
+ * is set); call `Client.setPushClientId(...)` with a stable id to resume replay across
+ * restarts. TLS (and skipping cert verification via a `?tlsInsecure=true` query flag) is
+ * derived from the endpoint, so the whole connection is described in one place.
  *
  * ```kotlin
  * val client = Client().setEndpoint("...").setProject("...").setJWT(jwt)
@@ -138,10 +140,6 @@ class Push(client: Client) : Service(client) {
             }.getOrDefault(false)
         } ?: false
 
-    // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this client's
-    // replay cursor. Default on; change with setReplayMessages() before the first subscribe.
-    private var replay = true
-
     // Resolve the fallback client id once per instance: a reconnect rebuilds the MQTT client,
     // and if each rebuild drew a new random id the broker would treat it as a new session and
     // drop this client's replay cursor. A stable id from Client.setPushClientId() resumes
@@ -171,27 +169,17 @@ class Push(client: Client) : Service(client) {
         val callback: (PushMessage) -> Unit,
         var background: Boolean,
         var title: String?,
+        var reDeliver: Boolean,
     )
 
-    /**
-     * Toggle replay of messages missed while disconnected. `true` (the default) subscribes
-     * at QoS 1 with clean start off, so the broker keeps this client's replay cursor and
-     * redelivers missed messages on reconnect; `false` uses QoS 0 and a clean session.
-     *
-     * This is a connection-level setting that fixes the CONNECT clean-start flag and the
-     * subscribe QoS, so it cannot change while subscriptions are live — it throws in that
-     * case. To switch, unsubscribe everything (or [close]), call this, then resubscribe.
-     */
-    @JvmOverloads
-    fun setReplayMessages(enabled: Boolean = true): Push {
-        if (subscriptions.isNotEmpty() || mqtt != null || serviceActive) {
-            throw {{ spec.info.title | caseUcfirst }}Exception(
-                "setReplayMessages() is a connection-level setting and cannot change while subscriptions are active; unsubscribe all (or close()) first.",
-            )
+    // The broker subscription for a filter uses the highest QoS any subscription on it wants,
+    // so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
+    private fun effectiveQos(filter: String): MqttQos =
+        if (subscriptions.values.any { it.filter == filter && it.reDeliver }) {
+            MqttQos.AT_LEAST_ONCE
+        } else {
+            MqttQos.AT_MOST_ONCE
         }
-        replay = enabled
-        return this
-    }
 
     /** Register a callback invoked when the connection opens. */
     fun onOpen(callback: () -> Unit): Push {
@@ -222,9 +210,11 @@ class Push(client: Client) : Service(client) {
         topic: String,
         background: Boolean = false,
         title: String? = null,
+        reDeliverIfMissed: Boolean = true,
         context: Context? = null,
         callback: (PushMessage) -> Unit,
-    ): PushSubscription = subscribe(listOf(topic), background, title, context, callback)
+    ): PushSubscription =
+        subscribe(listOf(topic), background, title, reDeliverIfMissed, context, callback)
 
     /**
      * Subscribe to one or more topics. Returns a [PushSubscription] handle.
@@ -237,7 +227,9 @@ class Push(client: Client) : Service(client) {
      * Set [background] to keep receiving while the app is backgrounded or closed (an Android
      * foreground service) and post a notification per matching message with [title]
      * (defaulting to the message topic); a [context] is required the first time background is
-     * enabled so the service can start. Toggle it later with [PushSubscription.update].
+     * enabled so the service can start. [reDeliverIfMissed] chooses this subscription's QoS
+     * (`true` -> QoS 1 default, `false` -> QoS 0). Toggle any of these later with
+     * [PushSubscription.update].
      *
      * Note: a `background` subscription hands the connection to the foreground service, which
      * connects and subscribes asynchronously — so it returns once the service has been handed
@@ -249,6 +241,7 @@ class Push(client: Client) : Service(client) {
         topics: List<String>,
         background: Boolean = false,
         title: String? = null,
+        reDeliverIfMissed: Boolean = true,
         context: Context? = null,
         callback: (PushMessage) -> Unit,
     ): PushSubscription {
@@ -260,7 +253,7 @@ class Push(client: Client) : Service(client) {
         for (topic in topics) {
             val id = UUID.randomUUID().toString()
             ids.add(id)
-            subscriptions[id] = Sub(topic, callback, background, title)
+            subscriptions[id] = Sub(topic, callback, background, title, reDeliverIfMissed)
         }
 
         // If any SUBSCRIBE fails, roll this call's registrations back and return to a
@@ -285,7 +278,7 @@ class Push(client: Client) : Service(client) {
 
         return PushSubscription(
             { unsubscribeIds(ids) },
-            { bg, t -> updateIds(ids, bg, t) },
+            { bg, t, rd -> updateIds(ids, bg, t, rd) },
         )
     }
 
@@ -296,7 +289,7 @@ class Push(client: Client) : Service(client) {
             val sub = subscriptions[id] ?: continue
             client.subscribeWith()
                 .topicFilter(sub.filter)
-                .qos(defaultQos)
+                .qos(effectiveQos(sub.filter))
                 .callback { publish -> sub.callback(publish.toPushMessage()) }
                 .send()
                 .get()
@@ -328,7 +321,22 @@ class Push(client: Client) : Service(client) {
         for (sub in subscriptions.values) {
             client.subscribeWith()
                 .topicFilter(sub.filter)
-                .qos(defaultQos)
+                .qos(effectiveQos(sub.filter))
+                .callback { publish -> sub.callback(publish.toPushMessage()) }
+                .send()
+        }
+    }
+
+    // Re-subscribe a filter in-process at its new effective QoS. Unsubscribe first so the
+    // per-subscribe HiveMQ callbacks are not duplicated, then re-add one per sub on the filter.
+    private fun resubscribeFilterInProcess(filter: String) {
+        val client = mqtt ?: return
+        client.unsubscribeWith().topicFilter(filter).send()
+        val qos = effectiveQos(filter)
+        for (sub in subscriptions.values.filter { it.filter == filter }) {
+            client.subscribeWith()
+                .topicFilter(filter)
+                .qos(qos)
                 .callback { publish -> sub.callback(publish.toPushMessage()) }
                 .send()
         }
@@ -336,18 +344,20 @@ class Push(client: Client) : Service(client) {
 
     // Ensure the correct host (in-process vs service) for whatever subscriptions remain, and
     // sync it. Called after an unsubscribe/update may have flipped whether background is wanted.
+    // Only acts on a host change; an in-process update that changes QoS is applied by the
+    // caller (so an unchanged in-process host is not needlessly resubscribed).
     private fun reconcile() {
         if (subscriptions.isEmpty()) {
             return
         }
         if (backgroundWanted()) {
+            // Relocate to (or re-sync) the service; sync() applies added/removed/QoS-changed topics.
             hostInService()
-        } else {
-            if (serviceActive) {
-                serviceActive = false
-                appContext?.let { PushForeground.stop(it) }
-                PushForeground.sync(emptyList())
-            }
+        } else if (serviceActive) {
+            // Relocate back in-process.
+            serviceActive = false
+            appContext?.let { PushForeground.stop(it) }
+            PushForeground.sync(emptyList())
             ensureInProcessSubscribed()
         }
     }
@@ -373,7 +383,8 @@ class Push(client: Client) : Service(client) {
         }
     }
 
-    private fun updateIds(ids: List<String>, background: Boolean?, title: String?) {
+    private fun updateIds(ids: List<String>, background: Boolean?, title: String?, reDeliverIfMissed: Boolean?) {
+        val changedFilters = mutableSetOf<String>()
         for (id in ids) {
             val sub = subscriptions[id] ?: continue
             if (background != null) {
@@ -382,19 +393,27 @@ class Push(client: Client) : Service(client) {
             if (title != null) {
                 sub.title = title
             }
+            if (reDeliverIfMissed != null && reDeliverIfMissed != sub.reDeliver) {
+                sub.reDeliver = reDeliverIfMissed
+                changedFilters.add(sub.filter)
+            }
         }
+        val wasService = serviceActive
+        // Handle any host change (relocation); a relocated host resubscribes everything fresh.
         reconcile()
+        // Apply QoS changes to a host that did not relocate: the service re-sync above already
+        // covers the service host, so only the steady in-process host needs an explicit resub.
+        if (!backgroundWanted() && !wasService) {
+            for (filter in changedFilters) {
+                resubscribeFilterInProcess(filter)
+            }
+        }
     }
 
     private fun backgroundWanted(): Boolean = subscriptions.values.any { it.background }
 
     private fun currentListeners(): List<PushListener> =
-        subscriptions.values.map { PushListener(setOf(it.filter), it.callback, it.background, it.title) }
-
-    // QoS for subscribe, chosen by [replay]: at-least-once (1) when replay is on,
-    // at-most-once (0) when off.
-    private val defaultQos: MqttQos
-        get() = if (replay) MqttQos.AT_LEAST_ONCE else MqttQos.AT_MOST_ONCE
+        subscriptions.values.map { PushListener(setOf(it.filter), it.callback, it.background, it.title, it.reDeliver) }
 
     /** Tear down the connection and drop all active subscriptions. */
     fun close() {
@@ -453,7 +472,6 @@ class Push(client: Client) : Service(client) {
             authMethod = authMethod,
             credential = credential,
             project = client.config["project"] ?: "",
-            replay = replay,
         )
     }
 
@@ -506,7 +524,6 @@ internal data class PushConfig(
     val authMethod: String,
     val credential: String,
     val project: String,
-    val replay: Boolean,
 )
 
 /** Read the credential set on the client (via Client.setJWT / setSession). */
@@ -563,9 +580,9 @@ internal fun buildPushClient(
 internal fun Mqtt5AsyncClient.pushConnect(config: PushConfig) {
     connectWith()
         .enhancedAuth(PushAuthMechanism(config.authMethod, config.credential))
-        // Clean start off in reliable mode so the broker keeps this client's replay
-        // cursor and redelivers what it missed; on in non-reliable mode so it is purged.
-        .cleanStart(!config.replay)
+        // Clean start is always off, so the broker keeps this client's session and can
+        // redeliver missed messages to QoS-1 subscriptions on reconnect.
+        .cleanStart(false)
         .keepAlive(config.keepAlive)
         .userProperties()
         .add("projectId", config.project)
@@ -660,12 +677,13 @@ internal object PushInsecureTrustManagerFactory : TrustManagerFactory(
     "{{ spec.info.title | caseUcfirst }}Insecure",
 )
 
-/** A foreground subscription: the topics it wants, its callback, and its notification opt-in. */
+/** A foreground subscription: the topics it wants, its callback, notification opt-in and QoS. */
 internal class PushListener(
     val topics: Set<String>,
     val callback: (PushMessage) -> Unit,
     val background: Boolean,
     val title: String?,
+    val reDeliver: Boolean,
 )
 
 /**
@@ -686,35 +704,56 @@ internal object PushForeground {
     @Volatile
     var ongoingTitle: String = "{{ spec.info.title | caseUcfirst }}"
 
-    // Guards the topic union and the live subscribe/unsubscribe hooks so replacing the
-    // listener set and diffing the topic union against the live service are atomic — no topic
-    // is lost to, or left active by, their interleaving.
+    // Guards the topic->QoS map and the live subscribe/unsubscribe hooks so replacing the
+    // listener set and diffing it against the live service are atomic — no topic is lost to,
+    // or left active/at-the-wrong-QoS by, their interleaving.
     private val lock = Any()
-    private val topicSet = linkedSetOf<String>()
+    private val topicQos = linkedMapOf<String, MqttQos>()
     private var subscriber: ((List<String>) -> Unit)? = null
     private var unsubscriber: ((List<String>) -> Unit)? = null
 
     val listeners = CopyOnWriteArrayList<PushListener>()
 
+    /** The effective QoS the service should subscribe [topic] at (AT_LEAST_ONCE by default). */
+    fun qosFor(topic: String): MqttQos = synchronized(lock) {
+        topicQos[topic] ?: MqttQos.AT_LEAST_ONCE
+    }
+
     /**
      * Replace the listener set with [newListeners] and reconcile the broker subscriptions:
-     * subscribe any newly-wanted topic and unsubscribe any no-one-wants-anymore, so the live
-     * service converges on exactly the union the app currently wants.
+     * subscribe any newly-wanted topic, unsubscribe any no-one-wants-anymore, and
+     * unsubscribe+resubscribe any whose effective QoS changed, so the live service converges
+     * on exactly the topics-and-QoS the app currently wants.
      */
     fun sync(newListeners: List<PushListener>) {
         synchronized(lock) {
             listeners.clear()
             listeners.addAll(newListeners)
-            val wanted = newListeners.flatMapTo(linkedSetOf()) { it.topics }
-            val removed = topicSet.filter { it !in wanted }
-            val added = wanted.filter { it !in topicSet }
-            if (removed.isNotEmpty()) {
-                topicSet.removeAll(removed.toSet())
-                unsubscriber?.invoke(removed)
+            // Effective (max) QoS per wanted topic.
+            val wanted = linkedMapOf<String, MqttQos>()
+            for (listener in newListeners) {
+                for (topic in listener.topics) {
+                    if (listener.reDeliver || wanted[topic] == MqttQos.AT_LEAST_ONCE) {
+                        wanted[topic] = MqttQos.AT_LEAST_ONCE
+                    } else {
+                        wanted[topic] = wanted[topic] ?: MqttQos.AT_MOST_ONCE
+                    }
+                }
             }
-            if (added.isNotEmpty()) {
-                topicSet.addAll(added)
-                subscriber?.invoke(added)
+            val removed = topicQos.keys.filter { it !in wanted }
+            // A topic already subscribed whose QoS changed must be unsubscribed then
+            // resubscribed (HiveMQ would otherwise stack a second callback).
+            val changed = wanted.filter { (t, q) -> topicQos.containsKey(t) && topicQos[t] != q }.keys
+            val toUnsub = removed + changed
+            if (toUnsub.isNotEmpty()) {
+                removed.forEach { topicQos.remove(it) }
+                unsubscriber?.invoke(toUnsub.toList())
+            }
+            val added = wanted.keys.filter { it !in topicQos }
+            val toSub = added + changed
+            toSub.forEach { topicQos[it] = wanted.getValue(it) }
+            if (toSub.isNotEmpty()) {
+                subscriber?.invoke(toSub.toList())
             }
         }
     }
@@ -729,7 +768,7 @@ internal object PushForeground {
     ): List<String> = synchronized(lock) {
         this.subscriber = subscribe
         this.unsubscriber = unsubscribe
-        topicSet.toList()
+        topicQos.keys.toList()
     }
 
     fun detach() {
