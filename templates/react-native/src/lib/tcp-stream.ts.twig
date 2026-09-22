@@ -40,7 +40,10 @@ export function createTcpStream({
     /* eslint-disable @typescript-eslint/no-require-imports */
     let TcpSocket: typeof TcpSocketType;
     try {
-        TcpSocket = require('react-native-tcp-socket').default;
+        // react-native-tcp-socket is a CommonJS module (module.exports = { ... }) with no
+        // `.default`, so read that off first and fall back to the module for ESM interop.
+        const mod = require('react-native-tcp-socket');
+        TcpSocket = mod.default ?? mod;
     } catch {
         throw new Error(
             "Native push requires the optional peer 'react-native-tcp-socket'. Install it to use Push on React Native.",
