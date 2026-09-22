@@ -203,6 +203,24 @@ namespace {{ spec.info.title | caseUcfirst }}
             return await Subscribe(new[] { topic }, callback, reDeliverIfMissed);
         }
 
+        // MQTTnet reports broker-rejected filters in the SUBACK result rather than throwing,
+        // so a completed SubscribeAsync is not necessarily a success — every item must carry a
+        // granted reason code.
+        private static bool AllGranted(MqttClientSubscribeResult result)
+        {
+            foreach (var item in result.Items)
+            {
+                if (item.ResultCode != MqttClientSubscribeResultCode.GrantedQoS0
+                    && item.ResultCode != MqttClientSubscribeResultCode.GrantedQoS1
+                    && item.ResultCode != MqttClientSubscribeResultCode.GrantedQoS2)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         public async Task<PushSubscription> Subscribe(IEnumerable<string> topics, Action<PushMessage> callback, bool reDeliverIfMissed = true)
         {
             var client = await Connect();
@@ -309,7 +327,11 @@ namespace {{ spec.info.title | caseUcfirst }}
             // now-unused broker filter) so a failed subscribe leaks no callback, then rethrow.
             try
             {
-                await client.SubscribeAsync(builder.Build());
+                var result = await client.SubscribeAsync(builder.Build());
+                if (!AllGranted(result))
+                {
+                    throw new {{ spec.info.title | caseUcfirst }}Exception("The broker rejected the subscription.");
+                }
             }
             catch
             {
@@ -545,7 +567,14 @@ namespace {{ spec.info.title | caseUcfirst }}
                                     .WithQualityOfServiceLevel(EffectiveQos(filter)));
                             }
 
-                            await client.SubscribeAsync(rebuild.Build());
+                            // A broker-rejected resubscription is reported in the result, not
+                            // thrown, so keep retrying rather than declaring recovery done.
+                            var result = await client.SubscribeAsync(rebuild.Build());
+                            if (!AllGranted(result))
+                            {
+                                delayMs = Math.Min(delayMs * 2, 30000);
+                                continue;
+                            }
                         }
 
                         // The client's ConnectedAsync handler already queued _onOpen for this
