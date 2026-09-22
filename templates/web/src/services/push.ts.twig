@@ -362,11 +362,10 @@ export class Push extends Service {
         }
 
         const project = this.client.config.project ?? '';
-        // A stable client id (Client.setPushClientId) lets the broker resume this client's
-        // replay cursor across reloads; otherwise a per-connection id is generated.
-        const clientId =
-            this.client.config.pushClientId ||
-            `appwrite-${project}-${randomId().slice(0, 8)}`;
+        // Send an empty client id when the app did not set one: the broker derives a stable
+        // id server-side (keyed on the credential/project) so the replay cursor resumes across
+        // reloads. Client.setPushClientId(id) overrides it with an explicit id.
+        const clientId = this.client.config.pushClientId ?? '';
 
         const options: IClientOptions = {
             clientId,

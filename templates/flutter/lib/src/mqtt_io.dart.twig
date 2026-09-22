@@ -117,13 +117,10 @@ class PushIO implements Push {
         _tls = tls,
         _tlsInsecure = tlsInsecure;
 
-  String _pushClientId() {
-    final id = client.config['pushClientId'];
-    if (id != null && id.isNotEmpty) {
-      return id;
-    }
-    return 'appwrite-${client.config['project'] ?? ''}-${_randomId().substring(0, 8)}';
-  }
+  // Empty when the app did not set one: the broker derives a stable id server-side (keyed on
+  // the credential/project) so the replay cursor resumes across restarts.
+  // Client.setPushClientId(id) overrides it with an explicit id.
+  String _pushClientId() => client.config['pushClientId'] ?? '';
 
   static bool _secureScheme(String endpoint) {
     try {
@@ -528,10 +525,10 @@ class PushIO implements Push {
     }
 
     final project = client.config['project'] ?? '';
-    // A non-empty client id is required for a persistent session (clean start off) — some
-    // MQTT clients/brokers reject a zero-length id in that mode. The broker keys its
-    // offline-replay cursor on this id, resolved once per instance (see [_resolvedClientId])
-    // so a reconnect rebuild reuses it and resumes the same session.
+    // An empty client id makes the broker derive a stable id server-side (keyed on the
+    // credential/project) and key its offline-replay cursor on it; Client.setPushClientId(id)
+    // overrides with an explicit id. Resolved once per instance (see [_resolvedClientId]) so a
+    // reconnect rebuild reuses the same id and resumes the same session.
     final clientId = _resolvedClientId;
 
     final mqtt = MqttServerClient.withPort(_host, clientId, _port);

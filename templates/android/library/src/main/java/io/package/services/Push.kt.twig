@@ -140,13 +140,11 @@ class Push(client: Client) : Service(client) {
             }.getOrDefault(false)
         } ?: false
 
-    // Resolve the fallback client id once per instance: a reconnect rebuilds the MQTT client,
-    // and if each rebuild drew a new random id the broker would treat it as a new session and
-    // drop this client's replay cursor. A stable id from Client.setPushClientId() resumes
-    // replay across restarts; otherwise one is generated. Reusing one id keeps it stable.
+    // Empty when the app did not set one: the broker derives a stable id server-side (keyed on
+    // the credential/project) so the replay cursor resumes across restarts.
+    // Client.setPushClientId() overrides it with an explicit id.
     private val resolvedClientId: String =
-        client.pushClientId?.takeIf { it.isNotEmpty() }
-            ?: "appwrite-${client.config["project"] ?: ""}-${UUID.randomUUID().toString().substring(0, 8)}"
+        client.pushClientId?.takeIf { it.isNotEmpty() } ?: ""
 
     private var mqtt: Mqtt5AsyncClient? = null
 
@@ -559,21 +557,25 @@ internal fun buildPushClient(
     onConnected: (() -> Unit)? = null,
     onDisconnected: ((Throwable?) -> Unit)? = null,
 ): Mqtt5AsyncClient {
-    // A non-empty identifier is required for a persistent session (clean start off): HiveMQ
-    // sends an empty id expecting the broker to assign one, which it does not. The broker keys
-    // its offline-replay cursor on this id; it is resolved once per Push instance (see
-    // resolvedClientId) so a reconnect rebuild reuses it and resumes the same session.
+    // When no client id was set (config.clientId is empty), the identifier is left unset so
+    // HiveMQ sends an empty id and the broker derives a stable one server-side (keyed on the
+    // credential/project), keeping its offline-replay cursor. Client.setPushClientId() sets an
+    // explicit id, resolved once per Push instance (see resolvedClientId) so a reconnect
+    // rebuild reuses it and resumes the same session.
     var builder = MqttClient.builder()
         .useMqttVersion5()
-        .identifier(config.clientId)
         .serverHost(config.host)
         .serverPort(config.port)
         // Recover from an unexpected disconnect (network drop, broker restart) with HiveMQ's
         // exponential backoff. A user-initiated disconnect() (see close()) does not trigger it.
-        // Because clean start is off and the client id is stable, the broker resumes the same
-        // session — subscriptions and the QoS-1 replay cursor persist, so delivery continues
-        // without resubscribing (which would stack a second per-subscription callback).
+        // Because clean start is off and the broker resumes the same session, subscriptions and
+        // the QoS-1 replay cursor persist, so delivery continues without resubscribing (which
+        // would stack a second per-subscription callback).
         .automaticReconnectWithDefaultConfig()
+
+    if (config.clientId.isNotEmpty()) {
+        builder = builder.identifier(config.clientId)
+    }
 
     if (onConnected != null) {
         builder = builder.addConnectedListener { onConnected() }

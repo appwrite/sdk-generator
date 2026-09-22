@@ -124,12 +124,11 @@ open class Push: Service {
         // is described by one URL, not a second config knob.
         let insecureFlag = URLComponents(string: pushEndpoint)?.queryItems?.first(where: { $0.name == "tlsInsecure" })?.value
         self.tlsInsecure = insecureFlag == "true" || insecureFlag == "1"
-        let project = client.config["project"] ?? ""
+        // Empty when the app did not set one: the broker derives a stable id server-side
+        // (keyed on the credential/project) so the replay cursor resumes across restarts.
+        // Client.setPushClientId(id) overrides it with an explicit id.
         let pushClientId = client.pushClientId
-        self.resolvedClientId =
-            (pushClientId?.isEmpty == false)
-            ? pushClientId!
-            : "appwrite-\(project)-\(UUID().uuidString.prefix(8))"
+        self.resolvedClientId = (pushClientId?.isEmpty == false) ? pushClientId! : ""
         super.init(client)
     }
 
@@ -376,10 +375,10 @@ open class Push: Service {
         sync.sync { closing = false }
         let properties = try connectProperties()
 
-        // A non-empty identifier is required for a persistent session (clean start off) — some
-        // MQTT clients/brokers reject a zero-length id in that mode. The broker keys its
-        // offline-replay cursor on this id, resolved once per instance (see resolvedClientId)
-        // so a reconnect rebuild reuses it and resumes the same session.
+        // An empty identifier makes the broker derive a stable id server-side (keyed on the
+        // credential/project) and key its offline-replay cursor on it; Client.setPushClientId(id)
+        // overrides with an explicit id. Resolved once per instance (see resolvedClientId) so a
+        // reconnect rebuild reuses the same id and resumes the same session.
         let id = resolvedClientId
 
         var tlsConfiguration: MQTTClient.TLSConfigurationType?

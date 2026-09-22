@@ -430,15 +430,12 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             var host = new Uri(PushEndpoint).Host;
             var project = _client.Config.GetValueOrDefault("project") ?? "";
-            // A non-empty client id is required for a persistent session (clean start off) —
-            // some MQTT clients/brokers reject a zero-length id in that mode. The broker keys
-            // its offline-replay cursor on this id; resolve it once so a reconnect rebuild reuses
-            // it and resumes the same session. A stable id from Client.SetPushClientId() resumes
-            // replay across restarts; otherwise one is generated.
+            // Empty when the app did not set one: the broker derives a stable id server-side
+            // (keyed on the credential/project) and keys its offline-replay cursor on it, so
+            // replay resumes across restarts; Client.SetPushClientId() overrides with an
+            // explicit id. Resolved once so a reconnect rebuild reuses the same id.
             var pushClientId = _client.Config.GetValueOrDefault("pushClientId");
-            _resolvedClientId ??= string.IsNullOrEmpty(pushClientId)
-                ? $"appwrite-{project}-{Guid.NewGuid().ToString().Substring(0, 8)}"
-                : pushClientId;
+            _resolvedClientId ??= string.IsNullOrEmpty(pushClientId) ? "" : pushClientId;
             var clientId = _resolvedClientId;
 
             var optionsBuilder = new MqttClientOptionsBuilder()
