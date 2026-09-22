@@ -25,12 +25,17 @@ void main() {
         ).firstMatch(body);
         filenames.add(disposition?.group(1));
 
+        final range = RegExp(r'bytes\s+(\d+)-(\d+)/(\d+)')
+            .firstMatch(request.headers.value('content-range') ?? '');
+        final isFinalChunk = range != null &&
+            int.parse(range.group(2)!) + 1 >= int.parse(range.group(3)!);
+
         request.response
           ..headers.contentType = ContentType.json
           ..write(jsonEncode({
             '\$id': 'upload',
-            'chunksUploaded': filenames.length,
-            'chunksTotal': 2,
+            'chunksUploaded': isFinalChunk ? 1 : 0,
+            'chunksTotal': 1,
           }));
         await request.response.close();
       });
@@ -55,8 +60,14 @@ void main() {
       );
 
       expect(
+        filenames.length,
+        greaterThan(1),
+        reason: 'the file must be larger than one chunk for this to exercise '
+            'the chunked path at all',
+      );
+      expect(
         filenames,
-        ['video.mp4', 'video.mp4'],
+        everyElement('video.mp4'),
         reason: 'a chunk without a filename is parsed as a plain form field '
             'and the server rejects the upload as an empty file',
       );
