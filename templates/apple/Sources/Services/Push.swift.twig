@@ -102,7 +102,7 @@ open class Push: Service {
     // sent to the broker; it only lets the same topic carry more than one callback.
     private var subscriptions: [String: (filter: String, callback: (PushMessage) -> Void, background: Bool, title: String?)] = [:]
 
-    public init(_ client: Client) {
+    public override init(_ client: Client) {
         // The broker location is taken from Client.setPushEndpoint() when set (e.g.
         // "mqtts://host:8883"), otherwise from the regular endpoint.
         let pushEndpoint = client.endPointPush ?? client.endPoint
@@ -289,6 +289,7 @@ open class Push: Service {
             mqtt = nil
             connecting?.cancel()
             connecting = nil
+            subscriptions.removeAll()
             return existing
         }
         guard let client else { return }
