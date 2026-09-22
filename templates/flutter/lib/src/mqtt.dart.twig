@@ -72,9 +72,12 @@ abstract class Push extends Service {
 
   /// Subscribe to one or more topics, resolving to a [PushSubscription] handle.
   ///
-  /// [topics] is a single topic string or a list of them. The future resolves only
-  /// once every subscription has been acknowledged (SUBACK), so a subscribe-then-
-  /// publish is reliable. Delivery QoS follows [setReplayMessages].
+  /// [topics] is a single topic string or a list of them. For a foreground subscription
+  /// the future resolves only once every subscription has been acknowledged (SUBACK), so a
+  /// subscribe-then-publish is reliable. A [background] subscription hands the connection to
+  /// the background isolate, which connects and subscribes asynchronously, so it resolves
+  /// once the isolate has been handed the subscription rather than after SUBACK (use
+  /// [onOpen]/[onError] to observe that connection). Delivery QoS follows [setReplayMessages].
   ///
   /// Set [background] to also keep receiving while the app is backgrounded or closed
   /// (mobile: an Android foreground service via `flutter_background_service`; web: a
