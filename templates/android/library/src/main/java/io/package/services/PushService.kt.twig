@@ -26,14 +26,7 @@ class PushService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForegroundCompat()
-        if (intent?.action == PushForeground.ACTION_RECONNECT) {
-            // The replay mode changed: tear the current client down and rebuild it from the
-            // updated config so the new clean-start/QoS take effect (a plain connect would
-            // no-op on the already-connected client).
-            reconnect()
-        } else {
-            connectAndSubscribe()
-        }
+        connectAndSubscribe()
         // NOT sticky: the credential/topics/listeners live only in the process, so a
         // kill-and-recreate could not restore the connection anyway. This covers
         // backgrounding and swipe-away (process alive), not a hard process kill.
@@ -83,15 +76,6 @@ class PushService : Service() {
         }
     }
 
-    // Rebuild the connection from the current PushForeground.config (topics/listeners are
-    // preserved in PushForeground; attach() re-subscribes them at the new QoS).
-    private fun reconnect() {
-        PushForeground.detach()
-        mqtt?.disconnect()
-        mqtt = null
-        connectAndSubscribe()
-    }
-
     private fun subscribeTopics(topics: List<String>) {
         val client = mqtt ?: return
         val qos = if (PushForeground.config?.replay != false) {
@@ -118,21 +102,21 @@ class PushService : Service() {
     }
 
     private fun onMessage(message: PushMessage) {
-        // Fan out to each listener whose own topics match; only notify when one did, so a
-        // message that arrives for a just-removed topic (unsubscribe still in flight)
-        // produces no unwanted notification.
-        if (PushForeground.dispatch(message)) {
-            postNotification(message)
+        // Fan out to each listener whose own topics match; post a notification only for the
+        // matching listeners that opted into background, each with its own title (a message
+        // for a just-removed topic matches nothing and produces none).
+        for (title in PushForeground.dispatch(message)) {
+            postNotification(message, title)
         }
     }
 
-    private fun postNotification(message: PushMessage) {
+    private fun postNotification(message: PushMessage, title: String) {
         val manager = NotificationManagerCompat.from(this)
         if (!manager.areNotificationsEnabled()) {
             return
         }
         val notification = NotificationCompat.Builder(this, PushForeground.CHANNEL_ID)
-            .setContentTitle(message.topic)
+            .setContentTitle(title)
             .setContentText(message.string)
             .setSmallIcon(android.R.drawable.stat_notify_chat)
             .setAutoCancel(true)
