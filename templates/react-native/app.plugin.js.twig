@@ -1,0 +1,51 @@
+const {
+    AndroidConfig,
+    createRunOncePlugin,
+    withAndroidManifest,
+} = require('@expo/config-plugins');
+
+const pkg = require('./package.json');
+
+// react-native-background-actions ships this foreground service, but its
+// bundled manifest declares neither a foregroundServiceType nor the typed
+// permission Android 14+ (API 34) requires, so starting it there throws.
+// This plugin patches the merged manifest so Push.setBackground() works.
+const BACKGROUND_SERVICE =
+    'com.asterinet.react.bgactions.RNBackgroundActionsTask';
+
+const PERMISSIONS = [
+    'android.permission.FOREGROUND_SERVICE',
+    'android.permission.FOREGROUND_SERVICE_DATA_SYNC',
+    'android.permission.POST_NOTIFICATIONS',
+];
+
+function setBackgroundServiceType(androidManifest) {
+    const application =
+        AndroidConfig.Manifest.getMainApplicationOrThrow(androidManifest);
+    application.service = application.service ?? [];
+
+    let service = application.service.find(
+        (item) => item.$?.['android:name'] === BACKGROUND_SERVICE,
+    );
+    if (!service) {
+        // The library merges its own <service> at build time; declaring the
+        // same node here lets the manifest merger fold these attributes onto it.
+        service = { $: { 'android:name': BACKGROUND_SERVICE } };
+        application.service.push(service);
+    }
+
+    service.$['android:foregroundServiceType'] = 'dataSync';
+    service.$['android:stopWithTask'] = 'false';
+
+    return androidManifest;
+}
+
+const withPushBackground = (config) => {
+    config = AndroidConfig.Permissions.withPermissions(config, PERMISSIONS);
+    return withAndroidManifest(config, (props) => {
+        props.modResults = setBackgroundServiceType(props.modResults);
+        return props;
+    });
+};
+
+module.exports = createRunOncePlugin(withPushBackground, pkg.name, pkg.version);

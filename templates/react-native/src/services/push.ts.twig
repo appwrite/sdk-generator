@@ -168,7 +168,10 @@ export class Push extends Service {
      * posting a local notification per message. Runs the connection inside an Android
      * foreground service via `react-native-background-actions` and posts notifications via
      * `expo-notifications` — install both as peer dependencies, and note this needs a
-     * dev/standalone build (native modules do not run in Expo Go). `setBackground(false)`
+     * dev/standalone build (native modules do not run in Expo Go). On Android 14+ the
+     * foreground service also needs a `foregroundServiceType` and the matching runtime
+     * permissions; add this package to your Expo `plugins` (it ships an `app.plugin.js`
+     * config plugin) so prebuild injects them into the manifest. `setBackground(false)`
      * turns it off and stops the service if running.
      *
      * @param enabled Whether background delivery is on. Defaults to true.

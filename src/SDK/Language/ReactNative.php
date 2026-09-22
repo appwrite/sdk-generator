@@ -78,6 +78,11 @@ class ReactNative extends Web
                 'template'      => 'react-native/src/lib/polyfills.ts.twig',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'app.plugin.js',
+                'template'      => 'react-native/app.plugin.js.twig',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'src/models.ts',
                 'template'      => 'react-native/src/models.ts.twig',
