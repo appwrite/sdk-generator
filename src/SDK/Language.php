@@ -3,6 +3,7 @@
 namespace Appwrite\SDK;
 
 use Appwrite\SDK\Extension;
+use Appwrite\SDK\Extension\Appwrite;
 use Utopia\OpenAPI\Model\AnySchema;
 use Normalizer;
 use Utopia\OpenAPI\Model\ArraySchema;
@@ -626,9 +627,12 @@ abstract class Language
     /** @return list<Parameter> */
     protected function getOperationParameters(Operation $operation): array
     {
+        $config = $operation->extensions[Extension::APPWRITE->value][Appwrite::CONFIG->value] ?? [];
         $parameters = \array_values(\array_filter(
             $operation->parameters,
-            static fn(Parameter $parameter): bool => ($parameter->extensions[Extension::SDK_SOURCE->value] ?? '') !== 'security',
+            static fn(Parameter $parameter): bool => $parameter->location !== ParameterLocation::PATH
+                || !\is_array($config)
+                || !isset($config[$parameter->name]),
         ));
         foreach ($operation->requestBody?->content ?? [] as $mediaType) {
             if (!$mediaType->schema instanceof ObjectSchema) {

@@ -157,6 +157,19 @@ export type UploadProgress = {
     chunksUploaded: number;
 };
 
+/**
+ * A multipart file part that both React Native networking stacks understand.
+ *
+ * React Native's own fetch reads `uri` natively. Expo's fetch, the global
+ * fetch since Expo SDK 57, ignores `uri` and encodes the body from `bytes()`.
+ */
+export type FilePart = {
+    uri: string;
+    name: string;
+    type: string;
+    bytes: () => Promise<Uint8Array>;
+};
+
 class {{spec.info.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;

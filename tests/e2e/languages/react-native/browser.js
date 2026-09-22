@@ -1,3 +1,4 @@
+import './shims/expo-runtime';
 import {
     Client,
     Foo,
@@ -141,6 +142,30 @@ import {
 
     // Download
     console.log(new TextDecoder().decode(await general.download()));
+
+    // Upload
+    const smallFile = {
+        name: 'file.png',
+        type: 'image/png',
+        size: 38756,
+        uri: 'http://localhost:3000/file.png',
+    };
+    const largeFile = {
+        name: 'large_file.mp4',
+        type: 'video/mp4',
+        size: 16310023,
+        uri: 'http://localhost:3000/large_file.mp4',
+    };
+    response = await general.upload('string', 123, ['string in array'], smallFile);
+    console.log(response.result);
+    response = await general.upload('string', 123, ['string in array'], largeFile);
+    console.log(response.result);
+
+    // Upload (Object params)
+    response = await general.upload({ x: 'string', y: 123, z: ['string in array'], file: smallFile });
+    console.log(response.result);
+    response = await general.upload({ x: 'string', y: 123, z: ['string in array'], file: largeFile });
+    console.log(response.result);
 
     // Enum
     response = await general.enum(MockType.First);

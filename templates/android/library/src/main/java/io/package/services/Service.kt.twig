@@ -74,7 +74,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     ){% if (method | methodType) != "webAuth" %}: {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}{% endif %} {
     {%~ endif %}
     {%~ for parameter in pathParameters %}
-    {%~ if parameter.required and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty and (parameter.extensions['x-sdk-source']|default('')) != 'security' %}
+    {%~ if parameter.required and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty and not (parameter | configKey(method)) %}
         if ({{ parameter.name | caseCamel }}{% if (parameter | schemaNullable) %}?.isEmpty() == true{% else %}.isEmpty(){% endif %}) {
             throw {{ spec.info.title | caseUcfirst }}Exception("Missing required parameter: \"{{ parameter.name | caseCamel }}\"")
         }
@@ -82,7 +82,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ endfor %}
         val apiPath = {% if pathParameters is empty and securityQueries is empty %}"{{ method.path }}"{% else %}("{{ method.path }}"
         {%~ for parameter in pathParameters %}
-            .replace("{{ '{' ~ parameter.name ~ '}' }}", {% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}client.config["{{ parameter.extensions['x-sdk-config'] | caseCamel }}"].orEmpty(){% else %}{{ parameter.name | caseCamel }}{% if (parameter | enumValues) is not empty %}.value{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty %}.toString(){% endif %}{% endif %})
+            .replace("{{ '{' ~ parameter.name ~ '}' }}", {% if (parameter | configKey(method)) %}client.config["{{ (parameter | configKey(method)) | caseCamel }}"].orEmpty(){% else %}{{ parameter.name | caseCamel }}{% if (parameter | enumValues) is not empty %}.value{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty %}.toString(){% endif %}{% endif %})
         {%~ endfor %}
             {%~ for security in securityQueries %}
             + "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${java.net.URLEncoder.encode(client.config.get("{{ security.name | caseCamel }}").orEmpty(), "UTF-8")}"
@@ -97,8 +97,8 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
         {%~ endfor %}
         {%~ if (method | methodType) == 'webAuth' %}
-        {%~ if [(method | securitySchemes)] | length > 0 %}
-        {%~ for node in [(method | securitySchemes)] %}
+        {%~ if [(method | locationSchemes)] | length > 0 %}
+        {%~ for node in [(method | locationSchemes)] %}
         {%~ for key,header in node | keys %}
             "{{ header | caseLower }}" to client.config["{{ header | caseLower }}"],
         {%~ endfor %}
