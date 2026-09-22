@@ -277,6 +277,8 @@ export class Push extends Service {
 
         const update = (next: SubscribeOptions) => {
             const changedFilters = new Set<string>();
+            // Remember the pre-update QoS per id so a rejected re-SUBSCRIBE can be rolled back.
+            const previous = new Map<string, 0 | 1>();
             for (const id of ids) {
                 const entry = this.subscriptions.get(id);
                 if (!entry) {
@@ -291,17 +293,35 @@ export class Push extends Service {
                 if (next.reDeliverIfMissed !== undefined) {
                     const q: 0 | 1 = next.reDeliverIfMissed ? 1 : 0;
                     if (q !== entry.qos) {
+                        previous.set(id, entry.qos);
                         entry.qos = q;
                         changedFilters.add(entry.topic);
                     }
                 }
             }
             // Re-SUBSCRIBE the affected filters at their new effective QoS (a SUBSCRIBE to an
-            // existing filter just updates its QoS — no unsubscribe gap).
+            // existing filter just updates its QoS — no unsubscribe gap). If the broker rejects
+            // it, the old subscription still stands, so restore the local QoS to match and
+            // surface the error rather than silently assuming the change took effect.
             for (const filter of changedFilters) {
-                this.mqtt?.subscribe(filter, {
-                    qos: this.effectiveQos(filter),
-                });
+                this.mqtt?.subscribe(
+                    filter,
+                    { qos: this.effectiveQos(filter) },
+                    (err) => {
+                        if (!err) {
+                            return;
+                        }
+                        for (const [id, q] of previous) {
+                            const entry = this.subscriptions.get(id);
+                            if (entry && entry.topic === filter) {
+                                entry.qos = q;
+                            }
+                        }
+                        this.onErrorCb?.(
+                            err instanceof Error ? err : new Error(String(err)),
+                        );
+                    },
+                );
             }
             this.syncBackgroundService();
         };
