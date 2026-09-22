@@ -154,6 +154,11 @@ export class Push extends Service {
             // leave defaults
         }
 
+        // When no explicit push endpoint is set, default to a `push.` host on the regular
+        // endpoint (mirroring how realtime derives from the endpoint, on the push subdomain).
+        if (endpointHost && !client.config.endpointPush) {
+            endpointHost = `push.${endpointHost}`;
+        }
         this.host = endpointHost || 'localhost';
         // Secure by default: TLS on when the endpoint scheme is secure, so the credential
         // in the CONNECT packet is not sent over a plaintext socket.

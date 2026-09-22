@@ -115,8 +115,11 @@ class Push(client: Client) : Service(client) {
     // "mqtts://host:8883"), otherwise from the regular endpoint.
     private val pushEndpoint: String = client.endpointPush ?: client.endpoint
 
+    // When no explicit push endpoint is set, default to a `push.` host on the regular endpoint
+    // (mirroring how realtime derives from the endpoint, on the push subdomain).
     private val host: String =
-        runCatching { URI(pushEndpoint).host }.getOrNull() ?: "localhost"
+        (runCatching { URI(pushEndpoint).host }.getOrNull() ?: "localhost")
+            .let { if (client.endpointPush != null) it else "push.$it" }
 
     // Secure by default: TLS on when the endpoint scheme is secure (https/wss/mqtts/ssl), so
     // the credential in the CONNECT packet is not sent in the clear.

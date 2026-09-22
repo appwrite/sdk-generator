@@ -428,7 +428,14 @@ namespace {{ spec.info.title | caseUcfirst }}
                 throw new {{ spec.info.title | caseUcfirst }}Exception("No credential set on the client; call Client.SetJWT() or Client.SetSession() first.");
             }
 
+            // When no explicit push endpoint is set, default to a `push.` host on the regular
+            // endpoint (mirroring how realtime derives from the endpoint, on the push subdomain).
             var host = new Uri(PushEndpoint).Host;
+            if (string.IsNullOrEmpty(_client.Config.GetValueOrDefault("endpointPush")))
+            {
+                host = $"push.{host}";
+            }
+
             var project = _client.Config.GetValueOrDefault("project") ?? "";
             // Empty when the app did not set one: the broker derives a stable id server-side
             // (keyed on the credential/project) and keys its offline-replay cursor on it, so

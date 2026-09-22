@@ -97,9 +97,14 @@ class PushIO implements Push {
     final resolvedTls = _secureScheme(pushEndpoint);
     final resolvedPort =
         _pushEndpointPort(client) ?? (resolvedTls ? 8883 : 1883);
+    // When no explicit push endpoint is set, default to a `push.` host on the regular
+    // endpoint (mirroring how realtime derives from the endpoint, on the push subdomain).
+    final resolvedHost = client.config['endpointPush'] != null
+        ? _hostOf(pushEndpoint)
+        : 'push.${_hostOf(pushEndpoint)}';
     return PushIO._(
       client,
-      host: _hostOf(pushEndpoint),
+      host: resolvedHost,
       port: resolvedPort,
       tls: resolvedTls,
       tlsInsecure: _insecureFlag(client),

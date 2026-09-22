@@ -110,7 +110,10 @@ open class Push: Service {
         // "mqtts://host:8883"), otherwise from the regular endpoint.
         let pushEndpoint = client.endPointPush ?? client.endPoint
         let url = URL(string: pushEndpoint)
-        self.host = url?.host ?? "localhost"
+        let derivedHost = url?.host ?? "localhost"
+        // When no explicit push endpoint is set, default to a `push.` host on the regular
+        // endpoint (mirroring how realtime derives from the endpoint, on the push subdomain).
+        self.host = client.endPointPush != nil ? derivedHost : "push.\(derivedHost)"
         // Secure by default: TLS on when the endpoint scheme is secure (https/wss/mqtts/ssl),
         // so the credential in the CONNECT packet is not sent in the clear.
         let secure = ["https", "wss", "mqtts", "ssl"].contains((url?.scheme ?? "").lowercased())

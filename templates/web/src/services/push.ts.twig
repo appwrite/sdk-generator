@@ -331,18 +331,25 @@ export class Push extends Service {
     }
 
     private endpointUrl(): string {
-        // The push endpoint set on the client (Client.setPushEndpoint) wins, else the
-        // regular endpoint with its scheme switched to ws/wss.
+        // The push endpoint set on the client (Client.setPushEndpoint) wins.
         if (this.client.config.endpointPush !== '') {
             return this.client.config.endpointPush;
         }
+        // Otherwise default to a `push.` host on the regular endpoint (like realtime derives
+        // from the endpoint, but on the push subdomain), scheme switched to ws/wss.
         const endpoint =
             this.client.config.endpointRealtime !== ''
                 ? this.client.config.endpointRealtime
                 : this.client.config.endpoint;
-        return endpoint
+        const wsEndpoint = endpoint
             .replace('https://', 'wss://')
             .replace('http://', 'ws://');
+        // Prefix the host with `push.` (scheme://host/path -> scheme://push.host/path).
+        const separator = '://';
+        const at = wsEndpoint.indexOf(separator);
+        return at === -1
+            ? wsEndpoint
+            : `${wsEndpoint.slice(0, at + separator.length)}push.${wsEndpoint.slice(at + separator.length)}`;
     }
 
     private async open(): Promise<void> {
