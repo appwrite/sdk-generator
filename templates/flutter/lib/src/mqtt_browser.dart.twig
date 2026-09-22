@@ -19,13 +19,16 @@ class _Subscription {
   final PushCallback callback;
   bool background;
   String? title;
+  bool reDeliver;
 
-  _Subscription(this.filter, this.callback, {this.background = false, this.title});
+  _Subscription(this.filter, this.callback,
+      {this.background = false, this.title, this.reDeliver = true});
 }
 
 class _SubscriptionHandle implements PushSubscription {
   final void Function() _unsubscribe;
-  final void Function({bool? background, String? title}) _update;
+  final void Function({bool? background, String? title, bool? reDeliverIfMissed})
+      _update;
 
   _SubscriptionHandle(this._unsubscribe, this._update);
 
@@ -33,8 +36,11 @@ class _SubscriptionHandle implements PushSubscription {
   void unsubscribe() => _unsubscribe();
 
   @override
-  void update({bool? background, String? title}) =>
-      _update(background: background, title: title);
+  void update({bool? background, String? title, bool? reDeliverIfMissed}) =>
+      _update(
+          background: background,
+          title: title,
+          reDeliverIfMissed: reDeliverIfMissed);
 }
 
 // Fixed connection tuning — not exposed as an option.
@@ -51,10 +57,6 @@ class PushWeb implements Push {
   final int _port;
   final bool _tls;
   final String _path;
-
-  // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this client's
-  // replay cursor. Default on; change with setReplayMessages() before the first subscribe.
-  bool _replay = true;
 
   MqttBrowserClient? _mqtt;
   Future<void>? _connecting;
@@ -164,11 +166,12 @@ class PushWeb implements Push {
     return '';
   }
 
-  @override
-  Push setReplayMessages([bool enabled = true]) {
-    _assertNoSubscriptions('setReplayMessages');
-    _replay = enabled;
-    return this;
+  // The broker subscription for a filter uses the highest QoS any subscription on it wants,
+  // so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
+  MqttQos _effectiveQos(String filter) {
+    final reliable = _subscriptions.values
+        .any((s) => s.filter == filter && s.reDeliver);
+    return reliable ? MqttQos.atLeastOnce : MqttQos.atMostOnce;
   }
 
   @override
@@ -195,6 +198,7 @@ class PushWeb implements Push {
     PushCallback callback, {
     bool background = false,
     String? title,
+    bool reDeliverIfMissed = true,
   }) async {
     final topicList =
         topics is String ? <String>[topics] : List<String>.from(topics as List);
@@ -210,8 +214,8 @@ class PushWeb implements Push {
     for (final topic in topicList) {
       final id = _randomId();
       ids.add(id);
-      _subscriptions[id] =
-          _Subscription(topic, callback, background: background, title: title);
+      _subscriptions[id] = _Subscription(topic, callback,
+          background: background, title: title, reDeliver: reDeliverIfMissed);
 
       final completer = Completer<void>();
       (_subAcks[topic] ??= <Completer<void>>[]).add(completer);
@@ -219,7 +223,7 @@ class PushWeb implements Push {
 
       final subscription = MqttSubscription.withMaximumQos(
         MqttSubscriptionTopic(topic),
-        _defaultQos,
+        _effectiveQos(topic),
       );
       mqtt.subscribeWithSubscriptionList([subscription]);
     }
@@ -251,7 +255,8 @@ class PushWeb implements Push {
       rethrow;
     }
 
-    void update({bool? background, String? title}) {
+    void update({bool? background, String? title, bool? reDeliverIfMissed}) {
+      final changedFilters = <String>{};
       for (final id in ids) {
         final entry = _subscriptions[id];
         if (entry == null) {
@@ -263,22 +268,26 @@ class PushWeb implements Push {
         if (title != null) {
           entry.title = title;
         }
+        if (reDeliverIfMissed != null && reDeliverIfMissed != entry.reDeliver) {
+          entry.reDeliver = reDeliverIfMissed;
+          changedFilters.add(entry.filter);
+        }
       }
       if (background == true) {
         _requestNotificationPermission();
       }
+      // Re-subscribe affected filters at their new effective QoS.
+      for (final filter in changedFilters) {
+        _mqtt?.subscribeWithSubscriptionList([
+          MqttSubscription.withMaximumQos(
+            MqttSubscriptionTopic(filter),
+            _effectiveQos(filter),
+          ),
+        ]);
+      }
     }
 
     return _SubscriptionHandle(unsubscribe, update);
-  }
-
-  // A connection-level setter cannot change once a subscription pins the CONNECT flags.
-  void _assertNoSubscriptions(String method) {
-    if (_subscriptions.isNotEmpty || _mqtt != null) {
-      throw {{spec.info.title | caseUcfirst}}Exception(
-          '$method() is a connection-level setting and cannot change while '
-          'subscriptions are active; unsubscribe all (or close()) first.');
-    }
   }
 
   void _requestNotificationPermission() {
@@ -286,11 +295,6 @@ class PushWeb implements Push {
       html.Notification.requestPermission();
     }
   }
-
-  // QoS for subscribe, chosen by [setReplayMessages]: at-least-once (1) when replay is on,
-  // at-most-once (0) when off.
-  MqttQos get _defaultQos =>
-      _replay ? MqttQos.atLeastOnce : MqttQos.atMostOnce;
 
   @override
   void close() {
@@ -366,12 +370,9 @@ class PushWeb implements Push {
         .keepAliveFor(_keepAliveSeconds)
         .withAuthenticationMethod(authMethod)
         .withAuthenticationData(authData);
-    // Clean start is the only session flag the broker reads: false (the default) keeps
-    // the offline-replay cursor so a reconnect resumes where it left off; true purges
-    // it. The replay window itself is the broker's concern — we set no session expiry.
-    if (!_replay) {
-      connectMessage.startClean();
-    }
+    // Clean start is always off (never call startClean), so the broker keeps this client's
+    // session and can redeliver missed messages to QoS-1 subscriptions on reconnect. The
+    // replay window itself is the broker's concern — we set no session expiry.
     connectMessage.addUserPropertyPair('projectId', project);
     mqtt.connectionMessage = connectMessage;
 

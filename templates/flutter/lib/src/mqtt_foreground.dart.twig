@@ -49,7 +49,7 @@ Future<void> _writeConfig(
   required String serviceTitle,
   required List<String> topics,
   required Map<String, String> notify,
-  required bool replay,
+  required Map<String, int> qos,
 }) async {
   final config = <String, dynamic>{
     'endpoint': client.endPoint,
@@ -58,10 +58,10 @@ Future<void> _writeConfig(
     'jwt': client.config['jwt'] ?? client.config['jWT'],
     'session': client.config['session'],
     'pushClientId': client.config['pushClientId'],
-    'replay': replay,
     'title': serviceTitle,
     'topics': topics,
     'notify': notify,
+    'qos': qos,
   };
   (await _configFile()).writeAsStringSync(jsonEncode(config));
 }
@@ -86,21 +86,21 @@ Future<void> syncPushForeground(
   required String serviceTitle,
   required List<String> topics,
   required Map<String, String> notify,
-  required bool replay,
+  required Map<String, int> qos,
 }) async {
   await _writeConfig(
     client,
     serviceTitle: serviceTitle,
     topics: topics,
     notify: notify,
-    replay: replay,
+    qos: qos,
   );
 
   final service = FlutterBackgroundService();
   if (await service.isRunning()) {
-    // The isolate is already up: hand it the new topic/notify set so a later
+    // The isolate is already up: hand it the new topic/notify/qos set so a later
     // subscribe/unsubscribe/update takes effect without a restart.
-    service.invoke(_topicsEvent, {'topics': topics, 'notify': notify});
+    service.invoke(_topicsEvent, {'topics': topics, 'notify': notify, 'qos': qos});
     return;
   }
 
@@ -132,6 +132,13 @@ Map<String, String> _notifyOf(dynamic raw) {
     return raw.map((key, value) => MapEntry('$key', '$value'));
   }
   return <String, String>{};
+}
+
+Map<String, int> _qosOf(dynamic raw) {
+  if (raw is Map) {
+    return raw.map((key, value) => MapEntry('$key', (value as num).toInt()));
+  }
+  return <String, int>{};
 }
 
 /// Background isolate entry point: opens the connection, subscribes to the persisted
@@ -179,29 +186,40 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
     client.setPushClientId(pushClientId);
   }
 
-  final push = Push(client)..setReplayMessages(config['replay'] as bool? ?? true);
+  final push = Push(client);
 
   // filter -> notification title, for the filters that opted into background. Reassigned on
   // each [_topicsEvent]; the subscribe closures read the current map, so title/opt-in changes
   // take effect without resubscribing.
   var notify = _notifyOf(config['notify']);
+  // filter -> QoS (1 reliable / 0 not) requested by the app for each topic.
+  var qos = _qosOf(config['qos']);
 
   // One broker subscription per topic so topics can be added/removed independently as the
-  // app's subscriptions change.
+  // app's subscriptions change, plus the QoS each is currently subscribed at (so a QoS
+  // change resubscribes rather than being skipped as "already subscribed").
   final subscriptions = <String, PushSubscription>{};
+  final subscribedQos = <String, int>{};
 
   Future<void> applyTopics(List<String> topics) async {
     final wanted = topics.toSet();
     for (final topic in subscriptions.keys.toList()) {
       if (!wanted.contains(topic)) {
         subscriptions.remove(topic)?.unsubscribe();
+        subscribedQos.remove(topic);
       }
     }
     for (final topic in wanted) {
+      final desiredQos = qos[topic] ?? 1;
       if (subscriptions.containsKey(topic)) {
-        continue;
+        if (subscribedQos[topic] == desiredQos) {
+          continue;
+        }
+        // QoS changed for this topic: drop and resubscribe at the new level.
+        subscriptions.remove(topic)?.unsubscribe();
       }
       final filter = topic;
+      subscribedQos[topic] = desiredQos;
       subscriptions[topic] = await push.subscribe(topic, (message) {
         // Notify only for filters that opted into background, each with its own title.
         final title = notify[filter];
@@ -226,7 +244,7 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
           'payload': message.string,
           'qos': message.qos,
         });
-      });
+      }, reDeliverIfMissed: desiredQos == 1);
     }
   }
 
@@ -258,6 +276,7 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
 
   service.on(_topicsEvent).listen((data) {
     notify = _notifyOf(data?['notify']);
+    qos = _qosOf(data?['qos']);
     final topics = ((data?['topics'] as List?) ?? const <dynamic>[]).cast<String>();
     queueTopics(topics);
   });

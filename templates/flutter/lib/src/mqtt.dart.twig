@@ -16,9 +16,11 @@ abstract class PushSubscription {
   /// Drop this subscription. Closes the connection once the last one is gone.
   void unsubscribe();
 
-  /// Live-update this subscription's [background] delivery and/or notification [title].
-  /// Only the arguments you pass change; the rest stay as they were.
-  void update({bool? background, String? title});
+  /// Live-update this subscription's [background] delivery, notification [title] and/or
+  /// [reDeliverIfMissed] (QoS). Only the arguments you pass change; the rest stay as they
+  /// were. Changing [reDeliverIfMissed] re-subscribes this subscription's topics at the
+  /// new QoS.
+  void update({bool? background, String? title, bool? reDeliverIfMissed});
 }
 
 /// {{spec.info.title | caseUcfirst}} native push service — the realtime analog delivered over an MQTT
@@ -27,15 +29,15 @@ abstract class PushSubscription {
 /// delivery (a notification per message, and on mobile continued delivery while the app is
 /// backgrounded or closed).
 ///
-/// [setReplayMessages] is a connection-level setting fixed for the life of the
-/// subscriptions — it throws while any subscription is live, so unsubscribe everything,
-/// set it, then resubscribe. TLS (and skipping cert verification via a `?tlsInsecure=true`
-/// query flag) is derived from the endpoint, so the whole connection is described in one
-/// place. `subscribe` opens the connection lazily and returns a [PushSubscription] handle.
-/// The credential is read off the client — set a JWT or session on it (`Client.setJWT` /
-/// `Client.setSession`), the same way every other service reads auth. The broker location
-/// comes from `Client.setPushEndpoint()` (or the client endpoint) and a stable id from
-/// `Client.setPushClientId()`.
+/// The connection has no tunables — it always keeps its session (clean start off) so the
+/// broker can redeliver missed messages, and reliability is chosen per subscription via
+/// [subscribe]'s `reDeliverIfMissed`. TLS (and skipping cert verification via a
+/// `?tlsInsecure=true` query flag) is derived from the endpoint, so the whole connection
+/// is described in one place. `subscribe` opens the connection lazily and returns a
+/// [PushSubscription] handle. The credential is read off the client — set a JWT or session
+/// on it (`Client.setJWT` / `Client.setSession`), the same way every other service reads
+/// auth. The broker location comes from `Client.setPushEndpoint()` (or the client
+/// endpoint) and a stable id from `Client.setPushClientId()`.
 ///
 /// ```dart
 /// final client = Client().setEndpoint('...').setProject('...').setJWT(jwt);
@@ -50,16 +52,6 @@ abstract class PushSubscription {
 abstract class Push extends Service {
   /// Initializes a [Push] service.
   factory Push(Client client) => createPush(client);
-
-  /// Toggle replay of messages missed while disconnected. `true` (the default) subscribes
-  /// at QoS 1 with clean start off, so the broker keeps this client's replay cursor and
-  /// redelivers missed messages on reconnect; `false` uses QoS 0 and a clean session
-  /// (at-most-once, no replay).
-  ///
-  /// This is a connection-level setting that fixes the CONNECT clean-start flag and the
-  /// subscribe QoS, so it cannot change while subscriptions are live — it throws in that
-  /// case. To switch, unsubscribe everything (or [close]), call this, then resubscribe.
-  Push setReplayMessages([bool enabled = true]);
 
   /// Register a callback invoked when the connection opens (CONNACK success).
   Push onOpen(void Function() callback);
@@ -77,7 +69,12 @@ abstract class Push extends Service {
   /// subscribe-then-publish is reliable. A [background] subscription hands the connection to
   /// the background isolate, which connects and subscribes asynchronously, so it resolves
   /// once the isolate has been handed the subscription rather than after SUBACK (use
-  /// [onOpen]/[onError] to observe that connection). Delivery QoS follows [setReplayMessages].
+  /// [onOpen]/[onError] to observe that connection).
+  ///
+  /// [reDeliverIfMissed] chooses this subscription's delivery guarantee: `true` (the
+  /// default) subscribes at QoS 1 so the broker holds this topic's messages and redelivers
+  /// them on reconnect; `false` uses QoS 0 (at-most-once, may be lost). The connection
+  /// always keeps its session, so replay is a purely per-subscription choice.
   ///
   /// Set [background] to also keep receiving while the app is backgrounded or closed
   /// (mobile: an Android foreground service via `flutter_background_service`; web: a
@@ -86,12 +83,13 @@ abstract class Push extends Service {
   /// across subscriptions — it runs while any live subscription has [background] on. Mobile
   /// background needs the `flutter_background_service` and `flutter_local_notifications`
   /// peers and, on Android, the `FOREGROUND_SERVICE` / `POST_NOTIFICATIONS` manifest
-  /// permissions. Toggle it later with [PushSubscription.update].
+  /// permissions. Toggle these later with [PushSubscription.update].
   Future<PushSubscription> subscribe(
     Object topics,
     PushCallback callback, {
     bool background,
     String? title,
+    bool reDeliverIfMissed,
   });
 
   /// Tear down the connection and drop all active subscriptions.
