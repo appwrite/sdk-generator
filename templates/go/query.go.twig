@@ -2,6 +2,8 @@ package query
 
 import (
 	"encoding/json"
+	"fmt"
+	"reflect"
 )
 
 func toArray(val interface{}) []interface{} {
@@ -519,4 +521,257 @@ func ElemMatch(attribute string, queries []string) string {
 		Attribute: &attribute,
 		Values:    &parsedQueries,
 	})
+}
+
+func aliasedQuery(method, attribute, alias string) string {
+	options := queryOptions{
+		Method:    method,
+		Attribute: &attribute,
+	}
+	if alias != "" {
+		values := toArray(alias)
+		options.Values = &values
+	}
+	return parseQuery(options)
+}
+
+func joinQuery(method, table, left, right, operator, alias string) string {
+	if operator == "" {
+		operator = "="
+	}
+	values := []interface{}{left, operator, right}
+	if alias != "" {
+		values = append(values, alias)
+	}
+	return parseQuery(queryOptions{
+		Method:    method,
+		Attribute: &table,
+		Values:    &values,
+	})
+}
+
+func nestedJoin(method, table, alias string, on []string) string {
+	var values []interface{}
+	if alias != "" {
+		values = append(values, alias)
+	}
+	for _, query := range on {
+		var parsed interface{}
+		if err := json.Unmarshal([]byte(query), &parsed); err != nil {
+			continue
+		}
+		values = append(values, parsed)
+	}
+	return parseQuery(queryOptions{
+		Method:    method,
+		Attribute: &table,
+		Values:    &values,
+	})
+}
+
+func Count(attribute, alias string) string {
+	return aliasedQuery("count", attribute, alias)
+}
+
+func CountDistinct(attribute, alias string) string {
+	return aliasedQuery("countDistinct", attribute, alias)
+}
+
+func Sum(attribute, alias string) string {
+	return aliasedQuery("sum", attribute, alias)
+}
+
+func Avg(attribute, alias string) string {
+	return aliasedQuery("avg", attribute, alias)
+}
+
+func Min(attribute, alias string) string {
+	return aliasedQuery("min", attribute, alias)
+}
+
+func Max(attribute, alias string) string {
+	return aliasedQuery("max", attribute, alias)
+}
+
+func Stddev(attribute, alias string) string {
+	return aliasedQuery("stddev", attribute, alias)
+}
+
+func StddevPop(attribute, alias string) string {
+	return aliasedQuery("stddevPop", attribute, alias)
+}
+
+func StddevSamp(attribute, alias string) string {
+	return aliasedQuery("stddevSamp", attribute, alias)
+}
+
+func Variance(attribute, alias string) string {
+	return aliasedQuery("variance", attribute, alias)
+}
+
+func VarPop(attribute, alias string) string {
+	return aliasedQuery("varPop", attribute, alias)
+}
+
+func VarSamp(attribute, alias string) string {
+	return aliasedQuery("varSamp", attribute, alias)
+}
+
+func BitAnd(attribute, alias string) string {
+	return aliasedQuery("bitAnd", attribute, alias)
+}
+
+func BitOr(attribute, alias string) string {
+	return aliasedQuery("bitOr", attribute, alias)
+}
+
+func BitXor(attribute, alias string) string {
+	return aliasedQuery("bitXor", attribute, alias)
+}
+
+func GroupBy(attributes []interface{}) string {
+	return parseQuery(queryOptions{
+		Method: "groupBy",
+		Values: &attributes,
+	})
+}
+
+func Having(queries []string) string {
+	var parsedQueries []interface{}
+	for _, query := range queries {
+		var q interface{}
+		if err := json.Unmarshal([]byte(query), &q); err != nil {
+			continue
+		}
+		parsedQueries = append(parsedQueries, q)
+	}
+	return parseQuery(queryOptions{
+		Method: "having",
+		Values: &parsedQueries,
+	})
+}
+
+func Distinct() string {
+	return parseQuery(queryOptions{
+		Method: "distinct",
+	})
+}
+
+func On(left, right, operator string) string {
+	if operator == "" {
+		operator = "="
+	}
+	values := []interface{}{left, operator, right}
+	return parseQuery(queryOptions{
+		Method: "on",
+		Values: &values,
+	})
+}
+
+func Join(table, left, right, operator, alias string) string {
+	return joinQuery("join", table, left, right, operator, alias)
+}
+
+func LeftJoin(table, left, right, operator, alias string) string {
+	return joinQuery("leftJoin", table, left, right, operator, alias)
+}
+
+func RightJoin(table, left, right, operator, alias string) string {
+	return joinQuery("rightJoin", table, left, right, operator, alias)
+}
+
+func FullOuterJoin(table, left, right, operator, alias string) string {
+	return joinQuery("fullOuterJoin", table, left, right, operator, alias)
+}
+
+func JoinOn(table, alias string, on []string) string {
+	return nestedJoin("join", table, alias, on)
+}
+
+func LeftJoinOn(table, alias string, on []string) string {
+	return nestedJoin("leftJoin", table, alias, on)
+}
+
+func RightJoinOn(table, alias string, on []string) string {
+	return nestedJoin("rightJoin", table, alias, on)
+}
+
+func FullOuterJoinOn(table, alias string, on []string) string {
+	return nestedJoin("fullOuterJoin", table, alias, on)
+}
+
+func CrossJoin(table, alias string) string {
+	return aliasedQuery("crossJoin", table, alias)
+}
+
+func Covers(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "covers",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values},
+	})
+}
+
+func NotCovers(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "notCovers",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values},
+	})
+}
+
+func SpatialEquals(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "spatialEquals",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values},
+	})
+}
+
+func NotSpatialEquals(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "notSpatialEquals",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values},
+	})
+}
+
+func Page(page, perPage int) []string {
+	if page < 1 {
+		panic(fmt.Sprintf("Page must be >= 1, got %d", page))
+	}
+	if perPage < 1 {
+		panic(fmt.Sprintf("Per page must be >= 1, got %d", perPage))
+	}
+	return []string{Limit(perPage), Offset((page - 1) * perPage)}
+}
+
+func normalize(queries interface{}) []string {
+	if queries == nil {
+		return []string{}
+	}
+
+	switch v := queries.(type) {
+	case *Builder:
+		if v == nil {
+			return []string{}
+		}
+		return v.Build()
+	case Builder:
+		return v.Build()
+	case string:
+		return []string{v}
+	}
+
+	value := reflect.ValueOf(queries)
+	switch value.Kind() {
+	case reflect.Slice, reflect.Array:
+		out := make([]string, 0, value.Len())
+		for i := 0; i < value.Len(); i++ {
+			out = append(out, normalize(value.Index(i).Interface())...)
+		}
+		return out
+	default:
+		return []string{}
+	}
 }

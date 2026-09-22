@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"sync"
 	"testing"
+
+	"{{ sdk | goPackagePath }}/query"
 )
 
 func TestSetProject(t *testing.T) {
@@ -270,6 +273,26 @@ func TestResponseBodyRejectsAnotherType(t *testing.T) {
 	}
 	if _, err := ResponseBody(nil); err == nil {
 		t.Error("Expected an error for a nil response")
+	}
+}
+
+func TestFlattenValueNestedFloatsDoesNotPanic(t *testing.T) {
+	geometry := [][]float64{
+		{1, 2},
+		{3, 4},
+	}
+	got := flattenValue(geometry)
+	if !reflect.DeepEqual(got, geometry) {
+		t.Errorf("Expected nested floats to pass through, got %#v", got)
+	}
+}
+
+func TestFlattenValueSpreadsWrappedBuilder(t *testing.T) {
+	builder := query.NewBuilder().Limit(1)
+	got := flattenValue([]interface{}{builder})
+	want := []interface{}{query.Limit(1)}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Expected %#v, got %#v", want, got)
 	}
 }
 {% endautoescape %}

@@ -167,7 +167,7 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	general.Empty()
 
 	// Test Queries
-	testQueries()
+	testQueries(client)
 
 	// Test Permission Helpers
 	testPermissionHelpers()
@@ -219,7 +219,7 @@ func testLargeUpload(client client.Client, stringInArray []string) {
 	fmt.Printf("%s\n", response.Result)
 }
 
-func testQueries() {
+func testQueries(client client.Client) {
 	fmt.Println(query.Equal("released", true))
 	fmt.Println(query.Equal("title", []interface{}{"Spiderman", "Dr. Strange"}))
 	fmt.Println(query.NotEqual("title", "Spiderman"))
@@ -303,6 +303,48 @@ func testQueries() {
 		query.Equal("name", "Alice"),
 		query.GreaterThan("age", 18),
 	}))
+	general := appwrite.NewGeneral(client)
+	queries := []string{
+		query.Count("*", "total"),
+		query.Join("orders", "$id", "customerId", "=", ""),
+		query.GroupBy([]interface{}{"status"}),
+		query.Distinct(),
+		query.Covers("location", []interface{}{1, 2}),
+		query.CountDistinct("year", "uniqueYears"),
+		query.Sum("price", "total"),
+		query.Avg("price", "avgPrice"),
+		query.Min("price", "lowest"),
+		query.Max("price", "highest"),
+		query.Stddev("price", "sd"),
+		query.StddevPop("price", "sdp"),
+		query.StddevSamp("price", "sds"),
+		query.Variance("price", "var"),
+		query.VarPop("price", "vp"),
+		query.VarSamp("price", "vs"),
+		query.BitAnd("flags", "band"),
+		query.BitOr("flags", "bor"),
+		query.BitXor("flags", "bxor"),
+		query.Having([]string{query.GreaterThan("total", 1)}),
+		query.LeftJoin("orders", "$id", "customerId", "=", "ord"),
+		query.RightJoin("orders", "$id", "customerId", "=", ""),
+		query.FullOuterJoin("orders", "$id", "customerId", "=", ""),
+		query.CrossJoin("orders", "ord"),
+		query.On("$id", "customerId", ""),
+		query.LeftJoinOn("orders", "ord", []string{
+			query.On("$id", "customerId", ""),
+			query.Equal("ord.status", "paid"),
+		}),
+		query.NotCovers("location", []interface{}{1, 2}),
+		query.SpatialEquals("location", []interface{}{1, 2}),
+		query.NotSpatialEquals("location", []interface{}{1, 2}),
+	}
+	queries = append(queries, query.Page(2, 10)...)
+	queries = append(queries, query.NewBuilder().Limit(1).Build()...)
+	queryTransport, err := general.ListRows(general.WithListRowsQueries(queries))
+	if err != nil {
+		fmt.Printf("general.ListRows => error %v", err)
+	}
+	fmt.Println(queryTransport.Result)
 }
 
 func testPermissionHelpers() {

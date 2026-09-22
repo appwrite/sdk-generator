@@ -1,4 +1,5 @@
 import { {{ spec.info.title | caseUcfirst}}Exception } from './exception.ts';
+import { flattenParam } from './query.ts';
 
 export interface Payload {
     [key: string]: any;
@@ -81,6 +82,10 @@ export class Client {
     }
 
     async call(method: string, path: string = "", headers: Payload = {}, params: Payload = {}, responseType: string = "json") {
+        for (const key of Object.keys(params)) {
+            params[key] = flattenParam(params[key]);
+        }
+
         headers = {...this.headers, ...headers};
         const url = new URL(this.endpoint + path);
 

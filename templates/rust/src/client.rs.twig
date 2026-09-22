@@ -3,6 +3,7 @@
 use crate::error::{{ spec.info.title | caseUcfirst }}Error;
 use crate::error::Result;
 use crate::input_file::InputFile;
+use crate::query::Query;
 use arc_swap::ArcSwap;
 use reqwest::{header::HeaderMap, multipart, Client as HttpClient, Method, Response};
 use serde::de::DeserializeOwned;
@@ -376,6 +377,34 @@ impl Client {
         result
     }
 
+    fn normalize_request_params(params: HashMap<String, Value>) -> HashMap<String, Value> {
+        params
+            .into_iter()
+            .map(|(key, value)| (key, Self::flatten_value(value)))
+            .collect()
+    }
+
+    pub fn flatten_value(value: Value) -> Value {
+        match value {
+            Value::Array(items) if Self::is_query_string_tree(&items) => Value::Array(
+                Query::normalize_value(&Value::Array(items))
+                    .into_iter()
+                    .map(Value::String)
+                    .collect(),
+            ),
+            other => other,
+        }
+    }
+
+    fn is_query_string_tree(items: &[Value]) -> bool {
+        !items.is_empty()
+            && items.iter().all(|item| match item {
+                Value::String(_) => true,
+                Value::Array(nested) => Self::is_query_string_tree(nested),
+                _ => false,
+            })
+    }
+
     pub async fn call<T: DeserializeOwned>(
         &self,
         method: Method,
@@ -387,7 +416,7 @@ impl Client {
         let url = format!("{}{}", state.config.endpoint, path);
         let mut request_builder;
 
-        if let Some(params) = params {
+        if let Some(params) = params.map(Self::normalize_request_params) {
             if method == Method::GET {
                 let mut url_with_params = Url::parse(&url).map_err(|e| {
                     {{ spec.info.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new())
@@ -440,7 +469,7 @@ impl Client {
             }
         }
 
-        if let Some(params) = params {
+        if let Some(params) = params.map(Self::normalize_request_params) {
             if method == Method::GET {
                 let mut url_with_params = Url::parse(&url).map_err(|e| {
                     {{ spec.info.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new())
@@ -531,7 +560,7 @@ impl Client {
         let url = format!("{}{}", state.config.endpoint, path);
         let mut request_builder;
 
-        if let Some(params) = params {
+        if let Some(params) = params.map(Self::normalize_request_params) {
             if method == Method::GET {
                 let mut url_with_params = Url::parse(&url).map_err(|e| {
                     {{ spec.info.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new())
@@ -1083,5 +1112,21 @@ mod tests {
             .set_key("test-key");
 
         assert_eq!(client.endpoint(), "https://custom.example.com/v1");
+    }
+
+    #[test]
+    fn flatten_value_keeps_numeric_nested_arrays() {
+        let geometry = serde_json::json!([[1, 2], [3, 4]]);
+        assert_eq!(Client::flatten_value(geometry.clone()), geometry);
+    }
+
+    #[test]
+    fn flatten_value_spreads_nested_query_strings() {
+        let nested = serde_json::json!([["{\"method\":\"limit\",\"values\":[1]}"]]);
+        let flat = Client::flatten_value(nested);
+        assert_eq!(
+            flat,
+            serde_json::json!(["{\"method\":\"limit\",\"values\":[1]}"])
+        );
     }
 }

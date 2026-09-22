@@ -68,6 +68,9 @@ abstract class Client {
     Function(UploadProgress)? onProgress,
   });
 
+  /// Flatten builders and nested query-string lists for request params.
+  dynamic flatten(dynamic value);
+
   /// Send the API request.
   Future<Response> call(
     HttpMethod method, {

@@ -164,6 +164,11 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}/query/builder.rb',
+                'template'      => 'ruby/lib/container/query/builder.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.info.title | caseDash }}/operator.rb',
                 'template'      => 'ruby/lib/container/operator.rb.twig',
             ],
@@ -327,7 +332,8 @@ class Ruby extends Language
                     $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= $this->jsonToHash(json_decode((string) $example, true));
+                    $decoded = \is_array($example) ? $example : json_decode((string) $example, true);
+                    $output .= $this->jsonToHash(\is_array($decoded) ? $decoded : []);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';

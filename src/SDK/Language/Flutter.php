@@ -93,6 +93,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/query/builder.dart',
+                'template'      => 'dart/lib/query/builder.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/operator.dart',
                 'template'      => 'dart/lib/operator.dart.twig',
             ],

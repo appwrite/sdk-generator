@@ -275,6 +275,200 @@ module {{spec.info.title | caseUcfirst}}
             def not_touches(attribute, values)
                 return Query.new("notTouches", attribute, [values]).to_s
             end
+
+            def count(attribute = '*', alias_name = '')
+                return Query.new("count", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def count_distinct(attribute, alias_name = '')
+                return Query.new("countDistinct", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def sum(attribute, alias_name = '')
+                return Query.new("sum", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def avg(attribute, alias_name = '')
+                return Query.new("avg", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def min(attribute, alias_name = '')
+                return Query.new("min", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def max(attribute, alias_name = '')
+                return Query.new("max", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def stddev(attribute, alias_name = '')
+                return Query.new("stddev", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def stddev_pop(attribute, alias_name = '')
+                return Query.new("stddevPop", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def stddev_samp(attribute, alias_name = '')
+                return Query.new("stddevSamp", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def variance(attribute, alias_name = '')
+                return Query.new("variance", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def var_pop(attribute, alias_name = '')
+                return Query.new("varPop", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def var_samp(attribute, alias_name = '')
+                return Query.new("varSamp", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def bit_and(attribute, alias_name = '')
+                return Query.new("bitAnd", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def bit_or(attribute, alias_name = '')
+                return Query.new("bitOr", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def bit_xor(attribute, alias_name = '')
+                return Query.new("bitXor", attribute, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def group_by(attributes)
+                return Query.new("groupBy", nil, attributes).to_s
+            end
+
+            def having(queries)
+                return Query.new("having", nil, queries.map { |query| JSON.parse(query) }).to_s
+            end
+
+            def distinct()
+                return Query.new("distinct", nil, nil).to_s
+            end
+
+            def on(left, right, operator = '=')
+                return Query.new("on", nil, [left, operator, right]).to_s
+            end
+
+            def join(table, left, right = '', operator = '=', alias_name = '')
+                return create_join("join", table, left, right, operator, alias_name)
+            end
+
+            def left_join(table, left, right = '', operator = '=', alias_name = '')
+                return create_join("leftJoin", table, left, right, operator, alias_name)
+            end
+
+            def right_join(table, left, right = '', operator = '=', alias_name = '')
+                return create_join("rightJoin", table, left, right, operator, alias_name)
+            end
+
+            def full_outer_join(table, left, right = '', operator = '=', alias_name = '')
+                return create_join("fullOuterJoin", table, left, right, operator, alias_name)
+            end
+
+            def cross_join(table, alias_name = '')
+                return Query.new("crossJoin", table, alias_name != '' ? alias_name : nil).to_s
+            end
+
+            def covers(attribute, values)
+                return Query.new("covers", attribute, [values]).to_s
+            end
+
+            def not_covers(attribute, values)
+                return Query.new("notCovers", attribute, [values]).to_s
+            end
+
+            def spatial_equals(attribute, values)
+                return Query.new("spatialEquals", attribute, [values]).to_s
+            end
+
+            def not_spatial_equals(attribute, values)
+                return Query.new("notSpatialEquals", attribute, [values]).to_s
+            end
+
+            def page(page, per_page = 25)
+                if page < 1
+                    raise ArgumentError, "Page must be >= 1, got #{page}"
+                end
+                if per_page < 1
+                    raise ArgumentError, "Per page must be >= 1, got #{per_page}"
+                end
+
+                return [
+                    limit(per_page),
+                    offset((page - 1) * per_page),
+                ]
+            end
+
+            def builder
+                return Builder.new
+            end
+
+            def _flatten(value)
+                return value.build if value.is_a?(Builder)
+                return value.to_s if value.is_a?(Query)
+                return value unless value.is_a?(Array)
+
+                out = []
+                changed = false
+                value.each do |item|
+                    flat = _flatten(item)
+                    if item.is_a?(Builder) || item.is_a?(Query)
+                        if flat.is_a?(Array)
+                            out.concat(flat)
+                        else
+                            out << flat
+                        end
+                        changed = true
+                        next
+                    end
+                    if item.is_a?(Array) && flat.is_a?(Array) && flat.all? { |entry| entry.is_a?(String) }
+                        out.concat(flat)
+                        changed = true
+                        next
+                    end
+                    changed = true if flat != item
+                    out << flat
+                end
+
+                changed ? out : value
+            end
+
+            def _normalize(queries)
+                flat = _flatten(queries)
+                return flat.map(&:to_s) if flat.is_a?(Array)
+                return [flat] if flat.is_a?(String)
+
+                []
+            end
+
+            private
+
+            def create_join(method, table, left, right, operator, alias_name)
+                return nested_join(method, table, '', left) if left.is_a?(Array)
+                return nested_join(method, table, left, right) if right.is_a?(Array)
+
+                return join_query(method, table, left, right, operator, alias_name)
+            end
+
+            def nested_join(method, table, alias_name, on)
+                values = []
+                values << alias_name if alias_name != ''
+                on.each { |query| values << JSON.parse(query) }
+
+                return Query.new(method, table, values).to_s
+            end
+
+            def join_query(method, table, left, right, operator, alias_name)
+                values = [left, operator, right]
+                values << alias_name if alias_name != ''
+
+                return Query.new(method, table, values).to_s
+            end
         end
     end
+
+    require_relative 'query/builder'
 end

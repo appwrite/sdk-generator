@@ -1,5 +1,5 @@
 import { Client } from "./src/client.ts";
-import { Query } from "./src/query.ts";
+import { Query, QueryBuilder, flattenParam } from "./src/query.ts";
 import { Permission } from "./src/permission.ts";
 import { Role } from "./src/role.ts";
 import { ID } from "./src/id.ts";
@@ -16,6 +16,8 @@ import { {{enum.title | caseUcfirst}} } from "./src/enums/{{enum.title | caseKeb
 export {
     Client,
     Query,
+    QueryBuilder,
+    flattenParam,
     Permission,
     Role,
     ID,
@@ -32,4 +34,4 @@ export {
 };
 
 export type { Models } from "./src/models.d.ts";
-export type { QueryTypes, QueryTypesList } from "./src/query.ts";
+export type { QueryTypes, QueryTypesList, QueryInput } from "./src/query.ts";

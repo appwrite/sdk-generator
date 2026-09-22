@@ -1,43 +1,45 @@
 import {describe, it as test} from "https://deno.land/std@0.149.0/testing/bdd.ts";
 import {assertEquals} from "https://deno.land/std@0.204.0/assert/assert_equals.ts";
-import {Query, QueryTypes} from "../src/query.ts";
+import {Query, QueryTypes, flattenParam, normalizeQueries} from "../src/query.ts";
 
 type BasicFilterQueryTest = {
     description: string;
     value: QueryTypes;
-    expectedValues: string;
+    expectedValues: unknown[];
 }
+
+const parsed = (query: string) => JSON.parse(query);
 
 const tests: BasicFilterQueryTest[] = [
     {
         description: 'with a string',
         value: 's',
-        expectedValues: '["s"]'
+        expectedValues: ['s']
     },
     {
         description: 'with a integer',
         value: 1,
-        expectedValues: '[1]'
+        expectedValues: [1]
     },
     {
         description: 'with a double',
         value: 1.2,
-        expectedValues: '[1.2]'
+        expectedValues: [1.2]
     },
     {
         description: 'with a whole number double',
         value: 1.0,
-        expectedValues: '[1]'
+        expectedValues: [1]
     },
     {
         description: 'with a bool',
         value: false,
-        expectedValues: '[false]'
+        expectedValues: [false]
     },
     {
         description: 'with a list',
         value: ['a', 'b', 'c'],
-        expectedValues: '["a","b","c"]'
+        expectedValues: ['a', 'b', 'c']
     }
 ];
 
@@ -46,8 +48,12 @@ describe('Query', () => {
         for (const t of tests) {
             test(t.description, () =>
                 assertEquals(
-                    Query.equal("attr", t.value).toString(),
-                    `{"method":"equal","attribute":"attr","values":${t.expectedValues}}`,
+                    parsed(Query.equal("attr", t.value).toString()),
+                    {
+                        method: 'equal',
+                        attribute: 'attr',
+                        values: t.expectedValues,
+                    },
                 )
             )
         }
@@ -57,8 +63,12 @@ describe('Query', () => {
         for (const t of tests) {
             test(t.description, () =>
                 assertEquals(
-                    Query.notEqual("attr", t.value).toString(),
-                    `{"method":"notEqual","attribute":"attr","values":${t.expectedValues}}`,
+                    parsed(Query.notEqual("attr", t.value).toString()),
+                    {
+                        method: 'notEqual',
+                        attribute: 'attr',
+                        values: t.expectedValues,
+                    },
                 )
             )
         }
@@ -68,8 +78,12 @@ describe('Query', () => {
         for (const t of tests) {
             test(t.description, () =>
                 assertEquals(
-                    Query.lessThan("attr", t.value).toString(),
-                    `{"method":"lessThan","attribute":"attr","values":${t.expectedValues}}`,
+                    parsed(Query.lessThan("attr", t.value).toString()),
+                    {
+                        method: 'lessThan',
+                        attribute: 'attr',
+                        values: t.expectedValues,
+                    },
                 )
             )
         }
@@ -79,8 +93,12 @@ describe('Query', () => {
         for (const t of tests) {
             test(t.description, () =>
                 assertEquals(
-                    Query.lessThanEqual("attr", t.value).toString(),
-                    `{"method":"lessThanEqual","attribute":"attr","values":${t.expectedValues}}`,
+                    parsed(Query.lessThanEqual("attr", t.value).toString()),
+                    {
+                        method: 'lessThanEqual',
+                        attribute: 'attr',
+                        values: t.expectedValues,
+                    },
                 )
             )
         }
@@ -90,8 +108,12 @@ describe('Query', () => {
         for (const t of tests) {
             test(t.description, () =>
                 assertEquals(
-                    Query.greaterThan("attr", t.value).toString(),
-                    `{"method":"greaterThan","attribute":"attr","values":${t.expectedValues}}`,
+                    parsed(Query.greaterThan("attr", t.value).toString()),
+                    {
+                        method: 'greaterThan',
+                        attribute: 'attr',
+                        values: t.expectedValues,
+                    },
                 )
             )
         }
@@ -101,131 +123,218 @@ describe('Query', () => {
         for (const t of tests) {
             test(t.description, () =>
                 assertEquals(
-                    Query.greaterThanEqual("attr", t.value).toString(),
-                    `{"method":"greaterThanEqual","attribute":"attr","values":${t.expectedValues}}`,
+                    parsed(Query.greaterThanEqual("attr", t.value).toString()),
+                    {
+                        method: 'greaterThanEqual',
+                        attribute: 'attr',
+                        values: t.expectedValues,
+                    },
                 )
             )
         }
     });
 
     test('search', () => assertEquals(
-        Query.search('attr', 'keyword1 keyword2').toString(),
-        '{"method":"search","attribute":"attr","values":["keyword1 keyword2"]}',
+        parsed(Query.search('attr', 'keyword1 keyword2').toString()),
+        {
+            method: 'search',
+            attribute: 'attr',
+            values: ['keyword1 keyword2'],
+        },
     ));
 
     test('isNull', () => assertEquals(
-        Query.isNull('attr').toString(),
-        `{"method":"isNull","attribute":"attr","values":[]}`,
+        parsed(Query.isNull('attr').toString()),
+        {
+            method: 'isNull',
+            attribute: 'attr',
+        },
     ));
 
     test('isNotNull', () => assertEquals(
-        Query.isNotNull('attr').toString(),
-        `{"method":"isNotNull","attribute":"attr","values":[]}`,
+        parsed(Query.isNotNull('attr').toString()),
+        {
+            method: 'isNotNull',
+            attribute: 'attr',
+        },
     ));
 
     describe('between', () => {
         test('with integers', () => assertEquals(
-            Query.between('attr', 1, 2).toString(),
-            `{"method":"between","attribute":"attr","values":[1,2]}`,
+            parsed(Query.between('attr', 1, 2).toString()),
+            {
+                method: 'between',
+                attribute: 'attr',
+                values: [1, 2],
+            },
         ));
         test('with doubles', () => assertEquals(
-            Query.between('attr', 1.2, 2.2).toString(),
-            `{"method":"between","attribute":"attr","values":[1.2,2.2]}`,
+            parsed(Query.between('attr', 1.2, 2.2).toString()),
+            {
+                method: 'between',
+                attribute: 'attr',
+                values: [1.2, 2.2],
+            },
         ));
         test('with strings', () => assertEquals(
-            Query.between('attr', "a", "z").toString(),
-            `{"method":"between","attribute":"attr","values":["a","z"]}`,
+            parsed(Query.between('attr', "a", "z").toString()),
+            {
+                method: 'between',
+                attribute: 'attr',
+                values: ['a', 'z'],
+            },
         ));
     });
 
     test('select', () => assertEquals(
-        Query.select(['attr1', 'attr2']).toString(),
-        `{"method":"select","attribute":["attr1","attr2"]}`,
+        parsed(Query.select(['attr1', 'attr2']).toString()),
+        {
+            method: 'select',
+            values: ['attr1', 'attr2'],
+        },
     ));
 
     test('orderAsc', () => assertEquals(
-        Query.orderAsc('attr').toString(),
-        `{"method":"orderAsc","attribute":"attr"}`,
+        parsed(Query.orderAsc('attr').toString()),
+        {
+            method: 'orderAsc',
+            attribute: 'attr',
+        },
     ));
 
     test('orderDesc', () => assertEquals(
-        Query.orderDesc('attr').toString(),
-        `{"method":"orderDesc","attribute":"attr"}`,
+        parsed(Query.orderDesc('attr').toString()),
+        {
+            method: 'orderDesc',
+            attribute: 'attr',
+        },
     ));
 
     test('orderRandom', () => assertEquals(
-        Query.orderRandom().toString(),
-        `{"method":"orderRandom"}`,
+        parsed(Query.orderRandom().toString()),
+        {
+            method: 'orderRandom',
+        },
     ));
 
     test('cursorBefore', () => assertEquals(
-        Query.cursorBefore('attr').toString(),
-        `{"method":"cursorBefore","attribute":"attr"}`,
+        parsed(Query.cursorBefore('attr').toString()),
+        {
+            method: 'cursorBefore',
+            values: ['attr'],
+        },
     ));
 
     test('cursorAfter', () => assertEquals(
-        Query.cursorAfter('attr').toString(),
-        `{"method":"cursorAfter","attribute":"attr"}`,
+        parsed(Query.cursorAfter('attr').toString()),
+        {
+            method: 'cursorAfter',
+            values: ['attr'],
+        },
     ));
 
     test('limit', () => assertEquals(
-        Query.limit(1).toString(),
-        `{"method":"limit","values":[1]}`,
+        parsed(Query.limit(1).toString()),
+        {
+            method: 'limit',
+            values: [1],
+        },
     ));
 
     test('offset', () => assertEquals(
-        Query.offset(1).toString(),
-        `{"method":"offset","values":[1]}`,
+        parsed(Query.offset(1).toString()),
+        {
+            method: 'offset',
+            values: [1],
+        },
     ));
 
     test('notContains', () => assertEquals(
-        Query.notContains('attr', 'value').toString(),
-        `{"method":"notContains","attribute":"attr","values":["value"]}`,
+        parsed(Query.notContains('attr', 'value').toString()),
+        {
+            method: 'notContains',
+            attribute: 'attr',
+            values: ['value'],
+        },
     ));
 
     test('notSearch', () => assertEquals(
-        Query.notSearch('attr', 'keyword1 keyword2').toString(),
-        '{"method":"notSearch","attribute":"attr","values":["keyword1 keyword2"]}',
+        parsed(Query.notSearch('attr', 'keyword1 keyword2').toString()),
+        {
+            method: 'notSearch',
+            attribute: 'attr',
+            values: ['keyword1 keyword2'],
+        },
     ));
 
     describe('notBetween', () => {
         test('with integers', () => assertEquals(
-            Query.notBetween('attr', 1, 2).toString(),
-            `{"method":"notBetween","attribute":"attr","values":[1,2]}`,
+            parsed(Query.notBetween('attr', 1, 2).toString()),
+            {
+                method: 'notBetween',
+                attribute: 'attr',
+                values: [1, 2],
+            },
         ));
         test('with doubles', () => assertEquals(
-            Query.notBetween('attr', 1.2, 2.2).toString(),
-            `{"method":"notBetween","attribute":"attr","values":[1.2,2.2]}`,
+            parsed(Query.notBetween('attr', 1.2, 2.2).toString()),
+            {
+                method: 'notBetween',
+                attribute: 'attr',
+                values: [1.2, 2.2],
+            },
         ));
         test('with strings', () => assertEquals(
-            Query.notBetween('attr', "a", "z").toString(),
-            `{"method":"notBetween","attribute":"attr","values":["a","z"]}`,
+            parsed(Query.notBetween('attr', "a", "z").toString()),
+            {
+                method: 'notBetween',
+                attribute: 'attr',
+                values: ['a', 'z'],
+            },
         ));
     });
 
     test('notStartsWith', () => assertEquals(
-        Query.notStartsWith('attr', 'prefix').toString(),
-        `{"method":"notStartsWith","attribute":"attr","values":["prefix"]}`,
+        parsed(Query.notStartsWith('attr', 'prefix').toString()),
+        {
+            method: 'notStartsWith',
+            attribute: 'attr',
+            values: ['prefix'],
+        },
     ));
 
     test('notEndsWith', () => assertEquals(
-        Query.notEndsWith('attr', 'suffix').toString(),
-        `{"method":"notEndsWith","attribute":"attr","values":["suffix"]}`,
+        parsed(Query.notEndsWith('attr', 'suffix').toString()),
+        {
+            method: 'notEndsWith',
+            attribute: 'attr',
+            values: ['suffix'],
+        },
     ));
 
     test('regex', () => assertEquals(
-        Query.regex('attr', 'pattern.*').toString(),
-        `{"method":"regex","attribute":"attr","values":["pattern.*"]}`,
+        parsed(Query.regex('attr', 'pattern.*').toString()),
+        {
+            method: 'regex',
+            attribute: 'attr',
+            values: ['pattern.*'],
+        },
     ));
 
     test('exists', () => assertEquals(
-        Query.exists(['attr1', 'attr2']).toString(),
-        `{"method":"exists","values":["attr1","attr2"]}`,
+        parsed(Query.exists(['attr1', 'attr2']).toString()),
+        {
+            method: 'exists',
+            values: ['attr1', 'attr2'],
+        },
     ));
 
     test('notExists', () => assertEquals(
-        Query.notExists(['attr1', 'attr2']).toString(),
-        `{"method":"notExists","values":["attr1","attr2"]}`,
+        parsed(Query.notExists(['attr1', 'attr2']).toString()),
+        {
+            method: 'notExists',
+            values: ['attr1', 'attr2'],
+        },
     ));
 
     test('elemMatch', () => {
@@ -246,32 +355,377 @@ describe('Query', () => {
     });
 
     test('createdBefore', () => assertEquals(
-        Query.createdBefore('2023-01-01').toString(),
-        `{"method":"lessThan","attribute":"$createdAt","values":["2023-01-01"]}`,
+        parsed(Query.createdBefore('2023-01-01').toString()),
+        {
+            method: 'lessThan',
+            attribute: '$createdAt',
+            values: ['2023-01-01'],
+        },
     ));
 
     test('createdAfter', () => assertEquals(
-        Query.createdAfter('2023-01-01').toString(),
-        `{"method":"greaterThan","attribute":"$createdAt","values":["2023-01-01"]}`,
+        parsed(Query.createdAfter('2023-01-01').toString()),
+        {
+            method: 'greaterThan',
+            attribute: '$createdAt',
+            values: ['2023-01-01'],
+        },
     ));
 
     test('createdBetween', () => assertEquals(
-        Query.createdBetween('2023-01-01', '2023-12-31').toString(),
-        `{"method":"between","attribute":"$createdAt","values":["2023-01-01","2023-12-31"]}`,
+        parsed(Query.createdBetween('2023-01-01', '2023-12-31').toString()),
+        {
+            method: 'between',
+            attribute: '$createdAt',
+            values: ['2023-01-01', '2023-12-31'],
+        },
     ));
 
     test('updatedBefore', () => assertEquals(
-        Query.updatedBefore('2023-01-01').toString(),
-        `{"method":"lessThan","attribute":"$updatedAt","values":["2023-01-01"]}`,
+        parsed(Query.updatedBefore('2023-01-01').toString()),
+        {
+            method: 'lessThan',
+            attribute: '$updatedAt',
+            values: ['2023-01-01'],
+        },
     ));
 
     test('updatedAfter', () => assertEquals(
-        Query.updatedAfter('2023-01-01').toString(),
-        `{"method":"greaterThan","attribute":"$updatedAt","values":["2023-01-01"]}`,
+        parsed(Query.updatedAfter('2023-01-01').toString()),
+        {
+            method: 'greaterThan',
+            attribute: '$updatedAt',
+            values: ['2023-01-01'],
+        },
     ));
 
     test('updatedBetween', () => assertEquals(
-        Query.updatedBetween('2023-01-01', '2023-12-31').toString(),
-        `{"method":"between","attribute":"$updatedAt","values":["2023-01-01","2023-12-31"]}`,
+        parsed(Query.updatedBetween('2023-01-01', '2023-12-31').toString()),
+        {
+            method: 'between',
+            attribute: '$updatedAt',
+            values: ['2023-01-01', '2023-12-31'],
+        },
     ));
+
+    test('count with alias', () => assertEquals(
+        parsed(Query.count('*', 'total').toString()),
+        {
+            method: 'count',
+            attribute: '*',
+            values: ['total'],
+        },
+    ));
+
+    test('count without alias', () => assertEquals(
+        parsed(Query.count().toString()),
+        {
+            method: 'count',
+            attribute: '*',
+        },
+    ));
+
+    test('countDistinct', () => assertEquals(
+        parsed(Query.countDistinct('year', 'uniqueYears').toString()),
+        {
+            method: 'countDistinct',
+            attribute: 'year',
+            values: ['uniqueYears'],
+        },
+    ));
+
+    test('sum', () => assertEquals(
+        parsed(Query.sum('price', 'total').toString()),
+        {
+            method: 'sum',
+            attribute: 'price',
+            values: ['total'],
+        },
+    ));
+
+    test('avg', () => assertEquals(
+        parsed(Query.avg('price', 'avgPrice').toString()),
+        {
+            method: 'avg',
+            attribute: 'price',
+            values: ['avgPrice'],
+        },
+    ));
+
+    test('min', () => assertEquals(
+        parsed(Query.min('price', 'lowest').toString()),
+        {
+            method: 'min',
+            attribute: 'price',
+            values: ['lowest'],
+        },
+    ));
+
+    test('max', () => assertEquals(
+        parsed(Query.max('price', 'highest').toString()),
+        {
+            method: 'max',
+            attribute: 'price',
+            values: ['highest'],
+        },
+    ));
+
+    test('stddev', () => assertEquals(
+        parsed(Query.stddev('price', 'sd').toString()),
+        {
+            method: 'stddev',
+            attribute: 'price',
+            values: ['sd'],
+        },
+    ));
+
+    test('stddevPop', () => assertEquals(
+        parsed(Query.stddevPop('price', 'sdp').toString()),
+        {
+            method: 'stddevPop',
+            attribute: 'price',
+            values: ['sdp'],
+        },
+    ));
+
+    test('stddevSamp', () => assertEquals(
+        parsed(Query.stddevSamp('price', 'sds').toString()),
+        {
+            method: 'stddevSamp',
+            attribute: 'price',
+            values: ['sds'],
+        },
+    ));
+
+    test('variance', () => assertEquals(
+        parsed(Query.variance('price', 'var').toString()),
+        {
+            method: 'variance',
+            attribute: 'price',
+            values: ['var'],
+        },
+    ));
+
+    test('varPop', () => assertEquals(
+        parsed(Query.varPop('price', 'vp').toString()),
+        {
+            method: 'varPop',
+            attribute: 'price',
+            values: ['vp'],
+        },
+    ));
+
+    test('varSamp', () => assertEquals(
+        parsed(Query.varSamp('price', 'vs').toString()),
+        {
+            method: 'varSamp',
+            attribute: 'price',
+            values: ['vs'],
+        },
+    ));
+
+    test('bitAnd', () => assertEquals(
+        parsed(Query.bitAnd('flags', 'band').toString()),
+        {
+            method: 'bitAnd',
+            attribute: 'flags',
+            values: ['band'],
+        },
+    ));
+
+    test('bitOr', () => assertEquals(
+        parsed(Query.bitOr('flags', 'bor').toString()),
+        {
+            method: 'bitOr',
+            attribute: 'flags',
+            values: ['bor'],
+        },
+    ));
+
+    test('bitXor', () => assertEquals(
+        parsed(Query.bitXor('flags', 'bxor').toString()),
+        {
+            method: 'bitXor',
+            attribute: 'flags',
+            values: ['bxor'],
+        },
+    ));
+
+    test('groupBy', () => assertEquals(
+        parsed(Query.groupBy(['status', 'year']).toString()),
+        {
+            method: 'groupBy',
+            values: ['status', 'year'],
+        },
+    ));
+
+    test('having nests parsed queries', () => {
+        const having = JSON.parse(Query.having([Query.greaterThan('total', 1)]));
+        assertEquals(having.method, 'having');
+        assertEquals(having.values[0].method, 'greaterThan');
+        assertEquals(having.values[0].attribute, 'total');
+        assertEquals(having.values[0].values, [1]);
+    });
+
+    test('distinct', () => assertEquals(
+        parsed(Query.distinct().toString()),
+        {
+            method: 'distinct',
+        },
+    ));
+
+    test('join', () => assertEquals(
+        parsed(Query.join('orders', '$id', 'customerId').toString()),
+        {
+            method: 'join',
+            attribute: 'orders',
+            values: ['$id', '=', 'customerId'],
+        },
+    ));
+
+    test('leftJoin with alias', () => assertEquals(
+        parsed(Query.leftJoin('orders', '$id', 'customerId', '=', 'ord').toString()),
+        {
+            method: 'leftJoin',
+            attribute: 'orders',
+            values: ['$id', '=', 'customerId', 'ord'],
+        },
+    ));
+
+    test('rightJoin', () => assertEquals(
+        parsed(Query.rightJoin('orders', '$id', 'customerId').toString()),
+        {
+            method: 'rightJoin',
+            attribute: 'orders',
+            values: ['$id', '=', 'customerId'],
+        },
+    ));
+
+    test('fullOuterJoin', () => assertEquals(
+        parsed(Query.fullOuterJoin('orders', '$id', 'customerId').toString()),
+        {
+            method: 'fullOuterJoin',
+            attribute: 'orders',
+            values: ['$id', '=', 'customerId'],
+        },
+    ));
+
+    test('on', () => assertEquals(
+        parsed(Query.on('$id', 'customerId').toString()),
+        {
+            method: 'on',
+            values: ['$id', '=', 'customerId'],
+        },
+    ));
+
+    test('nested leftJoin', () => {
+        const query = JSON.parse(Query.leftJoin('orders', 'ord', [
+            Query.on('$id', 'customerId'),
+            Query.equal('ord.status', 'paid'),
+        ]).toString());
+        assertEquals(query.method, 'leftJoin');
+        assertEquals(query.attribute, 'orders');
+        assertEquals(query.values[0], 'ord');
+        assertEquals(query.values[1].method, 'on');
+        assertEquals(query.values[2].method, 'equal');
+    });
+
+    test('crossJoin', () => assertEquals(
+        parsed(Query.crossJoin('orders', 'ord').toString()),
+        {
+            method: 'crossJoin',
+            attribute: 'orders',
+            values: ['ord'],
+        },
+    ));
+
+    test('vectorDot', () => assertEquals(
+        parsed(Query.vectorDot('embedding', [0.1, 0.2]).toString()),
+        {
+            method: 'vectorDot',
+            attribute: 'embedding',
+            values: [[0.1, 0.2]],
+        },
+    ));
+
+    test('notCovers', () => assertEquals(
+        parsed(Query.notCovers('location', [1, 2]).toString()),
+        {
+            method: 'notCovers',
+            attribute: 'location',
+            values: [[1, 2]],
+        },
+    ));
+
+    test('spatialEquals', () => assertEquals(
+        parsed(Query.spatialEquals('location', [1, 2]).toString()),
+        {
+            method: 'spatialEquals',
+            attribute: 'location',
+            values: [[1, 2]],
+        },
+    ));
+
+    test('notSpatialEquals', () => assertEquals(
+        parsed(Query.notSpatialEquals('location', [1, 2]).toString()),
+        {
+            method: 'notSpatialEquals',
+            attribute: 'location',
+            values: [[1, 2]],
+        },
+    ));
+
+    test('page', () => {
+        const queries = Query.page(2, 10).map(parsed);
+        assertEquals(queries, [
+            { method: 'limit', values: [10] },
+            { method: 'offset', values: [10] },
+        ]);
+    });
+
+    test('builder build', () => {
+        const built = Query.builder()
+            .equal('status', 'published')
+            .leftJoin('orders', '$id', 'customerId', '=', 'ord')
+            .count('*', 'total')
+            .groupBy(['status'])
+            .limit(25)
+            .build();
+
+        assertEquals(built, [
+            Query.equal('status', 'published'),
+            Query.leftJoin('orders', '$id', 'customerId', '=', 'ord'),
+            Query.count('*', 'total'),
+            Query.groupBy(['status']),
+            Query.limit(25),
+        ]);
+    });
+
+    test('normalize builder wrapped in array', () => {
+        const builder = Query.builder().equal('status', 'active').limit(10);
+        assertEquals(normalizeQueries([builder]), builder.build());
+        assertEquals(normalizeQueries([builder.build()]), builder.build());
+        assertEquals(normalizeQueries(builder), builder.build());
+    });
+
+    test('normalize page wrapped in array', () => {
+        assertEquals(normalizeQueries([Query.equal('status', 'active'), Query.page(2, 10)]), [
+            Query.equal('status', 'active'),
+            Query.limit(10),
+            Query.offset(10),
+        ]);
+    });
+
+    test('flattenParam spreads wrapped builder', () => {
+        assertEquals(flattenParam([Query.builder().limit(1)]), [Query.limit(1)]);
+    });
+
+    test('flattenParam keeps nested numeric arrays', () => {
+        const geometry = [[1, 2], [3, 4]];
+        assertEquals(flattenParam(geometry), geometry);
+    });
+
+    test('flattenParam keeps query string list', () => {
+        assertEquals(flattenParam([Query.limit(1)]), [Query.limit(1)]);
+    });
 })
