@@ -6,59 +6,60 @@ import 'mqtt_message.dart';
 /// A callback invoked for every message delivered on a subscribed topic.
 typedef PushCallback = void Function(PushMessage message);
 
-/// Cancels a subscription created with [Push.subscribe].
-typedef PushUnsubscribe = void Function();
+/// Handle for a live subscription created with [Push.subscribe].
+///
+/// Unlike the realtime service's bare unsubscribe callable, a push subscription carries
+/// per-subscription state (background delivery, notification title), so [subscribe]
+/// returns this handle instead: [unsubscribe] drops it (and closes the connection once
+/// the last one is gone) and [update] toggles its options live without resubscribing.
+abstract class PushSubscription {
+  /// Drop this subscription. Closes the connection once the last one is gone.
+  void unsubscribe();
+
+  /// Live-update this subscription's [background] delivery and/or notification [title].
+  /// Only the arguments you pass change; the rest stay as they were.
+  void update({bool? background, String? title});
+}
 
 /// {{spec.info.title | caseUcfirst}} native push service — the realtime analog delivered over an MQTT
 /// broker, without FCM or APNS. While the app is alive the connection stays open and each
-/// message is handed to your callback; call [setBackground] to also keep receiving (and
-/// post a notification per message) while the app is backgrounded or closed.
+/// message is handed to your callback; a subscription can also opt into background
+/// delivery (a notification per message, and on mobile continued delivery while the app is
+/// backgrounded or closed).
 ///
-/// Mirrors the realtime service: `Push(client).subscribe(topics, callback)` opens the
-/// connection lazily and returns an unsubscribe callable. The credential is read off
-/// the client — set a JWT or session on it (`Client.setJWT` / `Client.setSession`),
-/// the same way every other service reads auth. The broker location comes from
-/// `Client.setPushEndpoint()` (or the client endpoint) and a stable id from
+/// [setReplayMessages] is a connection-level setting fixed for the life of the
+/// subscriptions — it throws while any subscription is live, so unsubscribe everything,
+/// set it, then resubscribe. TLS (and skipping cert verification via a `?tlsInsecure=true`
+/// query flag) is derived from the endpoint, so the whole connection is described in one
+/// place. `subscribe` opens the connection lazily and returns a [PushSubscription] handle.
+/// The credential is read off the client — set a JWT or session on it (`Client.setJWT` /
+/// `Client.setSession`), the same way every other service reads auth. The broker location
+/// comes from `Client.setPushEndpoint()` (or the client endpoint) and a stable id from
 /// `Client.setPushClientId()`.
 ///
 /// ```dart
 /// final client = Client().setEndpoint('...').setProject('...').setJWT(jwt);
 /// final push = Push(client);
-/// final unsubscribe = await push.subscribe('user/123/#', (message) {
+/// final sub = await push.subscribe('user/123/#', (message) {
 ///   print('${message.topic}: ${message.string}');
 /// });
 ///
-/// unsubscribe();
+/// // sub.update(background: true, title: 'Messages');
+/// sub.unsubscribe();
 /// ```
 abstract class Push extends Service {
   /// Initializes a [Push] service.
-  ///
-  /// [tlsInsecure] skips TLS certificate verification (useful when the broker carries a
-  /// certificate that does not chain to a public root).
-  factory Push(Client client, {bool tlsInsecure = false}) =>
-      createPush(client, tlsInsecure: tlsInsecure);
+  factory Push(Client client) => createPush(client);
 
   /// Toggle replay of messages missed while disconnected. `true` (the default) subscribes
   /// at QoS 1 with clean start off, so the broker keeps this client's replay cursor and
   /// redelivers missed messages on reconnect; `false` uses QoS 0 and a clean session
-  /// (at-most-once, no replay). May be called any time: if already connected in the other
-  /// mode it reconnects and resubscribes at the new QoS.
+  /// (at-most-once, no replay).
+  ///
+  /// This is a connection-level setting that fixes the CONNECT clean-start flag and the
+  /// subscribe QoS, so it cannot change while subscriptions are live — it throws in that
+  /// case. To switch, unsubscribe everything (or [close]), call this, then resubscribe.
   Push setReplayMessages([bool enabled = true]);
-
-  /// Enable (or disable) delivery while the app is backgrounded or closed, posting a
-  /// local notification per message.
-  ///
-  /// On mobile (`dart:io`) this runs the connection inside an Android foreground service
-  /// (a background isolate via `flutter_background_service`) so it survives the app being
-  /// closed, and shows each message with `flutter_local_notifications`. A hard process
-  /// kill or iOS's background limits still apply — killed-app delivery needs FCM/APNS,
-  /// which is out of scope. On the web there is no background execution: it shows a browser
-  /// notification per message only while the tab is open. `setBackground(false)` turns it
-  /// off (and stops the service on mobile).
-  ///
-  /// Requires the `flutter_background_service` and `flutter_local_notifications` peers and,
-  /// on Android, the `FOREGROUND_SERVICE` / `POST_NOTIFICATIONS` manifest permissions.
-  Push setBackground([bool enabled = true, String? title]);
 
   /// Register a callback invoked when the connection opens (CONNACK success).
   Push onOpen(void Function() callback);
@@ -69,12 +70,26 @@ abstract class Push extends Service {
   /// Register a callback invoked on a connection error.
   Push onError(void Function(Object error) callback);
 
-  /// Subscribe to one or more topics, resolving to an unsubscribe callable.
+  /// Subscribe to one or more topics, resolving to a [PushSubscription] handle.
   ///
   /// [topics] is a single topic string or a list of them. The future resolves only
   /// once every subscription has been acknowledged (SUBACK), so a subscribe-then-
   /// publish is reliable. Delivery QoS follows [setReplayMessages].
-  Future<PushUnsubscribe> subscribe(Object topics, PushCallback callback);
+  ///
+  /// Set [background] to also keep receiving while the app is backgrounded or closed
+  /// (mobile: an Android foreground service via `flutter_background_service`; web: a
+  /// browser notification while the tab is open) and post a notification per message with
+  /// [title] (defaulting to the message topic). The foreground service is reference-counted
+  /// across subscriptions — it runs while any live subscription has [background] on. Mobile
+  /// background needs the `flutter_background_service` and `flutter_local_notifications`
+  /// peers and, on Android, the `FOREGROUND_SERVICE` / `POST_NOTIFICATIONS` manifest
+  /// permissions. Toggle it later with [PushSubscription.update].
+  Future<PushSubscription> subscribe(
+    Object topics,
+    PushCallback callback, {
+    bool background,
+    String? title,
+  });
 
   /// Tear down the connection and drop all active subscriptions.
   void close();

@@ -29,7 +29,7 @@ void main() async {
     }
   });
   final pushReceived = Completer<PushMessage>();
-  final pushUnsub = await push.subscribe('e2e/push', (m) {
+  final pushSub = await push.subscribe('e2e/push', (m) {
     if (!pushReceived.isCompleted) {
       pushReceived.complete(m);
     }
@@ -48,6 +48,6 @@ void main() async {
       : 'Push message:failed');
   // reliableDelivery (default) => QoS 1 end to end.
   print(pushMessage.qos == 1 ? 'Push qos:passed' : 'Push qos:failed');
-  pushUnsub();
+  pushSub.unsubscribe();
   push.close();
 }

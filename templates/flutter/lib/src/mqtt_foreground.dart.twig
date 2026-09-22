@@ -13,23 +13,23 @@ import 'mqtt.dart';
 
 /// Android/iOS background delivery for the native ({{ 'dart:io' }}) push service.
 ///
-/// Flutter cannot keep the app's own isolate running once the app is closed, so
-/// [setForeground] runs the push connection inside a background isolate held alive by an
-/// Android foreground service ([FlutterBackgroundService]). That isolate owns the single
-/// MQTT connection, posts a local notification per message ([FlutterLocalNotificationsPlugin]),
-/// and forwards each message back to the app (when it is alive) over a service event so
-/// in-app callbacks still fire — mirroring the Android/React Native SDKs' foreground mode.
+/// Flutter cannot keep the app's own isolate running once the app is closed, so a
+/// subscription with `background: true` runs the push connection inside a background isolate
+/// held alive by an Android foreground service ([FlutterBackgroundService]). That isolate
+/// owns the single MQTT connection, posts a local notification per message
+/// ([FlutterLocalNotificationsPlugin]) for the filters that opted into background, and
+/// forwards every message back to the app (when it is alive) over a service event so in-app
+/// callbacks still fire — mirroring the Android/React Native SDKs' foreground mode.
 ///
 /// Config is handed to the isolate through a small JSON file in the app documents
 /// directory (the isolate does not share the app's memory), and the running isolate is kept
 /// in sync via service events. The config file (which holds the credential) is deleted when
-/// foreground delivery stops.
+/// background delivery stops.
 
 const String _channelId = '{{ spec.info.title | caseLower }}-push';
 const String _channelName = 'Notifications';
 const String _messageEvent = '{{ spec.info.title | caseLower }}.push.message';
 const String _topicsEvent = '{{ spec.info.title | caseLower }}.push.topics';
-const String _replayEvent = '{{ spec.info.title | caseLower }}.push.replay';
 const String _stopEvent = '{{ spec.info.title | caseLower }}.push.stop';
 
 // How long to wait before retrying a background subscription that failed (SUBACK/connect),
@@ -46,8 +46,9 @@ Future<File> _configFile() async {
 
 Future<void> _writeConfig(
   Client client, {
-  required String title,
+  required String serviceTitle,
   required List<String> topics,
+  required Map<String, String> notify,
   required bool replay,
 }) async {
   final config = <String, dynamic>{
@@ -58,14 +59,15 @@ Future<void> _writeConfig(
     'session': client.config['session'],
     'pushClientId': client.config['pushClientId'],
     'replay': replay,
-    'title': title,
+    'title': serviceTitle,
     'topics': topics,
+    'notify': notify,
   };
   (await _configFile()).writeAsStringSync(jsonEncode(config));
 }
 
 // Delete the config file (which holds the credential) so it does not linger on disk after
-// foreground delivery ends.
+// background delivery ends.
 Future<void> _deleteConfig() async {
   try {
     final file = await _configFile();
@@ -75,26 +77,30 @@ Future<void> _deleteConfig() async {
   } catch (_) {}
 }
 
-/// Start the background service (or, if already running, update its topics live). Called on
-/// the app isolate by the foreground subscribe/unsubscribe paths with the current topic set.
+/// Start the background service (or, if already running, update its topics/notify config
+/// live). Called on the app isolate whenever the set of background subscriptions changes.
+/// [topics] is the full union the single connection subscribes to; [notify] maps the filters
+/// that opted into background to their notification titles.
 Future<void> syncPushForeground(
   Client client, {
-  required String title,
+  required String serviceTitle,
   required List<String> topics,
+  required Map<String, String> notify,
   required bool replay,
 }) async {
   await _writeConfig(
     client,
-    title: title,
+    serviceTitle: serviceTitle,
     topics: topics,
+    notify: notify,
     replay: replay,
   );
 
   final service = FlutterBackgroundService();
   if (await service.isRunning()) {
-    // The isolate is already up: hand it the new topic set so a later subscribe/unsubscribe
-    // takes effect without a restart.
-    service.invoke(_topicsEvent, {'topics': topics});
+    // The isolate is already up: hand it the new topic/notify set so a later
+    // subscribe/unsubscribe/update takes effect without a restart.
+    service.invoke(_topicsEvent, {'topics': topics, 'notify': notify});
     return;
   }
 
@@ -104,7 +110,7 @@ Future<void> syncPushForeground(
       isForegroundMode: true,
       autoStart: false,
       notificationChannelId: _channelId,
-      initialNotificationTitle: title,
+      initialNotificationTitle: serviceTitle,
       initialNotificationContent: 'Listening for messages',
     ),
     iosConfiguration: IosConfiguration(
@@ -115,36 +121,22 @@ Future<void> syncPushForeground(
   await service.startService();
 }
 
-/// Change the delivery guarantee (replay) of the running background isolate, and persist it
-/// so a fresh start uses it too. A running isolate rebuilds its connection with the new
-/// clean-start/QoS and resubscribes — a plain topics sync would leave the old guarantee.
-Future<void> setPushForegroundReplay(
-  Client client, {
-  required String title,
-  required List<String> topics,
-  required bool replay,
-}) async {
-  await _writeConfig(
-    client,
-    title: title,
-    topics: topics,
-    replay: replay,
-  );
-  final service = FlutterBackgroundService();
-  if (await service.isRunning()) {
-    service.invoke(_replayEvent, {'replay': replay});
-  }
-}
-
 /// Ask the background service to disconnect and stop, and delete the config file.
 Future<void> stopPushForeground() async {
   FlutterBackgroundService().invoke(_stopEvent);
   await _deleteConfig();
 }
 
+Map<String, String> _notifyOf(dynamic raw) {
+  if (raw is Map) {
+    return raw.map((key, value) => MapEntry('$key', '$value'));
+  }
+  return <String, String>{};
+}
+
 /// Background isolate entry point: opens the connection, subscribes to the persisted
-/// topics (kept in sync via [_topicsEvent]), posts a notification per message and forwards
-/// it to the app.
+/// topics (kept in sync via [_topicsEvent]), posts a notification per message for the
+/// filters that opted into background and forwards every message to the app.
 @pragma('vm:entry-point')
 Future<void> pushForegroundEntry(ServiceInstance service) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -187,40 +179,47 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
     client.setPushClientId(pushClientId);
   }
 
-  // Mutable so a live replay change (see [_replayEvent]) can rebuild the connection with the
-  // new clean-start/QoS; [applyTopics] captures the variable, so it always uses the current one.
-  var push = Push(client)..setReplayMessages(config['replay'] as bool? ?? true);
-  final title = config['title'] as String?;
+  final push = Push(client)..setReplayMessages(config['replay'] as bool? ?? true);
+
+  // filter -> notification title, for the filters that opted into background. Reassigned on
+  // each [_topicsEvent]; the subscribe closures read the current map, so title/opt-in changes
+  // take effect without resubscribing.
+  var notify = _notifyOf(config['notify']);
 
   // One broker subscription per topic so topics can be added/removed independently as the
   // app's subscriptions change.
-  final subscriptions = <String, PushUnsubscribe>{};
+  final subscriptions = <String, PushSubscription>{};
 
   Future<void> applyTopics(List<String> topics) async {
     final wanted = topics.toSet();
     for (final topic in subscriptions.keys.toList()) {
       if (!wanted.contains(topic)) {
-        subscriptions.remove(topic)?.call();
+        subscriptions.remove(topic)?.unsubscribe();
       }
     }
     for (final topic in wanted) {
       if (subscriptions.containsKey(topic)) {
         continue;
       }
+      final filter = topic;
       subscriptions[topic] = await push.subscribe(topic, (message) {
-        notifications.show(
-          message.topic.hashCode,
-          title ?? message.topic,
-          message.string,
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              _channelId,
-              _channelName,
-              importance: Importance.high,
+        // Notify only for filters that opted into background, each with its own title.
+        final title = notify[filter];
+        if (title != null) {
+          notifications.show(
+            message.topic.hashCode,
+            title,
+            message.string,
+            const NotificationDetails(
+              android: AndroidNotificationDetails(
+                _channelId,
+                _channelName,
+                importance: Importance.high,
+              ),
+              iOS: DarwinNotificationDetails(),
             ),
-            iOS: DarwinNotificationDetails(),
-          ),
-        );
+          );
+        }
         // Forward to the app isolate (if alive) so in-app callbacks still fire.
         service.invoke(_messageEvent, {
           'topic': message.topic,
@@ -258,28 +257,14 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
   }
 
   service.on(_topicsEvent).listen((data) {
+    notify = _notifyOf(data?['notify']);
     final topics = ((data?['topics'] as List?) ?? const <dynamic>[]).cast<String>();
     queueTopics(topics);
   });
 
-  service.on(_replayEvent).listen((data) {
-    final replay = data?['replay'] as bool? ?? true;
-    // Rebuild the connection with the new guarantee, then resubscribe the wanted topics
-    // (through queueTopics so a failed resubscribe still retries).
-    topicQueue = topicQueue.then((_) async {
-      for (final unsubscribe in subscriptions.values) {
-        unsubscribe();
-      }
-      subscriptions.clear();
-      push.close();
-      push = Push(client)..setReplayMessages(replay);
-    }).catchError((Object _) {});
-    queueTopics(wantedTopics);
-  });
-
   service.on(_stopEvent).listen((_) async {
-    for (final unsubscribe in subscriptions.values) {
-      unsubscribe();
+    for (final subscription in subscriptions.values) {
+      subscription.unsubscribe();
     }
     push.close();
     await _deleteConfig();

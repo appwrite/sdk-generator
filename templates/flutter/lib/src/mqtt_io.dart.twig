@@ -12,14 +12,29 @@ import 'mqtt.dart';
 import 'mqtt_foreground.dart';
 import 'mqtt_message.dart';
 
-Push createPush(Client client, {bool tlsInsecure = false}) =>
-    PushIO(client, tlsInsecure: tlsInsecure);
+Push createPush(Client client) => PushIO(client);
 
-class _PushSubscription {
+class _Subscription {
   final String filter;
   final PushCallback callback;
+  bool background;
+  String? title;
 
-  const _PushSubscription(this.filter, this.callback);
+  _Subscription(this.filter, this.callback, {this.background = false, this.title});
+}
+
+class _SubscriptionHandle implements PushSubscription {
+  final void Function() _unsubscribe;
+  final void Function({bool? background, String? title}) _update;
+
+  _SubscriptionHandle(this._unsubscribe, this._update);
+
+  @override
+  void unsubscribe() => _unsubscribe();
+
+  @override
+  void update({bool? background, String? title}) =>
+      _update(background: background, title: title);
 }
 
 // Fixed connection tuning — not exposed as an option.
@@ -35,7 +50,7 @@ class PushIO implements Push {
   final bool _tlsInsecure;
 
   // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this client's
-  // replay cursor. Default on; toggle with setReplayMessages().
+  // replay cursor. Default on; change with setReplayMessages() before the first subscribe.
   bool _replay = true;
 
   MqttServerClient? _mqtt;
@@ -51,29 +66,27 @@ class PushIO implements Push {
   // otherwise a per-instance id is generated. Reusing one id keeps the session stable.
   late final String _resolvedClientId = _pushClientId();
 
-  // Background (foreground-service) mode: set by [setBackground]. When on, the connection
-  // runs in a background isolate (mqtt_foreground.dart) that also posts notifications; the
-  // app-side keeps its own callback map and forwards messages the service relays back.
-  bool _background = false;
-  String? _backgroundTitle;
-  final Map<String, _PushSubscription> _backgroundSubs = {};
+  // Whether the connection currently lives in the background isolate (foreground service)
+  // rather than in-process. The connection relocates there while any subscription wants
+  // background delivery, and back in-process once none do — one connection either way, so
+  // the broker never sees two sessions with the same client id.
+  bool _isolateActive = false;
   StreamSubscription<Map<String, dynamic>?>? _serviceListener;
 
-  // Serializes background config writes (topic syncs and replay changes). Each write is a
+  // Serializes background config writes (topic/notify syncs and stops). Each write is a
   // file write plus a service event, so unserialized rapid calls could interleave and apply
-  // out of order — an earlier one finishing last would leave stale clean-start/QoS. Chaining
-  // runs them in call order; each reads the current state when it runs, so the last requested
-  // value always wins.
+  // out of order. Chaining runs them in call order; each reads the current state when it
+  // runs, so the last requested value always wins.
   Future<void> _backgroundSync = Future<void>.value();
 
-  // Local id -> subscription (topic filter + callback). The id is never sent to
+  // Local id -> subscription (filter + callback + per-sub options). The id is never sent to
   // the broker; it only lets the same topic carry more than one callback.
-  final Map<String, _PushSubscription> _subscriptions = {};
+  final Map<String, _Subscription> _subscriptions = {};
   // topic filter -> FIFO queue of completers resolved on each SUBACK. A queue (not a
   // single completer) so two concurrent subscribes to the same topic both resolve.
   final Map<String, List<Completer<void>>> _subAcks = {};
 
-  factory PushIO(Client client, {bool tlsInsecure = false}) {
+  factory PushIO(Client client) {
     // The broker location comes from Client.setPushEndpoint() when set (e.g.
     // "mqtts://host:8883"), otherwise from the regular endpoint.
     final pushEndpoint = client.config['endpointPush'] ?? client.endPoint;
@@ -87,7 +100,7 @@ class PushIO implements Push {
       host: _hostOf(pushEndpoint),
       port: resolvedPort,
       tls: resolvedTls,
-      tlsInsecure: tlsInsecure,
+      tlsInsecure: _insecureFlag(client),
     );
   }
 
@@ -146,54 +159,26 @@ class PushIO implements Push {
     }
   }
 
-  @override
-  Push setReplayMessages([bool enabled = true]) {
-    if (enabled == _replay) {
-      return this;
+  // Skip TLS cert verification (self-signed brokers / testing) via a query flag on the push
+  // endpoint, e.g. "mqtts://host:8883?tlsInsecure=true" — so the whole connection is
+  // described by one URL, not a second config knob.
+  static bool _insecureFlag(Client client) {
+    final endpoint = client.config['endpointPush'];
+    if (endpoint == null) {
+      return false;
     }
-    _replay = enabled;
-    if (_background) {
-      // The connection lives in the background isolate, so a local reconnect would no-op.
-      // Hand the new guarantee to the isolate (serialized so rapid toggles apply in order
-      // and the last requested value wins) to rebuild with the new clean-start/QoS.
-      unawaited(_enqueueBackground(() async {
-        // Skip if background was turned off after this was queued, so a stale write can't
-        // recreate the credential file after shutdown deleted it.
-        if (!_background) {
-          return;
-        }
-        await setPushForegroundReplay(
-          client,
-          title: _backgroundTitleOrDefault,
-          topics: _backgroundTopics,
-          replay: _replay,
-        );
-      }));
-    } else if (_mqtt != null) {
-      // If already connected in the other mode, reconnect so the new clean-start takes
-      // effect, then resubscribe active topics at the new QoS.
-      unawaited(_reconnect());
+    try {
+      final value = Uri.parse(endpoint).queryParameters['tlsInsecure'];
+      return value == 'true' || value == '1';
+    } catch (_) {
+      return false;
     }
-    return this;
   }
 
   @override
-  Push setBackground([bool enabled = true, String? title]) {
-    _background = enabled;
-    if (enabled) {
-      _backgroundTitle = title;
-      // Toggled back on while subscriptions are still held: re-attach the forwarder and
-      // re-sync so a stop queued by the preceding setBackground(false) can't leave delivery
-      // down (the conditional stop also skips itself once it sees background is wanted again).
-      if (_backgroundSubs.isNotEmpty) {
-        _attachServiceListener();
-        unawaited(_syncBackground());
-      }
-    } else {
-      _serviceListener?.cancel();
-      _serviceListener = null;
-      _enqueueStop();
-    }
+  Push setReplayMessages([bool enabled = true]) {
+    _assertNoSubscriptions('setReplayMessages');
+    _replay = enabled;
     return this;
   }
 
@@ -215,111 +200,88 @@ class PushIO implements Push {
     return this;
   }
 
-  Future<void> _reconnect() async {
-    close();
-    await _connect();
-    for (final sub in _subscriptions.values) {
-      final subscription = MqttSubscription.withMaximumQos(
-        MqttSubscriptionTopic(sub.filter),
-        _defaultQos,
-      );
-      _mqtt?.subscribeWithSubscriptionList([subscription]);
-    }
-  }
-
   @override
-  Future<PushUnsubscribe> subscribe(
-      Object topics, PushCallback callback) async {
+  Future<PushSubscription> subscribe(
+    Object topics,
+    PushCallback callback, {
+    bool background = false,
+    String? title,
+  }) async {
     final topicList =
         topics is String ? <String>[topics] : List<String>.from(topics as List);
 
-    if (_background) {
-      return _subscribeBackground(topicList, callback);
-    }
-
-    final mqtt = await _connect();
-
     final ids = <String>[];
-    final acks = <Future<void>>[];
     for (final topic in topicList) {
       final id = _randomId();
       ids.add(id);
-      _subscriptions[id] = _PushSubscription(topic, callback);
-
-      final completer = Completer<void>();
-      (_subAcks[topic] ??= <Completer<void>>[]).add(completer);
-      acks.add(completer.future);
-
-      final subscription = MqttSubscription.withMaximumQos(
-        MqttSubscriptionTopic(topic),
-        _defaultQos,
-      );
-      mqtt.subscribeWithSubscriptionList([subscription]);
+      _subscriptions[id] =
+          _Subscription(topic, callback, background: background, title: title);
     }
 
-    void unsubscribe() {
-      for (final id in ids) {
-        final entry = _subscriptions.remove(id);
-        // Only unsubscribe the broker filter once its last local callback is gone.
-        final stillUsed =
-            _subscriptions.values.any((s) => s.filter == entry?.filter);
-        if (entry != null && !stillUsed) {
-          _mqtt?.unsubscribeStringTopic(entry.filter);
-        }
-      }
-      if (_subscriptions.isEmpty) {
-        close();
-      }
-    }
-
-    // The broker only starts routing a topic once its subscription is registered,
-    // so publishing before the SUBACK races the message ahead of the subscription
-    // and it is dropped (no retained replay on MQTT). Awaiting makes it reliable.
-    // If any topic's SUBACK fails, roll this call's registrations back (and drop any
-    // now-unused broker filter) so a failed subscribe leaks no callback, then rethrow.
     try {
-      await Future.wait(acks);
+      if (_backgroundWanted) {
+        // Any sub wants background: the isolate hosts the single connection (relocating
+        // off the in-process one if it was up) and covers the whole topic union.
+        await _hostInIsolate();
+      } else {
+        await _subscribeInProcess(ids);
+      }
     } catch (_) {
-      unsubscribe();
+      for (final id in ids) {
+        _subscriptions.remove(id);
+      }
+      // Return to a consistent host for whatever subscriptions remain.
+      _reconcile();
       rethrow;
     }
 
-    return unsubscribe;
+    return _SubscriptionHandle(
+      () => _unsubscribeIds(ids),
+      ({bool? background, String? title}) =>
+          _updateIds(ids, background: background, title: title),
+    );
   }
 
-  // Foreground mode: the connection lives in the background service isolate. Register the
-  // callback locally (so it fires while the app is alive), (re)sync the service with the
-  // current topic union, and forward messages it relays back to matching callbacks.
-  Future<PushUnsubscribe> _subscribeBackground(
-      List<String> topicList, PushCallback callback) async {
-    final ids = <String>[];
-    for (final topic in topicList) {
-      final id = _randomId();
-      ids.add(id);
-      _backgroundSubs[id] = _PushSubscription(topic, callback);
+  // In-process host: connect and register this call's new filters, awaiting each SUBACK.
+  Future<void> _subscribeInProcess(List<String> ids) async {
+    final mqtt = await _connect();
+    final acks = <Future<void>>[];
+    for (final id in ids) {
+      final sub = _subscriptions[id];
+      if (sub == null) {
+        continue;
+      }
+      final completer = Completer<void>();
+      (_subAcks[sub.filter] ??= <Completer<void>>[]).add(completer);
+      acks.add(completer.future);
+      mqtt.subscribeWithSubscriptionList([
+        MqttSubscription.withMaximumQos(
+          MqttSubscriptionTopic(sub.filter),
+          _defaultQos,
+        ),
+      ]);
     }
-
-    _attachServiceListener();
-
-    await _syncBackground();
-
-    return () {
-      for (final id in ids) {
-        _backgroundSubs.remove(id);
-      }
-      if (_backgroundSubs.isEmpty) {
-        _serviceListener?.cancel();
-        _serviceListener = null;
-        _enqueueStop();
-      } else {
-        // Prune the removed topics from the running isolate so they stop delivering.
-        unawaited(_syncBackground());
-      }
-    };
+    // The broker only starts routing a topic once its subscription is registered, so
+    // publishing before the SUBACK races the message ahead of it. Awaiting makes it reliable.
+    await Future.wait(acks);
   }
 
-  // Listen for messages the background isolate relays back and forward them to matching
-  // in-app callbacks (so callbacks still fire while the app is alive). Idempotent.
+  // Relocate the connection into the background isolate and sync it with the current topic
+  // union and per-subscription notification config.
+  Future<void> _hostInIsolate() async {
+    if (_mqtt != null) {
+      _mqtt?.disconnect();
+      _mqtt = null;
+      _connecting = null;
+    }
+    _isolateActive = true;
+    _attachServiceListener();
+    await _syncBackground();
+  }
+
+  // Listen for messages the background isolate relays back and forward them to every
+  // matching in-app callback (so callbacks still fire while the app is alive, background or
+  // not). Idempotent.
   void _attachServiceListener() {
     _serviceListener ??=
         FlutterBackgroundService().on(pushForegroundMessageEvent).listen((data) {
@@ -331,7 +293,7 @@ class PushIO implements Push {
           Uint8List.fromList(utf8.encode(data['payload'] as String? ?? ''));
       final message =
           PushMessage(topic: topic, payload: payload, qos: data['qos'] as int? ?? 0);
-      for (final sub in _backgroundSubs.values) {
+      for (final sub in _subscriptions.values) {
         if (_matches(sub.filter, topic)) {
           sub.callback(message);
         }
@@ -339,11 +301,26 @@ class PushIO implements Push {
     });
   }
 
-  String get _backgroundTitleOrDefault =>
-      _backgroundTitle ?? '{{spec.info.title | caseUcfirst}}';
+  bool get _backgroundWanted =>
+      _subscriptions.values.any((s) => s.background);
 
+  // The union of every subscription's filter (the isolate hosts one connection for all).
   List<String> get _backgroundTopics =>
-      _backgroundSubs.values.map((s) => s.filter).toSet().toList();
+      _subscriptions.values.map((s) => s.filter).toSet().toList();
+
+  // filter -> notification title, for filters that have at least one background subscription
+  // (those are the only ones that post a notification, each with its own title).
+  Map<String, String> get _notifyConfig {
+    final map = <String, String>{};
+    for (final sub in _subscriptions.values) {
+      if (sub.background) {
+        map[sub.filter] = sub.title ?? _defaultTitle;
+      }
+    }
+    return map;
+  }
+
+  String get _defaultTitle => '{{spec.info.title | caseUcfirst}}';
 
   // Run a background config write after any already-queued one, so writes never interleave
   // or reorder. The returned future carries this write's own result to its caller, while the
@@ -354,17 +331,18 @@ class PushIO implements Push {
     return result;
   }
 
-  // The current union of foreground topics, kept in sync with the background service.
+  // Sync the running/started isolate with the current topic union and notify config.
   Future<void> _syncBackground() => _enqueueBackground(() async {
         // Skip if background was turned off after this was queued, so a stale write can't
         // recreate the credential file after shutdown deleted it.
-        if (!_background) {
+        if (!_backgroundWanted) {
           return;
         }
         await syncPushForeground(
           client,
-          title: _backgroundTitleOrDefault,
+          serviceTitle: _defaultTitle,
           topics: _backgroundTopics,
+          notify: _notifyConfig,
           replay: _replay,
         );
       });
@@ -373,14 +351,97 @@ class PushIO implements Push {
   // always deleted last — a write queued just before shutdown cannot recreate it afterwards.
   void _enqueueStop() {
     unawaited(_enqueueBackground(() async {
-      // Skip if the service is still wanted by the time this runs — background was toggled
-      // back on and subscriptions remain — so a stale stop can't tear down a live connection
-      // or delete a credential config that is still in use.
-      if (_background && _backgroundSubs.isNotEmpty) {
+      // Skip if background is wanted again by the time this runs, so a stale stop can't tear
+      // down a live connection or delete a credential config that is still in use.
+      if (_backgroundWanted) {
         return;
       }
       await stopPushForeground();
     }));
+  }
+
+  // Ensure the correct host (in-process vs isolate) for whatever subscriptions remain, and
+  // sync it. Called after an unsubscribe/update may have flipped whether background is wanted.
+  void _reconcile() {
+    if (_subscriptions.isEmpty) {
+      return;
+    }
+    if (_backgroundWanted) {
+      if (_mqtt != null) {
+        _mqtt?.disconnect();
+        _mqtt = null;
+        _connecting = null;
+      }
+      _isolateActive = true;
+      _attachServiceListener();
+      unawaited(_syncBackground());
+    } else {
+      if (_isolateActive) {
+        _isolateActive = false;
+        _serviceListener?.cancel();
+        _serviceListener = null;
+        _enqueueStop();
+      }
+      unawaited(_ensureInProcessSubscribed());
+    }
+  }
+
+  // Bring up the in-process connection and (re)register every filter — used when the last
+  // background subscription goes away and the connection relocates back in-process.
+  Future<void> _ensureInProcessSubscribed() async {
+    final mqtt = await _connect();
+    for (final filter in _backgroundTopics) {
+      mqtt.subscribeWithSubscriptionList([
+        MqttSubscription.withMaximumQos(
+          MqttSubscriptionTopic(filter),
+          _defaultQos,
+        ),
+      ]);
+    }
+  }
+
+  void _unsubscribeIds(List<String> ids) {
+    for (final id in ids) {
+      final entry = _subscriptions.remove(id);
+      // Only unsubscribe the broker filter once its last local callback is gone.
+      final stillUsed =
+          _subscriptions.values.any((s) => s.filter == entry?.filter);
+      if (entry != null && !stillUsed && _mqtt != null) {
+        _mqtt?.unsubscribeStringTopic(entry.filter);
+      }
+    }
+    if (_subscriptions.isEmpty) {
+      close();
+      return;
+    }
+    // A removed sub may have been the last background one (relocate in-process) or just
+    // change the isolate's topic/notify set.
+    _reconcile();
+  }
+
+  void _updateIds(List<String> ids, {bool? background, String? title}) {
+    for (final id in ids) {
+      final sub = _subscriptions[id];
+      if (sub == null) {
+        continue;
+      }
+      if (background != null) {
+        sub.background = background;
+      }
+      if (title != null) {
+        sub.title = title;
+      }
+    }
+    _reconcile();
+  }
+
+  // A connection-level setter cannot change once a subscription pins the CONNECT flags.
+  void _assertNoSubscriptions(String method) {
+    if (_subscriptions.isNotEmpty || _mqtt != null || _isolateActive) {
+      throw {{spec.info.title | caseUcfirst}}Exception(
+          '$method() is a connection-level setting and cannot change while '
+          'subscriptions are active; unsubscribe all (or close()) first.');
+    }
   }
 
   // QoS for subscribe, chosen by [setReplayMessages]: at-least-once (1) when replay is on,
@@ -395,8 +456,8 @@ class PushIO implements Push {
     _connecting = null;
     _serviceListener?.cancel();
     _serviceListener = null;
-    if (_background) {
-      _background = false;
+    if (_isolateActive) {
+      _isolateActive = false;
       _enqueueStop();
     }
   }

@@ -12,13 +12,29 @@ import 'exception.dart';
 import 'mqtt.dart';
 import 'mqtt_message.dart';
 
-Push createPush(Client client, {bool tlsInsecure = false}) => PushWeb(client);
+Push createPush(Client client) => PushWeb(client);
 
-class _PushSubscription {
+class _Subscription {
   final String filter;
   final PushCallback callback;
+  bool background;
+  String? title;
 
-  const _PushSubscription(this.filter, this.callback);
+  _Subscription(this.filter, this.callback, {this.background = false, this.title});
+}
+
+class _SubscriptionHandle implements PushSubscription {
+  final void Function() _unsubscribe;
+  final void Function({bool? background, String? title}) _update;
+
+  _SubscriptionHandle(this._unsubscribe, this._update);
+
+  @override
+  void unsubscribe() => _unsubscribe();
+
+  @override
+  void update({bool? background, String? title}) =>
+      _update(background: background, title: title);
 }
 
 // Fixed connection tuning — not exposed as an option.
@@ -37,7 +53,7 @@ class PushWeb implements Push {
   final String _path;
 
   // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this client's
-  // replay cursor. Default on; toggle with setReplayMessages().
+  // replay cursor. Default on; change with setReplayMessages() before the first subscribe.
   bool _replay = true;
 
   MqttBrowserClient? _mqtt;
@@ -47,21 +63,15 @@ class PushWeb implements Push {
   void Function()? _onClose;
   void Function(Object error)? _onError;
 
-  // Background mode on the web: there is no background execution (a tab cannot hold a
-  // socket once closed), so [setBackground] just shows a browser notification per message
-  // while the tab is open.
-  bool _background = false;
-  String? _backgroundTitle;
-
   // Resolved once per instance: a reconnect rebuilds the client, and if each rebuild drew a
   // new random id the broker would treat it as a new session and drop this client's replay
   // cursor. A stable id from Client.setPushClientId() resumes replay across reloads;
   // otherwise a per-instance id is generated. Reusing one id keeps the session stable.
   late final String _resolvedClientId = _pushClientId();
 
-  // Local id -> subscription (topic filter + callback). The id is never sent to
+  // Local id -> subscription (filter + callback + per-sub options). The id is never sent to
   // the broker; it only lets the same topic carry more than one callback.
-  final Map<String, _PushSubscription> _subscriptions = {};
+  final Map<String, _Subscription> _subscriptions = {};
   // topic filter -> FIFO queue of completers resolved on each SUBACK. A queue (not a
   // single completer) so two concurrent subscribes to the same topic both resolve.
   final Map<String, List<Completer<void>>> _subAcks = {};
@@ -156,25 +166,8 @@ class PushWeb implements Push {
 
   @override
   Push setReplayMessages([bool enabled = true]) {
-    if (enabled == _replay) {
-      return this;
-    }
+    _assertNoSubscriptions('setReplayMessages');
     _replay = enabled;
-    if (_mqtt != null) {
-      unawaited(_reconnect());
-    }
-    return this;
-  }
-
-  @override
-  Push setBackground([bool enabled = true, String? title]) {
-    _background = enabled;
-    if (enabled) {
-      _backgroundTitle = title;
-      if (html.Notification.permission != 'granted') {
-        html.Notification.requestPermission();
-      }
-    }
     return this;
   }
 
@@ -196,23 +189,19 @@ class PushWeb implements Push {
     return this;
   }
 
-  Future<void> _reconnect() async {
-    close();
-    await _connect();
-    for (final sub in _subscriptions.values) {
-      final subscription = MqttSubscription.withMaximumQos(
-        MqttSubscriptionTopic(sub.filter),
-        _defaultQos,
-      );
-      _mqtt?.subscribeWithSubscriptionList([subscription]);
-    }
-  }
-
   @override
-  Future<PushUnsubscribe> subscribe(
-      Object topics, PushCallback callback) async {
+  Future<PushSubscription> subscribe(
+    Object topics,
+    PushCallback callback, {
+    bool background = false,
+    String? title,
+  }) async {
     final topicList =
         topics is String ? <String>[topics] : List<String>.from(topics as List);
+
+    if (background) {
+      _requestNotificationPermission();
+    }
 
     final mqtt = await _connect();
 
@@ -221,7 +210,8 @@ class PushWeb implements Push {
     for (final topic in topicList) {
       final id = _randomId();
       ids.add(id);
-      _subscriptions[id] = _PushSubscription(topic, callback);
+      _subscriptions[id] =
+          _Subscription(topic, callback, background: background, title: title);
 
       final completer = Completer<void>();
       (_subAcks[topic] ??= <Completer<void>>[]).add(completer);
@@ -261,11 +251,44 @@ class PushWeb implements Push {
       rethrow;
     }
 
-    return unsubscribe;
+    void update({bool? background, String? title}) {
+      for (final id in ids) {
+        final entry = _subscriptions[id];
+        if (entry == null) {
+          continue;
+        }
+        if (background != null) {
+          entry.background = background;
+        }
+        if (title != null) {
+          entry.title = title;
+        }
+      }
+      if (background == true) {
+        _requestNotificationPermission();
+      }
+    }
+
+    return _SubscriptionHandle(unsubscribe, update);
   }
 
-  // QoS for subscribe, chosen once by [reliableDelivery]: at-least-once (1) when
-  // reliable, at-most-once (0) when not.
+  // A connection-level setter cannot change once a subscription pins the CONNECT flags.
+  void _assertNoSubscriptions(String method) {
+    if (_subscriptions.isNotEmpty || _mqtt != null) {
+      throw {{spec.info.title | caseUcfirst}}Exception(
+          '$method() is a connection-level setting and cannot change while '
+          'subscriptions are active; unsubscribe all (or close()) first.');
+    }
+  }
+
+  void _requestNotificationPermission() {
+    if (html.Notification.permission != 'granted') {
+      html.Notification.requestPermission();
+    }
+  }
+
+  // QoS for subscribe, chosen by [setReplayMessages]: at-least-once (1) when replay is on,
+  // at-most-once (0) when off.
   MqttQos get _defaultQos =>
       _replay ? MqttQos.atLeastOnce : MqttQos.atMostOnce;
 
@@ -390,16 +413,16 @@ class PushWeb implements Push {
         payload: payload,
         qos: publish.header?.qos.index ?? 0,
       );
-      var matched = false;
       for (final subscription in _subscriptions.values) {
         if (_matches(subscription.filter, topic)) {
-          matched = true;
           subscription.callback(message);
+          // Notification is per-subscription: only subs that opted in show one, each
+          // with its own title.
+          if (subscription.background &&
+              html.Notification.permission == 'granted') {
+            html.Notification(subscription.title ?? topic, body: message.string);
+          }
         }
-      }
-      // Show a browser notification per delivered message when foreground mode is on.
-      if (matched && _background && html.Notification.permission == 'granted') {
-        html.Notification(_backgroundTitle ?? topic, body: message.string);
       }
     }
   }
