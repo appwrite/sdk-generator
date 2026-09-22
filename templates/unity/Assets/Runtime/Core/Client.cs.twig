@@ -127,19 +127,6 @@ namespace {{ spec.info.title | caseUcfirst }}
             return client;
         }
 
-        public static Client FromDevKey(
-            string projectId,
-            string devKey,
-            string endpoint = "{{(spec | endpoint)}}",
-            string? endpointRealtime = null,
-            string? locale = null,
-            bool selfSigned = false)
-        {
-            var client = From(projectId, endpoint, endpointRealtime, locale, selfSigned);
-            client.SetHeader("devKey", "X-{{ spec.info.title | caseUcfirst }}-Dev-Key", devKey);
-            return client;
-        }
-
         public static Client FromImpersonation(
             string projectId,
             string session,

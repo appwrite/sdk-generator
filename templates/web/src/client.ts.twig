@@ -947,15 +947,12 @@ class Client {
         const options: RequestInit = {
             method,
             headers,
-        };
-
-        if (headers['X-Appwrite-Dev-Key'] === undefined) {
 {%~ if sdk.platform == 'console' %}
-            options.credentials = this.config.credentials;
+            credentials: this.config.credentials,
 {%~ else %}
-            options.credentials = 'include';
+            credentials: 'include',
 {%~ endif %}
-        }
+        };
 
         if (method === 'GET') {
             for (const [key, value] of Object.entries(Client.flatten(params))) {

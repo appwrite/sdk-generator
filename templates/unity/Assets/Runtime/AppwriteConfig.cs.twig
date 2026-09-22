@@ -42,9 +42,6 @@ namespace {{ spec.info.title | caseUcfirst }}
         [SerializeField] private {{ spec.info.title | caseUcfirst }}Service servicesToInitialize = {{ spec.info.title | caseUcfirst }}Service.All;
 
         [Header("Advanced Settings")]
-        [Tooltip("Dev key (optional). Dev keys allow bypassing rate limits and CORS errors in your development environment. WARNING: Storing dev keys in ScriptableObjects is a security risk. Do not expose this in public repositories. Consider loading from a secure location at runtime for production builds.")]
-        [SerializeField] private string devKey = "";
-
         [Tooltip("Automatically connect to {{ spec.info.title | caseUcfirst }} on start")]
         [SerializeField] private bool autoConnect;
 
@@ -52,7 +49,6 @@ namespace {{ spec.info.title | caseUcfirst }}
         public string RealtimeEndpoint => realtimeEndpoint;
         public bool SelfSigned => selfSigned;
         public string ProjectId => projectId;
-        public string DevKey => devKey;
         public bool AutoConnect => autoConnect;
         public {{ spec.info.title | caseUcfirst }}Service ServicesToInitialize => servicesToInitialize;
 
@@ -66,9 +62,6 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             if (string.IsNullOrEmpty(projectId))
                 Debug.LogWarning("{{ spec.info.title | caseUcfirst }}Config: Project ID is required");
-
-            if (!string.IsNullOrEmpty(devKey))
-                Debug.LogWarning("{{ spec.info.title | caseUcfirst }}Config: Dev Key is set. For security, avoid storing keys directly in assets for production builds.");
         }
 
 
@@ -77,18 +70,11 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// </summary>
         public Client CreateClient()
         {
-            return string.IsNullOrEmpty(devKey)
-                ? Client.From(
-                    projectId: projectId,
-                    endpoint: endpoint,
-                    endpointRealtime: string.IsNullOrEmpty(realtimeEndpoint) ? null : realtimeEndpoint,
-                    selfSigned: selfSigned)
-                : Client.FromDevKey(
-                    projectId: projectId,
-                    devKey: devKey,
-                    endpoint: endpoint,
-                    endpointRealtime: string.IsNullOrEmpty(realtimeEndpoint) ? null : realtimeEndpoint,
-                    selfSigned: selfSigned);
+            return Client.From(
+                projectId: projectId,
+                endpoint: endpoint,
+                endpointRealtime: string.IsNullOrEmpty(realtimeEndpoint) ? null : realtimeEndpoint,
+                selfSigned: selfSigned);
         }
 
 #if UNITY_EDITOR
