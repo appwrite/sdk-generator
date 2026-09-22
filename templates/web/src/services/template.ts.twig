@@ -141,7 +141,7 @@ export class {{ service.name | caseUcfirst }} {
         }
         {%~ endif %}
         {%~ endfor %}
-{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter.extensions['x-sdk-source']|default('')) == 'security') ? ('this.client.config.' ~ (parameter.extensions['x-sdk-config'] | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
+{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter | configKey(method))) ? ('this.client.config.' ~ ((parameter | configKey(method)) | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
         {{ method.path | tsApiPath(pathReplacements, 8) | raw }}
         const payload: Payload = {};
         {%~ for parameter in (method | parameters('query')) %}
@@ -174,8 +174,8 @@ export class {{ service.name | caseUcfirst }} {
 
         {%~ endif %}
         {%~ if (method | methodType) == 'location' or (method | methodType) == 'webAuth' %}
-        {%~ if [(method | securitySchemes)]|length > 0 %}
-        {%~ for node in [(method | securitySchemes)] %}
+        {%~ if [(method | locationSchemes)]|length > 0 %}
+        {%~ for node in [(method | locationSchemes)] %}
         {%~ for key,header in node|keys %}
         payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
         {%~ endfor %}
