@@ -441,10 +441,11 @@ class Push(client: Client) : Service(client) {
     }
 
     private fun connect(): Mqtt5AsyncClient {
+        // Reuse the existing client even while it is mid automatic-reconnect. Building a second
+        // client here would give two clients the same stable id, so they would fight over the
+        // broker session and callbacks could stay attached to the abandoned one.
         mqtt?.let { existing ->
-            if (existing.state.isConnected) {
-                return existing
-            }
+            return existing
         }
 
         val config = buildConfig()

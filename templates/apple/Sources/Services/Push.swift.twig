@@ -478,8 +478,10 @@ open class Push: Service {
                             MQTTSubscribeInfoV5(topicFilter: $0, qos: effectiveQos($0))
                         }
                     }
+                    // Let a resubscription failure fall through to the retry loop rather than
+                    // reporting a recovery that left the handles without broker routing.
                     if !infos.isEmpty {
-                        _ = try? await client.v5.subscribe(to: infos)
+                        _ = try await client.v5.subscribe(to: infos)
                     }
                     onOpenCb?()
                     return

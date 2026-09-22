@@ -541,7 +541,8 @@ namespace {{ spec.info.title | caseUcfirst }}
                             await client.SubscribeAsync(rebuild.Build());
                         }
 
-                        _mainThread.Enqueue(() => _onOpen?.Invoke());
+                        // The client's ConnectedAsync handler already queued _onOpen for this
+                        // reconnect, so do not fire it a second time here.
                         return;
                     }
                     catch
