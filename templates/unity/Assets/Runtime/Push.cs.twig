@@ -44,10 +44,9 @@ namespace {{ spec.info.title | caseUcfirst }}
         private Client _client;
         private IMqttClient _mqtt;
 
-        private bool _tlsInsecure;
-
         // Replay (reliable delivery): QoS 1 + clean start off so the broker keeps this
-        // client's replay cursor. Default on; toggle with SetReplayMessages().
+        // client's replay cursor. Default on; change with SetReplayMessages() before the
+        // first subscribe.
         private bool _replay = true;
 
         private Action _onOpen;
@@ -125,37 +124,49 @@ namespace {{ spec.info.title | caseUcfirst }}
             _client = client;
         }
 
-        /// <summary>
-        /// Configure the broker connection. Call before the first subscribe. Only TLS
-        /// certificate verification is configurable here; the broker location comes from
-        /// Client.SetPushEndpoint() and a stable id from Client.SetPushClientId().
-        /// </summary>
-        public Push Configure(bool tlsInsecure = false)
+        // Skip TLS cert verification (self-signed brokers / testing) via a query flag on the
+        // push endpoint, e.g. "mqtts://host:8883?tlsInsecure=true" — so the whole connection
+        // is described by one URL, not a second config knob.
+        private bool TlsInsecure()
         {
-            _tlsInsecure = tlsInsecure;
-            return this;
+            var endpoint = _client.Config.GetValueOrDefault("endpointPush");
+            if (string.IsNullOrEmpty(endpoint))
+            {
+                return false;
+            }
+
+            try
+            {
+                var query = new Uri(endpoint).Query;
+                return query.Contains("tlsInsecure=true") || query.Contains("tlsInsecure=1");
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>
         /// Toggle replay of messages missed while disconnected. true (the default) subscribes
         /// at QoS 1 with clean start off, so the broker keeps this client's replay cursor and
-        /// redelivers missed messages on reconnect; false uses QoS 0 and a clean session. Can
-        /// be called at any time: if already connected in the other mode it reconnects and
-        /// resubscribes at the new QoS.
+        /// redelivers missed messages on reconnect; false uses QoS 0 and a clean session.
+        ///
+        /// This is a connection-level setting that fixes the CONNECT clean-start flag and the
+        /// subscribe QoS, so it cannot change while subscriptions are live — it throws in that
+        /// case. To switch, unsubscribe everything (or Close()), call this, then resubscribe.
         /// </summary>
         public Push SetReplayMessages(bool enabled = true)
         {
-            if (enabled == _replay)
+            lock (_subscriptions)
             {
-                return this;
+                if (_subscriptions.Count > 0 || _mqtt != null)
+                {
+                    throw new {{ spec.info.title | caseUcfirst }}Exception(
+                        "SetReplayMessages() is a connection-level setting and cannot change while subscriptions are active; unsubscribe all (or Close()) first.");
+                }
             }
 
             _replay = enabled;
-            if (_mqtt != null)
-            {
-                _ = Reconnect();
-            }
-
             return this;
         }
 
@@ -186,18 +197,18 @@ namespace {{ spec.info.title | caseUcfirst }}
             _replay ? MqttQualityOfServiceLevel.AtLeastOnce : MqttQualityOfServiceLevel.AtMostOnce;
 
         /// <summary>
-        /// Subscribe to one or more topics. Returns an unsubscribe callable.
+        /// Subscribe to one or more topics. Returns a <see cref="PushSubscription"/> handle.
         ///
         /// Awaits the broker's SUBACK: the broker only starts routing a topic once its
         /// subscription is registered, so publishing before the ack races the message
         /// ahead of the subscription and it is dropped (no retained replay on MQTT).
         /// </summary>
-        public async Task<Action> Subscribe(string topic, Action<PushMessage> callback)
+        public async Task<PushSubscription> Subscribe(string topic, Action<PushMessage> callback)
         {
             return await Subscribe(new[] { topic }, callback);
         }
 
-        public async Task<Action> Subscribe(IEnumerable<string> topics, Action<PushMessage> callback)
+        public async Task<PushSubscription> Subscribe(IEnumerable<string> topics, Action<PushMessage> callback)
         {
             var client = await Connect();
 
@@ -262,7 +273,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 throw;
             }
 
-            return unsubscribe;
+            return new PushSubscription(unsubscribe);
         }
 
         /// <summary>Tear down the connection and drop all active subscriptions.</summary>
@@ -329,7 +340,7 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             if (Tls)
             {
-                var insecure = _tlsInsecure;
+                var insecure = TlsInsecure();
                 optionsBuilder = optionsBuilder.WithTlsOptions(o =>
                 {
                     o.UseTls(true);
@@ -372,40 +383,6 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
 
             return client;
-        }
-
-        // Reconnect and resubscribe active topics at the current QoS — used when the replay
-        // mode changes while the connection is open (clean start is a CONNECT-level flag).
-        private async Task Reconnect()
-        {
-            List<string> filters;
-            lock (_subscriptions)
-            {
-                var set = new HashSet<string>();
-                foreach (var entry in _subscriptions.Values)
-                {
-                    set.Add(entry.Filter);
-                }
-
-                filters = new List<string>(set);
-            }
-
-            Close();
-            var client = await Connect();
-            if (filters.Count == 0)
-            {
-                return;
-            }
-
-            var builder = new MqttClientSubscribeOptionsBuilder();
-            foreach (var filter in filters)
-            {
-                builder = builder.WithTopicFilter(f => f
-                    .WithTopic(filter)
-                    .WithQualityOfServiceLevel(DefaultQos));
-            }
-
-            await client.SubscribeAsync(builder.Build());
         }
 
         private Task OnMessage(MqttApplicationMessageReceivedEventArgs args)
@@ -474,5 +451,24 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             return filterParts.Length == topicParts.Length;
         }
+    }
+
+    /// <summary>
+    /// Handle for a live subscription created with <see cref="Push.Subscribe(string, Action{PushMessage})"/>.
+    /// Unlike the realtime service's bare unsubscribe callable, this is returned as a handle for
+    /// parity with the other SDKs; call <see cref="Unsubscribe"/> to drop the subscription (which
+    /// closes the connection once the last one is gone).
+    /// </summary>
+    public class PushSubscription
+    {
+        private readonly Action _unsubscribe;
+
+        internal PushSubscription(Action unsubscribe)
+        {
+            _unsubscribe = unsubscribe;
+        }
+
+        /// <summary>Drop this subscription. Closes the connection once the last one is gone.</summary>
+        public void Unsubscribe() => _unsubscribe();
     }
 }

@@ -477,7 +477,7 @@ namespace AppwriteTests
             var pushOpenTcs = new TaskCompletionSource<bool>();
             push.OnOpen(() => pushOpenTcs.TrySetResult(true));
             var pushTcs = new TaskCompletionSource<PushMessage>();
-            var pushUnsub = await push.Subscribe("e2e/push", (message) =>
+            var pushSub = await push.Subscribe("e2e/push", (message) =>
             {
                 pushTcs.TrySetResult(message);
             });
@@ -495,7 +495,7 @@ namespace AppwriteTests
             LogResult(pushOk && pushTcs.Task.Result.Qos == 1
                 ? "Push qos:passed"
                 : "Push qos:failed");
-            pushUnsub();
+            pushSub.Unsubscribe();
             push.Close();
             Object.DestroyImmediate(pushObject);
 
