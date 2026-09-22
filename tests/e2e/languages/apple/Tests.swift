@@ -477,7 +477,7 @@ class Tests: XCTestCase {
         let pushExpectation = XCTestExpectation(description: "push message")
         var pushBody = "Push message:failed"
         var pushQos = "Push qos:failed"
-        let pushUnsubscribe = try await push.subscribe("e2e/push") { message in
+        let pushSub = try await push.subscribe("e2e/push") { message in
             if message.string == "push-payload" && message.topic == "e2e/push" {
                 pushBody = "Push message:passed"
             }
@@ -495,7 +495,7 @@ class Tests: XCTestCase {
         print(pushBody)
         // reliableDelivery (default) => QoS 1 end to end.
         print(pushQos)
-        pushUnsubscribe()
+        pushSub.unsubscribe()
         push.close()
     }
 
