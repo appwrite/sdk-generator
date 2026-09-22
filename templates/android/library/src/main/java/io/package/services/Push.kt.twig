@@ -365,9 +365,13 @@ class Push(client: Client) : Service(client) {
 
     private fun unsubscribeIds(ids: List<String>) {
         val wasService = serviceActive
+        val maybeDowngrade = mutableSetOf<String>()
         for (id in ids) {
             val entry = subscriptions.remove(id)
             val filter = entry?.filter
+            if (entry?.reDeliver == true && filter != null) {
+                maybeDowngrade.add(filter)
+            }
             // In-process only: drop the broker filter once its last local callback is gone.
             if (!wasService && filter != null && subscriptions.values.none { it.filter == filter }) {
                 mqtt?.unsubscribeWith()?.topicFilter(filter)?.send()
@@ -378,9 +382,17 @@ class Push(client: Client) : Service(client) {
             return
         }
         // A removed sub may have been the last background one (relocate in-process) or just
-        // change the service's topic/notify set.
+        // change the service's topic/QoS set (the service re-sync applies the new QoS).
         if (wasService) {
             reconcile()
+            return
+        }
+        // In-process, a filter that lost its last QoS-1 sub but still has QoS-0 subs must be
+        // re-subscribed lower, or the broker keeps replaying to at-most-once subs.
+        for (filter in maybeDowngrade) {
+            if (subscriptions.values.any { it.filter == filter } && effectiveQos(filter) == MqttQos.AT_MOST_ONCE) {
+                resubscribeFilterInProcess(filter)
+            }
         }
     }
 

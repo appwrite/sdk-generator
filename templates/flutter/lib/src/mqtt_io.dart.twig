@@ -418,8 +418,13 @@ class PushIO implements Push {
   }
 
   void _unsubscribeIds(List<String> ids) {
+    // Filters whose removed sub was QoS 1: their effective QoS may now drop.
+    final maybeDowngrade = <String>{};
     for (final id in ids) {
       final entry = _subscriptions.remove(id);
+      if (entry != null && entry.reDeliver) {
+        maybeDowngrade.add(entry.filter);
+      }
       // Only unsubscribe the broker filter once its last local callback is gone.
       final stillUsed =
           _subscriptions.values.any((s) => s.filter == entry?.filter);
@@ -432,8 +437,23 @@ class PushIO implements Push {
       return;
     }
     // A removed sub may have been the last background one (relocate in-process) or just
-    // change the isolate's topic/notify set.
+    // change the isolate's topic/notify set (the isolate re-sync carries the new QoS map).
     _reconcile();
+    // In-process, a filter that lost its last QoS-1 sub but still has QoS-0 subs must be
+    // re-subscribed lower, or the broker keeps replaying to at-most-once subs.
+    if (!_backgroundWanted && _mqtt != null) {
+      for (final filter in maybeDowngrade) {
+        final stillUsed = _subscriptions.values.any((s) => s.filter == filter);
+        if (stillUsed && _effectiveQos(filter) == MqttQos.atMostOnce) {
+          _mqtt?.subscribeWithSubscriptionList([
+            MqttSubscription.withMaximumQos(
+              MqttSubscriptionTopic(filter),
+              MqttQos.atMostOnce,
+            ),
+          ]);
+        }
+      }
+    }
   }
 
   void _updateIds(List<String> ids,

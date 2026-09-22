@@ -221,22 +221,35 @@ open class Push: Service {
 
         let unsubscribe: () -> Void = { [weak self] in
             guard let self else { return }
-            let filters = self.sync.sync { () -> [String] in
-                var removed: [String] = []
+            let (removed, downgrade) = self.sync.sync { () -> ([String], [MQTTSubscribeInfoV5]) in
+                var removedFilters: [String] = []
+                var maybeDowngrade = Set<String>()
                 for id in ids {
                     if let entry = self.subscriptions.removeValue(forKey: id) {
+                        if entry.reDeliver {
+                            maybeDowngrade.insert(entry.filter)
+                        }
                         // Only unsubscribe the broker filter once its last local callback is gone.
                         let stillUsed = self.subscriptions.values.contains { $0.filter == entry.filter }
                         if !stillUsed {
-                            removed.append(entry.filter)
+                            removedFilters.append(entry.filter)
                         }
                     }
                 }
-                return removed
+                // A filter that lost its last QoS-1 sub but still has QoS-0 subs must be
+                // re-SUBSCRIBEd lower, or the broker keeps replaying to at-most-once subs.
+                let infos =
+                    maybeDowngrade
+                    .filter { f in self.subscriptions.values.contains { $0.filter == f } && self.effectiveQos(f) == .atMostOnce }
+                    .map { MQTTSubscribeInfoV5(topicFilter: $0, qos: .atMostOnce) }
+                return (removedFilters, infos)
             }
             let client: MQTTClient? = self.sync.sync { self.mqtt }
-            if let client, !filters.isEmpty {
-                Task { try? await client.v5.unsubscribe(from: filters) }
+            if let client, !removed.isEmpty {
+                Task { try? await client.v5.unsubscribe(from: removed) }
+            }
+            if let client, !downgrade.isEmpty {
+                Task { _ = try? await client.v5.subscribe(to: downgrade) }
             }
             if self.sync.sync(execute: { self.subscriptions.isEmpty }) {
                 self.close()

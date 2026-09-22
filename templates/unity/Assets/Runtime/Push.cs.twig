@@ -222,6 +222,7 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             Action unsubscribe = () =>
             {
+                var maybeDowngrade = new HashSet<string>();
                 lock (_subscriptions)
                 {
                     foreach (var id in ids)
@@ -229,6 +230,11 @@ namespace {{ spec.info.title | caseUcfirst }}
                         if (_subscriptions.TryGetValue(id, out var entry))
                         {
                             _subscriptions.Remove(id);
+                            if (entry.ReDeliver)
+                            {
+                                maybeDowngrade.Add(entry.Filter);
+                            }
+
                             // Only unsubscribe the broker filter once its last local callback is gone.
                             var stillUsed = false;
                             foreach (var other in _subscriptions.Values)
@@ -250,6 +256,44 @@ namespace {{ spec.info.title | caseUcfirst }}
                     if (_subscriptions.Count == 0)
                     {
                         Close();
+                    }
+                }
+
+                // A filter that lost its last QoS-1 sub but still has QoS-0 subs must be
+                // re-subscribed lower, or the broker keeps replaying to at-most-once subs.
+                var mqtt = _mqtt;
+                if (mqtt != null && maybeDowngrade.Count > 0)
+                {
+                    var rebuild = new MqttClientSubscribeOptionsBuilder();
+                    var any = false;
+                    foreach (var f in maybeDowngrade)
+                    {
+                        var filter = f;
+                        var stillUsed = false;
+                        lock (_subscriptions)
+                        {
+                            foreach (var entry in _subscriptions.Values)
+                            {
+                                if (entry.Filter == filter)
+                                {
+                                    stillUsed = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (stillUsed && EffectiveQos(filter) == MqttQualityOfServiceLevel.AtMostOnce)
+                        {
+                            any = true;
+                            rebuild = rebuild.WithTopicFilter(x => x
+                                .WithTopic(filter)
+                                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce));
+                        }
+                    }
+
+                    if (any)
+                    {
+                        _ = mqtt.SubscribeAsync(rebuild.Build());
                     }
                 }
             };

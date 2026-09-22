@@ -229,13 +229,30 @@ class PushWeb implements Push {
     }
 
     void unsubscribe() {
+      final maybeDowngrade = <String>{};
       for (final id in ids) {
         final entry = _subscriptions.remove(id);
+        if (entry != null && entry.reDeliver) {
+          maybeDowngrade.add(entry.filter);
+        }
         // Only unsubscribe the broker filter once its last local callback is gone.
         final stillUsed =
             _subscriptions.values.any((s) => s.filter == entry?.filter);
         if (entry != null && !stillUsed) {
           _mqtt?.unsubscribeStringTopic(entry.filter);
+        }
+      }
+      // A filter that lost its last QoS-1 sub but still has QoS-0 subs must be re-subscribed
+      // lower, or the broker keeps replaying to at-most-once subs.
+      for (final filter in maybeDowngrade) {
+        final stillUsed = _subscriptions.values.any((s) => s.filter == filter);
+        if (stillUsed && _effectiveQos(filter) == MqttQos.atMostOnce) {
+          _mqtt?.subscribeWithSubscriptionList([
+            MqttSubscription.withMaximumQos(
+              MqttSubscriptionTopic(filter),
+              MqttQos.atMostOnce,
+            ),
+          ]);
         }
       }
       if (_subscriptions.isEmpty) {

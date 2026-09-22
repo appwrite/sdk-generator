@@ -247,15 +247,30 @@ export class Push extends Service {
         }
 
         const unsubscribe = () => {
+            // Filters whose removed sub was QoS 1: their effective QoS may now drop.
+            const maybeDowngrade = new Set<string>();
             for (const id of ids) {
                 const entry = this.subscriptions.get(id);
                 this.subscriptions.delete(id);
+                if (entry?.qos === 1) {
+                    maybeDowngrade.add(entry.topic);
+                }
                 // Only unsubscribe the broker filter once its last local callback is gone.
                 const stillUsed = [...this.subscriptions.values()].some(
                     (s) => s.topic === entry?.topic,
                 );
                 if (entry && this.mqtt && !stillUsed) {
                     this.mqtt.unsubscribe(entry.topic);
+                }
+            }
+            // A filter that lost its last QoS-1 sub but still has QoS-0 subs must be
+            // re-SUBSCRIBEd at the lower QoS, or the broker keeps replaying to at-most-once subs.
+            for (const filter of maybeDowngrade) {
+                const stillUsed = [...this.subscriptions.values()].some(
+                    (s) => s.topic === filter,
+                );
+                if (stillUsed && this.effectiveQos(filter) === 0) {
+                    this.mqtt?.subscribe(filter, { qos: 0 });
                 }
             }
             if (this.subscriptions.size === 0) {
