@@ -498,7 +498,7 @@ namespace AppwriteTests
             LogResult(mock.Result);
 
             // Native push (MQTT) round-trip against the mock broker.
-            client.SetJWT("e2e-jwt");
+            client.SetJWT("eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e");
             client.SetPushEndpoint("mqtt://mqtt:1883");
             var pushObject = new GameObject("PushTest");
             var push = pushObject.AddComponent<Push>();
@@ -527,6 +527,23 @@ namespace AppwriteTests
             pushSub.Unsubscribe();
             push.Close();
             Object.DestroyImmediate(pushObject);
+
+            // Topic-less subscribe: the signed-in user's own topic, users/<userId> from the JWT.
+            var userPushObject = new GameObject("PushUserTest");
+            var userPush = userPushObject.AddComponent<Push>();
+            userPush.Initialize(client);
+            var userPushTcs = new TaskCompletionSource<PushMessage>();
+            var userPushSub = await userPush.Subscribe((message) =>
+            {
+                userPushTcs.TrySetResult(message);
+            });
+            var userPushWinner = await Task.WhenAny(userPushTcs.Task, Task.Delay(10000));
+            LogResult(userPushWinner == userPushTcs.Task && userPushTcs.Task.Result.Topic == "users/e2e-user"
+                ? "Push user topic:passed"
+                : "Push user topic:failed");
+            userPushSub.Unsubscribe();
+            userPush.Close();
+            Object.DestroyImmediate(userPushObject);
 
             // Cleanup Realtime GameObject
             if (realtimeObject)

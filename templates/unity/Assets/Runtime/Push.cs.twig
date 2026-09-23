@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using MQTTnet;
 using MQTTnet.Client;
@@ -203,10 +204,31 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// <code>
         /// await push.Subscribe(Topic.Path(new[] { "user", userId }).Any(), message => Debug.Log(message.Text));
         /// </code>
+        ///
+        /// Leave the topic out to subscribe to the signed-in user's own topic
+        /// (<c>users/&lt;userId&gt;</c>), resolved from the JWT or session set on the client:
+        /// <code>
+        /// await push.Subscribe(message => Debug.Log(message.Text), retry: true);
+        /// </code>
         /// </summary>
         public async Task<PushSubscription> Subscribe(string topic, Action<PushMessage> callback, bool retry = true)
         {
             return await Subscribe(new[] { topic }, callback, retry);
+        }
+
+        /// <summary>
+        /// Subscribe to the signed-in user's own topic, <c>users/&lt;userId&gt;</c>. The user id is
+        /// read from the JWT or session set on the client, without a network call.
+        /// </summary>
+        public Task<PushSubscription> Subscribe(Action<PushMessage> callback, bool retry = true)
+        {
+            var userId = ResolveUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new {{ spec.info.title | caseUcfirst }}Exception("subscribe() without a topic needs a signed-in user: set a JWT or session on the client");
+            }
+
+            return Subscribe(Topic.Path(new[] { "users", userId }), callback, retry);
         }
 
         /// <summary>Subscribe to a topic built with <see cref="Topic"/>.</summary>
@@ -240,6 +262,57 @@ namespace {{ spec.info.title | caseUcfirst }}
         public Task<PushSubscription> Subscribe(IEnumerable<TopicValue> topics, Action<PushMessage> callback, bool retry = true)
         {
             return Subscribe(topics.Select(topic => topic.ToString()), callback, retry);
+        }
+
+        // The signed-in user's id, in the order the connection authenticates: the JWT's
+        // `userId` claim first, then the session secret (base64 of {"id": ..., "secret": ...}).
+        private string ResolveUserId()
+        {
+            var jwt = _client.GetJWT();
+            if (!string.IsNullOrEmpty(jwt))
+            {
+                var parts = jwt.Split('.');
+                if (parts.Length < 2)
+                {
+                    return null;
+                }
+
+                var payload = parts[1].Replace('-', '+').Replace('_', '/');
+                payload = payload.PadRight(payload.Length + ((4 - (payload.Length % 4)) % 4), '=');
+                return ReadString(payload, "userId");
+            }
+
+            var session = _client.GetSession();
+            if (!string.IsNullOrEmpty(session))
+            {
+                return ReadString(session, "id");
+            }
+
+            return null;
+        }
+
+        // Decode base64 JSON and read one string field; null when anything is malformed.
+        private static string ReadString(string base64, string field)
+        {
+            try
+            {
+                var json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+                using var document = JsonDocument.Parse(json);
+                if (document.RootElement.ValueKind == JsonValueKind.Object
+                    && document.RootElement.TryGetProperty(field, out var value)
+                    && value.ValueKind == JsonValueKind.String)
+                {
+                    return value.GetString();
+                }
+            }
+            catch (FormatException)
+            {
+            }
+            catch (JsonException)
+            {
+            }
+
+            return null;
         }
 
         // MQTTnet reports broker-rejected filters in the SUBACK result rather than throwing,
