@@ -1,0 +1,102 @@
+import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
+{% if 'dart' in language.params.packageName %}
+import 'package:test/test.dart';
+{% else %}
+import 'package:flutter_test/flutter_test.dart';
+{% endif %}
+
+Matcher throwsTopicError(String message) =>
+    throwsA(isA<ArgumentError>().having((e) => e.message, 'message', message));
+
+void main() {
+  group('path()', () {
+    test('joins levels', () {
+      expect(Topic.path(['user']).toString(), 'user');
+      expect(
+        Topic.path(['user', 'notification']).toString(),
+        'user/notification',
+      );
+    });
+
+    test('appends levels', () {
+      expect(
+        Topic.path(['user']).path(['notification']).toString(),
+        'user/notification',
+      );
+    });
+  });
+
+  group('any()', () {
+    test('appends a single-level wildcard', () {
+      expect(
+        Topic.path(['user']).any().path(['notification']).toString(),
+        'user/+/notification',
+      );
+      expect(
+        Topic.path(['chat']).any().any().path(['message']).toString(),
+        'chat/+/+/message',
+      );
+    });
+
+    test('starts a topic', () {
+      expect(Topic.any().path(['notification']).toString(), '+/notification');
+    });
+  });
+
+  group('all()', () {
+    test('ends a topic', () {
+      expect(
+        Topic.path(['org']).any().path(['logs']).all().toString(),
+        'org/+/logs/#',
+      );
+    });
+
+    test('matches every topic', () {
+      expect(Topic.all().toString(), '#');
+    });
+  });
+
+  group('errors', () {
+    test('rejects an empty path', () {
+      expect(
+        () => Topic.path([]),
+        throwsTopicError('path() needs at least one level'),
+      );
+    });
+
+    test('rejects an empty level', () {
+      expect(
+        () => Topic.path(['user', '']),
+        throwsTopicError('empty level at index 1'),
+      );
+    });
+
+    test('rejects a slash', () {
+      expect(
+        () => Topic.path(['user/123']),
+        throwsTopicError(
+          '"user/123" contains "/", split it: path([\'user\', \'123\'])',
+        ),
+      );
+    });
+
+    test('rejects wildcards', () {
+      expect(
+        () => Topic.path(['user', '+']),
+        throwsTopicError('"+" is reserved, use any()'),
+      );
+      expect(
+        () => Topic.path(['user', 'a+b']),
+        throwsTopicError('"a+b" contains "+", use any() for wildcards'),
+      );
+      expect(
+        () => Topic.path(['user', '#']),
+        throwsTopicError('"#" is reserved, use all()'),
+      );
+      expect(
+        () => Topic.path(['user', 'a#b']),
+        throwsTopicError('"a#b" contains "#", use all() for wildcards'),
+      );
+    });
+  });
+}
