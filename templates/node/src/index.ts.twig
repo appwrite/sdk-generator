@@ -8,7 +8,6 @@ export { Permission } from './permission';
 export { Role } from './role';
 export { ID } from './id';
 export { Topic, ResolvedTopic } from './topic';
-export type { TopicValue } from './topic';
 export { Operator, Condition } from './operator';
 {% for enum in allEnums %}
 export { {{ enum.title | caseUcfirst  }} } from './enums/{{enum.title | caseKebab}}';
