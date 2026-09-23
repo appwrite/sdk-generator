@@ -1,0 +1,59 @@
+package {{ sdk.namespace | caseDot }}
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+
+class TopicTest {
+    private fun assertPathFails(levels: List<String>, message: String) {
+        val error = assertFailsWith<IllegalArgumentException> { Topic.path(levels) }
+        assertEquals(message, error.message)
+    }
+
+    @Test
+    fun pathJoinsLevels() {
+        assertEquals("user/123/notification", Topic.path(listOf("user", "123", "notification")).toString())
+    }
+
+    @Test
+    fun pathAppendsLevels() {
+        assertEquals(
+            "org/42/user/123/notification",
+            Topic.path(listOf("org", "42", "user", "123")).path(listOf("notification")).toString(),
+        )
+    }
+
+    @Test
+    fun anyAppendsSingleLevelWildcard() {
+        assertEquals("user/+/notification", Topic.path(listOf("user")).any().path(listOf("notification")).toString())
+        assertEquals("chat/+/+/message", Topic.path(listOf("chat")).any().any().path(listOf("message")).toString())
+    }
+
+    @Test
+    fun allEndsTopic() {
+        assertEquals("org/+/logs/#", Topic.path(listOf("org")).any().path(listOf("logs")).all().toString())
+    }
+
+    @Test
+    fun staticAnyAndAll() {
+        assertEquals("+/notification", Topic.any().path(listOf("notification")).toString())
+        assertEquals("#", Topic.all().toString())
+    }
+
+    @Test
+    fun pathRejectsInvalidLevels() {
+        assertPathFails(emptyList(), "path() needs at least one level")
+        assertPathFails(listOf("user", ""), "empty level at index 1")
+        assertPathFails(listOf("user/123"), "\"user/123\" contains \"/\", split it: path(['user', '123'])")
+        assertPathFails(listOf("+"), "\"+\" is reserved, use any()")
+        assertPathFails(listOf("user", "a+b"), "\"a+b\" contains \"+\", use any() for wildcards")
+        assertPathFails(listOf("user", "#"), "\"#\" is reserved, use all()")
+        assertPathFails(listOf("a#b"), "\"a#b\" contains \"#\", use all() for wildcards")
+    }
+
+    @Test
+    fun instancePathValidatesLevels() {
+        val error = assertFailsWith<IllegalArgumentException> { Topic.path(listOf("user")).path(listOf("a/b")) }
+        assertEquals("\"a/b\" contains \"/\", split it: path(['a', 'b'])", error.message)
+    }
+}
