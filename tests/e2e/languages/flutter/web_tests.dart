@@ -19,7 +19,8 @@ void main() async {
 
   // Native push (MQTT over WebSocket): subscribe, then the mock broker delivers a
   // message (server-initiated, as in production — the SDK has no publish method).
-  client.setJWT('e2e-jwt');
+  client.setJWT(
+      'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e');
   client.setPushEndpoint('ws://mqtt:8083');
   final push = Push(client);
   final pushOpened = Completer<void>();
@@ -50,4 +51,26 @@ void main() async {
   print(pushMessage.qos == 1 ? 'Push qos:passed' : 'Push qos:failed');
   pushSub.unsubscribe();
   push.close();
+
+  // Topic-less subscribe: the signed-in user's own `users/<userId>` topic, with the
+  // user id read off the JWT. The mock broker publishes to `users/e2e-user` on
+  // every SUBSCRIBE.
+  final userPush = Push(client);
+  final userReceived = Completer<PushMessage>();
+  final userSub = await userPush.subscribe(null, (m) {
+    if (!userReceived.isCompleted) {
+      userReceived.complete(m);
+    }
+  });
+  try {
+    final userMessage =
+        await userReceived.future.timeout(const Duration(seconds: 10));
+    print(userMessage.topic == 'users/e2e-user'
+        ? 'Push user topic:passed'
+        : 'Push user topic:failed');
+  } catch (_) {
+    print('Push user topic:failed');
+  }
+  userSub.unsubscribe();
+  userPush.close();
 }
