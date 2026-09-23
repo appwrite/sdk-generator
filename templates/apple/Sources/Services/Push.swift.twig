@@ -23,6 +23,18 @@ public struct PushMessage {
     }
 }
 
+/// A topic as accepted by `Push.subscribe`: a raw `String`, a `Topic` or a `ResolvedTopic`.
+public protocol TopicValue {
+    func toString() -> String
+}
+
+// String already gets `toString()` from the `ChannelValue` conformance in Channel.swift.
+extension String: TopicValue {}
+
+extension Topic: TopicValue {}
+
+extension ResolvedTopic: TopicValue {}
+
 /// Handle for a live subscription created with `Push.subscribe`.
 ///
 /// Unlike the realtime service's bare unsubscribe callable, a push subscription carries
@@ -166,11 +178,14 @@ open class Push: Service {
 
     /// Subscribe to a single topic. Returns a `PushSubscription` handle.
     @discardableResult
-    public func subscribe(_ topic: String, background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
+    public func subscribe(_ topic: TopicValue, background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
         try await subscribe([topic], background: background, title: title, retry: retry, callback: callback)
     }
 
     /// Subscribe to one or more topics. Returns a `PushSubscription` handle.
+    ///
+    /// Topics are raw strings or built with `Topic`, e.g.
+    /// `try await push.subscribe(try Topic.path(["user", userId]).all()) { message in ... }`.
     ///
     /// Suspends until the broker has acknowledged the SUBSCRIBE (SUBACK): the broker
     /// only starts routing a topic once its subscription is registered, so publishing
@@ -184,9 +199,11 @@ open class Push: Service {
     /// requires APNs) — this covers delivery while the app is running or briefly backgrounded.
     /// Toggle either later with `PushSubscription.update`.
     @discardableResult
-    public func subscribe(_ topics: [String], background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws
+    public func subscribe(_ topics: [TopicValue], background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws
         -> PushSubscription
     {
+        let topics = topics.map { $0.toString() }
+
         if background {
             requestNotificationAuthorization()
         }
