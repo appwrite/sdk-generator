@@ -403,6 +403,30 @@ class Tests: XCTestCase {
         print(ID.unique())
         print(ID.custom("custom_id"))
 
+        // Topic helper tests
+        print(try Topic.path(["user", "123", "notification"]).toString())
+        print(try Topic.path(["org", "42", "user", "123"]).path(["notification"]).toString())
+        print(try Topic.path(["user"]).any().path(["notification"]).toString())
+        print(try Topic.path(["chat"]).any().any().path(["message"]).toString())
+        print(try Topic.path(["org"]).any().path(["logs"]).all().toString())
+        print(try Topic.any().path(["notification"]).toString())
+        print(Topic.all().toString())
+        let topicCases: [(String, [String])] = [
+            ("empty path", []),
+            ("empty level", ["user", ""]),
+            ("slash", ["user/123"]),
+            ("plus", ["user", "a+b"]),
+            ("hash", ["user", "#"]),
+        ]
+        for (name, levels) in topicCases {
+            do {
+                _ = try Topic.path(levels)
+                print("Topic \(name):failed")
+            } catch {
+                print("Topic \(name):passed")
+            }
+        }
+
         // Channel helper tests
         print(try Channel.database("db1").collection("col1").document().toString())
         print(try Channel.database("db1").collection("col1").document("doc1").toString())
