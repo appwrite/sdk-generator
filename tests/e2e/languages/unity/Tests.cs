@@ -590,9 +590,10 @@ namespace AppwriteTests
             {
                 await anonymousPush.Subscribe((message) => { });
             }
-            catch (System.Exception)
+            catch (AppwriteException e)
             {
-                noCredentialRejected = true;
+                // The credential error itself, not any failure (setup, connection, ...).
+                noCredentialRejected = e.Message.Contains("signed-in user");
             }
             anonymousPush.Close();
             Object.DestroyImmediate(anonymousPushObject);

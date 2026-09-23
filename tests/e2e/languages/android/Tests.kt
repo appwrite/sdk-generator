@@ -599,8 +599,9 @@ class ServiceTest {
             val noCredentialRejected = try {
                 anonymousPush.subscribe { }
                 false
-            } catch (e: Exception) {
-                true
+            } catch (e: AppwriteException) {
+                // The credential error itself, not any failure (setup, connection, ...).
+                e.message?.contains("signed-in user") == true
             }
             anonymousPush.close()
             writeToFile(if (noCredentialRejected) "Push user no credential:passed" else "Push user no credential:failed")

@@ -621,7 +621,8 @@
             try {
                 await anonymousPush.subscribe(() => {});
             } catch (e) {
-                noCredentialRejected = true;
+                // The credential error itself, not any failure (setup, connection, ...).
+                noCredentialRejected = e instanceof Error && e.message.includes('signed-in user');
             }
             anonymousPush.close();
             console.log(noCredentialRejected ? 'Push user no credential:passed' : 'Push user no credential:failed');

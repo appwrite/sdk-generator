@@ -567,8 +567,11 @@ class Tests: XCTestCase {
         var noCredentialRejected = false
         do {
             _ = try await anonymousPush.subscribe { _ in }
+        } catch let error as AppwriteError {
+            // The credential error itself, not any failure (setup, connection, ...).
+            noCredentialRejected = error.message.contains("signed-in user")
         } catch {
-            noCredentialRejected = true
+            noCredentialRejected = false
         }
         anonymousPush.close()
         print(noCredentialRejected ? "Push user no credential:passed" : "Push user no credential:failed")

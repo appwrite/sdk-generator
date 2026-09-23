@@ -580,9 +580,10 @@ void main() async {
   var noCredentialRejected = false;
   try {
     await anonymousPush.subscribe(null, (_) {});
-  } catch (_) {
-    noCredentialRejected = true;
-  }
+  } on AppwriteException catch (e) {
+    // The credential error itself, not any failure (setup, connection, ...).
+    noCredentialRejected = e.message?.contains('signed-in user') ?? false;
+  } catch (_) {}
   anonymousPush.close();
   print(noCredentialRejected
       ? 'Push user no credential:passed'
