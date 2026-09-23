@@ -83,6 +83,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/topic.dart',
+                'template'      => 'dart/lib/topic.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/channel.dart',
                 'template'      => 'flutter/lib/channel.dart.twig',
             ],
@@ -305,6 +310,11 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '/test/id_test.dart',
                 'template'      => 'dart/test/id_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/topic_test.dart',
+                'template'      => 'dart/test/topic_test.dart.twig',
             ],
             [
                 'scope'         => 'default',
