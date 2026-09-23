@@ -20,9 +20,6 @@ private fun levelsOf(levels: List<String>): List<String> {
     return levels.toList()
 }
 
-/** A built topic as accepted by `Push.subscribe`: a [Topic] or a [ResolvedTopic]. */
-sealed interface TopicValue
-
 /**
  * Helper to build MQTT topics for [services.Push], level by level.
  *
@@ -39,7 +36,7 @@ sealed interface TopicValue
  */
 class Topic private constructor(
     private val levels: List<String>,
-) : TopicValue {
+) {
     /** Append the given levels. */
     fun path(levels: List<String>): Topic = Topic(this.levels + levelsOf(levels))
 
@@ -66,6 +63,6 @@ class Topic private constructor(
 /** A topic ended by `all()`: nothing can be appended after the `#` wildcard. */
 class ResolvedTopic internal constructor(
     private val levels: List<String>,
-) : TopicValue {
+) {
     override fun toString(): String = levels.joinToString("/")
 }

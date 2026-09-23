@@ -24,8 +24,9 @@ import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck
 import com.hivemq.client.mqtt.mqtt5.message.disconnect.Mqtt5Disconnect
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish
 import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.ResolvedTopic
 import {{ sdk.namespace | caseDot }}.Service
-import {{ sdk.namespace | caseDot }}.TopicValue
+import {{ sdk.namespace | caseDot }}.Topic
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
 import org.json.JSONObject
 import java.net.URI
@@ -221,7 +222,23 @@ class Push(client: Client) : Service(client) {
      */
     @JvmOverloads
     fun subscribe(
-        topic: TopicValue,
+        topic: Topic,
+        background: Boolean = false,
+        title: String? = null,
+        retry: Boolean = true,
+        context: Context? = null,
+        callback: (PushMessage) -> Unit,
+    ): PushSubscription =
+        subscribe(listOf(topic.toString()), background, title, retry, context, callback)
+
+    /**
+     * Subscribe to a single topic ended with `all()`, e.g.
+     * `push.subscribe(Topic.path(listOf("user", userId)).all()) { message -> ... }`.
+     * Returns a [PushSubscription] handle; see the `List<String>` overload for the options.
+     */
+    @JvmOverloads
+    fun subscribe(
+        topic: ResolvedTopic,
         background: Boolean = false,
         title: String? = null,
         retry: Boolean = true,
@@ -248,7 +265,7 @@ class Push(client: Client) : Service(client) {
         callback: (PushMessage) -> Unit,
     ): PushSubscription {
         val filters = topics.mapIndexed { index, topic ->
-            require(topic is String || topic is TopicValue) {
+            require(topic is String || topic is Topic || topic is ResolvedTopic) {
                 "topics[$index] must be a String, Topic or ResolvedTopic, got ${topic::class.simpleName}"
             }
             topic.toString()
@@ -260,7 +277,7 @@ class Push(client: Client) : Service(client) {
      * Subscribe to one or more topics. Returns a [PushSubscription] handle.
      *
      * Topics are MQTT filters: pass raw strings, or build them with [{{ sdk.namespace | caseDot }}.Topic]
-     * through the `TopicValue` overloads, e.g. `push.subscribe(Topic.path(listOf("user")).any()) { ... }`.
+     * through the `Topic` overloads, e.g. `push.subscribe(Topic.path(listOf("user")).any()) { ... }`.
      *
      * For a foreground subscription this blocks until the broker has acknowledged every
      * SUBSCRIBE (SUBACK): the broker only starts routing a topic once its subscription is
