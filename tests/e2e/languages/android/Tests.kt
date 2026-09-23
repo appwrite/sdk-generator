@@ -519,7 +519,7 @@ class ServiceTest {
 
             // Native push (MQTT): subscribe, then the mock broker delivers a message
             // (server-initiated, as in production — the SDK has no publish method).
-            client.setJWT("e2e-jwt")
+            client.setJWT("eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e")
             client.setPushEndpoint("mqtt://mqtt:1883")
             val push = Push(client)
             val pushOpenLatch = java.util.concurrent.CountDownLatch(1)
@@ -550,6 +550,21 @@ class ServiceTest {
             writeToFile(pushQos)
             pushSub.unsubscribe()
             push.close()
+
+            // Topic-less subscribe: the signed-in user's own topic (users/<userId from the JWT>).
+            val userPush = Push(client)
+            val userPushLatch = java.util.concurrent.CountDownLatch(1)
+            var userPushResult = "Push user topic:failed"
+            val userPushSub = userPush.subscribe { message ->
+                if (message.topic == "users/e2e-user") {
+                    userPushResult = "Push user topic:passed"
+                }
+                userPushLatch.countDown()
+            }
+            userPushLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)
+            writeToFile(userPushResult)
+            userPushSub.unsubscribe()
+            userPush.close()
         }
     }
 

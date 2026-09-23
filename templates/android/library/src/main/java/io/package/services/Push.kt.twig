@@ -111,6 +111,9 @@ class PushSubscription internal constructor(
  * }
  * // ...later
  * sub.unsubscribe()
+ *
+ * // Or, with no topic, the signed-in user's own topic (`users/<userId>`):
+ * push.subscribe { message -> println(message.string) }
  * ```
  */
 class Push(client: Client) : Service(client) {
@@ -197,6 +200,25 @@ class Push(client: Client) : Service(client) {
         onError = callback
         return this
     }
+
+    /**
+     * Subscribe to the signed-in user's own topic, `users/<userId>` — "messages for me"
+     * without knowing any topic, e.g. `push.subscribe { message -> ... }`.
+     *
+     * The user id is read locally from the credential set on the client: the `userId` claim of
+     * the JWT (`Client.setJWT`), else the `id` in the session secret (`Client.setSession`).
+     * Throws when neither yields one. The options and the returned [PushSubscription] behave
+     * exactly as when subscribing to that topic; see the `List<String>` overload.
+     */
+    @JvmOverloads
+    fun subscribe(
+        background: Boolean = false,
+        title: String? = null,
+        retry: Boolean = true,
+        context: Context? = null,
+        callback: (PushMessage) -> Unit,
+    ): PushSubscription =
+        subscribe(Topic.path(listOf("users", resolvePushUserId(client))), background, title, retry, context, callback)
 
     /**
      * Subscribe to a single topic. Returns a [PushSubscription] handle.
@@ -636,6 +658,33 @@ internal fun userIdFromJwt(jwt: String): String {
         JSONObject(json).optString("userId", "")
     }.getOrDefault("")
 }
+
+/**
+ * The signed-in user's id for the topic-less [Push.subscribe], read locally in the same order as
+ * [resolvePushAuth]: the JWT's `userId` claim, else the `id` in the session secret (standard
+ * base64 of `{"id": ..., "secret": ...}`). Throws when neither yields one.
+ */
+internal fun resolvePushUserId(client: Client): String {
+    val jwt = client.config["jwt"] ?: client.config["jWT"]
+    val session = client.config["session"]
+    val userId = when {
+        !jwt.isNullOrEmpty() -> userIdFromJwt(jwt)
+        !session.isNullOrEmpty() -> userIdFromSession(session)
+        else -> ""
+    }
+    if (userId.isEmpty()) {
+        throw {{ spec.info.title | caseUcfirst }}Exception(
+            "subscribe() without a topic needs a signed-in user: set a JWT or session on the client",
+        )
+    }
+    return userId
+}
+
+/** The user `id` from an {{ spec.info.title | caseUcfirst }} session secret, or "" when it is not decodable. */
+internal fun userIdFromSession(session: String): String = runCatching {
+    val json = String(Base64.decode(session, Base64.DEFAULT), Charsets.UTF_8)
+    JSONObject(json).optString("id", "")
+}.getOrDefault("")
 
 /** Build (but do not connect) an MQTT 5 client from [config]. */
 internal fun buildPushClient(
