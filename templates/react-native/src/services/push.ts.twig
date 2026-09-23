@@ -197,6 +197,22 @@ export class Push extends Service {
         return this;
     }
 
+    /**
+     * The signed-in user's own topic, `users/<userId>`, for a topic-less subscribe. The id comes
+     * from the credential the connection authenticates with: the JWT when one is set (never
+     * the session, which could belong to a different user), else the session.
+     */
+    private userTopic(): string {
+        const { jwt, session } = this.client.config;
+        const userId = jwt ? userIdFromJwt(jwt) : userIdFromSession(session);
+        if (!userId) {
+            throw new Error(
+                'subscribe() without a topic needs a signed-in user: set a JWT or session on the client',
+            );
+        }
+        return `users/${userId}`;
+    }
+
     // --- realtime-like API ---
 
     /**
@@ -204,6 +220,10 @@ export class Push extends Service {
      *
      * Each topic is a string or a `Topic` builder, e.g.
      * `Topic.path(['user', userId]).all()`.
+     *
+     * Called with only a callback, `subscribe((message) => {...}, options)` subscribes to the
+     * signed-in user's own topic, `users/<userId>`, like FCM/APNs delivery to a device. The
+     * user id is read from the JWT (or session) set on the client.
      *
      * Awaiting resolves only once the broker has acked every SUBSCRIBE (SUBACK):
      * the broker only starts routing a topic once its subscription is registered,
@@ -215,12 +235,35 @@ export class Push extends Service {
      * post a notification per matching message, and `{ retry: false }` for
      * at-most-once (QoS 0) delivery; toggle either later with the handle's `update`.
      */
-    async subscribe(
+    subscribe(
+        callback: MessageCallback,
+        options?: SubscribeOptions,
+    ): Promise<PushSubscription>;
+    subscribe(
         topics:
             string | Topic | ResolvedTopic | (string | Topic | ResolvedTopic)[],
         callback: MessageCallback,
-        options: SubscribeOptions = {},
+        options?: SubscribeOptions,
+    ): Promise<PushSubscription>;
+    async subscribe(
+        topicsOrCallback:
+            | string
+            | Topic
+            | ResolvedTopic
+            | (string | Topic | ResolvedTopic)[]
+            | MessageCallback,
+        callbackOrOptions?: MessageCallback | SubscribeOptions,
+        topicOptions: SubscribeOptions = {},
     ): Promise<PushSubscription> {
+        // Topic-less form: subscribe(callback, options) targets the signed-in user's topic.
+        const userForm = typeof topicsOrCallback === 'function';
+        const topics = userForm ? this.userTopic() : topicsOrCallback;
+        const callback = (
+            userForm ? topicsOrCallback : callbackOrOptions
+        ) as MessageCallback;
+        const options = (
+            userForm ? (callbackOrOptions ?? {}) : topicOptions
+        ) as SubscribeOptions;
         const topicList = (Array.isArray(topics) ? topics : [topics]).map(
             (topic) => topic.toString(),
         );
@@ -687,6 +730,24 @@ function userIdFromJwt(jwt?: string): string {
         ).toString('utf-8');
         const payload = JSON.parse(json);
         return typeof payload.userId === 'string' ? payload.userId : '';
+    } catch {
+        return '';
+    }
+}
+
+/**
+ * The user id inside a session secret, which is base64 of JSON `{"id": <userId>, "secret": ...}`.
+ * Returns '' when the value is not such a secret.
+ */
+function userIdFromSession(session?: string): string {
+    if (!session) {
+        return '';
+    }
+    try {
+        const payload = JSON.parse(
+            Buffer.from(session, 'base64').toString('utf-8'),
+        );
+        return typeof payload.id === 'string' ? payload.id : '';
     } catch {
         return '';
     }
