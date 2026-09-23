@@ -1,0 +1,71 @@
+package {{ sdk.namespace | caseDot }}
+
+/**
+ * Validate the levels passed to `path()`: a non-empty list of non-empty strings, none holding
+ * the level separator `/` or the wildcards `+` and `#` (use `any()` and `all()` for those).
+ */
+private fun levelsOf(levels: List<String>): List<String> {
+    require(levels.isNotEmpty()) { "path() needs at least one level" }
+    levels.forEachIndexed { index, level ->
+        require(level.isNotEmpty()) { "empty level at index $index" }
+        require(!level.contains("/")) {
+            val parts = level.split("/").joinToString(", ") { "'$it'" }
+            "\"$level\" contains \"/\", split it: path([$parts])"
+        }
+        require(level != "+") { "\"+\" is reserved, use any()" }
+        require(!level.contains("+")) { "\"$level\" contains \"+\", use any() for wildcards" }
+        require(level != "#") { "\"#\" is reserved, use all()" }
+        require(!level.contains("#")) { "\"$level\" contains \"#\", use all() for wildcards" }
+    }
+    return levels.toList()
+}
+
+/** A built topic as accepted by `Push.subscribe`: a [Topic] or a [ResolvedTopic]. */
+sealed interface TopicValue
+
+/**
+ * Helper to build MQTT topics for [services.Push], level by level.
+ *
+ * ```
+ * Topic.path(listOf("user", userId, "notification")) // "user/123/notification"
+ * Topic.path(listOf("user")).any().path(listOf("notification")) // "user/+/notification"
+ * Topic.path(listOf("org")).any().path(listOf("logs")).all() // "org/+/logs/#"
+ * ```
+ *
+ * `any()` matches exactly one level and `all()` everything below, at any depth (including the
+ * parent itself). `all()` ends the topic, so it returns a [ResolvedTopic].
+ *
+ * @throws IllegalArgumentException from `path()` when a level is empty or holds `/`, `+` or `#`.
+ */
+class Topic private constructor(
+    private val levels: List<String>,
+) : TopicValue {
+    /** Append the given levels. */
+    fun path(levels: List<String>): Topic = Topic(this.levels + levelsOf(levels))
+
+    /** Append a single-level wildcard (`+`): matches exactly one level. */
+    fun any(): Topic = Topic(levels + "+")
+
+    /** Append the multi-level wildcard (`#`) and end the topic. */
+    fun all(): ResolvedTopic = ResolvedTopic(levels + "#")
+
+    override fun toString(): String = levels.joinToString("/")
+
+    companion object {
+        /** Start a topic with the given levels, e.g. `Topic.path(listOf("user", userId))`. */
+        fun path(levels: List<String>): Topic = Topic(levelsOf(levels))
+
+        /** Start a topic with a single-level wildcard (`+`). */
+        fun any(): Topic = Topic(listOf("+"))
+
+        /** The multi-level wildcard alone (`#`): matches every topic. */
+        fun all(): ResolvedTopic = ResolvedTopic(listOf("#"))
+    }
+}
+
+/** A topic ended by `all()`: nothing can be appended after the `#` wildcard. */
+class ResolvedTopic internal constructor(
+    private val levels: List<String>,
+) : TopicValue {
+    override fun toString(): String = levels.joinToString("/")
+}

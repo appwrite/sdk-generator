@@ -122,6 +122,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Topic.kt',
+                'template'      => '/android/library/src/main/java/io/package/Topic.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Query.kt',
                 'template'      => '/android/library/src/main/java/io/package/Query.kt.twig',
             ],
@@ -144,6 +149,11 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/JsonRequestBodyTest.kt',
                 'template'      => '/android/library/src/test/java/io/package/JsonRequestBodyTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/TopicTest.kt',
+                'template'      => '/android/library/src/test/java/io/package/TopicTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
