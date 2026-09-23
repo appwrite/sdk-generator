@@ -42,7 +42,7 @@ abstract class PushSubscription {
 /// ```dart
 /// final client = Client().setEndpoint('...').setProject('...').setJWT(jwt);
 /// final push = Push(client);
-/// final sub = await push.subscribe('user/123/#', (message) {
+/// final sub = await push.subscribe('<TOPIC_ID>', (message) {
 ///   print('${message.topic}: ${message.string}');
 /// });
 ///
@@ -64,7 +64,9 @@ abstract class Push extends Service {
 
   /// Subscribe to one or more topics, resolving to a [PushSubscription] handle.
   ///
-  /// [topics] is a single topic string or a list of them. For a foreground subscription
+  /// [topics] is a single topic ID or a list of them. Each is a Messaging topic ID, not an
+  /// MQTT filter: the broker grants only exact topic IDs, so wildcards (`+`, `#`) and `/`
+  /// levels are rejected with an exception before connecting. For a foreground subscription
   /// the future resolves only once every subscription has been acknowledged (SUBACK), so a
   /// subscribe-then-publish is reliable, and [onOpen]/[onClose]/[onError] observe that
   /// connection. A [background] subscription hands the connection to the background isolate,

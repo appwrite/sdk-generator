@@ -207,6 +207,7 @@ class PushIO implements Push {
   }) async {
     final topicList =
         topics is String ? <String>[topics] : List<String>.from(topics as List);
+    topicList.forEach(_checkTopicId);
 
     final ids = <String>[];
     for (final topic in topicList) {
@@ -295,7 +296,7 @@ class PushIO implements Push {
       final message =
           PushMessage(topic: topic, payload: payload, qos: data['qos'] as int? ?? 0);
       for (final sub in _subscriptions.values) {
-        if (_matches(sub.filter, topic)) {
+        if (sub.filter == topic) {
           sub.callback(message);
         }
       }
@@ -607,7 +608,7 @@ class PushIO implements Push {
         qos: publish.header?.qos.index ?? 0,
       );
       for (final subscription in _subscriptions.values) {
-        if (_matches(subscription.filter, topic)) {
+        if (subscription.filter == topic) {
           subscription.callback(message);
         }
       }
@@ -653,21 +654,13 @@ String _randomId() {
   return buffer.toString();
 }
 
-/// MQTT topic-filter match with '+' (single level) and '#' (multi level).
-bool _matches(String filter, String topic) {
-  final filterParts = filter.split('/');
-  final topicParts = topic.split('/');
-  for (var i = 0; i < filterParts.length; i++) {
-    final part = filterParts[i];
-    if (part == '#') {
-      return true;
-    }
-    if (i >= topicParts.length) {
-      return false;
-    }
-    if (part != '+' && part != topicParts[i]) {
-      return false;
-    }
+/// Throws unless [topicId] is a valid Messaging topic ID (letters, digits, period, hyphen and
+/// underscore, not starting with a special character). The broker would deny anything else in
+/// its SUBACK, indistinguishable from a missing topic or permission.
+void _checkTopicId(String topicId) {
+  if (!RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9._-]*$').hasMatch(topicId)) {
+    throw {{spec.info.title | caseUcfirst}}Exception(
+      'Invalid topic ID "$topicId": use a Messaging topic ID (a-z, A-Z, 0-9, period, hyphen, underscore), not an MQTT filter.',
+    );
   }
-  return filterParts.length == topicParts.length;
 }
