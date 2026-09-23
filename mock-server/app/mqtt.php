@@ -11,7 +11,9 @@
  *  - SUBSCRIBE grants every filter at the requested QoS (capped at QoS 1) and then, mirroring
  *    real server-initiated push, publishes the test message to the fixed topic "e2e-push"
  *    through the broker's subscription index/fan-out — so a client receives it only if its
- *    subscription matches. The SDKs only subscribe; they have no publish method.
+ *    subscription matches — and a second message to "users/e2e-user", the per-user topic a
+ *    topic-less subscribe() resolves to for the e2e JWT. The SDKs only subscribe; they have no
+ *    publish method.
  *
  * It listens on both transports the library ships: plain TCP (1883) and WebSocket (8083),
  * so the TCP SDKs and the browser/WebSocket SDK can both reach it.
@@ -98,6 +100,10 @@ class MockHandler implements Handler
         \Swoole\Timer::after(100, function () use ($prefix) {
             foreach ($this->server?->subscribers($prefix, 'e2e-push') ?? [] as [$subscriber, $grantedQos]) {
                 $subscriber->publish('e2e-push', 'push-payload', qos: \min($grantedQos, Packet::QOS_1));
+            }
+            // The per-user topic a topic-less subscribe() resolves to, for the e2e JWT's userId.
+            foreach ($this->server?->subscribers($prefix, 'users/e2e-user') ?? [] as [$subscriber, $grantedQos]) {
+                $subscriber->publish('users/e2e-user', 'push-user-payload', qos: \min($grantedQos, Packet::QOS_1));
             }
         });
 
