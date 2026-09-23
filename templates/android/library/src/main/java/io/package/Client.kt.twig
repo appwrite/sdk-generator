@@ -56,6 +56,9 @@ class Client @JvmOverloads constructor(
     private var selfSigned: Boolean = false
 ) : CoroutineScope {
 
+    /** The application context, for services such as [{{ sdk.namespace | caseDot }}.services.Push] that need one. */
+    internal val applicationContext: Context = context.applicationContext
+
     companion object {
         /**
          * The size for chunked uploads in bytes.

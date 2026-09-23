@@ -160,7 +160,8 @@ class Push(client: Client) : Service(client) {
     // rather than in-process. It relocates there while any subscription wants background and
     // back in-process once none do — one connection either way.
     private var serviceActive = false
-    private var appContext: Context? = null
+    // Defaults to the client's application context; a context passed to subscribe() wins.
+    private var appContext: Context? = client.applicationContext
 
     private var onOpen: (() -> Unit)? = null
     private var onClose: (() -> Unit)? = null
@@ -207,12 +208,15 @@ class Push(client: Client) : Service(client) {
      *
      * The user id is read locally from the credential set on the client: the `userId` claim of
      * the JWT (`Client.setJWT`), else the `id` in the session secret (`Client.setSession`).
-     * Throws when neither yields one. The options and the returned [PushSubscription] behave
-     * exactly as when subscribing to that topic; see the `List<String>` overload.
+     * Throws when neither yields one. Like FCM/APNs delivery, it defaults to [background] `true`
+     * (keeps delivering while the app is backgrounded, via the foreground service) and [retry]
+     * `true` (QoS 1); pass either to override. Otherwise the options and the returned
+     * [PushSubscription] behave exactly as when subscribing to that topic; see the
+     * `List<String>` overload.
      */
     @JvmOverloads
     fun subscribe(
-        background: Boolean = false,
+        background: Boolean = true,
         title: String? = null,
         retry: Boolean = true,
         context: Context? = null,
