@@ -104,7 +104,7 @@ class PushSubscription internal constructor(
  * ```kotlin
  * val client = Client().setEndpoint("...").setProject("...").setJWT(jwt)
  * val push = Push(client)
- * val sub = push.subscribe("<TOPIC_ID>") { message ->
+ * val sub = push.subscribe("user/123/#") { message ->
  *     println("${'$'}{message.topic}: ${'$'}{message.string}")
  * }
  * // ...later
@@ -216,9 +216,6 @@ class Push(client: Client) : Service(client) {
     /**
      * Subscribe to one or more topics. Returns a [PushSubscription] handle.
      *
-     * Each entry is a Messaging topic ID, not an MQTT filter: the broker grants only exact
-     * topic IDs, so wildcards (`+`, `#`) and `/` levels throw before connecting.
-     *
      * For a foreground subscription this blocks until the broker has acknowledged every
      * SUBSCRIBE (SUBACK): the broker only starts routing a topic once its subscription is
      * registered, so publishing before the ack races the message ahead of the subscription
@@ -246,8 +243,6 @@ class Push(client: Client) : Service(client) {
         context: Context? = null,
         callback: (PushMessage) -> Unit,
     ): PushSubscription {
-        topics.forEach(::checkTopicId)
-
         if (context != null) {
             appContext = context.applicationContext
         }
@@ -826,7 +821,7 @@ internal object PushForeground {
     }
 
     /**
-     * Fan a message out to every listener subscribed to its topic. Returns the notification titles
+     * Fan a message out to every listener whose topics match. Returns the notification titles
      * for the matching listeners that opted into background, so the caller posts one
      * notification per opted-in match (an in-flight message for a just-removed topic matches
      * nothing and is dropped).
@@ -834,7 +829,7 @@ internal object PushForeground {
     fun dispatch(message: PushMessage): List<String> {
         val titles = mutableListOf<String>()
         for (listener in listeners) {
-            if (message.topic in listener.topics) {
+            if (listener.topics.any { matchesTopic(it, message.topic) }) {
                 listener.callback(message)
                 if (listener.background) {
                     titles.add(listener.title ?: message.topic)
@@ -854,18 +849,20 @@ internal object PushForeground {
     }
 }
 
-private val topicIdPattern = Regex("^[a-zA-Z0-9][a-zA-Z0-9._-]*$")
-
-/**
- * Throws unless [topicId] is a valid Messaging topic ID (letters, digits, period, hyphen and
- * underscore, not starting with a special character). The broker would deny anything else in
- * its SUBACK, indistinguishable from a missing topic or permission.
- */
-internal fun checkTopicId(topicId: String) {
-    if (!topicIdPattern.matches(topicId)) {
-        throw {{ spec.info.title | caseUcfirst }}Exception(
-            "Invalid topic ID \"$topicId\": use a Messaging topic ID " +
-                "(a-z, A-Z, 0-9, period, hyphen, underscore), not an MQTT filter.",
-        )
+/** MQTT topic-filter match with '+' (single level) and '#' (multi level). */
+internal fun matchesTopic(filter: String, topic: String): Boolean {
+    val filterParts = filter.split('/')
+    val topicParts = topic.split('/')
+    for (i in filterParts.indices) {
+        if (filterParts[i] == "#") {
+            return true
+        }
+        if (i >= topicParts.size) {
+            return false
+        }
+        if (filterParts[i] != "+" && filterParts[i] != topicParts[i]) {
+            return false
+        }
     }
+    return filterParts.size == topicParts.size
 }
