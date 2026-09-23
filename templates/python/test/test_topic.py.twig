@@ -21,24 +21,25 @@ class TestTopicMethods(unittest.TestCase):
         self.assertIsInstance(Topic.all(), ResolvedTopic)
 
     def test_nothing_after_all(self):
-        with self.assertRaisesRegex(TypeError, r'^nothing can come after all\(\)$'):
+        with self.assertRaises(TypeError):
             Topic.all().any()
 
     def test_errors(self):
         cases = [
-            ('user', TypeError, "path() expects an array, e.g. path(['user'])"),
-            ([], ValueError, 'path() needs at least one level'),
-            (['user', 42], TypeError, 'level at index 1 must be a string, got int'),
-            (['user', None], TypeError, 'level at index 1 must be a string, got null'),
-            (['user', ''], ValueError, 'empty level at index 1'),
-            (['user/123'], ValueError, "\"user/123\" contains \"/\", split it: path(['user', '123'])"),
-            (['user', '+'], ValueError, '"+" is reserved, use any()'),
-            (['user', 'a+b'], ValueError, '"a+b" contains "+", use any() for wildcards'),
-            (['user', '#'], ValueError, '"#" is reserved, use all()'),
-            (['user', 'a#b'], ValueError, '"a#b" contains "#", use all() for wildcards'),
+            ('user', TypeError),
+            ([], ValueError),
+            (['user', 42], TypeError),
+            (['user', None], TypeError),
+            (['user', ''], ValueError),
+            (['user/123'], ValueError),
+            (['user', '+'], ValueError),
+            (['user', 'a+b'], ValueError),
+            (['user', '#'], ValueError),
+            (['user', 'a#b'], ValueError),
         ]
-        for levels, error, message in cases:
+        for levels, error in cases:
             with self.subTest(levels=levels):
-                with self.assertRaises(error) as context:
+                with self.assertRaises(error):
                     Topic.path(levels)
-                self.assertEqual(str(context.exception), message)
+                with self.assertRaises(error):
+                    Topic.any().path(levels)

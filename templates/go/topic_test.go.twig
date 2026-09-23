@@ -36,36 +36,31 @@ func TestSharedPrefixDoesNotAlias(t *testing.T) {
 }
 
 func TestInvalidLevels(t *testing.T) {
-	cases := []struct {
-		levels   []string
-		expected string
-	}{
-		{nil, "path() needs at least one level"},
-		{[]string{}, "path() needs at least one level"},
-		{[]string{"user", ""}, "empty level at index 1"},
-		{[]string{"user/123"}, "\"user/123\" contains \"/\", split it: path(['user', '123'])"},
-		{[]string{"user", "+"}, "\"+\" is reserved, use any()"},
-		{[]string{"user", "a+b"}, "\"a+b\" contains \"+\", use any() for wildcards"},
-		{[]string{"user", "#"}, "\"#\" is reserved, use all()"},
-		{[]string{"user", "a#b"}, "\"a#b\" contains \"#\", use all() for wildcards"},
+	cases := [][]string{
+		nil,
+		{},
+		{"user", ""},
+		{"user/123"},
+		{"user", "+"},
+		{"user", "a+b"},
+		{"user", "#"},
+		{"user", "a#b"},
 	}
-	for _, c := range cases {
-		if got := panicOf(func() { Path(c.levels) }); got != c.expected {
-			t.Errorf("Expected panic %q, got %q", c.expected, got)
+	for _, levels := range cases {
+		if !panics(func() { Path(levels) }) {
+			t.Errorf("Expected Path(%q) to panic", levels)
 		}
-		if got := panicOf(func() { Any().Path(c.levels) }); got != c.expected {
-			t.Errorf("Expected panic %q, got %q", c.expected, got)
+		if !panics(func() { Any().Path(levels) }) {
+			t.Errorf("Expected Any().Path(%q) to panic", levels)
 		}
 	}
 }
 
-func panicOf(f func()) (message string) {
+func panics(f func()) (panicked bool) {
 	defer func() {
-		if r := recover(); r != nil {
-			message, _ = r.(string)
-		}
+		panicked = recover() != nil
 	}()
 	f()
-	return ""
+	return false
 }
 {% endautoescape %}

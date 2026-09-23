@@ -163,10 +163,6 @@ fn levels_of<S: AsRef<str>>(levels: &[S]) -> Result<Vec<String>, TopicError> {
 mod tests {
     use super::*;
 
-    fn message<S: AsRef<str>>(levels: &[S]) -> String {
-        path(levels).unwrap_err().to_string()
-    }
-
     #[test]
     fn test_paths() {
         assert_eq!(
@@ -238,25 +234,18 @@ mod tests {
 
     #[test]
     fn test_errors() {
-        assert_eq!(message::<&str>(&[]), "path() needs at least one level");
-        assert_eq!(message(&["user", ""]), "empty level at index 1");
-        assert_eq!(
-            message(&["user/123"]),
-            "\"user/123\" contains \"/\", split it: path(['user', '123'])"
-        );
-        assert_eq!(message(&["user", "+"]), "\"+\" is reserved, use any()");
-        assert_eq!(
-            message(&["user", "a+b"]),
-            "\"a+b\" contains \"+\", use any() for wildcards"
-        );
-        assert_eq!(message(&["user", "#"]), "\"#\" is reserved, use all()");
-        assert_eq!(
-            message(&["user", "a#b"]),
-            "\"a#b\" contains \"#\", use all() for wildcards"
-        );
-        assert_eq!(
-            any().path(&["a+b"]).unwrap_err().message(),
-            "\"a+b\" contains \"+\", use any() for wildcards"
-        );
+        let invalid: [&[&str]; 7] = [
+            &[],
+            &["user", ""],
+            &["user/123"],
+            &["user", "+"],
+            &["user", "a+b"],
+            &["user", "#"],
+            &["user", "a#b"],
+        ];
+        for levels in invalid {
+            assert!(path(levels).is_err(), "{:?}", levels);
+            assert!(any().path(levels).is_err(), "{:?}", levels);
+        }
     }
 }

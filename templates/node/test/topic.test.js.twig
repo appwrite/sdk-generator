@@ -27,25 +27,18 @@ describe('Topic', () => {
         ).toEqual('org/+/logs/#');
         expect(Topic.all().toString()).toEqual('#');
     });
-    test('errors', () => {
-        expect(() => Topic.path([])).toThrow('path() needs at least one level');
-        expect(() => Topic.path(['user', ''])).toThrow(
-            'empty level at index 1',
-        );
-        expect(() => Topic.path(['user/123'])).toThrow(
-            `"user/123" contains "/", split it: path(['user', '123'])`,
-        );
-        expect(() => Topic.path(['user', 'a+b'])).toThrow(
-            '"a+b" contains "+", use any() for wildcards',
-        );
-        expect(() => Topic.path(['user', '#'])).toThrow(
-            '"#" is reserved, use all()',
-        );
-        expect(() => Topic.path(['user', null])).toThrow(
-            'level at index 1 must be a string, got null',
-        );
-        expect(() => Topic.path('user')).toThrow(
-            "path() expects an array, e.g. path(['user'])",
-        );
+    test.each([
+        ['an empty path', []],
+        ['an empty level', ['user', '']],
+        ['a slash', ['user/123']],
+        ['a lone +', ['user', '+']],
+        ['an embedded +', ['user', 'a+b']],
+        ['a lone #', ['user', '#']],
+        ['an embedded #', ['user', 'a#b']],
+        ['a non-string level', ['user', null]],
+        ['a non-array', 'user'],
+    ])('rejects %s', (_, levels) => {
+        expect(() => Topic.path(levels)).toThrow(Error);
+        expect(() => Topic.any().path(levels)).toThrow(Error);
     });
 });

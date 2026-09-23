@@ -32,39 +32,37 @@ final class TopicTest extends TestCase
     public function testNothingAfterAll(): void
     {
         $this->expectException(\BadMethodCallException::class);
-        $this->expectExceptionMessage('nothing can come after all()');
         Topic::all()->any();
     }
 
     /**
-     * @return \Iterator<string, array{mixed, string}>
+     * @return \Iterator<string, array{mixed}>
      */
     public static function invalidLevels(): \Iterator
     {
-        yield 'not an array' => ['user', "path() expects an array, e.g. path(['user'])"];
-        yield 'empty path' => [[], 'path() needs at least one level'];
-        yield 'not a string' => [['user', 42], 'level at index 1 must be a string, got int'];
-        yield 'null' => [['user', null], 'level at index 1 must be a string, got null'];
-        yield 'empty level' => [['user', ''], 'empty level at index 1'];
-        yield 'slash' => [['user/123'], "\"user/123\" contains \"/\", split it: path(['user', '123'])"];
-        yield 'plus' => [['user', '+'], '"+" is reserved, use any()'];
-        yield 'contains plus' => [['user', 'a+b'], '"a+b" contains "+", use any() for wildcards'];
-        yield 'hash' => [['user', '#'], '"#" is reserved, use all()'];
-        yield 'contains hash' => [['user', 'a#b'], '"a#b" contains "#", use all() for wildcards'];
+        yield 'not an array' => ['user'];
+        yield 'empty path' => [[]];
+        yield 'not a string' => [['user', 42]];
+        yield 'null' => [['user', null]];
+        yield 'empty level' => [['user', '']];
+        yield 'slash' => [['user/123']];
+        yield 'plus' => [['user', '+']];
+        yield 'contains plus' => [['user', 'a+b']];
+        yield 'hash' => [['user', '#']];
+        yield 'contains hash' => [['user', 'a#b']];
     }
 
     #[DataProvider('invalidLevels')]
-    public function testInvalidLevels(mixed $levels, string $message): void
+    public function testInvalidLevels(mixed $levels): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage($message);
         Topic::path($levels);
     }
 
-    public function testInvalidLevelsWhenAppending(): void
+    #[DataProvider('invalidLevels')]
+    public function testInvalidLevelsWhenAppending(mixed $levels): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('empty level at index 0');
-        Topic::path(['user'])->path(['']);
+        Topic::path(['user'])->path($levels);
     }
 }

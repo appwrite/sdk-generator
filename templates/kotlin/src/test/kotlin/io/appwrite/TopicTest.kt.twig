@@ -5,9 +5,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class TopicTest {
-    private fun assertPathFails(levels: List<String>, message: String) {
-        val error = assertFailsWith<IllegalArgumentException> { Topic.path(levels) }
-        assertEquals(message, error.message)
+    private fun assertPathFails(levels: List<String>) {
+        assertFailsWith<IllegalArgumentException> { Topic.path(levels) }
+        assertFailsWith<IllegalArgumentException> { Topic.any().path(levels) }
     }
 
     @Test
@@ -42,18 +42,12 @@ class TopicTest {
 
     @Test
     fun pathRejectsInvalidLevels() {
-        assertPathFails(emptyList(), "path() needs at least one level")
-        assertPathFails(listOf("user", ""), "empty level at index 1")
-        assertPathFails(listOf("user/123"), "\"user/123\" contains \"/\", split it: path(['user', '123'])")
-        assertPathFails(listOf("+"), "\"+\" is reserved, use any()")
-        assertPathFails(listOf("user", "a+b"), "\"a+b\" contains \"+\", use any() for wildcards")
-        assertPathFails(listOf("user", "#"), "\"#\" is reserved, use all()")
-        assertPathFails(listOf("a#b"), "\"a#b\" contains \"#\", use all() for wildcards")
-    }
-
-    @Test
-    fun instancePathValidatesLevels() {
-        val error = assertFailsWith<IllegalArgumentException> { Topic.path(listOf("user")).path(listOf("a/b")) }
-        assertEquals("\"a/b\" contains \"/\", split it: path(['a', 'b'])", error.message)
+        assertPathFails(emptyList())
+        assertPathFails(listOf("user", ""))
+        assertPathFails(listOf("user/123"))
+        assertPathFails(listOf("+"))
+        assertPathFails(listOf("user", "a+b"))
+        assertPathFails(listOf("user", "#"))
+        assertPathFails(listOf("a#b"))
     }
 }

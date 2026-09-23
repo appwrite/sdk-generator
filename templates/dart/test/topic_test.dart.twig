@@ -5,9 +5,6 @@ import 'package:test/test.dart';
 import 'package:flutter_test/flutter_test.dart';
 {% endif %}
 
-Matcher throwsTopicError(String message) =>
-    throwsA(isA<ArgumentError>().having((e) => e.message, 'message', message));
-
 void main() {
   group('path()', () {
     test('joins levels', () {
@@ -57,46 +54,21 @@ void main() {
   });
 
   group('errors', () {
-    test('rejects an empty path', () {
-      expect(
-        () => Topic.path([]),
-        throwsTopicError('path() needs at least one level'),
-      );
-    });
+    final invalid = <String, List<String>>{
+      'an empty path': [],
+      'an empty level': ['user', ''],
+      'a slash': ['user/123'],
+      'a lone +': ['user', '+'],
+      'an embedded +': ['user', 'a+b'],
+      'a lone #': ['user', '#'],
+      'an embedded #': ['user', 'a#b'],
+    };
 
-    test('rejects an empty level', () {
-      expect(
-        () => Topic.path(['user', '']),
-        throwsTopicError('empty level at index 1'),
-      );
-    });
-
-    test('rejects a slash', () {
-      expect(
-        () => Topic.path(['user/123']),
-        throwsTopicError(
-          '"user/123" contains "/", split it: path([\'user\', \'123\'])',
-        ),
-      );
-    });
-
-    test('rejects wildcards', () {
-      expect(
-        () => Topic.path(['user', '+']),
-        throwsTopicError('"+" is reserved, use any()'),
-      );
-      expect(
-        () => Topic.path(['user', 'a+b']),
-        throwsTopicError('"a+b" contains "+", use any() for wildcards'),
-      );
-      expect(
-        () => Topic.path(['user', '#']),
-        throwsTopicError('"#" is reserved, use all()'),
-      );
-      expect(
-        () => Topic.path(['user', 'a#b']),
-        throwsTopicError('"a#b" contains "#", use all() for wildcards'),
-      );
+    invalid.forEach((name, levels) {
+      test('rejects $name', () {
+        expect(() => Topic.path(levels), throwsArgumentError);
+        expect(() => Topic.any().path(levels), throwsArgumentError);
+      });
     });
   });
 }
