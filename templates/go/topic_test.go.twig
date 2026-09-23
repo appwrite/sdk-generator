@@ -1,0 +1,71 @@
+{% autoescape false %}
+package topic
+
+import (
+	"testing"
+)
+
+func TestPaths(t *testing.T) {
+	cases := []struct {
+		got      string
+		expected string
+	}{
+		{Path([]string{"user", "123", "notification"}).String(), "user/123/notification"},
+		{Path([]string{"org", "42", "user", "123"}).Path([]string{"notification"}).String(), "org/42/user/123/notification"},
+		{Path([]string{"user"}).Any().Path([]string{"notification"}).String(), "user/+/notification"},
+		{Path([]string{"chat"}).Any().Any().Path([]string{"message"}).String(), "chat/+/+/message"},
+		{Path([]string{"org"}).Any().Path([]string{"logs"}).All().String(), "org/+/logs/#"},
+		{Any().Path([]string{"notification"}).String(), "+/notification"},
+		{Any().String(), "+"},
+		{All().String(), "#"},
+	}
+	for _, c := range cases {
+		if c.got != c.expected {
+			t.Errorf("Expected %s, got %s", c.expected, c.got)
+		}
+	}
+}
+
+func TestSharedPrefixDoesNotAlias(t *testing.T) {
+	base := Path([]string{"a", "b", "c"}).Any()
+	first := base.Path([]string{"x"})
+	second := base.Path([]string{"y"})
+	if first.String() != "a/b/c/+/x" || second.String() != "a/b/c/+/y" {
+		t.Errorf("Expected a/b/c/+/x and a/b/c/+/y, got %s and %s", first, second)
+	}
+}
+
+func TestInvalidLevels(t *testing.T) {
+	cases := []struct {
+		levels   []string
+		expected string
+	}{
+		{nil, "path() needs at least one level"},
+		{[]string{}, "path() needs at least one level"},
+		{[]string{"user", ""}, "empty level at index 1"},
+		{[]string{"user/123"}, "\"user/123\" contains \"/\", split it: path(['user', '123'])"},
+		{[]string{"user", "+"}, "\"+\" is reserved, use any()"},
+		{[]string{"user", "a+b"}, "\"a+b\" contains \"+\", use any() for wildcards"},
+		{[]string{"user", "#"}, "\"#\" is reserved, use all()"},
+		{[]string{"user", "a#b"}, "\"a#b\" contains \"#\", use all() for wildcards"},
+	}
+	for _, c := range cases {
+		if got := panicOf(func() { Path(c.levels) }); got != c.expected {
+			t.Errorf("Expected panic %q, got %q", c.expected, got)
+		}
+		if got := panicOf(func() { Any().Path(c.levels) }); got != c.expected {
+			t.Errorf("Expected panic %q, got %q", c.expected, got)
+		}
+	}
+}
+
+func panicOf(f func()) (message string) {
+	defer func() {
+		if r := recover(); r != nil {
+			message, _ = r.(string)
+		}
+	}()
+	f()
+	return ""
+}
+{% endautoescape %}
