@@ -156,7 +156,8 @@ export class Push extends Service {
      *
      * Called with only a callback, `subscribe((message) => {...}, options)` subscribes to the
      * signed-in user's own topic, `users/<userId>`, like FCM/APNs delivery to a device. The
-     * user id is read from the JWT (or session) set on the client.
+     * user id is read from the JWT (or session) set on the client. This form defaults to
+     * `background: true` and `retry: true` (QoS 1); pass either in the options to override.
      *
      * Awaiting resolves only once the broker has acked every SUBSCRIBE (SUBACK):
      * the broker only starts routing a topic once its subscription is registered,
@@ -200,7 +201,8 @@ export class Push extends Service {
         const topicList = (Array.isArray(topics) ? topics : [topics]).map(
             (topic) => topic.toString(),
         );
-        const background = options.background ?? false;
+        // The user topic defaults to background delivery, like FCM/APNs; topics default off.
+        const background = options.background ?? userForm;
         const qos: 0 | 1 = (options.retry ?? true) ? 1 : 0;
 
         if (background) {
