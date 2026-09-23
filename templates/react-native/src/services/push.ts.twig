@@ -86,7 +86,7 @@ const RECONNECT_PERIOD_MS = 2000;
  *
  *     const client = new Client().setEndpoint(...).setProject(...).setJWT(jwt);
  *     const push = new Push(client);
- *     const sub = await push.subscribe('<TOPIC_ID>', (m) =>
+ *     const sub = await push.subscribe('user/123/#', (m) =>
  *       console.log(m.topic, m.payload.toString()),
  *     );
  *     // sub.update({ background: true }); sub.unsubscribe();
@@ -201,9 +201,6 @@ export class Push extends Service {
     /**
      * Subscribe to one or more topics. Resolves to a {@link PushSubscription} handle.
      *
-     * Each entry is a Messaging topic ID, not an MQTT filter: the broker grants only
-     * exact topic IDs, so wildcards (`+`, `#`) and `/` levels are rejected here.
-     *
      * Awaiting resolves only once the broker has acked every SUBSCRIBE (SUBACK):
      * the broker only starts routing a topic once its subscription is registered,
      * so publishing before the ack races the message ahead of the subscription and
@@ -220,7 +217,6 @@ export class Push extends Service {
         options: SubscribeOptions = {},
     ): Promise<PushSubscription> {
         const topicList = typeof topics === 'string' ? [topics] : topics;
-        topicList.forEach(checkTopicId);
         const background = options.background ?? false;
         const qos: 0 | 1 = (options.retry ?? true) ? 1 : 0;
 
@@ -642,7 +638,7 @@ export class Push extends Service {
         });
     }
 
-    /** Fan a delivered packet out to every subscription on its topic. */
+    /** Fan a delivered packet out to every subscription whose filter matches. */
     private async dispatch(packet: IPublishPacket): Promise<void> {
         const message: PushMessage = {
             topic: packet.topic.toString(),
@@ -652,7 +648,7 @@ export class Push extends Service {
             qos: packet.qos,
         };
         for (const sub of this.subscriptions.values()) {
-            if (sub.topic === message.topic) {
+            if (matches(sub.topic, message.topic)) {
                 await sub.callback(message);
                 // Notification is per-subscription: only subs that opted in post one,
                 // each with its own title.
@@ -698,15 +694,21 @@ function randomId(): string {
     return out;
 }
 
-/**
- * Throw unless `topicId` is a valid Messaging topic ID (letters, digits, period, hyphen and
- * underscore, not starting with a special character). The broker would deny anything else in
- * its SUBACK, indistinguishable from a missing topic or permission.
- */
-function checkTopicId(topicId: string): void {
-    if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(topicId)) {
-        throw new Error(
-            `Invalid topic ID "${topicId}": use a Messaging topic ID (a-z, A-Z, 0-9, period, hyphen, underscore), not an MQTT filter.`,
-        );
+/** MQTT topic-filter match with '+' (single level) and '#' (multi level). */
+function matches(filter: string, topic: string): boolean {
+    const filterParts = filter.split('/');
+    const topicParts = topic.split('/');
+    for (let i = 0; i < filterParts.length; i++) {
+        const part = filterParts[i];
+        if (part === '#') {
+            return true;
+        }
+        if (i >= topicParts.length) {
+            return false;
+        }
+        if (part !== '+' && part !== topicParts[i]) {
+            return false;
+        }
     }
+    return filterParts.length === topicParts.length;
 }
