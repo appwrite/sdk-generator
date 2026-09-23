@@ -403,6 +403,35 @@ namespace AppwriteTests
             LogResult(ID.Unique());
             LogResult(ID.Custom("custom_id"));
 
+            // Topic helper tests
+            LogResult(Topic.Path(new[] { "user", "123", "notification" }).ToString());
+            LogResult(Topic.Path(new[] { "org", "42", "user", "123" }).Path(new[] { "notification" }).ToString());
+            LogResult(Topic.Path(new[] { "user" }).Any().Path(new[] { "notification" }).ToString());
+            LogResult(Topic.Path(new[] { "chat" }).Any().Any().Path(new[] { "message" }).ToString());
+            LogResult(Topic.Path(new[] { "org" }).Any().Path(new[] { "logs" }).All().ToString());
+            LogResult(Topic.Any().Path(new[] { "notification" }).ToString());
+            LogResult(Topic.All().ToString());
+            var topicCases = new (string Name, string[] Levels)[]
+            {
+                ("empty path", new string[0]),
+                ("empty level", new[] { "user", "" }),
+                ("slash", new[] { "user/123" }),
+                ("plus", new[] { "user", "a+b" }),
+                ("hash", new[] { "user", "#" }),
+            };
+            foreach (var (name, levels) in topicCases)
+            {
+                try
+                {
+                    Topic.Path(levels);
+                    LogResult($"Topic {name}:failed");
+                }
+                catch (System.ArgumentException)
+                {
+                    LogResult($"Topic {name}:passed");
+                }
+            }
+
             // Channel helper tests
             LogResult(Channel.Database("db1").Collection("col1").Document().ToString());
             LogResult(Channel.Database("db1").Collection("col1").Document("doc1").ToString());
