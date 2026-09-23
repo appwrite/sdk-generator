@@ -241,7 +241,7 @@ class Client @JvmOverloads constructor(
      *
      * A stable client id for the [io.appwrite.services.Push] service. The broker keys its
      * offline-replay cursor on this id, so pass a stable value to resume replay across
-     * restarts. Defaults to a per-connection id when unset.
+     * restarts. Defaults to the userId decoded from the JWT (else the credential) when unset.
      *
      * @param pushClientId
      *

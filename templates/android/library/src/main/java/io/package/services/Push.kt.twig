@@ -7,6 +7,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Base64
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.hivemq.client.mqtt.MqttClient
@@ -25,6 +26,7 @@ import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.Service
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
+import org.json.JSONObject
 import java.net.URI
 import java.security.KeyStore
 import java.security.Provider
@@ -142,12 +144,6 @@ class Push(client: Client) : Service(client) {
                 query.split("&").any { p -> p == "tlsInsecure=true" || p == "tlsInsecure=1" }
             }.getOrDefault(false)
         } ?: false
-
-    // Empty when the app did not set one: the broker derives a stable id server-side (keyed on
-    // the credential/project) so the replay cursor resumes across restarts.
-    // Client.setPushClientId() overrides it with an explicit id.
-    private val resolvedClientId: String =
-        client.pushClientId?.takeIf { it.isNotEmpty() } ?: ""
 
     private var mqtt: Mqtt5AsyncClient? = null
 
@@ -487,7 +483,12 @@ class Push(client: Client) : Service(client) {
             port = port,
             tls = tls,
             tlsInsecure = tlsInsecure,
-            clientId = resolvedClientId,
+            // HiveMQ cannot connect with an empty id (it expects the broker to assign one), so
+            // when the app did not call Client.setPushClientId() derive a stable per-user id:
+            // the userId decoded from the JWT, else the credential itself. A stable id keeps
+            // the broker's replay cursor resuming across restarts.
+            clientId = client.pushClientId?.takeIf { it.isNotEmpty() }
+                ?: userIdFromJwt(credential).ifEmpty { credential },
             keepAlive = KEEP_ALIVE_SECONDS,
             authMethod = authMethod,
             credential = credential,
@@ -559,17 +560,33 @@ internal fun resolvePushAuth(client: Client): Pair<String, String> {
     }
 }
 
+/**
+ * The userId claim from an {{ spec.info.title | caseUcfirst }} JWT, used as the default MQTT client id so the
+ * broker's replay cursor is stable per user. Returns "" when the token is not a decodable JWT
+ * (e.g. a session secret), so the caller can fall back to the raw credential.
+ */
+internal fun userIdFromJwt(jwt: String): String {
+    val parts = jwt.split('.')
+    if (parts.size < 2) {
+        return ""
+    }
+    return runCatching {
+        val json = String(
+            Base64.decode(parts[1], Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING),
+            Charsets.UTF_8,
+        )
+        JSONObject(json).optString("userId", "")
+    }.getOrDefault("")
+}
+
 /** Build (but do not connect) an MQTT 5 client from [config]. */
 internal fun buildPushClient(
     config: PushConfig,
     onConnected: (() -> Unit)? = null,
     onDisconnected: ((Throwable?) -> Unit)? = null,
 ): Mqtt5AsyncClient {
-    // When no client id was set (config.clientId is empty), the identifier is left unset so
-    // HiveMQ sends an empty id and the broker derives a stable one server-side (keyed on the
-    // credential/project), keeping its offline-replay cursor. Client.setPushClientId() sets an
-    // explicit id, resolved once per Push instance (see resolvedClientId) so a reconnect
-    // rebuild reuses it and resumes the same session.
+    // config.clientId is stable per user (see buildConfig), so a reconnect rebuild reuses it
+    // and resumes the same session.
     var builder = MqttClient.builder()
         .useMqttVersion5()
         .serverHost(config.host)
