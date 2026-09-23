@@ -226,7 +226,8 @@ export class Push extends Service {
      * user id is read from the JWT (or session) set on the client. This form defaults to
      * `background: true` and `retry: true` (QoS 1); pass either in the options to override.
      * The default falls back to foreground delivery when the background peer dependencies
-     * are not installed; an explicit `background: true` still requires them.
+     * are not installed; an explicit `background: true` still requires them, and any other
+     * background startup failure is thrown.
      *
      * Awaiting resolves only once the broker has acked every SUBSCRIBE (SUBACK):
      * the broker only starts routing a topic once its subscription is registered,
@@ -274,19 +275,21 @@ export class Push extends Service {
         let background = options.background ?? userForm;
         const qos: 0 | 1 = (options.retry ?? true) ? 1 : 0;
 
+        // Only an explicit `background: true` requires the optional background peers: when
+        // background is just the user topic's default and they are not installed, deliver in
+        // the foreground instead. Any other background startup failure still throws.
+        if (
+            background &&
+            options.background === undefined &&
+            !backgroundPeersInstalled()
+        ) {
+            background = false;
+        }
+
         // Start the foreground service before connecting so a missing peer dependency
-        // surfaces a clear error up front, matching the connection failure path. Only an
-        // explicit `background: true` requires the background peers: when background is just
-        // the user topic's default, an app without them falls back to foreground delivery.
+        // surfaces a clear error up front, matching the connection failure path.
         if (background) {
-            try {
-                await this.startBackground();
-            } catch (err) {
-                if (options.background === true) {
-                    throw err;
-                }
-                background = false;
-            }
+            await this.startBackground();
         }
 
         const client = await this.connect();
@@ -745,6 +748,22 @@ function userIdFromJwt(jwt?: string): string {
         return typeof payload.userId === 'string' ? payload.userId : '';
     } catch {
         return '';
+    }
+}
+
+/**
+ * Whether the optional background-delivery peers (`expo-notifications` and
+ * `react-native-background-actions`) are installed.
+ */
+function backgroundPeersInstalled(): boolean {
+    try {
+        /* eslint-disable @typescript-eslint/no-require-imports */
+        require('expo-notifications');
+        require('react-native-background-actions');
+        /* eslint-enable @typescript-eslint/no-require-imports */
+        return true;
+    } catch {
+        return false;
     }
 }
 
