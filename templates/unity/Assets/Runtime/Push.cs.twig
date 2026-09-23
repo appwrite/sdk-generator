@@ -223,10 +223,13 @@ namespace {{ spec.info.title | caseUcfirst }}
 
         public async Task<PushSubscription> Subscribe(IEnumerable<string> topics, Action<PushMessage> callback, bool retry = true)
         {
+            // Materialize once: the topics are walked twice (local registration, then the
+            // SUBSCRIBE filters), and a one-shot enumerable would come back empty the second time.
+            var topicList = new List<string>(topics);
             var client = await Connect();
 
             var ids = new List<string>();
-            foreach (var topic in topics)
+            foreach (var topic in topicList)
             {
                 var id = Guid.NewGuid().ToString();
                 ids.Add(id);
@@ -237,7 +240,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
 
             var builder = new MqttClientSubscribeOptionsBuilder();
-            foreach (var topic in topics)
+            foreach (var topic in topicList)
             {
                 var filter = topic;
                 builder = builder.WithTopicFilter(f => f
