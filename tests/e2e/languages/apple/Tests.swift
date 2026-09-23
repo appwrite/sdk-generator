@@ -493,7 +493,7 @@ class Tests: XCTestCase {
         print(mock.result)
 
         // Native push (MQTT) round-trip against the mock broker.
-        _ = client.setJWT("e2e-jwt")
+        _ = client.setJWT("eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e")
         _ = client.setPushEndpoint("mqtt://mqtt:1883")
         let push = Push(client)
         let pushOpenExpectation = XCTestExpectation(description: "push open")
@@ -521,6 +521,21 @@ class Tests: XCTestCase {
         print(pushQos)
         pushSub.unsubscribe()
         push.close()
+
+        // Topic-less subscribe: the signed-in user's own topic (users/<userId> from the JWT).
+        let userPush = Push(client)
+        let userPushExpectation = XCTestExpectation(description: "push user topic")
+        var pushUserTopic = "Push user topic:failed"
+        let userPushSub = try await userPush.subscribe { message in
+            if message.topic == "users/e2e-user" {
+                pushUserTopic = "Push user topic:passed"
+                userPushExpectation.fulfill()
+            }
+        }
+        await fulfillment(of: [userPushExpectation], timeout: 10)
+        print(pushUserTopic)
+        userPushSub.unsubscribe()
+        userPush.close()
     }
 
     func parse(from json: String) -> String? {

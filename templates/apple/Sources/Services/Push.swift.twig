@@ -176,6 +176,21 @@ open class Push: Service {
         return self
     }
 
+    /// Subscribe to the signed-in user's own topic, `users/<userId>`. Returns a `PushSubscription` handle.
+    ///
+    /// The user id is read off the client's credential without a network call (the JWT's
+    /// `userId` claim, else the session's `id`), so this delivers "messages for me" without
+    /// knowing any topic. Throws when neither a JWT nor a session is set on the client.
+    ///
+    ///     let sub = try await push.subscribe { message in
+    ///         print(message.string)
+    ///     }
+    @discardableResult
+    public func subscribe(background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
+        let userId = try currentUserId()
+        return try await subscribe(["users/\(userId)"], background: background, title: title, retry: retry, callback: callback)
+    }
+
     /// Subscribe to a single topic. Returns a `PushSubscription` handle.
     @discardableResult
     public func subscribe(_ topic: TopicValue, background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
@@ -197,6 +212,8 @@ open class Push: Service {
     ///
     /// Topics are raw strings or built with `Topic`, e.g.
     /// `try await push.subscribe(try Topic.path(["user", userId]).all()) { message in ... }`.
+    /// Omit the topic (`try await push.subscribe { message in ... }`) to subscribe to the
+    /// signed-in user's own topic, `users/<userId>`.
     ///
     /// Suspends until the broker has acknowledged the SUBSCRIBE (SUBACK): the broker
     /// only starts routing a topic once its subscription is registered, so publishing
@@ -401,6 +418,22 @@ open class Push: Service {
         ])
     }
 
+    // The signed-in user's id, read off the client's credential in the same order auth uses
+    // (JWT first, then session) without a network call: the JWT payload's `userId` claim, else
+    // the `id` in the session secret (standard base64 of `{"id": ..., "secret": ...}`).
+    private func currentUserId() throws -> String {
+        // The id comes from the credential the connection authenticates with: the JWT when one
+        // is set (never the session, which could belong to a different user), else the session.
+        if let jwt = client.config["jwt"], !jwt.isEmpty {
+            if let userId = userIdFromJwt(jwt) {
+                return userId
+            }
+        } else if let session = client.config["session"], !session.isEmpty, let userId = userIdFromSession(session) {
+            return userId
+        }
+        throw {{ spec.info.title | caseUcfirst }}Error(message: "subscribe() without a topic needs a signed-in user: set a JWT or session on the client")
+    }
+
     private func open() async throws -> MQTTClient {
         // A fresh connect clears any prior deliberate-close flag.
         sync.sync { closing = false }
@@ -561,6 +594,30 @@ open class Push: Service {
         #endif
     }
 
+}
+
+/// The `userId` claim of a JWT's payload segment (base64url JSON), or nil when absent.
+private func userIdFromJwt(_ jwt: String) -> String? {
+    let parts = jwt.split(separator: ".", omittingEmptySubsequences: false)
+    guard parts.count >= 2 else { return nil }
+    var payload = parts[1].replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+    payload += String(repeating: "=", count: (4 - payload.count % 4) % 4)
+    return jsonString(base64: payload, key: "userId")
+}
+
+/// The `id` in a session secret (standard base64 of `{"id": ..., "secret": ...}`), or nil.
+private func userIdFromSession(_ session: String) -> String? {
+    jsonString(base64: session, key: "id")
+}
+
+private func jsonString(base64: String, key: String) -> String? {
+    guard let data = Data(base64Encoded: base64),
+        let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        let value = object[key] as? String, !value.isEmpty
+    else {
+        return nil
+    }
+    return value
 }
 
 /// MQTT topic-filter match with `+` (single level) and `#` (multi level).
