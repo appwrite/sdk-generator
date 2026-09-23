@@ -1,0 +1,51 @@
+const { Topic } = require('../dist/topic');
+
+describe('Topic', () => {
+    test('path', () => {
+        expect(Topic.path(['user']).toString()).toEqual('user');
+        expect(Topic.path(['user', 'notification']).toString()).toEqual(
+            'user/notification',
+        );
+        expect(Topic.path(['user']).path(['notification']).toString()).toEqual(
+            'user/notification',
+        );
+    });
+    test('any', () => {
+        expect(
+            Topic.path(['user']).any().path(['notification']).toString(),
+        ).toEqual('user/+/notification');
+        expect(
+            Topic.path(['chat']).any().any().path(['message']).toString(),
+        ).toEqual('chat/+/+/message');
+        expect(Topic.any().path(['notification']).toString()).toEqual(
+            '+/notification',
+        );
+    });
+    test('all', () => {
+        expect(
+            Topic.path(['org']).any().path(['logs']).all().toString(),
+        ).toEqual('org/+/logs/#');
+        expect(Topic.all().toString()).toEqual('#');
+    });
+    test('errors', () => {
+        expect(() => Topic.path([])).toThrow('path() needs at least one level');
+        expect(() => Topic.path(['user', ''])).toThrow(
+            'empty level at index 1',
+        );
+        expect(() => Topic.path(['user/123'])).toThrow(
+            `"user/123" contains "/", split it: path(['user', '123'])`,
+        );
+        expect(() => Topic.path(['user', 'a+b'])).toThrow(
+            '"a+b" contains "+", use any() for wildcards',
+        );
+        expect(() => Topic.path(['user', '#'])).toThrow(
+            '"#" is reserved, use all()',
+        );
+        expect(() => Topic.path(['user', null])).toThrow(
+            'level at index 1 must be a string, got null',
+        );
+        expect(() => Topic.path('user')).toThrow(
+            "path() expects an array, e.g. path(['user'])",
+        );
+    });
+});
