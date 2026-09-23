@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using MQTTnet;
 using MQTTnet.Client;
@@ -191,9 +190,6 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// <summary>
         /// Subscribe to one or more topics. Returns a <see cref="PushSubscription"/> handle.
         ///
-        /// Each entry is a Messaging topic ID, not an MQTT filter: the broker grants only exact
-        /// topic IDs, so wildcards ('+', '#') and '/' levels throw before connecting.
-        ///
         /// Awaits the broker's SUBACK: the broker only starts routing a topic once its
         /// subscription is registered, so publishing before the ack races the message
         /// ahead of the subscription and it is dropped (no retained replay on MQTT).
@@ -227,11 +223,6 @@ namespace {{ spec.info.title | caseUcfirst }}
 
         public async Task<PushSubscription> Subscribe(IEnumerable<string> topics, Action<PushMessage> callback, bool retry = true)
         {
-            foreach (var topic in topics)
-            {
-                CheckTopicId(topic);
-            }
-
             var client = await Connect();
 
             var ids = new List<string>();
@@ -621,7 +612,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 callbacks = new List<Action<PushMessage>>();
                 foreach (var entry in _subscriptions.Values)
                 {
-                    if (entry.Filter == topic)
+                    if (Matches(entry.Filter, topic))
                     {
                         callbacks.Add(entry.Callback);
                     }
@@ -649,19 +640,30 @@ namespace {{ spec.info.title | caseUcfirst }}
             Close();
         }
 
-        private static readonly Regex TopicIdPattern = new Regex("^[a-zA-Z0-9][a-zA-Z0-9._-]*$");
-
-        /// <summary>
-        /// Throws unless <paramref name="topicId"/> is a valid Messaging topic ID (letters, digits,
-        /// period, hyphen and underscore, not starting with a special character). The broker would
-        /// deny anything else in its SUBACK, indistinguishable from a missing topic or permission.
-        /// </summary>
-        private static void CheckTopicId(string topicId)
+        /// <summary>MQTT topic-filter match with '+' (single level) and '#' (multi level).</summary>
+        private static bool Matches(string filter, string topic)
         {
-            if (topicId == null || !TopicIdPattern.IsMatch(topicId))
+            var filterParts = filter.Split('/');
+            var topicParts = topic.Split('/');
+            for (var i = 0; i < filterParts.Length; i++)
             {
-                throw new {{ spec.info.title | caseUcfirst }}Exception($"Invalid topic ID \"{topicId}\": use a Messaging topic ID (a-z, A-Z, 0-9, period, hyphen, underscore), not an MQTT filter.");
+                if (filterParts[i] == "#")
+                {
+                    return true;
+                }
+
+                if (i >= topicParts.Length)
+                {
+                    return false;
+                }
+
+                if (filterParts[i] != "+" && filterParts[i] != topicParts[i])
+                {
+                    return false;
+                }
             }
+
+            return filterParts.Length == topicParts.Length;
         }
     }
 
