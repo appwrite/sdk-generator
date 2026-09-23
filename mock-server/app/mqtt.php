@@ -11,8 +11,8 @@
  *  - SUBSCRIBE grants every filter at the requested QoS (capped at QoS 1) and then, mirroring
  *    real server-initiated push, publishes the test message to the fixed topic "e2e-push"
  *    through the broker's subscription index/fan-out — so a client receives it only if its
- *    subscription matches — and a second message to "users/e2e-user", the per-user topic a
- *    topic-less subscribe() resolves to for the e2e JWT. The SDKs only subscribe; they have no
+ *    subscription matches — and one message to each of "users/e2e-user", "users/e2e-session-user"
+ *    and "users/other-user", the per-user topics a topic-less subscribe() can resolve to. The SDKs only subscribe; they have no
  *    publish method.
  *
  * It listens on both transports the library ships: plain TCP (1883) and WebSocket (8083),
@@ -101,9 +101,14 @@ class MockHandler implements Handler
             foreach ($this->server?->subscribers($prefix, 'e2e-push') ?? [] as [$subscriber, $grantedQos]) {
                 $subscriber->publish('e2e-push', 'push-payload', qos: \min($grantedQos, Packet::QOS_1));
             }
-            // The per-user topic a topic-less subscribe() resolves to, for the e2e JWT's userId.
-            foreach ($this->server?->subscribers($prefix, 'users/e2e-user') ?? [] as [$subscriber, $grantedQos]) {
-                $subscriber->publish('users/e2e-user', 'push-user-payload', qos: \min($grantedQos, Packet::QOS_1));
+            // Per-user topics a topic-less subscribe() resolves to: e2e-user (the e2e JWT),
+            // e2e-session-user (the e2e session secret) and other-user, which no test client
+            // owns, so a client that over-subscribes (users/+, users/#) receives it and fails.
+            foreach (['e2e-user', 'e2e-session-user', 'other-user'] as $user) {
+                $topic = 'users/' . $user;
+                foreach ($this->server?->subscribers($prefix, $topic) ?? [] as [$subscriber, $grantedQos]) {
+                    $subscriber->publish($topic, 'push-user-payload', qos: \min($grantedQos, Packet::QOS_1));
+                }
             }
         });
 
