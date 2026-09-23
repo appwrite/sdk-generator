@@ -20,7 +20,7 @@ Client client = new Client()
 
 {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
 
-{% if method.method.value != 'delete' and (method | methodType) != 'webAuth' %}{% if (method | methodType) == 'location' %}byte[]{% elseif (method | getValidResponseModels)|length > 1 %}object{% else %}{{ (method | responseModel) | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ (method | methodName) | caseUcfirst }}({% if (method | parameters('all')) | length == 0 %});{% endif %}
+{% if method.method.value != 'delete' and (method | methodType) != 'webAuth' %}{% if (method | methodType) == 'location' %}byte[]{% elseif (method | getValidResponseModels)|length > 1 %}object{% else %}{{ spec.info.title | caseUcfirst }}.Models.{{ (method | responseModel) | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ (method | methodName) | caseUcfirst }}({% if (method | parameters('all')) | length == 0 %});{% endif %}
 	  {%~ for parameter in (method | parameters('all')) %}
 
     {{ parameter.name }}: {% if (parameter | enumValues) | length > 0%}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
