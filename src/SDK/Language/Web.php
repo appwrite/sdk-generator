@@ -90,6 +90,11 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/topic.ts',
+                'template'      => 'web/src/topic.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/channel.ts',
                 'template'      => 'web/src/channel.ts.twig',
             ],
