@@ -1,0 +1,44 @@
+import unittest
+
+from {{ namespace | caseSnake }}.topic import ResolvedTopic, Topic
+
+
+class TestTopicMethods(unittest.TestCase):
+
+    def test_path(self):
+        self.assertEqual(str(Topic.path(['user'])), 'user')
+        self.assertEqual(str(Topic.path(['user', 'notification'])), 'user/notification')
+        self.assertEqual(str(Topic.path(['user']).path(['notification'])), 'user/notification')
+
+    def test_any(self):
+        self.assertEqual(str(Topic.path(['user']).any().path(['notification'])), 'user/+/notification')
+        self.assertEqual(str(Topic.path(['chat']).any().any().path(['message'])), 'chat/+/+/message')
+        self.assertEqual(str(Topic.any().path(['notification'])), '+/notification')
+
+    def test_all(self):
+        self.assertEqual(str(Topic.path(['org']).any().path(['logs']).all()), 'org/+/logs/#')
+        self.assertEqual(str(Topic.all()), '#')
+        self.assertIsInstance(Topic.all(), ResolvedTopic)
+
+    def test_nothing_after_all(self):
+        with self.assertRaisesRegex(TypeError, r'^nothing can come after all\(\)$'):
+            Topic.all().any()
+
+    def test_errors(self):
+        cases = [
+            ('user', TypeError, "path() expects an array, e.g. path(['user'])"),
+            ([], ValueError, 'path() needs at least one level'),
+            (['user', 42], TypeError, 'level at index 1 must be a string, got int'),
+            (['user', None], TypeError, 'level at index 1 must be a string, got null'),
+            (['user', ''], ValueError, 'empty level at index 1'),
+            (['user/123'], ValueError, "\"user/123\" contains \"/\", split it: path(['user', '123'])"),
+            (['user', '+'], ValueError, '"+" is reserved, use any()'),
+            (['user', 'a+b'], ValueError, '"a+b" contains "+", use any() for wildcards'),
+            (['user', '#'], ValueError, '"#" is reserved, use all()'),
+            (['user', 'a#b'], ValueError, '"a#b" contains "#", use all() for wildcards'),
+        ]
+        for levels, error, message in cases:
+            with self.subTest(levels=levels):
+                with self.assertRaises(error) as context:
+                    Topic.path(levels)
+                self.assertEqual(str(context.exception), message)
