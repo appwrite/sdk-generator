@@ -16,6 +16,7 @@ import mqtt, {
 import { Client } from '../client';
 import { createTcpStream } from '../lib/tcp-stream';
 import { Service } from '../service';
+import type { TopicValue } from '../topic';
 
 /** A message delivered on a subscribed topic (the MQTT analog of a Realtime event). */
 export interface PushMessage {
@@ -201,6 +202,9 @@ export class Push extends Service {
     /**
      * Subscribe to one or more topics. Resolves to a {@link PushSubscription} handle.
      *
+     * Each topic is a string or a `Topic` builder, e.g.
+     * `Topic.path(['user', userId]).all()`.
+     *
      * Awaiting resolves only once the broker has acked every SUBSCRIBE (SUBACK):
      * the broker only starts routing a topic once its subscription is registered,
      * so publishing before the ack races the message ahead of the subscription and
@@ -212,11 +216,13 @@ export class Push extends Service {
      * at-most-once (QoS 0) delivery; toggle either later with the handle's `update`.
      */
     async subscribe(
-        topics: string | string[],
+        topics: TopicValue | TopicValue[],
         callback: MessageCallback,
         options: SubscribeOptions = {},
     ): Promise<PushSubscription> {
-        const topicList = typeof topics === 'string' ? [topics] : topics;
+        const topicList = (Array.isArray(topics) ? topics : [topics]).map(
+            (topic) => topic.toString(),
+        );
         const background = options.background ?? false;
         const qos: 0 | 1 = (options.retry ?? true) ? 1 : 0;
 
