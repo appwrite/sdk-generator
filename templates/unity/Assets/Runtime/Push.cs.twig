@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MQTTnet;
@@ -197,10 +198,39 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// <paramref name="retry"/> chooses this subscription's QoS: true (the
         /// default) subscribes at QoS 1 so the broker holds this topic's messages and
         /// redelivers them on reconnect; false uses QoS 0 (at-most-once, may be lost).
+        ///
+        /// Topics can be raw strings or built with <see cref="Topic"/>:
+        /// <code>
+        /// await push.Subscribe(Topic.Path(new[] { "user", userId }).Any(), message => Debug.Log(message.Text));
+        /// </code>
         /// </summary>
         public async Task<PushSubscription> Subscribe(string topic, Action<PushMessage> callback, bool retry = true)
         {
             return await Subscribe(new[] { topic }, callback, retry);
+        }
+
+        /// <summary>Subscribe to a topic built with <see cref="Topic"/>.</summary>
+        public Task<PushSubscription> Subscribe(Topic topic, Action<PushMessage> callback, bool retry = true)
+        {
+            return Subscribe(new[] { topic.ToString() }, callback, retry);
+        }
+
+        /// <summary>Subscribe to a topic ended with <c>All()</c>.</summary>
+        public Task<PushSubscription> Subscribe(ResolvedTopic topic, Action<PushMessage> callback, bool retry = true)
+        {
+            return Subscribe(new[] { topic.ToString() }, callback, retry);
+        }
+
+        /// <summary>Subscribe to several topics built with <see cref="Topic"/>.</summary>
+        public Task<PushSubscription> Subscribe(IEnumerable<Topic> topics, Action<PushMessage> callback, bool retry = true)
+        {
+            return Subscribe(topics.Select(topic => topic.ToString()), callback, retry);
+        }
+
+        /// <summary>Subscribe to several topics ended with <c>All()</c>.</summary>
+        public Task<PushSubscription> Subscribe(IEnumerable<ResolvedTopic> topics, Action<PushMessage> callback, bool retry = true)
+        {
+            return Subscribe(topics.Select(topic => topic.ToString()), callback, retry);
         }
 
         // MQTTnet reports broker-rejected filters in the SUBACK result rather than throwing,
