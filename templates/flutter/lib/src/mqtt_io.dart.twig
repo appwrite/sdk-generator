@@ -205,8 +205,10 @@ class PushIO implements Push {
     String? title,
     bool retry = true,
   }) async {
-    final topicList =
-        topics is String ? <String>[topics] : List<String>.from(topics as List);
+    // A topic is a String or a Topic / ResolvedTopic builder (via toString()).
+    final topicList = topics is List
+        ? topics.map((topic) => topic.toString()).toList()
+        : <String>[topics.toString()];
 
     final ids = <String>[];
     for (final topic in topicList) {

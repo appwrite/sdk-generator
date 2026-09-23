@@ -64,7 +64,8 @@ abstract class Push extends Service {
 
   /// Subscribe to one or more topics, resolving to a [PushSubscription] handle.
   ///
-  /// [topics] is a single topic string or a list of them. For a foreground subscription
+  /// [topics] is a single topic or a list of them, each a string or a `Topic` builder
+  /// (e.g. `Topic.path(['user', userId]).all()`). For a foreground subscription
   /// the future resolves only once every subscription has been acknowledged (SUBACK), so a
   /// subscribe-then-publish is reliable, and [onOpen]/[onClose]/[onError] observe that
   /// connection. A [background] subscription hands the connection to the background isolate,
@@ -87,7 +88,7 @@ abstract class Push extends Service {
   /// peers and, on Android, the `FOREGROUND_SERVICE` / `POST_NOTIFICATIONS` manifest
   /// permissions. Toggle these later with [PushSubscription.update].
   Future<PushSubscription> subscribe(
-    Object topics,
+    Object topics, // String, Topic or ResolvedTopic, or a List of them
     PushCallback callback, {
     bool background,
     String? title,
