@@ -477,7 +477,7 @@ namespace AppwriteTests
             var pushOpenTcs = new TaskCompletionSource<bool>();
             push.OnOpen(() => pushOpenTcs.TrySetResult(true));
             var pushTcs = new TaskCompletionSource<PushMessage>();
-            var pushSub = await push.Subscribe("e2e/push", (message) =>
+            var pushSub = await push.Subscribe("e2e-push", (message) =>
             {
                 pushTcs.TrySetResult(message);
             });
@@ -488,7 +488,7 @@ namespace AppwriteTests
                 : "Push open:failed");
             var pushWinner = await Task.WhenAny(pushTcs.Task, Task.Delay(10000));
             var pushOk = pushWinner == pushTcs.Task;
-            LogResult(pushOk && pushTcs.Task.Result.Text == "push-payload" && pushTcs.Task.Result.Topic == "e2e/push"
+            LogResult(pushOk && pushTcs.Task.Result.Text == "push-payload" && pushTcs.Task.Result.Topic == "e2e-push"
                 ? "Push message:passed"
                 : "Push message:failed");
             // reliableDelivery (default) => QoS 1 end to end.

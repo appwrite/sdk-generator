@@ -476,7 +476,7 @@ void main() async {
     }
   });
   final pushReceived = Completer<PushMessage>();
-  final pushSub = await push.subscribe('e2e/push', (m) {
+  final pushSub = await push.subscribe('e2e-push', (m) {
     if (!pushReceived.isCompleted) {
       pushReceived.complete(m);
     }
@@ -490,7 +490,7 @@ void main() async {
   }
   final pushMessage =
       await pushReceived.future.timeout(const Duration(seconds: 10));
-  print(pushMessage.string == 'push-payload' && pushMessage.topic == 'e2e/push'
+  print(pushMessage.string == 'push-payload' && pushMessage.topic == 'e2e-push'
       ? 'Push message:passed'
       : 'Push message:failed');
   // reliableDelivery (default) => QoS 1 end to end.

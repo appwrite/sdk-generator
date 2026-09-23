@@ -9,7 +9,7 @@
  *  - CONNECT is accepted unless the credential is the literal "deny" (so a test can assert
  *    a rejected connection); the projectId user property becomes the connection prefix.
  *  - SUBSCRIBE grants every filter at the requested QoS (capped at QoS 1) and then, mirroring
- *    real server-initiated push, publishes the test message to the fixed topic "e2e/push"
+ *    real server-initiated push, publishes the test message to the fixed topic "e2e-push"
  *    through the broker's subscription index/fan-out — so a client receives it only if its
  *    subscription matches. The SDKs only subscribe; they have no publish method.
  *
@@ -90,14 +90,14 @@ class MockHandler implements Handler
 
         // Real push is server-initiated (server -> client); the SDKs only subscribe and have no
         // publish method. After the SUBACK, publish the test message to the fixed topic
-        // "e2e/push" through the broker's subscription index/fan-out (Server::subscribers), not
+        // "e2e-push" through the broker's subscription index/fan-out (Server::subscribers), not
         // a direct echo on this socket — so a client only receives it if its subscription
-        // actually matches "e2e/push", exercising real topic routing. Deferred one tick so it
+        // actually matches "e2e-push", exercising real topic routing. Deferred one tick so it
         // lands after the SUBACK the library sends when this handler returns.
         $prefix = $connection->prefix;
         \Swoole\Timer::after(100, function () use ($prefix) {
-            foreach ($this->server?->subscribers($prefix, 'e2e/push') ?? [] as [$subscriber, $grantedQos]) {
-                $subscriber->publish('e2e/push', 'push-payload', qos: \min($grantedQos, Packet::QOS_1));
+            foreach ($this->server?->subscribers($prefix, 'e2e-push') ?? [] as [$subscriber, $grantedQos]) {
+                $subscriber->publish('e2e-push', 'push-payload', qos: \min($grantedQos, Packet::QOS_1));
             }
         });
 
