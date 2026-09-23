@@ -182,6 +182,17 @@ open class Push: Service {
         try await subscribe([topic], background: background, title: title, retry: retry, callback: callback)
     }
 
+    /// Subscribe to a list of raw string topics. Returns a `PushSubscription` handle.
+    ///
+    /// Kept alongside the `[TopicValue]` overload: Swift arrays are invariant, so an existing
+    /// `[String]` value would not convert to `[TopicValue]` on its own.
+    @discardableResult
+    public func subscribe(_ topics: [String], background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws
+        -> PushSubscription
+    {
+        try await subscribe(topics.map { $0 as TopicValue }, background: background, title: title, retry: retry, callback: callback)
+    }
+
     /// Subscribe to one or more topics. Returns a `PushSubscription` handle.
     ///
     /// Topics are raw strings or built with `Topic`, e.g.
