@@ -66,7 +66,7 @@ public final class PushSubscription {
 /// on it (`Client.setJWT` / `Client.setSession`), the same way every other service reads auth.
 ///
 ///     let push = Push(client)
-///     let sub = try await push.subscribe("<TOPIC_ID>") { message in
+///     let sub = try await push.subscribe("user/123/#") { message in
 ///         print("\(message.topic): \(message.string)")
 ///     }
 ///     // sub.update(background: true, title: "Messages")
@@ -172,9 +172,6 @@ open class Push: Service {
 
     /// Subscribe to one or more topics. Returns a `PushSubscription` handle.
     ///
-    /// Each entry is a Messaging topic ID, not an MQTT filter: the broker grants only exact
-    /// topic IDs, so wildcards (`+`, `#`) and `/` levels throw before connecting.
-    ///
     /// Suspends until the broker has acknowledged the SUBSCRIBE (SUBACK): the broker
     /// only starts routing a topic once its subscription is registered, so publishing
     /// before the ack races the message ahead of the subscription and it is dropped
@@ -190,10 +187,6 @@ open class Push: Service {
     public func subscribe(_ topics: [String], background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws
         -> PushSubscription
     {
-        for topic in topics {
-            try checkTopicId(topic)
-        }
-
         if background {
             requestNotificationAuthorization()
         }
@@ -519,7 +512,7 @@ open class Push: Service {
         // Notification is per-subscription: only subs that opted in post one, each with its
         // own title.
         let matched = sync.sync {
-            subscriptions.values.filter { $0.filter == publish.topicName }
+            subscriptions.values.filter { matches(filter: $0.filter, topic: publish.topicName) }
         }
         for entry in matched {
             entry.callback(pushMessage)
@@ -542,13 +535,20 @@ open class Push: Service {
 
 }
 
-/// Throws unless `topicId` is a valid Messaging topic ID (letters, digits, period, hyphen and
-/// underscore, not starting with a special character). The broker would deny anything else in
-/// its SUBACK, indistinguishable from a missing topic or permission.
-private func checkTopicId(_ topicId: String) throws {
-    guard topicId.range(of: "^[a-zA-Z0-9][a-zA-Z0-9._-]*$", options: .regularExpression) != nil else {
-        throw {{ spec.info.title | caseUcfirst }}Error(
-            message: "Invalid topic ID \"\(topicId)\": use a Messaging topic ID (a-z, A-Z, 0-9, period, hyphen, underscore), not an MQTT filter."
-        )
+/// MQTT topic-filter match with `+` (single level) and `#` (multi level).
+private func matches(filter: String, topic: String) -> Bool {
+    let filterParts = filter.split(separator: "/", omittingEmptySubsequences: false)
+    let topicParts = topic.split(separator: "/", omittingEmptySubsequences: false)
+    for (index, part) in filterParts.enumerated() {
+        if part == "#" {
+            return true
+        }
+        if index >= topicParts.count {
+            return false
+        }
+        if part != "+" && part != topicParts[index] {
+            return false
+        }
     }
+    return filterParts.count == topicParts.count
 }
