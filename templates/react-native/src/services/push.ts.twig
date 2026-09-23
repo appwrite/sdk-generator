@@ -16,7 +16,7 @@ import mqtt, {
 import { Client } from '../client';
 import { createTcpStream } from '../lib/tcp-stream';
 import { Service } from '../service';
-import type { TopicValue } from '../topic';
+import type { ResolvedTopic, Topic } from '../topic';
 
 /** A message delivered on a subscribed topic (the MQTT analog of a Realtime event). */
 export interface PushMessage {
@@ -216,7 +216,8 @@ export class Push extends Service {
      * at-most-once (QoS 0) delivery; toggle either later with the handle's `update`.
      */
     async subscribe(
-        topics: TopicValue | TopicValue[],
+        topics:
+            string | Topic | ResolvedTopic | (string | Topic | ResolvedTopic)[],
         callback: MessageCallback,
         options: SubscribeOptions = {},
     ): Promise<PushSubscription> {
