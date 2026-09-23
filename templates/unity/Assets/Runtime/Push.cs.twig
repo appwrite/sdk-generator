@@ -233,6 +233,15 @@ namespace {{ spec.info.title | caseUcfirst }}
             return Subscribe(topics.Select(topic => topic.ToString()), callback, retry);
         }
 
+        /// <summary>
+        /// Subscribe to a list mixing raw strings and built topics, e.g.
+        /// <c>new TopicValue[] { "news", Topic.Path(new[] { "chat" }).Any() }</c>.
+        /// </summary>
+        public Task<PushSubscription> Subscribe(IEnumerable<TopicValue> topics, Action<PushMessage> callback, bool retry = true)
+        {
+            return Subscribe(topics.Select(topic => topic.ToString()), callback, retry);
+        }
+
         // MQTTnet reports broker-rejected filters in the SUBACK result rather than throwing,
         // so a completed SubscribeAsync is not necessarily a success — every item must carry a
         // granted reason code.
@@ -698,6 +707,28 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             return filterParts.Length == topicParts.Length;
         }
+    }
+
+    /// <summary>
+    /// A topic accepted by <see cref="Push"/>: a raw string, a <see cref="Topic"/> or a
+    /// <see cref="ResolvedTopic"/>. It converts implicitly from each, so a list can mix them.
+    /// </summary>
+    public readonly struct TopicValue
+    {
+        private readonly string _value;
+
+        private TopicValue(string value)
+        {
+            _value = value;
+        }
+
+        public static implicit operator TopicValue(string topic) => new TopicValue(topic);
+
+        public static implicit operator TopicValue(Topic topic) => new TopicValue(topic.ToString());
+
+        public static implicit operator TopicValue(ResolvedTopic topic) => new TopicValue(topic.ToString());
+
+        public override string ToString() => _value;
     }
 
     /// <summary>
