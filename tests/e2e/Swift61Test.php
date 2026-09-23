@@ -49,6 +49,7 @@ final class Swift61Test extends Base
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
+        ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES
     ];
 }
