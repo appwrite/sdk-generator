@@ -566,7 +566,7 @@
             push.onOpen(() => pushOpenResolve());
             let pushResolve;
             const pushReceived = new Promise((resolve) => { pushResolve = resolve; });
-            const pushSub = await push.subscribe('e2e-push', (m) => {
+            const pushSub = await push.subscribe([Topic.path(['e2e-push'])], (m) => {
                 pushResolve({ text: new TextDecoder().decode(m.payload), qos: m.qos, topic: m.topic });
             });
             console.log('Push subscribe:passed');

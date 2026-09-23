@@ -506,7 +506,7 @@ namespace AppwriteTests
             var pushOpenTcs = new TaskCompletionSource<bool>();
             push.OnOpen(() => pushOpenTcs.TrySetResult(true));
             var pushTcs = new TaskCompletionSource<PushMessage>();
-            var pushSub = await push.Subscribe("e2e-push", (message) =>
+            var pushSub = await push.Subscribe(new[] { Topic.Path(new[] { "e2e-push" }) }, (message) =>
             {
                 pushTcs.TrySetResult(message);
             });

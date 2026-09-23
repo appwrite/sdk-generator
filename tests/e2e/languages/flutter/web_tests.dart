@@ -29,7 +29,7 @@ void main() async {
     }
   });
   final pushReceived = Completer<PushMessage>();
-  final pushSub = await push.subscribe('e2e-push', (m) {
+  final pushSub = await push.subscribe([Topic.path(['e2e-push'])], (m) {
     if (!pushReceived.isCompleted) {
       pushReceived.complete(m);
     }

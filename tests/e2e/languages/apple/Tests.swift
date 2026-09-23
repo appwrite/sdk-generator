@@ -501,7 +501,7 @@ class Tests: XCTestCase {
         let pushExpectation = XCTestExpectation(description: "push message")
         var pushBody = "Push message:failed"
         var pushQos = "Push qos:failed"
-        let pushSub = try await push.subscribe("e2e-push") { message in
+        let pushSub = try await push.subscribe([Topic.path(["e2e-push"])]) { message in
             if message.string == "push-payload" && message.topic == "e2e-push" {
                 pushBody = "Push message:passed"
             }
