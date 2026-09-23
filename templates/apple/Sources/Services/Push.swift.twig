@@ -181,12 +181,14 @@ open class Push: Service {
     /// The user id is read off the client's credential without a network call (the JWT's
     /// `userId` claim, else the session's `id`), so this delivers "messages for me" without
     /// knowing any topic. Throws when neither a JWT nor a session is set on the client.
+    /// Like FCM/APNs delivery it defaults to `background: true` and `retry: true` (QoS 1);
+    /// pass either to override.
     ///
     ///     let sub = try await push.subscribe { message in
     ///         print(message.string)
     ///     }
     @discardableResult
-    public func subscribe(background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
+    public func subscribe(background: Bool = true, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
         let userId = try currentUserId()
         return try await subscribe(["users/\(userId)"], background: background, title: title, retry: retry, callback: callback)
     }
