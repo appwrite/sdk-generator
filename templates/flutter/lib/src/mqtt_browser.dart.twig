@@ -198,13 +198,15 @@ class PushWeb implements Push {
   Future<PushSubscription> subscribe(
     Object? topics,
     PushCallback callback, {
-    bool background = false,
+    bool? background,
     String? title,
     bool retry = true,
   }) async {
     final topicList = _topicList(client, topics);
+    // The own-user topic (topics == null) defaults to background delivery, like FCM/APNs.
+    final wantsBackground = background ?? topics == null;
 
-    if (background) {
+    if (wantsBackground) {
       _requestNotificationPermission();
     }
 
@@ -216,7 +218,7 @@ class PushWeb implements Push {
       final id = _randomId();
       ids.add(id);
       _subscriptions[id] = _Subscription(topic, callback,
-          background: background, title: title, retry: retry);
+          background: wantsBackground, title: title, retry: retry);
 
       final completer = Completer<void>();
       (_subAcks[topic] ??= <Completer<void>>[]).add(completer);

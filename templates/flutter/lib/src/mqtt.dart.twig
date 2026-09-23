@@ -69,11 +69,13 @@ abstract class Push extends Service {
   /// signed-in user's own `users/<userId>` topic ("messages for me") without knowing any
   /// topic: the user id is read off the client's JWT (or, without one, its session) with
   /// no network call, and `{{spec.info.title | caseUcfirst}}Exception` is thrown when neither is set.
+  /// Like FCM/APNs delivery, the `null` form defaults to [background] `true` (topics default to
+  /// `false`) and, as always, [retry] `true` (QoS 1); pass either to override.
   ///
   /// ```dart
   /// final sub = await push.subscribe(null, (message) {
   ///   print(message.string);
-  /// }, background: true);
+  /// });
   /// ```
   ///
   /// For a foreground subscription the future resolves only once every subscription has
@@ -100,7 +102,7 @@ abstract class Push extends Service {
   Future<PushSubscription> subscribe(
     Object? topics, // String, Topic, ResolvedTopic, a List, or null (own user)
     PushCallback callback, {
-    bool background,
+    bool? background,
     String? title,
     bool retry,
   });
