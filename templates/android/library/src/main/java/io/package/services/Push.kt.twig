@@ -231,21 +231,30 @@ class Push(client: Client) : Service(client) {
         subscribe(listOf(topic.toString()), background, title, retry, context, callback)
 
     /**
-     * Subscribe to one or more topics built with [{{ sdk.namespace | caseDot }}.Topic], e.g.
-     * `push.subscribe(listOf(Topic.path(listOf("chat")).any(), Topic.all())) { message -> ... }`.
-     * Returns a [PushSubscription] handle; see the `List<String>` overload for the options.
+     * Subscribe to a list mixing raw strings and topics built with [{{ sdk.namespace | caseDot }}.Topic], e.g.
+     * `push.subscribe(listOf("news", Topic.path(listOf("chat")).any())) { message -> ... }`.
+     * Each element must be a `String`, `Topic` or `ResolvedTopic` (Kotlin has no common type for
+     * them, so this is checked at runtime). Returns a [PushSubscription] handle; see the
+     * `List<String>` overload for the options.
      */
     @JvmOverloads
     @JvmName("subscribeTopics")
     fun subscribe(
-        topics: List<TopicValue>,
+        topics: List<Any>,
         background: Boolean = false,
         title: String? = null,
         retry: Boolean = true,
         context: Context? = null,
         callback: (PushMessage) -> Unit,
-    ): PushSubscription =
-        subscribe(topics.map { it.toString() }, background, title, retry, context, callback)
+    ): PushSubscription {
+        val filters = topics.mapIndexed { index, topic ->
+            require(topic is String || topic is TopicValue) {
+                "topics[$index] must be a String, Topic or ResolvedTopic, got ${topic::class.simpleName}"
+            }
+            topic.toString()
+        }
+        return subscribe(filters, background, title, retry, context, callback)
+    }
 
     /**
      * Subscribe to one or more topics. Returns a [PushSubscription] handle.
