@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -188,7 +187,8 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// Register a callback invoked on every error the push service hits: connection
         /// failures (a refused CONNECT carries the broker's reason), a server DISCONNECT, a
         /// rejected or failed (re)subscribe or unsubscribe, and a failed Subscribe() call.
-        /// Without one, errors that no call returns are thrown on the main thread instead.
+        /// Errors that no call returns are never thrown, so they cannot crash the app: without
+        /// a callback they are logged.
         /// </summary>
         public Push OnError(Action<Exception> callback)
         {
@@ -198,7 +198,7 @@ namespace {{ spec.info.title | caseUcfirst }}
 
         // Report an error no call returns (a dropped connection, a failed reconnect, a
         // fire-and-forget (un)subscribe) on the main thread: to onError when one is registered,
-        // otherwise throw it there, so it surfaces as an unhandled exception instead of vanishing.
+        // otherwise logged.
         private void ReportError(Exception error)
         {
             _mainThread.Enqueue(() =>
@@ -206,10 +206,20 @@ namespace {{ spec.info.title | caseUcfirst }}
                 var onError = _onError;
                 if (onError == null)
                 {
-                    ExceptionDispatchInfo.Capture(error).Throw();
+                    // Never thrown, so an error outside any call cannot crash the app: with no
+                    // onError registered it is logged, like Realtime does.
+                    Debug.LogException(error);
+                    return;
                 }
 
-                onError(error);
+                try
+                {
+                    onError(error);
+                }
+                catch (Exception callbackError)
+                {
+                    Debug.LogException(callbackError);
+                }
             });
         }
 
