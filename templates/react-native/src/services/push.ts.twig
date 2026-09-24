@@ -222,8 +222,10 @@ export class Push extends Service {
     }
 
     /**
-     * Hand an error to the onError callback. Like Realtime, an error with no callback
-     * registered is thrown rather than swallowed. Each error is reported once.
+     * Hand an error to the onError callback, once per error. These errors happen outside any
+     * call (reconnects, broker DISCONNECTs, background re-subscribes), so they are never
+     * thrown, which would crash the app from inside mqtt.js: with no callback registered
+     * they are logged, like Realtime does.
      */
     private report(error: unknown): void {
         const err = toError(error);
@@ -232,14 +234,19 @@ export class Push extends Service {
         }
         this.reported.add(err);
         if (!this.onErrorCb) {
-            throw err;
+            console.error('{{spec.info.title | caseUcfirst}} Push error:', err);
+            return;
         }
-        this.onErrorCb(err);
+        try {
+            this.onErrorCb(err);
+        } catch (callbackError) {
+            console.error('{{spec.info.title | caseUcfirst}} Push onError threw:', callbackError);
+        }
     }
 
     /**
      * For a call that fails to its caller: report the error to onError when a callback is
-     * registered, then throw it to the caller (once, with no callback registered).
+     * registered, then throw it to the caller, who can catch it.
      */
     private fail(error: unknown): never {
         const err = toError(error);
@@ -295,7 +302,7 @@ export class Push extends Service {
         callbackOrOptions?: MessageCallback | SubscribeOptions,
         topicOptions: SubscribeOptions = {},
     ): Promise<PushSubscription> {
-        // Every failure reaches onError too (or, with no callback registered, is thrown once).
+        // Every failure reaches onError (when registered) and is thrown to the caller.
         try {
             return await this.subscribeWith(
                 topicsOrCallback,
