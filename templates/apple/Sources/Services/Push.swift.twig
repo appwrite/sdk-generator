@@ -105,10 +105,6 @@ open class Push: Service {
     private var onCloseCb: (() -> Void)?
     private var onErrorCb: ((Swift.Error) -> Void)?
 
-    // An error from a context that cannot throw, raised while no onError was registered;
-    // the next `subscribe` call throws it (see `surface`).
-    private var unhandledError: Swift.Error?
-
     // Set by close() so the close listener does not try to reconnect a deliberate teardown.
     private var closing = false
     // True while a reconnect loop is running, so a burst of close events starts only one.
@@ -174,10 +170,10 @@ open class Push: Service {
     }
 
     /// Register a callback invoked with every error the service hits: connection failures and
-    /// refusals (carrying the broker's reason when it sends one), refused or failed
-    /// (re)subscriptions, reconnect attempts and notification failures. Calls that throw to the
-    /// caller still throw. With no callback registered, errors are thrown instead: from the call
-    /// that hit them, or, when they happen in the background, from the next `subscribe` call.
+    /// refusals (carrying the broker's reason when it sends one), an unexpected close by the
+    /// broker, refused or failed (re)subscriptions, reconnect attempts and notification failures.
+    /// Calls that throw to the caller still throw. Errors outside any call are never thrown, so
+    /// they cannot crash the app: with no callback registered they are logged.
     @discardableResult
     public func onError(_ callback: @escaping (Swift.Error) -> Void) -> Self {
         onErrorCb = callback
@@ -247,14 +243,6 @@ open class Push: Service {
         -> PushSubscription
     {
         let topics = topics.map { $0.toString() }
-
-        // Throw an error that surfaced where nothing could throw while no onError was set.
-        if let pending = sync.sync(execute: { () -> Swift.Error? in
-            defer { unhandledError = nil }
-            return unhandledError
-        }) {
-            throw pending
-        }
 
         if background {
             requestNotificationAuthorization()
@@ -537,6 +525,11 @@ open class Push: Service {
         mqtt.addCloseListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self] result in
             if case .failure(let error) = result {
                 self?.surface(Push.describe(error))
+            } else if let self, !self.sync.sync(execute: { self.closing }) {
+                // A close nobody asked for, e.g. a DISCONNECT from the broker. MQTTNIO closes
+                // cleanly then and does not expose the broker's reason string, so report the
+                // drop itself rather than letting it pass silently.
+                self.surface({{ spec.info.title | caseUcfirst }}Error(message: "Connection closed by the broker"))
             }
             self?.onCloseCb?()
             self?.handleUnexpectedClose()
@@ -630,10 +623,9 @@ open class Push: Service {
         }
     }
 
-    // Every error the service hits goes through here: it is passed to onError when one is
-    // registered, and thrown otherwise so it is never swallowed. A call path that already throws
-    // to its caller does `try report(error); throw error`: the callback sees it and the caller
-    // still gets it, and with no callback it is thrown exactly once.
+    // For a call path that throws to its caller, which does `try report(error); throw error`:
+    // the error reaches onError when one is registered and the caller still gets it; with no
+    // callback it is thrown to the caller exactly once.
     private func report(_ error: Swift.Error) throws {
         guard let callback = onErrorCb else {
             throw error
@@ -641,16 +633,15 @@ open class Push: Service {
         callback(error)
     }
 
-    // `report` for contexts that cannot throw (listeners on the event loop, fire-and-forget
-    // tasks, notification callbacks, close()). With no onError registered, the error is written
-    // to stderr and rethrown by the next `subscribe` call, the closest throwing call path.
+    // `report` for errors outside any call (listeners on the event loop, fire-and-forget tasks,
+    // notification callbacks, close()). These are never thrown, so they cannot crash the app:
+    // they reach onError, and with none registered they are logged to stderr.
     private func surface(_ error: Swift.Error) {
-        do {
-            try report(error)
-        } catch {
+        guard let callback = onErrorCb else {
             FileHandle.standardError.write(Data("{{ spec.info.title | caseUcfirst }} Push: \(error)\n".utf8))
-            sync.sync { unhandledError = error }
+            return
         }
+        callback(error)
     }
 
     // Run a fire-and-forget broker call (an unsubscribe or re-SUBSCRIBE nobody awaits) and
