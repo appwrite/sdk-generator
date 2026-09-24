@@ -150,6 +150,12 @@ abstract class Base extends TestCase
         'Push user topic:passed',
         'Push user session topic:passed',
         'Push user no credential:passed',
+    ];
+
+    // Broker errors reaching onError: a refused CONNECT and a server DISCONNECT, carrying the
+    // broker's MQTT 5 reason string (Apple checks only that the error arrives: MQTTNIO does not
+    // expose the reason string).
+    protected const PUSH_ERROR_RESPONSES = [
         'Push connect error:passed',
         'Push disconnect error:passed',
     ];
