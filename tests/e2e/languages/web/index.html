@@ -558,7 +558,9 @@
 
             // Native push (MQTT over WebSocket): subscribe, then the mock broker delivers a
             // message (server-initiated, as in production — the SDK has no publish method).
-            client.setJWT('e2e-jwt');
+            // A decodable JWT whose userId is "e2e-user", so the topic-less subscribe below
+            // resolves to users/e2e-user.
+            client.setJWT('eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e');
             client.setPushEndpoint('ws://mqtt:8083');
             const push = new Push(client);
             let pushOpenResolve;
@@ -584,6 +586,46 @@
             console.log(pushMsg.qos === 1 ? 'Push qos:passed' : 'Push qos:failed');
             pushSub.unsubscribe();
             push.close();
+
+            // Topic-less subscribe: the signed-in user's own topic, users/<userId>. After each
+            // SUBSCRIBE the mock publishes to users/e2e-user, users/e2e-session-user and
+            // users/other-user, so a client passes only if it receives its own topic and nothing
+            // else (an over-broad users/+ or users/# subscription would also get the others).
+            const e2eSession = 'eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0=';
+            const userTopicsOf = async (userClient) => {
+                const userPush = new Push(userClient);
+                const received = [];
+                // The topic-less form defaults to background: true; the test overrides it to skip
+                // browser notifications.
+                const userSub = await userPush.subscribe((m) => { received.push(m.topic); }, { background: false });
+                await new Promise((resolve) => setTimeout(resolve, 3000));
+                userSub.unsubscribe();
+                userPush.close();
+                return received;
+            };
+            const onlyTopic = (received, expected) => received.length > 0 && received.every((topic) => topic === expected);
+
+            // JWT and session both set: the JWT's user wins.
+            client.setSession(e2eSession);
+            const jwtTopics = await userTopicsOf(client);
+            console.log(onlyTopic(jwtTopics, 'users/e2e-user') ? 'Push user topic:passed' : 'Push user topic:failed');
+
+            // Session only: the user id comes from the session secret.
+            const sessionClient = new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession);
+            const sessionTopics = await userTopicsOf(sessionClient);
+            console.log(onlyTopic(sessionTopics, 'users/e2e-session-user') ? 'Push user session topic:passed' : 'Push user session topic:failed');
+
+            // No credential: a topic-less subscribe has no user to resolve and rejects.
+            const anonymousPush = new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083'));
+            let noCredentialRejected = false;
+            try {
+                await anonymousPush.subscribe(() => {});
+            } catch (e) {
+                // The credential error itself, not any failure (setup, connection, ...).
+                noCredentialRejected = e instanceof Error && e.message.includes('signed-in user');
+            }
+            anonymousPush.close();
+            console.log(noCredentialRejected ? 'Push user no credential:passed' : 'Push user no credential:failed');
 
         });
     </script>

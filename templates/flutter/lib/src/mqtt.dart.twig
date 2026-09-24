@@ -65,10 +65,22 @@ abstract class Push extends Service {
   /// Subscribe to one or more topics, resolving to a [PushSubscription] handle.
   ///
   /// [topics] is a single topic or a list of them, each a string or a `Topic` builder
-  /// (e.g. `Topic.path(['user', userId]).all()`). For a foreground subscription
-  /// the future resolves only once every subscription has been acknowledged (SUBACK), so a
-  /// subscribe-then-publish is reliable, and [onOpen]/[onClose]/[onError] observe that
-  /// connection. A [background] subscription hands the connection to the background isolate,
+  /// (e.g. `Topic.path(['user', userId]).all()`). Pass `null` to subscribe to the
+  /// signed-in user's own `users/<userId>` topic ("messages for me") without knowing any
+  /// topic: the user id is read off the client's JWT (or, without one, its session) with
+  /// no network call, and `{{spec.info.title | caseUcfirst}}Exception` is thrown when neither is set.
+  /// Like FCM/APNs delivery, the `null` form defaults to [background] `true` (topics default to
+  /// `false`) and, as always, [retry] `true` (QoS 1); pass either to override.
+  ///
+  /// ```dart
+  /// final sub = await push.subscribe(null, (message) {
+  ///   print(message.string);
+  /// });
+  /// ```
+  ///
+  /// For a foreground subscription the future resolves only once every subscription has
+  /// been acknowledged (SUBACK), so a subscribe-then-publish is reliable, and
+  /// [onOpen]/[onClose]/[onError] observe that connection. A [background] subscription hands the connection to the background isolate,
   /// which connects and subscribes asynchronously and retries failures internally, so it
   /// resolves once the isolate has been handed the subscription rather than after SUBACK;
   /// the isolate forwards messages but not its connection lifecycle, so [onOpen]/[onError]
@@ -88,9 +100,9 @@ abstract class Push extends Service {
   /// peers and, on Android, the `FOREGROUND_SERVICE` / `POST_NOTIFICATIONS` manifest
   /// permissions. Toggle these later with [PushSubscription.update].
   Future<PushSubscription> subscribe(
-    Object topics, // String, Topic or ResolvedTopic, or a List of them
+    Object? topics, // String, Topic, ResolvedTopic, a List, or null (own user)
     PushCallback callback, {
-    bool background,
+    bool? background,
     String? title,
     bool retry,
   });

@@ -147,6 +147,9 @@ abstract class Base extends TestCase
         'Push open:passed',
         'Push message:passed',
         'Push qos:passed',
+        'Push user topic:passed',
+        'Push user session topic:passed',
+        'Push user no credential:passed',
     ];
 
     protected const QUERY_HELPER_RESPONSES = [

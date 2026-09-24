@@ -519,9 +519,9 @@ class ServiceTest {
 
             // Native push (MQTT): subscribe, then the mock broker delivers a message
             // (server-initiated, as in production — the SDK has no publish method).
-            client.setJWT("e2e-jwt")
+            client.setJWT("eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e")
             client.setPushEndpoint("mqtt://mqtt:1883")
-            val push = Push(client)
+            val push = Push(client, ApplicationProvider.getApplicationContext())
             val pushOpenLatch = java.util.concurrent.CountDownLatch(1)
             push.onOpen { pushOpenLatch.countDown() }
             val pushLatch = java.util.concurrent.CountDownLatch(1)
@@ -550,6 +550,61 @@ class ServiceTest {
             writeToFile(pushQos)
             pushSub.unsubscribe()
             push.close()
+
+            // Topic-less subscribe: the signed-in user's own topic, users/<userId>. After each
+            // SUBSCRIBE the mock publishes to users/e2e-user, users/e2e-session-user and
+            // users/other-user, so a client passes only if it receives its own topic and nothing
+            // else (an over-broad users/+ or users/# subscription would also get the others).
+            val e2eSession = "eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0="
+            val userTopicsOf = { userClient: Client ->
+                val userPush = Push(userClient, ApplicationProvider.getApplicationContext())
+                val received = java.util.concurrent.CopyOnWriteArrayList<String>()
+                // The topic-less form defaults to background = true, which hands the connection to the
+                // foreground Service; Robolectric records a started Service without running it, so
+                // stay in-process here.
+                val userSub = userPush.subscribe(background = false) { message -> received.add(message.topic) }
+                Thread.sleep(3000)
+                userSub.unsubscribe()
+                userPush.close()
+                received.toList()
+            }
+            val onlyTopic = { received: List<String>, expected: String ->
+                received.isNotEmpty() && received.all { it == expected }
+            }
+            val pushClient = {
+                Client(ApplicationProvider.getApplicationContext())
+                    .setProject("console")
+                    .addHeader("Origin", "http://localhost")
+                    .setSelfSigned(true)
+                    .setPushEndpoint("mqtt://mqtt:1883")
+            }
+
+            // JWT and session both set: the JWT's user wins.
+            client.setSession(e2eSession)
+            val jwtTopics = userTopicsOf(client)
+            writeToFile(if (onlyTopic(jwtTopics, "users/e2e-user")) "Push user topic:passed" else "Push user topic:failed")
+
+            // Session only: the user id comes from the session secret.
+            val sessionTopics = userTopicsOf(pushClient().setSession(e2eSession))
+            writeToFile(
+                if (onlyTopic(sessionTopics, "users/e2e-session-user")) {
+                    "Push user session topic:passed"
+                } else {
+                    "Push user session topic:failed"
+                },
+            )
+
+            // No credential: a topic-less subscribe has no user to resolve and throws.
+            val anonymousPush = Push(pushClient(), ApplicationProvider.getApplicationContext())
+            val noCredentialRejected = try {
+                anonymousPush.subscribe { }
+                false
+            } catch (e: AppwriteException) {
+                // The credential error itself, not any failure (setup, connection, ...).
+                e.message?.contains("signed-in user") == true
+            }
+            anonymousPush.close()
+            writeToFile(if (noCredentialRejected) "Push user no credential:passed" else "Push user no credential:failed")
         }
     }
 

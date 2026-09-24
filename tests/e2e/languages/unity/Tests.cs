@@ -498,7 +498,7 @@ namespace AppwriteTests
             LogResult(mock.Result);
 
             // Native push (MQTT) round-trip against the mock broker.
-            client.SetJWT("e2e-jwt");
+            client.SetJWT("eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e");
             client.SetPushEndpoint("mqtt://mqtt:1883");
             var pushObject = new GameObject("PushTest");
             var push = pushObject.AddComponent<Push>();
@@ -527,6 +527,79 @@ namespace AppwriteTests
             pushSub.Unsubscribe();
             push.Close();
             Object.DestroyImmediate(pushObject);
+
+            // Topic-less subscribe: the signed-in user's own topic, users/<userId>. After each
+            // SUBSCRIBE the mock publishes to users/e2e-user, users/e2e-session-user and
+            // users/other-user, so a client passes only if it receives its own topic and nothing
+            // else (an over-broad users/+ or users/# subscription would also get the others).
+            const string e2eSession = "eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0=";
+            async Task<List<string>> UserTopicsOf(Client userClient)
+            {
+                var userPushObject = new GameObject("PushUserTest");
+                var userPush = userPushObject.AddComponent<Push>();
+                userPush.Initialize(userClient);
+                var received = new List<string>();
+                var userPushSub = await userPush.Subscribe((message) =>
+                {
+                    lock (received)
+                    {
+                        received.Add(message.Topic);
+                    }
+                });
+                await Task.Delay(3000);
+                userPushSub.Unsubscribe();
+                userPush.Close();
+                Object.DestroyImmediate(userPushObject);
+                lock (received)
+                {
+                    return new List<string>(received);
+                }
+            }
+            bool OnlyTopic(List<string> received, string expected)
+            {
+                return received.Count > 0 && received.TrueForAll((topic) => topic == expected);
+            }
+            // A new Client loads any JWT/session persisted by an earlier one, so start clean.
+            Client PushClient()
+            {
+                return Client.From(projectId: "console", selfSigned: true)
+                    .AddHeader("Origin", "http://localhost")
+                    .SetPushEndpoint("mqtt://mqtt:1883")
+                    .ClearSession();
+            }
+
+            // JWT and session both set: the JWT's user wins.
+            client.SetSession(e2eSession);
+            var jwtTopics = await UserTopicsOf(client);
+            LogResult(OnlyTopic(jwtTopics, "users/e2e-user")
+                ? "Push user topic:passed"
+                : "Push user topic:failed");
+
+            // Session only: the user id comes from the session secret.
+            var sessionTopics = await UserTopicsOf(PushClient().SetSession(e2eSession));
+            LogResult(OnlyTopic(sessionTopics, "users/e2e-session-user")
+                ? "Push user session topic:passed"
+                : "Push user session topic:failed");
+
+            // No credential: a topic-less subscribe has no user to resolve and throws.
+            var anonymousPushObject = new GameObject("PushAnonymousTest");
+            var anonymousPush = anonymousPushObject.AddComponent<Push>();
+            anonymousPush.Initialize(PushClient());
+            var noCredentialRejected = false;
+            try
+            {
+                await anonymousPush.Subscribe((message) => { });
+            }
+            catch (AppwriteException e)
+            {
+                // The credential error itself, not any failure (setup, connection, ...).
+                noCredentialRejected = e.Message.Contains("signed-in user");
+            }
+            anonymousPush.Close();
+            Object.DestroyImmediate(anonymousPushObject);
+            LogResult(noCredentialRejected
+                ? "Push user no credential:passed"
+                : "Push user no credential:failed");
 
             // Cleanup Realtime GameObject
             if (realtimeObject)

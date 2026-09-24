@@ -105,15 +105,21 @@ class PushSubscription internal constructor(
  *
  * ```kotlin
  * val client = Client().setEndpoint("...").setProject("...").setJWT(jwt)
- * val push = Push(client)
+ * val push = Push(client, context)
  * val sub = push.subscribe("user/123/#") { message ->
  *     println("${'$'}{message.topic}: ${'$'}{message.string}")
  * }
  * // ...later
  * sub.unsubscribe()
+ *
+ * // Or, with no topic, the signed-in user's own topic (`users/<userId>`):
+ * push.subscribe { message -> println(message.string) }
  * ```
  */
-class Push(client: Client) : Service(client) {
+class Push(
+    client: Client,
+    context: Context,
+) : Service(client) {
 
     // The broker location is taken from Client.setPushEndpoint() when set (e.g.
     // "mqtts://host:8883"), otherwise from the regular endpoint.
@@ -157,7 +163,8 @@ class Push(client: Client) : Service(client) {
     // rather than in-process. It relocates there while any subscription wants background and
     // back in-process once none do — one connection either way.
     private var serviceActive = false
-    private var appContext: Context? = null
+    // For the foreground service and its notification channel (background delivery).
+    private val appContext: Context = context.applicationContext
 
     private var onOpen: (() -> Unit)? = null
     private var onClose: (() -> Unit)? = null
@@ -199,6 +206,27 @@ class Push(client: Client) : Service(client) {
     }
 
     /**
+     * Subscribe to the signed-in user's own topic, `users/<userId>` — "messages for me"
+     * without knowing any topic, e.g. `push.subscribe { message -> ... }`.
+     *
+     * The user id is read locally from the credential set on the client: the `userId` claim of
+     * the JWT (`Client.setJWT`), else the `id` in the session secret (`Client.setSession`).
+     * Throws when neither yields one. Like FCM/APNs delivery, it defaults to [background] `true`
+     * (keeps delivering while the app is backgrounded, via the foreground service) and [retry]
+     * `true` (QoS 1); pass either to override. Otherwise the options and the returned
+     * [PushSubscription] behave exactly as when subscribing to that topic; see the
+     * `List<String>` overload.
+     */
+    @JvmOverloads
+    fun subscribe(
+        background: Boolean = true,
+        title: String? = null,
+        retry: Boolean = true,
+        callback: (PushMessage) -> Unit,
+    ): PushSubscription =
+        subscribe(Topic.path(listOf("users", resolvePushUserId(client))), background, title, retry, callback)
+
+    /**
      * Subscribe to a single topic. Returns a [PushSubscription] handle.
      *
      * Request the `POST_NOTIFICATIONS` runtime permission with [requestNotificationPermission]
@@ -210,10 +238,9 @@ class Push(client: Client) : Service(client) {
         background: Boolean = false,
         title: String? = null,
         retry: Boolean = true,
-        context: Context? = null,
         callback: (PushMessage) -> Unit,
     ): PushSubscription =
-        subscribe(listOf(topic), background, title, retry, context, callback)
+        subscribe(listOf(topic), background, title, retry, callback)
 
     /**
      * Subscribe to a single topic built with [{{ sdk.namespace | caseDot }}.Topic], e.g.
@@ -226,10 +253,9 @@ class Push(client: Client) : Service(client) {
         background: Boolean = false,
         title: String? = null,
         retry: Boolean = true,
-        context: Context? = null,
         callback: (PushMessage) -> Unit,
     ): PushSubscription =
-        subscribe(listOf(topic.toString()), background, title, retry, context, callback)
+        subscribe(listOf(topic.toString()), background, title, retry, callback)
 
     /**
      * Subscribe to a single topic ended with `all()`, e.g.
@@ -242,10 +268,9 @@ class Push(client: Client) : Service(client) {
         background: Boolean = false,
         title: String? = null,
         retry: Boolean = true,
-        context: Context? = null,
         callback: (PushMessage) -> Unit,
     ): PushSubscription =
-        subscribe(listOf(topic.toString()), background, title, retry, context, callback)
+        subscribe(listOf(topic.toString()), background, title, retry, callback)
 
     /**
      * Subscribe to a list mixing raw strings and topics built with [{{ sdk.namespace | caseDot }}.Topic], e.g.
@@ -261,7 +286,6 @@ class Push(client: Client) : Service(client) {
         background: Boolean = false,
         title: String? = null,
         retry: Boolean = true,
-        context: Context? = null,
         callback: (PushMessage) -> Unit,
     ): PushSubscription {
         val filters = topics.mapIndexed { index, topic ->
@@ -270,7 +294,7 @@ class Push(client: Client) : Service(client) {
             }
             topic.toString()
         }
-        return subscribe(filters, background, title, retry, context, callback)
+        return subscribe(filters, background, title, retry, callback)
     }
 
     /**
@@ -286,8 +310,8 @@ class Push(client: Client) : Service(client) {
      *
      * Set [background] to keep receiving while the app is backgrounded or closed (an Android
      * foreground service) and post a notification per matching message with [title]
-     * (defaulting to the message topic); a [context] is required the first time background is
-     * enabled so the service can start. [retry] chooses this subscription's QoS
+     * (defaulting to the message topic); the service starts from the `Context` passed to the
+     * [Push] constructor. [retry] chooses this subscription's QoS
      * (`true` -> QoS 1 default, `false` -> QoS 0). Toggle any of these later with
      * [PushSubscription.update].
      *
@@ -303,13 +327,8 @@ class Push(client: Client) : Service(client) {
         background: Boolean = false,
         title: String? = null,
         retry: Boolean = true,
-        context: Context? = null,
         callback: (PushMessage) -> Unit,
     ): PushSubscription {
-        if (context != null) {
-            appContext = context.applicationContext
-        }
-
         val ids = mutableListOf<String>()
         for (topic in topics) {
             val id = UUID.randomUUID().toString()
@@ -361,9 +380,6 @@ class Push(client: Client) : Service(client) {
     // subscription set (filters, per-sub callbacks/titles).
     private fun hostInService() {
         val context = appContext
-            ?: throw {{ spec.info.title | caseUcfirst }}Exception(
-                "background delivery needs a Context; pass context = ... to subscribe(...) so the foreground service can start.",
-            )
         if (mqtt != null) {
             mqtt?.disconnect()
             mqtt = null
@@ -417,7 +433,7 @@ class Push(client: Client) : Service(client) {
         } else if (serviceActive) {
             // Relocate back in-process.
             serviceActive = false
-            appContext?.let { PushForeground.stop(it) }
+            PushForeground.stop(appContext)
             PushForeground.sync(emptyList())
             ensureInProcessSubscribed()
         }
@@ -495,7 +511,7 @@ class Push(client: Client) : Service(client) {
         subscriptions.clear()
         if (serviceActive) {
             serviceActive = false
-            appContext?.let { PushForeground.stop(it) }
+            PushForeground.stop(appContext)
             PushForeground.sync(emptyList())
         }
     }
@@ -636,6 +652,33 @@ internal fun userIdFromJwt(jwt: String): String {
         JSONObject(json).optString("userId", "")
     }.getOrDefault("")
 }
+
+/**
+ * The signed-in user's id for the topic-less [Push.subscribe], read locally in the same order as
+ * [resolvePushAuth]: the JWT's `userId` claim, else the `id` in the session secret (standard
+ * base64 of `{"id": ..., "secret": ...}`). Throws when neither yields one.
+ */
+internal fun resolvePushUserId(client: Client): String {
+    val jwt = client.config["jwt"] ?: client.config["jWT"]
+    val session = client.config["session"]
+    val userId = when {
+        !jwt.isNullOrEmpty() -> userIdFromJwt(jwt)
+        !session.isNullOrEmpty() -> userIdFromSession(session)
+        else -> ""
+    }
+    if (userId.isEmpty()) {
+        throw {{ spec.info.title | caseUcfirst }}Exception(
+            "subscribe() without a topic needs a signed-in user: set a JWT or session on the client",
+        )
+    }
+    return userId
+}
+
+/** The user `id` from an {{ spec.info.title | caseUcfirst }} session secret, or "" when it is not decodable. */
+internal fun userIdFromSession(session: String): String = runCatching {
+    val json = String(Base64.decode(session, Base64.DEFAULT), Charsets.UTF_8)
+    JSONObject(json).optString("id", "")
+}.getOrDefault("")
 
 /** Build (but do not connect) an MQTT 5 client from [config]. */
 internal fun buildPushClient(
