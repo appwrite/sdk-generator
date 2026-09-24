@@ -160,7 +160,7 @@ When you change templates for a language below, regenerate and run that language
   (cd examples/unity && dotnet format whitespace --folder --verify-no-changes)
   ```
 
-- **Swift / Apple** — swift-format 6.1 (4-space indent, lineLength 200)
+- **Swift / Apple** — swift-format 6.3 (4-space indent, lineLength 200)
 
   ```bash
   rm -rf examples/swift examples/apple
