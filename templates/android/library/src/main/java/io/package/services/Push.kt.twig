@@ -108,7 +108,7 @@ class PushSubscription internal constructor(
  * (e.g. on sign-out). No service is kept running for it: a scheduled job and alarm wake the
  * process every 15 to 60 seconds to reconnect, and the broker keeps the messages sent in
  * between and replays them (for `retry = true`). While the process is alive, messages arrive
- * immediately. [setAlwaysOn] adds a foreground service for immediate delivery even after a kill
+ * immediately. [setForeground] adds a foreground service for immediate delivery even after a kill
  * and during Doze. Messages no in-app callback receives (the process was started in the
  * background) go to a declared [PushReceiver], and are posted as a notification that opens
  * the app unless it handles them. While any background subscription exists, all subscriptions
@@ -253,14 +253,16 @@ class Push(
     }
 
     /**
-     * Keep background delivery always on with a foreground service (with a quiet ongoing
+     * Run background delivery in a foreground service (with a quiet ongoing
      * notification), for immediate delivery even after the process is killed and during Doze,
      * instead of only the scheduled runs. Saved, so it applies after restarts too; call it from
      * the foreground (Android 12+ refuses to start the service from the background). Apps that
-     * never enable it can remove the service from their merged manifest.
+     * never enable it can remove the service from their merged manifest. It only affects
+     * `background = true` subscriptions; `background = false` ones still deliver only while the
+     * app process is alive.
      */
-    fun setAlwaysOn(enabled: Boolean): Push {
-        PushBackground.setAlwaysOn(appContext, enabled)
+    fun setForeground(enabled: Boolean): Push {
+        PushBackground.setForeground(appContext, enabled)
         return this
     }
 

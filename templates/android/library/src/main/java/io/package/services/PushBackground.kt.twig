@@ -69,7 +69,7 @@ internal data class PushHeartbeat(
  * stays open and messages arrive immediately; while it is dead the broker keeps the backlog
  * for this client id and replays it when the next run subscribes again.
  *
- * With always-on enabled ([Push.setAlwaysOn]) a foreground service ([PushService]) also keeps
+ * With foreground mode enabled ([Push.setForeground]) a foreground service ([PushService]) also keeps
  * the process at foreground priority, so delivery is immediate after a kill and during Doze.
  *
  * Messages go to the live in-app callbacks that match them. When none match (the process was
@@ -212,18 +212,18 @@ internal object PushBackground {
         saved.isNotEmpty()
     }
 
-    /** Persist the always-on choice and start or stop the foreground service to match. */
-    fun setAlwaysOn(context: Context, enabled: Boolean) {
+    /** Persist the foreground-mode choice and start or stop the foreground service to match. */
+    fun setForeground(context: Context, enabled: Boolean) {
         val app = context.applicationContext
-        PushStore.setAlwaysOn(app, enabled)
+        PushStore.setForeground(app, enabled)
         serviceStartReported = false
         ensureService(app)
     }
 
-    /** Whether the foreground service should run: always-on is enabled and there is work to do. */
+    /** Whether the foreground service should run: foreground mode is enabled and there is work to do. */
     fun wantsService(context: Context): Boolean {
         val app = context.applicationContext
-        return PushStore.alwaysOn(app) && synchronized(lock) {
+        return PushStore.foreground(app) && synchronized(lock) {
             load(app)
             isActive()
         }
@@ -604,7 +604,7 @@ internal object PushBackground {
         }
     }
 
-    /** The ongoing notification the always-on service shows, on its own quiet channel. */
+    /** The ongoing notification the foreground service shows, on its own quiet channel. */
     fun ongoingNotification(context: Context) = NotificationCompat.Builder(context, SERVICE_CHANNEL_ID)
         .also { createChannels(context) }
         .setContentTitle(ongoingTitle)
@@ -770,7 +770,7 @@ internal object PushBackground {
  * Background push state in the app's no-backup directory, so a restored backup on another
  * device never carries this install's id or credential: the saved subscriptions with their
  * connection config (cleared when background delivery stops), and the settings that outlive
- * it (the install id, the always-on choice, a refusal waiting for onError).
+ * it (the install id, the foreground-mode choice, a refusal waiting for onError).
  */
 internal object PushStore {
     private const val STATE_FILE = "{{ spec.info.title | caseLower }}_push_state.json"
@@ -841,12 +841,12 @@ internal object PushStore {
         }
     }
 
-    fun alwaysOn(context: Context): Boolean = synchronized(this) {
-        read(context, SETTINGS_FILE)?.optBoolean("alwaysOn", false) ?: false
+    fun foreground(context: Context): Boolean = synchronized(this) {
+        read(context, SETTINGS_FILE)?.optBoolean("foreground", false) ?: false
     }
 
-    fun setAlwaysOn(context: Context, enabled: Boolean) = synchronized(this) {
-        write(context, SETTINGS_FILE, (read(context, SETTINGS_FILE) ?: JSONObject()).put("alwaysOn", enabled))
+    fun setForeground(context: Context, enabled: Boolean) = synchronized(this) {
+        write(context, SETTINGS_FILE, (read(context, SETTINGS_FILE) ?: JSONObject()).put("foreground", enabled))
     }
 
     /** The saved adaptive heartbeat; the default interval until one was saved. */

@@ -8,7 +8,7 @@ import android.os.IBinder
 import androidx.core.app.ServiceCompat
 
 /**
- * The always-on mode of background push delivery ([Push.setAlwaysOn]): a foreground service
+ * The foreground mode of background push delivery ([Push.setForeground]): a foreground service
  * that keeps the process at foreground priority, so the connection held by the process stays
  * up and delivers immediately, also during Doze. The system restarts it after a kill, and it
  * restores the saved subscriptions. Started by the SDK; not meant to be started directly.

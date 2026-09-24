@@ -101,7 +101,7 @@ Doze delays the scheduled runs. For punctual runs, optionally declare
 `SCHEDULE_EXACT_ALARM` and call `Push.requestExactAlarms(activity)`, and ask for the
 battery optimisation exemption with `Push.requestIgnoreBatteryOptimizations(activity)`
 (both are subject to Google Play policy). For immediate delivery even after a kill and
-during Doze, call `push.setAlwaysOn(true)` from the foreground: it adds a foreground service
+during Doze, call `push.setForeground(true)` from the foreground: it adds a foreground service
 with a quiet ongoing notification. If you never enable it, you can remove the service from
 your merged manifest, so the Play Console does not ask you to declare it:
 
