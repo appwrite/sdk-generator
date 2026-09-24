@@ -147,6 +147,9 @@ abstract class Base extends TestCase
         'Push open:passed',
         'Push message:passed',
         'Push qos:passed',
+        'Push user topic:passed',
+        'Push user session topic:passed',
+        'Push user no credential:passed',
     ];
 
     protected const QUERY_HELPER_RESPONSES = [
@@ -233,6 +236,21 @@ abstract class Base extends TestCase
     protected const ID_HELPER_RESPONSES = [
         'unique()',
         'custom_id'
+    ];
+
+    protected const TOPIC_HELPER_RESPONSES = [
+        'user/123/notification',
+        'org/42/user/123/notification',
+        'user/+/notification',
+        'chat/+/+/message',
+        'org/+/logs/#',
+        '+/notification',
+        '#',
+        'Topic empty path:passed',
+        'Topic empty level:passed',
+        'Topic slash:passed',
+        'Topic plus:passed',
+        'Topic hash:passed',
     ];
 
     protected const ADDITIONAL_PROPERTIES_RESPONSES = [

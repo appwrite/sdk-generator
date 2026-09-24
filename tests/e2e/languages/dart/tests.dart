@@ -253,6 +253,30 @@ void main() async {
   print(ID.unique());
   print(ID.custom('custom_id'));
 
+  // Topic helper tests
+  print(Topic.path(['user', '123', 'notification']).toString());
+  print(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
+  print(Topic.path(['user']).any().path(['notification']).toString());
+  print(Topic.path(['chat']).any().any().path(['message']).toString());
+  print(Topic.path(['org']).any().path(['logs']).all().toString());
+  print(Topic.any().path(['notification']).toString());
+  print(Topic.all().toString());
+  final topicCases = <String, List<String>>{
+    'empty path': [],
+    'empty level': ['user', ''],
+    'slash': ['user/123'],
+    'plus': ['user', 'a+b'],
+    'hash': ['user', '#'],
+  };
+  topicCases.forEach((name, levels) {
+    try {
+      Topic.path(levels);
+      print('Topic $name:failed');
+    } catch (e) {
+      print('Topic $name:passed');
+    }
+  });
+
   // Operator helper tests
   print(Operator.increment(1));
   print(Operator.increment(5, 100));

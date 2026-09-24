@@ -156,6 +156,11 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Topic.cs',
+                'template'      => 'dotnet/Package/Topic.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Permission.cs',
                 'template'      => 'dotnet/Package/Permission.cs.twig',
             ],

@@ -543,6 +543,11 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Topic.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Topic.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Query.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
             ],
@@ -570,6 +575,11 @@ class Kotlin extends Language
                 'scope'         => 'default',
                 'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/JsonRequestBodyTest.kt',
                 'template'      => '/kotlin/src/test/kotlin/io/appwrite/JsonRequestBodyTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/TopicTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/TopicTest.kt.twig',
             ],
             [
                 'scope'         => 'default',

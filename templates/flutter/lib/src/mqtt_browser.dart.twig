@@ -196,16 +196,17 @@ class PushWeb implements Push {
 
   @override
   Future<PushSubscription> subscribe(
-    Object topics,
+    Object? topics,
     PushCallback callback, {
-    bool background = false,
+    bool? background,
     String? title,
     bool retry = true,
   }) async {
-    final topicList =
-        topics is String ? <String>[topics] : List<String>.from(topics as List);
+    final topicList = _topicList(client, topics);
+    // The own-user topic (topics == null) defaults to background delivery, like FCM/APNs.
+    final wantsBackground = background ?? topics == null;
 
-    if (background) {
+    if (wantsBackground) {
       _requestNotificationPermission();
     }
 
@@ -217,7 +218,7 @@ class PushWeb implements Push {
       final id = _randomId();
       ids.add(id);
       _subscriptions[id] = _Subscription(topic, callback,
-          background: background, title: title, retry: retry);
+          background: wantsBackground, title: title, retry: retry);
 
       final completer = Completer<void>();
       (_subAcks[topic] ??= <Completer<void>>[]).add(completer);
@@ -504,4 +505,65 @@ bool _matches(String filter, String topic) {
     }
   }
   return filterParts.length == topicParts.length;
+}
+
+/// Resolve [Push.subscribe]'s `topics`: a String, Topic or ResolvedTopic, or a List of
+/// them, or null for the signed-in user's own `users/<userId>` topic.
+List<String> _topicList(Client client, Object? topics) {
+  if (topics == null) {
+    return <String>[_userTopic(client)];
+  }
+  // A topic is a String or a Topic / ResolvedTopic builder (via toString()).
+  return topics is List
+      ? topics.map((topic) => topic.toString()).toList()
+      : <String>[topics.toString()];
+}
+
+/// The signed-in user's own topic, `users/<userId>`, read off the client's
+/// credential (JWT first, then session) without a network call.
+String _userTopic(Client client) {
+  final jwt = client.config['jwt'] ?? client.config['jWT'];
+  final session = client.config['session'];
+  // The credential the connection authenticates with: the JWT when one is set (never the
+  // session, which could belong to a different user), else the session.
+  final userId = (jwt != null && jwt.isNotEmpty)
+      ? _userIdFromJwt(jwt)
+      : _userIdFromSession(session);
+  if (userId == null) {
+    throw {{spec.info.title | caseUcfirst}}Exception(
+      'subscribe() without a topic needs a signed-in user: set a JWT or session on the client',
+    );
+  }
+  return 'users/$userId';
+}
+
+/// The `userId` claim of a JWT's payload, or null when it has none.
+String? _userIdFromJwt(String? jwt) {
+  final parts = jwt?.split('.') ?? const <String>[];
+  if (parts.length < 2) {
+    return null;
+  }
+  return _stringField(parts[1], 'userId');
+}
+
+/// The user id inside a session secret, which is base64 of JSON
+/// `{"id": <userId>, "secret": ...}`, or null when it is not such a secret.
+String? _userIdFromSession(String? session) {
+  if (session == null || session.isEmpty) {
+    return null;
+  }
+  return _stringField(session, 'id');
+}
+
+/// Decode base64 (standard or url-safe) JSON and read a non-empty string [key].
+String? _stringField(String encoded, String key) {
+  try {
+    final json = jsonDecode(
+      utf8.decode(base64.decode(base64.normalize(encoded))),
+    );
+    final value = json is Map ? json[key] : null;
+    return value is String && value.isNotEmpty ? value : null;
+  } catch (_) {
+    return null;
+  }
 }

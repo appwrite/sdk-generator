@@ -11,6 +11,7 @@ require_relative '{{ spec.info.title | caseSnake }}/query'
 require_relative '{{ spec.info.title | caseSnake }}/permission'
 require_relative '{{ spec.info.title | caseSnake }}/role'
 require_relative '{{ spec.info.title | caseSnake }}/id'
+require_relative '{{ spec.info.title | caseSnake }}/topic'
 require_relative '{{ spec.info.title | caseSnake }}/operator'
 
 {% for definitionName, definition in definitions %}

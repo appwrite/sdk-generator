@@ -14,6 +14,7 @@ use Appwrite\Query;
 use Appwrite\Permission;
 use Appwrite\Role;
 use Appwrite\ID;
+use Appwrite\Topic;
 use Appwrite\Operator;
 use Appwrite\Condition;
 use Appwrite\Enums\MockType;
@@ -382,6 +383,29 @@ echo Permission::create(Role::label('admin')) . "\n";
 // ID helper tests
 echo ID::unique() . "\n";
 echo ID::custom('custom_id') . "\n";
+
+// Topic helper tests
+echo Topic::path(['user', '123', 'notification']) . "\n";
+echo Topic::path(['org', '42', 'user', '123'])->path(['notification']) . "\n";
+echo Topic::path(['user'])->any()->path(['notification']) . "\n";
+echo Topic::path(['chat'])->any()->any()->path(['message']) . "\n";
+echo Topic::path(['org'])->any()->path(['logs'])->all() . "\n";
+echo Topic::any()->path(['notification']) . "\n";
+echo Topic::all() . "\n";
+foreach ([
+    ['empty path', []],
+    ['empty level', ['user', '']],
+    ['slash', ['user/123']],
+    ['plus', ['user', 'a+b']],
+    ['hash', ['user', '#']],
+] as [$name, $levels]) {
+    try {
+        Topic::path($levels);
+        echo "Topic {$name}:failed\n";
+    } catch (InvalidArgumentException) {
+        echo "Topic {$name}:passed\n";
+    }
+}
 
 // additionalProperties round-trip tests
 $preferences = AdditionalPropsDataOnly::from([

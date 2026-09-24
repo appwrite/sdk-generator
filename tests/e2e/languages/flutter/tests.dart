@@ -399,6 +399,30 @@ void main() async {
   print(ID.unique());
   print(ID.custom('custom_id'));
 
+  // Topic helper tests
+  print(Topic.path(['user', '123', 'notification']).toString());
+  print(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
+  print(Topic.path(['user']).any().path(['notification']).toString());
+  print(Topic.path(['chat']).any().any().path(['message']).toString());
+  print(Topic.path(['org']).any().path(['logs']).all().toString());
+  print(Topic.any().path(['notification']).toString());
+  print(Topic.all().toString());
+  final topicCases = <String, List<String>>{
+    'empty path': [],
+    'empty level': ['user', ''],
+    'slash': ['user/123'],
+    'plus': ['user', 'a+b'],
+    'hash': ['user', '#'],
+  };
+  topicCases.forEach((name, levels) {
+    try {
+      Topic.path(levels);
+      print('Topic $name:failed');
+    } catch (e) {
+      print('Topic $name:passed');
+    }
+  });
+
   // Channel helper tests
   print(Channel.database('db1').collection('col1').document().toString());
   print(Channel.database('db1').collection('col1').document('doc1').toString());
@@ -466,7 +490,8 @@ void main() async {
 
   // Native push (MQTT): subscribe, then the mock broker delivers a message
   // (server-initiated, as in production — the SDK has no publish method).
-  client.setJWT('e2e-jwt');
+  client.setJWT(
+      'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e');
   client.setPushEndpoint('mqtt://mqtt:1883');
   final push = Push(client);
   final pushOpened = Completer<void>();
@@ -476,7 +501,7 @@ void main() async {
     }
   });
   final pushReceived = Completer<PushMessage>();
-  final pushSub = await push.subscribe('e2e-push', (m) {
+  final pushSub = await push.subscribe([Topic.path(['e2e-push'])], (m) {
     if (!pushReceived.isCompleted) {
       pushReceived.complete(m);
     }
@@ -497,6 +522,72 @@ void main() async {
   print(pushMessage.qos == 1 ? 'Push qos:passed' : 'Push qos:failed');
   pushSub.unsubscribe();
   push.close();
+
+  // Topic-less subscribe: the signed-in user's own `users/<userId>` topic. After each
+  // SUBSCRIBE the mock publishes to `users/e2e-user`, `users/e2e-session-user` and
+  // `users/other-user`, so a client passes only if it receives its own topic and
+  // nothing else (an over-broad `users/+` or `users/#` subscription would also get
+  // the others).
+  const e2eSession =
+      'eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0=';
+  Future<List<String>> userTopicsOf(Client userClient) async {
+    final userPush = Push(userClient);
+    final received = <String>[];
+    // The topic-less form defaults to background: true; the test stays in-process.
+    final userSub = await userPush.subscribe(null, (m) {
+      received.add(m.topic);
+    }, background: false);
+    await Future.delayed(const Duration(seconds: 3));
+    userSub.unsubscribe();
+    userPush.close();
+    return received;
+  }
+
+  bool onlyTopic(List<String> received, String expected) =>
+      received.isNotEmpty && received.every((topic) => topic == expected);
+
+  // JWT and session both set: the JWT's user wins.
+  client.setSession(e2eSession);
+  try {
+    final jwtTopics = await userTopicsOf(client);
+    print(onlyTopic(jwtTopics, 'users/e2e-user')
+        ? 'Push user topic:passed'
+        : 'Push user topic:failed');
+  } catch (_) {
+    print('Push user topic:failed');
+  }
+
+  // Session only: the user id comes from the session secret.
+  final sessionClient = Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883')
+      .setSession(e2eSession);
+  try {
+    final sessionTopics = await userTopicsOf(sessionClient);
+    print(onlyTopic(sessionTopics, 'users/e2e-session-user')
+        ? 'Push user session topic:passed'
+        : 'Push user session topic:failed');
+  } catch (_) {
+    print('Push user session topic:failed');
+  }
+
+  // No credential: a topic-less subscribe has no user to resolve and throws.
+  final anonymousPush = Push(Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883'));
+  var noCredentialRejected = false;
+  try {
+    await anonymousPush.subscribe(null, (_) {});
+  } on AppwriteException catch (e) {
+    // The credential error itself, not any failure (setup, connection, ...).
+    noCredentialRejected = e.message?.contains('signed-in user') ?? false;
+  } catch (_) {}
+  anonymousPush.close();
+  print(noCredentialRejected
+      ? 'Push user no credential:passed'
+      : 'Push user no credential:failed');
 }
 
 String? parse(String json) {

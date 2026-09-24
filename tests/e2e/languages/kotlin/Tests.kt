@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
+import io.appwrite.Topic
 import io.appwrite.Query
 import io.appwrite.Operator
 import io.appwrite.Condition
@@ -286,6 +287,30 @@ class ServiceTest {
             // ID helper tests
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
+
+            // Topic helper tests
+            writeToFile(Topic.path(listOf("user", "123", "notification")).toString())
+            writeToFile(Topic.path(listOf("org", "42", "user", "123")).path(listOf("notification")).toString())
+            writeToFile(Topic.path(listOf("user")).any().path(listOf("notification")).toString())
+            writeToFile(Topic.path(listOf("chat")).any().any().path(listOf("message")).toString())
+            writeToFile(Topic.path(listOf("org")).any().path(listOf("logs")).all().toString())
+            writeToFile(Topic.any().path(listOf("notification")).toString())
+            writeToFile(Topic.all().toString())
+            val topicErrorCases = listOf(
+                "empty path" to emptyList<String>(),
+                "empty level" to listOf("user", ""),
+                "slash" to listOf("user/123"),
+                "plus" to listOf("user", "a+b"),
+                "hash" to listOf("user", "#"),
+            )
+            for ((name, levels) in topicErrorCases) {
+                try {
+                    Topic.path(levels)
+                    writeToFile("Topic $name:failed")
+                } catch (e: IllegalArgumentException) {
+                    writeToFile("Topic $name:passed")
+                }
+            }
 
             // Operator helper tests
             writeToFile(Operator.increment(1))
