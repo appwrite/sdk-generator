@@ -605,6 +605,41 @@ class ServiceTest {
             }
             anonymousPush.close()
             writeToFile(if (noCredentialRejected) "Push user no credential:passed" else "Push user no credential:failed")
+
+            // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
+            // CONNECT (the mock refuses the credential "deny") and a server-initiated DISCONNECT
+            // (the mock disconnects clients that subscribe to "e2e-disconnect").
+            val firstError = { errorPush: Push, topic: String ->
+                val errorLatch = java.util.concurrent.CountDownLatch(1)
+                val errorMessage = java.util.concurrent.atomic.AtomicReference("")
+                errorPush.onError { error ->
+                    if (errorMessage.compareAndSet("", error.message ?: "")) {
+                        errorLatch.countDown()
+                    }
+                }
+                try {
+                    errorPush.subscribe(topic) { }
+                } catch (e: Exception) {
+                }
+                errorLatch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+                errorPush.close()
+                errorMessage.get()
+            }
+            val deniedError = firstError(
+                Push(pushClient().setJWT("deny"), ApplicationProvider.getApplicationContext()),
+                "e2e-push",
+            )
+            writeToFile(
+                if (deniedError == "e2e: connection refused") "Push connect error:passed" else "Push connect error:failed",
+            )
+            val kickedError = firstError(Push(client, ApplicationProvider.getApplicationContext()), "e2e-disconnect")
+            writeToFile(
+                if (kickedError == "e2e: disconnected by the broker") {
+                    "Push disconnect error:passed"
+                } else {
+                    "Push disconnect error:failed"
+                },
+            )
         }
     }
 

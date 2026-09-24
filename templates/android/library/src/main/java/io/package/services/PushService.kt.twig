@@ -9,6 +9,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
+import java.util.concurrent.CompletableFuture
 
 /**
  * Foreground service that keeps the {{ spec.info.title | caseUcfirst }} push (MQTT) connection alive while the
@@ -19,12 +20,20 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
  * kill is not recovered (see the START_NOT_STICKY note in onStartCommand).
  */
 class PushService : Service() {
+    @Volatile
     private var mqtt: Mqtt5AsyncClient? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForegroundCompat()
+        try {
+            startForegroundCompat()
+        } catch (e: Exception) {
+            // E.g. a missing foreground-service permission or a background start restriction.
+            stopSelf()
+            PushForeground.report(e)
+            return START_NOT_STICKY
+        }
         connectAndSubscribe()
         // NOT sticky: the credential/topics/listeners live only in the process, so a
         // kill-and-recreate could not restore the connection anyway. This covers
@@ -58,7 +67,9 @@ class PushService : Service() {
         }
         val config = PushForeground.config ?: return
 
-        val client = buildPushClient(config)
+        // Connection errors after the initial connect (a lost connection, a failed automatic
+        // reconnect, a broker DISCONNECT) reach the hosting Push instance's onError.
+        val client = buildPushClient(config, onError = { PushForeground.report(it) })
         mqtt = client
         try {
             client.pushConnect(config)
@@ -71,7 +82,10 @@ class PushService : Service() {
             )
             subscribeTopics(initial)
         } catch (e: Exception) {
-            // Connection failed; the service stays up until stopped.
+            // Connection failed (a refused CONNECT, a missing credential, ...): drop the client
+            // so a later start retries, and report it. The service stays up until stopped.
+            mqtt = null
+            PushForeground.report(e)
         }
     }
 
@@ -83,6 +97,7 @@ class PushService : Service() {
                 .qos(PushForeground.qosFor(topic))
                 .callback { publish -> onMessage(publish.toPushMessage()) }
                 .send()
+                .reportFailure(client)
         }
     }
 
@@ -92,6 +107,17 @@ class PushService : Service() {
             client.unsubscribeWith()
                 .topicFilter(topic)
                 .send()
+                .reportFailure(client)
+        }
+    }
+
+    // Report a SUBSCRIBE/UNSUBSCRIBE failure (e.g. a SUBACK error code) unless [client] was
+    // closed or replaced meanwhile, which fails its pending requests on purpose.
+    private fun CompletableFuture<*>.reportFailure(client: Mqtt5AsyncClient) {
+        whenComplete { _, error ->
+            if (error != null && mqtt === client) {
+                PushForeground.report(error)
+            }
         }
     }
 
