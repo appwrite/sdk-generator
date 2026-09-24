@@ -766,23 +766,30 @@ Future<Object?> _connectOrFail(
         : failure?.toString() ?? 'MQTT connection failed (${status?.state})',
   );
   failed(error);
-  if (refused.isCompleted && status != null) {
-    // connect() only stops waiting once the status reads connected: mark it so until
-    // connect() returns, then disconnected again for the teardown.
-    status.state = MqttConnectionState.connected;
+  // Fail the caller now; winding down the library's pending connect() happens after.
+  unawaited(_teardown(mqtt, connecting, refused.isCompleted ? status : null));
+  return error;
+}
+
+/// Tear down a client whose connect failed. After a refusal [refusedStatus] is its status:
+/// connect() only stops waiting once the status reads connected, so mark it so until
+/// connect() returns, then disconnected again.
+Future<void> _teardown(MqttClient mqtt, Future<Object?> connecting,
+    MqttConnectionStatus? refusedStatus) async {
+  if (refusedStatus != null) {
+    refusedStatus.state = MqttConnectionState.connected;
     try {
       await connecting.timeout(const Duration(seconds: 10));
     } catch (_) {
       // The refusal is the error; how connect() ends no longer matters.
     }
-    status.state = MqttConnectionState.disconnected;
+    refusedStatus.state = MqttConnectionState.disconnected;
   }
   try {
     mqtt.disconnect();
   } catch (_) {
     // Already torn down; the connect failure is the error.
   }
-  return error;
 }
 
 /// Whether [status] holds a CONNACK the broker refused the connection with.
