@@ -521,7 +521,7 @@ class ServiceTest {
             // (server-initiated, as in production — the SDK has no publish method).
             client.setJWT("eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e")
             client.setPushEndpoint("mqtt://mqtt:1883")
-            val push = Push(client)
+            val push = Push(client, ApplicationProvider.getApplicationContext())
             val pushOpenLatch = java.util.concurrent.CountDownLatch(1)
             push.onOpen { pushOpenLatch.countDown() }
             val pushLatch = java.util.concurrent.CountDownLatch(1)
@@ -557,7 +557,7 @@ class ServiceTest {
             // else (an over-broad users/+ or users/# subscription would also get the others).
             val e2eSession = "eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0="
             val userTopicsOf = { userClient: Client ->
-                val userPush = Push(userClient)
+                val userPush = Push(userClient, ApplicationProvider.getApplicationContext())
                 val received = java.util.concurrent.CopyOnWriteArrayList<String>()
                 // The topic-less form defaults to background = true, which hands the connection to the
                 // foreground Service; Robolectric records a started Service without running it, so
@@ -595,7 +595,7 @@ class ServiceTest {
             )
 
             // No credential: a topic-less subscribe has no user to resolve and throws.
-            val anonymousPush = Push(pushClient())
+            val anonymousPush = Push(pushClient(), ApplicationProvider.getApplicationContext())
             val noCredentialRejected = try {
                 anonymousPush.subscribe { }
                 false
