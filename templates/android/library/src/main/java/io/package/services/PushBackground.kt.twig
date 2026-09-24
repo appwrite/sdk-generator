@@ -46,6 +46,16 @@ internal data class PushEntry(
 )
 
 /**
+ * The adaptive heartbeat: its interval, the current streak of failed heartbeats, and when the
+ * interval last shrank (wall-clock ms, as it must survive reboots).
+ */
+internal data class PushHeartbeat(
+    val intervalMs: Long,
+    val failures: Int = 0,
+    val shrunkAt: Long = 0L,
+)
+
+/**
  * The process-wide host of the background push connection, modelled on how socket push
  * services survive on Android without keeping a service alive.
  *
@@ -81,8 +91,15 @@ internal object PushBackground {
     private const val WAKE_LOCK_MS = 16_000L
     private const val KEEP_ALIVE_SECONDS = 300
 
-    // Below the broker's 1.5 x keep-alive expiry, measured on a clock that counts deep sleep.
-    private const val HEARTBEAT_MS = 180_000L
+    // The heartbeat interval: below the broker's 1.5 x keep-alive expiry, measured on a clock that
+    // counts deep sleep. Networks that drop idle connections sooner (carrier NATs) make heartbeats
+    // fail; after HEARTBEAT_FAILURES in a row the interval shrinks by a quarter, down to
+    // MIN_HEARTBEAT_MS, and returns to the default HEARTBEAT_RESET_MS after the last shrink, in
+    // case the device moved to a better network.
+    const val HEARTBEAT_MS = 180_000L
+    private const val MIN_HEARTBEAT_MS = 60_000L
+    private const val HEARTBEAT_FAILURES = 3
+    private const val HEARTBEAT_RESET_MS = 3 * 24 * 60 * 60 * 1_000L
     private const val REQUEST_TIMEOUT_SECONDS = 10L
     private const val CONNECT_TIMEOUT_SECONDS = 20L
 
@@ -129,6 +146,7 @@ internal object PushBackground {
     private var connectedConfig: PushConfig? = null
     private var connectedNetwork: Network? = null
     private var lastHeartbeat = 0L
+    private var heartbeatState: PushHeartbeat? = null
     private val subscribed = mutableMapOf<String, MqttQos>()
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
@@ -366,8 +384,10 @@ internal object PushBackground {
             disconnect()
             client = null
         }
-        if (client != null && heartbeat && SystemClock.elapsedRealtime() - lastHeartbeat >= HEARTBEAT_MS) {
-            if (sendHeartbeat(client)) {
+        if (client != null && heartbeat && SystemClock.elapsedRealtime() - lastHeartbeat >= heartbeatInterval(context)) {
+            val alive = sendHeartbeat(client)
+            recordHeartbeat(context, alive)
+            if (alive) {
                 lastHeartbeat = SystemClock.elapsedRealtime()
             } else {
                 disconnect()
@@ -431,6 +451,36 @@ internal object PushBackground {
                 subAck.reasonString.map { it.toString() }.orElse("Subscribing to $filter was refused (reason $code)"),
             )
         }
+    }
+
+    // Worker thread only. The current heartbeat interval, back at the default once a shrink is
+    // old enough.
+    private fun heartbeatInterval(context: Context): Long {
+        val state = heartbeatState ?: PushStore.heartbeat(context).also { heartbeatState = it }
+        if (state.intervalMs < HEARTBEAT_MS && System.currentTimeMillis() - state.shrunkAt >= HEARTBEAT_RESET_MS) {
+            saveHeartbeat(context, PushHeartbeat(HEARTBEAT_MS))
+            return HEARTBEAT_MS
+        }
+        return state.intervalMs
+    }
+
+    // Worker thread only. Count a failed heartbeat (a connection the network dropped silently),
+    // shrinking the interval after HEARTBEAT_FAILURES in a row; a delivered one ends the streak.
+    private fun recordHeartbeat(context: Context, alive: Boolean) {
+        val state = heartbeatState ?: PushStore.heartbeat(context)
+        val next = when {
+            alive -> state.copy(failures = 0)
+            state.failures + 1 < HEARTBEAT_FAILURES -> state.copy(failures = state.failures + 1)
+            else -> PushHeartbeat(maxOf(MIN_HEARTBEAT_MS, state.intervalMs * 3 / 4), 0, System.currentTimeMillis())
+        }
+        if (next != state) {
+            saveHeartbeat(context, next)
+        }
+    }
+
+    private fun saveHeartbeat(context: Context, state: PushHeartbeat) {
+        heartbeatState = state
+        PushStore.setHeartbeat(context, state)
     }
 
     // Worker thread only.
@@ -795,6 +845,24 @@ internal object PushStore {
 
     fun setAlwaysOn(context: Context, enabled: Boolean) = synchronized(this) {
         write(context, SETTINGS_FILE, (read(context, SETTINGS_FILE) ?: JSONObject()).put("alwaysOn", enabled))
+    }
+
+    /** The saved adaptive heartbeat; the default interval until one was saved. */
+    fun heartbeat(context: Context): PushHeartbeat = synchronized(this) {
+        val json = read(context, SETTINGS_FILE)?.optJSONObject("heartbeat") ?: return PushHeartbeat(PushBackground.HEARTBEAT_MS)
+        PushHeartbeat(
+            intervalMs = json.optLong("intervalMs", PushBackground.HEARTBEAT_MS),
+            failures = json.optInt("failures", 0),
+            shrunkAt = json.optLong("shrunkAt", 0L),
+        )
+    }
+
+    fun setHeartbeat(context: Context, state: PushHeartbeat) = synchronized(this) {
+        val heartbeat = JSONObject()
+            .put("intervalMs", state.intervalMs)
+            .put("failures", state.failures)
+            .put("shrunkAt", state.shrunkAt)
+        write(context, SETTINGS_FILE, (read(context, SETTINGS_FILE) ?: JSONObject()).put("heartbeat", heartbeat))
     }
 
     fun setStoppedError(context: Context, message: String) = synchronized(this) {
