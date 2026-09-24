@@ -45,7 +45,7 @@ use Utopia\OpenAPI\Parser;
 
 // Parse an OpenAPI 2, 3.0, or 3.1 document into the canonical specification model.
 // One document covers every SDK platform; the SDK selects its own below.
-$version = '2.0.x';
+$version = '2.3.x';
 $platform = 'server';
 $content = file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/open-api3-{$version}.json");
 $spec = Parser::parse($content);
@@ -88,7 +88,7 @@ $spec = Parser::parse([
     'info' => [
         'title' => 'Appwrite',
         'description' => 'Appwrite backend as a service',
-        'version' => '2.0.x',
+        'version' => '2.3.x',
         'license' => [
             'name' => 'BSD-3-Clause',
             'url' => 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
@@ -101,7 +101,7 @@ $sdk = new SDK(new Skills(), $spec);
 
 $sdk
     ->setName('Appwrite')
-    ->setVersion('2.0.x')
+    ->setVersion('2.3.x')
 ;
 
 $sdk->generate(__DIR__ . '/examples/skills');
@@ -160,7 +160,7 @@ php example.php <target> <platform> <format>
 
 `<platform>` can be `console`, `client`, or `server`. If omitted, it defaults to `console`.
 
-`<format>` can be `openapi3` or `swagger2`. If omitted, it defaults to `openapi3`. Remote OpenAPI 3 generation uses the current `2.0.x` specs; because Swagger 2 documents are not published for `2.0.x`, remote Swagger 2 generation uses the latest available `1.8.x` specs.
+`<format>` can be `openapi3` or `swagger2`. If omitted, it defaults to `openapi3`. Remote OpenAPI 3 generation uses the current `2.3.x` specs; because Swagger 2 documents are not published for `2.3.x`, remote Swagger 2 generation uses the latest available `1.8.x` specs.
 
 Examples:
 
