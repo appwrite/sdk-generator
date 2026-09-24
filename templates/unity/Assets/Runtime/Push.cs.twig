@@ -229,7 +229,18 @@ namespace {{ spec.info.title | caseUcfirst }}
         {
             if (_onError != null)
             {
-                _mainThread.Enqueue(() => _onError?.Invoke(error));
+                _mainThread.Enqueue(() =>
+                {
+                    try
+                    {
+                        _onError?.Invoke(error);
+                    }
+                    catch (Exception callbackError)
+                    {
+                        // A throwing onError must not escape into Unity's Update loop.
+                        Debug.LogException(callbackError);
+                    }
+                });
             }
         }
 
