@@ -10,7 +10,7 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
-        "utopia-php/mqtt": "0.0.1"
+        "utopia-php/mqtt": "0.0.2"
     },
     "config": {
         "vendor-dir": "vendor-mqtt",
