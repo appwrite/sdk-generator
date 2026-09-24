@@ -575,6 +575,35 @@ class Tests: XCTestCase {
         }
         anonymousPush.close()
         print(noCredentialRejected ? "Push user no credential:passed" : "Push user no credential:failed")
+
+        // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
+        // CONNECT (the mock refuses the credential "deny") and a server-initiated DISCONNECT
+        // (the mock disconnects clients that subscribe to "e2e-disconnect").
+        func firstError(_ errorPush: Push, subscribingTo topic: String) async -> String {
+            let collector = ErrorCollector()
+            _ = errorPush.onError { error in
+                collector.record((error as? AppwriteError)?.message ?? error.localizedDescription)
+            }
+            _ = try? await errorPush.subscribe(topic) { _ in }
+            for _ in 0..<50 where collector.message == nil {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+            }
+            errorPush.close()
+            return collector.message ?? ""
+        }
+
+        let deniedPush = Push(
+            Client()
+                .setProject("console")
+                .setSelfSigned()
+                .setPushEndpoint("mqtt://mqtt:1883")
+                .setJWT("deny")
+        )
+        let deniedError = await firstError(deniedPush, subscribingTo: "e2e-push")
+        print(deniedError == "e2e: connection refused" ? "Push connect error:passed" : "Push connect error:failed")
+
+        let kickedError = await firstError(Push(client), subscribingTo: "e2e-disconnect")
+        print(kickedError == "e2e: disconnected by the broker" ? "Push disconnect error:passed" : "Push disconnect error:failed")
     }
 
     func parse(from json: String) -> String? {
@@ -602,5 +631,25 @@ final class TopicCollector: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return received
+    }
+}
+
+/// Keeps the first error message a push reports; onError may run on another thread.
+final class ErrorCollector: @unchecked Sendable {
+    private let lock = NSLock()
+    private var first: String?
+
+    func record(_ message: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        if first == nil {
+            first = message
+        }
+    }
+
+    var message: String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return first
     }
 }
