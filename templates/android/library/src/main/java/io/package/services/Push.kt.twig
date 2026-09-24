@@ -2,15 +2,10 @@ package {{ sdk.namespace | caseDot }}.services
 
 import android.Manifest
 import android.app.Activity
-import android.app.AlarmManager
-import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
-import android.os.PowerManager
-import android.provider.Settings
 import android.util.Base64
 import android.util.Log
 import androidx.core.app.ActivityCompat
@@ -709,66 +704,6 @@ class Push(
 
         /** The notification tap intent's extra holding the message payload as a string. */
         const val EXTRA_PAYLOAD = "{{ sdk.namespace | caseDot }}.push.PAYLOAD"
-
-        /**
-         * Whether the app is exempt from battery optimisation, which lets the scheduled runs
-         * of background delivery keep going during Doze.
-         */
-        @JvmStatic
-        fun isIgnoringBatteryOptimizations(context: Context): Boolean =
-            context.getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(context.packageName) == true
-
-        /**
-         * Ask the user to exempt the app from battery optimisation. Opens the direct prompt when
-         * the app declares `android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` (check
-         * Google Play's policy for it first), else the battery optimisation settings list.
-         */
-        @JvmStatic
-        fun requestIgnoreBatteryOptimizations(activity: Activity) {
-            if (isIgnoringBatteryOptimizations(activity)) {
-                return
-            }
-            val direct = ContextCompat.checkSelfPermission(activity, Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) ==
-                PackageManager.PERMISSION_GRANTED
-            val intent = if (direct) {
-                Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${activity.packageName}"))
-            } else {
-                Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-            }
-            try {
-                activity.startActivity(intent)
-            } catch (e: ActivityNotFoundException) {
-                // No settings screen for it on this device.
-            }
-        }
-
-        /**
-         * Whether the app may schedule exact alarms, which makes the scheduled runs of
-         * background delivery punctual. Always true below Android 12.
-         */
-        @JvmStatic
-        fun canScheduleExactAlarms(context: Context): Boolean =
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-                context.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true
-
-        /**
-         * Open the settings screen where the user allows exact alarms (Android 12+). The app
-         * must declare `android.permission.SCHEDULE_EXACT_ALARM`; without it, or when already
-         * allowed, this does nothing.
-         */
-        @JvmStatic
-        fun requestExactAlarms(activity: Activity) {
-            if (canScheduleExactAlarms(activity) || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                return
-            }
-            try {
-                activity.startActivity(
-                    Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${activity.packageName}")),
-                )
-            } catch (e: ActivityNotFoundException) {
-                // The app does not declare SCHEDULE_EXACT_ALARM.
-            }
-        }
 
         /**
          * Request the `POST_NOTIFICATIONS` runtime permission (Android 13+). Call from an

@@ -97,10 +97,9 @@ icon with `<meta-data android:name="{{ sdk.namespace | caseDot }}.push.notificat
 in your `<application>`. To handle these messages in code, subclass `PushReceiver` and declare
 it with the `{{ sdk.namespace | caseDot }}.push.MESSAGE` action (see its docs).
 
-Doze delays the scheduled runs. For punctual runs, optionally declare
-`SCHEDULE_EXACT_ALARM` and call `Push.requestExactAlarms(activity)`, and ask for the
-battery optimisation exemption with `Push.requestIgnoreBatteryOptimizations(activity)`
-(both are subject to Google Play policy). For immediate delivery even after a kill and
+Doze delays the scheduled runs. They are more punctual when your app may schedule exact
+alarms (`SCHEDULE_EXACT_ALARM`) or is exempt from battery optimisation; both are your app's
+choice and subject to Google Play policy, and the SDK uses them when granted. For immediate delivery even after a kill and
 during Doze, call `push.setForeground(true)` from the foreground: it adds a foreground service
 with a quiet ongoing notification. If you never enable it, you can remove the service from
 your merged manifest, so the Play Console does not ask you to declare it:

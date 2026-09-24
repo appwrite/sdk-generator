@@ -705,7 +705,9 @@ internal object PushBackground {
     // Allowed exact alarms or exempt from battery optimisation: the alarm is reliable, so the
     // runs can be spaced further apart.
     private fun privileged(context: Context): Boolean =
-        Push.canScheduleExactAlarms(context) || Push.isIgnoringBatteryOptimizations(context)
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            context.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true ||
+            context.getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(context.packageName) == true
 
     private fun activeNetwork(context: Context): Network? =
         runCatching { context.getSystemService(ConnectivityManager::class.java)?.activeNetwork }.getOrNull()
