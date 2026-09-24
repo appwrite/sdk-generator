@@ -655,8 +655,8 @@ class ServiceTest {
             )
 
             // Background delivery, used the way an app does: subscribe with background on and a
-            // PushReceiver declared, then the process dies, and the scheduled run brings the next
-            // message to the receiver and a notification. Sign-out stops it.
+            // PushReceiver declared, then the process dies, and the scheduled wake-up brings the
+            // next message to the receiver and a notification. Sign-out stops it.
             val context = ApplicationProvider.getApplicationContext<android.app.Application>()
             val notifications = context.getSystemService(android.app.NotificationManager::class.java)
             org.robolectric.Shadows.shadowOf(context.packageManager).addResolveInfoForIntent(
@@ -682,24 +682,29 @@ class ServiceTest {
                     "Push background message:failed"
                 },
             )
-            val job = context.getSystemService(android.app.job.JobScheduler::class.java).allPendingJobs.singleOrNull()
             val alarms = org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.AlarmManager::class.java))
-            writeToFile(
-                if (job != null && job.isPersisted && job.service.className.endsWith("PushJobService") && alarms.nextScheduledAlarm != null) {
-                    "Push background scheduled:passed"
-                } else {
-                    "Push background scheduled:failed"
-                },
-            )
 
             // The process dies: callbacks and the connection are gone, only what was saved remains.
             io.appwrite.services.PushBackground.dropProcessState(context)
             notifications.cancelAll()
             E2EPushReceiver.messages.clear()
-            // What the scheduled job and alarm run.
-            io.appwrite.services.PushBackground.tick(context) { }
+            // Android fires the wake-up the SDK scheduled. This test runs without a manifest, so
+            // register the alarm's receiver the way the merged manifest declares it.
+            val wakeUp = alarms.nextScheduledAlarm?.operation
+            if (wakeUp != null) {
+                val wakeUpIntent = org.robolectric.Shadows.shadowOf(wakeUp).savedIntent
+                val receiver = Class.forName(wakeUpIntent.component!!.className).getDeclaredConstructor().newInstance()
+                val filter = android.content.IntentFilter(wakeUpIntent.action)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    context.registerReceiver(receiver as android.content.BroadcastReceiver, filter, android.content.Context.RECEIVER_NOT_EXPORTED)
+                } else {
+                    context.registerReceiver(receiver as android.content.BroadcastReceiver, filter)
+                }
+                wakeUp.send()
+            }
             val deadline = System.currentTimeMillis() + 10_000
             while (E2EPushReceiver.messages.isEmpty() && System.currentTimeMillis() < deadline) {
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
                 Thread.sleep(100)
             }
             val posted = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()

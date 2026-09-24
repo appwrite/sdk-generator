@@ -161,12 +161,11 @@ abstract class Base extends TestCase
     ];
 
     // Android background delivery used the way an app does: a background subscription's
-    // message, its scheduled job and alarm, a scheduled run after the process died bringing the
-    // next message to the app's PushReceiver and a notification, sign-out stopping it, and a
-    // refused credential stopping it with onError.
+    // message, the scheduled wake-up after the process died bringing the next message to the
+    // app's PushReceiver and a notification, sign-out stopping it, and a refused credential
+    // stopping it with onError.
     protected const PUSH_BACKGROUND_RESPONSES = [
         'Push background message:passed',
-        'Push background scheduled:passed',
         'Push background restore:passed',
         'Push background close:passed',
         'Push background refused:passed',
