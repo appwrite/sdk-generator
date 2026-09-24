@@ -405,6 +405,7 @@ class Go extends Language
                 return implode("\n" . $indent, $value);
             }, ['is_safe' => ['html']]),
             new TwigFilter('propertyType', fn(Schema $property, Specification $spec, string $generic = 'map[string]interface{}'): string => $this->getPropertyType($property, $spec, $generic)),
+            new TwigFilter('responsePropertyType', fn(Schema $property, Specification $spec): string => $this->getResponsePropertyType($property, $spec)),
             new TwigFilter('returnType', fn(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string => $this->getReturnType($method, $spec, $namespace, $generic)),
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
             new TwigFilter('goPackagePath', fn(array $sdk): string => $this->getPackagePath($sdk)),
@@ -438,6 +439,15 @@ class Go extends Language
     protected function getPropertyType(Schema $property, Specification $spec, string $generic = 'map[string]interface{}'): string
     {
         return \str_replace('models.', '', $this->getTypeName($property, $spec));
+    }
+
+    protected function getResponsePropertyType(Schema $property, Specification $spec): string
+    {
+        $type = $this->getPropertyType($property, $spec);
+
+        return $property->nullable && \in_array($type, ['string', 'bool', 'int', 'float64'], true)
+            ? '*' . $type
+            : $type;
     }
 
     protected function getReturnType(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string
