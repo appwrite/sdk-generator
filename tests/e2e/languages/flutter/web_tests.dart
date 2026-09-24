@@ -117,8 +117,8 @@ void main() async {
       : 'Push user no credential:failed');
 
   // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
-  // CONNECT (the mock refuses the credential "deny") and a server-initiated DISCONNECT
-  // (the mock disconnects clients that subscribe to "e2e-disconnect").
+  // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
+  // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
   Future<String> firstError(Push errorPush, String topic) async {
     final error = Completer<String>();
     errorPush.onError((e) {
@@ -145,20 +145,20 @@ void main() async {
     Client()
         .setProject('console')
         .setPushEndpoint('ws://mqtt:8083')
-        .setJWT('deny'),
+        .setJWT('deny:refused-by-test'),
   );
   final deniedError = await firstError(deniedPush, 'e2e-push');
   print(
-    deniedError == 'e2e: connection refused'
+    deniedError == 'refused-by-test'
         ? 'Push connect error:passed'
         : 'Push connect error:failed',
   );
   deniedPush.close();
 
   final kickedPush = Push(client);
-  final kickedError = await firstError(kickedPush, 'e2e-disconnect');
+  final kickedError = await firstError(kickedPush, 'e2e-disconnect/kicked-by-test');
   print(
-    kickedError == 'e2e: disconnected by the broker'
+    kickedError == 'kicked-by-test'
         ? 'Push disconnect error:passed'
         : 'Push disconnect error:failed',
   );

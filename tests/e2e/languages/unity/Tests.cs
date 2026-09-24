@@ -602,8 +602,8 @@ namespace AppwriteTests
                 : "Push user no credential:failed");
 
             // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
-            // CONNECT (the mock refuses the credential "deny") and a server-initiated DISCONNECT
-            // (the mock disconnects clients that subscribe to "e2e-disconnect").
+            // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
+            // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
             async Task<string> FirstError(Client errorClient, string topic)
             {
                 var errorPushObject = new GameObject("PushErrorTest");
@@ -625,14 +625,14 @@ namespace AppwriteTests
                 return errorWinner == errorTcs.Task ? errorTcs.Task.Result : "";
             }
 
-            // PushClient() clears any persisted JWT/session, so the broker really sees "deny".
-            var connectError = await FirstError(PushClient().SetJWT("deny"), "e2e-push");
-            LogResult(connectError == "e2e: connection refused"
+            // PushClient() clears any persisted JWT/session, so the broker really sees the "deny:" credential.
+            var connectError = await FirstError(PushClient().SetJWT("deny:refused-by-test"), "e2e-push");
+            LogResult(connectError == "refused-by-test"
                 ? "Push connect error:passed"
                 : "Push connect error:failed");
 
-            var disconnectError = await FirstError(client, "e2e-disconnect");
-            LogResult(disconnectError == "e2e: disconnected by the broker"
+            var disconnectError = await FirstError(client, "e2e-disconnect/kicked-by-test");
+            LogResult(disconnectError == "kicked-by-test"
                 ? "Push disconnect error:passed"
                 : "Push disconnect error:failed");
 

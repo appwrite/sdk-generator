@@ -576,9 +576,9 @@ class Tests: XCTestCase {
         anonymousPush.close()
         print(noCredentialRejected ? "Push user no credential:passed" : "Push user no credential:failed")
 
-        // Broker errors reach onError: a refused CONNECT (the mock refuses the credential "deny")
+        // Broker errors reach onError: a refused CONNECT (the mock refuses a "deny:<reason>" credential with <reason>)
         // and a server-initiated DISCONNECT (the mock disconnects clients that subscribe to
-        // "e2e-disconnect"). MQTTNIO does not expose the broker's reason string, so Apple checks
+        // "e2e-disconnect/<reason>" with <reason>). MQTTNIO does not expose the broker's reason string, so Apple checks
         // that an error arrives, not its text.
         func firstError(_ errorPush: Push, subscribingTo topic: String) async -> String {
             let collector = ErrorCollector()
@@ -598,12 +598,12 @@ class Tests: XCTestCase {
                 .setProject("console")
                 .setSelfSigned()
                 .setPushEndpoint("mqtt://mqtt:1883")
-                .setJWT("deny")
+                .setJWT("deny:refused-by-test")
         )
         let deniedError = await firstError(deniedPush, subscribingTo: "e2e-push")
         print(!deniedError.isEmpty ? "Push connect error:passed" : "Push connect error:failed")
 
-        let kickedError = await firstError(Push(client), subscribingTo: "e2e-disconnect")
+        let kickedError = await firstError(Push(client), subscribingTo: "e2e-disconnect/kicked-by-test")
         print(!kickedError.isEmpty ? "Push disconnect error:passed" : "Push disconnect error:failed")
     }
 

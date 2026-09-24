@@ -607,8 +607,8 @@ class ServiceTest {
             writeToFile(if (noCredentialRejected) "Push user no credential:passed" else "Push user no credential:failed")
 
             // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
-            // CONNECT (the mock refuses the credential "deny") and a server-initiated DISCONNECT
-            // (the mock disconnects clients that subscribe to "e2e-disconnect").
+            // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
+            // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
             val firstError = { errorPush: Push, topic: String ->
                 val errorLatch = java.util.concurrent.CountDownLatch(1)
                 val errorMessage = java.util.concurrent.atomic.AtomicReference("")
@@ -626,15 +626,15 @@ class ServiceTest {
                 errorMessage.get()
             }
             val deniedError = firstError(
-                Push(pushClient().setJWT("deny"), ApplicationProvider.getApplicationContext()),
+                Push(pushClient().setJWT("deny:refused-by-test"), ApplicationProvider.getApplicationContext()),
                 "e2e-push",
             )
             writeToFile(
-                if (deniedError == "e2e: connection refused") "Push connect error:passed" else "Push connect error:failed",
+                if (deniedError == "refused-by-test") "Push connect error:passed" else "Push connect error:failed",
             )
-            val kickedError = firstError(Push(client, ApplicationProvider.getApplicationContext()), "e2e-disconnect")
+            val kickedError = firstError(Push(client, ApplicationProvider.getApplicationContext()), "e2e-disconnect/kicked-by-test")
             writeToFile(
-                if (kickedError == "e2e: disconnected by the broker") {
+                if (kickedError == "kicked-by-test") {
                     "Push disconnect error:passed"
                 } else {
                     "Push disconnect error:failed"

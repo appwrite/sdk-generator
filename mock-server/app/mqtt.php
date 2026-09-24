@@ -6,11 +6,11 @@
  * encoding, packet ids, the QoS handshake, keep-alive reaping and subscription matching
  * (+ / # wildcards); this file only supplies test policy through a Handler:
  *
- *  - CONNECT is accepted unless the credential is the literal "deny", which is refused with the
- *    Reason String "e2e: connection refused" (so a test can assert a rejected connection and its
- *    reason); the projectId user property becomes the connection prefix.
- *  - SUBSCRIBE to "e2e-disconnect" makes the broker DISCONNECT the client with the Reason String
- *    "e2e: disconnected by the broker".
+ *  - CONNECT is accepted unless the credential is "deny" or "deny:<reason>", which is refused
+ *    (with <reason> as the Reason String) so a test can assert a rejected connection and that
+ *    its reason reaches the SDK; the projectId user property becomes the connection prefix.
+ *  - SUBSCRIBE to "e2e-disconnect/<reason>" makes the broker DISCONNECT the client with <reason>
+ *    as the Reason String.
  *  - SUBSCRIBE grants every filter at the requested QoS (capped at QoS 1) and then, mirroring
  *    real server-initiated push, publishes the test message to the fixed topic "e2e-push"
  *    through the broker's subscription index/fan-out — so a client receives it only if its
@@ -58,12 +58,15 @@ class MockHandler implements Handler
         $connection->prefix = $connect->userProperties()['projectId'] ?? '';
 
         // A rejected credential, explained with an MQTT 5 Reason String like the real broker's
-        // refuseConnect(), so the SDKs can surface it to onError.
-        if (($connect->authData ?? '') === 'deny') {
-            return Connack::refuse(
-                Connack::NOT_AUTHORIZED,
-                (new Properties())->add(new Property(Property::REASON_STRING, 'e2e: connection refused')),
-            );
+        // refuseConnect(). The test picks the reason: "deny:<reason>" is refused with <reason>.
+        $credential = $connect->authData ?? '';
+        if ($credential === 'deny' || \str_starts_with($credential, 'deny:')) {
+            $reason = \substr($credential, \strlen('deny:'));
+            $properties = $reason === '' || $reason === false
+                ? null
+                : (new Properties())->add(new Property(Property::REASON_STRING, $reason));
+
+            return Connack::refuse(Connack::NOT_AUTHORIZED, $properties);
         }
 
         // Mirror the real broker: derive a stable per-connection id when the client sends
@@ -104,11 +107,12 @@ class MockHandler implements Handler
         // a direct echo on this socket — so a client only receives it if its subscription
         // actually matches "e2e-push", exercising real topic routing. Deferred one tick so it
         // lands after the SUBACK the library sends when this handler returns.
-        // Subscribing to "e2e-disconnect" makes the broker drop the connection with a reason code
-        // and Reason String (a server-initiated DISCONNECT), so the SDKs can surface it to onError.
+        // Subscribing to "e2e-disconnect/<reason>" makes the broker drop the connection with a
+        // reason code and <reason> as the Reason String (a server-initiated DISCONNECT).
         foreach ($subscribe->filters() as $filter) {
-            if ($filter->topic === 'e2e-disconnect') {
-                \Swoole\Timer::after(100, fn () => $connection->disconnect(Disconnect::NOT_AUTHORIZED, 'e2e: disconnected by the broker'));
+            if (\str_starts_with($filter->topic, 'e2e-disconnect/')) {
+                $reason = \substr($filter->topic, \strlen('e2e-disconnect/'));
+                \Swoole\Timer::after(100, fn () => $connection->disconnect(Disconnect::NOT_AUTHORIZED, $reason));
             }
         }
 
