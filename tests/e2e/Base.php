@@ -160,6 +160,18 @@ abstract class Base extends TestCase
         'Push disconnect error:passed',
     ];
 
+    // Android background delivery used the way an app does: a background subscription's
+    // message, its scheduled job and alarm, a scheduled run after the process died bringing the
+    // next message to the app's PushReceiver and a notification, sign-out stopping it, and a
+    // refused credential stopping it with onError.
+    protected const PUSH_BACKGROUND_RESPONSES = [
+        'Push background message:passed',
+        'Push background scheduled:passed',
+        'Push background restore:passed',
+        'Push background close:passed',
+        'Push background refused:passed',
+    ];
+
     protected const QUERY_HELPER_RESPONSES = [
         '{"method":"equal","attribute":"released","values":[true]}',
         '{"method":"equal","attribute":"title","values":["Spiderman","Dr. Strange"]}',
