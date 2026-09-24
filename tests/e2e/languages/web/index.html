@@ -627,6 +627,29 @@
             anonymousPush.close();
             console.log(noCredentialRejected ? 'Push user no credential:passed' : 'Push user no credential:failed');
 
+            // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
+            // CONNECT (the mock refuses the credential "deny") and a server-initiated DISCONNECT
+            // (the mock disconnects clients that subscribe to "e2e-disconnect").
+            const firstError = (push) => new Promise((resolve) => {
+                push.onError((error) => resolve(error.message));
+                setTimeout(() => resolve(''), 5000);
+            });
+            const deniedPush = new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setJWT('deny'));
+            const deniedError = firstError(deniedPush);
+            try {
+                await deniedPush.subscribe(['e2e-push'], () => {});
+            } catch (e) {}
+            console.log((await deniedError) === 'e2e: connection refused' ? 'Push connect error:passed' : 'Push connect error:failed');
+            deniedPush.close();
+
+            const kickedPush = new Push(client);
+            const kickedError = firstError(kickedPush);
+            try {
+                await kickedPush.subscribe(['e2e-disconnect'], () => {});
+            } catch (e) {}
+            console.log((await kickedError) === 'e2e: disconnected by the broker' ? 'Push disconnect error:passed' : 'Push disconnect error:failed');
+            kickedPush.close();
+
         });
     </script>
 </body>

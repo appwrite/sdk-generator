@@ -462,11 +462,38 @@ export class Push extends Service {
             this.onOpenCb?.();
         });
         client.on('close', () => this.onCloseCb?.());
+        // The broker explains a refused CONNECT (CONNACK) or a server-initiated DISCONNECT
+        // with an MQTT 5 Reason String. mqtt.js reports only the reason code, so capture the
+        // string off the packet (packetreceive fires before mqtt.js handles it) and hand it
+        // to onError as the error message.
+        let refusedReason: string | undefined;
+        client.on('packetreceive', (packet) => {
+            if (packet.cmd === 'connack') {
+                refusedReason =
+                    (packet.reasonCode ?? 0) !== 0
+                        ? packet.properties?.reasonString
+                        : undefined;
+            }
+        });
         client.on('error', (err) =>
             this.onErrorCb?.(
-                err instanceof Error ? err : new Error(String(err)),
+                refusedReason
+                    ? new Error(refusedReason)
+                    : err instanceof Error
+                      ? err
+                      : new Error(String(err)),
             ),
         );
+        client.on('disconnect', (packet) => {
+            if ((packet.reasonCode ?? 0) !== 0) {
+                this.onErrorCb?.(
+                    new Error(
+                        packet.properties?.reasonString ??
+                            `Disconnected by the broker (reason ${packet.reasonCode})`,
+                    ),
+                );
+            }
+        });
 
         await new Promise<void>((resolve, reject) => {
             const onConnect = (packet: IConnackPacket) => {
@@ -486,7 +513,7 @@ export class Push extends Service {
             const onError = (err: Error) => {
                 cleanup();
                 this.close();
-                reject(err);
+                reject(refusedReason ? new Error(refusedReason) : err);
             };
             const cleanup = () => {
                 client.removeListener('connect', onConnect);
