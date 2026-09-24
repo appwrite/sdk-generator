@@ -113,8 +113,6 @@ export class Push extends Service {
     private reported = new WeakSet<Error>();
     /** mqtt.js connect errors mapped to the error handed out for them (see connectError). */
     private connectErrors = new WeakMap<Error, Error>();
-    /** mqtt.js connect errors mapped to the error handed out for them (see connectError). */
-    private connectErrors = new WeakMap<Error, Error>();
     /** True while the first connect is in flight: its errors go to the waiting caller. */
     private opening = false;
 
