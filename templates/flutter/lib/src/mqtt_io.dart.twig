@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -74,6 +75,7 @@ class PushIO implements Push {
   // the broker never sees two sessions with the same client id.
   bool _isolateActive = false;
   StreamSubscription<Map<String, dynamic>?>? _serviceListener;
+  StreamSubscription<Map<String, dynamic>?>? _serviceErrorListener;
 
   // Serializes background config writes (topic/notify syncs and stops). Each write is a
   // file write plus a service event, so unserialized rapid calls could interleave and apply
@@ -197,6 +199,44 @@ class PushIO implements Push {
     return this;
   }
 
+  // Errors already handed to onError, so one failure reaching it through two paths (a
+  // refused CONNACK that also fails the subscribe waiting on it) is reported once.
+  final Expando<bool> _reported = Expando<bool>();
+
+  // Every error the service hits goes through here and reaches onError. It is never thrown
+  // from here, so an error outside any call cannot crash the app.
+  void _report(Object error) {
+    try {
+      if (_reported[error] == true) {
+        return;
+      }
+      _reported[error] = true;
+    } catch (_) {
+      // Expando rejects strings/numbers; such an error is simply not de-duplicated.
+    }
+    final callback = _onError;
+    if (callback == null) {
+      // Never thrown (that would surface as an uncaught error from inside mqtt5_client):
+      // with no onError registered it is logged, like Realtime does.
+      developer.log('Push error', name: '{{ spec.info.title | caseLower }}', error: error);
+      return;
+    }
+    try {
+      callback(error);
+    } catch (callbackError, stackTrace) {
+      developer.log('Push onError threw',
+          name: '{{ spec.info.title | caseLower }}', error: callbackError, stackTrace: stackTrace);
+    }
+  }
+
+  // An error that is also thrown to the caller: onError sees it too, but with no onError
+  // registered the caller's own throw is enough.
+  void _notify(Object error) {
+    if (_onError != null) {
+      _report(error);
+    }
+  }
+
   @override
   Future<PushSubscription> subscribe(
     Object? topics,
@@ -205,7 +245,13 @@ class PushIO implements Push {
     String? title,
     bool retry = true,
   }) async {
-    final topicList = _topicList(client, topics);
+    final List<String> topicList;
+    try {
+      topicList = _topicList(client, topics);
+    } catch (e) {
+      _notify(e);
+      rethrow;
+    }
     // The own-user topic (topics == null) defaults to background delivery, like FCM/APNs.
     final wantsBackground = background ?? topics == null;
 
@@ -225,12 +271,13 @@ class PushIO implements Push {
       } else {
         await _subscribeInProcess(ids);
       }
-    } catch (_) {
+    } catch (e) {
       for (final id in ids) {
         _subscriptions.remove(id);
       }
       // Return to a consistent host for whatever subscriptions remain.
       _reconcile();
+      _notify(e);
       rethrow;
     }
 
@@ -301,6 +348,23 @@ class PushIO implements Push {
         }
       }
     });
+    // The isolate's own connection/subscribe errors, relayed as their message.
+    _serviceErrorListener ??= FlutterBackgroundService()
+        .on(pushForegroundErrorEvent)
+        .listen((data) {
+          _report(
+            {{spec.info.title | caseUcfirst}}Exception(
+              data?['message'] as String? ?? 'Background push failed',
+            ),
+          );
+        });
+  }
+
+  void _detachServiceListener() {
+    _serviceListener?.cancel();
+    _serviceListener = null;
+    _serviceErrorListener?.cancel();
+    _serviceErrorListener = null;
   }
 
   bool get _backgroundWanted =>
@@ -370,14 +434,16 @@ class PushIO implements Push {
   // Enqueue the background stop after any pending config write, so the credential file is
   // always deleted last — a write queued just before shutdown cannot recreate it afterwards.
   void _enqueueStop() {
-    unawaited(_enqueueBackground(() async {
-      // Skip if background is wanted again by the time this runs, so a stale stop can't tear
-      // down a live connection or delete a credential config that is still in use.
-      if (_backgroundWanted) {
-        return;
-      }
-      await stopPushForeground();
-    }));
+    unawaited(
+      _enqueueBackground(() async {
+        // Skip if background is wanted again by the time this runs, so a stale stop can't
+        // tear down a live connection or delete a credential config that is still in use.
+        if (_backgroundWanted) {
+          return;
+        }
+        await stopPushForeground();
+      }).catchError(_report),
+    );
   }
 
   // Ensure the correct host (in-process vs isolate) for whatever subscriptions remain, and
@@ -394,20 +460,20 @@ class PushIO implements Push {
       }
       _isolateActive = true;
       _attachServiceListener();
-      unawaited(_syncBackground());
+      unawaited(_syncBackground().catchError(_report));
     } else {
       if (_isolateActive) {
         _isolateActive = false;
-        _serviceListener?.cancel();
-        _serviceListener = null;
+        _detachServiceListener();
         _enqueueStop();
       }
-      unawaited(_ensureInProcessSubscribed());
+      unawaited(_ensureInProcessSubscribed().catchError(_report));
     }
   }
 
   // Bring up the in-process connection and (re)register every filter — used when the last
-  // background subscription goes away and the connection relocates back in-process.
+  // background subscription goes away and the connection relocates back in-process. Nobody
+  // awaits it, so a rejected SUBACK reaches onError through [_onSubscribeFail].
   Future<void> _ensureInProcessSubscribed() async {
     final mqtt = await _connect();
     for (final filter in _backgroundTopics) {
@@ -432,7 +498,11 @@ class PushIO implements Push {
       final stillUsed =
           _subscriptions.values.any((s) => s.filter == entry?.filter);
       if (entry != null && !stillUsed && _mqtt != null) {
-        _mqtt?.unsubscribeStringTopic(entry.filter);
+        try {
+          _mqtt?.unsubscribeStringTopic(entry.filter);
+        } catch (e) {
+          _report(e);
+        }
       }
     }
     if (_subscriptions.isEmpty) {
@@ -448,12 +518,16 @@ class PushIO implements Push {
       for (final filter in maybeDowngrade) {
         final stillUsed = _subscriptions.values.any((s) => s.filter == filter);
         if (stillUsed && _effectiveQos(filter) == MqttQos.atMostOnce) {
-          _mqtt?.subscribeWithSubscriptionList([
-            MqttSubscription.withMaximumQos(
-              MqttSubscriptionTopic(filter),
-              MqttQos.atMostOnce,
-            ),
-          ]);
+          try {
+            _mqtt?.subscribeWithSubscriptionList([
+              MqttSubscription.withMaximumQos(
+                MqttSubscriptionTopic(filter),
+                MqttQos.atMostOnce,
+              ),
+            ]);
+          } catch (e) {
+            _report(e);
+          }
         }
       }
     }
@@ -485,8 +559,7 @@ class PushIO implements Push {
     _mqtt?.disconnect();
     _mqtt = null;
     _connecting = null;
-    _serviceListener?.cancel();
-    _serviceListener = null;
+    _detachServiceListener();
     _subscriptions.clear();
     if (_isolateActive) {
       _isolateActive = false;
@@ -545,7 +618,19 @@ class PushIO implements Push {
     mqtt.onSubscribed = _onSubscribed;
     mqtt.onSubscribeFail = _onSubscribeFail;
     mqtt.onConnected = () => _onOpen?.call();
-    mqtt.onDisconnected = () => _onClose?.call();
+    final reconnects = _ReconnectWatch(mqtt, _report);
+    mqtt.onAutoReconnect = reconnects.attemptStarted;
+    mqtt.onAutoReconnected = reconnects.stop;
+    mqtt.onDisconnected = () {
+      reconnects.stop();
+      // A DISCONNECT from the broker with an error reason code explains itself in its
+      // MQTT 5 Reason String.
+      final error = _brokerDisconnectError(mqtt);
+      if (error != null) {
+        _report(error);
+      }
+      _onClose?.call();
+    };
 
     if (_tls) {
       mqtt.secure = true;
@@ -570,21 +655,17 @@ class PushIO implements Push {
 
     _mqtt = mqtt;
 
-    try {
-      await mqtt.connect();
-    } catch (e) {
+    final failure = await _connectOrFail(mqtt, (error) {
+      // Let go of the client first: it is still being wound down, and a close() from
+      // onError must not touch it.
+      if (identical(_mqtt, mqtt)) {
+        _mqtt = null;
+      }
       close();
-      _onError?.call(e);
-      throw {{spec.info.title | caseUcfirst}}Exception(e.toString());
-    }
-
-    final status = mqtt.connectionStatus;
-    if (status == null || status.state != MqttConnectionState.connected) {
-      close();
-      final error = {{spec.info.title | caseUcfirst}}Exception(
-          'MQTT authentication failed (CONNACK reason ${status?.reasonCode})');
-      _onError?.call(error);
-      throw error;
+      _notify(error);
+    });
+    if (failure != null) {
+      throw failure;
     }
 
     // Attach the delivery listener only after CONNACK — the `updates` stream is not
@@ -637,10 +718,147 @@ class PushIO implements Push {
   void _onSubscribeFail(MqttSubscription subscription) {
     final topic = subscription.topic.rawTopic;
     final completer = _takeSubAck(topic);
+    final error = {{spec.info.title | caseUcfirst}}Exception('Failed to subscribe to $topic');
     if (completer != null && !completer.isCompleted) {
-      completer
-          .completeError({{spec.info.title | caseUcfirst}}Exception('Failed to subscribe to $topic'));
+      // The subscribe waiting on this SUBACK throws it (and reports it to onError).
+      completer.completeError(error);
+    } else {
+      // Nobody awaits this SUBSCRIBE (a resubscribe after reconnect, a QoS change or a
+      // relocation back in-process), so onError is the only place it can surface.
+      _report(error);
     }
+  }
+}
+
+/// Connect [mqtt]. Resolves to null once connected, or to the error the connect failed
+/// with after handing it to [failed] and disconnecting [mqtt]: a refused CONNECT carries
+/// the broker's MQTT 5 Reason String when it sent one.
+///
+/// mqtt5_client alone would not finish here: after a refused CONNECT that carries enhanced
+/// auth, its connect() keeps waiting for a successful CONNACK. So the connection status is
+/// watched for the refusal as well, and the pending connect() is then let go.
+Future<Object?> _connectOrFail(
+  MqttClient mqtt,
+  void Function(Object error) failed,
+) async {
+  final connecting = mqtt.connect();
+  final refused = Completer<void>();
+  final watch = Timer.periodic(const Duration(milliseconds: 50), (_) {
+    if (!refused.isCompleted && _refused(mqtt.connectionStatus)) {
+      refused.complete();
+    }
+  });
+  Object? failure;
+  try {
+    await Future.any([connecting, refused.future]);
+  } catch (e) {
+    failure = e;
+  } finally {
+    watch.cancel();
+  }
+  final status = mqtt.connectionStatus;
+  if (failure == null && status?.state == MqttConnectionState.connected) {
+    return null;
+  }
+  final error = {{spec.info.title | caseUcfirst}}Exception(
+    status != null && _refused(status)
+        ? _refusalMessage(status)
+        : failure?.toString() ?? 'MQTT connection failed (${status?.state})',
+  );
+  failed(error);
+  if (refused.isCompleted && status != null) {
+    // connect() only stops waiting once the status reads connected: mark it so until
+    // connect() returns, then disconnected again for the teardown.
+    status.state = MqttConnectionState.connected;
+    try {
+      await connecting.timeout(const Duration(seconds: 10));
+    } catch (_) {
+      // The refusal is the error; how connect() ends no longer matters.
+    }
+    status.state = MqttConnectionState.disconnected;
+  }
+  try {
+    mqtt.disconnect();
+  } catch (_) {
+    // Already torn down; the connect failure is the error.
+  }
+  return error;
+}
+
+/// Whether [status] holds a CONNACK the broker refused the connection with.
+bool _refused(MqttConnectionStatus? status) {
+  final code = status?.reasonCode;
+  return status != null &&
+      status.state != MqttConnectionState.connected &&
+      code != null &&
+      code != MqttConnectReasonCode.notSet &&
+      code != MqttConnectReasonCode.success;
+}
+
+/// The broker's Reason String for a refused CONNECT, or a message naming the reason code.
+String _refusalMessage(MqttConnectionStatus status) {
+  final reason = status.reasonString;
+  return reason != null && reason.isNotEmpty
+      ? reason
+      : 'MQTT authentication failed (CONNACK reason ${status.reasonCode})';
+}
+
+/// The error for a DISCONNECT the broker sent with an error reason code: its MQTT 5 Reason
+/// String when present, else a message naming the reason code. Null for any other close.
+{{spec.info.title | caseUcfirst}}Exception? _brokerDisconnectError(MqttClient mqtt) {
+  final status = mqtt.connectionStatus;
+  if (status == null ||
+      status.disconnectionOrigin != MqttDisconnectionOrigin.brokerSolicited) {
+    return null;
+  }
+  final disconnect = status.disconnectMessage;
+  final code = disconnect.reasonCode;
+  if (code == null ||
+      code == MqttDisconnectReasonCode.notSet ||
+      code == MqttDisconnectReasonCode.normalDisconnection) {
+    return null;
+  }
+  final reason = disconnect.reasonString;
+  return {{spec.info.title | caseUcfirst}}Exception(
+    reason != null && reason.isNotEmpty
+        ? reason
+        : 'Disconnected by the broker (reason ${MqttDisconnectReasonCodeSupport.mqttDisconnectReasonCode.asInt(code)})',
+  );
+}
+
+/// Reports failed automatic reconnects, which mqtt5_client retries internally without
+/// throwing: a refused CONNECT (with the broker's Reason String) as soon as its CONNACK
+/// arrives, any other failure when the next attempt starts.
+class _ReconnectWatch {
+  final MqttClient _mqtt;
+  final void Function(Object error) _report;
+  Timer? _timer;
+  bool _attempting = false;
+  bool _attemptReported = false;
+
+  _ReconnectWatch(this._mqtt, this._report);
+
+  void attemptStarted() {
+    if (_attempting && !_attemptReported) {
+      _report({{spec.info.title | caseUcfirst}}Exception('Push reconnect attempt failed'));
+    }
+    _attempting = true;
+    _attemptReported = false;
+    // Forget the last CONNACK so an earlier refusal is not reported for this attempt.
+    _mqtt.connectionStatus?.reasonCode = MqttConnectReasonCode.notSet;
+    _timer ??= Timer.periodic(const Duration(milliseconds: 50), (_) {
+      final status = _mqtt.connectionStatus;
+      if (_attempting && !_attemptReported && _refused(status)) {
+        _attemptReported = true;
+        _report({{spec.info.title | caseUcfirst}}Exception(_refusalMessage(status!)));
+      }
+    });
+  }
+
+  void stop() {
+    _attempting = false;
+    _timer?.cancel();
+    _timer = null;
   }
 }
 
