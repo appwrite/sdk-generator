@@ -657,21 +657,20 @@ open class Push: Service {
         }
     }
 
-    // SUBSCRIBE, reporting each filter the broker refused (SUBACK reason code 0x80 or above).
-    // With onError registered a refusal goes there and the call still succeeds for the other
-    // filters; without one it is thrown (see `report`).
+    // SUBSCRIBE, throwing when the broker refused a filter (SUBACK reason code 0x80 or above):
+    // subscribe() then rolls back, reports and throws; background callers report it.
     private func brokerSubscribe(_ client: MQTTClient, _ infos: [MQTTSubscribeInfoV5]) async throws {
         let suback = try await client.v5.subscribe(to: infos)
-        for (info, reason) in zip(infos, suback.reasons) where reason.rawValue >= 0x80 {
-            try report({{ spec.info.title | caseUcfirst }}Error(message: "Subscribe to \"\(info.topicFilter)\" refused by the broker (SUBACK reason \(reason))"))
+        if let (info, reason) = zip(infos, suback.reasons).first(where: { $0.1.rawValue >= 0x80 }) {
+            throw {{ spec.info.title | caseUcfirst }}Error(message: "Subscribe to \"\(info.topicFilter)\" refused by the broker (SUBACK reason \(reason))")
         }
     }
 
-    // UNSUBSCRIBE, reporting each filter the broker refused (UNSUBACK reason code 0x80 or above).
+    // UNSUBSCRIBE, throwing when the broker refused a filter (UNSUBACK reason code 0x80 or above).
     private func brokerUnsubscribe(_ client: MQTTClient, _ filters: [String]) async throws {
         let unsuback = try await client.v5.unsubscribe(from: filters)
-        for (filter, reason) in zip(filters, unsuback.reasons) where reason.rawValue >= 0x80 {
-            try report({{ spec.info.title | caseUcfirst }}Error(message: "Unsubscribe from \"\(filter)\" refused by the broker (UNSUBACK reason \(reason))"))
+        if let (filter, reason) = zip(filters, unsuback.reasons).first(where: { $0.1.rawValue >= 0x80 }) {
+            throw {{ spec.info.title | caseUcfirst }}Error(message: "Unsubscribe from \"\(filter)\" refused by the broker (UNSUBACK reason \(reason))")
         }
     }
 
