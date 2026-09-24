@@ -9,7 +9,7 @@ import (
 type {{ definitionName | caseUcfirst }} struct {
 	{%~ for property in definition.properties %}
 	{{ (property.description | godocComment | replace({"\n": "\n\t"})) | raw }}
-	{{ (property | schemaName) | caseUcfirst | escapeKeyword }} {{ property | propertyType(spec) }} `json:"{{ (property | schemaName) }}"`
+	{{ (property | schemaName) | caseUcfirst | escapeKeyword }} {% if (property | schemaNullable) and (property | propertyType(spec)) in ['string', 'bool', 'int', 'float64'] %}*{% endif %}{{ property | propertyType(spec) }} `json:"{{ (property | schemaName) }}"`
 	{%~ endfor %}
 
 	// Used by Decode() method

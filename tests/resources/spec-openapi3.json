@@ -2977,6 +2977,9 @@
               {"type": "string", "enum": ["ខេត្ត"], "title": "Province"}
             ]
           },
+          "nullableScalars": {
+            "$ref": "#/components/schemas/zznullablescalars"
+          },
           "relatedMock": {
             "type": "object",
             "description": "Optional nested mock.",
@@ -2999,6 +3002,17 @@
         "required": [
           "result"
         ]
+      },
+      "zznullablescalars": {
+        "description": "Nullable scalar response fields",
+        "type": "object",
+        "properties": {
+          "text": {"type": "string", "nullable": true},
+          "enabled": {"type": "boolean", "nullable": true},
+          "count": {"type": "integer", "nullable": true},
+          "price": {"type": "number", "nullable": true}
+        },
+        "required": ["text", "enabled", "count", "price"]
       },
       "unionMock": {
         "description": "Mock",

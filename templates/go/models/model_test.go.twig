@@ -1,6 +1,8 @@
 {% autoescape false %}
 {%- macro render_property_value(definitions, property, spec) -%}
-{%- if (property | schemaModel) and definitions[(property | schemaModel)] -%}
+{%- if (property | schemaNullable) and (property | propertyType(spec)) in ['string', 'bool', 'int', 'float64'] -%}
+nil
+{%- elseif (property | schemaModel) and definitions[(property | schemaModel)] -%}
 {%- if (property | schemaType) == 'array' -%}
 []{{ (property | schemaModel) | caseUcfirst }}{ {{- _self.render_struct_init(definitions, definitions[(property | schemaModel)], spec) -}} }
 {%- else -%}
@@ -58,4 +60,30 @@ func Test{{ definitionName | caseUcfirst }}Model(t *testing.T) {
 {% endif %}
 {% endfor %}
 }
+{% for property in definition.properties %}
+{% if (property | schemaNullable) and (property | propertyType(spec)) in ['string', 'bool', 'int', 'float64'] %}
+{% set field = (property | schemaName) | caseUcfirst | escapeKeyword %}
+
+func Test{{ definitionName | caseUcfirst }}{{ field }}Nullable(t *testing.T) {
+	var model {{ definitionName | caseUcfirst }}
+	var zero {{ property | propertyType(spec) }}
+	data, err := json.Marshal(map[string]interface{}{"{{ property | schemaName }}": zero})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(data, &model); err != nil {
+		t.Fatal(err)
+	}
+	if model.{{ field }} == nil || *model.{{ field }} != zero {
+		t.Fatal("Expected a non-nil pointer to the zero value")
+	}
+	if err := json.Unmarshal([]byte(`{"{{ property | schemaName }}":null}`), &model); err != nil {
+		t.Fatal(err)
+	}
+	if model.{{ field }} != nil {
+		t.Fatal("Expected null to reset the field to nil")
+	}
+}
+{% endif %}
+{% endfor %}
 {% endautoescape %}
