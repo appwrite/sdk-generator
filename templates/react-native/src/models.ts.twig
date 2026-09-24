@@ -26,6 +26,7 @@ export namespace Models {
 {% for property in definition.properties %}
         /**
          *{% if (property.description | trimLines) is not empty %} {{ property.description | trimLines | raw }}{% endif %}
+
          */
         {{ ((property | schemaName) | removeDash ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty((property | getSubSchema(spec, definitionName)), 8) | raw }}
 {% endfor %}
@@ -48,6 +49,7 @@ export namespace Models {
 {% for property in requestModel.properties %}
         /**
          *{% if (property.description | trimLines) is not empty %} {{ property.description | trimLines | raw }}{% endif %}
+
          */
         {{ (property | schemaName) | removeDash }}{% if not (property | schemaRequired) %}?{% endif %}: {{ property | getSubSchema(spec, requestModelName) | raw }};
 {% endfor %}
