@@ -197,6 +197,25 @@ class Kotlin extends Language
     }
 
     /**
+     * A numeric literal of the parameter's declared type.
+     *
+     * Integers are `Long` and numbers `Double`. Java does not widen an int
+     * literal to either boxed type, and Kotlin does not widen one to `Double`.
+     */
+    protected function getNumberLiteral(mixed $value, string $type, string $lang): string
+    {
+        $literal = (string) $value;
+
+        if ($type === self::TYPE_INTEGER) {
+            return $lang === 'java' ? $literal . 'L' : $literal;
+        }
+
+        return \is_numeric($literal) && !\str_contains($literal, '.') && !\str_contains(\strtolower($literal), 'e')
+            ? $literal . '.0'
+            : $literal;
+    }
+
+    /**
      * @param string $lang Language variant: 'kotlin' (default) or 'java'
      */
     public function getParamExample(Schema|Parameter $param, string $lang = 'kotlin'): string
@@ -213,7 +232,7 @@ class Kotlin extends Language
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                    $output .= '0';
+                    $output .= $this->getNumberLiteral(0, $type, $lang);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
@@ -247,9 +266,11 @@ class Kotlin extends Language
                     }
                     break;
                 case self::TYPE_FILE:
+                    $output .= $example;
+                    break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                    $output .= $example;
+                    $output .= $this->getNumberLiteral($example, $type, $lang);
                     break;
                 case self::TYPE_ARRAY:
                     if ($this->isPermissionString($example)) {
