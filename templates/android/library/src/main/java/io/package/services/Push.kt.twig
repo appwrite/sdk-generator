@@ -246,7 +246,7 @@ class Push(
      */
     fun onError(callback: (Throwable) -> Unit): Push {
         onError = callback
-        PushBackground.errorHandler = { reportAsync(it) }
+        PushBackground.errorHandler = { deliverBackgroundError(it) }
         // A refused credential that stopped background delivery while no onError was registered.
         PushStore.takeStoppedError(appContext)?.let { report({{ spec.info.title | caseUcfirst }}Exception(it)) }
         return this
@@ -453,6 +453,16 @@ class Push(
     // report() for an error raised on the MQTT client's (or the background host's) thread.
     private fun reportAsync(error: Throwable) = report(error)
 
+    // A background host error, for its errorHandler: delivered to onError when one is registered.
+    // Returns false when none is, so the host logs it (and keeps a refusal for a later onError).
+    private fun deliverBackgroundError(error: Throwable): Boolean {
+        if (onError == null) {
+            return false
+        }
+        report(error)
+        return true
+    }
+
     // Report a fire-and-forget request's failure (e.g. a SUBACK/UNSUBACK error code) unless
     // [client] was closed or replaced meanwhile, which fails its pending requests on purpose.
     private fun CompletableFuture<*>.reportFailure(client: Mqtt5AsyncClient) {
@@ -484,7 +494,7 @@ class Push(
             mqtt?.disconnect()
             mqtt = null
         }
-        PushBackground.errorHandler = { reportAsync(it) }
+        PushBackground.errorHandler = { deliverBackgroundError(it) }
         PushBackground.host(appContext, buildConfig(), currentListeners())
         backgroundActive = true
     }
@@ -902,9 +912,11 @@ internal fun buildPushClient(
         onDisconnected?.invoke()
         if (!refused) {
             val error = pushDisconnectError(context)
-            error?.let { onError?.invoke(it) }
             if (authRefused && error != null) {
+                // Reported by onAuthRefused, which also stops for good.
                 onAuthRefused?.invoke(error)
+            } else {
+                error?.let { onError?.invoke(it) }
             }
         }
     }

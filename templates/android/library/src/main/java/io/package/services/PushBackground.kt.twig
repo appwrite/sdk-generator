@@ -88,7 +88,9 @@ internal object PushBackground {
     private const val INTERVAL_MS = 15_000L
     private const val PRIVILEGED_INTERVAL_MS = 60_000L
     private const val RESTART_DELAY_MS = 3_000L
-    private const val WAKE_LOCK_MS = 16_000L
+    // An upper bound covering a run's connect (20 s) and its requests (10 s each); the wakelock is
+    // released as soon as the run finishes.
+    private const val WAKE_LOCK_MS = 60_000L
     private const val KEEP_ALIVE_SECONDS = 300
 
     // The heartbeat interval: below the broker's 1.5 x keep-alive expiry, measured on a clock that
@@ -114,9 +116,10 @@ internal object PushBackground {
     @Volatile
     var ongoingTitle: String = "{{ spec.info.title | caseUcfirst }}"
 
-    // Reports errors to the Push instance that hosts its subscriptions here (its onError).
+    // Reports errors to the Push instance that hosts its subscriptions here. Returns whether the
+    // app's onError received the error (false when it registered none).
     @Volatile
-    var errorHandler: ((Throwable) -> Unit)? = null
+    var errorHandler: ((Throwable) -> Boolean)? = null
 
     @Volatile
     var serviceRunning = false
@@ -252,14 +255,14 @@ internal object PushBackground {
                     isActive()
                 }
                 if (active) {
-                    registerNetworkCallback(app)
-                    converge(app, heartbeat = true)
-                }
-                // converge() shuts down after a refused credential, so check again.
-                if (active && synchronized(lock) { isActive() }) {
+                    // Arm the next run first, so a run cut short (killed, or a slow broker outlasting
+                    // the wakelock) still leaves the chain armed. A refused credential in converge()
+                    // shuts down, cancelling it again.
                     schedule(app, INTERVAL_MS)
                     ensureService(app)
-                } else if (!active) {
+                    registerNetworkCallback(app)
+                    converge(app, heartbeat = true)
+                } else {
                     shutdown(app)
                 }
             } catch (e: Exception) {
@@ -293,17 +296,17 @@ internal object PushBackground {
     }
 
     /** Report an error to the hosting Push instance's onError; logged when there is none. */
-    fun report(error: Throwable) {
-        val handler = errorHandler
-        if (handler == null) {
-            Log.e(LOG_TAG, "Push background error", error)
-            return
-        }
-        try {
-            handler(error)
+    fun report(error: Throwable): Boolean {
+        val delivered = try {
+            errorHandler?.invoke(error) ?: false
         } catch (callbackError: Exception) {
             Log.e(LOG_TAG, "Push onError threw", callbackError)
+            true
         }
+        if (!delivered) {
+            Log.e(LOG_TAG, "Push background error", error)
+        }
+        return delivered
     }
 
     // Must hold [lock].
@@ -321,9 +324,11 @@ internal object PushBackground {
     private fun isActive(): Boolean = config != null && (saved.isNotEmpty() || listeners.isNotEmpty())
 
     // Must hold [lock]. Every background subscription, live or saved, one per filter and title.
+    // Subscriptions sharing a filter and title are saved once, with QoS 1 when any of them wants it.
     private fun entries(): List<PushEntry> =
         (saved + listeners.filter { it.background }.flatMap { listener -> listener.topics.map { PushEntry(it, listener.retry, listener.title) } })
-            .distinctBy { it.filter to it.title }
+            .groupBy { it.filter to it.title }
+            .map { (key, group) -> PushEntry(key.first, group.any { it.retry }, key.second) }
 
     // Must hold [lock].
     private fun persist(context: Context) {
@@ -414,7 +419,7 @@ internal object PushBackground {
         val client = buildPushClient(
             config.copy(keepAlive = KEEP_ALIVE_SECONDS),
             onError = { report(it) },
-            onAuthRefused = { error -> worker.execute { refused(context, error, reported = true) } },
+            onAuthRefused = { error -> worker.execute { refused(context, error) } },
         )
         // Registered before connecting, so the backlog the broker replays right after each
         // SUBSCRIBE reaches the app however the subscription was made (including the ones the
@@ -427,7 +432,7 @@ internal object PushBackground {
             client.disconnect()
             val error = connectError(cause)
             when {
-                isAuthRefusal(cause) -> refused(context, error, reported = false)
+                isAuthRefusal(cause) -> refused(context, error)
                 // A network failure already reached onError through the client's disconnect
                 // listener; a refused CONNECT and a timeout did not.
                 cause is Mqtt5ConnAckException || cause is TimeoutException -> report(error)
@@ -511,11 +516,8 @@ internal object PushBackground {
 
     // Worker thread only. The broker refused the credential: report it and stop. With no onError
     // registered the message is also saved, and the next onError registration receives it.
-    private fun refused(context: Context, error: Throwable, reported: Boolean) {
-        if (!reported) {
-            report(error)
-        }
-        if (errorHandler == null) {
+    private fun refused(context: Context, error: Throwable) {
+        if (!report(error)) {
             PushStore.setStoppedError(context, error.message ?: "Push connection refused")
         }
         stop(context)
@@ -525,26 +527,26 @@ internal object PushBackground {
     // and/or a notification per saved subscription that matches it.
     private fun deliver(context: Context, message: PushMessage) {
         val matching = listeners.filter { listener -> listener.topics.any { matchesTopic(it, message.topic) } }
-        if (matching.isNotEmpty()) {
-            for (listener in matching) {
-                try {
-                    listener.callback(message)
-                } catch (e: Exception) {
-                    report(e)
-                }
-            }
-            matching.filter { it.background }.map { it.title ?: message.topic }.distinct().forEach { notify(context, message, it) }
+        // Saved background subscriptions no live one has taken over; they deliver even when a live
+        // foreground-only subscription on an overlapping filter received the message too.
+        val entries = synchronized(lock) { saved }.filter { matchesTopic(it.filter, message.topic) }
+        if (matching.isEmpty() && entries.isEmpty()) {
             return
         }
-        val entries = synchronized(lock) { saved }.filter { matchesTopic(it.filter, message.topic) }
-        if (entries.isEmpty()) {
-            return
+        for (listener in matching) {
+            try {
+                listener.callback(message)
+            } catch (e: Exception) {
+                report(e)
+            }
         }
         val wakeLock = acquireWakeLock(context)
         try {
-            if (!deliverToReceivers(context, message)) {
-                entries.map { it.title ?: message.topic }.distinct().forEach { notify(context, message, it) }
-            }
+            // The app's PushReceiver gets only messages no live callback received.
+            val handled = matching.isEmpty() && deliverToReceivers(context, message)
+            val titles = matching.filter { it.background }.map { it.title ?: message.topic } +
+                if (handled) emptyList() else entries.map { it.title ?: message.topic }
+            titles.distinct().forEach { notify(context, message, it) }
         } finally {
             releaseWakeLock(wakeLock)
         }
