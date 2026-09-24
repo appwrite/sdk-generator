@@ -1,6 +1,6 @@
 {% autoescape false %}
 {%- macro render_property_value(definitions, property, spec) -%}
-{%- if (property | schemaNullable) and (property | propertyType(spec)) in ['string', 'bool', 'int', 'float64'] -%}
+{%- if (property | responsePropertyType(spec)) starts with '*' -%}
 nil
 {%- elseif (property | schemaModel) and definitions[(property | schemaModel)] -%}
 {%- if (property | schemaType) == 'array' -%}
@@ -61,7 +61,7 @@ func Test{{ definitionName | caseUcfirst }}Model(t *testing.T) {
 {% endfor %}
 }
 {% for property in definition.properties %}
-{% if (property | schemaNullable) and (property | propertyType(spec)) in ['string', 'bool', 'int', 'float64'] %}
+{% if (property | responsePropertyType(spec)) starts with '*' %}
 {% set field = (property | schemaName) | caseUcfirst | escapeKeyword %}
 
 func Test{{ definitionName | caseUcfirst }}{{ field }}Nullable(t *testing.T) {
