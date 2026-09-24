@@ -2,10 +2,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using MQTTnet;
+using MQTTnet.Adapter;
 using MQTTnet.Client;
 using MQTTnet.Formatter;
 using MQTTnet.Protocol;
@@ -182,11 +184,82 @@ namespace {{ spec.info.title | caseUcfirst }}
             return this;
         }
 
-        /// <summary>Register a callback invoked on a connection error.</summary>
+        /// <summary>
+        /// Register a callback invoked on every error the push service hits: connection
+        /// failures (a refused CONNECT carries the broker's reason), a server DISCONNECT, a
+        /// rejected or failed (re)subscribe or unsubscribe, and a failed Subscribe() call.
+        /// Without one, errors that no call returns are thrown on the main thread instead.
+        /// </summary>
         public Push OnError(Action<Exception> callback)
         {
             _onError = callback;
             return this;
+        }
+
+        // Report an error no call returns (a dropped connection, a failed reconnect, a
+        // fire-and-forget (un)subscribe) on the main thread: to onError when one is registered,
+        // otherwise throw it there, so it surfaces as an unhandled exception instead of vanishing.
+        private void ReportError(Exception error)
+        {
+            _mainThread.Enqueue(() =>
+            {
+                var onError = _onError;
+                if (onError == null)
+                {
+                    ExceptionDispatchInfo.Capture(error).Throw();
+                }
+
+                onError(error);
+            });
+        }
+
+        // Report an error the failing call also throws to its caller: to onError when one is
+        // registered, and never thrown a second time otherwise.
+        private void NotifyError(Exception error)
+        {
+            if (_onError != null)
+            {
+                _mainThread.Enqueue(() => _onError?.Invoke(error));
+            }
+        }
+
+        // Send a fire-and-forget SUBSCRIBE and report a failure or a broker-rejected filter.
+        // Errors from a client this Push has since closed or replaced are teardown, not failures.
+        private async Task SubscribeInBackground(IMqttClient mqtt, MqttClientSubscribeOptions options)
+        {
+            try
+            {
+                var result = await mqtt.SubscribeAsync(options);
+                if (!AllGranted(result) && _mqtt == mqtt)
+                {
+                    ReportError(new {{ spec.info.title | caseUcfirst }}Exception("The broker rejected the subscription."));
+                }
+            }
+            catch (Exception e) when (_mqtt == mqtt)
+            {
+                ReportError(e);
+            }
+            catch
+            {
+                // The client was closed meanwhile.
+            }
+        }
+
+        // Send a fire-and-forget UNSUBSCRIBE and report a failure, as SubscribeInBackground.
+        private async Task UnsubscribeInBackground(IMqttClient mqtt, string filter)
+        {
+            try
+            {
+                await mqtt.UnsubscribeAsync(filter);
+            }
+            catch (Exception e) when (_mqtt == mqtt)
+            {
+                ReportError(e);
+            }
+            catch
+            {
+                // The client was closed meanwhile.
+            }
         }
 
         /// <summary>
@@ -225,7 +298,9 @@ namespace {{ spec.info.title | caseUcfirst }}
             var userId = ResolveUserId();
             if (string.IsNullOrEmpty(userId))
             {
-                throw new {{ spec.info.title | caseUcfirst }}Exception("subscribe() without a topic needs a signed-in user: set a JWT or session on the client");
+                var error = new {{ spec.info.title | caseUcfirst }}Exception("subscribe() without a topic needs a signed-in user: set a JWT or session on the client");
+                NotifyError(error);
+                throw error;
             }
 
             return Subscribe(Topic.Path(new[] { "users", userId }), callback, retry);
@@ -338,7 +413,16 @@ namespace {{ spec.info.title | caseUcfirst }}
             // Materialize once: the topics are walked twice (local registration, then the
             // SUBSCRIBE filters), and a one-shot enumerable would come back empty the second time.
             var topicList = new List<string>(topics);
-            var client = await Connect();
+            IMqttClient client;
+            try
+            {
+                client = await Connect();
+            }
+            catch (Exception e)
+            {
+                NotifyError(e);
+                throw;
+            }
 
             var ids = new List<string>();
             foreach (var topic in topicList)
@@ -386,9 +470,10 @@ namespace {{ spec.info.title | caseUcfirst }}
                                 }
                             }
 
-                            if (!stillUsed)
+                            var current = _mqtt;
+                            if (!stillUsed && current != null)
                             {
-                                _ = _mqtt?.UnsubscribeAsync(entry.Filter);
+                                _ = UnsubscribeInBackground(current, entry.Filter);
                             }
                         }
                     }
@@ -433,7 +518,7 @@ namespace {{ spec.info.title | caseUcfirst }}
 
                     if (any)
                     {
-                        _ = mqtt.SubscribeAsync(rebuild.Build());
+                        _ = SubscribeInBackground(mqtt, rebuild.Build());
                     }
                 }
             };
@@ -448,9 +533,10 @@ namespace {{ spec.info.title | caseUcfirst }}
                     throw new {{ spec.info.title | caseUcfirst }}Exception("The broker rejected the subscription.");
                 }
             }
-            catch
+            catch (Exception e)
             {
                 unsubscribe();
+                NotifyError(e);
                 throw;
             }
 
@@ -491,7 +577,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                             .WithQualityOfServiceLevel(EffectiveQos(filter)));
                     }
 
-                    _ = mqtt.SubscribeAsync(rebuild.Build());
+                    _ = SubscribeInBackground(mqtt, rebuild.Build());
                 }
             };
 
@@ -594,14 +680,13 @@ namespace {{ spec.info.title | caseUcfirst }}
             };
             client.DisconnectedAsync += e =>
             {
-                _mainThread.Enqueue(() =>
+                var error = DisconnectError(e);
+                _mainThread.Enqueue(() => _onClose?.Invoke());
+                if (error != null)
                 {
-                    _onClose?.Invoke();
-                    if (e.Exception != null)
-                    {
-                        _onError?.Invoke(e.Exception);
-                    }
-                });
+                    ReportError(error);
+                }
+
                 // Recover from an unexpected drop; a deliberate Close() sets _closing.
                 if (!_closing && !_reconnecting)
                 {
@@ -617,16 +702,68 @@ namespace {{ spec.info.title | caseUcfirst }}
             _options = options;
             _closing = false;
 
-            var result = await client.ConnectAsync(options);
+            // A failed attempt is reported by the caller (Subscribe() or the reconnect loop),
+            // not by the DisconnectedAsync handler, so it reaches onError once.
+            MqttClientConnectResult result;
+            try
+            {
+                result = await client.ConnectAsync(options);
+            }
+            catch (Exception e)
+            {
+                Close();
+                throw ConnectError(e);
+            }
+
             if (result.ResultCode != MqttClientConnectResultCode.Success)
             {
                 Close();
-                var error = new {{ spec.info.title | caseUcfirst }}Exception($"MQTT authentication failed (CONNACK reason {result.ResultCode})");
-                _mainThread.Enqueue(() => _onError?.Invoke(error));
-                throw error;
+                throw ConnectRefused(result);
             }
 
             return client;
+        }
+
+        // The error for a failed connect attempt: a refused CONNECT carries the broker's reason.
+        private static Exception ConnectError(Exception error)
+        {
+            return error is MqttConnectingFailedException failed && failed.Result != null
+                ? ConnectRefused(failed.Result)
+                : error;
+        }
+
+        // The broker explains a refused CONNECT with the CONNACK's MQTT 5 Reason String.
+        private static {{ spec.info.title | caseUcfirst }}Exception ConnectRefused(MqttClientConnectResult result)
+        {
+            return new {{ spec.info.title | caseUcfirst }}Exception(string.IsNullOrEmpty(result.ReasonString)
+                ? $"MQTT authentication failed (CONNACK reason {result.ResultCode})"
+                : result.ReasonString);
+        }
+
+        // The error to report for a dropped connection, or null for a deliberate disconnect: a
+        // transport failure, or a server-initiated DISCONNECT with a non-zero reason code
+        // (explained by the packet's MQTT 5 Reason String when the broker sent one). A failed
+        // connect attempt (the client was never connected) is reported by whoever attempted it.
+        private static Exception DisconnectError(MqttClientDisconnectedEventArgs e)
+        {
+            if (!e.ClientWasConnected)
+            {
+                return null;
+            }
+
+            if (e.Exception != null)
+            {
+                return e.Exception;
+            }
+
+            if (e.Reason != MqttClientDisconnectReason.NormalDisconnection)
+            {
+                return new {{ spec.info.title | caseUcfirst }}Exception(string.IsNullOrEmpty(e.ReasonString)
+                    ? $"Disconnected by the broker (reason {e.Reason})"
+                    : e.ReasonString);
+            }
+
+            return null;
         }
 
         // Reconnect the client with exponential backoff (capped at 30s) and resubscribe every
@@ -660,7 +797,14 @@ namespace {{ spec.info.title | caseUcfirst }}
                         // retry the subscribe instead.
                         if (!client.IsConnected)
                         {
-                            await client.ConnectAsync(options);
+                            try
+                            {
+                                await client.ConnectAsync(options);
+                            }
+                            catch (Exception e)
+                            {
+                                throw ConnectError(e);
+                            }
                         }
 
                         List<string> filters;
@@ -691,8 +835,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                             var result = await client.SubscribeAsync(rebuild.Build());
                             if (!AllGranted(result))
                             {
-                                delayMs = Math.Min(delayMs * 2, 30000);
-                                continue;
+                                throw new {{ spec.info.title | caseUcfirst }}Exception("The broker rejected the resubscription.");
                             }
                         }
 
@@ -700,9 +843,13 @@ namespace {{ spec.info.title | caseUcfirst }}
                         // reconnect, so do not fire it a second time here.
                         return;
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // Connection still failing; back off and retry.
+                        // Still failing: report it (unless closed meanwhile), back off and retry.
+                        if (!_closing && _mqtt == client)
+                        {
+                            ReportError(e);
+                        }
                     }
 
                     delayMs = Math.Min(delayMs * 2, 30000);

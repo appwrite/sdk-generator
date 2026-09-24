@@ -601,6 +601,41 @@ namespace AppwriteTests
                 ? "Push user no credential:passed"
                 : "Push user no credential:failed");
 
+            // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
+            // CONNECT (the mock refuses the credential "deny") and a server-initiated DISCONNECT
+            // (the mock disconnects clients that subscribe to "e2e-disconnect").
+            async Task<string> FirstError(Client errorClient, string topic)
+            {
+                var errorPushObject = new GameObject("PushErrorTest");
+                var errorPush = errorPushObject.AddComponent<Push>();
+                errorPush.Initialize(errorClient);
+                var errorTcs = new TaskCompletionSource<string>();
+                errorPush.OnError((error) => errorTcs.TrySetResult(error.Message));
+                try
+                {
+                    await errorPush.Subscribe(topic, (message) => { });
+                }
+                catch
+                {
+                    // The refused CONNECT also fails the subscribe; onError is what is checked.
+                }
+                var errorWinner = await Task.WhenAny(errorTcs.Task, Task.Delay(5000));
+                errorPush.Close();
+                Object.DestroyImmediate(errorPushObject);
+                return errorWinner == errorTcs.Task ? errorTcs.Task.Result : "";
+            }
+
+            // PushClient() clears any persisted JWT/session, so the broker really sees "deny".
+            var connectError = await FirstError(PushClient().SetJWT("deny"), "e2e-push");
+            LogResult(connectError == "e2e: connection refused"
+                ? "Push connect error:passed"
+                : "Push connect error:failed");
+
+            var disconnectError = await FirstError(client, "e2e-disconnect");
+            LogResult(disconnectError == "e2e: disconnected by the broker"
+                ? "Push disconnect error:passed"
+                : "Push disconnect error:failed");
+
             // Cleanup Realtime GameObject
             if (realtimeObject)
             {
