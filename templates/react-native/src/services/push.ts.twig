@@ -482,6 +482,12 @@ export class Push extends Service {
         try {
             await Promise.all(acks);
         } catch (err) {
+            // Another Push moved this one's subscriptions to the native host while it waited for
+            // SUBACK, which closed the connection: this subscribe continues there.
+            if (this.nativeActive) {
+                await this.hostNative();
+                return this.handle(ids);
+            }
             this.unsubscribeInProcess(ids);
             throw err;
         }
@@ -841,9 +847,10 @@ export class Push extends Service {
     }
 
     /**
-     * Tear down the connection and drop all subscriptions. On Android this also stops
-     * background delivery, including subscriptions saved by an earlier run: call it on sign-out.
-     * Other Push instances' live subscriptions stay hosted.
+     * Tear down the connection and drop all subscriptions. On Android, closing the last Push
+     * that uses background delivery also stops it, including subscriptions saved by an earlier
+     * run: call it on sign-out. While other Push instances still use it, it keeps delivering
+     * their subscriptions and the saved ones.
      */
     close(): void {
         this.teardown();
@@ -855,9 +862,12 @@ export class Push extends Service {
         this.nativeActive = false;
         this.nativeEvents?.forEach((subscription) => subscription.remove());
         this.nativeEvents = null;
-        enqueueNative(() => native.stop()).catch((err) => this.report(err));
         const [other] = nativeHosts;
-        other?.hostNative().catch((err) => other.report(err));
+        if (other) {
+            other.hostNative().catch((err) => other.report(err));
+            return;
+        }
+        enqueueNative(() => native.stop()).catch((err) => this.report(err));
     }
 
     /** Close the in-process connection and drop the live subscriptions. */
