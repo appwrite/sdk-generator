@@ -172,8 +172,9 @@ internal object PushBackground {
     /**
      * Host [newListeners] (the app's live subscriptions) on the background connection with
      * [newConfig], save the background ones, and arm the scheduled wake-ups. Saved subscriptions
-     * from an earlier run stay unless a live one takes over their filter, or [newConfig] is for
-     * another client id (another user), whose saved subscriptions are dropped.
+     * from an earlier run stay unless a live subscription on the same filter takes them over
+     * (with background on or off), or [newConfig] is for another client id (another user), whose
+     * saved subscriptions are dropped.
      *
      * With [done], it is called once the connection is up and every filter is subscribed (SUBACK),
      * or with the failure, which is then not reported to onError: the caller reports it.
@@ -190,7 +191,10 @@ internal object PushBackground {
             if (config != null && config?.clientId != newConfig.clientId) {
                 saved = emptyList()
             }
-            saved = saved.filter { entry -> newListeners.none { it.background && entry.filter in it.topics } }
+            // A live subscription on a saved filter takes it over, whether or not it wants background:
+            // one that turned background off, or is later unsubscribed, must not leave the saved
+            // entry delivering in the background.
+            saved = saved.filter { entry -> newListeners.none { entry.filter in it.topics } }
             config = newConfig
             listeners.clear()
             listeners.addAll(newListeners)
