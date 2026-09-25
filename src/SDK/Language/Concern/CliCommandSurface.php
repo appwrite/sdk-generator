@@ -526,59 +526,26 @@ trait CliCommandSurface
     }
 
     /**
-     * Choose a complete example scenario without changing the API's optionality.
+     * Render required spec parameters using the registered CLI option metadata.
      *
-     * @return array{arguments: list<string>, note: string}
+     * @return list<string>
      */
     protected function getCliExample(Operation $method, Tag $service): array
     {
-        $name = $this->getMethodName($method);
-        $database = in_array(strtolower($service->name), ['databases', 'tablesdb', 'documentsdb', 'vectorsdb'], true);
-        $bulkMutation = $database && in_array($name, ['updateDocuments', 'deleteDocuments', 'updateRows', 'deleteRows'], true);
-        $include = [];
-        $overrides = [];
-
-        if ($database) {
-            $include = match ($name) {
-                'createOperations' => ['operations'],
-                'updateTransaction' => ['commit'],
-                'updateDocument', 'upsertDocument', 'updateDocuments', 'updateRow', 'upsertRow', 'updateRows' => ['data'],
-                default => [],
-            };
-            if ($name === 'updateTransaction') {
-                $overrides['commit'] = true;
-            }
-        }
-        if ($service->name === 'messaging' && in_array($name, ['createEmail', 'createSMS', 'createPush'], true)) {
-            $include[] = 'draft';
-            $overrides['draft'] = true;
-        }
-
         $arguments = [];
         foreach ($this->getOperationParameters($method) as $parameter) {
-            if (!$parameter->required && !in_array($parameter->name, $include, true)) {
+            if (!$parameter->required) {
                 continue;
             }
 
             $schema = $this->getSchema($parameter);
-            $value = $overrides[$parameter->name] ?? $schema->example;
-            if (in_array($this->getSchemaType($parameter), [self::TYPE_ARRAY, self::TYPE_OBJECT], true) && is_string($value)) {
+            $value = $schema->example;
+            if ($this->getSchemaType($parameter) === self::TYPE_ARRAY && is_string($value)) {
                 $decoded = json_decode($value);
                 if (json_last_error() === JSON_ERROR_NONE) {
                     $value = $decoded;
                 }
             }
-            if ($database && $parameter->name === 'data' && empty((array) $value)) {
-                $value = strtolower($service->name) === 'vectorsdb'
-                    ? ['metadata' => ['key' => 'value']]
-                    : ['key' => 'value'];
-            }
-            if ($this->isCliGraphQLInput($parameter, $method, $service) && empty((array) $value)) {
-                $value = $name === 'mutation'
-                    ? 'mutation { accountUpdateName(name: "Jane Doe") { name } }'
-                    : '{ localeGet { ip } }';
-            }
-
             $option = $this->getCliOption($parameter, $service);
             // pflag booleans consume an explicit value only with '='. Each
             // StringArray occurrence consumes exactly one item, not a JSON list.
@@ -595,10 +562,6 @@ trait CliCommandSurface
         }
 
         $query = $this->getCliQueryConfig($method);
-        if ($bulkMutation && $query['hasFiltering']) {
-            $id = str_ends_with($name, 'Rows') ? '<ROW_ID>' : '<DOCUMENT_ID>';
-            $arguments[] = '--filter ' . $this->quoteCliExample('$id=' . $id);
-        }
         if ($query['hasPagination']) {
             $arguments[] = '--limit 25';
         }
@@ -606,12 +569,7 @@ trait CliCommandSurface
             $arguments[] = '--destination ./download';
         }
 
-        return [
-            'arguments' => $arguments,
-            'note' => $bulkMutation
-                ? 'Replace the ID filter with the records you intend to change. A limit alone does not select which records are updated or deleted.'
-                : '',
-        ];
+        return $arguments;
     }
 
     protected function quoteCliExample(mixed $value): string
