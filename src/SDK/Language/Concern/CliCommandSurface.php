@@ -541,11 +541,25 @@ trait CliCommandSurface
             $option = $this->getCliOption($parameter, $service);
             $flag = '--' . $option['flag'];
 
-            $arguments = array_merge($arguments, match ($option['register']) {
-                'Bool' => [$flag . '=' . $this->getParamExample($parameter)],
-                'StringArray' => $this->getCliArrayExampleArguments($parameter, $flag),
-                default => [$flag . ' ' . $this->getParamExample($parameter)],
-            });
+            if ($option['register'] === 'StringArray') {
+                $itemSchema = $this->getArraySchema($parameter) ?? new StringSchema();
+                $example = $this->getSchema($parameter)->example;
+                if (is_string($example)) {
+                    $decoded = json_decode($example);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $example = $decoded;
+                    }
+                }
+
+                $items = is_array($example) && $example !== [] ? $example : [$itemSchema->example];
+                foreach ($items as $item) {
+                    $arguments[] = $flag . ' ' . $this->getParamExample($itemSchema, example: $item);
+                }
+                continue;
+            }
+
+            $separator = $option['register'] === 'Bool' ? '=' : ' ';
+            $arguments[] = $flag . $separator . $this->getParamExample($parameter);
         }
 
         $query = $this->getCliQueryConfig($method);
@@ -557,31 +571,6 @@ trait CliCommandSurface
         }
 
         return $arguments;
-    }
-
-    /**
-     * @return list<string>
-     */
-    protected function getCliArrayExampleArguments(Parameter $parameter, string $flag): array
-    {
-        $itemSchema = $this->getArraySchema($parameter) ?? new StringSchema();
-        $example = $this->decodeCliJsonExample($this->getSchema($parameter)->example);
-        $items = is_array($example) && $example !== [] ? $example : [$itemSchema->example];
-
-        return array_map(
-            fn(mixed $item): string => $flag . ' ' . $this->getParamExample($itemSchema, example: $item),
-            $items,
-        );
-    }
-
-    protected function decodeCliJsonExample(mixed $example): mixed
-    {
-        if (!is_string($example)) {
-            return $example;
-        }
-
-        $decoded = json_decode($example);
-        return json_last_error() === JSON_ERROR_NONE ? $decoded : $example;
     }
 
     protected function quoteCliExample(mixed $value): string
@@ -605,8 +594,11 @@ trait CliCommandSurface
     {
         $type = $this->getSchemaType($param);
         $example ??= $this->getSchema($param)->example;
-        if (in_array($type, [self::TYPE_ARRAY, self::TYPE_OBJECT], true)) {
-            $example = $this->decodeCliJsonExample($example);
+        if (in_array($type, [self::TYPE_ARRAY, self::TYPE_OBJECT], true) && is_string($example)) {
+            $decoded = json_decode($example);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $example = $decoded;
+            }
         }
 
         if ($type === self::TYPE_OBJECT && is_array($example)) {
