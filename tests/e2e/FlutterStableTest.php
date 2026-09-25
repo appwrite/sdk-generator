@@ -43,12 +43,13 @@ final class FlutterStableTest extends Base
         'docker run --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter --version --machine > android-test/flutter-version.json"',
     ];
     // tests.dart prints its results from main() and defines no test(), so `flutter test` ends with
-    // "No tests ran." and exit code 79: that line is dropped, and the Robolectric run follows
-    // regardless (the output comparison catches any failure).
+    // "No tests ran." and exit code 79. That line is dropped and 79 counts as success; any other
+    // failure stops the chain before the Robolectric run, so its lines are missing and the suite
+    // fails (the harness compares output, not exit codes).
     #[Override]
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart | grep -v -x \'No tests ran.\'"'
-        . ' ; docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/flutter/android-test alvrme/alpine-android:android-CinnamonBun-jdk17 sh -c "./gradlew testDebugUnitTest --stacktrace 1>&2 && cat result.txt"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter pub get && { flutter test test/appwrite_test.dart > flutter-test.log; status=\$?; grep -v -x \'No tests ran.\' flutter-test.log; [ \$status -eq 0 ] || [ \$status -eq 79 ]; }"'
+        . ' && docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/flutter/android-test alvrme/alpine-android:android-CinnamonBun-jdk17 sh -c "./gradlew testDebugUnitTest --stacktrace 1>&2 && cat result.txt"';
 
     #[Override]
     protected array $expectedOutput = [
