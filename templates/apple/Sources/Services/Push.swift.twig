@@ -1,0 +1,785 @@
+import Foundation
+import MQTTNIO
+import NIOCore
+
+#if canImport(UserNotifications)
+    import UserNotifications
+#endif
+
+/// A message delivered on a subscribed topic — the MQTT push analog of a realtime event.
+public struct PushMessage {
+    /// The topic the message was published to.
+    public let topic: String
+
+    /// The raw message payload.
+    public let payload: [UInt8]
+
+    /// The MQTT quality of service the message was delivered with.
+    public let qos: Int
+
+    /// The payload decoded as UTF-8 text, as it was sent.
+    public var data: String {
+        String(decoding: payload, as: UTF8.self)
+    }
+}
+
+/// A topic as accepted by `Push.subscribe`: a raw `String`, a `Topic` or a `ResolvedTopic`.
+public protocol TopicValue {
+    func toString() -> String
+}
+
+// String already gets `toString()` from the `ChannelValue` conformance in Channel.swift.
+extension String: TopicValue {}
+
+extension Topic: TopicValue {}
+
+extension ResolvedTopic: TopicValue {}
+
+/// Handle for a live subscription created with `Push.subscribe`.
+///
+/// Unlike the realtime service's bare unsubscribe callable, a push subscription carries
+/// per-subscription state (background delivery, notification title), so `subscribe` returns
+/// this handle: `unsubscribe()` drops it (and closes the connection once the last one is
+/// gone) and `update(background:title:)` toggles its options live without resubscribing.
+public final class PushSubscription {
+    private let unsubscribeAction: () -> Void
+    private let updateAction: (Bool?, String?, Bool?) -> Void
+
+    init(unsubscribe: @escaping () -> Void, update: @escaping (Bool?, String?, Bool?) -> Void) {
+        self.unsubscribeAction = unsubscribe
+        self.updateAction = update
+    }
+
+    /// Drop this subscription. Closes the connection once the last one is gone.
+    public func unsubscribe() {
+        unsubscribeAction()
+    }
+
+    /// Live-update this subscription's background delivery, notification title and/or
+    /// `retry` (QoS). Only the arguments you pass change; the rest stay as they
+    /// were. Changing `retry` re-subscribes this subscription's topics at the
+    /// new QoS.
+    public func update(background: Bool? = nil, title: String? = nil, retry: Bool? = nil) {
+        updateAction(background, title, retry)
+    }
+}
+
+/// {{ spec.info.title | caseUcfirst }} native push service — the realtime analog delivered over an MQTT broker,
+/// without FCM or APNS. Built on SwiftNIO (MQTTNIO), the same stack the rest of the SDK's
+/// networking uses. While the app is alive the connection stays open and each message is
+/// handed to your callback; a subscription can also opt into a local notification per message.
+///
+/// The connection has no tunables — it always keeps its session (clean start off) so the
+/// broker can redeliver missed messages, and reliability is chosen per subscription via
+/// `subscribe`'s `retry`. TLS (and skipping cert verification via a
+/// `?tlsInsecure=true` query flag) is derived from the endpoint, so the whole connection is
+/// described in one place. `subscribe` opens the connection lazily and returns a
+/// `PushSubscription` handle. The credential is read off the client — set a JWT or session
+/// on it (`Client.setJWT` / `Client.setSession`), the same way every other service reads auth.
+///
+///     let push = Push(client)
+///     let sub = try await push.subscribe("user/123/#") { message in
+///         print("\(message.topic): \(message.data)")
+///     }
+///     // sub.update(background: true, title: "Messages")
+///     sub.unsubscribe()
+open class Push: Service {
+    // Fixed keep-alive (PINGREQ interval) in seconds — not exposed as an option.
+    private static let keepAliveSeconds: UInt16 = 60
+
+    private let host: String
+    private let port: Int
+    private let tls: Bool
+    private let tlsInsecure: Bool
+
+    // Resolved once per instance: a reconnect rebuilds the MQTTClient, and if each rebuild drew
+    // a new random id the broker would treat it as a new session and drop this client's replay
+    // cursor. A stable id from Client.setPushClientId() resumes replay across restarts;
+    // otherwise one is generated. Reusing one id keeps it stable.
+    private let resolvedClientId: String
+
+    private var mqtt: MQTTClient?
+    private var connecting: Task<MQTTClient, Swift.Error>?
+
+    private var onOpenCb: (() -> Void)?
+    private var onCloseCb: (() -> Void)?
+    private var onErrorCb: ((Swift.Error) -> Void)?
+
+    // Set by close() so the close listener does not try to reconnect a deliberate teardown.
+    private var closing = false
+    // True while a reconnect loop is running, so a burst of close events starts only one.
+    private var reconnecting = false
+
+    // Guards the mutable state below; the publish listener fires on an event loop.
+    private let sync = DispatchQueue(label: "{{ spec.info.title | caseLower }}.push")
+
+    // Local id -> subscription (topic filter, callback, per-sub options). The id is never
+    // sent to the broker; it only lets the same topic carry more than one callback.
+    private var subscriptions: [String: (filter: String, callback: (PushMessage) -> Void, background: Bool, title: String?, retry: Bool)] = [:]
+
+    public override init(_ client: Client) {
+        // The broker location is taken from Client.setPushEndpoint() when set (e.g.
+        // "mqtts://host:8883"), otherwise from the regular endpoint.
+        let pushEndpoint = client.endPointPush ?? client.endPoint
+        let url = URL(string: pushEndpoint)
+        let derivedHost = url?.host ?? "localhost"
+        // When no explicit push endpoint is set, default to a `push.` host on the regular
+        // endpoint (mirroring how realtime derives from the endpoint, on the push subdomain).
+        self.host = client.endPointPush != nil ? derivedHost : "push.\(derivedHost)"
+        // Secure by default: TLS on when the endpoint scheme is secure (https/wss/mqtts/ssl),
+        // so the credential in the CONNECT packet is not sent in the clear.
+        let secure = ["https", "wss", "mqtts", "ssl"].contains((url?.scheme ?? "").lowercased())
+        self.tls = secure
+        // Take the port from the push endpoint only (a regular http/https endpoint's port is
+        // the API port, not the broker's); otherwise fall back to the MQTT default.
+        let pushPort = client.endPointPush != nil ? url?.port : nil
+        self.port = pushPort ?? (secure ? 8883 : 1883)
+        // Skip TLS cert verification (self-signed brokers / testing) via a query flag on the
+        // push endpoint, e.g. "mqtts://host:8883?tlsInsecure=true" — so the whole connection
+        // is described by one URL, not a second config knob.
+        let insecureFlag = URLComponents(string: pushEndpoint)?.queryItems?.first(where: { $0.name == "tlsInsecure" })?.value
+        self.tlsInsecure = insecureFlag == "true" || insecureFlag == "1"
+        // Empty when the app did not set one: the broker derives a stable id server-side
+        // (keyed on the credential/project) so the replay cursor resumes across restarts.
+        // Client.setPushClientId(id) overrides it with an explicit id.
+        let pushClientId = client.pushClientId
+        self.resolvedClientId = (pushClientId?.isEmpty == false) ? pushClientId! : ""
+        super.init(client)
+    }
+
+    // The broker subscription for a filter uses the highest QoS any local subscription on
+    // it wants, so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
+    // Call while holding `sync`.
+    private func effectiveQos(_ filter: String) -> MQTTQoS {
+        let reliable = subscriptions.values.contains { $0.filter == filter && $0.retry }
+        return reliable ? .atLeastOnce : .atMostOnce
+    }
+
+    /// Register a callback invoked when the connection opens (CONNACK success).
+    @discardableResult
+    public func onOpen(_ callback: @escaping () -> Void) -> Self {
+        onOpenCb = callback
+        return self
+    }
+
+    /// Register a callback invoked when the connection closes.
+    @discardableResult
+    public func onClose(_ callback: @escaping () -> Void) -> Self {
+        onCloseCb = callback
+        return self
+    }
+
+    /// Register a callback invoked with every error the service hits: connection failures and
+    /// refusals (carrying the broker's reason when it sends one), an unexpected close by the
+    /// broker, refused or failed (re)subscriptions, reconnect attempts and notification failures.
+    /// Calls that throw to the caller still throw. Errors outside any call are never thrown, so
+    /// they cannot crash the app: with no callback registered they are logged.
+    @discardableResult
+    public func onError(_ callback: @escaping (Swift.Error) -> Void) -> Self {
+        onErrorCb = callback
+        return self
+    }
+
+    /// Subscribe to the signed-in user's own topic, `users/<userId>`. Returns a `PushSubscription` handle.
+    ///
+    /// The user id is read off the client's credential without a network call (the JWT's
+    /// `userId` claim, else the session's `id`), so this delivers "messages for me" without
+    /// knowing any topic. Throws when neither a JWT nor a session is set on the client.
+    /// Like FCM/APNs delivery it defaults to `background: true` and `retry: true` (QoS 1);
+    /// pass either to override.
+    ///
+    ///     let sub = try await push.subscribe { message in
+    ///         print(message.data)
+    ///     }
+    @discardableResult
+    public func subscribe(background: Bool = true, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
+        let userId: String
+        do {
+            userId = try currentUserId()
+        } catch {
+            try report(error)
+            throw error
+        }
+        return try await subscribe(["users/\(userId)"], background: background, title: title, retry: retry, callback: callback)
+    }
+
+    /// Subscribe to a single topic. Returns a `PushSubscription` handle.
+    @discardableResult
+    public func subscribe(_ topic: TopicValue, background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
+        try await subscribe([topic], background: background, title: title, retry: retry, callback: callback)
+    }
+
+    /// Subscribe to a list of raw string topics. Returns a `PushSubscription` handle.
+    ///
+    /// Kept alongside the `[TopicValue]` overload: Swift arrays are invariant, so an existing
+    /// `[String]` value would not convert to `[TopicValue]` on its own.
+    @discardableResult
+    public func subscribe(_ topics: [String], background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws
+        -> PushSubscription
+    {
+        try await subscribe(topics.map { $0 as TopicValue }, background: background, title: title, retry: retry, callback: callback)
+    }
+
+    /// Subscribe to one or more topics. Returns a `PushSubscription` handle.
+    ///
+    /// Topics are raw strings or built with `Topic`, e.g.
+    /// `try await push.subscribe(try Topic.path(["user", userId]).all()) { message in ... }`.
+    /// Omit the topic (`try await push.subscribe { message in ... }`) to subscribe to the
+    /// signed-in user's own topic, `users/<userId>`.
+    ///
+    /// Suspends until the broker has acknowledged the SUBSCRIBE (SUBACK): the broker
+    /// only starts routing a topic once its subscription is registered, so publishing
+    /// before the ack races the message ahead of the subscription and it is dropped
+    /// (no retained replay on MQTT).
+    ///
+    /// Set `background` to also surface each matching message as a local notification (via
+    /// `UserNotifications`, requesting authorization on the spot) with `title` (defaulting to
+    /// the message topic), and `retry: false` for at-most-once (QoS 0) delivery.
+    /// Note: iOS cannot keep a raw MQTT socket alive once the app is fully killed (that
+    /// requires APNs) — this covers delivery while the app is running or briefly backgrounded.
+    /// Toggle either later with `PushSubscription.update`.
+    @discardableResult
+    public func subscribe(_ topics: [TopicValue], background: Bool = false, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws
+        -> PushSubscription
+    {
+        let topics = topics.map { $0.toString() }
+
+        if background {
+            requestNotificationAuthorization()
+        }
+
+        let mqtt = try await connect()
+
+        var ids: [String] = []
+        for topic in topics {
+            let id = UUID().uuidString
+            ids.append(id)
+            sync.sync { subscriptions[id] = (topic, callback, background, title, retry) }
+        }
+
+        do {
+            let infos = sync.sync {
+                topics.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: effectiveQos($0)) }
+            }
+            try await brokerSubscribe(mqtt, infos)
+        } catch {
+            // The SUBSCRIBE failed; roll this call's registrations back (and drop any broker
+            // filter no other local subscriber owns) so a failed subscribe leaks no callback.
+            let filters = sync.sync { () -> [String] in
+                var removed: [String] = []
+                for id in ids {
+                    if let entry = subscriptions.removeValue(forKey: id) {
+                        let stillUsed = subscriptions.values.contains { $0.filter == entry.filter }
+                        if !stillUsed {
+                            removed.append(entry.filter)
+                        }
+                    }
+                }
+                return removed
+            }
+            // Only while the connection is up: a dropped connection already failed the
+            // SUBSCRIBE, and its UNSUBSCRIBE would just fail again for the same reason.
+            if !filters.isEmpty && mqtt.isActive() {
+                do {
+                    try await brokerUnsubscribe(mqtt, filters)
+                } catch {
+                    // A side failure: surface it without masking the SUBSCRIBE error below.
+                    surface(Push.describe(error))
+                }
+            }
+            // Report, then throw as before. A broker DISCONNECT that lands while the SUBSCRIBE
+            // is in flight carries its Reason String (see `describe`).
+            let described = Push.describe(error)
+            try report(described)
+            throw described
+        }
+
+        let unsubscribe: () -> Void = { [weak self] in
+            guard let self else { return }
+            let (removed, downgrade) = self.sync.sync { () -> ([String], [MQTTSubscribeInfoV5]) in
+                var removedFilters: [String] = []
+                var maybeDowngrade = Set<String>()
+                for id in ids {
+                    if let entry = self.subscriptions.removeValue(forKey: id) {
+                        if entry.retry {
+                            maybeDowngrade.insert(entry.filter)
+                        }
+                        // Only unsubscribe the broker filter once its last local callback is gone.
+                        let stillUsed = self.subscriptions.values.contains { $0.filter == entry.filter }
+                        if !stillUsed {
+                            removedFilters.append(entry.filter)
+                        }
+                    }
+                }
+                // A filter that lost its last QoS-1 sub but still has QoS-0 subs must be
+                // re-SUBSCRIBEd lower, or the broker keeps replaying to at-most-once subs.
+                let infos =
+                    maybeDowngrade
+                    .filter { f in self.subscriptions.values.contains { $0.filter == f } && self.effectiveQos(f) == .atMostOnce }
+                    .map { MQTTSubscribeInfoV5(topicFilter: $0, qos: .atMostOnce) }
+                return (removedFilters, infos)
+            }
+            let client: MQTTClient? = self.sync.sync { self.mqtt }
+            if let client, !removed.isEmpty {
+                self.inBackground { try await self.brokerUnsubscribe(client, removed) }
+            }
+            if let client, !downgrade.isEmpty {
+                self.inBackground { try await self.brokerSubscribe(client, downgrade) }
+            }
+            if self.sync.sync(execute: { self.subscriptions.isEmpty }) {
+                self.close()
+            }
+        }
+
+        let update: (Bool?, String?, Bool?) -> Void = { [weak self] newBackground, newTitle, newReDeliver in
+            guard let self else { return }
+            let (client, changed) = self.sync.sync { () -> (MQTTClient?, [String]) in
+                var changedFilters: [String] = []
+                for id in ids {
+                    if var entry = self.subscriptions[id] {
+                        if let newBackground {
+                            entry.background = newBackground
+                        }
+                        if let newTitle {
+                            entry.title = newTitle
+                        }
+                        if let newReDeliver, newReDeliver != entry.retry {
+                            entry.retry = newReDeliver
+                            changedFilters.append(entry.filter)
+                        }
+                        self.subscriptions[id] = entry
+                    }
+                }
+                return (self.mqtt, changedFilters)
+            }
+            if newBackground == true {
+                self.requestNotificationAuthorization()
+            }
+            // Re-SUBSCRIBE the affected filters at their new effective QoS.
+            if let client, !changed.isEmpty {
+                let infos = self.sync.sync {
+                    changed.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: self.effectiveQos($0)) }
+                }
+                self.inBackground { try await self.brokerSubscribe(client, infos) }
+            }
+        }
+
+        return PushSubscription(unsubscribe: unsubscribe, update: update)
+    }
+
+    /// Tear down the connection and drop all active subscriptions.
+    public func close() {
+        let client = sync.sync { () -> MQTTClient? in
+            // Mark this a deliberate close so the close listener does not reconnect.
+            closing = true
+            let existing = mqtt
+            mqtt = nil
+            connecting?.cancel()
+            connecting = nil
+            subscriptions.removeAll()
+            return existing
+        }
+        guard let client else { return }
+        do {
+            try client.disconnect().wait()
+        } catch MQTTError.noConnection {
+            // Already disconnected (e.g. the broker dropped the connection); nothing to send.
+        } catch {
+            surface(Push.describe(error))
+        }
+        do {
+            try client.syncShutdownGracefully()
+        } catch {
+            surface(error)
+        }
+    }
+
+    private func requestNotificationAuthorization() {
+        #if canImport(UserNotifications)
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] _, error in
+                if let error {
+                    self?.surface(error)
+                }
+            }
+        #endif
+    }
+
+    private func connect() async throws -> MQTTClient {
+        if let existing = sync.sync(execute: { self.mqtt }) {
+            return existing
+        }
+        // Single-flight: concurrent callers await one in-flight connection instead of
+        // each opening its own (and never see a client before its CONNACK succeeds).
+        let task: Task<MQTTClient, Swift.Error> = sync.sync {
+            if let inflight = self.connecting {
+                return inflight
+            }
+            let created = Task { () throws -> MQTTClient in
+                do {
+                    let client = try await self.open()
+                    self.sync.sync {
+                        self.mqtt = client
+                        self.connecting = nil
+                    }
+                    return client
+                } catch {
+                    self.sync.sync { self.connecting = nil }
+                    throw error
+                }
+            }
+            self.connecting = created
+            return created
+        }
+        return try await task.value
+    }
+
+    // Read the credential off the client and build the CONNECT properties (enhanced auth plus
+    // the project id). Rebuilt on every connect so a reconnect picks up a refreshed credential.
+    private func connectProperties() throws -> MQTTProperties {
+        let authMethod: String
+        let credential: String
+        if let jwt = client.config["jwt"], !jwt.isEmpty {
+            authMethod = "appwrite-jwt"
+            credential = jwt
+        } else if let session = client.config["session"], !session.isEmpty {
+            authMethod = "appwrite-session"
+            credential = session
+        } else {
+            throw {{ spec.info.title | caseUcfirst }}Error(message: "No credential set on the client; call Client.setJWT() or Client.setSession() first.")
+        }
+        let project = client.config["project"] ?? ""
+        return MQTTProperties([
+            .authenticationMethod(authMethod),
+            .authenticationData(ByteBuffer(bytes: Array(credential.utf8))),
+            .userProperty("projectId", project),
+        ])
+    }
+
+    // The signed-in user's id, read off the client's credential in the same order auth uses
+    // (JWT first, then session) without a network call: the JWT payload's `userId` claim, else
+    // the `id` in the session secret (standard base64 of `{"id": ..., "secret": ...}`).
+    private func currentUserId() throws -> String {
+        // The id comes from the credential the connection authenticates with: the JWT when one
+        // is set (never the session, which could belong to a different user), else the session.
+        if let jwt = client.config["jwt"], !jwt.isEmpty {
+            if let userId = userIdFromJwt(jwt) {
+                return userId
+            }
+        } else if let session = client.config["session"], !session.isEmpty, let userId = userIdFromSession(session) {
+            return userId
+        }
+        throw {{ spec.info.title | caseUcfirst }}Error(message: "subscribe() without a topic needs a signed-in user: set a JWT or session on the client")
+    }
+
+    private func open() async throws -> MQTTClient {
+        // A fresh connect clears any prior deliberate-close flag.
+        sync.sync { closing = false }
+        let properties: MQTTProperties
+        do {
+            properties = try connectProperties()
+        } catch {
+            try report(error)
+            throw error
+        }
+
+        // An empty identifier makes the broker derive a stable id server-side (keyed on the
+        // credential/project) and key its offline-replay cursor on it; Client.setPushClientId(id)
+        // overrides with an explicit id. Resolved once per instance (see resolvedClientId) so a
+        // reconnect rebuild reuses the same id and resumes the same session.
+        let id = resolvedClientId
+
+        var tlsConfiguration: MQTTClient.TLSConfigurationType?
+        if tls && tlsInsecure {
+            #if canImport(Network)
+                tlsConfiguration = .ts(TSTLSConfiguration(certificateVerification: .none))
+            #endif
+        }
+
+        let configuration = MQTTClient.Configuration(
+            version: .v5_0,
+            keepAliveInterval: .seconds(Int64(Push.keepAliveSeconds)),
+            useSSL: tls,
+            tlsConfiguration: tlsConfiguration
+        )
+
+        let mqtt = MQTTClient(
+            host: host,
+            port: port,
+            identifier: id,
+            eventLoopGroupProvider: .createNew,
+            configuration: configuration
+        )
+
+        // One listener fans every delivery out to the matching local callbacks.
+        mqtt.addPublishListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self] (result: Result<MQTTPublishInfo, Swift.Error>) in
+            switch result {
+            case .success(let publish):
+                self?.dispatch(publish)
+            case .failure(let error):
+                self?.surface(Push.describe(error))
+            }
+        }
+
+        // Surface the connection lifecycle to the caller's onClose hook, and recover from an
+        // unexpected drop (a deliberate close() is skipped via the `closing` flag).
+        mqtt.addCloseListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self] result in
+            if case .failure(let error) = result {
+                self?.surface(Push.describe(error))
+            } else if let self, !self.sync.sync(execute: { self.closing }) {
+                // A close nobody asked for, e.g. a DISCONNECT from the broker. MQTTNIO closes
+                // cleanly then and does not expose the broker's reason string, so report the
+                // drop itself rather than letting it pass silently.
+                self.surface({{ spec.info.title | caseUcfirst }}Error(message: "Connection closed by the broker"))
+            }
+            self?.onCloseCb?()
+            self?.handleUnexpectedClose()
+        }
+
+        do {
+            // Clean start is always off, so the broker keeps this client's session and can
+            // redeliver missed messages to QoS-1 subscriptions on reconnect.
+            let ack = try await mqtt.v5.connect(cleanStart: false, properties: properties)
+            if ack.reason != .success {
+                try? mqtt.syncShutdownGracefully()
+                throw {{ spec.info.title | caseUcfirst }}Error(message: Push.reasonString(ack.properties) ?? "MQTT authentication failed (CONNACK reason \(ack.reason))")
+            }
+        } catch let error as {{ spec.info.title | caseUcfirst }}Error {
+            try report(error)
+            throw error
+        } catch {
+            // Best-effort cleanup of a client that never connected; the connect error below is
+            // the one worth reporting.
+            try? mqtt.syncShutdownGracefully()
+            let described = {{ spec.info.title | caseUcfirst }}Error(message: Push.brokerMessage(error) ?? error.localizedDescription)
+            try report(described)
+            throw described
+        }
+
+        onOpenCb?()
+        return mqtt
+    }
+
+    // Called from the close listener. Starts one reconnect loop for an unexpected drop, unless
+    // this was a deliberate close(), there are no subscriptions, or a loop is already running.
+    private func handleUnexpectedClose() {
+        let client = sync.sync { () -> MQTTClient? in
+            if closing || reconnecting || subscriptions.isEmpty {
+                return nil
+            }
+            reconnecting = true
+            return mqtt
+        }
+        guard let client else { return }
+        Task {
+            await reconnectLoop(client)
+            sync.sync { self.reconnecting = false }
+        }
+    }
+
+    // Reconnect the same client with exponential backoff (capped at 30s) and resubscribe every
+    // active filter, so an existing subscription resumes delivery without an app-level subscribe.
+    private func reconnectLoop(_ client: MQTTClient) async {
+        var delaySeconds: UInt64 = 1
+        while true {
+            // Stop if closed, drained, or the client was replaced by a fresh connect.
+            if sync.sync(execute: { closing || subscriptions.isEmpty || mqtt !== client }) {
+                return
+            }
+            try? await Task.sleep(nanoseconds: delaySeconds * 1_000_000_000)
+            if sync.sync(execute: { closing || subscriptions.isEmpty || mqtt !== client }) {
+                return
+            }
+            do {
+                // Only (re)connect when the client is actually down. If a prior iteration
+                // connected but then failed to resubscribe, the client is still active, so
+                // re-connecting it would be a no-op that never restores routing — retry the
+                // subscribe instead.
+                if !client.isActive() {
+                    let properties = try connectProperties()
+                    let ack = try await client.v5.connect(cleanStart: false, properties: properties)
+                    if ack.reason != .success {
+                        surface({{ spec.info.title | caseUcfirst }}Error(message: Push.reasonString(ack.properties) ?? "MQTT authentication failed (CONNACK reason \(ack.reason))"))
+                        delaySeconds = min(delaySeconds * 2, 30)
+                        continue
+                    }
+                }
+                let infos = sync.sync { () -> [MQTTSubscribeInfoV5] in
+                    Set(subscriptions.values.map { $0.filter }).map {
+                        MQTTSubscribeInfoV5(topicFilter: $0, qos: effectiveQos($0))
+                    }
+                }
+                // Let a resubscription failure fall through to the retry loop rather than
+                // reporting a recovery that left the handles without broker routing.
+                if !infos.isEmpty {
+                    try await brokerSubscribe(client, infos)
+                }
+                onOpenCb?()
+                return
+            } catch {
+                // Report each failed attempt, then keep retrying until closed or drained.
+                surface(Push.describe(error))
+            }
+            delaySeconds = min(delaySeconds * 2, 30)
+        }
+    }
+
+    // For a call path that throws to its caller, which does `try report(error); throw error`:
+    // the error reaches onError when one is registered and the caller still gets it; with no
+    // callback it is thrown to the caller exactly once.
+    private func report(_ error: Swift.Error) throws {
+        guard let callback = onErrorCb else {
+            throw error
+        }
+        callback(error)
+    }
+
+    // `report` for errors outside any call (listeners on the event loop, fire-and-forget tasks,
+    // notification callbacks, close()). These are never thrown, so they cannot crash the app:
+    // they reach onError, and with none registered they are logged to stderr.
+    private func surface(_ error: Swift.Error) {
+        guard let callback = onErrorCb else {
+            FileHandle.standardError.write(Data("{{ spec.info.title | caseUcfirst }} Push: \(error)\n".utf8))
+            return
+        }
+        callback(error)
+    }
+
+    // Run a fire-and-forget broker call (an unsubscribe or re-SUBSCRIBE nobody awaits) and
+    // report its failure. Failures after a deliberate close() are its own teardown, not errors.
+    private func inBackground(_ operation: @escaping () async throws -> Void) {
+        Task { [weak self] in
+            do {
+                try await operation()
+            } catch {
+                guard let self, !self.sync.sync(execute: { self.closing }) else { return }
+                self.surface(Push.describe(error))
+            }
+        }
+    }
+
+    // SUBSCRIBE, throwing when the broker refused a filter (SUBACK reason code 0x80 or above):
+    // subscribe() then rolls back, reports and throws; background callers report it.
+    private func brokerSubscribe(_ client: MQTTClient, _ infos: [MQTTSubscribeInfoV5]) async throws {
+        let suback = try await client.v5.subscribe(to: infos)
+        if let (info, reason) = zip(infos, suback.reasons).first(where: { $0.1.rawValue >= 0x80 }) {
+            throw {{ spec.info.title | caseUcfirst }}Error(message: "Subscribe to \"\(info.topicFilter)\" refused by the broker (SUBACK reason \(reason))")
+        }
+    }
+
+    // UNSUBSCRIBE, throwing when the broker refused a filter (UNSUBACK reason code 0x80 or above).
+    private func brokerUnsubscribe(_ client: MQTTClient, _ filters: [String]) async throws {
+        let unsuback = try await client.v5.unsubscribe(from: filters)
+        if let (filter, reason) = zip(filters, unsuback.reasons).first(where: { $0.1.rawValue >= 0x80 }) {
+            throw {{ spec.info.title | caseUcfirst }}Error(message: "Unsubscribe from \"\(filter)\" refused by the broker (UNSUBACK reason \(reason))")
+        }
+    }
+
+    // The error onError sees (and a failed call throws) for a library error: a broker error
+    // gets a readable message (see `brokerMessage`), anything else passes through unchanged.
+    private static func describe(_ error: Swift.Error) -> Swift.Error {
+        if let message = brokerMessage(error) {
+            return {{ spec.info.title | caseUcfirst }}Error(message: message)
+        }
+        return error
+    }
+
+    // The broker explains a refusal or disconnect with the MQTT 5 Reason String property.
+    private static func reasonString(_ properties: MQTTProperties) -> String? {
+        for case .reasonString(let value) in properties where !value.isEmpty {
+            return value
+        }
+        return nil
+    }
+
+    // A readable message for a broker-originated MQTTNIO error, or nil for any other error.
+    // A server DISCONNECT carries its packet (and so its Reason String). A refused CONNACK
+    // only reaches us as its reason code: MQTTNIO drops the CONNACK properties when it
+    // rejects the connection, so its Reason String is not available here.
+    private static func brokerMessage(_ error: Swift.Error) -> String? {
+        switch error {
+        case MQTTError.serverDisconnection(let ack):
+            return reasonString(ack.properties) ?? "MQTT connection closed by the broker (DISCONNECT reason \(ack.reason))"
+        case MQTTError.reasonError(let reason):
+            return "MQTT connection refused (CONNACK reason \(reason))"
+        default:
+            return nil
+        }
+    }
+
+    private func dispatch(_ publish: MQTTPublishInfo) {
+        let pushMessage = PushMessage(
+            topic: publish.topicName,
+            payload: [UInt8](publish.payload.readableBytesView),
+            qos: Int(publish.qos.rawValue)
+        )
+        // Notification is per-subscription: only subs that opted in post one, each with its
+        // own title.
+        let matched = sync.sync {
+            subscriptions.values.filter { matches(filter: $0.filter, topic: publish.topicName) }
+        }
+        for entry in matched {
+            entry.callback(pushMessage)
+            if entry.background {
+                notify(pushMessage, title: entry.title)
+            }
+        }
+    }
+
+    private func notify(_ message: PushMessage, title: String?) {
+        #if canImport(UserNotifications)
+            let content = UNMutableNotificationContent()
+            content.title = title ?? message.topic
+            content.body = message.data
+            content.sound = .default
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request) { [weak self] error in
+                if let error {
+                    self?.surface(error)
+                }
+            }
+        #endif
+    }
+
+}
+
+/// The `userId` claim of a JWT's payload segment (base64url JSON), or nil when absent.
+private func userIdFromJwt(_ jwt: String) -> String? {
+    let parts = jwt.split(separator: ".", omittingEmptySubsequences: false)
+    guard parts.count >= 2 else { return nil }
+    var payload = parts[1].replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+    payload += String(repeating: "=", count: (4 - payload.count % 4) % 4)
+    return jsonString(base64: payload, key: "userId")
+}
+
+/// The `id` in a session secret (standard base64 of `{"id": ..., "secret": ...}`), or nil.
+private func userIdFromSession(_ session: String) -> String? {
+    jsonString(base64: session, key: "id")
+}
+
+private func jsonString(base64: String, key: String) -> String? {
+    guard let data = Data(base64Encoded: base64),
+        let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        let value = object[key] as? String, !value.isEmpty
+    else {
+        return nil
+    }
+    return value
+}
+
+/// MQTT topic-filter match with `+` (single level) and `#` (multi level).
+private func matches(filter: String, topic: String) -> Bool {
+    let filterParts = filter.split(separator: "/", omittingEmptySubsequences: false)
+    let topicParts = topic.split(separator: "/", omittingEmptySubsequences: false)
+    for (index, part) in filterParts.enumerated() {
+        if part == "#" {
+            return true
+        }
+        if index >= topicParts.count {
+            return false
+        }
+        if part != "+" && part != topicParts[index] {
+            return false
+        }
+    }
+    return filterParts.count == topicParts.count
+}

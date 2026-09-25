@@ -155,8 +155,18 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/topic.test.js',
+                'template'      => 'node/test/topic.test.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/id.ts',
                 'template'      => 'web/src/id.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/topic.ts',
+                'template'      => 'web/src/topic.ts.twig',
             ],
             [
                 'scope'         => 'default',

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import '../lib/client_io.dart';
@@ -10,6 +11,7 @@ import '../lib/enums.dart';
 import '../lib/models.dart';
 import '../lib/packageName.dart';
 import '../lib/src/input_file.dart';
+import '../lib/src/mqtt_native.dart';
 
 class FakePathProvider extends PathProviderPlatform {
   @override
@@ -399,6 +401,30 @@ void main() async {
   print(ID.unique());
   print(ID.custom('custom_id'));
 
+  // Topic helper tests
+  print(Topic.path(['user', '123', 'notification']).toString());
+  print(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
+  print(Topic.path(['user']).any().path(['notification']).toString());
+  print(Topic.path(['chat']).any().any().path(['message']).toString());
+  print(Topic.path(['org']).any().path(['logs']).all().toString());
+  print(Topic.any().path(['notification']).toString());
+  print(Topic.all().toString());
+  final topicCases = <String, List<String>>{
+    'empty path': [],
+    'empty level': ['user', ''],
+    'slash': ['user/123'],
+    'plus': ['user', 'a+b'],
+    'hash': ['user', '#'],
+  };
+  topicCases.forEach((name, levels) {
+    try {
+      Topic.path(levels);
+      print('Topic $name:failed');
+    } catch (e) {
+      print('Topic $name:passed');
+    }
+  });
+
   // Channel helper tests
   print(Channel.database('db1').collection('col1').document().toString());
   print(Channel.database('db1').collection('col1').document('doc1').toString());
@@ -463,6 +489,279 @@ void main() async {
 
   response = await general.headers();
   print(response.result);
+
+  // Native push (MQTT): subscribe, then the mock broker delivers a message
+  // (server-initiated, as in production — the SDK has no publish method).
+  client.setJWT(
+      'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e');
+  client.setPushEndpoint('mqtt://mqtt:1883');
+  final push = Push(client);
+  final pushOpened = Completer<void>();
+  push.onOpen(() {
+    if (!pushOpened.isCompleted) {
+      pushOpened.complete();
+    }
+  });
+  final pushReceived = Completer<PushMessage>();
+  final pushSub = await push.subscribe([Topic.path(['e2e-push'])], (m) {
+    if (!pushReceived.isCompleted) {
+      pushReceived.complete(m);
+    }
+  });
+  print('Push subscribe:passed');
+  try {
+    await pushOpened.future.timeout(const Duration(seconds: 10));
+    print('Push open:passed');
+  } catch (_) {
+    print('Push open:failed');
+  }
+  final pushMessage =
+      await pushReceived.future.timeout(const Duration(seconds: 10));
+  print(pushMessage.data == 'push-payload' && pushMessage.topic == 'e2e-push'
+      ? 'Push message:passed'
+      : 'Push message:failed');
+  // reliableDelivery (default) => QoS 1 end to end.
+  print(pushMessage.qos == 1 ? 'Push qos:passed' : 'Push qos:failed');
+  pushSub.unsubscribe();
+  push.close();
+
+  // Topic-less subscribe: the signed-in user's own `users/<userId>` topic. After each
+  // SUBSCRIBE the mock publishes to `users/e2e-user`, `users/e2e-session-user` and
+  // `users/other-user`, so a client passes only if it receives its own topic and
+  // nothing else (an over-broad `users/+` or `users/#` subscription would also get
+  // the others).
+  const e2eSession =
+      'eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0=';
+  Future<List<String>> userTopicsOf(Client userClient) async {
+    final userPush = Push(userClient);
+    final received = <String>[];
+    // The topic-less form defaults to background: true; the test stays in-process.
+    final userSub = await userPush.subscribe(null, (m) {
+      received.add(m.topic);
+    }, background: false);
+    await Future.delayed(const Duration(seconds: 3));
+    userSub.unsubscribe();
+    userPush.close();
+    return received;
+  }
+
+  bool onlyTopic(List<String> received, String expected) =>
+      received.isNotEmpty && received.every((topic) => topic == expected);
+
+  // JWT and session both set: the JWT's user wins.
+  client.setSession(e2eSession);
+  try {
+    final jwtTopics = await userTopicsOf(client);
+    print(onlyTopic(jwtTopics, 'users/e2e-user')
+        ? 'Push user topic:passed'
+        : 'Push user topic:failed');
+  } catch (_) {
+    print('Push user topic:failed');
+  }
+
+  // Session only: the user id comes from the session secret.
+  final sessionClient = Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883')
+      .setSession(e2eSession);
+  try {
+    final sessionTopics = await userTopicsOf(sessionClient);
+    print(onlyTopic(sessionTopics, 'users/e2e-session-user')
+        ? 'Push user session topic:passed'
+        : 'Push user session topic:failed');
+  } catch (_) {
+    print('Push user session topic:failed');
+  }
+
+  // No credential: a topic-less subscribe has no user to resolve and throws.
+  final anonymousPush = Push(Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883'));
+  var noCredentialRejected = false;
+  try {
+    await anonymousPush.subscribe(null, (_) {});
+  } on AppwriteException catch (e) {
+    // The credential error itself, not any failure (setup, connection, ...).
+    noCredentialRejected = e.message?.contains('signed-in user') ?? false;
+  } catch (_) {}
+  anonymousPush.close();
+  print(noCredentialRejected
+      ? 'Push user no credential:passed'
+      : 'Push user no credential:failed');
+
+  // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
+  // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
+  // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
+  Future<String> firstError(Push errorPush, String topic) async {
+    final error = Completer<String>();
+    errorPush.onError((e) {
+      if (!error.isCompleted) {
+        error.complete(
+          e is AppwriteException ? (e.message ?? '') : e.toString(),
+        );
+      }
+    });
+    // Not awaited: the error, not the subscribe outcome, is under test.
+    unawaited(
+      errorPush
+          .subscribe(topic, (_) {}, background: false)
+          .then((_) {}, onError: (Object _) {}),
+    );
+    try {
+      return await error.future.timeout(const Duration(seconds: 5));
+    } catch (_) {
+      return '';
+    }
+  }
+
+  final deniedPush = Push(
+    Client()
+        .setSelfSigned()
+        .setProject('console')
+        .setPushEndpoint('mqtt://mqtt:1883')
+        .setJWT('deny:refused-by-test'),
+  );
+  final deniedError = await firstError(deniedPush, 'e2e-push');
+  print(
+    deniedError == 'refused-by-test'
+        ? 'Push connect error:passed'
+        : 'Push connect error:failed',
+  );
+  deniedPush.close();
+
+  final kickedPush = Push(client);
+  final kickedError = await firstError(kickedPush, 'e2e-disconnect/kicked-by-test');
+  print(
+    kickedError == 'kicked-by-test'
+        ? 'Push disconnect error:passed'
+        : 'Push disconnect error:failed',
+  );
+  kickedPush.close();
+
+  // Background delivery on Android through the public API. The SDK's native Android plugin needs
+  // a device, so a stand-in answers on its channels, as the mock server stands in for the broker;
+  // the plugin itself is exercised over the same channels by the Robolectric run.
+  final plugin = FakePushPlugin();
+  PushNative.debugInstance = PushNative.forMessenger(plugin);
+  final backgroundPush = Push(Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883')
+      .setSession(e2eSession));
+  final delivered = <String>[];
+  var subscribed = false;
+  final pending = backgroundPush
+      .subscribe('news', (message) => delivered.add(message.data),
+          background: true, title: 'News')
+      .then((sub) {
+    subscribed = true;
+    return sub;
+  });
+  // Not subscribed until the plugin reports the connection is up and the topic subscribed.
+  await Future.delayed(const Duration(milliseconds: 300));
+  final earlySubscribe = subscribed;
+  plugin.subscribed.complete();
+  await pending;
+  print(!earlySubscribe && subscribed
+      ? 'Push native subscribe:passed'
+      : 'Push native subscribe:failed');
+
+  // A message the plugin delivers reaches the callback.
+  plugin.deliver('news', 'native-payload');
+  await Future.delayed(const Duration(milliseconds: 300));
+  print(delivered.join(',') == 'native-payload'
+      ? 'Push native message:passed'
+      : 'Push native message:failed');
+
+  // After sign-out, a message still sent for the old subscription no longer reaches the app.
+  // (That the native side stops delivering is checked by the Robolectric run.)
+  backgroundPush.close();
+  await Future.delayed(const Duration(milliseconds: 300));
+  plugin.deliver('news', 'after-close');
+  await Future.delayed(const Duration(milliseconds: 300));
+  print(delivered.join(',') == 'native-payload'
+      ? 'Push native close:passed'
+      : 'Push native close:failed');
+
+  // Two credentials with background delivery on Android: the device hosts one, so the Push that
+  // started it first hears on onError that its background delivery stopped, and the other does not.
+  final firstErrors = <Object>[];
+  final secondErrors = <Object>[];
+  final firstUser = Push(Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883')
+      .setSession(e2eSession))
+    ..onError(firstErrors.add);
+  await firstUser.subscribe('news', (_) {}, background: true);
+  final secondUser = Push(Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883')
+      .setJWT('eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e'))
+    ..onError(secondErrors.add);
+  await secondUser.subscribe('news', (_) {}, background: true);
+  await Future.delayed(const Duration(milliseconds: 300));
+  print(firstErrors.any((e) => e.toString().contains('Background delivery stopped')) && secondErrors.isEmpty
+      ? 'Push native displaced:passed'
+      : 'Push native displaced:failed');
+  firstUser.close();
+  secondUser.close();
+  PushNative.debugInstance = null;
+}
+
+/// Answers on the native plugin's channels like the Android plugin does: hosting completes once
+/// [subscribed] completes, and [deliver] sends a message for the hosted subscription on [topic].
+class FakePushPlugin implements BinaryMessenger {
+  static const codec = StandardMethodCodec();
+  final subscribed = Completer<void>();
+  final _hosted = <Map<String, dynamic>>[];
+  MessageHandler? _events;
+
+  void deliver(String topic, String payload) {
+    for (final subscription in _hosted.where((s) => s['topic'] == topic)) {
+      _events?.call(codec.encodeSuccessEnvelope({
+        'type': 'message',
+        'id': subscription['id'],
+        'topic': topic,
+        'payload': Uint8List.fromList(utf8.encode(payload)),
+        'qos': 1,
+        'ackToken': 'token-${subscription['id']}',
+      }));
+    }
+  }
+
+  @override
+  Future<ByteData?> send(String channel, ByteData? message) async {
+    final call = codec.decodeMethodCall(message);
+    final arguments = call.arguments as Map<Object?, Object?>?;
+    switch (call.method) {
+      case 'host':
+        _hosted
+          ..clear()
+          ..addAll((jsonDecode(arguments!['subscriptions'] as String) as List)
+              .cast<Map<String, dynamic>>());
+        await subscribed.future;
+        return codec.encodeSuccessEnvelope(null);
+      case 'hasSaved':
+        return codec.encodeSuccessEnvelope(false);
+      case 'defaultClientId':
+        return codec.encodeSuccessEnvelope('e2e-session-user-install');
+      default:
+        return codec.encodeSuccessEnvelope(null);
+    }
+  }
+
+  @override
+  void setMessageHandler(String channel, MessageHandler? handler) {
+    _events = handler;
+  }
+
+  @override
+  Future<void> handlePlatformMessage(
+      String channel, ByteData? data, PlatformMessageResponseCallback? callback) async {}
 }
 
 String? parse(String json) {

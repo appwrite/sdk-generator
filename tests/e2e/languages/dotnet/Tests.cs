@@ -8,6 +8,8 @@ using Appwrite.Models;
 using Appwrite.Enums;
 using Appwrite.Services;
 using NUnit.Framework;
+// Appwrite.Models also has a Topic (the messaging model); the push topic builder is meant here.
+using Topic = Appwrite.Topic;
 
 namespace AppwriteTests
 {
@@ -267,6 +269,35 @@ namespace AppwriteTests
             // ID helper tests
             TestContext.WriteLine(ID.Unique());
             TestContext.WriteLine(ID.Custom("custom_id"));
+
+            // Topic helper tests
+            TestContext.WriteLine(Topic.Path(new[] { "user", "123", "notification" }).ToString());
+            TestContext.WriteLine(Topic.Path(new[] { "org", "42", "user", "123" }).Path(new[] { "notification" }).ToString());
+            TestContext.WriteLine(Topic.Path(new[] { "user" }).Any().Path(new[] { "notification" }).ToString());
+            TestContext.WriteLine(Topic.Path(new[] { "chat" }).Any().Any().Path(new[] { "message" }).ToString());
+            TestContext.WriteLine(Topic.Path(new[] { "org" }).Any().Path(new[] { "logs" }).All().ToString());
+            TestContext.WriteLine(Topic.Any().Path(new[] { "notification" }).ToString());
+            TestContext.WriteLine(Topic.All().ToString());
+            var topicCases = new (string Name, string[] Levels)[]
+            {
+                ("empty path", new string[0]),
+                ("empty level", new[] { "user", "" }),
+                ("slash", new[] { "user/123" }),
+                ("plus", new[] { "user", "a+b" }),
+                ("hash", new[] { "user", "#" }),
+            };
+            foreach (var (name, levels) in topicCases)
+            {
+                try
+                {
+                    Topic.Path(levels);
+                    TestContext.WriteLine($"Topic {name}:failed");
+                }
+                catch (System.ArgumentException)
+                {
+                    TestContext.WriteLine($"Topic {name}:passed");
+                }
+            }
 
             // Operator helper tests
             TestContext.WriteLine(Operator.Increment(1));

@@ -309,6 +309,35 @@ namespace {{ spec.info.title | caseUcfirst }}
             return this;
         }
 
+        /// <summary>
+        /// Set the push endpoint
+        ///
+        /// The MQTT broker URL the Push service connects to, e.g. "mqtt://host:1883" or
+        /// "mqtts://host:8883".
+        /// </summary>
+        /// <param name="endpoint">The MQTT broker URL</param>
+        /// <returns>Client instance for method chaining</returns>
+        public Client SetPushEndpoint(string endpoint)
+        {
+            _config["endpointPush"] = endpoint;
+            return this;
+        }
+
+        /// <summary>
+        /// Set the push client id
+        ///
+        /// A stable client id for the Push service. The broker keys its offline-replay cursor
+        /// on this id, so pass a stable value to resume replay across restarts. Defaults to a
+        /// per-connection id when unset.
+        /// </summary>
+        /// <param name="pushClientId">The push client id</param>
+        /// <returns>Client instance for method chaining</returns>
+        public Client SetPushClientId(string pushClientId)
+        {
+            _config["pushClientId"] = pushClientId;
+            return this;
+        }
+
         public Dictionary<string, string> GetHeaders()
         {
             return new Dictionary<string, string>(_headers);

@@ -244,6 +244,29 @@ puts Permission.create(Role.label('admin'))
 puts ID.unique()
 puts ID.custom('custom_id')
 
+# Topic helper tests
+puts Topic.path(['user', '123', 'notification'])
+puts Topic.path(['org', '42', 'user', '123']).path(['notification'])
+puts Topic.path(['user']).any.path(['notification'])
+puts Topic.path(['chat']).any.any.path(['message'])
+puts Topic.path(['org']).any.path(['logs']).all
+puts Topic.any.path(['notification'])
+puts Topic.all
+[
+    ['empty path', []],
+    ['empty level', ['user', '']],
+    ['slash', ['user/123']],
+    ['plus', ['user', 'a+b']],
+    ['hash', ['user', '#']]
+].each do |name, levels|
+    begin
+        Topic.path(levels)
+        puts "Topic #{name}:failed"
+    rescue ArgumentError
+        puts "Topic #{name}:passed"
+    end
+end
+
 # Operator helper tests
 puts Operator.increment(1)
 puts Operator.increment(5, 100)

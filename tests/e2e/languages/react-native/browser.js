@@ -10,6 +10,7 @@ import {
     Permission,
     Role,
     ID,
+    Topic,
     Channel,
     Operator,
     Condition,
@@ -356,6 +357,29 @@ import {
     // ID helper tests
     console.log(ID.unique());
     console.log(ID.custom('custom_id'));
+
+    // Topic helper tests
+    console.log(Topic.path(['user', '123', 'notification']).toString());
+    console.log(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
+    console.log(Topic.path(['user']).any().path(['notification']).toString());
+    console.log(Topic.path(['chat']).any().any().path(['message']).toString());
+    console.log(Topic.path(['org']).any().path(['logs']).all().toString());
+    console.log(Topic.any().path(['notification']).toString());
+    console.log(Topic.all().toString());
+    for (const [name, levels] of [
+        ['empty path', []],
+        ['empty level', ['user', '']],
+        ['slash', ['user/123']],
+        ['plus', ['user', 'a+b']],
+        ['hash', ['user', '#']],
+    ]) {
+        try {
+            Topic.path(levels);
+            console.log(`Topic ${name}:failed`);
+        } catch (e) {
+            console.log(`Topic ${name}:passed`);
+        }
+    }
 
     // Channel helper tests
     console.log(Channel.database('db1').collection('col1').document().toString());

@@ -130,6 +130,16 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'topic/topic.go',
+                'template'      => 'go/topic.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'topic/topic_test.go',
+                'template'      => 'go/topic_test.go.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'id/id_test.go',
                 'template'      => 'go/id_test.go.twig',
             ],

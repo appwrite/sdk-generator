@@ -145,6 +145,64 @@ abstract class Base extends TestCase
         'Realtime disconnect:passed',
     ];
 
+    // Native push (MQTT) round-trip against the mock broker: subscribe, receive, and the
+    // connection lifecycle hook (onOpen) firing.
+    protected const PUSH_RESPONSES = [
+        'Push subscribe:passed',
+        'Push open:passed',
+        'Push message:passed',
+        'Push qos:passed',
+        'Push user topic:passed',
+        'Push user session topic:passed',
+        'Push user no credential:passed',
+    ];
+
+    // Web and React Native derive their client id themselves (mqtt.js needs one): a user signing
+    // in again with a new session still gets what was missed in between replayed.
+    protected const PUSH_SESSION_REPLAY_RESPONSES = [
+        'Push session replay:passed',
+    ];
+
+    // Broker errors reaching onError: a refused CONNECT and a server DISCONNECT, carrying the
+    // broker's MQTT 5 reason string (Apple checks only that the error arrives: MQTTNIO does not
+    // expose the reason string).
+    protected const PUSH_ERROR_RESPONSES = [
+        'Push connect error:passed',
+        'Push disconnect error:passed',
+    ];
+
+    // Android background delivery used the way an app does: a background subscription's
+    // message, the scheduled wake-up after the process died bringing the next message to the
+    // app's PushReceiver and a notification, sign-out stopping it, and a refused credential
+    // stopping it with onError.
+    // Flutter's public Push API on the Android path, with a stand-in for the native plugin on its
+    // channels: background subscribe completes once the plugin reports it subscribed, a message
+    // reaches the callback, and after sign-out it no longer reaches the app.
+    protected const FLUTTER_PUSH_NATIVE_RESPONSES = [
+        'Push native subscribe:passed',
+        'Push native message:passed',
+        'Push native close:passed',
+    ];
+
+    // Android: a saved background subscription the app later subscribes to with background off,
+    // then unsubscribes, delivers nothing after a restart.
+    protected const ANDROID_PUSH_OPT_OUT_RESPONSES = [
+        'Push background opt-out:passed',
+    ];
+
+    // React Native and Flutter on Android: when a Push with another credential starts background
+    // delivery, the Push that had it hears on onError that its background delivery stopped.
+    protected const PUSH_NATIVE_DISPLACED_RESPONSES = [
+        'Push native displaced:passed',
+    ];
+
+    protected const PUSH_BACKGROUND_RESPONSES = [
+        'Push background message:passed',
+        'Push background restore:passed',
+        'Push background close:passed',
+        'Push background refused:passed',
+    ];
+
     protected const QUERY_HELPER_RESPONSES = [
         '{"method":"equal","attribute":"released","values":[true]}',
         '{"method":"equal","attribute":"title","values":["Spiderman","Dr. Strange"]}',
@@ -229,6 +287,21 @@ abstract class Base extends TestCase
     protected const ID_HELPER_RESPONSES = [
         'unique()',
         'custom_id'
+    ];
+
+    protected const TOPIC_HELPER_RESPONSES = [
+        'user/123/notification',
+        'org/42/user/123/notification',
+        'user/+/notification',
+        'chat/+/+/message',
+        'org/+/logs/#',
+        '+/notification',
+        '#',
+        'Topic empty path:passed',
+        'Topic empty level:passed',
+        'Topic slash:passed',
+        'Topic plus:passed',
+        'Topic hash:passed',
     ];
 
     protected const ADDITIONAL_PROPERTIES_RESPONSES = [

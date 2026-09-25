@@ -403,6 +403,30 @@ class Tests: XCTestCase {
         print(ID.unique())
         print(ID.custom("custom_id"))
 
+        // Topic helper tests
+        print(try Topic.path(["user", "123", "notification"]).toString())
+        print(try Topic.path(["org", "42", "user", "123"]).path(["notification"]).toString())
+        print(try Topic.path(["user"]).any().path(["notification"]).toString())
+        print(try Topic.path(["chat"]).any().any().path(["message"]).toString())
+        print(try Topic.path(["org"]).any().path(["logs"]).all().toString())
+        print(try Topic.any().path(["notification"]).toString())
+        print(Topic.all().toString())
+        let topicCases: [(String, [String])] = [
+            ("empty path", []),
+            ("empty level", ["user", ""]),
+            ("slash", ["user/123"]),
+            ("plus", ["user", "a+b"]),
+            ("hash", ["user", "#"]),
+        ]
+        for (name, levels) in topicCases {
+            do {
+                _ = try Topic.path(levels)
+                print("Topic \(name):failed")
+            } catch {
+                print("Topic \(name):passed")
+            }
+        }
+
         // Channel helper tests
         print(try Channel.database("db1").collection("col1").document().toString())
         print(try Channel.database("db1").collection("col1").document("doc1").toString())
@@ -467,6 +491,120 @@ class Tests: XCTestCase {
 
         mock = try await general.headers()
         print(mock.result)
+
+        // Native push (MQTT) round-trip against the mock broker.
+        _ = client.setJWT("eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e")
+        _ = client.setPushEndpoint("mqtt://mqtt:1883")
+        let push = Push(client)
+        let pushOpenExpectation = XCTestExpectation(description: "push open")
+        _ = push.onOpen { pushOpenExpectation.fulfill() }
+        let pushExpectation = XCTestExpectation(description: "push message")
+        var pushBody = "Push message:failed"
+        var pushQos = "Push qos:failed"
+        let pushSub = try await push.subscribe([Topic.path(["e2e-push"])]) { message in
+            if message.data == "push-payload" && message.topic == "e2e-push" {
+                pushBody = "Push message:passed"
+            }
+            if message.qos == 1 {
+                pushQos = "Push qos:passed"
+            }
+            pushExpectation.fulfill()
+        }
+        print("Push subscribe:passed")
+        // onOpen fires during subscribe (the connection is established there), so by now the
+        // expectation is already fulfilled and this returns immediately.
+        let pushOpenResult = XCTWaiter().wait(for: [pushOpenExpectation], timeout: 10)
+        print(pushOpenResult == .completed ? "Push open:passed" : "Push open:failed")
+        await fulfillment(of: [pushExpectation], timeout: 10)
+        print(pushBody)
+        // reliableDelivery (default) => QoS 1 end to end.
+        print(pushQos)
+        pushSub.unsubscribe()
+        push.close()
+
+        // Topic-less subscribe: the signed-in user's own topic, users/<userId>. After each
+        // SUBSCRIBE the mock publishes to users/e2e-user, users/e2e-session-user and
+        // users/other-user, so a client passes only if it receives its own topic and nothing
+        // else (an over-broad users/+ or users/# subscription would also get the others).
+        let e2eSession = "eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0="
+        func userTopicsOf(_ userClient: Client) async throws -> [String] {
+            let userPush = Push(userClient)
+            let received = TopicCollector()
+            // The topic-less form defaults to background: true; the test skips notifications.
+            let userPushSub = try await userPush.subscribe(background: false) { message in
+                received.append(message.topic)
+            }
+            try await Task.sleep(nanoseconds: 3_000_000_000)
+            userPushSub.unsubscribe()
+            userPush.close()
+            return received.topics
+        }
+        func onlyTopic(_ received: [String], _ expected: String) -> Bool {
+            !received.isEmpty && received.allSatisfy { $0 == expected }
+        }
+
+        // JWT and session both set: the JWT's user wins.
+        _ = client.setSession(e2eSession)
+        let jwtTopics = (try? await userTopicsOf(client)) ?? []
+        print(onlyTopic(jwtTopics, "users/e2e-user") ? "Push user topic:passed" : "Push user topic:failed")
+
+        // Session only: the user id comes from the session secret.
+        let sessionClient = Client()
+            .setProject("console")
+            .setSelfSigned()
+            .setPushEndpoint("mqtt://mqtt:1883")
+            .setSession(e2eSession)
+        let sessionTopics = (try? await userTopicsOf(sessionClient)) ?? []
+        print(onlyTopic(sessionTopics, "users/e2e-session-user") ? "Push user session topic:passed" : "Push user session topic:failed")
+
+        // No credential: a topic-less subscribe has no user to resolve and throws.
+        let anonymousPush = Push(
+            Client()
+                .setProject("console")
+                .setSelfSigned()
+                .setPushEndpoint("mqtt://mqtt:1883")
+        )
+        var noCredentialRejected = false
+        do {
+            _ = try await anonymousPush.subscribe { _ in }
+        } catch let error as AppwriteError {
+            // The credential error itself, not any failure (setup, connection, ...).
+            noCredentialRejected = error.message.contains("signed-in user")
+        } catch {
+            noCredentialRejected = false
+        }
+        anonymousPush.close()
+        print(noCredentialRejected ? "Push user no credential:passed" : "Push user no credential:failed")
+
+        // Broker errors reach onError: a refused CONNECT (the mock refuses a "deny:<reason>" credential with <reason>)
+        // and a server-initiated DISCONNECT (the mock disconnects clients that subscribe to
+        // "e2e-disconnect/<reason>" with <reason>). MQTTNIO does not expose the broker's reason string, so Apple checks
+        // that an error arrives, not its text.
+        func firstError(_ errorPush: Push, subscribingTo topic: String) async -> String {
+            let collector = ErrorCollector()
+            _ = errorPush.onError { error in
+                collector.record((error as? AppwriteError)?.message ?? error.localizedDescription)
+            }
+            _ = try? await errorPush.subscribe(topic) { _ in }
+            for _ in 0..<50 where collector.message == nil {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+            }
+            errorPush.close()
+            return collector.message ?? ""
+        }
+
+        let deniedPush = Push(
+            Client()
+                .setProject("console")
+                .setSelfSigned()
+                .setPushEndpoint("mqtt://mqtt:1883")
+                .setJWT("deny:refused-by-test")
+        )
+        let deniedError = await firstError(deniedPush, subscribingTo: "e2e-push")
+        print(!deniedError.isEmpty ? "Push connect error:passed" : "Push connect error:failed")
+
+        let kickedError = await firstError(Push(client), subscribingTo: "e2e-disconnect/kicked-by-test")
+        print(!kickedError.isEmpty ? "Push disconnect error:passed" : "Push disconnect error:failed")
     }
 
     func parse(from json: String) -> String? {
@@ -476,5 +614,42 @@ class Tests: XCTestCase {
             return result
         }
         return nil
+    }
+}
+
+/// Collects received push topics; the push callback may run on another thread.
+final class TopicCollector: @unchecked Sendable {
+    private let lock = NSLock()
+    private var received: [String] = []
+
+    func append(_ topic: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        received.append(topic)
+    }
+
+    var topics: [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return received
+    }
+}
+
+final class ErrorCollector: @unchecked Sendable {
+    private let lock = NSLock()
+    private var first: String?
+
+    var message: String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return first
+    }
+
+    func record(_ message: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        if first == nil {
+            first = message
+        }
     }
 }

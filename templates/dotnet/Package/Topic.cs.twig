@@ -1,0 +1,144 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace {{ spec.info.title | caseUcfirst }}
+{
+    /// <summary>
+    /// Helper to build MQTT topics for <c>Push</c>, level by level.
+    /// <code>
+    /// Topic.Path(new[] { "user", userId, "notification" }); // "user/123/notification"
+    /// Topic.Path(new[] { "user" }).Any().Path(new[] { "notification" }); // "user/+/notification"
+    /// Topic.Path(new[] { "org" }).Any().Path(new[] { "logs" }).All(); // "org/+/logs/#"
+    /// </code>
+    /// <c>Any()</c> matches exactly one level and <c>All()</c> everything below, at any depth
+    /// (including the parent itself). <c>All()</c> ends the topic, so it returns a
+    /// <see cref="ResolvedTopic"/>. The instance <c>Path</c>, <c>Any</c> and <c>All</c> that
+    /// append to a topic live in <see cref="TopicExtensions"/>.
+    /// </summary>
+    public sealed class Topic
+    {
+        internal IReadOnlyList<string> Levels { get; }
+
+        internal Topic(IReadOnlyList<string> levels)
+        {
+            Levels = levels;
+        }
+
+        /// <summary>Start a topic with the given levels, e.g. <c>Topic.Path(new[] { "user", userId })</c>.</summary>
+        /// <exception cref="ArgumentException">A level is empty, or holds "/", "+" or "#".</exception>
+        public static Topic Path(IEnumerable<string> levels)
+        {
+            return new Topic(LevelsOf(levels));
+        }
+
+        /// <summary>Start a topic with a single-level wildcard (<c>+</c>).</summary>
+        public static Topic Any()
+        {
+            return new Topic(new[] { "+" });
+        }
+
+        /// <summary>The multi-level wildcard alone (<c>#</c>): matches every topic.</summary>
+        public static ResolvedTopic All()
+        {
+            return new ResolvedTopic(new[] { "#" });
+        }
+
+        public override string ToString() => string.Join("/", Levels);
+
+        /// <summary>
+        /// Validate the levels passed to <c>Path</c>: a non-empty list of non-empty strings, none
+        /// holding the level separator <c>/</c> or the wildcards <c>+</c> and <c>#</c> (use
+        /// <c>Any()</c> and <c>All()</c> for those).
+        /// </summary>
+        internal static List<string> LevelsOf(IEnumerable<string> levels)
+        {
+            if (levels == null)
+            {
+                throw new ArgumentException("path() expects an array, e.g. path(['user'])");
+            }
+
+            var list = levels.ToList();
+            if (list.Count == 0)
+            {
+                throw new ArgumentException("path() needs at least one level");
+            }
+
+            for (var index = 0; index < list.Count; index++)
+            {
+                var level = list[index];
+                if (level == null)
+                {
+                    throw new ArgumentException($"level at index {index} must be a string, got null");
+                }
+                if (level.Length == 0)
+                {
+                    throw new ArgumentException($"empty level at index {index}");
+                }
+                if (level.Contains("/"))
+                {
+                    var parts = string.Join(", ", level.Split('/').Select(part => $"'{part}'"));
+                    throw new ArgumentException($"\"{level}\" contains \"/\", split it: path([{parts}])");
+                }
+                if (level == "+")
+                {
+                    throw new ArgumentException("\"+\" is reserved, use any()");
+                }
+                if (level.Contains("+"))
+                {
+                    throw new ArgumentException($"\"{level}\" contains \"+\", use any() for wildcards");
+                }
+                if (level == "#")
+                {
+                    throw new ArgumentException("\"#\" is reserved, use all()");
+                }
+                if (level.Contains("#"))
+                {
+                    throw new ArgumentException($"\"{level}\" contains \"#\", use all() for wildcards");
+                }
+            }
+
+            return list;
+        }
+    }
+
+    /// <summary>
+    /// Appends levels to a <see cref="Topic"/>. These are extension methods because C# does not
+    /// allow a static and an instance method with the same signature on one class, and they
+    /// keep chains reading <c>Topic.Path(...).Any().Path(...)</c>.
+    /// </summary>
+    public static class TopicExtensions
+    {
+        /// <summary>Append the given levels.</summary>
+        /// <exception cref="ArgumentException">A level is empty, or holds "/", "+" or "#".</exception>
+        public static Topic Path(this Topic topic, IEnumerable<string> levels)
+        {
+            return new Topic(topic.Levels.Concat(Topic.LevelsOf(levels)).ToList());
+        }
+
+        /// <summary>Append a single-level wildcard (<c>+</c>): matches exactly one level.</summary>
+        public static Topic Any(this Topic topic)
+        {
+            return new Topic(topic.Levels.Concat(new[] { "+" }).ToList());
+        }
+
+        /// <summary>Append the multi-level wildcard (<c>#</c>) and end the topic.</summary>
+        public static ResolvedTopic All(this Topic topic)
+        {
+            return new ResolvedTopic(topic.Levels.Concat(new[] { "#" }).ToList());
+        }
+    }
+
+    /// <summary>A topic ended by <c>All()</c>: nothing can be appended after the <c>#</c> wildcard.</summary>
+    public sealed class ResolvedTopic
+    {
+        private readonly IReadOnlyList<string> _levels;
+
+        internal ResolvedTopic(IReadOnlyList<string> levels)
+        {
+            _levels = levels;
+        }
+
+        public override string ToString() => string.Join("/", _levels);
+    }
+}

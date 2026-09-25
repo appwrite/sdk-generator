@@ -49,6 +49,10 @@ class Client @JvmOverloads constructor(
     var endpoint: String = "{{(spec | endpoint)}}",
     @set:JvmSynthetic
     var endpointRealtime: String? = null,
+    @set:JvmSynthetic
+    var endpointPush: String? = null,
+    @set:JvmSynthetic
+    var pushClientId: String? = null,
     private var selfSigned: Boolean = false
 ) : CoroutineScope {
 
@@ -214,6 +218,37 @@ class Client @JvmOverloads constructor(
         }
 
         this.endpointRealtime = endpoint
+        return this
+    }
+
+    /**
+     * Set push endpoint
+     *
+     * The MQTT broker URL the [io.appwrite.services.Push] service connects to, e.g.
+     * `mqtt://host:1883` or `mqtts://host:8883`.
+     *
+     * @param endpoint
+     *
+     * @return this
+     */
+    fun setPushEndpoint(endpoint: String): Client {
+        this.endpointPush = endpoint
+        return this
+    }
+
+    /**
+     * Set push client id
+     *
+     * A stable client id for the [io.appwrite.services.Push] service. The broker keys its
+     * offline-replay cursor on this id, so pass a stable value to resume replay across
+     * restarts. Defaults to the userId decoded from the JWT (else the credential) when unset.
+     *
+     * @param pushClientId
+     *
+     * @return this
+     */
+    fun setPushClientId(pushClientId: String): Client {
+        this.pushClientId = pushClientId
         return this
     }
 

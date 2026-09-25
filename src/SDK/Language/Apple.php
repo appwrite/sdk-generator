@@ -82,6 +82,11 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Topic.swift',
+                'template'      => 'swift/Sources/Topic.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Channel.swift',
                 'template'      => 'apple/Sources/Channel.swift.twig',
             ],
@@ -245,6 +250,11 @@ class Apple extends Swift
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Services/Realtime.swift',
                 'template'      => '/apple/Sources/Services/Realtime.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Services/Push.swift',
+                'template'      => '/apple/Sources/Services/Push.swift.twig',
             ],
             [
                 'scope'         => 'default',

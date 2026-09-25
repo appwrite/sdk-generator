@@ -1,0 +1,48 @@
+const {
+    createRunOncePlugin,
+    withAppBuildGradle,
+} = require('@expo/config-plugins');
+
+const pkg = require('./package.json');
+
+// Push's native Android module (android/) uses HiveMQ, whose bundled Netty jars ship duplicate
+// META-INF files that Android's packager rejects ("More than one file was found with OS
+// independent path"). Packaging is resolved when the app is assembled, so a library cannot
+// apply the excludes itself: this plugin adds them to the app's build.gradle.
+const EXCLUDES = [
+    '/META-INF/INDEX.LIST',
+    '/META-INF/io.netty.versions.properties',
+    '/META-INF/DEPENDENCIES',
+];
+
+const MARKER =
+    '// Push: Netty packaging excludes (added by the SDK config plugin)';
+
+function addPackagingExcludes(buildGradle) {
+    if (buildGradle.includes(MARKER)) {
+        return buildGradle;
+    }
+    const excludes = EXCLUDES.map(
+        (path) => `            excludes += "${path}"`,
+    ).join('\n');
+    return `${buildGradle}
+${MARKER}
+android {
+    packagingOptions {
+        resources {
+${excludes}
+        }
+    }
+}
+`;
+}
+
+const withPush = (config) =>
+    withAppBuildGradle(config, (props) => {
+        props.modResults.contents = addPackagingExcludes(
+            props.modResults.contents,
+        );
+        return props;
+    });
+
+module.exports = createRunOncePlugin(withPush, pkg.name, pkg.version);

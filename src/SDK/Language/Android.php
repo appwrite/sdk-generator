@@ -122,6 +122,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Topic.kt',
+                'template'      => '/android/library/src/main/java/io/package/Topic.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Query.kt',
                 'template'      => '/android/library/src/main/java/io/package/Query.kt.twig',
             ],
@@ -144,6 +149,11 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/JsonRequestBodyTest.kt',
                 'template'      => '/android/library/src/test/java/io/package/JsonRequestBodyTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/TopicTest.kt',
+                'template'      => '/android/library/src/test/java/io/package/TopicTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -202,6 +212,36 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/Push.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/Push.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushCore.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushCore.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushService.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushService.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushBackground.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushBackground.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushReceiver.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushReceiver.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushWakeups.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushWakeups.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/Extensions.kt',
                 'template'      => '/android/library/src/main/java/io/package/cookies/Extensions.kt.twig',
             ],
@@ -234,6 +274,11 @@ class Android extends Kotlin
                 'scope'         => 'service',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/Service.kt.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/library/consumer-rules.pro',
+                'template'      => '/android/push/consumer-rules.pro',
             ],
             [
                 'scope'         => 'default',

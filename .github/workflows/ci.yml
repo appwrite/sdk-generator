@@ -31,6 +31,7 @@ jobs:
           DotNet90,
           FlutterStable,
           FlutterBeta,
+          FlutterWeb,
           Go113,
           Go118,
           KotlinJava17,
@@ -52,7 +53,8 @@ jobs:
           # TODO: Re-enable Unity2021 after the CI Unity license is restored.
           WebChromium,
           WebNode,
-          ReactNative
+          ReactNative,
+          ReactNativeAndroid
         ]
 
     steps:

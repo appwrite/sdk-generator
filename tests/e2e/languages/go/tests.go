@@ -13,6 +13,7 @@ import (
 	"github.com/repoowner/reponame/permission"
 	"github.com/repoowner/reponame/query"
 	"github.com/repoowner/reponame/role"
+	"github.com/repoowner/reponame/topic"
 )
 
 func main() {
@@ -174,6 +175,7 @@ func testGeneralService(client client.Client, stringInArray []string) {
 
 	// Test Id Helpers
 	testIdHelpers()
+	testTopicHelpers()
 
 	// Test Operator Helpers
 	testOperatorHelpers()
@@ -321,6 +323,43 @@ func testPermissionHelpers() {
 func testIdHelpers() {
 	fmt.Println(id.Unique())
 	fmt.Println(id.Custom("custom_id"))
+}
+
+func testTopicHelpers() {
+	fmt.Println(topic.Path([]string{"user", "123", "notification"}))
+	fmt.Println(topic.Path([]string{"org", "42", "user", "123"}).Path([]string{"notification"}))
+	fmt.Println(topic.Path([]string{"user"}).Any().Path([]string{"notification"}))
+	fmt.Println(topic.Path([]string{"chat"}).Any().Any().Path([]string{"message"}))
+	fmt.Println(topic.Path([]string{"org"}).Any().Path([]string{"logs"}).All())
+	fmt.Println(topic.Any().Path([]string{"notification"}))
+	fmt.Println(topic.All())
+	cases := []struct {
+		name   string
+		levels []string
+	}{
+		{"empty path", []string{}},
+		{"empty level", []string{"user", ""}},
+		{"slash", []string{"user/123"}},
+		{"plus", []string{"user", "a+b"}},
+		{"hash", []string{"user", "#"}},
+	}
+	for _, c := range cases {
+		if topicPanics(c.levels) {
+			fmt.Printf("Topic %s:passed\n", c.name)
+		} else {
+			fmt.Printf("Topic %s:failed\n", c.name)
+		}
+	}
+}
+
+func topicPanics(levels []string) (panicked bool) {
+	defer func() {
+		if recover() != nil {
+			panicked = true
+		}
+	}()
+	topic.Path(levels)
+	return false
 }
 
 func testOperatorHelpers() {

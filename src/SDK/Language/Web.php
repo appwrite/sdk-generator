@@ -65,6 +65,11 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/services/push.ts',
+                'template'      => 'web/src/services/push.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/models.ts',
                 'template'      => 'web/src/models.ts.twig',
             ],
@@ -82,6 +87,11 @@ class Web extends JS
                 'scope'         => 'default',
                 'destination'   => 'src/id.ts',
                 'template'      => 'web/src/id.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/topic.ts',
+                'template'      => 'web/src/topic.ts.twig',
             ],
             [
                 'scope'         => 'default',

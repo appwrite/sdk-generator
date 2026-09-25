@@ -1,0 +1,144 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace | caseNamespace }};
+
+/**
+ * Helper to build MQTT topics for `Push`, level by level.
+ *
+ *     Topic::path(['user', $userId, 'notification']); // "user/123/notification"
+ *     Topic::path(['user'])->any()->path(['notification']); // "user/+/notification"
+ *     Topic::path(['org'])->any()->path(['logs'])->all(); // "org/+/logs/#"
+ *
+ * `any()` matches exactly one level and `all()` everything below, at any depth (including the
+ * parent itself). `all()` ends the topic, so it returns a ResolvedTopic.
+ *
+ * The same names start a topic (`Topic::path()`) and extend one (`$topic->path()`); both are
+ * routed through `__callStatic()` and `__call()` to the protected implementations below.
+ *
+ * @method static Topic path(array<mixed> $levels) Start a topic with the given levels, or append them.
+ * @method static Topic any() Start a topic with a single-level wildcard (`+`), or append one.
+ * @method static ResolvedTopic all() The multi-level wildcard (`#`) alone, or appended to end the topic.
+ */
+final readonly class Topic implements \Stringable
+{
+    /**
+     * @param list<string> $levels
+     */
+    private function __construct(private array $levels)
+    {
+    }
+
+    /**
+     * @param array<mixed> $arguments
+     */
+    public static function __callStatic(string $name, array $arguments): self|ResolvedTopic
+    {
+        return new self([])->dispatch($name, $arguments);
+    }
+
+    /**
+     * @param array<mixed> $arguments
+     */
+    public function __call(string $name, array $arguments): self|ResolvedTopic
+    {
+        return $this->dispatch($name, $arguments);
+    }
+
+    /**
+     * Append the given levels.
+     */
+    protected function appendPath(mixed $levels): self
+    {
+        return new self([...$this->levels, ...$this->levelsOf($levels)]);
+    }
+
+    /**
+     * Append a single-level wildcard (`+`): matches exactly one level.
+     */
+    protected function appendAny(): self
+    {
+        return new self([...$this->levels, '+']);
+    }
+
+    /**
+     * Append the multi-level wildcard (`#`) and end the topic.
+     */
+    protected function appendAll(): ResolvedTopic
+    {
+        return new ResolvedTopic([...$this->levels, '#']);
+    }
+
+    public function __toString(): string
+    {
+        return \implode('/', $this->levels);
+    }
+
+    /**
+     * @param array<mixed> $arguments
+     */
+    private function dispatch(string $name, array $arguments): self|ResolvedTopic
+    {
+        return match ($name) {
+            'path' => $this->appendPath($arguments[0] ?? null),
+            'any' => $this->appendAny(),
+            'all' => $this->appendAll(),
+            default => throw new \BadMethodCallException('Call to undefined method ' . self::class . '::' . $name . '()'),
+        };
+    }
+
+    /**
+     * Validate the levels passed to `path()`: a non-empty array of non-empty strings, none holding
+     * the level separator `/` or the wildcards `+` and `#` (use `any()` and `all()` for those).
+     *
+     * @return list<string>
+     */
+    private function levelsOf(mixed $levels): array
+    {
+        if (!\is_array($levels)) {
+            throw new \InvalidArgumentException("path() expects an array, e.g. path(['user'])");
+        }
+
+        if ($levels === []) {
+            throw new \InvalidArgumentException('path() needs at least one level');
+        }
+
+        $result = [];
+        foreach (\array_values($levels) as $index => $level) {
+            if (!\is_string($level)) {
+                $type = $level === null ? 'null' : \get_debug_type($level);
+                throw new \InvalidArgumentException(\sprintf('level at index %d must be a string, got %s', $index, $type));
+            }
+
+            if ($level === '') {
+                throw new \InvalidArgumentException(\sprintf('empty level at index %d', $index));
+            }
+
+            if (\str_contains($level, '/')) {
+                $parts = \implode(', ', \array_map(static fn (string $part): string => "'" . $part . "'", \explode('/', $level)));
+                throw new \InvalidArgumentException(\sprintf('"%s" contains "/", split it: path([%s])', $level, $parts));
+            }
+
+            if ($level === '+') {
+                throw new \InvalidArgumentException('"+" is reserved, use any()');
+            }
+
+            if (\str_contains($level, '+')) {
+                throw new \InvalidArgumentException(\sprintf('"%s" contains "+", use any() for wildcards', $level));
+            }
+
+            if ($level === '#') {
+                throw new \InvalidArgumentException('"#" is reserved, use all()');
+            }
+
+            if (\str_contains($level, '#')) {
+                throw new \InvalidArgumentException(\sprintf('"%s" contains "#", use all() for wildcards', $level));
+            }
+
+            $result[] = $level;
+        }
+
+        return $result;
+    }
+}

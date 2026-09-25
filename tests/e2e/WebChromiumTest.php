@@ -57,7 +57,11 @@ final class WebChromiumTest extends Base
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
+        ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::CHANNEL_HELPER_RESPONSES,
-        ...Base::OPERATOR_HELPER_RESPONSES
+        ...Base::OPERATOR_HELPER_RESPONSES,
+        ...Base::PUSH_RESPONSES,
+        ...Base::PUSH_SESSION_REPLAY_RESPONSES,
+        ...Base::PUSH_ERROR_RESPONSES
     ];
 }

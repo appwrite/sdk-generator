@@ -214,6 +214,11 @@ class Rust extends Language
             ],
             [
                 "scope" => "default",
+                "destination" => "src/topic.rs",
+                "template" => "rust/src/topic.rs.twig",
+            ],
+            [
+                "scope" => "default",
                 "destination" => "src/operator.rs",
                 "template" => "rust/src/operator.rs.twig",
             ],

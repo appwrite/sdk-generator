@@ -188,6 +188,11 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Topic.swift',
+                'template'      => 'swift/Sources/Topic.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Query.swift',
                 'template'      => 'swift/Sources/Query.swift.twig',
             ],

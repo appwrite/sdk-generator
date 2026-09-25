@@ -6,6 +6,7 @@ use appwrite::{
     permission::Permission,
     query::Query,
     role::Role,
+    topic,
     services::*,
 };
 use serde_json::json;
@@ -163,6 +164,7 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
 
     // Test Id Helpers
     test_id_helpers();
+    test_topic_helpers();
 
     // Test Operator Helpers
     test_operator_helpers();
@@ -319,6 +321,29 @@ fn test_permission_helpers() {
 fn test_id_helpers() {
     println!("{}", ID::unique());
     println!("{}", ID::custom("custom_id"));
+}
+
+fn test_topic_helpers() {
+    println!("{}", topic::path(&["user", "123", "notification"]).unwrap());
+    println!("{}", topic::path(&["org", "42", "user", "123"]).unwrap().path(&["notification"]).unwrap());
+    println!("{}", topic::path(&["user"]).unwrap().any().path(&["notification"]).unwrap());
+    println!("{}", topic::path(&["chat"]).unwrap().any().any().path(&["message"]).unwrap());
+    println!("{}", topic::path(&["org"]).unwrap().any().path(&["logs"]).unwrap().all());
+    println!("{}", topic::any().path(&["notification"]).unwrap());
+    println!("{}", topic::all());
+    let cases: Vec<(&str, Vec<&str>)> = vec![
+        ("empty path", vec![]),
+        ("empty level", vec!["user", ""]),
+        ("slash", vec!["user/123"]),
+        ("plus", vec!["user", "a+b"]),
+        ("hash", vec!["user", "#"]),
+    ];
+    for (name, levels) in cases {
+        match topic::path(&levels) {
+            Ok(_) => println!("Topic {}:failed", name),
+            Err(_) => println!("Topic {}:passed", name),
+        }
+    }
 }
 
 fn test_operator_helpers() {

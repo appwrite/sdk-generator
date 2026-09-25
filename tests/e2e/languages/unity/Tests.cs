@@ -403,6 +403,35 @@ namespace AppwriteTests
             LogResult(ID.Unique());
             LogResult(ID.Custom("custom_id"));
 
+            // Topic helper tests
+            LogResult(Topic.Path(new[] { "user", "123", "notification" }).ToString());
+            LogResult(Topic.Path(new[] { "org", "42", "user", "123" }).Path(new[] { "notification" }).ToString());
+            LogResult(Topic.Path(new[] { "user" }).Any().Path(new[] { "notification" }).ToString());
+            LogResult(Topic.Path(new[] { "chat" }).Any().Any().Path(new[] { "message" }).ToString());
+            LogResult(Topic.Path(new[] { "org" }).Any().Path(new[] { "logs" }).All().ToString());
+            LogResult(Topic.Any().Path(new[] { "notification" }).ToString());
+            LogResult(Topic.All().ToString());
+            var topicCases = new (string Name, string[] Levels)[]
+            {
+                ("empty path", new string[0]),
+                ("empty level", new[] { "user", "" }),
+                ("slash", new[] { "user/123" }),
+                ("plus", new[] { "user", "a+b" }),
+                ("hash", new[] { "user", "#" }),
+            };
+            foreach (var (name, levels) in topicCases)
+            {
+                try
+                {
+                    Topic.Path(levels);
+                    LogResult($"Topic {name}:failed");
+                }
+                catch (System.ArgumentException)
+                {
+                    LogResult($"Topic {name}:passed");
+                }
+            }
+
             // Channel helper tests
             LogResult(Channel.Database("db1").Collection("col1").Document().ToString());
             LogResult(Channel.Database("db1").Collection("col1").Document("doc1").ToString());
@@ -467,13 +496,152 @@ namespace AppwriteTests
 
             mock = await general.Headers();
             LogResult(mock.Result);
-            
+
+            // Native push (MQTT) round-trip against the mock broker.
+            client.SetJWT("eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e");
+            client.SetPushEndpoint("mqtt://mqtt:1883");
+            var pushObject = new GameObject("PushTest");
+            var push = pushObject.AddComponent<Push>();
+            push.Initialize(client);
+            var pushOpenTcs = new TaskCompletionSource<bool>();
+            push.OnOpen(() => pushOpenTcs.TrySetResult(true));
+            var pushTcs = new TaskCompletionSource<PushMessage>();
+            var pushSub = await push.Subscribe(new[] { Topic.Path(new[] { "e2e-push" }) }, (message) =>
+            {
+                pushTcs.TrySetResult(message);
+            });
+            LogResult("Push subscribe:passed");
+            var pushOpenWinner = await Task.WhenAny(pushOpenTcs.Task, Task.Delay(10000));
+            LogResult(pushOpenWinner == pushOpenTcs.Task
+                ? "Push open:passed"
+                : "Push open:failed");
+            var pushWinner = await Task.WhenAny(pushTcs.Task, Task.Delay(10000));
+            var pushOk = pushWinner == pushTcs.Task;
+            LogResult(pushOk && pushTcs.Task.Result.Data == "push-payload" && pushTcs.Task.Result.Topic == "e2e-push"
+                ? "Push message:passed"
+                : "Push message:failed");
+            // reliableDelivery (default) => QoS 1 end to end.
+            LogResult(pushOk && pushTcs.Task.Result.Qos == 1
+                ? "Push qos:passed"
+                : "Push qos:failed");
+            pushSub.Unsubscribe();
+            push.Close();
+            Object.DestroyImmediate(pushObject);
+
+            // Topic-less subscribe: the signed-in user's own topic, users/<userId>. After each
+            // SUBSCRIBE the mock publishes to users/e2e-user, users/e2e-session-user and
+            // users/other-user, so a client passes only if it receives its own topic and nothing
+            // else (an over-broad users/+ or users/# subscription would also get the others).
+            const string e2eSession = "eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0=";
+            async Task<List<string>> UserTopicsOf(Client userClient)
+            {
+                var userPushObject = new GameObject("PushUserTest");
+                var userPush = userPushObject.AddComponent<Push>();
+                userPush.Initialize(userClient);
+                var received = new List<string>();
+                var userPushSub = await userPush.Subscribe((message) =>
+                {
+                    lock (received)
+                    {
+                        received.Add(message.Topic);
+                    }
+                });
+                await Task.Delay(3000);
+                userPushSub.Unsubscribe();
+                userPush.Close();
+                Object.DestroyImmediate(userPushObject);
+                lock (received)
+                {
+                    return new List<string>(received);
+                }
+            }
+            bool OnlyTopic(List<string> received, string expected)
+            {
+                return received.Count > 0 && received.TrueForAll((topic) => topic == expected);
+            }
+            // A new Client loads any JWT/session persisted by an earlier one, so start clean.
+            Client PushClient()
+            {
+                return Client.From(projectId: "console", selfSigned: true)
+                    .AddHeader("Origin", "http://localhost")
+                    .SetPushEndpoint("mqtt://mqtt:1883")
+                    .ClearSession();
+            }
+
+            // JWT and session both set: the JWT's user wins.
+            client.SetSession(e2eSession);
+            var jwtTopics = await UserTopicsOf(client);
+            LogResult(OnlyTopic(jwtTopics, "users/e2e-user")
+                ? "Push user topic:passed"
+                : "Push user topic:failed");
+
+            // Session only: the user id comes from the session secret.
+            var sessionTopics = await UserTopicsOf(PushClient().SetSession(e2eSession));
+            LogResult(OnlyTopic(sessionTopics, "users/e2e-session-user")
+                ? "Push user session topic:passed"
+                : "Push user session topic:failed");
+
+            // No credential: a topic-less subscribe has no user to resolve and throws.
+            var anonymousPushObject = new GameObject("PushAnonymousTest");
+            var anonymousPush = anonymousPushObject.AddComponent<Push>();
+            anonymousPush.Initialize(PushClient());
+            var noCredentialRejected = false;
+            try
+            {
+                await anonymousPush.Subscribe((message) => { });
+            }
+            catch (AppwriteException e)
+            {
+                // The credential error itself, not any failure (setup, connection, ...).
+                noCredentialRejected = e.Message.Contains("signed-in user");
+            }
+            anonymousPush.Close();
+            Object.DestroyImmediate(anonymousPushObject);
+            LogResult(noCredentialRejected
+                ? "Push user no credential:passed"
+                : "Push user no credential:failed");
+
+            // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
+            // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
+            // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
+            async Task<string> FirstError(Client errorClient, string topic)
+            {
+                var errorPushObject = new GameObject("PushErrorTest");
+                var errorPush = errorPushObject.AddComponent<Push>();
+                errorPush.Initialize(errorClient);
+                var errorTcs = new TaskCompletionSource<string>();
+                errorPush.OnError((error) => errorTcs.TrySetResult(error.Message));
+                try
+                {
+                    await errorPush.Subscribe(topic, (message) => { });
+                }
+                catch
+                {
+                    // The refused CONNECT also fails the subscribe; onError is what is checked.
+                }
+                var errorWinner = await Task.WhenAny(errorTcs.Task, Task.Delay(5000));
+                errorPush.Close();
+                Object.DestroyImmediate(errorPushObject);
+                return errorWinner == errorTcs.Task ? errorTcs.Task.Result : "";
+            }
+
+            // PushClient() clears any persisted JWT/session, so the broker really sees the "deny:" credential.
+            var connectError = await FirstError(PushClient().SetJWT("deny:refused-by-test"), "e2e-push");
+            LogResult(connectError == "refused-by-test"
+                ? "Push connect error:passed"
+                : "Push connect error:failed");
+
+            var disconnectError = await FirstError(client, "e2e-disconnect/kicked-by-test");
+            LogResult(disconnectError == "kicked-by-test"
+                ? "Push disconnect error:passed"
+                : "Push disconnect error:failed");
+
             // Cleanup Realtime GameObject
             if (realtimeObject)
             {
                 Object.DestroyImmediate(realtimeObject);
             }
-            
+
         }
     }
 }

@@ -368,6 +368,8 @@ class Client {
     config: {
         endpoint: string;
         endpointRealtime: string;
+        endpointPush: string;
+        pushClientId: string;
 {%~ for headerKey, header in globalHeaders %}
         {{ headerKey | caseLower }}: string;
 {%~ endfor %}
@@ -378,6 +380,8 @@ class Client {
     } = {
         endpoint: '{{ (spec | endpoint) }}',
         endpointRealtime: '',
+        endpointPush: '',
+        pushClientId: '',
 {%~ for headerKey, header in globalHeaders %}
         {{ headerKey | caseLower }}: '',
 {%~ endfor %}
@@ -462,6 +466,53 @@ class Client {
         }
 
         this.config.endpointRealtime = endpointRealtime;
+        return this;
+    }
+
+    /**
+     * Set Push Endpoint
+     *
+     * The MQTT-over-WebSocket URL the {{ spec.info.title | caseUcfirst }}Push service connects to.
+     *
+     * @param {string} endpointPush
+     *
+     * @returns {this}
+     */
+    setPushEndpoint(endpointPush: string): this {
+        if (!endpointPush || typeof endpointPush !== 'string') {
+            throw new {{spec.info.title | caseUcfirst}}Exception('Endpoint must be a valid string');
+        }
+
+        if (
+            !endpointPush.startsWith('ws://') &&
+            !endpointPush.startsWith('wss://')
+        ) {
+            throw new {{spec.info.title | caseUcfirst}}Exception(
+                'Invalid push endpoint URL: ' + endpointPush,
+            );
+        }
+
+        this.config.endpointPush = endpointPush;
+        return this;
+    }
+
+    /**
+     * Set Push Client Id
+     *
+     * A stable client id for the {{ spec.info.title | caseUcfirst }}Push service. The broker keys its
+     * offline-replay cursor on this id, so pass a stable value to resume replay across
+     * reloads/restarts. Defaults to a per-connection id when unset.
+     *
+     * @param {string} pushClientId
+     *
+     * @returns {this}
+     */
+    setPushClientId(pushClientId: string): this {
+        if (!pushClientId || typeof pushClientId !== 'string') {
+            throw new {{spec.info.title | caseUcfirst}}Exception('Client id must be a valid string');
+        }
+
+        this.config.pushClientId = pushClientId;
         return this;
     }
 

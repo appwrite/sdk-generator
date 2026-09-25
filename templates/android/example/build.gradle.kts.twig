@@ -32,6 +32,16 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    // The push service pulls in HiveMQ (Netty), whose jars ship duplicate META-INF
+    // metadata; drop the duplicates so the app can be packaged.
+    packaging {
+        resources {
+            excludes += "/META-INF/INDEX.LIST"
+            excludes += "/META-INF/io.netty.versions.properties"
+            excludes += "/META-INF/DEPENDENCIES"
+        }
+    }
 }
 
 dependencies {
