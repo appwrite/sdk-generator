@@ -5,6 +5,7 @@ namespace Appwrite\SDK\Language\Concern;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Model\Tag;
 use Utopia\OpenAPI\Specification;
 use Override;
@@ -514,6 +515,7 @@ trait CliCommandSurface
     protected function getCliHelpFunctions(): array
     {
         return [
+            new TwigFunction('cliExample', fn(Operation $method, Tag $service): array => $this->getCliExample($method, $service)),
             new TwigFunction('cliHelpGroups', fn (): array => $this->getCliHelpGroups()),
             new TwigFunction('cliHelpSummaries', fn (string $title): array => $this->getCliHelpSummaries($title)),
             new TwigFunction('cliHelpOptionOrder', fn (): array => $this->getCliHelpOptionOrder()),
@@ -524,43 +526,92 @@ trait CliCommandSurface
     }
 
     /**
-     * How a value is spelled on the command line, for the docs examples. This
-     * is a shell invocation, not source in either CLI's implementation
-     * language, so it belongs to the shared surface: the target language of the
-     * generated CLI cannot change how a user types an array of roles.
+     * Render required spec parameters using the registered CLI option metadata.
      *
-     * A trait method wins over the inherited Go implementation, which renders
-     * Go literals; `--roles []string{}` is not a command anybody can run.
+     * @return list<string>
+     */
+    protected function getCliExample(Operation $method, Tag $service): array
+    {
+        $arguments = [];
+        foreach ($this->getOperationParameters($method) as $parameter) {
+            if (!$parameter->required) {
+                continue;
+            }
+
+            $option = $this->getCliOption($parameter, $service);
+            $flag = '--' . $option['flag'];
+
+            if ($option['register'] === 'StringArray') {
+                $itemSchema = $this->getArraySchema($parameter) ?? new StringSchema();
+                $example = $this->getSchema($parameter)->example;
+                if (is_string($example)) {
+                    $decoded = json_decode($example);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $example = $decoded;
+                    }
+                }
+
+                $items = is_array($example) && $example !== [] ? $example : [$itemSchema->example];
+                foreach ($items as $item) {
+                    $arguments[] = $flag . ' ' . $this->getParamExample($itemSchema, example: $item);
+                }
+                continue;
+            }
+
+            $separator = $option['register'] === 'Bool' ? '=' : ' ';
+            $arguments[] = $flag . $separator . $this->getParamExample($parameter);
+        }
+
+        $query = $this->getCliQueryConfig($method);
+        if ($query['hasPagination']) {
+            $arguments[] = '--limit 25';
+        }
+        if ($this->getMethodType($method) === 'location') {
+            $arguments[] = '--destination ./download';
+        }
+
+        return $arguments;
+    }
+
+    protected function quoteCliExample(mixed $value): string
+    {
+        $text = is_string($value)
+            ? $value
+            : json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        if ($text !== '' && !preg_match('/[^A-Za-z0-9_@%+=:,\.\/-]/', $text)) {
+            return $text;
+        }
+
+        return "'" . str_replace("'", "'\"'\"'", $text) . "'";
+    }
+
+    /**
+     * Render a schema example as a shell-safe CLI value.
      */
     #[Override]
-    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = '', mixed $example = null): string
     {
         $type = $this->getSchemaType($param);
-        $example = $this->getSchemaExample($param);
+        $example ??= $this->getSchema($param)->example;
+        if (in_array($type, [self::TYPE_ARRAY, self::TYPE_OBJECT], true) && is_string($example)) {
+            $decoded = json_decode($example);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $example = $decoded;
+            }
+        }
 
-        if (empty($example) && $example !== 0 && $example !== false) {
-            return match ($type) {
-                self::TYPE_NUMBER, self::TYPE_INTEGER, self::TYPE_BOOLEAN => 'null',
-                self::TYPE_STRING => "''",
-                self::TYPE_ARRAY => 'one two three',
-                self::TYPE_OBJECT => '\'{ "key": "value" }\'',
-                self::TYPE_FILE => "'path/to/file.png'",
-                default => '',
-            };
+        if ($type === self::TYPE_OBJECT && is_array($example)) {
+            $example = (object) $example;
         }
 
         return match ($type) {
-            self::TYPE_ARRAY => (\str_contains((string) $example, '[') && \str_contains((string) $example, ']'))
-                ? \implode(' ', \explode(',', \substr((string) $example, 1, -1)))
-                : (string) $example,
-            self::TYPE_OBJECT => '\'{ "key": "value" }\'',
-            self::TYPE_NUMBER, self::TYPE_INTEGER => (string) $example,
-            self::TYPE_BOOLEAN => $example ? 'true' : 'false',
-            self::TYPE_STRING => \preg_match('/[^A-Za-z0-9_@%+=:,\.\/-]/', (string) $example)
-                ? "'" . \str_replace("'", "'\"'\"'", (string) $example) . "'"
-                : (string) $example,
-            self::TYPE_FILE => "'path/to/file.png'",
-            default => '',
+            self::TYPE_ARRAY => $this->quoteCliExample($example ?? []),
+            self::TYPE_OBJECT => $this->quoteCliExample($example ?? (object) ['key' => 'value']),
+            self::TYPE_NUMBER, self::TYPE_INTEGER => $this->quoteCliExample($example ?? 1),
+            self::TYPE_BOOLEAN => $this->quoteCliExample($example ?? false),
+            self::TYPE_FILE => $this->quoteCliExample('path/to/file.png'),
+            default => $this->quoteCliExample($example ?? $this->getEnumSchema($param)->enum[0] ?? '<VALUE>'),
         };
     }
 }
