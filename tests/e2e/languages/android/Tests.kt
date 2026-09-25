@@ -718,20 +718,28 @@ class ServiceTest {
                 },
             )
 
-            // Sign-out: close() stops background delivery, including what the earlier run saved.
+            // Sign-out: close() stops background delivery, including what the earlier run saved. When
+            // the app opens again afterwards (a new process, then a new Push), nothing is delivered.
             Push(pushClient().setSession(e2eSession), context).close()
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            notifications.cancelAll()
+            E2EPushReceiver.messages.clear()
+            Push(pushClient().setSession(e2eSession), context)
+            Thread.sleep(3000)
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
             writeToFile(
-                if (context.getSystemService(android.app.job.JobScheduler::class.java).allPendingJobs.isEmpty() && alarms.nextScheduledAlarm == null) {
+                if (E2EPushReceiver.messages.isEmpty() && org.robolectric.Shadows.shadowOf(notifications).allNotifications.isEmpty()) {
                     "Push background close:passed"
                 } else {
                     "Push background close:failed"
                 },
             )
 
-            // A refused credential stops background delivery and reaches onError.
+            // A refused credential reaches onError and stops background delivery: when the app opens
+            // again, nothing reconnects, so no second refusal arrives.
             val refusedPush = Push(pushClient().setJWT("deny:refused-in-background"), context)
-            val refusedLatch = java.util.concurrent.CountDownLatch(1)
             val refusedMessage = java.util.concurrent.atomic.AtomicReference("")
+            val refusedLatch = java.util.concurrent.CountDownLatch(1)
             refusedPush.onError { error ->
                 if (refusedMessage.compareAndSet("", error.message ?: "")) {
                     refusedLatch.countDown()
@@ -740,14 +748,41 @@ class ServiceTest {
             refusedPush.subscribe("e2e-push", background = true) { }
             refusedLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)
             Thread.sleep(500)
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            val laterErrors = java.util.concurrent.CopyOnWriteArrayList<String>()
+            Push(pushClient().setJWT("deny:refused-in-background"), context).onError { error -> laterErrors.add(error.message ?: "") }
+            Thread.sleep(3000)
             writeToFile(
-                if (refusedMessage.get() == "refused-in-background" && context.getSystemService(android.app.job.JobScheduler::class.java).allPendingJobs.isEmpty()) {
+                if (refusedMessage.get() == "refused-in-background" && laterErrors.isEmpty()) {
                     "Push background refused:passed"
                 } else {
                     "Push background refused:failed"
                 },
             )
             refusedPush.close()
+
+            // Opting out of a saved background subscription: after a restart, the app subscribes to
+            // the same topic with background off and then unsubscribes. When the app opens again,
+            // nothing arrives in the background.
+            Push(pushClient().setSession(e2eSession), context).subscribe("e2e-push", background = true, title = "E2E title") { }
+            Thread.sleep(2000)
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            Push(pushClient().setSession(e2eSession), context).subscribe("e2e-push", background = false) { }.unsubscribe()
+            Thread.sleep(1000)
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            notifications.cancelAll()
+            E2EPushReceiver.messages.clear()
+            val reopened = Push(pushClient().setSession(e2eSession), context)
+            Thread.sleep(3000)
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            writeToFile(
+                if (E2EPushReceiver.messages.isEmpty() && org.robolectric.Shadows.shadowOf(notifications).allNotifications.isEmpty()) {
+                    "Push background opt-out:passed"
+                } else {
+                    "Push background opt-out:failed"
+                },
+            )
+            reopened.close()
         }
     }
 

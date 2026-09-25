@@ -395,6 +395,9 @@ class PushIO implements Push {
     for (final push in _nativeHosts.toList()) {
       if (push._credentialKey != key) {
         push._leaveToInProcess();
+        if (push._backgroundWanted) {
+          push._report({{spec.info.title | caseUcfirst}}Exception(_backgroundDisplaced));
+        }
       }
     }
     // Once moved, they stay: if hosting fails, the native host keeps their subscriptions and
@@ -1244,6 +1247,12 @@ String? _stringField(String encoded, String key) {
     return null;
   }
 }
+
+// Reported to a Push whose background delivery stopped because a Push with another credential
+// took over the native host, which carries one connection and so serves one credential.
+const String _backgroundDisplaced =
+    'Background delivery stopped: a Push with another credential started background delivery, '
+    'and the device hosts one. These subscriptions still deliver while the app runs.';
 
 // An in-process connect superseded by moving the subscriptions to the native host.
 class _MovedToNative implements Exception {

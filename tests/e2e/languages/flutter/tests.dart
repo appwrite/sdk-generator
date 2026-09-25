@@ -684,6 +684,31 @@ void main() async {
   print(delivered.join(',') == 'native-payload'
       ? 'Push native close:passed'
       : 'Push native close:failed');
+
+  // Two credentials with background delivery on Android: the device hosts one, so the Push that
+  // started it first hears on onError that its background delivery stopped, and the other does not.
+  final firstErrors = <Object>[];
+  final secondErrors = <Object>[];
+  final firstUser = Push(Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883')
+      .setSession(e2eSession))
+    ..onError(firstErrors.add);
+  await firstUser.subscribe('news', (_) {}, background: true);
+  final secondUser = Push(Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883')
+      .setJWT('eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e'))
+    ..onError(secondErrors.add);
+  await secondUser.subscribe('news', (_) {}, background: true);
+  await Future.delayed(const Duration(milliseconds: 300));
+  print(firstErrors.any((e) => e.toString().contains('Background delivery stopped')) && secondErrors.isEmpty
+      ? 'Push native displaced:passed'
+      : 'Push native displaced:failed');
+  firstUser.close();
+  secondUser.close();
   PushNative.debugInstance = null;
 }
 

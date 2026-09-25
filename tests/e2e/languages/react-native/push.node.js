@@ -8,6 +8,8 @@
 // is swapped for Node's net (an identical API subset). There is no native Android module here
 // (as in Expo Go), so background delivery is unavailable and the topic-less subscribe's
 // default falls back to the foreground.
+import { EventEmitter } from 'events';
+import { NativeModules } from 'react-native';
 import { Client } from './src/client';
 import { Push } from './src/services/push';
 import { Topic } from './src/topic';
@@ -90,12 +92,16 @@ async function main() {
     anonymousPush.close();
     console.log(noCredentialRejected ? 'Push user no credential:passed' : 'Push user no credential:failed');
 
-    // Messages missed between two sign-ins of the same user are replayed to the second one,
-    // though each sign-in has its own session secret (the mock replays on "e2e-replay" to a client
-    // it has seen before, as the broker resumes a replay position per client).
+    // A message published while the user is signed out reaches their next sign-in, though that
+    // sign-in has a new session secret (subscribing to "e2e-replay-publish" makes the mock publish
+    // on "e2e-replay", queued for clients that subscribed before and are offline).
     const firstSignIn = new Push(new Client().setProject('console').setPushEndpoint(ENDPOINT).setSession(e2eSession));
     await firstSignIn.subscribe(['e2e-replay'], () => {});
     firstSignIn.close();
+    await timeout(500);
+    const publisher = new Push(client);
+    await publisher.subscribe(['e2e-replay-publish'], () => {});
+    publisher.close();
     const nextSession = Buffer.from(JSON.stringify({ id: 'e2e-session-user', secret: 'another-sign-in' })).toString('base64');
     const nextSignIn = new Push(new Client().setProject('console').setPushEndpoint(ENDPOINT).setSession(nextSession));
     const replayed = await Promise.race([
@@ -130,6 +136,35 @@ async function main() {
     } catch (e) {}
     console.log((await kickedError) === 'kicked-by-test' ? 'Push disconnect error:passed' : 'Push disconnect error:failed');
     kickedPush.close();
+
+    // Two credentials with background delivery on Android: the device hosts one, so the Push that
+    // started it first hears on onError that its background delivery stopped, and the other does
+    // not. A stand-in answers for the SDK's native module, which needs an Android device.
+    NativeModules.AppwritePush = {
+        emitter: new EventEmitter(),
+        host: async () => {},
+        ack: () => {},
+        release: async () => {},
+        stop: async () => {},
+        setForeground: async () => {},
+        hasSaved: async () => false,
+        resume: async () => {},
+        setErrorCallback: async () => null,
+        defaultClientId: async () => 'e2e-install',
+        addListener: () => {},
+        removeListeners: () => {},
+    };
+    const firstErrors = [];
+    const secondErrors = [];
+    const firstUser = new Push(sessionClient).onError((error) => firstErrors.push(error));
+    await firstUser.subscribe(['news'], () => {}, { background: true });
+    const secondUser = new Push(client).onError((error) => secondErrors.push(error));
+    await secondUser.subscribe(['news'], () => {}, { background: true });
+    await timeout(200);
+    console.log(firstErrors.some((e) => e.message.includes('Background delivery stopped')) && secondErrors.length === 0 ? 'Push native displaced:passed' : 'Push native displaced:failed');
+    firstUser.close();
+    secondUser.close();
+    delete NativeModules.AppwritePush;
 
     // mqtt.js keepalive timers would otherwise hold the event loop open.
     process.exit(0);
