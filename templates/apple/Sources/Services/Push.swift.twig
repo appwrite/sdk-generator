@@ -169,7 +169,11 @@ open class Push: Service {
         return self
     }
 
-    /// Register a callback invoked on a connection error.
+    /// Register a callback invoked with every error the service hits: connection failures and
+    /// refusals (carrying the broker's reason when it sends one), an unexpected close by the
+    /// broker, refused or failed (re)subscriptions, reconnect attempts and notification failures.
+    /// Calls that throw to the caller still throw. Errors outside any call are never thrown, so
+    /// they cannot crash the app: with no callback registered they are logged.
     @discardableResult
     public func onError(_ callback: @escaping (Swift.Error) -> Void) -> Self {
         onErrorCb = callback
@@ -189,7 +193,13 @@ open class Push: Service {
     ///     }
     @discardableResult
     public func subscribe(background: Bool = true, title: String? = nil, retry: Bool = true, callback: @escaping (PushMessage) -> Void) async throws -> PushSubscription {
-        let userId = try currentUserId()
+        let userId: String
+        do {
+            userId = try currentUserId()
+        } catch {
+            try report(error)
+            throw error
+        }
         return try await subscribe(["users/\(userId)"], background: background, title: title, retry: retry, callback: callback)
     }
 
@@ -251,7 +261,7 @@ open class Push: Service {
             let infos = sync.sync {
                 topics.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: effectiveQos($0)) }
             }
-            _ = try await mqtt.v5.subscribe(to: infos)
+            try await brokerSubscribe(mqtt, infos)
         } catch {
             // The SUBSCRIBE failed; roll this call's registrations back (and drop any broker
             // filter no other local subscriber owns) so a failed subscribe leaks no callback.
@@ -267,10 +277,21 @@ open class Push: Service {
                 }
                 return removed
             }
-            if !filters.isEmpty {
-                try? await mqtt.v5.unsubscribe(from: filters)
+            // Only while the connection is up: a dropped connection already failed the
+            // SUBSCRIBE, and its UNSUBSCRIBE would just fail again for the same reason.
+            if !filters.isEmpty && mqtt.isActive() {
+                do {
+                    try await brokerUnsubscribe(mqtt, filters)
+                } catch {
+                    // A side failure: surface it without masking the SUBSCRIBE error below.
+                    surface(Push.describe(error))
+                }
             }
-            throw error
+            // Report, then throw as before. A broker DISCONNECT that lands while the SUBSCRIBE
+            // is in flight carries its Reason String (see `describe`).
+            let described = Push.describe(error)
+            try report(described)
+            throw described
         }
 
         let unsubscribe: () -> Void = { [weak self] in
@@ -300,10 +321,10 @@ open class Push: Service {
             }
             let client: MQTTClient? = self.sync.sync { self.mqtt }
             if let client, !removed.isEmpty {
-                Task { try? await client.v5.unsubscribe(from: removed) }
+                self.inBackground { try await self.brokerUnsubscribe(client, removed) }
             }
             if let client, !downgrade.isEmpty {
-                Task { _ = try? await client.v5.subscribe(to: downgrade) }
+                self.inBackground { try await self.brokerSubscribe(client, downgrade) }
             }
             if self.sync.sync(execute: { self.subscriptions.isEmpty }) {
                 self.close()
@@ -339,7 +360,7 @@ open class Push: Service {
                 let infos = self.sync.sync {
                     changed.map { MQTTSubscribeInfoV5(topicFilter: $0, qos: self.effectiveQos($0)) }
                 }
-                Task { _ = try? await client.v5.subscribe(to: infos) }
+                self.inBackground { try await self.brokerSubscribe(client, infos) }
             }
         }
 
@@ -359,13 +380,27 @@ open class Push: Service {
             return existing
         }
         guard let client else { return }
-        _ = try? client.disconnect().wait()
-        try? client.syncShutdownGracefully()
+        do {
+            try client.disconnect().wait()
+        } catch MQTTError.noConnection {
+            // Already disconnected (e.g. the broker dropped the connection); nothing to send.
+        } catch {
+            surface(Push.describe(error))
+        }
+        do {
+            try client.syncShutdownGracefully()
+        } catch {
+            surface(error)
+        }
     }
 
     private func requestNotificationAuthorization() {
         #if canImport(UserNotifications)
-            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] _, error in
+                if let error {
+                    self?.surface(error)
+                }
+            }
         #endif
     }
 
@@ -439,7 +474,13 @@ open class Push: Service {
     private func open() async throws -> MQTTClient {
         // A fresh connect clears any prior deliberate-close flag.
         sync.sync { closing = false }
-        let properties = try connectProperties()
+        let properties: MQTTProperties
+        do {
+            properties = try connectProperties()
+        } catch {
+            try report(error)
+            throw error
+        }
 
         // An empty identifier makes the broker derive a stable id server-side (keyed on the
         // credential/project) and key its offline-replay cursor on it; Client.setPushClientId(id)
@@ -471,14 +512,25 @@ open class Push: Service {
 
         // One listener fans every delivery out to the matching local callbacks.
         mqtt.addPublishListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self] (result: Result<MQTTPublishInfo, Swift.Error>) in
-            if case .success(let publish) = result {
+            switch result {
+            case .success(let publish):
                 self?.dispatch(publish)
+            case .failure(let error):
+                self?.surface(Push.describe(error))
             }
         }
 
         // Surface the connection lifecycle to the caller's onClose hook, and recover from an
         // unexpected drop (a deliberate close() is skipped via the `closing` flag).
-        mqtt.addCloseListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self] _ in
+        mqtt.addCloseListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self] result in
+            if case .failure(let error) = result {
+                self?.surface(Push.describe(error))
+            } else if let self, !self.sync.sync(execute: { self.closing }) {
+                // A close nobody asked for, e.g. a DISCONNECT from the broker. MQTTNIO closes
+                // cleanly then and does not expose the broker's reason string, so report the
+                // drop itself rather than letting it pass silently.
+                self.surface({{ spec.info.title | caseUcfirst }}Error(message: "Connection closed by the broker"))
+            }
             self?.onCloseCb?()
             self?.handleUnexpectedClose()
         }
@@ -489,15 +541,18 @@ open class Push: Service {
             let ack = try await mqtt.v5.connect(cleanStart: false, properties: properties)
             if ack.reason != .success {
                 try? mqtt.syncShutdownGracefully()
-                throw {{ spec.info.title | caseUcfirst }}Error(message: "MQTT authentication failed (CONNACK reason \(ack.reason))")
+                throw {{ spec.info.title | caseUcfirst }}Error(message: Push.reasonString(ack.properties) ?? "MQTT authentication failed (CONNACK reason \(ack.reason))")
             }
         } catch let error as {{ spec.info.title | caseUcfirst }}Error {
-            onErrorCb?(error)
+            try report(error)
             throw error
         } catch {
+            // Best-effort cleanup of a client that never connected; the connect error below is
+            // the one worth reporting.
             try? mqtt.syncShutdownGracefully()
-            onErrorCb?(error)
-            throw {{ spec.info.title | caseUcfirst }}Error(message: error.localizedDescription)
+            let described = {{ spec.info.title | caseUcfirst }}Error(message: Push.brokerMessage(error) ?? error.localizedDescription)
+            try report(described)
+            throw described
         }
 
         onOpenCb?()
@@ -543,6 +598,7 @@ open class Push: Service {
                     let properties = try connectProperties()
                     let ack = try await client.v5.connect(cleanStart: false, properties: properties)
                     if ack.reason != .success {
+                        surface({{ spec.info.title | caseUcfirst }}Error(message: Push.reasonString(ack.properties) ?? "MQTT authentication failed (CONNACK reason \(ack.reason))"))
                         delaySeconds = min(delaySeconds * 2, 30)
                         continue
                     }
@@ -555,14 +611,98 @@ open class Push: Service {
                 // Let a resubscription failure fall through to the retry loop rather than
                 // reporting a recovery that left the handles without broker routing.
                 if !infos.isEmpty {
-                    _ = try await client.v5.subscribe(to: infos)
+                    try await brokerSubscribe(client, infos)
                 }
                 onOpenCb?()
                 return
             } catch {
-                // Keep retrying until closed or drained.
+                // Report each failed attempt, then keep retrying until closed or drained.
+                surface(Push.describe(error))
             }
             delaySeconds = min(delaySeconds * 2, 30)
+        }
+    }
+
+    // For a call path that throws to its caller, which does `try report(error); throw error`:
+    // the error reaches onError when one is registered and the caller still gets it; with no
+    // callback it is thrown to the caller exactly once.
+    private func report(_ error: Swift.Error) throws {
+        guard let callback = onErrorCb else {
+            throw error
+        }
+        callback(error)
+    }
+
+    // `report` for errors outside any call (listeners on the event loop, fire-and-forget tasks,
+    // notification callbacks, close()). These are never thrown, so they cannot crash the app:
+    // they reach onError, and with none registered they are logged to stderr.
+    private func surface(_ error: Swift.Error) {
+        guard let callback = onErrorCb else {
+            FileHandle.standardError.write(Data("{{ spec.info.title | caseUcfirst }} Push: \(error)\n".utf8))
+            return
+        }
+        callback(error)
+    }
+
+    // Run a fire-and-forget broker call (an unsubscribe or re-SUBSCRIBE nobody awaits) and
+    // report its failure. Failures after a deliberate close() are its own teardown, not errors.
+    private func inBackground(_ operation: @escaping () async throws -> Void) {
+        Task { [weak self] in
+            do {
+                try await operation()
+            } catch {
+                guard let self, !self.sync.sync(execute: { self.closing }) else { return }
+                self.surface(Push.describe(error))
+            }
+        }
+    }
+
+    // SUBSCRIBE, throwing when the broker refused a filter (SUBACK reason code 0x80 or above):
+    // subscribe() then rolls back, reports and throws; background callers report it.
+    private func brokerSubscribe(_ client: MQTTClient, _ infos: [MQTTSubscribeInfoV5]) async throws {
+        let suback = try await client.v5.subscribe(to: infos)
+        if let (info, reason) = zip(infos, suback.reasons).first(where: { $0.1.rawValue >= 0x80 }) {
+            throw {{ spec.info.title | caseUcfirst }}Error(message: "Subscribe to \"\(info.topicFilter)\" refused by the broker (SUBACK reason \(reason))")
+        }
+    }
+
+    // UNSUBSCRIBE, throwing when the broker refused a filter (UNSUBACK reason code 0x80 or above).
+    private func brokerUnsubscribe(_ client: MQTTClient, _ filters: [String]) async throws {
+        let unsuback = try await client.v5.unsubscribe(from: filters)
+        if let (filter, reason) = zip(filters, unsuback.reasons).first(where: { $0.1.rawValue >= 0x80 }) {
+            throw {{ spec.info.title | caseUcfirst }}Error(message: "Unsubscribe from \"\(filter)\" refused by the broker (UNSUBACK reason \(reason))")
+        }
+    }
+
+    // The error onError sees (and a failed call throws) for a library error: a broker error
+    // gets a readable message (see `brokerMessage`), anything else passes through unchanged.
+    private static func describe(_ error: Swift.Error) -> Swift.Error {
+        if let message = brokerMessage(error) {
+            return {{ spec.info.title | caseUcfirst }}Error(message: message)
+        }
+        return error
+    }
+
+    // The broker explains a refusal or disconnect with the MQTT 5 Reason String property.
+    private static func reasonString(_ properties: MQTTProperties) -> String? {
+        for case .reasonString(let value) in properties where !value.isEmpty {
+            return value
+        }
+        return nil
+    }
+
+    // A readable message for a broker-originated MQTTNIO error, or nil for any other error.
+    // A server DISCONNECT carries its packet (and so its Reason String). A refused CONNACK
+    // only reaches us as its reason code: MQTTNIO drops the CONNACK properties when it
+    // rejects the connection, so its Reason String is not available here.
+    private static func brokerMessage(_ error: Swift.Error) -> String? {
+        switch error {
+        case MQTTError.serverDisconnection(let ack):
+            return reasonString(ack.properties) ?? "MQTT connection closed by the broker (DISCONNECT reason \(ack.reason))"
+        case MQTTError.reasonError(let reason):
+            return "MQTT connection refused (CONNACK reason \(reason))"
+        default:
+            return nil
         }
     }
 
@@ -592,7 +732,11 @@ open class Push: Service {
             content.body = message.string
             content.sound = .default
             let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-            UNUserNotificationCenter.current().add(request)
+            UNUserNotificationCenter.current().add(request) { [weak self] error in
+                if let error {
+                    self?.surface(error)
+                }
+            }
         #endif
     }
 

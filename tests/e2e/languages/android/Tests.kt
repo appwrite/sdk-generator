@@ -47,6 +47,19 @@ import java.nio.file.Paths
 
 data class TestPayload(val response: String)
 
+// The app's PushReceiver in the background delivery test: records what reaches it and lets the
+// SDK post its notification too.
+class E2EPushReceiver : io.appwrite.services.PushReceiver() {
+    companion object {
+        val messages = java.util.concurrent.CopyOnWriteArrayList<String>()
+    }
+
+    override fun onMessage(context: android.content.Context, message: io.appwrite.services.PushMessage): Boolean {
+        messages.add(message.string)
+        return false
+    }
+}
+
 @Config(manifest=Config.NONE)
 @RunWith(AndroidJUnit4::class)
 class ServiceTest {
@@ -605,6 +618,136 @@ class ServiceTest {
             }
             anonymousPush.close()
             writeToFile(if (noCredentialRejected) "Push user no credential:passed" else "Push user no credential:failed")
+
+            // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
+            // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
+            // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
+            val firstError = { errorPush: Push, topic: String ->
+                val errorLatch = java.util.concurrent.CountDownLatch(1)
+                val errorMessage = java.util.concurrent.atomic.AtomicReference("")
+                errorPush.onError { error ->
+                    if (errorMessage.compareAndSet("", error.message ?: "")) {
+                        errorLatch.countDown()
+                    }
+                }
+                try {
+                    errorPush.subscribe(topic) { }
+                } catch (e: Exception) {
+                }
+                errorLatch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+                errorPush.close()
+                errorMessage.get()
+            }
+            val deniedError = firstError(
+                Push(pushClient().setJWT("deny:refused-by-test"), ApplicationProvider.getApplicationContext()),
+                "e2e-push",
+            )
+            writeToFile(
+                if (deniedError == "refused-by-test") "Push connect error:passed" else "Push connect error:failed",
+            )
+            val kickedError = firstError(Push(client, ApplicationProvider.getApplicationContext()), "e2e-disconnect/kicked-by-test")
+            writeToFile(
+                if (kickedError == "kicked-by-test") {
+                    "Push disconnect error:passed"
+                } else {
+                    "Push disconnect error:failed"
+                },
+            )
+
+            // Background delivery, used the way an app does: subscribe with background on and a
+            // PushReceiver declared, then the process dies, and the scheduled wake-up brings the
+            // next message to the receiver and a notification. Sign-out stops it.
+            val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+            val notifications = context.getSystemService(android.app.NotificationManager::class.java)
+            org.robolectric.Shadows.shadowOf(context.packageManager).addResolveInfoForIntent(
+                android.content.Intent("io.appwrite.push.MESSAGE").setPackage(context.packageName),
+                android.content.pm.ResolveInfo().apply {
+                    activityInfo = android.content.pm.ActivityInfo().apply {
+                        name = E2EPushReceiver::class.java.name
+                        packageName = context.packageName
+                    }
+                },
+            )
+            val backgroundPush = Push(pushClient().setSession(e2eSession), context)
+            val liveLatch = java.util.concurrent.CountDownLatch(1)
+            backgroundPush.subscribe("e2e-push", background = true, title = "E2E title") { message ->
+                if (message.string == "push-payload") {
+                    liveLatch.countDown()
+                }
+            }
+            writeToFile(
+                if (liveLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                    "Push background message:passed"
+                } else {
+                    "Push background message:failed"
+                },
+            )
+            val alarms = org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.AlarmManager::class.java))
+
+            // The process dies: callbacks and the connection are gone, only what was saved remains.
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            notifications.cancelAll()
+            E2EPushReceiver.messages.clear()
+            // Android fires the wake-up the SDK scheduled. This test runs without a manifest, so
+            // register the alarm's receiver the way the merged manifest declares it.
+            val wakeUp = alarms.nextScheduledAlarm?.operation
+            if (wakeUp != null) {
+                val wakeUpIntent = org.robolectric.Shadows.shadowOf(wakeUp).savedIntent
+                val receiver = Class.forName(wakeUpIntent.component!!.className).getDeclaredConstructor().newInstance()
+                val filter = android.content.IntentFilter(wakeUpIntent.action)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    context.registerReceiver(receiver as android.content.BroadcastReceiver, filter, android.content.Context.RECEIVER_NOT_EXPORTED)
+                } else {
+                    context.registerReceiver(receiver as android.content.BroadcastReceiver, filter)
+                }
+                wakeUp.send()
+            }
+            val deadline = System.currentTimeMillis() + 10_000
+            while (E2EPushReceiver.messages.isEmpty() && System.currentTimeMillis() < deadline) {
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                Thread.sleep(100)
+            }
+            val posted = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()
+            val postedTitle = posted?.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
+            val postedText = posted?.extras?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
+            writeToFile(
+                if (E2EPushReceiver.messages.toList() == listOf("push-payload") && postedTitle == "E2E title" && postedText == "push-payload") {
+                    "Push background restore:passed"
+                } else {
+                    "Push background restore:failed"
+                },
+            )
+
+            // Sign-out: close() stops background delivery, including what the earlier run saved.
+            Push(pushClient().setSession(e2eSession), context).close()
+            writeToFile(
+                if (context.getSystemService(android.app.job.JobScheduler::class.java).allPendingJobs.isEmpty() && alarms.nextScheduledAlarm == null) {
+                    "Push background close:passed"
+                } else {
+                    "Push background close:failed"
+                },
+            )
+
+            // A refused credential stops background delivery and reaches onError.
+            val refusedPush = Push(pushClient().setJWT("deny:refused-in-background"), context)
+            val refusedLatch = java.util.concurrent.CountDownLatch(1)
+            val refusedMessage = java.util.concurrent.atomic.AtomicReference("")
+            refusedPush.onError { error ->
+                if (refusedMessage.compareAndSet("", error.message ?: "")) {
+                    refusedLatch.countDown()
+                }
+            }
+            refusedPush.subscribe("e2e-push", background = true) { }
+            refusedLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)
+            Thread.sleep(500)
+            writeToFile(
+                if (refusedMessage.get() == "refused-in-background" && context.getSystemService(android.app.job.JobScheduler::class.java).allPendingJobs.isEmpty()) {
+                    "Push background refused:passed"
+                } else {
+                    "Push background refused:failed"
+                },
+            )
+            refusedPush.close()
         }
     }
 

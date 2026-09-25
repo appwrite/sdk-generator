@@ -83,6 +83,12 @@ export class Push extends Service {
     private onOpenCb?: () => void;
     private onCloseCb?: () => void;
     private onErrorCb?: (error: Error) => void;
+    /** Errors already handed to onError, so one failure is reported once. */
+    private reported = new WeakSet<Error>();
+    /** mqtt.js connect errors mapped to the error handed out for them (see connectError). */
+    private connectErrors = new WeakMap<Error, Error>();
+    /** True while the first connect is in flight: its errors go to the waiting caller. */
+    private opening = false;
 
     // Local id -> subscription state. The id is never sent to the broker; it only lets
     // the same topic carry more than one callback (each with its own options).
@@ -146,6 +152,41 @@ export class Push extends Service {
         return `users/${userId}`;
     }
 
+    /**
+     * Hand an error to the onError callback, once per error. These errors happen outside any
+     * call (reconnects, broker DISCONNECTs, background re-subscribes), so they are never
+     * thrown, which would crash the app from inside mqtt.js: with no callback registered
+     * they are logged, like Realtime does.
+     */
+    private report(error: unknown): void {
+        const err = toError(error);
+        if (this.reported.has(err)) {
+            return;
+        }
+        this.reported.add(err);
+        if (!this.onErrorCb) {
+            console.error('{{spec.info.title | caseUcfirst}} Push error:', err);
+            return;
+        }
+        try {
+            this.onErrorCb(err);
+        } catch (callbackError) {
+            console.error('{{spec.info.title | caseUcfirst}} Push onError threw:', callbackError);
+        }
+    }
+
+    /**
+     * For a call that fails to its caller: report the error to onError when a callback is
+     * registered, then throw it to the caller, who can catch it.
+     */
+    private fail(error: unknown): never {
+        const err = toError(error);
+        if (this.onErrorCb) {
+            this.report(err);
+        }
+        throw err;
+    }
+
     // --- realtime-like API ---
 
     /**
@@ -188,6 +229,28 @@ export class Push extends Service {
             | MessageCallback,
         callbackOrOptions?: MessageCallback | SubscribeOptions,
         topicOptions: SubscribeOptions = {},
+    ): Promise<PushSubscription> {
+        // Every failure reaches onError (when registered) and is thrown to the caller.
+        try {
+            return await this.subscribeWith(
+                topicsOrCallback,
+                callbackOrOptions,
+                topicOptions,
+            );
+        } catch (err) {
+            this.fail(err);
+        }
+    }
+
+    private async subscribeWith(
+        topicsOrCallback:
+            | string
+            | Topic
+            | ResolvedTopic
+            | (string | Topic | ResolvedTopic)[]
+            | MessageCallback,
+        callbackOrOptions: MessageCallback | SubscribeOptions | undefined,
+        topicOptions: SubscribeOptions,
     ): Promise<PushSubscription> {
         // Topic-less form: subscribe(callback, options) targets the signed-in user's topic.
         const userForm = typeof topicsOrCallback === 'function';
@@ -248,7 +311,11 @@ export class Push extends Service {
                     (s) => s.topic === entry?.topic,
                 );
                 if (entry && this.mqtt && !stillUsed) {
-                    this.mqtt.unsubscribe(entry.topic);
+                    this.mqtt.unsubscribe(entry.topic, (err) => {
+                        if (err) {
+                            this.report(err);
+                        }
+                    });
                 }
             }
             // A filter that lost its last QoS-1 sub but still has QoS-0 subs must be
@@ -258,7 +325,11 @@ export class Push extends Service {
                     (s) => s.topic === filter,
                 );
                 if (stillUsed && this.effectiveQos(filter) === 0) {
-                    this.mqtt?.subscribe(filter, { qos: 0 });
+                    this.mqtt?.subscribe(filter, { qos: 0 }, (err) => {
+                        if (err) {
+                            this.report(err);
+                        }
+                    });
                 }
             }
             if (this.subscriptions.size === 0) {
@@ -321,9 +392,7 @@ export class Push extends Service {
                                 entry.qos = q;
                             }
                         }
-                        this.onErrorCb?.(
-                            err instanceof Error ? err : new Error(String(err)),
-                        );
+                        this.report(err);
                     },
                 );
             }
@@ -360,7 +429,11 @@ export class Push extends Service {
             client.subscribe(
                 filter,
                 { qos: this.effectiveQos(filter) },
-                () => {},
+                (err) => {
+                    if (err) {
+                        this.report(err);
+                    }
+                },
             );
         }
     }
@@ -448,7 +521,7 @@ export class Push extends Service {
         this.mqtt = client;
 
         client.on('message', (_topic, _payload, packet) => {
-            void this.dispatch(packet);
+            this.dispatch(packet).catch((err) => this.report(err));
         });
 
         // Persistent lifecycle listeners. Re-register every subscription on reconnect
@@ -462,12 +535,39 @@ export class Push extends Service {
             this.onOpenCb?.();
         });
         client.on('close', () => this.onCloseCb?.());
-        client.on('error', (err) =>
-            this.onErrorCb?.(
-                err instanceof Error ? err : new Error(String(err)),
-            ),
-        );
+        // The broker explains a refused CONNECT (CONNACK) or a server-initiated DISCONNECT
+        // with an MQTT 5 Reason String. mqtt.js reports only the reason code, so capture the
+        // string off the packet (packetreceive fires before mqtt.js handles it) and hand it
+        // to onError as the error message.
+        let refusedReason: string | undefined;
+        client.on('packetreceive', (packet) => {
+            if (packet.cmd === 'connack') {
+                refusedReason =
+                    (packet.reasonCode ?? 0) !== 0
+                        ? packet.properties?.reasonString
+                        : undefined;
+            }
+        });
+        client.on('error', (err) => {
+            const error = this.connectError(err, refusedReason);
+            // While the first connect is pending its caller receives the error (and reports it
+            // through fail()); afterwards, e.g. on reconnect, report it here.
+            if (!this.opening) {
+                this.report(error);
+            }
+        });
+        client.on('disconnect', (packet) => {
+            if ((packet.reasonCode ?? 0) !== 0) {
+                this.report(
+                    new Error(
+                        packet.properties?.reasonString ??
+                            `Disconnected by the broker (reason ${packet.reasonCode})`,
+                    ),
+                );
+            }
+        });
 
+        this.opening = true;
         await new Promise<void>((resolve, reject) => {
             const onConnect = (packet: IConnackPacket) => {
                 cleanup();
@@ -476,7 +576,8 @@ export class Push extends Service {
                     this.close();
                     reject(
                         new Error(
-                            `MQTT authentication failed (CONNACK reason ${rc})`,
+                            refusedReason ??
+                                `MQTT authentication failed (CONNACK reason ${rc})`,
                         ),
                     );
                 } else {
@@ -486,9 +587,10 @@ export class Push extends Service {
             const onError = (err: Error) => {
                 cleanup();
                 this.close();
-                reject(err);
+                reject(this.connectError(err, refusedReason));
             };
             const cleanup = () => {
+                this.opening = false;
                 client.removeListener('connect', onConnect);
                 client.removeListener('error', onError);
             };
@@ -496,6 +598,21 @@ export class Push extends Service {
             client.on('error', onError);
             client.connect();
         });
+    }
+
+    /**
+     * The error for a failed connect: the broker's Reason String when it sent one (a refused
+     * CONNACK), else mqtt.js's error. Memoized so both error listeners hand out the same
+     * object and it is reported once.
+     */
+    private connectError(err: unknown, reason: string | undefined): Error {
+        const source = toError(err);
+        let error = this.connectErrors.get(source);
+        if (!error) {
+            error = reason ? new Error(reason) : source;
+            this.connectErrors.set(source, error);
+        }
+        return error;
     }
 
     /** Fan a delivered packet out to every subscription whose filter matches. */
@@ -524,7 +641,9 @@ export class Push extends Service {
             typeof Notification !== 'undefined' &&
             Notification.permission === 'default'
         ) {
-            void Notification.requestPermission();
+            Promise.resolve(Notification.requestPermission()).catch((err) =>
+                this.report(err),
+            );
         }
     }
 
@@ -544,6 +663,11 @@ export class Push extends Service {
             // Some browsers only allow notifications from a service worker; ignore.
         }
     }
+}
+
+/** Normalize anything thrown or passed to an error handler into an `Error`. */
+function toError(error: unknown): Error {
+    return error instanceof Error ? error : new Error(String(error));
 }
 
 /**

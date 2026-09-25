@@ -222,6 +222,21 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushBackground.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushBackground.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushReceiver.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushReceiver.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushWakeups.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushWakeups.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/Extensions.kt',
                 'template'      => '/android/library/src/main/java/io/package/cookies/Extensions.kt.twig',
             ],

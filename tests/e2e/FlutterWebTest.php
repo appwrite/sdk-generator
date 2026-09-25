@@ -42,6 +42,7 @@ final class FlutterWebTest extends Base
 
     #[Override]
     protected array $expectedOutput = [
-        ...Base::PUSH_RESPONSES
+        ...Base::PUSH_RESPONSES,
+        ...Base::PUSH_ERROR_RESPONSES
     ];
 }

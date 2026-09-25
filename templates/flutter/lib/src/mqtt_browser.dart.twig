@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 // ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
 import 'dart:math';
@@ -194,6 +195,44 @@ class PushWeb implements Push {
     return this;
   }
 
+  // Errors already handed to onError, so one failure reaching it through two paths (a
+  // refused CONNACK that also fails the subscribe waiting on it) is reported once.
+  final Expando<bool> _reported = Expando<bool>();
+
+  // Every error the service hits goes through here and reaches onError. It is never thrown
+  // from here, so an error outside any call cannot crash the app.
+  void _report(Object error) {
+    try {
+      if (_reported[error] == true) {
+        return;
+      }
+      _reported[error] = true;
+    } catch (_) {
+      // Expando rejects strings/numbers; such an error is simply not de-duplicated.
+    }
+    final callback = _onError;
+    if (callback == null) {
+      // Never thrown (that would surface as an uncaught error from inside mqtt5_client):
+      // with no onError registered it is logged, like Realtime does.
+      developer.log('Push error', name: '{{ spec.info.title | caseLower }}', error: error);
+      return;
+    }
+    try {
+      callback(error);
+    } catch (callbackError, stackTrace) {
+      developer.log('Push onError threw',
+          name: '{{ spec.info.title | caseLower }}', error: callbackError, stackTrace: stackTrace);
+    }
+  }
+
+  // An error that is also thrown to the caller: onError sees it too, but with no onError
+  // registered the caller's own throw is enough.
+  void _notify(Object error) {
+    if (_onError != null) {
+      _report(error);
+    }
+  }
+
   @override
   Future<PushSubscription> subscribe(
     Object? topics,
@@ -202,7 +241,15 @@ class PushWeb implements Push {
     String? title,
     bool retry = true,
   }) async {
-    final topicList = _topicList(client, topics);
+    final List<String> topicList;
+    final MqttBrowserClient mqtt;
+    try {
+      topicList = _topicList(client, topics);
+      mqtt = await _connect();
+    } catch (e) {
+      _notify(e);
+      rethrow;
+    }
     // The own-user topic (topics == null) defaults to background delivery, like FCM/APNs.
     final wantsBackground = background ?? topics == null;
 
@@ -210,26 +257,8 @@ class PushWeb implements Push {
       _requestNotificationPermission();
     }
 
-    final mqtt = await _connect();
-
     final ids = <String>[];
     final acks = <Future<void>>[];
-    for (final topic in topicList) {
-      final id = _randomId();
-      ids.add(id);
-      _subscriptions[id] = _Subscription(topic, callback,
-          background: wantsBackground, title: title, retry: retry);
-
-      final completer = Completer<void>();
-      (_subAcks[topic] ??= <Completer<void>>[]).add(completer);
-      acks.add(completer.future);
-
-      final subscription = MqttSubscription.withMaximumQos(
-        MqttSubscriptionTopic(topic),
-        _effectiveQos(topic),
-      );
-      mqtt.subscribeWithSubscriptionList([subscription]);
-    }
 
     void unsubscribe() {
       final maybeDowngrade = <String>{};
@@ -242,7 +271,11 @@ class PushWeb implements Push {
         final stillUsed =
             _subscriptions.values.any((s) => s.filter == entry?.filter);
         if (entry != null && !stillUsed) {
-          _mqtt?.unsubscribeStringTopic(entry.filter);
+          try {
+            _mqtt?.unsubscribeStringTopic(entry.filter);
+          } catch (e) {
+            _report(e);
+          }
         }
       }
       // A filter that lost its last QoS-1 sub but still has QoS-0 subs must be re-subscribed
@@ -250,12 +283,16 @@ class PushWeb implements Push {
       for (final filter in maybeDowngrade) {
         final stillUsed = _subscriptions.values.any((s) => s.filter == filter);
         if (stillUsed && _effectiveQos(filter) == MqttQos.atMostOnce) {
-          _mqtt?.subscribeWithSubscriptionList([
-            MqttSubscription.withMaximumQos(
-              MqttSubscriptionTopic(filter),
-              MqttQos.atMostOnce,
-            ),
-          ]);
+          try {
+            _mqtt?.subscribeWithSubscriptionList([
+              MqttSubscription.withMaximumQos(
+                MqttSubscriptionTopic(filter),
+                MqttQos.atMostOnce,
+              ),
+            ]);
+          } catch (e) {
+            _report(e);
+          }
         }
       }
       if (_subscriptions.isEmpty) {
@@ -269,9 +306,31 @@ class PushWeb implements Push {
     // If any topic's SUBACK fails, roll this call's registrations back (and drop any
     // now-unused broker filter) so a failed subscribe leaks no callback, then rethrow.
     try {
+      for (final topic in topicList) {
+        final id = _randomId();
+        ids.add(id);
+        _subscriptions[id] = _Subscription(
+          topic,
+          callback,
+          background: wantsBackground,
+          title: title,
+          retry: retry,
+        );
+
+        final completer = Completer<void>();
+        (_subAcks[topic] ??= <Completer<void>>[]).add(completer);
+        acks.add(completer.future);
+
+        final subscription = MqttSubscription.withMaximumQos(
+          MqttSubscriptionTopic(topic),
+          _effectiveQos(topic),
+        );
+        mqtt.subscribeWithSubscriptionList([subscription]);
+      }
       await Future.wait(acks);
-    } catch (_) {
+    } catch (e) {
       unsubscribe();
+      _notify(e);
       rethrow;
     }
 
@@ -297,13 +356,18 @@ class PushWeb implements Push {
         _requestNotificationPermission();
       }
       // Re-subscribe affected filters at their new effective QoS.
+      // A rejected SUBACK reaches onError through [_onSubscribeFail].
       for (final filter in changedFilters) {
-        _mqtt?.subscribeWithSubscriptionList([
-          MqttSubscription.withMaximumQos(
-            MqttSubscriptionTopic(filter),
-            _effectiveQos(filter),
-          ),
-        ]);
+        try {
+          _mqtt?.subscribeWithSubscriptionList([
+            MqttSubscription.withMaximumQos(
+              MqttSubscriptionTopic(filter),
+              _effectiveQos(filter),
+            ),
+          ]);
+        } catch (e) {
+          _report(e);
+        }
       }
     }
 
@@ -312,7 +376,12 @@ class PushWeb implements Push {
 
   void _requestNotificationPermission() {
     if (html.Notification.permission != 'granted') {
-      html.Notification.requestPermission();
+      unawaited(
+        html.Notification.requestPermission().then<void>(
+          (_) {},
+          onError: _report,
+        ),
+      );
     }
   }
 
@@ -380,7 +449,19 @@ class PushWeb implements Push {
     mqtt.onSubscribed = _onSubscribed;
     mqtt.onSubscribeFail = _onSubscribeFail;
     mqtt.onConnected = () => _onOpen?.call();
-    mqtt.onDisconnected = () => _onClose?.call();
+    final reconnects = _ReconnectWatch(mqtt, _report);
+    mqtt.onAutoReconnect = reconnects.attemptStarted;
+    mqtt.onAutoReconnected = reconnects.stop;
+    mqtt.onDisconnected = () {
+      reconnects.stop();
+      // A DISCONNECT from the broker with an error reason code explains itself in its
+      // MQTT 5 Reason String.
+      final error = _brokerDisconnectError(mqtt);
+      if (error != null) {
+        _report(error);
+      }
+      _onClose?.call();
+    };
 
     // Enhanced auth carried in the CONNECT properties, plus the project id as a
     // user property — exactly like the Python and React Native clients.
@@ -398,21 +479,17 @@ class PushWeb implements Push {
 
     _mqtt = mqtt;
 
-    try {
-      await mqtt.connect();
-    } catch (e) {
+    final failure = await _connectOrFail(mqtt, (error) {
+      // Let go of the client first: it is still being wound down, and a close() from
+      // onError must not touch it.
+      if (identical(_mqtt, mqtt)) {
+        _mqtt = null;
+      }
       close();
-      _onError?.call(e);
-      throw {{spec.info.title | caseUcfirst}}Exception(e.toString());
-    }
-
-    final status = mqtt.connectionStatus;
-    if (status == null || status.state != MqttConnectionState.connected) {
-      close();
-      final error = {{spec.info.title | caseUcfirst}}Exception(
-          'MQTT authentication failed (CONNACK reason ${status?.reasonCode})');
-      _onError?.call(error);
-      throw error;
+      _notify(error);
+    });
+    if (failure != null) {
+      throw failure;
     }
 
     // Attach the delivery listener only after CONNACK — the `updates` stream is not
@@ -471,10 +548,154 @@ class PushWeb implements Push {
   void _onSubscribeFail(MqttSubscription subscription) {
     final topic = subscription.topic.rawTopic;
     final completer = _takeSubAck(topic);
+    final error = {{spec.info.title | caseUcfirst}}Exception('Failed to subscribe to $topic');
     if (completer != null && !completer.isCompleted) {
-      completer
-          .completeError({{spec.info.title | caseUcfirst}}Exception('Failed to subscribe to $topic'));
+      // The subscribe waiting on this SUBACK throws it (and reports it to onError).
+      completer.completeError(error);
+    } else {
+      // Nobody awaits this SUBSCRIBE (a resubscribe after reconnect or a QoS change), so
+      // onError is the only place it can surface.
+      _report(error);
     }
+  }
+}
+
+/// Connect [mqtt]. Resolves to null once connected, or to the error the connect failed
+/// with after handing it to [failed] and disconnecting [mqtt]: a refused CONNECT carries
+/// the broker's MQTT 5 Reason String when it sent one.
+///
+/// mqtt5_client alone would not finish here: after a refused CONNECT that carries enhanced
+/// auth, its connect() keeps waiting for a successful CONNACK. So the connection status is
+/// watched for the refusal as well, and the pending connect() is then let go.
+Future<Object?> _connectOrFail(
+  MqttClient mqtt,
+  void Function(Object error) failed,
+) async {
+  final connecting = mqtt.connect();
+  final refused = Completer<void>();
+  final watch = Timer.periodic(const Duration(milliseconds: 50), (_) {
+    if (!refused.isCompleted && _refused(mqtt.connectionStatus)) {
+      refused.complete();
+    }
+  });
+  Object? failure;
+  try {
+    await Future.any([connecting, refused.future]);
+  } catch (e) {
+    failure = e;
+  } finally {
+    watch.cancel();
+  }
+  final status = mqtt.connectionStatus;
+  if (failure == null && status?.state == MqttConnectionState.connected) {
+    return null;
+  }
+  final error = {{spec.info.title | caseUcfirst}}Exception(
+    status != null && _refused(status)
+        ? _refusalMessage(status)
+        : failure?.toString() ?? 'MQTT connection failed (${status?.state})',
+  );
+  failed(error);
+  // Fail the caller now; winding down the library's pending connect() happens after.
+  unawaited(_teardown(mqtt, connecting, refused.isCompleted ? status : null));
+  return error;
+}
+
+/// Tear down a client whose connect failed. After a refusal [refusedStatus] is its status:
+/// connect() only stops waiting once the status reads connected, so mark it so until
+/// connect() returns, then disconnected again.
+Future<void> _teardown(MqttClient mqtt, Future<Object?> connecting,
+    MqttConnectionStatus? refusedStatus) async {
+  if (refusedStatus != null) {
+    refusedStatus.state = MqttConnectionState.connected;
+    try {
+      await connecting.timeout(const Duration(seconds: 10));
+    } catch (_) {
+      // The refusal is the error; how connect() ends no longer matters.
+    }
+    refusedStatus.state = MqttConnectionState.disconnected;
+  }
+  try {
+    mqtt.disconnect();
+  } catch (_) {
+    // Already torn down; the connect failure is the error.
+  }
+}
+
+/// Whether [status] holds a CONNACK the broker refused the connection with.
+bool _refused(MqttConnectionStatus? status) {
+  final code = status?.reasonCode;
+  return status != null &&
+      status.state != MqttConnectionState.connected &&
+      code != null &&
+      code != MqttConnectReasonCode.notSet &&
+      code != MqttConnectReasonCode.success;
+}
+
+/// The broker's Reason String for a refused CONNECT, or a message naming the reason code.
+String _refusalMessage(MqttConnectionStatus status) {
+  final reason = status.reasonString;
+  return reason != null && reason.isNotEmpty
+      ? reason
+      : 'MQTT authentication failed (CONNACK reason ${status.reasonCode})';
+}
+
+/// The error for a DISCONNECT the broker sent with an error reason code: its MQTT 5 Reason
+/// String when present, else a message naming the reason code. Null for any other close.
+{{spec.info.title | caseUcfirst}}Exception? _brokerDisconnectError(MqttClient mqtt) {
+  final status = mqtt.connectionStatus;
+  if (status == null ||
+      status.disconnectionOrigin != MqttDisconnectionOrigin.brokerSolicited) {
+    return null;
+  }
+  final disconnect = status.disconnectMessage;
+  final code = disconnect.reasonCode;
+  if (code == null ||
+      code == MqttDisconnectReasonCode.notSet ||
+      code == MqttDisconnectReasonCode.normalDisconnection) {
+    return null;
+  }
+  final reason = disconnect.reasonString;
+  return {{spec.info.title | caseUcfirst}}Exception(
+    reason != null && reason.isNotEmpty
+        ? reason
+        : 'Disconnected by the broker (reason ${MqttDisconnectReasonCodeSupport.mqttDisconnectReasonCode.asInt(code)})',
+  );
+}
+
+/// Reports failed automatic reconnects, which mqtt5_client retries internally without
+/// throwing: a refused CONNECT (with the broker's Reason String) as soon as its CONNACK
+/// arrives, any other failure when the next attempt starts.
+class _ReconnectWatch {
+  final MqttClient _mqtt;
+  final void Function(Object error) _report;
+  Timer? _timer;
+  bool _attempting = false;
+  bool _attemptReported = false;
+
+  _ReconnectWatch(this._mqtt, this._report);
+
+  void attemptStarted() {
+    if (_attempting && !_attemptReported) {
+      _report({{spec.info.title | caseUcfirst}}Exception('Push reconnect attempt failed'));
+    }
+    _attempting = true;
+    _attemptReported = false;
+    // Forget the last CONNACK so an earlier refusal is not reported for this attempt.
+    _mqtt.connectionStatus?.reasonCode = MqttConnectReasonCode.notSet;
+    _timer ??= Timer.periodic(const Duration(milliseconds: 50), (_) {
+      final status = _mqtt.connectionStatus;
+      if (_attempting && !_attemptReported && _refused(status)) {
+        _attemptReported = true;
+        _report({{spec.info.title | caseUcfirst}}Exception(_refusalMessage(status!)));
+      }
+    });
+  }
+
+  void stop() {
+    _attempting = false;
+    _timer?.cancel();
+    _timer = null;
   }
 }
 

@@ -59,7 +59,12 @@ abstract class Push extends Service {
   /// Register a callback invoked when the connection closes.
   Push onClose(void Function() callback);
 
-  /// Register a callback invoked on a connection error.
+  /// Register a callback invoked with every error the service hits: a failed or refused
+  /// connect or reconnect (carrying the broker's reason string when it sent one), a
+  /// DISCONNECT from the broker, a rejected SUBSCRIBE and background delivery failures.
+  /// Errors a call also throws (such as [subscribe]'s) are reported here as well. Errors that
+  /// no call throws are never thrown, so they cannot crash the app: with no callback
+  /// registered they are logged.
   Push onError(void Function(Object error) callback);
 
   /// Subscribe to one or more topics, resolving to a [PushSubscription] handle.
@@ -83,8 +88,8 @@ abstract class Push extends Service {
   /// [onOpen]/[onClose]/[onError] observe that connection. A [background] subscription hands the connection to the background isolate,
   /// which connects and subscribes asynchronously and retries failures internally, so it
   /// resolves once the isolate has been handed the subscription rather than after SUBACK;
-  /// the isolate forwards messages but not its connection lifecycle, so [onOpen]/[onError]
-  /// do not fire for it.
+  /// the isolate forwards messages and errors (to [onError]) but not its connection
+  /// lifecycle, so [onOpen]/[onClose] do not fire for it.
   ///
   /// [retry] chooses this subscription's delivery guarantee: `true` (the
   /// default) subscribes at QoS 1 so the broker holds this topic's messages and redelivers

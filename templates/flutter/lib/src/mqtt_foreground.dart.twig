@@ -9,6 +9,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'client.dart';
+import 'exception.dart';
 import 'mqtt.dart';
 
 /// Android/iOS background delivery for the native ({{ 'dart:io' }}) push service.
@@ -31,6 +32,7 @@ const String _channelName = 'Notifications';
 const String _messageEvent = '{{ spec.info.title | caseLower }}.push.message';
 const String _topicsEvent = '{{ spec.info.title | caseLower }}.push.topics';
 const String _stopEvent = '{{ spec.info.title | caseLower }}.push.stop';
+const String _errorEvent = '{{ spec.info.title | caseLower }}.push.error';
 
 // How long to wait before retrying a background subscription that failed (SUBACK/connect),
 // so delivery converges instead of silently missing messages.
@@ -38,6 +40,19 @@ const Duration _retryDelay = Duration(seconds: 2);
 
 /// The service event the app listens on to forward background messages to callbacks.
 String get pushForegroundMessageEvent => _messageEvent;
+
+/// The service event the isolate relays its errors on, so the app's onError sees them.
+String get pushForegroundErrorEvent => _errorEvent;
+
+// Relay an isolate error to the app (if alive) as its message.
+void _relayError(ServiceInstance service, Object error) {
+  service.invoke(_errorEvent, {
+    'message':
+        error is {{spec.info.title | caseUcfirst}}Exception
+            ? (error.message ?? error.toString())
+            : error.toString(),
+  });
+}
 
 Future<File> _configFile() async {
   final dir = await getApplicationDocumentsDirectory();
@@ -150,18 +165,21 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
 
   final notifications = FlutterLocalNotificationsPlugin();
-  await notifications.initialize(
-    const InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      iOS: DarwinInitializationSettings(),
-    ),
-  );
-
   final Map<String, dynamic> config;
   try {
+    await notifications.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(),
+      ),
+    );
     config =
         jsonDecode((await _configFile()).readAsStringSync()) as Map<String, dynamic>;
-  } catch (_) {
+  } catch (e) {
+    _relayError(
+      service,
+      {{spec.info.title | caseUcfirst}}Exception('Background push failed to start: $e'),
+    );
     await _deleteConfig();
     service.stopSelf();
     return;
@@ -186,7 +204,9 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
     client.setPushClientId(pushClientId);
   }
 
-  final push = Push(client);
+  // Connection, subscribe and broker errors go to the app's onError. A failed subscribe
+  // reaches it through here and is then retried below.
+  final push = Push(client).onError((error) => _relayError(service, error));
 
   // filter -> notification title, for the filters that opted into background. Reassigned on
   // each [_topicsEvent]; the subscribe closures read the current map, so title/opt-in changes

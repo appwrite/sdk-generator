@@ -601,6 +601,41 @@ namespace AppwriteTests
                 ? "Push user no credential:passed"
                 : "Push user no credential:failed");
 
+            // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
+            // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
+            // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
+            async Task<string> FirstError(Client errorClient, string topic)
+            {
+                var errorPushObject = new GameObject("PushErrorTest");
+                var errorPush = errorPushObject.AddComponent<Push>();
+                errorPush.Initialize(errorClient);
+                var errorTcs = new TaskCompletionSource<string>();
+                errorPush.OnError((error) => errorTcs.TrySetResult(error.Message));
+                try
+                {
+                    await errorPush.Subscribe(topic, (message) => { });
+                }
+                catch
+                {
+                    // The refused CONNECT also fails the subscribe; onError is what is checked.
+                }
+                var errorWinner = await Task.WhenAny(errorTcs.Task, Task.Delay(5000));
+                errorPush.Close();
+                Object.DestroyImmediate(errorPushObject);
+                return errorWinner == errorTcs.Task ? errorTcs.Task.Result : "";
+            }
+
+            // PushClient() clears any persisted JWT/session, so the broker really sees the "deny:" credential.
+            var connectError = await FirstError(PushClient().SetJWT("deny:refused-by-test"), "e2e-push");
+            LogResult(connectError == "refused-by-test"
+                ? "Push connect error:passed"
+                : "Push connect error:failed");
+
+            var disconnectError = await FirstError(client, "e2e-disconnect/kicked-by-test");
+            LogResult(disconnectError == "kicked-by-test"
+                ? "Push disconnect error:passed"
+                : "Push disconnect error:failed");
+
             // Cleanup Realtime GameObject
             if (realtimeObject)
             {

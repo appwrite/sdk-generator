@@ -152,6 +152,25 @@ abstract class Base extends TestCase
         'Push user no credential:passed',
     ];
 
+    // Broker errors reaching onError: a refused CONNECT and a server DISCONNECT, carrying the
+    // broker's MQTT 5 reason string (Apple checks only that the error arrives: MQTTNIO does not
+    // expose the reason string).
+    protected const PUSH_ERROR_RESPONSES = [
+        'Push connect error:passed',
+        'Push disconnect error:passed',
+    ];
+
+    // Android background delivery used the way an app does: a background subscription's
+    // message, the scheduled wake-up after the process died bringing the next message to the
+    // app's PushReceiver and a notification, sign-out stopping it, and a refused credential
+    // stopping it with onError.
+    protected const PUSH_BACKGROUND_RESPONSES = [
+        'Push background message:passed',
+        'Push background restore:passed',
+        'Push background close:passed',
+        'Push background refused:passed',
+    ];
+
     protected const QUERY_HELPER_RESPONSES = [
         '{"method":"equal","attribute":"released","values":[true]}',
         '{"method":"equal","attribute":"title","values":["Spiderman","Dr. Strange"]}',

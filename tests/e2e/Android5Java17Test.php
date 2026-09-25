@@ -53,6 +53,8 @@ final class Android5Java17Test extends Base
         ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::CHANNEL_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES,
-        ...Base::PUSH_RESPONSES
+        ...Base::PUSH_RESPONSES,
+        ...Base::PUSH_ERROR_RESPONSES,
+        ...Base::PUSH_BACKGROUND_RESPONSES
     ];
 }
