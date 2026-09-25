@@ -89,6 +89,8 @@ class PushIO implements Push {
   // the union of their subscriptions. Native calls run one at a time in call order, so a sign-out
   // is never undone by a subscribe still on its way.
   static final Set<PushIO> _nativeHosts = {};
+  // Every Push with live subscriptions, so the native host can take over their connections.
+  static final Set<PushIO> _livePushes = {};
   static Future<void> _nativeQueue = Future<void>.value();
 
   static Future<T> _enqueueNative<T>(Future<T> Function() op) {
@@ -298,6 +300,7 @@ class PushIO implements Push {
     }
     // The own-user topic (topics == null) defaults to background delivery, like FCM/APNs.
     final wantsBackground = background ?? topics == null;
+    _livePushes.add(this);
 
     final ids = <String>[];
     for (final topic in topicList) {
@@ -372,30 +375,22 @@ class PushIO implements Push {
   // subscribed (SUBACK), or throws why not.
   Future<void> _hostNative() {
     final native = _native!;
-    if (_mqtt != null) {
-      _mqtt?.disconnect();
-      _mqtt = null;
-      _connecting = null;
+    final key = _credentialKey;
+    // The native host carries one connection, so it serves one credential: instances hosted for
+    // another move back to their own connection. Instances with this credential share its client
+    // id, so their in-process connections would take over the broker session: they move to the
+    // native host too.
+    for (final push in _nativeHosts.toList()) {
+      if (push._credentialKey != key) {
+        push._leaveToInProcess();
+      }
     }
-    _nativeListener ??= native.listen(
-      onMessage: (message) {
-        final sub = _subscriptions[message.id];
-        if (sub == null) {
-          return;
-        }
-        try {
-          sub.callback(PushMessage(
-              topic: message.topic, payload: message.payload, qos: message.qos));
-        } catch (e) {
-          _report(e);
-        }
-        // Acknowledged once its callback has run, as on the in-process connection.
-        unawaited(native.ack(message.ackToken).catchError(_report));
-      },
-      onError: (message) => _report({{spec.info.title | caseUcfirst}}Exception(message)),
-    );
-    _nativeHosts.add(this);
-    _nativeActive = true;
+    for (final push in _livePushes.toList()) {
+      if (push._subscriptions.isNotEmpty && push._credentialKey == key) {
+        push._joinNative(native);
+      }
+    }
+    _joinNative(native);
     return _enqueueNative(() async {
       // Host what is subscribed when this runs, so a close() or an unsubscribe queued meanwhile
       // is not undone by an older request.
@@ -420,6 +415,58 @@ class PushIO implements Push {
           .setErrorCallback(_nativeHosts.any((push) => push._onError != null));
       await native.host(jsonEncode(config), jsonEncode(subscriptions));
     });
+  }
+
+  // Move this Push's subscriptions onto the native host, closing its own connection.
+  void _joinNative(PushNative native) {
+    if (_mqtt != null) {
+      _mqtt?.disconnect();
+      _mqtt = null;
+      _connecting = null;
+    }
+    _nativeListener ??= native.listen(
+      onMessage: (message) {
+        final sub = _subscriptions[message.id];
+        if (sub == null) {
+          return;
+        }
+        try {
+          sub.callback(PushMessage(
+              topic: message.topic, payload: message.payload, qos: message.qos));
+        } catch (e) {
+          _report(e);
+        }
+        // Acknowledged once its callback has run, as on the in-process connection.
+        unawaited(native.ack(message.ackToken).catchError(_report));
+      },
+      onError: (message) => _report({{spec.info.title | caseUcfirst}}Exception(message)),
+    );
+    _nativeHosts.add(this);
+    _nativeActive = true;
+  }
+
+  // Move this Push's subscriptions back onto its own connection.
+  void _leaveToInProcess() {
+    _nativeHosts.remove(this);
+    _nativeActive = false;
+    unawaited(_ensureInProcessSubscribed().catchError(_report));
+  }
+
+  // Identifies the connection this Push authenticates: one native host serves one.
+  String get _credentialKey {
+    try {
+      final (authMethod, credential) = _credential();
+      return [
+        _host,
+        _port,
+        client.config['project'] ?? '',
+        _resolvedClientId,
+        authMethod,
+        credential,
+      ].join('|');
+    } catch (_) {
+      return '';
+    }
   }
 
   // This Push's subscriptions in the native plugin's format.
@@ -744,6 +791,7 @@ class PushIO implements Push {
 
   // Close the in-process connection (and the isolate host) and drop the live subscriptions.
   void _teardown() {
+    _livePushes.remove(this);
     _mqtt?.disconnect();
     _mqtt = null;
     _connecting = null;

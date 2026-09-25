@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// A message the native Android plugin delivers for a hosted subscription.
@@ -20,14 +21,33 @@ class NativePushMessage {
 /// core as the {{ spec.info.title | caseUcfirst }} Android SDK: saved subscriptions, scheduled wake-ups after
 /// the app is killed, reboot resume, notifications and foreground mode.
 class PushNative {
-  static const MethodChannel _methods = MethodChannel('{{ spec.info.title | caseLower }}.push');
-  static const EventChannel _events = EventChannel('{{ spec.info.title | caseLower }}.push/events');
-  static Stream<Map<Object?, Object?>>? _stream;
+  static const String _methodChannel = '{{ spec.info.title | caseLower }}.push';
+  static const String _eventChannel = '{{ spec.info.title | caseLower }}.push/events';
+  static final PushNative _plugin = PushNative._(
+    const MethodChannel(_methodChannel),
+    const EventChannel(_eventChannel),
+  );
 
-  PushNative._();
+  final MethodChannel _methods;
+  final EventChannel _events;
+  Stream<Map<Object?, Object?>>? _stream;
+
+  PushNative._(this._methods, this._events);
+
+  /// The plugin's channels on [messenger] instead of the engine's, for tests that stand in for
+  /// the plugin.
+  @visibleForTesting
+  PushNative.forMessenger(BinaryMessenger messenger)
+      : _methods = MethodChannel(_methodChannel, const StandardMethodCodec(), messenger),
+        _events = EventChannel(_eventChannel, const StandardMethodCodec(), messenger);
+
+  /// Used instead of the plugin by [Push] instances created while it is set, in tests.
+  @visibleForTesting
+  static PushNative? debugInstance;
 
   /// The plugin on Android, else null.
-  static PushNative? get instance => Platform.isAndroid ? PushNative._() : null;
+  static PushNative? get instance =>
+      debugInstance ?? (Platform.isAndroid ? _plugin : null);
 
   /// Host [subscriptionsJson] on the background connection described by [configJson]. Completes
   /// once the connection is up and every filter is subscribed, or throws why not.
