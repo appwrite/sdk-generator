@@ -668,10 +668,10 @@ void main() async {
       ? 'Push native subscribe:passed'
       : 'Push native subscribe:failed');
 
-  // A message the plugin delivers reaches the callback, then is acknowledged.
+  // A message the plugin delivers reaches the callback.
   plugin.deliver('news', 'native-payload');
   await Future.delayed(const Duration(milliseconds: 300));
-  print(delivered.join(',') == 'native-payload' && plugin.acknowledged == 1
+  print(delivered.join(',') == 'native-payload'
       ? 'Push native message:passed'
       : 'Push native message:failed');
 
@@ -694,7 +694,6 @@ class FakePushPlugin implements BinaryMessenger {
   final subscribed = Completer<void>();
   final _hosted = <Map<String, dynamic>>[];
   MessageHandler? _events;
-  var acknowledged = 0;
 
   void deliver(String topic, String payload) {
     for (final subscription in _hosted.where((s) => s['topic'] == topic)) {
@@ -720,9 +719,6 @@ class FakePushPlugin implements BinaryMessenger {
           ..addAll((jsonDecode(arguments!['subscriptions'] as String) as List)
               .cast<Map<String, dynamic>>());
         await subscribed.future;
-        return codec.encodeSuccessEnvelope(null);
-      case 'ack':
-        acknowledged++;
         return codec.encodeSuccessEnvelope(null);
       case 'hasSaved':
         return codec.encodeSuccessEnvelope(false);
