@@ -83,6 +83,8 @@ class PushIO implements Push {
   final PushNative? _native = PushNative.instance;
   // Whether the subscriptions currently live on the native plugin's connection.
   bool _nativeActive = false;
+  // Bumped when the subscriptions move to the native host, superseding an _open in flight.
+  int _connectionEpoch = 0;
   StreamSubscription<Map<Object?, Object?>>? _nativeListener;
 
   // Every Push on Android shares the one native host (one connection per client id), which hosts
@@ -252,6 +254,10 @@ class PushIO implements Push {
   // Every error the service hits goes through here and reaches onError. It is never thrown
   // from here, so an error outside any call cannot crash the app.
   void _report(Object error) {
+    if (error is _MovedToNative) {
+      // Internal: a connection superseded by the native host, not a failure.
+      return;
+    }
     try {
       if (_reported[error] == true) {
         return;
@@ -324,7 +330,13 @@ class PushIO implements Push {
         // off the in-process one if it was up) and covers the whole topic union.
         await _hostInIsolate();
       } else {
-        await _subscribeInProcess(ids);
+        try {
+          await _subscribeInProcess(ids);
+        } on _MovedToNative {
+          // Another Push moved this one's subscriptions to the native host meanwhile: this
+          // subscribe goes there too.
+          await _hostNative();
+        }
       }
     } catch (e) {
       for (final id in ids) {
@@ -385,44 +397,66 @@ class PushIO implements Push {
         push._leaveToInProcess();
       }
     }
+    // Instances moved here by this call, moved back if hosting fails.
+    final moved = <PushIO>[];
     for (final push in _livePushes.toList()) {
-      if (push._subscriptions.isNotEmpty && push._credentialKey == key) {
+      if (!identical(push, this) &&
+          !push._nativeActive &&
+          push._subscriptions.isNotEmpty &&
+          push._credentialKey == key) {
         push._joinNative(native);
+        moved.add(push);
       }
     }
     _joinNative(native);
     return _enqueueNative(() async {
-      // Host what is subscribed when this runs, so a close() or an unsubscribe queued meanwhile
-      // is not undone by an older request.
-      final subscriptions = [
-        for (final push in _nativeHosts) ...push._nativeEntries,
-      ];
-      if (subscriptions.isEmpty) {
-        return;
+      try {
+        await _sendToNative(native);
+      } catch (_) {
+        for (final push in moved) {
+          if (push._nativeActive) {
+            push._leaveToInProcess();
+          }
+        }
+        rethrow;
       }
-      final (authMethod, credential) = _credential();
-      final config = {
-        'host': _host,
-        'port': _port,
-        'tls': _tls,
-        'tlsInsecure': _tlsInsecure,
-        'clientId': _resolvedClientId,
-        'authMethod': authMethod,
-        'credential': credential,
-        'project': client.config['project'] ?? '',
-      };
-      await native
-          .setErrorCallback(_nativeHosts.any((push) => push._onError != null));
-      await native.host(jsonEncode(config), jsonEncode(subscriptions));
     });
+  }
+
+  // Host every native host's subscriptions with this Push's credential.
+  Future<void> _sendToNative(PushNative native) async {
+    // Host what is subscribed when this runs, so a close() or an unsubscribe queued meanwhile
+    // is not undone by an older request.
+    final subscriptions = [
+      for (final push in _nativeHosts) ...push._nativeEntries,
+    ];
+    if (subscriptions.isEmpty) {
+      return;
+    }
+    final (authMethod, credential) = _credential();
+    final config = {
+      'host': _host,
+      'port': _port,
+      'tls': _tls,
+      'tlsInsecure': _tlsInsecure,
+      'clientId': _resolvedClientId,
+      'authMethod': authMethod,
+      'credential': credential,
+      'project': client.config['project'] ?? '',
+    };
+    await native
+        .setErrorCallback(_nativeHosts.any((push) => push._onError != null));
+    await native.host(jsonEncode(config), jsonEncode(subscriptions));
   }
 
   // Move this Push's subscriptions onto the native host, closing its own connection.
   void _joinNative(PushNative native) {
+    // An _open still in flight sees this and closes what it opened.
+    _connectionEpoch++;
+    _connecting = null;
     if (_mqtt != null) {
       _mqtt?.disconnect();
       _mqtt = null;
-      _connecting = null;
     }
     _nativeListener ??= native.listen(
       onMessage: (message) {
@@ -838,6 +872,7 @@ class PushIO implements Push {
 
   Future<void> _open() async {
     final (authMethod, credential) = _credential();
+    final epoch = _connectionEpoch;
 
     final project = client.config['project'] ?? '';
     // An empty client id makes the broker derive a stable id server-side (keyed on the
@@ -850,6 +885,11 @@ class PushIO implements Push {
     final clientId = _resolvedClientId.isEmpty && native != null
         ? await native.defaultClientId(authMethod, credential)
         : _resolvedClientId;
+    // The subscriptions moved to the native host while this was waiting: its connection would
+    // share the host's client id and take over the broker session.
+    if (epoch != _connectionEpoch) {
+      throw const _MovedToNative();
+    }
 
     final mqtt = MqttServerClient.withPort(_host, clientId, _port);
     mqtt.keepAlivePeriod = _keepAliveSeconds;
@@ -897,6 +937,10 @@ class PushIO implements Push {
     _mqtt = mqtt;
 
     final failure = await _connectOrFail(mqtt, (error) {
+      // Superseded by the native host, which closed this connection on purpose.
+      if (epoch != _connectionEpoch) {
+        return;
+      }
       // Let go of the client first: it is still being wound down, and a close() from
       // onError must not touch it.
       if (identical(_mqtt, mqtt)) {
@@ -905,6 +949,10 @@ class PushIO implements Push {
       _teardown();
       _notify(error);
     });
+    if (epoch != _connectionEpoch) {
+      mqtt.disconnect();
+      throw const _MovedToNative();
+    }
     if (failure != null) {
       throw failure;
     }
@@ -1198,4 +1246,9 @@ String? _stringField(String encoded, String key) {
   } catch (_) {
     return null;
   }
+}
+
+// An in-process connect superseded by moving the subscriptions to the native host.
+class _MovedToNative implements Exception {
+  const _MovedToNative();
 }
