@@ -437,9 +437,18 @@ class PushIO implements Push {
 
   // Move this Push's subscriptions onto the native host, closing its own connection.
   void _joinNative(PushNative native) {
-    // An _open still in flight sees this and closes what it opened.
+    // An _open still in flight sees this and closes what it opened, and a subscribe still waiting
+    // for its SUBACK continues on the native host.
     _connectionEpoch++;
     _connecting = null;
+    for (final waiting in _subAcks.values) {
+      for (final completer in waiting) {
+        if (!completer.isCompleted) {
+          completer.completeError(const _MovedToNative());
+        }
+      }
+    }
+    _subAcks.clear();
     if (_mqtt != null) {
       _mqtt?.disconnect();
       _mqtt = null;
@@ -788,9 +797,10 @@ class PushIO implements Push {
     _reconcile();
   }
 
-  /// Tear down the connection and drop all subscriptions. On Android this also stops background
-  /// delivery, including subscriptions saved by an earlier run: call it on sign-out. Other Push
-  /// instances' live subscriptions stay hosted.
+  /// Tear down the connection and drop all subscriptions. On Android, closing the last Push that
+  /// uses background delivery also stops it, including subscriptions saved by an earlier run:
+  /// call it on sign-out. While other Push instances still use it, it keeps delivering their
+  /// subscriptions and the saved ones.
   @override
   void close() {
     _teardown();
@@ -802,11 +812,12 @@ class PushIO implements Push {
     _nativeActive = false;
     unawaited(_nativeListener?.cancel());
     _nativeListener = null;
-    unawaited(_enqueueNative(() => native.stop()).catchError(_report));
     if (_nativeHosts.isNotEmpty) {
       final other = _nativeHosts.first;
       unawaited(other._hostNative().catchError(other._report));
+      return;
     }
+    unawaited(_enqueueNative(() => native.stop()).catchError(_report));
   }
 
   // Close the in-process connection (and the isolate host) and drop the live subscriptions.
