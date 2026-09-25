@@ -54,7 +54,7 @@ jobs:
           WebChromium,
           WebNode,
           ReactNative,
-          ReactNativePush
+          ReactNativeAndroid
         ]
 
     steps:
