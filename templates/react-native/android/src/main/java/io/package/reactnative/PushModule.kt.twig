@@ -13,37 +13,61 @@ import io.{{ spec.info.title | caseLower }}.services.PushMessage
 /**
  * The React Native side of [PushBridge]: the SDK's `Push` hosts its background subscriptions
  * here on Android, and receives their messages and errors as events.
+ *
+ * [emit] sends an event to JS; tests replace it to observe what JS would receive.
  */
-class {{ spec.info.title | caseUcfirst }}PushModule(
+class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
     private val reactContext: ReactApplicationContext,
+    private val emit: (String, Map<String, Any?>) -> Unit,
 ) : ReactContextBaseJavaModule(reactContext) {
+    constructor(reactContext: ReactApplicationContext) : this(
+        reactContext,
+        { event, body ->
+            if (reactContext.hasActiveReactInstance()) {
+                reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                    .emit(event, Arguments.makeNativeMap(body))
+            }
+        },
+    )
+
     private val bridge = PushBridge(
         reactContext,
         object : PushBridge.Events {
-            override fun onMessage(subscriptionId: String, message: PushMessage) {
-                val event = Arguments.createMap()
-                event.putString("id", subscriptionId)
-                event.putString("topic", message.topic)
-                event.putString("payload", Base64.encodeToString(message.payload, Base64.NO_WRAP))
-                event.putInt("qos", message.qos)
-                emit(MESSAGE_EVENT, event)
-            }
+            override fun onMessage(subscriptionId: String, message: PushMessage, ackToken: String) = emit(
+                MESSAGE_EVENT,
+                mapOf(
+                    "id" to subscriptionId,
+                    "topic" to message.topic,
+                    "payload" to Base64.encodeToString(message.payload, Base64.NO_WRAP),
+                    "qos" to message.qos,
+                    "ackToken" to ackToken,
+                ),
+            )
 
-            override fun onError(message: String) {
-                val event = Arguments.createMap()
-                event.putString("message", message)
-                emit(ERROR_EVENT, event)
-            }
+            override fun onError(message: String) = emit(ERROR_EVENT, mapOf("message" to message))
         },
     )
 
     override fun getName(): String = NAME
 
+    // Resolves once the connection is up and every filter is subscribed, or rejects with why not.
     @ReactMethod
-    fun host(config: String, subscriptions: String, promise: Promise) = settle(promise) {
-        bridge.host(config, subscriptions)
-        null
+    fun host(config: String, subscriptions: String, promise: Promise) {
+        try {
+            bridge.host(config, subscriptions) { error ->
+                if (error == null) {
+                    promise.resolve(null)
+                } else {
+                    promise.reject(ERROR_CODE, error)
+                }
+            }
+        } catch (e: Exception) {
+            promise.reject(ERROR_CODE, e.message, e)
+        }
     }
+
+    @ReactMethod
+    fun ack(token: String) = bridge.ack(token)
 
     @ReactMethod
     fun release(promise: Promise) = settle(promise) {
@@ -86,17 +110,11 @@ class {{ spec.info.title | caseUcfirst }}PushModule(
     @ReactMethod
     fun removeListeners(count: Double) = Unit
 
-    private fun emit(event: String, body: Any) {
-        if (reactContext.hasActiveReactInstance()) {
-            reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java).emit(event, body)
-        }
-    }
-
     private fun settle(promise: Promise, block: () -> Any?) {
         try {
             promise.resolve(block())
         } catch (e: Exception) {
-            promise.reject("{{ spec.info.title | caseLower }}_push", e.message, e)
+            promise.reject(ERROR_CODE, e.message, e)
         }
     }
 
@@ -104,5 +122,6 @@ class {{ spec.info.title | caseUcfirst }}PushModule(
         const val NAME = "{{ spec.info.title | caseUcfirst }}Push"
         const val MESSAGE_EVENT = "{{ spec.info.title | caseUcfirst }}PushMessage"
         const val ERROR_EVENT = "{{ spec.info.title | caseUcfirst }}PushError"
+        private const val ERROR_CODE = "{{ spec.info.title | caseLower }}_push"
     }
 }

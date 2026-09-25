@@ -394,10 +394,13 @@ export class Push extends Service {
 
         // Android: the native module hosts the connection while any subscription, live or saved
         // by an earlier run, wants background. Two connections with the same client id would
-        // take over each other's broker session, so every subscription moves there.
+        // take over each other's broker session, so every subscription, of every Push, moves
+        // there.
         if (
             this.native &&
-            (background || this.nativeActive || (await this.native.hasSaved()))
+            (background ||
+                nativeHosts.size > 0 ||
+                (await this.native.hasSaved()))
         ) {
             const ids = topicList.map((topic) => {
                 const id = randomId();
@@ -419,7 +422,7 @@ export class Push extends Service {
                 await this.reconcileNative();
                 throw err;
             }
-            return this.nativeHandle(ids);
+            return this.handle(ids);
         }
 
         // Start the background task before connecting so a missing peer dependency surfaces a
@@ -453,141 +456,165 @@ export class Push extends Service {
             );
         }
 
-        const unsubscribe = () => {
-            // Filters whose removed sub was QoS 1: their effective QoS may now drop.
-            const maybeDowngrade = new Set<string>();
-            for (const id of ids) {
-                const entry = this.subscriptions.get(id);
-                this.subscriptions.delete(id);
-                if (entry?.qos === 1) {
-                    maybeDowngrade.add(entry.topic);
-                }
-                // Only unsubscribe the broker filter once its last local callback is gone.
-                const stillUsed = [...this.subscriptions.values()].some(
-                    (s) => s.topic === entry?.topic,
-                );
-                const connection = this.mqtt;
-                if (entry && connection && !stillUsed) {
-                    connection.unsubscribe(entry.topic, (err) => {
-                        // Closing the connection (the last subscription is gone) fails its
-                        // in-flight requests on purpose; that is not an error to report.
-                        if (err && this.mqtt === connection) {
-                            this.report(err);
-                        }
-                    });
-                }
-            }
-            // A filter that lost its last QoS-1 sub but still has QoS-0 subs must be
-            // re-SUBSCRIBEd at the lower QoS, or the broker keeps replaying to at-most-once subs.
-            for (const filter of maybeDowngrade) {
-                const stillUsed = [...this.subscriptions.values()].some(
-                    (s) => s.topic === filter,
-                );
-                if (stillUsed && this.effectiveQos(filter) === 0) {
-                    this.mqtt?.subscribe(filter, { qos: 0 }, (err) => {
-                        if (err) {
-                            this.report(err);
-                        }
-                    });
-                }
-            }
-            if (this.subscriptions.size === 0) {
-                this.teardown();
-            } else {
-                // A removed sub may have been the last background one.
-                this.syncBackgroundService();
-            }
-        };
-
         // If any topic's subscribe fails, roll this call's registrations back (and drop
         // any now-unused broker filter) so a failed subscribe leaks no callback, then rethrow.
         try {
             await Promise.all(acks);
         } catch (err) {
-            unsubscribe();
+            this.unsubscribeInProcess(ids);
             throw err;
         }
 
-        const update = (next: SubscribeOptions) => {
-            const changedFilters = new Set<string>();
-            // Remember the pre-update QoS per id so a rejected re-SUBSCRIBE can be rolled back.
-            const previous = new Map<string, 0 | 1>();
-            for (const id of ids) {
-                const entry = this.subscriptions.get(id);
-                if (!entry) {
-                    continue;
-                }
-                if (next.background !== undefined) {
-                    entry.background = next.background;
-                }
-                if (next.title !== undefined) {
-                    entry.title = next.title;
-                }
-                if (next.retry !== undefined) {
-                    const q: 0 | 1 = next.retry ? 1 : 0;
-                    if (q !== entry.qos) {
-                        previous.set(id, entry.qos);
-                        entry.qos = q;
-                        changedFilters.add(entry.topic);
-                    }
-                }
-            }
-            // Re-SUBSCRIBE the affected filters at their new effective QoS (a SUBSCRIBE to an
-            // existing filter just updates its QoS — no unsubscribe gap). If the broker rejects
-            // it, the old subscription still stands, so restore the local QoS to match and
-            // surface the error rather than silently assuming the change took effect.
-            for (const filter of changedFilters) {
-                this.mqtt?.subscribe(
-                    filter,
-                    { qos: this.effectiveQos(filter) },
-                    (err) => {
-                        if (!err) {
-                            return;
-                        }
-                        for (const [id, q] of previous) {
-                            const entry = this.subscriptions.get(id);
-                            if (entry && entry.topic === filter) {
-                                entry.qos = q;
-                            }
-                        }
-                        this.report(err);
-                    },
-                );
-            }
-            this.syncBackgroundService();
-        };
-
-        return { unsubscribe, update };
+        return this.handle(ids);
     }
 
-    /** The handle for subscriptions hosted on the native module. */
-    private nativeHandle(ids: string[]): PushSubscription {
+    /**
+     * The handle for a subscribe call's subscriptions. Each call goes to wherever they live now:
+     * they move to the native module (Android) when a background subscription is added later,
+     * and back when none is left.
+     */
+    private handle(ids: string[]): PushSubscription {
         return {
-            unsubscribe: () => {
-                for (const id of ids) {
-                    this.subscriptions.delete(id);
-                }
-                this.reconcileNative().catch((err) => this.report(err));
-            },
-            update: (next: SubscribeOptions) => {
-                for (const id of ids) {
-                    const entry = this.subscriptions.get(id);
-                    if (!entry) {
-                        continue;
-                    }
-                    if (next.background !== undefined) {
-                        entry.background = next.background;
-                    }
-                    if (next.title !== undefined) {
-                        entry.title = next.title;
-                    }
-                    if (next.retry !== undefined) {
-                        entry.qos = next.retry ? 1 : 0;
-                    }
-                }
-                this.reconcileNative().catch((err) => this.report(err));
-            },
+            unsubscribe: () =>
+                this.nativeActive
+                    ? this.unsubscribeNative(ids)
+                    : this.unsubscribeInProcess(ids),
+            update: (next: SubscribeOptions) =>
+                this.nativeActive
+                    ? this.updateNative(ids, next)
+                    : this.updateInProcess(ids, next),
         };
+    }
+
+    private unsubscribeInProcess(ids: string[]): void {
+        // Filters whose removed sub was QoS 1: their effective QoS may now drop.
+        const maybeDowngrade = new Set<string>();
+        for (const id of ids) {
+            const entry = this.subscriptions.get(id);
+            this.subscriptions.delete(id);
+            if (entry?.qos === 1) {
+                maybeDowngrade.add(entry.topic);
+            }
+            // Only unsubscribe the broker filter once its last local callback is gone.
+            const stillUsed = [...this.subscriptions.values()].some(
+                (s) => s.topic === entry?.topic,
+            );
+            const connection = this.mqtt;
+            if (entry && connection && !stillUsed) {
+                connection.unsubscribe(entry.topic, (err) => {
+                    // Closing the connection (the last subscription is gone) fails its
+                    // in-flight requests on purpose; that is not an error to report.
+                    if (err && this.mqtt === connection) {
+                        this.report(err);
+                    }
+                });
+            }
+        }
+        // A filter that lost its last QoS-1 sub but still has QoS-0 subs must be
+        // re-SUBSCRIBEd at the lower QoS, or the broker keeps replaying to at-most-once subs.
+        for (const filter of maybeDowngrade) {
+            const stillUsed = [...this.subscriptions.values()].some(
+                (s) => s.topic === filter,
+            );
+            if (stillUsed && this.effectiveQos(filter) === 0) {
+                this.mqtt?.subscribe(filter, { qos: 0 }, (err) => {
+                    if (err) {
+                        this.report(err);
+                    }
+                });
+            }
+        }
+        if (this.subscriptions.size === 0) {
+            this.teardown();
+        } else {
+            // A removed sub may have been the last background one.
+            this.syncBackground();
+        }
+    }
+
+    private updateInProcess(ids: string[], next: SubscribeOptions): void {
+        const changedFilters = new Set<string>();
+        // Remember the pre-update QoS per id so a rejected re-SUBSCRIBE can be rolled back.
+        const previous = new Map<string, 0 | 1>();
+        for (const id of ids) {
+            const entry = this.subscriptions.get(id);
+            if (!entry) {
+                continue;
+            }
+            if (next.background !== undefined) {
+                entry.background = next.background;
+            }
+            if (next.title !== undefined) {
+                entry.title = next.title;
+            }
+            if (next.retry !== undefined) {
+                const q: 0 | 1 = next.retry ? 1 : 0;
+                if (q !== entry.qos) {
+                    previous.set(id, entry.qos);
+                    entry.qos = q;
+                    changedFilters.add(entry.topic);
+                }
+            }
+        }
+        // Re-SUBSCRIBE the affected filters at their new effective QoS (a SUBSCRIBE to an
+        // existing filter just updates its QoS — no unsubscribe gap). If the broker rejects
+        // it, the old subscription still stands, so restore the local QoS to match and
+        // surface the error rather than silently assuming the change took effect.
+        for (const filter of changedFilters) {
+            this.mqtt?.subscribe(
+                filter,
+                { qos: this.effectiveQos(filter) },
+                (err) => {
+                    if (!err) {
+                        return;
+                    }
+                    for (const [id, q] of previous) {
+                        const entry = this.subscriptions.get(id);
+                        if (entry && entry.topic === filter) {
+                            entry.qos = q;
+                        }
+                    }
+                    this.report(err);
+                },
+            );
+        }
+        // Turning background on moves the subscriptions to the native module on Android.
+        this.syncBackground();
+    }
+
+    private unsubscribeNative(ids: string[]): void {
+        for (const id of ids) {
+            this.subscriptions.delete(id);
+        }
+        this.reconcileNative().catch((err) => this.report(err));
+    }
+
+    private updateNative(ids: string[], next: SubscribeOptions): void {
+        for (const id of ids) {
+            const entry = this.subscriptions.get(id);
+            if (!entry) {
+                continue;
+            }
+            if (next.background !== undefined) {
+                entry.background = next.background;
+            }
+            if (next.title !== undefined) {
+                entry.title = next.title;
+            }
+            if (next.retry !== undefined) {
+                entry.qos = next.retry ? 1 : 0;
+            }
+        }
+        this.reconcileNative().catch((err) => this.report(err));
+    }
+
+    /** After an in-process change: the native module on Android, the background task elsewhere. */
+    private syncBackground(): void {
+        if (this.native) {
+            this.reconcileNative().catch((err) => this.report(err));
+        } else {
+            this.syncBackgroundService();
+        }
     }
 
     /** Whether background delivery can run: the native module on Android, the peers elsewhere. */
@@ -598,10 +625,11 @@ export class Push extends Service {
     }
 
     /**
-     * Host every subscription on the native module's connection, closing the in-process one.
-     * Resolves once the module has them; it connects and subscribes on its own thread.
+     * Host every subscription of every Push on the native module's connection, closing this
+     * one's in-process connection. Resolves once the connection is up and every filter is
+     * subscribed (SUBACK), or rejects with why not.
      */
-    private async hostNative(): Promise<void> {
+    private hostNative(): Promise<void> {
         const native = this.native!;
         if (this.mqtt) {
             this.mqtt.end(true);
@@ -610,35 +638,52 @@ export class Push extends Service {
         this.connecting = null;
         this.everConnected = false;
         this.listenNative(native);
-        const { authMethod, credential } = this.credential();
-        const config = {
-            host: this.host,
-            port: this.port,
-            tls: this.tls,
-            tlsInsecure: this.tlsInsecure,
-            clientId: this.client.config.pushClientId || '',
-            authMethod,
-            credential,
-            project: this.client.config.project ?? '',
-        };
-        const subscriptions = [...this.subscriptions].map(([id, sub]) => ({
+        nativeHosts.add(this);
+        this.nativeActive = true;
+        return enqueueNative(async () => {
+            // Host what is subscribed when this runs, so a close() or an unsubscribe queued
+            // meanwhile is not undone by an older request.
+            const subscriptions = [...nativeHosts].flatMap((push) =>
+                push.nativeEntries(),
+            );
+            if (subscriptions.length === 0) {
+                return;
+            }
+            const { authMethod, credential } = this.credential();
+            const config = {
+                host: this.host,
+                port: this.port,
+                tls: this.tls,
+                tlsInsecure: this.tlsInsecure,
+                clientId: this.client.config.pushClientId || '',
+                authMethod,
+                credential,
+                project: this.client.config.project ?? '',
+            };
+            await native.setErrorCallback(
+                [...nativeHosts].some((push) => push.onErrorCb !== undefined),
+            );
+            await native.host(
+                JSON.stringify(config),
+                JSON.stringify(subscriptions),
+            );
+        });
+    }
+
+    /** This Push's subscriptions in the native module's format. */
+    private nativeEntries(): object[] {
+        return [...this.subscriptions].map(([id, sub]) => ({
             id,
             topic: sub.topic,
             background: sub.background,
             title: sub.title ?? null,
             retry: sub.qos === 1,
         }));
-        await native.setErrorCallback(this.onErrorCb !== undefined);
-        await native.host(
-            JSON.stringify(config),
-            JSON.stringify(subscriptions),
-        );
-        this.nativeActive = true;
     }
 
     /**
      * After an unsubscribe or update: keep the native module hosting while any subscription,
-     * live or saved, wants background, else move the live ones back in-process.
+     * live (of any Push) or saved, wants background, else move the live ones back in-process.
      */
     private async reconcileNative(): Promise<void> {
         const native = this.native;
@@ -646,24 +691,48 @@ export class Push extends Service {
             return;
         }
         if (this.subscriptions.size === 0) {
-            // The last live subscription is gone: saved ones keep delivering in the background.
+            // This Push has nothing left; saved subscriptions keep delivering in the background.
             if (this.nativeActive) {
-                this.nativeActive = false;
-                await native.release();
+                await this.leaveNative(native);
             }
             return;
         }
-        if (this.hasBackgroundSubs() || (await native.hasSaved())) {
+        const wanted =
+            [...nativeHosts, this].some((push) => push.hasBackgroundSubs()) ||
+            (await native.hasSaved());
+        if (wanted) {
             await this.hostNative();
-        } else if (this.nativeActive) {
-            this.nativeActive = false;
-            await native.release();
-            await this.connect();
-            this.resubscribeAll();
+            return;
+        }
+        // Nothing wants background: every Push moves back to its own connection.
+        const hosts = [...nativeHosts];
+        nativeHosts.clear();
+        for (const push of hosts) {
+            push.nativeActive = false;
+        }
+        await enqueueNative(() => native.release());
+        for (const push of hosts) {
+            if (push.subscriptions.size > 0) {
+                await push.connect();
+                push.resubscribeAll();
+            }
         }
     }
 
-    /** Route the native module's messages to their subscriptions, and its errors to onError. */
+    /** Stop hosting this Push natively; the others' subscriptions stay hosted. */
+    private leaveNative(native: NativePush): Promise<void> {
+        nativeHosts.delete(this);
+        this.nativeActive = false;
+        const [other] = nativeHosts;
+        return other
+            ? other.hostNative()
+            : enqueueNative(() => native.release());
+    }
+
+    /**
+     * Route the native module's messages to their subscriptions, and its errors to onError. A
+     * message is acknowledged once its callback has run, as on the in-process connection.
+     */
     private listenNative(native: NativePush): void {
         if (this.nativeEvents) {
             return;
@@ -684,7 +753,8 @@ export class Push extends Service {
                     };
                     Promise.resolve()
                         .then(() => sub.callback(message))
-                        .catch((err) => this.report(err));
+                        .catch((err) => this.report(err))
+                        .finally(() => native.ack(event.ackToken));
                 },
             ),
             emitter.addListener(
@@ -698,15 +768,21 @@ export class Push extends Service {
     /**
      * Tear down the connection and drop all subscriptions. On Android this also stops
      * background delivery, including subscriptions saved by an earlier run: call it on sign-out.
+     * Other Push instances' live subscriptions stay hosted.
      */
     close(): void {
         this.teardown();
-        if (this.native) {
-            this.nativeActive = false;
-            this.native.stop().catch((err) => this.report(err));
-            this.nativeEvents?.forEach((subscription) => subscription.remove());
-            this.nativeEvents = null;
+        const native = this.native;
+        if (!native) {
+            return;
         }
+        nativeHosts.delete(this);
+        this.nativeActive = false;
+        this.nativeEvents?.forEach((subscription) => subscription.remove());
+        this.nativeEvents = null;
+        enqueueNative(() => native.stop()).catch((err) => this.report(err));
+        const [other] = nativeHosts;
+        other?.hostNative().catch((err) => other.report(err));
     }
 
     /** Close the in-process connection and drop the live subscriptions. */
@@ -1082,6 +1158,7 @@ export class Push extends Service {
 /** The SDK's native Android module (see android/), which hosts background delivery. */
 interface NativePush {
     host(config: string, subscriptions: string): Promise<void>;
+    ack(token: string): void;
     release(): Promise<void>;
     stop(): Promise<void>;
     setForeground(enabled: boolean): Promise<void>;
@@ -1099,6 +1176,21 @@ interface NativeMessage {
     topic: string;
     payload: string;
     qos: number;
+    ackToken: string;
+}
+
+/**
+ * Every Push on Android shares the one native host (one connection per client id), which hosts
+ * the union of their subscriptions. Native calls run one at a time in call order, so a sign-out
+ * is never undone by a subscribe still on its way.
+ */
+const nativeHosts = new Set<Push>();
+let nativeQueue: Promise<unknown> = Promise.resolve();
+
+function enqueueNative<T>(op: () => Promise<T>): Promise<T> {
+    const result = nativeQueue.then(op);
+    nativeQueue = result.catch(() => undefined);
+    return result;
 }
 
 /** The native module on Android when the app was built with it (not in Expo Go), else null. */
