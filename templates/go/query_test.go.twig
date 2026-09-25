@@ -125,4 +125,26 @@ func TestOr(t *testing.T) {
 		t.Errorf("Expected 2 subqueries, got %d", len(values))
 	}
 }
+
+func TestRelationship(t *testing.T) {
+	q1 := Equal("approved", true)
+	q2 := Limit(2)
+	q := Relationship("comments", []string{q1, q2})
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "relationship" {
+		t.Errorf("Expected relationship, got %v", data["method"])
+	}
+	if data["attribute"] != "comments" {
+		t.Errorf("Expected comments, got %v", data["attribute"])
+	}
+	values := data["values"].([]interface{})
+	if len(values) != 2 {
+		t.Errorf("Expected 2 subqueries, got %d", len(values))
+	}
+}
 {% endautoescape %}

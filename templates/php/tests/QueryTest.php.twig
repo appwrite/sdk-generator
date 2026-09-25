@@ -314,6 +314,25 @@ final class QueryTest extends TestCase
         $this->assertSame([18], $query['values'][1]['values']);
     }
 
+    public function testRelationship(): void
+    {
+        $inner1 = Query::equal('approved', true);
+        $inner2 = Query::limit(2);
+
+        $query = json_decode(Query::relationship('comments', [$inner1, $inner2]), true);
+
+        $this->assertSame('comments', $query['attribute']);
+        $this->assertSame('relationship', $query['method']);
+        $this->assertCount(2, $query['values']);
+
+        $this->assertSame('equal', $query['values'][0]['method']);
+        $this->assertSame('approved', $query['values'][0]['attribute']);
+        $this->assertSame([true], $query['values'][0]['values']);
+
+        $this->assertSame('limit', $query['values'][1]['method']);
+        $this->assertSame([2], $query['values'][1]['values']);
+    }
+
     public function testCreatedBefore(): void
     {
         $query = json_decode(Query::createdBefore('2023-01-01'), true);

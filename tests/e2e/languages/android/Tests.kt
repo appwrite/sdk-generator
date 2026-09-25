@@ -409,6 +409,10 @@ class ServiceTest {
                 Query.equal("name", "Alice"),
                 Query.greaterThan("age", 18)
             )))
+            writeToFile(Query.relationship("comments", listOf(
+                Query.equal("approved", true),
+                Query.limit(2)
+            )))
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))

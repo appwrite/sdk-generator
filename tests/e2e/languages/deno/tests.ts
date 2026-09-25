@@ -268,6 +268,10 @@ async function start() {
     Query.equal("name", "Alice"),
     Query.greaterThan("age", 18)
   ]));
+  console.log(Query.relationship("comments", [
+    Query.equal("approved", true),
+    Query.limit(2)
+  ]));
 
   // Permission & Role helper tests
   console.log(Permission.read(Role.any()));
