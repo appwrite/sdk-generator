@@ -683,6 +683,9 @@ export class Push extends Service {
         for (const push of nativeHosts) {
             if (push.credentialKey() !== key) {
                 push.leaveToInProcess();
+                if (push.hasBackgroundSubs()) {
+                    push.report(new Error(BACKGROUND_DISPLACED));
+                }
             }
         }
         // Once moved, they stay: if hosting fails, the native host keeps their subscriptions and
@@ -1325,6 +1328,14 @@ function nativePush(): NativePush | null {
     }
     return (NativeModules?.{{spec.info.title | caseUcfirst}}Push as NativePush | undefined) ?? null;
 }
+
+/**
+ * Reported to a Push whose background delivery stopped because a Push with another credential
+ * took over the native host, which carries one connection and so serves one credential.
+ */
+const BACKGROUND_DISPLACED =
+    'Background delivery stopped: a Push with another credential started background delivery, ' +
+    'and the device hosts one. These subscriptions still deliver while the app runs.';
 
 /** An in-process connect superseded by moving the subscriptions to the native host. */
 class MovedToNativeError extends Error {
