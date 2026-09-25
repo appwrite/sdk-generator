@@ -90,18 +90,22 @@ async function main() {
     anonymousPush.close();
     console.log(noCredentialRejected ? 'Push user no credential:passed' : 'Push user no credential:failed');
 
-    // A session-only client identifies itself to the broker by the session's user id, like a JWT
-    // client by its userId claim, never by the session secret (the mock echoes the client id on
-    // "e2e-client-id").
-    const idPush = new Push(new Client().setProject('console').setPushEndpoint(ENDPOINT).setSession(e2eSession));
-    const echoedClientId = await Promise.race([
+    // Messages missed between two sign-ins of the same user are replayed to the second one,
+    // though each sign-in has its own session secret (the mock replays on "e2e-replay" to a client
+    // it has seen before, as the broker resumes a replay position per client).
+    const firstSignIn = new Push(new Client().setProject('console').setPushEndpoint(ENDPOINT).setSession(e2eSession));
+    await firstSignIn.subscribe(['e2e-replay'], () => {});
+    firstSignIn.close();
+    const nextSession = Buffer.from(JSON.stringify({ id: 'e2e-session-user', secret: 'another-sign-in' })).toString('base64');
+    const nextSignIn = new Push(new Client().setProject('console').setPushEndpoint(ENDPOINT).setSession(nextSession));
+    const replayed = await Promise.race([
         new Promise((resolve) => {
-            idPush.subscribe(['e2e-client-id'], (m) => resolve(m.data));
+            nextSignIn.subscribe(['e2e-replay'], (m) => resolve(m.data));
         }),
         timeout(5000, ''),
     ]);
-    idPush.close();
-    console.log(echoedClientId === 'e2e-session-user' ? 'Push session client id:passed' : 'Push session client id:failed');
+    nextSignIn.close();
+    console.log(replayed === 'push-replayed' ? 'Push session replay:passed' : 'Push session replay:failed');
 
     // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused CONNECT
     // (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated
