@@ -373,6 +373,7 @@ export class Push extends Service {
         // The user topic defaults to background delivery, like FCM/APNs; topics default off.
         let background = options.background ?? userForm;
         const qos: 0 | 1 = (options.retry ?? true) ? 1 : 0;
+        livePushes.add(this);
 
         // Only an explicit `background: true` requires background delivery: when background is
         // just the user topic's default and it is unavailable, deliver in the foreground
@@ -631,15 +632,22 @@ export class Push extends Service {
      */
     private hostNative(): Promise<void> {
         const native = this.native!;
-        if (this.mqtt) {
-            this.mqtt.end(true);
-            this.mqtt = null;
+        const key = this.credentialKey();
+        // The native host carries one connection, so it serves one credential: instances hosted
+        // for another move back to their own connection. Instances with this credential share
+        // its client id, so their in-process connections would take over the broker session:
+        // they move to the native host too.
+        for (const push of nativeHosts) {
+            if (push.credentialKey() !== key) {
+                push.leaveToInProcess();
+            }
         }
-        this.connecting = null;
-        this.everConnected = false;
-        this.listenNative(native);
-        nativeHosts.add(this);
-        this.nativeActive = true;
+        for (const push of livePushes) {
+            if (push.subscriptions.size > 0 && push.credentialKey() === key) {
+                push.joinNative(native);
+            }
+        }
+        this.joinNative(native);
         return enqueueNative(async () => {
             // Host what is subscribed when this runs, so a close() or an unsubscribe queued
             // meanwhile is not undone by an older request.
@@ -668,6 +676,45 @@ export class Push extends Service {
                 JSON.stringify(subscriptions),
             );
         });
+    }
+
+    /** Move this Push's subscriptions onto the native host, closing its own connection. */
+    private joinNative(native: NativePush): void {
+        if (this.mqtt) {
+            this.mqtt.end(true);
+            this.mqtt = null;
+        }
+        this.connecting = null;
+        this.everConnected = false;
+        this.listenNative(native);
+        nativeHosts.add(this);
+        this.nativeActive = true;
+    }
+
+    /** Move this Push's subscriptions back onto its own connection. */
+    private leaveToInProcess(): void {
+        nativeHosts.delete(this);
+        this.nativeActive = false;
+        this.connect()
+            .then(() => this.resubscribeAll())
+            .catch((err) => this.report(err));
+    }
+
+    /** Identifies the connection this Push authenticates: one native host serves one. */
+    private credentialKey(): string {
+        try {
+            const { authMethod, credential } = this.credential();
+            return [
+                this.host,
+                this.port,
+                this.client.config.project ?? '',
+                this.client.config.pushClientId ?? '',
+                authMethod,
+                credential,
+            ].join('|');
+        } catch {
+            return '';
+        }
     }
 
     /** This Push's subscriptions in the native module's format. */
@@ -787,6 +834,7 @@ export class Push extends Service {
 
     /** Close the in-process connection and drop the live subscriptions. */
     private teardown(): void {
+        livePushes.delete(this);
         if (this.mqtt) {
             this.mqtt.end(true);
             this.mqtt = null;
@@ -1185,6 +1233,8 @@ interface NativeMessage {
  * is never undone by a subscribe still on its way.
  */
 const nativeHosts = new Set<Push>();
+/** Every Push with live subscriptions, so the native host can take over their connections. */
+const livePushes = new Set<Push>();
 let nativeQueue: Promise<unknown> = Promise.resolve();
 
 function enqueueNative<T>(op: () => Promise<T>): Promise<T> {
