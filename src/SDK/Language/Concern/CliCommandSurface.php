@@ -538,27 +538,14 @@ trait CliCommandSurface
                 continue;
             }
 
-            $schema = $this->getSchema($parameter);
-            $value = $schema->example;
-            if ($this->getSchemaType($parameter) === self::TYPE_ARRAY && is_string($value)) {
-                $decoded = json_decode($value);
-                if (json_last_error() === JSON_ERROR_NONE) {
-                    $value = $decoded;
-                }
-            }
             $option = $this->getCliOption($parameter, $service);
-            // pflag booleans consume an explicit value only with '='. Each
-            // StringArray occurrence consumes exactly one item, not a JSON list.
-            $separator = $option['register'] === 'Bool' ? '=' : ' ';
-            $values = [$value];
-            if ($option['register'] === 'StringArray') {
-                $schema = $this->getArraySchema($parameter) ?? new StringSchema();
-                // Demonstrate required repeatable flags even without an example.
-                $values = is_array($value) && $value !== [] ? $value : [$schema->example];
-            }
-            foreach ($values as $item) {
-                $arguments[] = '--' . $option['flag'] . $separator . $this->getParamExample($schema, example: $item);
-            }
+            $flag = '--' . $option['flag'];
+
+            $arguments = array_merge($arguments, match ($option['register']) {
+                'Bool' => [$flag . '=' . $this->getParamExample($parameter)],
+                'StringArray' => $this->getCliArrayExampleArguments($parameter, $flag),
+                default => [$flag . ' ' . $this->getParamExample($parameter)],
+            });
         }
 
         $query = $this->getCliQueryConfig($method);
@@ -572,37 +559,54 @@ trait CliCommandSurface
         return $arguments;
     }
 
+    /**
+     * @return list<string>
+     */
+    protected function getCliArrayExampleArguments(Parameter $parameter, string $flag): array
+    {
+        $itemSchema = $this->getArraySchema($parameter) ?? new StringSchema();
+        $example = $this->decodeCliJsonExample($this->getSchema($parameter)->example);
+        $items = is_array($example) && $example !== [] ? $example : [$itemSchema->example];
+
+        return array_map(
+            fn(mixed $item): string => $flag . ' ' . $this->getParamExample($itemSchema, example: $item),
+            $items,
+        );
+    }
+
+    protected function decodeCliJsonExample(mixed $example): mixed
+    {
+        if (!is_string($example)) {
+            return $example;
+        }
+
+        $decoded = json_decode($example);
+        return json_last_error() === JSON_ERROR_NONE ? $decoded : $example;
+    }
+
     protected function quoteCliExample(mixed $value): string
     {
-        $value = is_string($value)
+        $text = is_string($value)
             ? $value
             : json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-        return $value !== '' && !preg_match('/[^A-Za-z0-9_@%+=:,\.\/-]/', $value)
-            ? $value
-            : "'" . str_replace("'", "'\"'\"'", $value) . "'";
+        if ($text !== '' && !preg_match('/[^A-Za-z0-9_@%+=:,\.\/-]/', $text)) {
+            return $text;
+        }
+
+        return "'" . str_replace("'", "'\"'\"'", $text) . "'";
     }
 
     /**
-     * How a value is spelled on the command line, for the docs examples. This
-     * is a shell invocation, not source in either CLI's implementation
-     * language, so it belongs to the shared surface: the target language of the
-     * generated CLI cannot change how a user types an array of roles.
-     *
-     * A trait method wins over the inherited Go implementation, which renders
-     * Go literals; `--roles []string{}` is not a command anybody can run.
+     * Render a schema example as a shell-safe CLI value.
      */
     #[Override]
     public function getParamExample(Schema|Parameter $param, string $lang = '', mixed $example = null): string
     {
         $type = $this->getSchemaType($param);
         $example ??= $this->getSchema($param)->example;
-        // Swagger 2 can carry JSON text instead of a structured example.
-        if (in_array($type, [self::TYPE_ARRAY, self::TYPE_OBJECT], true) && is_string($example)) {
-            $decoded = json_decode($example);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $example = $decoded;
-            }
+        if (in_array($type, [self::TYPE_ARRAY, self::TYPE_OBJECT], true)) {
+            $example = $this->decodeCliJsonExample($example);
         }
 
         if ($type === self::TYPE_OBJECT && is_array($example)) {
