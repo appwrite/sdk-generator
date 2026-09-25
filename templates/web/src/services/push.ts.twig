@@ -13,6 +13,9 @@ import type { ResolvedTopic, Topic } from '../topic';
 /** A message delivered on a subscribed topic (the MQTT analog of a Realtime event). */
 export interface PushMessage {
     topic: string;
+    /** The payload decoded as UTF-8 text, as it was sent. */
+    data: string;
+    /** The raw payload, for binary messages. */
     payload: Uint8Array;
     qos: number;
 }
@@ -70,7 +73,7 @@ const RECONNECT_PERIOD_MS = 2000;
  *     const client = new Client().setEndpoint(...).setProject(...).setJWT(jwt);
  *     const push = new Push(client);
  *     const sub = await push.subscribe('user/123/#', (m) =>
- *       console.log(m.topic, new TextDecoder().decode(m.payload)),
+ *       console.log(m.topic, m.data),
  *     );
  *     // sub.update({ background: true }); sub.unsubscribe();
  */
@@ -624,11 +627,13 @@ export class Push extends Service {
 
     /** Fan a delivered packet out to every subscription whose filter matches. */
     private async dispatch(packet: IPublishPacket): Promise<void> {
+        const payload = Buffer.isBuffer(packet.payload)
+            ? packet.payload
+            : Buffer.from(packet.payload);
         const message: PushMessage = {
             topic: packet.topic.toString(),
-            payload: Buffer.isBuffer(packet.payload)
-                ? packet.payload
-                : Buffer.from(packet.payload),
+            data: new TextDecoder().decode(payload),
+            payload,
             qos: packet.qos,
         };
         for (const sub of this.subscriptions.values()) {
@@ -664,7 +669,7 @@ export class Push extends Service {
         }
         try {
             new Notification(title ?? message.topic, {
-                body: new TextDecoder().decode(message.payload),
+                body: message.data,
             });
         } catch {
             // Some browsers only allow notifications from a service worker; ignore.
