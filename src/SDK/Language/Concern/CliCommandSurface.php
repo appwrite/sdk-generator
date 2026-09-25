@@ -5,6 +5,7 @@ namespace Appwrite\SDK\Language\Concern;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Model\Tag;
 use Utopia\OpenAPI\Specification;
 use Override;
@@ -559,13 +560,20 @@ trait CliCommandSurface
                 continue;
             }
 
-            $value = $overrides[$parameter->name] ?? $this->getCliExampleValue($parameter);
+            $schema = $this->getSchema($parameter);
+            $value = $overrides[$parameter->name] ?? $schema->example;
+            if (in_array($this->getSchemaType($parameter), [self::TYPE_ARRAY, self::TYPE_OBJECT], true) && is_string($value)) {
+                $decoded = json_decode($value);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $value = $decoded;
+                }
+            }
             if ($database && $parameter->name === 'data' && empty((array) $value)) {
                 $value = strtolower($service->name) === 'vectorsdb'
                     ? ['metadata' => ['key' => 'value']]
                     : ['key' => 'value'];
             }
-            if ($this->isCliGraphQLInput($parameter, $method, $service) && (empty((array) $this->getSchema($parameter)->example) || empty((array) $value))) {
+            if ($this->isCliGraphQLInput($parameter, $method, $service) && empty((array) $value)) {
                 $value = $name === 'mutation'
                     ? 'mutation { accountUpdateName(name: "Jane Doe") { name } }'
                     : '{ localeGet { ip } }';
@@ -575,9 +583,14 @@ trait CliCommandSurface
             // pflag booleans consume an explicit value only with '='. Each
             // StringArray occurrence consumes exactly one item, not a JSON list.
             $separator = $option['register'] === 'Bool' ? '=' : ' ';
-            $values = $option['register'] === 'StringArray' ? $value : [$value];
+            $values = [$value];
+            if ($option['register'] === 'StringArray') {
+                $schema = $this->getArraySchema($parameter) ?? new StringSchema();
+                // Demonstrate required repeatable flags even without an example.
+                $values = is_array($value) && $value !== [] ? $value : [$schema->example];
+            }
             foreach ($values as $item) {
-                $arguments[] = '--' . $option['flag'] . $separator . $this->quoteCliExample($item);
+                $arguments[] = '--' . $option['flag'] . $separator . $this->getParamExample($schema, example: $item);
             }
         }
 
@@ -601,47 +614,6 @@ trait CliCommandSurface
         ];
     }
 
-    /**
-     * Keep structured examples structured until each flag value is serialized.
-     * Swagger 2 may carry JSON text where OpenAPI 3 carries an object or array.
-     */
-    protected function getCliExampleValue(Schema|Parameter $parameter): mixed
-    {
-        $type = $this->getSchemaType($parameter);
-        $value = $this->getSchema($parameter)->example;
-        if (in_array($type, [self::TYPE_ARRAY, self::TYPE_OBJECT], true) && is_string($value)) {
-            $decoded = json_decode($value);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $value = $decoded;
-            }
-        }
-        if ($type === self::TYPE_FILE) {
-            return 'path/to/file.png';
-        }
-        if ($type === self::TYPE_ARRAY) {
-            if (is_array($value) && $value !== []) {
-                return $value;
-            }
-            // An absent or empty example still needs one item to demonstrate
-            // a required repeatable flag; derive it from the item schema.
-            $items = $this->getArraySchema($parameter);
-            return [$items === null ? '<VALUE>' : $this->getCliExampleValue($items)];
-        }
-        if ($value !== null) {
-            return $type === self::TYPE_OBJECT && is_array($value) ? (object) $value : $value;
-        }
-        if ($this->isStringEnum($parameter)) {
-            return $this->getEnumSchema($parameter)->enum[0];
-        }
-
-        return match ($type) {
-            self::TYPE_NUMBER, self::TYPE_INTEGER => 1,
-            self::TYPE_BOOLEAN => false,
-            self::TYPE_OBJECT => (object) ['key' => 'value'],
-            default => '<VALUE>',
-        };
-    }
-
     protected function quoteCliExample(mixed $value): string
     {
         $value = is_string($value)
@@ -663,8 +635,29 @@ trait CliCommandSurface
      * Go literals; `--roles []string{}` is not a command anybody can run.
      */
     #[Override]
-    public function getParamExample(Schema|Parameter $param, string $lang = ''): string
+    public function getParamExample(Schema|Parameter $param, string $lang = '', mixed $example = null): string
     {
-        return $this->quoteCliExample($this->getCliExampleValue($param));
+        $type = $this->getSchemaType($param);
+        $example ??= $this->getSchema($param)->example;
+        // Swagger 2 can carry JSON text instead of a structured example.
+        if (in_array($type, [self::TYPE_ARRAY, self::TYPE_OBJECT], true) && is_string($example)) {
+            $decoded = json_decode($example);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $example = $decoded;
+            }
+        }
+
+        if ($type === self::TYPE_OBJECT && is_array($example)) {
+            $example = (object) $example;
+        }
+
+        return match ($type) {
+            self::TYPE_ARRAY => $this->quoteCliExample($example ?? []),
+            self::TYPE_OBJECT => $this->quoteCliExample($example ?? (object) ['key' => 'value']),
+            self::TYPE_NUMBER, self::TYPE_INTEGER => $this->quoteCliExample($example ?? 1),
+            self::TYPE_BOOLEAN => $this->quoteCliExample($example ?? false),
+            self::TYPE_FILE => $this->quoteCliExample('path/to/file.png'),
+            default => $this->quoteCliExample($example ?? $this->getEnumSchema($param)->enum[0] ?? '<VALUE>'),
+        };
     }
 }
