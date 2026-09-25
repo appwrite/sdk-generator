@@ -2,6 +2,7 @@
 package {{ pushNamespace }}.services
 
 import android.content.Context
+import android.os.SystemClock
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -27,7 +28,10 @@ class PushBridge(context: Context, private val events: Events) {
     }
 
     private val appContext = context.applicationContext
-    private val acks = ConcurrentHashMap<String, () -> Unit>()
+    // Acknowledgement token -> (when it was handed out, the acknowledgement). A token the SDK never
+    // acknowledges (its JS or Dart side was gone) is dropped once the core has acknowledged the
+    // message anyway, so the map stays bounded.
+    private val acks = ConcurrentHashMap<String, Pair<Long, () -> Unit>>()
 
     // Whether the app registered onError; without one, errors are logged and a refused
     // credential is kept for the next registration.
@@ -69,7 +73,9 @@ class PushBridge(context: Context, private val events: Events) {
                 callback = {},
                 acknowledgingCallback = { message, ack ->
                     val token = UUID.randomUUID().toString()
-                    acks[token] = ack
+                    val now = SystemClock.elapsedRealtime()
+                    acks.entries.removeIf { now - it.value.first > STALE_ACK_MS }
+                    acks[token] = now to ack
                     events.onMessage(id, message, token)
                 },
                 background = subscription.optBoolean("background", false),
@@ -90,7 +96,7 @@ class PushBridge(context: Context, private val events: Events) {
 
     /** Acknowledge a message once the SDK's callback for it has run. */
     fun ack(token: String) {
-        acks.remove(token)?.invoke()
+        acks.remove(token)?.second?.invoke()
     }
 
     /** Stop hosting the live subscriptions, keeping the ones saved by an earlier run. */
@@ -123,5 +129,8 @@ class PushBridge(context: Context, private val events: Events) {
 
     private companion object {
         const val KEEP_ALIVE_SECONDS = 60
+
+        // Past the core's ten-second acknowledgement cap, after which the message was acknowledged.
+        const val STALE_ACK_MS = 30_000L
     }
 }
