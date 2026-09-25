@@ -166,7 +166,7 @@ abstract class Base extends TestCase
     // stopping it with onError.
     // Flutter's public Push API on the Android path, with a stand-in for the native plugin on its
     // channels: background subscribe completes once the plugin reports it subscribed, a message
-    // reaches the callback and is acknowledged, and sign-out stops background delivery.
+    // reaches the callback and is acknowledged, and after sign-out it no longer reaches the app.
     protected const FLUTTER_PUSH_NATIVE_RESPONSES = [
         'Push native subscribe:passed',
         'Push native message:passed',

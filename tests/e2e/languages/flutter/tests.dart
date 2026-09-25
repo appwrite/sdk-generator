@@ -675,10 +675,13 @@ void main() async {
       ? 'Push native message:passed'
       : 'Push native message:failed');
 
-  // Sign-out stops background delivery.
+  // After sign-out, a message still sent for the old subscription no longer reaches the app.
+  // (That the native side stops delivering is checked by the Robolectric run.)
   backgroundPush.close();
   await Future.delayed(const Duration(milliseconds: 300));
-  print(plugin.stopped
+  plugin.deliver('news', 'after-close');
+  await Future.delayed(const Duration(milliseconds: 300));
+  print(delivered.join(',') == 'native-payload'
       ? 'Push native close:passed'
       : 'Push native close:failed');
   PushNative.debugInstance = null;
@@ -692,7 +695,6 @@ class FakePushPlugin implements BinaryMessenger {
   final _hosted = <Map<String, dynamic>>[];
   MessageHandler? _events;
   var acknowledged = 0;
-  var stopped = false;
 
   void deliver(String topic, String payload) {
     for (final subscription in _hosted.where((s) => s['topic'] == topic)) {
@@ -721,9 +723,6 @@ class FakePushPlugin implements BinaryMessenger {
         return codec.encodeSuccessEnvelope(null);
       case 'ack':
         acknowledged++;
-        return codec.encodeSuccessEnvelope(null);
-      case 'stop':
-        stopped = true;
         return codec.encodeSuccessEnvelope(null);
       case 'hasSaved':
         return codec.encodeSuccessEnvelope(false);
