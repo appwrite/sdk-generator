@@ -75,6 +75,7 @@ final class FlutterStableTest extends Base
         ...Base::PUSH_RESPONSES,
         ...Base::PUSH_ERROR_RESPONSES,
         ...Base::FLUTTER_PUSH_NATIVE_RESPONSES,
+        ...Base::PUSH_NATIVE_DISPLACED_RESPONSES,
         ...Base::PUSH_BACKGROUND_RESPONSES
     ];
 }

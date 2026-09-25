@@ -8,6 +8,8 @@
 // is swapped for Node's net (an identical API subset). There is no native Android module here
 // (as in Expo Go), so background delivery is unavailable and the topic-less subscribe's
 // default falls back to the foreground.
+import { EventEmitter } from 'events';
+import { NativeModules } from 'react-native';
 import { Client } from './src/client';
 import { Push } from './src/services/push';
 import { Topic } from './src/topic';
@@ -134,6 +136,35 @@ async function main() {
     } catch (e) {}
     console.log((await kickedError) === 'kicked-by-test' ? 'Push disconnect error:passed' : 'Push disconnect error:failed');
     kickedPush.close();
+
+    // Two credentials with background delivery on Android: the device hosts one, so the Push that
+    // started it first hears on onError that its background delivery stopped, and the other does
+    // not. A stand-in answers for the SDK's native module, which needs an Android device.
+    NativeModules.AppwritePush = {
+        emitter: new EventEmitter(),
+        host: async () => {},
+        ack: () => {},
+        release: async () => {},
+        stop: async () => {},
+        setForeground: async () => {},
+        hasSaved: async () => false,
+        resume: async () => {},
+        setErrorCallback: async () => null,
+        defaultClientId: async () => 'e2e-install',
+        addListener: () => {},
+        removeListeners: () => {},
+    };
+    const firstErrors = [];
+    const secondErrors = [];
+    const firstUser = new Push(sessionClient).onError((error) => firstErrors.push(error));
+    await firstUser.subscribe(['news'], () => {}, { background: true });
+    const secondUser = new Push(client).onError((error) => secondErrors.push(error));
+    await secondUser.subscribe(['news'], () => {}, { background: true });
+    await timeout(200);
+    console.log(firstErrors.some((e) => e.message.includes('Background delivery stopped')) && secondErrors.length === 0 ? 'Push native displaced:passed' : 'Push native displaced:failed');
+    firstUser.close();
+    secondUser.close();
+    delete NativeModules.AppwritePush;
 
     // mqtt.js keepalive timers would otherwise hold the event loop open.
     process.exit(0);

@@ -54,6 +54,7 @@ final class FlutterBetaTest extends Base
         ...Base::OPERATOR_HELPER_RESPONSES,
         ...Base::PUSH_RESPONSES,
         ...Base::PUSH_ERROR_RESPONSES,
-        ...Base::FLUTTER_PUSH_NATIVE_RESPONSES
+        ...Base::FLUTTER_PUSH_NATIVE_RESPONSES,
+        ...Base::PUSH_NATIVE_DISPLACED_RESPONSES
     ];
 }
