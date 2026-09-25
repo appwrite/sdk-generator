@@ -82,6 +82,33 @@ android {
 }
 ```
 
+#### Background delivery
+
+A subscription with `background = true` keeps delivering after the app is backgrounded, its
+process is killed, or the device restarts, until it is unsubscribed or `push.close()` is
+called (do this on sign-out). No service is kept running: a scheduled job and alarm wake the
+app every 15 to 60 seconds to reconnect, and the broker replays what was sent in between
+(`retry = true`). It reconnects with the credential saved at subscribe time, so use a session
+(`client.setSession(...)`), not a short-lived JWT.
+
+When no in-app callback is listening, each message is posted as a notification that opens
+your launch activity with `Push.EXTRA_TOPIC` and `Push.EXTRA_PAYLOAD` in its extras. Set its
+icon with `<meta-data android:name="{{ sdk.namespace | caseDot }}.push.notification_icon" android:resource="@drawable/..." />`
+in your `<application>`. To handle these messages in code, subclass `PushReceiver` and declare
+it with the `{{ sdk.namespace | caseDot }}.push.MESSAGE` action (see its docs).
+
+Doze delays the scheduled runs. They are more punctual when your app may schedule exact
+alarms (`SCHEDULE_EXACT_ALARM`) or is exempt from battery optimisation; both are your app's
+choice and subject to Google Play policy, and the SDK uses them when granted. For immediate delivery even after a kill and
+during Doze, call `push.setForeground(true)` from the foreground: it adds a foreground service
+with a quiet ongoing notification. If you never enable it, you can remove the service from
+your merged manifest, so the Play Console does not ask you to declare it:
+
+```xml
+<service android:name="{{ sdk.namespace | caseDot }}.services.PushService" tools:node="remove" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" tools:node="remove" />
+```
+
 {% if sdk.gettingStarted %}
 
 {{ sdk.gettingStarted|raw }}

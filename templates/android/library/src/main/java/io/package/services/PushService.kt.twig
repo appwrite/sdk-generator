@@ -5,153 +5,63 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
-import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
-import java.util.concurrent.CompletableFuture
 
 /**
- * Foreground service that keeps the {{ spec.info.title | caseUcfirst }} push (MQTT) connection alive while the
- * app is backgrounded or swiped away (the process stays alive). It owns its own MQTT
- * client, subscribes to the topics of the `subscribe(background = true)` subscriptions,
- * invokes any in-process listeners, and posts a local notification per
- * message. Started by PushForeground; not meant to be started directly. A hard process
- * kill is not recovered (see the START_NOT_STICKY note in onStartCommand).
+ * The foreground mode of background push delivery ([Push.setForeground]): a foreground service
+ * that keeps the process at foreground priority, so the connection held by the process stays
+ * up and delivers immediately, also during Doze. The system restarts it after a kill, and it
+ * restores the saved subscriptions. Started by the SDK; not meant to be started directly.
  */
 class PushService : Service() {
-    @Volatile
-    private var mqtt: Mqtt5AsyncClient? = null
-
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onCreate() {
+        super.onCreate()
+        PushBackground.serviceRunning = true
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!PushBackground.wantsService(this)) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         try {
             startForegroundCompat()
         } catch (e: Exception) {
-            // E.g. a missing foreground-service permission or a background start restriction.
+            // E.g. a background start refused on Android 12+; the scheduled runs keep delivering.
             stopSelf()
-            PushForeground.report(e)
+            PushBackground.report(e)
             return START_NOT_STICKY
         }
-        connectAndSubscribe()
-        // NOT sticky: the credential/topics/listeners live only in the process, so a
-        // kill-and-recreate could not restore the connection anyway. This covers
-        // backgrounding and swipe-away (process alive), not a hard process kill.
-        return START_NOT_STICKY
+        PushBackground.tick(this) {}
+        // Recreated after a kill with a null intent; the saved subscriptions are restored then.
+        return START_STICKY
     }
 
     private fun startForegroundCompat() {
-        val notification = NotificationCompat.Builder(this, PushForeground.CHANNEL_ID)
-            .setContentTitle(PushForeground.ongoingTitle)
-            .setContentText("Listening for messages")
-            .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setOngoing(true)
-            .build()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val notification = PushBackground.ongoingNotification(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             ServiceCompat.startForeground(
                 this,
-                PushForeground.NOTIFICATION_ID,
+                PushBackground.NOTIFICATION_ID,
                 notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING,
             )
         } else {
-            startForeground(PushForeground.NOTIFICATION_ID, notification)
+            startForeground(PushBackground.NOTIFICATION_ID, notification)
         }
     }
 
-    private fun connectAndSubscribe() {
-        if (mqtt != null) {
-            return
-        }
-        val config = PushForeground.config ?: return
-
-        // Connection errors after the initial connect (a lost connection, a failed automatic
-        // reconnect, a broker DISCONNECT) reach the hosting Push instance's onError.
-        val client = buildPushClient(config, onError = { PushForeground.report(it) })
-        mqtt = client
-        try {
-            client.pushConnect(config)
-            // Install the live subscribe/unsubscribe hooks and get the current topic union
-            // atomically, so a topic added or removed concurrently is neither lost nor left
-            // active.
-            val initial = PushForeground.attach(
-                { topics -> subscribeTopics(topics) },
-                { topics -> unsubscribeTopics(topics) },
-            )
-            subscribeTopics(initial)
-        } catch (e: Exception) {
-            // Connection failed (a refused CONNECT, a missing credential, ...): drop the client
-            // so a later start retries, and report it. The service stays up until stopped.
-            mqtt = null
-            PushForeground.report(e)
-        }
-    }
-
-    private fun subscribeTopics(topics: List<String>) {
-        val client = mqtt ?: return
-        for (topic in topics) {
-            client.subscribeWith()
-                .topicFilter(topic)
-                .qos(PushForeground.qosFor(topic))
-                .callback { publish -> onMessage(publish.toPushMessage()) }
-                .send()
-                .reportFailure(client)
-        }
-    }
-
-    private fun unsubscribeTopics(topics: List<String>) {
-        val client = mqtt ?: return
-        for (topic in topics) {
-            client.unsubscribeWith()
-                .topicFilter(topic)
-                .send()
-                .reportFailure(client)
-        }
-    }
-
-    // Report a SUBSCRIBE/UNSUBSCRIBE failure (e.g. a SUBACK error code) unless [client] was
-    // closed or replaced meanwhile, which fails its pending requests on purpose.
-    private fun CompletableFuture<*>.reportFailure(client: Mqtt5AsyncClient) {
-        whenComplete { _, error ->
-            if (error != null && mqtt === client) {
-                PushForeground.report(error)
-            }
-        }
-    }
-
-    private fun onMessage(message: PushMessage) {
-        // Fan out to each listener whose own topics match; post a notification only for the
-        // matching listeners that opted into background, each with its own title (a message
-        // for a just-removed topic matches nothing and produces none).
-        for (title in PushForeground.dispatch(message)) {
-            postNotification(message, title)
-        }
-    }
-
-    private fun postNotification(message: PushMessage, title: String) {
-        val manager = NotificationManagerCompat.from(this)
-        if (!manager.areNotificationsEnabled()) {
-            return
-        }
-        val notification = NotificationCompat.Builder(this, PushForeground.CHANNEL_ID)
-            .setContentTitle(title)
-            .setContentText(message.string)
-            .setSmallIcon(android.R.drawable.stat_notify_chat)
-            .setAutoCancel(true)
-            .build()
-        try {
-            manager.notify(message.hashCode(), notification)
-        } catch (e: SecurityException) {
-            // POST_NOTIFICATIONS not granted; nothing to show.
-        }
+    // Some devices kill the process shortly after its task is swiped away; a run a few seconds
+    // later restarts the service.
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        PushBackground.scheduleRestart(this)
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
-        PushForeground.detach()
-        mqtt?.disconnect()
-        mqtt = null
+        PushBackground.serviceRunning = false
         super.onDestroy()
     }
 }
