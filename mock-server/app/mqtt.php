@@ -129,15 +129,27 @@ class MockHandler implements Handler
             }
             if ($filter->topic === 'e2e-replay') {
                 $key = $connection->prefix . '|' . $connection->getClientId();
-                $queued = $this->replayQueues[$key] ?? [];
-                $this->replayQueues[$key] = [];
+                $this->replayQueues[$key] ??= [];
                 $this->replayOnline[$key] = $connection;
-                foreach ($queued as $message) {
-                    \Swoole\Timer::after(100, fn () => $connection->publish('e2e-replay', $message, qos: Packet::QOS_1));
-                }
+                // Take the queue only when delivering (after the SUBACK), so a client that goes
+                // offline in between keeps it for its next subscription.
+                \Swoole\Timer::after(100, function () use ($key, $connection) {
+                    if (($this->replayOnline[$key] ?? null) !== $connection) {
+                        return;
+                    }
+                    $queued = $this->replayQueues[$key];
+                    $this->replayQueues[$key] = [];
+                    foreach ($queued as $message) {
+                        $connection->publish('e2e-replay', $message, qos: Packet::QOS_1);
+                    }
+                });
             }
             if ($filter->topic === 'e2e-replay-publish') {
+                // Only the publisher's project's clients, like a real publish.
                 foreach (\array_keys($this->replayQueues) as $key) {
+                    if (!\str_starts_with($key, $connection->prefix . '|')) {
+                        continue;
+                    }
                     if (isset($this->replayOnline[$key])) {
                         $this->replayOnline[$key]->publish('e2e-replay', 'push-replayed', qos: Packet::QOS_1);
                     } else {
@@ -169,6 +181,15 @@ class MockHandler implements Handler
     public function onUnsubscribe(Unsubscribe $unsubscribe, Connection $connection): Unsuback
     {
         $unsuback = new Unsuback();
+        // A client that unsubscribes from "e2e-replay" is offline for it: what is published next is
+        // queued for its next subscription.
+        foreach ($unsubscribe->filters() as $filter) {
+            $topic = \is_string($filter) ? $filter : $filter->topic;
+            $key = $connection->prefix . '|' . $connection->getClientId();
+            if ($topic === 'e2e-replay' && ($this->replayOnline[$key] ?? null) === $connection) {
+                unset($this->replayOnline[$key]);
+            }
+        }
         // One success code per filter (the broker has already dropped them from its index).
         $count = \count($unsubscribe->filters());
         for ($i = 0; $i < $count; $i++) {
