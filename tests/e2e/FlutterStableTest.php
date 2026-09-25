@@ -26,10 +26,30 @@ final class FlutterStableTest extends Base
     protected array $build = [
         'mkdir -p tests/e2e/sdks/flutter/test',
         'cp tests/e2e/languages/flutter/tests.dart tests/e2e/sdks/flutter/test/appwrite_test.dart',
+        // The native Android plugin's background delivery: a Robolectric project compiling the
+        // package's android/ sources (AppwritePushPlugin over the shared core) against the Flutter
+        // embedding, with the Android SDK's Gradle wrapper.
+        'rm -rf tests/e2e/sdks/flutter/android-test',
+        'mkdir -p tests/e2e/sdks/flutter/android-test/src/main/java/io/appwrite tests/e2e/sdks/flutter/android-test/src/test/java tests/e2e/sdks/flutter/android-test/gradle/wrapper',
+        'cp tests/e2e/languages/flutter/android-test/settings.gradle.kts tests/e2e/languages/flutter/android-test/build.gradle.kts tests/e2e/languages/flutter/android-test/gradle.properties tests/e2e/sdks/flutter/android-test/',
+        'cp tests/e2e/languages/flutter/android-test/Tests.kt tests/e2e/sdks/flutter/android-test/src/test/java/Tests.kt',
+        'cp -R tests/e2e/sdks/flutter/android/src/main/kotlin/io/appwrite/services tests/e2e/sdks/flutter/android/src/main/kotlin/io/appwrite/exceptions tests/e2e/sdks/flutter/android/src/main/kotlin/io/appwrite/flutter tests/e2e/sdks/flutter/android-test/src/main/java/io/appwrite/',
+        'cp tests/e2e/sdks/flutter/android/src/main/AndroidManifest.xml tests/e2e/sdks/flutter/android-test/src/main/AndroidManifest.xml',
+        'cp tests/e2e/sdks/flutter/android/build.gradle tests/e2e/sdks/flutter/android-test/plugin.gradle',
+        'cp templates/android/gradlew tests/e2e/sdks/flutter/android-test/gradlew',
+        'cp templates/android/gradle/wrapper/gradle-wrapper.jar templates/android/gradle/wrapper/gradle-wrapper.properties tests/e2e/sdks/flutter/android-test/gradle/wrapper/',
+        'chmod +x tests/e2e/sdks/flutter/android-test/gradlew',
+        // The Flutter engine the e2e runs with, whose embedding the Robolectric project builds with.
+        'docker run --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter --version --machine > android-test/flutter-version.json"',
     ];
+    // tests.dart prints its results from main() and defines no test(), so `flutter test` ends with
+    // "No tests ran." and exit code 79. That line is dropped and 79 counts as success; any other
+    // failure stops the chain before the Robolectric run, so its lines are missing and the suite
+    // fails (the harness compares output, not exit codes).
     #[Override]
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter pub get && { flutter test test/appwrite_test.dart > flutter-test.log; status=\$?; grep -v -x \'No tests ran.\' flutter-test.log; [ \$status -eq 0 ] || [ \$status -eq 79 ]; }"'
+        . ' && docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/flutter/android-test alvrme/alpine-android:android-CinnamonBun-jdk17 sh -c "./gradlew testDebugUnitTest --stacktrace 1>&2 && cat result.txt"';
 
     #[Override]
     protected array $expectedOutput = [
@@ -53,6 +73,8 @@ final class FlutterStableTest extends Base
         ...Base::CHANNEL_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES,
         ...Base::PUSH_RESPONSES,
-        ...Base::PUSH_ERROR_RESPONSES
+        ...Base::PUSH_ERROR_RESPONSES,
+        ...Base::FLUTTER_PUSH_NATIVE_RESPONSES,
+        ...Base::PUSH_BACKGROUND_RESPONSES
     ];
 }

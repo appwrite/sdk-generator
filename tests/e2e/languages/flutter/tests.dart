@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import '../lib/client_io.dart';
@@ -10,6 +11,7 @@ import '../lib/enums.dart';
 import '../lib/models.dart';
 import '../lib/packageName.dart';
 import '../lib/src/input_file.dart';
+import '../lib/src/mqtt_native.dart';
 
 class FakePathProvider extends PathProviderPlatform {
   @override
@@ -637,6 +639,109 @@ void main() async {
         : 'Push disconnect error:failed',
   );
   kickedPush.close();
+
+  // Background delivery on Android through the public API. The SDK's native Android plugin needs
+  // a device, so a stand-in answers on its channels, as the mock server stands in for the broker;
+  // the plugin itself is exercised over the same channels by the Robolectric run.
+  final plugin = FakePushPlugin();
+  PushNative.debugInstance = PushNative.forMessenger(plugin);
+  final backgroundPush = Push(Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883')
+      .setSession(e2eSession));
+  final delivered = <String>[];
+  var subscribed = false;
+  final pending = backgroundPush
+      .subscribe('news', (message) => delivered.add(message.string),
+          background: true, title: 'News')
+      .then((sub) {
+    subscribed = true;
+    return sub;
+  });
+  // Not subscribed until the plugin reports the connection is up and the topic subscribed.
+  await Future.delayed(const Duration(milliseconds: 300));
+  final earlySubscribe = subscribed;
+  plugin.subscribed.complete();
+  await pending;
+  print(!earlySubscribe && subscribed
+      ? 'Push native subscribe:passed'
+      : 'Push native subscribe:failed');
+
+  // A message the plugin delivers reaches the callback, then is acknowledged.
+  plugin.deliver('news', 'native-payload');
+  await Future.delayed(const Duration(milliseconds: 300));
+  print(delivered.join(',') == 'native-payload' && plugin.acknowledged == 1
+      ? 'Push native message:passed'
+      : 'Push native message:failed');
+
+  // Sign-out stops background delivery.
+  backgroundPush.close();
+  await Future.delayed(const Duration(milliseconds: 300));
+  print(plugin.stopped
+      ? 'Push native close:passed'
+      : 'Push native close:failed');
+  PushNative.debugInstance = null;
+}
+
+/// Answers on the native plugin's channels like the Android plugin does: hosting completes once
+/// [subscribed] completes, and [deliver] sends a message for the hosted subscription on [topic].
+class FakePushPlugin implements BinaryMessenger {
+  static const codec = StandardMethodCodec();
+  final subscribed = Completer<void>();
+  final _hosted = <Map<String, dynamic>>[];
+  MessageHandler? _events;
+  var acknowledged = 0;
+  var stopped = false;
+
+  void deliver(String topic, String payload) {
+    for (final subscription in _hosted.where((s) => s['topic'] == topic)) {
+      _events?.call(codec.encodeSuccessEnvelope({
+        'type': 'message',
+        'id': subscription['id'],
+        'topic': topic,
+        'payload': Uint8List.fromList(utf8.encode(payload)),
+        'qos': 1,
+        'ackToken': 'token-${subscription['id']}',
+      }));
+    }
+  }
+
+  @override
+  Future<ByteData?> send(String channel, ByteData? message) async {
+    final call = codec.decodeMethodCall(message);
+    final arguments = call.arguments as Map<Object?, Object?>?;
+    switch (call.method) {
+      case 'host':
+        _hosted
+          ..clear()
+          ..addAll((jsonDecode(arguments!['subscriptions'] as String) as List)
+              .cast<Map<String, dynamic>>());
+        await subscribed.future;
+        return codec.encodeSuccessEnvelope(null);
+      case 'ack':
+        acknowledged++;
+        return codec.encodeSuccessEnvelope(null);
+      case 'stop':
+        stopped = true;
+        return codec.encodeSuccessEnvelope(null);
+      case 'hasSaved':
+        return codec.encodeSuccessEnvelope(false);
+      case 'defaultClientId':
+        return codec.encodeSuccessEnvelope('e2e-session-user-install');
+      default:
+        return codec.encodeSuccessEnvelope(null);
+    }
+  }
+
+  @override
+  void setMessageHandler(String channel, MessageHandler? handler) {
+    _events = handler;
+  }
+
+  @override
+  Future<void> handlePlatformMessage(
+      String channel, ByteData? data, PlatformMessageResponseCallback? callback) async {}
 }
 
 String? parse(String json) {

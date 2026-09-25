@@ -38,3 +38,12 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   mockito: ^5.4.4
+
+# Android: the native half of Push, which runs background delivery on the same core as the
+# {{ spec.info.title | caseUcfirst }} Android SDK. Other platforms need no native code.
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: io.{{ spec.info.title | caseLower }}.flutter
+        pluginClass: {{ spec.info.title | caseUcfirst }}PushPlugin
