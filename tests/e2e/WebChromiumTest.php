@@ -60,6 +60,7 @@ final class WebChromiumTest extends Base
         ...Base::CHANNEL_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES,
         ...Base::PUSH_RESPONSES,
+        ...Base::PUSH_SESSION_CLIENT_ID_RESPONSES,
         ...Base::PUSH_ERROR_RESPONSES
     ];
 }

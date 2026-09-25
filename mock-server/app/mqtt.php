@@ -11,6 +11,8 @@
  *    its reason reaches the SDK; the projectId user property becomes the connection prefix.
  *  - SUBSCRIBE to "e2e-disconnect/<reason>" makes the broker DISCONNECT the client with <reason>
  *    as the Reason String.
+ *  - SUBSCRIBE to "e2e-client-id" makes the broker publish, on that topic, the client id the
+ *    connection identified itself with.
  *  - SUBSCRIBE grants every filter at the requested QoS (capped at QoS 1) and then, mirroring
  *    real server-initiated push, publishes the test message to the fixed topic "e2e-push"
  *    through the broker's subscription index/fan-out — so a client receives it only if its
@@ -109,10 +111,16 @@ class MockHandler implements Handler
         // lands after the SUBACK the library sends when this handler returns.
         // Subscribing to "e2e-disconnect/<reason>" makes the broker drop the connection with a
         // reason code and <reason> as the Reason String (a server-initiated DISCONNECT).
+        // Subscribing to "e2e-client-id" makes the broker publish, on that topic, the client id this
+        // connection identified itself with, so a test can check which id the SDK derived.
         foreach ($subscribe->filters() as $filter) {
             if (\str_starts_with($filter->topic, 'e2e-disconnect/')) {
                 $reason = \substr($filter->topic, \strlen('e2e-disconnect/'));
                 \Swoole\Timer::after(100, fn () => $connection->disconnect(Disconnect::NOT_AUTHORIZED, $reason));
+            }
+            if ($filter->topic === 'e2e-client-id') {
+                $qos = \min($filter->qos, Packet::QOS_1);
+                \Swoole\Timer::after(100, fn () => $connection->publish('e2e-client-id', $connection->getClientId(), qos: $qos));
             }
         }
 

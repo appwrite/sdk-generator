@@ -152,6 +152,12 @@ abstract class Base extends TestCase
         'Push user no credential:passed',
     ];
 
+    // Web and React Native derive their client id themselves (mqtt.js needs one): a session-only
+    // client uses the session's user id, as a JWT client uses its userId claim.
+    protected const PUSH_SESSION_CLIENT_ID_RESPONSES = [
+        'Push session client id:passed',
+    ];
+
     // Broker errors reaching onError: a refused CONNECT and a server DISCONNECT, carrying the
     // broker's MQTT 5 reason string (Apple checks only that the error arrives: MQTTNIO does not
     // expose the reason string).
