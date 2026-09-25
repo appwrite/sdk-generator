@@ -96,14 +96,18 @@ abstract class Push extends Service {
   /// them on reconnect; `false` uses QoS 0 (at-most-once, may be lost). The connection
   /// always keeps its session, so replay is a purely per-subscription choice.
   ///
-  /// Set [background] to also keep receiving while the app is backgrounded or closed
-  /// (mobile: an Android foreground service via `flutter_background_service`; web: a
-  /// browser notification while the tab is open) and post a notification per message with
-  /// [title] (defaulting to the message topic). The foreground service is reference-counted
-  /// across subscriptions — it runs while any live subscription has [background] on. Mobile
-  /// background needs the `flutter_background_service` and `flutter_local_notifications`
-  /// peers and, on Android, the `FOREGROUND_SERVICE` / `POST_NOTIFICATIONS` manifest
-  /// permissions. Toggle these later with [PushSubscription.update].
+  /// Set [background] to also keep receiving while the app is backgrounded or closed and post a
+  /// notification per message with [title] (defaulting to the message topic). Toggle these
+  /// later with [PushSubscription.update].
+  ///
+  /// On Android the SDK's native plugin saves the subscription and keeps delivering after the
+  /// app is killed, the device restarts or the app updates, until it is unsubscribed or [close]
+  /// is called: a scheduled job and alarm wake the app every 15 to 60 seconds to reconnect, and
+  /// the broker replays what was sent in between ([retry]). [setForeground] adds a foreground
+  /// service for immediate delivery. It reconnects with the credential saved at subscribe time,
+  /// so use a session rather than a short-lived JWT. On iOS it runs the connection in a
+  /// background isolate via `flutter_background_service`; on the web it posts a browser
+  /// notification while the tab is open.
   Future<PushSubscription> subscribe(
     Object? topics, // String, Topic, ResolvedTopic, a List, or null (own user)
     PushCallback callback, {
@@ -112,6 +116,14 @@ abstract class Push extends Service {
     bool retry,
   });
 
-  /// Tear down the connection and drop all active subscriptions.
+  /// Android: run background delivery in a foreground service (with a quiet ongoing
+  /// notification), for immediate delivery even after the app is killed and during Doze,
+  /// instead of only the scheduled wake-ups. Saved, so it applies after restarts too. Call it
+  /// while the app is in the foreground: Android 12+ refuses to start the service from the
+  /// background. It only affects [background] subscriptions. A no-op elsewhere.
+  Future<void> setForeground(bool enabled);
+
+  /// Tear down the connection and drop all subscriptions. On Android this also stops
+  /// background delivery, including subscriptions saved by an earlier run: call it on sign-out.
   void close();
 }

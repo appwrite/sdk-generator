@@ -385,6 +385,11 @@ class PushWeb implements Push {
     }
   }
 
+  // Background delivery on the web is a notification while the tab is open; there is no
+  // foreground service.
+  @override
+  Future<void> setForeground(bool enabled) async {}
+
   @override
   void close() {
     _mqtt?.disconnect();

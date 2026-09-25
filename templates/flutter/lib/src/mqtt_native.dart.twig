@@ -1,0 +1,89 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/services.dart';
+
+/// A message the native Android plugin delivers for a hosted subscription.
+class NativePushMessage {
+  final String id;
+  final String topic;
+  final Uint8List payload;
+  final int qos;
+
+  NativePushMessage(this.id, this.topic, this.payload, this.qos);
+}
+
+/// The SDK's native Android plugin (see android/), which hosts background delivery on the same
+/// core as the {{ spec.info.title | caseUcfirst }} Android SDK: saved subscriptions, scheduled wake-ups after
+/// the app is killed, reboot resume, notifications and foreground mode.
+class PushNative {
+  static const MethodChannel _methods = MethodChannel('{{ spec.info.title | caseLower }}.push');
+  static const EventChannel _events = EventChannel('{{ spec.info.title | caseLower }}.push/events');
+  static Stream<Map<Object?, Object?>>? _stream;
+
+  PushNative._();
+
+  /// The plugin on Android, else null.
+  static PushNative? get instance => Platform.isAndroid ? PushNative._() : null;
+
+  /// Host [subscriptionsJson] on the background connection described by [configJson].
+  Future<void> host(String configJson, String subscriptionsJson) =>
+      _methods.invokeMethod<void>('host', {
+        'config': configJson,
+        'subscriptions': subscriptionsJson,
+      });
+
+  /// Stop hosting the live subscriptions, keeping the ones saved by an earlier run.
+  Future<void> release() => _methods.invokeMethod<void>('release');
+
+  /// Stop background delivery and forget every saved subscription.
+  Future<void> stop() => _methods.invokeMethod<void>('stop');
+
+  /// Run background delivery in a foreground service; saved across restarts.
+  Future<void> setForeground(bool enabled) =>
+      _methods.invokeMethod<void>('setForeground', {'enabled': enabled});
+
+  /// Whether an earlier run saved background subscriptions that are still delivered.
+  Future<bool> hasSaved() async =>
+      await _methods.invokeMethod<bool>('hasSaved') ?? false;
+
+  /// Resume saved background delivery now instead of at the next scheduled run.
+  Future<void> resume() => _methods.invokeMethod<void>('resume');
+
+  /// Record whether onError is registered; returns a refusal kept while it was not, once.
+  Future<String?> setErrorCallback(bool registered) =>
+      _methods.invokeMethod<String>('setErrorCallback', {'registered': registered});
+
+  /// The default client id for a credential, so a foreground connection shares its session.
+  Future<String> defaultClientId(String authMethod, String credential) async =>
+      await _methods.invokeMethod<String>('defaultClientId', {
+        'authMethod': authMethod,
+        'credential': credential,
+      }) ??
+      '';
+
+  /// Listen to the plugin's messages and errors.
+  StreamSubscription<Map<Object?, Object?>> listen({
+    required void Function(NativePushMessage message) onMessage,
+    required void Function(String message) onError,
+  }) {
+    final stream = _stream ??= _events
+        .receiveBroadcastStream()
+        .map((event) => event as Map<Object?, Object?>)
+        .asBroadcastStream();
+    return stream.listen((event) {
+      if (event['type'] == 'message') {
+        onMessage(
+          NativePushMessage(
+            event['id'] as String,
+            event['topic'] as String,
+            event['payload'] as Uint8List,
+            event['qos'] as int,
+          ),
+        );
+      } else if (event['type'] == 'error') {
+        onError(event['message'] as String? ?? 'Background push failed');
+      }
+    });
+  }
+}
