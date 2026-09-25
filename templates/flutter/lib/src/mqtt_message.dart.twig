@@ -19,6 +19,6 @@ class PushMessage {
     required this.qos,
   });
 
-  /// The payload decoded as a UTF-8 string.
-  String get string => utf8.decode(payload);
+  /// The payload decoded as UTF-8 text, as it was sent.
+  String get data => utf8.decode(payload);
 }

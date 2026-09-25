@@ -30,8 +30,8 @@ namespace {{ spec.info.title | caseUcfirst }}
             Qos = qos;
         }
 
-        /// <summary>The payload decoded as a UTF-8 string.</summary>
-        public string Text => Encoding.UTF8.GetString(Payload);
+        /// <summary>The payload decoded as UTF-8 text, as it was sent.</summary>
+        public string Data => Encoding.UTF8.GetString(Payload);
     }
 
     /// <summary>
@@ -296,13 +296,13 @@ namespace {{ spec.info.title | caseUcfirst }}
         ///
         /// Topics can be raw strings or built with <see cref="Topic"/>:
         /// <code>
-        /// await push.Subscribe(Topic.Path(new[] { "user", userId }).Any(), message => Debug.Log(message.Text));
+        /// await push.Subscribe(Topic.Path(new[] { "user", userId }).Any(), message => Debug.Log(message.Data));
         /// </code>
         ///
         /// Leave the topic out to subscribe to the signed-in user's own topic
         /// (<c>users/&lt;userId&gt;</c>), resolved from the JWT or session set on the client:
         /// <code>
-        /// await push.Subscribe(message => Debug.Log(message.Text), retry: true);
+        /// await push.Subscribe(message => Debug.Log(message.Data), retry: true);
         /// </code>
         /// </summary>
         public async Task<PushSubscription> Subscribe(string topic, Action<PushMessage> callback, bool retry = true)

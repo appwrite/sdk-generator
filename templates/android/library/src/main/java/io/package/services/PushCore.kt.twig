@@ -45,8 +45,8 @@ data class PushMessage(
     val payload: ByteArray,
     val qos: Int,
 ) {
-    /** The payload decoded as a UTF-8 string. */
-    val string: String
+    /** The payload decoded as UTF-8 text, as it was sent. */
+    val data: String
         get() = String(payload, Charsets.UTF_8)
 }
 

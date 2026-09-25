@@ -43,7 +43,7 @@ abstract class PushSubscription {
 /// final client = Client().setEndpoint('...').setProject('...').setJWT(jwt);
 /// final push = Push(client);
 /// final sub = await push.subscribe('user/123/#', (message) {
-///   print('${message.topic}: ${message.string}');
+///   print('${message.topic}: ${message.data}');
 /// });
 ///
 /// // sub.update(background: true, title: 'Messages');
@@ -79,7 +79,7 @@ abstract class Push extends Service {
   ///
   /// ```dart
   /// final sub = await push.subscribe(null, (message) {
-  ///   print(message.string);
+  ///   print(message.data);
   /// });
   /// ```
   ///
