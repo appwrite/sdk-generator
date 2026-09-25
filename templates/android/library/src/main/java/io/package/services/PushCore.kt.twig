@@ -1,6 +1,7 @@
 {%- set pushNamespace = language.name == 'Android' ? (sdk.namespace | caseDot) : 'io.' ~ (spec.info.title | caseLower) -%}
 package {{ pushNamespace }}.services
 
+import android.content.Context
 import android.os.Build
 import android.util.Base64
 import com.hivemq.client.mqtt.MqttClient
@@ -86,6 +87,18 @@ internal fun userIdFromSession(session: String): String = runCatching {
     val json = String(Base64.decode(session, Base64.DEFAULT), Charsets.UTF_8)
     JSONObject(json).optString("id", "")
 }.getOrDefault("")
+
+/**
+ * The default MQTT client id: one per user and install (`<userId>-<installId>`, or the install id
+ * alone when the credential names no user). The broker keeps the replay position per user and
+ * client id, so each device resumes its own backlog across restarts, and two devices of one user
+ * do not take over each other's session.
+ */
+internal fun defaultPushClientId(context: Context, authMethod: String, credential: String): String {
+    val userId = if (authMethod == "appwrite-session") userIdFromSession(credential) else userIdFromJwt(credential)
+    val installId = PushStore.installId(context)
+    return if (userId.isEmpty()) installId else "$userId-$installId"
+}
 
 /**
  * Build (but do not connect) an MQTT 5 client from [config]. [onError] receives every connection

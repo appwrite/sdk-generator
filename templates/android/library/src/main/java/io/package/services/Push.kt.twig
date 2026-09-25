@@ -636,18 +636,12 @@ class Push(
             // device resumes its own backlog across restarts, and two devices of one user do not
             // take over each other's session.
             clientId = client.pushClientId?.takeIf { it.isNotEmpty() }
-                ?: defaultClientId(authMethod, credential),
+                ?: defaultPushClientId(appContext, authMethod, credential),
             keepAlive = KEEP_ALIVE_SECONDS,
             authMethod = authMethod,
             credential = credential,
             project = client.config["project"] ?: "",
         )
-    }
-
-    private fun defaultClientId(authMethod: String, credential: String): String {
-        val userId = if (authMethod == "appwrite-session") userIdFromSession(credential) else userIdFromJwt(credential)
-        val installId = PushStore.installId(appContext)
-        return if (userId.isEmpty()) installId else "$userId-$installId"
     }
 
     companion object {
