@@ -662,32 +662,16 @@ export class Push extends Service {
                 push.leaveToInProcess();
             }
         }
-        // Instances moved here by this call, moved back if hosting fails.
-        const moved: Push[] = [];
+        // Once moved, they stay: if hosting fails, the native host keeps their subscriptions and
+        // retries on its scheduled runs, and a second connection with the same client id would
+        // take over its broker session.
         for (const push of livePushes) {
-            if (
-                push !== this &&
-                !push.nativeActive &&
-                push.subscriptions.size > 0 &&
-                push.credentialKey() === key
-            ) {
+            if (push.subscriptions.size > 0 && push.credentialKey() === key) {
                 push.joinNative(native);
-                moved.push(push);
             }
         }
         this.joinNative(native);
-        return enqueueNative(async () => {
-            try {
-                await this.sendToNative(native);
-            } catch (err) {
-                for (const push of moved) {
-                    if (push.nativeActive) {
-                        push.leaveToInProcess();
-                    }
-                }
-                throw err;
-            }
-        });
+        return enqueueNative(() => this.sendToNative(native));
     }
 
     /** Host every native host's subscriptions with this Push's credential. */
@@ -1205,13 +1189,22 @@ export class Push extends Service {
                 this.teardown();
                 reject(this.connectError(err, refusedReason));
             };
+            // The subscriptions moved to the native host, which ended this client before CONNACK.
+            const onClose = () => {
+                if (epoch !== this.connectionEpoch) {
+                    cleanup();
+                    reject(new MovedToNativeError());
+                }
+            };
             const cleanup = () => {
                 this.opening = false;
                 client.removeListener('connect', onConnect);
                 client.removeListener('error', onError);
+                client.removeListener('close', onClose);
             };
             client.on('connect', onConnect);
             client.on('error', onError);
+            client.on('close', onClose);
             client.connect();
         });
     }
