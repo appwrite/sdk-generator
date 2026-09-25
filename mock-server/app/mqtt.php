@@ -11,9 +11,10 @@
  *    its reason reaches the SDK; the projectId user property becomes the connection prefix.
  *  - SUBSCRIBE to "e2e-disconnect/<reason>" makes the broker DISCONNECT the client with <reason>
  *    as the Reason String.
- *  - SUBSCRIBE to "e2e-replay" replays "push-replayed" on that topic when the same client id
- *    subscribed to it on an earlier connection, as the real broker replays what a client missed
- *    from a replay position it keeps per user and client id.
+ *  - "e2e-replay" keeps a replay position per project and client id, like the real broker does
+ *    per user and client id: a SUBSCRIBE to "e2e-replay-publish" publishes "push-replayed" on
+ *    "e2e-replay", live to the clients subscribed now and queued for the ones that subscribed on
+ *    an earlier connection and are offline, which get it when they subscribe again.
  *  - SUBSCRIBE grants every filter at the requested QoS (capped at QoS 1) and then, mirroring
  *    real server-initiated push, publishes the test message to the fixed topic "e2e-push"
  *    through the broker's subscription index/fan-out — so a client receives it only if its
@@ -56,8 +57,11 @@ class MockHandler implements Handler
     /** Set after construction so onSubscribe can route through the broker's fan-out. */
     public ?Server $server = null;
 
-    /** @var array<string, true> project|client id pairs that have subscribed to "e2e-replay" */
-    private array $replayClients = [];
+    /** @var array<string, list<string>> project|client id => messages queued while it was offline */
+    private array $replayQueues = [];
+
+    /** @var array<string, Connection> project|client id => its connection, while subscribed to "e2e-replay" */
+    private array $replayOnline = [];
 
     public function onConnect(Connect $connect, Connection $connection): Connack|Auth
     {
@@ -115,8 +119,9 @@ class MockHandler implements Handler
         // lands after the SUBACK the library sends when this handler returns.
         // Subscribing to "e2e-disconnect/<reason>" makes the broker drop the connection with a
         // reason code and <reason> as the Reason String (a server-initiated DISCONNECT).
-        // Subscribing to "e2e-replay" replays a message to a client id that subscribed to it on an
-        // earlier connection, like the real broker's replay position kept per user and client id.
+        // "e2e-replay" queues what is published while a client that subscribed before is offline, and
+        // delivers it when that client id subscribes again, like the real broker's replay position.
+        // A SUBSCRIBE to "e2e-replay-publish" stands in for the server publishing a message.
         foreach ($subscribe->filters() as $filter) {
             if (\str_starts_with($filter->topic, 'e2e-disconnect/')) {
                 $reason = \substr($filter->topic, \strlen('e2e-disconnect/'));
@@ -124,11 +129,21 @@ class MockHandler implements Handler
             }
             if ($filter->topic === 'e2e-replay') {
                 $key = $connection->prefix . '|' . $connection->getClientId();
-                if (isset($this->replayClients[$key])) {
-                    $qos = \min($filter->qos, Packet::QOS_1);
-                    \Swoole\Timer::after(100, fn () => $connection->publish('e2e-replay', 'push-replayed', qos: $qos));
+                $queued = $this->replayQueues[$key] ?? [];
+                $this->replayQueues[$key] = [];
+                $this->replayOnline[$key] = $connection;
+                foreach ($queued as $message) {
+                    \Swoole\Timer::after(100, fn () => $connection->publish('e2e-replay', $message, qos: Packet::QOS_1));
                 }
-                $this->replayClients[$key] = true;
+            }
+            if ($filter->topic === 'e2e-replay-publish') {
+                foreach (\array_keys($this->replayQueues) as $key) {
+                    if (isset($this->replayOnline[$key])) {
+                        $this->replayOnline[$key]->publish('e2e-replay', 'push-replayed', qos: Packet::QOS_1);
+                    } else {
+                        $this->replayQueues[$key][] = 'push-replayed';
+                    }
+                }
             }
         }
 
@@ -190,6 +205,12 @@ class MockHandler implements Handler
 
     public function onDisconnect(?Disconnect $disconnect, Connection $connection): void
     {
+        // A client subscribed to "e2e-replay" goes offline: what is published now is queued for it.
+        foreach ($this->replayOnline as $key => $online) {
+            if ($online === $connection) {
+                unset($this->replayOnline[$key]);
+            }
+        }
     }
 }
 
