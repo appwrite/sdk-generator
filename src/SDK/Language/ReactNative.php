@@ -73,6 +73,11 @@ class ReactNative extends Web
                 'template'      => '/kotlin/.editorconfig',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'android/consumer-rules.pro',
+                'template'      => '/android/push/consumer-rules.pro',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'android/build.gradle',
                 'template'      => 'react-native/android/build.gradle.twig',

@@ -276,6 +276,11 @@ class Android extends Kotlin
                 'template'      => '/android/library/src/main/java/io/package/services/Service.kt.twig',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => '/library/consumer-rules.pro',
+                'template'      => '/android/push/consumer-rules.pro',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/AndroidManifest.xml',
                 'template'      => '/android/library/src/main/AndroidManifest.xml.twig',

@@ -14,6 +14,8 @@ android {
     defaultConfig {
         minSdkVersion safeExtGet("minSdkVersion", 24)
         targetSdkVersion safeExtGet("targetSdkVersion", 35)
+        // R8 rules for the bundled MQTT client, applied to the app.
+        consumerProguardFiles "consumer-rules.pro"
     }
 
     compileOptions {
