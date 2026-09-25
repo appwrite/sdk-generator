@@ -760,6 +760,29 @@ class ServiceTest {
                 },
             )
             refusedPush.close()
+
+            // Opting out of a saved background subscription: after a restart, the app subscribes to
+            // the same topic with background off and then unsubscribes. When the app opens again,
+            // nothing arrives in the background.
+            Push(pushClient().setSession(e2eSession), context).subscribe("e2e-push", background = true, title = "E2E title") { }
+            Thread.sleep(2000)
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            Push(pushClient().setSession(e2eSession), context).subscribe("e2e-push", background = false) { }.unsubscribe()
+            Thread.sleep(1000)
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            notifications.cancelAll()
+            E2EPushReceiver.messages.clear()
+            val reopened = Push(pushClient().setSession(e2eSession), context)
+            Thread.sleep(3000)
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            writeToFile(
+                if (E2EPushReceiver.messages.isEmpty() && org.robolectric.Shadows.shadowOf(notifications).allNotifications.isEmpty()) {
+                    "Push background opt-out:passed"
+                } else {
+                    "Push background opt-out:failed"
+                },
+            )
+            reopened.close()
         }
     }
 

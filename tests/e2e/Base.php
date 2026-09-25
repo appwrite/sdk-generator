@@ -179,6 +179,18 @@ abstract class Base extends TestCase
         'Push native close:passed',
     ];
 
+    // Android: a saved background subscription the app later subscribes to with background off,
+    // then unsubscribes, delivers nothing after a restart.
+    protected const ANDROID_PUSH_OPT_OUT_RESPONSES = [
+        'Push background opt-out:passed',
+    ];
+
+    // React Native and Flutter on Android: when a Push with another credential starts background
+    // delivery, the Push that had it hears on onError that its background delivery stopped.
+    protected const PUSH_NATIVE_DISPLACED_RESPONSES = [
+        'Push native displaced:passed',
+    ];
+
     protected const PUSH_BACKGROUND_RESPONSES = [
         'Push background message:passed',
         'Push background restore:passed',

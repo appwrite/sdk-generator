@@ -55,6 +55,7 @@ final class Android16Java17Test extends Base
         ...Base::OPERATOR_HELPER_RESPONSES,
         ...Base::PUSH_RESPONSES,
         ...Base::PUSH_ERROR_RESPONSES,
-        ...Base::PUSH_BACKGROUND_RESPONSES
+        ...Base::PUSH_BACKGROUND_RESPONSES,
+        ...Base::ANDROID_PUSH_OPT_OUT_RESPONSES
     ];
 }
