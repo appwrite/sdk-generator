@@ -514,6 +514,7 @@ trait CliCommandSurface
     protected function getCliHelpFunctions(): array
     {
         return [
+            new TwigFunction('cliExample', fn(Operation $method, Tag $service): array => $this->getCliExample($method, $service)),
             new TwigFunction('cliHelpGroups', fn (): array => $this->getCliHelpGroups()),
             new TwigFunction('cliHelpSummaries', fn (string $title): array => $this->getCliHelpSummaries($title)),
             new TwigFunction('cliHelpOptionOrder', fn (): array => $this->getCliHelpOptionOrder()),
@@ -521,6 +522,135 @@ trait CliCommandSurface
             new TwigFunction('cliMethodDescription', fn(Operation $method, Tag $service): string => $this->getCliMethodDescription($method, $service)),
             new TwigFunction('cliParameterDescription', fn(Parameter $parameter, Operation $method, Tag $service): string => $this->getCliParameterDescription($parameter, $method, $service)),
         ];
+    }
+
+    /**
+     * Choose a complete example scenario without changing the API's optionality.
+     *
+     * @return array{arguments: list<string>, note: string}
+     */
+    protected function getCliExample(Operation $method, Tag $service): array
+    {
+        $name = $this->getMethodName($method);
+        $database = in_array(strtolower($service->name), ['databases', 'tablesdb', 'documentsdb', 'vectorsdb'], true);
+        $bulkMutation = $database && in_array($name, ['updateDocuments', 'deleteDocuments', 'updateRows', 'deleteRows'], true);
+        $include = [];
+        $overrides = [];
+
+        if ($database) {
+            $include = match ($name) {
+                'createOperations' => ['operations'],
+                'updateTransaction' => ['commit'],
+                'updateDocument', 'upsertDocument', 'updateDocuments', 'updateRow', 'upsertRow', 'updateRows' => ['data'],
+                default => [],
+            };
+            if ($name === 'updateTransaction') {
+                $overrides['commit'] = true;
+            }
+        }
+        if ($service->name === 'messaging' && in_array($name, ['createEmail', 'createSMS', 'createPush'], true)) {
+            $include[] = 'draft';
+            $overrides['draft'] = true;
+        }
+
+        $arguments = [];
+        foreach ($this->getOperationParameters($method) as $parameter) {
+            if (!$parameter->required && !in_array($parameter->name, $include, true)) {
+                continue;
+            }
+
+            $value = $overrides[$parameter->name] ?? $this->getCliExampleValue($parameter);
+            if ($database && $parameter->name === 'data' && empty((array) $value)) {
+                $value = strtolower($service->name) === 'vectorsdb'
+                    ? ['metadata' => ['key' => 'value']]
+                    : ['key' => 'value'];
+            }
+            if ($this->isCliGraphQLInput($parameter, $method, $service) && (empty((array) $this->getSchema($parameter)->example) || empty((array) $value))) {
+                $value = $name === 'mutation'
+                    ? 'mutation { accountUpdateName(name: "Jane Doe") { name } }'
+                    : '{ localeGet { ip } }';
+            }
+
+            $option = $this->getCliOption($parameter, $service);
+            // pflag booleans consume an explicit value only with '='. Each
+            // StringArray occurrence consumes exactly one item, not a JSON list.
+            $separator = $option['register'] === 'Bool' ? '=' : ' ';
+            $values = $option['register'] === 'StringArray' ? $value : [$value];
+            foreach ($values as $item) {
+                $arguments[] = '--' . $option['flag'] . $separator . $this->quoteCliExample($item);
+            }
+        }
+
+        $query = $this->getCliQueryConfig($method);
+        if ($bulkMutation && $query['hasFiltering']) {
+            $id = str_ends_with($name, 'Rows') ? '<ROW_ID>' : '<DOCUMENT_ID>';
+            $arguments[] = '--filter ' . $this->quoteCliExample('$id=' . $id);
+        }
+        if ($query['hasPagination']) {
+            $arguments[] = '--limit 25';
+        }
+        if ($this->getMethodType($method) === 'location') {
+            $arguments[] = '--destination ./download';
+        }
+
+        return [
+            'arguments' => $arguments,
+            'note' => $bulkMutation
+                ? 'Replace the ID filter with the records you intend to change. A limit alone does not select which records are updated or deleted.'
+                : '',
+        ];
+    }
+
+    /**
+     * Keep structured examples structured until each flag value is serialized.
+     * Swagger 2 may carry JSON text where OpenAPI 3 carries an object or array.
+     */
+    protected function getCliExampleValue(Schema|Parameter $parameter): mixed
+    {
+        $type = $this->getSchemaType($parameter);
+        $value = $this->getSchema($parameter)->example;
+        if (in_array($type, [self::TYPE_ARRAY, self::TYPE_OBJECT], true) && is_string($value)) {
+            $decoded = json_decode($value);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $value = $decoded;
+            }
+        }
+        if ($type === self::TYPE_FILE) {
+            return 'path/to/file.png';
+        }
+        if ($type === self::TYPE_ARRAY) {
+            if (is_array($value) && $value !== []) {
+                return $value;
+            }
+            // An absent or empty example still needs one item to demonstrate
+            // a required repeatable flag; derive it from the item schema.
+            $items = $this->getArraySchema($parameter);
+            return [$items === null ? '<VALUE>' : $this->getCliExampleValue($items)];
+        }
+        if ($value !== null) {
+            return $type === self::TYPE_OBJECT && is_array($value) ? (object) $value : $value;
+        }
+        if ($this->isStringEnum($parameter)) {
+            return $this->getEnumSchema($parameter)->enum[0];
+        }
+
+        return match ($type) {
+            self::TYPE_NUMBER, self::TYPE_INTEGER => 1,
+            self::TYPE_BOOLEAN => false,
+            self::TYPE_OBJECT => (object) ['key' => 'value'],
+            default => '<VALUE>',
+        };
+    }
+
+    protected function quoteCliExample(mixed $value): string
+    {
+        $value = is_string($value)
+            ? $value
+            : json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        return $value !== '' && !preg_match('/[^A-Za-z0-9_@%+=:,\.\/-]/', $value)
+            ? $value
+            : "'" . str_replace("'", "'\"'\"'", $value) . "'";
     }
 
     /**
@@ -535,32 +665,6 @@ trait CliCommandSurface
     #[Override]
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
-        $type = $this->getSchemaType($param);
-        $example = $this->getSchemaExample($param);
-
-        if (empty($example) && $example !== 0 && $example !== false) {
-            return match ($type) {
-                self::TYPE_NUMBER, self::TYPE_INTEGER, self::TYPE_BOOLEAN => 'null',
-                self::TYPE_STRING => "''",
-                self::TYPE_ARRAY => 'one two three',
-                self::TYPE_OBJECT => '\'{ "key": "value" }\'',
-                self::TYPE_FILE => "'path/to/file.png'",
-                default => '',
-            };
-        }
-
-        return match ($type) {
-            self::TYPE_ARRAY => (\str_contains((string) $example, '[') && \str_contains((string) $example, ']'))
-                ? \implode(' ', \explode(',', \substr((string) $example, 1, -1)))
-                : (string) $example,
-            self::TYPE_OBJECT => '\'{ "key": "value" }\'',
-            self::TYPE_NUMBER, self::TYPE_INTEGER => (string) $example,
-            self::TYPE_BOOLEAN => $example ? 'true' : 'false',
-            self::TYPE_STRING => \preg_match('/[^A-Za-z0-9_@%+=:,\.\/-]/', (string) $example)
-                ? "'" . \str_replace("'", "'\"'\"'", (string) $example) . "'"
-                : (string) $example,
-            self::TYPE_FILE => "'path/to/file.png'",
-            default => '',
-        };
+        return $this->quoteCliExample($this->getCliExampleValue($param));
     }
 }
