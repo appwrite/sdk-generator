@@ -12,6 +12,7 @@ import 'exception.dart';
 import 'mqtt.dart';
 import 'mqtt_foreground.dart';
 import 'mqtt_message.dart';
+import 'mqtt_native.dart';
 
 Push createPush(Client client) => PushIO(client);
 
@@ -77,6 +78,29 @@ class PushIO implements Push {
   StreamSubscription<Map<String, dynamic>?>? _serviceListener;
   StreamSubscription<Map<String, dynamic>?>? _serviceErrorListener;
 
+  // On Android the native plugin hosts background delivery instead of the isolate, on the same
+  // core as the Android SDK. Null elsewhere.
+  final PushNative? _native = PushNative.instance;
+  // Whether the subscriptions currently live on the native plugin's connection.
+  bool _nativeActive = false;
+  // Bumped when the subscriptions move to the native host, superseding an _open in flight.
+  int _connectionEpoch = 0;
+  StreamSubscription<Map<Object?, Object?>>? _nativeListener;
+
+  // Every Push on Android shares the one native host (one connection per client id), which hosts
+  // the union of their subscriptions. Native calls run one at a time in call order, so a sign-out
+  // is never undone by a subscribe still on its way.
+  static final Set<PushIO> _nativeHosts = {};
+  // Every Push with live subscriptions, so the native host can take over their connections.
+  static final Set<PushIO> _livePushes = {};
+  static Future<void> _nativeQueue = Future<void>.value();
+
+  static Future<T> _enqueueNative<T>(Future<T> Function() op) {
+    final result = _nativeQueue.then((_) => op());
+    _nativeQueue = result.then((_) {}, onError: (Object _) {});
+    return result;
+  }
+
   // Serializes background config writes (topic/notify syncs and stops). Each write is a
   // file write plus a service event, so unserialized rapid calls could interleave and apply
   // out of order. Chaining runs them in call order; each reads the current state when it
@@ -122,7 +146,11 @@ class PushIO implements Push {
   })  : _host = host,
         _port = port,
         _tls = tls,
-        _tlsInsecure = tlsInsecure;
+        _tlsInsecure = tlsInsecure {
+    // Resume background delivery saved by an earlier run now, instead of at its next
+    // scheduled wake-up.
+    unawaited(_native?.resume().catchError(_report));
+  }
 
   // Empty when the app did not set one: the broker derives a stable id server-side (keyed on
   // the credential/project) so the replay cursor resumes across restarts.
@@ -196,7 +224,27 @@ class PushIO implements Push {
   @override
   Push onError(void Function(Object error) callback) {
     _onError = callback;
+    // On Android, a refused credential that stopped background delivery while no callback
+    // was registered is delivered now.
+    final native = _native;
+    if (native != null) {
+      unawaited(() async {
+        try {
+          final stopped = await native.setErrorCallback(true);
+          if (stopped != null) {
+            _report({{spec.info.title | caseUcfirst}}Exception(stopped));
+          }
+        } catch (e) {
+          _report(e);
+        }
+      }());
+    }
     return this;
+  }
+
+  @override
+  Future<void> setForeground(bool enabled) async {
+    await _native?.setForeground(enabled);
   }
 
   // Errors already handed to onError, so one failure reaching it through two paths (a
@@ -206,6 +254,10 @@ class PushIO implements Push {
   // Every error the service hits goes through here and reaches onError. It is never thrown
   // from here, so an error outside any call cannot crash the app.
   void _report(Object error) {
+    if (error is _MovedToNative) {
+      // Internal: a connection superseded by the native host, not a failure.
+      return;
+    }
     try {
       if (_reported[error] == true) {
         return;
@@ -254,6 +306,7 @@ class PushIO implements Push {
     }
     // The own-user topic (topics == null) defaults to background delivery, like FCM/APNs.
     final wantsBackground = background ?? topics == null;
+    _livePushes.add(this);
 
     final ids = <String>[];
     for (final topic in topicList) {
@@ -264,12 +317,26 @@ class PushIO implements Push {
     }
 
     try {
-      if (_backgroundWanted) {
+      final native = _native;
+      if (native != null &&
+          (_backgroundWanted ||
+              _nativeHosts.isNotEmpty ||
+              await native.hasSaved())) {
+        // Android: the native plugin hosts the single connection while any subscription, live
+        // or saved by an earlier run, wants background.
+        await _hostNative();
+      } else if (_backgroundWanted) {
         // Any sub wants background: the isolate hosts the single connection (relocating
         // off the in-process one if it was up) and covers the whole topic union.
         await _hostInIsolate();
       } else {
-        await _subscribeInProcess(ids);
+        try {
+          await _subscribeInProcess(ids);
+        } on _MovedToNative {
+          // Another Push moved this one's subscriptions to the native host meanwhile: this
+          // subscribe goes there too.
+          await _hostNative();
+        }
       }
     } catch (e) {
       for (final id in ids) {
@@ -313,6 +380,175 @@ class PushIO implements Push {
     // The broker only starts routing a topic once its subscription is registered, so
     // publishing before the SUBACK races the message ahead of it. Awaiting makes it reliable.
     await Future.wait(acks);
+  }
+
+  // Host every subscription of every Push on the native plugin's connection (Android), closing
+  // this one's in-process connection. Completes once the connection is up and every filter is
+  // subscribed (SUBACK), or throws why not.
+  Future<void> _hostNative() {
+    final native = _native!;
+    final key = _credentialKey;
+    // The native host carries one connection, so it serves one credential: instances hosted for
+    // another move back to their own connection. Instances with this credential share its client
+    // id, so their in-process connections would take over the broker session: they move to the
+    // native host too.
+    for (final push in _nativeHosts.toList()) {
+      if (push._credentialKey != key) {
+        push._leaveToInProcess();
+      }
+    }
+    // Once moved, they stay: if hosting fails, the native host keeps their subscriptions and
+    // retries on its scheduled runs, and a second connection with the same client id would take
+    // over its broker session.
+    for (final push in _livePushes.toList()) {
+      if (push._subscriptions.isNotEmpty && push._credentialKey == key) {
+        push._joinNative(native);
+      }
+    }
+    _joinNative(native);
+    return _enqueueNative(() => _sendToNative(native));
+  }
+
+  // Host every native host's subscriptions with this Push's credential.
+  Future<void> _sendToNative(PushNative native) async {
+    // Host what is subscribed when this runs, so a close() or an unsubscribe queued meanwhile
+    // is not undone by an older request.
+    final subscriptions = [
+      for (final push in _nativeHosts) ...push._nativeEntries,
+    ];
+    if (subscriptions.isEmpty) {
+      return;
+    }
+    final (authMethod, credential) = _credential();
+    final config = {
+      'host': _host,
+      'port': _port,
+      'tls': _tls,
+      'tlsInsecure': _tlsInsecure,
+      'clientId': _resolvedClientId,
+      'authMethod': authMethod,
+      'credential': credential,
+      'project': client.config['project'] ?? '',
+    };
+    await native
+        .setErrorCallback(_nativeHosts.any((push) => push._onError != null));
+    await native.host(jsonEncode(config), jsonEncode(subscriptions));
+  }
+
+  // Move this Push's subscriptions onto the native host, closing its own connection.
+  void _joinNative(PushNative native) {
+    // An _open still in flight sees this and closes what it opened, and a subscribe still waiting
+    // for its SUBACK continues on the native host.
+    _connectionEpoch++;
+    _connecting = null;
+    for (final waiting in _subAcks.values) {
+      for (final completer in waiting) {
+        if (!completer.isCompleted) {
+          completer.completeError(const _MovedToNative());
+        }
+      }
+    }
+    _subAcks.clear();
+    if (_mqtt != null) {
+      _mqtt?.disconnect();
+      _mqtt = null;
+    }
+    _nativeListener ??= native.listen(
+      onMessage: (message) {
+        final sub = _subscriptions[message.id];
+        if (sub == null) {
+          return;
+        }
+        try {
+          sub.callback(PushMessage(
+              topic: message.topic, payload: message.payload, qos: message.qos));
+        } catch (e) {
+          _report(e);
+        }
+        // Acknowledged once its callback has run, as on the in-process connection.
+        unawaited(native.ack(message.ackToken).catchError(_report));
+      },
+      onError: (message) => _report({{spec.info.title | caseUcfirst}}Exception(message)),
+    );
+    _nativeHosts.add(this);
+    _nativeActive = true;
+  }
+
+  // Move this Push's subscriptions back onto its own connection.
+  void _leaveToInProcess() {
+    _nativeHosts.remove(this);
+    _nativeActive = false;
+    unawaited(_ensureInProcessSubscribed().catchError(_report));
+  }
+
+  // Identifies the connection this Push authenticates: one native host serves one.
+  String get _credentialKey {
+    try {
+      final (authMethod, credential) = _credential();
+      return [
+        _host,
+        _port,
+        client.config['project'] ?? '',
+        _resolvedClientId,
+        authMethod,
+        credential,
+      ].join('|');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  // This Push's subscriptions in the native plugin's format.
+  List<Map<String, Object?>> get _nativeEntries => [
+        for (final entry in _subscriptions.entries)
+          {
+            'id': entry.key,
+            'topic': entry.value.filter,
+            'background': entry.value.background,
+            'title': entry.value.title,
+            'retry': entry.value.retry,
+          },
+      ];
+
+  // After an unsubscribe or update on Android: keep the native plugin hosting while any
+  // subscription, live (of any Push) or saved, wants background, else move the live ones back
+  // in-process.
+  Future<void> _reconcileNative(PushNative native) async {
+    if (_subscriptions.isEmpty) {
+      // This Push has nothing left; saved subscriptions keep delivering in the background.
+      if (_nativeActive) {
+        await _leaveNative(native);
+      }
+      return;
+    }
+    final wanted = {..._nativeHosts, this}.any((push) => push._backgroundWanted) ||
+        await native.hasSaved();
+    if (wanted) {
+      await _hostNative();
+      return;
+    }
+    // Nothing wants background: every Push moves back to its own connection.
+    final hosts = _nativeHosts.toList();
+    _nativeHosts.clear();
+    for (final push in hosts) {
+      push._nativeActive = false;
+    }
+    await _enqueueNative(() => native.release());
+    for (final push in {...hosts, this}) {
+      if (push._subscriptions.isNotEmpty) {
+        await push._ensureInProcessSubscribed();
+      }
+    }
+  }
+
+  // Stop hosting this Push natively; the others' subscriptions stay hosted.
+  Future<void> _leaveNative(PushNative native) {
+    _nativeHosts.remove(this);
+    _nativeActive = false;
+    if (_nativeHosts.isNotEmpty) {
+      return _nativeHosts.first._hostNative();
+    }
+    return _enqueueNative(() => native.release());
   }
 
   // Relocate the connection into the background isolate and sync it with the current topic
@@ -449,6 +685,11 @@ class PushIO implements Push {
   // Ensure the correct host (in-process vs isolate) for whatever subscriptions remain, and
   // sync it. Called after an unsubscribe/update may have flipped whether background is wanted.
   void _reconcile() {
+    final native = _native;
+    if (native != null) {
+      unawaited(_reconcileNative(native).catchError(_report));
+      return;
+    }
     if (_subscriptions.isEmpty) {
       return;
     }
@@ -506,7 +747,9 @@ class PushIO implements Push {
       }
     }
     if (_subscriptions.isEmpty) {
-      close();
+      // The last live subscription is gone; on Android, saved ones keep delivering.
+      _teardown();
+      _reconcile();
       return;
     }
     // A removed sub may have been the last background one (relocate in-process) or just
@@ -514,7 +757,7 @@ class PushIO implements Push {
     _reconcile();
     // In-process, a filter that lost its last QoS-1 sub but still has QoS-0 subs must be
     // re-subscribed lower, or the broker keeps replaying to at-most-once subs.
-    if (!_backgroundWanted && _mqtt != null) {
+    if (!_backgroundWanted && !_nativeActive && _mqtt != null) {
       for (final filter in maybeDowngrade) {
         final stillUsed = _subscriptions.values.any((s) => s.filter == filter);
         if (stillUsed && _effectiveQos(filter) == MqttQos.atMostOnce) {
@@ -554,8 +797,32 @@ class PushIO implements Push {
     _reconcile();
   }
 
+  /// Tear down the connection and drop all subscriptions. On Android, closing the last Push that
+  /// uses background delivery also stops it, including subscriptions saved by an earlier run:
+  /// call it on sign-out. While other Push instances still use it, it keeps delivering their
+  /// subscriptions and the saved ones.
   @override
   void close() {
+    _teardown();
+    final native = _native;
+    if (native == null) {
+      return;
+    }
+    _nativeHosts.remove(this);
+    _nativeActive = false;
+    unawaited(_nativeListener?.cancel());
+    _nativeListener = null;
+    if (_nativeHosts.isNotEmpty) {
+      final other = _nativeHosts.first;
+      unawaited(other._hostNative().catchError(other._report));
+      return;
+    }
+    unawaited(_enqueueNative(() => native.stop()).catchError(_report));
+  }
+
+  // Close the in-process connection (and the isolate host) and drop the live subscriptions.
+  void _teardown() {
+    _livePushes.remove(this);
     _mqtt?.disconnect();
     _mqtt = null;
     _connecting = null;
@@ -586,29 +853,40 @@ class PushIO implements Push {
     return connecting.then((_) => _mqtt!);
   }
 
-  Future<void> _open() async {
-    // Read the credential set on the client (via Client.setJWT / setSession).
+  // The credential set on the client (via Client.setJWT / setSession), as (method, credential).
+  (String, String) _credential() {
     final jwt = client.config['jwt'] ?? client.config['jWT'];
     final session = client.config['session'];
-    final String authMethod;
-    final String credential;
     if (jwt != null && jwt.isNotEmpty) {
-      authMethod = 'appwrite-jwt';
-      credential = jwt;
-    } else if (session != null && session.isNotEmpty) {
-      authMethod = 'appwrite-session';
-      credential = session;
-    } else {
-      throw {{spec.info.title | caseUcfirst}}Exception(
-          'No credential set on the client; call Client.setJWT() or Client.setSession() first.');
+      return ('appwrite-jwt', jwt);
     }
+    if (session != null && session.isNotEmpty) {
+      return ('appwrite-session', session);
+    }
+    throw {{spec.info.title | caseUcfirst}}Exception(
+        'No credential set on the client; call Client.setJWT() or Client.setSession() first.');
+  }
+
+  Future<void> _open() async {
+    final (authMethod, credential) = _credential();
+    final epoch = _connectionEpoch;
 
     final project = client.config['project'] ?? '';
     // An empty client id makes the broker derive a stable id server-side (keyed on the
     // credential/project) and key its offline-replay cursor on it; Client.setPushClientId(id)
     // overrides with an explicit id. Resolved once per instance (see [_resolvedClientId]) so a
     // reconnect rebuild reuses the same id and resumes the same session.
-    final clientId = _resolvedClientId;
+    // On Android the native plugin's per-user-and-install id is used when none was set, so this
+    // connection and the background one share the broker session.
+    final native = _native;
+    final clientId = _resolvedClientId.isEmpty && native != null
+        ? await native.defaultClientId(authMethod, credential)
+        : _resolvedClientId;
+    // The subscriptions moved to the native host while this was waiting: its connection would
+    // share the host's client id and take over the broker session.
+    if (epoch != _connectionEpoch) {
+      throw const _MovedToNative();
+    }
 
     final mqtt = MqttServerClient.withPort(_host, clientId, _port);
     mqtt.keepAlivePeriod = _keepAliveSeconds;
@@ -656,14 +934,22 @@ class PushIO implements Push {
     _mqtt = mqtt;
 
     final failure = await _connectOrFail(mqtt, (error) {
+      // Superseded by the native host, which closed this connection on purpose.
+      if (epoch != _connectionEpoch) {
+        return;
+      }
       // Let go of the client first: it is still being wound down, and a close() from
       // onError must not touch it.
       if (identical(_mqtt, mqtt)) {
         _mqtt = null;
       }
-      close();
+      _teardown();
       _notify(error);
     });
+    if (epoch != _connectionEpoch) {
+      mqtt.disconnect();
+      throw const _MovedToNative();
+    }
     if (failure != null) {
       throw failure;
     }
@@ -957,4 +1243,9 @@ String? _stringField(String encoded, String key) {
   } catch (_) {
     return null;
   }
+}
+
+// An in-process connect superseded by moving the subscriptions to the native host.
+class _MovedToNative implements Exception {
+  const _MovedToNative();
 }

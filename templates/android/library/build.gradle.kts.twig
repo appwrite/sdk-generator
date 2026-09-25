@@ -49,6 +49,8 @@ android {
         minSdk = 23
         buildConfigField("String", "SDK_VERSION", "\"$publishVersion\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Push: R8 rules for the bundled MQTT client, applied to consuming apps.
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildTypes {

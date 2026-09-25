@@ -68,6 +68,76 @@ class ReactNative extends Web
                 'template'      => 'react-native/src/services/push.ts.twig',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'android/.editorconfig',
+                'template'      => '/kotlin/.editorconfig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'android/consumer-rules.pro',
+                'template'      => '/android/push/consumer-rules.pro',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'android/build.gradle',
+                'template'      => 'react-native/android/build.gradle.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'android/src/main/AndroidManifest.xml',
+                'template'      => 'android/library/src/main/AndroidManifest.xml.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushCore.kt',
+                'template'      => 'android/library/src/main/java/io/package/services/PushCore.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushBackground.kt',
+                'template'      => 'android/library/src/main/java/io/package/services/PushBackground.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushWakeups.kt',
+                'template'      => 'android/library/src/main/java/io/package/services/PushWakeups.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushService.kt',
+                'template'      => 'android/library/src/main/java/io/package/services/PushService.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushReceiver.kt',
+                'template'      => 'android/library/src/main/java/io/package/services/PushReceiver.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushBridge.kt',
+                'template'      => 'android/library/src/main/java/io/package/services/PushBridge.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/exceptions/{{ spec.info.title | caseUcfirst }}Exception.kt',
+                'template'      => 'android/push/Exception.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/{{ spec.info.title | caseUcfirst }}PushModule.kt',
+                'template'      => 'react-native/android/src/main/java/io/package/reactnative/PushModule.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/{{ spec.info.title | caseUcfirst }}PushPackage.kt',
+                'template'      => 'react-native/android/src/main/java/io/package/reactnative/PushPackage.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'react-native.config.js',
+                'template'      => 'react-native/react-native.config.js.twig',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'src/lib/tcp-stream.ts',
                 'template'      => 'react-native/src/lib/tcp-stream.ts.twig',

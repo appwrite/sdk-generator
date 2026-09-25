@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+{% set pushNamespace = language.name == 'Android' ? (sdk.namespace | caseDot) : 'io.' ~ (spec.info.title | caseLower) %}
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -17,19 +18,19 @@
 
     <application>
         <service
-            android:name="{{ sdk.namespace | caseDot }}.services.PushService"
+            android:name="{{ pushNamespace }}.services.PushService"
             android:exported="false"
             android:foregroundServiceType="remoteMessaging"
             android:stopWithTask="false" />
         <service
-            android:name="{{ sdk.namespace | caseDot }}.services.PushJobService"
+            android:name="{{ pushNamespace }}.services.PushJobService"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
         <receiver
-            android:name="{{ sdk.namespace | caseDot }}.services.PushAlarmReceiver"
+            android:name="{{ pushNamespace }}.services.PushAlarmReceiver"
             android:exported="false" />
         <receiver
-            android:name="{{ sdk.namespace | caseDot }}.services.PushBootReceiver"
+            android:name="{{ pushNamespace }}.services.PushBootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

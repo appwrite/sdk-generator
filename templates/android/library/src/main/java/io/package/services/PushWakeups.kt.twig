@@ -1,4 +1,5 @@
-package {{ sdk.namespace | caseDot }}.services
+{%- set pushNamespace = language.name == 'Android' ? (sdk.namespace | caseDot) : 'io.' ~ (spec.info.title | caseLower) -%}
+package {{ pushNamespace }}.services
 
 import android.app.job.JobParameters
 import android.app.job.JobService

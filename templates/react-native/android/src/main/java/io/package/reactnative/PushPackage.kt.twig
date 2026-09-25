@@ -1,0 +1,14 @@
+package io.{{ spec.info.title | caseLower }}.reactnative
+
+import com.facebook.react.ReactPackage
+import com.facebook.react.bridge.NativeModule
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.uimanager.ViewManager
+
+/** Registers [{{ spec.info.title | caseUcfirst }}PushModule]; found by React Native autolinking. */
+class {{ spec.info.title | caseUcfirst }}PushPackage : ReactPackage {
+    override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> =
+        listOf({{ spec.info.title | caseUcfirst }}PushModule(reactContext))
+
+    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
+}

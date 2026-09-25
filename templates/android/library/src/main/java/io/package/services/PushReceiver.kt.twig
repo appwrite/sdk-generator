@@ -1,4 +1,5 @@
-package {{ sdk.namespace | caseDot }}.services
+{%- set pushNamespace = language.name == 'Android' ? (sdk.namespace | caseDot) : 'io.' ~ (spec.info.title | caseLower) -%}
+package {{ pushNamespace }}.services
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -12,7 +13,7 @@ import android.content.Intent
  * ```xml
  * <receiver android:name=".MyPushReceiver" android:exported="false">
  *     <intent-filter>
- *         <action android:name="{{ sdk.namespace | caseDot }}.push.MESSAGE" />
+ *         <action android:name="{{ pushNamespace }}.push.MESSAGE" />
  *     </intent-filter>
  * </receiver>
  * ```

@@ -217,6 +217,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushCore.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushCore.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushService.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/PushService.kt.twig',
             ],
@@ -269,6 +274,11 @@ class Android extends Kotlin
                 'scope'         => 'service',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/Service.kt.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/library/consumer-rules.pro',
+                'template'      => '/android/push/consumer-rules.pro',
             ],
             [
                 'scope'         => 'default',
