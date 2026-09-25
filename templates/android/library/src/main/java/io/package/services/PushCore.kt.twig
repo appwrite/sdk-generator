@@ -351,6 +351,9 @@ internal class PushListener(
     val background: Boolean,
     val title: String?,
     val retry: Boolean,
+    // Called instead of [callback] when set, with the acknowledgement to run once the message was
+    // handled: the React Native and Flutter bridges acknowledge after their callback has run.
+    val acknowledgingCallback: ((PushMessage, () -> Unit) -> Unit)? = null,
 )
 
 /** MQTT topic-filter match with '+' (single level) and '#' (multi level). */

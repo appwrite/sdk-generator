@@ -25,6 +25,7 @@ import com.hivemq.client.mqtt.MqttGlobalPublishFilter
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import com.hivemq.client.mqtt.mqtt5.exceptions.Mqtt5ConnAckException
+import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish
 import {{ pushNamespace }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
 import org.json.JSONArray
 import org.json.JSONObject
@@ -36,6 +37,8 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 private const val LOG_TAG = "{{ spec.info.title | caseUcfirst }}Push"
 
@@ -108,6 +111,11 @@ internal object PushBackground {
     private const val REQUEST_TIMEOUT_SECONDS = 10L
     private const val CONNECT_TIMEOUT_SECONDS = 20L
 
+    // How long a message waits for a listener that acknowledges it itself (the React Native and
+    // Flutter bridges, once their callback has run) before it is acknowledged anyway, so one stuck
+    // callback cannot hold back the acknowledgements after it.
+    private const val ACK_TIMEOUT_SECONDS = 10L
+
     // Unsubscribing a filter nothing subscribes to is a harmless round trip the broker always
     // acknowledges, so it proves the connection is alive. The broker ignores client PUBLISHes
     // without a PUBACK, so a publish cannot serve as the heartbeat.
@@ -145,7 +153,7 @@ internal object PushBackground {
     private var saved: List<PushEntry> = emptyList()
 
     // Every MQTT call runs on this thread, in order, so the connection state below needs no lock.
-    private val worker = Executors.newSingleThreadExecutor { runnable ->
+    private val worker = Executors.newSingleThreadScheduledExecutor { runnable ->
         Thread(runnable, "{{ spec.info.title | caseUcfirst }}PushBackground").apply { isDaemon = true }
     }
     private var mqtt: Mqtt5AsyncClient? = null
@@ -156,13 +164,26 @@ internal object PushBackground {
     private val subscribed = mutableMapOf<String, MqttQos>()
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
+    // Worker thread only. While a caller waits for a converge (host with a completion), its
+    // failures go to that caller, which reports them, instead of onError.
+    private var waiting = false
+    private var failure: Throwable? = null
+
     /**
      * Host [newListeners] (the app's live subscriptions) on the background connection with
      * [newConfig], save the background ones, and arm the scheduled wake-ups. Saved subscriptions
      * from an earlier run stay unless a live one takes over their filter, or [newConfig] is for
      * another client id (another user), whose saved subscriptions are dropped.
+     *
+     * With [done], it is called once the connection is up and every filter is subscribed (SUBACK),
+     * or with the failure, which is then not reported to onError: the caller reports it.
      */
-    fun host(context: Context, newConfig: PushConfig, newListeners: List<PushListener>) {
+    fun host(
+        context: Context,
+        newConfig: PushConfig,
+        newListeners: List<PushListener>,
+        done: ((Throwable?) -> Unit)? = null,
+    ) {
         val app = context.applicationContext
         synchronized(lock) {
             load(app)
@@ -175,7 +196,7 @@ internal object PushBackground {
             listeners.addAll(newListeners)
             persist(app)
         }
-        activate(app)
+        activate(app, done)
     }
 
     /**
@@ -362,11 +383,11 @@ internal object PushBackground {
         return qos
     }
 
-    private fun activate(context: Context) {
+    private fun activate(context: Context, done: ((Throwable?) -> Unit)? = null) {
         registerNetworkCallback(context)
         schedule(context, INTERVAL_MS)
         ensureService(context)
-        worker.execute { converge(context, heartbeat = false) }
+        worker.execute { converge(context, heartbeat = false, done) }
     }
 
     private fun shutdown(context: Context) {
@@ -380,8 +401,31 @@ internal object PushBackground {
 
     // Worker thread only. Bring the connection to the wanted state: reconnect when the config or
     // the default network changed or a due heartbeat fails, then subscribe and unsubscribe the
-    // difference.
-    private fun converge(context: Context, heartbeat: Boolean) {
+    // difference. With [done], failures go to it (see [waiting]) instead of onError.
+    private fun converge(context: Context, heartbeat: Boolean, done: ((Throwable?) -> Unit)? = null) {
+        waiting = done != null
+        failure = null
+        try {
+            convergeOnce(context, heartbeat)
+        } catch (e: Exception) {
+            fail(e)
+        } finally {
+            waiting = false
+            done?.invoke(failure)
+        }
+    }
+
+    // Worker thread only. Record a failure for the waiting caller, or report it.
+    private fun fail(error: Throwable) {
+        if (failure == null) {
+            failure = error
+        }
+        if (!waiting) {
+            report(error)
+        }
+    }
+
+    private fun convergeOnce(context: Context, heartbeat: Boolean) {
         val (current, wanted) = synchronized(lock) { config to wanted() }
         if (current == null || wanted.isEmpty()) {
             disconnect()
@@ -419,15 +463,23 @@ internal object PushBackground {
     // Worker thread only. Connect with [config], or report why not and return null. A refused
     // credential stops background delivery: retrying it would only be refused again.
     private fun connect(context: Context, config: PushConfig): Mqtt5AsyncClient? {
+        // A failed first connect of a waited-for converge goes to the waiting caller only.
+        val quiet = waiting
+        val connected = AtomicBoolean(false)
         val client = buildPushClient(
             config.copy(keepAlive = KEEP_ALIVE_SECONDS),
-            onError = { report(it) },
+            onError = { error ->
+                if (!quiet || connected.get()) {
+                    report(error)
+                }
+            },
             onAuthRefused = { error -> worker.execute { refused(context, error) } },
         )
         // Registered before connecting, so the backlog the broker replays right after each
         // SUBSCRIBE reaches the app however the subscription was made (including the ones the
-        // client restores itself after an automatic reconnect).
-        client.publishes(MqttGlobalPublishFilter.ALL) { publish -> deliver(context, publish.toPushMessage()) }
+        // client restores itself after an automatic reconnect). Acknowledged by hand, once the
+        // message was delivered (see [deliver]).
+        client.publishes(MqttGlobalPublishFilter.ALL, { publish -> deliver(context, publish) }, true)
         try {
             client.sendPushConnect(config.copy(keepAlive = KEEP_ALIVE_SECONDS), CONNECT_TIMEOUT_SECONDS)
         } catch (e: Exception) {
@@ -436,12 +488,14 @@ internal object PushBackground {
             val error = connectError(cause)
             when {
                 isAuthRefusal(cause) -> refused(context, error)
+                waiting -> fail(error)
                 // A network failure already reached onError through the client's disconnect
                 // listener; a refused CONNECT and a timeout did not.
                 cause is Mqtt5ConnAckException || cause is TimeoutException -> report(error)
             }
             return null
         }
+        connected.set(true)
         mqtt = client
         connectedConfig = config
         connectedNetwork = activeNetwork(context)
@@ -499,12 +553,12 @@ internal object PushBackground {
         false
     }
 
-    // Run a broker request, reporting its failure. Returns whether it succeeded.
+    // Run a broker request, recording or reporting its failure. Returns whether it succeeded.
     private fun request(block: () -> Unit): Boolean = try {
         block()
         true
     } catch (e: Exception) {
-        report((e as? ExecutionException)?.cause ?: e)
+        fail((e as? ExecutionException)?.cause ?: e)
         false
     }
 
@@ -518,17 +572,55 @@ internal object PushBackground {
     }
 
     // Worker thread only. The broker refused the credential: report it and stop. With no onError
-    // registered the message is also saved, and the next onError registration receives it.
+    // registered the message is also saved, and the next onError registration receives it. A
+    // waiting caller receives it instead.
     private fun refused(context: Context, error: Throwable) {
-        if (!report(error)) {
+        if (waiting) {
+            fail(error)
+        } else if (!report(error)) {
             PushStore.setStoppedError(context, error.message ?: "Push connection refused")
         }
         stop(context)
     }
 
+    // Deliver a message, then acknowledge it: right away, or once every listener that acknowledges
+    // messages itself has done so (at most ACK_TIMEOUT_SECONDS later).
+    private fun deliver(context: Context, publish: Mqtt5Publish) {
+        val acknowledged = AtomicBoolean(false)
+        val acknowledge = {
+            if (acknowledged.compareAndSet(false, true)) {
+                runCatching { publish.acknowledge() }
+            }
+        }
+        val pending = AtomicInteger(1)
+        val settle = {
+            if (pending.decrementAndGet() == 0) {
+                acknowledge()
+            }
+        }
+        try {
+            deliverMessage(context, publish.toPushMessage()) {
+                pending.incrementAndGet()
+                val once = AtomicBoolean(false)
+                val ack: () -> Unit = {
+                    if (once.compareAndSet(false, true)) {
+                        settle()
+                    }
+                }
+                ack
+            }
+        } finally {
+            settle()
+        }
+        if (!acknowledged.get()) {
+            worker.schedule({ acknowledge() }, ACK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        }
+    }
+
     // Deliver a message to the matching live callbacks; with none, to the declared PushReceiver
-    // and/or a notification per saved subscription that matches it.
-    private fun deliver(context: Context, message: PushMessage) {
+    // and/or a notification per saved subscription that matches it. [deferAck] hands a listener
+    // that acknowledges messages itself its acknowledgement.
+    private fun deliverMessage(context: Context, message: PushMessage, deferAck: () -> () -> Unit) {
         val matching = listeners.filter { listener -> listener.topics.any { matchesTopic(it, message.topic) } }
         // Saved background subscriptions no live one has taken over; they deliver even when a live
         // foreground-only subscription on an overlapping filter received the message too.
@@ -538,7 +630,12 @@ internal object PushBackground {
         }
         for (listener in matching) {
             try {
-                listener.callback(message)
+                val acknowledging = listener.acknowledgingCallback
+                if (acknowledging != null) {
+                    acknowledging(message, deferAck())
+                } else {
+                    listener.callback(message)
+                }
             } catch (e: Exception) {
                 report(e)
             }
