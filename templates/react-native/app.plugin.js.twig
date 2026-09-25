@@ -1,51 +1,48 @@
 const {
-    AndroidConfig,
     createRunOncePlugin,
-    withAndroidManifest,
+    withAppBuildGradle,
 } = require('@expo/config-plugins');
 
 const pkg = require('./package.json');
 
-// react-native-background-actions ships this foreground service, but its
-// bundled manifest declares neither a foregroundServiceType nor the typed
-// permission Android 14+ (API 34) requires, so starting it there throws.
-// This plugin patches the merged manifest so Push.setBackground() works.
-const BACKGROUND_SERVICE =
-    'com.asterinet.react.bgactions.RNBackgroundActionsTask';
-
-const PERMISSIONS = [
-    'android.permission.FOREGROUND_SERVICE',
-    'android.permission.FOREGROUND_SERVICE_DATA_SYNC',
-    'android.permission.POST_NOTIFICATIONS',
+// Push's native Android module (android/) uses HiveMQ, whose bundled Netty jars ship duplicate
+// META-INF files that Android's packager rejects ("More than one file was found with OS
+// independent path"). Packaging is resolved when the app is assembled, so a library cannot
+// apply the excludes itself: this plugin adds them to the app's build.gradle.
+const EXCLUDES = [
+    '/META-INF/INDEX.LIST',
+    '/META-INF/io.netty.versions.properties',
+    '/META-INF/DEPENDENCIES',
 ];
 
-function setBackgroundServiceType(androidManifest) {
-    const application =
-        AndroidConfig.Manifest.getMainApplicationOrThrow(androidManifest);
-    application.service = application.service ?? [];
+const MARKER =
+    '// Push: Netty packaging excludes (added by the SDK config plugin)';
 
-    let service = application.service.find(
-        (item) => item.$?.['android:name'] === BACKGROUND_SERVICE,
-    );
-    if (!service) {
-        // The library merges its own <service> at build time; declaring the
-        // same node here lets the manifest merger fold these attributes onto it.
-        service = { $: { 'android:name': BACKGROUND_SERVICE } };
-        application.service.push(service);
+function addPackagingExcludes(buildGradle) {
+    if (buildGradle.includes(MARKER)) {
+        return buildGradle;
     }
-
-    service.$['android:foregroundServiceType'] = 'dataSync';
-    service.$['android:stopWithTask'] = 'false';
-
-    return androidManifest;
+    const excludes = EXCLUDES.map(
+        (path) => `            excludes += "${path}"`,
+    ).join('\n');
+    return `${buildGradle}
+${MARKER}
+android {
+    packagingOptions {
+        resources {
+${excludes}
+        }
+    }
+}
+`;
 }
 
-const withPushBackground = (config) => {
-    config = AndroidConfig.Permissions.withPermissions(config, PERMISSIONS);
-    return withAndroidManifest(config, (props) => {
-        props.modResults = setBackgroundServiceType(props.modResults);
+const withPush = (config) =>
+    withAppBuildGradle(config, (props) => {
+        props.modResults.contents = addPackagingExcludes(
+            props.modResults.contents,
+        );
         return props;
     });
-};
 
-module.exports = createRunOncePlugin(withPushBackground, pkg.name, pkg.version);
+module.exports = createRunOncePlugin(withPush, pkg.name, pkg.version);

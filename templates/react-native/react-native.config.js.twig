@@ -1,0 +1,13 @@
+// Autolinking: the Android module hosting Push's background delivery. iOS has no native module.
+module.exports = {
+    dependency: {
+        platforms: {
+            android: {
+                packageImportPath:
+                    'import io.{{ spec.info.title | caseLower }}.reactnative.{{ spec.info.title | caseUcfirst }}PushPackage;',
+                packageInstance: 'new {{ spec.info.title | caseUcfirst }}PushPackage()',
+            },
+            ios: null,
+        },
+    },
+};

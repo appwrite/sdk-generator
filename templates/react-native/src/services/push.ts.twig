@@ -12,6 +12,7 @@ import mqtt, {
     type IPublishPacket,
     type MqttClient,
 } from 'mqtt';
+import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
 
 import { Client } from '../client';
 import { createTcpStream } from '../lib/tcp-stream';
@@ -30,16 +31,20 @@ export type MessageCallback = (message: PushMessage) => void | Promise<void>;
 /** Per-subscription options passed to `subscribe` and `PushSubscription.update`. */
 export interface SubscribeOptions {
     /**
-     * Keep receiving this subscription's messages while the app is backgrounded or closed
-     * (Android), posting a local notification per message. Runs the connection inside an
-     * Android foreground service via `react-native-background-actions` and posts
-     * notifications via `expo-notifications` — install both as peer dependencies, add this
-     * package to your Expo `plugins` (it ships an `app.plugin.js` config plugin that
-     * injects the Android 14+ foregroundServiceType and permissions), and note this needs
-     * a dev/standalone build (native modules do not run in Expo Go). Defaults to false.
+     * Keep receiving this subscription's messages while the app is backgrounded or closed,
+     * posting a local notification per message. Defaults to false.
      *
-     * The foreground service is reference-counted across subscriptions: it runs while any
-     * live subscription has this on, and stops once the last one goes away.
+     * On Android the SDK's native module (autolinked; it does not run in Expo Go) saves the
+     * subscription and keeps delivering after the app is killed, the device restarts or the app
+     * updates, until it is unsubscribed or {@link Push.close} is called: a scheduled job and
+     * alarm wake the app every 15 to 60 seconds to reconnect, and the broker replays what was
+     * sent in between (`retry`). {@link Push.setForeground} adds a foreground service for
+     * immediate delivery. It reconnects with the credential saved at subscribe time, so use a
+     * session rather than a short-lived JWT.
+     *
+     * Elsewhere it runs the connection in a background task via
+     * `react-native-background-actions` and posts notifications via `expo-notifications`,
+     * both peer dependencies.
      */
     background?: boolean;
     /** Notification title for this subscription's messages. Defaults to the message topic. */
@@ -103,8 +108,14 @@ export class Push extends Service {
     /** Set once the first CONNACK lands, so 'connect' events after are reconnects. */
     private everConnected = false;
 
-    /** Whether the Android foreground service is currently running. */
+    /** Whether the background task (outside Android) is currently running. */
     private backgroundActive = false;
+
+    /** The native Android module that hosts background delivery; null elsewhere. */
+    private readonly native: NativePush | null = nativePush();
+    /** Whether the subscriptions currently live on the native module's connection. */
+    private nativeActive = false;
+    private nativeEvents: { remove(): void }[] | null = null;
 
     private onOpenCb?: () => void;
     private onCloseCb?: () => void;
@@ -172,6 +183,10 @@ export class Push extends Service {
         this.tls = endpointSecure;
         this.port = endpointPort ?? (this.tls ? 8883 : 1883);
         this.tlsInsecure = endpointInsecure;
+
+        // Resume background delivery saved by an earlier run now, instead of at its next
+        // scheduled wake-up.
+        this.native?.resume().catch((err) => this.report(err));
     }
 
     // The broker subscription for a filter uses the highest QoS any local subscription on
@@ -200,7 +215,28 @@ export class Push extends Service {
     /** Register a callback invoked on a connection error. */
     onError(callback: (error: Error) => void): this {
         this.onErrorCb = callback;
+        // On Android, a refused credential that stopped background delivery while no callback
+        // was registered is delivered now.
+        this.native
+            ?.setErrorCallback(true)
+            .then((stopped) => {
+                if (stopped) {
+                    this.report(new Error(stopped));
+                }
+            })
+            .catch((err) => this.report(err));
         return this;
+    }
+
+    /**
+     * Android: run background delivery in a foreground service (with a quiet ongoing
+     * notification), for immediate delivery even after the app is killed and during Doze,
+     * instead of only the scheduled wake-ups. Saved, so it applies after restarts too. Call it
+     * while the app is in the foreground: Android 12+ refuses to start the service from the
+     * background. It only affects `background: true` subscriptions. A no-op elsewhere.
+     */
+    async setForeground(enabled: boolean): Promise<void> {
+        await this.native?.setForeground(enabled);
     }
 
     /**
@@ -266,9 +302,9 @@ export class Push extends Service {
      * signed-in user's own topic, `users/<userId>`, like FCM/APNs delivery to a device. The
      * user id is read from the JWT (or session) set on the client. This form defaults to
      * `background: true` and `retry: true` (QoS 1); pass either in the options to override.
-     * The default falls back to foreground delivery when the background peer dependencies
-     * are not installed; an explicit `background: true` still requires them, and any other
-     * background startup failure is thrown.
+     * The default falls back to foreground delivery when background delivery is unavailable
+     * (no native module on Android, e.g. Expo Go; the peer dependencies elsewhere); an explicit
+     * `background: true` still requires it, and any other background startup failure is thrown.
      *
      * Awaiting resolves only once the broker has acked every SUBSCRIBE (SUBACK):
      * the broker only starts routing a topic once its subscription is registered,
@@ -338,19 +374,56 @@ export class Push extends Service {
         let background = options.background ?? userForm;
         const qos: 0 | 1 = (options.retry ?? true) ? 1 : 0;
 
-        // Only an explicit `background: true` requires the optional background peers: when
-        // background is just the user topic's default and they are not installed, deliver in
-        // the foreground instead. Any other background startup failure still throws.
+        // Only an explicit `background: true` requires background delivery: when background is
+        // just the user topic's default and it is unavailable, deliver in the foreground
+        // instead. Any other background startup failure still throws.
         if (
             background &&
             options.background === undefined &&
-            !backgroundPeersInstalled()
+            !this.backgroundAvailable()
         ) {
             background = false;
         }
 
-        // Start the foreground service before connecting so a missing peer dependency
-        // surfaces a clear error up front, matching the connection failure path.
+        if (background && Platform.OS === 'android' && !this.native) {
+            throw new Error(
+                "background delivery needs the SDK's native Android module: rebuild the app " +
+                    '(native modules do not run in Expo Go)',
+            );
+        }
+
+        // Android: the native module hosts the connection while any subscription, live or saved
+        // by an earlier run, wants background. Two connections with the same client id would
+        // take over each other's broker session, so every subscription moves there.
+        if (
+            this.native &&
+            (background || this.nativeActive || (await this.native.hasSaved()))
+        ) {
+            const ids = topicList.map((topic) => {
+                const id = randomId();
+                this.subscriptions.set(id, {
+                    topic,
+                    callback,
+                    background,
+                    title: options.title,
+                    qos,
+                });
+                return id;
+            });
+            try {
+                await this.hostNative();
+            } catch (err) {
+                for (const id of ids) {
+                    this.subscriptions.delete(id);
+                }
+                await this.reconcileNative();
+                throw err;
+            }
+            return this.nativeHandle(ids);
+        }
+
+        // Start the background task before connecting so a missing peer dependency surfaces a
+        // clear error up front, matching the connection failure path.
         if (background) {
             await this.startBackground();
         }
@@ -393,9 +466,12 @@ export class Push extends Service {
                 const stillUsed = [...this.subscriptions.values()].some(
                     (s) => s.topic === entry?.topic,
                 );
-                if (entry && this.mqtt && !stillUsed) {
-                    this.mqtt.unsubscribe(entry.topic, (err) => {
-                        if (err) {
+                const connection = this.mqtt;
+                if (entry && connection && !stillUsed) {
+                    connection.unsubscribe(entry.topic, (err) => {
+                        // Closing the connection (the last subscription is gone) fails its
+                        // in-flight requests on purpose; that is not an error to report.
+                        if (err && this.mqtt === connection) {
                             this.report(err);
                         }
                     });
@@ -416,7 +492,7 @@ export class Push extends Service {
                 }
             }
             if (this.subscriptions.size === 0) {
-                this.close();
+                this.teardown();
             } else {
                 // A removed sub may have been the last background one.
                 this.syncBackgroundService();
@@ -484,8 +560,157 @@ export class Push extends Service {
         return { unsubscribe, update };
     }
 
-    /** Tear down the connection, drop all subscriptions (and stop the foreground service). */
+    /** The handle for subscriptions hosted on the native module. */
+    private nativeHandle(ids: string[]): PushSubscription {
+        return {
+            unsubscribe: () => {
+                for (const id of ids) {
+                    this.subscriptions.delete(id);
+                }
+                this.reconcileNative().catch((err) => this.report(err));
+            },
+            update: (next: SubscribeOptions) => {
+                for (const id of ids) {
+                    const entry = this.subscriptions.get(id);
+                    if (!entry) {
+                        continue;
+                    }
+                    if (next.background !== undefined) {
+                        entry.background = next.background;
+                    }
+                    if (next.title !== undefined) {
+                        entry.title = next.title;
+                    }
+                    if (next.retry !== undefined) {
+                        entry.qos = next.retry ? 1 : 0;
+                    }
+                }
+                this.reconcileNative().catch((err) => this.report(err));
+            },
+        };
+    }
+
+    /** Whether background delivery can run: the native module on Android, the peers elsewhere. */
+    private backgroundAvailable(): boolean {
+        return Platform.OS === 'android'
+            ? this.native !== null
+            : backgroundPeersInstalled();
+    }
+
+    /**
+     * Host every subscription on the native module's connection, closing the in-process one.
+     * Resolves once the module has them; it connects and subscribes on its own thread.
+     */
+    private async hostNative(): Promise<void> {
+        const native = this.native!;
+        if (this.mqtt) {
+            this.mqtt.end(true);
+            this.mqtt = null;
+        }
+        this.connecting = null;
+        this.everConnected = false;
+        this.listenNative(native);
+        const { authMethod, credential } = this.credential();
+        const config = {
+            host: this.host,
+            port: this.port,
+            tls: this.tls,
+            tlsInsecure: this.tlsInsecure,
+            clientId: this.client.config.pushClientId || '',
+            authMethod,
+            credential,
+            project: this.client.config.project ?? '',
+        };
+        const subscriptions = [...this.subscriptions].map(([id, sub]) => ({
+            id,
+            topic: sub.topic,
+            background: sub.background,
+            title: sub.title ?? null,
+            retry: sub.qos === 1,
+        }));
+        await native.setErrorCallback(this.onErrorCb !== undefined);
+        await native.host(
+            JSON.stringify(config),
+            JSON.stringify(subscriptions),
+        );
+        this.nativeActive = true;
+    }
+
+    /**
+     * After an unsubscribe or update: keep the native module hosting while any subscription,
+     * live or saved, wants background, else move the live ones back in-process.
+     */
+    private async reconcileNative(): Promise<void> {
+        const native = this.native;
+        if (!native) {
+            return;
+        }
+        if (this.subscriptions.size === 0) {
+            // The last live subscription is gone: saved ones keep delivering in the background.
+            if (this.nativeActive) {
+                this.nativeActive = false;
+                await native.release();
+            }
+            return;
+        }
+        if (this.hasBackgroundSubs() || (await native.hasSaved())) {
+            await this.hostNative();
+        } else if (this.nativeActive) {
+            this.nativeActive = false;
+            await native.release();
+            await this.connect();
+            this.resubscribeAll();
+        }
+    }
+
+    /** Route the native module's messages to their subscriptions, and its errors to onError. */
+    private listenNative(native: NativePush): void {
+        if (this.nativeEvents) {
+            return;
+        }
+        const emitter = new NativeEventEmitter(native);
+        this.nativeEvents = [
+            emitter.addListener(
+                '{{spec.info.title | caseUcfirst}}PushMessage',
+                (event: NativeMessage) => {
+                    const sub = this.subscriptions.get(event.id);
+                    if (!sub) {
+                        return;
+                    }
+                    const message: PushMessage = {
+                        topic: event.topic,
+                        payload: Buffer.from(event.payload, 'base64'),
+                        qos: event.qos,
+                    };
+                    Promise.resolve()
+                        .then(() => sub.callback(message))
+                        .catch((err) => this.report(err));
+                },
+            ),
+            emitter.addListener(
+                '{{spec.info.title | caseUcfirst}}PushError',
+                (event: { message: string }) =>
+                    this.report(new Error(event.message)),
+            ),
+        ];
+    }
+
+    /**
+     * Tear down the connection and drop all subscriptions. On Android this also stops
+     * background delivery, including subscriptions saved by an earlier run: call it on sign-out.
+     */
     close(): void {
+        this.teardown();
+        if (this.native) {
+            this.nativeActive = false;
+            this.native.stop().catch((err) => this.report(err));
+            this.nativeEvents?.forEach((subscription) => subscription.remove());
+            this.nativeEvents = null;
+        }
+    }
+
+    /** Close the in-process connection and drop the live subscriptions. */
+    private teardown(): void {
         if (this.mqtt) {
             this.mqtt.end(true);
             this.mqtt = null;
@@ -649,21 +874,27 @@ export class Push extends Service {
         return this.connecting.then(() => this.mqtt!);
     }
 
-    private async open(): Promise<void> {
-        // Read the credential set on the client (via Client.setJWT / setSession).
-        let authMethod: AuthMethod;
-        let credential: string;
+    /** The credential set on the client (via Client.setJWT / setSession). */
+    private credential(): { authMethod: AuthMethod; credential: string } {
         if (this.client.config.jwt) {
-            authMethod = 'appwrite-jwt';
-            credential = this.client.config.jwt;
-        } else if (this.client.config.session) {
-            authMethod = 'appwrite-session';
-            credential = this.client.config.session;
-        } else {
-            throw new Error(
-                'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
-            );
+            return {
+                authMethod: 'appwrite-jwt',
+                credential: this.client.config.jwt,
+            };
         }
+        if (this.client.config.session) {
+            return {
+                authMethod: 'appwrite-session',
+                credential: this.client.config.session,
+            };
+        }
+        throw new Error(
+            'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
+        );
+    }
+
+    private async open(): Promise<void> {
+        const { authMethod, credential } = this.credential();
 
         const project = this.client.config.project ?? '';
         // Client id, when the app did not set one with Client.setPushClientId(). Unlike the
@@ -671,12 +902,16 @@ export class Push extends Service {
         // rejects an empty id with clean start off, so derive a stable per-user id here: the
         // userId decoded from the JWT, else the session secret. A stable id keeps the broker's
         // replay cursor resuming across restarts.
+        // On Android the native module's per-user-and-install id is used, so this connection
+        // and the background one share the broker session.
         const clientId =
             this.client.config.pushClientId ||
-            userIdFromJwt(this.client.config.jwt) ||
-            this.client.config.session ||
-            this.client.config.jwt ||
-            '';
+            (this.native
+                ? await this.native.defaultClientId(authMethod, credential)
+                : userIdFromJwt(this.client.config.jwt) ||
+                  this.client.config.session ||
+                  this.client.config.jwt ||
+                  '');
 
         const options: IClientOptions = {
             clientId,
@@ -780,7 +1015,7 @@ export class Push extends Service {
                 // reasonCode (v5) / returnCode (v3) of 0 means accepted.
                 const rc = packet.reasonCode ?? packet.returnCode ?? 0;
                 if (rc !== 0) {
-                    this.close();
+                    this.teardown();
                     reject(
                         new Error(
                             refusedReason ??
@@ -793,7 +1028,7 @@ export class Push extends Service {
             };
             const onError = (err: Error) => {
                 cleanup();
-                this.close();
+                this.teardown();
                 reject(this.connectError(err, refusedReason));
             };
             const cleanup = () => {
@@ -842,6 +1077,36 @@ export class Push extends Service {
             }
         }
     }
+}
+
+/** The SDK's native Android module (see android/), which hosts background delivery. */
+interface NativePush {
+    host(config: string, subscriptions: string): Promise<void>;
+    release(): Promise<void>;
+    stop(): Promise<void>;
+    setForeground(enabled: boolean): Promise<void>;
+    hasSaved(): Promise<boolean>;
+    resume(): Promise<void>;
+    setErrorCallback(registered: boolean): Promise<string | null>;
+    defaultClientId(authMethod: string, credential: string): Promise<string>;
+    addListener(eventName: string): void;
+    removeListeners(count: number): void;
+}
+
+/** A message the native module delivers for a hosted subscription. */
+interface NativeMessage {
+    id: string;
+    topic: string;
+    payload: string;
+    qos: number;
+}
+
+/** The native module on Android when the app was built with it (not in Expo Go), else null. */
+function nativePush(): NativePush | null {
+    if (Platform.OS !== 'android') {
+        return null;
+    }
+    return (NativeModules?.{{spec.info.title | caseUcfirst}}Push as NativePush | undefined) ?? null;
 }
 
 /** Normalize anything thrown or passed to an error handler into an `Error`. */

@@ -2,6 +2,21 @@ declare module 'react-native' {
     export const Platform: {
         readonly OS: string;
     };
+
+    // The slice of the native module API the Push service uses on Android.
+    export const NativeModules: Record<string, unknown> | undefined;
+
+    export interface EmitterSubscription {
+        remove(): void;
+    }
+
+    export class NativeEventEmitter {
+        constructor(nativeModule?: unknown);
+        addListener<T>(
+            eventType: string,
+            listener: (event: T) => void,
+        ): EmitterSubscription;
+    }
 }
 
 // `react-native-tcp-socket` is an optional peer dependency (a native module),
