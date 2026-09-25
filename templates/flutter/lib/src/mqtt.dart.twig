@@ -83,13 +83,13 @@ abstract class Push extends Service {
   /// });
   /// ```
   ///
-  /// For a foreground subscription the future resolves only once every subscription has
-  /// been acknowledged (SUBACK), so a subscribe-then-publish is reliable, and
-  /// [onOpen]/[onClose]/[onError] observe that connection. A [background] subscription hands the connection to the background isolate,
-  /// which connects and subscribes asynchronously and retries failures internally, so it
-  /// resolves once the isolate has been handed the subscription rather than after SUBACK;
-  /// the isolate forwards messages and errors (to [onError]) but not its connection
-  /// lifecycle, so [onOpen]/[onClose] do not fire for it.
+  /// The future resolves only once every subscription has been acknowledged (SUBACK), so a
+  /// subscribe-then-publish is reliable, and [onOpen]/[onClose]/[onError] observe the
+  /// in-process connection. On Android a [background] subscription moves the connection to the
+  /// SDK's native plugin, which also resolves after SUBACK and forwards messages and errors (to
+  /// [onError]) but not its connection lifecycle, so [onOpen]/[onClose] do not fire for it. On
+  /// iOS it hands the connection to a background isolate, which subscribes asynchronously and
+  /// retries failures internally, so it resolves once the isolate has the subscription.
   ///
   /// [retry] chooses this subscription's delivery guarantee: `true` (the
   /// default) subscribes at QoS 1 so the broker holds this topic's messages and redelivers

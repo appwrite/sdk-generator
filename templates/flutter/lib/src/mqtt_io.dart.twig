@@ -85,6 +85,18 @@ class PushIO implements Push {
   bool _nativeActive = false;
   StreamSubscription<Map<Object?, Object?>>? _nativeListener;
 
+  // Every Push on Android shares the one native host (one connection per client id), which hosts
+  // the union of their subscriptions. Native calls run one at a time in call order, so a sign-out
+  // is never undone by a subscribe still on its way.
+  static final Set<PushIO> _nativeHosts = {};
+  static Future<void> _nativeQueue = Future<void>.value();
+
+  static Future<T> _enqueueNative<T>(Future<T> Function() op) {
+    final result = _nativeQueue.then((_) => op());
+    _nativeQueue = result.then((_) {}, onError: (Object _) {});
+    return result;
+  }
+
   // Serializes background config writes (topic/notify syncs and stops). Each write is a
   // file write plus a service event, so unserialized rapid calls could interleave and apply
   // out of order. Chaining runs them in call order; each reads the current state when it
@@ -298,7 +310,9 @@ class PushIO implements Push {
     try {
       final native = _native;
       if (native != null &&
-          (_backgroundWanted || _nativeActive || await native.hasSaved())) {
+          (_backgroundWanted ||
+              _nativeHosts.isNotEmpty ||
+              await native.hasSaved())) {
         // Android: the native plugin hosts the single connection while any subscription, live
         // or saved by an earlier run, wants background.
         await _hostNative();
@@ -353,10 +367,10 @@ class PushIO implements Push {
     await Future.wait(acks);
   }
 
-  // Relocate every subscription onto the native plugin's connection (Android), closing the
-  // in-process one. Completes once the plugin has them; it connects and subscribes on its own
-  // thread.
-  Future<void> _hostNative() async {
+  // Host every subscription of every Push on the native plugin's connection (Android), closing
+  // this one's in-process connection. Completes once the connection is up and every filter is
+  // subscribed (SUBACK), or throws why not.
+  Future<void> _hostNative() {
     final native = _native!;
     if (_mqtt != null) {
       _mqtt?.disconnect();
@@ -375,55 +389,90 @@ class PushIO implements Push {
         } catch (e) {
           _report(e);
         }
+        // Acknowledged once its callback has run, as on the in-process connection.
+        unawaited(native.ack(message.ackToken).catchError(_report));
       },
       onError: (message) => _report({{spec.info.title | caseUcfirst}}Exception(message)),
     );
-    final (authMethod, credential) = _credential();
-    final config = {
-      'host': _host,
-      'port': _port,
-      'tls': _tls,
-      'tlsInsecure': _tlsInsecure,
-      'clientId': _resolvedClientId,
-      'authMethod': authMethod,
-      'credential': credential,
-      'project': client.config['project'] ?? '',
-    };
-    final subscriptions = [
-      for (final entry in _subscriptions.entries)
-        {
-          'id': entry.key,
-          'topic': entry.value.filter,
-          'background': entry.value.background,
-          'title': entry.value.title,
-          'retry': entry.value.retry,
-        },
-    ];
-    await native.setErrorCallback(_onError != null);
-    await native.host(jsonEncode(config), jsonEncode(subscriptions));
+    _nativeHosts.add(this);
     _nativeActive = true;
+    return _enqueueNative(() async {
+      // Host what is subscribed when this runs, so a close() or an unsubscribe queued meanwhile
+      // is not undone by an older request.
+      final subscriptions = [
+        for (final push in _nativeHosts) ...push._nativeEntries,
+      ];
+      if (subscriptions.isEmpty) {
+        return;
+      }
+      final (authMethod, credential) = _credential();
+      final config = {
+        'host': _host,
+        'port': _port,
+        'tls': _tls,
+        'tlsInsecure': _tlsInsecure,
+        'clientId': _resolvedClientId,
+        'authMethod': authMethod,
+        'credential': credential,
+        'project': client.config['project'] ?? '',
+      };
+      await native
+          .setErrorCallback(_nativeHosts.any((push) => push._onError != null));
+      await native.host(jsonEncode(config), jsonEncode(subscriptions));
+    });
   }
 
+  // This Push's subscriptions in the native plugin's format.
+  List<Map<String, Object?>> get _nativeEntries => [
+        for (final entry in _subscriptions.entries)
+          {
+            'id': entry.key,
+            'topic': entry.value.filter,
+            'background': entry.value.background,
+            'title': entry.value.title,
+            'retry': entry.value.retry,
+          },
+      ];
+
   // After an unsubscribe or update on Android: keep the native plugin hosting while any
-  // subscription, live or saved, wants background, else move the live ones back in-process.
+  // subscription, live (of any Push) or saved, wants background, else move the live ones back
+  // in-process.
   Future<void> _reconcileNative(PushNative native) async {
     if (_subscriptions.isEmpty) {
-      // The last live subscription is gone: saved ones keep delivering in the background.
+      // This Push has nothing left; saved subscriptions keep delivering in the background.
       if (_nativeActive) {
-        _nativeActive = false;
-        await native.release();
+        await _leaveNative(native);
       }
       return;
     }
-    if (_backgroundWanted || await native.hasSaved()) {
+    final wanted = {..._nativeHosts, this}.any((push) => push._backgroundWanted) ||
+        await native.hasSaved();
+    if (wanted) {
       await _hostNative();
       return;
     }
-    if (_nativeActive) {
-      _nativeActive = false;
-      await native.release();
+    // Nothing wants background: every Push moves back to its own connection.
+    final hosts = _nativeHosts.toList();
+    _nativeHosts.clear();
+    for (final push in hosts) {
+      push._nativeActive = false;
     }
-    await _ensureInProcessSubscribed();
+    await _enqueueNative(() => native.release());
+    for (final push in {...hosts, this}) {
+      if (push._subscriptions.isNotEmpty) {
+        await push._ensureInProcessSubscribed();
+      }
+    }
+  }
+
+  // Stop hosting this Push natively; the others' subscriptions stay hosted.
+  Future<void> _leaveNative(PushNative native) {
+    _nativeHosts.remove(this);
+    _nativeActive = false;
+    if (_nativeHosts.isNotEmpty) {
+      return _nativeHosts.first._hostNative();
+    }
+    return _enqueueNative(() => native.release());
   }
 
   // Relocate the connection into the background isolate and sync it with the current topic
@@ -673,16 +722,23 @@ class PushIO implements Push {
   }
 
   /// Tear down the connection and drop all subscriptions. On Android this also stops background
-  /// delivery, including subscriptions saved by an earlier run: call it on sign-out.
+  /// delivery, including subscriptions saved by an earlier run: call it on sign-out. Other Push
+  /// instances' live subscriptions stay hosted.
   @override
   void close() {
     _teardown();
     final native = _native;
-    if (native != null) {
-      _nativeActive = false;
-      unawaited(native.stop().catchError(_report));
-      unawaited(_nativeListener?.cancel());
-      _nativeListener = null;
+    if (native == null) {
+      return;
+    }
+    _nativeHosts.remove(this);
+    _nativeActive = false;
+    unawaited(_nativeListener?.cancel());
+    _nativeListener = null;
+    unawaited(_enqueueNative(() => native.stop()).catchError(_report));
+    if (_nativeHosts.isNotEmpty) {
+      final other = _nativeHosts.first;
+      unawaited(other._hostNative().catchError(other._report));
     }
   }
 

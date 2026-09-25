@@ -10,7 +10,10 @@ class NativePushMessage {
   final Uint8List payload;
   final int qos;
 
-  NativePushMessage(this.id, this.topic, this.payload, this.qos);
+  /// Passed to [PushNative.ack] once the callback has run; the broker's PUBACK waits for it.
+  final String ackToken;
+
+  NativePushMessage(this.id, this.topic, this.payload, this.qos, this.ackToken);
 }
 
 /// The SDK's native Android plugin (see android/), which hosts background delivery on the same
@@ -26,12 +29,17 @@ class PushNative {
   /// The plugin on Android, else null.
   static PushNative? get instance => Platform.isAndroid ? PushNative._() : null;
 
-  /// Host [subscriptionsJson] on the background connection described by [configJson].
+  /// Host [subscriptionsJson] on the background connection described by [configJson]. Completes
+  /// once the connection is up and every filter is subscribed, or throws why not.
   Future<void> host(String configJson, String subscriptionsJson) =>
       _methods.invokeMethod<void>('host', {
         'config': configJson,
         'subscriptions': subscriptionsJson,
       });
+
+  /// Acknowledge a message once its callback has run.
+  Future<void> ack(String token) =>
+      _methods.invokeMethod<void>('ack', {'token': token});
 
   /// Stop hosting the live subscriptions, keeping the ones saved by an earlier run.
   Future<void> release() => _methods.invokeMethod<void>('release');
@@ -79,6 +87,7 @@ class PushNative {
             event['topic'] as String,
             event['payload'] as Uint8List,
             event['qos'] as int,
+            event['ackToken'] as String,
           ),
         );
       } else if (event['type'] == 'error') {
