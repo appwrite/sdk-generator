@@ -397,30 +397,16 @@ class PushIO implements Push {
         push._leaveToInProcess();
       }
     }
-    // Instances moved here by this call, moved back if hosting fails.
-    final moved = <PushIO>[];
+    // Once moved, they stay: if hosting fails, the native host keeps their subscriptions and
+    // retries on its scheduled runs, and a second connection with the same client id would take
+    // over its broker session.
     for (final push in _livePushes.toList()) {
-      if (!identical(push, this) &&
-          !push._nativeActive &&
-          push._subscriptions.isNotEmpty &&
-          push._credentialKey == key) {
+      if (push._subscriptions.isNotEmpty && push._credentialKey == key) {
         push._joinNative(native);
-        moved.add(push);
       }
     }
     _joinNative(native);
-    return _enqueueNative(() async {
-      try {
-        await _sendToNative(native);
-      } catch (_) {
-        for (final push in moved) {
-          if (push._nativeActive) {
-            push._leaveToInProcess();
-          }
-        }
-        rethrow;
-      }
-    });
+    return _enqueueNative(() => _sendToNative(native));
   }
 
   // Host every native host's subscriptions with this Push's credential.
