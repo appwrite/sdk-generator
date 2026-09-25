@@ -39,11 +39,16 @@ final class FlutterStableTest extends Base
         'cp templates/android/gradlew tests/e2e/sdks/flutter/android-test/gradlew',
         'cp templates/android/gradle/wrapper/gradle-wrapper.jar templates/android/gradle/wrapper/gradle-wrapper.properties tests/e2e/sdks/flutter/android-test/gradle/wrapper/',
         'chmod +x tests/e2e/sdks/flutter/android-test/gradlew',
+        // The Flutter engine the e2e runs with, whose embedding the Robolectric project builds with.
+        'docker run --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter --version --machine > android-test/flutter-version.json"',
     ];
+    // tests.dart prints its results from main() and defines no test(), so `flutter test` ends with
+    // "No tests ran." and exit code 79: that line is dropped, and the Robolectric run follows
+    // regardless (the output comparison catches any failure).
     #[Override]
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart && flutter --version --machine > android-test/flutter-version.json"'
-        . ' && docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/flutter/android-test alvrme/alpine-android:android-CinnamonBun-jdk17 sh -c "./gradlew testDebugUnitTest --stacktrace 1>&2 && cat result.txt"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart | grep -v -x \'No tests ran.\'"'
+        . ' ; docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/flutter/android-test alvrme/alpine-android:android-CinnamonBun-jdk17 sh -c "./gradlew testDebugUnitTest --stacktrace 1>&2 && cat result.txt"';
 
     #[Override]
     protected array $expectedOutput = [
