@@ -217,6 +217,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushCore.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushCore.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushService.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/PushService.kt.twig',
             ],

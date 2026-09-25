@@ -1,4 +1,5 @@
-package {{ sdk.namespace | caseDot }}.services
+{%- set pushNamespace = language.name == 'Android' ? (sdk.namespace | caseDot) : 'io.' ~ (spec.info.title | caseLower) -%}
+package {{ pushNamespace }}.services
 
 import android.app.AlarmManager
 import android.app.NotificationChannel
@@ -24,7 +25,7 @@ import com.hivemq.client.mqtt.MqttGlobalPublishFilter
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import com.hivemq.client.mqtt.mqtt5.exceptions.Mqtt5ConnAckException
-import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
+import {{ pushNamespace }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -79,9 +80,11 @@ internal data class PushHeartbeat(
 internal object PushBackground {
     const val CHANNEL_ID = "{{ spec.info.title | caseLower }}-push"
     const val NOTIFICATION_ID = 1911
-    const val ACTION_TICK = "{{ sdk.namespace | caseDot }}.push.TICK"
-    const val ACTION_MESSAGE = "{{ sdk.namespace | caseDot }}.push.MESSAGE"
-    const val NOTIFICATION_ICON = "{{ sdk.namespace | caseDot }}.push.notification_icon"
+    const val ACTION_TICK = "{{ pushNamespace }}.push.TICK"
+    const val ACTION_MESSAGE = "{{ pushNamespace }}.push.MESSAGE"
+    const val NOTIFICATION_ICON = "{{ pushNamespace }}.push.notification_icon"
+    const val EXTRA_TOPIC = "{{ pushNamespace }}.push.TOPIC"
+    const val EXTRA_PAYLOAD = "{{ pushNamespace }}.push.PAYLOAD"
 
     private const val SERVICE_CHANNEL_ID = "{{ spec.info.title | caseLower }}-push-service"
     private const val JOB_ID = 0x50555348
@@ -591,8 +594,8 @@ internal object PushBackground {
             .setAutoCancel(true)
         context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { launch ->
             launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                .putExtra(Push.EXTRA_TOPIC, message.topic)
-                .putExtra(Push.EXTRA_PAYLOAD, message.string)
+                .putExtra(EXTRA_TOPIC, message.topic)
+                .putExtra(EXTRA_PAYLOAD, message.string)
             builder.setContentIntent(
                 PendingIntent.getActivity(context, id, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
             )
@@ -625,7 +628,7 @@ internal object PushBackground {
         )
     }
 
-    // The icon named by the app's `<meta-data android:name="{{ sdk.namespace | caseDot }}.push.notification_icon">`, else a
+    // The icon named by the app's `<meta-data android:name="{{ pushNamespace }}.push.notification_icon">`, else a
     // generic one.
     private fun notificationIcon(context: Context): Int {
         val metaData = runCatching {
