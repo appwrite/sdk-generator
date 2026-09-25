@@ -15,8 +15,8 @@ use Appwrite\SDK\Language\ReactNative;
  * rollup.push.config.mjs bundles push.node.js with `react-native-tcp-socket` aliased to a Node
  * net/tls adapter, so the real src/services/push.ts + src/lib/tcp-stream.ts execute over a real
  * socket. Without the SDK's native Android module (as in Expo Go), the topic-less subscribe's
- * default background delivery falls back to the foreground. A Robolectric project then runs the
- * native module's background delivery (android/, through PushBridge with the JSON push.ts sends),
+ * default background delivery falls back to the foreground. A Robolectric project then calls the
+ * native module (AppwritePushModule) the way push.ts does and observes the events JS receives,
  * as the Android SDK's e2e does. Mirrors how FlutterWebTest is split out from FlutterStableTest.
  */
 final class ReactNativeAndroidTest extends Base
@@ -45,13 +45,13 @@ final class ReactNativeAndroidTest extends Base
         // so the generated push transport resolves them at runtime, then bundle for Node.
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/react-native node:22 sh -c "npm install --omit=peer && npm install --no-save @rollup/plugin-commonjs @rollup/plugin-node-resolve @rollup/plugin-replace && rm -rf node_modules/react-native node_modules/react-native-tcp-socket && cp -R shims/react-native node_modules/react-native && cp -R shims/react-native-tcp-socket node_modules/react-native-tcp-socket && npx rollup -c rollup.push.config.mjs"',
         // The native Android module's background delivery: a Robolectric project compiling the
-        // package's android/ core and PushBridge (the React Native adapter needs a full React
-        // Native build), with the Android SDK's Gradle wrapper.
+        // package's android/ sources (AppwritePushModule over the shared core) against
+        // react-android, with the Android SDK's Gradle wrapper.
         'rm -rf tests/e2e/sdks/react-native/android-test',
         'mkdir -p tests/e2e/sdks/react-native/android-test/src/main/java/io/appwrite tests/e2e/sdks/react-native/android-test/src/test/java tests/e2e/sdks/react-native/android-test/gradle/wrapper',
         'cp tests/e2e/languages/react-native/android-test/settings.gradle.kts tests/e2e/languages/react-native/android-test/build.gradle.kts tests/e2e/languages/react-native/android-test/gradle.properties tests/e2e/sdks/react-native/android-test/',
         'cp tests/e2e/languages/react-native/android-test/Tests.kt tests/e2e/sdks/react-native/android-test/src/test/java/Tests.kt',
-        'cp -R tests/e2e/sdks/react-native/android/src/main/java/io/appwrite/services tests/e2e/sdks/react-native/android/src/main/java/io/appwrite/exceptions tests/e2e/sdks/react-native/android-test/src/main/java/io/appwrite/',
+        'cp -R tests/e2e/sdks/react-native/android/src/main/java/io/appwrite/services tests/e2e/sdks/react-native/android/src/main/java/io/appwrite/exceptions tests/e2e/sdks/react-native/android/src/main/java/io/appwrite/reactnative tests/e2e/sdks/react-native/android-test/src/main/java/io/appwrite/',
         'cp tests/e2e/sdks/react-native/android/src/main/AndroidManifest.xml tests/e2e/sdks/react-native/android-test/src/main/AndroidManifest.xml',
         'cp templates/android/gradlew tests/e2e/sdks/react-native/android-test/gradlew',
         'cp templates/android/gradle/wrapper/gradle-wrapper.jar templates/android/gradle/wrapper/gradle-wrapper.properties tests/e2e/sdks/react-native/android-test/gradle/wrapper/',
