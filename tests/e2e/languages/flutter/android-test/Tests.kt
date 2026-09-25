@@ -38,7 +38,7 @@ class E2EPushReceiver : PushReceiver() {
     }
 
     override fun onMessage(context: Context, message: PushMessage): Boolean {
-        messages.add(message.string)
+        messages.add(message.data)
         return false
     }
 }

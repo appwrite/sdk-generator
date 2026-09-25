@@ -569,7 +569,7 @@
             let pushResolve;
             const pushReceived = new Promise((resolve) => { pushResolve = resolve; });
             const pushSub = await push.subscribe([Topic.path(['e2e-push'])], (m) => {
-                pushResolve({ text: new TextDecoder().decode(m.payload), qos: m.qos, topic: m.topic });
+                pushResolve({ text: m.data, qos: m.qos, topic: m.topic });
             });
             console.log('Push subscribe:passed');
             const pushOpenOk = await Promise.race([
@@ -632,7 +632,7 @@
             // id on "e2e-client-id").
             const idPush = new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession));
             const echoedClientId = await Promise.race([
-                new Promise((resolve) => { idPush.subscribe(['e2e-client-id'], (m) => resolve(new TextDecoder().decode(m.payload))); }),
+                new Promise((resolve) => { idPush.subscribe(['e2e-client-id'], (m) => resolve(m.data)); }),
                 new Promise((resolve) => setTimeout(() => resolve(''), 5000)),
             ]);
             idPush.close();

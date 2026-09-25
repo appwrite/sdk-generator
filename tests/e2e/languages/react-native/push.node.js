@@ -39,7 +39,7 @@ async function main() {
 
     // Server-initiated: the broker delivers on SUBSCRIBE (no client publish).
     const sub = await push.subscribe([Topic.path(['e2e-push'])], (message) => {
-        messageResolve({ text: message.payload.toString(), topic: message.topic, qos: message.qos });
+        messageResolve({ text: message.data, topic: message.topic, qos: message.qos });
     });
     console.log('Push subscribe:passed');
     console.log((await Promise.race([opened.then(() => true), timeout(10000, false)])) ? 'Push open:passed' : 'Push open:failed');
@@ -96,7 +96,7 @@ async function main() {
     const idPush = new Push(new Client().setProject('console').setPushEndpoint(ENDPOINT).setSession(e2eSession));
     const echoedClientId = await Promise.race([
         new Promise((resolve) => {
-            idPush.subscribe(['e2e-client-id'], (m) => resolve(m.payload.toString()));
+            idPush.subscribe(['e2e-client-id'], (m) => resolve(m.data));
         }),
         timeout(5000, ''),
     ]);
