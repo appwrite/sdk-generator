@@ -485,7 +485,15 @@ export class Push extends Service {
             // Another Push moved this one's subscriptions to the native host while it waited for
             // SUBACK, which closed the connection: this subscribe continues there.
             if (this.nativeActive) {
-                await this.hostNative();
+                try {
+                    await this.hostNative();
+                } catch (hostErr) {
+                    for (const id of ids) {
+                        this.subscriptions.delete(id);
+                    }
+                    await this.reconcileNative();
+                    throw hostErr;
+                }
                 return this.handle(ids);
             }
             this.unsubscribeInProcess(ids);
