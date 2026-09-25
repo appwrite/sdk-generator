@@ -13,6 +13,9 @@ import type { ResolvedTopic, Topic } from '../topic';
 /** A message delivered on a subscribed topic (the MQTT analog of a Realtime event). */
 export interface PushMessage {
     topic: string;
+    /** The payload decoded as UTF-8 text, as it was sent. */
+    data: string;
+    /** The raw payload, for binary messages. */
     payload: Uint8Array;
     qos: number;
 }
@@ -70,7 +73,7 @@ const RECONNECT_PERIOD_MS = 2000;
  *     const client = new Client().setEndpoint(...).setProject(...).setJWT(jwt);
  *     const push = new Push(client);
  *     const sub = await push.subscribe('user/123/#', (m) =>
- *       console.log(m.topic, new TextDecoder().decode(m.payload)),
+ *       console.log(m.topic, m.data),
  *     );
  *     // sub.update({ background: true }); sub.unsubscribe();
  */
@@ -92,6 +95,12 @@ export class Push extends Service {
 
     // Local id -> subscription state. The id is never sent to the broker; it only lets
     // the same topic carry more than one callback (each with its own options).
+    /**
+     * The client id when the credential names no user (and none was set): random, but kept for
+     * this instance so reconnects resume the same broker session.
+     */
+    private readonly fallbackClientId = randomId();
+
     private readonly subscriptions = new Map<
         string,
         {
@@ -492,15 +501,16 @@ export class Push extends Service {
         const project = this.client.config.project ?? '';
         // Client id, when the app did not set one with Client.setPushClientId(). Unlike the
         // native SDKs (which send an empty id and let the broker derive a stable one), mqtt.js
-        // rejects an empty id with clean start off, so derive a stable per-user id here: the
-        // userId decoded from the JWT, else the session secret. A stable id keeps the broker's
-        // replay cursor resuming across reloads.
+        // rejects an empty id with clean start off, so derive a stable per-user id here from the
+        // credential this connection authenticates with: the JWT's userId, or the session's user
+        // id. A stable id keeps the broker's replay cursor resuming across reloads. The
+        // credential itself is never used as the id.
         const clientId =
             this.client.config.pushClientId ||
-            userIdFromJwt(this.client.config.jwt) ||
-            this.client.config.session ||
-            this.client.config.jwt ||
-            '';
+            (authMethod === 'appwrite-jwt'
+                ? userIdFromJwt(credential)
+                : userIdFromSession(credential)) ||
+            this.fallbackClientId;
 
         const options: IClientOptions = {
             clientId,
@@ -617,11 +627,13 @@ export class Push extends Service {
 
     /** Fan a delivered packet out to every subscription whose filter matches. */
     private async dispatch(packet: IPublishPacket): Promise<void> {
+        const payload = Buffer.isBuffer(packet.payload)
+            ? packet.payload
+            : Buffer.from(packet.payload);
         const message: PushMessage = {
             topic: packet.topic.toString(),
-            payload: Buffer.isBuffer(packet.payload)
-                ? packet.payload
-                : Buffer.from(packet.payload),
+            data: new TextDecoder().decode(payload),
+            payload,
             qos: packet.qos,
         };
         for (const sub of this.subscriptions.values()) {
@@ -657,7 +669,7 @@ export class Push extends Service {
         }
         try {
             new Notification(title ?? message.topic, {
-                body: new TextDecoder().decode(message.payload),
+                body: message.data,
             });
         } catch {
             // Some browsers only allow notifications from a service worker; ignore.

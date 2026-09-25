@@ -70,7 +70,7 @@ in-app callback receives are posted as notifications that open the app. It recon
 credential saved at subscribe time, so use a session rather than a short-lived JWT.
 
 ```dart
-final sub = await push.subscribe('news', (message) => print(message.string),
+final sub = await push.subscribe('news', (message) => print(message.data),
     background: true, title: 'News');
 
 // Optional: immediate delivery even after a kill and during Doze, with a quiet ongoing

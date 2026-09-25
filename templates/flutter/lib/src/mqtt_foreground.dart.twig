@@ -247,7 +247,7 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
           notifications.show(
             message.topic.hashCode,
             title,
-            message.string,
+            message.data,
             const NotificationDetails(
               android: AndroidNotificationDetails(
                 _channelId,
@@ -261,7 +261,7 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
         // Forward to the app isolate (if alive) so in-app callbacks still fire.
         service.invoke(_messageEvent, {
           'topic': message.topic,
-          'payload': message.string,
+          'payload': message.data,
           'qos': message.qos,
         });
       }, retry: desiredQos == 1);

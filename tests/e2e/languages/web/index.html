@@ -569,7 +569,7 @@
             let pushResolve;
             const pushReceived = new Promise((resolve) => { pushResolve = resolve; });
             const pushSub = await push.subscribe([Topic.path(['e2e-push'])], (m) => {
-                pushResolve({ text: new TextDecoder().decode(m.payload), qos: m.qos, topic: m.topic });
+                pushResolve({ text: m.data, qos: m.qos, topic: m.topic });
             });
             console.log('Push subscribe:passed');
             const pushOpenOk = await Promise.race([
@@ -626,6 +626,21 @@
             }
             anonymousPush.close();
             console.log(noCredentialRejected ? 'Push user no credential:passed' : 'Push user no credential:failed');
+
+            // Messages missed between two sign-ins of the same user are replayed to the second one,
+            // though each sign-in has its own session secret (the mock replays on "e2e-replay" to a
+            // client it has seen before, as the broker resumes a replay position per client).
+            const firstSignIn = new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession));
+            await firstSignIn.subscribe(['e2e-replay'], () => {});
+            firstSignIn.close();
+            const nextSession = btoa(JSON.stringify({ id: 'e2e-session-user', secret: 'another-sign-in' }));
+            const nextSignIn = new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(nextSession));
+            const replayed = await Promise.race([
+                new Promise((resolve) => { nextSignIn.subscribe(['e2e-replay'], (m) => resolve(m.data)); }),
+                new Promise((resolve) => setTimeout(() => resolve(''), 5000)),
+            ]);
+            nextSignIn.close();
+            console.log(replayed === 'push-replayed' ? 'Push session replay:passed' : 'Push session replay:failed');
 
             // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
             // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT

@@ -686,13 +686,13 @@ internal object PushBackground {
         val id = 31 * message.hashCode() + title.hashCode()
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
-            .setContentText(message.string)
+            .setContentText(message.data)
             .setSmallIcon(notificationIcon(context))
             .setAutoCancel(true)
         context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { launch ->
             launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 .putExtra(EXTRA_TOPIC, message.topic)
-                .putExtra(EXTRA_PAYLOAD, message.string)
+                .putExtra(EXTRA_PAYLOAD, message.data)
             builder.setContentIntent(
                 PendingIntent.getActivity(context, id, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
             )

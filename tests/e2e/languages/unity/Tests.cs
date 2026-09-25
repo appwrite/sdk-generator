@@ -517,7 +517,7 @@ namespace AppwriteTests
                 : "Push open:failed");
             var pushWinner = await Task.WhenAny(pushTcs.Task, Task.Delay(10000));
             var pushOk = pushWinner == pushTcs.Task;
-            LogResult(pushOk && pushTcs.Task.Result.Text == "push-payload" && pushTcs.Task.Result.Topic == "e2e-push"
+            LogResult(pushOk && pushTcs.Task.Result.Data == "push-payload" && pushTcs.Task.Result.Topic == "e2e-push"
                 ? "Push message:passed"
                 : "Push message:failed");
             // reliableDelivery (default) => QoS 1 end to end.

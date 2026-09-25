@@ -152,6 +152,12 @@ abstract class Base extends TestCase
         'Push user no credential:passed',
     ];
 
+    // Web and React Native derive their client id themselves (mqtt.js needs one): a user signing
+    // in again with a new session still gets what was missed in between replayed.
+    protected const PUSH_SESSION_REPLAY_RESPONSES = [
+        'Push session replay:passed',
+    ];
+
     // Broker errors reaching onError: a refused CONNECT and a server DISCONNECT, carrying the
     // broker's MQTT 5 reason string (Apple checks only that the error arrives: MQTTNIO does not
     // expose the reason string).

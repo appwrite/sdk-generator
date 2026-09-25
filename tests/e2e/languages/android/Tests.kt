@@ -55,7 +55,7 @@ class E2EPushReceiver : io.appwrite.services.PushReceiver() {
     }
 
     override fun onMessage(context: android.content.Context, message: io.appwrite.services.PushMessage): Boolean {
-        messages.add(message.string)
+        messages.add(message.data)
         return false
     }
 }
@@ -541,7 +541,7 @@ class ServiceTest {
             var pushBody = "Push message:failed"
             var pushQos = "Push qos:failed"
             val pushSub = push.subscribe(listOf(Topic.path(listOf("e2e-push")))) { message ->
-                if (message.string == "push-payload" && message.topic == "e2e-push") {
+                if (message.data == "push-payload" && message.topic == "e2e-push") {
                     pushBody = "Push message:passed"
                 }
                 if (message.qos == 1) {
@@ -671,7 +671,7 @@ class ServiceTest {
             val backgroundPush = Push(pushClient().setSession(e2eSession), context)
             val liveLatch = java.util.concurrent.CountDownLatch(1)
             backgroundPush.subscribe("e2e-push", background = true, title = "E2E title") { message ->
-                if (message.string == "push-payload") {
+                if (message.data == "push-payload") {
                     liveLatch.countDown()
                 }
             }

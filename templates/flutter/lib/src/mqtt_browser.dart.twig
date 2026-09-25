@@ -524,7 +524,7 @@ class PushWeb implements Push {
           // with its own title.
           if (subscription.background &&
               html.Notification.permission == 'granted') {
-            html.Notification(subscription.title ?? topic, body: message.string);
+            html.Notification(subscription.title ?? topic, body: message.data);
           }
         }
       }

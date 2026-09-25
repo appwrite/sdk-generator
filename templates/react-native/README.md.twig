@@ -56,7 +56,7 @@ open the app. It reconnects with the credential saved at subscribe time, so use 
 than a short-lived JWT.
 
 ```js
-const sub = await push.subscribe('news', (message) => console.log(message.payload.toString()), {
+const sub = await push.subscribe('news', (message) => console.log(message.data), {
     background: true,
     title: 'News',
 });

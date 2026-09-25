@@ -82,13 +82,13 @@ class PushSubscription internal constructor(
  * val client = Client().setEndpoint("...").setProject("...").setJWT(jwt)
  * val push = Push(client, context)
  * val sub = push.subscribe("user/123/#") { message ->
- *     println("${'$'}{message.topic}: ${'$'}{message.string}")
+ *     println("${'$'}{message.topic}: ${'$'}{message.data}")
  * }
  * // ...later
  * sub.unsubscribe()
  *
  * // Or, with no topic, the signed-in user's own topic (`users/<userId>`):
- * push.subscribe { message -> println(message.string) }
+ * push.subscribe { message -> println(message.data) }
  * ```
  */
 class Push(
