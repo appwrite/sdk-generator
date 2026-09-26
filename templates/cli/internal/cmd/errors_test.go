@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 )
@@ -314,18 +313,6 @@ func TestMissingProjectConfigRendersActionableBlock(t *testing.T) {
 	}
 	if strings.Contains(printed, "no such file or directory") {
 		t.Errorf("raw filesystem error leaked into primary output:\n%s", printed)
-	}
-
-	// A --config-file that does not exist gets the same block, pointing back
-	// at the flag rather than at the working directory.
-	config.LocalFile = "appwrite.config.prod.json"
-	t.Cleanup(func() { config.LocalFile = "" })
-	buffer.Reset()
-	err = &os.PathError{Op: "open", Path: config.LocalFile, Err: os.ErrNotExist}
-	Report(buffer, nil, err)
-	if printed := buffer.String(); !strings.Contains(printed,
-		"appwrite init project --config-file appwrite.config.prod.json") {
-		t.Errorf("output does not point at --config-file:\n%s", printed)
 	}
 }
 

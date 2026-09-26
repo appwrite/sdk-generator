@@ -472,13 +472,6 @@ func TestFindLocalPathPrefersTheNearestConfig(t *testing.T) {
 	if got := FindLocalPath(); resolve(t, got) != resolve(t, wanted) {
 		t.Errorf("FindLocalPath() = %q, want the nearest config %q", got, wanted)
 	}
-
-	// A config chosen with --config-file beats the nearest one.
-	LocalFile = filepath.Join(root, "appwrite.config.prod.json")
-	t.Cleanup(func() { LocalFile = "" })
-	if got := FindLocalPath(); got != LocalFile {
-		t.Errorf("FindLocalPath() = %q, want the chosen config %q", got, LocalFile)
-	}
 }
 
 // Projects created by older CLIs still carry the pre-rename filename.

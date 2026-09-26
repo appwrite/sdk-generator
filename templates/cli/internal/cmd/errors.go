@@ -96,7 +96,7 @@ func missingProjectConfigError(err error) *actionableError {
 	command := app.ExecutableName + " init project"
 	if pathError.Path == config.LocalFile {
 		action = "Check the config file path, or initialize a project there:"
-		command += " --config-file " + config.LocalFile
+		command += " --config-file " + shellQuote(config.LocalFile)
 	}
 
 	return &actionableError{
