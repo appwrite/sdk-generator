@@ -309,7 +309,7 @@ class Client {
             ) ?? [];
 
         if (!file || !fileParam) {
-            throw new Error('File not found in payload');
+            return await this.call(method, url, headers, originalPayload);
         }
 
         if (file instanceof InputFile) {

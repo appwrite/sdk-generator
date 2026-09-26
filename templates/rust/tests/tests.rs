@@ -121,6 +121,11 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     println!("{}", general.validate_path("0", Some("0")).await?.result);
     println!("{}", general.validate_path("0", None).await?.result);
 
+    let message = "conversation without a required file";
+    println!("{}", general.optional_upload(message, None).await?.result);
+    let attachment = InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?;
+    println!("{}", general.optional_upload(message, Some(attachment)).await?.result);
+
     test_general_upload(client, string_in_array).await?;
     test_large_upload(client, string_in_array).await?;
 

@@ -2226,6 +2226,69 @@
         }
       }
     },
+    "\/mock\/tests\/general\/optional-upload": {
+      "post": {
+        "summary": "Send an optional attachment",
+        "operationId": "generalOptionalUpload",
+        "tags": [
+          "general"
+        ],
+        "description": "Multipart request with an optional attachment, not a chunked upload endpoint.",
+        "x-appwrite": {
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "Conversation message",
+                    "type": "string"
+                  },
+                  "attachment": {
+                    "description": "Optional attachment",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/upload-with-id": {
       "post": {
         "summary": "Upload File With ID",

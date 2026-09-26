@@ -105,6 +105,16 @@ abstract class Base extends TestCase
         'stub',
     ];
 
+    protected const OPTIONAL_UPLOAD_RESPONSES = [
+        'optional-upload:without-file',
+        'optional-upload:without-file',
+        'optional-upload:without-file',
+        'optional-upload:without-file',
+        'optional-upload:with-file',
+        'optional-upload:with-file',
+        'required-file:rejected',
+    ];
+
     protected const UPLOAD_RESPONSE = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];

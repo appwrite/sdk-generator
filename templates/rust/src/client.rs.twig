@@ -385,6 +385,13 @@ impl Client {
     ) -> Result<T> {
         let state = self.state.load_full();
         let url = format!("{}{}", state.config.endpoint, path);
+        let is_multipart = method != Method::GET
+            && headers.as_ref().is_some_and(|headers| {
+                headers.iter().any(|(key, value)| {
+                    key.eq_ignore_ascii_case("content-type")
+                        && value.eq_ignore_ascii_case("multipart/form-data")
+                })
+            });
         let mut request_builder;
 
         if let Some(params) = params {
@@ -401,17 +408,31 @@ impl Client {
                 request_builder = state.http.request(method.clone(), url_with_params);
             } else {
                 request_builder = state.http.request(method.clone(), &url);
-                request_builder = request_builder.json(&params);
+                if is_multipart {
+                    let mut form = multipart::Form::new();
+                    for (key, value) in Self::flatten_multipart_params(&params, "") {
+                        form = form.text(key, value);
+                    }
+                    request_builder = request_builder.multipart(form);
+                } else {
+                    request_builder = request_builder.json(&params);
+                }
             }
         } else {
             request_builder = state.http.request(method.clone(), &url);
         }
 
-        request_builder = request_builder.headers(state.config.headers.clone());
+        let mut default_headers = state.config.headers.clone();
+        if is_multipart {
+            default_headers.remove("content-type");
+        }
+        request_builder = request_builder.headers(default_headers);
 
         if let Some(custom_headers) = headers {
             for (key, value) in custom_headers {
-                request_builder = request_builder.header(key, value);
+                if !is_multipart || !key.eq_ignore_ascii_case("content-type") {
+                    request_builder = request_builder.header(key, value);
+                }
             }
         }
 

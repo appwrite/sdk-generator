@@ -165,6 +165,7 @@ impl {{ service.name | caseUcfirst }} {
 {{ pathReplaces | rustfmtPath(8, method.path) }}
 
 {% set hasFileParam = false %}
+{% set fileRequired = false %}
 {% set fileParamName = '' %}
 {% set fileParamKey = '' %}
 {% set uploadIdParam = '' %}
@@ -174,12 +175,21 @@ impl {{ service.name | caseUcfirst }} {
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | schemaType) == 'file' %}
 {% set hasFileParam = true %}
+{% set fileRequired = parameter.required and not (parameter | schemaNullable) %}
 {% set fileParamName = parameter.name | caseSnake | overrideIdentifier %}
 {% set fileParamKey = parameter.name %}
 {% endif %}
 {% endfor %}
 {% if hasFileParam %}
+{% if not fileRequired %}
+        if let Some({{ fileParamName }}) = {{ fileParamName }} {
+{{ [ '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'params', '"' ~ fileParamKey ~ '"', fileParamName, uploadIdParam ? (uploadIDRequired ? 'Some(' ~ uploadIdParam ~ '_str)' : uploadIdParam ~ '_str') : 'None' ] | rustfmtClientAwait(12, 'file_upload') }}
+        } else {
+{{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(12, 'call') }}
+        }
+{% else %}
 {{ [ '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'params', '"' ~ fileParamKey ~ '"', fileParamName, uploadIdParam ? (uploadIDRequired ? 'Some(' ~ uploadIdParam ~ '_str)' : uploadIdParam ~ '_str') : 'None' ] | rustfmtClientAwait(8, 'file_upload') }}
+{% endif %}
 {% elseif (method | methodType) == 'webAuth' %}
 {{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(8, 'call_location') }}
 {% elseif (method | methodType) == 'location' %}

@@ -218,6 +218,27 @@
             response = await general.getPath({ pathId: 'grant/special&id' });
             console.log(response.result);
 
+            // Optional multipart attachment: positional and object overloads.
+            const message = 'conversation without a required file';
+            const attachment = document.getElementById('file').files[0];
+            for (const send of [
+                () => general.optionalUpload(message),
+                () => general.optionalUpload(message, undefined),
+                () => general.optionalUpload({ message }),
+                () => general.optionalUpload({ message, attachment: undefined }),
+                () => general.optionalUpload(message, attachment),
+                () => general.optionalUpload({ message, attachment }),
+            ]) {
+                console.log((await send()).result);
+            }
+            try {
+                await general.upload('string', 123, ['string in array']);
+                throw new Error('Missing required file was accepted');
+            } catch (error) {
+                if (!(error instanceof Appwrite.AppwriteException)) throw error;
+                console.log('required-file:rejected');
+            }
+
             // Upload
             response = await general.upload(
                 "string",

@@ -110,8 +110,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | schemaType) == 'file' %}
 
-        const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
-
         const apiHeaders: { [header: string]: string } = {
         {%~ for key, security in (method | securityHeaders) %}
             '{{ security.name }}': this.client.config['{{ key | caseLower }}'],
@@ -123,6 +121,14 @@ export class {{ service.name | caseUcfirst }} extends Service {
             '{{ key }}': '{{ header }}',
 {% endfor %}
         };
+
+{% if not parameter.required or (parameter | schemaNullable) %}
+        if (!{{ parameter.name | caseCamel | escapeKeyword }}) {
+            return await this.client.call('{{ method.method.value | caseLower }}', apiPath, apiHeaders, payload);
+        }
+
+{% endif %}
+        const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
         let id: string | undefined = undefined;
         let response: any = undefined;

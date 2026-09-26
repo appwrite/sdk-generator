@@ -157,6 +157,25 @@ import {
         size: 16310023,
         uri: 'http://localhost:3000/large_file.mp4',
     };
+    const message = 'conversation without a required file';
+    for (const send of [
+        () => general.optionalUpload(message),
+        () => general.optionalUpload(message, undefined),
+        () => general.optionalUpload({ message }),
+        () => general.optionalUpload({ message, attachment: undefined }),
+        () => general.optionalUpload(message, smallFile),
+        () => general.optionalUpload({ message, attachment: smallFile }),
+    ]) {
+        console.log((await send()).result);
+    }
+    try {
+        await general.upload('string', 123, ['string in array']);
+        throw new Error('Missing required file was accepted');
+    } catch (error) {
+        if (!(error instanceof AppwriteException)) throw error;
+        console.log('required-file:rejected');
+    }
+
     response = await general.upload('string', 123, ['string in array'], smallFile);
     console.log(response.result);
     response = await general.upload('string', 123, ['string in array'], largeFile);

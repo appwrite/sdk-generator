@@ -184,6 +184,24 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | schemaType) == 'file' %}
 
+        const apiHeaders: { [header: string]: string } = {
+        {%~ for key, security in (method | securityHeaders) %}
+            {{ security.name | jsKey | raw }}: this.client.config.{{ key | caseLower }},
+        {%~ endfor %}
+        {%~ for parameter in (method | parameters('header')) %}
+            {{ (parameter.name | caseCamel | escapeKeyword) | jsKey | raw }}: this.client.${{ parameter.name | caseCamel | escapeKeyword }},
+        {%~ endfor %}
+        {%~ for key, header in (method | methodHeaders) %}
+            {{ key | jsKey | raw }}: '{{ header }}',
+        {%~ endfor %}
+        };
+{% if not parameter.required or (parameter | schemaNullable) %}
+
+        if (!{{ parameter.name | caseCamel | escapeKeyword }}) {
+            return this.client.call('{{ method.method.value | caseLower }}', uri, apiHeaders, payload);
+        }
+{% endif %}
+
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
         if (size <= Service.CHUNK_SIZE) {
@@ -197,35 +215,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
                     }),
             );
 
-            return this.client.call(
-                '{{ method.method.value | caseLower }}',
-                uri,
-                {
-                {%~ for key, security in (method | securityHeaders) %}
-                    {{ security.name | jsKey | raw }}: this.client.config.{{ key | caseLower }},
-                {%~ endfor %}
-                {%~ for parameter in (method | parameters('header')) %}
-                    {{ (parameter.name | caseCamel | escapeKeyword) | jsKey | raw }}: this.client.${{ parameter.name | caseCamel | escapeKeyword }},
-                {%~ endfor %}
-                {%~ for key, header in (method | methodHeaders) %}
-                    {{ key | jsKey | raw }}: '{{ header }}',
-                {%~ endfor %}
-                },
-                payload,
-            );
+            return this.client.call('{{ method.method.value | caseLower }}', uri, apiHeaders, payload);
         }
-
-        const apiHeaders: { [header: string]: string } = {
-        {%~ for key, security in (method | securityHeaders) %}
-            {{ security.name | jsKey | raw }}: this.client.config.{{ key | caseLower }},
-        {%~ endfor %}
-        {%~ for parameter in (method | parameters('header')) %}
-            {{ (parameter.name | caseCamel | escapeKeyword) | jsKey | raw }}: this.client.${{ parameter.name | caseCamel | escapeKeyword }},
-        {%~ endfor %}
-        {%~ for key, header in (method | methodHeaders) %}
-            {{ key | jsKey | raw }}: '{{ header }}',
-        {%~ endfor %}
-        };
 
         let offset = 0;
         let response = undefined;

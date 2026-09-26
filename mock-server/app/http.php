@@ -429,6 +429,48 @@ App::post('/v1/mock/tests/general/upload')
         }
     });
 
+App::post('/v1/mock/tests/general/optional-upload')
+    ->desc('Send an optional attachment')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'optionalUpload')
+    ->label('sdk.request.type', 'multipart/form-data')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('message', '', new Text(100), 'Conversation message')
+    ->param('attachment', [], new File(), 'Optional attachment', optional: true, skipValidation: true)
+    ->inject('request')
+    ->inject('response')
+    ->action(function (string $message, mixed $attachment, Request $request, UtopiaSwooleResponse $response) {
+        if ($message !== 'conversation without a required file') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong conversation message');
+        }
+        if (!str_starts_with($request->getHeader('content-type', ''), 'multipart/form-data; boundary=')) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Expected multipart with a boundary');
+        }
+        if ($request->getHeader('content-range', '') !== '') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Optional attachment must not be chunked');
+        }
+
+        $file = $request->getFiles('attachment');
+        $hasFile = !empty($file);
+        if ($hasFile) {
+            $tmpName = is_array($file['tmp_name']) ? $file['tmp_name'][0] : $file['tmp_name'];
+            $name = is_array($file['name']) ? $file['name'][0] : $file['name'];
+            if ($name !== 'file.png' || md5(file_get_contents($tmpName)) !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong attachment');
+            }
+        }
+
+        $response->json([
+            'result' => 'optional-upload:' . ($hasFile ? 'with-file' : 'without-file'),
+        ]);
+    });
+
 App::get('/v1/mock/tests/general/redirect')
     ->desc('Redirect')
     ->groups(['mock'])
