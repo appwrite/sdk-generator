@@ -44,6 +44,7 @@ final class WebChromiumTest extends Base
         ...Base::LOCATION_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
+        ...Base::OPTIONAL_UPLOAD_RESPONSES,
         ...Base::UPLOAD_RESPONSE,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::UPLOAD_RESPONSE, // Object params

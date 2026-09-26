@@ -87,6 +87,11 @@ async function start() {
   response = await general.validatePath("0", "0");
   console.log(response.result);
 
+  const message = "conversation without a required file";
+  console.log((await general.optionalUpload(message)).result);
+  console.log((await general.optionalUpload(message, undefined)).result);
+  console.log((await general.optionalUpload(message, appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png"))).result);
+
   response = await general.upload(
     "string",
     123,
