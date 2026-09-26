@@ -85,8 +85,10 @@ func endpointMismatchError(projectEndpoint, sessionEndpoint string) error {
 	}
 }
 
-// plainPath matches a path every shell reads as one literal argument.
-var plainPath = regexp.MustCompile(`^[A-Za-z0-9._/\\:-]+$`)
+// plainPath matches a path every shell reads as one literal argument. Checked
+// after filepath.ToSlash, so Windows separators pass while a backslash, which
+// sh would strip, does not.
+var plainPath = regexp.MustCompile(`^[A-Za-z0-9._/:-]+$`)
 
 func missingProjectConfigError(err error) *actionableError {
 	var pathError *os.PathError
@@ -103,7 +105,7 @@ func missingProjectConfigError(err error) *actionableError {
 		// Quoting differs across sh, cmd.exe and PowerShell, so a path that
 		// would need it is left as a placeholder; Expected file shows it.
 		path := config.LocalFile
-		if !plainPath.MatchString(path) {
+		if !plainPath.MatchString(filepath.ToSlash(path)) {
 			path = "<path>"
 		}
 		command += " --config-file " + path
