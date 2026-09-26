@@ -186,7 +186,7 @@ trait CliCommandSurface
      */
     protected const array HELP_OPTION_ORDER = [
         '--version', '--help', '--json', '--raw', '--show-secrets', '--verbose',
-        '--force', '--all', '--id', '--report',
+        '--force', '--all', '--id', '--config-file', '--report',
     ];
 
     /**

@@ -240,10 +240,13 @@ func TestOptionsFollowTheDeclaredOrder(t *testing.T) {
 		previous = at
 	}
 
-	for _, required := range []string{"-v, --version", "-h, --help", "-j, --json"} {
+	for _, required := range []string{"-v, --version", "-h, --help", "-j, --json", "--config-file <path>"} {
 		if !strings.Contains(options, required) {
 			t.Errorf("OPTIONS is missing %q", required)
 		}
+	}
+	if strings.Contains(options, "`") {
+		t.Errorf("OPTIONS prints a backticked value name:\n%s", options)
 	}
 }
 

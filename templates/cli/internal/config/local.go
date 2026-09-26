@@ -22,6 +22,11 @@ const LocalFileName = "appwrite.config.json"
 // created by older CLIs still carry it.
 const LegacyLocalFileName = "appwrite.json"
 
+// LocalFile is the project config chosen with --config-file or
+// APPWRITE_CONFIG_FILE, so one repository can hold a config per environment.
+// Empty means the config is discovered.
+var LocalFile string
+
 // configKeyOrder is the order top-level keys are written in.
 //
 // Without it every
@@ -89,14 +94,28 @@ func LocalPath(directory string) string {
 	return filepath.Join(directory, LocalFileName)
 }
 
-// FindLocalPath locates the project config, searching upwards from the working
-// directory, because people run `push` from inside `functions/<name>/` as
-// readily as from the root.
+// LocalPathOr returns LocalFile, or fallback when no config was chosen.
+func LocalPathOr(fallback string) string {
+	if LocalFile != "" {
+		return LocalFile
+	}
+
+	return fallback
+}
+
+// FindLocalPath locates the project config: LocalFile when one was chosen,
+// otherwise the nearest config searching upwards from the working directory,
+// because people run `push` from inside `functions/<name>/` as readily as from
+// the root.
 //
 // The walk stops at the home directory, so a stray config there cannot capture
 // every unrelated project. When nothing is found the working directory's path is
 // returned, so callers report a missing config where the user is.
 func FindLocalPath() string {
+	if LocalFile != "" {
+		return LocalFile
+	}
+
 	working, err := os.Getwd()
 	if err != nil {
 		return LocalPath(".")

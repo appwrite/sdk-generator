@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/typegen"
 )
 
@@ -174,18 +175,26 @@ func (c Config) Entities() []Entity {
 }
 
 // LoadConfig reads the generate-relevant parts of a project config.
+//
+// Read through config.LoadLocal so tables and collections split out with
+// `includes` are seen.
 func LoadConfig(path string) (Config, error) {
-	payload, err := os.ReadFile(path)
+	local, err := config.LoadLocal(path)
 	if err != nil {
 		return Config{}, err
 	}
 
-	var config Config
-	if err := json.Unmarshal(payload, &config); err != nil {
+	payload, err := json.Marshal(local.Data)
+	if err != nil {
 		return Config{}, err
 	}
 
-	return config, nil
+	var project Config
+	if err := json.Unmarshal(payload, &project); err != nil {
+		return Config{}, err
+	}
+
+	return project, nil
 }
 
 // DetectImportExtension reports the extension generated imports should carry.

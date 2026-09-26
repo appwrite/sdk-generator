@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -84,11 +85,30 @@ func endpointMismatchError(projectEndpoint, sessionEndpoint string) error {
 	}
 }
 
+// plainPath matches a path every shell reads as one literal argument. Checked
+// after filepath.ToSlash, so Windows separators pass while a backslash, which
+// sh would strip, does not.
+var plainPath = regexp.MustCompile(`^[A-Za-z0-9._/:-]+$`)
+
 func missingProjectConfigError(err error) *actionableError {
 	var pathError *os.PathError
 	if !errors.As(err, &pathError) || !errors.Is(err, os.ErrNotExist) ||
-		filepath.Base(pathError.Path) != config.LocalFileName {
+		(filepath.Base(pathError.Path) != config.LocalFileName && pathError.Path != config.LocalFile) {
 		return nil
+	}
+
+	action := "Run this command from a directory containing " + config.LocalFileName +
+		", or initialize a project:"
+	command := app.ExecutableName + " init project"
+	if pathError.Path == config.LocalFile {
+		action = "Check the config file path, or initialize a project there:"
+		// Quoting differs across sh, cmd.exe and PowerShell, so a path that
+		// would need it is left as a placeholder; Expected file shows it.
+		path := config.LocalFile
+		if !plainPath.MatchString(filepath.ToSlash(path)) {
+			path = "<path>"
+		}
+		command += " --config-file " + path
 	}
 
 	return &actionableError{
@@ -97,9 +117,8 @@ func missingProjectConfigError(err error) *actionableError {
 		details: []output.FailureDetail{
 			{Label: "Expected file", Value: pathError.Path},
 		},
-		action: "Run this command from a directory containing " + config.LocalFileName +
-			", or initialize a project:",
-		command: app.ExecutableName + " init project",
+		action:  action,
+		command: command,
 	}
 }
 
