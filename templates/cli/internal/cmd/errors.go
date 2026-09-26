@@ -96,7 +96,15 @@ func missingProjectConfigError(err error) *actionableError {
 	command := app.ExecutableName + " init project"
 	if pathError.Path == config.LocalFile {
 		action = "Check the config file path, or initialize a project there:"
-		command += " --config-file " + shellQuote(config.LocalFile)
+		path := config.LocalFile
+		// cmd.exe and PowerShell group with double quotes, and a Windows path is
+		// full of backslashes shellQuote would wrap for no reason.
+		if runtime.GOOS != "windows" {
+			path = shellQuote(path)
+		} else if strings.ContainsAny(path, " \t") {
+			path = `"` + path + `"`
+		}
+		command += " --config-file " + path
 	}
 
 	return &actionableError{
