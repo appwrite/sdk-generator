@@ -179,7 +179,7 @@ async function start() {
         throw new Error('Missing required file was accepted');
     } catch (error) {
         if (!(error instanceof AppwriteException)) throw error;
-        console.log(error.message);
+        console.log('required-file:rejected');
     }
 
     // Upload

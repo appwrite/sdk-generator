@@ -173,7 +173,7 @@ import {
         throw new Error('Missing required file was accepted');
     } catch (error) {
         if (!(error instanceof AppwriteException)) throw error;
-        console.log(error.message);
+        console.log('required-file:rejected');
     }
 
     response = await general.upload('string', 123, ['string in array'], smallFile);

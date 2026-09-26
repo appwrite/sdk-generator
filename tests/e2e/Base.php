@@ -112,7 +112,7 @@ abstract class Base extends TestCase
         'optional-upload:without-file',
         'optional-upload:with-file',
         'optional-upload:with-file',
-        'Missing required parameter: "file"',
+        'required-file:rejected',
     ];
 
     protected const UPLOAD_RESPONSE = [
