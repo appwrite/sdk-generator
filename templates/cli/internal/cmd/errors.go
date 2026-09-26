@@ -87,8 +87,16 @@ func endpointMismatchError(projectEndpoint, sessionEndpoint string) error {
 func missingProjectConfigError(err error) *actionableError {
 	var pathError *os.PathError
 	if !errors.As(err, &pathError) || !errors.Is(err, os.ErrNotExist) ||
-		filepath.Base(pathError.Path) != config.LocalFileName {
+		(filepath.Base(pathError.Path) != config.LocalFileName && pathError.Path != config.LocalFile) {
 		return nil
+	}
+
+	action := "Run this command from a directory containing " + config.LocalFileName +
+		", or initialize a project:"
+	command := app.ExecutableName + " init project"
+	if pathError.Path == config.LocalFile {
+		action = "Check the config file path, or initialize a project there:"
+		command += " --config-file " + config.LocalFile
 	}
 
 	return &actionableError{
@@ -97,9 +105,8 @@ func missingProjectConfigError(err error) *actionableError {
 		details: []output.FailureDetail{
 			{Label: "Expected file", Value: pathError.Path},
 		},
-		action: "Run this command from a directory containing " + config.LocalFileName +
-			", or initialize a project:",
-		command: app.ExecutableName + " init project",
+		action:  action,
+		command: command,
 	}
 }
 
