@@ -222,13 +222,19 @@ func (h *harness) typesDependencies() {
 		fail(fmt.Errorf("types --config-file: expected only the chosen config's collections, got:\n%s", generated))
 	}
 
-	// A missing --config-file points back at itself, quoted for the shell.
-	command = h.command("types", "prod-types", "--language=ts", "--config-file", "envs/missing prod.json")
-	command.Path = cli
-	command.Dir = directory
-	output, err := command.CombinedOutput()
-	if want := "init project --config-file 'envs/missing prod.json'"; err == nil || !strings.Contains(string(output), want) {
-		fail(fmt.Errorf("types with a missing --config-file: expected %q, got:\n%s", want, output))
+	// A missing --config-file points back at itself, or at a placeholder when
+	// the path would need shell quoting.
+	for path, want := range map[string]string{
+		"envs/missing.json":      "init project --config-file envs/missing.json",
+		"envs/missing prod.json": "init project --config-file <path>",
+	} {
+		command = h.command("types", "prod-types", "--language=ts", "--config-file", path)
+		command.Path = cli
+		command.Dir = directory
+		output, err := command.CombinedOutput()
+		if err == nil || !strings.Contains(string(output), want) {
+			fail(fmt.Errorf("types with a missing --config-file %q: expected %q, got:\n%s", path, want, output))
+		}
 	}
 }
 

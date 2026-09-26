@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -84,6 +85,9 @@ func endpointMismatchError(projectEndpoint, sessionEndpoint string) error {
 	}
 }
 
+// plainPath matches a path every shell reads as one literal argument.
+var plainPath = regexp.MustCompile(`^[A-Za-z0-9._/\\:-]+$`)
+
 func missingProjectConfigError(err error) *actionableError {
 	var pathError *os.PathError
 	if !errors.As(err, &pathError) || !errors.Is(err, os.ErrNotExist) ||
@@ -96,13 +100,11 @@ func missingProjectConfigError(err error) *actionableError {
 	command := app.ExecutableName + " init project"
 	if pathError.Path == config.LocalFile {
 		action = "Check the config file path, or initialize a project there:"
+		// Quoting differs across sh, cmd.exe and PowerShell, so a path that
+		// would need it is left as a placeholder; Expected file shows it.
 		path := config.LocalFile
-		// cmd.exe and PowerShell group with double quotes, and a Windows path is
-		// full of backslashes shellQuote would wrap for no reason.
-		if runtime.GOOS != "windows" {
-			path = shellQuote(path)
-		} else if strings.ContainsAny(path, " \t") {
-			path = `"` + path + `"`
+		if !plainPath.MatchString(path) {
+			path = "<path>"
 		}
 		command += " --config-file " + path
 	}
