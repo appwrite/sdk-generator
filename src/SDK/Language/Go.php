@@ -470,14 +470,24 @@ class Go extends Language
         if ($type === 'location') {
             return '[]byte';
         }
+        $hasTextResponse = false;
+        $hasOtherResponse = false;
         foreach ($method->responses as $status => $response) {
             if ((int) $status < 200 || (int) $status >= 300) {
                 continue;
             }
-            $schema = $response->content['text/plain']->schema ?? null;
-            if ($schema !== null && $spec->resolveSchema($schema) instanceof StringSchema) {
-                return 'string';
+            foreach ($response->content as $contentType => $mediaType) {
+                $schema = $mediaType->schema;
+                if ($contentType === 'text/plain' && $schema !== null && $spec->resolveSchema($schema) instanceof StringSchema) {
+                    $hasTextResponse = true;
+                } else {
+                    $hasOtherResponse = true;
+                }
             }
+        }
+        // Mixed response contracts must retain their existing model/union decoding.
+        if ($hasTextResponse && !$hasOtherResponse) {
+            return 'string';
         }
         $models = \array_values(\array_filter(
             $this->getOperationResponseModels($method),

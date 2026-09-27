@@ -1,6 +1,9 @@
 {%- set requireModelsPkg = false -%}
 {%- set requireFilesPkg = false -%}
 {%- set requireUrlPkg = false -%}
+{%- set requireJsonPkg = false -%}
+{%- set requireErrorsPkg = false -%}
+{%- set requireStringsPkg = false -%}
 {%- for method in (service | operations) -%}
 {%- if (method | methodType) == 'location' or (method | securityQueries) | length > 0 -%}
 {%- set requireUrlPkg = true -%}
@@ -14,6 +17,17 @@
 {% endfor %}
 {%- set methods = service | operations -%}
 {%- for method in methods -%}
+{%- if (method | returnType(spec, spec.info.title | caseLower)) != 'string' or 'multipart/form-data' in (method | consumes) -%}
+{%- set requireJsonPkg = true -%}
+{%- set requireErrorsPkg = true -%}
+{%- set requireStringsPkg = true -%}
+{%- endif -%}
+{%- if (method | parameters('path')) | length > 0 -%}
+{%- set requireStringsPkg = true -%}
+{%- endif -%}
+{%- if (method | parameters('path')) | filter(p => p.required and not (p | configKey(method)) and (p | schemaType) == 'string' and (p | enumValues) | length == 0) | length > 0 -%}
+{%- set requireErrorsPkg = true -%}
+{%- endif -%}
 {%- if (method | returnType(spec, spec.info.title | caseLower)) starts with "models" -%}
 		{%- set requireModelsPkg = true -%}
 	{%- endif -%}
@@ -29,17 +43,24 @@
 package {{ service.name | caseLower }}
 
 import (
+{% if requireJsonPkg %}
 	"encoding/json"
+{% endif %}
+{% if requireErrorsPkg %}
 	"errors"
+{% endif %}
 {% if hasDiscriminatedUnionResponses %}
 	"fmt"
 {% endif %}
 {% if requireUrlPkg %}
 	"net/url"
 {% endif %}
+{% if requireStringsPkg %}
 	"strings"
+{% endif %}
+{% if requireJsonPkg or requireErrorsPkg or hasDiscriminatedUnionResponses or requireUrlPkg or requireStringsPkg %}
 
-	"{{ sdk | goPackagePath }}/client"
+{% endif %}	"{{ sdk | goPackagePath }}/client"
 {% if requireFilesPkg %}
 	"{{ sdk | goPackagePath }}/file"
 {% endif %}

@@ -1259,11 +1259,29 @@
         }
       }
     },
+    "/mock/tests/general/mixed": {
+      "get": {
+        "summary": "Mixed text and JSON response",
+        "operationId": "generalGetMixed",
+        "tags": ["general"],
+        "x-appwrite": {"platforms": ["client", "server"], "scope": "public"},
+        "responses": {
+          "200": {
+            "description": "Text alternative",
+            "content": {"text/plain": {"schema": {"type": "string"}}}
+          },
+          "201": {
+            "description": "JSON alternative",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/mock"}}}
+          }
+        }
+      }
+    },
     "/mock/tests/general/zone": {
       "get": {
         "summary": "Get zone text",
-        "operationId": "generalGetZone",
-        "tags": ["general"],
+        "operationId": "plaintextGetZone",
+        "tags": ["plaintext"],
         "x-appwrite": {
           "platforms": ["client", "server"],
           "scope": "public"

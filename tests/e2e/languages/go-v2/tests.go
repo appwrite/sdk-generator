@@ -136,7 +136,7 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	}
 	fmt.Printf("%s\n", pathResponse.Result)
 
-	zone, err := general.GetZone()
+	zone, err := appwrite.NewPlaintext(client).GetZone()
 	if err != nil {
 		panic(err)
 	}
@@ -145,6 +145,10 @@ func testGeneralService(client client.Client, stringInArray []string) {
 		panic(fmt.Sprintf("unexpected zone text: %q", text))
 	}
 	fmt.Println("Zone text:passed")
+	mixed, err := general.GetMixed()
+	if err != nil || mixed == nil || mixed.Result != "mixed-model" {
+		panic(fmt.Sprintf("unexpected mixed response: %v, %v", mixed, err))
+	}
 
 	testGeneralUpload(client, stringInArray)
 	testGeneralUpload(client, stringInArray)
