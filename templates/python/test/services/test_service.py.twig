@@ -34,7 +34,7 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
         response = self.{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake }}()
 {% else %}
         response = self.{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake }}(
-{% for parameter in requiredParameters %}            {% if (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.from_bytes(bytearray(), "example.file"){% elseif (parameter | schemaType) == 'boolean' %}True{% elseif (parameter | schemaType) == 'string' %}'{% if (parameter | schemaExample) is not empty %}{{(parameter | schemaExample) | escapeDollarSign}}{% endif %}'{% elseif (parameter | schemaType) == 'integer' %}1{% elseif (parameter | schemaType) == 'number' %}1.0{% else %}{{(parameter | schemaExample)}}{% endif %},
+{% for parameter in requiredParameters %}            {% if (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.from_bytes(bytearray(), "example.file"){% elseif (parameter | schemaType) == 'boolean' %}True{% elseif (parameter | schemaType) == 'string' %}'{{ (parameter | schemaExample) | default(parameter.name) | escapeDollarSign }}'{% elseif (parameter | schemaType) == 'integer' %}1{% elseif (parameter | schemaType) == 'number' %}1.0{% else %}{{(parameter | schemaExample)}}{% endif %},
 {% endfor %}        )
 {% endif %}
 {% if (method | methodType) != 'webAuth' and (method | methodType) != 'location' and (method | responseModel) and (method | responseModel) != 'any' %}
