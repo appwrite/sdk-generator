@@ -594,7 +594,7 @@ final class GenerationTest extends TestCase
             return;
         }
         if ($language->keepsOpenEnumType()) {
-            $this->assertSame('(WebhookEvent | (string & {}))', $language->getTypeName($openScalar, $specification));
+            $this->assertSame('WebhookEvent | (string & {})', $language->getTypeName($openScalar, $specification));
             $this->assertSame('(WebhookEvent | (string & {}))[]', $language->getTypeName($openArray, $specification));
 
             return;
