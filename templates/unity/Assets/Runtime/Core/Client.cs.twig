@@ -704,6 +704,12 @@ namespace {{ spec.info.title | caseUcfirst }}
 
                 return (dict as T)!;
             }
+            else if (typeof(T) == typeof(string))
+            {
+                var text = request.downloadHandler.text as T;
+                request.Dispose();
+                return text!;
+            }
             else
             {
                 var result = request.downloadHandler.data as T;

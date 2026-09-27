@@ -374,6 +374,10 @@ namespace {{ spec.info.title | caseUcfirst }}
 
                 return (dict as T)!;
             }
+            else if (typeof(T) == typeof(string))
+            {
+                return ((await response.Content.ReadAsStringAsync()) as T)!;
+            }
             else
             {
                 return ((await response.Content.ReadAsByteArrayAsync()) as T)!;
