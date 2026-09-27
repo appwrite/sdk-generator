@@ -1,9 +1,46 @@
 import {afterEach, describe, it as test} from "https://deno.land/std@0.204.0/testing/bdd.ts";
 import {restore, stub} from "https://deno.land/std@0.204.0/testing/mock.ts";
 import {assertEquals} from "https://deno.land/std@0.204.0/assert/assert_equals.ts";
-import { {{ service.name | caseUcfirst }} } from "../../src/services/{{ service.name | caseCamel }}.ts";
+import { {{ service.name | caseUcfirst }} } from "../../src/services/{{ service.name | caseKebab }}.ts";
 import {Client} from "../../src/client.ts";
 import {InputFile} from "../../src/inputFile.ts"
+{% set added = [] %}
+{% set usesModels = false %}
+{% for method in (service | operations) %}
+{% for parameter in (method | parameters('all')) | filter((param) => param.required) %}
+{% if (parameter | schemaType) != 'array' and (parameter | enumValues) is not empty and (parameter | enumName) not in added %}
+import { {{ (parameter | enumName) | caseUcfirst }} } from "../../src/enums/{{ (parameter | enumName) | caseKebab }}.ts";
+{% set added = added | merge([(parameter | enumName)]) %}
+{% endif %}
+{% if (parameter | schemaType) != 'array' and (parameter | schemaModel) %}{% set usesModels = true %}{% endif %}
+{% endfor %}
+{% endfor %}
+{% if usesModels %}
+import type { Models } from "../../src/models.d.ts";
+{% endif %}
+{% macro value(parameter, requestModels) %}
+{%- if (parameter | schemaType) == 'array' -%}
+[]
+{%- elseif (parameter | schemaModel) -%}
+{ {% for property in (requestModels[(parameter | schemaModel)].properties ?? []) | filter((param) => param | schemaRequired) %}'{{ property | schemaName }}': {{ _self.value(property, requestModels) }}{% if not loop.last %}, {% endif %}{% endfor %} }{% if requestModels[(parameter | schemaModel)] is not defined %} as Models.{{ (parameter | schemaModel) | caseUcfirst }}{% endif %}
+{%- elseif (parameter | schemaType) == 'object' -%}
+{}
+{%- elseif (parameter | schemaType) == 'file' -%}
+InputFile.fromBuffer(new Uint8Array(0), 'image.png')
+{%- elseif (parameter | schemaType) == 'boolean' -%}
+true
+{%- elseif (parameter | enumValues) is not empty -%}
+{{ (parameter | enumName) | caseUcfirst }}.{{ (parameter | enumKeys)[0] | caseEnumKey }}
+{%- elseif (parameter | schemaType) == 'string' -%}
+'{% if (parameter | schemaExample) is not empty %}{{ (parameter | schemaExample) | escapeDollarSign }}{% else %}{{ parameter.name ?? (parameter | schemaName) }}{% endif %}'
+{%- elseif (parameter | schemaType) == 'integer' -%}
+1
+{%- elseif (parameter | schemaType) == 'number' -%}
+1.0
+{%- else -%}
+{{ parameter | schemaExample }}
+{%- endif -%}
+{% endmacro %}
 
 describe('{{ service.name | caseUcfirst }} service', () => {
     const client = new Client();
@@ -21,7 +58,7 @@ describe('{{ service.name | caseUcfirst }} service', () => {
         {% set responseModelName = (method | responseModel) %}
         {% endif %}
         {%~ if (method | methodType) == 'webAuth' %}
-        const data = '';
+        const data = 'https://example.com/';
         {%~ elseif (method | methodType) == 'location' %}
         const data = new Uint8Array(0);
         {%~ else %}
@@ -35,28 +72,26 @@ describe('{{ service.name | caseUcfirst }} service', () => {
             {%~ endif %}
         {%~ endif %}
 
-        {%~ if (method | methodType) == 'location' %}
+        {%~ if (method | methodType) == 'webAuth' %}
+        const stubbedFetch = stub(globalThis, 'fetch', () => Promise.resolve(new Response(null, { status: 301, headers: { location: data } })));
+        {%~ elseif (method | methodType) == 'location' %}
         const stubbedFetch = stub(globalThis, 'fetch', () => Promise.resolve(new Response(data.buffer)));
         {%~ elseif responseModelName %}
-        const stubbedFetch = stub(globalThis, 'fetch', () => Promise.resolve(Response.json(data)));
+        const stubbedFetch = stub(globalThis, 'fetch', () => Promise.resolve(new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json' } })));
         {%~ else %}
         const stubbedFetch = stub(globalThis, 'fetch', () => Promise.resolve(new Response(data)))
         {%~ endif %}
 
         const response = await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}({%~ for parameter in (method | parameters('all')) | filter((param) => param.required) ~%}
-            {% if (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.fromBuffer(new Uint8Array(0), 'image.png'){% elseif (parameter | schemaType) == 'boolean' %}true{% elseif (parameter | schemaType) == 'string' %}'{% if (parameter | schemaExample) is not empty %}{{(parameter | schemaExample) | escapeDollarSign}}{% else %}{{ parameter.name }}{% endif %}'{% elseif (parameter | schemaType) == 'integer' %}1{% elseif (parameter | schemaType) == 'number' %}1.0{% else %}{{(parameter | schemaExample)}}{%~ endif ~%},{%~ endfor ~%}
+            {{ _self.value(parameter, requestModels) }},{%~ endfor ~%}
         );
 
         {%~ if (method | methodType) == 'location' %}
-        const buffer = await response.arrayBuffer();
-        assertEquals(buffer.byteLength, 0);
-        {%~ elseif (method | methodType) == 'text' %}
+        assertEquals(response.byteLength, 0);
+        {%~ elseif (method | methodType) == 'webAuth' or (method | methodType) == 'text' %}
         assertEquals(response, data);
-        {%~ elseif not (method | responseModel) or (method | responseModel) == 'any' %}
-        const text = await response.text();
-        assertEquals(text, data);
         {%~ else %}
-        assertEquals(response, data);
+        assertEquals<unknown>(response, data);
         {%~ endif %}
         stubbedFetch.restore();
     });
