@@ -70,6 +70,9 @@ zone = Plaintext.new(client).get_zone
 raise "Expected zone text as String, got #{zone.class}" unless zone.is_a?(String)
 print zone, "\n"
 puts general.get_mixed.result
+plaintext = Plaintext.new(client)
+print plaintext.import_zone(records: 'www 3600 IN A 192.0.2.1'), "\n"
+print plaintext.import_zone(records: 'www 3600 IN A 192.0.2.1', zone: InputFile.from_path('./tests/resources/file.png')), "\n"
 
 message = 'conversation without a required file'
 puts general.optional_upload(message: message).result
