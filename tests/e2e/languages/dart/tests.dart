@@ -79,14 +79,9 @@ void main() async {
   print((await general.validatePath(id: null, plain: '0')).result);
 
   final String zone = await Plaintext(client).getZone();
-  if (zone != '; café zone\nwww 3600 IN A 192.0.2.1\n') {
-    throw StateError('Unexpected zone text: ${jsonEncode(zone)}');
-  }
-  print('Zone text:passed');
+  print(zone);
   final mixed = await general.getMixed();
-  if (mixed.result != 'mixed-model') {
-    throw StateError('Unexpected mixed response: ${mixed.result}');
-  }
+  print(mixed.result);
 
   var file = InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
