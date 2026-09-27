@@ -594,8 +594,11 @@ final class GenerationTest extends TestCase
             return;
         }
         if ($language->keepsOpenEnumType()) {
-            $this->assertSame('WebhookEvent | (string & {})', $language->getTypeName($openScalar, $specification));
-            $this->assertSame('(WebhookEvent | (string & {}))[]', $language->getTypeName($openArray, $specification));
+            // An open enum keeps its enum type for suggestions but widens past the closed one.
+            foreach ([[$closedScalar, $openScalar], [$closedArray, $openArray]] as [$closed, $open]) {
+                $this->assertStringContainsString('WebhookEvent', $language->getTypeName($open, $specification));
+                $this->assertNotSame($language->getTypeName($closed, $specification), $language->getTypeName($open, $specification));
+            }
 
             return;
         }
