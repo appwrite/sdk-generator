@@ -62,8 +62,9 @@ let transport: Promise<Transport> | null = null;
 function loadTransport(): Promise<Transport> {
     if (!transport) {
         transport = Promise.all([import('mqtt'), import('buffer')]).then(
+            // The browser build of mqtt.js (dist/mqtt.esm.js) exports only a default.
             ([mqtt, buffer]) => ({
-                connect: mqtt.connect,
+                connect: (mqtt.default ?? mqtt).connect,
                 Buffer: buffer.Buffer,
             }),
         );
