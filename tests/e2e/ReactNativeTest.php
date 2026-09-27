@@ -49,6 +49,7 @@ final class ReactNativeTest extends Base
         ...Base::BAR_RESPONSES, // Object params
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
+        'Zone text:passed',
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::OPTIONAL_UPLOAD_RESPONSES,
         ...Base::UPLOAD_RESPONSE,

@@ -21,6 +21,9 @@ describe('{{ service.name | caseUcfirst }}', () => {
         {%~ elseif (method | methodType) == 'location' %}
         const data = new ArrayBuffer(0);
         mockedFetch.mockImplementation(() => new Response(data));
+        {%~ elseif (method | methodType) == 'text' %}
+        const data = 'text';
+        mockedFetch.mockImplementation(() => new Response(data));
         {%~ else %}
         {%- set responseModels = method | getValidResponseModels -%}
         {%- set responseModelName = '' -%}

@@ -50,6 +50,8 @@ describe('{{ service.name | caseUcfirst }} service', () => {
         {%~ if (method | methodType) == 'location' %}
         const buffer = await response.arrayBuffer();
         assertEquals(buffer.byteLength, 0);
+        {%~ elseif (method | methodType) == 'text' %}
+        assertEquals(response, data);
         {%~ elseif not (method | responseModel) or (method | responseModel) == 'any' %}
         const text = await response.text();
         assertEquals(text, data);

@@ -205,7 +205,7 @@ export class {{ service.name | caseUcfirst }} {
             onProgress,
         );
         {%~ else %}
-        return this.client.call('{{ method.method.value | caseLower }}', uri, apiHeaders, payload);
+        return this.client.call('{{ method.method.value | caseLower }}', uri, apiHeaders, payload{% if (method | methodType) == 'text' %}, 'text'{% endif %});
         {%~ endif %}
     }
 {%~ if not loop.last %}

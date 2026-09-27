@@ -1,4 +1,4 @@
-const { AppwriteException, Client, Foo, Bar, General, Query, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
+const { AppwriteException, Client, Foo, Bar, General, Plaintext, Query, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
@@ -146,6 +146,16 @@ async function start() {
 
     response = await general.getPath({ pathId: 'grant/special&id' });
     console.log(response.result);
+
+    const zone = await new Plaintext(client).getZone();
+    if (typeof zone !== 'string' || zone !== '; café zone\nwww 3600 IN A 192.0.2.1\n') {
+        throw new Error(`Unexpected zone text: ${JSON.stringify(zone)}`);
+    }
+    console.log('Zone text:passed');
+    const mixed = await general.getMixed();
+    if (mixed.result !== 'mixed-model') {
+        throw new Error(`Unexpected mixed response: ${JSON.stringify(mixed)}`);
+    }
 
     response = await general.enum(MockType.First);
     console.log(response.result);

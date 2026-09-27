@@ -420,11 +420,14 @@ class Web extends JS
     public function getReturn(Operation $method, Specification $spec): string
     {
         $type = $this->getMethodType($method, $spec);
-        if ($type === 'webAuth') {
+        if ($type === self::METHOD_TYPE_WEB_AUTH) {
             return 'void | string';
         }
-        if ($type === 'location') {
+        if ($type === self::METHOD_TYPE_LOCATION) {
             return 'string';
+        }
+        if ($type === self::METHOD_TYPE_TEXT) {
+            return 'Promise<string>';
         }
 
         $models = \array_values(\array_filter(

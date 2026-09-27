@@ -87,6 +87,16 @@ async function start() {
   response = await general.validatePath("0", "0");
   console.log(response.result);
 
+  const zone = await new appwrite.Plaintext(client).getZone();
+  if (typeof zone !== "string" || zone !== "; café zone\nwww 3600 IN A 192.0.2.1\n") {
+    throw new Error(`Unexpected zone text: ${JSON.stringify(zone)}`);
+  }
+  console.log("Zone text:passed");
+  const mixed = await general.getMixed();
+  if (mixed.result !== "mixed-model") {
+    throw new Error(`Unexpected mixed response: ${JSON.stringify(mixed)}`);
+  }
+
   const message = "conversation without a required file";
   console.log((await general.optionalUpload(message)).result);
   console.log((await general.optionalUpload(message, undefined)).result);

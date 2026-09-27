@@ -433,7 +433,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
             {%~ endfor %}
             },
             payload{% if (method | methodType) == 'location' %},
-            'arrayBuffer'{% endif %},
+            'arrayBuffer'{% elseif (method | methodType) == 'text' %},
+            'text'{% endif %},
         );
 {% endif %}
 {% endif %}

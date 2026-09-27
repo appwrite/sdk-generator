@@ -11,6 +11,7 @@ const {
     Foo,
     Bar,
     General,
+    Plaintext,
     AppwriteException
 } = require('./dist/index.js');
 const { InputFile } = require('./dist/inputFile.js');
@@ -161,6 +162,16 @@ async function start() {
 
     response = await general.getPath({ pathId: 'grant/special&id' });
     console.log(response.result);
+
+    const zone = await new Plaintext(client).getZone();
+    if (typeof zone !== 'string' || zone !== '; café zone\nwww 3600 IN A 192.0.2.1\n') {
+        throw new Error(`Unexpected zone text: ${JSON.stringify(zone)}`);
+    }
+    console.log('Zone text:passed');
+    const mixed = await general.getMixed();
+    if (mixed.result !== 'mixed-model') {
+        throw new Error(`Unexpected mixed response: ${JSON.stringify(mixed)}`);
+    }
 
     // Optional multipart attachment: positional and object overloads.
     const message = 'conversation without a required file';
