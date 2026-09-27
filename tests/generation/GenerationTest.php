@@ -110,6 +110,21 @@ final class GenerationTest extends TestCase
         'rust' => ['src/enums/webhook_event.rs', 'pub const UserCreated', 'src/enums/localized_status.rs', 'Value1,', 'src/enums/province_type.rs', 'Capital,'],
     ];
 
+    /**
+     * The signatures each language gives the fixture's text-only method, a
+     * text method following a union, and a method mixing text with a model.
+     * A language absent here does not map the text method type yet.
+     *
+     * @var array<string, array{string, string, string, string, string, string}>
+     */
+    private const array TEXT_RETURNS = [
+        'go' => [
+            'plaintext/plaintext.go', 'func (srv *Plaintext) GetZone() (*string, error)',
+            'textafterunion/textafterunion.go', 'func (srv *Textafterunion) GetText() (*string, error)',
+            'general/general.go', 'func (srv *General) GetMixed() (*models.Mock, error)',
+        ],
+    ];
+
     /** @var array<string, array<string, string>> generated tree per language and platform */
     private static array $generated = [];
 
@@ -381,6 +396,20 @@ final class GenerationTest extends TestCase
         foreach ([[$knownPath, $knownDeclaration], [$knownPath, 'user.updated'], [$localizedPath, $localizedDeclaration], [$annotatedPath, $annotatedDeclaration]] as [$path, $declaration]) {
             $this->assertArrayHasKey($path, $files, "{$name} did not generate {$path}");
             $this->assertStringContainsString(\strtolower($declaration), $files[$path], "{$name}: {$path} lacks `{$declaration}`");
+        }
+    }
+
+    #[DataProvider('languages')]
+    public function testTextResponsesReturnStrings(string $name): void
+    {
+        if (!isset(self::TEXT_RETURNS[$name])) {
+            $this->markTestSkipped("{$name} does not map text responses yet.");
+        }
+
+        $files = $this->generate($name, 'server');
+        foreach (\array_chunk(self::TEXT_RETURNS[$name], 2) as [$path, $signature]) {
+            $this->assertArrayHasKey($path, $files, "{$name} did not generate {$path}");
+            $this->assertStringContainsString(\strtolower($signature), $files[$path], "{$name}: {$path} lacks `{$signature}`");
         }
     }
 

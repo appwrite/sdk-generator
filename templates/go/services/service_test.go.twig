@@ -102,7 +102,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% endif %}
 {% elseif (method | methodType) == 'location' %}
 		mockData := []byte("image_data")
-{% elseif (method | returnType(spec, spec.info.title | caseLower)) == 'string' %}
+{% elseif (method | methodType) == 'text' %}
 		mockResponse := "; café zone\nwww 3600 IN A 192.0.2.1\n"
 {% else %}
 {% set responseModels = method | getValidResponseModels %}
@@ -158,7 +158,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 				t.Errorf("Expected method {{ method.method.value | upper }}, got %s", r.Method)
 			}
 
-			w.Header().Set("Content-Type", {% if (method | methodType) == 'location' %}"image/png"{% elseif (method | returnType(spec, spec.info.title | caseLower)) == 'string' %}"text/plain; charset=utf-8"{% else %}"application/json"{% endif %})
+			w.Header().Set("Content-Type", {% if (method | methodType) == 'location' %}"image/png"{% elseif (method | methodType) == 'text' %}"text/plain; charset=utf-8"{% else %}"application/json"{% endif %})
 			w.WriteHeader(http.StatusOK)
 {% if (method | methodType) == 'location' %}
 			_, _ = w.Write(mockData)
@@ -198,7 +198,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% set params = params ~ val %}
 {% if not loop.last %}{% set params = params ~ ', ' %}{% endif %}
 {% endfor %}
-{% if responseModels|length > 1 or (method | returnType(spec, spec.info.title | caseLower)) == 'string' %}
+{% if responseModels|length > 1 or (method | methodType) == 'text' %}
 		response, err := srv.{{ (method | methodName) | caseUcfirst }}({{ params }})
 {% else %}
 		_, err := srv.{{ (method | methodName) | caseUcfirst }}({{ params }})
@@ -206,7 +206,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 		if err != nil {
 			t.Errorf("Method {{ (method | methodName) | caseUcfirst }} failed: %v", err)
 		}
-{% if (method | returnType(spec, spec.info.title | caseLower)) == 'string' %}
+{% if (method | methodType) == 'text' %}
 		if response == nil || *response != mockResponse {
 			t.Errorf("Expected exact text %q, got %v", mockResponse, response)
 		}

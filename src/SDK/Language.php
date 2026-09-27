@@ -23,6 +23,13 @@ use Utopia\OpenAPI\Specification;
 abstract class Language
 {
     private const string MULTIPART_MEDIA_TYPE = 'multipart/form-data';
+    private const string TEXT_MEDIA_TYPE = 'text/plain';
+
+    public const string METHOD_TYPE_UPLOAD = 'upload';
+    public const string METHOD_TYPE_GRAPHQL = 'graphql';
+    public const string METHOD_TYPE_WEB_AUTH = 'webAuth';
+    public const string METHOD_TYPE_LOCATION = 'location';
+    public const string METHOD_TYPE_TEXT = 'text';
 
     public const TYPE_INTEGER = 'integer';
     public const TYPE_NUMBER = 'number';
@@ -142,13 +149,13 @@ abstract class Language
             foreach ($requestSchema->properties as $property) {
                 $property = $spec?->resolveSchema($property) ?? $property;
                 if ($property instanceof StringSchema && $property->format === 'binary') {
-                    return 'upload';
+                    return self::METHOD_TYPE_UPLOAD;
                 }
             }
         }
 
         if (\in_array('graphql', $operation->tags, true)) {
-            return 'graphql';
+            return self::METHOD_TYPE_GRAPHQL;
         }
 
         foreach ($operation->responses as $status => $response) {
@@ -166,15 +173,46 @@ abstract class Language
                     continue;
                 }
                 if ($status >= 300 && $status < 400) {
-                    return 'webAuth';
+                    return self::METHOD_TYPE_WEB_AUTH;
                 }
                 if ($status >= 200 && $status < 300) {
-                    return 'location';
+                    return self::METHOD_TYPE_LOCATION;
                 }
             }
         }
 
+        if ($this->hasTextResponse($operation, $spec)) {
+            return self::METHOD_TYPE_TEXT;
+        }
+
         return false;
+    }
+
+    /**
+     * Whether every successful response is plain text with a string schema.
+     * A contract that mixes text with another media type keeps model decoding.
+     */
+    protected function hasTextResponse(Operation $operation, ?Specification $spec): bool
+    {
+        $text = false;
+        foreach ($operation->responses as $status => $response) {
+            $status = (int) $status;
+            if ($status < 200 || $status >= 300) {
+                continue;
+            }
+            foreach ($response->content as $contentType => $mediaType) {
+                $schema = $mediaType->schema;
+                if ($schema !== null && $spec instanceof Specification) {
+                    $schema = $spec->resolveSchema($schema);
+                }
+                $mediaTypeName = \strtolower(\trim(\explode(';', $contentType)[0]));
+                if ($mediaTypeName !== self::TEXT_MEDIA_TYPE || !$schema instanceof StringSchema) {
+                    return false;
+                }
+                $text = true;
+            }
+        }
+        return $text;
     }
 
     /**

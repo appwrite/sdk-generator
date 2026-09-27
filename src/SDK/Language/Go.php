@@ -6,7 +6,6 @@ use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
-use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
@@ -464,29 +463,13 @@ class Go extends Language
     protected function getReturnType(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string
     {
         $type = $this->getMethodType($method, $spec);
-        if ($type === 'webAuth') {
+        if ($type === self::METHOD_TYPE_WEB_AUTH) {
             return 'bool';
         }
-        if ($type === 'location') {
+        if ($type === self::METHOD_TYPE_LOCATION) {
             return '[]byte';
         }
-        $hasTextResponse = false;
-        $hasOtherResponse = false;
-        foreach ($method->responses as $status => $response) {
-            if ((int) $status < 200 || (int) $status >= 300) {
-                continue;
-            }
-            foreach ($response->content as $contentType => $mediaType) {
-                $schema = $mediaType->schema;
-                if ($contentType === 'text/plain' && $schema !== null && $spec->resolveSchema($schema) instanceof StringSchema) {
-                    $hasTextResponse = true;
-                } else {
-                    $hasOtherResponse = true;
-                }
-            }
-        }
-        // Mixed response contracts must retain their existing model/union decoding.
-        if ($hasTextResponse && !$hasOtherResponse) {
+        if ($type === self::METHOD_TYPE_TEXT) {
             return 'string';
         }
         $models = \array_values(\array_filter(
