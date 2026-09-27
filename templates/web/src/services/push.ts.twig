@@ -1,9 +1,8 @@
-import { Buffer } from 'buffer';
-import mqtt, {
-    type IClientOptions,
-    type IConnackPacket,
-    type IPublishPacket,
-    type MqttClient,
+import type {
+    IClientOptions,
+    IConnackPacket,
+    IPublishPacket,
+    MqttClient,
 } from 'mqtt';
 
 import { Client } from '../client';
@@ -52,6 +51,30 @@ export interface PushSubscription {
 
 type AuthMethod = 'appwrite-jwt' | 'appwrite-session' | '';
 
+interface Transport {
+    connect: typeof import('mqtt').connect;
+    Buffer: typeof import('buffer').Buffer;
+}
+
+// Loaded on first connect, so an app that never uses Push does not bundle mqtt.js.
+let transport: Promise<Transport> | null = null;
+
+function loadTransport(): Promise<Transport> {
+    if (!transport) {
+        transport = Promise.all([import('mqtt'), import('buffer')]).then(
+            ([mqtt, buffer]) => ({
+                connect: mqtt.connect,
+                Buffer: buffer.Buffer,
+            }),
+        );
+        // A failed load must not poison later connects.
+        transport.catch(() => {
+            transport = null;
+        });
+    }
+    return transport;
+}
+
 // Fixed connection tuning — not exposed as options.
 const KEEP_ALIVE_SECONDS = 60;
 const RECONNECT_PERIOD_MS = 2000;
@@ -80,6 +103,9 @@ const RECONNECT_PERIOD_MS = 2000;
 export class Push extends Service {
     private mqtt: MqttClient | null = null;
     private connecting: Promise<void> | null = null;
+    private Buffer: Transport['Buffer'] | null = null;
+    /** Bumped by close(), so a connect still loading mqtt.js knows to stop. */
+    private generation = 0;
     /** Set once the first CONNACK lands, so 'connect' events after are reconnects. */
     private everConnected = false;
 
@@ -417,6 +443,7 @@ export class Push extends Service {
             this.mqtt = null;
         }
         this.connecting = null;
+        this.generation++;
         this.everConnected = false;
         this.subscriptions.clear();
     }
@@ -512,6 +539,13 @@ export class Push extends Service {
                 : userIdFromSession(credential)) ||
             this.fallbackClientId;
 
+        const generation = this.generation;
+        const { connect, Buffer } = await loadTransport();
+        if (generation !== this.generation) {
+            throw new Error('Push was closed while connecting.');
+        }
+        this.Buffer = Buffer;
+
         const options: IClientOptions = {
             clientId,
             protocolVersion: 5,
@@ -527,7 +561,7 @@ export class Push extends Service {
             },
         };
 
-        const client = mqtt.connect(this.endpointUrl(), options);
+        const client = connect(this.endpointUrl(), options);
         this.mqtt = client;
 
         client.on('message', (_topic, _payload, packet) => {
@@ -627,6 +661,7 @@ export class Push extends Service {
 
     /** Fan a delivered packet out to every subscription whose filter matches. */
     private async dispatch(packet: IPublishPacket): Promise<void> {
+        const Buffer = this.Buffer!;
         const payload = Buffer.isBuffer(packet.payload)
             ? packet.payload
             : Buffer.from(packet.payload);
@@ -696,11 +731,9 @@ function userIdFromJwt(jwt?: string): string {
         return '';
     }
     try {
-        const json = Buffer.from(
-            parts[1].replace(/-/g, '+').replace(/_/g, '/'),
-            'base64',
-        ).toString('utf-8');
-        const payload = JSON.parse(json);
+        const payload = JSON.parse(
+            decodeBase64(parts[1].replace(/-/g, '+').replace(/_/g, '/')),
+        );
         return typeof payload.userId === 'string' ? payload.userId : '';
     } catch {
         return '';
@@ -716,13 +749,18 @@ function userIdFromSession(session?: string): string {
         return '';
     }
     try {
-        const payload = JSON.parse(
-            Buffer.from(session, 'base64').toString('utf-8'),
-        );
+        const payload = JSON.parse(decodeBase64(session));
         return typeof payload.id === 'string' ? payload.id : '';
     } catch {
         return '';
     }
+}
+
+/** Base64 to UTF-8 text without `buffer`, which only loads once Push connects. */
+function decodeBase64(value: string): string {
+    return new TextDecoder().decode(
+        Uint8Array.from(atob(value), (char) => char.charCodeAt(0)),
+    );
 }
 
 /** A hex id, uuid4-like enough for a client-generated client id suffix. */
