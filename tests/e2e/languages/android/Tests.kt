@@ -211,6 +211,8 @@ class ServiceTest {
             val zone: String = Plaintext(client).getZone()
             writeToFile(zone)
             writeToFile(general.getMixed().result)
+            writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1"))
+            writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1", InputFile.fromPath("../../../../resources/file.png")))
 
             val message = "conversation without a required file"
             writeToFile(general.optionalUpload(message).result)
