@@ -24,6 +24,8 @@ final class FlutterStableTest extends Base
     protected string $class = Flutter::class;
     #[Override]
     protected array $build = [
+        // The SDK's generated unit tests, over the same fixture spec, before the e2e script joins test/.
+        'docker run --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter pub get && flutter test"',
         'mkdir -p tests/e2e/sdks/flutter/test',
         'cp tests/e2e/languages/flutter/tests.dart tests/e2e/sdks/flutter/test/appwrite_test.dart',
         // The native Android plugin's background delivery: a Robolectric project compiling the

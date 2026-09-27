@@ -24,7 +24,9 @@ final class PHP85Test extends Base
     protected string $class = PHP::class;
     #[Override]
     protected array $build = [
-        'composer install --working-dir=tests/e2e/sdks/php --no-interaction --no-dev --prefer-dist',
+        'composer install --working-dir=tests/e2e/sdks/php --no-interaction --prefer-dist',
+        // The SDK's generated unit tests, over the same fixture spec.
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/php php:8.5-cli-alpine vendor/bin/phpunit',
     ];
     #[Override]
     protected string $command =
