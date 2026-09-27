@@ -170,6 +170,10 @@ async function start() {
     console.log(zone);
     console.log((await general.getMixed()).result);
 
+    const plaintext = new Plaintext(client);
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1'));
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1', InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png')));
+
     // Optional multipart attachment: positional and object overloads.
     const message = 'conversation without a required file';
     for (const send of [

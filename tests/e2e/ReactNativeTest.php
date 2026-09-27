@@ -50,6 +50,7 @@ final class ReactNativeTest extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::OPTIONAL_UPLOAD_RESPONSES,
         ...Base::UPLOAD_RESPONSE,

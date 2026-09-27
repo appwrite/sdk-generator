@@ -45,6 +45,7 @@ final class WebChromiumTest extends Base
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
         ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::OPTIONAL_UPLOAD_RESPONSES,
         ...Base::UPLOAD_RESPONSE,
         ...Base::LARGE_FILE_RESPONSES,

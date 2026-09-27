@@ -149,16 +149,20 @@ import {
     console.log(zone);
     console.log((await general.getMixed()).result);
 
-    // Download
-    console.log(new TextDecoder().decode(await general.download()));
-
-    // Upload
     const smallFile = {
         name: 'file.png',
         type: 'image/png',
         size: 38756,
         uri: 'http://localhost:3000/file.png',
     };
+    const plaintext = new Plaintext(client);
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1'));
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1', smallFile));
+
+    // Download
+    console.log(new TextDecoder().decode(await general.download()));
+
+    // Upload
     const largeFile = {
         name: 'large_file.mp4',
         type: 'video/mp4',
