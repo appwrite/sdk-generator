@@ -184,6 +184,11 @@ namespace AppwriteTests
                 throw new System.Exception($"Unexpected mixed response: {mixed.Result}");
             }
 
+            mock = await general.OptionalUpload("conversation without a required file");
+            LogResult(mock.Result);
+            mock = await general.OptionalUpload("conversation without a required file", InputFile.FromPath("../../../resources/file.png"));
+            LogResult(mock.Result);
+
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../resources/file.png"));
             LogResult(mock.Result);
 

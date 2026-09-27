@@ -747,10 +747,22 @@ namespace {{ spec.info.title | caseUcfirst }}
             if (string.IsNullOrEmpty(paramName))
                 throw new ArgumentException("Parameter name cannot be null or empty", nameof(paramName));
 
-            if (!parameters.ContainsKey(paramName))
-                throw new ArgumentException($"Parameter {paramName} not found", nameof(paramName));
+            if (!parameters.TryGetValue(paramName, out var value) || value == null)
+            {
+                // An omitted optional attachment leaves a plain multipart request.
+                return await Call(
+                    method: "POST",
+                    path,
+                    new Dictionary<string, string>(headers)
+                    {
+                        ["Content-Type"] = "multipart/form-data"
+                    },
+                    parameters,
+                    converter
+                );
+            }
 
-            var input = parameters[paramName] as InputFile;
+            var input = value as InputFile;
             if (input == null)
                 throw new ArgumentException($"Parameter {paramName} must be an InputFile", nameof(paramName));
 
