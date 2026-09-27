@@ -115,6 +115,18 @@ abstract class Base extends TestCase
         'required-file:rejected',
     ];
 
+    protected const OPTIONAL_ATTACHMENT_RESPONSES = [
+        'optional-upload:without-file',
+        'optional-upload:with-file',
+    ];
+
+    protected const TEXT_RESPONSES = [
+        '; café zone',
+        'www 3600 IN A 192.0.2.1',
+        '',
+        'mixed-model',
+    ];
+
     protected const UPLOAD_RESPONSE = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];

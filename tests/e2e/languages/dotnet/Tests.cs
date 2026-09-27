@@ -87,16 +87,8 @@ namespace AppwriteTests
             TestContext.WriteLine((await general.ValidatePath("0", "0")).Result);
 
             string zone = await new Plaintext(client).GetZone();
-            if (zone != "; café zone\nwww 3600 IN A 192.0.2.1\n")
-            {
-                throw new System.Exception($"Unexpected zone text: {zone}");
-            }
-            TestContext.WriteLine("Zone text:passed");
-            var mixed = await general.GetMixed();
-            if (mixed.Result != "mixed-model")
-            {
-                throw new System.Exception($"Unexpected mixed response: {mixed.Result}");
-            }
+            TestContext.WriteLine(zone);
+            TestContext.WriteLine((await general.GetMixed()).Result);
 
             mock = await general.OptionalUpload("conversation without a required file");
             TestContext.WriteLine(mock.Result);

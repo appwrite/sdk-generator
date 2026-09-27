@@ -209,10 +209,8 @@ class ServiceTest {
             writeToFile(general.validatePath("0", null).result)
 
             val zone: String = Plaintext(client).getZone()
-            check(zone == "; café zone\nwww 3600 IN A 192.0.2.1\n") { "Unexpected zone text: $zone" }
-            writeToFile("Zone text:passed")
-            val mixed = general.getMixed()
-            check(mixed.result == "mixed-model") { "Unexpected mixed response: ${mixed.result}" }
+            writeToFile(zone)
+            writeToFile(general.getMixed().result)
 
             val message = "conversation without a required file"
             writeToFile(general.optionalUpload(message).result)

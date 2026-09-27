@@ -185,15 +185,8 @@ foreach ([['', '0'], ['0', '']] as [$id, $plain]) {
 echo $general->validatePath('0', '0')->result . "\n";
 
 $zone = new Plaintext($client)->getZone();
-if ($zone !== "; café zone\nwww 3600 IN A 192.0.2.1\n") {
-    throw new RuntimeException('Unexpected zone text: ' . var_export($zone, true));
-}
-echo "Zone text:passed\n";
-
-$mixed = $general->getMixed();
-if ($mixed->result !== 'mixed-model') {
-    throw new RuntimeException('Unexpected mixed response: ' . var_export($mixed, true));
-}
+echo $zone . "\n";
+echo $general->getMixed()->result . "\n";
 
 $response = $general->getUnion();
 echo $response->result . "\n";

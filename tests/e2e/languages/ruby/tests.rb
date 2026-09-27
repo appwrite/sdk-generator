@@ -67,12 +67,10 @@ end
 puts general.validate_path(id: '0', plain: '0').result
 
 zone = Plaintext.new(client).get_zone
-unless zone.is_a?(String) && zone == "; café zone\nwww 3600 IN A 192.0.2.1\n"
-    raise "Unexpected zone text: #{zone.inspect}"
-end
-puts 'Zone text:passed'
-mixed = general.get_mixed
-raise "Unexpected mixed response: #{mixed.inspect}" unless mixed.result == 'mixed-model'
+raise "Expected zone text as String, got #{zone.class}" unless zone.is_a?(String)
+# puts adds no newline after text that already ends in one.
+print zone, "\n"
+puts general.get_mixed.result
 
 message = 'conversation without a required file'
 puts general.optional_upload(message: message).result
