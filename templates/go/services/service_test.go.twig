@@ -123,10 +123,17 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% for definitionName, definition in definitions %}
 {% if definitionName == responseModelName %}
 {% set discriminatorConditions = responseDiscriminator[responseModelName] ?? {} %}
+{% set requiredProperties = definition.properties | filter((param) => param | schemaRequired) %}
+{% set requiredNames = requiredProperties | map((param) => param | schemaName) %}
+{# A union branch can add conditions on properties its model does not declare. #}
+{% set extraConditions = discriminatorConditions | filter((value, name) => name not in requiredNames) %}
 		mockResponse := `
 {
-{% for property in definition.properties | filter((param) => param | schemaRequired) %}
-    "{{ (property | schemaName) | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": {% if discriminatorConditions[(property | schemaName)] is defined %}"{{ discriminatorConditions[(property | schemaName)] | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}"{% else %}{{ _self.render_json_value(definitions, property, spec, '    ') | trim | raw }}{% endif %}{% if not loop.last %},{% endif %}{{ "\n" -}}
+{% for property in requiredProperties %}
+    "{{ (property | schemaName) | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": {% if discriminatorConditions[(property | schemaName)] is defined %}"{{ discriminatorConditions[(property | schemaName)] | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}"{% else %}{{ _self.render_json_value(definitions, property, spec, '    ') | trim | raw }}{% endif %}{% if not loop.last or extraConditions is not empty %},{% endif %}{{ "\n" -}}
+{% endfor %}
+{% for name, value in extraConditions %}
+    "{{ name | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": "{{ value | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}"{% if not loop.last %},{% endif %}{{ "\n" -}}
 {% endfor %}
 }
 `
@@ -192,7 +199,8 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% elseif (parameter | schemaType) == 'boolean' %}
 {% set val = 'true' %}
 {% elseif (parameter | schemaType) == 'string' %}
-{% set val = '"' ~ ((parameter | schemaExample) | replace({'\\': '\\\\', '"': '\\"'}) | raw) ~ '"' %}
+{# The service rejects an empty required path string, so fall back to the parameter name. #}
+{% set val = '"' ~ ((parameter | schemaExample) | default(parameter.name) | replace({'\\': '\\\\', '"': '\\"'}) | raw) ~ '"' %}
 {% elseif (parameter | schemaType) == 'integer' %}
 {% set val = '1' %}
 {% elseif (parameter | schemaType) == 'number' %}
