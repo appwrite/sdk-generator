@@ -95,6 +95,12 @@ class Tests: XCTestCase {
         print(zone)
         let mixed: Mock = try await general.getMixed()
         print(mixed.result)
+        let plaintext = Plaintext(client)
+        var imported: String = try await plaintext.importZone(records: "www 3600 IN A 192.0.2.1")
+        print(imported)
+        let zoneFile = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
+        imported = try await plaintext.importZone(records: "www 3600 IN A 192.0.2.1", zone: zoneFile)
+        print(imported)
 
         let message = "conversation without a required file"
         mock = try await general.optionalUpload(message: message)
