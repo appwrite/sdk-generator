@@ -41,6 +41,8 @@ final class PHP85Test extends Base
         'compound specialization: passed',
         'compound fallback: passed',
         'compound invalid response: passed',
+        'optional-upload:without-file',
+        'optional-upload:with-file',
         ...Base::UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
