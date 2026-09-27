@@ -370,7 +370,7 @@ class Client @JvmOverloads constructor(
         headers: MutableMap<String, String>,
         params: MutableMap<String, Any?>,
         responseType: Class<T>,
-        converter: ((Any) -> T),
+        converter: ((Any) -> T)? = null,
         paramName: String,
         idParamName: String? = null,
         onProgress: ((UploadProgress) -> Unit)? = null,
@@ -396,7 +396,7 @@ class Client @JvmOverloads constructor(
             else -> throw UnsupportedOperationException()
         }
 
-        if (size < CHUNK_SIZE) {
+        if (size < CHUNK_SIZE || responseType == String::class.java) {
             val data = when (input.sourceType) {
                 "file", "path" -> File(input.path).asRequestBody()
                 "bytes" -> (input.data as ByteArray).toRequestBody(input.mimeType.toMediaType())
@@ -562,7 +562,7 @@ class Client @JvmOverloads constructor(
             result = completedResultRef.get() ?: lastResultRef.get()
         }
 
-        return converter(result as Map<String, Any>)
+        return converter?.invoke(result as Map<String, Any>) ?: result as T
     }
 
     /**

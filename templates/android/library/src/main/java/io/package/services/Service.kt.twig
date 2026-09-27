@@ -228,9 +228,9 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             {%~ if (method | responseModel) %}
             converter,
             {%~ endif %}
-            paramName,
-            idParamName,
-            onProgress,
+            paramName = paramName,
+            idParamName = idParamName,
+            onProgress = onProgress,
         )
         {%~ else %}
         return client.call(
