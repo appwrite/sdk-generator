@@ -41,6 +41,8 @@ final class KotlinJava17Test extends Base
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::NULL_PATH_RESPONSE,
         'Zone text:passed',
+        'optional-upload:without-file',
+        'optional-upload:with-file',
         ...Base::UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,

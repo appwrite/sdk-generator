@@ -120,6 +120,10 @@ class ServiceTest {
             val mixed = general.getMixed()
             check(mixed.result == "mixed-model") { "Unexpected mixed response: ${mixed.result}" }
 
+            val message = "conversation without a required file"
+            writeToFile(general.optionalUpload(message).result)
+            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../resources/file.png")).result)
+
             try {
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../resources/file.png"))
                 writeToFile(mock.result)

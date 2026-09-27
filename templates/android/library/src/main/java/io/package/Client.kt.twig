@@ -375,7 +375,7 @@ class Client @JvmOverloads constructor(
 
             filteredParams.forEach {
                 when {
-                    it.key == "file" -> {
+                    it.value is MultipartBody.Part -> {
                         builder.addPart(it.value as MultipartBody.Part)
                     }
                     it.value is List<*> -> {
@@ -449,6 +449,17 @@ class Client @JvmOverloads constructor(
         idParamName: String? = null,
         onProgress: ((UploadProgress) -> Unit)? = null,
     ): T {
+        if (params[paramName] == null) {
+            // An omitted optional file leaves a plain multipart request.
+            return call(
+                method = "POST",
+                path,
+                headers,
+                params,
+                responseType,
+                converter
+            )
+        }
         val input = params[paramName] as InputFile
         val size: Long = when (input.sourceType) {
             "path", "file" -> {
