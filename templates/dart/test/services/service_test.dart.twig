@@ -1,5 +1,34 @@
 {# A request model is typed, so a test builds one from its required properties. #}
-{% macro request_model(requestModels, definitions, name, indent) %}{% set model = requestModels[name] ?? definitions[name] ?? null %}{% set requiredProperties = model ? model.properties | filter(p => p | schemaRequired) : [] %}models.{{ name | caseUcfirst | overrideIdentifier }}({% if requiredProperties|length > 0 %}{{ "\n" }}{% for property in requiredProperties %}{{ indent }}  {{ (property | schemaName) | escapeKeyword }}: {% if (property | schemaType) == 'array' %}[]{% elseif (property | schemaModel) %}{{ _self.request_model(requestModels, definitions, property | schemaModel, indent ~ '  ') }}{% elseif (property | enumValues) is not empty %}enums.{{ (property | enumName) | caseUcfirst }}.{{ ((property | enumKeys)[0] ?? (property | enumValues)[0]) | caseEnumKey }}{% elseif (property | schemaType) == 'object' %}<String, dynamic>{}{% elseif (property | schemaType) == 'string' %}{{ ((property | schemaExample) | default(property | schemaName)) | dartString }}{% elseif (property | schemaType) == 'boolean' %}true{% elseif (property | schemaType) == 'number' %}1.0{% else %}1{% endif %},{{ "\n" }}{% endfor %}{{ indent }}{% endif %}){% endmacro %}
+{% macro request_model(requestModels, definitions, name, indent) -%}
+    {%- set model = requestModels[name] ?? definitions[name] ?? null -%}
+    {%- set requiredProperties = model ? model.properties | filter(p => p | schemaRequired) : [] -%}
+    models.{{ name | caseUcfirst | overrideIdentifier }}(
+    {%- for property in requiredProperties -%}
+        {{ "\n" ~ indent }}  {{ (property | schemaName) | escapeKeyword }}: {{ _self.property_value(requestModels, definitions, property, indent ~ '  ') }},
+    {%- endfor -%}
+    {%- if requiredProperties is not empty %}{{ "\n" ~ indent }}{% endif -%}
+    )
+{%- endmacro %}
+{% macro property_value(requestModels, definitions, property, indent) -%}
+    {%- set type = property | schemaType -%}
+    {%- if type == 'array' -%}
+        []
+    {%- elseif property | schemaModel -%}
+        {{ _self.request_model(requestModels, definitions, property | schemaModel, indent) }}
+    {%- elseif (property | enumValues) is not empty -%}
+        enums.{{ (property | enumName) | caseUcfirst }}.{{ ((property | enumKeys)[0] ?? (property | enumValues)[0]) | caseEnumKey }}
+    {%- elseif type == 'object' -%}
+        <String, dynamic>{}
+    {%- elseif type == 'string' -%}
+        {{ ((property | schemaExample) | default(property | schemaName)) | dartString }}
+    {%- elseif type == 'boolean' -%}
+        true
+    {%- elseif type == 'number' -%}
+        1.0
+    {%- else -%}
+        1
+    {%- endif -%}
+{%- endmacro %}
 {% macro sub_schema(definitions, property, indent = '          ', closeIndent = '        ') %}{% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}List<Map<String, dynamic>>{% else %}{% set modelDefinition = definitions[(property | schemaModel)] ?? null %}{% set requiredProperties = modelDefinition ? modelDefinition.properties | filter(p => p | schemaRequired) : [] %}<String, dynamic>{% if requiredProperties|length == 0 %}{}{% else %}{
 {% for property in requiredProperties %}{{ indent }}'{{ (property | schemaName) | escapeDollarSign }}': {% if (property | schemaType) == 'object' %}{% if (property | schemaModel) and ((property | schemaModel) != 'prefs' and (property | schemaModel) != 'preferences') %}{{ _self.sub_schema(definitions, property, indent ~ '  ', indent) }}{% else %}<String, dynamic>{}{% endif %}{% elseif (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'string' %}{{ (property | schemaExample) | dartString }}{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{ property | schemaExample }}{% endif %},
 {% endfor %}{{ closeIndent }}}{% endif %}{% endif %}{% else %}{% if (property | schemaType) == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{ property | typeName }}{% endif %}{% endif %}{% endmacro %}
