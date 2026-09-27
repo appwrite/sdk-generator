@@ -137,6 +137,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
     required String idParamName,
     required Map<String, String> headers,
     Function(UploadProgress)? onProgress,
+    ResponseType? responseType,
   }) async {
     if (params[paramName] == null) {
       return call(
@@ -144,6 +145,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
         path: path,
         params: params,
         headers: headers,
+        responseType: responseType,
       );
     }
 
@@ -166,6 +168,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
         path: path,
         params: params,
         headers: headers,
+        responseType: responseType,
       );
     }
 
