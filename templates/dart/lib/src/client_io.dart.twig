@@ -107,6 +107,16 @@ class ClientIO extends ClientBase with ClientMixin {
     required Map<String, String> headers,
     Function(UploadProgress)? onProgress,
   }) async {
+    if (params[paramName] == null) {
+      // An omitted optional file leaves a plain multipart request.
+      return call(
+        HttpMethod.post,
+        path: path,
+        params: params,
+        headers: headers,
+      );
+    }
+
     InputFile file = params[paramName];
     if (file.path == null && file.bytes == null) {
       throw {{spec.info.title | caseUcfirst}}Exception("File path or bytes must be provided");

@@ -155,6 +155,15 @@ void main() async {
   final mixed = await general.getMixed();
   print(mixed.result);
 
+  const message = 'conversation without a required file';
+  var optional = await general.optionalUpload(message: message);
+  print(optional.result);
+  optional = await general.optionalUpload(
+    message: message,
+    attachment: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'),
+  );
+  print(optional.result);
+
   var file = InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
