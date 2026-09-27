@@ -219,11 +219,12 @@ abstract class JS extends Language
         }
 
         $type = $this->toPascalCase($this->getSchemaEnumName($parameter, $spec));
-        if ($this->isOpenStringEnum($parameter)) {
-            $type = '(' . $type . ' | (string & {}))';
+        if (!$this->isOpenStringEnum($parameter)) {
+            return $schema instanceof ArraySchema ? $type . '[]' : $type;
         }
 
-        return $schema instanceof ArraySchema ? $type . '[]' : $type;
+        $type .= ' | (string & {})';
+        return $schema instanceof ArraySchema ? '(' . $type . ')[]' : $type;
     }
 
     /**
