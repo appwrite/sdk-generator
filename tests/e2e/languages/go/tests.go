@@ -150,6 +150,19 @@ func testGeneralService(client client.Client, stringInArray []string) {
 		panic(fmt.Sprintf("unexpected mixed response: %v, %v", mixed, err))
 	}
 
+	message := "conversation without a required file"
+	optional, err := general.OptionalUpload(message)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(optional.Result)
+	attachment := file.NewInputFile(path.Join("/app", "tests/resources/file.png"), "file.png")
+	optional, err = general.OptionalUpload(message, general.WithOptionalUploadAttachment(attachment))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(optional.Result)
+
 	testGeneralUpload(client, stringInArray)
 	testGeneralUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)
