@@ -22,14 +22,18 @@ class _Subscription {
   String? title;
   bool retry;
 
-  _Subscription(this.filter, this.callback,
-      {this.background = false, this.title, this.retry = true});
+  _Subscription(
+    this.filter,
+    this.callback, {
+    this.background = false,
+    this.title,
+    this.retry = true,
+  });
 }
 
 class _SubscriptionHandle implements PushSubscription {
   final void Function() _unsubscribe;
-  final void Function({bool? background, String? title, bool? retry})
-      _update;
+  final void Function({bool? background, String? title, bool? retry}) _update;
 
   _SubscriptionHandle(this._unsubscribe, this._update);
 
@@ -38,10 +42,7 @@ class _SubscriptionHandle implements PushSubscription {
 
   @override
   void update({bool? background, String? title, bool? retry}) =>
-      _update(
-          background: background,
-          title: title,
-          retry: retry);
+      _update(background: background, title: title, retry: retry);
 }
 
 // Fixed connection tuning — not exposed as an option.
@@ -86,13 +87,13 @@ class PushWeb implements Push {
     // Secure by default: WSS on when the endpoint scheme is secure, so the credential in the
     // CONNECT packet is not sent over a plaintext socket.
     final resolvedTls = _secureScheme(pushEndpoint);
-    final resolvedPort =
-        _pushEndpointPort(client) ?? (resolvedTls ? 443 : 80);
+    final resolvedPort = _pushEndpointPort(client) ?? (resolvedTls ? 443 : 80);
     // When no explicit push endpoint is set, default to a `push.` host on the regular
     // endpoint (mirroring how realtime derives from the endpoint, on the push subdomain).
-    final resolvedHost = client.config['endpointPush'] != null
-        ? _hostOf(pushEndpoint)
-        : 'push.${_hostOf(pushEndpoint)}';
+    final resolvedHost =
+        client.config['endpointPush'] != null
+            ? _hostOf(pushEndpoint)
+            : 'push.${_hostOf(pushEndpoint)}';
     return PushWeb._(
       client,
       host: resolvedHost,
@@ -108,10 +109,10 @@ class PushWeb implements Push {
     required int port,
     required bool tls,
     required String path,
-  })  : _host = host,
-        _port = port,
-        _tls = tls,
-        _path = path;
+  }) : _host = host,
+       _port = port,
+       _tls = tls,
+       _path = path;
 
   // Empty when the app did not set one: the broker derives a stable id server-side (keyed on
   // the credential/project) so the replay cursor resumes across reloads.
@@ -172,8 +173,9 @@ class PushWeb implements Push {
   // The broker subscription for a filter uses the highest QoS any subscription on it wants,
   // so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
   MqttQos _effectiveQos(String filter) {
-    final reliable = _subscriptions.values
-        .any((s) => s.filter == filter && s.retry);
+    final reliable = _subscriptions.values.any(
+      (s) => s.filter == filter && s.retry,
+    );
     return reliable ? MqttQos.atLeastOnce : MqttQos.atMostOnce;
   }
 
@@ -220,8 +222,12 @@ class PushWeb implements Push {
     try {
       callback(error);
     } catch (callbackError, stackTrace) {
-      developer.log('Push onError threw',
-          name: '{{ spec.info.title | caseLower }}', error: callbackError, stackTrace: stackTrace);
+      developer.log(
+        'Push onError threw',
+        name: '{{ spec.info.title | caseLower }}',
+        error: callbackError,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -268,8 +274,9 @@ class PushWeb implements Push {
           maybeDowngrade.add(entry.filter);
         }
         // Only unsubscribe the broker filter once its last local callback is gone.
-        final stillUsed =
-            _subscriptions.values.any((s) => s.filter == entry?.filter);
+        final stillUsed = _subscriptions.values.any(
+          (s) => s.filter == entry?.filter,
+        );
         if (entry != null && !stillUsed) {
           try {
             _mqtt?.unsubscribeStringTopic(entry.filter);
@@ -410,9 +417,11 @@ class PushWeb implements Push {
       _connecting = connecting;
       // A failed open must not poison future attempts — clear the cached in-flight
       // future so a later subscribe/publish can retry.
-      unawaited(connecting.catchError((Object _) {
-        _connecting = null;
-      }));
+      unawaited(
+        connecting.catchError((Object _) {
+          _connecting = null;
+        }),
+      );
     }
     return connecting.then((_) => _mqtt!);
   }
@@ -431,7 +440,8 @@ class PushWeb implements Push {
       credential = session;
     } else {
       throw {{spec.info.title | caseUcfirst}}Exception(
-          'No credential set on the client; call Client.setJWT() or Client.setSession() first.');
+        'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
+      );
     }
 
     final project = client.config['project'] ?? '';
@@ -442,8 +452,11 @@ class PushWeb implements Push {
     final clientId = _resolvedClientId;
 
     final scheme = _tls ? 'wss' : 'ws';
-    final mqtt =
-        MqttBrowserClient.withPort('$scheme://$_host$_path', clientId, _port);
+    final mqtt = MqttBrowserClient.withPort(
+      '$scheme://$_host$_path',
+      clientId,
+      _port,
+    );
     mqtt.keepAlivePeriod = _keepAliveSeconds;
     // The broker negotiates the "mqtt" WebSocket subprotocol; offer exactly that so the
     // handshake succeeds (a browser rejects the socket when the subprotocol is not echoed).
@@ -609,8 +622,11 @@ Future<Object?> _connectOrFail(
 /// Tear down a client whose connect failed. After a refusal [refusedStatus] is its status:
 /// connect() only stops waiting once the status reads connected, so mark it so until
 /// connect() returns, then disconnected again.
-Future<void> _teardown(MqttClient mqtt, Future<Object?> connecting,
-    MqttConnectionStatus? refusedStatus) async {
+Future<void> _teardown(
+  MqttClient mqtt,
+  Future<Object?> connecting,
+  MqttConnectionStatus? refusedStatus,
+) async {
   if (refusedStatus != null) {
     refusedStatus.state = MqttConnectionState.connected;
     try {
@@ -752,9 +768,10 @@ String _userTopic(Client client) {
   final session = client.config['session'];
   // The credential the connection authenticates with: the JWT when one is set (never the
   // session, which could belong to a different user), else the session.
-  final userId = (jwt != null && jwt.isNotEmpty)
-      ? _userIdFromJwt(jwt)
-      : _userIdFromSession(session);
+  final userId =
+      (jwt != null && jwt.isNotEmpty)
+          ? _userIdFromJwt(jwt)
+          : _userIdFromSession(session);
   if (userId == null) {
     throw {{spec.info.title | caseUcfirst}}Exception(
       'subscribe() without a topic needs a signed-in user: set a JWT or session on the client',

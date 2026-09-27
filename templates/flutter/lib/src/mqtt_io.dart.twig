@@ -23,14 +23,18 @@ class _Subscription {
   String? title;
   bool retry;
 
-  _Subscription(this.filter, this.callback,
-      {this.background = false, this.title, this.retry = true});
+  _Subscription(
+    this.filter,
+    this.callback, {
+    this.background = false,
+    this.title,
+    this.retry = true,
+  });
 }
 
 class _SubscriptionHandle implements PushSubscription {
   final void Function() _unsubscribe;
-  final void Function({bool? background, String? title, bool? retry})
-      _update;
+  final void Function({bool? background, String? title, bool? retry}) _update;
 
   _SubscriptionHandle(this._unsubscribe, this._update);
 
@@ -39,10 +43,7 @@ class _SubscriptionHandle implements PushSubscription {
 
   @override
   void update({bool? background, String? title, bool? retry}) =>
-      _update(
-          background: background,
-          title: title,
-          retry: retry);
+      _update(background: background, title: title, retry: retry);
 }
 
 // Fixed connection tuning — not exposed as an option.
@@ -125,9 +126,10 @@ class PushIO implements Push {
         _pushEndpointPort(client) ?? (resolvedTls ? 8883 : 1883);
     // When no explicit push endpoint is set, default to a `push.` host on the regular
     // endpoint (mirroring how realtime derives from the endpoint, on the push subdomain).
-    final resolvedHost = client.config['endpointPush'] != null
-        ? _hostOf(pushEndpoint)
-        : 'push.${_hostOf(pushEndpoint)}';
+    final resolvedHost =
+        client.config['endpointPush'] != null
+            ? _hostOf(pushEndpoint)
+            : 'push.${_hostOf(pushEndpoint)}';
     return PushIO._(
       client,
       host: resolvedHost,
@@ -143,10 +145,10 @@ class PushIO implements Push {
     required int port,
     required bool tls,
     required bool tlsInsecure,
-  })  : _host = host,
-        _port = port,
-        _tls = tls,
-        _tlsInsecure = tlsInsecure {
+  }) : _host = host,
+       _port = port,
+       _tls = tls,
+       _tlsInsecure = tlsInsecure {
     // Resume background delivery saved by an earlier run now, instead of at its next
     // scheduled wake-up.
     unawaited(_native?.resume().catchError(_report));
@@ -276,8 +278,12 @@ class PushIO implements Push {
     try {
       callback(error);
     } catch (callbackError, stackTrace) {
-      developer.log('Push onError threw',
-          name: '{{ spec.info.title | caseLower }}', error: callbackError, stackTrace: stackTrace);
+      developer.log(
+        'Push onError threw',
+        name: '{{ spec.info.title | caseLower }}',
+        error: callbackError,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -312,8 +318,13 @@ class PushIO implements Push {
     for (final topic in topicList) {
       final id = _randomId();
       ids.add(id);
-      _subscriptions[id] = _Subscription(topic, callback,
-          background: wantsBackground, title: title, retry: retry);
+      _subscriptions[id] = _Subscription(
+        topic,
+        callback,
+        background: wantsBackground,
+        title: title,
+        retry: retry,
+      );
     }
 
     try {
@@ -350,11 +361,8 @@ class PushIO implements Push {
 
     return _SubscriptionHandle(
       () => _unsubscribeIds(ids),
-      ({bool? background, String? title, bool? retry}) => _updateIds(
-          ids,
-          background: background,
-          title: title,
-          retry: retry),
+      ({bool? background, String? title, bool? retry}) =>
+          _updateIds(ids, background: background, title: title, retry: retry),
     );
   }
 
@@ -433,8 +441,9 @@ class PushIO implements Push {
       'credential': credential,
       'project': client.config['project'] ?? '',
     };
-    await native
-        .setErrorCallback(_nativeHosts.any((push) => push._onError != null));
+    await native.setErrorCallback(
+      _nativeHosts.any((push) => push._onError != null),
+    );
     await native.host(jsonEncode(config), jsonEncode(subscriptions));
   }
 
@@ -463,8 +472,13 @@ class PushIO implements Push {
           return;
         }
         try {
-          sub.callback(PushMessage(
-              topic: message.topic, payload: message.payload, qos: message.qos));
+          sub.callback(
+            PushMessage(
+              topic: message.topic,
+              payload: message.payload,
+              qos: message.qos,
+            ),
+          );
         } catch (e) {
           _report(e);
         }
@@ -503,15 +517,15 @@ class PushIO implements Push {
 
   // This Push's subscriptions in the native plugin's format.
   List<Map<String, Object?>> get _nativeEntries => [
-        for (final entry in _subscriptions.entries)
-          {
-            'id': entry.key,
-            'topic': entry.value.filter,
-            'background': entry.value.background,
-            'title': entry.value.title,
-            'retry': entry.value.retry,
-          },
-      ];
+    for (final entry in _subscriptions.entries)
+      {
+        'id': entry.key,
+        'topic': entry.value.filter,
+        'background': entry.value.background,
+        'title': entry.value.title,
+        'retry': entry.value.retry,
+      },
+  ];
 
   // After an unsubscribe or update on Android: keep the native plugin hosting while any
   // subscription, live (of any Push) or saved, wants background, else move the live ones back
@@ -524,7 +538,8 @@ class PushIO implements Push {
       }
       return;
     }
-    final wanted = {..._nativeHosts, this}.any((push) => push._backgroundWanted) ||
+    final wanted =
+        {..._nativeHosts, this}.any((push) => push._backgroundWanted) ||
         await native.hasSaved();
     if (wanted) {
       await _hostNative();
@@ -571,22 +586,27 @@ class PushIO implements Push {
   // matching in-app callback (so callbacks still fire while the app is alive, background or
   // not). Idempotent.
   void _attachServiceListener() {
-    _serviceListener ??=
-        FlutterBackgroundService().on(pushForegroundMessageEvent).listen((data) {
-      if (data == null) {
-        return;
-      }
-      final topic = data['topic'] as String? ?? '';
-      final payload =
-          Uint8List.fromList(utf8.encode(data['payload'] as String? ?? ''));
-      final message =
-          PushMessage(topic: topic, payload: payload, qos: data['qos'] as int? ?? 0);
-      for (final sub in _subscriptions.values) {
-        if (_matches(sub.filter, topic)) {
-          sub.callback(message);
-        }
-      }
-    });
+    _serviceListener ??= FlutterBackgroundService()
+        .on(pushForegroundMessageEvent)
+        .listen((data) {
+          if (data == null) {
+            return;
+          }
+          final topic = data['topic'] as String? ?? '';
+          final payload = Uint8List.fromList(
+            utf8.encode(data['payload'] as String? ?? ''),
+          );
+          final message = PushMessage(
+            topic: topic,
+            payload: payload,
+            qos: data['qos'] as int? ?? 0,
+          );
+          for (final sub in _subscriptions.values) {
+            if (_matches(sub.filter, topic)) {
+              sub.callback(message);
+            }
+          }
+        });
     // The isolate's own connection/subscribe errors, relayed as their message.
     _serviceErrorListener ??= FlutterBackgroundService()
         .on(pushForegroundErrorEvent)
@@ -606,8 +626,7 @@ class PushIO implements Push {
     _serviceErrorListener = null;
   }
 
-  bool get _backgroundWanted =>
-      _subscriptions.values.any((s) => s.background);
+  bool get _backgroundWanted => _subscriptions.values.any((s) => s.background);
 
   // The union of every subscription's filter (the isolate hosts one connection for all).
   List<String> get _backgroundTopics =>
@@ -630,8 +649,9 @@ class PushIO implements Push {
   // The broker subscription for a filter uses the highest QoS any subscription on it wants,
   // so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
   MqttQos _effectiveQos(String filter) {
-    final reliable = _subscriptions.values
-        .any((s) => s.filter == filter && s.retry);
+    final reliable = _subscriptions.values.any(
+      (s) => s.filter == filter && s.retry,
+    );
     return reliable ? MqttQos.atLeastOnce : MqttQos.atMostOnce;
   }
 
@@ -656,19 +676,19 @@ class PushIO implements Push {
 
   // Sync the running/started isolate with the current topic union and notify config.
   Future<void> _syncBackground() => _enqueueBackground(() async {
-        // Skip if background was turned off after this was queued, so a stale write can't
-        // recreate the credential file after shutdown deleted it.
-        if (!_backgroundWanted) {
-          return;
-        }
-        await syncPushForeground(
-          client,
-          serviceTitle: _defaultTitle,
-          topics: _backgroundTopics,
-          notify: _notifyConfig,
-          qos: _qosConfig,
-        );
-      });
+    // Skip if background was turned off after this was queued, so a stale write can't
+    // recreate the credential file after shutdown deleted it.
+    if (!_backgroundWanted) {
+      return;
+    }
+    await syncPushForeground(
+      client,
+      serviceTitle: _defaultTitle,
+      topics: _backgroundTopics,
+      notify: _notifyConfig,
+      qos: _qosConfig,
+    );
+  });
 
   // Enqueue the background stop after any pending config write, so the credential file is
   // always deleted last — a write queued just before shutdown cannot recreate it afterwards.
@@ -739,8 +759,9 @@ class PushIO implements Push {
         maybeDowngrade.add(entry.filter);
       }
       // Only unsubscribe the broker filter once its last local callback is gone.
-      final stillUsed =
-          _subscriptions.values.any((s) => s.filter == entry?.filter);
+      final stillUsed = _subscriptions.values.any(
+        (s) => s.filter == entry?.filter,
+      );
       if (entry != null && !stillUsed && _mqtt != null) {
         try {
           _mqtt?.unsubscribeStringTopic(entry.filter);
@@ -779,8 +800,12 @@ class PushIO implements Push {
     }
   }
 
-  void _updateIds(List<String> ids,
-      {bool? background, String? title, bool? retry}) {
+  void _updateIds(
+    List<String> ids, {
+    bool? background,
+    String? title,
+    bool? retry,
+  }) {
     for (final id in ids) {
       final sub = _subscriptions[id];
       if (sub == null) {
@@ -849,9 +874,11 @@ class PushIO implements Push {
       _connecting = connecting;
       // A failed open must not poison future attempts — clear the cached in-flight
       // future so a later subscribe/publish can retry.
-      unawaited(connecting.catchError((Object _) {
-        _connecting = null;
-      }));
+      unawaited(
+        connecting.catchError((Object _) {
+          _connecting = null;
+        }),
+      );
     }
     return connecting.then((_) => _mqtt!);
   }
@@ -867,7 +894,8 @@ class PushIO implements Push {
       return ('appwrite-session', session);
     }
     throw {{spec.info.title | caseUcfirst}}Exception(
-        'No credential set on the client; call Client.setJWT() or Client.setSession() first.');
+      'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
+    );
   }
 
   Future<void> _open() async {
@@ -882,9 +910,10 @@ class PushIO implements Push {
     // On Android the native plugin's per-user-and-install id is used when none was set, so this
     // connection and the background one share the broker session.
     final native = _native;
-    final clientId = _resolvedClientId.isEmpty && native != null
-        ? await native.defaultClientId(authMethod, credential)
-        : _resolvedClientId;
+    final clientId =
+        _resolvedClientId.isEmpty && native != null
+            ? await native.defaultClientId(authMethod, credential)
+            : _resolvedClientId;
     // The subscriptions moved to the native host while this was waiting: its connection would
     // share the host's client id and take over the broker session.
     if (epoch != _connectionEpoch) {
@@ -1063,8 +1092,11 @@ Future<Object?> _connectOrFail(
 /// Tear down a client whose connect failed. After a refusal [refusedStatus] is its status:
 /// connect() only stops waiting once the status reads connected, so mark it so until
 /// connect() returns, then disconnected again.
-Future<void> _teardown(MqttClient mqtt, Future<Object?> connecting,
-    MqttConnectionStatus? refusedStatus) async {
+Future<void> _teardown(
+  MqttClient mqtt,
+  Future<Object?> connecting,
+  MqttConnectionStatus? refusedStatus,
+) async {
   if (refusedStatus != null) {
     refusedStatus.state = MqttConnectionState.connected;
     try {
@@ -1206,9 +1238,10 @@ String _userTopic(Client client) {
   final session = client.config['session'];
   // The credential the connection authenticates with: the JWT when one is set (never the
   // session, which could belong to a different user), else the session.
-  final userId = (jwt != null && jwt.isNotEmpty)
-      ? _userIdFromJwt(jwt)
-      : _userIdFromSession(session);
+  final userId =
+      (jwt != null && jwt.isNotEmpty)
+          ? _userIdFromJwt(jwt)
+          : _userIdFromSession(session);
   if (userId == null) {
     throw {{spec.info.title | caseUcfirst}}Exception(
       'subscribe() without a topic needs a signed-in user: set a JWT or session on the client',

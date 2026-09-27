@@ -38,8 +38,16 @@ class PushNative {
   /// the plugin.
   @visibleForTesting
   PushNative.forMessenger(BinaryMessenger messenger)
-      : _methods = MethodChannel(_methodChannel, const StandardMethodCodec(), messenger),
-        _events = EventChannel(_eventChannel, const StandardMethodCodec(), messenger);
+    : _methods = MethodChannel(
+        _methodChannel,
+        const StandardMethodCodec(),
+        messenger,
+      ),
+      _events = EventChannel(
+        _eventChannel,
+        const StandardMethodCodec(),
+        messenger,
+      );
 
   /// Used instead of the plugin by [Push] instances created while it is set, in tests.
   @visibleForTesting
@@ -79,8 +87,8 @@ class PushNative {
   Future<void> resume() => _methods.invokeMethod<void>('resume');
 
   /// Record whether onError is registered; returns a refusal kept while it was not, once.
-  Future<String?> setErrorCallback(bool registered) =>
-      _methods.invokeMethod<String>('setErrorCallback', {'registered': registered});
+  Future<String?> setErrorCallback(bool registered) => _methods
+      .invokeMethod<String>('setErrorCallback', {'registered': registered});
 
   /// The default client id for a credential, so a foreground connection shares its session.
   Future<String> defaultClientId(String authMethod, String credential) async =>
@@ -95,10 +103,12 @@ class PushNative {
     required void Function(NativePushMessage message) onMessage,
     required void Function(String message) onError,
   }) {
-    final stream = _stream ??= _events
-        .receiveBroadcastStream()
-        .map((event) => event as Map<Object?, Object?>)
-        .asBroadcastStream();
+    final stream =
+        _stream ??=
+            _events
+                .receiveBroadcastStream()
+                .map((event) => event as Map<Object?, Object?>)
+                .asBroadcastStream();
     return stream.listen((event) {
       if (event['type'] == 'message') {
         onMessage(
