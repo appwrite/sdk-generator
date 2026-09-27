@@ -162,7 +162,7 @@ void main() {
       expect(response, isA<Uint8List>());
 {% elseif (method | methodType) == 'webAuth' %}
       expect(response, equals('done'));
-{% elseif (method | methodType) == 'text' %}
+{% elseif (method | textResponse) %}
       expect(response, isA<String>());
 {% elseif responseModelName %}
       expect(response, isA<models.{{ responseModelName | caseUcfirst | overrideIdentifier }}>());

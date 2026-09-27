@@ -21,7 +21,7 @@ describe('{{ service.name | caseUcfirst }}', () => {
         {%~ elseif (method | methodType) == 'location' %}
         const data = new ArrayBuffer(0);
         mockedFetch.mockImplementation(() => new Response(data));
-        {%~ elseif (method | methodType) == 'text' %}
+        {%~ elseif (method | textResponse) %}
         const data = 'text';
         mockedFetch.mockImplementation(() => new Response(data));
         {%~ else %}

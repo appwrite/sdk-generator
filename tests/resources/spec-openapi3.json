@@ -1270,7 +1270,7 @@
             "description": "Text alternative",
             "content": {"text/plain": {"schema": {"type": "string"}}}
           },
-          "201": {
+          "2XX": {
             "description": "JSON alternative",
             "content": {"application/json": {"schema": {"$ref": "#/components/schemas/mock"}}}
           }
@@ -1317,6 +1317,34 @@
           "200": {
             "description": "Text",
             "content": {"text/plain": {"schema": {"type": "string"}}}
+          }
+        }
+      }
+    },
+    "/mock/tests/general/zone-import": {
+      "post": {
+        "summary": "Import zone text",
+        "operationId": "plaintextImportZone",
+        "tags": ["plaintext"],
+        "x-appwrite": {"platforms": ["client", "server"], "scope": "public"},
+        "responses": {
+          "2XX": {
+            "description": "Import report",
+            "content": {"text/plain": {"schema": {"type": "string"}}}
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "records": {"description": "Zone records", "type": "string"},
+                  "zone": {"description": "Optional zone file", "type": "string", "format": "binary"}
+                },
+                "required": ["records"]
+              }
+            }
           }
         }
       }

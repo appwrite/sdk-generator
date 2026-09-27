@@ -29,7 +29,6 @@ abstract class Language
     public const string METHOD_TYPE_GRAPHQL = 'graphql';
     public const string METHOD_TYPE_WEB_AUTH = 'webAuth';
     public const string METHOD_TYPE_LOCATION = 'location';
-    public const string METHOD_TYPE_TEXT = 'text';
 
     public const TYPE_INTEGER = 'integer';
     public const TYPE_NUMBER = 'number';
@@ -159,7 +158,6 @@ abstract class Language
         }
 
         foreach ($operation->responses as $status => $response) {
-            $status = (int) $status;
             foreach ($response->content as $contentType => $mediaType) {
                 $schema = $mediaType->schema;
                 if ($schema !== null && $spec instanceof Specification) {
@@ -172,17 +170,13 @@ abstract class Language
                 ) {
                     continue;
                 }
-                if ($status >= 300 && $status < 400) {
+                if ($this->isStatusClass($status, 3)) {
                     return self::METHOD_TYPE_WEB_AUTH;
                 }
-                if ($status >= 200 && $status < 300) {
+                if ($this->isStatusClass($status, 2)) {
                     return self::METHOD_TYPE_LOCATION;
                 }
             }
-        }
-
-        if ($this->hasTextResponse($operation, $spec)) {
-            return self::METHOD_TYPE_TEXT;
         }
 
         return false;
@@ -192,12 +186,11 @@ abstract class Language
      * Whether every successful response is plain text with a string schema.
      * A contract that mixes text with another media type keeps model decoding.
      */
-    protected function hasTextResponse(Operation $operation, ?Specification $spec): bool
+    public function isTextResponse(Operation $operation, ?Specification $spec = null): bool
     {
         $text = false;
         foreach ($operation->responses as $status => $response) {
-            $status = (int) $status;
-            if ($status < 200 || $status >= 300) {
+            if (!$this->isStatusClass($status, 2)) {
                 continue;
             }
             foreach ($response->content as $contentType => $mediaType) {
@@ -206,13 +199,18 @@ abstract class Language
                     $schema = $spec->resolveSchema($schema);
                 }
                 $mediaTypeName = \strtolower(\trim(\explode(';', $contentType)[0]));
-                if ($mediaTypeName !== self::TEXT_MEDIA_TYPE || !$schema instanceof StringSchema) {
+                if ($mediaTypeName !== self::TEXT_MEDIA_TYPE || !$schema instanceof StringSchema || $schema->format === 'binary') {
                     return false;
                 }
                 $text = true;
             }
         }
         return $text;
+    }
+
+    protected function isStatusClass(int|string $status, int $class): bool
+    {
+        return \preg_match('/^' . $class . '(\d\d|XX)$/i', (string) $status) === 1;
     }
 
     /**

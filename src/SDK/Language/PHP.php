@@ -630,7 +630,7 @@ class PHP extends Language
 
     protected function getReturn(Operation $method, ?Specification $spec = null): string
     {
-        if ((\count($method->responses) === 1 && isset($method->responses[204])) || \in_array($this->getMethodType($method, $spec), [self::METHOD_TYPE_LOCATION, self::METHOD_TYPE_WEB_AUTH, self::METHOD_TYPE_TEXT], true)) {
+        if ((\count($method->responses) === 1 && isset($method->responses[204])) || $this->isTextResponse($method, $spec) || \in_array($this->getMethodType($method, $spec), [self::METHOD_TYPE_LOCATION, self::METHOD_TYPE_WEB_AUTH], true)) {
             return 'string';
         }
 

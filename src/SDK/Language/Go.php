@@ -469,7 +469,7 @@ class Go extends Language
         if ($type === self::METHOD_TYPE_LOCATION) {
             return '[]byte';
         }
-        if ($type === self::METHOD_TYPE_TEXT) {
+        if ($this->isTextResponse($method, $spec)) {
             return 'string';
         }
         $models = \array_values(\array_filter(

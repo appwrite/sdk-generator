@@ -429,7 +429,7 @@ class Web extends JS
         if ($type === self::METHOD_TYPE_LOCATION) {
             return 'string';
         }
-        if ($type === self::METHOD_TYPE_TEXT) {
+        if ($this->isTextResponse($method, $spec)) {
             return 'Promise<string>';
         }
 

@@ -523,8 +523,12 @@ class Rust extends Language
 
     protected function getReturnType(Operation $method, Specification $spec): string
     {
+        if ($this->isTextResponse($method, $spec)) {
+            return 'crate::error::Result<String>';
+        }
+
         return match ($this->getMethodType($method, $spec)) {
-            Language::METHOD_TYPE_WEB_AUTH, Language::METHOD_TYPE_TEXT => 'crate::error::Result<String>',
+            Language::METHOD_TYPE_WEB_AUTH => 'crate::error::Result<String>',
             Language::METHOD_TYPE_LOCATION => 'crate::error::Result<Vec<u8>>',
             default => $this->getResponseReturnType($method),
         };

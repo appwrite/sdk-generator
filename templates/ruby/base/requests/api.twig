@@ -31,7 +31,7 @@
                 params: api_params,
                 {%~ if (method | methodType) == "webAuth" %}
                 response_type: "location"
-                {%~ elseif (method | methodType) == "text" %}
+                {%~ elseif (method | textResponse) %}
                 response_type: "text"
                 {%~ elseif (method | responseModel) and (method | responseModel) != 'any' %}
                 response_type: Models::{{ (method | responseModel) | caseUcfirst }}

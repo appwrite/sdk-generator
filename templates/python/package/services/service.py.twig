@@ -98,7 +98,7 @@ class {{ service.name | caseUcfirst }}(Service):
 str
 {% elseif (method | methodType) == 'location' %}
 bytes
-{% elseif (method | methodType) == 'text' %}
+{% elseif (method | textResponse) %}
 str
 {% elseif validResponseModels|length > 1 %}
 Union[{% for responseModel in validResponseModels %}{% if not loop.first %}, {% endif %}{% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ responseModel | caseUcfirst }}Model{% else %}{{ responseModel | caseUcfirst }}{% endif %}{% endfor %}]
@@ -144,7 +144,7 @@ Dict[str, Any]
             Authentication response as a string
 {% elseif (method | methodType) == 'location' %}        bytes
             Response as bytes
-{% elseif (method | methodType) == 'text' %}        str
+{% elseif (method | textResponse) %}        str
             Response body as text
 {% elseif validResponseModels|length > 1 %}        {{ method | getResponseType(service.name) }}
             API response as one of the typed response models

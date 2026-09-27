@@ -2,7 +2,7 @@
 	if err != nil {
 		return nil, err
 	}
-{% if (method | methodType) == 'text' %}
+{% if (method | textResponse) %}
 	body, err := client.ResponseBody(resp)
 	if err != nil {
 		return nil, err

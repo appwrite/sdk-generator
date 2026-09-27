@@ -17,7 +17,7 @@
 {% endfor %}
 {%- set methods = service | operations -%}
 {%- for method in methods -%}
-{%- if (method | methodType) != 'text' or 'multipart/form-data' in (method | consumes) -%}
+{%- if not (method | textResponse) -%}
 {%- set requireJsonPkg = true -%}
 {%- set requireErrorsPkg = true -%}
 {%- set requireStringsPkg = true -%}

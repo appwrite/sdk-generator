@@ -180,7 +180,7 @@ export class {{ service.name | caseUcfirst }} {
         );
         {%~ else %}
         {%- set callArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload'] %}
-        {%- if (method | methodType) == 'location' %}{% set callArgs = callArgs|merge(["'arrayBuffer'"]) %}{% elseif (method | methodType) == 'text' %}{% set callArgs = callArgs|merge(["'text'"]) %}{% endif %}
+        {%- if (method | methodType) == 'location' %}{% set callArgs = callArgs|merge(["'arrayBuffer'"]) %}{% elseif (method | textResponse) %}{% set callArgs = callArgs|merge(["'text'"]) %}{% endif %}
         return{{ 'this.client.call' | jsArgs(callArgs, 8, ';', 7) | raw }}
         {%~ endif %}
     }

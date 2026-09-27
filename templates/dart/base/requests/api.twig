@@ -17,7 +17,7 @@
       path: apiPath,
       params: apiParams,
       headers: apiHeaders,
-{% if (method | methodType) == 'text' %}
+{% if (method | textResponse) %}
       responseType: ResponseType.plain,
 {% endif %}
     );

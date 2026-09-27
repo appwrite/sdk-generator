@@ -88,7 +88,7 @@ describe('{{ service.name | caseUcfirst }} service', () => {
 
         {%~ if (method | methodType) == 'location' %}
         assertEquals(response.byteLength, 0);
-        {%~ elseif (method | methodType) == 'webAuth' or (method | methodType) == 'text' %}
+        {%~ elseif (method | methodType) == 'webAuth' or (method | textResponse) %}
         assertEquals(response, data);
         {%~ else %}
         assertEquals<unknown>(response, data);

@@ -127,6 +127,13 @@ abstract class Base extends TestCase
         'mixed-model',
     ];
 
+    protected const TEXT_UPLOAD_RESPONSES = [
+        'zone-import:without-file',
+        '',
+        'zone-import:with-file',
+        '',
+    ];
+
     protected const UPLOAD_RESPONSE = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];

@@ -578,7 +578,7 @@ class Swift extends Language
         if ($methodType === self::METHOD_TYPE_LOCATION) {
             return 'ByteBuffer';
         }
-        if ($methodType === self::METHOD_TYPE_TEXT) {
+        if ($this->isTextResponse($method, $spec)) {
             return 'String';
         }
 

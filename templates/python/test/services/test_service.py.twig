@@ -19,14 +19,14 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
     def test_{{ (method | methodName) | caseSnake }}(self, m):
 {% if (method | methodType) == 'webAuth' %}        data = None
 {% elseif (method | methodType) == 'location' %}        data = bytearray()
-{% elseif (method | methodType) == 'text' %}        data = '; café zone\nwww 3600 IN A 192.0.2.1\n'
+{% elseif (method | textResponse) %}        data = '; café zone\nwww 3600 IN A 192.0.2.1\n'
 {% elseif (method | responseModel) and (method | responseModel) != 'any' %}        data = {{ (method | responseModel) | responseModelExample(spec) | raw }}
 {% else %}        data = ''
-{% endif %}        headers = {'Content-Type': {% if (method | methodType) == 'location' %}'application/octet-stream'{% elseif (method | methodType) == 'text' %}'text/plain; charset=utf-8'{% else %}'application/json'{% endif %}}
+{% endif %}        headers = {'Content-Type': {% if (method | methodType) == 'location' %}'application/octet-stream'{% elseif (method | textResponse) %}'text/plain; charset=utf-8'{% else %}'application/json'{% endif %}}
         m.request(
             requests_mock.ANY,
             requests_mock.ANY,
-            {% if (method | methodType) == 'location' %}body=data{% elseif (method | methodType) == 'text' %}text=data{% else %}text=json.dumps(data){% endif %},
+            {% if (method | methodType) == 'location' %}body=data{% elseif (method | textResponse) %}text=data{% else %}text=json.dumps(data){% endif %},
             headers=headers,
         )
 {% set requiredParameters = (method | parameters('all')) | filter((param) => param.required) %}
