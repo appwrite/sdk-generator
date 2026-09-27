@@ -24,10 +24,11 @@ final class Node26Test extends Base
     protected string $class = Node::class;
     #[Override]
     protected array $build = [
-        'cp tests/e2e/languages/node/test.js tests/e2e/sdks/node/test.js',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:26-alpine npm install',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:26-alpine npm run build',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:26-alpine npm test',
+        // After the generated unit tests, so jest does not collect the e2e script.
+        'cp tests/e2e/languages/node/test.js tests/e2e/sdks/node/test.js',
     ];
     #[Override]
     protected string $command =
