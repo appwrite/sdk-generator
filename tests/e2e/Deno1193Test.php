@@ -34,7 +34,7 @@ final class Deno1193Test extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
-        'Zone text:passed',
+        ...Base::TEXT_RESPONSES,
         'optional-upload:without-file',
         ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,

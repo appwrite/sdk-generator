@@ -42,7 +42,7 @@ final class Node20Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
-        'Zone text:passed',
+        ...Base::TEXT_RESPONSES,
         ...Base::OPTIONAL_UPLOAD_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
