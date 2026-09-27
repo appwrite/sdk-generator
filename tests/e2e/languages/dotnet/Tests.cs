@@ -89,6 +89,10 @@ namespace AppwriteTests
             string zone = await new Plaintext(client).GetZone();
             TestContext.WriteLine(zone);
             TestContext.WriteLine((await general.GetMixed()).Result);
+            var imported = await new Plaintext(client).ImportZone("www 3600 IN A 192.0.2.1");
+            TestContext.WriteLine(imported);
+            imported = await new Plaintext(client).ImportZone("www 3600 IN A 192.0.2.1", InputFile.FromPath("../../../../../../../resources/file.png"));
+            TestContext.WriteLine(imported);
 
             mock = await general.OptionalUpload("conversation without a required file");
             TestContext.WriteLine(mock.Result);
