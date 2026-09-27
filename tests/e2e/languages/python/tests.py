@@ -81,6 +81,8 @@ if not isinstance(zone, str):
     raise AssertionError(f'Expected zone text as str, got {type(zone).__name__}')
 print(zone)
 print(general.get_mixed().result)
+print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1'))
+print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1', InputFile.from_path('./tests/resources/file.png')))
 
 message = 'conversation without a required file'
 print(general.optional_upload(message).result)
