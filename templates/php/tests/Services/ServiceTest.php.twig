@@ -17,7 +17,8 @@ InputFile::withData('', 'image/png')
 {%- elseif (parameter | schemaType) == 'boolean' -%}
 true
 {%- elseif (parameter | schemaType) == 'string' -%}
-"{% if (parameter | schemaExample) is not empty %}{{ (parameter | schemaExample) | escapeDollarSign }}{% endif %}"
+{#- The service rejects an empty required path string, so fall back to the parameter name. -#}
+"{{ ((parameter | schemaExample) is not empty ? (parameter | schemaExample) : parameter.name) | escapeDollarSign }}"
 {%- elseif (parameter | schemaType) == 'integer' -%}
 1
 {%- elseif (parameter | schemaType) == 'number' -%}
