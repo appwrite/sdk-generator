@@ -300,6 +300,14 @@ App::get('/v1/mock/tests/general/headers')
         $response->json(['result' => $res]);
     });
 
+App::get('/v1/mock/tests/general/zone')
+    ->inject('response')
+    ->action(function ($response) {
+        $response
+            ->setContentType('text/plain; charset=utf-8')
+            ->send("; café zone\nwww 3600 IN A 192.0.2.1\n");
+    });
+
 App::get('/v1/mock/tests/general/download')
     ->desc('Download File')
     ->groups(['mock'])

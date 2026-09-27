@@ -136,6 +136,16 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	}
 	fmt.Printf("%s\n", pathResponse.Result)
 
+	zone, err := general.GetZone()
+	if err != nil {
+		panic(err)
+	}
+	var text string = *zone
+	if text != "; café zone\nwww 3600 IN A 192.0.2.1\n" {
+		panic(fmt.Sprintf("unexpected zone text: %q", text))
+	}
+	fmt.Println("Zone text:passed")
+
 	testGeneralUpload(client, stringInArray)
 	testGeneralUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)

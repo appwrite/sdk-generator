@@ -1259,6 +1259,25 @@
         }
       }
     },
+    "/mock/tests/general/zone": {
+      "get": {
+        "summary": "Get zone text",
+        "operationId": "generalGetZone",
+        "tags": ["general"],
+        "x-appwrite": {
+          "platforms": ["client", "server"],
+          "scope": "public"
+        },
+        "responses": {
+          "200": {
+            "description": "DNS zone file",
+            "content": {
+              "text/plain": {"schema": {"type": "string"}}
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/download": {
       "get": {
         "summary": "Download File",

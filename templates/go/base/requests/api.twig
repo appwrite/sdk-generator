@@ -2,6 +2,14 @@
 	if err != nil {
 		return nil, err
 	}
+{% if method | returnType(spec, spec.info.title | caseLower) == 'string' %}
+	body, err := client.ResponseBody(resp)
+	if err != nil {
+		return nil, err
+	}
+	parsed := string(body)
+	return &parsed, nil
+{% else %}
 	if strings.HasPrefix(resp.Type, "application/json") {
 		bytes, err := client.ResponseBody(resp)
 		if err != nil {
@@ -70,4 +78,5 @@
 		return nil, errors.New("unexpected response type")
 	}
 	return &parsed, nil
+{% endif %}
 {% endif %}

@@ -37,6 +37,7 @@ final class Go113Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
+        'Zone text:passed',
         ...Base::UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
