@@ -1,26 +1,27 @@
-{% macro get_generics(definition, spec, output = false, first = false) %}
+{# Macros cannot see the template context, so the definitions are passed in. #}
+{% macro get_generics(name, definitions, output = false, first = false) %}
 {% apply spaceless %}
-    {% if first and definition.additionalProperties %}
-        {{definitionName | caseUcfirst}} extends Models.{{definitionName | caseUcfirst}}
+    {% if first and definitions[name].additionalProperties %}
+        {{ name | caseUcfirst }} extends Models.{{ name | caseUcfirst }}
     {% endif %}
-    {% for property in definition.properties %}
-        {% if definitions[(property | schemaModel)].additionalProperties and output %}
-            {{(property | schemaModel) | caseUcfirst}} extends Models.{{(property | schemaModel) | caseUcfirst}}
+    {% for property in definitions[name].properties ?? [] %}
+        {% if definitions[(property | schemaModel)].additionalProperties ?? false and output %}
+            {{ (property | schemaModel) | caseUcfirst }} extends Models.{{ (property | schemaModel) | caseUcfirst }}
         {% endif %}
-        {% if definitions[(property | schemaModel)] %}
-            {{_self.get_generics(definitions[(property | schemaModel)], spec, true)}}
+        {% if definitions[(property | schemaModel)] is defined %}
+            {{ _self.get_generics((property | schemaModel), definitions, true) }}
         {% endif %}
     {% endfor %}
 {% endapply %}
 {% endmacro %}
-{% macro get_generics_return(definition, spec) %}
+{% macro get_generics_return(name, definitions) %}
 {% apply spaceless %}
-    {% for property in definition.properties %}
-        {% if definitions[(property | schemaModel)].additionalProperties %}
-            {{(property | schemaModel) | caseUcfirst}}
+    {% for property in definitions[name].properties ?? [] %}
+        {% if definitions[(property | schemaModel)].additionalProperties ?? false %}
+            {{ (property | schemaModel) | caseUcfirst }}
         {% endif %}
-        {% if definitions[(property | schemaModel)] %}
-            {{_self.get_generics_return(definitions[(property | schemaModel)], spec)}}
+        {% if definitions[(property | schemaModel)] is defined %}
+            {{ _self.get_generics_return((property | schemaModel), definitions) }}
         {% endif %}
     {% endfor %}
 {% endapply %}
@@ -60,8 +61,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
      }
 
 {% for method in (service | operations) %}
-{% set generics = _self.get_generics(definitions[(method | responseModel)], spec, true, true) %}
-{% set generics_return = _self.get_generics_return(definitions[(method | responseModel)], spec) %}
+{% set generics = _self.get_generics((method | responseModel), definitions, true, true) %}
+{% set generics_return = _self.get_generics_return((method | responseModel), definitions) %}
     /**
 {% if method.description %}
 {{ method.description | wrap(75, '     * ') }}
@@ -80,7 +81,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
      {%~ endif %}
     {%~ endif %}
      */
-    async {{ (method | methodName) | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress = (progress: UploadProgress) => {}{% endif %}): Promise<{% if (method | methodType) == 'webAuth' %}string{% elseif (method | methodType) == 'location' %}ArrayBuffer{% elseif (method | methodType) == 'text' %}string{% else %}{% if (method | responseModel) and (method | responseModel) != 'any' %}{% if not definitions[(method | responseModel)].additionalProperties %}Models.{% endif %}{{(method | responseModel) | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
+    async {{ (method | methodName) | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, onProgress = (progress: UploadProgress) => {}{% endif %}): Promise<{% if (method | methodType) == 'webAuth' %}string{% elseif (method | methodType) == 'location' %}ArrayBuffer{% elseif (method | methodType) == 'text' %}string{% else %}{% if (method | responseModel) and (method | responseModel) != 'any' %}{% if not definitions[(method | responseModel)].additionalProperties %}Models.{% endif %}{{(method | responseModel) | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}{}{% endif %}{% endif %}> {
 {% for parameter in (method | parameters('all')) %}
 {% if parameter.required %}
         {{ parameter | jsRequiredGuard((parameter.name | caseCamel | escapeKeyword), 8) | raw }}
@@ -93,17 +94,17 @@ export class {{ service.name | caseUcfirst }} extends Service {
         {%~ for security in (method | securityQueries) %}
         apiPath += `{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${encodeURIComponent(this.client.config['{{ security.name | caseLower }}'])}`;
         {%~ endfor %}
-        const payload: Payload = {};
+        const apiPayload: Payload = {};
 
 {% for parameter in (method | parameters('query')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if (method | consumes)[0] == "multipart/form-data" and ( (parameter | schemaType) != "string" and (parameter | schemaType) != "array" and (parameter | schemaType) != "file" ) %}.toString(){% endif %};
+            apiPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if (method | consumes)[0] == "multipart/form-data" and ( (parameter | schemaType) != "string" and (parameter | schemaType) != "array" and (parameter | schemaType) != "file" ) %}.toString(){% endif %};
         }
 
 {% endfor %}
 {% for parameter in (method | parameters('body')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if (method | consumes)[0] == "multipart/form-data" and ( (parameter | schemaType) != "string" and (parameter | schemaType) != "array" and (parameter | schemaType) != "file" ) %}.toString(){% endif %};
+            apiPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if (method | consumes)[0] == "multipart/form-data" and ( (parameter | schemaType) != "string" and (parameter | schemaType) != "array" and (parameter | schemaType) != "file" ) %}.toString(){% endif %};
         }
 {% endfor %}
 {% if 'multipart/form-data' in (method | consumes) %}
@@ -124,7 +125,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% if not parameter.required or (parameter | schemaNullable) %}
         if (!{{ parameter.name | caseCamel | escapeKeyword }}) {
-            return await this.client.call('{{ method.method.value | caseLower }}', apiPath, apiHeaders, payload);
+            return await this.client.call('{{ method.method.value | caseLower }}', apiPath, apiHeaders, apiPayload);
         }
 
 {% endif %}
@@ -191,7 +192,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
             }
         }
 
-        if (currentPosition > 0) {
+        // An empty file still has to be sent, as a single empty chunk.
+        if (currentPosition > 0 || (size === 0 && chunksUploaded === 0)) {
             queueChunk();
         }
 
@@ -200,8 +202,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
         }
 
         if (chunks.length === 1 && chunks[0].index === 0) {
-            payload['{{ parameter.name }}'] = { type: 'file', file: new File([chunks[0].data], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
-            response = await this.client.call('{{ method.method.value | caseLower }}', apiPath, apiHeaders, payload{% if (method | methodType) == 'location' %}, 'arraybuffer'{% elseif (method | methodType) == 'webAuth' %}, 'location'{% endif %});
+            apiPayload['{{ parameter.name }}'] = { type: 'file', file: new File([chunks[0].data as BlobPart], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
+            response = await this.client.call('{{ method.method.value | caseLower }}', apiPath, apiHeaders, apiPayload{% if (method | methodType) == 'location' %}, 'arraybuffer'{% elseif (method | methodType) == 'webAuth' %}, 'location'{% endif %});
 
             if (onProgress !== null) {
                 onProgress({
@@ -223,8 +225,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 chunkHeaders['x-{{spec.info.title | caseLower }}-id'] = id;
             }
 
-            const chunkPayload = { ...payload };
-            chunkPayload['{{ parameter.name }}'] = { type: 'file', file: new File([chunk.data], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
+            const chunkPayload = { ...apiPayload };
+            chunkPayload['{{ parameter.name }}'] = { type: 'file', file: new File([chunk.data as BlobPart], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
 
             return await this.client.call('{{ method.method.value | caseLower }}', apiPath, chunkHeaders, chunkPayload{% if (method | methodType) == 'location' %}, 'arraybuffer'{% elseif (method | methodType) == 'webAuth' %}, 'location'{% endif %});
         };
@@ -305,7 +307,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 '{{ key }}': '{{ header }}',
                 {%~ endfor %}
             },
-            payload,
+            apiPayload,
             {%~ if (method | methodType) == 'location' %}
             'arraybuffer'
             {%~ elseif (method | methodType) == 'webAuth' %}
