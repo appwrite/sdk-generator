@@ -436,7 +436,6 @@ open class Client {
         onProgress: ((UploadProgress) -> Void)? = nil
     ) async throws -> T {
         guard let input = params[paramName] as? InputFile else {
-            // An omitted optional attachment leaves a plain multipart request.
             return try await call(
                 method: "POST",
                 path: path,

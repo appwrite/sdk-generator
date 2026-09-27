@@ -127,7 +127,6 @@ module {{ spec.info.title | caseUcfirst }}
         )
             input_file = params[param_name.to_sym]
 
-            # An omitted optional attachment leaves a plain multipart request.
             if input_file.nil?
                 return call(
                     method: 'POST',

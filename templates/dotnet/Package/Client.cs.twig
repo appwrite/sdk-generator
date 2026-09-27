@@ -394,7 +394,6 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             if (!parameters.TryGetValue(paramName, out var value) || value == null)
             {
-                // An omitted optional attachment leaves a plain multipart request.
                 return await Call(
                     method: "POST",
                     path,

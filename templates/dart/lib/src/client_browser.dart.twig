@@ -103,7 +103,6 @@ class ClientBrowser extends ClientBase with ClientMixin {
     Function(UploadProgress)? onProgress,
   }) async {
     if (params[paramName] == null) {
-      // An omitted optional file leaves a plain multipart request.
       return call(
         HttpMethod.post,
         path: path,

@@ -6,7 +6,6 @@
 {% set responseDiscriminator = (method | responseDiscriminator) %}
 {% if not parameter.required %}
         if (!${{ parameter.name | caseCamel }} instanceof InputFile) {
-            // An omitted optional attachment leaves a plain multipart request.
             $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, $apiHeaders, $apiParams);
 {% if responseModels | length > 0 %}
 {% if responseModels | length > 1 and hasResponseDiscriminator %}

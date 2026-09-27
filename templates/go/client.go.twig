@@ -218,7 +218,6 @@ func copyParams(params map[string]interface{}) map[string]interface{} {
 func (client *Client) FileUpload(url string, headers map[string]interface{}, params map[string]interface{}, paramName string, uploadId string) (*ClientResponse, error) {
 	inputFile, ok := params[paramName].(file.InputFile)
 	if _, present := params[paramName]; !present {
-		// An omitted optional attachment leaves a plain multipart request.
 		return client.Call("POST", url, headers, params)
 	}
 	if !ok {

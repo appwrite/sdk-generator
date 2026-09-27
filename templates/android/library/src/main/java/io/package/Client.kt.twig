@@ -450,7 +450,6 @@ class Client @JvmOverloads constructor(
         onProgress: ((UploadProgress) -> Unit)? = null,
     ): T {
         if (params[paramName] == null) {
-            // An omitted optional file leaves a plain multipart request.
             return call(
                 method = "POST",
                 path,

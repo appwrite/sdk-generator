@@ -155,7 +155,6 @@ class Client:
         upload_id='',
     ):
         if params.get(param_name) is None:
-            # An omitted optional attachment leaves a plain multipart request.
             return self.call('post', path, headers, params)
 
         input_file = params[param_name]
