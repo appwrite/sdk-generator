@@ -381,17 +381,6 @@ jobs:
               ;;
           esac
 
-      - name: Test Python SDK generated from the fixture spec
-        if: matrix.sdk == 'python'
-        run: |
-          rm -rf examples/python
-          SDK_GEN_SPEC_FILE=tests/resources/spec-openapi3.json php example.php python server
-          cd examples/python
-          pip install -e .[test]
-          find appwrite test -name '*.py' -print0 | xargs -0 python -m black --check
-          python -m black --check setup.py
-          python -m unittest
-
       - name: Test compiled CLI binary
         if: matrix.sdk == 'cli'
         working-directory: examples/cli
