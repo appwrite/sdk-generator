@@ -41,6 +41,7 @@ final class FlutterBetaTest extends Base
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::NULL_PATH_RESPONSE,
         ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,

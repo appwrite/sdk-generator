@@ -154,6 +154,14 @@ void main() async {
   print(zone);
   final mixed = await general.getMixed();
   print(mixed.result);
+  final plaintext = Plaintext(client);
+  var imported = await plaintext.importZone(records: 'www 3600 IN A 192.0.2.1');
+  print(imported);
+  imported = await plaintext.importZone(
+    records: 'www 3600 IN A 192.0.2.1',
+    zone: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'),
+  );
+  print(imported);
 
   const message = 'conversation without a required file';
   var optional = await general.optionalUpload(message: message);
