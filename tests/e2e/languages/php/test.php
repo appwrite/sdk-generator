@@ -187,6 +187,9 @@ echo $general->validatePath('0', '0')->result . "\n";
 $zone = new Plaintext($client)->getZone();
 echo $zone . "\n";
 echo $general->getMixed()->result . "\n";
+$plaintext = new Plaintext($client);
+echo $plaintext->importZone('www 3600 IN A 192.0.2.1') . "\n";
+echo $plaintext->importZone('www 3600 IN A 192.0.2.1', InputFile::withPath(__DIR__ . '/../../../resources/file.png')) . "\n";
 
 $response = $general->getUnion();
 echo $response->result . "\n";
