@@ -301,6 +301,7 @@ class Client {
         headers: Headers = {},
         originalPayload: Payload = {},
         onProgress: (progress: UploadProgress) => void,
+        responseType = 'json',
     ) {
         const [fileParam, file] =
             Object.entries(originalPayload).find(
@@ -309,7 +310,13 @@ class Client {
             ) ?? [];
 
         if (!file || !fileParam) {
-            return await this.call(method, url, headers, originalPayload);
+            return await this.call(
+                method,
+                url,
+                headers,
+                originalPayload,
+                responseType,
+            );
         }
 
         if (file instanceof InputFile) {
@@ -318,7 +325,13 @@ class Client {
             if (size <= Client.CHUNK_SIZE) {
                 const payload = { ...originalPayload };
                 payload[fileParam] = await file.toFile();
-                return await this.call(method, url, headers, payload);
+                return await this.call(
+                    method,
+                    url,
+                    headers,
+                    payload,
+                    responseType,
+                );
             }
 
             const totalChunks = Math.ceil(size / Client.CHUNK_SIZE);
@@ -338,6 +351,7 @@ class Client {
                 url,
                 firstChunkHeaders,
                 firstPayload,
+                responseType,
             );
             const uploadId = response?.$id;
 
@@ -398,6 +412,7 @@ class Client {
                     url,
                     chunkHeaders,
                     chunkPayload,
+                    responseType,
                 );
 
                 if (failed) {
@@ -452,7 +467,13 @@ class Client {
         }
 
         if (file.size <= Client.CHUNK_SIZE) {
-            return await this.call(method, url, headers, originalPayload);
+            return await this.call(
+                method,
+                url,
+                headers,
+                originalPayload,
+                responseType,
+            );
         }
 
         const totalChunks = Math.ceil(file.size / Client.CHUNK_SIZE);
@@ -472,6 +493,7 @@ class Client {
             url,
             firstChunkHeaders,
             firstPayload,
+            responseType,
         );
         const uploadId = response?.$id;
 
@@ -532,6 +554,7 @@ class Client {
                 url,
                 chunkHeaders,
                 chunkPayload,
+                responseType,
             );
 
             if (failed) {

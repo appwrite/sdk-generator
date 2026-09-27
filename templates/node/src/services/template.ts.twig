@@ -177,6 +177,9 @@ export class {{ service.name | caseUcfirst }} {
             apiHeaders,
             apiPayload,
             onProgress,
+            {%~ if (method | textResponse) %}
+            'text',
+            {%~ endif %}
         );
         {%~ else %}
         {%- set callArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload'] %}

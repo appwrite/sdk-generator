@@ -200,7 +200,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% if not parameter.required or (parameter | schemaNullable) %}
 
         if (!{{ parameter.name | caseCamel | escapeKeyword }}) {
-            return this.client.call('{{ method.method.value | caseLower }}', uri, apiHeaders, apiPayload);
+            {%~ set uploadArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload'] %}
+            {%~ if (method | textResponse) %}{% set uploadArgs = uploadArgs|merge(["'text'"]) %}{% endif %}
+            return{{ 'this.client.call' | jsArgs(uploadArgs, 12, ';', 7) | raw }}
         }
 {% endif %}
 
@@ -217,7 +219,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
                     }),
             );
 
-            return this.client.call('{{ method.method.value | caseLower }}', uri, apiHeaders, apiPayload);
+            {%~ set uploadArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload'] %}
+            {%~ if (method | textResponse) %}{% set uploadArgs = uploadArgs|merge(["'text'"]) %}{% endif %}
+            return{{ 'this.client.call' | jsArgs(uploadArgs, 12, ';', 7) | raw }}
         }
 
         let offset = 0;
@@ -293,6 +297,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 uri,
                 firstChunkHeaders,
                 apiPayload,
+                {%~ if (method | textResponse) %}
+                'text',
+                {%~ endif %}
             );
             offset = firstChunkEnd;
 
@@ -388,6 +395,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 uri,
                 chunkHeaders,
                 chunkPayload,
+                {%~ if (method | textResponse) %}
+                'text',
+                {%~ endif %}
             );
 
             if (failed) {

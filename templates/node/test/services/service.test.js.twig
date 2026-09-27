@@ -1,5 +1,5 @@
 const { Client } = require('../../dist/client');
-{% if methods | hasFileParam %}
+{% if methods | filter((method) => (method | parameters('all')) | filter((param) => param.required and (param | schemaType) == 'file') | length > 0) | length > 0 %}
 const { InputFile } = require('../../dist/inputFile');
 {% endif %}
 const { {{ service.name | caseUcfirst }} } = require('../../dist/services/{{ service.name | caseKebab }}');
