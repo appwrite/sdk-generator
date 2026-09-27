@@ -30,30 +30,32 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
 {
     use ArraySerializable;
 
-    /**
-     * {{ definitionName | caseUcfirst }} constructor.
-     *
-{% for property in requiredProperties %}
-{% set paramDocType = property | typeName %}
+{# A tag without a description that only repeats the native type is omitted. #}
+{% set paramDocs = [] %}
+{% for property in requiredProperties|merge(optionalProperties) %}
+{% set nativeType = property | typeName %}
+{% set paramDocType = nativeType %}
 {% if (property | schemaType) == 'array' and (property | schemaModel) %}
 {% set paramDocType = 'list<' ~ ((property | schemaModel) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
 {% set paramDocType = 'list<' ~ (((property | enumName)) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }} ${{ (property | schemaName) | caseCamel }} {{ property.description | trim | unescape | lower | raw }}
-{% endfor %}
-{% for property in optionalProperties %}
-{% set paramDocType = property | typeName %}
-{% if (property | schemaType) == 'array' and (property | schemaModel) %}
-{% set paramDocType = 'list<' ~ ((property | schemaModel) | caseUcfirst | overrideIdentifier) ~ '>' %}
-{% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
-{% set paramDocType = 'list<' ~ (((property | enumName)) | caseUcfirst | overrideIdentifier) ~ '>' %}
+{% set description = property.description | trim | unescape | lower %}
+{% if description is not empty or paramDocType != nativeType %}
+{% set paramDocs = paramDocs|merge([paramDocType ~ ((property | schemaRequired) ? '' : '|null') ~ ' $' ~ ((property | schemaName) | caseCamel) ~ (description is not empty ? ' ' ~ description : '')]) %}
 {% endif %}
-     * @param {{ paramDocType | raw }}|null ${{ (property | schemaName) | caseCamel }} {{ property.description | trim | unescape | lower | raw }}
 {% endfor %}
 {% if definition.additionalProperties %}
-     * @param array<string, mixed> ${{ 'data' | caseCamel | removeDollarSign }} Additional properties.
+{% set paramDocs = paramDocs|merge(['array<string, mixed> $' ~ ('data' | caseCamel | removeDollarSign) ~ ' Additional properties.']) %}
 {% endif %}
+    /**
+     * {{ definitionName | caseUcfirst }} constructor.
+{% if paramDocs is not empty %}
+     *
+{% endif %}
+{% for paramDoc in paramDocs %}
+     * @param {{ paramDoc | raw }}
+{% endfor %}
      */
     public function __construct(
 {% for property in requiredProperties %}
