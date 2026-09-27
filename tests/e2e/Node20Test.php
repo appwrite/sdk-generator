@@ -27,7 +27,6 @@ final class Node20Test extends Base
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:20-alpine npm install',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:20-alpine npm run build',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:20-alpine npm test',
-        // After the generated unit tests, so jest does not collect the e2e script.
         'cp tests/e2e/languages/node/test.js tests/e2e/sdks/node/test.js',
     ];
     #[Override]

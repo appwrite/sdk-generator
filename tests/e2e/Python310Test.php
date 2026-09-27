@@ -27,7 +27,6 @@ final class Python310Test extends Base
         'cp tests/e2e/languages/python/tests.py tests/e2e/sdks/python/test.py',
         'echo "" > tests/e2e/sdks/python/__init__.py',
         'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/e2e/sdks/python/vendor python:3.10-alpine pip install -r tests/e2e/sdks/python/requirements.txt --upgrade',
-        // The SDK's generated unit tests, over the same fixture spec.
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/python --env PYTHONPATH=vendor python:3.10-alpine python -m unittest discover -s test -t .',
     ];
     #[Override]

@@ -26,7 +26,6 @@ final class DartBetaTest extends Base
     protected array $build = [
         'mkdir -p tests/e2e/sdks/dart/tests',
         'cp tests/e2e/languages/dart/tests.dart tests/e2e/sdks/dart/tests/tests.dart',
-        // The SDK's generated unit tests, over the same fixture spec; the e2e script above lives outside test/.
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/dart dart:beta sh -c "dart pub get && dart test"',
     ];
     #[Override]

@@ -68,7 +68,6 @@ puts general.validate_path(id: '0', plain: '0').result
 
 zone = Plaintext.new(client).get_zone
 raise "Expected zone text as String, got #{zone.class}" unless zone.is_a?(String)
-# puts adds no newline after text that already ends in one.
 print zone, "\n"
 puts general.get_mixed.result
 
