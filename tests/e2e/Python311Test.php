@@ -39,6 +39,8 @@ final class Python311Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         'Zone text:passed',
+        'optional-upload:without-file',
+        'optional-upload:with-file',
         ...Base::UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,

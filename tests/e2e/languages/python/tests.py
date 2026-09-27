@@ -85,6 +85,11 @@ mixed = general.get_mixed()
 if mixed.result != 'mixed-model':
     raise AssertionError(f'Unexpected mixed response: {mixed!r}')
 
+message = 'conversation without a required file'
+print(general.optional_upload(message).result)
+attachment = InputFile.from_path('./tests/resources/file.png')
+print(general.optional_upload(message, attachment).result)
+
 response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png'))
 print(response.result)
 

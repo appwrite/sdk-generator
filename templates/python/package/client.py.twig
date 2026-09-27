@@ -91,6 +91,10 @@ class Client:
                     files[key] = (data[key].filename, data[key].data)
                     del data[key]
             data = self.flatten(data, stringify=stringify)
+            if not files:
+                # Without a file, requests would fall back to a URL-encoded body.
+                files = {key: (None, value) for key, value in data.items()}
+                data = {}
 
         response = None
         try:
@@ -145,6 +149,10 @@ class Client:
         on_progress=None,
         upload_id='',
     ):
+        if params.get(param_name) is None:
+            # An omitted optional attachment leaves a plain multipart request.
+            return self.call('post', path, headers, params)
+
         input_file = params[param_name]
 
         if input_file.source_type == 'path':
