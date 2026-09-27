@@ -2,6 +2,7 @@ from appwrite.client import Client
 from appwrite.services.foo import Foo
 from appwrite.services.bar import Bar
 from appwrite.services.general import General
+from appwrite.services.plaintext import Plaintext
 from appwrite.exception import AppwriteException
 from appwrite.input_file import InputFile
 from appwrite.query import Query
@@ -74,6 +75,15 @@ for id, plain in [('', '0'), ('0', '')]:
     except AppwriteException as error:
         print(error.message)
 print(general.validate_path('0', '0').result)
+
+zone = Plaintext(client).get_zone()
+if not isinstance(zone, str) or zone != '; café zone\nwww 3600 IN A 192.0.2.1\n':
+    raise AssertionError(f'Unexpected zone text: {zone!r}')
+print('Zone text:passed')
+
+mixed = general.get_mixed()
+if mixed.result != 'mixed-model':
+    raise AssertionError(f'Unexpected mixed response: {mixed!r}')
 
 response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png'))
 print(response.result)

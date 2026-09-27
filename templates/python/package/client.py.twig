@@ -117,6 +117,9 @@ class Client:
             if response_type == 'location':
                 return response.headers.get('Location')
 
+            if response_type == 'text':
+                return response.content.decode('utf-8')
+
             if content_type.startswith('application/json'):
                 return response.json()
 
