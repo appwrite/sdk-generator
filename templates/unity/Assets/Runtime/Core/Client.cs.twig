@@ -739,7 +739,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             string path,
             Dictionary<string, string> headers,
             Dictionary<string, object?> parameters,
-            Func<Dictionary<string, object>, T> converter,
+            Func<Dictionary<string, object>, T>? converter,
             string paramName,
             string? idParamName = null,
             Action<UploadProgress>? onProgress = null) where T : class
@@ -946,7 +946,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 var nonNullableResult = result.Where(kvp => kvp.Value != null)
                     .ToDictionary(kvp => kvp.Key, kvp => kvp.Value!);
 
-                return converter(nonNullableResult);
+                return converter != null ? converter(nonNullableResult) : (nonNullableResult as T)!;
             }
             finally
             {
