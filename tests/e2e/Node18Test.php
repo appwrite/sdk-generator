@@ -26,7 +26,8 @@ final class Node18Test extends Base
     protected array $build = [
         'cp tests/e2e/languages/node/test.js tests/e2e/sdks/node/test.js',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:18-alpine npm install',
-        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:18-alpine npm run build'
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:18-alpine npm run build',
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:18-alpine npm test',
     ];
     #[Override]
     protected string $command =
