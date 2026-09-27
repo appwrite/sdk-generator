@@ -66,6 +66,14 @@ puts response["result"]
 end
 puts general.validate_path(id: '0', plain: '0').result
 
+zone = Plaintext.new(client).get_zone
+unless zone.is_a?(String) && zone == "; café zone\nwww 3600 IN A 192.0.2.1\n"
+    raise "Unexpected zone text: #{zone.inspect}"
+end
+puts 'Zone text:passed'
+mixed = general.get_mixed
+raise "Unexpected mixed response: #{mixed.inspect}" unless mixed.result == 'mixed-model'
+
 begin
     response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_path('./tests/resources/file.png'))
     puts response.result

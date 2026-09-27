@@ -35,7 +35,7 @@ module {{spec.info.title | caseUcfirst }}
         # @param [{{ parameter | typeName }}] {{ parameter.name | caseSnake | escapeKeyword }} {{ parameter.description | rtrimLines }}
 {% endfor %}
         #
-        # @return [{% set responseModels = method | getValidResponseModels %}{% if responseModels|length > 0 %}{% for responseModel in responseModels %}{{ responseModel | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}]
+        # @return [{% set responseModels = method | getValidResponseModels %}{% if (method | methodType) == 'text' %}String{% elseif responseModels|length > 0 %}{% for responseModel in responseModels %}{{ responseModel | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}]
 {% if methodParams | length == 0 and not isMultipart %}
         def {{ (method | methodName) | caseSnake }}()
 {% else %}

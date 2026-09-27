@@ -365,11 +365,26 @@ module {{ spec.info.title | caseUcfirst }}
                 raise {{spec.info.title | caseUcfirst}}::Exception.new(response.body, response.code, response, response.body)
             end
 
+            if response_type == "text"
+                return decode_text(response)
+            end
+
             if response.respond_to?("body_permitted?")
                 return response.body if response.body_permitted?
             end
 
             return response
+        end
+
+        def decode_text(response)
+            charset = response.type_params['charset'] || 'utf-8'
+            encoding = begin
+                Encoding.find(charset)
+            rescue ArgumentError
+                Encoding::UTF_8
+            end
+
+            String.new(response.body.to_s, encoding: encoding).encode(Encoding::UTF_8)
         end
 
         def encode_form_data(value, key = nil)
