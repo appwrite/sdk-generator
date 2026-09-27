@@ -88,6 +88,8 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 	}
 
 {% for method in (service | operations) %}
+{% set responseModels = [] %}
+{% set responseModelName = '' %}
 {% if not loop.first %}
 
 {% endif %}
