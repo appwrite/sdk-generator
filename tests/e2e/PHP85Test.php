@@ -36,6 +36,7 @@ final class PHP85Test extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
+        'Zone text:passed',
         ...Base::UNION_RESPONSES,
         'compound specialization: passed',
         'compound fallback: passed',
