@@ -119,9 +119,9 @@ void main() {
 
 {% set requiredParams = (method | parameters('all')) | filter((param) => param.required) %}
 {% if requiredParams|length == 0 %}
-      final response = await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}();
+      final response = await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel | overrideIdentifier }}();
 {% else %}
-      final response = await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}(
+      final response = await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel | overrideIdentifier }}(
 {% for parameter in requiredParams %}
         {{ parameter.name | escapeKeyword | caseCamel }}: {% if (parameter | enumValues) | length > 0 %}{{ parameter | enumExample }}{% elseif (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.fromPath(path: './image.png'){% elseif (parameter | schemaType) == 'boolean' %}true{% elseif (parameter | schemaType) == 'string' %}{% if (parameter | schemaExample) is not empty %}{{ (parameter | schemaExample) | dartString }}{% else %}''{% endif %}{% elseif (parameter | schemaType) == 'integer' %}1{% elseif (parameter | schemaType) == 'number' %}1.0{% else %}{{ (parameter | schemaExample) }}{% endif %},
 {% endfor %}
@@ -131,6 +131,8 @@ void main() {
       expect(response, isA<Uint8List>());
 {% elseif (method | methodType) == 'webAuth' %}
       expect(response, equals('done'));
+{% elseif (method | methodType) == 'text' %}
+      expect(response, isA<String>());
 {% elseif responseModelName %}
       expect(response, isA<models.{{ responseModelName | caseUcfirst | overrideIdentifier }}>());
 {% endif %}
