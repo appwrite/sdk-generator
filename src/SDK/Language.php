@@ -24,6 +24,8 @@ abstract class Language
 {
     private const string MULTIPART_MEDIA_TYPE = 'multipart/form-data';
     private const string TEXT_MEDIA_TYPE = 'text/plain';
+    private const array SUCCESS_STATUSES = ['200', '201', '202', '204', '2XX'];
+    private const array REDIRECT_STATUSES = ['301', '302', '3XX'];
 
     public const string METHOD_TYPE_UPLOAD = 'upload';
     public const string METHOD_TYPE_GRAPHQL = 'graphql';
@@ -170,10 +172,10 @@ abstract class Language
                 ) {
                     continue;
                 }
-                if ($this->isStatusClass($status, 3)) {
+                if (\in_array((string) $status, self::REDIRECT_STATUSES, true)) {
                     return self::METHOD_TYPE_WEB_AUTH;
                 }
-                if ($this->isStatusClass($status, 2)) {
+                if (\in_array((string) $status, self::SUCCESS_STATUSES, true)) {
                     return self::METHOD_TYPE_LOCATION;
                 }
             }
@@ -190,7 +192,7 @@ abstract class Language
     {
         $text = false;
         foreach ($operation->responses as $status => $response) {
-            if (!$this->isStatusClass($status, 2)) {
+            if (!\in_array((string) $status, self::SUCCESS_STATUSES, true)) {
                 continue;
             }
             foreach ($response->content as $contentType => $mediaType) {
@@ -206,11 +208,6 @@ abstract class Language
             }
         }
         return $text;
-    }
-
-    protected function isStatusClass(int|string $status, int $class): bool
-    {
-        return \preg_match('/^' . $class . '(\d\d|XX)$/i', (string) $status) === 1;
     }
 
     /**
