@@ -529,6 +529,14 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testGoTestsPassTypedRequestModels(): void
+    {
+        $test = $this->generate('go', 'server')['general/general_test.go'];
+
+        $this->assertStringContainsString('srv.createplayer(models.player{})', $test);
+        $this->assertStringContainsString('/models"', $test);
+    }
+
     #[DataProvider('languages')]
     public function testEnumKeysAreValid(string $name): void
     {
