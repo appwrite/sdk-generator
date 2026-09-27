@@ -11,6 +11,9 @@
             {%- set requireFilesPkg = true -%}
             {%- set requireOsPkg = true -%}
         {%- endif -%}
+        {%- if parameter.required and "models." in (parameter | typeName) -%}
+            {%- set requireModelsPkg = true -%}
+        {%- endif -%}
     {%- endfor -%}
 {%- endfor -%}
 {% macro render_json_value(definitions, property, spec, indent = '') -%}
@@ -176,6 +179,8 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% set type = (parameter | typeName) %}
 {% if "file.InputFile" in type %}
 {% set val = 'file.NewInputFile(tmpFile.Name(), "test.txt")' %}
+{% elseif type starts with 'models.' %}
+{% set val = type ~ '{}' %}
 {% elseif (parameter | schemaType) == 'object' %}
 {% set val = 'map[string]interface{}{}' %}
 {% elseif (parameter | schemaType) == 'array' %}
