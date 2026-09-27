@@ -121,6 +121,16 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     println!("{}", general.validate_path("0", Some("0")).await?.result);
     println!("{}", general.validate_path("0", None).await?.result);
 
+    let zone: String = Plaintext::new(&client).get_zone().await?;
+    if zone != "; café zone\nwww 3600 IN A 192.0.2.1\n" {
+        panic!("unexpected zone text: {:?}", zone);
+    }
+    println!("Zone text:passed");
+    let mixed = general.get_mixed().await?;
+    if mixed.result != "mixed-model" {
+        panic!("unexpected mixed response: {:?}", mixed.result);
+    }
+
     let message = "conversation without a required file";
     println!("{}", general.optional_upload(message, None).await?.result);
     let attachment = InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?;

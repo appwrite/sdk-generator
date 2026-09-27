@@ -524,8 +524,8 @@ class Rust extends Language
     protected function getReturnType(Operation $method, Specification $spec): string
     {
         return match ($this->getMethodType($method, $spec)) {
-            'webAuth' => 'crate::error::Result<String>',
-            'location' => 'crate::error::Result<Vec<u8>>',
+            Language::METHOD_TYPE_WEB_AUTH, Language::METHOD_TYPE_TEXT => 'crate::error::Result<String>',
+            Language::METHOD_TYPE_LOCATION => 'crate::error::Result<Vec<u8>>',
             default => $this->getResponseReturnType($method),
         };
     }

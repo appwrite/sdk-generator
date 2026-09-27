@@ -33,6 +33,7 @@ final class Rust183Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::NULL_PATH_RESPONSE,
+        'Zone text:passed',
         'optional-upload:without-file',
         'optional-upload:with-file',
         ...Base::UPLOAD_RESPONSE,

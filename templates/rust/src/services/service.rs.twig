@@ -194,6 +194,8 @@ impl {{ service.name | caseUcfirst }} {
 {{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(8, 'call_location') }}
 {% elseif (method | methodType) == 'location' %}
 {{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(8, 'call_bytes') }}
+{% elseif (method | methodType) == 'text' %}
+{{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(8, 'call_text') }}
 {% else %}
 {{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(8, 'call') }}
 {% endif %}
