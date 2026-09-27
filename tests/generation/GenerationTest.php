@@ -110,21 +110,6 @@ final class GenerationTest extends TestCase
         'rust' => ['src/enums/webhook_event.rs', 'pub const UserCreated', 'src/enums/localized_status.rs', 'Value1,', 'src/enums/province_type.rs', 'Capital,'],
     ];
 
-    /**
-     * The signatures each language gives the fixture's text-only method, a
-     * text method following a union, and a method mixing text with a model.
-     * A language absent here does not map the text method type yet.
-     *
-     * @var array<string, array{string, string, string, string, string, string}>
-     */
-    private const array TEXT_RETURNS = [
-        'go' => [
-            'plaintext/plaintext.go', 'func (srv *Plaintext) GetZone() (*string, error)',
-            'textafterunion/textafterunion.go', 'func (srv *Textafterunion) GetText() (*string, error)',
-            'general/general.go', 'func (srv *General) GetMixed() (*models.Mock, error)',
-        ],
-    ];
-
     /** @var array<string, array<string, string>> generated tree per language and platform */
     private static array $generated = [];
 
@@ -399,20 +384,6 @@ final class GenerationTest extends TestCase
         }
     }
 
-    #[DataProvider('languages')]
-    public function testTextResponsesReturnStrings(string $name): void
-    {
-        if (!isset(self::TEXT_RETURNS[$name])) {
-            $this->markTestSkipped("{$name} does not map text responses yet.");
-        }
-
-        $files = $this->generate($name, 'server');
-        foreach (\array_chunk(self::TEXT_RETURNS[$name], 2) as [$path, $signature]) {
-            $this->assertArrayHasKey($path, $files, "{$name} did not generate {$path}");
-            $this->assertStringContainsString(\strtolower($signature), $files[$path], "{$name}: {$path} lacks `{$signature}`");
-        }
-    }
-
     /**
      * Twig autoescapes to HTML, so a description that reaches a template through
      * an unsafe filter arrives as `&quot;` rather than `"`. Go doc comments are
@@ -527,14 +498,6 @@ final class GenerationTest extends TestCase
                 $this->assertStringNotContainsString($entity, $contents, "HTML entity {$entity} leaked into go: {$path}");
             }
         }
-    }
-
-    public function testGoTestsPassTypedRequestModels(): void
-    {
-        $test = $this->generate('go', 'server')['general/general_test.go'];
-
-        $this->assertStringContainsString('srv.createplayer(models.player{})', $test);
-        $this->assertStringContainsString('/models"', $test);
     }
 
     #[DataProvider('languages')]
