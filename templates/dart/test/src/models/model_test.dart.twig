@@ -7,7 +7,7 @@ import 'package:{{ language.params.packageName }}/models.dart';
 {% if (definition.properties | filter(p => (p | enumValues) is not empty and (p | schemaType) != 'array') | length > 0) or (definition.properties | filter(p => (p | schemaRequired) and (p | schemaModel) and definitions[(p | schemaModel)] and (definitions[(p | schemaModel)].properties | filter(sp => (sp | schemaRequired) and (sp | enumValues) is not empty and (sp | schemaType) != 'array') | length > 0)) | length > 0) %}
 import 'package:{{ language.params.packageName }}/enums.dart';
 {% endif %}
-{% if 'dart' in language.params.packageName %}
+{% if language.name == 'Dart' %}
 import 'package:test/test.dart';
 {% else %}
 import 'package:flutter_test/flutter_test.dart';

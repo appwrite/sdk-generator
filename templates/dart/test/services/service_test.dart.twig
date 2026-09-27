@@ -3,7 +3,7 @@
 {% macro sub_schema(definitions, property, indent = '          ', closeIndent = '        ') %}{% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}List<Map<String, dynamic>>{% else %}{% set modelDefinition = definitions[(property | schemaModel)] ?? null %}{% set requiredProperties = modelDefinition ? modelDefinition.properties | filter(p => p | schemaRequired) : [] %}<String, dynamic>{% if requiredProperties|length == 0 %}{}{% else %}{
 {% for property in requiredProperties %}{{ indent }}'{{ (property | schemaName) | escapeDollarSign }}': {% if (property | schemaType) == 'object' %}{% if (property | schemaModel) and ((property | schemaModel) != 'prefs' and (property | schemaModel) != 'preferences') %}{{ _self.sub_schema(definitions, property, indent ~ '  ', indent) }}{% else %}<String, dynamic>{}{% endif %}{% elseif (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'string' %}{{ (property | schemaExample) | dartString }}{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{ property | schemaExample }}{% endif %},
 {% endfor %}{{ closeIndent }}}{% endif %}{% endif %}{% else %}{% if (property | schemaType) == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{ property | typeName }}{% endif %}{% endif %}{% endmacro %}
-{% if 'dart' in language.params.packageName %}
+{% if language.name == 'Dart' %}
 import 'package:test/test.dart';
 {% else %}
 import 'package:flutter_test/flutter_test.dart';
