@@ -74,6 +74,10 @@ puts 'Zone text:passed'
 mixed = general.get_mixed
 raise "Unexpected mixed response: #{mixed.inspect}" unless mixed.result == 'mixed-model'
 
+message = 'conversation without a required file'
+puts general.optional_upload(message: message).result
+puts general.optional_upload(message: message, attachment: InputFile.from_path('./tests/resources/file.png')).result
+
 begin
     response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_path('./tests/resources/file.png'))
     puts response.result

@@ -127,6 +127,17 @@ module {{ spec.info.title | caseUcfirst }}
         )
             input_file = params[param_name.to_sym]
 
+            # An omitted optional attachment leaves a plain multipart request.
+            if input_file.nil?
+                return call(
+                    method: 'POST',
+                    path: path,
+                    headers: headers,
+                    params: params,
+                    response_type: response_type,
+                )
+            end
+
             case input_file.source_type
             when 'path'
                 size = ::File.size(input_file.path)
