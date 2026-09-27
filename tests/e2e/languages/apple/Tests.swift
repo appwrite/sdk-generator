@@ -150,6 +150,15 @@ class Tests: XCTestCase {
         print(try await general.validatePath(plain: "0", id: "0").result)
         print(try await general.validatePath(plain: "0", id: nil).result)
 
+        let zone: String = try await Plaintext(client).getZone()
+        if zone == "; café zone\nwww 3600 IN A 192.0.2.1\n" {
+            print("Zone text:passed")
+        } else {
+            XCTFail("Unexpected zone text: \(zone.debugDescription)")
+        }
+        let mixed: Mock = try await general.getMixed()
+        XCTAssertEqual(mixed.result, "mixed-model")
+
         do {
             var file = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)

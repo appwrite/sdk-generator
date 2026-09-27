@@ -572,11 +572,14 @@ class Swift extends Language
     protected function getReturnType(Operation $method, Specification $spec, string $generic = 'T'): string
     {
         $methodType = $this->getMethodType($method, $spec);
-        if ($methodType === 'webAuth') {
+        if ($methodType === self::METHOD_TYPE_WEB_AUTH) {
             return 'String?';
         }
-        if ($methodType === 'location') {
+        if ($methodType === self::METHOD_TYPE_LOCATION) {
             return 'ByteBuffer';
+        }
+        if ($methodType === self::METHOD_TYPE_TEXT) {
+            return 'String';
         }
 
         $models = \array_values(\array_filter(
