@@ -686,19 +686,15 @@ impl Client {
         params: HashMap<String, Value>,
         param_name: &str,
         input_file: InputFile,
-        upload_id: Option<String>,
     ) -> Result<String> {
-        self.upload(
-            path,
+        let url = format!("{}{}", self.state.load().config.endpoint, path);
+
+        self.single_file_upload(
+            &url,
             headers,
             params,
             param_name,
-            input_file,
-            UploadOptions {
-                upload_id,
-                on_progress: None::<fn(UploadProgress)>,
-                max_concurrency: None,
-            },
+            &input_file,
             ResponseFormat::Text,
         )
         .await
@@ -717,32 +713,6 @@ impl Client {
     where
         F: Fn(UploadProgress),
     {
-        self.upload(
-            path,
-            headers,
-            params,
-            param_name,
-            input_file,
-            options,
-            ResponseFormat::Json,
-        )
-        .await
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    async fn upload<T: DeserializeOwned, F>(
-        &self,
-        path: &str,
-        headers: Option<HashMap<String, String>>,
-        params: HashMap<String, Value>,
-        param_name: &str,
-        input_file: InputFile,
-        options: UploadOptions<F>,
-        format: ResponseFormat,
-    ) -> Result<T>
-    where
-        F: Fn(UploadProgress),
-    {
         let file_size = input_file.size().await?;
         let chunk_size = {
             let state = self.state.load();
@@ -754,7 +724,14 @@ impl Client {
             let url = format!("{}{}", state.config.endpoint, path);
 
             let result = self
-                .single_file_upload(&url, headers, params, param_name, &input_file, format)
+                .single_file_upload(
+                    &url,
+                    headers,
+                    params,
+                    param_name,
+                    &input_file,
+                    ResponseFormat::Json,
+                )
                 .await?;
 
             if let Some(callback) = &options.on_progress {
@@ -776,7 +753,6 @@ impl Client {
             param_name,
             &input_file,
             options,
-            format,
         )
         .await
     }
@@ -833,7 +809,6 @@ impl Client {
         self.handle_response(response, format).await
     }
 
-    #[allow(clippy::too_many_arguments)]
     async fn chunked_file_upload_with_progress<T: DeserializeOwned, F>(
         &self,
         path: &str,
@@ -842,7 +817,6 @@ impl Client {
         param_name: &str,
         input_file: &InputFile,
         options: UploadOptions<F>,
-        format: ResponseFormat,
     ) -> Result<T>
     where
         F: Fn(UploadProgress),
@@ -900,7 +874,6 @@ impl Client {
                     0,
                     file_size,
                     chunk_size,
-                    format,
                 )
                 .await?;
 
@@ -952,7 +925,6 @@ impl Client {
                         chunk_index,
                         file_size,
                         chunk_size,
-                        format,
                     )
                     .await?;
 
@@ -1012,7 +984,6 @@ impl Client {
                             chunk_index,
                             file_size,
                             chunk_size,
-                            format,
                         )
                         .await?;
 
@@ -1028,7 +999,6 @@ impl Client {
             .and_then(|v| serde_json::from_value(v).map_err(Into::into))
     }
 
-    #[allow(clippy::too_many_arguments)]
     async fn upload_file_chunk(
         &self,
         path: &str,
@@ -1040,7 +1010,6 @@ impl Client {
         chunk_index: u64,
         file_size: u64,
         chunk_size: usize,
-        format: ResponseFormat,
     ) -> Result<Value> {
         let start = chunk_index * chunk_size as u64;
         let mut reader = input_file.chunked_reader().await?;
@@ -1108,7 +1077,7 @@ impl Client {
 
         let response = request_builder.multipart(form).send().await?;
 
-        self.handle_response(response, format).await
+        self.handle_response(response, ResponseFormat::Json).await
     }
 
     async fn handle_response<T: DeserializeOwned>(
