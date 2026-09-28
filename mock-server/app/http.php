@@ -488,10 +488,10 @@ App::post('/v1/mock/tests/general/optional-upload')
     ->label('sdk.mock', true)
     ->param('message', '', new Text(100), 'Conversation message')
     ->param('attachment', [], new File(), 'Optional attachment', optional: true, skipValidation: true)
-    ->param('metadata', [], new JSON(), 'Optional metadata object', optional: true)
+    ->param('metadata', null, new JSON(), 'Optional metadata object', optional: true)
     ->inject('request')
     ->inject('response')
-    ->action(function (string $message, mixed $attachment, array|string $metadata, Request $request, UtopiaSwooleResponse $response) {
+    ->action(function (string $message, mixed $attachment, ?string $metadata, Request $request, UtopiaSwooleResponse $response) {
         if ($message !== 'conversation without a required file') {
             throw new Exception(Exception::GENERAL_MOCK, 'Wrong conversation message');
         }
@@ -512,14 +512,13 @@ App::post('/v1/mock/tests/general/optional-upload')
             }
         }
 
-        // Multipart bodies carry objects as JSON strings, JSON bodies as objects.
-        $metadata = \is_string($metadata) ? \json_decode($metadata, true) : $metadata;
-        if (!empty($metadata) && ($metadata['source'] ?? null) !== 'sdk') {
+        $hasMetadata = $metadata !== null;
+        if ($hasMetadata && \json_decode($metadata, true) !== ['source' => 'sdk']) {
             throw new Exception(Exception::GENERAL_MOCK, 'Wrong metadata');
         }
 
         $response->json([
-            'result' => 'optional-upload:' . ($hasFile ? 'with-file' : 'without-file') . (empty($metadata) ? '' : ':with-metadata'),
+            'result' => 'optional-upload:' . ($hasFile ? 'with-file' : 'without-file') . ($hasMetadata ? ':with-metadata' : ''),
         ]);
     });
 
