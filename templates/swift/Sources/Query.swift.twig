@@ -516,6 +516,28 @@ public struct Query: Codable, CustomStringConvertible {
         ).description
     }
 
+    /// Constrain populated related documents on a relationship attribute.
+    ///
+    /// - Parameters:
+    ///   - attribute: The relationship attribute to query.
+    ///   - queries: Filter, order, select, and pagination queries applied to related documents.
+    /// - Returns: The query string.
+    public static func relationship(_ attribute: String, queries: [String]) -> String {
+        let decoder = JSONDecoder()
+        let decodedQueries = queries.compactMap { queryStr -> Query? in
+            guard let data = queryStr.data(using: .utf8) else {
+                return nil
+            }
+            return try? decoder.decode(Query.self, from: data)
+        }
+
+        return Query(
+            method: "relationship",
+            attribute: attribute,
+            values: decodedQueries
+        ).description
+    }
+
     public static func distanceEqual(
         _ attribute: String, values: [Any], distance: Double, meters: Bool = true
     ) -> String {

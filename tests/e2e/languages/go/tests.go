@@ -305,6 +305,10 @@ func testQueries() {
 		query.Equal("name", "Alice"),
 		query.GreaterThan("age", 18),
 	}))
+	fmt.Println(query.Relationship("comments", []string{
+		query.Equal("approved", true),
+		query.Limit(2),
+	}))
 }
 
 func testPermissionHelpers() {

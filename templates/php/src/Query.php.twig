@@ -415,6 +415,19 @@ class Query implements \JsonSerializable, \Stringable
     }
 
     /**
+     * Constrain populated related documents on a relationship attribute.
+     *
+     */
+    public static function relationship(string $attribute, array $queries): string
+    {
+        foreach ($queries as &$query) {
+            $query = \json_decode($query, true);
+        }
+
+        return new Query('relationship', $attribute, $queries)->__toString();
+    }
+
+    /**
      * Distance Equal
      *
      */
