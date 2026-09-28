@@ -24,8 +24,8 @@ abstract class Language
 {
     private const string MULTIPART_MEDIA_TYPE = 'multipart/form-data';
     private const string TEXT_MEDIA_TYPE = 'text/plain';
-    private const array SUCCESS_STATUSES = ['200', '201', '202', '204', '2XX'];
-    private const array REDIRECT_STATUSES = ['301', '302', '3XX'];
+    private const array SUCCESS_STATUSES = ['200', '201', '202', '203', '204', '205', '206', '207', '208', '226', '2XX'];
+    private const array REDIRECT_STATUSES = ['300', '301', '302', '303', '304', '305', '307', '308', '3XX'];
 
     public const string METHOD_TYPE_UPLOAD = 'upload';
     public const string METHOD_TYPE_GRAPHQL = 'graphql';
