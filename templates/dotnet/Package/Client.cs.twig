@@ -176,6 +176,10 @@ namespace {{ spec.info.title | caseUcfirst }}
                     {
                         form.Add(fileContent.First()!);
                     }
+                    else if (parameter.Value is System.Collections.IDictionary)
+                    {
+                        form.Add(new StringContent(JsonSerializer.Serialize(parameter.Value, SerializerOptions)), parameter.Key);
+                    }
                     else if (parameter.Value is IEnumerable<object> enumerable)
                     {
                         var list = new List<object>(enumerable);

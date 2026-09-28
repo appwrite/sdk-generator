@@ -2387,6 +2387,11 @@
                     "description": "Optional attachment",
                     "type": "string",
                     "format": "binary"
+                  },
+                  "metadata": {
+                    "description": "Optional metadata object",
+                    "type": "object",
+                    "x-example": "{}"
                   }
                 },
                 "required": [

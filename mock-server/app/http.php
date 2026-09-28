@@ -16,6 +16,7 @@ use Utopia\Console;
 use Utopia\MockServer\Utopia\Response;
 use Utopia\Swoole\Request;
 use Utopia\Swoole\Response as UtopiaSwooleResponse;
+use Utopia\Validator\JSON;
 use Utopia\Validator\Text;
 use Utopia\Validator\Integer;
 use Utopia\Validator\ArrayList;
@@ -487,9 +488,10 @@ App::post('/v1/mock/tests/general/optional-upload')
     ->label('sdk.mock', true)
     ->param('message', '', new Text(100), 'Conversation message')
     ->param('attachment', [], new File(), 'Optional attachment', optional: true, skipValidation: true)
+    ->param('metadata', null, new JSON(), 'Optional metadata object', optional: true)
     ->inject('request')
     ->inject('response')
-    ->action(function (string $message, mixed $attachment, Request $request, UtopiaSwooleResponse $response) {
+    ->action(function (string $message, mixed $attachment, array|string|null $metadata, Request $request, UtopiaSwooleResponse $response) {
         if ($message !== 'conversation without a required file') {
             throw new Exception(Exception::GENERAL_MOCK, 'Wrong conversation message');
         }
@@ -510,8 +512,19 @@ App::post('/v1/mock/tests/general/optional-upload')
             }
         }
 
+        $hasMetadata = $metadata !== null;
+        if ($hasMetadata) {
+            $decoded = \is_string($metadata) ? \json_decode($metadata, true) : $metadata;
+            if (\is_array($decoded)) {
+                \ksort($decoded);
+            }
+            if ($decoded !== ['source' => 'sdk', 'uri' => 'café']) {
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong metadata');
+            }
+        }
+
         $response->json([
-            'result' => 'optional-upload:' . ($hasFile ? 'with-file' : 'without-file'),
+            'result' => 'optional-upload:' . ($hasFile ? 'with-file' : 'without-file') . ($hasMetadata ? ':with-metadata' : ''),
         ]);
     });
 

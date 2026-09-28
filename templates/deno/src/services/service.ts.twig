@@ -98,14 +98,22 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% for parameter in (method | parameters('query')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            apiPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if (method | consumes)[0] == "multipart/form-data" and ( (parameter | schemaType) != "string" and (parameter | schemaType) != "array" and (parameter | schemaType) != "file" ) %}.toString(){% endif %};
-        }
+{% set multipart = (method | consumes)[0] == "multipart/form-data" %}
+{% if multipart and (parameter | schemaType) == "object" %}
+            apiPayload['{{ parameter.name }}'] = JSON.stringify({{ parameter.name | caseCamel | escapeKeyword }});
+{% else %}
+            apiPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if multipart and (parameter | schemaType) not in ["string", "array", "file"] %}.toString(){% endif %};
+{% endif %}        }
 
 {% endfor %}
 {% for parameter in (method | parameters('body')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            apiPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if (method | consumes)[0] == "multipart/form-data" and ( (parameter | schemaType) != "string" and (parameter | schemaType) != "array" and (parameter | schemaType) != "file" ) %}.toString(){% endif %};
-        }
+{% set multipart = (method | consumes)[0] == "multipart/form-data" %}
+{% if multipart and (parameter | schemaType) == "object" %}
+            apiPayload['{{ parameter.name }}'] = JSON.stringify({{ parameter.name | caseCamel | escapeKeyword }});
+{% else %}
+            apiPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if multipart and (parameter | schemaType) not in ["string", "array", "file"] %}.toString(){% endif %};
+{% endif %}        }
 {% endfor %}
 {% if 'multipart/form-data' in (method | consumes) %}
 {% for parameter in (method | parameters('all')) %}

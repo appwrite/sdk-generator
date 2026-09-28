@@ -40,6 +40,7 @@ final class Deno1303Test extends Base
         ...Base::TEXT_UPLOAD_RESPONSES,
         'optional-upload:without-file',
         ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,

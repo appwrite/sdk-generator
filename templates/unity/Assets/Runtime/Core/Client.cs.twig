@@ -471,6 +471,10 @@ namespace {{ spec.info.title | caseUcfirst }}
 
                         form.Add(new MultipartFormFileSection(parameter.Key, fileData, inputFile.Filename, inputFile.MimeType));
                     }
+                    else if (parameter.Value is System.Collections.IDictionary)
+                    {
+                        form.Add(new MultipartFormDataSection(parameter.Key, JsonSerializer.Serialize(parameter.Value, SerializerOptions)));
+                    }
                     else if (parameter.Value is IEnumerable<object> enumerable)
                     {
                         if (parameter.Value == null) continue;

@@ -225,6 +225,8 @@ echo "compound invalid response: passed\n";
 $message = 'conversation without a required file';
 echo $general->optionalUpload($message)->result . "\n";
 echo $general->optionalUpload($message, InputFile::withPath(__DIR__ . '/../../../resources/file.png'))->result . "\n";
+echo $general->optionalUpload($message, metadata: ['source' => 'sdk', 'uri' => 'café'])->result . "\n";
+echo $general->optionalUpload($message, InputFile::withPath(__DIR__ . '/../../../resources/file.png'), ['source' => 'sdk', 'uri' => 'café'])->result . "\n";
 
 $data = file_get_contents(__DIR__ . '/../../../resources/file.png');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'image/png', 'file.png'));

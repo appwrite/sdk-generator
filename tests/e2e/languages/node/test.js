@@ -194,6 +194,9 @@ async function start() {
         console.log('required-file:rejected');
     }
 
+    console.log((await general.optionalUpload({ message, metadata: { source: 'sdk', uri: 'café' } })).result);
+    console.log((await general.optionalUpload({ message, attachment: InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png'), metadata: { source: 'sdk', uri: 'café' } })).result);
+
     // Upload
     response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png'));
     console.log(response.result);

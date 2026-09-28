@@ -115,6 +115,11 @@ abstract class Base extends TestCase
         'required-file:rejected',
     ];
 
+    protected const MULTIPART_OBJECT_RESPONSES = [
+        'optional-upload:without-file:with-metadata',
+        'optional-upload:with-file:with-metadata',
+    ];
+
     protected const OPTIONAL_ATTACHMENT_RESPONSES = [
         'optional-upload:without-file',
         'optional-upload:with-file',
