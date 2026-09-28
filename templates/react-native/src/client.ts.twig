@@ -747,6 +747,15 @@ class Client {
                             params[key].forEach((value: any) => {
                                 formData.append(key + '[]', value);
                             });
+                        } else if (
+                            params[key] !== null &&
+                            typeof params[key] === 'object' &&
+                            !('uri' in params[key])
+                        ) {
+                            formData.append(
+                                key,
+                                JSONbig.stringify(params[key]),
+                            );
                         } else {
                             formData.append(key, params[key]);
                         }

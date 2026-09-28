@@ -400,6 +400,8 @@ module {{ spec.info.title | caseUcfirst }}
         def encode_form_data(value, key = nil)
             case value
             when Hash
+                return encode_form_data(value.to_json, key) unless key.nil?
+
                 value.map { |k, v| encode_form_data(v, k) }.join
             when Array
                 value.map { |v| encode_form_data(v, "#{key}[]") }.join

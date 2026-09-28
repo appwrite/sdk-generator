@@ -663,7 +663,13 @@ open class Client {
                 return
             }
 
-            let string = String(describing: value)
+            var string = String(describing: value)
+            if let object = value as? [String: Any],
+                let data = try? JSONSerialization.data(withJSONObject: object),
+                let json = String(data: data, encoding: .utf8)
+            {
+                string = json
+            }
             bodyBuffer.writeString(CRLF)
             bodyBuffer.writeString("Content-Length: \(string.count)")
             bodyBuffer.writeString(CRLF + CRLF)

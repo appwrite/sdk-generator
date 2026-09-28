@@ -31,6 +31,10 @@ mixin ClientMixin {
                   });
                 }
               });
+            } else if (value is Map) {
+              (request as http.MultipartRequest).fields.addAll({
+                key: jsonEncode(value),
+              });
             } else {
               (request as http.MultipartRequest).fields.addAll({
                 key: value.toString(),
