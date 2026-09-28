@@ -129,6 +129,11 @@ export class {{ service.name | caseUcfirst }} extends Service {
         }
 
 {% endif %}
+{% if (method | textResponse) %}
+        apiPayload['{{ parameter.name }}'] = { type: 'file', file: new File([await new Response({{ parameter.name | caseCamel | escapeKeyword }}.stream).arrayBuffer()], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
+
+        return await this.client.call('{{ method.method.value | caseLower }}', apiPath, apiHeaders, apiPayload, 'text');
+{% else %}
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
         let id: string | undefined = undefined;
@@ -203,7 +208,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         if (chunks.length === 1 && chunks[0].index === 0) {
             apiPayload['{{ parameter.name }}'] = { type: 'file', file: new File([chunks[0].data as BlobPart], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
-            response = await this.client.call('{{ method.method.value | caseLower }}', apiPath, apiHeaders, apiPayload{% if (method | methodType) == 'location' %}, 'arraybuffer'{% elseif (method | methodType) == 'webAuth' %}, 'location'{% elseif (method | textResponse) %}, 'text'{% endif %});
+            response = await this.client.call('{{ method.method.value | caseLower }}', apiPath, apiHeaders, apiPayload{% if (method | methodType) == 'location' %}, 'arraybuffer'{% elseif (method | methodType) == 'webAuth' %}, 'location'{% endif %});
 
             if (onProgress !== null) {
                 onProgress({
@@ -228,7 +233,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             const chunkPayload = { ...apiPayload };
             chunkPayload['{{ parameter.name }}'] = { type: 'file', file: new File([chunk.data as BlobPart], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
 
-            return await this.client.call('{{ method.method.value | caseLower }}', apiPath, chunkHeaders, chunkPayload{% if (method | methodType) == 'location' %}, 'arraybuffer'{% elseif (method | methodType) == 'webAuth' %}, 'location'{% elseif (method | textResponse) %}, 'text'{% endif %});
+            return await this.client.call('{{ method.method.value | caseLower }}', apiPath, chunkHeaders, chunkPayload{% if (method | methodType) == 'location' %}, 'arraybuffer'{% elseif (method | methodType) == 'webAuth' %}, 'location'{% endif %});
         };
 
         response = await uploadChunk(chunks[0]);
@@ -290,6 +295,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
         response = finalResponse ?? lastResponse;
 
         return response;
+{% endif %}
 {% endif %}
 {% endfor %}
 {% else %}

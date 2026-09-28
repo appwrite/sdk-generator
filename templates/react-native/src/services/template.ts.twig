@@ -1,8 +1,10 @@
 {% set usesUpload = false %}
+{% set usesChunkedUpload = false %}
 {% set usesModels = false %}
 {% set usesException = false %}
 {% for method in (service | operations) %}
 {% if 'multipart/form-data' in (method | consumes) %}{% set usesUpload = true %}{% endif %}
+{% if 'multipart/form-data' in (method | consumes) and not (method | textResponse) %}{% set usesChunkedUpload = true %}{% endif %}
 {% if 'Models.' in (method | getReturn(spec)) or 'Models.' in ((method | responseModel) | getGenerics(spec)) %}{% set usesModels = true %}{% endif %}
 {% for parameter in (method | parameters('all')) %}
 {% if parameter.required %}{% set usesException = true %}{% endif %}
@@ -23,6 +25,8 @@ import type { Models } from '../models';
 import type { {{ typeImports | join(', ') }} } from '../client';
 {% if usesUpload %}
 import * as FileSystem from 'expo-file-system';
+{% endif %}
+{% if usesChunkedUpload %}
 import { Platform as RNPlatform } from 'react-native';
 {% endif %}
 
@@ -97,7 +101,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
         {%~ if (method | parameters('all'))|length > 0 %}
 {% set membersBody %}{% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}; {% endif %}{% endfor %}{% endset %}
         {{ 'let params: ' | tsObjectStatement(membersBody, ';', 8) | raw }}
-        {%~ if 'multipart/form-data' in (method | consumes) %}
+        {%~ if 'multipart/form-data' in (method | consumes) and not (method | textResponse) %}
         let onProgress: (progress: UploadProgress) => void;
         {%~ endif %}
 
@@ -105,7 +109,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             {{ method | getOverloadCondition(spec) | raw }}
         ) {
             {{ 'params = (paramsOrFirst || {}) as ' | tsObjectStatement(membersBody, ';', 12) | raw }}
-            {%~ if 'multipart/form-data' in (method | consumes) %}
+            {%~ if 'multipart/form-data' in (method | consumes) and not (method | textResponse) %}
             onProgress = paramsOrFirst?.onProgress as (
                 progress: UploadProgress,
             ) => void;
@@ -116,7 +120,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 {{ ((parameter.name | caseCamel | escapeKeyword) ~ ': ' ~ (loop.index0 == 0 ? 'paramsOrFirst' : ('rest[' ~ (loop.index0 - 1) ~ ']')) ~ ' as') | tsAssignment((parameter | getPropertyType(method, spec)), 16) | raw }},
                 {%~ endfor %}
             };
-            {%~ if 'multipart/form-data' in (method | consumes) %}
+            {%~ if 'multipart/form-data' in (method | consumes) and not (method | textResponse) %}
             onProgress = rest[{{ (method | parameters('all'))|length - 1 }}] as (progress: UploadProgress) => void;
             {%~ endif %}
         }
@@ -205,6 +209,21 @@ export class {{ service.name | caseUcfirst }} extends Service {
             return{{ 'this.client.call' | jsArgs(uploadArgs, 12, ';', 7) | raw }}
         }
 {% endif %}
+{% if (method | textResponse) %}
+
+        apiPayload['{{ parameter.name }}'] = Service.filePart(
+            {{ parameter.name | caseCamel | escapeKeyword }}.uri,
+            {{ parameter.name | caseCamel | escapeKeyword }}.name,
+            {{ parameter.name | caseCamel | escapeKeyword }}.type,
+            () =>
+                FileSystem.readAsStringAsync({{ parameter.name | caseCamel | escapeKeyword }}.uri, {
+                    encoding: FileSystem.EncodingType.Base64,
+                }),
+        );
+
+        {%~ set uploadArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload', "'text'"] %}
+        return{{ 'this.client.call' | jsArgs(uploadArgs, 8, ';', 7) | raw }}
+{% else %}
 
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
@@ -220,7 +239,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
             );
 
             {%~ set uploadArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload'] %}
-            {%~ if (method | textResponse) %}{% set uploadArgs = uploadArgs|merge(["'text'"]) %}{% endif %}
             return{{ 'this.client.call' | jsArgs(uploadArgs, 12, ';', 7) | raw }}
         }
 
@@ -297,9 +315,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 uri,
                 firstChunkHeaders,
                 apiPayload,
-                {%~ if (method | textResponse) %}
-                'text',
-                {%~ endif %}
             );
             offset = firstChunkEnd;
 
@@ -395,9 +410,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 uri,
                 chunkHeaders,
                 chunkPayload,
-                {%~ if (method | textResponse) %}
-                'text',
-                {%~ endif %}
             );
 
             if (failed) {
@@ -449,6 +461,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
         await Promise.all(workers);
 
         return finalResponse ?? response;
+{% endif %}
 {% endif %}
 {% endfor %}
 {% else %}

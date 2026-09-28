@@ -1063,7 +1063,7 @@ class Client {
             );
         }
 
-        if (file.size <= Client.CHUNK_SIZE) {
+        if (file.size <= Client.CHUNK_SIZE || responseType === 'text') {
             return await this.call(
                 method,
                 url,

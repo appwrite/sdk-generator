@@ -322,7 +322,7 @@ class Client {
         if (file instanceof InputFile) {
             const size = await file.size();
 
-            if (size <= Client.CHUNK_SIZE) {
+            if (size <= Client.CHUNK_SIZE || responseType === 'text') {
                 const payload = { ...originalPayload };
                 payload[fileParam] = await file.toFile();
                 return await this.call(
@@ -466,7 +466,7 @@ class Client {
             return finalResponse ?? lastResponse;
         }
 
-        if (file.size <= Client.CHUNK_SIZE) {
+        if (file.size <= Client.CHUNK_SIZE || responseType === 'text') {
             return await this.call(
                 method,
                 url,
