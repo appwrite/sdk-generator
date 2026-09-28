@@ -225,11 +225,20 @@ func (client *Client) SingleUpload(url string, headers map[string]interface{}, p
 		return nil, errors.New(msg)
 	}
 
-	data, err := os.ReadFile(inputFile.Path)
+	source, err := os.Open(inputFile.Path)
 	if err != nil {
 		return nil, err
 	}
-	inputFile.Data = data
+	defer source.Close()
+
+	info, err := source.Stat()
+	if err != nil {
+		return nil, err
+	}
+	inputFile.Data = make([]byte, info.Size())
+	if _, err := io.ReadFull(source, inputFile.Data); err != nil {
+		return nil, err
+	}
 	params[paramName] = inputFile
 
 	return client.Call("POST", url, headers, params)
