@@ -217,8 +217,8 @@ class ServiceTest {
             val message = "conversation without a required file"
             writeToFile(general.optionalUpload(message).result)
             writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../../resources/file.png")).result)
-            writeToFile(general.optionalUpload(message, metadata = mapOf("source" to "sdk")).result)
-            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../../resources/file.png"), mapOf("source" to "sdk")).result)
+            writeToFile(general.optionalUpload(message, metadata = mapOf("source" to "sdk", "uri" to "café")).result)
+            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../../resources/file.png"), mapOf("source" to "sdk", "uri" to "café")).result)
 
             try {
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../../resources/file.png"))

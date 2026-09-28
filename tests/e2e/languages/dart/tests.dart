@@ -99,12 +99,12 @@ void main() async {
     attachment: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'),
   );
   print(optional.result);
-  optional = await general.optionalUpload(message: message, metadata: {'source': 'sdk'});
+  optional = await general.optionalUpload(message: message, metadata: {'source': 'sdk', 'uri': 'café'});
   print(optional.result);
   optional = await general.optionalUpload(
     message: message,
     attachment: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'),
-    metadata: {'source': 'sdk'},
+    metadata: {'source': 'sdk', 'uri': 'café'},
   );
   print(optional.result);
 

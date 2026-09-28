@@ -110,9 +110,9 @@ class Tests: XCTestCase {
         mock = try await general.optionalUpload(message: message, attachment: attachment)
         print(mock.result)
 
-        mock = try await general.optionalUpload(message: message, metadata: ["source": "sdk"])
+        mock = try await general.optionalUpload(message: message, metadata: ["source": "sdk", "uri": "café"])
         print(mock.result)
-        mock = try await general.optionalUpload(message: message, attachment: attachment, metadata: ["source": "sdk"])
+        mock = try await general.optionalUpload(message: message, attachment: attachment, metadata: ["source": "sdk", "uri": "café"])
         print(mock.result)
 
         do {

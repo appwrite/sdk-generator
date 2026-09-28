@@ -250,8 +250,8 @@
                 console.log('required-file:rejected');
             }
 
-            console.log((await general.optionalUpload({ message, metadata: { source: 'sdk' } })).result);
-            console.log((await general.optionalUpload({ message, attachment, metadata: { source: 'sdk' } })).result);
+            console.log((await general.optionalUpload({ message, metadata: { source: 'sdk', uri: 'café' } })).result);
+            console.log((await general.optionalUpload({ message, attachment, metadata: { source: 'sdk', uri: 'café' } })).result);
 
             // Upload
             response = await general.upload(

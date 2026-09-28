@@ -2,8 +2,8 @@ package {{ sdk.namespace | caseDot }}
 
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
-import {{ sdk.namespace | caseDot }}.extensions.toJson
 import {{ sdk.namespace | caseDot }}.extensions.toJsonRequestBody
+import {{ sdk.namespace | caseDot }}.extensions.toJsonWithNulls
 import {{ sdk.namespace | caseDot }}.models.InputFile
 import {{ sdk.namespace | caseDot }}.models.UploadProgress
 import kotlinx.coroutines.CoroutineScope
@@ -284,7 +284,7 @@ class Client @JvmOverloads constructor(
                         builder.addPart(it.value as MultipartBody.Part)
                     }
                     it.value is Map<*, *> -> {
-                        builder.addFormDataPart(it.key, (it.value as Map<*, *>).toJson())
+                        builder.addFormDataPart(it.key, (it.value as Map<*, *>).toJsonWithNulls())
                     }
                     it.value is List<*> -> {
                         val list = it.value as List<*>

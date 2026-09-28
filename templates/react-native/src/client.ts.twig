@@ -170,6 +170,14 @@ export type FilePart = {
     bytes: () => Promise<Uint8Array>;
 };
 
+function isFilePart(value: any): boolean {
+    return (
+        typeof value.uri === 'string' &&
+        typeof value.name === 'string' &&
+        typeof value.type === 'string'
+    );
+}
+
 class {{spec.info.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;
@@ -750,7 +758,7 @@ class Client {
                         } else if (
                             params[key] !== null &&
                             typeof params[key] === 'object' &&
-                            !('uri' in params[key])
+                            !isFilePart(params[key])
                         ) {
                             formData.append(
                                 key,

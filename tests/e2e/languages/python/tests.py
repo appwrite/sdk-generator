@@ -88,8 +88,8 @@ message = 'conversation without a required file'
 print(general.optional_upload(message).result)
 attachment = InputFile.from_path('./tests/resources/file.png')
 print(general.optional_upload(message, attachment).result)
-print(general.optional_upload(message, metadata={'source': 'sdk'}).result)
-print(general.optional_upload(message, InputFile.from_path('./tests/resources/file.png'), {'source': 'sdk'}).result)
+print(general.optional_upload(message, metadata={'source': 'sdk', 'uri': 'café'}).result)
+print(general.optional_upload(message, InputFile.from_path('./tests/resources/file.png'), {'source': 'sdk', 'uri': 'café'}).result)
 
 response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png'))
 print(response.result)

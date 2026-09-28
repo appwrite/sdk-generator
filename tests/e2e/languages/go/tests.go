@@ -172,7 +172,7 @@ func testGeneralService(client client.Client, stringInArray []string) {
 		panic(err)
 	}
 	fmt.Println(optional.Result)
-	metadata := map[string]interface{}{"source": "sdk"}
+	metadata := map[string]interface{}{"source": "sdk", "uri": "café"}
 	optional, err = general.OptionalUpload(message, general.WithOptionalUploadMetadata(metadata))
 	if err != nil {
 		panic(err)

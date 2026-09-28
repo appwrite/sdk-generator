@@ -188,8 +188,8 @@ import {
         console.log('required-file:rejected');
     }
 
-    console.log((await general.optionalUpload({ message, metadata: { source: 'sdk' } })).result);
-    console.log((await general.optionalUpload({ message, attachment: smallFile, metadata: { source: 'sdk' } })).result);
+    console.log((await general.optionalUpload({ message, metadata: { source: 'sdk', uri: 'café' } })).result);
+    console.log((await general.optionalUpload({ message, attachment: smallFile, metadata: { source: 'sdk', uri: 'café' } })).result);
 
     response = await general.upload('string', 123, ['string in array'], smallFile);
     console.log(response.result);

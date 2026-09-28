@@ -705,7 +705,7 @@ open class Client {
                 string = json
             }
             bodyBuffer.writeString(CRLF)
-            bodyBuffer.writeString("Content-Length: \(string.count)")
+            bodyBuffer.writeString("Content-Length: \(string.utf8.count)")
             bodyBuffer.writeString(CRLF + CRLF)
             bodyBuffer.writeString(string)
             bodyBuffer.writeString(CRLF)
