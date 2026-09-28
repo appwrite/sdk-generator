@@ -194,6 +194,10 @@ async function start() {
         console.log('required-file:rejected');
     }
 
+    // Object params in a multipart request are sent as JSON, not "[object Object]".
+    console.log((await general.optionalUpload({ message, metadata: { source: 'sdk' } })).result);
+    console.log((await general.optionalUpload({ message, attachment: InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png'), metadata: { source: 'sdk' } })).result);
+
     // Upload
     response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png'));
     console.log(response.result);

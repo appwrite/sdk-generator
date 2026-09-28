@@ -280,6 +280,9 @@ class Client {
                             for (const nestedValue of value) {
                                 formData.append(`${key}[]`, nestedValue);
                             }
+                        } else if (value !== null && typeof value === 'object') {
+                            // FormData would send a plain object as "[object Object]".
+                            formData.append(key, JSON.stringify(value));
                         } else {
                             formData.append(key, value);
                         }
