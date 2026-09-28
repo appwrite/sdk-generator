@@ -38,6 +38,20 @@
         }
 
 {% endif %}
+{% if textResponse %}
+        if (empty(${{ parameter.name | caseCamel }}->getPath() ?? null)) {
+            $apiParams['{{ parameter.name }}'] = Part::body('{{ parameter.name }}', ${{ parameter.name | caseCamel }}->getData(), ${{ parameter.name | caseCamel }}->getFilename(), ${{ parameter.name | caseCamel }}->getMimeType());
+        } else {
+            $apiParams['{{ parameter.name }}'] = Part::file('{{ parameter.name }}', ${{ parameter.name | caseCamel }}->getPath(), ${{ parameter.name | caseCamel }}->getFilename() ?? basename(${{ parameter.name | caseCamel }}->getPath()), ${{ parameter.name | caseCamel }}->getMimeType() ?? mime_content_type(${{ parameter.name | caseCamel }}->getPath()));
+        }
+
+        $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, $apiHeaders, $apiParams);
+        if (!is_string($response)) {
+            throw new \UnexpectedValueException('Expected text response.');
+        }
+
+        return $response;
+{% else %}
         $size = 0;
         $mimeType = null;
         $postedName = null;
@@ -73,12 +87,6 @@
 
                 return {{ responseModels | first }}::from($response);
 {% endif %}
-{% elseif textResponse %}
-                if (!is_string($response)) {
-                    throw new \UnexpectedValueException('Expected text response.');
-                }
-
-                return $response;
 {% else %}
                 return $response;
 {% endif %}
@@ -116,12 +124,6 @@
 
                 return {{ responseModels | first }}::from($response);
 {% endif %}
-{% elseif textResponse %}
-                if (!is_string($response)) {
-                    throw new \UnexpectedValueException('Expected text response.');
-                }
-
-                return $response;
 {% else %}
                 return $response;
 {% endif %}
@@ -207,12 +209,6 @@
 
             return {{ responseModels | first }}::from($response);
 {% endif %}
-{% elseif textResponse %}
-            if (!is_string($response)) {
-                throw new \UnexpectedValueException('Expected text response.');
-            }
-
-            return $response;
 {% else %}
             return $response;
 {% endif %}
@@ -311,14 +307,9 @@
 
         return {{ responseModels | first }}::from($response);
 {% endif %}
-{% elseif textResponse %}
-        if (!is_string($response)) {
-            throw new \UnexpectedValueException('Expected text response.');
-        }
-
-        return $response;
 {% else %}
         return $response;
+{% endif %}
 {% endif %}
 {% endif %}
 {% endfor %}
