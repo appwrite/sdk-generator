@@ -1,6 +1,18 @@
 {% set fileParameter = (method | parameters('all')) | filter(p => (p | schemaType) == 'file') | last %}
 	paramName := "{{ fileParameter.name }}"
 
+{% if (method | textResponse) %}
+	resp, err := srv.client.SingleUpload(path, headers, params, paramName)
+	if err != nil {
+		return nil, err
+	}
+	body, err := client.ResponseBody(resp)
+	if err != nil {
+		return nil, err
+	}
+	parsed := string(body)
+	return &parsed, nil
+{% else %}
 	uploadId := ""
 {% set uploadIdParameter = method | uploadIdParameter %}
 {% if uploadIdParameter %}
@@ -13,14 +25,6 @@
 	if err != nil {
 		return nil, err
 	}
-{% if (method | textResponse) %}
-	body, err := client.ResponseBody(resp)
-	if err != nil {
-		return nil, err
-	}
-	parsed := string(body)
-	return &parsed, nil
-{% else %}
 	if strings.HasPrefix(resp.Type, "application/json") {
 		bytes, err := client.ResponseBody(resp)
 		if err != nil {
