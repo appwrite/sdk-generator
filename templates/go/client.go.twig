@@ -231,14 +231,11 @@ func (client *Client) SingleUpload(url string, headers map[string]interface{}, p
 	}
 	defer source.Close()
 
-	info, err := source.Stat()
-	if err != nil {
+	var content bytes.Buffer
+	if _, err := content.ReadFrom(source); err != nil {
 		return nil, err
 	}
-	inputFile.Data = make([]byte, info.Size())
-	if _, err := io.ReadFull(source, inputFile.Data); err != nil {
-		return nil, err
-	}
+	inputFile.Data = content.Bytes()
 	params[paramName] = inputFile
 
 	return client.Call("POST", url, headers, params)
