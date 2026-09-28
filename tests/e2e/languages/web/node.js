@@ -1,4 +1,4 @@
-const { AppwriteException, Client, Foo, Bar, General, Query, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
+const { AppwriteException, Client, Foo, Bar, General, Plaintext, Query, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
@@ -146,6 +146,13 @@ async function start() {
 
     response = await general.getPath({ pathId: 'grant/special&id' });
     console.log(response.result);
+
+    const zone = await new Plaintext(client).getZone();
+    if (typeof zone !== 'string') {
+        throw new Error(`Unexpected zone type: ${typeof zone}`);
+    }
+    console.log(zone);
+    console.log((await general.getMixed()).result);
 
     response = await general.enum(MockType.First);
     console.log(response.result);

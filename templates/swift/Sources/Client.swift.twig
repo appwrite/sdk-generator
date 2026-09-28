@@ -435,7 +435,15 @@ open class Client {
         converter: ((Any) throws -> T)? = nil,
         onProgress: ((UploadProgress) -> Void)? = nil
     ) async throws -> T {
-        let input = params[paramName] as! InputFile
+        guard let input = params[paramName] as? InputFile else {
+            return try await call(
+                method: "POST",
+                path: path,
+                headers: headers,
+                params: params,
+                converter: converter
+            )
+        }
 
         switch input.sourceType {
         case "path":
@@ -448,7 +456,7 @@ open class Client {
 
         let size = (input.data as! ByteBuffer).readableBytes
 
-        if size < Client.chunkSize {
+        if size < Client.chunkSize || T.self == String.self {
             params[paramName] = input
             return try await call(
                 method: "POST",
@@ -689,7 +697,7 @@ open class Client {
         if !chunked {
             request.headers.add(name: "Content-Length", value: bodyBuffer.readableBytes.description)
         }
-        request.headers.add(name: "Content-Type", value: "multipart/form-data;boundary=\"\(Client.boundary)\"")
+        request.headers.add(name: "Content-Type", value: "multipart/form-data; boundary=\"\(Client.boundary)\"")
         request.body = .bytes(bodyBuffer)
     }
 

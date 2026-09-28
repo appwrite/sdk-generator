@@ -29,7 +29,7 @@
             let rtsubFailureFiredAfterUnsubscribe = false;
 
             // Init SDK
-            const { Client, Foo, Bar, General, Realtime, Push, Query, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = Appwrite;
+            const { Client, Foo, Bar, General, Plaintext, Realtime, Push, Query, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = Appwrite;
             const client = new Client();
 
             const foo = new Foo(client);
@@ -217,6 +217,17 @@
 
             response = await general.getPath({ pathId: 'grant/special&id' });
             console.log(response.result);
+
+            const zone = await new Plaintext(client).getZone();
+            if (typeof zone !== 'string') {
+                throw new Error(`Unexpected zone type: ${typeof zone}`);
+            }
+            console.log(zone);
+            console.log((await general.getMixed()).result);
+
+            const plaintext = new Plaintext(client);
+            console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1'));
+            console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1', document.getElementById('file').files[0]));
 
             // Optional multipart attachment: positional and object overloads.
             const message = 'conversation without a required file';

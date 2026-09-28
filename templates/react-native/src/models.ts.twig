@@ -2,20 +2,31 @@
 {% for definitionName, definition in definitions %}
 {% set modelNames = modelNames | merge([definitionName | caseUcfirst]) %}
 {% endfor %}
-{% if responseEnums|length > 0 %}
-{% for responseEnum in responseEnums %}
+{% for requestModelName, requestModel in requestModels %}
+{% set modelNames = modelNames | merge([requestModelName | caseUcfirst]) %}
+{% endfor %}
+{% set importedEnums = [] %}
+{% for modelEnum in responseEnums | merge(requestModels is empty ? [] : requestModelEnums) %}
 {# A model of the same name shadows the enum inside the namespace, which
    would leave this import unused. #}
-{% if (responseEnum.title | caseUcfirst) not in modelNames %}
-import { {{ responseEnum.title }} } from './enums/{{ responseEnum.title | caseKebab }}';
+{% if (modelEnum.title | caseUcfirst) not in modelNames and (modelEnum.title | caseUcfirst) not in importedEnums %}
+import { {{ modelEnum.title | caseUcfirst }} } from './enums/{{ modelEnum.title | caseKebab }}';
+{% set importedEnums = importedEnums | merge([modelEnum.title | caseUcfirst]) %}
 {% endif %}
 {% endfor %}
-{% endif %}
+{% set usesDefault = false %}
+{% for definition in definitions | merge(requestModels) %}
+{% if definition.additionalProperties %}{% set usesDefault = true %}{% endif %}
+{% endfor %}
 
 export namespace Models {
+{% if usesDefault %}
     declare const __default: unique symbol;
+{% endif %}
 {% for definitionName, definition in definitions %}
+{% if usesDefault or not loop.first %}
 
+{% endif %}
     /**
      * {{ definition.description | trimLines }}
      */
@@ -41,7 +52,9 @@ export namespace Models {
 {% endif %}
 {% endfor %}
 {% for requestModelName, requestModel in requestModels %}
+{% if usesDefault or definitions is not empty or not loop.first %}
 
+{% endif %}
     /**
      * {{ requestModel.description | trimLines }}
      */
@@ -51,7 +64,7 @@ export namespace Models {
          *{% if (property.description | trimLines) is not empty %} {{ property.description | trimLines | raw }}{% endif %}
 
          */
-        {{ (property | schemaName) | removeDash }}{% if not (property | schemaRequired) %}?{% endif %}: {{ property | getSubSchema(spec, requestModelName) | raw }};
+        {{ ((property | schemaName) | removeDash ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty((property | getSubSchema(spec, requestModelName)), 8) | raw }}
 {% endfor %}
     };
 {% if requestModel.additionalProperties %}

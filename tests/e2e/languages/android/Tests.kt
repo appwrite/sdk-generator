@@ -22,6 +22,7 @@ import io.appwrite.models.RealtimeSubscriptionUpdate
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
+import io.appwrite.services.Plaintext
 import io.appwrite.services.Push
 import io.appwrite.services.Realtime
 import kotlinx.coroutines.Dispatchers
@@ -206,6 +207,16 @@ class ServiceTest {
             }
             writeToFile(general.validatePath("0", "0").result)
             writeToFile(general.validatePath("0", null).result)
+
+            val zone: String = Plaintext(client).getZone()
+            writeToFile(zone)
+            writeToFile(general.getMixed().result)
+            writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1"))
+            writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1", InputFile.fromPath("../../../../resources/file.png")))
+
+            val message = "conversation without a required file"
+            writeToFile(general.optionalUpload(message).result)
+            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../../resources/file.png")).result)
 
             try {
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../../resources/file.png"))

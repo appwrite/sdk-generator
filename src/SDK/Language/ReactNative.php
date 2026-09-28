@@ -294,8 +294,8 @@ class ReactNative extends Web
     public function getReturn(Operation $method, Specification $spec): string
     {
         return match ($this->getMethodType($method, $spec)) {
-            'webAuth' => 'void | URL',
-            'location' => 'Promise<ArrayBuffer>',
+            self::METHOD_TYPE_WEB_AUTH => 'void | URL',
+            self::METHOD_TYPE_LOCATION => 'Promise<ArrayBuffer>',
             default => parent::getReturn($method, $spec),
         };
     }

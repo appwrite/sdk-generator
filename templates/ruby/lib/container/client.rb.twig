@@ -127,6 +127,16 @@ module {{ spec.info.title | caseUcfirst }}
         )
             input_file = params[param_name.to_sym]
 
+            if input_file.nil?
+                return call(
+                    method: 'POST',
+                    path: path,
+                    headers: headers,
+                    params: params,
+                    response_type: response_type,
+                )
+            end
+
             case input_file.source_type
             when 'path'
                 size = ::File.size(input_file.path)
@@ -134,7 +144,7 @@ module {{ spec.info.title | caseUcfirst }}
                 size = input_file.data.bytesize
             end
 
-            if size < @chunk_size
+            if size < @chunk_size || response_type == "text"
                 if input_file.source_type == 'path'
                     input_file.data = IO.read(input_file.path)
                 end
@@ -365,11 +375,26 @@ module {{ spec.info.title | caseUcfirst }}
                 raise {{spec.info.title | caseUcfirst}}::Exception.new(response.body, response.code, response, response.body)
             end
 
+            if response_type == "text"
+                return decode_text(response)
+            end
+
             if response.respond_to?("body_permitted?")
                 return response.body if response.body_permitted?
             end
 
             return response
+        end
+
+        def decode_text(response)
+            charset = response.type_params['charset'] || 'utf-8'
+            encoding = begin
+                Encoding.find(charset)
+            rescue ArgumentError
+                Encoding::UTF_8
+            end
+
+            String.new(response.body.to_s, encoding: encoding).encode(Encoding::UTF_8)
         end
 
         def encode_form_data(value, key = nil)

@@ -4,6 +4,7 @@ import {
     Foo,
     Bar,
     General,
+    Plaintext,
     AppwriteException,
     Realtime,
     Query,
@@ -141,16 +142,27 @@ import {
     response = await general.validatePath({ id: '0', plain: '0' });
     console.log(response.result);
 
-    // Download
-    console.log(new TextDecoder().decode(await general.download()));
+    const zone = await new Plaintext(client).getZone();
+    if (typeof zone !== 'string') {
+        throw new Error(`Unexpected zone type: ${typeof zone}`);
+    }
+    console.log(zone);
+    console.log((await general.getMixed()).result);
 
-    // Upload
     const smallFile = {
         name: 'file.png',
         type: 'image/png',
         size: 38756,
         uri: 'http://localhost:3000/file.png',
     };
+    const plaintext = new Plaintext(client);
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1'));
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1', smallFile));
+
+    // Download
+    console.log(new TextDecoder().decode(await general.download()));
+
+    // Upload
     const largeFile = {
         name: 'large_file.mp4',
         type: 'video/mp4',

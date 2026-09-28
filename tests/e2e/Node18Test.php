@@ -24,9 +24,10 @@ final class Node18Test extends Base
     protected string $class = Node::class;
     #[Override]
     protected array $build = [
-        'cp tests/e2e/languages/node/test.js tests/e2e/sdks/node/test.js',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:18-alpine npm install',
-        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:18-alpine npm run build'
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:18-alpine npm run build',
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:18-alpine npm test',
+        'cp tests/e2e/languages/node/test.js tests/e2e/sdks/node/test.js',
     ];
     #[Override]
     protected string $command =
@@ -42,6 +43,8 @@ final class Node18Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
+        ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::OPTIONAL_UPLOAD_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,

@@ -375,7 +375,7 @@ class Client @JvmOverloads constructor(
 
             filteredParams.forEach {
                 when {
-                    it.key == "file" -> {
+                    it.value is MultipartBody.Part -> {
                         builder.addPart(it.value as MultipartBody.Part)
                     }
                     it.value is List<*> -> {
@@ -444,11 +444,21 @@ class Client @JvmOverloads constructor(
         headers: MutableMap<String, String>,
         params: MutableMap<String, Any?>,
         responseType: Class<T>,
-        converter: ((Any) -> T),
+        converter: ((Any) -> T)? = null,
         paramName: String,
         idParamName: String? = null,
         onProgress: ((UploadProgress) -> Unit)? = null,
     ): T {
+        if (params[paramName] == null) {
+            return call(
+                method = "POST",
+                path,
+                headers,
+                params,
+                responseType,
+                converter
+            )
+        }
         val input = params[paramName] as InputFile
         val size: Long = when (input.sourceType) {
             "path", "file" -> {
@@ -460,7 +470,7 @@ class Client @JvmOverloads constructor(
             else -> throw UnsupportedOperationException()
         }
 
-        if (size < CHUNK_SIZE) {
+        if (size < CHUNK_SIZE || responseType == String::class.java) {
             val data = when (input.sourceType) {
                 "file", "path" -> File(input.path).asRequestBody()
                 "bytes" -> (input.data as ByteArray).toRequestBody(input.mimeType.toMediaType())
@@ -626,7 +636,7 @@ class Client @JvmOverloads constructor(
             result = completedResultRef.get() ?: lastResultRef.get()
         }
 
-        return converter(result as Map<String, Any>)
+        return converter?.invoke(result as Map<String, Any>) ?: result as T
     }
 
     /**

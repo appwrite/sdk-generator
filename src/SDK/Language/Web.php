@@ -349,7 +349,10 @@ class Web extends JS
         $models = $this->getSchemaModels($parameter);
         if ($models !== []) {
             $type = \implode(' | ', \array_map(fn(string $model): string => 'Models.' . $this->toPascalCase($model), $models));
-            return $schema instanceof ArraySchema ? '(' . $type . ')[]' : $type;
+            if (!$schema instanceof ArraySchema) {
+                return $type;
+            }
+            return \count($models) > 1 ? '(' . $type . ')[]' : $type . '[]';
         }
 
         return match ($this->getSchemaType($parameter)) {
@@ -420,11 +423,14 @@ class Web extends JS
     public function getReturn(Operation $method, Specification $spec): string
     {
         $type = $this->getMethodType($method, $spec);
-        if ($type === 'webAuth') {
+        if ($type === self::METHOD_TYPE_WEB_AUTH) {
             return 'void | string';
         }
-        if ($type === 'location') {
+        if ($type === self::METHOD_TYPE_LOCATION) {
             return 'string';
+        }
+        if ($this->isTextResponse($method, $spec)) {
+            return 'Promise<string>';
         }
 
         $models = \array_values(\array_filter(
@@ -688,10 +694,26 @@ class Web extends JS
         $inner = str_repeat(' ', $indent + 4);
         $lines = '';
         foreach ($this->splitTopLevel($body, ';', trackGenerics: true) as $member) {
-            $lines .= $inner . $this->wrapConditionalType($member, $indent + 4) . ";\n";
+            $lines .= $inner . $this->formatObjectMember($member, $indent + 4) . "\n";
         }
 
         return $prefix . "{\n" . $lines . $pad . '}' . $suffix;
+    }
+
+    /**
+     * Render one member of an object type, exploding an inline object type
+     * that overflows the width the same way the enclosing statement does.
+     */
+    protected function formatObjectMember(string $member, int $indent): string
+    {
+        if (
+            mb_strlen(str_repeat(' ', $indent) . $member . ';') > self::PRINT_WIDTH
+            && preg_match('/^([^:{]+:\s)\{\s(.*)\s\}$/s', $member, $matches) === 1
+        ) {
+            return $this->formatObjectStatement($matches[1], $matches[2], ';', $indent);
+        }
+
+        return $this->wrapConditionalType($member, $indent) . ';';
     }
 
     /**

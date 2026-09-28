@@ -300,6 +300,50 @@ App::get('/v1/mock/tests/general/headers')
         $response->json(['result' => $res]);
     });
 
+App::get('/v1/mock/tests/general/mixed')
+    ->inject('response')
+    ->action(function ($response) {
+        $response->setStatusCode(206)->json(['result' => 'mixed-model']);
+    });
+
+App::get('/v1/mock/tests/general/zone')
+    ->inject('response')
+    ->action(function ($response) {
+        $response
+            ->setStatusCode(203)
+            ->setContentType('text/plain; charset=utf-8')
+            ->send("; café zone\nwww 3600 IN A 192.0.2.1\n");
+    });
+
+App::post('/v1/mock/tests/general/zone-import')
+    ->param('records', '', new Text(100), 'Zone records')
+    ->param('zone', [], new File(), 'Optional zone file', optional: true, skipValidation: true)
+    ->inject('request')
+    ->inject('response')
+    ->action(function (string $records, mixed $zone, Request $request, UtopiaSwooleResponse $response) {
+        if ($records !== 'www 3600 IN A 192.0.2.1') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong zone records');
+        }
+        if (!str_starts_with($request->getHeader('content-type', ''), 'multipart/form-data; boundary=')) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Expected multipart with a boundary');
+        }
+
+        $file = $request->getFiles('zone');
+        $hasFile = !empty($file);
+        if ($hasFile) {
+            $tmpName = is_array($file['tmp_name']) ? $file['tmp_name'][0] : $file['tmp_name'];
+            $name = is_array($file['name']) ? $file['name'][0] : $file['name'];
+            if ($name !== 'file.png' || md5(file_get_contents($tmpName)) !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong zone file');
+            }
+        }
+
+        $response
+            ->setStatusCode(201)
+            ->setContentType('text/plain; charset=utf-8')
+            ->send('zone-import:' . ($hasFile ? 'with-file' : 'without-file') . "\n");
+    });
+
 App::get('/v1/mock/tests/general/download')
     ->desc('Download File')
     ->groups(['mock'])

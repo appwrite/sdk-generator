@@ -121,6 +121,15 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     println!("{}", general.validate_path("0", Some("0")).await?.result);
     println!("{}", general.validate_path("0", None).await?.result);
 
+    let zone: String = Plaintext::new(&client).get_zone().await?;
+    println!("{}", zone);
+    println!("{}", general.get_mixed().await?.result);
+    let plaintext = Plaintext::new(&client);
+    let records = "www 3600 IN A 192.0.2.1";
+    println!("{}", plaintext.import_zone(records, None).await?);
+    let zone_file = InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?;
+    println!("{}", plaintext.import_zone(records, Some(zone_file)).await?);
+
     let message = "conversation without a required file";
     println!("{}", general.optional_upload(message, None).await?.result);
     let attachment = InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?;

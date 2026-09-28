@@ -17,8 +17,8 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.File
 
 /**
- *{% if service.description is not empty %} {{ service.description | replace({"\n": "\n * "}) | kotlinDoc }}{% endif %}
-**/
+ *{{ (' ' ~ service.description) | replace({"\n": "\n * "}) | kotlinDoc }}
+ */
 class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {% for method in (service | operations) %}
 {% set allParameters = (method | parameters('all')) %}
@@ -26,7 +26,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {% set pathParameters = (method | parameters('path')) %}
 {% set securityQueries = (method | securityQueries) %}
     /**
-     * {{ method.description | replace({"\n": "\n     * "}) | kotlinDoc }}
+     *{{ (' ' ~ method.description) | replace({"\n": "\n     * "}) | kotlinDoc }}
      *
     {%~ for parameter in (method | parameters('all')) %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
@@ -140,7 +140,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ if (method | responseModel) | hasGenericType(spec) %}
 
     /**
-     * {{ method.description | replace({"\n": "\n     * "}) | kotlinDoc }}
+     *{{ (' ' ~ method.description) | replace({"\n": "\n     * "}) | kotlinDoc }}
      *
     {%~ for parameter in (method | parameters('all')) %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}

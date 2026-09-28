@@ -463,11 +463,14 @@ class Go extends Language
     protected function getReturnType(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string
     {
         $type = $this->getMethodType($method, $spec);
-        if ($type === 'webAuth') {
+        if ($type === self::METHOD_TYPE_WEB_AUTH) {
             return 'bool';
         }
-        if ($type === 'location') {
+        if ($type === self::METHOD_TYPE_LOCATION) {
             return '[]byte';
+        }
+        if ($this->isTextResponse($method, $spec)) {
+            return 'string';
         }
         $models = \array_values(\array_filter(
             $this->getOperationResponseModels($method),

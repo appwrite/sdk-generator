@@ -705,10 +705,10 @@ class Kotlin extends Language
         return [
             new TwigFilter('returnType', function (Operation $method, Specification $spec, string $namespace, string $generic = 'T'): string {
                 $methodType = $this->getMethodType($method, $spec);
-                if ($methodType === 'webAuth') {
+                if ($methodType === self::METHOD_TYPE_WEB_AUTH || $this->isTextResponse($method, $spec)) {
                     return 'String';
                 }
-                if ($methodType === 'location') {
+                if ($methodType === self::METHOD_TYPE_LOCATION) {
                     return 'ByteArray';
                 }
 

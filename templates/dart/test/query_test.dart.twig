@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
-{% if 'dart' in language.params.packageName %}
+{% if language.name == 'Dart' %}
 import 'package:test/test.dart';
 {% else %}
 import 'package:flutter_test/flutter_test.dart';

@@ -21,6 +21,7 @@ use Appwrite\Enums\MockType;
 use Appwrite\Services\Bar;
 use Appwrite\Services\Foo;
 use Appwrite\Services\General;
+use Appwrite\Services\Plaintext;
 
 readonly class AdditionalPropsDataOnly
 {
@@ -183,6 +184,13 @@ foreach ([['', '0'], ['0', '']] as [$id, $plain]) {
 }
 echo $general->validatePath('0', '0')->result . "\n";
 
+$zone = new Plaintext($client)->getZone();
+echo $zone . "\n";
+echo $general->getMixed()->result . "\n";
+$plaintext = new Plaintext($client);
+echo $plaintext->importZone('www 3600 IN A 192.0.2.1') . "\n";
+echo $plaintext->importZone('www 3600 IN A 192.0.2.1', InputFile::withPath(__DIR__ . '/../../../resources/file.png')) . "\n";
+
 $response = $general->getUnion();
 echo $response->result . "\n";
 
@@ -213,6 +221,10 @@ foreach (['boolean', 'missing'] as $scenario) {
     }
 }
 echo "compound invalid response: passed\n";
+
+$message = 'conversation without a required file';
+echo $general->optionalUpload($message)->result . "\n";
+echo $general->optionalUpload($message, InputFile::withPath(__DIR__ . '/../../../resources/file.png'))->result . "\n";
 
 $data = file_get_contents(__DIR__ . '/../../../resources/file.png');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'image/png', 'file.png'));

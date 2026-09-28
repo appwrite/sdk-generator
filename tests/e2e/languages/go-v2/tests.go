@@ -136,6 +136,43 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	}
 	fmt.Printf("%s\n", pathResponse.Result)
 
+	zone, err := appwrite.NewPlaintext(client).GetZone()
+	if err != nil {
+		panic(err)
+	}
+	var text string = *zone
+	fmt.Println(text)
+	mixed, err := general.GetMixed()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(mixed.Result)
+	plaintext := appwrite.NewPlaintext(client)
+	imported, err := plaintext.ImportZone("www 3600 IN A 192.0.2.1")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(*imported)
+	zoneFile := file.NewInputFile(path.Join("/app", "tests/resources/file.png"), "file.png")
+	imported, err = plaintext.ImportZone("www 3600 IN A 192.0.2.1", plaintext.WithImportZoneZone(zoneFile))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(*imported)
+
+	message := "conversation without a required file"
+	optional, err := general.OptionalUpload(message)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(optional.Result)
+	attachment := file.NewInputFile(path.Join("/app", "tests/resources/file.png"), "file.png")
+	optional, err = general.OptionalUpload(message, general.WithOptionalUploadAttachment(attachment))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(optional.Result)
+
 	testGeneralUpload(client, stringInArray)
 	testGeneralUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)

@@ -115,7 +115,11 @@ Future<void> syncPushForeground(
   if (await service.isRunning()) {
     // The isolate is already up: hand it the new topic/notify/qos set so a later
     // subscribe/unsubscribe/update takes effect without a restart.
-    service.invoke(_topicsEvent, {'topics': topics, 'notify': notify, 'qos': qos});
+    service.invoke(_topicsEvent, {
+      'topics': topics,
+      'notify': notify,
+      'qos': qos,
+    });
     return;
   }
 
@@ -174,7 +178,8 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
       ),
     );
     config =
-        jsonDecode((await _configFile()).readAsStringSync()) as Map<String, dynamic>;
+        jsonDecode((await _configFile()).readAsStringSync())
+            as Map<String, dynamic>;
   } catch (e) {
     _relayError(
       service,
@@ -282,7 +287,9 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
     // A subscribe can fail (SUBACK refused, connection dropped mid-CONNECT); applyTopics
     // skips already-subscribed topics, so retrying the current wanted set converges on the
     // missing ones instead of silently dropping them.
-    topicQueue = topicQueue.then((_) => applyTopics(topics)).catchError((Object _) {
+    topicQueue = topicQueue.then((_) => applyTopics(topics)).catchError((
+      Object _,
+    ) {
       if (retryScheduled) {
         return;
       }
@@ -297,7 +304,8 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
   service.on(_topicsEvent).listen((data) {
     notify = _notifyOf(data?['notify']);
     qos = _qosOf(data?['qos']);
-    final topics = ((data?['topics'] as List?) ?? const <dynamic>[]).cast<String>();
+    final topics =
+        ((data?['topics'] as List?) ?? const <dynamic>[]).cast<String>();
     queueTopics(topics);
   });
 

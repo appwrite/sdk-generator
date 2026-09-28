@@ -150,6 +150,25 @@ class Tests: XCTestCase {
         print(try await general.validatePath(plain: "0", id: "0").result)
         print(try await general.validatePath(plain: "0", id: nil).result)
 
+        let zone: String = try await Plaintext(client).getZone()
+        print(zone)
+        let mixed: Mock = try await general.getMixed()
+        print(mixed.result)
+        let plaintext = Plaintext(client)
+        var imported: String = try await plaintext.importZone(records: "www 3600 IN A 192.0.2.1")
+        print(imported)
+        let zoneFile = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
+        imported = try await plaintext.importZone(records: "www 3600 IN A 192.0.2.1", zone: zoneFile)
+        print(imported)
+
+        let message = "conversation without a required file"
+        mock = try await general.optionalUpload(message: message)
+        print(mock.result)
+
+        let attachment = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
+        mock = try await general.optionalUpload(message: message, attachment: attachment)
+        print(mock.result)
+
         do {
             var file = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)

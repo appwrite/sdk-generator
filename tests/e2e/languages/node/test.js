@@ -11,6 +11,7 @@ const {
     Foo,
     Bar,
     General,
+    Plaintext,
     AppwriteException
 } = require('./dist/index.js');
 const { InputFile } = require('./dist/inputFile.js');
@@ -161,6 +162,17 @@ async function start() {
 
     response = await general.getPath({ pathId: 'grant/special&id' });
     console.log(response.result);
+
+    const zone = await new Plaintext(client).getZone();
+    if (typeof zone !== 'string') {
+        throw new Error(`Unexpected zone type: ${typeof zone}`);
+    }
+    console.log(zone);
+    console.log((await general.getMixed()).result);
+
+    const plaintext = new Plaintext(client);
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1'));
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1', InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png')));
 
     // Optional multipart attachment: positional and object overloads.
     const message = 'conversation without a required file';

@@ -24,6 +24,7 @@ final class FlutterStableTest extends Base
     protected string $class = Flutter::class;
     #[Override]
     protected array $build = [
+        'docker run --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter pub get && flutter test"',
         'mkdir -p tests/e2e/sdks/flutter/test',
         'cp tests/e2e/languages/flutter/tests.dart tests/e2e/sdks/flutter/test/appwrite_test.dart',
         // The native Android plugin's background delivery: a Robolectric project compiling the
@@ -59,6 +60,9 @@ final class FlutterStableTest extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::NULL_PATH_RESPONSE,
+        ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
+        ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,

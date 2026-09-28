@@ -4,6 +4,54 @@
 {% set responseModels = method | getResponseModels(spec) %}
 {% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}
 {% set responseDiscriminator = (method | responseDiscriminator) %}
+{% set textResponse = method | textResponse %}
+{% if not parameter.required %}
+        if (!${{ parameter.name | caseCamel }} instanceof InputFile) {
+            $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, $apiHeaders, $apiParams);
+{% if responseModels | length > 0 %}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+            if (!is_array($response)) {
+                throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+            }
+{% for modelName, conditions in responseDiscriminator %}
+            if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                return \{{ namespace | caseNamespace }}\Models\{{ modelName | caseUcfirst }}::from($response);
+            }
+{% endfor %}
+            throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
+            if (!is_array($response)) {
+                throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+            }
+
+            return {{ responseModels | first }}::from($response);
+{% endif %}
+{% elseif textResponse %}
+            if (!is_string($response)) {
+                throw new \UnexpectedValueException('Expected text response.');
+            }
+
+            return $response;
+{% else %}
+            return $response;
+{% endif %}
+        }
+
+{% endif %}
+{% if textResponse %}
+        if (empty(${{ parameter.name | caseCamel }}->getPath() ?? null)) {
+            $apiParams['{{ parameter.name }}'] = Part::body('{{ parameter.name }}', ${{ parameter.name | caseCamel }}->getData(), ${{ parameter.name | caseCamel }}->getFilename(), ${{ parameter.name | caseCamel }}->getMimeType());
+        } else {
+            $apiParams['{{ parameter.name }}'] = Part::file('{{ parameter.name }}', ${{ parameter.name | caseCamel }}->getPath(), ${{ parameter.name | caseCamel }}->getFilename() ?? basename(${{ parameter.name | caseCamel }}->getPath()), ${{ parameter.name | caseCamel }}->getMimeType() ?? mime_content_type(${{ parameter.name | caseCamel }}->getPath()));
+        }
+
+        $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, $apiHeaders, $apiParams);
+        if (!is_string($response)) {
+            throw new \UnexpectedValueException('Expected text response.');
+        }
+
+        return $response;
+{% else %}
         $size = 0;
         $mimeType = null;
         $postedName = null;
@@ -261,6 +309,7 @@
 {% endif %}
 {% else %}
         return $response;
+{% endif %}
 {% endif %}
 {% endif %}
 {% endfor %}

@@ -2,6 +2,7 @@ from appwrite.client import Client
 from appwrite.services.foo import Foo
 from appwrite.services.bar import Bar
 from appwrite.services.general import General
+from appwrite.services.plaintext import Plaintext
 from appwrite.exception import AppwriteException
 from appwrite.input_file import InputFile
 from appwrite.query import Query
@@ -74,6 +75,19 @@ for id, plain in [('', '0'), ('0', '')]:
     except AppwriteException as error:
         print(error.message)
 print(general.validate_path('0', '0').result)
+
+zone = Plaintext(client).get_zone()
+if not isinstance(zone, str):
+    raise AssertionError(f'Expected zone text as str, got {type(zone).__name__}')
+print(zone)
+print(general.get_mixed().result)
+print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1'))
+print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1', InputFile.from_path('./tests/resources/file.png')))
+
+message = 'conversation without a required file'
+print(general.optional_upload(message).result)
+attachment = InputFile.from_path('./tests/resources/file.png')
+print(general.optional_upload(message, attachment).result)
 
 response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png'))
 print(response.result)

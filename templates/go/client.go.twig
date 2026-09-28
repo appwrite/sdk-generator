@@ -215,8 +215,37 @@ func copyParams(params map[string]interface{}) map[string]interface{} {
 	return clone
 }
 
+func (client *Client) SingleUpload(url string, headers map[string]interface{}, params map[string]interface{}, paramName string) (*ClientResponse, error) {
+	inputFile, ok := params[paramName].(file.InputFile)
+	if _, present := params[paramName]; !present {
+		return client.Call("POST", url, headers, params)
+	}
+	if !ok {
+		msg := fmt.Sprintf("invalid input file. params[%s] must be of type file.InputFile", paramName)
+		return nil, errors.New(msg)
+	}
+
+	source, err := os.Open(inputFile.Path)
+	if err != nil {
+		return nil, err
+	}
+	defer source.Close()
+
+	var content bytes.Buffer
+	if _, err := content.ReadFrom(source); err != nil {
+		return nil, err
+	}
+	inputFile.Data = content.Bytes()
+	params[paramName] = inputFile
+
+	return client.Call("POST", url, headers, params)
+}
+
 func (client *Client) FileUpload(url string, headers map[string]interface{}, params map[string]interface{}, paramName string, uploadId string) (*ClientResponse, error) {
 	inputFile, ok := params[paramName].(file.InputFile)
+	if _, present := params[paramName]; !present {
+		return client.Call("POST", url, headers, params)
+	}
 	if !ok {
 		msg := fmt.Sprintf("invalid input file. params[%s] must be of type file.InputFile", paramName)
 		return nil, errors.New(msg)
