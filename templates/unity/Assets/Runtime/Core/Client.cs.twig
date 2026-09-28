@@ -792,7 +792,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             try
             {
                 var offset = 0L;
-                var buffer = new byte[typeof(T) == typeof(string) ? size : Math.Min(size, ChunkSize)];
+                var buffer = new byte[Math.Min(size, ChunkSize)];
                 var result = new Dictionary<string, object?>();
 
                 if (size < ChunkSize || typeof(T) == typeof(string))
@@ -804,6 +804,8 @@ namespace {{ spec.info.title | caseUcfirst }}
                             var dataStream = input.Data as Stream;
                             if (dataStream == null)
                                 throw new InvalidOperationException("Stream data is null");
+                            if (buffer.Length < size)
+                                buffer = new byte[size];
                             var bytesReadSmall = await ReadExactlyAsync(dataStream, buffer, (int)size);
                             if (bytesReadSmall != size)
                                 throw new EndOfStreamException("Unexpected end of stream during upload");

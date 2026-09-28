@@ -433,7 +433,7 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             if (size < ChunkSize || typeof(T) == typeof(string))
             {
-                var buffer = new byte[size];
+                byte[] buffer;
                 switch (input.SourceType)
                 {
                     case "path":
@@ -443,6 +443,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                         var dataStream = input.Data as Stream;
                         if (dataStream == null)
                             throw new InvalidOperationException("Stream data is null");
+                        buffer = new byte[size];
                         var bytesRead = 0;
                         while (bytesRead < size)
                         {
@@ -458,6 +459,8 @@ namespace {{ spec.info.title | caseUcfirst }}
                             throw new InvalidOperationException("Byte array data is null");
                         buffer = dataBytes;
                         break;
+                    default:
+                        throw new InvalidOperationException($"Unsupported source type: {input.SourceType}");
                 }
 
                 var content = new MultipartFormDataContent {
