@@ -77,6 +77,8 @@ print plaintext.import_zone(records: 'www 3600 IN A 192.0.2.1', zone: InputFile.
 message = 'conversation without a required file'
 puts general.optional_upload(message: message).result
 puts general.optional_upload(message: message, attachment: InputFile.from_path('./tests/resources/file.png')).result
+puts general.optional_upload(message: message, metadata: { 'source' => 'sdk' }).result
+puts general.optional_upload(message: message, attachment: InputFile.from_path('./tests/resources/file.png'), metadata: { 'source' => 'sdk' }).result
 
 begin
     response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_path('./tests/resources/file.png'))

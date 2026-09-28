@@ -44,6 +44,7 @@ final class PHP85Test extends Base
         'compound fallback: passed',
         'compound invalid response: passed',
         ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,

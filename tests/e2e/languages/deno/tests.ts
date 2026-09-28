@@ -102,6 +102,8 @@ async function start() {
   console.log((await general.optionalUpload(message)).result);
   console.log((await general.optionalUpload(message, undefined)).result);
   console.log((await general.optionalUpload(message, appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png"))).result);
+  console.log((await general.optionalUpload(message, undefined, { source: "sdk" })).result);
+  console.log((await general.optionalUpload(message, appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png"), { source: "sdk" })).result);
 
   response = await general.upload(
     "string",

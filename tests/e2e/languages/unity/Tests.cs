@@ -184,6 +184,10 @@ namespace AppwriteTests
             LogResult(mock.Result);
             mock = await general.OptionalUpload("conversation without a required file", InputFile.FromPath("../../../resources/file.png"));
             LogResult(mock.Result);
+            mock = await general.OptionalUpload("conversation without a required file", metadata: new Dictionary<string, object> { { "source", "sdk" } });
+            LogResult(mock.Result);
+            mock = await general.OptionalUpload("conversation without a required file", InputFile.FromPath("../../../resources/file.png"), new Dictionary<string, object> { { "source", "sdk" } });
+            LogResult(mock.Result);
 
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../resources/file.png"));
             LogResult(mock.Result);

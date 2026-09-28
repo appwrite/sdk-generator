@@ -36,6 +36,7 @@ final class Rust183Test extends Base
         ...Base::TEXT_RESPONSES,
         ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSE,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,

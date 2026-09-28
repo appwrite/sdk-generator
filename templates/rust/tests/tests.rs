@@ -134,6 +134,9 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     println!("{}", general.optional_upload(message, None, None).await?.result);
     let attachment = InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?;
     println!("{}", general.optional_upload(message, Some(attachment), None).await?.result);
+    println!("{}", general.optional_upload(message, None, Some(json!({ "source": "sdk" }))).await?.result);
+    let attachment = InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?;
+    println!("{}", general.optional_upload(message, Some(attachment), Some(json!({ "source": "sdk" }))).await?.result);
 
     test_general_upload(client, string_in_array).await?;
     test_large_upload(client, string_in_array).await?;

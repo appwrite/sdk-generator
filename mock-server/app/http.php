@@ -491,7 +491,7 @@ App::post('/v1/mock/tests/general/optional-upload')
     ->param('metadata', null, new JSON(), 'Optional metadata object', optional: true)
     ->inject('request')
     ->inject('response')
-    ->action(function (string $message, mixed $attachment, ?string $metadata, Request $request, UtopiaSwooleResponse $response) {
+    ->action(function (string $message, mixed $attachment, array|string|null $metadata, Request $request, UtopiaSwooleResponse $response) {
         if ($message !== 'conversation without a required file') {
             throw new Exception(Exception::GENERAL_MOCK, 'Wrong conversation message');
         }
@@ -513,7 +513,7 @@ App::post('/v1/mock/tests/general/optional-upload')
         }
 
         $hasMetadata = $metadata !== null;
-        if ($hasMetadata && \json_decode($metadata, true) !== ['source' => 'sdk']) {
+        if ($hasMetadata && (\is_string($metadata) ? \json_decode($metadata, true) : $metadata) !== ['source' => 'sdk']) {
             throw new Exception(Exception::GENERAL_MOCK, 'Wrong metadata');
         }
 
