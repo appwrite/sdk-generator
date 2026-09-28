@@ -429,11 +429,11 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
 
             var offset = 0L;
-            var buffer = new byte[Math.Min(size, ChunkSize)];
             var result = new Dictionary<string, object?>();
 
-            if (size < ChunkSize)
+            if (size < ChunkSize || typeof(T) == typeof(string))
             {
+                var buffer = new byte[size];
                 switch (input.SourceType)
                 {
                     case "path":
@@ -443,7 +443,14 @@ namespace {{ spec.info.title | caseUcfirst }}
                         var dataStream = input.Data as Stream;
                         if (dataStream == null)
                             throw new InvalidOperationException("Stream data is null");
-                        await dataStream.ReadAsync(buffer, 0, (int)size);
+                        var bytesRead = 0;
+                        while (bytesRead < size)
+                        {
+                            var count = await dataStream.ReadAsync(buffer, bytesRead, (int)size - bytesRead);
+                            if (count == 0)
+                                break;
+                            bytesRead += count;
+                        }
                         break;
                     case "bytes":
                         var dataBytes = input.Data as byte[];
