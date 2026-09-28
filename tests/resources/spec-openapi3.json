@@ -1270,7 +1270,7 @@
             "description": "Text alternative",
             "content": {"text/plain": {"schema": {"type": "string"}}}
           },
-          "2XX": {
+          "206": {
             "description": "JSON alternative",
             "content": {"application/json": {"schema": {"$ref": "#/components/schemas/mock"}}}
           }
@@ -1359,7 +1359,7 @@
           "scope": "public"
         },
         "responses": {
-          "200": {
+          "203": {
             "description": "DNS zone file",
             "content": {
               "text/plain": {"schema": {"type": "string"}}

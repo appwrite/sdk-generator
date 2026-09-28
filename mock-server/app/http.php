@@ -303,13 +303,14 @@ App::get('/v1/mock/tests/general/headers')
 App::get('/v1/mock/tests/general/mixed')
     ->inject('response')
     ->action(function ($response) {
-        $response->setStatusCode(201)->json(['result' => 'mixed-model']);
+        $response->setStatusCode(206)->json(['result' => 'mixed-model']);
     });
 
 App::get('/v1/mock/tests/general/zone')
     ->inject('response')
     ->action(function ($response) {
         $response
+            ->setStatusCode(203)
             ->setContentType('text/plain; charset=utf-8')
             ->send("; café zone\nwww 3600 IN A 192.0.2.1\n");
     });
