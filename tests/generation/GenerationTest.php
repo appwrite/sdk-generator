@@ -537,6 +537,42 @@ final class GenerationTest extends TestCase
         $this->assertSame(['Value123', 'Value2'], $language->resolveEnumKeys($unsafe));
     }
 
+    /** @return iterable<string, array{array<string, mixed>, bool, string|false}> */
+    public static function responseContracts(): iterable
+    {
+        $text = ['description' => 'text', 'content' => ['text/plain' => ['schema' => ['type' => 'string']]]];
+        $json = ['description' => 'json', 'content' => ['application/json' => ['schema' => ['type' => 'object']]]];
+        $binary = ['description' => 'binary', 'content' => ['image/png' => ['schema' => ['type' => 'string', 'format' => 'binary']]]];
+
+        yield '200 text' => [['200' => $text], true, false];
+        yield '203 text' => [['203' => $text], true, false];
+        yield '2XX text' => [['2XX' => $text], true, false];
+        yield '200 text and 204 empty' => [['200' => $text, '204' => ['description' => 'empty']], true, false];
+        yield '200 text and 206 json' => [['200' => $text, '206' => $json], false, false];
+        yield '200 text and 2XX json' => [['200' => $text, '2XX' => $json], false, false];
+        yield '206 binary' => [['206' => $binary], false, Language::METHOD_TYPE_LOCATION];
+        yield '303 binary' => [['303' => $binary], false, Language::METHOD_TYPE_WEB_AUTH];
+        yield '307 binary' => [['307' => $binary], false, Language::METHOD_TYPE_WEB_AUTH];
+        yield '308 binary' => [['308' => $binary], false, Language::METHOD_TYPE_WEB_AUTH];
+        yield '3XX binary' => [['3XX' => $binary], false, Language::METHOD_TYPE_WEB_AUTH];
+    }
+
+    /** @param array<string, mixed> $responses */
+    #[DataProvider('responseContracts')]
+    public function testResponseContractsAreClassified(array $responses, bool $text, string|false $methodType): void
+    {
+        $specification = Parser::parse([
+            'openapi' => '3.1.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'paths' => ['/test' => ['get' => ['operationId' => 'testContract', 'responses' => $responses]]],
+        ]);
+        $operation = $specification->paths['/test']->operations['get'];
+        $language = $this->language('go');
+
+        $this->assertSame($text, $language->isTextResponse($operation, $specification));
+        $this->assertSame($methodType, $language->getMethodType($operation, $specification));
+    }
+
     #[DataProvider('languages')]
     public function testOpenEnumsAllowAnyString(string $name): void
     {
