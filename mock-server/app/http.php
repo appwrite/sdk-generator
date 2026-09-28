@@ -513,8 +513,14 @@ App::post('/v1/mock/tests/general/optional-upload')
         }
 
         $hasMetadata = $metadata !== null;
-        if ($hasMetadata && (\is_string($metadata) ? \json_decode($metadata, true) : $metadata) != ['source' => 'sdk', 'uri' => 'café']) {
-            throw new Exception(Exception::GENERAL_MOCK, 'Wrong metadata');
+        if ($hasMetadata) {
+            $decoded = \is_string($metadata) ? \json_decode($metadata, true) : $metadata;
+            if (\is_array($decoded)) {
+                \ksort($decoded);
+            }
+            if ($decoded !== ['source' => 'sdk', 'uri' => 'café']) {
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong metadata');
+            }
         }
 
         $response->json([
