@@ -157,7 +157,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
     int size = file.bytes!.length;
 
     late Response res;
-    if (size <= chunkSize) {
+    if (size <= chunkSize || responseType == ResponseType.plain) {
       params[paramName] = http.MultipartFile.fromBytes(
         paramName,
         file.bytes!,
