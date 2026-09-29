@@ -125,12 +125,11 @@ export class Push extends Service {
     // Local id -> subscription state. The id is never sent to the broker; it only lets
     // the same topic carry more than one callback (each with its own options).
     /**
-     * This tab's part of the default client id, kept in sessionStorage when it can be (see
-     * tabId): random, but kept for this instance so reconnects resume the same broker session.
+     * This tab's part of the default client id when the tab has none yet (see claimTabId):
+     * random, but kept for this instance so reconnects resume the same broker session.
      */
     private readonly fallbackClientId = randomId();
     private connectedKey = '';
-    private tabIdClaim: Promise<TabIdClaim> | null = null;
     private connectionEpoch = 0;
 
     private readonly subscriptions = new Map<
@@ -475,9 +474,6 @@ export class Push extends Service {
         this.generation++;
         this.everConnected = false;
         this.subscriptions.clear();
-        const claim = this.tabIdClaim;
-        this.tabIdClaim = null;
-        claim?.then(({ release }) => release());
     }
 
     /**
@@ -554,11 +550,6 @@ export class Push extends Service {
         );
     }
 
-    private async tabId(): Promise<string> {
-        this.tabIdClaim ??= claimTabId(this.fallbackClientId);
-        return (await this.tabIdClaim).id;
-    }
-
     private credentialKey(): string {
         try {
             const { authMethod, credential } = this.credential();
@@ -609,7 +600,9 @@ export class Push extends Service {
             authMethod === 'appwrite-jwt'
                 ? userIdFromJwt(credential)
                 : userIdFromSession(credential);
-        const tabId = this.client.config.pushClientId ? '' : await this.tabId();
+        const tabId = this.client.config.pushClientId
+            ? ''
+            : await claimTabId(this.fallbackClientId);
         const clientId =
             this.client.config.pushClientId ||
             (userId ? `${userId}-${tabId}` : tabId);
@@ -861,42 +854,45 @@ function userIdFromSession(session?: string): string {
     }
 }
 
-type TabIdClaim = { id: string; release: () => void };
+let tabIdClaim: Promise<string> | null = null;
 
-async function claimTabId(fallback: string): Promise<TabIdClaim> {
+function claimTabId(fallback: string): Promise<string> {
+    tabIdClaim ??= claimStoredTabId(fallback);
+    return tabIdClaim;
+}
+
+async function claimStoredTabId(fallback: string): Promise<string> {
     let stored: string | null;
     try {
         stored = window.sessionStorage.getItem(TAB_ID_KEY);
     } catch {
-        return { id: fallback, release: () => {} };
+        return fallback;
     }
-    const held = stored ? await holdTabId(stored) : null;
-    const id = held && stored ? stored : fallback;
-    const release = held ?? (await holdTabId(fallback)) ?? (() => {});
+    if (stored && (await holdTabId(stored))) {
+        return stored;
+    }
+    await holdTabId(fallback);
     try {
-        window.sessionStorage.setItem(TAB_ID_KEY, id);
+        window.sessionStorage.setItem(TAB_ID_KEY, fallback);
     } catch {
-        return { id, release };
+        return fallback;
     }
-    return { id, release };
+    return fallback;
 }
 
-function holdTabId(id: string): Promise<(() => void) | null> {
+function holdTabId(id: string): Promise<boolean> {
     const locks =
         typeof navigator === 'undefined' ? undefined : navigator.locks;
     if (!locks) {
-        return Promise.resolve(() => {});
+        return Promise.resolve(true);
     }
     return new Promise((resolve) => {
         locks
             .request(`${TAB_ID_KEY}:${id}`, { ifAvailable: true }, (lock) => {
-                if (!lock) {
-                    resolve(null);
-                    return undefined;
-                }
-                return new Promise<void>((release) => resolve(() => release()));
+                resolve(lock !== null);
+                return lock ? new Promise<void>(() => {}) : undefined;
             })
-            .catch(() => resolve(() => {}));
+            .catch(() => resolve(true));
     });
 }
 
