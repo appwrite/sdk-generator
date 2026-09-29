@@ -129,6 +129,8 @@ export class Push extends Service {
      * random, but kept for this instance so reconnects resume the same broker session.
      */
     private readonly fallbackClientId = randomId();
+    /** The default client id claimed for this instance's connection, released on close(). */
+    private tabId = '';
     private connectedKey = '';
     private connectionEpoch = 0;
 
@@ -470,6 +472,10 @@ export class Push extends Service {
             this.mqtt.end(true);
             this.mqtt = null;
         }
+        if (this.tabId !== '') {
+            releaseTabId(this.tabId);
+            this.tabId = '';
+        }
         this.connecting = null;
         this.generation++;
         this.everConnected = false;
@@ -600,9 +606,12 @@ export class Push extends Service {
             authMethod === 'appwrite-jwt'
                 ? userIdFromJwt(credential)
                 : userIdFromSession(credential);
-        const tabId = this.client.config.pushClientId
-            ? ''
-            : await claimTabId(this.fallbackClientId);
+        // Claim once per instance and reuse it across reconnects and credential switches, so this
+        // connection keeps one id (its replay cursor). Concurrent instances get distinct ids.
+        if (!this.client.config.pushClientId && this.tabId === '') {
+            this.tabId = await claimTabId(this.fallbackClientId);
+        }
+        const tabId = this.tabId;
         const clientId =
             this.client.config.pushClientId ||
             (userId ? `${userId}-${tabId}` : tabId);
@@ -854,30 +863,65 @@ function userIdFromSession(session?: string): string {
     }
 }
 
-let tabIdClaim: Promise<string> | null = null;
+/** Ids in use by live connections in this page, so two Push instances never share a client id. */
+const claimedTabIds = new Set<string>();
+/** The tab's stored id, resolved and locked once per page (see claimStoredTabId). */
+let storedTabIdClaim: Promise<string> | null = null;
 
-function claimTabId(fallback: string): Promise<string> {
-    tabIdClaim ??= claimStoredTabId(fallback);
-    return tabIdClaim;
-}
-
-async function claimStoredTabId(fallback: string): Promise<string> {
-    let stored: string | null;
-    try {
-        stored = window.sessionStorage.getItem(TAB_ID_KEY);
-    } catch {
-        return fallback;
-    }
-    if (stored && (await holdTabId(stored))) {
+/**
+ * A default client id for one Push connection in this page. The first connection alive takes the
+ * tab's stored id (kept in sessionStorage and locked for the page's lifetime, so it stays the same
+ * across reloads and the broker's replay cursor resumes). Any connection alive at the same time
+ * takes a distinct locked id instead, so simultaneous Push instances never share a client id and
+ * so cannot take over each other's broker session. `fallback` is this instance's own random id.
+ */
+async function claimTabId(fallback: string): Promise<string> {
+    const stored = await claimStoredTabId(fallback);
+    if (stored !== '' && !claimedTabIds.has(stored)) {
+        claimedTabIds.add(stored);
         return stored;
     }
-    await holdTabId(fallback);
-    try {
-        window.sessionStorage.setItem(TAB_ID_KEY, fallback);
-    } catch {
-        return fallback;
+    // The tab's id is taken by another live connection here: take a distinct, locked id without
+    // touching the tab's stored cursor.
+    let id = fallback;
+    while (claimedTabIds.has(id)) {
+        id = randomId();
     }
-    return fallback;
+    await holdTabId(id);
+    claimedTabIds.add(id);
+    return id;
+}
+
+/** Free an id when its connection closes, so a later connection can reuse it (e.g. the stored id). */
+function releaseTabId(id: string): void {
+    claimedTabIds.delete(id);
+}
+
+/**
+ * The tab's stored id, resolved and locked once per page: the value in sessionStorage when a lock
+ * on it is free (this tab owns it), else a fresh id that is locked and stored. '' when
+ * sessionStorage cannot be read, so the caller falls back to its own id.
+ */
+function claimStoredTabId(fallback: string): Promise<string> {
+    storedTabIdClaim ??= (async () => {
+        let stored: string | null;
+        try {
+            stored = window.sessionStorage.getItem(TAB_ID_KEY);
+        } catch {
+            return '';
+        }
+        if (stored && (await holdTabId(stored))) {
+            return stored;
+        }
+        await holdTabId(fallback);
+        try {
+            window.sessionStorage.setItem(TAB_ID_KEY, fallback);
+        } catch {
+            // Not persisted, but still usable as this page's stored id for this session.
+        }
+        return fallback;
+    })();
+    return storedTabIdClaim;
 }
 
 function holdTabId(id: string): Promise<boolean> {
