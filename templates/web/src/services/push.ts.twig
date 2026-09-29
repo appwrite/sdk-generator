@@ -931,7 +931,11 @@ async function claimTabId(fallback: string): Promise<string> {
     while (claimedTabIds.has(id)) {
         id = randomId();
     }
-    await holdTabId(id);
+    const locks =
+        typeof navigator === 'undefined' ? undefined : navigator.locks;
+    if (locks) {
+        await holdTabId(locks, id);
+    }
     claimedTabIds.add(id);
     return id;
 }
@@ -943,21 +947,30 @@ function releaseTabId(id: string): void {
 
 /**
  * The tab's stored id, resolved and locked once per page: the value in sessionStorage when a lock
- * on it is free (this tab owns it), else a fresh id that is locked and stored. '' when
- * sessionStorage cannot be read, so the caller falls back to its own id.
+ * on it is free (this tab owns it), else a fresh id that is locked and stored. Without Web Locks
+ * (or when locking fails) a copied id cannot be told apart from another tab's, so the page uses a
+ * fresh id and leaves sessionStorage alone. '' when sessionStorage cannot be read, so the caller
+ * falls back to its own id.
  */
 function claimStoredTabId(fallback: string): Promise<string> {
     storedTabIdClaim ??= (async () => {
+        const locks =
+            typeof navigator === 'undefined' ? undefined : navigator.locks;
+        if (!locks) {
+            return fallback;
+        }
         let stored: string | null;
         try {
             stored = window.sessionStorage.getItem(TAB_ID_KEY);
         } catch {
             return '';
         }
-        if (stored && (await holdTabId(stored))) {
+        if (stored && (await holdTabId(locks, stored))) {
             return stored;
         }
-        await holdTabId(fallback);
+        if (!(await holdTabId(locks, fallback))) {
+            return fallback;
+        }
         try {
             window.sessionStorage.setItem(TAB_ID_KEY, fallback);
         } catch {
@@ -968,19 +981,14 @@ function claimStoredTabId(fallback: string): Promise<string> {
     return storedTabIdClaim;
 }
 
-function holdTabId(id: string): Promise<boolean> {
-    const locks =
-        typeof navigator === 'undefined' ? undefined : navigator.locks;
-    if (!locks) {
-        return Promise.resolve(true);
-    }
+function holdTabId(locks: LockManager, id: string): Promise<boolean> {
     return new Promise((resolve) => {
         locks
             .request(`${TAB_ID_KEY}:${id}`, { ifAvailable: true }, (lock) => {
                 resolve(lock !== null);
                 return lock ? new Promise<void>(() => {}) : undefined;
             })
-            .catch(() => resolve(true));
+            .catch(() => resolve(false));
     });
 }
 
