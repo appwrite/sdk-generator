@@ -12,7 +12,7 @@ import (
 )
 
 // AppwriteDirectory is the per-function scratch directory the emulation uses
-// for logs, the built bundle and hot-swap staging.
+// for logs, build staging and the built bundle.
 const AppwriteDirectory = ".appwrite"
 
 // Source is a function's directory and the files that survive its ignore rules.
