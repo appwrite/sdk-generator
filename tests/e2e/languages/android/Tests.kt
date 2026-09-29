@@ -695,6 +695,7 @@ class ServiceTest {
             val secondPending = outcome { pendingPush.subscribe("e2e-switch") { } }
             val firstPendingOutcome = runCatching { firstPending.get(10, java.util.concurrent.TimeUnit.SECONDS) }.getOrDefault("timeout")
             pendingPush.close()
+            Thread.sleep(500)
             writeToFile(
                 if (secondPending == "switched-pending" && firstPendingOutcome in listOf("", "switched-pending")) {
                     "Push credential pending switch:passed"
