@@ -197,6 +197,15 @@ abstract class Base extends TestCase
         'Push session replay:passed',
     ];
 
+    protected const PUSH_SESSION_COOKIE_RESPONSES = [
+        'Push user cookie topic:passed',
+        'Push user cookie switch:passed',
+    ];
+
+    protected const PUSH_NATIVE_SESSION_COOKIE_RESPONSES = [
+        'Push session cookie:passed',
+    ];
+
     // Broker errors reaching onError: a refused CONNECT and a server DISCONNECT, carrying the
     // broker's MQTT 5 reason string (Apple checks only that the error arrives: MQTTNIO does not
     // expose the reason string).

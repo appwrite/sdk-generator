@@ -66,12 +66,11 @@ final class ReactNativeAndroidTest extends Base
     #[Override]
     protected array $expectedOutput = [
         ...Base::PUSH_RESPONSES,
-        'Push user cookie topic:passed',
-        'Push user cookie switch:passed',
+        ...Base::PUSH_SESSION_COOKIE_RESPONSES,
         ...Base::PUSH_SESSION_REPLAY_RESPONSES,
         ...Base::PUSH_ERROR_RESPONSES,
         ...Base::PUSH_NATIVE_DISPLACED_RESPONSES,
         ...Base::PUSH_BACKGROUND_RESPONSES,
-        'Push session cookie:passed',
+        ...Base::PUSH_NATIVE_SESSION_COOKIE_RESPONSES,
     ];
 }
