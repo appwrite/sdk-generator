@@ -134,6 +134,21 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/{{ spec.info.title | caseUcfirst }}CookiesModule.kt',
+                'template'      => 'react-native/android/src/main/java/io/package/reactnative/CookiesModule.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'ios/{{ spec.info.title | caseUcfirst }}Cookies.m',
+                'template'      => 'react-native/ios/Cookies.m.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ language.params.npmPackage }}.podspec',
+                'template'      => 'react-native/package.podspec.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'react-native.config.js',
                 'template'      => 'react-native/react-native.config.js.twig',
             ],

@@ -51,6 +51,8 @@ export interface PushSubscription {
 
 type AuthMethod = 'appwrite-jwt' | 'appwrite-session' | '';
 
+const TAB_ID_KEY = '{{ spec.info.title | caseLower }}-push-client-id';
+
 interface Transport {
     connect: typeof import('mqtt').connect;
     Buffer: typeof import('buffer').Buffer;
@@ -123,10 +125,18 @@ export class Push extends Service {
     // Local id -> subscription state. The id is never sent to the broker; it only lets
     // the same topic carry more than one callback (each with its own options).
     /**
-     * The client id when the credential names no user (and none was set): random, but kept for
-     * this instance so reconnects resume the same broker session.
+     * This tab's part of the default client id when the tab has none yet (see claimTabId):
+     * random, but kept for this instance so reconnects resume the same broker session.
      */
     private readonly fallbackClientId = randomId();
+    /** The default client id claimed for this instance's connection, released on close(). */
+    private tabId = '';
+    /** In-flight claim of {@link tabId}, memoized per generation: a credential switch (same
+     * generation) shares the one claim; a close/reopen (new generation) chains a fresh claim. */
+    private tabIdClaim: Promise<string> | null = null;
+    private tabIdClaimGeneration = -1;
+    private connectedKey = '';
+    private connectionEpoch = 0;
 
     private readonly subscriptions = new Map<
         string,
@@ -308,7 +318,20 @@ export class Push extends Service {
             this.requestNotificationPermission();
         }
 
-        const client = await this.connect();
+        let client: MqttClient;
+        try {
+            client = await this.connect();
+        } catch (err) {
+            if (err instanceof SupersededError) {
+                return this.subscribeWith(
+                    topicsOrCallback,
+                    callbackOrOptions,
+                    topicOptions,
+                );
+            }
+            throw err;
+        }
+        const epoch = this.connectionEpoch;
 
         const ids: string[] = [];
         const acks: Promise<void>[] = [];
@@ -378,6 +401,16 @@ export class Push extends Service {
         try {
             await Promise.all(acks);
         } catch (err) {
+            if (epoch !== this.connectionEpoch) {
+                for (const id of ids) {
+                    this.subscriptions.delete(id);
+                }
+                return this.subscribeWith(
+                    topicsOrCallback,
+                    callbackOrOptions,
+                    topicOptions,
+                );
+            }
             unsubscribe();
             throw err;
         }
@@ -443,7 +476,13 @@ export class Push extends Service {
             this.mqtt.end(true);
             this.mqtt = null;
         }
+        if (this.tabId !== '') {
+            releaseTabId(this.tabId);
+            this.tabId = '';
+        }
         this.connecting = null;
+        // Bumping the generation ends the current claim: one still in flight releases its id when
+        // it resolves, and the next open() chains a fresh claim after it (see claimClientId).
         this.generation++;
         this.everConnected = false;
         this.subscriptions.clear();
@@ -478,18 +517,64 @@ export class Push extends Service {
     // --- internals ---
 
     private connect(): Promise<MqttClient> {
-        if (this.mqtt) {
+        if (
+            (this.mqtt || this.connecting) &&
+            this.connectedKey !== this.credentialKey()
+        ) {
+            this.connectionEpoch++;
+            this.mqtt?.end(true);
+            this.mqtt = null;
+            this.connecting = null;
+            this.everConnected = this.subscriptions.size > 0;
+        }
+        if (this.mqtt && !this.connecting) {
             return Promise.resolve(this.mqtt);
         }
         if (!this.connecting) {
-            this.connecting = this.open();
+            const connecting = this.open();
+            this.connecting = connecting;
             // A failed open must not poison future attempts — clear the cached
             // in-flight promise so a later subscribe/publish can retry.
-            this.connecting.catch(() => {
-                this.connecting = null;
+            connecting.catch(() => {
+                if (this.connecting === connecting) {
+                    this.connecting = null;
+                }
             });
         }
         return this.connecting.then(() => this.mqtt!);
+    }
+
+    private credential(): { authMethod: AuthMethod; credential: string } {
+        if (this.client.config.jwt) {
+            return {
+                authMethod: 'appwrite-jwt',
+                credential: this.client.config.jwt,
+            };
+        }
+        if (this.client.config.session) {
+            return {
+                authMethod: 'appwrite-session',
+                credential: this.client.config.session,
+            };
+        }
+        throw new Error(
+            'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
+        );
+    }
+
+    private credentialKey(): string {
+        try {
+            const { authMethod, credential } = this.credential();
+            return [
+                this.endpointUrl(),
+                this.client.config.project ?? '',
+                this.client.config.pushClientId ?? '',
+                authMethod,
+                credential,
+            ].join('|');
+        } catch {
+            return '';
+        }
     }
 
     private endpointUrl(): string {
@@ -510,40 +595,78 @@ export class Push extends Service {
             : `${wsEndpoint.slice(0, at + separator.length)}push.${wsEndpoint.slice(at + separator.length)}`;
     }
 
-    private async open(): Promise<void> {
-        // Read the credential set on the client (via Client.setJWT / setSession).
-        let authMethod: AuthMethod;
-        let credential: string;
-        if (this.client.config.jwt) {
-            authMethod = 'appwrite-jwt';
-            credential = this.client.config.jwt;
-        } else if (this.client.config.session) {
-            authMethod = 'appwrite-session';
-            credential = this.client.config.session;
-        } else {
-            throw new Error(
-                'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
-            );
+    /**
+     * Claim this connection's default client id, memoized per generation. A credential switch (same
+     * generation) shares the one claim, so concurrent open() calls never each claim. A close/reopen
+     * (a new generation) chains a fresh claim after the previous one has settled and released its
+     * id, so the reopened connection can take the tab's stored id back rather than a fallback. A
+     * claim that resolves after its generation has ended releases its id instead of keeping it, so
+     * a stale open connects with nothing reserved and the stored id is never stranded.
+     */
+    private claimClientId(): Promise<string> {
+        const generation = this.generation;
+        if (
+            this.tabIdClaim === null ||
+            this.tabIdClaimGeneration !== generation
+        ) {
+            const previous = this.tabIdClaim ?? Promise.resolve('');
+            this.tabIdClaimGeneration = generation;
+            const claim = previous
+                .catch(() => '')
+                .then(() => claimTabId(this.fallbackClientId))
+                .then((id) => {
+                    if (this.generation !== generation) {
+                        releaseTabId(id);
+                        return '';
+                    }
+                    this.tabId = id;
+                    return id;
+                });
+            this.tabIdClaim = claim;
+            return claim;
         }
+        return this.tabIdClaim;
+    }
+
+    private async open(): Promise<void> {
+        const { authMethod, credential } = this.credential();
+        this.connectedKey = this.credentialKey();
+        const epoch = this.connectionEpoch;
+        const generation = this.generation;
 
         const project = this.client.config.project ?? '';
         // Client id, when the app did not set one with Client.setPushClientId(). Unlike the
         // native SDKs (which send an empty id and let the broker derive a stable one), mqtt.js
-        // rejects an empty id with clean start off, so derive a stable per-user id here from the
-        // credential this connection authenticates with: the JWT's userId, or the session's user
-        // id. A stable id keeps the broker's replay cursor resuming across reloads. The
-        // credential itself is never used as the id.
+        // rejects an empty id with clean start off, so derive one per user and tab from the
+        // credential this connection authenticates with (the JWT's userId, or the session's user
+        // id) and an id kept in the tab's sessionStorage. It stays the same across reloads, so
+        // the broker's replay cursor resumes, and differs between tabs and browsers, so two of
+        // them do not take over each other's session. The credential itself is never used.
+        const userId =
+            authMethod === 'appwrite-jwt'
+                ? userIdFromJwt(credential)
+                : userIdFromSession(credential);
+        // Claim once per instance (memoized) and reuse it across reconnects and credential
+        // switches, so concurrent open() calls never each claim and strand the tab's stored id.
+        // Concurrent instances still get distinct ids. If close() ran while the claim was pending
+        // this open is stale, so stop before connecting (the claim releases its own id).
+        if (!this.client.config.pushClientId) {
+            await this.claimClientId();
+            if (generation !== this.generation) {
+                throw new Error('Push was closed while connecting.');
+            }
+        }
+        const tabId = this.tabId;
         const clientId =
             this.client.config.pushClientId ||
-            (authMethod === 'appwrite-jwt'
-                ? userIdFromJwt(credential)
-                : userIdFromSession(credential)) ||
-            this.fallbackClientId;
+            (userId ? `${userId}-${tabId}` : tabId);
 
-        const generation = this.generation;
         const { connect, Buffer } = await loadTransport();
         if (generation !== this.generation) {
             throw new Error('Push was closed while connecting.');
+        }
+        if (epoch !== this.connectionEpoch) {
+            throw new SupersededError();
         }
         this.Buffer = Buffer;
 
@@ -594,6 +717,9 @@ export class Push extends Service {
             }
         });
         client.on('error', (err) => {
+            if (epoch !== this.connectionEpoch) {
+                return;
+            }
             const error = this.connectError(err, refusedReason);
             // While the first connect is pending its caller receives the error (and reports it
             // through fail()); afterwards, e.g. on reconnect, report it here.
@@ -616,6 +742,10 @@ export class Push extends Service {
         await new Promise<void>((resolve, reject) => {
             const onConnect = (packet: IConnackPacket) => {
                 cleanup();
+                if (epoch !== this.connectionEpoch) {
+                    reject(new SupersededError());
+                    return;
+                }
                 const rc = packet.reasonCode ?? packet.returnCode ?? 0;
                 if (rc !== 0) {
                     this.close();
@@ -631,16 +761,30 @@ export class Push extends Service {
             };
             const onError = (err: Error) => {
                 cleanup();
+                if (epoch !== this.connectionEpoch) {
+                    reject(new SupersededError());
+                    return;
+                }
                 this.close();
                 reject(this.connectError(err, refusedReason));
             };
+            const onClose = () => {
+                if (epoch !== this.connectionEpoch) {
+                    cleanup();
+                    reject(new SupersededError());
+                }
+            };
             const cleanup = () => {
-                this.opening = false;
+                if (epoch === this.connectionEpoch) {
+                    this.opening = false;
+                }
                 client.removeListener('connect', onConnect);
                 client.removeListener('error', onError);
+                client.removeListener('close', onClose);
             };
             client.on('connect', onConnect);
             client.on('error', onError);
+            client.on('close', onClose);
             client.connect();
         });
     }
@@ -713,6 +857,12 @@ export class Push extends Service {
     }
 }
 
+class SupersededError extends Error {
+    constructor() {
+        super('The push connection was superseded');
+    }
+}
+
 /** Normalize anything thrown or passed to an error handler into an `Error`. */
 function toError(error: unknown): Error {
     return error instanceof Error ? error : new Error(String(error));
@@ -755,6 +905,91 @@ function userIdFromSession(session?: string): string {
     } catch {
         return '';
     }
+}
+
+/** Ids in use by live connections in this page, so two Push instances never share a client id. */
+const claimedTabIds = new Set<string>();
+/** The tab's stored id, resolved and locked once per page (see claimStoredTabId). */
+let storedTabIdClaim: Promise<string> | null = null;
+
+/**
+ * A default client id for one Push connection in this page. The first connection alive takes the
+ * tab's stored id (kept in sessionStorage and locked for the page's lifetime, so it stays the same
+ * across reloads and the broker's replay cursor resumes). Any connection alive at the same time
+ * takes a distinct locked id instead, so simultaneous Push instances never share a client id and
+ * so cannot take over each other's broker session. `fallback` is this instance's own random id.
+ */
+async function claimTabId(fallback: string): Promise<string> {
+    const stored = await claimStoredTabId(fallback);
+    if (stored !== '' && !claimedTabIds.has(stored)) {
+        claimedTabIds.add(stored);
+        return stored;
+    }
+    // The tab's id is taken by another live connection here: take a distinct, locked id without
+    // touching the tab's stored cursor.
+    let id = fallback;
+    while (claimedTabIds.has(id)) {
+        id = randomId();
+    }
+    const locks =
+        typeof navigator === 'undefined' ? undefined : navigator.locks;
+    if (locks) {
+        await holdTabId(locks, id);
+    }
+    claimedTabIds.add(id);
+    return id;
+}
+
+/** Free an id when its connection closes, so a later connection can reuse it (e.g. the stored id). */
+function releaseTabId(id: string): void {
+    claimedTabIds.delete(id);
+}
+
+/**
+ * The tab's stored id, resolved and locked once per page: the value in sessionStorage when a lock
+ * on it is free (this tab owns it), else a fresh id that is locked and stored. Without Web Locks
+ * (or when locking fails) a copied id cannot be told apart from another tab's, so the page uses a
+ * fresh id and leaves sessionStorage alone. '' when sessionStorage cannot be read, so the caller
+ * falls back to its own id.
+ */
+function claimStoredTabId(fallback: string): Promise<string> {
+    storedTabIdClaim ??= (async () => {
+        const locks =
+            typeof navigator === 'undefined' ? undefined : navigator.locks;
+        if (!locks) {
+            return fallback;
+        }
+        let stored: string | null;
+        try {
+            stored = window.sessionStorage.getItem(TAB_ID_KEY);
+        } catch {
+            return '';
+        }
+        if (stored && (await holdTabId(locks, stored))) {
+            return stored;
+        }
+        if (!(await holdTabId(locks, fallback))) {
+            return fallback;
+        }
+        try {
+            window.sessionStorage.setItem(TAB_ID_KEY, fallback);
+        } catch {
+            // Not persisted, but still usable as this page's stored id for this session.
+        }
+        return fallback;
+    })();
+    return storedTabIdClaim;
+}
+
+function holdTabId(locks: LockManager, id: string): Promise<boolean> {
+    return new Promise((resolve) => {
+        locks
+            .request(`${TAB_ID_KEY}:${id}`, { ifAvailable: true }, (lock) => {
+                resolve(lock !== null);
+                return lock ? new Promise<void>(() => {}) : undefined;
+            })
+            .catch(() => resolve(false));
+    });
 }
 
 /** Base64 to UTF-8 text without `buffer`, which only loads once Push connects. */

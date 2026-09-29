@@ -92,6 +92,49 @@ async function main() {
     anonymousPush.close();
     console.log(noCredentialRejected ? 'Push user no credential:passed' : 'Push user no credential:failed');
 
+    const cookieEndpoint = 'https://cloud.example.test/v1';
+    let cookieValue = encodeURIComponent(e2eSession);
+    NativeModules.AppwriteCookies = {
+        session: async (url, project) => (url === cookieEndpoint && project === 'console' ? cookieValue : null),
+    };
+    const cookieClient = new Client().setEndpoint(cookieEndpoint).setProject('console').setPushEndpoint(ENDPOINT);
+    console.log(
+        onlyTopic(await userTopicsOf(cookieClient), 'users/e2e-session-user')
+            ? 'Push user cookie topic:passed'
+            : 'Push user cookie topic:failed',
+    );
+
+    const switchPush = new Push(cookieClient);
+    await switchPush.subscribe(['e2e-switch'], () => {});
+    cookieValue = 'deny:switched-user';
+    let switchedError = '';
+    try {
+        await switchPush.subscribe(['e2e-switch'], () => {});
+    } catch (e) {
+        switchedError = e instanceof Error ? e.message : String(e);
+    }
+    switchPush.close();
+    console.log(switchedError === 'switched-user' ? 'Push user cookie switch:passed' : 'Push user cookie switch:failed');
+
+    cookieValue = encodeURIComponent(e2eSession);
+    const pendingPush = new Push(cookieClient);
+    let pendingOpened = false;
+    pendingPush.onOpen(() => (pendingOpened = true));
+    const outcome = (subscribing) => subscribing.then(() => '', (e) => (e instanceof Error ? e.message : String(e)));
+    const firstPending = outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
+    await new Promise((resolve) => setImmediate(resolve));
+    const switchedWhileConnecting = !pendingOpened;
+    cookieValue = 'deny:switched-pending';
+    const secondPending = await outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
+    const firstPendingOutcome = await Promise.race([firstPending, timeout(5000, 'timeout')]);
+    pendingPush.close();
+    console.log(
+        secondPending === 'switched-pending' &&
+            (firstPendingOutcome === 'switched-pending' || (!switchedWhileConnecting && firstPendingOutcome === ''))
+            ? 'Push user cookie pending switch:passed'
+            : `Push user cookie pending switch:failed (first: ${firstPendingOutcome}, second: ${secondPending}, connecting: ${switchedWhileConnecting})`,
+    );
+
     // A message published while the user is signed out reaches their next sign-in, though that
     // sign-in has a new session secret (subscribing to "e2e-replay-publish" makes the mock publish
     // on "e2e-replay", queued for clients that subscribed before and are offline).
