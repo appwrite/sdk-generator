@@ -1221,6 +1221,9 @@ export class Push extends Service {
         // A persistent error listener also prevents mqtt.js from throwing on
         // post-connect errors once the one-shot handler below is removed.
         client.on('error', (err) => {
+            if (epoch !== this.connectionEpoch) {
+                return;
+            }
             const error = this.connectError(err, refusedReason);
             // While the first connect is pending its caller receives the error (and reports it
             // through fail()); afterwards, e.g. on reconnect, report it here.
@@ -1243,6 +1246,10 @@ export class Push extends Service {
         await new Promise<void>((resolve, reject) => {
             const onConnect = (packet: IConnackPacket) => {
                 cleanup();
+                if (epoch !== this.connectionEpoch) {
+                    reject(new SupersededError());
+                    return;
+                }
                 // reasonCode (v5) / returnCode (v3) of 0 means accepted.
                 const rc = packet.reasonCode ?? packet.returnCode ?? 0;
                 if (rc !== 0) {
@@ -1259,6 +1266,10 @@ export class Push extends Service {
             };
             const onError = (err: Error) => {
                 cleanup();
+                if (epoch !== this.connectionEpoch) {
+                    reject(new SupersededError());
+                    return;
+                }
                 this.teardown();
                 reject(this.connectError(err, refusedReason));
             };
@@ -1270,7 +1281,9 @@ export class Push extends Service {
                 }
             };
             const cleanup = () => {
-                this.opening = false;
+                if (epoch === this.connectionEpoch) {
+                    this.opening = false;
+                }
                 client.removeListener('connect', onConnect);
                 client.removeListener('error', onError);
                 client.removeListener('close', onClose);
