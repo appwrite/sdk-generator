@@ -70,7 +70,8 @@ mixin ClientMixin {
         port: uri.port,
       );
       request = http.Request(method.name(), uri);
-    } else {
+    } else if (method != HttpMethod.delete || params.isNotEmpty) {
+      // Proxies may reject a DELETE that carries a body, even an empty one.
       (request as http.Request).body = jsonEncode(params);
     }
 
