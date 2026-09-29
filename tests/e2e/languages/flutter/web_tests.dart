@@ -163,4 +163,66 @@ void main() async {
         : 'Push disconnect error:failed',
   );
   kickedPush.close();
+
+  Future<String> outcome(Future<void> Function() subscribing) async {
+    try {
+      await subscribing();
+      return '';
+    } catch (e) {
+      final message = e.toString();
+      if (message.contains('switched-user')) {
+        return 'switched-user';
+      }
+      if (message.contains('switched-pending')) {
+        return 'switched-pending';
+      }
+      return message;
+    }
+  }
+
+  final switchClient = Client()
+      .setProject('console')
+      .setPushEndpoint('ws://mqtt:8083')
+      .setSession(e2eSession);
+  final switchPush = Push(switchClient);
+  await switchPush.subscribe(['e2e-switch'], (_) {});
+  switchClient.setJWT('deny:switched-user');
+  final switched = await outcome(
+    () => switchPush.subscribe(['e2e-switch'], (_) {}),
+  );
+  switchPush.close();
+  print(
+    switched == 'switched-user'
+        ? 'Push credential switch:passed'
+        : 'Push credential switch:failed ($switched)',
+  );
+
+  final pendingClient = Client()
+      .setProject('console')
+      .setPushEndpoint('ws://mqtt:8083')
+      .setSession(e2eSession);
+  final pendingPush = Push(pendingClient);
+  var pendingOpened = false;
+  pendingPush.onOpen(() => pendingOpened = true);
+  final firstPending = outcome(
+    () => pendingPush.subscribe(['e2e-switch'], (_) {}),
+  );
+  await Future<void>.delayed(Duration.zero);
+  final switchedWhileConnecting = !pendingOpened;
+  pendingClient.setJWT('deny:switched-pending');
+  final secondPending = await outcome(
+    () => pendingPush.subscribe(['e2e-switch'], (_) {}),
+  );
+  final firstPendingOutcome = await firstPending.timeout(
+    const Duration(seconds: 5),
+    onTimeout: () => 'timeout',
+  );
+  pendingPush.close();
+  print(
+    secondPending == 'switched-pending' &&
+            (firstPendingOutcome == 'switched-pending' ||
+                (!switchedWhileConnecting && firstPendingOutcome == ''))
+        ? 'Push credential pending switch:passed'
+        : 'Push credential pending switch:failed (first: $firstPendingOutcome, second: $secondPending, connecting: $switchedWhileConnecting)',
+  );
 }
