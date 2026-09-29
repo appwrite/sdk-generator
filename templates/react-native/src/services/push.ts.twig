@@ -141,6 +141,7 @@ export class Push extends Service {
     private readonly fallbackClientId = randomId();
 
     private cookieSession = '';
+    private connectedKey = '';
 
     private readonly subscriptions = new Map<
         string,
@@ -1049,6 +1050,12 @@ export class Push extends Service {
     // --- internals ---
 
     private connect(): Promise<MqttClient> {
+        if (this.mqtt && this.connectedKey !== this.credentialKey()) {
+            this.mqtt.end(true);
+            this.mqtt = null;
+            this.connecting = null;
+            this.everConnected = this.subscriptions.size > 0;
+        }
         if (this.mqtt) {
             return Promise.resolve(this.mqtt);
         }
@@ -1093,6 +1100,7 @@ export class Push extends Service {
 
     private async open(): Promise<void> {
         const { authMethod, credential } = this.credential();
+        this.connectedKey = this.credentialKey();
         const epoch = this.connectionEpoch;
 
         const project = this.client.config.project ?? '';
