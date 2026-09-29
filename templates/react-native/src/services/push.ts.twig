@@ -278,7 +278,7 @@ export class Push extends Service {
      * they are logged, like Realtime does.
      */
     private report(error: unknown): void {
-        if (error instanceof MovedToNativeError) {
+        if (error instanceof SupersededError) {
             // Internal: a connection superseded by the native host, not a failure.
             return;
         }
@@ -459,7 +459,7 @@ export class Push extends Service {
         } catch (err) {
             // Another Push moved this one's subscriptions to the native host meanwhile: this
             // subscribe goes there too.
-            if (err instanceof MovedToNativeError) {
+            if (err instanceof SupersededError) {
                 return this.subscribeWith(
                     topicsOrCallback,
                     callbackOrOptions,
@@ -468,6 +468,7 @@ export class Push extends Service {
             }
             throw err;
         }
+        const epoch = this.connectionEpoch;
 
         const ids: string[] = [];
         const acks: Promise<void>[] = [];
@@ -510,6 +511,16 @@ export class Push extends Service {
                     throw hostErr;
                 }
                 return this.handle(ids);
+            }
+            if (epoch !== this.connectionEpoch) {
+                for (const id of ids) {
+                    this.subscriptions.delete(id);
+                }
+                return this.subscribeWith(
+                    topicsOrCallback,
+                    callbackOrOptions,
+                    topicOptions,
+                );
             }
             this.unsubscribeInProcess(ids);
             throw err;
@@ -1050,8 +1061,12 @@ export class Push extends Service {
     // --- internals ---
 
     private connect(): Promise<MqttClient> {
-        if (this.mqtt && this.connectedKey !== this.credentialKey()) {
-            this.mqtt.end(true);
+        if (
+            (this.mqtt || this.connecting) &&
+            this.connectedKey !== this.credentialKey()
+        ) {
+            this.connectionEpoch++;
+            this.mqtt?.end(true);
             this.mqtt = null;
             this.connecting = null;
             this.everConnected = this.subscriptions.size > 0;
@@ -1060,11 +1075,14 @@ export class Push extends Service {
             return Promise.resolve(this.mqtt);
         }
         if (!this.connecting) {
-            this.connecting = this.open();
+            const connecting = this.open();
+            this.connecting = connecting;
             // A failed open must not poison future attempts — clear the cached
             // in-flight promise so a later subscribe/publish can retry.
-            this.connecting.catch(() => {
-                this.connecting = null;
+            connecting.catch(() => {
+                if (this.connecting === connecting) {
+                    this.connecting = null;
+                }
             });
         }
         return this.connecting.then(() => this.mqtt!);
@@ -1123,7 +1141,7 @@ export class Push extends Service {
         // The subscriptions moved to the native host while this was waiting: its connection
         // would share the host's client id and take over the broker session.
         if (epoch !== this.connectionEpoch) {
-            throw new MovedToNativeError();
+            throw new SupersededError();
         }
 
         const options: IClientOptions = {
@@ -1248,7 +1266,7 @@ export class Push extends Service {
             const onClose = () => {
                 if (epoch !== this.connectionEpoch) {
                     cleanup();
-                    reject(new MovedToNativeError());
+                    reject(new SupersededError());
                 }
             };
             const cleanup = () => {
@@ -1359,10 +1377,10 @@ const BACKGROUND_DISPLACED =
     'Background delivery stopped: a Push with another credential started background delivery, ' +
     'and the device hosts one. These subscriptions still deliver while the app runs.';
 
-/** An in-process connect superseded by moving the subscriptions to the native host. */
-class MovedToNativeError extends Error {
+/** An in-process connect superseded by the native host or by a connect with another credential. */
+class SupersededError extends Error {
     constructor() {
-        super('The push connection moved to the native host');
+        super('The push connection was superseded');
     }
 }
 
