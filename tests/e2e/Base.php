@@ -200,6 +200,7 @@ abstract class Base extends TestCase
     protected const PUSH_SESSION_COOKIE_RESPONSES = [
         'Push user cookie topic:passed',
         'Push user cookie switch:passed',
+        'Push user cookie pending switch:passed',
     ];
 
     protected const PUSH_NATIVE_SESSION_COOKIE_RESPONSES = [

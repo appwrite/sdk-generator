@@ -116,6 +116,21 @@ async function main() {
     switchPush.close();
     console.log(switchedError === 'switched-user' ? 'Push user cookie switch:passed' : 'Push user cookie switch:failed');
 
+    cookieValue = encodeURIComponent(e2eSession);
+    const pendingPush = new Push(cookieClient);
+    const outcome = (subscribing) => subscribing.then(() => '', (e) => (e instanceof Error ? e.message : String(e)));
+    const firstPending = outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
+    await new Promise((resolve) => setImmediate(resolve));
+    cookieValue = 'deny:switched-pending';
+    const secondPending = await outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
+    const firstPendingOutcome = await Promise.race([firstPending, timeout(5000, 'timeout')]);
+    pendingPush.close();
+    console.log(
+        secondPending === 'switched-pending' && firstPendingOutcome === 'switched-pending'
+            ? 'Push user cookie pending switch:passed'
+            : 'Push user cookie pending switch:failed',
+    );
+
     // A message published while the user is signed out reaches their next sign-in, though that
     // sign-in has a new session secret (subscribing to "e2e-replay-publish" makes the mock publish
     // on "e2e-replay", queued for clients that subscribed before and are offline).
