@@ -65,6 +65,9 @@ class MockHandler implements Handler
     /** @var array<string, Connection> project|client id => its connection, while subscribed to "e2e-replay" */
     private array $replayOnline = [];
 
+    /** @var list<string> */
+    private array $subscribeLog = [];
+
     public function onConnect(Connect $connect, Connection $connection): Connack|Auth
     {
         $connection->prefix = $connect->userProperties()['projectId'] ?? '';
@@ -133,6 +136,12 @@ class MockHandler implements Handler
         // delivers it when that client id subscribes again, like the real broker's replay position.
         // A SUBSCRIBE to "e2e-replay-publish" stands in for the server publishing a message.
         foreach ($subscribe->filters() as $filter) {
+            $this->subscribeLog[] = \sprintf('%.3f %s %s', \microtime(true), $connection->getClientId(), $filter->topic);
+            $this->subscribeLog = \array_slice($this->subscribeLog, -40);
+            if ($filter->topic === 'e2e-subscribe-log') {
+                $log = \implode("\n", $this->subscribeLog);
+                \Swoole\Timer::after(100, fn () => $connection->publish('e2e-subscribe-log', $log, qos: 0));
+            }
             if (\str_starts_with($filter->topic, 'e2e-disconnect/')) {
                 $reason = \substr($filter->topic, \strlen('e2e-disconnect/'));
                 \Swoole\Timer::after(100, fn () => $connection->disconnect(Disconnect::NOT_AUTHORIZED, $reason));
