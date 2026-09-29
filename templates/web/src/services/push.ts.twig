@@ -605,7 +605,10 @@ export class Push extends Service {
      */
     private claimClientId(): Promise<string> {
         const generation = this.generation;
-        if (this.tabIdClaim === null || this.tabIdClaimGeneration !== generation) {
+        if (
+            this.tabIdClaim === null ||
+            this.tabIdClaimGeneration !== generation
+        ) {
             const previous = this.tabIdClaim ?? Promise.resolve('');
             this.tabIdClaimGeneration = generation;
             const claim = previous
