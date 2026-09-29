@@ -118,17 +118,21 @@ async function main() {
 
     cookieValue = encodeURIComponent(e2eSession);
     const pendingPush = new Push(cookieClient);
+    let pendingOpened = false;
+    pendingPush.onOpen(() => (pendingOpened = true));
     const outcome = (subscribing) => subscribing.then(() => '', (e) => (e instanceof Error ? e.message : String(e)));
     const firstPending = outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
     await new Promise((resolve) => setImmediate(resolve));
+    const switchedWhileConnecting = !pendingOpened;
     cookieValue = 'deny:switched-pending';
     const secondPending = await outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
     const firstPendingOutcome = await Promise.race([firstPending, timeout(5000, 'timeout')]);
     pendingPush.close();
     console.log(
-        secondPending === 'switched-pending' && firstPendingOutcome === 'switched-pending'
+        secondPending === 'switched-pending' &&
+            (firstPendingOutcome === 'switched-pending' || (!switchedWhileConnecting && firstPendingOutcome === ''))
             ? 'Push user cookie pending switch:passed'
-            : 'Push user cookie pending switch:failed',
+            : `Push user cookie pending switch:failed (first: ${firstPendingOutcome}, second: ${secondPending}, connecting: ${switchedWhileConnecting})`,
     );
 
     // A message published while the user is signed out reaches their next sign-in, though that
