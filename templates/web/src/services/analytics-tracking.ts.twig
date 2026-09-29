@@ -41,12 +41,15 @@ export type AnalyticsEventOptions = {
     props?: Record<string, unknown>;
     url?: string;
     referrer?: string;
-    propertyId?: string;          // analytics property (or snippet) ID; forwarded to cloud endpoint as top-level param
-    scrollDepth?: number;         // 0-100 percentage; forwarded to cloud endpoint as top-level param
-    engagementTime?: number;      // seconds since the previous flush; forwarded to cloud endpoint as top-level param
-}
+    propertyId?: string; // analytics property (or snippet) ID; forwarded to cloud endpoint as top-level param
+    scrollDepth?: number; // 0-100 percentage; forwarded to cloud endpoint as top-level param
+    engagementTime?: number; // seconds since the previous flush; forwarded to cloud endpoint as top-level param
+};
 
-export type AnalyticsEventEmitter = (name: string, options?: AnalyticsEventOptions) => unknown;
+export type AnalyticsEventEmitter = (
+    name: string,
+    options?: AnalyticsEventOptions,
+) => unknown;
 
 export type AnalyticsTrackingOptions = {
     /**
@@ -61,7 +64,7 @@ export type AnalyticsTrackingOptions = {
      * `propertyId` passed on an individual event takes precedence.
      */
     propertyId?: string;
-}
+};
 
 export type OutboundTrackingOptions = {
     /**
@@ -69,7 +72,7 @@ export type OutboundTrackingOptions = {
      * as outbound. Defaults to false (subdomains are same-origin for tracking).
      */
     includeSubdomains?: boolean;
-}
+};
 
 export type DownloadTrackingOptions = {
     /**
@@ -77,14 +80,38 @@ export type DownloadTrackingOptions = {
      * download. Defaults cover the common set.
      */
     extensions?: string[];
-}
+};
 
 const DEFAULT_DOWNLOAD_EXTENSIONS = [
-    'pdf', 'zip', 'rar', '7z', 'tar', 'gz',
-    'csv', 'tsv', 'xls', 'xlsx', 'doc', 'docx', 'ppt', 'pptx',
-    'dmg', 'exe', 'msi', 'pkg', 'deb', 'rpm', 'apk',
-    'mp3', 'wav', 'flac',
-    'mp4', 'mov', 'avi', 'mkv', 'webm'
+    'pdf',
+    'zip',
+    'rar',
+    '7z',
+    'tar',
+    'gz',
+    'csv',
+    'tsv',
+    'xls',
+    'xlsx',
+    'doc',
+    'docx',
+    'ppt',
+    'pptx',
+    'dmg',
+    'exe',
+    'msi',
+    'pkg',
+    'deb',
+    'rpm',
+    'apk',
+    'mp3',
+    'wav',
+    'flac',
+    'mp4',
+    'mov',
+    'avi',
+    'mkv',
+    'webm',
 ];
 
 /**
@@ -93,17 +120,56 @@ const DEFAULT_DOWNLOAD_EXTENSIONS = [
  * List.
  */
 const MULTI_PART_SUFFIXES = new Set([
-    'co.uk', 'org.uk', 'ac.uk', 'gov.uk', 'me.uk', 'net.uk', 'sch.uk',
-    'co.jp', 'ne.jp', 'or.jp', 'ac.jp', 'go.jp',
-    'com.au', 'net.au', 'org.au', 'edu.au', 'gov.au',
-    'com.br', 'net.br', 'org.br',
-    'com.cn', 'net.cn', 'org.cn', 'gov.cn',
-    'co.in', 'net.in', 'org.in',
-    'co.nz', 'net.nz', 'org.nz',
-    'co.za', 'org.za',
-    'com.mx', 'com.ar', 'com.co', 'com.pe', 'com.tr', 'com.tw',
-    'com.sg', 'com.hk', 'com.my', 'com.ph', 'com.vn',
-    'co.kr', 'co.il', 'co.id', 'co.th', 'com.ua', 'com.pl', 'com.es',
+    'co.uk',
+    'org.uk',
+    'ac.uk',
+    'gov.uk',
+    'me.uk',
+    'net.uk',
+    'sch.uk',
+    'co.jp',
+    'ne.jp',
+    'or.jp',
+    'ac.jp',
+    'go.jp',
+    'com.au',
+    'net.au',
+    'org.au',
+    'edu.au',
+    'gov.au',
+    'com.br',
+    'net.br',
+    'org.br',
+    'com.cn',
+    'net.cn',
+    'org.cn',
+    'gov.cn',
+    'co.in',
+    'net.in',
+    'org.in',
+    'co.nz',
+    'net.nz',
+    'org.nz',
+    'co.za',
+    'org.za',
+    'com.mx',
+    'com.ar',
+    'com.co',
+    'com.pe',
+    'com.tr',
+    'com.tw',
+    'com.sg',
+    'com.hk',
+    'com.my',
+    'com.ph',
+    'com.vn',
+    'co.kr',
+    'co.il',
+    'co.id',
+    'co.th',
+    'com.ua',
+    'com.pl',
+    'com.es',
 ]);
 
 const SCROLL_DEPTH_THROTTLE_MS = 200;
@@ -130,7 +196,10 @@ export class AnalyticsTracking {
     private engagementAccumulatedMs = 0;
     private engagementActive = false;
 
-    constructor(emit: AnalyticsEventEmitter, options: AnalyticsTrackingOptions = {}) {
+    constructor(
+        emit: AnalyticsEventEmitter,
+        options: AnalyticsTrackingOptions = {},
+    ) {
         this.emit = emit;
         this.respectDoNotTrack = options.respectDoNotTrack !== false;
         this.propertyId = options.propertyId;
@@ -170,7 +239,11 @@ export class AnalyticsTracking {
     public pageview(url?: string, referrer?: string): void {
         this.track('pageview', {
             url: url ?? this.currentPageUrl(),
-            referrer: referrer ?? (typeof document !== 'undefined' ? document.referrer : undefined)
+            referrer:
+                referrer ??
+                (typeof document !== 'undefined'
+                    ? document.referrer
+                    : undefined),
         });
     }
 
@@ -204,8 +277,11 @@ export class AnalyticsTracking {
             // implementation note re: bfcache). SPA navigation stays on the
             // same document, so restart engagement tracking for the new
             // route as long as the tab is visible.
-            if (this.engagementCleanups.length > 0 &&
-                (typeof document === 'undefined' || document.visibilityState !== 'hidden')) {
+            if (
+                this.engagementCleanups.length > 0 &&
+                (typeof document === 'undefined' ||
+                    document.visibilityState !== 'hidden')
+            ) {
                 this.startEngagement();
             }
         };
@@ -218,13 +294,21 @@ export class AnalyticsTracking {
         // merely unreferenced.
         let patchActive = true;
 
-        const patchedPushState = (data: unknown, unused: string, url?: string | URL | null): void => {
+        const patchedPushState = (
+            data: unknown,
+            unused: string,
+            url?: string | URL | null,
+        ): void => {
             originalPushState(data, unused, url);
             if (patchActive) {
                 handleNavigation();
             }
         };
-        const patchedReplaceState = (data: unknown, unused: string, url?: string | URL | null): void => {
+        const patchedReplaceState = (
+            data: unknown,
+            unused: string,
+            url?: string | URL | null,
+        ): void => {
             originalReplaceState(data, unused, url);
             if (patchActive) {
                 handleNavigation();
@@ -276,7 +360,9 @@ export class AnalyticsTracking {
      * navigate to a different origin and fires an `outbound_link` event
      * (with `hostname` and `href` props) before the browser navigates.
      */
-    public enableAutoOutboundTracking(options: OutboundTrackingOptions = {}): void {
+    public enableAutoOutboundTracking(
+        options: OutboundTrackingOptions = {},
+    ): void {
         if (this.outboundCleanup) {
             return;
         }
@@ -297,12 +383,15 @@ export class AnalyticsTracking {
             }
             this.track('outbound_link', {
                 url: target.href,
-                props: { hostname: target.hostname, href: target.href }
+                props: { hostname: target.hostname, href: target.href },
             });
         };
 
         document.addEventListener('click', clickHandler, { capture: true });
-        this.outboundCleanup = () => document.removeEventListener('click', clickHandler, { capture: true });
+        this.outboundCleanup = () =>
+            document.removeEventListener('click', clickHandler, {
+                capture: true,
+            });
     }
 
     /**
@@ -321,7 +410,9 @@ export class AnalyticsTracking {
      * at a file whose extension appears in the configured list and fires a
      * `file_download` event with `filename`, `extension` and `href` props.
      */
-    public enableAutoDownloadTracking(options: DownloadTrackingOptions = {}): void {
+    public enableAutoDownloadTracking(
+        options: DownloadTrackingOptions = {},
+    ): void {
         if (this.downloadCleanup) {
             return;
         }
@@ -329,8 +420,9 @@ export class AnalyticsTracking {
             return;
         }
 
-        const extensions = (options.extensions ?? DEFAULT_DOWNLOAD_EXTENSIONS)
-            .map(ext => ext.toLowerCase().replace(/^\./, ''));
+        const extensions = (
+            options.extensions ?? DEFAULT_DOWNLOAD_EXTENSIONS
+        ).map((ext) => ext.toLowerCase().replace(/^\./, ''));
         const extensionSet = new Set(extensions);
 
         const clickHandler = (event: MouseEvent): void => {
@@ -343,18 +435,23 @@ export class AnalyticsTracking {
                 return;
             }
             const filename = url.pathname.split('/').pop() ?? '';
-            const extension = filename.includes('.') ? filename.split('.').pop()?.toLowerCase() : undefined;
+            const extension = filename.includes('.')
+                ? filename.split('.').pop()?.toLowerCase()
+                : undefined;
             if (!extension || !extensionSet.has(extension)) {
                 return;
             }
             this.track('file_download', {
                 url: url.href,
-                props: { filename, extension, href: url.href }
+                props: { filename, extension, href: url.href },
             });
         };
 
         document.addEventListener('click', clickHandler, { capture: true });
-        this.downloadCleanup = () => document.removeEventListener('click', clickHandler, { capture: true });
+        this.downloadCleanup = () =>
+            document.removeEventListener('click', clickHandler, {
+                capture: true,
+            });
     }
 
     /**
@@ -531,8 +628,13 @@ export class AnalyticsTracking {
      * already carries one), so emitters written against the pre-`propertyId`
      * shape keep receiving exactly what they received before.
      */
-    private withPropertyId(options?: AnalyticsEventOptions): AnalyticsEventOptions | undefined {
-        if (this.propertyId === undefined || options?.propertyId !== undefined) {
+    private withPropertyId(
+        options?: AnalyticsEventOptions,
+    ): AnalyticsEventOptions | undefined {
+        if (
+            this.propertyId === undefined ||
+            options?.propertyId !== undefined
+        ) {
             return options;
         }
         return { ...(options ?? {}), propertyId: this.propertyId };
@@ -612,7 +714,8 @@ export class AnalyticsTracking {
 
     private computeScrollDepth(): number {
         const scrollTop = window.scrollY || document.documentElement.scrollTop;
-        const viewport = window.innerHeight || document.documentElement.clientHeight;
+        const viewport =
+            window.innerHeight || document.documentElement.clientHeight;
         const total = document.documentElement.scrollHeight;
         if (total <= viewport) {
             return 100;
@@ -630,7 +733,7 @@ export class AnalyticsTracking {
         }
         this.track('scroll_depth', {
             url,
-            scrollDepth: this.maxScrollDepth
+            scrollDepth: this.maxScrollDepth,
         });
         this.maxScrollDepth = 0;
     }
@@ -668,7 +771,7 @@ export class AnalyticsTracking {
             this.engagementAccumulatedMs -= seconds * 1000;
             this.track('engagement_time', {
                 url,
-                engagementTime: seconds
+                engagementTime: seconds,
             });
         }
         // NOTE: intentionally do NOT call startEngagement() here. flushEngagement
