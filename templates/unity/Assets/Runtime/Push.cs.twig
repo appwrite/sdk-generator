@@ -53,6 +53,10 @@ namespace {{ spec.info.title | caseUcfirst }}
         private bool _reconnecting;
         // The last connect options, reused when reconnecting after an unexpected drop.
         private MqttClientOptions _options;
+        private Task<IMqttClient> _connecting;
+        private string _connectedKey = "";
+        private int _connectionEpoch;
+        private bool _resubscribeOnConnect;
 
         private Action _onOpen;
         private Action _onClose;
@@ -439,11 +443,16 @@ namespace {{ spec.info.title | caseUcfirst }}
             {
                 client = await Connect();
             }
+            catch (SupersededException)
+            {
+                return await Subscribe(topicList, callback, retry);
+            }
             catch (Exception e)
             {
                 NotifyError(e);
                 throw;
             }
+            var epoch = _connectionEpoch;
 
             var ids = new List<string>();
             foreach (var topic in topicList)
@@ -556,6 +565,19 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
             catch (Exception e)
             {
+                if (epoch != _connectionEpoch)
+                {
+                    lock (_subscriptions)
+                    {
+                        foreach (var id in ids)
+                        {
+                            _subscriptions.Remove(id);
+                        }
+                    }
+
+                    return await Subscribe(topicList, callback, retry);
+                }
+
                 unsubscribe();
                 NotifyError(e);
                 throw;
@@ -610,6 +632,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         {
             // Mark this a deliberate close so the disconnect handler does not reconnect.
             _closing = true;
+            _connecting = null;
             if (_mqtt != null)
             {
                 _ = _mqtt.DisconnectAsync();
@@ -623,32 +646,75 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
         }
 
-        private async Task<IMqttClient> Connect()
+        private Task<IMqttClient> Connect()
         {
-            if (_mqtt != null && _mqtt.IsConnected)
+            if ((_mqtt != null || _connecting != null) && _connectedKey != CredentialKey())
             {
-                return _mqtt;
+                _connectionEpoch++;
+                _connecting = null;
+                var previous = _mqtt;
+                _mqtt = null;
+                if (previous != null)
+                {
+                    _ = previous.DisconnectAsync();
+                    previous.Dispose();
+                }
+
+                lock (_subscriptions)
+                {
+                    _resubscribeOnConnect = _subscriptions.Count > 0;
+                }
             }
 
-            // Read the credential set on the client (via Client.SetJWT / SetSession).
+            if (_connecting != null && !_connecting.IsCompleted)
+            {
+                return _connecting;
+            }
+
+            if (_mqtt != null && _mqtt.IsConnected)
+            {
+                return Task.FromResult(_mqtt);
+            }
+
+            _connecting = Open();
+            return _connecting;
+        }
+
+        private (string AuthMethod, string Credential) Credential()
+        {
             var jwt = _client.GetJWT();
-            var session = _client.GetSession();
-            string authMethod;
-            string credential;
             if (!string.IsNullOrEmpty(jwt))
             {
-                authMethod = "appwrite-jwt";
-                credential = jwt;
+                return ("appwrite-jwt", jwt);
             }
-            else if (!string.IsNullOrEmpty(session))
+
+            var session = _client.GetSession();
+            if (!string.IsNullOrEmpty(session))
             {
-                authMethod = "appwrite-session";
-                credential = session;
+                return ("appwrite-session", session);
             }
-            else
+
+            throw new {{ spec.info.title | caseUcfirst }}Exception("No credential set on the client; call Client.SetJWT() or Client.SetSession() first.");
+        }
+
+        private string CredentialKey()
+        {
+            try
             {
-                throw new {{ spec.info.title | caseUcfirst }}Exception("No credential set on the client; call Client.SetJWT() or Client.SetSession() first.");
+                var (authMethod, credential) = Credential();
+                return string.Join("|", PushEndpoint, _client.Config.GetValueOrDefault("project") ?? "", _client.Config.GetValueOrDefault("pushClientId") ?? "", authMethod, credential);
             }
+            catch (Exception)
+            {
+                return "";
+            }
+        }
+
+        private async Task<IMqttClient> Open()
+        {
+            var (authMethod, credential) = Credential();
+            _connectedKey = CredentialKey();
+            var epoch = _connectionEpoch;
 
             // When no explicit push endpoint is set, default to a `push.` host on the regular
             // endpoint (mirroring how realtime derives from the endpoint, on the push subdomain).
@@ -732,17 +798,61 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
             catch (Exception e)
             {
-                Close();
+                if (epoch != _connectionEpoch)
+                {
+                    throw new SupersededException();
+                }
+
+                DropClient(client);
                 throw ConnectError(e);
+            }
+
+            if (epoch != _connectionEpoch)
+            {
+                DropClient(client);
+                throw new SupersededException();
             }
 
             if (result.ResultCode != MqttClientConnectResultCode.Success)
             {
-                Close();
+                DropClient(client);
                 throw ConnectRefused(result);
             }
 
+            if (_resubscribeOnConnect)
+            {
+                _resubscribeOnConnect = false;
+                var rebuild = new MqttClientSubscribeOptionsBuilder();
+                var any = false;
+                lock (_subscriptions)
+                {
+                    foreach (var filter in new HashSet<string>(_subscriptions.Values.Select(entry => entry.Filter)))
+                    {
+                        var topic = filter;
+                        rebuild = rebuild.WithTopicFilter(f => f
+                            .WithTopic(topic)
+                            .WithQualityOfServiceLevel(EffectiveQos(topic)));
+                        any = true;
+                    }
+                }
+
+                if (any)
+                {
+                    _ = SubscribeInBackground(client, rebuild.Build());
+                }
+            }
+
             return client;
+        }
+
+        private void DropClient(IMqttClient client)
+        {
+            if (_mqtt == client)
+            {
+                _mqtt = null;
+            }
+
+            client.Dispose();
         }
 
         // The error for a failed connect attempt: a refused CONNECT carries the broker's reason.
@@ -970,6 +1080,10 @@ namespace {{ spec.info.title | caseUcfirst }}
         public static implicit operator TopicValue(ResolvedTopic topic) => new TopicValue(topic.ToString());
 
         public override string ToString() => _value;
+    }
+
+    internal class SupersededException : Exception
+    {
     }
 
     /// <summary>
