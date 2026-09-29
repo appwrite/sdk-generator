@@ -9,13 +9,16 @@ import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.ResolveInfo
 import android.os.Build
+import android.net.Uri
 import android.os.Looper
 import android.util.Base64
+import android.webkit.CookieManager
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.BridgeReactContext
 import com.facebook.react.bridge.WritableMap
+import io.appwrite.reactnative.AppwriteCookiesModule
 import io.appwrite.reactnative.AppwritePushModule
 import io.appwrite.services.PushBackground
 import io.appwrite.services.PushMessage
@@ -192,6 +195,22 @@ class Tests {
             },
         )
         call { module.stop(it) }
+        sessionCookie()
+    }
+
+    private fun sessionCookie() {
+        val url = "https://cloud.example.test/v1"
+        CookieManager.getInstance().setCookie(url, "a_session_console=${Uri.encode(SESSION)}; Path=/")
+        val cookies = AppwriteCookiesModule(BridgeReactContext(context))
+        val value = call { cookies.get(url, "a_session_console", it) }.getOrNull()
+        val missing = call { cookies.get(url, "a_session_other", it) }.getOrNull()
+        writeToFile(
+            if (value == Uri.encode(SESSION) && missing == null) {
+                "Push session cookie:passed"
+            } else {
+                "Push session cookie:failed"
+            },
+        )
     }
 
     private fun messages(): List<Map<String, Any?>> =

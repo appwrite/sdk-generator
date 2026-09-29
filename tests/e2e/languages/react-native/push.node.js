@@ -9,7 +9,6 @@
 // (as in Expo Go), so background delivery is unavailable and the topic-less subscribe's
 // default falls back to the foreground.
 import { EventEmitter } from 'events';
-import CookieManager from '@react-native-cookies/cookies';
 import { NativeModules } from 'react-native';
 import { Client } from './src/client';
 import { Push } from './src/services/push';
@@ -94,7 +93,9 @@ async function main() {
     console.log(noCredentialRejected ? 'Push user no credential:passed' : 'Push user no credential:failed');
 
     const cookieEndpoint = 'https://cloud.example.test/v1';
-    await CookieManager.set(cookieEndpoint, { name: 'a_session_console', value: encodeURIComponent(e2eSession) });
+    NativeModules.AppwriteCookies = {
+        get: async (url, name) => (url === cookieEndpoint && name === 'a_session_console' ? encodeURIComponent(e2eSession) : null),
+    };
     const cookieClient = new Client().setEndpoint(cookieEndpoint).setProject('console').setPushEndpoint(ENDPOINT);
     console.log(
         onlyTopic(await userTopicsOf(cookieClient), 'users/e2e-session-user')
