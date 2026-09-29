@@ -62,6 +62,9 @@ class PushWeb implements Push {
 
   MqttBrowserClient? _mqtt;
   Future<void>? _connecting;
+  int _connectionEpoch = 0;
+  String _connectedKey = '';
+  bool _resubscribeOnConnect = false;
 
   void Function()? _onOpen;
   void Function()? _onClose;
@@ -253,9 +256,19 @@ class PushWeb implements Push {
       topicList = _topicList(client, topics);
       mqtt = await _connect();
     } catch (e) {
+      if (e is _Superseded) {
+        return subscribe(
+          topics,
+          callback,
+          background: background,
+          title: title,
+          retry: retry,
+        );
+      }
       _notify(e);
       rethrow;
     }
+    final epoch = _connectionEpoch;
     // The own-user topic (topics == null) defaults to background delivery, like FCM/APNs.
     final wantsBackground = background ?? topics == null;
 
@@ -336,6 +349,18 @@ class PushWeb implements Push {
       }
       await Future.wait(acks);
     } catch (e) {
+      if (epoch != _connectionEpoch) {
+        for (final id in ids) {
+          _subscriptions.remove(id);
+        }
+        return subscribe(
+          topics,
+          callback,
+          background: background,
+          title: title,
+          retry: retry,
+        );
+      }
       unsubscribe();
       _notify(e);
       rethrow;
@@ -406,6 +431,22 @@ class PushWeb implements Push {
   }
 
   Future<MqttBrowserClient> _connect() {
+    if ((_mqtt != null || _connecting != null) &&
+        _connectedKey != _credentialKey) {
+      _connectionEpoch++;
+      _connecting = null;
+      for (final waiting in _subAcks.values) {
+        for (final completer in waiting) {
+          if (!completer.isCompleted) {
+            completer.completeError(const _Superseded());
+          }
+        }
+      }
+      _subAcks.clear();
+      _mqtt?.disconnect();
+      _mqtt = null;
+      _resubscribeOnConnect = _subscriptions.isNotEmpty;
+    }
     final mqtt = _mqtt;
     if (mqtt != null &&
         mqtt.connectionStatus?.state == MqttConnectionState.connected) {
@@ -417,32 +458,54 @@ class PushWeb implements Push {
       _connecting = connecting;
       // A failed open must not poison future attempts — clear the cached in-flight
       // future so a later subscribe/publish can retry.
+      final pending = connecting;
       unawaited(
-        connecting.catchError((Object _) {
-          _connecting = null;
+        pending.catchError((Object _) {
+          if (identical(_connecting, pending)) {
+            _connecting = null;
+          }
         }),
       );
     }
     return connecting.then((_) => _mqtt!);
   }
 
-  Future<void> _open() async {
-    // Read the credential set on the client (via Client.setJWT / setSession).
+  // The credential set on the client (via Client.setJWT / setSession), as (method, credential).
+  (String, String) _credential() {
     final jwt = client.config['jwt'] ?? client.config['jWT'];
     final session = client.config['session'];
-    final String authMethod;
-    final String credential;
     if (jwt != null && jwt.isNotEmpty) {
-      authMethod = 'appwrite-jwt';
-      credential = jwt;
-    } else if (session != null && session.isNotEmpty) {
-      authMethod = 'appwrite-session';
-      credential = session;
-    } else {
-      throw {{spec.info.title | caseUcfirst}}Exception(
-        'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
-      );
+      return ('appwrite-jwt', jwt);
     }
+    if (session != null && session.isNotEmpty) {
+      return ('appwrite-session', session);
+    }
+    throw {{spec.info.title | caseUcfirst}}Exception(
+      'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
+    );
+  }
+
+  String get _credentialKey {
+    try {
+      final (authMethod, credential) = _credential();
+      return [
+        _host,
+        _port,
+        _path,
+        client.config['project'] ?? '',
+        _resolvedClientId,
+        authMethod,
+        credential,
+      ].join('|');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Future<void> _open() async {
+    final (authMethod, credential) = _credential();
+    _connectedKey = _credentialKey;
+    final epoch = _connectionEpoch;
 
     final project = client.config['project'] ?? '';
     // An empty client id makes the broker derive a stable id server-side (keyed on the
@@ -498,14 +561,20 @@ class PushWeb implements Push {
     _mqtt = mqtt;
 
     final failure = await _connectOrFail(mqtt, (error) {
+      if (epoch != _connectionEpoch) {
+        return;
+      }
       // Let go of the client first: it is still being wound down, and a close() from
       // onError must not touch it.
       if (identical(_mqtt, mqtt)) {
         _mqtt = null;
       }
-      close();
       _notify(error);
     });
+    if (epoch != _connectionEpoch) {
+      mqtt.disconnect();
+      throw const _Superseded();
+    }
     if (failure != null) {
       throw failure;
     }
@@ -513,6 +582,19 @@ class PushWeb implements Push {
     // Attach the delivery listener only after CONNACK — the `updates` stream is not
     // available until the connection is established.
     mqtt.updates.listen(_onData);
+
+    if (_resubscribeOnConnect) {
+      _resubscribeOnConnect = false;
+      final filters = _subscriptions.values.map((s) => s.filter).toSet();
+      for (final filter in filters) {
+        mqtt.subscribeWithSubscriptionList([
+          MqttSubscription.withMaximumQos(
+            MqttSubscriptionTopic(filter),
+            _effectiveQos(filter),
+          ),
+        ]);
+      }
+    }
   }
 
   void _onData(List<MqttReceivedMessage<MqttMessage>> events) {
@@ -809,4 +891,8 @@ String? _stringField(String encoded, String key) {
   } catch (_) {
     return null;
   }
+}
+
+class _Superseded implements Exception {
+  const _Superseded();
 }
