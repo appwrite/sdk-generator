@@ -9,6 +9,7 @@
 // (as in Expo Go), so background delivery is unavailable and the topic-less subscribe's
 // default falls back to the foreground.
 import { EventEmitter } from 'events';
+import CookieManager from '@react-native-cookies/cookies';
 import { NativeModules } from 'react-native';
 import { Client } from './src/client';
 import { Push } from './src/services/push';
@@ -91,6 +92,15 @@ async function main() {
     }
     anonymousPush.close();
     console.log(noCredentialRejected ? 'Push user no credential:passed' : 'Push user no credential:failed');
+
+    const cookieEndpoint = 'https://cloud.example.test/v1';
+    await CookieManager.set(cookieEndpoint, { name: 'a_session_console', value: encodeURIComponent(e2eSession) });
+    const cookieClient = new Client().setEndpoint(cookieEndpoint).setProject('console').setPushEndpoint(ENDPOINT);
+    console.log(
+        onlyTopic(await userTopicsOf(cookieClient), 'users/e2e-session-user')
+            ? 'Push user cookie topic:passed'
+            : 'Push user cookie topic:failed',
+    );
 
     // A message published while the user is signed out reaches their next sign-in, though that
     // sign-in has a new session secret (subscribing to "e2e-replay-publish" makes the mock publish
