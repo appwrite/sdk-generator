@@ -63,6 +63,7 @@ class PushWeb implements Push {
   MqttBrowserClient? _mqtt;
   Future<void>? _connecting;
   int _connectionEpoch = 0;
+  Completer<void>? _openCancel;
   String _connectedKey = '';
   bool _resubscribeOnConnect = false;
 
@@ -435,6 +436,8 @@ class PushWeb implements Push {
         _connectedKey != _credentialKey) {
       _connectionEpoch++;
       _connecting = null;
+      _openCancel?.complete();
+      _openCancel = null;
       for (final waiting in _subAcks.values) {
         for (final completer in waiting) {
           if (!completer.isCompleted) {
@@ -560,7 +563,9 @@ class PushWeb implements Push {
 
     _mqtt = mqtt;
 
-    final failure = await _connectOrFail(mqtt, (error) {
+    final cancel = Completer<void>();
+    _openCancel = cancel;
+    final failure = await _connectOrFail(mqtt, cancel.future, (error) {
       if (epoch != _connectionEpoch) {
         return;
       }
@@ -669,6 +674,7 @@ class PushWeb implements Push {
 /// watched for the refusal as well, and the pending connect() is then let go.
 Future<Object?> _connectOrFail(
   MqttClient mqtt,
+  Future<void> cancelled,
   void Function(Object error) failed,
 ) async {
   final connecting = mqtt.connect();
@@ -680,7 +686,7 @@ Future<Object?> _connectOrFail(
   });
   Object? failure;
   try {
-    await Future.any([connecting, refused.future]);
+    await Future.any([connecting, refused.future, cancelled]);
   } catch (e) {
     failure = e;
   } finally {

@@ -87,6 +87,7 @@ class PushIO implements Push {
   // Bumped when the subscriptions move to the native host, or the credential changes,
   // superseding an _open in flight.
   int _connectionEpoch = 0;
+  Completer<void>? _openCancel;
   String _connectedKey = '';
   bool _resubscribeOnConnect = false;
   StreamSubscription<Map<Object?, Object?>>? _nativeListener;
@@ -490,6 +491,8 @@ class PushIO implements Push {
   void _dropConnection() {
     _connectionEpoch++;
     _connecting = null;
+    _openCancel?.complete();
+    _openCancel = null;
     for (final waiting in _subAcks.values) {
       for (final completer in waiting) {
         if (!completer.isCompleted) {
@@ -987,7 +990,9 @@ class PushIO implements Push {
 
     _mqtt = mqtt;
 
-    final failure = await _connectOrFail(mqtt, (error) {
+    final cancel = Completer<void>();
+    _openCancel = cancel;
+    final failure = await _connectOrFail(mqtt, cancel.future, (error) {
       // Superseded by the native host, which closed this connection on purpose.
       if (epoch != _connectionEpoch) {
         return;
@@ -1090,6 +1095,7 @@ class PushIO implements Push {
 /// watched for the refusal as well, and the pending connect() is then let go.
 Future<Object?> _connectOrFail(
   MqttClient mqtt,
+  Future<void> cancelled,
   void Function(Object error) failed,
 ) async {
   final connecting = mqtt.connect();
@@ -1101,7 +1107,7 @@ Future<Object?> _connectOrFail(
   });
   Object? failure;
   try {
-    await Future.any([connecting, refused.future]);
+    await Future.any([connecting, refused.future, cancelled]);
   } catch (e) {
     failure = e;
   } finally {
