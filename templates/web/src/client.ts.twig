@@ -501,7 +501,9 @@ class Client {
      *
      * A stable client id for the {{ spec.info.title | caseUcfirst }}Push service. The broker keys its
      * offline-replay cursor on this id, so pass a stable value to resume replay across
-     * reloads/restarts. Defaults to a per-connection id when unset.
+     * reloads/restarts. Defaults to one per user and tab when unset: stable across reloads of
+     * the tab, and different in every other tab, so tabs do not take over each other's session.
+     * An explicit id shared by several tabs makes them do that.
      *
      * @param {string} pushClientId
      *
