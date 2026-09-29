@@ -65,10 +65,9 @@ namespace {{ spec.info.title | caseUcfirst }}
         // Fixed keep-alive (PINGREQ interval) in seconds — not exposed as an option.
         private const int KeepAliveSeconds = 60;
 
-        // Resolved once, then reused: a reconnect rebuilds the MQTT client, and if each rebuild
-        // drew a new random id the broker would treat it as a new session and drop this client's
-        // replay cursor. A stable id from Client.SetPushClientId() resumes replay across
-        // restarts; otherwise one is generated. Reusing one id keeps it stable.
+        // The client id of the last connect: Client.SetPushClientId()'s id, else empty so the
+        // broker derives a stable one. Read again on every connect, so a changed id applies to
+        // the next connection.
         private string _resolvedClientId;
 
         // Local id -> (topic filter, callback, retry). The id is never sent to the broker;
@@ -728,9 +727,9 @@ namespace {{ spec.info.title | caseUcfirst }}
             // Empty when the app did not set one: the broker derives a stable id server-side
             // (keyed on the credential/project) and keys its offline-replay cursor on it, so
             // replay resumes across restarts; Client.SetPushClientId() overrides with an
-            // explicit id. Resolved once so a reconnect rebuild reuses the same id.
+            // explicit id.
             var pushClientId = _client.Config.GetValueOrDefault("pushClientId");
-            _resolvedClientId ??= string.IsNullOrEmpty(pushClientId) ? "" : pushClientId;
+            _resolvedClientId = string.IsNullOrEmpty(pushClientId) ? "" : pushClientId;
             var clientId = _resolvedClientId;
 
             var optionsBuilder = new MqttClientOptionsBuilder()
@@ -767,6 +766,11 @@ namespace {{ spec.info.title | caseUcfirst }}
             };
             client.DisconnectedAsync += e =>
             {
+                if (_mqtt != client)
+                {
+                    return Task.CompletedTask;
+                }
+
                 var error = DisconnectError(e);
                 _mainThread.Enqueue(() => _onClose?.Invoke());
                 if (error != null)
