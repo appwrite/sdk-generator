@@ -51,6 +51,8 @@ export interface PushSubscription {
 
 type AuthMethod = 'appwrite-jwt' | 'appwrite-session' | '';
 
+const TAB_ID_KEY = '{{ spec.info.title | caseLower }}-push-client-id';
+
 interface Transport {
     connect: typeof import('mqtt').connect;
     Buffer: typeof import('buffer').Buffer;
@@ -123,8 +125,8 @@ export class Push extends Service {
     // Local id -> subscription state. The id is never sent to the broker; it only lets
     // the same topic carry more than one callback (each with its own options).
     /**
-     * The client id when the credential names no user (and none was set): random, but kept for
-     * this instance so reconnects resume the same broker session.
+     * This tab's part of the default client id, kept in sessionStorage when it can be (see
+     * tabId): random, but kept for this instance so reconnects resume the same broker session.
      */
     private readonly fallbackClientId = randomId();
     private connectedKey = '';
@@ -548,6 +550,19 @@ export class Push extends Service {
         );
     }
 
+    private tabId(): string {
+        try {
+            const stored = window.sessionStorage.getItem(TAB_ID_KEY);
+            if (stored) {
+                return stored;
+            }
+            window.sessionStorage.setItem(TAB_ID_KEY, this.fallbackClientId);
+        } catch {
+            return this.fallbackClientId;
+        }
+        return this.fallbackClientId;
+    }
+
     private credentialKey(): string {
         try {
             const { authMethod, credential } = this.credential();
@@ -589,16 +604,18 @@ export class Push extends Service {
         const project = this.client.config.project ?? '';
         // Client id, when the app did not set one with Client.setPushClientId(). Unlike the
         // native SDKs (which send an empty id and let the broker derive a stable one), mqtt.js
-        // rejects an empty id with clean start off, so derive a stable per-user id here from the
-        // credential this connection authenticates with: the JWT's userId, or the session's user
-        // id. A stable id keeps the broker's replay cursor resuming across reloads. The
-        // credential itself is never used as the id.
+        // rejects an empty id with clean start off, so derive one per user and tab from the
+        // credential this connection authenticates with (the JWT's userId, or the session's user
+        // id) and an id kept in the tab's sessionStorage. It stays the same across reloads, so
+        // the broker's replay cursor resumes, and differs between tabs and browsers, so two of
+        // them do not take over each other's session. The credential itself is never used.
+        const userId =
+            authMethod === 'appwrite-jwt'
+                ? userIdFromJwt(credential)
+                : userIdFromSession(credential);
         const clientId =
             this.client.config.pushClientId ||
-            (authMethod === 'appwrite-jwt'
-                ? userIdFromJwt(credential)
-                : userIdFromSession(credential)) ||
-            this.fallbackClientId;
+            (userId ? `${userId}-${this.tabId()}` : this.tabId());
 
         const generation = this.generation;
         const { connect, Buffer } = await loadTransport();
