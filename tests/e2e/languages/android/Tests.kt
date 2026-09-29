@@ -667,6 +667,43 @@ class ServiceTest {
                 },
             )
 
+            val outcome = { block: () -> Unit ->
+                try {
+                    block()
+                    ""
+                } catch (e: Exception) {
+                    e.message ?: ""
+                }
+            }
+            val switchClient = pushClient().setSession(
+                android.util.Base64.encodeToString("{\"id\":\"e2e-switch-user\",\"secret\":\"e2e-secret\"}".toByteArray(), android.util.Base64.NO_WRAP),
+            )
+            val switchPush = Push(switchClient, ApplicationProvider.getApplicationContext())
+            switchPush.subscribe("e2e-switch") { }
+            switchClient.setJWT("deny:switched-user")
+            val switched = outcome { switchPush.subscribe("e2e-switch") { } }
+            switchPush.close()
+            writeToFile(if (switched == "switched-user") "Push credential switch:passed" else "Push credential switch:failed ($switched)")
+
+            val pendingClient = pushClient().setJWT("slow:pending")
+            val pendingPush = Push(pendingClient, ApplicationProvider.getApplicationContext())
+            val firstPending = java.util.concurrent.CompletableFuture.supplyAsync {
+                outcome { pendingPush.subscribe("e2e-switch") { } }
+            }
+            Thread.sleep(100)
+            pendingClient.setJWT("deny:switched-pending")
+            val secondPending = outcome { pendingPush.subscribe("e2e-switch") { } }
+            val firstPendingOutcome = runCatching { firstPending.get(10, java.util.concurrent.TimeUnit.SECONDS) }.getOrDefault("timeout")
+            pendingPush.close()
+            Thread.sleep(500)
+            writeToFile(
+                if (secondPending == "switched-pending" && firstPendingOutcome in listOf("", "switched-pending")) {
+                    "Push credential pending switch:passed"
+                } else {
+                    "Push credential pending switch:failed (first: $firstPendingOutcome, second: $secondPending)"
+                },
+            )
+
             // Background delivery, used the way an app does: subscribe with background on and a
             // PushReceiver declared, then the process dies, and the scheduled wake-up brings the
             // next message to the receiver and a notification. Sign-out stops it.
@@ -727,7 +764,7 @@ class ServiceTest {
                 if (E2EPushReceiver.messages.toList() == listOf("push-payload") && postedTitle == "E2E title" && postedText == "push-payload") {
                     "Push background restore:passed"
                 } else {
-                    "Push background restore:failed"
+                    "Push background restore:failed (messages: ${E2EPushReceiver.messages.toList()}, title: $postedTitle, text: $postedText)"
                 },
             )
 

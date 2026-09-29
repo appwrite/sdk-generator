@@ -197,6 +197,16 @@ abstract class Base extends TestCase
         'Push session replay:passed',
     ];
 
+    protected const PUSH_CREDENTIAL_SWITCH_RESPONSES = [
+        'Push credential switch:passed',
+        'Push credential pending switch:passed',
+    ];
+
+    protected const WEB_PUSH_CONNECTION_RESPONSES = [
+        'Push concurrent refused:passed',
+        'Push tab client id:passed',
+    ];
+
     protected const PUSH_SESSION_COOKIE_RESPONSES = [
         'Push user cookie topic:passed',
         'Push user cookie switch:passed',
