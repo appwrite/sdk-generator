@@ -127,6 +127,8 @@ export class Push extends Service {
      * this instance so reconnects resume the same broker session.
      */
     private readonly fallbackClientId = randomId();
+    private connectedKey = '';
+    private connectionEpoch = 0;
 
     private readonly subscriptions = new Map<
         string,
@@ -308,7 +310,20 @@ export class Push extends Service {
             this.requestNotificationPermission();
         }
 
-        const client = await this.connect();
+        let client: MqttClient;
+        try {
+            client = await this.connect();
+        } catch (err) {
+            if (err instanceof SupersededError) {
+                return this.subscribeWith(
+                    topicsOrCallback,
+                    callbackOrOptions,
+                    topicOptions,
+                );
+            }
+            throw err;
+        }
+        const epoch = this.connectionEpoch;
 
         const ids: string[] = [];
         const acks: Promise<void>[] = [];
@@ -378,6 +393,16 @@ export class Push extends Service {
         try {
             await Promise.all(acks);
         } catch (err) {
+            if (epoch !== this.connectionEpoch) {
+                for (const id of ids) {
+                    this.subscriptions.delete(id);
+                }
+                return this.subscribeWith(
+                    topicsOrCallback,
+                    callbackOrOptions,
+                    topicOptions,
+                );
+            }
             unsubscribe();
             throw err;
         }
@@ -478,18 +503,64 @@ export class Push extends Service {
     // --- internals ---
 
     private connect(): Promise<MqttClient> {
-        if (this.mqtt) {
+        if (
+            (this.mqtt || this.connecting) &&
+            this.connectedKey !== this.credentialKey()
+        ) {
+            this.connectionEpoch++;
+            this.mqtt?.end(true);
+            this.mqtt = null;
+            this.connecting = null;
+            this.everConnected = this.subscriptions.size > 0;
+        }
+        if (this.mqtt && !this.connecting) {
             return Promise.resolve(this.mqtt);
         }
         if (!this.connecting) {
-            this.connecting = this.open();
+            const connecting = this.open();
+            this.connecting = connecting;
             // A failed open must not poison future attempts — clear the cached
             // in-flight promise so a later subscribe/publish can retry.
-            this.connecting.catch(() => {
-                this.connecting = null;
+            connecting.catch(() => {
+                if (this.connecting === connecting) {
+                    this.connecting = null;
+                }
             });
         }
         return this.connecting.then(() => this.mqtt!);
+    }
+
+    private credential(): { authMethod: AuthMethod; credential: string } {
+        if (this.client.config.jwt) {
+            return {
+                authMethod: 'appwrite-jwt',
+                credential: this.client.config.jwt,
+            };
+        }
+        if (this.client.config.session) {
+            return {
+                authMethod: 'appwrite-session',
+                credential: this.client.config.session,
+            };
+        }
+        throw new Error(
+            'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
+        );
+    }
+
+    private credentialKey(): string {
+        try {
+            const { authMethod, credential } = this.credential();
+            return [
+                this.endpointUrl(),
+                this.client.config.project ?? '',
+                this.client.config.pushClientId ?? '',
+                authMethod,
+                credential,
+            ].join('|');
+        } catch {
+            return '';
+        }
     }
 
     private endpointUrl(): string {
@@ -511,20 +582,9 @@ export class Push extends Service {
     }
 
     private async open(): Promise<void> {
-        // Read the credential set on the client (via Client.setJWT / setSession).
-        let authMethod: AuthMethod;
-        let credential: string;
-        if (this.client.config.jwt) {
-            authMethod = 'appwrite-jwt';
-            credential = this.client.config.jwt;
-        } else if (this.client.config.session) {
-            authMethod = 'appwrite-session';
-            credential = this.client.config.session;
-        } else {
-            throw new Error(
-                'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
-            );
-        }
+        const { authMethod, credential } = this.credential();
+        this.connectedKey = this.credentialKey();
+        const epoch = this.connectionEpoch;
 
         const project = this.client.config.project ?? '';
         // Client id, when the app did not set one with Client.setPushClientId(). Unlike the
@@ -544,6 +604,9 @@ export class Push extends Service {
         const { connect, Buffer } = await loadTransport();
         if (generation !== this.generation) {
             throw new Error('Push was closed while connecting.');
+        }
+        if (epoch !== this.connectionEpoch) {
+            throw new SupersededError();
         }
         this.Buffer = Buffer;
 
@@ -594,6 +657,9 @@ export class Push extends Service {
             }
         });
         client.on('error', (err) => {
+            if (epoch !== this.connectionEpoch) {
+                return;
+            }
             const error = this.connectError(err, refusedReason);
             // While the first connect is pending its caller receives the error (and reports it
             // through fail()); afterwards, e.g. on reconnect, report it here.
@@ -616,6 +682,10 @@ export class Push extends Service {
         await new Promise<void>((resolve, reject) => {
             const onConnect = (packet: IConnackPacket) => {
                 cleanup();
+                if (epoch !== this.connectionEpoch) {
+                    reject(new SupersededError());
+                    return;
+                }
                 const rc = packet.reasonCode ?? packet.returnCode ?? 0;
                 if (rc !== 0) {
                     this.close();
@@ -631,16 +701,30 @@ export class Push extends Service {
             };
             const onError = (err: Error) => {
                 cleanup();
+                if (epoch !== this.connectionEpoch) {
+                    reject(new SupersededError());
+                    return;
+                }
                 this.close();
                 reject(this.connectError(err, refusedReason));
             };
+            const onClose = () => {
+                if (epoch !== this.connectionEpoch) {
+                    cleanup();
+                    reject(new SupersededError());
+                }
+            };
             const cleanup = () => {
-                this.opening = false;
+                if (epoch === this.connectionEpoch) {
+                    this.opening = false;
+                }
                 client.removeListener('connect', onConnect);
                 client.removeListener('error', onError);
+                client.removeListener('close', onClose);
             };
             client.on('connect', onConnect);
             client.on('error', onError);
+            client.on('close', onClose);
             client.connect();
         });
     }
@@ -710,6 +794,12 @@ export class Push extends Service {
         } catch {
             // Some browsers only allow notifications from a service worker; ignore.
         }
+    }
+}
+
+class SupersededError extends Error {
+    constructor() {
+        super('The push connection was superseded');
     }
 }
 
