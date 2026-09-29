@@ -1405,7 +1405,7 @@ function backgroundPeersInstalled(): boolean {
 }
 
 interface NativeCookies {
-    get(url: string, name: string): Promise<string | null>;
+    session(url: string, project: string): Promise<string | null>;
 }
 
 async function sessionCookie(
@@ -1417,7 +1417,7 @@ async function sessionCookie(
         return '';
     }
     try {
-        const value = await cookies.get(endpoint, `a_session_${project}`);
+        const value = await cookies.session(endpoint, project);
         return value ? decodeURIComponent(value) : '';
     } catch {
         return '';

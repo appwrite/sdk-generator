@@ -12,11 +12,12 @@ RCT_EXPORT_MODULE()
     return NO;
 }
 
-RCT_EXPORT_METHOD(get:(NSString *)url
-                  name:(NSString *)name
+RCT_EXPORT_METHOD(session:(NSString *)url
+                  project:(NSString *)project
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 {
+    NSString *name = [@"a_session_" stringByAppendingString:project];
     NSURL *target = [NSURL URLWithString:url];
     if (target == nil) {
         resolve([NSNull null]);

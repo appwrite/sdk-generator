@@ -10,7 +10,8 @@ class {{ spec.info.title | caseUcfirst }}CookiesModule(reactContext: ReactApplic
     override fun getName(): String = NAME
 
     @ReactMethod
-    fun get(url: String, name: String, promise: Promise) {
+    fun session(url: String, project: String, promise: Promise) {
+        val name = "a_session_$project"
         try {
             val value = CookieManager.getInstance().getCookie(url)
                 ?.split(";")

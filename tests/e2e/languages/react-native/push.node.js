@@ -94,7 +94,7 @@ async function main() {
 
     const cookieEndpoint = 'https://cloud.example.test/v1';
     NativeModules.AppwriteCookies = {
-        get: async (url, name) => (url === cookieEndpoint && name === 'a_session_console' ? encodeURIComponent(e2eSession) : null),
+        session: async (url, project) => (url === cookieEndpoint && project === 'console' ? encodeURIComponent(e2eSession) : null),
     };
     const cookieClient = new Client().setEndpoint(cookieEndpoint).setProject('console').setPushEndpoint(ENDPOINT);
     console.log(
