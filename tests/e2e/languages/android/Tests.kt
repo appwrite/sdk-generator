@@ -756,19 +756,6 @@ class ServiceTest {
                 org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
                 Thread.sleep(100)
             }
-            val subscribeLog = java.util.concurrent.atomic.AtomicReference("")
-            if (E2EPushReceiver.messages.size != 1) {
-                val logLatch = java.util.concurrent.CountDownLatch(1)
-                val logPush = Push(pushClient().setJWT("eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e"), context)
-                runCatching {
-                    logPush.subscribe("e2e-subscribe-log") { message ->
-                        subscribeLog.set(message.data.replace("\n", " | "))
-                        logLatch.countDown()
-                    }
-                }
-                logLatch.await(5, java.util.concurrent.TimeUnit.SECONDS)
-                logPush.close()
-            }
             val posted = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()
             val postedTitle = posted?.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
             val postedText = posted?.extras?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
@@ -776,7 +763,7 @@ class ServiceTest {
                 if (E2EPushReceiver.messages.toList() == listOf("push-payload") && postedTitle == "E2E title" && postedText == "push-payload") {
                     "Push background restore:passed"
                 } else {
-                    "Push background restore:failed (messages: ${E2EPushReceiver.messages.toList()}, title: $postedTitle, text: $postedText, subscribes: ${subscribeLog.get()})"
+                    "Push background restore:failed (messages: ${E2EPushReceiver.messages.toList()}, title: $postedTitle, text: $postedText)"
                 },
             )
 
