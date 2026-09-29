@@ -629,6 +629,54 @@ class Tests: XCTestCase {
 
         let kickedError = await firstError(Push(client), subscribingTo: "e2e-disconnect/kicked-by-test")
         print(!kickedError.isEmpty ? "Push disconnect error:passed" : "Push disconnect error:failed")
+
+        func outcome(_ subscribing: () async throws -> Void) async -> String {
+            do {
+                try await subscribing()
+                return ""
+            } catch {
+                let message = (error as? AppwriteError)?.message ?? error.localizedDescription
+                return message.isEmpty ? "failed" : message
+            }
+        }
+
+        let switchClient = Client()
+            .setProject("console")
+            .setSelfSigned()
+            .setPushEndpoint("mqtt://mqtt:1883")
+            .setSession(e2eSession)
+        let switchPush = Push(switchClient)
+        _ = try? await switchPush.subscribe("e2e-switch") { _ in }
+        _ = switchClient.setJWT("deny:switched-user")
+        let switched = await outcome { _ = try await switchPush.subscribe("e2e-switch") { _ in } }
+        switchPush.close()
+        print(!switched.isEmpty ? "Push credential switch:passed" : "Push credential switch:failed")
+
+        let pendingClient = Client()
+            .setProject("console")
+            .setSelfSigned()
+            .setPushEndpoint("mqtt://mqtt:1883")
+            .setSession(e2eSession)
+        let pendingPush = Push(pendingClient)
+        let firstPending = Task { await outcome { _ = try await pendingPush.subscribe("e2e-switch") { _ in } } }
+        _ = pendingClient.setJWT("deny:switched-pending")
+        let secondPending = await outcome { _ = try await pendingPush.subscribe("e2e-switch") { _ in } }
+        let firstPendingOutcome = await withTaskGroup(of: String?.self) { group -> String in
+            group.addTask { await firstPending.value }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first ?? "timeout"
+        }
+        pendingPush.close()
+        print(
+            !secondPending.isEmpty && firstPendingOutcome != "timeout"
+                ? "Push credential pending switch:passed"
+                : "Push credential pending switch:failed (first: \(firstPendingOutcome), second: \(secondPending))"
+        )
     }
 
     func parse(from json: String) -> String? {
