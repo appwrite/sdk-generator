@@ -27,6 +27,7 @@ final class WebChromiumTest extends Base
         'cp tests/e2e/languages/web/tests.js tests/e2e/sdks/web/tests.js',
         'cp tests/e2e/languages/web/node.js tests/e2e/sdks/web/node.js',
         'cp tests/e2e/languages/web/index.html tests/e2e/sdks/web/index.html',
+        'cp tests/e2e/languages/web/tab.html tests/e2e/sdks/web/tab.html',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy sh -c "npm install && npm run build"',
     ];
     #[Override]

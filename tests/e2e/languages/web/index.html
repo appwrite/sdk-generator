@@ -752,16 +752,26 @@
                     new Promise((resolve) => { tabPush.subscribe(['e2e-whoami'], (m) => resolve(m.data)); }),
                     new Promise((resolve) => setTimeout(() => resolve(''), 5000)),
                 ]);
-                return { tabPush, id };
+                tabPush.close();
+                return id;
             };
-            const firstTab = await whoami();
-            const secondTab = await whoami();
-            firstTab.tabPush.close();
-            secondTab.tabPush.close();
+            const pageId = await whoami();
+            const samePageId = await whoami();
+            const popupId = await Promise.race([
+                new Promise((resolve) => {
+                    window.addEventListener('message', (event) => {
+                        if (event.data && typeof event.data.whoami === 'string') {
+                            resolve(event.data.whoami);
+                        }
+                    });
+                    window.open('tab.html', '_blank');
+                }),
+                new Promise((resolve) => setTimeout(() => resolve(''), 5000)),
+            ]);
             console.log(
-                firstTab.id.startsWith('e2e-session-user-') && secondTab.id.startsWith('e2e-session-user-') && firstTab.id !== secondTab.id
+                pageId !== '' && pageId === samePageId && popupId !== '' && popupId !== pageId
                     ? 'Push tab client id:passed'
-                    : `Push tab client id:failed (${firstTab.id}, ${secondTab.id})`,
+                    : `Push tab client id:failed (${pageId}, ${samePageId}, ${popupId})`,
             );
             kickedPush.close();
 
