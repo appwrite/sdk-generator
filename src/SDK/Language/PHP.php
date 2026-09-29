@@ -254,6 +254,21 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Topic.php',
+                'template'      => 'php/src/Topic.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/ResolvedTopic.php',
+                'template'      => 'php/src/ResolvedTopic.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/{{ namespace | caseNamespacePath }}/TopicTest.php',
+                'template'      => 'php/tests/TopicTest.php.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ namespace | caseNamespacePath }}/Query.php',
                 'template'      => 'php/src/Query.php.twig',
             ],
@@ -615,7 +630,7 @@ class PHP extends Language
 
     protected function getReturn(Operation $method, ?Specification $spec = null): string
     {
-        if ((\count($method->responses) === 1 && isset($method->responses[204])) || \in_array($this->getMethodType($method, $spec), ['location', 'webAuth'], true)) {
+        if ((\count($method->responses) === 1 && isset($method->responses[204])) || $this->isTextResponse($method, $spec) || \in_array($this->getMethodType($method, $spec), [self::METHOD_TYPE_LOCATION, self::METHOD_TYPE_WEB_AUTH], true)) {
             return 'string';
         }
 

@@ -381,6 +381,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/topic.dart',
+                'template'      => 'dart/lib/topic.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/query.dart',
                 'template'      => 'dart/lib/query.dart.twig',
             ],
@@ -473,6 +478,11 @@ class Dart extends Language
                 'scope'         => 'default',
                 'destination'   => '/test/id_test.dart',
                 'template'      => 'dart/test/id_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/topic_test.dart',
+                'template'      => 'dart/test/topic_test.dart.twig',
             ],
             [
                 'scope'         => 'default',

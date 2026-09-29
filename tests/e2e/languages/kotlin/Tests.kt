@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
+import io.appwrite.Topic
 import io.appwrite.Query
 import io.appwrite.Operator
 import io.appwrite.Condition
@@ -17,6 +18,7 @@ import io.appwrite.models.Player
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
+import io.appwrite.services.Plaintext
 import kotlinx.coroutines.runBlocking
 import okhttp3.MultipartBody
 import okhttp3.Response
@@ -111,6 +113,18 @@ class ServiceTest {
             }
             writeToFile(general.validatePath("0", "0").result)
             writeToFile(general.validatePath("0", null).result)
+
+            val zone: String = Plaintext(client).getZone()
+            writeToFile(zone)
+            writeToFile(general.getMixed().result)
+            writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1"))
+            writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1", InputFile.fromPath("../../../resources/file.png")))
+
+            val message = "conversation without a required file"
+            writeToFile(general.optionalUpload(message).result)
+            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../resources/file.png")).result)
+            writeToFile(general.optionalUpload(message, metadata = mapOf("source" to "sdk", "uri" to "café")).result)
+            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../resources/file.png"), mapOf("source" to "sdk", "uri" to "café")).result)
 
             try {
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../resources/file.png"))
@@ -286,6 +300,30 @@ class ServiceTest {
             // ID helper tests
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
+
+            // Topic helper tests
+            writeToFile(Topic.path(listOf("user", "123", "notification")).toString())
+            writeToFile(Topic.path(listOf("org", "42", "user", "123")).path(listOf("notification")).toString())
+            writeToFile(Topic.path(listOf("user")).any().path(listOf("notification")).toString())
+            writeToFile(Topic.path(listOf("chat")).any().any().path(listOf("message")).toString())
+            writeToFile(Topic.path(listOf("org")).any().path(listOf("logs")).all().toString())
+            writeToFile(Topic.any().path(listOf("notification")).toString())
+            writeToFile(Topic.all().toString())
+            val topicErrorCases = listOf(
+                "empty path" to emptyList<String>(),
+                "empty level" to listOf("user", ""),
+                "slash" to listOf("user/123"),
+                "plus" to listOf("user", "a+b"),
+                "hash" to listOf("user", "#"),
+            )
+            for ((name, levels) in topicErrorCases) {
+                try {
+                    Topic.path(levels)
+                    writeToFile("Topic $name:failed")
+                } catch (e: IllegalArgumentException) {
+                    writeToFile("Topic $name:passed")
+                }
+            }
 
             // Operator helper tests
             writeToFile(Operator.increment(1))

@@ -159,6 +159,11 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}/topic.rb',
+                'template'      => 'ruby/lib/container/topic.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.info.title | caseDash }}/query.rb',
                 'template'      => 'ruby/lib/container/query.rb.twig',
             ],

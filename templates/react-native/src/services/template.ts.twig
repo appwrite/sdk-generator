@@ -1,8 +1,10 @@
 {% set usesUpload = false %}
+{% set usesChunkedUpload = false %}
 {% set usesModels = false %}
 {% set usesException = false %}
 {% for method in (service | operations) %}
 {% if 'multipart/form-data' in (method | consumes) %}{% set usesUpload = true %}{% endif %}
+{% if 'multipart/form-data' in (method | consumes) and not (method | textResponse) %}{% set usesChunkedUpload = true %}{% endif %}
 {% if 'Models.' in (method | getReturn(spec)) or 'Models.' in ((method | responseModel) | getGenerics(spec)) %}{% set usesModels = true %}{% endif %}
 {% for parameter in (method | parameters('all')) %}
 {% if parameter.required %}{% set usesException = true %}{% endif %}
@@ -23,6 +25,8 @@ import type { Models } from '../models';
 import type { {{ typeImports | join(', ') }} } from '../client';
 {% if usesUpload %}
 import * as FileSystem from 'expo-file-system';
+{% endif %}
+{% if usesChunkedUpload %}
 import { Platform as RNPlatform } from 'react-native';
 {% endif %}
 
@@ -97,7 +101,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
         {%~ if (method | parameters('all'))|length > 0 %}
 {% set membersBody %}{% for parameter in (method | parameters('all')) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}; {% endif %}{% endfor %}{% endset %}
         {{ 'let params: ' | tsObjectStatement(membersBody, ';', 8) | raw }}
-        {%~ if 'multipart/form-data' in (method | consumes) %}
+        {%~ if 'multipart/form-data' in (method | consumes) and not (method | textResponse) %}
         let onProgress: (progress: UploadProgress) => void;
         {%~ endif %}
 
@@ -105,7 +109,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             {{ method | getOverloadCondition(spec) | raw }}
         ) {
             {{ 'params = (paramsOrFirst || {}) as ' | tsObjectStatement(membersBody, ';', 12) | raw }}
-            {%~ if 'multipart/form-data' in (method | consumes) %}
+            {%~ if 'multipart/form-data' in (method | consumes) and not (method | textResponse) %}
             onProgress = paramsOrFirst?.onProgress as (
                 progress: UploadProgress,
             ) => void;
@@ -116,7 +120,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 {{ ((parameter.name | caseCamel | escapeKeyword) ~ ': ' ~ (loop.index0 == 0 ? 'paramsOrFirst' : ('rest[' ~ (loop.index0 - 1) ~ ']')) ~ ' as') | tsAssignment((parameter | getPropertyType(method, spec)), 16) | raw }},
                 {%~ endfor %}
             };
-            {%~ if 'multipart/form-data' in (method | consumes) %}
+            {%~ if 'multipart/form-data' in (method | consumes) and not (method | textResponse) %}
             onProgress = rest[{{ (method | parameters('all'))|length - 1 }}] as (progress: UploadProgress) => void;
             {%~ endif %}
         }
@@ -146,17 +150,17 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
 {% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter | configKey(method))) ? ('this.client.config.' ~ ((parameter | configKey(method)) | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
         {{ method.path | tsApiPath(pathReplacements, 8) | raw }}
-        const payload: Payload = {};
+        const apiPayload: Payload = {};
 
 {% for parameter in (method | parameters('query')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            {{ ("payload['" ~ parameter.name ~ "']") | jsAssign((parameter.name | caseCamel | escapeKeyword), 12) | raw }}
+            {{ ("apiPayload['" ~ parameter.name ~ "']") | jsAssign((parameter.name | caseCamel | escapeKeyword), 12) | raw }}
         }
 
 {% endfor %}
 {% for parameter in (method | parameters('body')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            {{ ("payload['" ~ parameter.name ~ "']") | jsAssign((parameter.name | caseCamel | escapeKeyword), 12) | raw }}
+            {{ ("apiPayload['" ~ parameter.name ~ "']") | jsAssign((parameter.name | caseCamel | escapeKeyword), 12) | raw }}
         }
 
 {% endfor %}
@@ -168,12 +172,14 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% if [(method | locationSchemes)]|length > 0 %}
 {% for node in [(method | locationSchemes)] %}
 {% for key,header in node|keys %}
-        payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
+        apiPayload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
 
 {% endfor %}
 {% endfor %}
 {% endif %}
-        for (const [key, value] of Object.entries(Service.flatten(payload))) {
+        for (const [key, value] of Object.entries(
+            Service.flatten(apiPayload),
+        )) {
             uri.searchParams.append(key, value);
         }
 {% endif %}
@@ -183,27 +189,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% if 'multipart/form-data' in (method | consumes) %}
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | schemaType) == 'file' %}
-
-        const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
-
-        if (size <= Service.CHUNK_SIZE) {
-            return this.client.call(
-                '{{ method.method.value | caseLower }}',
-                uri,
-                {
-                {%~ for key, security in (method | securityHeaders) %}
-                    {{ security.name | jsKey | raw }}: this.client.config.{{ key | caseLower }},
-                {%~ endfor %}
-                {%~ for parameter in (method | parameters('header')) %}
-                    {{ (parameter.name | caseCamel | escapeKeyword) | jsKey | raw }}: this.client.${{ parameter.name | caseCamel | escapeKeyword }},
-                {%~ endfor %}
-                {%~ for key, header in (method | methodHeaders) %}
-                    {{ key | jsKey | raw }}: '{{ header }}',
-                {%~ endfor %}
-                },
-                payload,
-            );
-        }
 
         const apiHeaders: { [header: string]: string } = {
         {%~ for key, security in (method | securityHeaders) %}
@@ -216,6 +201,46 @@ export class {{ service.name | caseUcfirst }} extends Service {
             {{ key | jsKey | raw }}: '{{ header }}',
         {%~ endfor %}
         };
+{% if not parameter.required or (parameter | schemaNullable) %}
+
+        if (!{{ parameter.name | caseCamel | escapeKeyword }}) {
+            {%~ set uploadArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload'] %}
+            {%~ if (method | textResponse) %}{% set uploadArgs = uploadArgs|merge(["'text'"]) %}{% endif %}
+            return{{ 'this.client.call' | jsArgs(uploadArgs, 12, ';', 7) | raw }}
+        }
+{% endif %}
+{% if (method | textResponse) %}
+
+        apiPayload['{{ parameter.name }}'] = Service.filePart(
+            {{ parameter.name | caseCamel | escapeKeyword }}.uri,
+            {{ parameter.name | caseCamel | escapeKeyword }}.name,
+            {{ parameter.name | caseCamel | escapeKeyword }}.type,
+            () =>
+                FileSystem.readAsStringAsync({{ parameter.name | caseCamel | escapeKeyword }}.uri, {
+                    encoding: FileSystem.EncodingType.Base64,
+                }),
+        );
+
+        {%~ set uploadArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload', "'text'"] %}
+        return{{ 'this.client.call' | jsArgs(uploadArgs, 8, ';', 7) | raw }}
+{% else %}
+
+        const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
+
+        if (size <= Service.CHUNK_SIZE) {
+            apiPayload['{{ parameter.name }}'] = Service.filePart(
+                {{ parameter.name | caseCamel | escapeKeyword }}.uri,
+                {{ parameter.name | caseCamel | escapeKeyword }}.name,
+                {{ parameter.name | caseCamel | escapeKeyword }}.type,
+                () =>
+                    FileSystem.readAsStringAsync({{ parameter.name | caseCamel | escapeKeyword }}.uri, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    }),
+            );
+
+            {%~ set uploadArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload'] %}
+            return{{ 'this.client.call' | jsArgs(uploadArgs, 12, ';', 7) | raw }}
+        }
 
         let offset = 0;
         let response = undefined;
@@ -251,11 +276,22 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 'content-range': 'bytes 0-' + (firstChunkEnd - 1) + '/' + size,
             };
 
+{%~ if (parameter.name | caseCamel | escapeKeyword) | length <= 7 %}
             const firstChunk = await FileSystem.readAsStringAsync({{ parameter.name | caseCamel | escapeKeyword }}.uri, {
                 encoding: FileSystem.EncodingType.Base64,
                 position: 0,
                 length: Service.CHUNK_SIZE,
             });
+{%~ else %}
+            const firstChunk = await FileSystem.readAsStringAsync(
+                {{ parameter.name | caseCamel | escapeKeyword }}.uri,
+                {
+                    encoding: FileSystem.EncodingType.Base64,
+                    position: 0,
+                    length: Service.CHUNK_SIZE,
+                },
+            );
+{%~ endif %}
             let firstPath = `data:${{'{'}}{{ parameter.name | caseCamel | escapeKeyword }}.type{{'}'}};base64,${{'{'}}firstChunk{{'}'}}`;
             if (RNPlatform.OS.toLowerCase() === 'android') {
                 firstPath =
@@ -267,17 +303,18 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 });
             }
 
-            payload['{{ parameter.name }}'] = {{ '{' }}
-                uri: firstPath,
-                name: {{ parameter.name | caseCamel | escapeKeyword }}.name,
-                type: {{ parameter.name | caseCamel | escapeKeyword }}.type,
-            };
+            apiPayload['{{ parameter.name }}'] = Service.filePart(
+                firstPath,
+                {{ parameter.name | caseCamel | escapeKeyword }}.name,
+                {{ parameter.name | caseCamel | escapeKeyword }}.type,
+                async () => firstChunk,
+            );
 
             response = await this.client.call(
                 '{{ method.method.value | caseLower }}',
                 uri,
                 firstChunkHeaders,
-                payload,
+                apiPayload,
             );
             offset = firstChunkEnd;
 
@@ -330,11 +367,22 @@ export class {{ service.name | caseUcfirst }} extends Service {
             chunkHeaders['content-range'] =
                 'bytes ' + chunk.start + '-' + (chunk.end - 1) + '/' + size;
 
+{%~ if (parameter.name | caseCamel | escapeKeyword) | length <= 8 %}
             const chunkData = await FileSystem.readAsStringAsync({{ parameter.name | caseCamel | escapeKeyword }}.uri, {
                 encoding: FileSystem.EncodingType.Base64,
                 position: chunk.start,
                 length: chunk.end - chunk.start,
             });
+{%~ else %}
+            const chunkData = await FileSystem.readAsStringAsync(
+                {{ parameter.name | caseCamel | escapeKeyword }}.uri,
+                {
+                    encoding: FileSystem.EncodingType.Base64,
+                    position: chunk.start,
+                    length: chunk.end - chunk.start,
+                },
+            );
+{%~ endif %}
 
             let chunkPath = `data:${{'{'}}{{ parameter.name | caseCamel | escapeKeyword }}.type{{'}'}};base64,${{'{'}}chunkData{{'}'}}`;
             if (RNPlatform.OS.toLowerCase() === 'android') {
@@ -349,12 +397,13 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 });
             }
 
-            const chunkPayload = { ...payload };
-            chunkPayload['{{ parameter.name }}'] = {{ '{' }}
-                uri: chunkPath,
-                name: {{ parameter.name | caseCamel | escapeKeyword }}.name,
-                type: {{ parameter.name | caseCamel | escapeKeyword }}.type,
-            };
+            const chunkPayload = { ...apiPayload };
+            chunkPayload['{{ parameter.name }}'] = Service.filePart(
+                chunkPath,
+                {{ parameter.name | caseCamel | escapeKeyword }}.name,
+                {{ parameter.name | caseCamel | escapeKeyword }}.type,
+                async () => chunkData,
+            );
 
             const chunkResponse = await this.client.call(
                 '{{ method.method.value | caseLower }}',
@@ -413,6 +462,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         return finalResponse ?? response;
 {% endif %}
+{% endif %}
 {% endfor %}
 {% else %}
         return this.client.call(
@@ -429,8 +479,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 {{ key | jsKey | raw }}: '{{ header }}',
             {%~ endfor %}
             },
-            payload{% if (method | methodType) == 'location' %},
-            'arrayBuffer'{% endif %},
+            apiPayload{% if (method | methodType) == 'location' %},
+            'arrayBuffer'{% elseif (method | textResponse) %},
+            'text'{% endif %},
         );
 {% endif %}
 {% endif %}
@@ -466,17 +517,17 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
 {% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter | configKey(method))) ? ('this.client.config.' ~ ((parameter | configKey(method)) | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
         {{ method.path | tsApiPath(pathReplacements, 8) | raw }}
-        const payload: Payload = {};
+        const apiPayload: Payload = {};
 
 {% for parameter in (method | parameters('query')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            {{ ("payload['" ~ parameter.name ~ "']") | jsAssign((parameter.name | caseCamel | escapeKeyword), 12) | raw }}
+            {{ ("apiPayload['" ~ parameter.name ~ "']") | jsAssign((parameter.name | caseCamel | escapeKeyword), 12) | raw }}
         }
 
 {% endfor %}
 {% for parameter in (method | parameters('body')) %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            {{ ("payload['" ~ parameter.name ~ "']") | jsAssign((parameter.name | caseCamel | escapeKeyword), 12) | raw }}
+            {{ ("apiPayload['" ~ parameter.name ~ "']") | jsAssign((parameter.name | caseCamel | escapeKeyword), 12) | raw }}
         }
 
 {% endfor %}
@@ -486,11 +537,13 @@ export class {{ service.name | caseUcfirst }} extends Service {
         {%~ endfor %}
 {% for node in [(method | locationSchemes)] %}
 {% for key,header in node|keys %}
-        payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
+        apiPayload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
 
 {% endfor %}
 {% endfor %}
-        for (const [key, value] of Object.entries(Service.flatten(payload))) {
+        for (const [key, value] of Object.entries(
+            Service.flatten(apiPayload),
+        )) {
             uri.searchParams.append(key, value);
         }
 

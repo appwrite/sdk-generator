@@ -165,6 +165,7 @@ impl {{ service.name | caseUcfirst }} {
 {{ pathReplaces | rustfmtPath(8, method.path) }}
 
 {% set hasFileParam = false %}
+{% set fileRequired = false %}
 {% set fileParamName = '' %}
 {% set fileParamKey = '' %}
 {% set uploadIdParam = '' %}
@@ -174,16 +175,33 @@ impl {{ service.name | caseUcfirst }} {
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | schemaType) == 'file' %}
 {% set hasFileParam = true %}
+{% set fileRequired = parameter.required and not (parameter | schemaNullable) %}
 {% set fileParamName = parameter.name | caseSnake | overrideIdentifier %}
 {% set fileParamKey = parameter.name %}
 {% endif %}
 {% endfor %}
 {% if hasFileParam %}
-{{ [ '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'params', '"' ~ fileParamKey ~ '"', fileParamName, uploadIdParam ? (uploadIDRequired ? 'Some(' ~ uploadIdParam ~ '_str)' : uploadIdParam ~ '_str') : 'None' ] | rustfmtClientAwait(8, 'file_upload') }}
+{% set uploadCall = (method | textResponse) ? 'file_upload_text' : 'file_upload' %}
+{% set requestCall = (method | textResponse) ? 'call_text' : 'call' %}
+{% set uploadArgs = [ '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'params', '"' ~ fileParamKey ~ '"', fileParamName ] %}
+{% if not (method | textResponse) %}
+{% set uploadArgs = uploadArgs | merge([ uploadIdParam ? (uploadIDRequired ? 'Some(' ~ uploadIdParam ~ '_str)' : uploadIdParam ~ '_str') : 'None' ]) %}
+{% endif %}
+{% if not fileRequired %}
+        if let Some({{ fileParamName }}) = {{ fileParamName }} {
+{{ uploadArgs | rustfmtClientAwait(12, uploadCall) }}
+        } else {
+{{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(12, requestCall) }}
+        }
+{% else %}
+{{ uploadArgs | rustfmtClientAwait(8, uploadCall) }}
+{% endif %}
 {% elseif (method | methodType) == 'webAuth' %}
 {{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(8, 'call_location') }}
 {% elseif (method | methodType) == 'location' %}
 {{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(8, 'call_bytes') }}
+{% elseif (method | textResponse) %}
+{{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(8, 'call_text') }}
 {% else %}
 {{ [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'Some(params)' ] | rustfmtClientAwait(8, 'call') }}
 {% endif %}

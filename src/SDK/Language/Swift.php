@@ -188,6 +188,11 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Topic.swift',
+                'template'      => 'swift/Sources/Topic.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Query.swift',
                 'template'      => 'swift/Sources/Query.swift.twig',
             ],
@@ -567,11 +572,14 @@ class Swift extends Language
     protected function getReturnType(Operation $method, Specification $spec, string $generic = 'T'): string
     {
         $methodType = $this->getMethodType($method, $spec);
-        if ($methodType === 'webAuth') {
+        if ($methodType === self::METHOD_TYPE_WEB_AUTH) {
             return 'String?';
         }
-        if ($methodType === 'location') {
+        if ($methodType === self::METHOD_TYPE_LOCATION) {
             return 'ByteBuffer';
+        }
+        if ($this->isTextResponse($method, $spec)) {
+            return 'String';
         }
 
         $models = \array_values(\array_filter(

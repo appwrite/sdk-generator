@@ -72,7 +72,7 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 	}
 
 	// Absent is the normal case here: this is the command that creates it.
-	local, err := config.LoadOrCreateLocal(config.LocalPath("."))
+	local, err := config.LoadOrCreateLocal(config.LocalPathOr(config.LocalPath(".")))
 	if err != nil {
 		return err
 	}
@@ -233,9 +233,9 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 
 	command.Println()
 	if creating {
-		output.Success(out, "Project created → %s", config.LocalFileName)
+		output.Success(out, "Project created → %s", local.Path())
 	} else {
-		output.Success(out, "Project linked → %s", config.LocalFileName)
+		output.Success(out, "Project linked → %s", local.Path())
 	}
 
 	installInitProjectSkills(out, local.Dirname())

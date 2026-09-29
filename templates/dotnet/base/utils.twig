@@ -12,5 +12,5 @@
 {% if ((method | methodType) == "webAuth" or (method | methodType) == "location") and [(method | locationSchemes)]|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
 {% macro resultType(namespace, method) %}
-{% if (method | methodType) == "webAuth" %}bool{% elseif (method | methodType) == "location" %}byte[]{% elseif (method | responseModels)|length > 1 %}object{% elseif not (method | responseModel) or (method | responseModel) == 'any' %}object{% else %}Models.{{(method | responseModel) | caseUcfirst | overrideIdentifier }}{% endif %}
+{% if (method | methodType) == "webAuth" %}bool{% elseif (method | methodType) == "location" %}byte[]{% elseif (method | textResponse) %}string{% elseif (method | responseModels)|length > 1 %}object{% elseif not (method | responseModel) or (method | responseModel) == 'any' %}object{% else %}Models.{{(method | responseModel) | caseUcfirst | overrideIdentifier }}{% endif %}
 {% endmacro %}

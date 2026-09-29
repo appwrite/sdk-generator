@@ -6,6 +6,14 @@
             "Utopia\\MockServer\\": "src/"
         }
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/utopia-php/mqtt"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "require": {
         "utopia-php/framework": "^0.33",
         "utopia-php/database": "^0.48",

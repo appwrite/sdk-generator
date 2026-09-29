@@ -177,10 +177,13 @@ export class {{ service.name | caseUcfirst }} {
             apiHeaders,
             apiPayload,
             onProgress,
+            {%~ if (method | textResponse) %}
+            'text',
+            {%~ endif %}
         );
         {%~ else %}
         {%- set callArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload'] %}
-        {%- if (method | methodType) == 'location' %}{% set callArgs = callArgs|merge(["'arrayBuffer'"]) %}{% endif %}
+        {%- if (method | methodType) == 'location' %}{% set callArgs = callArgs|merge(["'arrayBuffer'"]) %}{% elseif (method | textResponse) %}{% set callArgs = callArgs|merge(["'text'"]) %}{% endif %}
         return{{ 'this.client.call' | jsArgs(callArgs, 8, ';', 7) | raw }}
         {%~ endif %}
     }

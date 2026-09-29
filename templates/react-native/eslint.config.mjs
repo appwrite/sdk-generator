@@ -5,7 +5,14 @@ export default tseslint.config(
     eslint.configs.recommended,
     tseslint.configs.recommended,
     {
-        ignores: ['dist/', 'types/', 'docs/', 'rollup.config.mjs'],
+        ignores: [
+            'dist/',
+            'types/',
+            'docs/',
+            'rollup.config.mjs',
+            'app.plugin.js',
+            'react-native.config.js',
+        ],
     },
     {
         rules: {

@@ -408,6 +408,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '{{ spec.info.title | caseUcfirst }}/Topic.cs',
+                'template'      => 'dotnet/Package/Topic.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.info.title | caseUcfirst }}/Permission.cs',
                 'template'      => 'dotnet/Package/Permission.cs.twig',
             ],

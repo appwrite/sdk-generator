@@ -130,6 +130,16 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'topic/topic.go',
+                'template'      => 'go/topic.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'topic/topic_test.go',
+                'template'      => 'go/topic_test.go.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'id/id_test.go',
                 'template'      => 'go/id_test.go.twig',
             ],
@@ -405,6 +415,7 @@ class Go extends Language
                 return implode("\n" . $indent, $value);
             }, ['is_safe' => ['html']]),
             new TwigFilter('propertyType', fn(Schema $property, Specification $spec, string $generic = 'map[string]interface{}'): string => $this->getPropertyType($property, $spec, $generic)),
+            new TwigFilter('responsePropertyType', fn(Schema $property, Specification $spec): string => $this->getResponsePropertyType($property, $spec)),
             new TwigFilter('returnType', fn(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string => $this->getReturnType($method, $spec, $namespace, $generic)),
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
             new TwigFilter('goPackagePath', fn(array $sdk): string => $this->getPackagePath($sdk)),
@@ -440,14 +451,26 @@ class Go extends Language
         return \str_replace('models.', '', $this->getTypeName($property, $spec));
     }
 
+    protected function getResponsePropertyType(Schema $property, Specification $spec): string
+    {
+        $type = $this->getPropertyType($property, $spec);
+
+        return $property->nullable && \in_array($type, ['string', 'bool', 'int', 'float64'], true)
+            ? '*' . $type
+            : $type;
+    }
+
     protected function getReturnType(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string
     {
         $type = $this->getMethodType($method, $spec);
-        if ($type === 'webAuth') {
+        if ($type === self::METHOD_TYPE_WEB_AUTH) {
             return 'bool';
         }
-        if ($type === 'location') {
+        if ($type === self::METHOD_TYPE_LOCATION) {
             return '[]byte';
+        }
+        if ($this->isTextResponse($method, $spec)) {
+            return 'string';
         }
         $models = \array_values(\array_filter(
             $this->getOperationResponseModels($method),

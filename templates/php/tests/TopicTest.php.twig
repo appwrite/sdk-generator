@@ -1,0 +1,68 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace | caseNamespace }};
+
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+final class TopicTest extends TestCase
+{
+    public function testPath(): void
+    {
+        $this->assertSame('user', (string) Topic::path(['user']));
+        $this->assertSame('user/notification', (string) Topic::path(['user', 'notification']));
+        $this->assertSame('user/notification', (string) Topic::path(['user'])->path(['notification']));
+    }
+
+    public function testAny(): void
+    {
+        $this->assertSame('user/+/notification', (string) Topic::path(['user'])->any()->path(['notification']));
+        $this->assertSame('chat/+/+/message', (string) Topic::path(['chat'])->any()->any()->path(['message']));
+        $this->assertSame('+/notification', (string) Topic::any()->path(['notification']));
+    }
+
+    public function testAll(): void
+    {
+        $this->assertSame('org/+/logs/#', (string) Topic::path(['org'])->any()->path(['logs'])->all());
+        $this->assertSame('#', (string) Topic::all());
+    }
+
+    public function testNothingAfterAll(): void
+    {
+        $this->expectException(\BadMethodCallException::class);
+        Topic::all()->any();
+    }
+
+    /**
+     * @return \Iterator<string, array{mixed}>
+     */
+    public static function invalidLevels(): \Iterator
+    {
+        yield 'not an array' => ['user'];
+        yield 'empty path' => [[]];
+        yield 'not a string' => [['user', 42]];
+        yield 'null' => [['user', null]];
+        yield 'empty level' => [['user', '']];
+        yield 'slash' => [['user/123']];
+        yield 'plus' => [['user', '+']];
+        yield 'contains plus' => [['user', 'a+b']];
+        yield 'hash' => [['user', '#']];
+        yield 'contains hash' => [['user', 'a#b']];
+    }
+
+    #[DataProvider('invalidLevels')]
+    public function testInvalidLevels(mixed $levels): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        Topic::path($levels);
+    }
+
+    #[DataProvider('invalidLevels')]
+    public function testInvalidLevelsWhenAppending(mixed $levels): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        Topic::path(['user'])->path($levels);
+    }
+}

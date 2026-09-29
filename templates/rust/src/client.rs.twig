@@ -59,6 +59,12 @@ impl<F> Default for UploadOptions<F> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum ResponseFormat {
+    Json,
+    Text,
+}
+
 /// {{ spec.info.title }} client for making API requests
 #[derive(Debug, Clone)]
 pub struct Client {
@@ -383,8 +389,27 @@ impl Client {
         headers: Option<HashMap<String, String>>,
         params: Option<HashMap<String, Value>>,
     ) -> Result<T> {
+        self.send(method, path, headers, params, ResponseFormat::Json)
+            .await
+    }
+
+    async fn send<T: DeserializeOwned>(
+        &self,
+        method: Method,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: Option<HashMap<String, Value>>,
+        format: ResponseFormat,
+    ) -> Result<T> {
         let state = self.state.load_full();
         let url = format!("{}{}", state.config.endpoint, path);
+        let is_multipart = method != Method::GET
+            && headers.as_ref().is_some_and(|headers| {
+                headers.iter().any(|(key, value)| {
+                    key.eq_ignore_ascii_case("content-type")
+                        && value.eq_ignore_ascii_case("multipart/form-data")
+                })
+            });
         let mut request_builder;
 
         if let Some(params) = params {
@@ -401,22 +426,36 @@ impl Client {
                 request_builder = state.http.request(method.clone(), url_with_params);
             } else {
                 request_builder = state.http.request(method.clone(), &url);
-                request_builder = request_builder.json(&params);
+                if is_multipart {
+                    let mut form = multipart::Form::new();
+                    for (key, value) in Self::flatten_multipart_params(&params, "") {
+                        form = form.text(key, value);
+                    }
+                    request_builder = request_builder.multipart(form);
+                } else {
+                    request_builder = request_builder.json(&params);
+                }
             }
         } else {
             request_builder = state.http.request(method.clone(), &url);
         }
 
-        request_builder = request_builder.headers(state.config.headers.clone());
+        let mut default_headers = state.config.headers.clone();
+        if is_multipart {
+            default_headers.remove("content-type");
+        }
+        request_builder = request_builder.headers(default_headers);
 
         if let Some(custom_headers) = headers {
             for (key, value) in custom_headers {
-                request_builder = request_builder.header(key, value);
+                if !is_multipart || !key.eq_ignore_ascii_case("content-type") {
+                    request_builder = request_builder.header(key, value);
+                }
             }
         }
 
         let response = request_builder.send().await?;
-        self.handle_response(response).await
+        self.handle_response(response, format).await
     }
 
     /// Make an API call that returns a location/redirect URL (for webAuth endpoints)
@@ -603,6 +642,18 @@ impl Client {
         }
     }
 
+    /// Make an API call that returns a plain-text body as a UTF-8 string
+    pub async fn call_text(
+        &self,
+        method: Method,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: Option<HashMap<String, Value>>,
+    ) -> Result<String> {
+        self.send(method, path, headers, params, ResponseFormat::Text)
+            .await
+    }
+
     /// Upload a file
     pub async fn file_upload<T: DeserializeOwned>(
         &self,
@@ -624,6 +675,27 @@ impl Client {
                 on_progress: None::<fn(UploadProgress)>,
                 max_concurrency: None,
             },
+        )
+        .await
+    }
+
+    pub async fn file_upload_text(
+        &self,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: HashMap<String, Value>,
+        param_name: &str,
+        input_file: InputFile,
+    ) -> Result<String> {
+        let url = format!("{}{}", self.state.load().config.endpoint, path);
+
+        self.single_file_upload(
+            &url,
+            headers,
+            params,
+            param_name,
+            &input_file,
+            ResponseFormat::Text,
         )
         .await
     }
@@ -652,7 +724,14 @@ impl Client {
             let url = format!("{}{}", state.config.endpoint, path);
 
             let result = self
-                .single_file_upload(&url, headers, params, param_name, &input_file)
+                .single_file_upload(
+                    &url,
+                    headers,
+                    params,
+                    param_name,
+                    &input_file,
+                    ResponseFormat::Json,
+                )
                 .await?;
 
             if let Some(callback) = &options.on_progress {
@@ -685,6 +764,7 @@ impl Client {
         params: HashMap<String, Value>,
         param_name: &str,
         input_file: &InputFile,
+        format: ResponseFormat,
     ) -> Result<T> {
         let state = self.state.load_full();
         let mut form = multipart::Form::new();
@@ -726,7 +806,7 @@ impl Client {
 
         let response = request_builder.multipart(form).send().await?;
 
-        self.handle_response(response).await
+        self.handle_response(response, format).await
     }
 
     async fn chunked_file_upload_with_progress<T: DeserializeOwned, F>(
@@ -997,10 +1077,14 @@ impl Client {
 
         let response = request_builder.multipart(form).send().await?;
 
-        self.handle_response(response).await
+        self.handle_response(response, ResponseFormat::Json).await
     }
 
-    async fn handle_response<T: DeserializeOwned>(&self, response: Response) -> Result<T> {
+    async fn handle_response<T: DeserializeOwned>(
+        &self,
+        response: Response,
+        format: ResponseFormat,
+    ) -> Result<T> {
         let status = response.status();
         let content_type = response
             .headers()
@@ -1012,6 +1096,19 @@ impl Client {
 
         if status.is_success() {
             let bytes = response.bytes().await?;
+
+            if let ResponseFormat::Text = format {
+                let text = String::from_utf8(bytes.to_vec()).map_err(|e| {
+                    {{ spec.info.title | caseUcfirst }}Error::new(
+                        0,
+                        format!("Invalid UTF-8 response: {}", e),
+                        None,
+                        String::from_utf8_lossy(e.as_bytes()).to_string(),
+                    )
+                })?;
+
+                return Ok(serde_json::from_value(Value::String(text))?);
+            }
 
             if !content_type.is_empty()
                 && !content_type.starts_with("application/json")

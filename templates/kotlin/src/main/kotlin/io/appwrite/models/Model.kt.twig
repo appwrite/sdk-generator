@@ -9,12 +9,12 @@ import {{ sdk.namespace | caseDot }}.enums.{{ (property | enumName) | caseUcfirs
 import io.appwrite.extensions.jsonCast
 
 /**
- * {{ definition.description | replace({"\n": "\n * "}) | kotlinDoc }}
+ *{{ (' ' ~ definition.description) | replace({"\n": "\n * "}) | kotlinDoc }}
  */
 {% if definition.properties | length != 0 or definition.additionalProperties %}data {% endif %}class {{ definition | modelType(spec) | raw }}(
     {%~ for property in definition.properties %}
     /**
-     * {{ property.description | replace({"\n": "\n     * "}) | kotlinDoc }}
+     *{{ (' ' ~ property.description) | replace({"\n": "\n     * "}) | kotlinDoc }}
      */
     @SerializedName("{{ (property | schemaName) | escapeKeyword | escapeDollarSign}}")
     {% if (property | schemaRequired) -%} val

@@ -1,0 +1,1002 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+using MQTTnet;
+using MQTTnet.Adapter;
+using MQTTnet.Client;
+using MQTTnet.Formatter;
+using MQTTnet.Protocol;
+using UnityEngine;
+
+namespace {{ spec.info.title | caseUcfirst }}
+{
+    /// <summary>
+    /// A message delivered on a subscribed topic — the MQTT push analog of a realtime event.
+    /// </summary>
+    public class PushMessage
+    {
+        public string Topic { get; }
+        public byte[] Payload { get; }
+        public int Qos { get; }
+
+        public PushMessage(string topic, byte[] payload, int qos)
+        {
+            Topic = topic;
+            Payload = payload;
+            Qos = qos;
+        }
+
+        /// <summary>The payload decoded as UTF-8 text, as it was sent.</summary>
+        public string Data => Encoding.UTF8.GetString(Payload);
+    }
+
+    /// <summary>
+    /// {{ spec.info.title | caseUcfirst }} native push service — the realtime analog delivered over an MQTT broker,
+    /// without FCM or APNS. Foreground delivery only: while the app is running the
+    /// connection stays open and each message is handed to your callback on the main thread.
+    ///
+    /// Like <c>Realtime</c>, this is a <see cref="MonoBehaviour"/>; create it through
+    /// <c>{{ spec.info.title | caseUcfirst }}Manager</c> rather than constructing it directly.
+    /// </summary>
+    public class Push : MonoBehaviour
+    {
+        private Client _client;
+        private IMqttClient _mqtt;
+
+        // Set by Close() so the disconnect handler does not reconnect a deliberate teardown.
+        private bool _closing;
+        // True while a reconnect loop runs, so a burst of disconnects starts only one.
+        private bool _reconnecting;
+        // The last connect options, reused when reconnecting after an unexpected drop.
+        private MqttClientOptions _options;
+
+        private Action _onOpen;
+        private Action _onClose;
+        private Action<Exception> _onError;
+
+        // Fixed keep-alive (PINGREQ interval) in seconds — not exposed as an option.
+        private const int KeepAliveSeconds = 60;
+
+        // Resolved once, then reused: a reconnect rebuilds the MQTT client, and if each rebuild
+        // drew a new random id the broker would treat it as a new session and drop this client's
+        // replay cursor. A stable id from Client.SetPushClientId() resumes replay across
+        // restarts; otherwise one is generated. Reusing one id keeps it stable.
+        private string _resolvedClientId;
+
+        // Local id -> (topic filter, callback, retry). The id is never sent to the broker;
+        // it only lets the same topic carry more than one callback.
+        private readonly Dictionary<string, (string Filter, Action<PushMessage> Callback, bool ReDeliver)> _subscriptions = new();
+
+        // MQTTnet delivers on background threads; hop callbacks back to the main thread.
+        private readonly ConcurrentQueue<Action> _mainThread = new();
+
+        // The broker location comes from Client.SetPushEndpoint() when set (e.g.
+        // "mqtts://host:8883"), otherwise from the regular endpoint.
+        private string PushEndpoint
+        {
+            get
+            {
+                var endpoint = _client.Config.GetValueOrDefault("endpointPush");
+                return string.IsNullOrEmpty(endpoint) ? _client.Endpoint : endpoint;
+            }
+        }
+
+        // Secure by default: TLS on when the endpoint scheme is secure, so the credential in
+        // the CONNECT packet is not sent over a plaintext socket.
+        private bool Tls => IsSecureEndpoint();
+
+        // Take the port from the push endpoint only (a regular http/https endpoint's port is
+        // the API port, not the broker's); otherwise fall back to the MQTT default.
+        private int Port => EndpointPort() ?? (Tls ? 8883 : 1883);
+
+        private bool IsSecureEndpoint()
+        {
+            try
+            {
+                var scheme = new Uri(PushEndpoint).Scheme;
+                return scheme == "https" || scheme == "wss" || scheme == "mqtts" || scheme == "ssl";
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private int? EndpointPort()
+        {
+            if (string.IsNullOrEmpty(_client.Config.GetValueOrDefault("endpointPush")))
+            {
+                return null;
+            }
+
+            try
+            {
+                var port = new Uri(PushEndpoint).Port;
+                return port == -1 ? (int?)null : port;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public void Initialize(Client client)
+        {
+            _client = client;
+        }
+
+        // Skip TLS cert verification (self-signed brokers / testing) via a query flag on the
+        // push endpoint, e.g. "mqtts://host:8883?tlsInsecure=true" — so the whole connection
+        // is described by one URL, not a second config knob.
+        private bool TlsInsecure()
+        {
+            var endpoint = _client.Config.GetValueOrDefault("endpointPush");
+            if (string.IsNullOrEmpty(endpoint))
+            {
+                return false;
+            }
+
+            try
+            {
+                var query = new Uri(endpoint).Query;
+                return query.Contains("tlsInsecure=true") || query.Contains("tlsInsecure=1");
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // The broker subscription for a filter uses the highest QoS any subscription on it
+        // wants, so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
+        private MqttQualityOfServiceLevel EffectiveQos(string filter)
+        {
+            lock (_subscriptions)
+            {
+                foreach (var entry in _subscriptions.Values)
+                {
+                    if (entry.Filter == filter && entry.ReDeliver)
+                    {
+                        return MqttQualityOfServiceLevel.AtLeastOnce;
+                    }
+                }
+            }
+
+            return MqttQualityOfServiceLevel.AtMostOnce;
+        }
+
+        /// <summary>Register a callback invoked when the connection opens.</summary>
+        public Push OnOpen(Action callback)
+        {
+            _onOpen = callback;
+            return this;
+        }
+
+        /// <summary>Register a callback invoked when the connection closes.</summary>
+        public Push OnClose(Action callback)
+        {
+            _onClose = callback;
+            return this;
+        }
+
+        /// <summary>
+        /// Register a callback invoked on every error the push service hits: connection
+        /// failures (a refused CONNECT carries the broker's reason), a server DISCONNECT, a
+        /// rejected or failed (re)subscribe or unsubscribe, and a failed Subscribe() call.
+        /// Errors that no call returns are never thrown, so they cannot crash the app: without
+        /// a callback they are logged.
+        /// </summary>
+        public Push OnError(Action<Exception> callback)
+        {
+            _onError = callback;
+            return this;
+        }
+
+        // Report an error no call returns (a dropped connection, a failed reconnect, a
+        // fire-and-forget (un)subscribe) on the main thread: to onError when one is registered,
+        // otherwise logged.
+        private void ReportError(Exception error)
+        {
+            _mainThread.Enqueue(() =>
+            {
+                var onError = _onError;
+                if (onError == null)
+                {
+                    // Never thrown, so an error outside any call cannot crash the app: with no
+                    // onError registered it is logged, like Realtime does.
+                    Debug.LogException(error);
+                    return;
+                }
+
+                try
+                {
+                    onError(error);
+                }
+                catch (Exception callbackError)
+                {
+                    Debug.LogException(callbackError);
+                }
+            });
+        }
+
+        // Report an error the failing call also throws to its caller: to onError when one is
+        // registered, and never thrown a second time otherwise.
+        private void NotifyError(Exception error)
+        {
+            if (_onError != null)
+            {
+                _mainThread.Enqueue(() =>
+                {
+                    try
+                    {
+                        _onError?.Invoke(error);
+                    }
+                    catch (Exception callbackError)
+                    {
+                        // A throwing onError must not escape into Unity's Update loop.
+                        Debug.LogException(callbackError);
+                    }
+                });
+            }
+        }
+
+        // Send a fire-and-forget SUBSCRIBE and report a failure or a broker-rejected filter.
+        // Errors from a client this Push has since closed or replaced are teardown, not failures.
+        private async Task SubscribeInBackground(IMqttClient mqtt, MqttClientSubscribeOptions options)
+        {
+            try
+            {
+                var result = await mqtt.SubscribeAsync(options);
+                if (!AllGranted(result) && _mqtt == mqtt)
+                {
+                    ReportError(new {{ spec.info.title | caseUcfirst }}Exception("The broker rejected the subscription."));
+                }
+            }
+            catch (Exception e) when (_mqtt == mqtt)
+            {
+                ReportError(e);
+            }
+            catch
+            {
+                // The client was closed meanwhile.
+            }
+        }
+
+        // Send a fire-and-forget UNSUBSCRIBE and report a failure, as SubscribeInBackground.
+        private async Task UnsubscribeInBackground(IMqttClient mqtt, string filter)
+        {
+            try
+            {
+                await mqtt.UnsubscribeAsync(filter);
+            }
+            catch (Exception e) when (_mqtt == mqtt)
+            {
+                ReportError(e);
+            }
+            catch
+            {
+                // The client was closed meanwhile.
+            }
+        }
+
+        /// <summary>
+        /// Subscribe to one or more topics. Returns a <see cref="PushSubscription"/> handle.
+        ///
+        /// Awaits the broker's SUBACK: the broker only starts routing a topic once its
+        /// subscription is registered, so publishing before the ack races the message
+        /// ahead of the subscription and it is dropped (no retained replay on MQTT).
+        ///
+        /// <paramref name="retry"/> chooses this subscription's QoS: true (the
+        /// default) subscribes at QoS 1 so the broker holds this topic's messages and
+        /// redelivers them on reconnect; false uses QoS 0 (at-most-once, may be lost).
+        ///
+        /// Topics can be raw strings or built with <see cref="Topic"/>:
+        /// <code>
+        /// await push.Subscribe(Topic.Path(new[] { "user", userId }).Any(), message => Debug.Log(message.Data));
+        /// </code>
+        ///
+        /// Leave the topic out to subscribe to the signed-in user's own topic
+        /// (<c>users/&lt;userId&gt;</c>), resolved from the JWT or session set on the client:
+        /// <code>
+        /// await push.Subscribe(message => Debug.Log(message.Data), retry: true);
+        /// </code>
+        /// </summary>
+        public async Task<PushSubscription> Subscribe(string topic, Action<PushMessage> callback, bool retry = true)
+        {
+            return await Subscribe(new[] { topic }, callback, retry);
+        }
+
+        /// <summary>
+        /// Subscribe to the signed-in user's own topic, <c>users/&lt;userId&gt;</c>. The user id is
+        /// read from the JWT or session set on the client, without a network call.
+        /// </summary>
+        public Task<PushSubscription> Subscribe(Action<PushMessage> callback, bool retry = true)
+        {
+            var userId = ResolveUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                var error = new {{ spec.info.title | caseUcfirst }}Exception("subscribe() without a topic needs a signed-in user: set a JWT or session on the client");
+                NotifyError(error);
+                throw error;
+            }
+
+            return Subscribe(Topic.Path(new[] { "users", userId }), callback, retry);
+        }
+
+        /// <summary>Subscribe to a topic built with <see cref="Topic"/>.</summary>
+        public Task<PushSubscription> Subscribe(Topic topic, Action<PushMessage> callback, bool retry = true)
+        {
+            return Subscribe(new[] { topic.ToString() }, callback, retry);
+        }
+
+        /// <summary>Subscribe to a topic ended with <c>All()</c>.</summary>
+        public Task<PushSubscription> Subscribe(ResolvedTopic topic, Action<PushMessage> callback, bool retry = true)
+        {
+            return Subscribe(new[] { topic.ToString() }, callback, retry);
+        }
+
+        /// <summary>Subscribe to several topics built with <see cref="Topic"/>.</summary>
+        public Task<PushSubscription> Subscribe(IEnumerable<Topic> topics, Action<PushMessage> callback, bool retry = true)
+        {
+            return Subscribe(topics.Select(topic => topic.ToString()), callback, retry);
+        }
+
+        /// <summary>Subscribe to several topics ended with <c>All()</c>.</summary>
+        public Task<PushSubscription> Subscribe(IEnumerable<ResolvedTopic> topics, Action<PushMessage> callback, bool retry = true)
+        {
+            return Subscribe(topics.Select(topic => topic.ToString()), callback, retry);
+        }
+
+        /// <summary>
+        /// Subscribe to a list mixing raw strings and built topics, e.g.
+        /// <c>new TopicValue[] { "news", Topic.Path(new[] { "chat" }).Any() }</c>.
+        /// </summary>
+        public Task<PushSubscription> Subscribe(IEnumerable<TopicValue> topics, Action<PushMessage> callback, bool retry = true)
+        {
+            return Subscribe(topics.Select(topic => topic.ToString()), callback, retry);
+        }
+
+        // The signed-in user's id, in the order the connection authenticates: the JWT's
+        // `userId` claim first, then the session secret (base64 of {"id": ..., "secret": ...}).
+        private string ResolveUserId()
+        {
+            var jwt = _client.GetJWT();
+            if (!string.IsNullOrEmpty(jwt))
+            {
+                var parts = jwt.Split('.');
+                if (parts.Length < 2)
+                {
+                    return null;
+                }
+
+                var payload = parts[1].Replace('-', '+').Replace('_', '/');
+                payload = payload.PadRight(payload.Length + ((4 - (payload.Length % 4)) % 4), '=');
+                return ReadString(payload, "userId");
+            }
+
+            var session = _client.GetSession();
+            if (!string.IsNullOrEmpty(session))
+            {
+                return ReadString(session, "id");
+            }
+
+            return null;
+        }
+
+        // Decode base64 JSON and read one string field; null when anything is malformed.
+        private static string ReadString(string base64, string field)
+        {
+            try
+            {
+                var json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+                using var document = JsonDocument.Parse(json);
+                if (document.RootElement.ValueKind == JsonValueKind.Object
+                    && document.RootElement.TryGetProperty(field, out var value)
+                    && value.ValueKind == JsonValueKind.String)
+                {
+                    return value.GetString();
+                }
+            }
+            catch (FormatException)
+            {
+            }
+            catch (JsonException)
+            {
+            }
+
+            return null;
+        }
+
+        // MQTTnet reports broker-rejected filters in the SUBACK result rather than throwing,
+        // so a completed SubscribeAsync is not necessarily a success — every item must carry a
+        // granted reason code.
+        private static bool AllGranted(MqttClientSubscribeResult result)
+        {
+            foreach (var item in result.Items)
+            {
+                if (item.ResultCode != MqttClientSubscribeResultCode.GrantedQoS0
+                    && item.ResultCode != MqttClientSubscribeResultCode.GrantedQoS1
+                    && item.ResultCode != MqttClientSubscribeResultCode.GrantedQoS2)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public async Task<PushSubscription> Subscribe(IEnumerable<string> topics, Action<PushMessage> callback, bool retry = true)
+        {
+            // Materialize once: the topics are walked twice (local registration, then the
+            // SUBSCRIBE filters), and a one-shot enumerable would come back empty the second time.
+            var topicList = new List<string>(topics);
+            IMqttClient client;
+            try
+            {
+                client = await Connect();
+            }
+            catch (Exception e)
+            {
+                NotifyError(e);
+                throw;
+            }
+
+            var ids = new List<string>();
+            foreach (var topic in topicList)
+            {
+                var id = Guid.NewGuid().ToString();
+                ids.Add(id);
+                lock (_subscriptions)
+                {
+                    _subscriptions[id] = (topic, callback, retry);
+                }
+            }
+
+            var builder = new MqttClientSubscribeOptionsBuilder();
+            foreach (var topic in topicList)
+            {
+                var filter = topic;
+                builder = builder.WithTopicFilter(f => f
+                    .WithTopic(filter)
+                    .WithQualityOfServiceLevel(EffectiveQos(filter)));
+            }
+
+            Action unsubscribe = () =>
+            {
+                var maybeDowngrade = new HashSet<string>();
+                lock (_subscriptions)
+                {
+                    foreach (var id in ids)
+                    {
+                        if (_subscriptions.TryGetValue(id, out var entry))
+                        {
+                            _subscriptions.Remove(id);
+                            if (entry.ReDeliver)
+                            {
+                                maybeDowngrade.Add(entry.Filter);
+                            }
+
+                            // Only unsubscribe the broker filter once its last local callback is gone.
+                            var stillUsed = false;
+                            foreach (var other in _subscriptions.Values)
+                            {
+                                if (other.Filter == entry.Filter)
+                                {
+                                    stillUsed = true;
+                                    break;
+                                }
+                            }
+
+                            var current = _mqtt;
+                            if (!stillUsed && current != null)
+                            {
+                                _ = UnsubscribeInBackground(current, entry.Filter);
+                            }
+                        }
+                    }
+
+                    if (_subscriptions.Count == 0)
+                    {
+                        Close();
+                    }
+                }
+
+                // A filter that lost its last QoS-1 sub but still has QoS-0 subs must be
+                // re-subscribed lower, or the broker keeps replaying to at-most-once subs.
+                var mqtt = _mqtt;
+                if (mqtt != null && maybeDowngrade.Count > 0)
+                {
+                    var rebuild = new MqttClientSubscribeOptionsBuilder();
+                    var any = false;
+                    foreach (var f in maybeDowngrade)
+                    {
+                        var filter = f;
+                        var stillUsed = false;
+                        lock (_subscriptions)
+                        {
+                            foreach (var entry in _subscriptions.Values)
+                            {
+                                if (entry.Filter == filter)
+                                {
+                                    stillUsed = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (stillUsed && EffectiveQos(filter) == MqttQualityOfServiceLevel.AtMostOnce)
+                        {
+                            any = true;
+                            rebuild = rebuild.WithTopicFilter(x => x
+                                .WithTopic(filter)
+                                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce));
+                        }
+                    }
+
+                    if (any)
+                    {
+                        _ = SubscribeInBackground(mqtt, rebuild.Build());
+                    }
+                }
+            };
+
+            // If the SUBSCRIBE fails, roll this call's registrations back (and drop any
+            // now-unused broker filter) so a failed subscribe leaks no callback, then rethrow.
+            try
+            {
+                var result = await client.SubscribeAsync(builder.Build());
+                if (!AllGranted(result))
+                {
+                    throw new {{ spec.info.title | caseUcfirst }}Exception("The broker rejected the subscription.");
+                }
+            }
+            catch (Exception e)
+            {
+                unsubscribe();
+                NotifyError(e);
+                throw;
+            }
+
+            Action<bool?> update = (retry) =>
+            {
+                if (retry == null)
+                {
+                    return;
+                }
+
+                var changed = new List<string>();
+                lock (_subscriptions)
+                {
+                    foreach (var id in ids)
+                    {
+                        if (_subscriptions.TryGetValue(id, out var entry) && entry.ReDeliver != retry.Value)
+                        {
+                            _subscriptions[id] = (entry.Filter, entry.Callback, retry.Value);
+                            if (!changed.Contains(entry.Filter))
+                            {
+                                changed.Add(entry.Filter);
+                            }
+                        }
+                    }
+                }
+
+                // Re-subscribe the affected filters at their new effective QoS. MQTTnet uses a
+                // single central receive handler, so resubscribing does not duplicate callbacks.
+                var mqtt = _mqtt;
+                if (mqtt != null && changed.Count > 0)
+                {
+                    var rebuild = new MqttClientSubscribeOptionsBuilder();
+                    foreach (var f in changed)
+                    {
+                        var filter = f;
+                        rebuild = rebuild.WithTopicFilter(x => x
+                            .WithTopic(filter)
+                            .WithQualityOfServiceLevel(EffectiveQos(filter)));
+                    }
+
+                    _ = SubscribeInBackground(mqtt, rebuild.Build());
+                }
+            };
+
+            return new PushSubscription(unsubscribe, update);
+        }
+
+        /// <summary>Tear down the connection and drop all active subscriptions.</summary>
+        public void Close()
+        {
+            // Mark this a deliberate close so the disconnect handler does not reconnect.
+            _closing = true;
+            if (_mqtt != null)
+            {
+                _ = _mqtt.DisconnectAsync();
+                _mqtt.Dispose();
+                _mqtt = null;
+            }
+
+            lock (_subscriptions)
+            {
+                _subscriptions.Clear();
+            }
+        }
+
+        private async Task<IMqttClient> Connect()
+        {
+            if (_mqtt != null && _mqtt.IsConnected)
+            {
+                return _mqtt;
+            }
+
+            // Read the credential set on the client (via Client.SetJWT / SetSession).
+            var jwt = _client.GetJWT();
+            var session = _client.GetSession();
+            string authMethod;
+            string credential;
+            if (!string.IsNullOrEmpty(jwt))
+            {
+                authMethod = "appwrite-jwt";
+                credential = jwt;
+            }
+            else if (!string.IsNullOrEmpty(session))
+            {
+                authMethod = "appwrite-session";
+                credential = session;
+            }
+            else
+            {
+                throw new {{ spec.info.title | caseUcfirst }}Exception("No credential set on the client; call Client.SetJWT() or Client.SetSession() first.");
+            }
+
+            // When no explicit push endpoint is set, default to a `push.` host on the regular
+            // endpoint (mirroring how realtime derives from the endpoint, on the push subdomain).
+            var host = new Uri(PushEndpoint).Host;
+            if (string.IsNullOrEmpty(_client.Config.GetValueOrDefault("endpointPush")))
+            {
+                host = $"push.{host}";
+            }
+
+            var project = _client.Config.GetValueOrDefault("project") ?? "";
+            // Empty when the app did not set one: the broker derives a stable id server-side
+            // (keyed on the credential/project) and keys its offline-replay cursor on it, so
+            // replay resumes across restarts; Client.SetPushClientId() overrides with an
+            // explicit id. Resolved once so a reconnect rebuild reuses the same id.
+            var pushClientId = _client.Config.GetValueOrDefault("pushClientId");
+            _resolvedClientId ??= string.IsNullOrEmpty(pushClientId) ? "" : pushClientId;
+            var clientId = _resolvedClientId;
+
+            var optionsBuilder = new MqttClientOptionsBuilder()
+                .WithProtocolVersion(MqttProtocolVersion.V500)
+                .WithClientId(clientId)
+                .WithTcpServer(host, Port)
+                // Clean start is always off, so the broker keeps this client's session and can
+                // redeliver missed messages to QoS-1 subscriptions on reconnect.
+                .WithCleanSession(false)
+                .WithKeepAlivePeriod(TimeSpan.FromSeconds(KeepAliveSeconds))
+                .WithAuthentication(authMethod, Encoding.UTF8.GetBytes(credential))
+                .WithUserProperty("projectId", project);
+
+            if (Tls)
+            {
+                var insecure = TlsInsecure();
+                optionsBuilder = optionsBuilder.WithTlsOptions(o =>
+                {
+                    o.UseTls(true);
+                    if (insecure)
+                    {
+                        o.WithCertificateValidationHandler(_ => true);
+                    }
+                });
+            }
+
+            var client = new MqttFactory().CreateMqttClient();
+            client.ApplicationMessageReceivedAsync += OnMessage;
+            // Surface the connection lifecycle to onOpen/onClose/onError, on the main thread.
+            client.ConnectedAsync += _ =>
+            {
+                _mainThread.Enqueue(() => _onOpen?.Invoke());
+                return Task.CompletedTask;
+            };
+            client.DisconnectedAsync += e =>
+            {
+                var error = DisconnectError(e);
+                _mainThread.Enqueue(() => _onClose?.Invoke());
+                if (error != null)
+                {
+                    ReportError(error);
+                }
+
+                // Recover from an unexpected drop; a deliberate Close() sets _closing.
+                if (!_closing && !_reconnecting)
+                {
+                    _reconnecting = true;
+                    _ = ReconnectWithBackoff();
+                }
+
+                return Task.CompletedTask;
+            };
+            _mqtt = client;
+
+            var options = optionsBuilder.Build();
+            _options = options;
+            _closing = false;
+
+            // A failed attempt is reported by the caller (Subscribe() or the reconnect loop),
+            // not by the DisconnectedAsync handler, so it reaches onError once.
+            MqttClientConnectResult result;
+            try
+            {
+                result = await client.ConnectAsync(options);
+            }
+            catch (Exception e)
+            {
+                Close();
+                throw ConnectError(e);
+            }
+
+            if (result.ResultCode != MqttClientConnectResultCode.Success)
+            {
+                Close();
+                throw ConnectRefused(result);
+            }
+
+            return client;
+        }
+
+        // The error for a failed connect attempt: a refused CONNECT carries the broker's reason.
+        private static Exception ConnectError(Exception error)
+        {
+            return error is MqttConnectingFailedException failed && failed.Result != null
+                ? ConnectRefused(failed.Result)
+                : error;
+        }
+
+        // The broker explains a refused CONNECT with the CONNACK's MQTT 5 Reason String.
+        private static {{ spec.info.title | caseUcfirst }}Exception ConnectRefused(MqttClientConnectResult result)
+        {
+            return new {{ spec.info.title | caseUcfirst }}Exception(string.IsNullOrEmpty(result.ReasonString)
+                ? $"MQTT authentication failed (CONNACK reason {result.ResultCode})"
+                : result.ReasonString);
+        }
+
+        // The error to report for a dropped connection, or null for a deliberate disconnect: a
+        // transport failure, or a server-initiated DISCONNECT with a non-zero reason code
+        // (explained by the packet's MQTT 5 Reason String when the broker sent one). A failed
+        // connect attempt (the client was never connected) is reported by whoever attempted it.
+        private static Exception DisconnectError(MqttClientDisconnectedEventArgs e)
+        {
+            if (!e.ClientWasConnected)
+            {
+                return null;
+            }
+
+            if (e.Exception != null)
+            {
+                return e.Exception;
+            }
+
+            if (e.Reason != MqttClientDisconnectReason.NormalDisconnection)
+            {
+                return new {{ spec.info.title | caseUcfirst }}Exception(string.IsNullOrEmpty(e.ReasonString)
+                    ? $"Disconnected by the broker (reason {e.Reason})"
+                    : e.ReasonString);
+            }
+
+            return null;
+        }
+
+        // Reconnect the client with exponential backoff (capped at 30s) and resubscribe every
+        // active filter, so an existing subscription resumes delivery after an unexpected drop
+        // without an app-level Subscribe(). A deliberate Close() stops the loop.
+        private async Task ReconnectWithBackoff()
+        {
+            var delayMs = 1000;
+            try
+            {
+                while (!_closing)
+                {
+                    var client = _mqtt;
+                    var options = _options;
+                    if (client == null || options == null)
+                    {
+                        return;
+                    }
+
+                    await Task.Delay(delayMs);
+                    if (_closing || _mqtt != client)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        // Only (re)connect when the client is actually down. If a prior
+                        // iteration connected but failed to resubscribe, the client is still
+                        // connected, so reconnecting would throw and never restore routing —
+                        // retry the subscribe instead.
+                        if (!client.IsConnected)
+                        {
+                            try
+                            {
+                                await client.ConnectAsync(options);
+                            }
+                            catch (Exception e)
+                            {
+                                throw ConnectError(e);
+                            }
+                        }
+
+                        List<string> filters;
+                        lock (_subscriptions)
+                        {
+                            var set = new HashSet<string>();
+                            foreach (var entry in _subscriptions.Values)
+                            {
+                                set.Add(entry.Filter);
+                            }
+
+                            filters = new List<string>(set);
+                        }
+
+                        if (filters.Count > 0)
+                        {
+                            var rebuild = new MqttClientSubscribeOptionsBuilder();
+                            foreach (var f in filters)
+                            {
+                                var filter = f;
+                                rebuild = rebuild.WithTopicFilter(x => x
+                                    .WithTopic(filter)
+                                    .WithQualityOfServiceLevel(EffectiveQos(filter)));
+                            }
+
+                            // A broker-rejected resubscription is reported in the result, not
+                            // thrown, so keep retrying rather than declaring recovery done.
+                            var result = await client.SubscribeAsync(rebuild.Build());
+                            if (!AllGranted(result))
+                            {
+                                throw new {{ spec.info.title | caseUcfirst }}Exception("The broker rejected the resubscription.");
+                            }
+                        }
+
+                        // The client's ConnectedAsync handler already queued _onOpen for this
+                        // reconnect, so do not fire it a second time here.
+                        return;
+                    }
+                    catch (Exception e)
+                    {
+                        // Still failing: report it (unless closed meanwhile), back off and retry.
+                        if (!_closing && _mqtt == client)
+                        {
+                            ReportError(e);
+                        }
+                    }
+
+                    delayMs = Math.Min(delayMs * 2, 30000);
+                }
+            }
+            finally
+            {
+                _reconnecting = false;
+            }
+        }
+
+        private Task OnMessage(MqttApplicationMessageReceivedEventArgs args)
+        {
+            var topic = args.ApplicationMessage.Topic;
+            var payload = args.ApplicationMessage.PayloadSegment.ToArray();
+            var qos = (int)args.ApplicationMessage.QualityOfServiceLevel;
+            var message = new PushMessage(topic, payload, qos);
+
+            List<Action<PushMessage>> callbacks;
+            lock (_subscriptions)
+            {
+                callbacks = new List<Action<PushMessage>>();
+                foreach (var entry in _subscriptions.Values)
+                {
+                    if (Matches(entry.Filter, topic))
+                    {
+                        callbacks.Add(entry.Callback);
+                    }
+                }
+            }
+
+            foreach (var callback in callbacks)
+            {
+                _mainThread.Enqueue(() => callback(message));
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private void Update()
+        {
+            while (_mainThread.TryDequeue(out var action))
+            {
+                action();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            Close();
+        }
+
+        /// <summary>MQTT topic-filter match with '+' (single level) and '#' (multi level).</summary>
+        private static bool Matches(string filter, string topic)
+        {
+            var filterParts = filter.Split('/');
+            var topicParts = topic.Split('/');
+            for (var i = 0; i < filterParts.Length; i++)
+            {
+                if (filterParts[i] == "#")
+                {
+                    return true;
+                }
+
+                if (i >= topicParts.Length)
+                {
+                    return false;
+                }
+
+                if (filterParts[i] != "+" && filterParts[i] != topicParts[i])
+                {
+                    return false;
+                }
+            }
+
+            return filterParts.Length == topicParts.Length;
+        }
+    }
+
+    /// <summary>
+    /// A topic accepted by <see cref="Push"/>: a raw string, a <see cref="Topic"/> or a
+    /// <see cref="ResolvedTopic"/>. It converts implicitly from each, so a list can mix them.
+    /// </summary>
+    public readonly struct TopicValue
+    {
+        private readonly string _value;
+
+        private TopicValue(string value)
+        {
+            _value = value;
+        }
+
+        public static implicit operator TopicValue(string topic) => new TopicValue(topic);
+
+        public static implicit operator TopicValue(Topic topic) => new TopicValue(topic.ToString());
+
+        public static implicit operator TopicValue(ResolvedTopic topic) => new TopicValue(topic.ToString());
+
+        public override string ToString() => _value;
+    }
+
+    /// <summary>
+    /// Handle for a live subscription created with <see cref="Push.Subscribe(string, Action{PushMessage}, bool)"/>.
+    /// Unlike the realtime service's bare unsubscribe callable, this is returned as a handle for
+    /// parity with the other SDKs; call <see cref="Unsubscribe"/> to drop the subscription (which
+    /// closes the connection once the last one is gone) and <see cref="Update"/> to change its QoS.
+    /// </summary>
+    public class PushSubscription
+    {
+        private readonly Action _unsubscribe;
+        private readonly Action<bool?> _update;
+
+        internal PushSubscription(Action unsubscribe, Action<bool?> update)
+        {
+            _unsubscribe = unsubscribe;
+            _update = update;
+        }
+
+        /// <summary>Drop this subscription. Closes the connection once the last one is gone.</summary>
+        public void Unsubscribe() => _unsubscribe();
+
+        /// <summary>
+        /// Live-update this subscription's <paramref name="retry"/> (QoS),
+        /// re-subscribing its topics at the new QoS. (Unity has no background/notification mode,
+        /// so QoS is the only per-subscription option.)
+        /// </summary>
+        public void Update(bool? retry = null) => _update(retry);
+    }
+}

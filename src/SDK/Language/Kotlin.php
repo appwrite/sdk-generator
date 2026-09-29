@@ -197,6 +197,25 @@ class Kotlin extends Language
     }
 
     /**
+     * A numeric literal of the parameter's declared type.
+     *
+     * Integers are `Long` and numbers `Double`. Java does not widen an int
+     * literal to either boxed type, and Kotlin does not widen one to `Double`.
+     */
+    protected function getNumberLiteral(mixed $value, string $type, string $lang): string
+    {
+        $literal = (string) $value;
+
+        if ($type === self::TYPE_INTEGER) {
+            return $lang === 'java' ? $literal . 'L' : $literal;
+        }
+
+        return \is_numeric($literal) && !\str_contains($literal, '.') && !\str_contains(\strtolower($literal), 'e')
+            ? $literal . '.0'
+            : $literal;
+    }
+
+    /**
      * @param string $lang Language variant: 'kotlin' (default) or 'java'
      */
     public function getParamExample(Schema|Parameter $param, string $lang = 'kotlin'): string
@@ -213,7 +232,7 @@ class Kotlin extends Language
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                    $output .= '0';
+                    $output .= $this->getNumberLiteral(0, $type, $lang);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
@@ -247,9 +266,11 @@ class Kotlin extends Language
                     }
                     break;
                 case self::TYPE_FILE:
+                    $output .= $example;
+                    break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                    $output .= $example;
+                    $output .= $this->getNumberLiteral($example, $type, $lang);
                     break;
                 case self::TYPE_ARRAY:
                     if ($this->isPermissionString($example)) {
@@ -543,6 +564,11 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Topic.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Topic.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Query.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
             ],
@@ -570,6 +596,11 @@ class Kotlin extends Language
                 'scope'         => 'default',
                 'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/JsonRequestBodyTest.kt',
                 'template'      => '/kotlin/src/test/kotlin/io/appwrite/JsonRequestBodyTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/TopicTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/TopicTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -674,10 +705,10 @@ class Kotlin extends Language
         return [
             new TwigFilter('returnType', function (Operation $method, Specification $spec, string $namespace, string $generic = 'T'): string {
                 $methodType = $this->getMethodType($method, $spec);
-                if ($methodType === 'webAuth') {
+                if ($methodType === self::METHOD_TYPE_WEB_AUTH || $this->isTextResponse($method, $spec)) {
                     return 'String';
                 }
-                if ($methodType === 'location') {
+                if ($methodType === self::METHOD_TYPE_LOCATION) {
                     return 'ByteArray';
                 }
 
