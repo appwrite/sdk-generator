@@ -130,6 +130,7 @@ export class Push extends Service {
      */
     private readonly fallbackClientId = randomId();
     private connectedKey = '';
+    private tabIdClaim: Promise<TabIdClaim> | null = null;
     private connectionEpoch = 0;
 
     private readonly subscriptions = new Map<
@@ -474,6 +475,9 @@ export class Push extends Service {
         this.generation++;
         this.everConnected = false;
         this.subscriptions.clear();
+        const claim = this.tabIdClaim;
+        this.tabIdClaim = null;
+        claim?.then(({ release }) => release());
     }
 
     /**
@@ -550,17 +554,9 @@ export class Push extends Service {
         );
     }
 
-    private tabId(): string {
-        try {
-            const stored = window.sessionStorage.getItem(TAB_ID_KEY);
-            if (stored) {
-                return stored;
-            }
-            window.sessionStorage.setItem(TAB_ID_KEY, this.fallbackClientId);
-        } catch {
-            return this.fallbackClientId;
-        }
-        return this.fallbackClientId;
+    private async tabId(): Promise<string> {
+        this.tabIdClaim ??= claimTabId(this.fallbackClientId);
+        return (await this.tabIdClaim).id;
     }
 
     private credentialKey(): string {
@@ -613,9 +609,10 @@ export class Push extends Service {
             authMethod === 'appwrite-jwt'
                 ? userIdFromJwt(credential)
                 : userIdFromSession(credential);
+        const tabId = this.client.config.pushClientId ? '' : await this.tabId();
         const clientId =
             this.client.config.pushClientId ||
-            (userId ? `${userId}-${this.tabId()}` : this.tabId());
+            (userId ? `${userId}-${tabId}` : tabId);
 
         const generation = this.generation;
         const { connect, Buffer } = await loadTransport();
@@ -862,6 +859,45 @@ function userIdFromSession(session?: string): string {
     } catch {
         return '';
     }
+}
+
+type TabIdClaim = { id: string; release: () => void };
+
+async function claimTabId(fallback: string): Promise<TabIdClaim> {
+    let stored: string | null;
+    try {
+        stored = window.sessionStorage.getItem(TAB_ID_KEY);
+    } catch {
+        return { id: fallback, release: () => {} };
+    }
+    const held = stored ? await holdTabId(stored) : null;
+    const id = held && stored ? stored : fallback;
+    const release = held ?? (await holdTabId(fallback)) ?? (() => {});
+    try {
+        window.sessionStorage.setItem(TAB_ID_KEY, id);
+    } catch {
+        return { id, release };
+    }
+    return { id, release };
+}
+
+function holdTabId(id: string): Promise<(() => void) | null> {
+    const locks =
+        typeof navigator === 'undefined' ? undefined : navigator.locks;
+    if (!locks) {
+        return Promise.resolve(() => {});
+    }
+    return new Promise((resolve) => {
+        locks
+            .request(`${TAB_ID_KEY}:${id}`, { ifAvailable: true }, (lock) => {
+                if (!lock) {
+                    resolve(null);
+                    return undefined;
+                }
+                return new Promise<void>((release) => resolve(() => release()));
+            })
+            .catch(() => resolve(() => {}));
+    });
 }
 
 /** Base64 to UTF-8 text without `buffer`, which only loads once Push connects. */
