@@ -710,6 +710,33 @@
                 await kickedPush.subscribe(['e2e-disconnect/kicked-by-test'], () => {});
             } catch (e) {}
             console.log((await kickedError) === 'kicked-by-test' ? 'Push disconnect error:passed' : 'Push disconnect error:failed');
+
+            const outcome = (subscribing) => subscribing.then(() => '', (e) => (e instanceof Error ? e.message : String(e)));
+            const switchClient = new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession);
+            const switchPush = new Push(switchClient);
+            await switchPush.subscribe(['e2e-switch'], () => {});
+            switchClient.setJWT('deny:switched-user');
+            const switched = await outcome(switchPush.subscribe(['e2e-switch'], () => {}));
+            switchPush.close();
+            console.log(switched === 'switched-user' ? 'Push credential switch:passed' : `Push credential switch:failed (${switched})`);
+
+            const pendingClient = new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession);
+            const pendingPush = new Push(pendingClient);
+            let pendingOpened = false;
+            pendingPush.onOpen(() => (pendingOpened = true));
+            const firstPending = outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            const switchedWhileConnecting = !pendingOpened;
+            pendingClient.setJWT('deny:switched-pending');
+            const secondPending = await outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
+            const firstPendingOutcome = await Promise.race([firstPending, new Promise((resolve) => setTimeout(() => resolve('timeout'), 5000))]);
+            pendingPush.close();
+            console.log(
+                secondPending === 'switched-pending' &&
+                    (firstPendingOutcome === 'switched-pending' || (!switchedWhileConnecting && firstPendingOutcome === ''))
+                    ? 'Push credential pending switch:passed'
+                    : `Push credential pending switch:failed (first: ${firstPendingOutcome}, second: ${secondPending}, connecting: ${switchedWhileConnecting})`,
+            );
             kickedPush.close();
 
         });
