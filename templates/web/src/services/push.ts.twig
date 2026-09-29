@@ -131,6 +131,9 @@ export class Push extends Service {
     private readonly fallbackClientId = randomId();
     /** The default client id claimed for this instance's connection, released on close(). */
     private tabId = '';
+    /** Memoized claim of {@link tabId}, so concurrent open() calls (a credential switch racing the
+     * first connect) claim it only once and never strand the tab's stored id. */
+    private tabIdClaim: Promise<string> | null = null;
     private connectedKey = '';
     private connectionEpoch = 0;
 
@@ -476,6 +479,8 @@ export class Push extends Service {
             releaseTabId(this.tabId);
             this.tabId = '';
         }
+        // A claim still in flight releases itself once it resolves (its generation will differ).
+        this.tabIdClaim = null;
         this.connecting = null;
         this.generation++;
         this.everConnected = false;
@@ -589,6 +594,25 @@ export class Push extends Service {
             : `${wsEndpoint.slice(0, at + separator.length)}push.${wsEndpoint.slice(at + separator.length)}`;
     }
 
+    /**
+     * The default client id for this connection, claimed once per instance and reused across
+     * reconnects and credential switches. Memoized so concurrent open() calls (a credential switch
+     * racing the first connect) claim only once, rather than each claiming and stranding the tab's
+     * stored id. A claim that resolves after close() releases itself.
+     */
+    private claimClientId(): Promise<string> {
+        const generation = this.generation;
+        this.tabIdClaim ??= claimTabId(this.fallbackClientId).then((id) => {
+            if (this.generation !== generation) {
+                releaseTabId(id); // closed while claiming: no connection will use this id
+                return id;
+            }
+            this.tabId = id;
+            return id;
+        });
+        return this.tabIdClaim;
+    }
+
     private async open(): Promise<void> {
         const { authMethod, credential } = this.credential();
         this.connectedKey = this.credentialKey();
@@ -606,10 +630,11 @@ export class Push extends Service {
             authMethod === 'appwrite-jwt'
                 ? userIdFromJwt(credential)
                 : userIdFromSession(credential);
-        // Claim once per instance and reuse it across reconnects and credential switches, so this
-        // connection keeps one id (its replay cursor). Concurrent instances get distinct ids.
-        if (!this.client.config.pushClientId && this.tabId === '') {
-            this.tabId = await claimTabId(this.fallbackClientId);
+        // Claim once per instance (memoized) and reuse it across reconnects and credential
+        // switches, so concurrent open() calls never each claim and strand the tab's stored id.
+        // Concurrent instances still get distinct ids.
+        if (!this.client.config.pushClientId) {
+            await this.claimClientId();
         }
         const tabId = this.tabId;
         const clientId =
