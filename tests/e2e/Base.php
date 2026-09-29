@@ -202,6 +202,11 @@ abstract class Base extends TestCase
         'Push credential pending switch:passed',
     ];
 
+    protected const WEB_PUSH_CONNECTION_RESPONSES = [
+        'Push concurrent refused:passed',
+        'Push tab client id:passed',
+    ];
+
     protected const PUSH_SESSION_COOKIE_RESPONSES = [
         'Push user cookie topic:passed',
         'Push user cookie switch:passed',

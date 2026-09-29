@@ -720,22 +720,48 @@
             switchPush.close();
             console.log(switched === 'switched-user' ? 'Push credential switch:passed' : `Push credential switch:failed (${switched})`);
 
-            const pendingClient = new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession);
+            const pendingClient = new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setJWT('slow:pending');
             const pendingPush = new Push(pendingClient);
-            let pendingOpened = false;
-            pendingPush.onOpen(() => (pendingOpened = true));
             const firstPending = outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
-            await new Promise((resolve) => setTimeout(resolve, 0));
-            const switchedWhileConnecting = !pendingOpened;
+            await new Promise((resolve) => setTimeout(resolve, 100));
             pendingClient.setJWT('deny:switched-pending');
             const secondPending = await outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
             const firstPendingOutcome = await Promise.race([firstPending, new Promise((resolve) => setTimeout(() => resolve('timeout'), 5000))]);
             pendingPush.close();
             console.log(
-                secondPending === 'switched-pending' &&
-                    (firstPendingOutcome === 'switched-pending' || (!switchedWhileConnecting && firstPendingOutcome === ''))
+                secondPending === 'switched-pending' && firstPendingOutcome === 'switched-pending'
                     ? 'Push credential pending switch:passed'
-                    : `Push credential pending switch:failed (first: ${firstPendingOutcome}, second: ${secondPending}, connecting: ${switchedWhileConnecting})`,
+                    : `Push credential pending switch:failed (first: ${firstPendingOutcome}, second: ${secondPending})`,
+            );
+
+            const refusedPush = new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setJWT('deny:concurrent-refused'));
+            const refused = await Promise.all([
+                outcome(refusedPush.subscribe(['e2e-push'], () => {})),
+                outcome(refusedPush.subscribe(['e2e-push'], () => {})),
+            ]);
+            refusedPush.close();
+            console.log(
+                refused.every((message) => message === 'concurrent-refused')
+                    ? 'Push concurrent refused:passed'
+                    : `Push concurrent refused:failed (${refused.join(', ')})`,
+            );
+
+            const whoami = async () => {
+                const tabPush = new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession));
+                const id = await Promise.race([
+                    new Promise((resolve) => { tabPush.subscribe(['e2e-whoami'], (m) => resolve(m.data)); }),
+                    new Promise((resolve) => setTimeout(() => resolve(''), 5000)),
+                ]);
+                return { tabPush, id };
+            };
+            const firstTab = await whoami();
+            const secondTab = await whoami();
+            firstTab.tabPush.close();
+            secondTab.tabPush.close();
+            console.log(
+                firstTab.id.startsWith('e2e-session-user-') && secondTab.id.startsWith('e2e-session-user-') && firstTab.id !== secondTab.id
+                    ? 'Push tab client id:passed'
+                    : `Push tab client id:failed (${firstTab.id}, ${secondTab.id})`,
             );
             kickedPush.close();
 
