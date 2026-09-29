@@ -1,0 +1,30 @@
+package io.{{ spec.info.title | caseLower }}.reactnative
+
+import android.webkit.CookieManager
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+
+class {{ spec.info.title | caseUcfirst }}CookiesModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+    override fun getName(): String = NAME
+
+    @ReactMethod
+    fun get(url: String, name: String, promise: Promise) {
+        try {
+            val value = CookieManager.getInstance().getCookie(url)
+                ?.split(";")
+                ?.map { it.trim() }
+                ?.firstOrNull { it.substringBefore("=") == name }
+                ?.substringAfter("=")
+            promise.resolve(value)
+        } catch (e: Exception) {
+            promise.reject(ERROR_CODE, e.message, e)
+        }
+    }
+
+    companion object {
+        const val NAME = "{{ spec.info.title | caseUcfirst }}Cookies"
+        private const val ERROR_CODE = "{{ spec.info.title | caseLower }}_cookies"
+    }
+}
