@@ -93,8 +93,9 @@ async function main() {
     console.log(noCredentialRejected ? 'Push user no credential:passed' : 'Push user no credential:failed');
 
     const cookieEndpoint = 'https://cloud.example.test/v1';
+    let cookieValue = encodeURIComponent(e2eSession);
     NativeModules.AppwriteCookies = {
-        session: async (url, project) => (url === cookieEndpoint && project === 'console' ? encodeURIComponent(e2eSession) : null),
+        session: async (url, project) => (url === cookieEndpoint && project === 'console' ? cookieValue : null),
     };
     const cookieClient = new Client().setEndpoint(cookieEndpoint).setProject('console').setPushEndpoint(ENDPOINT);
     console.log(
@@ -102,6 +103,18 @@ async function main() {
             ? 'Push user cookie topic:passed'
             : 'Push user cookie topic:failed',
     );
+
+    const switchPush = new Push(cookieClient);
+    await switchPush.subscribe(['e2e-switch'], () => {});
+    cookieValue = 'deny:switched-user';
+    let switchedError = '';
+    try {
+        await switchPush.subscribe(['e2e-switch'], () => {});
+    } catch (e) {
+        switchedError = e instanceof Error ? e.message : String(e);
+    }
+    switchPush.close();
+    console.log(switchedError === 'switched-user' ? 'Push user cookie switch:passed' : 'Push user cookie switch:failed');
 
     // A message published while the user is signed out reaches their next sign-in, though that
     // sign-in has a new session secret (subscribing to "e2e-replay-publish" makes the mock publish
