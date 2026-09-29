@@ -708,15 +708,12 @@ void main() async {
       .setSelfSigned()
       .setProject('console')
       .setPushEndpoint('mqtt://mqtt:1883')
-      .setSession(e2eSession);
+      .setJWT('slow:pending');
   final pendingPush = Push(pendingClient);
-  var pendingOpened = false;
-  pendingPush.onOpen(() => pendingOpened = true);
   final firstPending = outcome(
     () => pendingPush.subscribe(['e2e-switch'], (_) {}),
   );
-  await Future<void>.delayed(Duration.zero);
-  final switchedWhileConnecting = !pendingOpened;
+  await Future<void>.delayed(const Duration(milliseconds: 100));
   pendingClient.setJWT('deny:switched-pending');
   final secondPending = await outcome(
     () => pendingPush.subscribe(['e2e-switch'], (_) {}),
@@ -728,10 +725,9 @@ void main() async {
   pendingPush.close();
   print(
     secondPending == 'switched-pending' &&
-            (firstPendingOutcome == 'switched-pending' ||
-                (!switchedWhileConnecting && firstPendingOutcome == ''))
+            firstPendingOutcome == 'switched-pending'
         ? 'Push credential pending switch:passed'
-        : 'Push credential pending switch:failed (first: $firstPendingOutcome, second: $secondPending, connecting: $switchedWhileConnecting)',
+        : 'Push credential pending switch:failed (first: $firstPendingOutcome, second: $secondPending)',
   );
 
   // Background delivery on Android through the public API. The SDK's native Android plugin needs

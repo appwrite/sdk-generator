@@ -683,12 +683,12 @@ class ServiceTest {
             switchPush.close()
             writeToFile(if (switched == "switched-user") "Push credential switch:passed" else "Push credential switch:failed ($switched)")
 
-            val pendingClient = pushClient().setSession(e2eSession)
+            val pendingClient = pushClient().setJWT("slow:pending")
             val pendingPush = Push(pendingClient, ApplicationProvider.getApplicationContext())
             val firstPending = java.util.concurrent.CompletableFuture.supplyAsync {
                 outcome { pendingPush.subscribe("e2e-switch") { } }
             }
-            Thread.sleep(50)
+            Thread.sleep(100)
             pendingClient.setJWT("deny:switched-pending")
             val secondPending = outcome { pendingPush.subscribe("e2e-switch") { } }
             val firstPendingOutcome = runCatching { firstPending.get(10, java.util.concurrent.TimeUnit.SECONDS) }.getOrDefault("timeout")

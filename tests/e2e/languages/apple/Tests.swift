@@ -640,40 +640,52 @@ class Tests: XCTestCase {
             }
         }
 
+        let deniedSwitch = await outcome {
+            _ = try await Push(
+                Client()
+                    .setProject("console")
+                    .setSelfSigned()
+                    .setPushEndpoint("mqtt://mqtt:1883")
+                    .setJWT("deny:switched-user")
+            ).subscribe("e2e-switch") { _ in }
+        }
+
         let switchClient = Client()
             .setProject("console")
             .setSelfSigned()
             .setPushEndpoint("mqtt://mqtt:1883")
             .setSession(e2eSession)
         let switchPush = Push(switchClient)
-        _ = try? await switchPush.subscribe("e2e-switch") { _ in }
+        let initial = await outcome { _ = try await switchPush.subscribe("e2e-switch") { _ in } }
         _ = switchClient.setJWT("deny:switched-user")
         let switched = await outcome { _ = try await switchPush.subscribe("e2e-switch") { _ in } }
         switchPush.close()
-        print(!switched.isEmpty ? "Push credential switch:passed" : "Push credential switch:failed")
+        print(
+            initial.isEmpty && !deniedSwitch.isEmpty && switched == deniedSwitch
+                ? "Push credential switch:passed"
+                : "Push credential switch:failed (initial: \(initial), switched: \(switched), denied: \(deniedSwitch))"
+        )
 
         let pendingClient = Client()
             .setProject("console")
             .setSelfSigned()
             .setPushEndpoint("mqtt://mqtt:1883")
-            .setSession(e2eSession)
+            .setJWT("slow:pending")
         let pendingPush = Push(pendingClient)
-        let firstPending = Task { await outcome { _ = try await pendingPush.subscribe("e2e-switch") { _ in } } }
-        _ = pendingClient.setJWT("deny:switched-pending")
-        let secondPending = await outcome { _ = try await pendingPush.subscribe("e2e-switch") { _ in } }
-        let firstPendingOutcome = await withTaskGroup(of: String?.self) { group -> String in
-            group.addTask { await firstPending.value }
-            group.addTask {
-                try? await Task.sleep(nanoseconds: 10_000_000_000)
-                return nil
-            }
-            let first = await group.next() ?? nil
-            group.cancelAll()
-            return first ?? "timeout"
+        let firstPending = ErrorCollector()
+        Task {
+            firstPending.record(await outcome { _ = try await pendingPush.subscribe("e2e-switch") { _ in } })
         }
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        _ = pendingClient.setJWT("deny:switched-user")
+        let secondPending = await outcome { _ = try await pendingPush.subscribe("e2e-switch") { _ in } }
+        for _ in 0..<100 where firstPending.message == nil {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        let firstPendingOutcome = firstPending.message ?? "timeout"
         pendingPush.close()
         print(
-            !secondPending.isEmpty && firstPendingOutcome != "timeout"
+            secondPending == deniedSwitch && firstPendingOutcome == deniedSwitch
                 ? "Push credential pending switch:passed"
                 : "Push credential pending switch:failed (first: \(firstPendingOutcome), second: \(secondPending))"
         )
