@@ -84,8 +84,11 @@ class PushIO implements Push {
   final PushNative? _native = PushNative.instance;
   // Whether the subscriptions currently live on the native plugin's connection.
   bool _nativeActive = false;
-  // Bumped when the subscriptions move to the native host, superseding an _open in flight.
+  // Bumped when the subscriptions move to the native host, or the credential changes,
+  // superseding an _open in flight.
   int _connectionEpoch = 0;
+  String _connectedKey = '';
+  bool _resubscribeOnConnect = false;
   StreamSubscription<Map<Object?, Object?>>? _nativeListener;
 
   // Every Push on Android shares the one native host (one connection per client id), which hosts
@@ -256,7 +259,7 @@ class PushIO implements Push {
   // Every error the service hits goes through here and reaches onError. It is never thrown
   // from here, so an error outside any call cannot crash the app.
   void _report(Object error) {
-    if (error is _MovedToNative) {
+    if (error is _Superseded) {
       // Internal: a connection superseded by the native host, not a failure.
       return;
     }
@@ -341,12 +344,18 @@ class PushIO implements Push {
         // off the in-process one if it was up) and covers the whole topic union.
         await _hostInIsolate();
       } else {
-        try {
-          await _subscribeInProcess(ids);
-        } on _MovedToNative {
-          // Another Push moved this one's subscriptions to the native host meanwhile: this
-          // subscribe goes there too.
-          await _hostNative();
+        while (true) {
+          try {
+            await _subscribeInProcess(ids);
+            break;
+          } on _Superseded {
+            // Another Push moved this one's subscriptions to the native host meanwhile: this
+            // subscribe goes there too.
+            if (_nativeActive) {
+              await _hostNative();
+              break;
+            }
+          }
         }
       }
     } catch (e) {
@@ -451,20 +460,7 @@ class PushIO implements Push {
   void _joinNative(PushNative native) {
     // An _open still in flight sees this and closes what it opened, and a subscribe still waiting
     // for its SUBACK continues on the native host.
-    _connectionEpoch++;
-    _connecting = null;
-    for (final waiting in _subAcks.values) {
-      for (final completer in waiting) {
-        if (!completer.isCompleted) {
-          completer.completeError(const _MovedToNative());
-        }
-      }
-    }
-    _subAcks.clear();
-    if (_mqtt != null) {
-      _mqtt?.disconnect();
-      _mqtt = null;
-    }
+    _dropConnection();
     _nativeListener ??= native.listen(
       onMessage: (message) {
         final sub = _subscriptions[message.id];
@@ -489,6 +485,23 @@ class PushIO implements Push {
     );
     _nativeHosts.add(this);
     _nativeActive = true;
+  }
+
+  void _dropConnection() {
+    _connectionEpoch++;
+    _connecting = null;
+    for (final waiting in _subAcks.values) {
+      for (final completer in waiting) {
+        if (!completer.isCompleted) {
+          completer.completeError(const _Superseded());
+        }
+      }
+    }
+    _subAcks.clear();
+    if (_mqtt != null) {
+      _mqtt?.disconnect();
+      _mqtt = null;
+    }
   }
 
   // Move this Push's subscriptions back onto its own connection.
@@ -863,6 +876,11 @@ class PushIO implements Push {
   }
 
   Future<MqttServerClient> _connect() {
+    if ((_mqtt != null || _connecting != null) &&
+        _connectedKey != _credentialKey) {
+      _dropConnection();
+      _resubscribeOnConnect = _subscriptions.isNotEmpty;
+    }
     final mqtt = _mqtt;
     if (mqtt != null &&
         mqtt.connectionStatus?.state == MqttConnectionState.connected) {
@@ -874,9 +892,12 @@ class PushIO implements Push {
       _connecting = connecting;
       // A failed open must not poison future attempts — clear the cached in-flight
       // future so a later subscribe/publish can retry.
+      final pending = connecting;
       unawaited(
-        connecting.catchError((Object _) {
-          _connecting = null;
+        pending.catchError((Object _) {
+          if (identical(_connecting, pending)) {
+            _connecting = null;
+          }
         }),
       );
     }
@@ -900,6 +921,7 @@ class PushIO implements Push {
 
   Future<void> _open() async {
     final (authMethod, credential) = _credential();
+    _connectedKey = _credentialKey;
     final epoch = _connectionEpoch;
 
     final project = client.config['project'] ?? '';
@@ -917,7 +939,7 @@ class PushIO implements Push {
     // The subscriptions moved to the native host while this was waiting: its connection would
     // share the host's client id and take over the broker session.
     if (epoch != _connectionEpoch) {
-      throw const _MovedToNative();
+      throw const _Superseded();
     }
 
     final mqtt = MqttServerClient.withPort(_host, clientId, _port);
@@ -975,12 +997,11 @@ class PushIO implements Push {
       if (identical(_mqtt, mqtt)) {
         _mqtt = null;
       }
-      _teardown();
       _notify(error);
     });
     if (epoch != _connectionEpoch) {
       mqtt.disconnect();
-      throw const _MovedToNative();
+      throw const _Superseded();
     }
     if (failure != null) {
       throw failure;
@@ -989,6 +1010,18 @@ class PushIO implements Push {
     // Attach the delivery listener only after CONNACK — the `updates` stream is not
     // available until the connection is established.
     mqtt.updates.listen(_onData);
+
+    if (_resubscribeOnConnect) {
+      _resubscribeOnConnect = false;
+      for (final filter in _backgroundTopics) {
+        mqtt.subscribeWithSubscriptionList([
+          MqttSubscription.withMaximumQos(
+            MqttSubscriptionTopic(filter),
+            _effectiveQos(filter),
+          ),
+        ]);
+      }
+    }
   }
 
   void _onData(List<MqttReceivedMessage<MqttMessage>> events) {
@@ -1287,7 +1320,8 @@ const String _backgroundDisplaced =
     'Background delivery stopped: a Push with another credential started background delivery, '
     'and the device hosts one. These subscriptions still deliver while the app runs.';
 
-// An in-process connect superseded by moving the subscriptions to the native host.
-class _MovedToNative implements Exception {
-  const _MovedToNative();
+// An in-process connect superseded by moving the subscriptions to the native host, or by a
+// connect with another credential.
+class _Superseded implements Exception {
+  const _Superseded();
 }
