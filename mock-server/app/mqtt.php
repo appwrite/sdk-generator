@@ -155,7 +155,7 @@ class MockHandler implements Handler
                 });
             }
             if ($filter->topic === 'e2e-whoami') {
-                \Swoole\Timer::after(100, fn () => $connection->publish('e2e-whoami', $connection->getClientId(), qos: Packet::QOS_0));
+                \Swoole\Timer::after(100, fn () => $connection->publish('e2e-whoami', $connection->getClientId(), qos: 0));
             }
             if ($filter->topic === 'e2e-replay-publish') {
                 // Only the publisher's project's clients, like a real publish.
