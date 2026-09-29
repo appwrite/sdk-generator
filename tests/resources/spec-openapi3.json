@@ -2449,6 +2449,47 @@
         }
       }
     },
+    "\/mock\/tests\/general\/upload-file-only": {
+      "post": {
+        "summary": "Upload File Only",
+        "operationId": "generalUploadFileOnly",
+        "tags": [
+          "general"
+        ],
+        "description": "Upload fixture whose only parameter is the file.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "description": "Sample file param",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/oauth2": {
       "get": {
         "summary": "OAuth2",
