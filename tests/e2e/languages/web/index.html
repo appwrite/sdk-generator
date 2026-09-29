@@ -710,6 +710,7 @@
                 await kickedPush.subscribe(['e2e-disconnect/kicked-by-test'], () => {});
             } catch (e) {}
             console.log((await kickedError) === 'kicked-by-test' ? 'Push disconnect error:passed' : 'Push disconnect error:failed');
+            kickedPush.close();
 
             const outcome = (subscribing) => subscribing.then(() => '', (e) => (e instanceof Error ? e.message : String(e)));
             const switchClient = new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession);
@@ -746,17 +747,31 @@
                     : `Push concurrent refused:failed (${refused.join(', ')})`,
             );
 
-            const whoami = async () => {
-                const tabPush = new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession));
-                const id = await Promise.race([
-                    new Promise((resolve) => { tabPush.subscribe(['e2e-whoami'], (m) => resolve(m.data)); }),
-                    new Promise((resolve) => setTimeout(() => resolve(''), 5000)),
-                ]);
-                tabPush.close();
-                return id;
-            };
-            const pageId = await whoami();
-            const samePageId = await whoami();
+            // The client id the broker sees for a Push. The mock echoes the connection's client id
+            // on e2e-whoami, so this is an observable identity, not the SDK's formatting.
+            const newTabPush = () => new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession));
+            const whoamiOf = (tabPush) => Promise.race([
+                new Promise((resolve) => { tabPush.subscribe(['e2e-whoami'], (m) => resolve(m.data)); }),
+                new Promise((resolve) => setTimeout(() => resolve(''), 5000)),
+            ]);
+
+            // Closing and reopening in the same tab resumes the same client id, so the broker replays.
+            const firstTab = newTabPush();
+            const pageId = await whoamiOf(firstTab);
+            firstTab.close();
+            const secondTab = newTabPush();
+            const samePageId = await whoamiOf(secondTab);
+            secondTab.close();
+
+            // Two Push instances alive at the same time in one page must get distinct client ids, so
+            // neither takes over the other's broker session.
+            const liveA = newTabPush();
+            const liveB = newTabPush();
+            const [liveAId, liveBId] = await Promise.all([whoamiOf(liveA), whoamiOf(liveB)]);
+            liveA.close();
+            liveB.close();
+
+            // A popup copies its opener's sessionStorage, like a duplicated tab, and still gets its own id.
             const popupId = await Promise.race([
                 new Promise((resolve) => {
                     window.addEventListener('message', (event) => {
@@ -769,11 +784,12 @@
                 new Promise((resolve) => setTimeout(() => resolve(''), 5000)),
             ]);
             console.log(
-                pageId !== '' && pageId === samePageId && popupId !== '' && popupId !== pageId
+                pageId !== '' && pageId === samePageId &&
+                liveAId !== '' && liveBId !== '' && liveAId !== liveBId &&
+                popupId !== '' && popupId !== pageId
                     ? 'Push tab client id:passed'
-                    : `Push tab client id:failed (${pageId}, ${samePageId}, ${popupId})`,
+                    : `Push tab client id:failed (page ${pageId}, same ${samePageId}, liveA ${liveAId}, liveB ${liveBId}, popup ${popupId})`,
             );
-            kickedPush.close();
 
         });
     </script>
