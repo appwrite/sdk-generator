@@ -1071,7 +1071,7 @@ export class Push extends Service {
             this.connecting = null;
             this.everConnected = this.subscriptions.size > 0;
         }
-        if (this.mqtt) {
+        if (this.mqtt && !this.connecting) {
             return Promise.resolve(this.mqtt);
         }
         if (!this.connecting) {
