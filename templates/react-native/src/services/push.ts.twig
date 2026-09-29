@@ -140,6 +140,8 @@ export class Push extends Service {
      */
     private readonly fallbackClientId = randomId();
 
+    private cookieSession = '';
+
     private readonly subscriptions = new Map<
         string,
         {
@@ -257,10 +259,13 @@ export class Push extends Service {
      */
     private userTopic(): string {
         const { jwt, session } = this.client.config;
-        const userId = jwt ? userIdFromJwt(jwt) : userIdFromSession(session);
+        const userId = jwt
+            ? userIdFromJwt(jwt)
+            : userIdFromSession(session || this.cookieSession);
         if (!userId) {
             throw new Error(
-                'subscribe() without a topic needs a signed-in user: set a JWT or session on the client',
+                'subscribe() without a topic needs a signed-in user: set a JWT or session on the client, ' +
+                    'or install "@react-native-cookies/cookies" to use the session of a login',
             );
         }
         return `users/${userId}`;
@@ -373,6 +378,7 @@ export class Push extends Service {
         callbackOrOptions: MessageCallback | SubscribeOptions | undefined,
         topicOptions: SubscribeOptions,
     ): Promise<PushSubscription> {
+        await this.loadCookieSession();
         // Topic-less form: subscribe(callback, options) targets the signed-in user's topic.
         const userForm = typeof topicsOrCallback === 'function';
         const topics = userForm ? this.userTopic() : topicsOrCallback;
@@ -1058,6 +1064,14 @@ export class Push extends Service {
         return this.connecting.then(() => this.mqtt!);
     }
 
+    private async loadCookieSession(): Promise<void> {
+        const { jwt, session, endpoint, project } = this.client.config;
+        if (jwt || session) {
+            return;
+        }
+        this.cookieSession = await sessionCookie(endpoint, project);
+    }
+
     /** The credential set on the client (via Client.setJWT / setSession). */
     private credential(): { authMethod: AuthMethod; credential: string } {
         if (this.client.config.jwt) {
@@ -1066,14 +1080,16 @@ export class Push extends Service {
                 credential: this.client.config.jwt,
             };
         }
-        if (this.client.config.session) {
+        const session = this.client.config.session || this.cookieSession;
+        if (session) {
             return {
                 authMethod: 'appwrite-session',
-                credential: this.client.config.session,
+                credential: session,
             };
         }
         throw new Error(
-            'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
+            'No credential set on the client; call Client.setJWT() or Client.setSession() first, ' +
+                'or install "@react-native-cookies/cookies" to use the session of a login.',
         );
     }
 
@@ -1387,6 +1403,34 @@ function backgroundPeersInstalled(): boolean {
         return true;
     } catch {
         return false;
+    }
+}
+
+interface CookieManager {
+    get(url: string): Promise<Record<string, { value: string } | undefined>>;
+}
+
+async function sessionCookie(
+    endpoint: string | undefined,
+    project: string | undefined,
+): Promise<string> {
+    if (!endpoint || !project) {
+        return '';
+    }
+    let cookies: CookieManager;
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const cookiesModule = require('@react-native-cookies/cookies');
+        cookies = cookiesModule.default ?? cookiesModule;
+    } catch {
+        return '';
+    }
+    try {
+        const value = (await cookies.get(endpoint))[`a_session_${project}`]
+            ?.value;
+        return value ? decodeURIComponent(value) : '';
+    } catch {
+        return '';
     }
 }
 
