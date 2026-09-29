@@ -675,7 +675,9 @@ class ServiceTest {
                     e.message ?: ""
                 }
             }
-            val switchClient = pushClient().setSession(e2eSession)
+            val switchClient = pushClient().setSession(
+                android.util.Base64.encodeToString("{\"id\":\"e2e-switch-user\",\"secret\":\"e2e-secret\"}".toByteArray(), android.util.Base64.NO_WRAP),
+            )
             val switchPush = Push(switchClient, ApplicationProvider.getApplicationContext())
             switchPush.subscribe("e2e-switch") { }
             switchClient.setJWT("deny:switched-user")
@@ -761,7 +763,7 @@ class ServiceTest {
                 if (E2EPushReceiver.messages.toList() == listOf("push-payload") && postedTitle == "E2E title" && postedText == "push-payload") {
                     "Push background restore:passed"
                 } else {
-                    "Push background restore:failed"
+                    "Push background restore:failed (messages: ${E2EPushReceiver.messages.toList()}, title: $postedTitle, text: $postedText)"
                 },
             )
 
