@@ -131,9 +131,10 @@ export class Push extends Service {
     private readonly fallbackClientId = randomId();
     /** The default client id claimed for this instance's connection, released on close(). */
     private tabId = '';
-    /** Memoized claim of {@link tabId}, so concurrent open() calls (a credential switch racing the
-     * first connect) claim it only once and never strand the tab's stored id. */
+    /** In-flight claim of {@link tabId}, memoized per generation: a credential switch (same
+     * generation) shares the one claim; a close/reopen (new generation) chains a fresh claim. */
     private tabIdClaim: Promise<string> | null = null;
+    private tabIdClaimGeneration = -1;
     private connectedKey = '';
     private connectionEpoch = 0;
 
@@ -479,9 +480,9 @@ export class Push extends Service {
             releaseTabId(this.tabId);
             this.tabId = '';
         }
-        // A claim still in flight releases itself once it resolves (its generation will differ).
-        this.tabIdClaim = null;
         this.connecting = null;
+        // Bumping the generation ends the current claim: one still in flight releases its id when
+        // it resolves, and the next open() chains a fresh claim after it (see claimClientId).
         this.generation++;
         this.everConnected = false;
         this.subscriptions.clear();
@@ -595,21 +596,32 @@ export class Push extends Service {
     }
 
     /**
-     * The default client id for this connection, claimed once per instance and reused across
-     * reconnects and credential switches. Memoized so concurrent open() calls (a credential switch
-     * racing the first connect) claim only once, rather than each claiming and stranding the tab's
-     * stored id. A claim that resolves after close() releases itself.
+     * Claim this connection's default client id, memoized per generation. A credential switch (same
+     * generation) shares the one claim, so concurrent open() calls never each claim. A close/reopen
+     * (a new generation) chains a fresh claim after the previous one has settled and released its
+     * id, so the reopened connection can take the tab's stored id back rather than a fallback. A
+     * claim that resolves after its generation has ended releases its id instead of keeping it, so
+     * a stale open connects with nothing reserved and the stored id is never stranded.
      */
     private claimClientId(): Promise<string> {
         const generation = this.generation;
-        this.tabIdClaim ??= claimTabId(this.fallbackClientId).then((id) => {
-            if (this.generation !== generation) {
-                releaseTabId(id); // closed while claiming: no connection will use this id
-                return id;
-            }
-            this.tabId = id;
-            return id;
-        });
+        if (this.tabIdClaim === null || this.tabIdClaimGeneration !== generation) {
+            const previous = this.tabIdClaim ?? Promise.resolve('');
+            this.tabIdClaimGeneration = generation;
+            const claim = previous
+                .catch(() => '')
+                .then(() => claimTabId(this.fallbackClientId))
+                .then((id) => {
+                    if (this.generation !== generation) {
+                        releaseTabId(id);
+                        return '';
+                    }
+                    this.tabId = id;
+                    return id;
+                });
+            this.tabIdClaim = claim;
+            return claim;
+        }
         return this.tabIdClaim;
     }
 
@@ -617,6 +629,7 @@ export class Push extends Service {
         const { authMethod, credential } = this.credential();
         this.connectedKey = this.credentialKey();
         const epoch = this.connectionEpoch;
+        const generation = this.generation;
 
         const project = this.client.config.project ?? '';
         // Client id, when the app did not set one with Client.setPushClientId(). Unlike the
@@ -632,16 +645,19 @@ export class Push extends Service {
                 : userIdFromSession(credential);
         // Claim once per instance (memoized) and reuse it across reconnects and credential
         // switches, so concurrent open() calls never each claim and strand the tab's stored id.
-        // Concurrent instances still get distinct ids.
+        // Concurrent instances still get distinct ids. If close() ran while the claim was pending
+        // this open is stale, so stop before connecting (the claim releases its own id).
         if (!this.client.config.pushClientId) {
             await this.claimClientId();
+            if (generation !== this.generation) {
+                throw new Error('Push was closed while connecting.');
+            }
         }
         const tabId = this.tabId;
         const clientId =
             this.client.config.pushClientId ||
             (userId ? `${userId}-${tabId}` : tabId);
 
-        const generation = this.generation;
         const { connect, Buffer } = await loadTransport();
         if (generation !== this.generation) {
             throw new Error('Push was closed while connecting.');
