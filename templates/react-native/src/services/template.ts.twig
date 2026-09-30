@@ -92,10 +92,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
     {%- set objectType %}{ {% for parameter in allParams %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}; {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}; onProgress?: (progress: UploadProgress) => void{% endif %} }{% endset -%}
     {%- set firstType = firstParam | getPropertyType(method, spec) -%}
     {%- set implParams = implParams|merge(['paramsOrFirst' ~ (firstOptional ? '?' : '') ~ ': ' ~ objectType ~ ' | ' ~ firstType]) -%}
-    {%- if allParams|length > 1 or 'multipart/form-data' in (method | consumes) -%}
-        {%- set restTuple %}...rest: [{% for parameter in allParams[1:] %}{{ (parameter | getPropertyType(method, spec)) | tsTupleElement | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}{% if allParams|length > 1 %}, {% endif %}((progress: UploadProgress) => void)?{% endif %}]{% endset -%}
-        {%- set implParams = implParams|merge([restTuple]) -%}
-    {%- endif -%}
+    {%- set implParams = implParams|merge([method | tsRestTuple(spec)]) -%}
 {%- endif %}
     {% if 'multipart/form-data' in (method | consumes) %}async {% endif %}{{ ((method | methodName) | caseCamel ~ ((method | responseModel) | getGenerics(spec))) | tsSignature(implParams, (method | getReturn(spec)), 4, ' {') | raw }}
         {%~ if (method | parameters('all'))|length > 0 %}
@@ -117,11 +114,11 @@ export class {{ service.name | caseUcfirst }} extends Service {
         } else {
             params = {
                 {%~ for parameter in (method | parameters('all')) %}
-                {{ ((parameter.name | caseCamel | escapeKeyword) ~ ': ' ~ (loop.index0 == 0 ? 'paramsOrFirst' : ('rest[' ~ (loop.index0 - 1) ~ ']')) ~ ' as') | tsAssignment((parameter | getPropertyType(method, spec)), 16) | raw }},
+                {{ ((parameter.name | caseCamel | escapeKeyword) ~ ': ' ~ (method | tsArgument(parameter)) ~ ' as') | tsAssignment((parameter | getPropertyType(method, spec)), 16) | raw }},
                 {%~ endfor %}
             };
             {%~ if 'multipart/form-data' in (method | consumes) and not (method | textResponse) %}
-            onProgress = rest[{{ (method | parameters('all'))|length - 1 }}] as (progress: UploadProgress) => void;
+            onProgress = {{ method | tsArgument }} as (progress: UploadProgress) => void;
             {%~ endif %}
         }
 
