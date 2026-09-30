@@ -517,6 +517,19 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('approve(projectId: string, grantId: string)', $service);
     }
 
+    /**
+     * An upload whose only parameter is the file still takes the progress
+     * callback as its second positional argument.
+     */
+    public function testSingleParameterUploadTakesProgressCallback(): void
+    {
+        foreach (['web', 'node', 'react-native'] as $name) {
+            $service = $this->generate($name, 'client')['src/services/general.ts'];
+
+            $this->assertMatchesRegularExpression('/uploadfileonly\(\s*file: [^,]+,\s*onprogress\?: \(progress: uploadprogress\) => void,\s*\): promise/', $service, "{$name} uploadFileOnly lacks a positional onProgress");
+        }
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);
