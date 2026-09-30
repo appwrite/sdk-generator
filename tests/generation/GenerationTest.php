@@ -488,6 +488,35 @@ final class GenerationTest extends TestCase
         $this->assertSame($files, $this->generateDocument($document(true), 'php', 'path-config-legacy'));
     }
 
+    /**
+     * An empty `x-appwrite.config` value names no client setting, so the path
+     * parameter stays an argument the caller passes.
+     */
+    public function testPathParametersWithBlankConfigStayArguments(): void
+    {
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'general']],
+            'paths' => ['/tests/{project_id}/approve' => ['post' => [
+                'operationId' => 'generalApprove',
+                'tags' => ['general'],
+                'summary' => 'Approve',
+                'description' => 'Approve.',
+                'parameters' => [
+                    ['name' => 'project_id', 'in' => 'path', 'required' => true, 'description' => 'Project ID.', 'schema' => ['type' => 'string']],
+                    ['name' => 'grant_id', 'in' => 'query', 'required' => true, 'description' => 'Grant ID.', 'schema' => ['type' => 'string']],
+                ],
+                'responses' => ['204' => ['description' => 'ok']],
+                'x-appwrite' => ['config' => ['project_id' => '']],
+            ]]],
+        ];
+
+        $service = $this->generateDocument($document, 'web', 'path-config-blank')['src/services/general.ts'];
+
+        $this->assertStringContainsString('approve(projectId: string, grantId: string)', $service);
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);

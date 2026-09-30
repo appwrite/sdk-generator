@@ -665,7 +665,7 @@ abstract class Language
             $operation->parameters,
             static fn(Parameter $parameter): bool => $parameter->location !== ParameterLocation::PATH
                 || !\is_array($config)
-                || !isset($config[$parameter->name]),
+                || (string) ($config[$parameter->name] ?? '') === '',
         ));
         foreach ($operation->requestBody?->content ?? [] as $mediaType) {
             if (!$mediaType->schema instanceof ObjectSchema) {
