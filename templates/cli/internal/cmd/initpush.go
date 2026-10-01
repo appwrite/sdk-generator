@@ -60,6 +60,7 @@ type pushSetup struct {
 	prompter  prompt.Prompter
 	out       io.Writer
 	root      string
+	keyDirs   []string
 	downloads string
 	open      func(string)
 	firebase  func() ([]firebaseProject, error)
@@ -76,11 +77,19 @@ func newPushSetup(command *cobra.Command) (*pushSetup, error) {
 		downloads = filepath.Join(home, "Downloads")
 	}
 
+	var keyDirs []string
+	for _, directory := range []string{context.local.Dirname(), "."} {
+		if absolute, err := filepath.Abs(directory); err == nil {
+			keyDirs = appendUnique(keyDirs, absolute)
+		}
+	}
+
 	return &pushSetup{
 		api:       context.api,
 		prompter:  context.prompter,
 		out:       command.OutOrStdout(),
 		root:      ".",
+		keyDirs:   keyDirs,
 		downloads: downloads,
 		open:      openBrowser,
 		firebase:  listFirebaseProjects,
@@ -370,7 +379,7 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 			func(path string) bool {
 				_, err := readApnsKey(path)
 
-				return apnsKeyFileName.MatchString(filepath.Base(path)) && err == nil
+				return strings.HasSuffix(path, ".p8") && err == nil
 			})
 		if err != nil {
 			return err
@@ -380,6 +389,9 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 	key, err := readApnsKey(keyPath)
 	if err != nil {
 		return err
+	}
+	if options.keyPath != "" {
+		s.checkKeyLocation(expandHome(keyPath))
 	}
 
 	keyID := options.keyID
@@ -471,6 +483,7 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 		if err != nil {
 			return err
 		}
+		s.checkKeyLocation(expandHome(keyPath))
 		keyProject := parsed["project_id"].(string)
 		if len(candidates) > 0 && !contains(candidates, keyProject) {
 			return fmt.Errorf("%s belongs to Firebase project %s, not %s", keyPath, keyProject, strings.Join(candidates, " or "))
@@ -487,6 +500,9 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 		}
 	}
 	if projectID == "" && account == nil {
+		output.Log(s.out, "No Firebase configuration found in this project.")
+	}
+	if projectID == "" && account == nil && len(s.projectKeys(serviceAccountFile(""))) == 0 {
 		var err error
 		projectID, err = s.chooseFirebaseProject()
 		if err != nil {
@@ -512,6 +528,13 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 		}
 	}
 
+	if account == nil && projectID != "" {
+		for _, path := range s.projectKeys(serviceAccountFile("")) {
+			if other, err := readServiceAccount(path, ""); err == nil && other["project_id"] != projectID {
+				output.Warn(s.out, "Skipping %s: it belongs to Firebase project %s, not %s.", s.display(path), other["project_id"], projectID)
+			}
+		}
+	}
 	if account == nil {
 		page := fmt.Sprintf(fcmServiceAccounts, "_")
 		instructions := "In the Firebase console, pick your project, then click 'Generate new private key' and download the file."
@@ -520,12 +543,7 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 			instructions = "In the Firebase console, click 'Generate new private key' and download the file."
 		}
 		path, err := s.acquireKey("Firebase service account key (.json)", "Get one from the Firebase console", "--key-path",
-			page, instructions,
-			func(path string) bool {
-				_, err := readServiceAccount(path, projectID)
-
-				return strings.HasSuffix(path, ".json") && err == nil
-			})
+			page, instructions, serviceAccountFile(projectID))
 		if err != nil {
 			return err
 		}
@@ -535,7 +553,7 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 		}
 		if projectID == "" {
 			projectID = account["project_id"].(string)
-			output.Log(s.out, "Using Firebase project %s from the downloaded key.", projectID)
+			output.Log(s.out, "Using Firebase project %s from the key.", projectID)
 		}
 	}
 
@@ -565,6 +583,31 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 }
 
 func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions string, accept func(string) bool) (string, error) {
+	found := s.projectKeys(accept)
+	if len(found) == 1 {
+		output.Log(s.out, "Using %s from the project folder.", s.display(found[0]))
+		s.checkKeyLocation(found[0])
+
+		return found[0], nil
+	}
+	if len(found) > 1 {
+		options := make([]prompt.Option, 0, len(found))
+		for _, path := range found {
+			options = append(options, prompt.Option{Label: s.display(path), Value: path})
+		}
+		path, err := s.prompter.Choice(prompt.Choice{
+			Message: fmt.Sprintf("Which %s should be used?", what),
+			Options: options,
+			Flag:    flag,
+		})
+		if err != nil {
+			return "", err
+		}
+		s.checkKeyLocation(path)
+
+		return path, nil
+	}
+
 	method, err := s.prompter.Choice(prompt.Choice{
 		Message: fmt.Sprintf("How would you like to provide the %s?", what),
 		Options: []prompt.Option{
@@ -579,7 +622,7 @@ func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions stri
 	}
 
 	if method == "file" {
-		return s.prompter.Text(prompt.Text{
+		path, err := s.prompter.Text(prompt.Text{
 			Message: fmt.Sprintf("Path to the %s", what),
 			Flag:    flag,
 			Validate: func(path string) error {
@@ -590,24 +633,99 @@ func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions stri
 				return nil
 			},
 		})
+		if err != nil {
+			return "", err
+		}
+		s.checkKeyLocation(expandHome(path))
+
+		return path, nil
 	}
 
-	if s.downloads == "" {
-		return "", fmt.Errorf("cannot find your Downloads folder. Pass %s instead", flag)
+	directories := append([]string{}, s.keyDirs...)
+	if s.downloads != "" {
+		if info, err := os.Stat(s.downloads); err == nil && info.IsDir() {
+			directories = appendUnique(directories, s.downloads)
+		}
+	}
+	if len(directories) == 0 {
+		return "", fmt.Errorf("no folder to watch for the key. Pass %s instead", flag)
 	}
 
 	output.Log(s.out, "%s", instructions)
 	output.Log(s.out, "Opening %s", page)
 	s.open(page)
-	output.Log(s.out, "Waiting for the file in %s (Ctrl-C to cancel) ...", s.downloads)
+	if len(s.keyDirs) > 0 {
+		output.Log(s.out, "Save the file into %s, or let your browser download it to %s. Waiting (Ctrl-C to cancel) ...",
+			s.keyDirs[0], s.downloads)
+	} else {
+		output.Log(s.out, "Waiting for the file in %s (Ctrl-C to cancel) ...", s.downloads)
+	}
 
-	path, err := waitForDownload(s.downloads, time.Now(), accept, downloadTimeout, downloadPoll)
+	path, err := waitForKeyFile(directories, time.Now(), accept, downloadTimeout, downloadPoll)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w. Pass %s instead", err, flag)
 	}
 	output.Log(s.out, "Found %s", path)
+	s.checkKeyLocation(path)
 
 	return path, nil
+}
+
+func serviceAccountFile(projectID string) func(string) bool {
+	return func(path string) bool {
+		if !strings.HasSuffix(path, ".json") {
+			return false
+		}
+		_, err := readServiceAccount(path, projectID)
+
+		return err == nil
+	}
+}
+
+func (s *pushSetup) projectKeys(accept func(string) bool) []string {
+	var found []string
+	for _, directory := range s.keyDirs {
+		entries, err := os.ReadDir(directory)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			path := filepath.Join(directory, entry.Name())
+			if !entry.IsDir() && accept(path) {
+				found = appendUnique(found, path)
+			}
+		}
+	}
+
+	return found
+}
+
+func (s *pushSetup) display(path string) string {
+	for _, directory := range s.keyDirs {
+		if relative, err := filepath.Rel(directory, path); err == nil && !strings.HasPrefix(relative, "..") {
+			return relative
+		}
+	}
+
+	return path
+}
+
+func (s *pushSetup) checkKeyLocation(path string) {
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return
+	}
+	git, err := exec.LookPath("git")
+	if err != nil {
+		return
+	}
+	check := exec.Command(git, "-C", filepath.Dir(absolute), "check-ignore", "-q", filepath.Base(absolute))
+	if err := check.Run(); err != nil {
+		var exit *exec.ExitError
+		if errors.As(err, &exit) && exit.ExitCode() == 1 {
+			output.Warn(s.out, "%s is inside a git repository and not ignored. Add it to .gitignore so the key is never committed.", s.display(absolute))
+		}
+	}
 }
 
 type firebaseProject struct {
@@ -641,7 +759,6 @@ func listFirebaseProjects() ([]firebaseProject, error) {
 }
 
 func (s *pushSetup) chooseFirebaseProject() (string, error) {
-	output.Log(s.out, "No Firebase configuration found in this project.")
 	if s.firebase == nil {
 		return "", nil
 	}
@@ -676,40 +793,46 @@ func (s *pushSetup) chooseFirebaseProject() (string, error) {
 	return projectID, nil
 }
 
-func waitForDownload(directory string, since time.Time, accept func(string) bool, timeout, poll time.Duration) (string, error) {
+func waitForKeyFile(directories []string, since time.Time, accept func(string) bool, timeout, poll time.Duration) (string, error) {
 	seen := map[string]time.Time{}
-	if entries, err := os.ReadDir(directory); err == nil {
+	for _, directory := range directories {
+		entries, err := os.ReadDir(directory)
+		if err != nil {
+			continue
+		}
 		for _, entry := range entries {
 			if info, err := entry.Info(); err == nil && info.ModTime().Before(since) {
-				seen[entry.Name()] = info.ModTime()
+				seen[filepath.Join(directory, entry.Name())] = info.ModTime()
 			}
 		}
 	}
 
 	deadline := time.Now().Add(timeout)
 	for {
-		entries, err := os.ReadDir(directory)
-		if err != nil {
-			return "", err
-		}
-		for _, entry := range entries {
-			if entry.IsDir() {
-				continue
-			}
-			info, err := entry.Info()
+		for _, directory := range directories {
+			entries, err := os.ReadDir(directory)
 			if err != nil {
 				continue
 			}
-			if previous, ok := seen[entry.Name()]; ok && !info.ModTime().After(previous) {
-				continue
-			}
-			path := filepath.Join(directory, entry.Name())
-			if accept(path) {
-				return path, nil
+			for _, entry := range entries {
+				if entry.IsDir() {
+					continue
+				}
+				info, err := entry.Info()
+				if err != nil {
+					continue
+				}
+				path := filepath.Join(directory, entry.Name())
+				if previous, ok := seen[path]; ok && !info.ModTime().After(previous) {
+					continue
+				}
+				if accept(path) {
+					return path, nil
+				}
 			}
 		}
 		if time.Now().After(deadline) {
-			return "", fmt.Errorf("no matching file appeared in %s within %s", directory, timeout)
+			return "", fmt.Errorf("no matching file appeared in %s within %s", strings.Join(directories, " or "), timeout)
 		}
 		time.Sleep(poll)
 	}
