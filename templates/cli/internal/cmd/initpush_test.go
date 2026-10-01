@@ -25,7 +25,36 @@ import (
 const testPbxproj = `// !$*UTF8*$!
 {
 	objects = {
-		1 /* Debug */ = {
+
+/* Begin PBXNativeTarget section */
+		A00000000000000000000001 /* MyApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B00000000000000000000001 /* Build configuration list for PBXNativeTarget "MyApp" */;
+			name = MyApp;
+			productType = "com.apple.product-type.application";
+		};
+		A00000000000000000000002 /* MyAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B00000000000000000000002 /* Build configuration list for PBXNativeTarget "MyAppTests" */;
+			name = MyAppTests;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		A00000000000000000000003 /* Widget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B00000000000000000000003 /* Build configuration list for PBXNativeTarget "Widget" */;
+			name = Widget;
+			productType = "com.apple.product-type.app-extension";
+		};
+		A00000000000000000000004 /* Admin */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B00000000000000000000004 /* Build configuration list for PBXNativeTarget "Admin" */;
+			name = Admin;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin XCBuildConfiguration section */
+		C00000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = MyApp/MyApp.entitlements;
@@ -36,19 +65,67 @@ const testPbxproj = `// !$*UTF8*$!
 			};
 			name = Debug;
 		};
-		2 /* Debug */ = {
+		C00000000000000000000002 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				DEVELOPMENT_TEAM = ABCDE12345;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.MyAppTests;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MyApp.app/MyApp";
 			};
 			name = Debug;
 		};
+		C00000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Widget/Widget.entitlements;
+				DEVELOPMENT_TEAM = ABCDE12345;
+				INFOPLIST_FILE = Widget/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.widget;
+			};
+			name = Debug;
+		};
+		C00000000000000000000004 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Admin/Admin.entitlements;
+				DEVELOPMENT_TEAM = FGHIJ67890;
+				INFOPLIST_FILE = Admin/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.admin;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B00000000000000000000001 /* Build configuration list for PBXNativeTarget "MyApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C00000000000000000000001 /* Debug */,
+			);
+		};
+		B00000000000000000000002 /* Build configuration list for PBXNativeTarget "MyAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C00000000000000000000002 /* Debug */,
+			);
+		};
+		B00000000000000000000003 /* Build configuration list for PBXNativeTarget "Widget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C00000000000000000000003 /* Debug */,
+			);
+		};
+		B00000000000000000000004 /* Build configuration list for PBXNativeTarget "Admin" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C00000000000000000000004 /* Debug */,
+			);
+		};
+/* End XCConfigurationList section */
 	};
 }
 `
+
+const myAppBundle = "org.reactjs.native.example.My-App"
 
 func writeFile(t *testing.T, path, contents string) {
 	t.Helper()
@@ -71,17 +148,21 @@ func TestDetectAppleReadsTheAppTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if strings.Join(app.BundleIDs, ",") != "org.reactjs.native.example.My-App" {
+	if strings.Join(app.BundleIDs, ",") != "com.example.admin,"+myAppBundle {
 		t.Errorf("bundle IDs = %v", app.BundleIDs)
 	}
-	if strings.Join(app.TeamIDs, ",") != "ABCDE12345" {
-		t.Errorf("team IDs = %v", app.TeamIDs)
+	if strings.Join(app.teams(myAppBundle), ",") != "ABCDE12345" || strings.Join(app.teams("com.example.admin"), ",") != "FGHIJ67890" {
+		t.Errorf("teams = %v / %v", app.teams(myAppBundle), app.teams("com.example.admin"))
 	}
-	if len(app.Entitlements) != 1 || app.Entitlements[0] != filepath.Join(root, "ios", "MyApp", "MyApp.entitlements") {
-		t.Errorf("entitlements = %v", app.Entitlements)
+	targets := app.targets(myAppBundle)
+	if len(targets) != 1 {
+		t.Fatalf("targets = %+v", app.Targets)
 	}
-	if len(app.InfoPlists) != 1 || app.InfoPlists[0] != filepath.Join(root, "ios", "MyApp", "Info.plist") {
-		t.Errorf("Info.plist = %v", app.InfoPlists)
+	if strings.Join(targets[0].Entitlements, ",") != filepath.Join(root, "ios", "MyApp", "MyApp.entitlements") {
+		t.Errorf("entitlements = %v", targets[0].Entitlements)
+	}
+	if strings.Join(targets[0].InfoPlists, ",") != filepath.Join(root, "ios", "MyApp", "Info.plist") {
+		t.Errorf("Info.plist = %v", targets[0].InfoPlists)
 	}
 }
 
@@ -113,8 +194,8 @@ android {
 	if strings.Join(app.ApplicationIDs, ",") != "com.example.app" {
 		t.Errorf("application IDs = %v", app.ApplicationIDs)
 	}
-	if app.ProjectID != "demo-project" || strings.Join(app.FirebasePackages, ",") != "com.example.app" {
-		t.Errorf("Firebase = %q %v", app.ProjectID, app.FirebasePackages)
+	if len(app.Firebase) != 1 || app.Firebase[0].ProjectID != "demo-project" || strings.Join(app.Firebase[0].Packages, ",") != "com.example.app" {
+		t.Errorf("Firebase = %+v", app.Firebase)
 	}
 	if !app.HasServicesPlugin || app.HasMessaging {
 		t.Errorf("plugin = %v, messaging = %v", app.HasServicesPlugin, app.HasMessaging)
@@ -135,7 +216,7 @@ func TestDetectReadsExpoConfig(t *testing.T) {
 	if !apple.found() || apple.BundleIDs[0] != "com.example.expo" || apple.TeamIDs[0] != "ABCDE12345" {
 		t.Errorf("apple = %+v", apple)
 	}
-	if !android.found() || android.ApplicationIDs[0] != "com.example.expo" || android.ProjectID != "expo-project" {
+	if !android.found() || android.ApplicationIDs[0] != "com.example.expo" || strings.Join(android.projectIDs(), ",") != "expo-project" {
 		t.Errorf("android = %+v", android)
 	}
 }
@@ -366,12 +447,17 @@ func TestInitApnsCreatesBothEnvironmentsAndEditsXcode(t *testing.T) {
 	writeFile(t, filepath.Join(root, "ios", "MyApp.xcodeproj", "project.pbxproj"), testPbxproj)
 	writeFile(t, filepath.Join(root, "ios", "MyApp", "MyApp.entitlements"), "<plist version=\"1.0\">\n<dict/>\n</plist>\n")
 	writeFile(t, filepath.Join(root, "ios", "MyApp", "Info.plist"), "<plist version=\"1.0\">\n<dict>\n</dict>\n</plist>\n")
+	untouched := map[string]string{}
+	for _, path := range []string{"Admin/Admin.entitlements", "Admin/Info.plist", "Widget/Widget.entitlements", "Widget/Info.plist"} {
+		untouched[path] = "<plist version=\"1.0\">\n<dict>\n</dict>\n</plist>\n"
+		writeFile(t, filepath.Join(root, "ios", path), untouched[path])
+	}
 	keyPath := testApnsKey(t, t.TempDir())
 
 	scripted := &prompt.Scripted{}
 	setup, _ := newTestPushSetup(t, server, scripted, root)
 	detected, _ := detectApple(root)
-	if err := setup.apns(apnsOptions{keyPath: keyPath}, detected); err != nil {
+	if err := setup.apns(apnsOptions{keyPath: keyPath, bundleID: myAppBundle}, detected); err != nil {
 		t.Fatal(err)
 	}
 
@@ -384,7 +470,7 @@ func TestInitApnsCreatesBothEnvironmentsAndEditsXcode(t *testing.T) {
 	for index, sandbox := range []bool{false, true} {
 		provider := messaging.providers[index]
 		credentials := provider["credentials"].(map[string]any)
-		if credentials["bundleId"] != "org.reactjs.native.example.My-App" || credentials["teamId"] != "ABCDE12345" ||
+		if credentials["bundleId"] != myAppBundle || credentials["teamId"] != "ABCDE12345" ||
 			credentials["authKeyId"] != "KEY1234567" || provider["options"].(map[string]any)["sandbox"] != sandbox ||
 			provider["enabled"] != true {
 			t.Errorf("provider %d = %v", index, provider)
@@ -399,9 +485,14 @@ func TestInitApnsCreatesBothEnvironmentsAndEditsXcode(t *testing.T) {
 	if !strings.Contains(string(info), "<string>remote-notification</string>") {
 		t.Errorf("Info.plist:\n%s", info)
 	}
+	for path, original := range untouched {
+		if contents, _ := os.ReadFile(filepath.Join(root, "ios", path)); string(contents) != original {
+			t.Errorf("%s was edited:\n%s", path, contents)
+		}
+	}
 
 	messaging.requests = nil
-	if err := setup.apns(apnsOptions{keyPath: keyPath}, detected); err != nil {
+	if err := setup.apns(apnsOptions{keyPath: keyPath, bundleID: myAppBundle}, detected); err != nil {
 		t.Fatal(err)
 	}
 	if len(messaging.providers) != 2 || strings.Join(messaging.requests, ",") != "GET /messaging/providers,PATCH /messaging/providers/apns/id0,PATCH /messaging/providers/apns/id1" {
@@ -409,7 +500,7 @@ func TestInitApnsCreatesBothEnvironmentsAndEditsXcode(t *testing.T) {
 	}
 
 	messaging.requests = nil
-	if err := setup.apns(apnsOptions{}, detected); err != nil {
+	if err := setup.apns(apnsOptions{bundleID: myAppBundle}, detected); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Join(messaging.requests, ",") != "GET /messaging/providers" {
@@ -470,5 +561,41 @@ func TestInitFcmPicksUpTheDownloadedKey(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "firebase-messaging") {
 		t.Errorf("missing Firebase Messaging hint:\n%s", out.String())
+	}
+}
+
+func TestInitFcmSelectsTheConfigurationForTheChosenApp(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app", "build.gradle"), "plugins { id 'com.android.application' }\nandroid { defaultConfig { applicationId 'com.example.app' } }\n")
+	writeFile(t, filepath.Join(root, "app", "src", "staging", "google-services.json"), `{"project_info": {"project_id": "staging-project"},
+  "client": [{"client_info": {"android_client_info": {"package_name": "com.example.app.staging"}}}]}`)
+	writeFile(t, filepath.Join(root, "app", "src", "release", "google-services.json"), `{"project_info": {"project_id": "release-project"},
+  "client": [{"client_info": {"android_client_info": {"package_name": "com.example.app"}}}]}`)
+
+	detected, _ := detectAndroid(root)
+	if strings.Join(detected.projectIDs(), ",") != "release-project,staging-project" && strings.Join(detected.projectIDs(), ",") != "staging-project,release-project" {
+		t.Fatalf("projects = %v", detected.projectIDs())
+	}
+
+	setup, _ := newTestPushSetup(t, server, &prompt.Scripted{}, root)
+	if err := setup.fcm(fcmOptions{keyPath: testServiceAccount(t, t.TempDir(), "release-project")}, detected); err != nil {
+		t.Fatal(err)
+	}
+	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (release-project)" {
+		t.Fatalf("providers = %v", messaging.providers)
+	}
+
+	err := setup.fcm(fcmOptions{keyPath: testServiceAccount(t, t.TempDir(), "staging-project")}, detected)
+	if err == nil || !strings.Contains(err.Error(), "not release-project") {
+		t.Errorf("err = %v", err)
+	}
+
+	err = setup.fcm(fcmOptions{applicationID: "com.example.app.staging", projectID: "release-project"}, detected)
+	if err == nil || !strings.Contains(err.Error(), "belongs to staging-project") {
+		t.Errorf("err = %v", err)
 	}
 }

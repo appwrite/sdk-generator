@@ -221,6 +221,19 @@ func (s *pushSetup) reportStep(name, command string, err error) {
 	output.Failure(s.out, "%s: %s", name, err)
 }
 
+func describeFirebase(configs []firebaseConfig) string {
+	parts := make([]string, 0, len(configs))
+	for _, config := range configs {
+		packages := strings.Join(config.Packages, ", ")
+		if packages == "" {
+			packages = "no Android apps"
+		}
+		parts = append(parts, config.Path+" has "+packages)
+	}
+
+	return strings.Join(parts, "; ")
+}
+
 func describeApple(apple appleApp, skipped bool) string {
 	switch {
 	case !apple.found():
@@ -246,8 +259,12 @@ func describeAndroid(android androidApp, skipped bool) string {
 	if description == "" {
 		description = "found, application ID unknown"
 	}
-	if android.ProjectID != "" {
-		description += " (Firebase project " + android.ProjectID + ")"
+	if projects := android.projectIDs(); len(projects) > 0 {
+		label := " (Firebase project "
+		if len(projects) > 1 {
+			label = " (Firebase projects "
+		}
+		description += label + strings.Join(projects, ", ") + ")"
 	}
 
 	return description
@@ -323,12 +340,12 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 	if production != nil && sandbox != nil && production.Enabled && sandbox.Enabled && options.keyPath == "" && !app.Flags().Force {
 		output.Success(s.out, "APNs is already set up for %s.", bundleID)
 		output.Hint(s.out, "Pass --force or --key-path to replace the key.")
-		s.configureXcode(detected)
+		s.configureXcode(detected, bundleID)
 
 		return nil
 	}
 
-	teams := detected.TeamIDs
+	teams := detected.teams(bundleID)
 	for _, provider := range []*messagingProvider{production, sandbox} {
 		if provider != nil && len(teams) == 0 && appleTeamID.MatchString(provider.credential("teamId")) {
 			teams = []string{provider.credential("teamId")}
@@ -394,7 +411,7 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 		}
 	}
 
-	s.configureXcode(detected)
+	s.configureXcode(detected, bundleID)
 	output.Success(s.out, "APNs is set up for %s.", bundleID)
 
 	return nil
@@ -403,25 +420,43 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 	output.Log(s.out, "Setting up FCM ...")
 
+	configs := detected.Firebase
 	if options.applicationID != "" || len(detected.ApplicationIDs) > 0 {
 		applicationID, err := s.pick(options.applicationID, detected.ApplicationIDs,
 			"Which Android application ID should receive push notifications?", "--application-id", requiredValue("application ID"))
 		if err != nil {
 			return err
 		}
-		if len(detected.FirebasePackages) > 0 && !contains(detected.FirebasePackages, applicationID) {
-			return fmt.Errorf("%s has no Android app with the application ID %s (it has %s). Add the app in the Firebase console and download google-services.json again",
-				detected.GoogleServices, applicationID, strings.Join(detected.FirebasePackages, ", "))
+		if len(configs) > 0 {
+			var matching []firebaseConfig
+			for _, config := range configs {
+				if contains(config.Packages, applicationID) {
+					matching = append(matching, config)
+				}
+			}
+			if len(matching) == 0 {
+				return fmt.Errorf("no google-services.json here has an Android app with the application ID %s (%s). Add the app in the Firebase console and download google-services.json again",
+					applicationID, describeFirebase(configs))
+			}
+			configs = matching
+		}
+	}
+
+	candidates := detected.projectIDs()
+	if len(detected.Firebase) > 0 {
+		candidates = nil
+		for _, config := range configs {
+			candidates = appendUnique(candidates, config.ProjectID)
 		}
 	}
 
 	projectID := options.projectID
-	if projectID == "" {
-		projectID = detected.ProjectID
+	if projectID != "" && len(candidates) > 0 && !contains(candidates, projectID) {
+		return fmt.Errorf("--project-id is %s but this app's Firebase configuration belongs to %s",
+			projectID, strings.Join(candidates, ", "))
 	}
-	if options.projectID != "" && detected.ProjectID != "" && options.projectID != detected.ProjectID {
-		return fmt.Errorf("--project-id is %s but %s belongs to %s",
-			options.projectID, detected.ProjectIDSource, detected.ProjectID)
+	if projectID == "" && len(candidates) == 1 {
+		projectID = candidates[0]
 	}
 
 	var account map[string]any
@@ -431,13 +466,17 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 		if err != nil {
 			return err
 		}
+		keyProject := parsed["project_id"].(string)
+		if len(candidates) > 0 && !contains(candidates, keyProject) {
+			return fmt.Errorf("%s belongs to Firebase project %s, not %s", keyPath, keyProject, strings.Join(candidates, " or "))
+		}
 		account = parsed
-		projectID = parsed["project_id"].(string)
+		projectID = keyProject
 	}
 
 	if projectID == "" {
 		var err error
-		projectID, err = s.pick("", nil, "What is your Firebase project ID?", "--project-id", requiredValue("project ID"))
+		projectID, err = s.pick("", candidates, "Which Firebase project should send push notifications?", "--project-id", requiredValue("project ID"))
 		if err != nil {
 			return err
 		}
@@ -721,24 +760,34 @@ func (s *pushSetup) upsertProvider(kind string, existing *messagingProvider, bod
 	return nil
 }
 
-func (s *pushSetup) configureXcode(detected appleApp) {
-	for _, path := range detected.Entitlements {
-		changed, err := editPlist(path, func(contents string) string {
-			return ensurePlistString(contents, "aps-environment", "development")
-		})
-		s.reportEdit(path, "aps-environment", changed, err)
-	}
-	for _, path := range detected.InfoPlists {
-		changed, err := editPlist(path, func(contents string) string {
-			return ensurePlistArrayValue(contents, "UIBackgroundModes", "remote-notification")
-		})
-		s.reportEdit(path, "the remote-notification background mode", changed, err)
+func (s *pushSetup) configureXcode(detected appleApp, bundleID string) {
+	targets := detected.targets(bundleID)
+	inXcode, entitlements, infoPlists := false, 0, 0
+	for _, target := range targets {
+		if target.Project == "" {
+			continue
+		}
+		inXcode = true
+		for _, path := range target.Entitlements {
+			entitlements++
+			changed, err := editPlist(path, func(contents string) string {
+				return ensurePlistString(contents, "aps-environment", "development")
+			})
+			s.reportEdit(path, "aps-environment", changed, err)
+		}
+		for _, path := range target.InfoPlists {
+			infoPlists++
+			changed, err := editPlist(path, func(contents string) string {
+				return ensurePlistArrayValue(contents, "UIBackgroundModes", "remote-notification")
+			})
+			s.reportEdit(path, "the remote-notification background mode", changed, err)
+		}
 	}
 
-	if len(detected.Projects) > 0 && len(detected.Entitlements) == 0 {
+	if inXcode && entitlements == 0 {
 		output.Hint(s.out, "In Xcode, open Signing & Capabilities and add Push Notifications, so the app gets an aps-environment entitlement.")
 	}
-	if len(detected.Projects) > 0 && len(detected.InfoPlists) == 0 {
+	if inXcode && infoPlists == 0 {
 		output.Hint(s.out, "In Xcode, add Background Modes and tick Remote notifications.")
 	}
 	if detected.ExpoConfig != "" {
@@ -768,7 +817,7 @@ func (s *pushSetup) gradleHints(detected androidApp) {
 	if len(detected.Modules) == 0 {
 		return
 	}
-	if detected.GoogleServices == "" {
+	if len(detected.Firebase) == 0 {
 		output.Hint(s.out, "Download google-services.json for this app from the Firebase console into %s. See %s",
 			detected.Modules[0], fcmSetupGuide)
 	}

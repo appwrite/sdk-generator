@@ -12,26 +12,63 @@ import (
 	"strings"
 )
 
-type appleApp struct {
-	Projects     []string
-	BundleIDs    []string
-	TeamIDs      []string
+type appleTarget struct {
+	Project      string
+	BundleID     string
+	TeamID       string
 	Entitlements []string
 	InfoPlists   []string
-	ExpoConfig   string
+}
+
+type appleApp struct {
+	Projects   []string
+	Targets    []appleTarget
+	BundleIDs  []string
+	TeamIDs    []string
+	ExpoConfig string
 }
 
 func (a appleApp) found() bool {
 	return len(a.Projects) > 0 || a.ExpoConfig != ""
 }
 
+func (a appleApp) targets(bundleID string) []appleTarget {
+	var targets []appleTarget
+	for _, target := range a.Targets {
+		if target.BundleID == bundleID {
+			targets = append(targets, target)
+		}
+	}
+
+	return targets
+}
+
+func (a appleApp) teams(bundleID string) []string {
+	var teams []string
+	for _, target := range a.targets(bundleID) {
+		if target.TeamID != "" {
+			teams = appendUnique(teams, target.TeamID)
+		}
+	}
+	if len(teams) == 0 && len(a.TeamIDs) == 1 {
+		return a.TeamIDs
+	}
+
+	return teams
+}
+
+type firebaseConfig struct {
+	Path      string
+	ProjectID string
+	Packages  []string
+}
+
 type androidApp struct {
 	Modules            []string
 	ApplicationIDs     []string
-	GoogleServices     string
+	Firebase           []firebaseConfig
 	ProjectID          string
 	ProjectIDSource    string
-	FirebasePackages   []string
 	ExpoConfig         string
 	ExpoGoogleServices bool
 	HasServicesPlugin  bool
@@ -40,6 +77,18 @@ type androidApp struct {
 
 func (a androidApp) found() bool {
 	return len(a.Modules) > 0 || a.ExpoConfig != ""
+}
+
+func (a androidApp) projectIDs() []string {
+	var projects []string
+	for _, config := range a.Firebase {
+		projects = appendUnique(projects, config.ProjectID)
+	}
+	if len(projects) == 0 && a.ProjectID != "" {
+		projects = []string{a.ProjectID}
+	}
+
+	return projects
 }
 
 const detectDepth = 4
@@ -81,7 +130,15 @@ func walkProject(root string, visit func(path string, entry fs.DirEntry) error) 
 	})
 }
 
+const applicationProductType = "com.apple.product-type.application"
+
 var (
+	pbxObject        = regexp.MustCompile(`(?ms)^\t\t([0-9A-Fa-f]{24})(?: /\*.*?\*/)? = \{\n(.*?)\n\t\t\};`)
+	pbxIsa           = regexp.MustCompile(`(?m)^\t\t\tisa = (\w+);`)
+	pbxProductType   = regexp.MustCompile(`(?m)^\t\t\tproductType = "?([^";]+)"?;`)
+	pbxConfigList    = regexp.MustCompile(`(?m)^\t\t\tbuildConfigurationList = ([0-9A-Fa-f]{24})`)
+	pbxConfigs       = regexp.MustCompile(`(?s)buildConfigurations = \((.*?)\);`)
+	pbxReference     = regexp.MustCompile(`[0-9A-Fa-f]{24}`)
 	pbxBuildSettings = regexp.MustCompile(`(?s)buildSettings = \{(.*?)\n\t\t\t\};`)
 	pbxSetting       = regexp.MustCompile(`(?m)^\s*([A-Za-z_][A-Za-z0-9_]*) = (.*?);\s*$`)
 	appleTeamID      = regexp.MustCompile(`^[A-Z0-9]{10}$`)
@@ -126,15 +183,6 @@ func resolveBundleID(bundleID string, settings map[string]string) string {
 	return bundleID
 }
 
-func isTestTarget(settings map[string]string) bool {
-	if settings["TEST_HOST"] != "" || settings["BUNDLE_LOADER"] != "" || settings["TEST_TARGET_NAME"] != "" {
-		return true
-	}
-	bundleID := settings["PRODUCT_BUNDLE_IDENTIFIER"]
-
-	return strings.HasSuffix(bundleID, "Tests") || strings.HasSuffix(bundleID, "UITests")
-}
-
 func projectPath(projectDir, value string) string {
 	value = strings.TrimPrefix(value, "$(SRCROOT)/")
 	value = strings.TrimPrefix(value, "${SRCROOT}/")
@@ -146,6 +194,19 @@ func projectPath(projectDir, value string) string {
 	return filepath.Join(projectDir, value)
 }
 
+func pbxSettings(body string) map[string]string {
+	settings := map[string]string{}
+	block := pbxBuildSettings.FindStringSubmatch(body)
+	if block == nil {
+		return settings
+	}
+	for _, setting := range pbxSetting.FindAllStringSubmatch(block[1], -1) {
+		settings[setting[1]] = pbxValue(setting[2])
+	}
+
+	return settings
+}
+
 func readXcodeProject(app *appleApp, xcodeproj string) {
 	contents, err := os.ReadFile(filepath.Join(xcodeproj, "project.pbxproj"))
 	if err != nil {
@@ -154,36 +215,53 @@ func readXcodeProject(app *appleApp, xcodeproj string) {
 	app.Projects = append(app.Projects, xcodeproj)
 	projectDir := filepath.Dir(xcodeproj)
 
-	for _, block := range pbxBuildSettings.FindAllStringSubmatch(string(contents), -1) {
-		settings := map[string]string{}
-		for _, setting := range pbxSetting.FindAllStringSubmatch(block[1], -1) {
-			settings[setting[1]] = pbxValue(setting[2])
+	objects := map[string]string{}
+	var applications []string
+	for _, object := range pbxObject.FindAllStringSubmatch(string(contents), -1) {
+		objects[object[1]] = object[2]
+		isa := pbxIsa.FindStringSubmatch(object[2])
+		productType := pbxProductType.FindStringSubmatch(object[2])
+		if isa != nil && isa[1] == "PBXNativeTarget" && productType != nil && productType[1] == applicationProductType {
+			applications = append(applications, object[2])
 		}
-		if settings["PRODUCT_BUNDLE_IDENTIFIER"] == "" || isTestTarget(settings) {
+	}
+
+	for _, application := range applications {
+		list := pbxConfigList.FindStringSubmatch(application)
+		if list == nil {
 			continue
 		}
-		if settings["WRAPPER_EXTENSION"] != "" && settings["WRAPPER_EXTENSION"] != "app" {
-			continue
-		}
-		if strings.Contains(settings["INFOPLIST_FILE"], "Extension") {
+		configs := pbxConfigs.FindStringSubmatch(objects[list[1]])
+		if configs == nil {
 			continue
 		}
 
-		if bundleID := resolveBundleID(settings["PRODUCT_BUNDLE_IDENTIFIER"], settings); bundleID != "" {
-			app.BundleIDs = appendUnique(app.BundleIDs, bundleID)
-		}
-		if team := settings["DEVELOPMENT_TEAM"]; appleTeamID.MatchString(team) {
-			app.TeamIDs = appendUnique(app.TeamIDs, team)
-		}
-		if path := settings["CODE_SIGN_ENTITLEMENTS"]; path != "" {
-			if resolved := projectPath(projectDir, path); resolved != "" {
-				app.Entitlements = appendUnique(app.Entitlements, resolved)
+		byBundle := map[string]*appleTarget{}
+		var order []string
+		for _, reference := range pbxReference.FindAllString(configs[1], -1) {
+			settings := pbxSettings(objects[reference])
+			bundleID := resolveBundleID(settings["PRODUCT_BUNDLE_IDENTIFIER"], settings)
+			if bundleID == "" {
+				continue
+			}
+			target, ok := byBundle[bundleID]
+			if !ok {
+				target = &appleTarget{Project: xcodeproj, BundleID: bundleID}
+				byBundle[bundleID] = target
+				order = append(order, bundleID)
+			}
+			if team := settings["DEVELOPMENT_TEAM"]; appleTeamID.MatchString(team) && target.TeamID == "" {
+				target.TeamID = team
+			}
+			if path := projectPath(projectDir, settings["CODE_SIGN_ENTITLEMENTS"]); settings["CODE_SIGN_ENTITLEMENTS"] != "" && path != "" {
+				target.Entitlements = appendUnique(target.Entitlements, path)
+			}
+			if path := projectPath(projectDir, settings["INFOPLIST_FILE"]); settings["INFOPLIST_FILE"] != "" && path != "" {
+				target.InfoPlists = appendUnique(target.InfoPlists, path)
 			}
 		}
-		if path := settings["INFOPLIST_FILE"]; path != "" {
-			if resolved := projectPath(projectDir, path); resolved != "" {
-				app.InfoPlists = appendUnique(app.InfoPlists, resolved)
-			}
+		for _, bundleID := range order {
+			app.Targets = append(app.Targets, *byBundle[bundleID])
 		}
 	}
 }
@@ -233,24 +311,33 @@ func detectApple(root string) (appleApp, error) {
 		return app, err
 	}
 
-	if len(app.Entitlements) == 0 {
-		for _, project := range app.Projects {
-			matches, _ := filepath.Glob(filepath.Join(filepath.Dir(project), "*", "*.entitlements"))
-			for _, match := range matches {
-				app.Entitlements = appendUnique(app.Entitlements, match)
+	config, path := readExpoConfig(root)
+	if bundleID := config.Expo.IOS.BundleIdentifier; bundleID != "" {
+		app.ExpoConfig = path
+		team := ""
+		if appleTeamID.MatchString(config.Expo.IOS.AppleTeamID) {
+			team = config.Expo.IOS.AppleTeamID
+		}
+		matched := false
+		for index := range app.Targets {
+			if app.Targets[index].BundleID == bundleID {
+				matched = true
+				if app.Targets[index].TeamID == "" {
+					app.Targets[index].TeamID = team
+				}
 			}
 		}
-	}
-
-	config, path := readExpoConfig(root)
-	if config.Expo.IOS.BundleIdentifier != "" {
-		app.ExpoConfig = path
-		app.BundleIDs = appendUnique(app.BundleIDs, config.Expo.IOS.BundleIdentifier)
-		if appleTeamID.MatchString(config.Expo.IOS.AppleTeamID) {
-			app.TeamIDs = appendUnique(app.TeamIDs, config.Expo.IOS.AppleTeamID)
+		if !matched {
+			app.Targets = append(app.Targets, appleTarget{BundleID: bundleID, TeamID: team})
 		}
 	}
 
+	for _, target := range app.Targets {
+		app.BundleIDs = appendUnique(app.BundleIDs, target.BundleID)
+		if target.TeamID != "" {
+			app.TeamIDs = appendUnique(app.TeamIDs, target.TeamID)
+		}
+	}
 	sort.Strings(app.BundleIDs)
 
 	return app, nil
@@ -276,26 +363,28 @@ type googleServices struct {
 	} `json:"client"`
 }
 
-func readGoogleServices(app *androidApp, path string) bool {
+func readGoogleServices(app *androidApp, path string) {
+	for _, existing := range app.Firebase {
+		if existing.Path == path {
+			return
+		}
+	}
 	contents, err := os.ReadFile(path)
 	if err != nil {
-		return false
+		return
 	}
 	var services googleServices
 	if json.Unmarshal(contents, &services) != nil || services.ProjectInfo.ProjectID == "" {
-		return false
+		return
 	}
 
-	app.GoogleServices = path
-	app.ProjectID = services.ProjectInfo.ProjectID
-	app.ProjectIDSource = path
+	config := firebaseConfig{Path: path, ProjectID: services.ProjectInfo.ProjectID}
 	for _, client := range services.Client {
 		if name := client.ClientInfo.AndroidClientInfo.PackageName; name != "" {
-			app.FirebasePackages = appendUnique(app.FirebasePackages, name)
+			config.Packages = appendUnique(config.Packages, name)
 		}
 	}
-
-	return true
+	app.Firebase = append(app.Firebase, config)
 }
 
 func readAndroidModule(app *androidApp, gradleFile string) {
@@ -320,15 +409,10 @@ func readAndroidModule(app *androidApp, gradleFile string) {
 		app.HasMessaging = true
 	}
 
-	if app.GoogleServices == "" {
-		candidates := []string{filepath.Join(module, "google-services.json")}
-		flavours, _ := filepath.Glob(filepath.Join(module, "src", "*", "google-services.json"))
-		candidates = append(candidates, flavours...)
-		for _, candidate := range candidates {
-			if readGoogleServices(app, candidate) {
-				break
-			}
-		}
+	readGoogleServices(app, filepath.Join(module, "google-services.json"))
+	flavours, _ := filepath.Glob(filepath.Join(module, "src", "*", "google-services.json"))
+	for _, flavour := range flavours {
+		readGoogleServices(app, flavour)
 	}
 }
 
@@ -358,18 +442,14 @@ func detectAndroid(root string) (androidApp, error) {
 		app.ApplicationIDs = appendUnique(app.ApplicationIDs, config.Expo.Android.Package)
 		if file := config.Expo.Android.GoogleServicesFile; file != "" {
 			app.ExpoGoogleServices = true
-			if app.GoogleServices == "" {
-				readGoogleServices(&app, filepath.Join(root, file))
-			}
+			readGoogleServices(&app, filepath.Join(root, file))
 		}
 	}
 
-	if app.ProjectID == "" {
-		path := filepath.Join(root, "lib", "firebase_options.dart")
-		if contents, err := os.ReadFile(path); err == nil {
-			if match := dartProjectID.FindSubmatch(contents); match != nil {
-				app.ProjectID, app.ProjectIDSource = string(match[1]), path
-			}
+	path = filepath.Join(root, "lib", "firebase_options.dart")
+	if contents, err := os.ReadFile(path); err == nil {
+		if match := dartProjectID.FindSubmatch(contents); match != nil {
+			app.ProjectID, app.ProjectIDSource = string(match[1]), path
 		}
 	}
 
