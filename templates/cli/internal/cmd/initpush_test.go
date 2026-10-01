@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -330,7 +331,7 @@ func TestReadServiceAccountChecksTheProject(t *testing.T) {
 	}
 }
 
-func TestWaitForDownloadIgnoresEarlierFiles(t *testing.T) {
+func TestWaitForKeyFileIgnoresEarlierFiles(t *testing.T) {
 	directory := t.TempDir()
 	old := testApnsKey(t, directory)
 	past := time.Now().Add(-time.Hour)
@@ -347,7 +348,7 @@ func TestWaitForDownloadIgnoresEarlierFiles(t *testing.T) {
 		writeFile(t, fresh, string(data))
 	}()
 
-	path, err := waitForDownload(directory, started, func(path string) bool {
+	path, err := waitForKeyFile([]string{t.TempDir(), directory}, started, func(path string) bool {
 		return apnsKeyFileName.MatchString(filepath.Base(path))
 	}, 5*time.Second, 10*time.Millisecond)
 	if err != nil {
@@ -434,6 +435,7 @@ func newTestPushSetup(t *testing.T, server *httptest.Server, prompter prompt.Pro
 		prompter:  prompter,
 		out:       out,
 		root:      root,
+		keyDirs:   []string{root},
 		downloads: t.TempDir(),
 		open:      func(string) {},
 		firebase:  func() ([]firebaseProject, error) { return nil, errors.New("firebase is not installed") },
@@ -591,6 +593,17 @@ func TestInitFcmSelectsTheConfigurationForTheChosenApp(t *testing.T) {
 		t.Fatalf("providers = %v", messaging.providers)
 	}
 
+	fresh := httptest.NewServer(&fakeMessaging{})
+	defer fresh.Close()
+	warned, out := newTestPushSetup(t, fresh, &prompt.Scripted{Choices: map[string]string{
+		"How would you like to provide the Firebase service account key (.json)?": "file",
+	}}, root)
+	testServiceAccount(t, root, "staging-project")
+	_ = warned.fcm(fcmOptions{applicationID: "com.example.app"}, detected)
+	if !strings.Contains(out.String(), "Skipping staging-project-firebase-adminsdk-abc.json: it belongs to Firebase project staging-project, not release-project.") {
+		t.Errorf("output:\n%s", out.String())
+	}
+
 	err := setup.fcm(fcmOptions{keyPath: testServiceAccount(t, t.TempDir(), "staging-project")}, detected)
 	if err == nil || !strings.Contains(err.Error(), "not release-project") {
 		t.Errorf("err = %v", err)
@@ -629,7 +642,7 @@ func TestInitFcmTakesTheProjectFromTheDownloadedKey(t *testing.T) {
 	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (picked-project)" {
 		t.Errorf("providers = %v", messaging.providers)
 	}
-	if !strings.Contains(out.String(), "Using Firebase project picked-project from the downloaded key.") {
+	if !strings.Contains(out.String(), "Using Firebase project picked-project from the key.") {
 		t.Errorf("output:\n%s", out.String())
 	}
 }
@@ -689,4 +702,103 @@ func (r recordingPrompter) Choice(question prompt.Choice) (string, error) {
 	}
 
 	return r.Scripted.Choice(question)
+}
+
+func TestInitApnsUsesAKeyInTheProjectFolder(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	testApnsKey(t, root)
+	writeFile(t, filepath.Join(root, "notes.p8"), "not a key")
+
+	scripted := &prompt.Scripted{}
+	setup, out := newTestPushSetup(t, server, scripted, root)
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(scripted.Asked) != 0 {
+		t.Errorf("asked %v", scripted.Asked)
+	}
+	if !strings.Contains(out.String(), "Using AuthKey_KEY1234567.p8 from the project folder.") {
+		t.Errorf("output:\n%s", out.String())
+	}
+	if len(messaging.providers) != 2 || messaging.providers[0]["credentials"].(map[string]any)["authKeyId"] != "KEY1234567" {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestInitFcmUsesAKeyInTheProjectFolderBeforeAskingForAProject(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	testServiceAccount(t, root, "root-project")
+	writeFile(t, filepath.Join(root, "package.json"), `{"name": "app"}`)
+
+	scripted := &prompt.Scripted{}
+	setup, _ := newTestPushSetup(t, server, scripted, root)
+	setup.firebase = func() ([]firebaseProject, error) {
+		t.Error("the Firebase project list was requested")
+
+		return nil, nil
+	}
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(scripted.Asked) != 0 {
+		t.Errorf("asked %v", scripted.Asked)
+	}
+	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (root-project)" {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestBrowserFlowFindsAKeySavedIntoTheProjectFolder(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	setup, _ := newTestPushSetup(t, server, &prompt.Scripted{}, root)
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		testApnsKey(t, root)
+	}()
+
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(messaging.providers) != 2 {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestKeysInAGitRepositoryMustBeIgnored(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+	root := t.TempDir()
+	if err := exec.Command("git", "-C", root, "init", "-q").Run(); err != nil {
+		t.Skip("git init failed")
+	}
+	key := testApnsKey(t, root)
+
+	out := &bytes.Buffer{}
+	setup := &pushSetup{out: out, keyDirs: []string{root}}
+	setup.checkKeyLocation(key)
+	if !strings.Contains(out.String(), "AuthKey_KEY1234567.p8 is inside a git repository and not ignored") {
+		t.Errorf("output:\n%s", out.String())
+	}
+
+	writeFile(t, filepath.Join(root, ".gitignore"), "*.p8\n")
+	out.Reset()
+	setup.checkKeyLocation(key)
+	if out.Len() != 0 {
+		t.Errorf("warned for an ignored key:\n%s", out.String())
+	}
 }
