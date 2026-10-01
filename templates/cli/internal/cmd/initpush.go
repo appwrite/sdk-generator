@@ -852,6 +852,13 @@ func ensurePlistArrayValue(contents, key, value string) string {
 	if index := strings.Index(contents, marker); index >= 0 {
 		after := index + len(marker)
 		rest := contents[after:]
+		if empty := strings.Index(rest, "<array/>"); empty >= 0 && strings.TrimSpace(rest[:empty]) == "" {
+			keyIndent, _ := lineIndent(contents, index)
+			_, _, _, unit := topLevelDict(contents)
+			at := after + empty
+
+			return contents[:at] + "<array>\n" + keyIndent + unit + entry + "\n" + keyIndent + "</array>" + contents[at+len("<array/>"):]
+		}
 		open := strings.Index(rest, "<array>")
 		closing := strings.Index(rest, "</array>")
 		if open < 0 || closing < open || strings.TrimSpace(rest[:open]) != "" {

@@ -170,6 +170,12 @@ func TestEnsurePlistEdits(t *testing.T) {
 		t.Errorf("two-space array:\n%s", got)
 	}
 
+	selfClosing := "<plist version=\"1.0\">\n<dict>\n\t<key>UIBackgroundModes</key>\n\t<array/>\n</dict>\n</plist>\n"
+	got = ensurePlistArrayValue(selfClosing, "UIBackgroundModes", "remote-notification")
+	if got != "<plist version=\"1.0\">\n<dict>\n\t<key>UIBackgroundModes</key>\n\t<array>\n\t\t<string>remote-notification</string>\n\t</array>\n</dict>\n</plist>\n" {
+		t.Errorf("self-closing array:\n%s", got)
+	}
+
 	bare := "<plist version=\"1.0\">\n<dict>\n\t<key>Nested</key>\n\t<dict>\n\t</dict>\n</dict>\n</plist>\n"
 	got = ensurePlistArrayValue(bare, "UIBackgroundModes", "remote-notification")
 	if !strings.HasSuffix(got, "\t</dict>\n\t<key>UIBackgroundModes</key>\n\t<array>\n\t\t<string>remote-notification</string>\n\t</array>\n</dict>\n</plist>\n") {
