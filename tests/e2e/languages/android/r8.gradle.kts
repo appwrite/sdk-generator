@@ -55,6 +55,7 @@ afterEvaluate {
 
     val shrinkWithR8 = tasks.register<JavaExec>("shrinkWithR8") {
         dependsOn(packageR8Program, "extractProguardFiles")
+        inputs.file(r8Program)
         inputs.files(programDependencies, libraryDependencies, dependencyRules)
         inputs.files("consumer-rules.pro", "r8-rules.pro", "src/main/AndroidManifest.xml")
         outputs.file(r8Output)

@@ -244,6 +244,11 @@ abstract class Base extends TestCase
         'Push background opt-out:passed',
     ];
 
+    protected const ANDROID_COOKIE_STORE_RESPONSES = [
+        'Cookie store reload:passed',
+        'Cookie store saved format:passed',
+    ];
+
     // React Native and Flutter on Android: when a Push with another credential starts background
     // delivery, the Push that had it hears on onError that its background delivery stopped.
     protected const PUSH_NATIVE_DISPLACED_RESPONSES = [
