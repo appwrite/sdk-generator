@@ -756,6 +756,14 @@ func TestInitFcmUsesAKeyInTheProjectFolderBeforeAskingForAProject(t *testing.T) 
 	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (root-project)" {
 		t.Errorf("providers = %v", messaging.providers)
 	}
+
+	messaging.requests = nil
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(messaging.requests, ",") != "GET /messaging/providers" {
+		t.Errorf("rerun requests = %v", messaging.requests)
+	}
 }
 
 func TestBrowserFlowFindsAKeySavedIntoTheProjectFolder(t *testing.T) {
