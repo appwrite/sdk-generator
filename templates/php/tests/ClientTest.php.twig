@@ -177,6 +177,112 @@ final class ClientTest extends TestCase
         $this->assertSame('https://storage.example/file', $client->call(Client::METHOD_GET, '/redirect', responseType: 'location'));
     }
 
+    public function testSetFollowRedirectsReturnsClient(): void
+    {
+        $client = new Client();
+        $this->assertSame($client, $client->setFollowRedirects(false));
+    }
+
+    public function testSetResolveReturnsClient(): void
+    {
+        $client = new Client();
+        $this->assertSame($client, $client->setResolve(['example.com:443:192.0.2.1']));
+    }
+
+    public function testRedirectThrowsWhenRedirectsAreNotFollowed(): void
+    {
+        $transport = $this->createMock(ClientInterface::class);
+        $transport->expects($this->once())->method('sendRequest')
+            ->willReturn(new Response(302, body: new Stream('moved'))->withHeader('location', 'https://other.example/target'));
+
+        $client = new Client($transport)->setEndpoint('https://example.com')->setFollowRedirects(false);
+
+        try {
+            $client->call(Client::METHOD_GET, '/redirect');
+            $this->fail('A redirect response should throw when redirects are not followed.');
+        } catch ({{ namespace | split('\\') | last | caseUcfirst }}Exception $error) {
+            $this->assertSame('Redirects are not followed', $error->getMessage());
+            $this->assertSame(302, $error->getCode());
+        }
+    }
+
+    public function testLocationResponseIgnoresFollowRedirects(): void
+    {
+        $transport = $this->createMock(ClientInterface::class);
+        $transport->expects($this->once())->method('sendRequest')
+            ->willReturn(new Response(302)->withHeader('location', 'https://storage.example/file'));
+
+        $client = new Client($transport)->setEndpoint('https://example.com')->setFollowRedirects(false);
+
+        $this->assertSame('https://storage.example/file', $client->call(Client::METHOD_GET, '/redirect', responseType: 'location'));
+    }
+
+    public function testResolveSendsRequestToPinnedAddress(): void
+    {
+        $first = $this->listen('127.0.0.1', 0);
+        $port = $this->port($first);
+        $second = $this->listen('127.0.0.2', $port);
+
+        $client = new Client()
+            ->setEndpoint("http://pinned.invalid:{$port}")
+            ->setTimeout(1)
+            ->setResolve(["pinned.invalid:{$port}:127.0.0.1"]);
+
+        $this->send($client);
+        $this->assertStringContainsString("Host: pinned.invalid:{$port}\r\n", $this->receive($first));
+
+        $client->setResolve(["pinned.invalid:{$port}:127.0.0.2"]);
+
+        $this->send($client);
+        $this->assertStringContainsString("Host: pinned.invalid:{$port}\r\n", $this->receive($second));
+        $this->assertFalse(@stream_socket_accept($first, 0.2), 'The re-pinned request reached the previous address.');
+    }
+
+    /**
+     * @return resource
+     */
+    private function listen(string $address, int $port)
+    {
+        $listener = @stream_socket_server("tcp://{$address}:{$port}");
+
+        if ($listener === false) {
+            $this->markTestSkipped("Cannot listen on {$address}:{$port}.");
+        }
+
+        return $listener;
+    }
+
+    /**
+     * @param resource $listener
+     */
+    private function port($listener): int
+    {
+        $name = (string) stream_socket_get_name($listener, false);
+
+        return (int) substr($name, strrpos($name, ':') + 1);
+    }
+
+    private function send(Client $client): void
+    {
+        try {
+            $client->call(Client::METHOD_GET, '/pinned');
+        } catch ({{ namespace | split('\\') | last | caseUcfirst }}Exception) {
+            // The listener never answers.
+        }
+    }
+
+    /**
+     * @param resource $listener
+     */
+    private function receive($listener): string
+    {
+        $connection = stream_socket_accept($listener, 1);
+        $this->assertNotFalse($connection, 'No request reached the pinned address.');
+        stream_set_timeout($connection, 1);
+
+        return (string) fread($connection, 8192);
+    }
+
     private function httpClient(Client $client, bool $followRedirects): ClientInterface
     {
         $method = new ReflectionMethod(Client::class, 'getHttpClient');

@@ -55,7 +55,7 @@ $client = new Client(new PooledClient(new Pool(
 $client->setEndpoint('{{ spec | endpoint }}');
 ```
 
-Configure timeouts, TLS, redirects, and connection reuse on the injected transport. The SDK's `setTimeout()`, `setConnectTimeout()`, and `setSelfSigned()` methods only configure the default cURL transport. Endpoint, authentication, headers, request encoding, and response handling remain the SDK's responsibility. A transport used with `responseType: 'location'` must have redirect following disabled.
+Configure timeouts, TLS, redirects, and connection reuse on the injected transport. The SDK's `setTimeout()`, `setConnectTimeout()`, `setSelfSigned()`, and `setResolve()` methods only configure the default cURL transport. Endpoint, authentication, headers, request encoding, and response handling remain the SDK's responsibility. A transport used with `responseType: 'location'` must have redirect following disabled.
 
 {% if sdk.gettingStarted %}
 

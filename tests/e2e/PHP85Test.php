@@ -56,6 +56,8 @@ final class PHP85Test extends Base
         ...Base::ID_HELPER_RESPONSES,
         ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::ADDITIONAL_PROPERTIES_RESPONSES,
-        ...Base::OPERATOR_HELPER_RESPONSES
+        ...Base::OPERATOR_HELPER_RESPONSES,
+        'follow redirects disabled: passed',
+        'resolve pinned: passed',
     ];
 }

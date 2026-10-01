@@ -93,6 +93,13 @@ class Client
      */
     protected ?int $connectTimeout = null;
 
+    protected bool $followRedirects = true;
+
+    /**
+     * @var array<string>
+     */
+    protected array $resolve = [];
+
     /**
      * Reused Utopia HTTP client (follows redirects).
      *
@@ -226,6 +233,27 @@ class Client
         return $this;
     }
 
+    public function setFollowRedirects(bool $followRedirects): Client
+    {
+        $this->followRedirects = $followRedirects;
+
+        return $this;
+    }
+
+    /**
+     * Pin host names to addresses for the default cURL transport, as
+     * CURLOPT_RESOLVE entries in the form "host:port:address[,address]".
+     *
+     * @param array<string> $resolve
+     */
+    public function setResolve(array $resolve): Client
+    {
+        $this->resolve = array_values($resolve);
+        $this->resetHttpClient();
+
+        return $this;
+    }
+
     /**
      */
     public function addHeader(string $key, string $value): Client
@@ -289,6 +317,7 @@ class Client
             unset($headers['content-type']);
         }
         $uri = $this->endpoint . $path;
+        $followRedirects = $this->followRedirects && $responseType !== 'location';
 
         try {
             $request = match (true) {
@@ -318,7 +347,7 @@ class Client
                 ),
             };
 
-            $response = $this->getHttpClient($responseType !== 'location')->sendRequest($request);
+            $response = $this->getHttpClient($followRedirects)->sendRequest($request);
         } catch (ClientExceptionInterface|\JsonException $e) {
             throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception($e->getMessage(), (int) $e->getCode());
         }
@@ -332,6 +361,10 @@ class Client
             foreach (explode(';', $warnings) as $warning) {
                 \trigger_error($warning, E_USER_WARNING);
             }
+        }
+
+        if (!$this->followRedirects && $responseType !== 'location' && $responseStatus >= 300 && $responseStatus < 400) {
+            throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception('Redirects are not followed', $responseStatus, '', $responseBody);
         }
 
         if (str_starts_with($responseContentType, 'application/json')) {
@@ -450,10 +483,16 @@ class Client
 
     protected function createHttpClient(bool $followRedirects): HttpClient
     {
-        $adapter = new CurlAdapter(options: [
+        $options = [
             CURLOPT_TIMEOUT_MS => 0,
             CURLOPT_USERAGENT => php_uname('s') . '-' . php_uname('r') . ':{{ language.name | caseLower }}-' . phpversion(),
-        ])->withConnectionReuse();
+        ];
+
+        if ($this->resolve !== []) {
+            $options[CURLOPT_RESOLVE] = $this->resolve;
+        }
+
+        $adapter = new CurlAdapter(options: $options)->withConnectionReuse();
 
         $client = new HttpClient($adapter)->withFollowRedirects($followRedirects);
 

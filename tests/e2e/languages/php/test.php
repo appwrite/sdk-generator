@@ -471,3 +471,24 @@ echo Operator::dateSetNow() . "\n";
 
 $response = $general->headers();
 echo $response->result . "\n";
+
+try {
+    $redirect = (new Client())
+        ->setProject('console')
+        ->setFollowRedirects(false)
+        ->call(Client::METHOD_GET, '/mock/tests/general/redirect');
+    echo 'follow redirects disabled: failed (' . json_encode($redirect) . ")\n";
+} catch (AppwriteException $e) {
+    echo 'follow redirects disabled: ' . ($e->getCode() === 301 ? 'passed' : "failed ({$e->getCode()})") . "\n";
+}
+
+try {
+    $pinned = (new Client())
+        ->setProject('console')
+        ->setEndpoint('http://pinned.invalid/v1')
+        ->setResolve(['pinned.invalid:80:' . gethostbyname('mockapi')])
+        ->call(Client::METHOD_GET, '/mock/tests/general/redirect/done');
+    echo 'resolve pinned: ' . (($pinned['result'] ?? null) === 'GET:/v1/mock/tests/general/redirect/done:passed' ? 'passed' : 'failed (' . json_encode($pinned) . ')') . "\n";
+} catch (AppwriteException $e) {
+    echo "resolve pinned: failed ({$e->getCode()})\n";
+}
