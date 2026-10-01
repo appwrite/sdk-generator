@@ -1128,6 +1128,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/cmd/initpushdetect.go',
+                'template'      => 'cli/internal/cmd/initpushdetect.go',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pull.go',
                 'template'      => 'cli/internal/cmd/pull.go',
             ],
