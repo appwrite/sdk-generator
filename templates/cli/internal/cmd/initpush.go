@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
@@ -14,6 +15,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -27,11 +29,13 @@ import (
 )
 
 const (
-	apnsKeyPage        = "https://developer.apple.com/account/resources/authkeys/add"
-	fcmServiceAccounts = "https://console.firebase.google.com/project/%s/settings/serviceaccounts/adminsdk"
-	fcmSetupGuide      = "https://firebase.google.com/docs/android/setup#add-config-file"
-	downloadTimeout    = 15 * time.Minute
-	downloadPoll       = time.Second
+	apnsKeyPage         = "https://developer.apple.com/account/resources/authkeys/add"
+	fcmConsole          = "https://console.firebase.google.com/"
+	fcmServiceAccounts  = "https://console.firebase.google.com/project/%s/settings/serviceaccounts/adminsdk"
+	fcmSetupGuide       = "https://firebase.google.com/docs/android/setup#add-config-file"
+	downloadTimeout     = 15 * time.Minute
+	downloadPoll        = time.Second
+	firebaseListTimeout = 30 * time.Second
 )
 
 var (
@@ -59,6 +63,7 @@ type pushSetup struct {
 	root      string
 	downloads string
 	open      func(string)
+	firebase  func() ([]firebaseProject, error)
 }
 
 func newPushSetup(command *cobra.Command) (*pushSetup, error) {
@@ -79,6 +84,7 @@ func newPushSetup(command *cobra.Command) (*pushSetup, error) {
 		root:      ".",
 		downloads: downloads,
 		open:      openBrowser,
+		firebase:  listFirebaseProjects,
 	}, nil
 }
 
@@ -360,7 +366,7 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 
 	keyPath := options.keyPath
 	if keyPath == "" {
-		keyPath, err = s.acquireKey("APNs auth key (.p8)", "--key-path", apnsKeyPage,
+		keyPath, err = s.acquireKey("APNs auth key (.p8)", "Create one in the Apple Developer portal", "--key-path", apnsKeyPage,
 			"In the Apple Developer portal, create a key with Apple Push Notifications service (APNs) enabled and download it.",
 			func(path string) bool {
 				_, err := readApnsKey(path)
@@ -474,33 +480,48 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 		projectID = keyProject
 	}
 
-	if projectID == "" {
+	if projectID == "" && len(candidates) > 1 {
 		var err error
 		projectID, err = s.pick("", candidates, "Which Firebase project should send push notifications?", "--project-id", requiredValue("project ID"))
 		if err != nil {
 			return err
 		}
 	}
-
-	existing, err := s.providers("fcm")
-	if err != nil {
-		return err
+	if projectID == "" && account == nil {
+		var err error
+		projectID, err = s.chooseFirebaseProject()
+		if err != nil {
+			return err
+		}
 	}
-	current := findProvider(existing, func(provider messagingProvider) bool {
-		return provider.projectID() == projectID
-	})
-	if current != nil && current.Enabled && keyPath == "" && !app.Flags().Force {
-		output.Success(s.out, "FCM is already set up for Firebase project %s.", projectID)
-		output.Hint(s.out, "Pass --force or --key-path to replace the service account key.")
-		s.gradleHints(detected)
 
-		return nil
+	var current *messagingProvider
+	if projectID != "" {
+		existing, err := s.providers("fcm")
+		if err != nil {
+			return err
+		}
+		current = findProvider(existing, func(provider messagingProvider) bool {
+			return provider.projectID() == projectID
+		})
+		if current != nil && current.Enabled && keyPath == "" && !app.Flags().Force {
+			output.Success(s.out, "FCM is already set up for Firebase project %s.", projectID)
+			output.Hint(s.out, "Pass --force or --key-path to replace the service account key.")
+			s.gradleHints(detected)
+
+			return nil
+		}
 	}
 
 	if account == nil {
-		keyPath, err = s.acquireKey("Firebase service account key (.json)", "--key-path",
-			fmt.Sprintf(fcmServiceAccounts, url.PathEscape(projectID)),
-			"In the Firebase console, click 'Generate new private key' and download the file.",
+		page := fcmConsole
+		instructions := "In the Firebase console, open your project (or create one), then go to Project settings > Service accounts and click 'Generate new private key'."
+		if projectID != "" {
+			page = fmt.Sprintf(fcmServiceAccounts, url.PathEscape(projectID))
+			instructions = "In the Firebase console, click 'Generate new private key' and download the file."
+		}
+		path, err := s.acquireKey("Firebase service account key (.json)", "Get one from the Firebase console", "--key-path",
+			page, instructions,
 			func(path string) bool {
 				_, err := readServiceAccount(path, projectID)
 
@@ -509,10 +530,24 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 		if err != nil {
 			return err
 		}
-		account, err = readServiceAccount(keyPath, projectID)
+		account, err = readServiceAccount(path, projectID)
 		if err != nil {
 			return err
 		}
+		if projectID == "" {
+			projectID = account["project_id"].(string)
+			output.Log(s.out, "Using Firebase project %s from the downloaded key.", projectID)
+		}
+	}
+
+	if current == nil {
+		existing, err := s.providers("fcm")
+		if err != nil {
+			return err
+		}
+		current = findProvider(existing, func(provider messagingProvider) bool {
+			return provider.projectID() == projectID
+		})
 	}
 
 	body := map[string]any{
@@ -530,11 +565,11 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 	return nil
 }
 
-func (s *pushSetup) acquireKey(what, flag, page, instructions string, accept func(string) bool) (string, error) {
+func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions string, accept func(string) bool) (string, error) {
 	method, err := s.prompter.Choice(prompt.Choice{
 		Message: fmt.Sprintf("How would you like to provide the %s?", what),
 		Options: []prompt.Option{
-			{Label: "Create one in the browser", Value: "browser"},
+			{Label: browserLabel, Value: "browser"},
 			{Label: "Use a file I already have", Value: "file"},
 		},
 		Default: "browser",
@@ -574,6 +609,72 @@ func (s *pushSetup) acquireKey(what, flag, page, instructions string, accept fun
 	output.Log(s.out, "Found %s", path)
 
 	return path, nil
+}
+
+type firebaseProject struct {
+	ProjectID   string `json:"projectId"`
+	DisplayName string `json:"displayName"`
+}
+
+func listFirebaseProjects() ([]firebaseProject, error) {
+	binary, err := exec.LookPath("firebase")
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), firebaseListTimeout)
+	defer cancel()
+	raw, err := exec.CommandContext(ctx, binary, "projects:list", "--json", "--non-interactive").Output()
+	if err != nil {
+		return nil, err
+	}
+	var listed struct {
+		Status string            `json:"status"`
+		Result []firebaseProject `json:"result"`
+	}
+	if err := json.Unmarshal(raw, &listed); err != nil {
+		return nil, err
+	}
+	if listed.Status != "success" {
+		return nil, errors.New("firebase projects:list did not succeed")
+	}
+
+	return listed.Result, nil
+}
+
+func (s *pushSetup) chooseFirebaseProject() (string, error) {
+	output.Log(s.out, "No Firebase configuration found in this project.")
+	if s.firebase == nil {
+		return "", nil
+	}
+	projects, err := s.firebase()
+	if err != nil || len(projects) == 0 {
+		return "", nil
+	}
+
+	options := make([]prompt.Option, 0, len(projects)+1)
+	for _, project := range projects {
+		label := project.ProjectID
+		if project.DisplayName != "" && project.DisplayName != project.ProjectID {
+			label = project.DisplayName + " (" + project.ProjectID + ")"
+		}
+		options = append(options, prompt.Option{Label: label, Value: project.ProjectID})
+	}
+	options = append(options, prompt.Option{Label: "Another project (choose it in the Firebase console)", Value: ""})
+
+	projectID, err := s.prompter.Choice(prompt.Choice{
+		Message: "Which Firebase project should send push notifications?",
+		Options: options,
+		Default: projects[0].ProjectID,
+		Filter:  len(options) > 8,
+	})
+	if errors.Is(err, prompt.ErrAborted) {
+		return "", err
+	}
+	if err != nil {
+		return "", nil
+	}
+
+	return projectID, nil
 }
 
 func waitForDownload(directory string, since time.Time, accept func(string) bool, timeout, poll time.Duration) (string, error) {
