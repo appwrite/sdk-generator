@@ -18,6 +18,14 @@ class Query(
      */
     override fun toString() = this.toJson()
 
+    fun toMap(): Map<String, Any?> = mapOf(
+        "method" to method,
+        "attribute" to attribute,
+        "values" to values,
+    ).filterValues { it != null }
+
+    fun toJson(): String = toMap().toJson()
+
     companion object {
 
         /**
@@ -350,7 +358,7 @@ class Query(
          * @param queries The list of query strings to combine.
          * @returns The query string.
          */
-        fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Query>() }).toJson()
+        fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Map<String, Any>>() }).toJson()
 
         /**
          * Combine multiple queries using logical AND operator.
@@ -358,7 +366,7 @@ class Query(
          * @param queries The list of query strings to combine.
          * @returns The query string.
          */
-        fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Query>() }).toJson()
+        fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Map<String, Any>>() }).toJson()
 
         /**
          * Filter array elements where at least one element matches all the specified queries.
@@ -367,7 +375,7 @@ class Query(
          * @param queries The list of query strings to match against array elements.
          * @returns The query string.
          */
-        fun elemMatch(attribute: String, queries: List<String>) = Query("elemMatch", attribute, queries.map { it.fromJson<Query>() }).toJson()
+        fun elemMatch(attribute: String, queries: List<String>) = Query("elemMatch", attribute, queries.map { it.fromJson<Map<String, Any>>() }).toJson()
 
         /**
          * Filter resources where attribute is at a specific distance from the given coordinates.
