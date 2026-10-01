@@ -26,11 +26,13 @@ final class Android16Java17Test extends Base
     protected array $build = [
         'mkdir -p tests/e2e/sdks/android/library/src/test/java',
         'cp tests/e2e/languages/android/Tests.kt tests/e2e/sdks/android/library/src/test/java/Tests.kt',
+        'cp tests/e2e/languages/android/r8-rules.pro tests/e2e/sdks/android/library/r8-rules.pro',
+        'cat tests/e2e/languages/android/r8.gradle.kts >> tests/e2e/sdks/android/library/build.gradle.kts',
         'chmod +x tests/e2e/sdks/android/gradlew',
     ];
     #[Override]
     protected string $command =
-        'docker run --rm --network="mockapi" -v $(pwd):/app -w /app/tests/e2e/sdks/android alvrme/alpine-android:android-CinnamonBun-jdk17 sh -c "./gradlew :library:testDebugUnitTest --stacktrace 1>&2 && cat library/result.txt"';
+        'docker run --rm --network="mockapi" -v $(pwd):/app -w /app/tests/e2e/sdks/android alvrme/alpine-android:android-CinnamonBun-jdk17 sh -c "./gradlew :library:testR8UnitTest --stacktrace 1>&2 && cat library/result.txt"';
 
     #[Override]
     protected array $expectedOutput = [

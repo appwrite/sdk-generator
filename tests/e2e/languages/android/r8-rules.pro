@@ -1,0 +1,4 @@
+-keep class io.appwrite.ServiceTest { *; }
+-keep class io.appwrite.E2EPushReceiver { <init>(); }
+-keep class io.appwrite.TestPayload { *; }
+-dontwarn android.content.pm.**

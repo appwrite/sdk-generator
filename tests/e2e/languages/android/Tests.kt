@@ -753,7 +753,7 @@ class ServiceTest {
                 wakeUp.send()
             }
             val deadline = System.currentTimeMillis() + 10_000
-            while (E2EPushReceiver.messages.isEmpty() && System.currentTimeMillis() < deadline) {
+            while ((E2EPushReceiver.messages.isEmpty() || org.robolectric.Shadows.shadowOf(notifications).allNotifications.isEmpty()) && System.currentTimeMillis() < deadline) {
                 org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
                 Thread.sleep(100)
             }
