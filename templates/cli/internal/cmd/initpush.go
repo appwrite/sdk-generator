@@ -1,0 +1,879 @@
+//go:build !browser
+
+package cmd
+
+import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/json"
+	"encoding/pem"
+	"errors"
+	"fmt"
+	"io"
+	"net/url"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
+
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
+	"github.com/spf13/cobra"
+)
+
+const (
+	apnsKeyPage        = "https://developer.apple.com/account/resources/authkeys/add"
+	fcmServiceAccounts = "https://console.firebase.google.com/project/%s/settings/serviceaccounts/adminsdk"
+	fcmSetupGuide      = "https://firebase.google.com/docs/android/setup#add-config-file"
+	downloadTimeout    = 15 * time.Minute
+	downloadPoll       = time.Second
+)
+
+var (
+	apnsKeyFileName = regexp.MustCompile(`^AuthKey_([A-Z0-9]{10})\.p8$`)
+	apnsKeyID       = regexp.MustCompile(`^[A-Z0-9]{10}$`)
+)
+
+type apnsOptions struct {
+	keyPath  string
+	keyID    string
+	teamID   string
+	bundleID string
+}
+
+type fcmOptions struct {
+	keyPath       string
+	projectID     string
+	applicationID string
+}
+
+type pushSetup struct {
+	api       *client.Client
+	prompter  prompt.Prompter
+	out       io.Writer
+	root      string
+	downloads string
+	open      func(string)
+}
+
+func newPushSetup(command *cobra.Command) (*pushSetup, error) {
+	context, err := newPushContext()
+	if err != nil {
+		return nil, err
+	}
+
+	downloads := ""
+	if home, err := os.UserHomeDir(); err == nil {
+		downloads = filepath.Join(home, "Downloads")
+	}
+
+	return &pushSetup{
+		api:       context.api,
+		prompter:  context.prompter,
+		out:       command.OutOrStdout(),
+		root:      ".",
+		downloads: downloads,
+		open:      openBrowser,
+	}, nil
+}
+
+func newInitApnsCommand() *cobra.Command {
+	options := apnsOptions{}
+	command := &cobra.Command{
+		Use:   "apns",
+		Short: "Set up Apple Push Notification service for Appwrite Push",
+		RunE: func(command *cobra.Command, args []string) error {
+			setup, err := newPushSetup(command)
+			if err != nil {
+				return err
+			}
+			detected, err := detectApple(setup.root)
+			if err != nil {
+				return err
+			}
+
+			return setup.apns(options, detected)
+		},
+	}
+
+	flags := command.Flags()
+	flags.StringVar(&options.keyPath, "key-path", "", "Path to an APNs auth key (.p8)")
+	flags.StringVar(&options.keyID, "key-id", "", "APNs key ID")
+	flags.StringVar(&options.teamID, "team-id", "", "Apple Developer team ID")
+	flags.StringVar(&options.bundleID, "bundle-id", "", "iOS app bundle ID")
+
+	return command
+}
+
+func newInitFcmCommand() *cobra.Command {
+	options := fcmOptions{}
+	command := &cobra.Command{
+		Use:   "fcm",
+		Short: "Set up Firebase Cloud Messaging for Appwrite Push",
+		RunE: func(command *cobra.Command, args []string) error {
+			setup, err := newPushSetup(command)
+			if err != nil {
+				return err
+			}
+			detected, err := detectAndroid(setup.root)
+			if err != nil {
+				return err
+			}
+
+			return setup.fcm(options, detected)
+		},
+	}
+
+	flags := command.Flags()
+	flags.StringVar(&options.keyPath, "key-path", "", "Path to a Firebase service account JSON file")
+	flags.StringVar(&options.projectID, "project-id", "", "Firebase project ID")
+	flags.StringVar(&options.applicationID, "application-id", "", "Android application ID")
+
+	return command
+}
+
+func newInitPushCommand() *cobra.Command {
+	var skipApns, skipFcm bool
+	command := &cobra.Command{
+		Use:   "push",
+		Short: "Set up background delivery for Appwrite Push on every platform in this project",
+		RunE: func(command *cobra.Command, args []string) error {
+			setup, err := newPushSetup(command)
+			if err != nil {
+				return err
+			}
+
+			return setup.push(skipApns, skipFcm)
+		},
+	}
+
+	command.Flags().BoolVar(&skipApns, "skip-apns", false, "Do not set up APNs")
+	command.Flags().BoolVar(&skipFcm, "skip-fcm", false, "Do not set up FCM")
+
+	return command
+}
+
+func (s *pushSetup) push(skipApns, skipFcm bool) error {
+	apple, err := detectApple(s.root)
+	if err != nil {
+		return err
+	}
+	android, err := detectAndroid(s.root)
+	if err != nil {
+		return err
+	}
+
+	runApns := apple.found() && !skipApns
+	runFcm := android.found() && !skipFcm
+
+	fmt.Fprintln(s.out, output.Heading("Detected"))
+	fmt.Fprintf(s.out, "  iOS      %s\n", describeApple(apple, skipApns))
+	fmt.Fprintf(s.out, "  Android  %s\n\n", describeAndroid(android, skipFcm))
+
+	if !runApns && !runFcm {
+		output.Log(s.out, "No iOS or Android app found here.")
+		output.Hint(s.out, "Run '%s init apns' or '%s init fcm' with --key-path to set up a platform directly.",
+			app.ExecutableName, app.ExecutableName)
+
+		return nil
+	}
+
+	var failures []string
+	if runApns {
+		if err := s.apns(apnsOptions{}, apple); err != nil {
+			s.reportStep("APNs", "apns", err)
+			failures = append(failures, "APNs")
+		}
+	}
+	if runFcm {
+		if runApns {
+			fmt.Fprintln(s.out)
+		}
+		if err := s.fcm(fcmOptions{}, android); err != nil {
+			s.reportStep("FCM", "fcm", err)
+			failures = append(failures, "FCM")
+		}
+	}
+
+	if len(failures) > 0 {
+		return fmt.Errorf("%s setup did not finish", strings.Join(failures, " and "))
+	}
+
+	return nil
+}
+
+func (s *pushSetup) reportStep(name, command string, err error) {
+	if errors.Is(err, prompt.ErrAborted) {
+		return
+	}
+	var unanswered *prompt.NonInteractiveError
+	if errors.As(err, &unanswered) && unanswered.Flag != "" {
+		output.Failure(s.out, "%s: %q needs an answer but there is no interactive terminal", name, unanswered.Message)
+		output.Hint(s.out, "Run '%s init %s %s <value>' instead.", app.ExecutableName, command, unanswered.Flag)
+
+		return
+	}
+	output.Failure(s.out, "%s: %s", name, err)
+}
+
+func describeApple(apple appleApp, skipped bool) string {
+	switch {
+	case !apple.found():
+		return "not found"
+	case skipped:
+		return "skipped (--skip-apns)"
+	case len(apple.BundleIDs) == 0:
+		return "found, bundle ID unknown"
+	}
+
+	return strings.Join(apple.BundleIDs, ", ")
+}
+
+func describeAndroid(android androidApp, skipped bool) string {
+	switch {
+	case !android.found():
+		return "not found"
+	case skipped:
+		return "skipped (--skip-fcm)"
+	}
+
+	description := strings.Join(android.ApplicationIDs, ", ")
+	if description == "" {
+		description = "found, application ID unknown"
+	}
+	if android.ProjectID != "" {
+		description += " (Firebase project " + android.ProjectID + ")"
+	}
+
+	return description
+}
+
+func (s *pushSetup) pick(value string, detected []string, question, flag string, validate func(string) error) (string, error) {
+	if value != "" {
+		if validate != nil {
+			if err := validate(value); err != nil {
+				return "", fmt.Errorf("%s: %w", flag, err)
+			}
+		}
+
+		return value, nil
+	}
+	if len(detected) == 1 {
+		return detected[0], nil
+	}
+	if len(detected) > 1 {
+		return s.prompter.Choice(prompt.Choice{
+			Message: question,
+			Options: prompt.Options(detected...),
+			Flag:    flag,
+		})
+	}
+
+	return s.prompter.Text(prompt.Text{
+		Message:  question,
+		Flag:     flag,
+		Validate: validate,
+	})
+}
+
+func requiredValue(name string) func(string) error {
+	return func(value string) error {
+		if strings.TrimSpace(value) == "" {
+			return fmt.Errorf("%s is required", name)
+		}
+
+		return nil
+	}
+}
+
+func matchesPattern(pattern *regexp.Regexp, description string) func(string) error {
+	return func(value string) error {
+		if !pattern.MatchString(value) {
+			return fmt.Errorf("%s", description)
+		}
+
+		return nil
+	}
+}
+
+func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
+	output.Log(s.out, "Setting up APNs ...")
+
+	bundleID, err := s.pick(options.bundleID, detected.BundleIDs,
+		"Which iOS bundle ID should receive push notifications?", "--bundle-id", requiredValue("bundle ID"))
+	if err != nil {
+		return err
+	}
+
+	existing, err := s.providers("apns")
+	if err != nil {
+		return err
+	}
+	production := findProvider(existing, func(provider messagingProvider) bool {
+		return provider.credential("bundleId") == bundleID && !provider.sandbox()
+	})
+	sandbox := findProvider(existing, func(provider messagingProvider) bool {
+		return provider.credential("bundleId") == bundleID && provider.sandbox()
+	})
+	if production != nil && sandbox != nil && production.Enabled && sandbox.Enabled && options.keyPath == "" && !app.Flags().Force {
+		output.Success(s.out, "APNs is already set up for %s.", bundleID)
+		output.Hint(s.out, "Pass --force or --key-path to replace the key.")
+		s.configureXcode(detected)
+
+		return nil
+	}
+
+	teams := detected.TeamIDs
+	for _, provider := range []*messagingProvider{production, sandbox} {
+		if provider != nil && len(teams) == 0 && appleTeamID.MatchString(provider.credential("teamId")) {
+			teams = []string{provider.credential("teamId")}
+		}
+	}
+	teamID, err := s.pick(options.teamID, teams,
+		"What is your Apple Developer team ID?", "--team-id",
+		matchesPattern(appleTeamID, "a team ID is 10 uppercase letters or digits"))
+	if err != nil {
+		return err
+	}
+
+	keyPath := options.keyPath
+	if keyPath == "" {
+		keyPath, err = s.acquireKey("APNs auth key (.p8)", "--key-path", apnsKeyPage,
+			"In the Apple Developer portal, create a key with Apple Push Notifications service (APNs) enabled and download it.",
+			func(path string) bool {
+				_, err := readApnsKey(path)
+
+				return apnsKeyFileName.MatchString(filepath.Base(path)) && err == nil
+			})
+		if err != nil {
+			return err
+		}
+	}
+
+	key, err := readApnsKey(keyPath)
+	if err != nil {
+		return err
+	}
+
+	keyID := options.keyID
+	if keyID == "" {
+		if match := apnsKeyFileName.FindStringSubmatch(filepath.Base(keyPath)); match != nil {
+			keyID = match[1]
+		}
+	}
+	keyID, err = s.pick(keyID, nil, "What is the key ID of this APNs key?", "--key-id",
+		matchesPattern(apnsKeyID, "a key ID is 10 uppercase letters or digits"))
+	if err != nil {
+		return err
+	}
+
+	for _, environment := range []struct {
+		sandbox  bool
+		name     string
+		existing *messagingProvider
+	}{
+		{false, "APNs (" + bundleID + ")", production},
+		{true, "APNs sandbox (" + bundleID + ")", sandbox},
+	} {
+		body := map[string]any{
+			"name":      environment.name,
+			"authKey":   key,
+			"authKeyId": keyID,
+			"teamId":    teamID,
+			"bundleId":  bundleID,
+			"sandbox":   environment.sandbox,
+			"enabled":   true,
+		}
+		if err := s.upsertProvider("apns", environment.existing, body); err != nil {
+			return err
+		}
+	}
+
+	s.configureXcode(detected)
+	output.Success(s.out, "APNs is set up for %s.", bundleID)
+
+	return nil
+}
+
+func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
+	output.Log(s.out, "Setting up FCM ...")
+
+	if options.applicationID != "" || len(detected.ApplicationIDs) > 0 {
+		applicationID, err := s.pick(options.applicationID, detected.ApplicationIDs,
+			"Which Android application ID should receive push notifications?", "--application-id", requiredValue("application ID"))
+		if err != nil {
+			return err
+		}
+		if len(detected.FirebasePackages) > 0 && !contains(detected.FirebasePackages, applicationID) {
+			return fmt.Errorf("%s has no Android app with the application ID %s (it has %s). Add the app in the Firebase console and download google-services.json again",
+				detected.GoogleServices, applicationID, strings.Join(detected.FirebasePackages, ", "))
+		}
+	}
+
+	projectID := options.projectID
+	if projectID == "" {
+		projectID = detected.ProjectID
+	}
+	if options.projectID != "" && detected.ProjectID != "" && options.projectID != detected.ProjectID {
+		return fmt.Errorf("--project-id is %s but %s belongs to %s",
+			options.projectID, detected.ProjectIDSource, detected.ProjectID)
+	}
+
+	var account map[string]any
+	keyPath := options.keyPath
+	if keyPath != "" {
+		parsed, err := readServiceAccount(keyPath, projectID)
+		if err != nil {
+			return err
+		}
+		account = parsed
+		projectID = parsed["project_id"].(string)
+	}
+
+	if projectID == "" {
+		var err error
+		projectID, err = s.pick("", nil, "What is your Firebase project ID?", "--project-id", requiredValue("project ID"))
+		if err != nil {
+			return err
+		}
+	}
+
+	existing, err := s.providers("fcm")
+	if err != nil {
+		return err
+	}
+	current := findProvider(existing, func(provider messagingProvider) bool {
+		return provider.projectID() == projectID
+	})
+	if current != nil && current.Enabled && keyPath == "" && !app.Flags().Force {
+		output.Success(s.out, "FCM is already set up for Firebase project %s.", projectID)
+		output.Hint(s.out, "Pass --force or --key-path to replace the service account key.")
+		s.gradleHints(detected)
+
+		return nil
+	}
+
+	if account == nil {
+		keyPath, err = s.acquireKey("Firebase service account key (.json)", "--key-path",
+			fmt.Sprintf(fcmServiceAccounts, url.PathEscape(projectID)),
+			"In the Firebase console, click 'Generate new private key' and download the file.",
+			func(path string) bool {
+				_, err := readServiceAccount(path, projectID)
+
+				return strings.HasSuffix(path, ".json") && err == nil
+			})
+		if err != nil {
+			return err
+		}
+		account, err = readServiceAccount(keyPath, projectID)
+		if err != nil {
+			return err
+		}
+	}
+
+	body := map[string]any{
+		"name":               "FCM (" + projectID + ")",
+		"serviceAccountJSON": account,
+		"enabled":            true,
+	}
+	if err := s.upsertProvider("fcm", current, body); err != nil {
+		return err
+	}
+
+	s.gradleHints(detected)
+	output.Success(s.out, "FCM is set up for Firebase project %s.", projectID)
+
+	return nil
+}
+
+func (s *pushSetup) acquireKey(what, flag, page, instructions string, accept func(string) bool) (string, error) {
+	method, err := s.prompter.Choice(prompt.Choice{
+		Message: fmt.Sprintf("How would you like to provide the %s?", what),
+		Options: []prompt.Option{
+			{Label: "Create one in the browser", Value: "browser"},
+			{Label: "Use a file I already have", Value: "file"},
+		},
+		Default: "browser",
+		Flag:    flag,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if method == "file" {
+		return s.prompter.Text(prompt.Text{
+			Message: fmt.Sprintf("Path to the %s", what),
+			Flag:    flag,
+			Validate: func(path string) error {
+				if _, err := os.Stat(expandHome(path)); err != nil {
+					return fmt.Errorf("no file at %s", path)
+				}
+
+				return nil
+			},
+		})
+	}
+
+	if s.downloads == "" {
+		return "", fmt.Errorf("cannot find your Downloads folder. Pass %s instead", flag)
+	}
+
+	output.Log(s.out, "%s", instructions)
+	output.Log(s.out, "Opening %s", page)
+	s.open(page)
+	output.Log(s.out, "Waiting for the file in %s (Ctrl-C to cancel) ...", s.downloads)
+
+	path, err := waitForDownload(s.downloads, time.Now(), accept, downloadTimeout, downloadPoll)
+	if err != nil {
+		return "", err
+	}
+	output.Log(s.out, "Found %s", path)
+
+	return path, nil
+}
+
+func waitForDownload(directory string, since time.Time, accept func(string) bool, timeout, poll time.Duration) (string, error) {
+	seen := map[string]time.Time{}
+	if entries, err := os.ReadDir(directory); err == nil {
+		for _, entry := range entries {
+			if info, err := entry.Info(); err == nil && info.ModTime().Before(since) {
+				seen[entry.Name()] = info.ModTime()
+			}
+		}
+	}
+
+	deadline := time.Now().Add(timeout)
+	for {
+		entries, err := os.ReadDir(directory)
+		if err != nil {
+			return "", err
+		}
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+			info, err := entry.Info()
+			if err != nil {
+				continue
+			}
+			if previous, ok := seen[entry.Name()]; ok && !info.ModTime().After(previous) {
+				continue
+			}
+			path := filepath.Join(directory, entry.Name())
+			if accept(path) {
+				return path, nil
+			}
+		}
+		if time.Now().After(deadline) {
+			return "", fmt.Errorf("no matching file appeared in %s within %s", directory, timeout)
+		}
+		time.Sleep(poll)
+	}
+}
+
+func expandHome(path string) string {
+	if strings.HasPrefix(path, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, path[2:])
+		}
+	}
+
+	return path
+}
+
+func readApnsKey(path string) (string, error) {
+	contents, err := os.ReadFile(expandHome(path))
+	if err != nil {
+		return "", err
+	}
+	block, _ := pem.Decode(contents)
+	if block == nil || block.Type != "PRIVATE KEY" {
+		return "", fmt.Errorf("%s is not an APNs auth key: expected a PEM 'PRIVATE KEY' block", path)
+	}
+	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("%s is not an APNs auth key: %w", path, err)
+	}
+	ecKey, ok := key.(*ecdsa.PrivateKey)
+	if !ok || ecKey.Curve != elliptic.P256() {
+		return "", fmt.Errorf("%s is not an APNs auth key: expected a P-256 elliptic curve key", path)
+	}
+
+	return string(contents), nil
+}
+
+func readServiceAccount(path, projectID string) (map[string]any, error) {
+	contents, err := os.ReadFile(expandHome(path))
+	if err != nil {
+		return nil, err
+	}
+	var account map[string]any
+	if err := json.Unmarshal(contents, &account); err != nil {
+		return nil, fmt.Errorf("%s is not valid JSON: %w", path, err)
+	}
+
+	field := func(name string) string {
+		value, _ := account[name].(string)
+
+		return value
+	}
+	if field("type") != "service_account" {
+		return nil, fmt.Errorf("%s is not a service account key: 'type' must be 'service_account'", path)
+	}
+	for _, name := range []string{"project_id", "client_email", "private_key"} {
+		if field(name) == "" {
+			return nil, fmt.Errorf("%s is not a service account key: '%s' is missing", path, name)
+		}
+	}
+	block, _ := pem.Decode([]byte(field("private_key")))
+	if block == nil {
+		return nil, fmt.Errorf("%s has an unreadable 'private_key'", path)
+	}
+	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("%s has an unreadable 'private_key': %w", path, err)
+	}
+	if _, ok := key.(*rsa.PrivateKey); !ok {
+		return nil, fmt.Errorf("%s has a 'private_key' that is not an RSA key", path)
+	}
+	if projectID != "" && field("project_id") != projectID {
+		return nil, fmt.Errorf("%s belongs to Firebase project %s, not %s", path, field("project_id"), projectID)
+	}
+
+	return account, nil
+}
+
+type messagingProvider struct {
+	ID          string         `json:"$id"`
+	Name        string         `json:"name"`
+	Provider    string         `json:"provider"`
+	Enabled     bool           `json:"enabled"`
+	Credentials map[string]any `json:"credentials"`
+	Options     map[string]any `json:"options"`
+}
+
+func (p messagingProvider) credential(name string) string {
+	value, _ := p.Credentials[name].(string)
+
+	return value
+}
+
+func (p messagingProvider) sandbox() bool {
+	value, _ := p.Options["sandbox"].(bool)
+
+	return value
+}
+
+func (p messagingProvider) projectID() string {
+	account, _ := p.Credentials["serviceAccountJSON"].(map[string]any)
+	value, _ := account["project_id"].(string)
+
+	return value
+}
+
+func findProvider(providers []messagingProvider, match func(messagingProvider) bool) *messagingProvider {
+	for index := range providers {
+		if match(providers[index]) {
+			return &providers[index]
+		}
+	}
+
+	return nil
+}
+
+func (s *pushSetup) providers(kind string) ([]messagingProvider, error) {
+	query := url.Values{"queries[]": []string{
+		`{"method":"equal","attribute":"provider","values":["` + kind + `"]}`,
+		`{"method":"limit","values":[100]}`,
+	}}
+	var list struct {
+		Providers []messagingProvider `json:"providers"`
+	}
+	if err := s.api.Call("GET", "/messaging/providers?"+query.Encode(), nil, &list); err != nil {
+		return nil, fmt.Errorf("could not list messaging providers: %w", err)
+	}
+
+	return list.Providers, nil
+}
+
+func (s *pushSetup) upsertProvider(kind string, existing *messagingProvider, body map[string]any) error {
+	var saved messagingProvider
+	if existing == nil {
+		body["providerId"] = "unique()"
+		if err := s.api.Call("POST", "/messaging/providers/"+kind, body, &saved); err != nil {
+			return fmt.Errorf("could not create %s: %w", body["name"], err)
+		}
+		output.Success(s.out, "Created provider %s ( %s )", saved.Name, saved.ID)
+
+		return nil
+	}
+
+	if err := s.api.Call("PATCH", "/messaging/providers/"+kind+"/"+url.PathEscape(existing.ID), body, &saved); err != nil {
+		return fmt.Errorf("could not update %s: %w", existing.Name, err)
+	}
+	output.Success(s.out, "Updated provider %s ( %s )", saved.Name, saved.ID)
+
+	return nil
+}
+
+func (s *pushSetup) configureXcode(detected appleApp) {
+	for _, path := range detected.Entitlements {
+		changed, err := editPlist(path, func(contents string) string {
+			return ensurePlistString(contents, "aps-environment", "development")
+		})
+		s.reportEdit(path, "aps-environment", changed, err)
+	}
+	for _, path := range detected.InfoPlists {
+		changed, err := editPlist(path, func(contents string) string {
+			return ensurePlistArrayValue(contents, "UIBackgroundModes", "remote-notification")
+		})
+		s.reportEdit(path, "the remote-notification background mode", changed, err)
+	}
+
+	if len(detected.Projects) > 0 && len(detected.Entitlements) == 0 {
+		output.Hint(s.out, "In Xcode, open Signing & Capabilities and add Push Notifications, so the app gets an aps-environment entitlement.")
+	}
+	if len(detected.Projects) > 0 && len(detected.InfoPlists) == 0 {
+		output.Hint(s.out, "In Xcode, add Background Modes and tick Remote notifications.")
+	}
+	if detected.ExpoConfig != "" {
+		output.Hint(s.out, "Expo regenerates ios/ on prebuild. To keep these settings, add \"remote-notification\" to expo.ios.infoPlist.UIBackgroundModes in %s.",
+			filepath.Base(detected.ExpoConfig))
+	}
+}
+
+func (s *pushSetup) reportEdit(path, what string, changed bool, err error) {
+	switch {
+	case err != nil:
+		output.Warn(s.out, "Could not add %s to %s: %s", what, path, err)
+	case changed:
+		output.Success(s.out, "Added %s to %s", what, path)
+	}
+}
+
+func (s *pushSetup) gradleHints(detected androidApp) {
+	if detected.ExpoConfig != "" {
+		if !detected.ExpoGoogleServices {
+			output.Hint(s.out, "Expo regenerates android/ on prebuild. Set expo.android.googleServicesFile in %s to your google-services.json.",
+				filepath.Base(detected.ExpoConfig))
+		}
+
+		return
+	}
+	if len(detected.Modules) == 0 {
+		return
+	}
+	if detected.GoogleServices == "" {
+		output.Hint(s.out, "Download google-services.json for this app from the Firebase console into %s. See %s",
+			detected.Modules[0], fcmSetupGuide)
+	}
+	if !detected.HasServicesPlugin {
+		output.Hint(s.out, "Apply the Google services Gradle plugin in %s: id(\"com.google.gms.google-services\"). See %s",
+			detected.Modules[0], fcmSetupGuide)
+	}
+	if !detected.HasMessaging {
+		output.Hint(s.out, "Add Firebase Messaging to %s: implementation(\"com.google.firebase:firebase-messaging\"). Without it, Appwrite Push falls back to scheduled background delivery.",
+			detected.Modules[0])
+	}
+}
+
+func editPlist(path string, edit func(string) string) (bool, error) {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return false, err
+	}
+	original := string(contents)
+	if !strings.Contains(original, "<plist") {
+		return false, errors.New("only XML property lists can be edited")
+	}
+	updated := edit(original)
+	if updated == original {
+		return false, nil
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+
+	return true, os.WriteFile(path, []byte(updated), info.Mode().Perm())
+}
+
+func lineIndent(contents string, index int) (string, int) {
+	lineStart := strings.LastIndex(contents[:index], "\n") + 1
+	indent := contents[lineStart:index]
+	if strings.TrimSpace(indent) != "" {
+		return "", index
+	}
+
+	return indent, lineStart
+}
+
+func topLevelDict(contents string) (string, int, string, string) {
+	if index := strings.Index(contents, "<dict/>"); index >= 0 && !strings.Contains(contents, "<dict>") {
+		indent, _ := lineIndent(contents, index)
+		contents = contents[:index] + "<dict>\n" + indent + "</dict>" + contents[index+len("<dict/>"):]
+	}
+	end := strings.LastIndex(contents, "</dict>")
+	if end < 0 {
+		return contents, -1, "", ""
+	}
+	closing, lineStart := lineIndent(contents, end)
+
+	unit := "\t"
+	if key := plistKeyLine.FindStringSubmatch(contents); key != nil && strings.HasPrefix(key[1], closing) && len(key[1]) > len(closing) {
+		unit = key[1][len(closing):]
+	}
+
+	return contents, lineStart, closing + unit, unit
+}
+
+var plistKeyLine = regexp.MustCompile(`(?m)^([ \t]*)<key>`)
+
+func ensurePlistString(contents, key, value string) string {
+	if strings.Contains(contents, "<key>"+key+"</key>") {
+		return contents
+	}
+	contents, at, indent, _ := topLevelDict(contents)
+	if at < 0 {
+		return contents
+	}
+
+	return contents[:at] + indent + "<key>" + key + "</key>\n" + indent + "<string>" + value + "</string>\n" + contents[at:]
+}
+
+func ensurePlistArrayValue(contents, key, value string) string {
+	marker := "<key>" + key + "</key>"
+	entry := "<string>" + value + "</string>"
+	if index := strings.Index(contents, marker); index >= 0 {
+		after := index + len(marker)
+		rest := contents[after:]
+		open := strings.Index(rest, "<array>")
+		closing := strings.Index(rest, "</array>")
+		if open < 0 || closing < open || strings.TrimSpace(rest[:open]) != "" {
+			return contents
+		}
+		if strings.Contains(rest[open:closing], entry) {
+			return contents
+		}
+		keyIndent, _ := lineIndent(contents, index)
+		_, _, _, unit := topLevelDict(contents)
+		_, lineStart := lineIndent(contents, after+closing)
+		if lineStart > 0 && contents[lineStart-1] != '\n' {
+			return contents
+		}
+
+		return contents[:lineStart] + keyIndent + unit + entry + "\n" + contents[lineStart:]
+	}
+
+	contents, at, indent, unit := topLevelDict(contents)
+	if at < 0 {
+		return contents
+	}
+
+	return contents[:at] + indent + marker + "\n" + indent + "<array>\n" + indent + unit + entry + "\n" + indent + "</array>\n" + contents[at:]
+}
