@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -435,6 +436,7 @@ func newTestPushSetup(t *testing.T, server *httptest.Server, prompter prompt.Pro
 		root:      root,
 		downloads: t.TempDir(),
 		open:      func(string) {},
+		firebase:  func() ([]firebaseProject, error) { return nil, errors.New("firebase is not installed") },
 	}, out
 }
 
@@ -598,4 +600,93 @@ func TestInitFcmSelectsTheConfigurationForTheChosenApp(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "belongs to staging-project") {
 		t.Errorf("err = %v", err)
 	}
+}
+
+func TestInitFcmTakesTheProjectFromTheDownloadedKey(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	scripted := &prompt.Scripted{}
+	setup, out := newTestPushSetup(t, server, scripted, t.TempDir())
+	var opened []string
+	setup.open = func(page string) { opened = append(opened, page) }
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		testServiceAccount(t, setup.downloads, "picked-project")
+	}()
+
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Join(scripted.Asked, "|") != "How would you like to provide the Firebase service account key (.json)?" {
+		t.Errorf("asked %v", scripted.Asked)
+	}
+	if strings.Join(opened, ",") != fcmConsole {
+		t.Errorf("opened %v", opened)
+	}
+	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (picked-project)" {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+	if !strings.Contains(out.String(), "Using Firebase project picked-project from the downloaded key.") {
+		t.Errorf("output:\n%s", out.String())
+	}
+}
+
+func TestInitFcmOffersTheFirebaseCLIProjects(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	scripted := &prompt.Scripted{Choices: map[string]string{
+		"Which Firebase project should send push notifications?": "tools-4821",
+	}}
+	setup, _ := newTestPushSetup(t, server, scripted, t.TempDir())
+	var opened []string
+	setup.open = func(page string) { opened = append(opened, page) }
+	var offered []prompt.Option
+	setup.prompter = recordingPrompter{Scripted: scripted, choices: &offered}
+	setup.firebase = func() ([]firebaseProject, error) {
+		return []firebaseProject{
+			{ProjectID: "sticker-smash-fb", DisplayName: "Sticker Smash"},
+			{ProjectID: "tools-4821", DisplayName: "tools-4821"},
+		}, nil
+	}
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		testServiceAccount(t, setup.downloads, "sticker-smash-fb")
+		testServiceAccount(t, setup.downloads, "tools-4821")
+	}()
+
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
+		t.Fatal(err)
+	}
+
+	labels := []string{}
+	for _, option := range offered {
+		labels = append(labels, option.Label)
+	}
+	if strings.Join(labels, "|") != "Sticker Smash (sticker-smash-fb)|tools-4821|Another project (choose it in the Firebase console)" {
+		t.Errorf("offered %v", labels)
+	}
+	if len(opened) != 1 || !strings.Contains(opened[0], "/project/tools-4821/settings/serviceaccounts") {
+		t.Errorf("opened %v", opened)
+	}
+	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (tools-4821)" {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+type recordingPrompter struct {
+	*prompt.Scripted
+	choices *[]prompt.Option
+}
+
+func (r recordingPrompter) Choice(question prompt.Choice) (string, error) {
+	if question.Message == "Which Firebase project should send push notifications?" {
+		*r.choices = question.Options
+	}
+
+	return r.Scripted.Choice(question)
 }
