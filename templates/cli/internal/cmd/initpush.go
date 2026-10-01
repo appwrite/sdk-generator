@@ -374,7 +374,7 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 
 	keyPath := options.keyPath
 	if keyPath == "" {
-		keyPath, err = s.acquireKey("APNs auth key (.p8)", "Create one in the Apple Developer portal", "--key-path", apnsKeyPage,
+		keyPath, _, err = s.acquireKey("APNs auth key (.p8)", "Create one in the Apple Developer portal", "--key-path", apnsKeyPage,
 			"In the Apple Developer portal, create a key with Apple Push Notifications service (APNs) enabled and download it.",
 			func(path string) bool {
 				_, err := readApnsKey(path)
@@ -535,6 +535,7 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 			}
 		}
 	}
+	discovered := false
 	if account == nil {
 		page := fmt.Sprintf(fcmServiceAccounts, "_")
 		instructions := "In the Firebase console, pick your project, then click 'Generate new private key' and download the file."
@@ -542,11 +543,12 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 			page = fmt.Sprintf(fcmServiceAccounts, url.PathEscape(projectID))
 			instructions = "In the Firebase console, click 'Generate new private key' and download the file."
 		}
-		path, err := s.acquireKey("Firebase service account key (.json)", "Get one from the Firebase console", "--key-path",
+		path, fromProject, err := s.acquireKey("Firebase service account key (.json)", "Get one from the Firebase console", "--key-path",
 			page, instructions, serviceAccountFile(projectID))
 		if err != nil {
 			return err
 		}
+		discovered = fromProject
 		account, err = readServiceAccount(path, projectID)
 		if err != nil {
 			return err
@@ -566,6 +568,13 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 			return provider.projectID() == projectID
 		})
 	}
+	if discovered && current != nil && current.Enabled && !app.Flags().Force {
+		output.Success(s.out, "FCM is already set up for Firebase project %s.", projectID)
+		output.Hint(s.out, "Pass --force or --key-path to replace the service account key.")
+		s.gradleHints(detected)
+
+		return nil
+	}
 
 	body := map[string]any{
 		"name":               "FCM (" + projectID + ")",
@@ -582,13 +591,13 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 	return nil
 }
 
-func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions string, accept func(string) bool) (string, error) {
+func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions string, accept func(string) bool) (string, bool, error) {
 	found := s.projectKeys(accept)
 	if len(found) == 1 {
 		output.Log(s.out, "Using %s from the project folder.", s.display(found[0]))
 		s.checkKeyLocation(found[0])
 
-		return found[0], nil
+		return found[0], true, nil
 	}
 	if len(found) > 1 {
 		options := make([]prompt.Option, 0, len(found))
@@ -601,11 +610,11 @@ func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions stri
 			Flag:    flag,
 		})
 		if err != nil {
-			return "", err
+			return "", false, err
 		}
 		s.checkKeyLocation(path)
 
-		return path, nil
+		return path, true, nil
 	}
 
 	method, err := s.prompter.Choice(prompt.Choice{
@@ -618,7 +627,7 @@ func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions stri
 		Flag:    flag,
 	})
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	if method == "file" {
@@ -634,11 +643,11 @@ func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions stri
 			},
 		})
 		if err != nil {
-			return "", err
+			return "", false, err
 		}
 		s.checkKeyLocation(expandHome(path))
 
-		return path, nil
+		return path, false, nil
 	}
 
 	directories := append([]string{}, s.keyDirs...)
@@ -648,7 +657,7 @@ func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions stri
 		}
 	}
 	if len(directories) == 0 {
-		return "", fmt.Errorf("no folder to watch for the key. Pass %s instead", flag)
+		return "", false, fmt.Errorf("no folder to watch for the key. Pass %s instead", flag)
 	}
 
 	output.Log(s.out, "%s", instructions)
@@ -663,12 +672,12 @@ func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions stri
 
 	path, err := waitForKeyFile(directories, time.Now(), accept, downloadTimeout, downloadPoll)
 	if err != nil {
-		return "", fmt.Errorf("%w. Pass %s instead", err, flag)
+		return "", false, fmt.Errorf("%w. Pass %s instead", err, flag)
 	}
 	output.Log(s.out, "Found %s", path)
 	s.checkKeyLocation(path)
 
-	return path, nil
+	return path, false, nil
 }
 
 func serviceAccountFile(projectID string) func(string) bool {
