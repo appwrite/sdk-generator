@@ -623,7 +623,7 @@ func TestInitFcmTakesTheProjectFromTheDownloadedKey(t *testing.T) {
 	if strings.Join(scripted.Asked, "|") != "How would you like to provide the Firebase service account key (.json)?" {
 		t.Errorf("asked %v", scripted.Asked)
 	}
-	if strings.Join(opened, ",") != fcmConsole {
+	if strings.Join(opened, ",") != "https://console.firebase.google.com/project/_/settings/serviceaccounts/adminsdk" {
 		t.Errorf("opened %v", opened)
 	}
 	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (picked-project)" {

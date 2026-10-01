@@ -30,7 +30,6 @@ import (
 
 const (
 	apnsKeyPage         = "https://developer.apple.com/account/resources/authkeys/add"
-	fcmConsole          = "https://console.firebase.google.com/"
 	fcmServiceAccounts  = "https://console.firebase.google.com/project/%s/settings/serviceaccounts/adminsdk"
 	fcmSetupGuide       = "https://firebase.google.com/docs/android/setup#add-config-file"
 	downloadTimeout     = 15 * time.Minute
@@ -514,8 +513,8 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 	}
 
 	if account == nil {
-		page := fcmConsole
-		instructions := "In the Firebase console, open your project (or create one), then go to Project settings > Service accounts and click 'Generate new private key'."
+		page := fmt.Sprintf(fcmServiceAccounts, "_")
+		instructions := "In the Firebase console, pick your project, then click 'Generate new private key' and download the file."
 		if projectID != "" {
 			page = fmt.Sprintf(fcmServiceAccounts, url.PathEscape(projectID))
 			instructions = "In the Firebase console, click 'Generate new private key' and download the file."
