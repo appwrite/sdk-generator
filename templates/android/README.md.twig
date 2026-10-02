@@ -62,6 +62,18 @@ Add this to your project's `pom.xml` file:
 </dependencies>
 ```
 
+### Code shrinking (R8)
+
+The SDK ships the R8 rules it needs, so no extra configuration is required. Your own classes
+that the SDK fills from JSON (the `nestedType` of documents, rows and preferences, and the
+`payloadType` of Realtime subscriptions) are read by Gson through reflection. Annotate them
+with `@Keep` so R8 keeps their fields:
+
+```kotlin
+@Keep
+data class Note(val title: String, val body: String)
+```
+
 ### Push notifications
 
 The `Push` service pulls in HiveMQ (which bundles Netty). Netty's jars ship duplicate

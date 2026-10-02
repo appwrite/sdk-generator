@@ -16,6 +16,11 @@
 -dontwarn org.slf4j.**
 -dontwarn reactor.blockhound.**
 
-# Netty and JCTools read their own members by reflection (HiveMQ's guidance for Android).
--keepclassmembernames class io.netty.** { *; }
--keepclassmembers class org.jctools.** { *; }
+# Netty and JCTools reach their own fields by name, through atomic field updaters and Unsafe offsets.
+-keepclassmembernames class io.netty.** { <fields>; }
+-keepclassmembers class org.jctools.** { <fields>; }
+
+# Netty's leak detector looks these methods up by name when its classes load.
+-keepclassmembers class io.netty.buffer.AbstractByteBufAllocator { *** toLeakAwareBuffer(...); }
+-keepclassmembers class io.netty.buffer.AdvancedLeakAwareByteBuf { *** recordLeakNonRefCountingOperation(...); }
+-keepclassmembers class io.netty.util.ReferenceCountUtil { *** touch(...); }

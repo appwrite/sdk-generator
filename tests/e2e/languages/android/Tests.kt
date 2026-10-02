@@ -753,7 +753,7 @@ class ServiceTest {
                 wakeUp.send()
             }
             val deadline = System.currentTimeMillis() + 10_000
-            while (E2EPushReceiver.messages.isEmpty() && System.currentTimeMillis() < deadline) {
+            while ((E2EPushReceiver.messages.isEmpty() || org.robolectric.Shadows.shadowOf(notifications).allNotifications.isEmpty()) && System.currentTimeMillis() < deadline) {
                 org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
                 Thread.sleep(100)
             }
@@ -833,6 +833,37 @@ class ServiceTest {
                 },
             )
             reopened.close()
+        }
+
+        val cookieUri = java.net.URI("https://cloud.appwrite.io/v1")
+        val cookieContext = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val savedPreferences = cookieContext.getSharedPreferences("e2e-cookies-saved", android.content.Context.MODE_PRIVATE)
+        savedPreferences.edit().clear().commit()
+        io.appwrite.cookies.stores.SharedPreferencesCookieStore(savedPreferences).add(
+            cookieUri,
+            java.net.HttpCookie("a_session_123456", "secret").apply {
+                domain = "cloud.appwrite.io"
+                path = "/"
+            },
+        )
+        writeToFile(cookieCheck("reload", io.appwrite.cookies.stores.SharedPreferencesCookieStore(savedPreferences).get(cookieUri)))
+
+        val legacyPreferences = cookieContext.getSharedPreferences("e2e-cookies-legacy", android.content.Context.MODE_PRIVATE)
+        legacyPreferences.edit().clear()
+            .putString(
+                "https://cloud.appwrite.io",
+                """[{"discard":false,"domain":"cloud.appwrite.io","httpOnly":false,"maxAge":-1,"name":"a_session_123456","path":"/","secure":false,"value":"secret","version":1}]""",
+            )
+            .commit()
+        writeToFile(cookieCheck("saved format", io.appwrite.cookies.stores.SharedPreferencesCookieStore(legacyPreferences).get(cookieUri)))
+    }
+
+    private fun cookieCheck(name: String, cookies: List<java.net.HttpCookie>): String {
+        val session = cookies.singleOrNull { it.name == "a_session_123456" }
+        return if (session?.value == "secret" && session.domain == "cloud.appwrite.io" && session.path == "/") {
+            "Cookie store $name:passed"
+        } else {
+            "Cookie store $name:failed ($cookies)"
         }
     }
 
