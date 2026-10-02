@@ -42,6 +42,11 @@ afterEvaluate {
     val dependencyRules = artifacts("debugRuntimeClasspath", "android-consumer-proguard-rules").files
     val libraryDependencies = testDependencies.filter { it !in programDependencies.files }
 
+    val testClasses = files(
+        layout.buildDirectory.dir("intermediates/built_in_kotlinc/debugUnitTest/compileDebugUnitTestKotlin/classes"),
+        layout.buildDirectory.dir("intermediates/javac/debugUnitTest/compileDebugUnitTestJavaWithJavac/classes"),
+    )
+
     val packageR8Program = tasks.register<Jar>("packageR8Program") {
         dependsOn("compileDebugKotlin", "compileDebugJavaWithJavac", "compileDebugUnitTestKotlin", "compileDebugUnitTestJavaWithJavac")
         destinationDirectory.set(r8Directory)
@@ -49,8 +54,7 @@ afterEvaluate {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         from(layout.buildDirectory.dir("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes"))
         from(layout.buildDirectory.dir("intermediates/javac/debug/compileDebugJavaWithJavac/classes"))
-        from(layout.buildDirectory.dir("intermediates/built_in_kotlinc/debugUnitTest/compileDebugUnitTestKotlin/classes"))
-        from(layout.buildDirectory.dir("intermediates/javac/debugUnitTest/compileDebugUnitTestJavaWithJavac/classes"))
+        from(testClasses)
     }
 
     val shrinkWithR8 = tasks.register<JavaExec>("shrinkWithR8") {
@@ -99,7 +103,8 @@ afterEvaluate {
         dependsOn(shrinkWithR8)
         from(r8Output.map { zipTree(it) })
         into(r8Directory.map { it.dir("tests") })
-        include("io/appwrite/ServiceTest*.class")
+        val names by lazy { testClasses.asFileTree.map { file -> testClasses.files.first { file.startsWith(it) }.let { file.relativeTo(it).invariantSeparatorsPath } }.toSet() }
+        include { it.isDirectory || it.relativePath.pathString in names }
     }
 
     tasks.register<Test>("testR8UnitTest") {
