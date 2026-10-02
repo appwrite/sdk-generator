@@ -13,10 +13,10 @@ import (
 // gzipped tar handling, shared by the function emulator's hot swap and by
 // `pull`'s deployment download.
 //
-// Extraction refuses an entry that escapes the destination. Both callers feed
-// it an archive the API produced, but an archive is untrusted input to the
-// process unpacking it -- a `../../.ssh/authorized_keys` entry is the whole
-// reason this check exists.
+// Extraction refuses an entry that escapes the destination. Pull feeds it an
+// archive the API produced, but an archive is untrusted input to the process
+// unpacking it -- a `../../.ssh/authorized_keys` entry is the whole reason this
+// check exists.
 
 // ExtractTarGz unpacks an archive into a directory.
 func ExtractTarGz(path, destination string) error {
@@ -60,19 +60,16 @@ func ExtractTarGz(path, destination string) error {
 				return err
 			}
 		}
-		// Other entry types -- symlinks, devices, hard links -- are skipped.
-		// The bundle is repacked immediately afterwards, so dropping them
-		// changes what the container sees; but honouring a symlink from an
-		// archive is how a path traversal gets in, and the build output the
-		// runtimes produce contains none.
+		// Other entry types -- symlinks, devices, hard links -- are skipped:
+		// honouring a symlink from an archive is how a path traversal gets in.
 	}
 }
 
 // SafeJoin resolves an archive entry inside the destination, refusing to escape.
 //
 // An archive entry named `../../.ssh/authorized_keys` would otherwise be
-// written outside the staging directory. The bundle comes from the user's own
-// build, but it is still untrusted input to this process.
+// written outside the destination. The archive comes from the user's own
+// deployment, but it is still untrusted input to this process.
 func SafeJoin(destination, name string) (string, error) {
 	target := filepath.Join(destination, filepath.FromSlash(name))
 
@@ -176,71 +173,71 @@ func appendFile(writer *tar.Writer, directory, name string) error {
 	return err
 }
 
-// CreateTarGz packs a directory into a gzipped archive.
+// ReplaceTarGzFiles rewrites an archive with the named files, relative to
+// directory, in place of its entries of the same name.
 //
-// Written to a temporary file and renamed, so an interrupted repack cannot
+// Every other entry is copied through as it is. Unpacking the bundle to disk
+// to swap the sources would drop its symlinks, and a Python build's virtual
+// environment links its interpreter into the image: without those links the
+// function starts on the system Python, where its dependencies are missing.
+//
+// Written to a temporary file and renamed, so an interrupted rewrite cannot
 // leave a truncated bundle where the container expects a valid one.
-func CreateTarGz(path, directory string) error {
+func ReplaceTarGzFiles(path, directory string, files []string) error {
+	bundle, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer bundle.Close()
+
+	decompressed, err := gzip.NewReader(bundle)
+	if err != nil {
+		return err
+	}
+	defer decompressed.Close()
+
 	temporary, err := os.CreateTemp(filepath.Dir(path), ".build-*.tar.gz")
 	if err != nil {
 		return err
 	}
 	temporaryPath := temporary.Name()
 	defer os.Remove(temporaryPath)
+	defer temporary.Close()
 
 	compressed := gzip.NewWriter(temporary)
 	writer := tar.NewWriter(compressed)
 
-	err = filepath.WalkDir(directory, func(path string, entry os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
+	replaced := make(map[string]bool, len(files))
+	for _, file := range files {
+		replaced[file] = true
+	}
 
-		relative, err := filepath.Rel(directory, path)
+	reader := tar.NewReader(decompressed)
+	for {
+		header, err := reader.Next()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			return err
 		}
-		if relative == "." {
-			return nil
-		}
-
-		info, err := entry.Info()
-		if err != nil {
-			return err
-		}
-
-		header, err := tar.FileInfoHeader(info, "")
-		if err != nil {
-			return err
-		}
-		header.Name = "./" + filepath.ToSlash(relative)
-		if entry.IsDir() {
-			header.Name += "/"
+		// The runtime packs `.`, so its entries carry a `./` prefix.
+		if replaced[strings.TrimPrefix(header.Name, "./")] {
+			continue
 		}
 
 		if err := writer.WriteHeader(header); err != nil {
 			return err
 		}
-		if entry.IsDir() || !info.Mode().IsRegular() {
-			return nil
-		}
-
-		file, err := os.Open(path)
-		if err != nil {
+		if _, err := io.Copy(writer, reader); err != nil {
 			return err
 		}
-		defer file.Close()
+	}
 
-		_, err = io.Copy(writer, file)
-
-		return err
-	})
-	if err != nil {
-		writer.Close()
-		compressed.Close()
-		temporary.Close()
-
-		return err
+	for _, file := range files {
+		if err := appendFile(writer, directory, file); err != nil {
+			return err
+		}
 	}
 
 	if err := writer.Close(); err != nil {
@@ -250,6 +247,10 @@ func CreateTarGz(path, directory string) error {
 		return err
 	}
 	if err := temporary.Close(); err != nil {
+		return err
+	}
+	// Windows refuses to rename over a file that is still open.
+	if err := bundle.Close(); err != nil {
 		return err
 	}
 
