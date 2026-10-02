@@ -36,7 +36,7 @@ For applications that configure their own HTTP transport, pass any PSR-18 client
 
 ```php
 use {{ namespace | caseNamespace }}\Client;
-use Utopia\Client as HttpClient;
+use Utopia\Client\Client as HttpClient;
 use Utopia\Client\Adapter\SwooleCoroutine\Client as SwooleAdapter;
 use Utopia\Client\Pool as PooledClient;
 use Utopia\Pools\Adapter\Swoole as SwoolePool;
