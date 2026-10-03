@@ -161,6 +161,21 @@ class Kotlin extends Language
     }
 
     /**
+     * A double-quoted string literal. Kotlin also interpolates `$`, so it is
+     * escaped there; Java takes it as-is.
+     */
+    protected function getStringLiteral(string $value, string $lang): string
+    {
+        $escaped = \str_replace(['\\', '"', "\n"], ['\\\\', '\\"', '\\n'], $value);
+
+        if ($lang !== 'java') {
+            $escaped = \str_replace('$', '\\$', $escaped);
+        }
+
+        return '"' . $escaped . '"';
+    }
+
+    /**
      * @param string $lang Language variant: 'kotlin' (default) or 'java'
      */
     public function getParamExample(Schema|Parameter $param, string $lang = 'kotlin'): string
@@ -228,7 +243,7 @@ class Kotlin extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"{$example}\"";
+                    $output .= $this->getStringLiteral((string) $example, $lang);
                     break;
             }
         }
@@ -247,9 +262,9 @@ class Kotlin extends Language
         $baseIndent = str_repeat('    ', $indentLevel + 2);
 
         foreach ($data as $key => $value) {
-            $formattedKey = '"' . $key . '"';
+            $formattedKey = $this->getStringLiteral((string) $key, 'kotlin');
             if (is_string($value)) {
-                $formattedValue = '"' . $value . '"';
+                $formattedValue = $this->getStringLiteral($value, 'kotlin');
             } elseif (is_bool($value)) {
                 $formattedValue = $value ? 'true' : 'false';
             } elseif (is_null($value)) {
@@ -287,9 +302,9 @@ class Kotlin extends Language
         $baseIndent = str_repeat('    ', $indentLevel + 2);
 
         foreach ($data as $key => $value) {
-            $formattedKey = '"' . $key . '"';
+            $formattedKey = $this->getStringLiteral((string) $key, 'java');
             if (is_string($value)) {
-                $formattedValue = '"' . $value . '"';
+                $formattedValue = $this->getStringLiteral($value, 'java');
             } elseif (is_bool($value)) {
                 $formattedValue = $value ? 'true' : 'false';
             } elseif (is_null($value)) {
@@ -341,7 +356,7 @@ class Kotlin extends Language
                     }
                 } elseif (is_string($item)) {
                     // Primitive value
-                    $arrayItems[] = '"' . $item . '"';
+                    $arrayItems[] = $this->getStringLiteral($item, $lang);
                 } elseif (is_bool($item)) {
                     $arrayItems[] = $item ? 'true' : 'false';
                 } elseif (is_null($item)) {

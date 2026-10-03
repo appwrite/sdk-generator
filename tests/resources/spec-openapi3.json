@@ -2531,6 +2531,40 @@
         }
       }
     },
+    "\/mock\/tests\/general\/snake-case-params": {
+      "get": {
+        "summary": "Snake Case Params",
+        "operationId": "generalSnakeCaseParams",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture whose parameter names are snake_case in the spec.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "grant_id",
+            "description": "Grant ID.",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "<GRANT_ID>"
+            }
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/oauth2": {
       "get": {
         "summary": "OAuth2",
