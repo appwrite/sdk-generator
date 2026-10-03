@@ -6,7 +6,6 @@ import type {
 } from 'mqtt';
 
 import { Client } from '../client';
-import { Service } from '../service';
 import type { ResolvedTopic, Topic } from '../topic';
 
 /** A message delivered on a subscribed topic (the MQTT analog of a Realtime event). */
@@ -103,7 +102,9 @@ const RECONNECT_PERIOD_MS = 2000;
  *     );
  *     // sub.update({ background: true }); sub.unsubscribe();
  */
-export class Push extends Service {
+export class Push {
+    client: Client;
+
     private mqtt: MqttClient | null = null;
     private connecting: Promise<void> | null = null;
     private Buffer: Transport['Buffer'] | null = null;
@@ -150,7 +151,7 @@ export class Push extends Service {
     >();
 
     constructor(client: Client) {
-        super(client);
+        this.client = client;
     }
 
     // The broker subscription for a filter uses the highest QoS any local subscription on
