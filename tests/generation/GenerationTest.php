@@ -375,6 +375,41 @@ final class GenerationTest extends TestCase
         yield 'apple' => ['apple', 'client'];
     }
 
+    /**
+     * Kotlin and Java examples must compile as written: quotes inside example
+     * strings stay escaped, Kotlin's `$` is not left to interpolate, and named
+     * arguments use the parameter names the service method declares.
+     */
+    #[DataProvider('kotlinLanguages')]
+    public function testExamplesUseKotlinAndJavaLiterals(string $name, string $platform): void
+    {
+        $files = $this->generate($name, $platform);
+
+        $kotlin = 'docs/examples/kotlin/general/create-documents.md';
+        $this->assertArrayHasKey($kotlin, $files, "{$name}/{$platform} did not generate {$kotlin}");
+        $this->assertStringContainsString('"\\$id" to "one"', $files[$kotlin]);
+        $this->assertStringContainsString('"title" to "say \\"hello\\""', $files[$kotlin]);
+
+        $java = 'docs/examples/java/general/create-documents.md';
+        $this->assertArrayHasKey($java, $files, "{$name}/{$platform} did not generate {$java}");
+        $this->assertStringContainsString('"$id", "one"', $files[$java]);
+        $this->assertStringContainsString('"title", "say \\"hello\\""', $files[$java]);
+
+        $named = 'docs/examples/kotlin/general/snake-case-params.md';
+        $this->assertArrayHasKey($named, $files, "{$name}/{$platform} did not generate {$named}");
+        $this->assertStringContainsString('grantid = "<grant_id>"', $files[$named]);
+        $this->assertStringNotContainsString('grant_id =', $files[$named]);
+    }
+
+    /**
+     * @return Iterator<string, array{string, string}>
+     */
+    public static function kotlinLanguages(): Iterator
+    {
+        yield 'kotlin' => ['kotlin', 'server'];
+        yield 'android' => ['android', 'client'];
+    }
+
     public function testRustBodylessResponsesUseUnitWithJsonAccept(): void
     {
         $files = $this->generate('rust', 'server');

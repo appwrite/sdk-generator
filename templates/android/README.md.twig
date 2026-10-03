@@ -76,24 +76,6 @@ data class Note(val title: String, val body: String)
 
 ### Push notifications
 
-The `Push` service pulls in HiveMQ (which bundles Netty). Netty's jars ship duplicate
-`META-INF` metadata that Android's packager rejects with a "More than one file was found
-with OS independent path" error. If you use `Push`, add these excludes to the `android` block
-of your **application** module's `build.gradle(.kts)` (packaging is resolved when the app is
-assembled, so a library dependency cannot apply this for you):
-
-```kotlin
-android {
-    packaging {
-        resources {
-            excludes += "/META-INF/INDEX.LIST"
-            excludes += "/META-INF/io.netty.versions.properties"
-            excludes += "/META-INF/DEPENDENCIES"
-        }
-    }
-}
-```
-
 #### Background delivery
 
 A subscription with `background = true` keeps delivering after the app is backgrounded, its

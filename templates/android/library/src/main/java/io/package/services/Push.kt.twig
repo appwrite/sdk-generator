@@ -139,7 +139,9 @@ class Push(
     private var connectionEpoch = 0
 
     // Local id -> subscription (filter + callback + per-sub options). The id is never sent to
-    // the broker; it only lets the same topic carry more than one callback.
+    // the broker; it only lets the same topic carry more than one callback. HiveMQ callbacks
+    // look their subscription up by id on delivery, because a callback stays attached to its
+    // filter until the filter itself is unsubscribed, which waits for the filter's last sub.
     private val subscriptions = ConcurrentHashMap<String, Sub>()
 
     // Whether the connection currently lives in the process-wide background host (its own MQTT
@@ -447,7 +449,7 @@ class Push(
                     client.subscribeWith()
                         .topicFilter(sub.filter)
                         .qos(effectiveQos(sub.filter))
-                        .callback { publish -> sub.callback(publish.toPushMessage()) }
+                        .callback { publish -> subscriptions[id]?.callback?.invoke(publish.toPushMessage()) }
                         .send()
                         .get()
                     sub.client = client
@@ -478,14 +480,14 @@ class Push(
     // background subscription goes away and the connection relocates back in-process.
     private fun ensureInProcessSubscribed() {
         val client = connect()
-        for (sub in subscriptions.values) {
+        for ((id, sub) in subscriptions) {
             if (sub.client === client) {
                 continue
             }
             client.subscribeWith()
                 .topicFilter(sub.filter)
                 .qos(effectiveQos(sub.filter))
-                .callback { publish -> sub.callback(publish.toPushMessage()) }
+                .callback { publish -> subscriptions[id]?.callback?.invoke(publish.toPushMessage()) }
                 .send()
                 .reportFailure(client)
             sub.client = client
@@ -498,11 +500,11 @@ class Push(
         val client = mqtt ?: return
         client.unsubscribeWith().topicFilter(filter).send().reportFailure(client)
         val qos = effectiveQos(filter)
-        for (sub in subscriptions.values.filter { it.filter == filter }) {
+        for ((id, sub) in subscriptions.filter { it.value.filter == filter }) {
             client.subscribeWith()
                 .topicFilter(filter)
                 .qos(qos)
-                .callback { publish -> sub.callback(publish.toPushMessage()) }
+                .callback { publish -> subscriptions[id]?.callback?.invoke(publish.toPushMessage()) }
                 .send()
                 .reportFailure(client)
             sub.client = client
@@ -658,14 +660,14 @@ class Push(
             throw e
         }
 
-        for (sub in subscriptions.values) {
+        for ((id, sub) in subscriptions) {
             if (sub.client == null || sub.client === client) {
                 continue
             }
             client.subscribeWith()
                 .topicFilter(sub.filter)
                 .qos(effectiveQos(sub.filter))
-                .callback { publish -> sub.callback(publish.toPushMessage()) }
+                .callback { publish -> subscriptions[id]?.callback?.invoke(publish.toPushMessage()) }
                 .send()
                 .reportFailure(client)
             sub.client = client
