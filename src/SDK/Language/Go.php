@@ -239,59 +239,6 @@ class Go extends Language
         };
     }
 
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type       = $this->getSchemaType($param);
-        $default    = $this->getSchemaDefault($param);
-        $required   = ($param instanceof Parameter && $param->required);
-
-        if ($required) {
-            return '';
-        }
-
-        $output = ' = ';
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= "0";
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= '""';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= 'nil';
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                    $output .= $default;
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= "\"$default\"";
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "nil";
-                    break;
-            }
-        }
-
-        return $output;
-    }
-
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
         $type       = $this->getSchemaType($param);

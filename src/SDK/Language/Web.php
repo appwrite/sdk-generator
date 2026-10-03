@@ -49,11 +49,6 @@ class Web extends JS
                 'template'      => 'web/src/client.ts.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'src/service.ts',
-                'template'      => 'web/src/service.ts.twig',
-            ],
-            [
                 'scope'         => 'service',
                 'destination'   => 'src/services/{{service.name | caseKebab}}.ts',
                 'template'      => 'web/src/services/template.ts.twig',

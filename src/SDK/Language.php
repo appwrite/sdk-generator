@@ -93,8 +93,6 @@ abstract class Language
 
     abstract public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string;
 
-    abstract public function getParamDefault(Schema|Parameter $param): string;
-
     /**
      * @param string $lang Optional language variant (for multi-language SDKs)
      */
@@ -480,11 +478,6 @@ abstract class Language
             $value,
             fn(mixed $item): bool => \is_array($item) && $this->containsAssociativeArray($item),
         );
-    }
-
-    protected function getSchemaDefault(Schema|Parameter $value): mixed
-    {
-        return $this->getSchema($value)->default;
     }
 
     /**

@@ -293,6 +293,28 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testJavascriptClientOwnership(): void
+    {
+        $targets = [
+            ['web', false, 'client.flatten(apipayload)', 'export class push {'],
+            ['node', false, null, null],
+            ['react-native', true, 'service.flatten(apipayload)', 'export class push extends service {'],
+        ];
+
+        foreach ($targets as [$name, $hasService, $flatten, $pushDeclaration]) {
+            foreach (self::PLATFORMS as $platform) {
+                $files = $this->generate($name, $platform);
+                $this->assertSame($hasService, isset($files['src/service.ts']), "{$name}/{$platform} base module");
+                if ($pushDeclaration !== null) {
+                    $this->assertStringContainsString($pushDeclaration, $files['src/services/push.ts']);
+                }
+                if ($flatten !== null && $platform === 'client') {
+                    $this->assertStringContainsString($flatten, $files['src/services/general.ts']);
+                }
+            }
+        }
+    }
+
     /**
      * A canonical document keys `x-appwrite.auth` by platform. The fixture's
      * platform-auth operation lists `Project` for client and `Project, Key` for

@@ -67,10 +67,6 @@ class SDK
         'coverImage' => '',
         'logo' => '',
         'url' => '',
-        'shareText' => '',
-        'shareURL' => '',
-        'shareVia' => '',
-        'shareTags' => '',
         'warning' => '',
         'gettingStarted' => '',
         'readme' => '',
@@ -154,14 +150,12 @@ class SDK
             return implode('_', $ret);
         }));
         $this->twig->addFilter(new TwigFilter('caseJson', fn($value) => (is_array($value)) ? json_encode($value) : $value, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('caseArray', fn($value) => (is_array($value)) ? json_encode($value) : '[]', ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('typeName', fn(Schema|Parameter $value, ?Specification $spec = null): string => $this->language->getTypeName($value, $spec ?? $this->spec), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('getValidResponseModels', fn(Operation $value): array => $this->getValidResponseModels($value)));
-        $this->twig->addFilter(new TwigFilter('paramDefault', fn(Schema|Parameter $value): string => $this->language->getParamDefault($value), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('paramExample', fn(Schema|Parameter $value): string => $this->language->isOpenStringEnum($value)
             ? $this->language->getSuggestedEnumExample($value)
             : $this->language->getParamExample($value), ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('methodName', fn(Operation $operation): string => $this->methodName($operation)));
+        $this->twig->addFilter(new TwigFilter('methodName', fn(Operation $operation): string => $this->language->getMethodName($operation)));
         $this->twig->addFilter(new TwigFilter('methodType', fn(Operation $operation): string|false => $this->language->getMethodType($operation, $this->spec)));
         $this->twig->addFilter(new TwigFilter('textResponse', fn(Operation $operation): bool => $this->language->isTextResponse($operation, $this->spec)));
         $this->twig->addFilter(new TwigFilter('parameters', fn(Operation $operation, string $location = 'all'): array => $this->getOperationParameters($operation, $location)));
@@ -198,9 +192,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('usesEnumType', fn(Schema|Parameter $value): bool => $this->language->usesEnumType($value)));
         $this->twig->addFilter(new TwigFilter('openEnum', fn(Schema|Parameter $value): bool => $this->language->isOpenStringEnum($value)));
         $this->twig->addFilter(new TwigFilter('arraySchema', fn(Schema|Parameter $value): ?Schema => ($schema = $this->getSchema($value)) instanceof ArraySchema ? $schema->items : null));
-        $this->twig->addFilter(new TwigFilter('emptyResponse', fn(Operation $operation): bool => \array_keys($operation->responses) === [204] || \array_keys($operation->responses) === ['204']));
         $this->twig->addFilter(new TwigFilter('fullPath', fn(Operation $operation): string => (\parse_url($this->spec->servers[0]->url ?? '', PHP_URL_PATH) ?: '') . $operation->path));
-        $this->twig->addFilter(new TwigFilter('securityNames', fn(Operation $operation): array => \array_keys($this->getOperationSecuritySchemes($operation))));
         $this->twig->addFilter(new TwigFilter('wrap', function ($value, int $width = 75, string $prefix = ''): string {
             $lines = explode("\n", (string) $value);
             foreach ($lines as $key => $line) {
@@ -213,16 +205,6 @@ class SDK
             $value = str_replace('"', '\\"', $value);   // Escape double quotes
             $value = str_replace('$', '\\$', $value);   // Escape dollar signs
             return $value;
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('paramsQuery', function ($value): string {
-            $query = '';
-
-            foreach ($value as $param) {
-                $query .= (empty($query)) ? "" : " + '&";
-                $query .= "{$param->name}=' + {$param->name}";
-            }
-
-            return $query;
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('html', fn($value) => $value, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeKeyword', fn(string $value): string => $language->escapeKeyword($value), ['is_safe' => ['html']]));
@@ -386,37 +368,6 @@ class SDK
     public function setURL(string $url): SDK
     {
         $this->setParam('url', $url);
-
-        return $this;
-    }
-
-    public function setShareText(string $text): SDK
-    {
-        $this->setParam('shareText', $text);
-
-        return $this;
-    }
-
-    public function setShareVia(string $user): SDK
-    {
-        $this->setParam('shareVia', $user);
-
-        return $this;
-    }
-
-    public function setShareURL(string $url): SDK
-    {
-        $this->setParam('shareURL', $url);
-
-        return $this;
-    }
-
-    /**
-     * @param string $tags Comma separated list
-     */
-    public function setShareTags(string $tags): SDK
-    {
-        $this->setParam('shareTags', $tags);
 
         return $this;
     }
@@ -656,7 +607,7 @@ class SDK
     /** @param array<string, mixed> $alias */
     protected function createAliasedOperation(Operation $operation, array $alias, string $serviceName): Operation
     {
-        $methodName = (string) ($alias['name'] ?? $this->methodName($operation));
+        $methodName = (string) ($alias['name'] ?? $this->language->getMethodName($operation));
         $appwrite = $operation->extensions[Extension::APPWRITE->value] ?? [];
         $appwrite['auth'] = $alias['auth'] ?? [];
         if (isset($alias['deprecated'])) {
@@ -788,7 +739,7 @@ class SDK
 
     protected function isClientMethod(Operation $method, string $service): bool
     {
-        return $service === 'ping' && $this->methodName($method) === 'get';
+        return $service === 'ping' && $this->language->getMethodName($method) === 'get';
     }
 
     /** @return array<string, array<string, Operation>> */
@@ -801,7 +752,7 @@ class SDK
             }
             foreach ($method->tags as $serviceName) {
                 if ($this->isClientMethod($method, $serviceName)) {
-                    $clientMethods[$serviceName][$this->methodName($method)] = $method;
+                    $clientMethods[$serviceName][$this->language->getMethodName($method)] = $method;
                 }
             }
         }
@@ -1213,7 +1164,7 @@ class SDK
     protected function isMethodExcluded(Operation $method, string $serviceName = ''): bool
     {
         $excludeIndex = $this->getExcludeIndex();
-        $methodName = $this->methodName($method);
+        $methodName = $this->language->getMethodName($method);
 
         if (isset($excludeIndex['methods'][$methodName])) {
             foreach ($excludeIndex['methods'][$methodName] as $scope) {
@@ -1338,7 +1289,7 @@ class SDK
         }
 
         $operation = $params['method'] ?? null;
-        $currentMethodName = $operation instanceof Operation ? $this->methodName($operation) : '';
+        $currentMethodName = $operation instanceof Operation ? $this->language->getMethodName($operation) : '';
         if (\in_array($currentMethodName, $methods, true)) {
             return true;
         }
@@ -1553,11 +1504,6 @@ class SDK
     protected function getResponseModel(Operation $operation): string
     {
         return $this->getResponseModels($operation)[0] ?? '';
-    }
-
-    protected function methodName(Operation $operation): string
-    {
-        return $this->language->getMethodName($operation);
     }
 
     protected function uploadIdParameter(Operation $operation): ?Parameter
