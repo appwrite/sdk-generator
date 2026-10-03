@@ -2490,6 +2490,47 @@
         }
       }
     },
+    "\/mock\/tests\/general\/upload-generic": {
+      "post": {
+        "summary": "Upload Generic",
+        "operationId": "generalUploadGeneric",
+        "tags": [
+          "general"
+        ],
+        "description": "Upload fixture whose response model carries a generic, user-defined payload.",
+        "responses": {
+          "200": {
+            "description": "Profile",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/profile"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "description": "Sample file param",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/oauth2": {
       "get": {
         "summary": "OAuth2",
@@ -3149,6 +3190,29 @@
           "code",
           "type",
           "version"
+        ]
+      },
+      "preferences": {
+        "description": "Preferences",
+        "type": "object",
+        "additionalProperties": true
+      },
+      "profile": {
+        "description": "Profile",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Profile name.",
+            "example": "John Doe"
+          },
+          "prefs": {
+            "$ref": "#\/components\/schemas\/preferences"
+          }
+        },
+        "required": [
+          "name",
+          "prefs"
         ]
       },
       "mock": {
