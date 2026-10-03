@@ -244,6 +244,12 @@ abstract class Base extends TestCase
         'Push background opt-out:passed',
     ];
 
+    // Android: unsubscribing one of two in-process subscriptions on the same topic stops its
+    // callback, though the other subscription keeps the broker filter.
+    protected const ANDROID_PUSH_SHARED_TOPIC_RESPONSES = [
+        'Push shared topic unsubscribe:passed',
+    ];
+
     protected const ANDROID_COOKIE_STORE_RESPONSES = [
         'Cookie store reload:passed',
         'Cookie store saved format:passed',

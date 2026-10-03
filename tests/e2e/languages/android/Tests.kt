@@ -833,6 +833,33 @@ class ServiceTest {
                 },
             )
             reopened.close()
+
+            // Two in-process subscriptions on one topic share the broker filter, so unsubscribing
+            // one keeps the filter. Its callback must still stop: every SUBSCRIBE makes the mock
+            // publish to e2e-push, and only the remaining subscription may receive the next one.
+            val sharedPush = Push(pushClient().setSession(e2eSession), context)
+            val removedReceived = java.util.concurrent.atomic.AtomicInteger(0)
+            val keptLatch = java.util.concurrent.atomic.AtomicReference(java.util.concurrent.CountDownLatch(1))
+            val removedSub = sharedPush.subscribe("e2e-push", background = false) { removedReceived.incrementAndGet() }
+            val keptSub = sharedPush.subscribe("e2e-push", background = false) { keptLatch.get().countDown() }
+            val bothReceived = keptLatch.get().await(10, java.util.concurrent.TimeUnit.SECONDS) && removedReceived.get() > 0
+            removedSub.unsubscribe()
+            Thread.sleep(500)
+            removedReceived.set(0)
+            keptLatch.set(java.util.concurrent.CountDownLatch(1))
+            val triggerSub = sharedPush.subscribe("e2e-trigger", background = false) { }
+            val keptReceived = keptLatch.get().await(10, java.util.concurrent.TimeUnit.SECONDS)
+            Thread.sleep(500)
+            writeToFile(
+                if (bothReceived && keptReceived && removedReceived.get() == 0) {
+                    "Push shared topic unsubscribe:passed"
+                } else {
+                    "Push shared topic unsubscribe:failed"
+                },
+            )
+            triggerSub.unsubscribe()
+            keptSub.unsubscribe()
+            sharedPush.close()
         }
 
         val cookieUri = java.net.URI("https://cloud.appwrite.io/v1")
