@@ -232,8 +232,11 @@ func (g *googleCloud) missingPermissions(projectID string) ([]string, error) {
 
 func (g *googleCloud) enableServices(projectID string) error {
 	var operation struct {
-		Name string `json:"name"`
-		Done bool   `json:"done"`
+		Name  string `json:"name"`
+		Done  bool   `json:"done"`
+		Error *struct {
+			Message string `json:"message"`
+		} `json:"error"`
 	}
 	path := "/v1/projects/" + url.PathEscape(projectID) + "/services:batchEnable"
 	if err := g.call("POST", "serviceusage", path, projectID, map[string]any{"serviceIds": fcmProvisionServices}, &operation); err != nil {
@@ -244,6 +247,12 @@ func (g *googleCloud) enableServices(projectID string) error {
 		if err := g.call("GET", "serviceusage", "/v1/"+operation.Name, projectID, nil, &operation); err != nil {
 			return err
 		}
+	}
+	if operation.Error != nil {
+		return errors.New(operation.Error.Message)
+	}
+	if !operation.Done && operation.Name != "" {
+		return errors.New("Google is still enabling the APIs")
 	}
 
 	return nil
@@ -316,6 +325,7 @@ func (g *googleCloud) grantSenderRole(projectID, email string) error {
 			return err
 		}
 		policy = withRoleMember(policy, fcmSenderRole, member)
+		policy["version"] = 3
 		err = g.call("POST", "crm", base+":setIamPolicy", projectID, map[string]any{"policy": policy}, nil)
 		if err == nil || !isGoogleNotFoundYet(err) {
 			return err
@@ -350,8 +360,8 @@ func withRoleMember(policy map[string]any, role, member string) map[string]any {
 	return policy
 }
 
-func (g *googleCloud) deleteKey(name string) error {
-	return g.call("DELETE", "iam", "/v1/"+name, "", nil, nil)
+func (g *googleCloud) deleteKey(projectID, name string) error {
+	return g.call("DELETE", "iam", "/v1/"+name, projectID, nil, nil)
 }
 
 type googleIdentity struct {
@@ -459,6 +469,16 @@ func (s *pushSetup) provisionFCM(projectID string, before func(string) error) (m
 		google = s.newGoogleCloud(token)
 		projects, err = google.firebaseProjects()
 	}
+	if isGoogleServiceDisabled(err) {
+		var apiError *googleAPIError
+		errors.As(err, &apiError)
+		message := "could not list your Firebase projects: Google sign-in on this Appwrite server needs the Firebase Management API enabled in the server's Google Cloud project"
+		if apiError.HelpURL != "" {
+			message += ". An administrator can enable it at " + apiError.HelpURL
+		}
+
+		return nil, nil, errors.New(message)
+	}
 	if err != nil {
 		return nil, nil, describeGoogleFailure("list your Firebase projects", err)
 	}
@@ -476,6 +496,11 @@ func (s *pushSetup) provisionFCM(projectID string, before func(string) error) (m
 		}
 	}
 
+	output.Log(s.out, "Enabling the Firebase Cloud Messaging, IAM and Cloud Resource Manager APIs in %s ...", project.ProjectID)
+	if err := google.enableServices(project.ProjectID); err != nil {
+		output.Warn(s.out, "Could not enable the APIs (%s). Continuing in case they are already on.", err)
+	}
+
 	missing, err := google.missingPermissions(project.ProjectID)
 	if err != nil {
 		return nil, nil, describeGoogleFailure("check your permissions on "+project.ProjectID, err)
@@ -486,7 +511,6 @@ func (s *pushSetup) provisionFCM(projectID string, before func(string) error) (m
 	}
 
 	output.Log(s.out, "Creating a service account that can send messages in %s ...", project.ProjectID)
-	_ = google.enableServices(project.ProjectID)
 
 	name := "Appwrite FCM"
 	if label := strings.TrimSpace(project.DisplayName); label != "" {
@@ -502,7 +526,7 @@ func (s *pushSetup) provisionFCM(projectID string, before func(string) error) (m
 	output.Success(s.out, "Created service account %s and a key for it.", minted.email)
 
 	revoke := func() {
-		if err := google.deleteKey(minted.name); err != nil {
+		if err := google.deleteKey(project.ProjectID, minted.name); err != nil {
 			output.Warn(s.out, "Could not revoke the unused key for %s: %s", minted.email, err)
 		}
 	}
@@ -556,9 +580,9 @@ func describeGoogleFailure(action string, err error) error {
 	case isGoogleServiceDisabled(err):
 		var apiError *googleAPIError
 		errors.As(err, &apiError)
-		message := fmt.Sprintf("could not %s: a Google API this needs is disabled", action)
+		message := fmt.Sprintf("could not %s: a Google API this needs is disabled in the project", action)
 		if apiError.HelpURL != "" {
-			message += ". Enable it at " + apiError.HelpURL
+			message += ". Enable it at " + apiError.HelpURL + ", wait a minute, then run the command again"
 		}
 
 		return errors.New(message)
