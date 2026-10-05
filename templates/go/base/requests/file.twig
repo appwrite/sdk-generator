@@ -2,7 +2,7 @@
 	paramName := "{{ fileParameter.name }}"
 
 {% if (method | textResponse) %}
-	resp, err := srv.client.SingleUpload(path, headers, params, paramName)
+	resp, err := srv.client.SingleUpload(path, headers, params, paramName, "{{ method.method.value | caseUpper }}")
 	if err != nil {
 		return nil, err
 	}
@@ -21,7 +21,7 @@
 	}
 {% endif %}
 
-	resp, err := srv.client.FileUpload(path, headers, params, paramName, uploadId)
+	resp, err := srv.client.FileUpload(path, headers, params, paramName, uploadId, "{{ method.method.value | caseUpper }}")
 	if err != nil {
 		return nil, err
 	}

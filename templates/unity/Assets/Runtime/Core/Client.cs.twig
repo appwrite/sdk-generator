@@ -746,7 +746,8 @@ namespace {{ spec.info.title | caseUcfirst }}
             Func<Dictionary<string, object>, T>? converter,
             string paramName,
             string? idParamName = null,
-            Action<UploadProgress>? onProgress = null) where T : class
+            Action<UploadProgress>? onProgress = null,
+            string method = "POST") where T : class
         {
             if (string.IsNullOrEmpty(paramName))
                 throw new ArgumentException("Parameter name cannot be null or empty", nameof(paramName));
@@ -754,7 +755,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             if (!parameters.TryGetValue(paramName, out var value) || value == null)
             {
                 return await Call(
-                    method: "POST",
+                    method: method,
                     path,
                     new Dictionary<string, string>(headers)
                     {
@@ -837,7 +838,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                     };
 
                     return await Call(
-                        method: "POST",
+                        method: method,
                         path,
                         multipartHeaders,
                         multipartParameters,
@@ -919,7 +920,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                     };
 
                     result = await Call<Dictionary<string, object?>>(
-                        method: "POST",
+                        method: method,
                         path,
                         chunkHeaders,
                         chunkParameters
