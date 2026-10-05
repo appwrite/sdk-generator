@@ -124,7 +124,7 @@ func CreateTarGzFiles(path, directory string, files []string) error {
 	writer := tar.NewWriter(compressed)
 
 	for _, file := range files {
-		if err := appendFile(writer, directory, file); err != nil {
+		if err := appendFile(writer, directory, file, 0); err != nil {
 			writer.Close()
 			compressed.Close()
 
@@ -142,8 +142,9 @@ func CreateTarGzFiles(path, directory string, files []string) error {
 	return target.Close()
 }
 
-// appendFile writes one regular file into an open tar stream.
-func appendFile(writer *tar.Writer, directory, name string) error {
+// appendFile writes one regular file into an open tar stream, with mode in
+// place of the file's own unless it is zero.
+func appendFile(writer *tar.Writer, directory, name string, mode int64) error {
 	source := filepath.Join(directory, filepath.FromSlash(name))
 
 	// Stat, not Lstat: a symlink is followed rather than recorded.
@@ -157,6 +158,9 @@ func appendFile(writer *tar.Writer, directory, name string) error {
 		return err
 	}
 	header.Name = name
+	if mode != 0 {
+		header.Mode = mode
+	}
 
 	if err := writer.WriteHeader(header); err != nil {
 		return err
@@ -211,6 +215,9 @@ func ReplaceTarGzFiles(path, directory string, files []string) error {
 	for _, file := range files {
 		replaced[file] = true
 	}
+	// A replaced source keeps the mode the build gave it, since a build step
+	// may have made it executable.
+	modes := make(map[string]int64, len(files))
 
 	reader := tar.NewReader(decompressed)
 	for {
@@ -222,7 +229,9 @@ func ReplaceTarGzFiles(path, directory string, files []string) error {
 			return err
 		}
 		// The runtime packs `.`, so its entries carry a `./` prefix.
-		if replaced[strings.TrimPrefix(header.Name, "./")] {
+		name := strings.TrimPrefix(header.Name, "./")
+		if replaced[name] {
+			modes[name] = header.Mode
 			continue
 		}
 
@@ -235,7 +244,7 @@ func ReplaceTarGzFiles(path, directory string, files []string) error {
 	}
 
 	for _, file := range files {
-		if err := appendFile(writer, directory, file); err != nil {
+		if err := appendFile(writer, directory, file, modes[file]); err != nil {
 			return err
 		}
 	}
