@@ -8,6 +8,7 @@ import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
 import io.appwrite.Channel
+import io.appwrite.Topic
 import io.appwrite.Query
 import io.appwrite.Operator
 import io.appwrite.Condition
@@ -21,6 +22,8 @@ import io.appwrite.models.RealtimeSubscriptionUpdate
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
+import io.appwrite.services.Plaintext
+import io.appwrite.services.Push
 import io.appwrite.services.Realtime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,6 +47,19 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 data class TestPayload(val response: String)
+
+// The app's PushReceiver in the background delivery test: records what reaches it and lets the
+// SDK post its notification too.
+class E2EPushReceiver : io.appwrite.services.PushReceiver() {
+    companion object {
+        val messages = java.util.concurrent.CopyOnWriteArrayList<String>()
+    }
+
+    override fun onMessage(context: android.content.Context, message: io.appwrite.services.PushMessage): Boolean {
+        messages.add(message.data)
+        return false
+    }
+}
 
 @Config(manifest=Config.NONE)
 @RunWith(AndroidJUnit4::class)
@@ -194,6 +210,18 @@ class ServiceTest {
             }
             writeToFile(general.validatePath("0", "0").result)
             writeToFile(general.validatePath("0", null).result)
+
+            val zone: String = Plaintext(client).getZone()
+            writeToFile(zone)
+            writeToFile(general.getMixed().result)
+            writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1"))
+            writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1", InputFile.fromPath("../../../../resources/file.png")))
+
+            val message = "conversation without a required file"
+            writeToFile(general.optionalUpload(message).result)
+            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../../resources/file.png")).result)
+            writeToFile(general.optionalUpload(message, metadata = mapOf("source" to "sdk", "uri" to "café")).result)
+            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../../resources/file.png"), mapOf("source" to "sdk", "uri" to "café")).result)
 
             try {
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../../resources/file.png"))
@@ -429,6 +457,30 @@ class ServiceTest {
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
 
+            // Topic helper tests
+            writeToFile(Topic.path(listOf("user", "123", "notification")).toString())
+            writeToFile(Topic.path(listOf("org", "42", "user", "123")).path(listOf("notification")).toString())
+            writeToFile(Topic.path(listOf("user")).any().path(listOf("notification")).toString())
+            writeToFile(Topic.path(listOf("chat")).any().any().path(listOf("message")).toString())
+            writeToFile(Topic.path(listOf("org")).any().path(listOf("logs")).all().toString())
+            writeToFile(Topic.any().path(listOf("notification")).toString())
+            writeToFile(Topic.all().toString())
+            val topicErrorCases = listOf(
+                "empty path" to emptyList<String>(),
+                "empty level" to listOf("user", ""),
+                "slash" to listOf("user/123"),
+                "plus" to listOf("user", "a+b"),
+                "hash" to listOf("user", "#"),
+            )
+            for ((name, levels) in topicErrorCases) {
+                try {
+                    Topic.path(levels)
+                    writeToFile("Topic $name:failed")
+                } catch (e: IllegalArgumentException) {
+                    writeToFile("Topic $name:passed")
+                }
+            }
+
             // Channel helper tests
             writeToFile(Channel.database("db1").collection("col1").document().toString())
             writeToFile(Channel.database("db1").collection("col1").document("doc1").toString())
@@ -493,6 +545,355 @@ class ServiceTest {
 
             mock = general.headers()
             writeToFile(mock.result)
+
+            // Native push (MQTT): subscribe, then the mock broker delivers a message
+            // (server-initiated, as in production — the SDK has no publish method).
+            client.setJWT("eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJlMmUtdXNlciJ9.e2e")
+            client.setPushEndpoint("mqtt://mqtt:1883")
+            val push = Push(client, ApplicationProvider.getApplicationContext())
+            val pushOpenLatch = java.util.concurrent.CountDownLatch(1)
+            push.onOpen { pushOpenLatch.countDown() }
+            val pushLatch = java.util.concurrent.CountDownLatch(1)
+            var pushBody = "Push message:failed"
+            var pushQos = "Push qos:failed"
+            val pushSub = push.subscribe(listOf(Topic.path(listOf("e2e-push")))) { message ->
+                if (message.data == "push-payload" && message.topic == "e2e-push") {
+                    pushBody = "Push message:passed"
+                }
+                if (message.qos == 1) {
+                    pushQos = "Push qos:passed"
+                }
+                pushLatch.countDown()
+            }
+            writeToFile("Push subscribe:passed")
+            writeToFile(
+                if (pushOpenLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                    "Push open:passed"
+                } else {
+                    "Push open:failed"
+                },
+            )
+            pushLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)
+            writeToFile(pushBody)
+            // reliableDelivery (default) => QoS 1 end to end.
+            writeToFile(pushQos)
+            pushSub.unsubscribe()
+            push.close()
+
+            // Topic-less subscribe: the signed-in user's own topic, users/<userId>. After each
+            // SUBSCRIBE the mock publishes to users/e2e-user, users/e2e-session-user and
+            // users/other-user, so a client passes only if it receives its own topic and nothing
+            // else (an over-broad users/+ or users/# subscription would also get the others).
+            val e2eSession = "eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0="
+            val userTopicsOf = { userClient: Client ->
+                val userPush = Push(userClient, ApplicationProvider.getApplicationContext())
+                val received = java.util.concurrent.CopyOnWriteArrayList<String>()
+                // The topic-less form defaults to background = true, which hands the connection to the
+                // foreground Service; Robolectric records a started Service without running it, so
+                // stay in-process here.
+                val userSub = userPush.subscribe(background = false) { message -> received.add(message.topic) }
+                Thread.sleep(3000)
+                userSub.unsubscribe()
+                userPush.close()
+                received.toList()
+            }
+            val onlyTopic = { received: List<String>, expected: String ->
+                received.isNotEmpty() && received.all { it == expected }
+            }
+            val pushClient = {
+                Client(ApplicationProvider.getApplicationContext())
+                    .setProject("console")
+                    .addHeader("Origin", "http://localhost")
+                    .setSelfSigned(true)
+                    .setPushEndpoint("mqtt://mqtt:1883")
+            }
+
+            // JWT and session both set: the JWT's user wins.
+            client.setSession(e2eSession)
+            val jwtTopics = userTopicsOf(client)
+            writeToFile(if (onlyTopic(jwtTopics, "users/e2e-user")) "Push user topic:passed" else "Push user topic:failed")
+
+            // Session only: the user id comes from the session secret.
+            val sessionTopics = userTopicsOf(pushClient().setSession(e2eSession))
+            writeToFile(
+                if (onlyTopic(sessionTopics, "users/e2e-session-user")) {
+                    "Push user session topic:passed"
+                } else {
+                    "Push user session topic:failed"
+                },
+            )
+
+            // No credential: a topic-less subscribe has no user to resolve and throws.
+            val anonymousPush = Push(pushClient(), ApplicationProvider.getApplicationContext())
+            val noCredentialRejected = try {
+                anonymousPush.subscribe { }
+                false
+            } catch (e: AppwriteException) {
+                // The credential error itself, not any failure (setup, connection, ...).
+                e.message?.contains("signed-in user") == true
+            }
+            anonymousPush.close()
+            writeToFile(if (noCredentialRejected) "Push user no credential:passed" else "Push user no credential:failed")
+
+            // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
+            // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
+            // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
+            val firstError = { errorPush: Push, topic: String ->
+                val errorLatch = java.util.concurrent.CountDownLatch(1)
+                val errorMessage = java.util.concurrent.atomic.AtomicReference("")
+                errorPush.onError { error ->
+                    if (errorMessage.compareAndSet("", error.message ?: "")) {
+                        errorLatch.countDown()
+                    }
+                }
+                try {
+                    errorPush.subscribe(topic) { }
+                } catch (e: Exception) {
+                }
+                errorLatch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+                errorPush.close()
+                errorMessage.get()
+            }
+            val deniedError = firstError(
+                Push(pushClient().setJWT("deny:refused-by-test"), ApplicationProvider.getApplicationContext()),
+                "e2e-push",
+            )
+            writeToFile(
+                if (deniedError == "refused-by-test") "Push connect error:passed" else "Push connect error:failed",
+            )
+            val kickedError = firstError(Push(client, ApplicationProvider.getApplicationContext()), "e2e-disconnect/kicked-by-test")
+            writeToFile(
+                if (kickedError == "kicked-by-test") {
+                    "Push disconnect error:passed"
+                } else {
+                    "Push disconnect error:failed"
+                },
+            )
+
+            val outcome = { block: () -> Unit ->
+                try {
+                    block()
+                    ""
+                } catch (e: Exception) {
+                    e.message ?: ""
+                }
+            }
+            val switchClient = pushClient().setSession(
+                android.util.Base64.encodeToString("{\"id\":\"e2e-switch-user\",\"secret\":\"e2e-secret\"}".toByteArray(), android.util.Base64.NO_WRAP),
+            )
+            val switchPush = Push(switchClient, ApplicationProvider.getApplicationContext())
+            switchPush.subscribe("e2e-switch") { }
+            switchClient.setJWT("deny:switched-user")
+            val switched = outcome { switchPush.subscribe("e2e-switch") { } }
+            switchPush.close()
+            writeToFile(if (switched == "switched-user") "Push credential switch:passed" else "Push credential switch:failed ($switched)")
+
+            val pendingClient = pushClient().setJWT("slow:pending")
+            val pendingPush = Push(pendingClient, ApplicationProvider.getApplicationContext())
+            val firstPending = java.util.concurrent.CompletableFuture.supplyAsync {
+                outcome { pendingPush.subscribe("e2e-switch") { } }
+            }
+            Thread.sleep(100)
+            pendingClient.setJWT("deny:switched-pending")
+            val secondPending = outcome { pendingPush.subscribe("e2e-switch") { } }
+            val firstPendingOutcome = runCatching { firstPending.get(10, java.util.concurrent.TimeUnit.SECONDS) }.getOrDefault("timeout")
+            pendingPush.close()
+            Thread.sleep(500)
+            writeToFile(
+                if (secondPending == "switched-pending" && firstPendingOutcome in listOf("", "switched-pending")) {
+                    "Push credential pending switch:passed"
+                } else {
+                    "Push credential pending switch:failed (first: $firstPendingOutcome, second: $secondPending)"
+                },
+            )
+
+            // Background delivery, used the way an app does: subscribe with background on and a
+            // PushReceiver declared, then the process dies, and the scheduled wake-up brings the
+            // next message to the receiver and a notification. Sign-out stops it.
+            val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+            val notifications = context.getSystemService(android.app.NotificationManager::class.java)
+            org.robolectric.Shadows.shadowOf(context.packageManager).addResolveInfoForIntent(
+                android.content.Intent("io.appwrite.push.MESSAGE").setPackage(context.packageName),
+                android.content.pm.ResolveInfo().apply {
+                    activityInfo = android.content.pm.ActivityInfo().apply {
+                        name = E2EPushReceiver::class.java.name
+                        packageName = context.packageName
+                    }
+                },
+            )
+            val backgroundPush = Push(pushClient().setSession(e2eSession), context)
+            val liveLatch = java.util.concurrent.CountDownLatch(1)
+            backgroundPush.subscribe("e2e-push", background = true, title = "E2E title") { message ->
+                if (message.data == "push-payload") {
+                    liveLatch.countDown()
+                }
+            }
+            writeToFile(
+                if (liveLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                    "Push background message:passed"
+                } else {
+                    "Push background message:failed"
+                },
+            )
+            val alarms = org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.AlarmManager::class.java))
+
+            // The process dies: callbacks and the connection are gone, only what was saved remains.
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            notifications.cancelAll()
+            E2EPushReceiver.messages.clear()
+            // Android fires the wake-up the SDK scheduled. This test runs without a manifest, so
+            // register the alarm's receiver the way the merged manifest declares it.
+            val wakeUp = alarms.nextScheduledAlarm?.operation
+            if (wakeUp != null) {
+                val wakeUpIntent = org.robolectric.Shadows.shadowOf(wakeUp).savedIntent
+                val receiver = Class.forName(wakeUpIntent.component!!.className).getDeclaredConstructor().newInstance()
+                val filter = android.content.IntentFilter(wakeUpIntent.action)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    context.registerReceiver(receiver as android.content.BroadcastReceiver, filter, android.content.Context.RECEIVER_NOT_EXPORTED)
+                } else {
+                    context.registerReceiver(receiver as android.content.BroadcastReceiver, filter)
+                }
+                wakeUp.send()
+            }
+            val deadline = System.currentTimeMillis() + 10_000
+            while ((E2EPushReceiver.messages.isEmpty() || org.robolectric.Shadows.shadowOf(notifications).allNotifications.isEmpty()) && System.currentTimeMillis() < deadline) {
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                Thread.sleep(100)
+            }
+            val posted = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()
+            val postedTitle = posted?.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
+            val postedText = posted?.extras?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
+            writeToFile(
+                if (E2EPushReceiver.messages.toList() == listOf("push-payload") && postedTitle == "E2E title" && postedText == "push-payload") {
+                    "Push background restore:passed"
+                } else {
+                    "Push background restore:failed (messages: ${E2EPushReceiver.messages.toList()}, title: $postedTitle, text: $postedText)"
+                },
+            )
+
+            // Sign-out: close() stops background delivery, including what the earlier run saved. When
+            // the app opens again afterwards (a new process, then a new Push), nothing is delivered.
+            Push(pushClient().setSession(e2eSession), context).close()
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            notifications.cancelAll()
+            E2EPushReceiver.messages.clear()
+            Push(pushClient().setSession(e2eSession), context)
+            Thread.sleep(3000)
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            writeToFile(
+                if (E2EPushReceiver.messages.isEmpty() && org.robolectric.Shadows.shadowOf(notifications).allNotifications.isEmpty()) {
+                    "Push background close:passed"
+                } else {
+                    "Push background close:failed"
+                },
+            )
+
+            // A refused credential reaches onError and stops background delivery: when the app opens
+            // again, nothing reconnects, so no second refusal arrives.
+            val refusedPush = Push(pushClient().setJWT("deny:refused-in-background"), context)
+            val refusedMessage = java.util.concurrent.atomic.AtomicReference("")
+            val refusedLatch = java.util.concurrent.CountDownLatch(1)
+            refusedPush.onError { error ->
+                if (refusedMessage.compareAndSet("", error.message ?: "")) {
+                    refusedLatch.countDown()
+                }
+            }
+            refusedPush.subscribe("e2e-push", background = true) { }
+            refusedLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)
+            Thread.sleep(500)
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            val laterErrors = java.util.concurrent.CopyOnWriteArrayList<String>()
+            Push(pushClient().setJWT("deny:refused-in-background"), context).onError { error -> laterErrors.add(error.message ?: "") }
+            Thread.sleep(3000)
+            writeToFile(
+                if (refusedMessage.get() == "refused-in-background" && laterErrors.isEmpty()) {
+                    "Push background refused:passed"
+                } else {
+                    "Push background refused:failed"
+                },
+            )
+            refusedPush.close()
+
+            // Opting out of a saved background subscription: after a restart, the app subscribes to
+            // the same topic with background off and then unsubscribes. When the app opens again,
+            // nothing arrives in the background.
+            Push(pushClient().setSession(e2eSession), context).subscribe("e2e-push", background = true, title = "E2E title") { }
+            Thread.sleep(2000)
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            Push(pushClient().setSession(e2eSession), context).subscribe("e2e-push", background = false) { }.unsubscribe()
+            Thread.sleep(1000)
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            notifications.cancelAll()
+            E2EPushReceiver.messages.clear()
+            val reopened = Push(pushClient().setSession(e2eSession), context)
+            Thread.sleep(3000)
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            writeToFile(
+                if (E2EPushReceiver.messages.isEmpty() && org.robolectric.Shadows.shadowOf(notifications).allNotifications.isEmpty()) {
+                    "Push background opt-out:passed"
+                } else {
+                    "Push background opt-out:failed"
+                },
+            )
+            reopened.close()
+
+            // Two in-process subscriptions on one topic share the broker filter, so unsubscribing
+            // one keeps the filter. Its callback must still stop: every SUBSCRIBE makes the mock
+            // publish to e2e-push, and only the remaining subscription may receive the next one.
+            val sharedPush = Push(pushClient().setSession(e2eSession), context)
+            val removedReceived = java.util.concurrent.atomic.AtomicInteger(0)
+            val keptLatch = java.util.concurrent.atomic.AtomicReference(java.util.concurrent.CountDownLatch(1))
+            val removedSub = sharedPush.subscribe("e2e-push", background = false) { removedReceived.incrementAndGet() }
+            val keptSub = sharedPush.subscribe("e2e-push", background = false) { keptLatch.get().countDown() }
+            val bothReceived = keptLatch.get().await(10, java.util.concurrent.TimeUnit.SECONDS) && removedReceived.get() > 0
+            removedSub.unsubscribe()
+            Thread.sleep(500)
+            removedReceived.set(0)
+            keptLatch.set(java.util.concurrent.CountDownLatch(1))
+            val triggerSub = sharedPush.subscribe("e2e-trigger", background = false) { }
+            val keptReceived = keptLatch.get().await(10, java.util.concurrent.TimeUnit.SECONDS)
+            Thread.sleep(500)
+            writeToFile(
+                if (bothReceived && keptReceived && removedReceived.get() == 0) {
+                    "Push shared topic unsubscribe:passed"
+                } else {
+                    "Push shared topic unsubscribe:failed"
+                },
+            )
+            triggerSub.unsubscribe()
+            keptSub.unsubscribe()
+            sharedPush.close()
+        }
+
+        val cookieUri = java.net.URI("https://cloud.appwrite.io/v1")
+        val cookieContext = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val savedPreferences = cookieContext.getSharedPreferences("e2e-cookies-saved", android.content.Context.MODE_PRIVATE)
+        savedPreferences.edit().clear().commit()
+        io.appwrite.cookies.stores.SharedPreferencesCookieStore(savedPreferences).add(
+            cookieUri,
+            java.net.HttpCookie("a_session_123456", "secret").apply {
+                domain = "cloud.appwrite.io"
+                path = "/"
+            },
+        )
+        writeToFile(cookieCheck("reload", io.appwrite.cookies.stores.SharedPreferencesCookieStore(savedPreferences).get(cookieUri)))
+
+        val legacyPreferences = cookieContext.getSharedPreferences("e2e-cookies-legacy", android.content.Context.MODE_PRIVATE)
+        legacyPreferences.edit().clear()
+            .putString(
+                "https://cloud.appwrite.io",
+                """[{"discard":false,"domain":"cloud.appwrite.io","httpOnly":false,"maxAge":-1,"name":"a_session_123456","path":"/","secure":false,"value":"secret","version":1}]""",
+            )
+            .commit()
+        writeToFile(cookieCheck("saved format", io.appwrite.cookies.stores.SharedPreferencesCookieStore(legacyPreferences).get(cookieUri)))
+    }
+
+    private fun cookieCheck(name: String, cookies: List<java.net.HttpCookie>): String {
+        val session = cookies.singleOrNull { it.name == "a_session_123456" }
+        return if (session?.value == "secret" && session.domain == "cloud.appwrite.io" && session.path == "/") {
+            "Cookie store $name:passed"
+        } else {
+            "Cookie store $name:failed ($cookies)"
         }
     }
 

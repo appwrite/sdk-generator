@@ -115,12 +115,12 @@ describe('Query', () => {
 
     test('isNull', () => assertEquals(
         Query.isNull('attr').toString(),
-        `{"method":"isNull","attribute":"attr","values":[]}`,
+        `{"method":"isNull","attribute":"attr"}`,
     ));
 
     test('isNotNull', () => assertEquals(
         Query.isNotNull('attr').toString(),
-        `{"method":"isNotNull","attribute":"attr","values":[]}`,
+        `{"method":"isNotNull","attribute":"attr"}`,
     ));
 
     describe('between', () => {
@@ -140,7 +140,7 @@ describe('Query', () => {
 
     test('select', () => assertEquals(
         Query.select(['attr1', 'attr2']).toString(),
-        `{"method":"select","attribute":["attr1","attr2"]}`,
+        `{"method":"select","values":["attr1","attr2"]}`,
     ));
 
     test('orderAsc', () => assertEquals(
@@ -160,12 +160,12 @@ describe('Query', () => {
 
     test('cursorBefore', () => assertEquals(
         Query.cursorBefore('attr').toString(),
-        `{"method":"cursorBefore","attribute":"attr"}`,
+        `{"method":"cursorBefore","values":["attr"]}`,
     ));
 
     test('cursorAfter', () => assertEquals(
         Query.cursorAfter('attr').toString(),
-        `{"method":"cursorAfter","attribute":"attr"}`,
+        `{"method":"cursorAfter","values":["attr"]}`,
     ));
 
     test('limit', () => assertEquals(

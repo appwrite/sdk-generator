@@ -214,6 +214,11 @@ class Rust extends Language
             ],
             [
                 "scope" => "default",
+                "destination" => "src/topic.rs",
+                "template" => "rust/src/topic.rs.twig",
+            ],
+            [
+                "scope" => "default",
                 "destination" => "src/operator.rs",
                 "template" => "rust/src/operator.rs.twig",
             ],
@@ -318,67 +323,6 @@ class Rust extends Language
     public function getArrayOf(string $elements): string
     {
         return 'vec![' . $elements . ']';
-    }
-
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type = $this->getSchemaType($param);
-        $default = $this->getSchemaDefault($param);
-        $required = $param instanceof Parameter && $param->required;
-
-        if ($required) {
-            return "";
-        }
-
-        $output = " = ";
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= "0";
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= "false";
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "String::new()";
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= "serde_json::Value::Null";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= "Vec::new()";
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "InputFile::default()";
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= $default;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= $default ? "true" : "false";
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "String::from(\"" . addslashes((string) $default) . "\")";
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= "serde_json::Value::Null";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= "Vec::new()";
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "InputFile::default()";
-                    break;
-            }
-        }
-
-        return $output;
     }
 
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
@@ -518,9 +462,13 @@ class Rust extends Language
 
     protected function getReturnType(Operation $method, Specification $spec): string
     {
+        if ($this->isTextResponse($method, $spec)) {
+            return 'crate::error::Result<String>';
+        }
+
         return match ($this->getMethodType($method, $spec)) {
-            'webAuth' => 'crate::error::Result<String>',
-            'location' => 'crate::error::Result<Vec<u8>>',
+            Language::METHOD_TYPE_WEB_AUTH => 'crate::error::Result<String>',
+            Language::METHOD_TYPE_LOCATION => 'crate::error::Result<Vec<u8>>',
             default => $this->getResponseReturnType($method),
         };
     }

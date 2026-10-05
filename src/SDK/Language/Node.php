@@ -65,8 +65,8 @@ class Node extends Web
     public function getReturn(Operation $method, Specification $spec): string
     {
         return match ($this->getMethodType($method, $spec)) {
-            'webAuth' => 'Promise<string>',
-            'location' => 'Promise<ArrayBuffer>',
+            self::METHOD_TYPE_WEB_AUTH => 'Promise<string>',
+            self::METHOD_TYPE_LOCATION => 'Promise<ArrayBuffer>',
             default => parent::getReturn($method, $spec),
         };
     }
@@ -155,8 +155,18 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/topic.test.js',
+                'template'      => 'node/test/topic.test.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/id.ts',
                 'template'      => 'web/src/id.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/topic.ts',
+                'template'      => 'web/src/topic.ts.twig',
             ],
             [
                 'scope'         => 'default',

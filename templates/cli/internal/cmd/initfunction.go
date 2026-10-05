@@ -958,19 +958,8 @@ func getStarterFunctionTemplate(api *client.Client, runtime string) (starterFunc
 var errNoGitHubInstallation = errors.New("no GitHub installation is connected to this project")
 
 func githubInstallationSetupURL(endpoint, projectID string) string {
-	base := consoleBaseURL(config.NormalizeCloudConsoleEndpoint(endpoint))
-	region := endpointRegion(endpoint)
-	if region != "" {
-		return fmt.Sprintf("%s/console/project-%s-%s/settings",
-			base, region, url.PathEscape(projectID))
-	}
-	if _, cloud := config.CloudBaseHost(endpoint); cloud {
-		return fmt.Sprintf("%s/console/project-%s/settings",
-			base, url.PathEscape(projectID))
-	}
-
-	return fmt.Sprintf("%s/console/project-default-%s/settings",
-		base, url.PathEscape(projectID))
+	return fmt.Sprintf("%s/projects/%s/settings",
+		consoleBaseURL(endpoint), url.PathEscape(projectID))
 }
 
 func githubInstallationDescription(setupURL string) string {

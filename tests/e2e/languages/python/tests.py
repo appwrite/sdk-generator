@@ -2,12 +2,14 @@ from appwrite.client import Client
 from appwrite.services.foo import Foo
 from appwrite.services.bar import Bar
 from appwrite.services.general import General
+from appwrite.services.plaintext import Plaintext
 from appwrite.exception import AppwriteException
 from appwrite.input_file import InputFile
 from appwrite.query import Query
 from appwrite.permission import Permission
 from appwrite.role import Role
 from appwrite.id import ID
+from appwrite.topic import Topic
 from appwrite.operator import Operator, Condition
 from appwrite.enums.mock_type import MockType
 from appwrite.models.player import Player
@@ -113,6 +115,21 @@ for id, plain in [('', '0'), ('0', '')]:
     except AppwriteException as error:
         print(error.message)
 print(general.validate_path('0', '0').result)
+
+zone = Plaintext(client).get_zone()
+if not isinstance(zone, str):
+    raise AssertionError(f'Expected zone text as str, got {type(zone).__name__}')
+print(zone)
+print(general.get_mixed().result)
+print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1'))
+print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1', InputFile.from_path('./tests/resources/file.png')))
+
+message = 'conversation without a required file'
+print(general.optional_upload(message).result)
+attachment = InputFile.from_path('./tests/resources/file.png')
+print(general.optional_upload(message, attachment).result)
+print(general.optional_upload(message, metadata={'source': 'sdk', 'uri': 'café'}).result)
+print(general.optional_upload(message, InputFile.from_path('./tests/resources/file.png'), {'source': 'sdk', 'uri': 'café'}).result)
 
 response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png'))
 print(response.result)
@@ -275,6 +292,27 @@ print(Permission.create(Role.label('admin')))
 # ID helper tests
 print(ID.unique())
 print(ID.custom('custom_id'))
+
+# Topic helper tests
+print(Topic.path(['user', '123', 'notification']))
+print(Topic.path(['org', '42', 'user', '123']).path(['notification']))
+print(Topic.path(['user']).any().path(['notification']))
+print(Topic.path(['chat']).any().any().path(['message']))
+print(Topic.path(['org']).any().path(['logs']).all())
+print(Topic.any().path(['notification']))
+print(Topic.all())
+for name, levels in [
+    ('empty path', []),
+    ('empty level', ['user', '']),
+    ('slash', ['user/123']),
+    ('plus', ['user', 'a+b']),
+    ('hash', ['user', '#']),
+]:
+    try:
+        Topic.path(levels)
+        print(f'Topic {name}:failed')
+    except ValueError:
+        print(f'Topic {name}:passed')
 
 # Operator helper tests
 print(Operator.increment())

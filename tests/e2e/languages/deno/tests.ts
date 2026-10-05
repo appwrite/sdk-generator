@@ -116,6 +116,24 @@ async function start() {
   response = await general.validatePath("0", "0");
   console.log(response.result);
 
+  const zone = await new appwrite.Plaintext(client).getZone();
+  if (typeof zone !== "string") {
+    throw new Error(`Unexpected zone type: ${typeof zone}`);
+  }
+  console.log(zone);
+  console.log((await general.getMixed()).result);
+
+  const plaintext = new appwrite.Plaintext(client);
+  console.log(await plaintext.importZone("www 3600 IN A 192.0.2.1"));
+  console.log(await plaintext.importZone("www 3600 IN A 192.0.2.1", appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png")));
+
+  const message = "conversation without a required file";
+  console.log((await general.optionalUpload(message)).result);
+  console.log((await general.optionalUpload(message, undefined)).result);
+  console.log((await general.optionalUpload(message, appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png"))).result);
+  console.log((await general.optionalUpload(message, undefined, { source: "sdk", uri: "café" })).result);
+  console.log((await general.optionalUpload(message, appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png"), { source: "sdk", uri: "café" })).result);
+
   response = await general.upload(
     "string",
     123,

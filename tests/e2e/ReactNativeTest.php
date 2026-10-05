@@ -29,8 +29,10 @@ final class ReactNativeTest extends Base
         'cp tests/e2e/languages/react-native/index.html tests/e2e/sdks/react-native/index.html',
         'cp tests/e2e/languages/react-native/browser.js tests/e2e/sdks/react-native/browser.js',
         'cp tests/e2e/languages/react-native/rollup.test.config.mjs tests/e2e/sdks/react-native/rollup.test.config.mjs',
-        'mkdir -p tests/e2e/sdks/react-native/shims && cp tests/e2e/languages/react-native/shims/expo-file-system.js tests/e2e/sdks/react-native/shims/expo-file-system.js',
-        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/react-native mcr.microsoft.com/playwright:v1.59.0-jammy sh -c "npm install && npm install --no-save react-native-web react react-dom @rollup/plugin-alias @rollup/plugin-commonjs @rollup/plugin-node-resolve @rollup/plugin-replace"',
+        'mkdir -p tests/e2e/sdks/react-native/shims && cp tests/e2e/languages/react-native/shims/*.js tests/e2e/sdks/react-native/shims/',
+        'cp tests/resources/file.png tests/resources/large_file.mp4 tests/e2e/sdks/react-native/',
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/react-native mcr.microsoft.com/playwright:v1.59.0-jammy sh -c "npm install && npm install --no-save esbuild expo@57 react-native-web react react-dom @rollup/plugin-alias @rollup/plugin-commonjs @rollup/plugin-node-resolve @rollup/plugin-replace"',
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/react-native mcr.microsoft.com/playwright:v1.59.0-jammy sh -c "npx esbuild node_modules/expo/src/winter/FormData.ts node_modules/expo/src/winter/fetch/RequestUtils.ts --bundle --format=esm --outbase=node_modules/expo/src --outdir=shims/expo"',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/react-native mcr.microsoft.com/playwright:v1.59.0-jammy sh -c "npx rollup -c rollup.test.config.mjs"',
     ];
 
@@ -49,7 +51,15 @@ final class ReactNativeTest extends Base
         ...Base::ARRAY_PARAMETER_RESPONSES,
         ...Base::STRING_LIST_VALIDATION_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
+        ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
+        ...Base::OPTIONAL_UPLOAD_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
+        ...Base::UPLOAD_RESPONSE,
+        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::UPLOAD_RESPONSE, // Object params
+        ...Base::LARGE_FILE_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
         ...Base::OPTIONAL_PARAM_RESPONSES,
@@ -58,6 +68,7 @@ final class ReactNativeTest extends Base
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
+        ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::CHANNEL_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES,
     ];

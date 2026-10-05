@@ -115,7 +115,7 @@ func New{{ service.name | caseUcfirst }}RootCommands() []*cobra.Command {
 
 func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }}Command() *cobra.Command {
 {% for parameter in (method | parameters('all')) %}
-{% set opt = getCliOption(parameter) %}
+{% set opt = getCliOption(parameter, service) %}
 	var {{ opt.var }} {{ opt.goType }}
 {% endfor %}
 {% if query.hasQueries %}
@@ -280,7 +280,7 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
    with no arguments after it reading `Method(id, )`, which compiles but is not
    what anyone would write. #}
 {% set callArguments = query.hasQueries ? ['queries'] : [] %}
-{% for parameter in (method | parameters('all')) %}{% set callArguments = callArguments|merge([getGoVarName(parameter)]) %}{% endfor %}
+{% for parameter in (method | parameters('all')) %}{% set callArguments = callArguments|merge([getGoVarName(parameter, service)]) %}{% endfor %}
 			result, err := service.{{ plan.method }}({{ callArguments|join(', ') }})
 {% else %}
 {% set callArguments = [] %}
@@ -310,7 +310,7 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 	}
 
 {% for parameter in (method | parameters('all')) %}
-{% set opt = getCliOption(parameter) %}
+{% set opt = getCliOption(parameter, service) %}
 	cmd.Flags().{{ opt.register }}Var(&{{ opt.var }}, "{{ opt.flag }}", {% if opt.goType == '[]string' %}nil{% elseif opt.goType == 'bool' %}false{% elseif opt.goType == 'int' %}0{% elseif opt.goType == 'float64' %}0{% else %}""{% endif %}, {{ cliParameterDescription(parameter, method, service) | stripMarkdown | goString | raw }})
 {% if opt.noOptDefault %}
 	cmd.Flags().Lookup("{{ opt.flag }}").NoOptDefVal = "{{ opt.noOptDefault }}"

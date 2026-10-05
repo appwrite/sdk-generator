@@ -4,12 +4,14 @@ const {
     Query,
     Role,
     ID,
+    Topic,
     Operator,
     Condition,
     MockType,
     Foo,
     Bar,
     General,
+    Plaintext,
     AppwriteException
 } = require('./dist/index.js');
 const { InputFile } = require('./dist/inputFile.js');
@@ -186,6 +188,40 @@ async function start() {
 
     response = await general.getPath({ pathId: 'grant/special&id' });
     console.log(response.result);
+
+    const zone = await new Plaintext(client).getZone();
+    if (typeof zone !== 'string') {
+        throw new Error(`Unexpected zone type: ${typeof zone}`);
+    }
+    console.log(zone);
+    console.log((await general.getMixed()).result);
+
+    const plaintext = new Plaintext(client);
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1'));
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1', InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png')));
+
+    // Optional multipart attachment: positional and object overloads.
+    const message = 'conversation without a required file';
+    for (const send of [
+        () => general.optionalUpload(message),
+        () => general.optionalUpload(message, undefined),
+        () => general.optionalUpload({ message }),
+        () => general.optionalUpload({ message, attachment: undefined }),
+        () => general.optionalUpload(message, InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png')),
+        () => general.optionalUpload({ message, attachment: InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png') }),
+    ]) {
+        console.log((await send()).result);
+    }
+    try {
+        await general.upload('string', 123, ['string in array']);
+        throw new Error('Missing required file was accepted');
+    } catch (error) {
+        if (!(error instanceof AppwriteException)) throw error;
+        console.log('required-file:rejected');
+    }
+
+    console.log((await general.optionalUpload({ message, metadata: { source: 'sdk', uri: 'café' } })).result);
+    console.log((await general.optionalUpload({ message, attachment: InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png'), metadata: { source: 'sdk', uri: 'café' } })).result);
 
     // Upload
     response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png'));
@@ -403,6 +439,29 @@ async function start() {
     // ID helper tests
     console.log(ID.unique());
     console.log(ID.custom('custom_id'));
+
+    // Topic helper tests
+    console.log(Topic.path(['user', '123', 'notification']).toString());
+    console.log(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
+    console.log(Topic.path(['user']).any().path(['notification']).toString());
+    console.log(Topic.path(['chat']).any().any().path(['message']).toString());
+    console.log(Topic.path(['org']).any().path(['logs']).all().toString());
+    console.log(Topic.any().path(['notification']).toString());
+    console.log(Topic.all().toString());
+    for (const [name, levels] of [
+        ['empty path', []],
+        ['empty level', ['user', '']],
+        ['slash', ['user/123']],
+        ['plus', ['user', 'a+b']],
+        ['hash', ['user', '#']],
+    ]) {
+        try {
+            Topic.path(levels);
+            console.log(`Topic ${name}:failed`);
+        } catch (e) {
+            console.log(`Topic ${name}:passed`);
+        }
+    }
 
     // Operator helper tests
     console.log(Operator.increment(1));

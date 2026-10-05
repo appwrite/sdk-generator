@@ -34,6 +34,13 @@
       "version": "9.0.6",
       "source": "lib/netstandard2.0/System.Text.Json.dll",
       "sha256": "bf1f8a674d9bb26bc7af4cefc2936bf4bda637dc9d3b71d6ca77c0b6a254fa83"
+    },
+    {
+      "file": "MQTTnet.dll",
+      "package": "MQTTnet",
+      "version": "4.3.7.1207",
+      "source": "lib/netstandard2.0/MQTTnet.dll",
+      "sha256": "78237a3902e2ae885cbc843f9996dfb40c4926ee9a40476ff3882e2e00c5997d"
     }
   ]
 }

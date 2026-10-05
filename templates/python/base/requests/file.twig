@@ -27,6 +27,9 @@
             param_name,
             on_progress,
             upload_id,
+{% if (method | textResponse) %}
+            response_type='text',
+{% endif %}
         )
 {% if (method | responseModels)|length > 1 %}
 {% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}

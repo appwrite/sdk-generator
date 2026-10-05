@@ -14,6 +14,7 @@
             },
             api_params,
 {% if (method | methodType) == 'webAuth' %}            response_type='location',
+{% elseif (method | textResponse) %}            response_type='text',
 {% endif %}        )
 {% if (method | methodType) == 'location' %}
 {# Signature says bytes. A responseModel may still be declared, but hydrating it would call to_dict() on the body. #}
